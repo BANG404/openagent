@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.0-beta.1] - 2026-07-27
+
+### Features
+- **chat**: Add responsive two-column messages
+- **remote**: Align remote chat with desktop UI
+
+### Bug Fixes
+- **chat**: Keep thinking toggle interactive in columns
+- **chat**: Paginate expanded thinking text
+- **chat**: Keep interactive pagination atoms intact
+- **chat**: Paginate wide responses by rendered content
+- **remote**: Show skeleton while switching conversations
+- **remote**: Restore branded new chat state
+- **remote**: Enable mention suggestions
+- **chat**: Improve mention palette loading
+- **remote**: Sync flash-generated titles
+
+### Styling
+- **settings**: Unify configuration page backgrounds
+
+### Miscellaneous
+- **assets**: Remove obsolete openagent_icon_source.png
+- **assets**: Remove unused openagent.png
+- **repo**: Reset public history
+
 ## [0.24.1-beta.8] - 2026-07-27
 
 ### Miscellaneous
