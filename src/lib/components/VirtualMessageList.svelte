@@ -279,10 +279,19 @@
     contain-intrinsic-size: none;
   }
 
-  .virtual-message-row.content-columns > :global(.message-record:not(.assistant-msg)),
+  .virtual-message-row.content-columns > :global(.message-record:not(.assistant-msg):not(.thinking-block)),
   .virtual-message-row.content-columns :global(.pagination-atom),
   .virtual-message-row.content-columns > :global(.thinking-status) {
     break-inside: avoid-column;
+  }
+
+  .virtual-message-row.content-columns :global(.thinking-block),
+  .virtual-message-row.content-columns :global(.thinking-block pre) {
+    break-inside: auto;
+  }
+
+  .virtual-message-row.content-columns :global(.thinking-block summary) {
+    break-after: avoid-column;
   }
 
   .virtual-message-row.content-columns :global(details),

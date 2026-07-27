@@ -94,7 +94,7 @@
   </div>
 {:else if item.type === "thinking"}
   <details
-    class="thinking-block stream-item message-record pagination-atom"
+    class="thinking-block stream-item message-record"
     id={messageId ? `message-${messageId}` : undefined}
     data-message-id={messageId}
     data-stream-item={itemKey}
