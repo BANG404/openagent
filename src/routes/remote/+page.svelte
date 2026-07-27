@@ -57,6 +57,7 @@
     type RemoteWorkspace,
   } from "$lib/openagent";
   import { HttpTransport } from "$lib/openagent/httpTransport";
+  import { randomUuid } from "$lib/uuid";
 
   type Screen = "loading" | "pair" | "chat";
   const client = new OpenAgentClient(new HttpTransport());
@@ -581,8 +582,8 @@
     const submittedText = text;
     try {
       const convId = conversation?.conv_id ?? await createConversation();
-      const userMessageId = crypto.randomUUID();
-      const assistantMessageId = crypto.randomUUID();
+      const userMessageId = randomUuid();
+      const assistantMessageId = randomUuid();
       optimisticUser = {
         id: userMessageId,
         role: "user",
@@ -656,8 +657,8 @@
 
     busy = true;
     error = "";
-    const userMessageId = crypto.randomUUID();
-    const assistantMessageId = crypto.randomUUID();
+    const userMessageId = randomUuid();
+    const assistantMessageId = randomUuid();
     forkDisplayMessages = projectedMessages.slice(0, userMessageIndex);
     optimisticUser = {
       id: userMessageId,
