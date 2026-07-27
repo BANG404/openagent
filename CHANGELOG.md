@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.24.2-beta.1] - 2026-07-27
+
+### Bug Fixes
+- **remote**: Enable mention suggestions
+- **chat**: Improve mention palette loading
+- **remote**: Sync flash-generated titles
+
+### Styling
+- **settings**: Unify configuration page backgrounds
+
+### Miscellaneous
+- **repo**: Reset public history
+
 ## [0.24.1-beta.8] - 2026-07-27
 
 ### Miscellaneous
