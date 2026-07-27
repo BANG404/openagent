@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.1-beta.1] - 2026-07-27
+
+### Bug Fixes
+- **remote**: Provide packaged frontend assets
+
 ## [0.25.0-beta.1] - 2026-07-27
 
 ### Features
