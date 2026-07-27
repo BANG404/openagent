@@ -16,19 +16,22 @@ and workspace allowlisting remain HTTP-adapter policy rather than runtime state.
 
 1. Open **Settings → General → Remote Gateway**.
 2. Enable remote web control and explicitly allow the current workspace.
-3. Put a trusted HTTPS tunnel or reverse proxy in front of
-   `http://127.0.0.1:32123/remote`.
-4. Open the HTTPS URL on the remote device and enter the one-time pairing code
+3. For a trusted local network, enable **Allow direct LAN access** and open the
+   LAN URL shown in Settings. For access outside that network, put a trusted HTTPS
+   tunnel or reverse proxy in front of `http://127.0.0.1:32123/remote`.
+4. Open the selected URL on the remote device and enter the one-time pairing code
    shown in Settings.
 
-The gateway deliberately binds only to loopback. Do not expose port `32123`
-directly through router port forwarding. The proxy must preserve same-origin
+Direct LAN access is disabled by default and should only be enabled on trusted
+networks. Do not expose port `32123` through router port forwarding. A proxy
+must preserve same-origin
 requests and should set `X-Forwarded-Proto: https` so the session cookie is
 marked `Secure`.
 
 ## Security model
 
 - Remote access is disabled by default.
+- Direct LAN requests are rejected unless LAN access is explicitly enabled.
 - Workspaces are an explicit allowlist. The HTTP API uses opaque workspace IDs
   and never accepts filesystem paths from the browser.
 - A pairing code can be tried at most five times per minute and rotates after a

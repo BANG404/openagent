@@ -352,6 +352,7 @@ let newConversationLayout = $derived(
     memory_retrieval_enabled: true,
     remote_gateway: {
       enabled: false,
+      allow_lan_access: false,
       allowed_workspaces: [],
     },
   };

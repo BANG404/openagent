@@ -141,6 +141,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
     fetch,
     remote_gateway: {
       enabled: input.remote_gateway?.enabled ?? false,
+      allow_lan_access: input.remote_gateway?.allow_lan_access ?? false,
       allowed_workspaces: input.remote_gateway?.allowed_workspaces ?? [],
     },
     flash_agents,

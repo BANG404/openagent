@@ -434,6 +434,7 @@ export interface FetchConfig {
 
 export interface RemoteGatewayConfig {
   enabled: boolean;
+  allow_lan_access: boolean;
   allowed_workspaces: string[];
 }
 

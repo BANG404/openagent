@@ -31,6 +31,7 @@
   type RemoteGatewayStatus = {
     enabled: boolean;
     url: string;
+    lan_url: string | null;
     pairing_code: string;
   };
   const approvalModeDescriptionKey = {
@@ -122,6 +123,7 @@
     },
     remote_gateway: {
       enabled: false,
+      allow_lan_access: false,
       allowed_workspaces: [],
     },
   };
@@ -172,7 +174,7 @@
   let remoteGatewayStatus = $state<RemoteGatewayStatus | null>(null);
   let remoteGatewayMessage = $state("");
   let remoteGatewayBusy = $state(false);
-  let copiedRemoteValue = $state<"url" | "code" | null>(null);
+  let copiedRemoteValue = $state<"url" | "lan" | "code" | null>(null);
   let remoteCopyTimer: ReturnType<typeof setTimeout> | null = null;
   let draggedRetryQueue = $state<{ kind: RetryQueueKind; index: number } | null>(null);
   let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -319,7 +321,7 @@
     }
   }
 
-  async function copyRemoteGatewayValue(value: string, kind: "url" | "code") {
+  async function copyRemoteGatewayValue(value: string, kind: "url" | "lan" | "code") {
     try {
       await navigator.clipboard.writeText(value);
       copiedRemoteValue = kind;
@@ -1171,6 +1173,16 @@
             </div>
             <div class="remote-gateway-toggle-row remote-gateway-workspace-row">
               <div class="remote-gateway-icon workspace" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 17a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4"/><circle cx="12" cy="7" r="3"/><path d="M2 11a10 10 0 0 1 20 0"/></svg>
+              </div>
+              <div class="startup-copy">
+                <span class="label-text">{$t('remoteGatewayLanAccess')}</span>
+                <p class="detail-hint">{$t('remoteGatewayLanAccessHint')}</p>
+              </div>
+              <Switch bind:checked={draftConfig.remote_gateway.allow_lan_access} ariaLabel={$t('remoteGatewayLanAccess')} />
+            </div>
+            <div class="remote-gateway-toggle-row remote-gateway-workspace-row">
+              <div class="remote-gateway-icon workspace" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3.5 6.5h6l2 2h9v9.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>
               </div>
               <div class="startup-copy">
@@ -1191,6 +1203,15 @@
                   {copiedRemoteValue === 'url' ? $t('remoteGatewayCopied') : $t('copy')}
                 </button>
               </div>
+              {#if draftConfig.remote_gateway.allow_lan_access && remoteGatewayStatus.lan_url}
+                <div class="remote-credential-row">
+                  <div class="remote-credential-copy">
+                    <span class="remote-credential-label">{$t('remoteGatewayLanUrl')}</span>
+                    <code>{remoteGatewayStatus.lan_url}</code>
+                  </div>
+                  <button class="remote-credential-action" onclick={() => copyRemoteGatewayValue(remoteGatewayStatus?.lan_url ?? "", "lan")}>{copiedRemoteValue === 'lan' ? $t('remoteGatewayCopied') : $t('copy')}</button>
+                </div>
+              {/if}
               <div class="remote-credential-row pairing">
                 <div class="remote-credential-copy">
                   <span class="remote-credential-label">{$t('remoteGatewayPairingCode')}</span>
