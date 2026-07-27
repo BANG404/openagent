@@ -50,7 +50,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc0QTEwOTMwMUVCQkNFQTgKUldTb3pyc2VNQW1oZEFaazFiSGprbWVtRkJDM0l4aTFmc3Y5KzdNSzVtRnBRNlhxT3VZRjlQSDUK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMzNzMyODRGQ0Y5NjU2QTAKUldTZ1ZwYlBUeWh6dzQ2SUxMNHZCYmpnNFh1ZUhGeEtoVGs0OERDR3FBVC9JZkU1dlN5QkRTR2wK",
       "endpoints": [
         "https://github.com/BANG404/openagent/releases/download/beta/latest.json"
       ],
