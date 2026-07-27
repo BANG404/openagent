@@ -147,6 +147,12 @@
     justify-content: center;
     gap: 0;
     padding: 0;
+    color: var(--text-muted);
+  }
+  :global(.role-selector-trigger.compact:hover),
+  :global(.role-selector-trigger.compact:focus-visible),
+  :global(.role-selector-trigger.compact[data-state="open"]) {
+    color: var(--text);
   }
   :global(.role-selector-trigger.header) {
     min-width: 0;
