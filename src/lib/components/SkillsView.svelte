@@ -472,7 +472,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    background: var(--surface);
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
     height: 48px;
     flex-shrink: 0;
@@ -611,7 +611,7 @@
     gap: 6px;
     padding: 8px;
     border-top: 1px solid var(--border);
-    background: var(--sidebar-bg);
+    background: var(--bg);
   }
 
   .skill-footer-btn {
@@ -749,7 +749,7 @@
     gap: 8px;
     padding: 0 16px;
     height: 36px;
-    background: var(--surface);
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
   }

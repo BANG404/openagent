@@ -2374,7 +2374,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    background: var(--surface);
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
     height: 48px;
     flex-shrink: 0;
@@ -2417,7 +2417,7 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    background: var(--sidebar-bg);
+    background: var(--bg);
     border-right: 1px solid var(--border);
     padding: 12px 8px;
   }
@@ -2487,7 +2487,7 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    background: var(--surface);
+    background: var(--bg);
     border-right: 1px solid var(--border);
   }
 
@@ -2706,7 +2706,7 @@
     justify-content: space-between;
     padding: 0 24px;
     border-bottom: 1px solid var(--border);
-    background: var(--surface);
+    background: var(--bg);
   }
 
   .detail-actions,

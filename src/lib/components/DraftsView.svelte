@@ -349,7 +349,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    background: var(--surface);
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
 
@@ -423,7 +423,7 @@
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--border);
-    background: var(--sidebar-bg);
+    background: var(--bg);
     min-height: 0;
   }
 

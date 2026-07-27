@@ -136,7 +136,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    background: var(--surface);
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
 
@@ -170,7 +170,7 @@
     align-items: center;
     gap: 10px;
     padding: 0 16px;
-    background: var(--surface);
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
 

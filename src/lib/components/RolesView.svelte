@@ -291,7 +291,7 @@
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid var(--border);
-    background: var(--surface);
+    background: var(--bg);
     flex-shrink: 0;
   }
 
@@ -461,7 +461,7 @@
   .role-list-footer {
     padding: 8px;
     border-top: 1px solid var(--border);
-    background: var(--sidebar-bg);
+    background: var(--bg);
   }
 
   .new-role-button,
@@ -510,7 +510,7 @@
     align-items: center;
     gap: 12px;
     border-bottom: 1px solid var(--border);
-    background: var(--surface);
+    background: var(--bg);
     font-size: 12px;
     font-weight: 600;
     flex-shrink: 0;

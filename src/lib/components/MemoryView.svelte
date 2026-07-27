@@ -345,7 +345,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    background: var(--surface);
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
     height: 48px;
     flex-shrink: 0;
@@ -434,7 +434,7 @@
     justify-content: space-between;
     padding: 10px 20px 8px;
     border-bottom: 1px solid var(--border);
-    background: var(--surface);
+    background: var(--bg);
     flex-shrink: 0;
   }
 
