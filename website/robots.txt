@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://bang404.github.io/openagent/sitemap.xml

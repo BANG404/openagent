@@ -1,0 +1,42 @@
+[package]
+name = "openagent"
+default-run = "openagent"
+version = "0.24.1-beta.8"
+description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+license = "GPL-3.0-or-later"
+
+[workspace]
+members = ["."]
+default-members = ["."]
+resolver = "2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "openagent_lib"
+path = "src/lib.rs"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+cc = "1"
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+openagent-app = { path = "../sdk/rust/openagent-app" }
+tauri = { version = "2", features = ["protocol-asset", "tray-icon", "image-png", "image-ico"] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+fastembed = { version = "4", features = ["ort-download-binaries"] }
+tauri-plugin-i18n = "2"
+tracing = "0.1"
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-autostart = "2.5.1"
+tauri-plugin-updater = "2.10.1"

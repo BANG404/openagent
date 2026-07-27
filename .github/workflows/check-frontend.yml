@@ -1,0 +1,48 @@
+name: Frontend checks
+
+on:
+  workflow_call:
+    secrets:
+      OPENAGENT_SDK_DEPLOY_KEY:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Type, test, and build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve pinned SDK revision
+        id: sdk
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out private SDK
+        uses: actions/checkout@v4
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ steps.sdk.outputs.sha }}
+          path: sdk
+          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check Svelte and TypeScript
+        run: bun run check
+
+      - name: Run frontend tests
+        run: bun run test
+
+      - name: Build frontend
+        run: bun run build

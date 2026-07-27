@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenAgent Chat Frontend"
+  short_description: "Streaming transcript and restore UI rules"
+  default_prompt: "Use $openagent-chat-frontend to change OpenAgent chat UI behavior safely."

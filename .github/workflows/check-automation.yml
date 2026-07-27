@@ -1,0 +1,41 @@
+name: Automation checks
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  actions:
+    name: GitHub Actions
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate GitHub Actions
+        run: bun run lint:actions
+
+      - name: Test CI module classification
+        run: bun test tests/ciChanges.test.js
+
+      - name: Verify generated release metadata
+        shell: bash
+        run: |
+          if git rev-parse HEAD^ >/dev/null 2>&1 \
+            && ! git diff --quiet HEAD^ HEAD -- .github/release.json; then
+            ready="$(node -p "JSON.parse(require('fs').readFileSync('.github/release.json', 'utf8')).ready")"
+            if [[ "$ready" == "true" ]]; then
+              bun scripts/release.mjs --verify
+            fi
+          fi

@@ -1,0 +1,163 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Release channel (Beta uses vX.Y.Z-beta.N) / 发布渠道
+        required: true
+        default: beta
+        type: choice
+        options:
+          - beta
+          - stable
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    name: Create release pull request
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+
+      - name: Require the base commit to have passed CI
+        id: base
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          base_sha="$(git rev-parse HEAD)"
+          ci_url="$(
+            gh run list \
+              --workflow ci.yml \
+              --commit "$base_sha" \
+              --status success \
+              --limit 1 \
+              --json url \
+              --jq '.[0].url // empty'
+          )"
+          if [[ -z "$ci_url" ]]; then
+            echo "master commit $base_sha has no successful CI run." >&2
+            exit 1
+          fi
+          echo "sha=$base_sha" >> "$GITHUB_OUTPUT"
+          echo "ci_url=$ci_url" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve or generate the release commit
+        id: release
+        env:
+          RELEASE_CHANNEL: ${{ inputs.release_type }}
+        shell: bash
+        run: |
+          release_plan="$(bun scripts/release.mjs --dry-run)"
+          printf '%s\n' "$release_plan"
+          version="$(printf '%s\n' "$release_plan" | sed -nE 's/^[^[:space:]]+ -> ([^[:space:]]+) \(.+$/\1/p')"
+          if [[ -z "$version" || "$(printf '%s\n' "$version" | wc -l)" -ne 1 ]]; then
+            echo "Unable to determine exactly one release version from the release plan." >&2
+            exit 1
+          fi
+
+          tag="v$version"
+          branch="release/$tag"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo "Release tag $tag already exists and is immutable; it cannot be prepared again." >&2
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null; then
+            echo "Reusing existing release branch $branch."
+            git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch"
+            git switch --detach "origin/$branch"
+            bun scripts/release.mjs --verify
+
+            manifest_tag="$(node -p "JSON.parse(require('fs').readFileSync('.github/release.json', 'utf8')).tag")"
+            manifest_channel="$(node -p "JSON.parse(require('fs').readFileSync('.github/release.json', 'utf8')).channel")"
+            if [[ "$manifest_tag" != "$tag" || "$manifest_channel" != "$RELEASE_CHANNEL" ]]; then
+              echo "Existing branch $branch does not contain the requested $RELEASE_CHANNEL release metadata for $tag." >&2
+              exit 1
+            fi
+            reused=true
+          else
+            git switch -c "$branch"
+            bun scripts/release.mjs --ci
+            bun scripts/release.mjs --verify
+            reused=false
+            git push origin "HEAD:refs/heads/$branch"
+          fi
+
+          if [[ "$(git rev-parse HEAD^)" != "${{ steps.base.outputs.sha }}" ]]; then
+            echo "Release branch $branch is not a single release commit from the verified base." >&2
+            exit 1
+          fi
+
+          {
+            echo "tag=$tag"
+            echo "branch=$branch"
+            echo "reused=$reused"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open the release pull request
+        id: pull_request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_BRANCH: ${{ steps.release.outputs.branch }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          BASE_CI_URL: ${{ steps.base.outputs.ci_url }}
+        shell: bash
+        run: |
+          pr_url="$(gh pr list --base master --head "$RELEASE_BRANCH" --state open --json url --jq '.[0].url // empty')"
+          if [[ -z "$pr_url" ]]; then
+            pr_url="$(
+              gh pr create \
+                --base master \
+                --head "$RELEASE_BRANCH" \
+                --title "chore: release $RELEASE_TAG" \
+                --body "Generated release metadata for \`$RELEASE_TAG\`. The source base passed [CI]($BASE_CI_URL). Merge only after the release metadata check passes."
+            )"
+          else
+            echo "Reusing existing release pull request: $pr_url"
+          fi
+          echo "url=$pr_url" >> "$GITHUB_OUTPUT"
+
+      # Pull requests created with GITHUB_TOKEN require approval before their
+      # pull_request-triggered workflows start. Dispatch CI explicitly so the
+      # release metadata check is available immediately on the PR head SHA.
+      - name: Start CI for the release commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_BRANCH: ${{ steps.release.outputs.branch }}
+          BASE_SHA: ${{ steps.base.outputs.sha }}
+        shell: bash
+        run: gh workflow run ci.yml --ref "$RELEASE_BRANCH" -f "base_sha=$BASE_SHA"
+
+      - name: Summarize
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          PR_URL: ${{ steps.pull_request.outputs.url }}
+        shell: bash
+        run: |
+          {
+            echo "### Release PR ready"
+            echo
+            echo "- Tag after merge: \`$RELEASE_TAG\`"
+            echo "- Pull request: $PR_URL"
+          } >> "$GITHUB_STEP_SUMMARY"

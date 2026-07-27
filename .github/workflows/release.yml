@@ -1,0 +1,316 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - master
+
+concurrency:
+  group: release-master
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  BUN_VERSION: 1.2.21
+
+jobs:
+  detect:
+    name: Detect verified release commit
+    if: >-
+      github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-22.04
+    outputs:
+      active: ${{ steps.release.outputs.active }}
+      tag: ${{ steps.release.outputs.tag }}
+      channel: ${{ steps.release.outputs.channel }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
+      sha: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Validate release marker and metadata
+        id: release
+        shell: bash
+        run: |
+          echo "active=false" >> "$GITHUB_OUTPUT"
+          if git diff --quiet HEAD^ HEAD -- .github/release.json; then
+            exit 0
+          fi
+
+          ready="$(node -p "JSON.parse(require('fs').readFileSync('.github/release.json', 'utf8')).ready")"
+          if [[ "$ready" != "true" ]]; then
+            exit 0
+          fi
+
+          tag="$(node -p "JSON.parse(require('fs').readFileSync('.github/release.json', 'utf8')).tag")"
+          tag_ref="$(git ls-remote --tags origin "refs/tags/$tag" | awk 'NR == 1 { print $1 }')"
+          if [[ -n "$tag_ref" ]]; then
+            tagged_sha="$(git ls-remote --tags origin "refs/tags/$tag^{}" | awk 'NR == 1 { print $1 }')"
+            tagged_sha="${tagged_sha:-$tag_ref}"
+            if [[ "$tagged_sha" != "$(git rev-parse HEAD)" ]]; then
+              echo "Release tag $tag already points to $tagged_sha; no release action is needed."
+              exit 0
+            fi
+            echo "Release tag $tag already points to this commit; resuming the release."
+          fi
+
+          bun scripts/release.mjs --verify
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const manifest = JSON.parse(require("fs").readFileSync(".github/release.json", "utf8"));
+          console.log("active=true");
+          console.log(`tag=${manifest.tag}`);
+          console.log(`channel=${manifest.channel === "beta" ? "Beta" : "Stable"}`);
+          console.log(`prerelease=${manifest.channel === "beta"}`);
+          NODE
+
+      - name: Require private release credentials
+        if: steps.release.outputs.active == 'true'
+        shell: bash
+        env:
+          OPENAGENT_SDK_DEPLOY_KEY: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [[ -z "$OPENAGENT_SDK_DEPLOY_KEY" ]]; then
+            echo "Repository secret OPENAGENT_SDK_DEPLOY_KEY is required." >&2
+            exit 1
+          fi
+          if [[ -z "$TAURI_SIGNING_PRIVATE_KEY" ]]; then
+            echo "Repository secret TAURI_SIGNING_PRIVATE_KEY is required." >&2
+            exit 1
+          fi
+
+  tag:
+    name: Tag verified commit
+    needs: detect
+    if: needs.detect.outputs.active == 'true'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Create immutable release tag
+        env:
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+          RELEASE_SHA: ${{ needs.detect.outputs.sha }}
+        shell: bash
+        run: |
+          existing="$(git rev-list -n 1 "$RELEASE_TAG" 2>/dev/null || true)"
+          if [[ -n "$existing" ]]; then
+            if [[ "$existing" != "$RELEASE_SHA" ]]; then
+              echo "$RELEASE_TAG already points to $existing, not $RELEASE_SHA." >&2
+              exit 1
+            fi
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$RELEASE_TAG" "$RELEASE_SHA" -m "Release $RELEASE_TAG"
+          git push origin "refs/tags/$RELEASE_TAG"
+
+  create-draft:
+    name: Create draft release
+    needs:
+      - detect
+      - tag
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.release.outputs.published }}
+    steps:
+      - name: Create or reuse draft GitHub Release
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+          RELEASE_CHANNEL: ${{ needs.detect.outputs.channel }}
+          PRERELEASE: ${{ needs.detect.outputs.prerelease }}
+        run: |
+          published=false
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            is_draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft')"
+            if [[ "$is_draft" != "true" ]]; then
+              echo "$RELEASE_TAG is already published; reusing it."
+              published=true
+            else
+              echo "Reusing draft release $RELEASE_TAG."
+            fi
+          else
+            args=(
+              "$RELEASE_TAG"
+              --draft
+              --verify-tag
+              --title "OpenAgent $RELEASE_TAG [$RELEASE_CHANNEL]"
+              --notes "See the [CHANGELOG](https://github.com/$GITHUB_REPOSITORY/blob/master/CHANGELOG.md) for details."
+            )
+            if [[ "$PRERELEASE" == "true" ]]; then
+              args+=(--prerelease)
+            fi
+            gh release create "${args[@]}"
+          fi
+          echo "published=$published" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs:
+      - detect
+      - create-draft
+    if: needs.create-draft.outputs.published != 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS arm64
+            platform: macos-latest
+            args: --target aarch64-apple-darwin
+            rust_target: aarch64-apple-darwin
+          - name: macOS Intel
+            platform: macos-latest
+            args: --target x86_64-apple-darwin
+            rust_target: x86_64-apple-darwin
+          - name: Linux x64
+            platform: ubuntu-22.04
+            args: ''
+            rust_target: ''
+          - name: Windows x64
+            platform: windows-latest
+            args: ''
+            rust_target: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.detect.outputs.tag }}
+
+      - name: Resolve pinned SDK revision
+        id: sdk
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out private SDK
+        uses: actions/checkout@v4
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ steps.sdk.outputs.sha }}
+          path: sdk
+          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            pkg-config
+
+      # Build the release application exactly once per target. CI already
+      # validated the source and platform-specific test modules for this SHA.
+      - name: Build and upload to GitHub Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        with:
+          tagName: ${{ needs.detect.outputs.tag }}
+          releaseName: OpenAgent ${{ needs.detect.outputs.tag }} [${{ needs.detect.outputs.channel }}]
+          releaseBody: See the CHANGELOG for details.
+          releaseDraft: true
+          prerelease: ${{ needs.detect.outputs.prerelease }}
+          retryAttempts: 2
+          args: ${{ matrix.args }}
+
+  publish:
+    name: Publish release
+    needs:
+      - detect
+      - create-draft
+      - build
+    if: >-
+      always()
+      && needs.detect.result == 'success'
+      && needs.create-draft.result == 'success'
+      && (needs.build.result == 'success' || needs.build.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+          PRERELEASE: ${{ needs.detect.outputs.prerelease }}
+        run: gh release edit "$RELEASE_TAG" --draft=false --prerelease="$PRERELEASE"
+
+      - name: Update Beta updater channel
+        if: needs.detect.outputs.prerelease == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+        run: |
+          metadata_dir="$(mktemp -d)"
+          metadata_path="$metadata_dir/latest.json"
+          gh release download "$RELEASE_TAG" --pattern latest.json --output "$metadata_path" --clobber
+
+          if ! gh release view beta >/dev/null 2>&1; then
+            tag_object="$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')"
+            release_commit="$(gh api "repos/$GH_REPO/git/tags/$tag_object" --jq '.object.sha')"
+            gh release create beta \
+              --target "$release_commit" \
+              --title "OpenAgent Beta updater channel" \
+              --notes "This release hosts updater metadata for the current Beta build." \
+              --prerelease
+          fi
+
+          gh release upload beta "$metadata_path" --clobber
+
+  deploy-pages:
+    name: Deploy release page
+    needs:
+      - detect
+      - publish
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml
+    with:
+      release_tag: ${{ needs.detect.outputs.tag }}

@@ -1,0 +1,66 @@
+name: Deploy GitHub Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to feature / 要展示的发布标签
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      release_tag:
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+      - name: Fetch Stable and Beta download manifests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          gh api "repos/${{ github.repository }}/releases?per_page=100" > releases.json
+          jq 'map(select(.draft == false and .prerelease == false and (.tag_name | test("-beta\\.") | not))) | first // null' releases.json > stable-release.json
+          jq 'map(select(.draft == false and (.tag_name | test("-beta\\.")))) | first // null' releases.json > beta-release.json
+
+          if [[ -n "$RELEASE_TAG" ]]; then
+            gh api "repos/${{ github.repository }}/releases/tags/$RELEASE_TAG" > published-release.json
+            if [[ "$RELEASE_TAG" == *"-beta."* ]]; then
+              cp published-release.json beta-release.json
+            else
+              cp published-release.json stable-release.json
+            fi
+          fi
+      - name: Build the landing page
+        env:
+          OPENAGENT_STABLE_RELEASE_MANIFEST: stable-release.json
+          OPENAGENT_BETA_RELEASE_MANIFEST: beta-release.json
+        run: bun scripts/build-pages.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-pages
+      - id: deployment
+        uses: actions/deploy-pages@v4

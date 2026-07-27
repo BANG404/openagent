@@ -1,0 +1,52 @@
+#!/bin/sh
+set -eu
+
+remote_name="${1:-}"
+if [ "$remote_name" != "origin" ]; then
+  exit 0
+fi
+
+zero_sha="0000000000000000000000000000000000000000"
+
+verify_backend_absent() {
+  commit="$1"
+  unexpected="$({
+    git ls-tree -r --name-only "$commit" -- \
+      src-tauri/src \
+      src-tauri/crates/openagent-runtime
+  } | grep -Ev '^(src-tauri/src/(lib|main)\.rs|src-tauri/src/bin/openagent-agent-server\.rs)$' || true)"
+  if [ -n "$unexpected" ]; then
+    echo "Push blocked: commit $commit contains private backend source in the host repository:" >&2
+    echo "$unexpected" >&2
+    return 1
+  fi
+
+  sdk_entry="$(git ls-tree "$commit" -- sdk)"
+  set -- $sdk_entry
+  if [ "$#" -ne 4 ] || [ "$1" != "160000" ] || [ "$2" != "commit" ] || [ "$4" != "sdk" ]; then
+    echo "Push blocked: commit $commit does not store sdk as a gitlink." >&2
+    return 1
+  fi
+}
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$local_sha" = "$zero_sha" ]; then
+    continue
+  fi
+
+  commit="$(git rev-parse "$local_sha^{commit}" 2>/dev/null || true)"
+  if [ -z "$commit" ]; then
+    echo "Push blocked: $local_ref does not resolve to a commit." >&2
+    exit 1
+  fi
+
+  if [ "$remote_sha" = "$zero_sha" ]; then
+    introduced_commits="$(git rev-list "$commit")"
+  else
+    introduced_commits="$(git rev-list "$commit" --not "$remote_sha")"
+  fi
+
+  for introduced in $introduced_commits; do
+    verify_backend_absent "$introduced"
+  done
+done

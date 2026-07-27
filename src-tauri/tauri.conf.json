@@ -1,0 +1,65 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "openagent",
+  "version": "0.24.1-beta.8",
+  "identifier": "com.iumm.openagent",
+  "build": {
+    "beforeDevCommand": "bun run dev",
+    "devUrl": "http://localhost:14221",
+    "beforeBuildCommand": "bun run build",
+    "frontendDist": "../build",
+    "additionalWatchFolders": [
+      "../sdk/rust"
+    ]
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "openagent",
+        "width": 800,
+        "height": 600,
+        "minWidth": 1040,
+        "minHeight": 500,
+        "decorations": false,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$APPDATA/pasted-attachments/**/*"
+        ]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "wix": {
+        "version": "0.24.1.8"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMzNzMyODRGQ0Y5NjU2QTAKUldTZ1ZwYlBUeWh6dzQ2SUxMNHZCYmpnNFh1ZUhGeEtoVGs0OERDR3FBVC9JZkU1dlN5QkRTR2wK",
+      "endpoints": [
+        "https://github.com/BANG404/openagent/releases/download/beta/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}
