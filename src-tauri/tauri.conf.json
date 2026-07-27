@@ -7,7 +7,10 @@
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:14221",
     "beforeBuildCommand": "bun run build",
-    "frontendDist": "../build"
+    "frontendDist": "../build",
+    "additionalWatchFolders": [
+      "../sdk/rust"
+    ]
   },
   "app": {
     "windows": [
