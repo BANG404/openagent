@@ -1,13 +1,6 @@
 name: Deploy GitHub Pages
 
 on:
-  push:
-    branches: [master]
-    paths:
-      - .github/workflows/pages.yml
-      - assets/**
-      - scripts/build-pages.mjs
-      - website/**
   workflow_dispatch:
     inputs:
       release_tag:
