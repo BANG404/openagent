@@ -34,6 +34,7 @@
     removeQueuedChatMessage,
     type QueuedChatMessages,
   } from "$lib/chatQueue";
+  import { resolveUserInput } from "$lib/chatStream";
   import type {
     AgentRole,
     ChatAttachment,
@@ -91,6 +92,11 @@
   let pendingAssistantMessageId = $state<string | null>(null);
   let forkDisplayMessages = $state<ChatMessage[] | null>(null);
   let queuedChatMessages = $state<QueuedChatMessages>({});
+  let resolvingInterrupt = $state<{
+    id: string;
+    state: "answered" | "cancelled";
+    response: unknown;
+  } | null>(null);
   const previewUrls = new Set<string>();
   const handledMermaidInterrupts = new Set<string>();
 
@@ -137,21 +143,49 @@
 
   const activeInterrupt = $derived(conversation?.interrupts[0] ?? null);
   const running = $derived(
-    conversation?.phase === "before_completion" || pendingAssistantMessageId !== null,
+    conversation?.phase === "before_completion"
+      || pendingAssistantMessageId !== null
+      || resolvingInterrupt !== null,
   );
   const projectedMessages = $derived.by(() => {
-    if (forkDisplayMessages) return forkDisplayMessages;
-    if (!running && activeTree) {
+    let projected: ChatMessage[];
+    if (forkDisplayMessages) projected = forkDisplayMessages;
+    else if (!running && activeTree) {
       const path = computeActivePath(activeTree);
-      if (path.length > 0) return path;
+      projected = path.length > 0
+        ? path
+        : conversation
+          ? checkpointRecordsToMessages(
+            conversation.messages,
+            conversation.checkpoint_id ?? "remote-live",
+            conversation.conv_id,
+          )
+          : [];
+    } else {
+      projected = conversation
+        ? checkpointRecordsToMessages(
+          conversation.messages,
+          conversation.checkpoint_id ?? "remote-live",
+          conversation.conv_id,
+        )
+        : [];
     }
-    return conversation
-      ? checkpointRecordsToMessages(
-        conversation.messages,
-        conversation.checkpoint_id ?? "remote-live",
-        conversation.conv_id,
-      )
-      : [];
+    const pendingResolution = resolvingInterrupt;
+    if (!pendingResolution) return projected;
+    return projected.map((message) => message.items?.some((item) => (
+      (item.type === "user_input" && item.request.request_id === pendingResolution.id)
+      || (item.type === "tool_call" && item.approval?.request.request_id === pendingResolution.id)
+    ))
+      ? {
+        ...message,
+        items: resolveUserInput(
+          message.items,
+          pendingResolution.id,
+          pendingResolution.state,
+          pendingResolution.response,
+        ),
+      }
+      : message);
   });
   const liveAssistant = $derived.by(() => {
     if (!running) return null;
@@ -401,7 +435,18 @@
 
   async function newConversation() {
     if (running) return;
-    await perform(async () => { await createConversation(); });
+    disconnect?.();
+    disconnect = null;
+    conversation = null;
+    activeTree = undefined;
+    activeBranchId = null;
+    fileChanges = [];
+    optimisticUser = null;
+    pendingAssistantMessageId = null;
+    forkDisplayMessages = null;
+    resolvingInterrupt = null;
+    error = "";
+    if (window.matchMedia("(max-width: 760px)").matches) sidebarCollapsed = true;
   }
 
   async function connectConversation(convId: string) {
@@ -421,6 +466,10 @@
       if (conversation?.conv_id !== convId) return;
       const previousPhase = conversation.phase;
       conversation = state;
+      if (resolvingInterrupt
+        && !state.interrupts.some((interrupt) => interrupt.id === resolvingInterrupt?.id)) {
+        resolvingInterrupt = null;
+      }
       if (optimisticUser && state.messages.some((message) => message.id === optimisticUser?.id)) {
         optimisticUser = null;
         forkDisplayMessages = null;
@@ -718,21 +767,11 @@
   }
 
   async function answer(requestId: string, values: Record<string, unknown>) {
-    if (!conversation) return;
-    await perform(() => client.resumeInterrupt({
-      convId: conversation!.conv_id,
-      interruptId: requestId,
-      response: JSON.stringify({ values }),
-    }));
+    await resolveRemoteInterrupt(requestId, { values }, "answered");
   }
 
   async function cancelAnswer(requestId: string) {
-    if (!conversation) return;
-    await perform(() => client.resumeInterrupt({
-      convId: conversation!.conv_id,
-      interruptId: requestId,
-      response: JSON.stringify({ cancelled: true }),
-    }));
+    await resolveRemoteInterrupt(requestId, { cancelled: true }, "cancelled");
   }
 
   async function cancelInlineInterrupt(requestId: string) {
@@ -741,12 +780,31 @@
   }
 
   async function approve(requestId: string, approved: boolean) {
-    if (!conversation) return;
-    await perform(() => client.resumeInterrupt({
-      convId: conversation!.conv_id,
-      interruptId: requestId,
-      response: JSON.stringify({ values: { approved } }),
-    }));
+    await resolveRemoteInterrupt(requestId, { values: { approved } }, "answered");
+  }
+
+  async function resolveRemoteInterrupt(
+    requestId: string,
+    response: unknown,
+    state: "answered" | "cancelled",
+  ) {
+    if (!conversation || resolvingInterrupt) return;
+    const convId = conversation.conv_id;
+    resolvingInterrupt = { id: requestId, state, response };
+    busy = true;
+    error = "";
+    try {
+      await client.resumeInterrupt({
+        convId,
+        interruptId: requestId,
+        response: JSON.stringify(response),
+      });
+    } catch (cause) {
+      resolvingInterrupt = null;
+      error = cause instanceof Error ? cause.message : String(cause);
+    } finally {
+      busy = false;
+    }
   }
 
   async function perform(action: () => Promise<void>) {
