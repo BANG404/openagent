@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Tooltip as TooltipPrimitive } from "bits-ui";
   import { onMount } from "svelte";
+  import openAgentIconUrl from "../../../assets/openagent_icon_new.png?inline";
   import ChatQueue from "$lib/components/ChatQueue.svelte";
   import ConversationList from "$lib/components/ConversationList.svelte";
   import FileChangeBanner from "$lib/components/FileChangeBanner.svelte";
@@ -393,8 +394,8 @@
     setLocale(preferences.language as Locale);
     selectedModel = modelKey(remoteModels.find((model) => model.is_default) ?? remoteModels[0]);
     workspaceId = workspaces[0]?.id ?? "";
-    if (workspaceId) await loadWorkspace(workspaceId);
     screen = "chat";
+    if (workspaceId) await loadWorkspace(workspaceId);
   }
 
   async function loadWorkspace(nextWorkspaceId: string) {
@@ -879,17 +880,17 @@
 <TooltipPrimitive.Provider delayDuration={500} skipDelayDuration={300}>
   {#if screen === "loading"}
     <main class="center-state">
-      <img class="loading-logo" src="/assets/openagent_logo_text.svg" alt="OpenAgent" />
+      <img class="loading-logo" src={openAgentIconUrl} alt="OpenAgent" />
       <span class="loading-indicator" aria-hidden="true"></span>
       <span>{$t("remoteConnecting")}</span>
     </main>
   {:else if screen === "pair"}
     <main class="gate-layout">
       <div class="gate-aurora" aria-hidden="true"></div>
-      <section class="gate-card">
-        <div class="brand-lockup">
-          <img class="brand-logo" src="/assets/openagent_logo_text.svg" alt="OpenAgent" />
-          <span class="remote-chip">Remote</span>
+        <section class="gate-card">
+          <div class="brand-lockup">
+            <img class="brand-logo" src={openAgentIconUrl} alt="OpenAgent" />
+            <span class="remote-chip">Remote</span>
         </div>
         <h1>{$t("remoteConnectTitle")}</h1>
         <p class="gate-subtitle">{$t("remoteSecureControl")}</p>
@@ -976,7 +977,7 @@
             <div class="new-conversation-aurora" aria-hidden="true"></div>
           {/if}
           {#if loadingWorkspace}
-            <LoadingSkeleton variant="conversation" label={$t("remoteLoadingWorkspace")} />
+            <LoadingSkeleton variant="new-conversation" label={$t("remoteLoadingWorkspace")} />
           {:else if !workspaceId}
             <div class="empty-chat"><strong>{$t("remoteNoWorkspaceTitle")}</strong><span>{$t("remoteNoWorkspaceHint")}</span></div>
           {:else}
@@ -995,7 +996,7 @@
               showApiKeyWarn={remoteModels.length === 0}
               {shikiTheme}
               {mermaidConfig}
-              newConversationMemoryPrompt={null}
+              newConversationMemoryPrompt={$t("remoteNewConversationGreeting")}
               newConversationMemoryLoading={false}
               editable={!running}
               attachmentPreviewLoader={(locator, name) => client.getRemoteAttachmentPreview(locator, name)}
@@ -1016,6 +1017,9 @@
         >
           <div class="conversation-aurora" class:conversation-aurora-streaming={running} aria-hidden="true"></div>
           <div class="input-inner">
+            {#if loadingWorkspace}
+              <LoadingSkeleton variant="composer" label={$t("remoteLoadingWorkspace")} />
+            {:else}
             {#if currentFileChanges.length > 0 && !activeInterrupt}
               <FileChangeBanner changes={currentFileChanges} onRevert={revertFileChange} />
             {/if}
@@ -1062,6 +1066,7 @@
             {/if}
             {#if error}<p class="composer-error">{error}</p>{/if}
             {#if commandNotice}<p class="composer-notice">{commandNotice}</p>{/if}
+            {/if}
           </div>
         </div>
       </section>
@@ -1076,16 +1081,15 @@
 
   .center-state, .gate-layout { position: relative; display: grid; min-height: 100dvh; place-items: center; overflow: hidden; padding: 40px 20px; background: var(--bg); color: var(--text-muted); }
   .center-state { align-content: center; gap: 12px; font-size: 12px; }
-  .loading-logo { width: 142px; height: auto; }
+  .loading-logo { width: 68px; height: 68px; padding: 5px; border-radius: 18px; background: rgba(255,255,255,.9); box-shadow: var(--control-shadow); object-fit: contain; }
   .loading-indicator { width: 18px; height: 18px; margin-top: 8px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 800ms linear infinite; }
   .gate-aurora { position: absolute; left: 50%; top: 50%; width: min(880px, 115vw); height: min(620px, 82vh); background: radial-gradient(ellipse at 22% 46%, rgba(66,133,244,.2), transparent 54%), radial-gradient(ellipse at 50% 58%, rgba(52,168,83,.1), transparent 52%), radial-gradient(ellipse at 76% 40%, rgba(161,66,244,.15), transparent 54%); filter: blur(68px) saturate(1.14); opacity: .9; transform: translate(-50%, -50%); animation: gate-aurora 9s ease-in-out infinite alternate; pointer-events: none; }
   .gate-card { position: relative; z-index: 1; width: min(100%, 440px); padding: 34px; border-radius: 18px; background: var(--control-surface); box-shadow: var(--raised-shadow); backdrop-filter: blur(20px) saturate(1.12); }
   .gate-card h1 { margin: 0; color: var(--text); font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
   .gate-subtitle { margin: 3px 0 28px; color: var(--text-muted); font-size: 13px; }
   .brand-lockup { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; }
-  .brand-logo { width: 146px; height: auto; }
+  .brand-logo { width: 44px; height: 44px; padding: 3px; border-radius: 12px; background: rgba(255,255,255,.9); box-shadow: var(--control-shadow); object-fit: contain; }
   .remote-chip { padding: 3px 8px; border-radius: 9999px; background: var(--item-selected-bg); color: var(--primary); font-size: 10px; font-weight: 600; letter-spacing: .02em; }
-  :global(html.dark) .brand-logo, :global(html.dark) .loading-logo { filter: invert(1) hue-rotate(180deg); }
   .gate-card > label { display: grid; gap: 8px; color: var(--text); font-size: 13px; font-weight: 600; }
   .pairing-input { box-sizing: border-box; width: 100%; margin-top: 8px; padding: 12px 18px 12px 24px; border: 0; border-radius: 9999px; outline: 0; background: var(--control-surface); box-shadow: var(--control-shadow); color: var(--text); font: 600 20px/1.4 "SFMono-Regular", Consolas, monospace; letter-spacing: .3em; text-align: center; text-transform: uppercase; }
   .pairing-input:focus { box-shadow: var(--control-shadow), var(--focus-ring); }
