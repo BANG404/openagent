@@ -34,6 +34,8 @@
     shikiTheme: string;
     mermaidConfig: MermaidConfig;
     htmlPreviewConfig?: HtmlPreviewConfig;
+    messageLayout?: "single" | "responsive_double";
+    messageDoubleColumnMinWidth?: number;
     newConversationMemoryPrompt: string | null;
     newConversationMemoryLoading: boolean;
     checkpointLoadError?: string | null;
@@ -69,6 +71,8 @@
     shikiTheme,
     mermaidConfig,
     htmlPreviewConfig,
+    messageLayout = "single",
+    messageDoubleColumnMinWidth = 1200,
     newConversationMemoryPrompt,
     newConversationMemoryLoading,
     checkpointLoadError = null,
@@ -251,7 +255,12 @@
   }
 </script>
 
-<div class="messages-inner" class:messages-inner-empty={visibleMessages.length === 0 && !isStreaming} style="padding-bottom: {paddingBottom}px">
+<div
+  class="messages-inner"
+  class:messages-inner-empty={visibleMessages.length === 0 && !isStreaming}
+  class:messages-inner-responsive-double={messageLayout === "responsive_double"}
+  style="padding-bottom: {paddingBottom}px"
+>
   {#if checkpointLoadError}
     <div class="checkpoint-load-error" role="alert">{checkpointLoadError}</div>
   {/if}
@@ -269,8 +278,8 @@
         <button
           type="button"
           class:with-preview={index < USER_INDEX_PREVIEW_LIMIT}
-          title={userIndexTitle(item.msg.content, item.index)}
-          aria-label={userIndexTitle(item.msg.content, item.index)}
+          title={userIndexTitle(item.msg.content, index)}
+          aria-label={userIndexTitle(item.msg.content, index)}
           onclick={() => scrollToMessage(item.msg.id)}
         >
           {#if index < USER_INDEX_PREVIEW_LIMIT}
@@ -307,6 +316,8 @@
     items={virtualEntries}
     {scrollElement}
     estimateSize={estimateEntrySize}
+    responsiveColumns={messageLayout === "responsive_double"}
+    doubleColumnMinWidth={messageDoubleColumnMinWidth}
   >
     {#snippet children(entry)}
     {#if isAssistantTurnEntry(entry)}
@@ -520,6 +531,10 @@
 
   .messages-inner-empty {
     max-width: none;
+  }
+
+  .messages-inner-responsive-double:not(.messages-inner-empty) {
+    max-width: 1680px;
   }
 
   .thinking-status {

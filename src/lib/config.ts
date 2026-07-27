@@ -88,6 +88,10 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
       : 12_000,
   };
   const approval_mode = input.approval_mode;
+  const requestedDoubleColumnMinWidth = Number(input.message_double_column_min_width);
+  const messageDoubleColumnMinWidth = Number.isFinite(requestedDoubleColumnMinWidth)
+    ? Math.min(2400, Math.max(960, Math.floor(requestedDoubleColumnMinWidth)))
+    : 1200;
   const flash_agents = {
     title: {
       enabled: input.flash_agents?.title?.enabled ?? true,
@@ -121,6 +125,10 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
     language: input.language ?? 'zh',
     launch_on_startup: input.launch_on_startup ?? false,
     mention_palette_show_global_drafts: input.mention_palette_show_global_drafts ?? true,
+    message_layout: ["single", "responsive_double"].includes(input.message_layout)
+      ? input.message_layout
+      : "single",
+    message_double_column_min_width: messageDoubleColumnMinWidth,
     workspace_open_mode: ["ask", "new_window", "current_window"].includes(input.workspace_open_mode)
       ? input.workspace_open_mode
       : "ask",

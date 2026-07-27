@@ -348,6 +348,8 @@ let newConversationLayout = $derived(
     },
     launch_on_startup: false,
     mention_palette_show_global_drafts: true,
+    message_layout: "single",
+    message_double_column_min_width: 1200,
     workspace_open_mode: "ask",
     memory_retrieval_enabled: true,
     remote_gateway: {
@@ -3528,6 +3530,8 @@ let newConversationLayout = $derived(
         {shikiTheme}
         {mermaidConfig}
         htmlPreviewConfig={config?.html_preview}
+        messageLayout={config?.message_layout ?? "single"}
+        messageDoubleColumnMinWidth={config?.message_double_column_min_width ?? 1200}
         {newConversationMemoryPrompt}
         {newConversationMemoryLoading}
         checkpointLoadError={activeConvId ? checkpointLoadErrors[activeConvId] ?? null : null}

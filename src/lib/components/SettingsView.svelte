@@ -102,6 +102,8 @@
     language: "zh",
     launch_on_startup: false,
     mention_palette_show_global_drafts: true,
+    message_layout: "single",
+    message_double_column_min_width: 1200,
     workspace_open_mode: "ask",
     agent_turn_limit_enabled: false,
     agent_max_turns: 10,
@@ -1133,6 +1135,31 @@
               ariaLabel={$t('language')}
             />
           </div>
+          <div class="detail-label">
+            <span class="label-text">{$t('messageLayout')}</span>
+            <Select
+              bind:value={draftConfig.message_layout}
+              items={[
+                { value: 'single', label: $t('messageLayoutSingle') },
+                { value: 'responsive_double', label: $t('messageLayoutResponsiveDouble') },
+              ]}
+              ariaLabel={$t('messageLayout')}
+            />
+          </div>
+          {#if draftConfig.message_layout === 'responsive_double'}
+            <label class="execution-value-row message-layout-threshold">
+              <span class="label-text">{$t('messageDoubleColumnMinWidth')}</span>
+              <input
+                type="number"
+                class="detail-input execution-number-input"
+                min="960"
+                max="2400"
+                step="40"
+                bind:value={draftConfig.message_double_column_min_width}
+              />
+            </label>
+            <p class="detail-hint">{$t('messageDoubleColumnHint')}</p>
+          {/if}
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t('workspaceBehavior')}</h4>
