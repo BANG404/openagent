@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.24.1-beta.8] - 2026-07-27
+
+### Miscellaneous
+- **release**: Rotate updater signing key
+- Initialize sanitized OpenAgent host shell
+
 ## [0.24.1-beta.7] - 2026-07-26
 
 ### Bug Fixes
