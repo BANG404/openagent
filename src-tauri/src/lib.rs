@@ -8,7 +8,9 @@ use openagent_app::conversation_memory::{
     AgentMemoryEntry, AgentRole, ConversationPage, ConversationPageCursor,
 };
 use openagent_app::skills::SkillMetadata;
-use openagent_app::state::{AppState, OpenAgentRuntime, RuntimeHost, ScheduledChatHookRecord};
+use openagent_app::state::{
+    AppState, OpenAgentRuntime, RuntimeAsset, RuntimeHost, ScheduledChatHookRecord,
+};
 use openagent_app::tools::ScheduleChatHookArgs;
 use openagent_app::{
     bootstrap_runtime, html_preview_protocol, mcp, tools, tracing_setup, AgentInputRequest,
@@ -987,6 +989,16 @@ impl RuntimeHost for TauriRuntimeHost {
         self.app
             .emit_to("main", "workspace-window-open-request", context)
             .map_err(|error| error.to_string())
+    }
+
+    fn frontend_asset(&self, path: &str) -> Option<RuntimeAsset> {
+        self.app
+            .asset_resolver()
+            .get(path.to_string())
+            .map(|asset| RuntimeAsset {
+                bytes: asset.bytes,
+                mime_type: asset.mime_type,
+            })
     }
 }
 
