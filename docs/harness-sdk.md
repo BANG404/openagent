@@ -1,0 +1,60 @@
+# Headless Harness SDK
+
+OpenAgent supports third-party harnesses without publishing its agent runtime.
+The desktop application and the headless server embed the same pinned private
+SDK revision; external applications use the behavior-free
+`@bang404/openagent-harness` client and a checksummed `openagent-server` binary.
+
+## Security boundary
+
+- The daemon listens on an ephemeral loopback port and rejects LAN listeners.
+- A parent process supplies a random token through an environment variable.
+- Every `/v1` request and SSE connection requires that Bearer token.
+- The daemon authorizes only workspaces supplied when it starts.
+- Public run state contains user/assistant display text and actionable
+  interrupts. Prompts, reasoning, provider payloads, checkpoint records,
+  database schemas, and Inspector traces remain private.
+- Third-party tools integrate out of process through MCP rather than linking to
+  the core Rust crates.
+
+## TypeScript usage
+
+```ts
+import { spawnOpenAgent } from "@bang404/openagent-harness/node";
+
+const runtime = await spawnOpenAgent({
+  workspace: process.cwd(),
+  binaryPath: process.env.OPENAGENT_SERVER,
+});
+
+try {
+  const [workspace] = await runtime.client.listWorkspaces();
+  const session = await runtime.client.createSession(workspace.id);
+  const accepted = await runtime.client.createRun(session.session_id, {
+    input: "Review this workspace and run its tests",
+    idempotencyKey: crypto.randomUUID(),
+  });
+
+  for await (const event of runtime.client.events(accepted.run_id)) {
+    if (event.data.status === "interrupted") {
+      // Present event.data.interrupts to the controlling application and call
+      // respondToInterrupt with its durable interrupt ID.
+    }
+    if (["completed", "cancelled", "failed"].includes(event.data.status)) break;
+  }
+} finally {
+  await runtime.stop();
+}
+```
+
+The thin client and daemon protocol share a release version. The daemon also
+reports an explicit protocol range so incompatible clients fail before a run
+starts.
+
+## Distribution
+
+The TypeScript client is MIT licensed. The core Rust crates are not published
+to a registry and remain in the private SDK repository. Server binary
+distribution follows OpenAgent's GPL/commercial dual-license policy; a
+proprietary customer distribution requires the applicable commercial
+agreement.
