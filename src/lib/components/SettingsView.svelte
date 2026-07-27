@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invoke } from "$lib/openagent/tauriClient";
+  import { invoke, listen } from "$lib/openagent/tauriClient";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
   import { onMount, untrack } from "svelte";
@@ -281,6 +281,9 @@
     refreshHooks().catch(() => {});
     refreshHookRoles().catch(() => {});
     refreshRemoteGateway().catch(() => {});
+    const unlistenRemotePairingCode = listen("remote-gateway-pairing-code-rotated", () => {
+      refreshRemoteGateway().catch(() => {});
+    });
     isEnabled()
       .then((enabled) => {
         lastAutostartTarget = enabled;
@@ -293,6 +296,7 @@
         autostartReady = true;
       });
     return () => {
+      void unlistenRemotePairingCode.then((dispose) => dispose());
       if (remoteCopyTimer) clearTimeout(remoteCopyTimer);
       saveDraftConfig().catch(console.error);
     };
