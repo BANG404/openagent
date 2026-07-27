@@ -52,6 +52,7 @@
     stopTitle?: string;
     slashCommands?: SlashCommand[];
     enableMentions?: boolean;
+    loadMentionItems?: (query: string) => Promise<PaletteItem[]>;
     showGlobalDraftsInMentions?: boolean;
     showAttachments?: boolean;
     showModelSelector?: boolean;
@@ -80,6 +81,7 @@
     stopTitle = "停止生成",
     slashCommands = [],
     enableMentions = true,
+    loadMentionItems,
     showGlobalDraftsInMentions = true,
     showAttachments = true,
     showModelSelector = true,
@@ -432,7 +434,7 @@
   }
 
   async function refreshMentionItems(query: string) {
-    if (!enableMentions || !tauriAvailable) {
+    if (!enableMentions || (!tauriAvailable && !loadMentionItems)) {
       mentionItems = [];
       mentionLoading = false;
       return;
@@ -440,6 +442,11 @@
     const seq = ++mentionFetchSeq;
     mentionLoading = true;
     try {
+      if (loadMentionItems) {
+        const items = await loadMentionItems(query);
+        if (seq === mentionFetchSeq) mentionItems = items;
+        return;
+      }
       const [files, catalog] = await Promise.all([
         invoke<string[]>("list_workspace_files", { query }).catch(() => []),
         loadMentionCatalog(),

@@ -423,6 +423,27 @@
     remoteConversationMetas = await client.listRemoteConversations(workspaceId);
   }
 
+  async function loadRemoteMentionItems(query: string) {
+    if (!workspaceId) return [];
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    const roleItems = roles
+      .filter((role) => !normalizedQuery
+        || `${role.name}\n${role.description}`.toLocaleLowerCase().includes(normalizedQuery))
+      .map((role) => ({
+        id: `role:${role.id}`,
+        insertText: role.name,
+        label: role.name,
+        detail: Array.from(role.description).slice(0, 50).join(""),
+        hint: $t("mentionRole"),
+      }));
+    const files = await client.listRemoteWorkspaceFiles(workspaceId, query);
+    return [...roleItems, ...files.map((path) => ({
+      id: path,
+      label: path.split("/").pop() ?? path,
+      detail: path,
+    }))];
+  }
+
   async function createConversation(): Promise<string> {
     if (!workspaceId) throw new Error(tr("remoteSelectWorkspaceFirst"));
     const created = await client.createRemoteConversation(
@@ -998,7 +1019,7 @@
                 bind:selectedModel
                 {modelOptions}
                 {slashCommands}
-                enableMentions={false}
+                loadMentionItems={loadRemoteMentionItems}
                 placeholder={remoteModels.length ? $t("remoteComposerPlaceholder") : $t("remoteNoModelsPlaceholder")}
                 disabled={!workspaceId || loadingWorkspace}
                 isStreaming={running}
