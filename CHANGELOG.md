@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.0-beta.1] - 2026-07-27
+
+### Features
+- **remote**: Expose opt-in LAN gateway access
+
+### Bug Fixes
+- **remote**: Enable Vite proxy in dev
+- **remote**: Support UUID generation over LAN HTTP
+- **dev**: Watch SDK Rust sources
+- **remote**: Avoid empty conversations and acknowledge approvals
+
+### Documentation
+- **repo**: Separate private SDK guidance
+
+### Styling
+- **role-selector**: Update text color and hover states for compact trigger
+
 ## [0.24.1-beta.8] - 2026-07-27
 
 ### Miscellaneous
