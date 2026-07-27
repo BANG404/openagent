@@ -1,0 +1,4 @@
+interface:
+  display_name: "会话检查点排查"
+  short_description: "帮助调试 Agent 会话、分支与检查点的持久化记录"
+  default_prompt: "Use $inspect-conversation-checkpoints to inspect the specified conversation or checkpoint record."

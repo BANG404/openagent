@@ -1,0 +1,48 @@
+# Bun
+node_modules/
+
+# Build outputs
+build/
+dist/
+dist-pages/
+.svelte-kit/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tauri
+src-tauri/target/
+src-tauri/.fastembed_cache/
+
+# Environment
+.env
+.env.*
+!.env.example
+*.pem
+
+# Local workspace state (per-workspace agent memory, skills cache, etc.)
+.agent/
+
+# Logs
+*.log
+logs/
+
+# Temporary
+*.tmp
+.cache/
+
+todo
+
+.antigravitycli
+
+videos
+frame.md
+.hyperframes/caption-skin.html

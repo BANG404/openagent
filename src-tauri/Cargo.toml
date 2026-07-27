@@ -1,0 +1,86 @@
+[package]
+name = "openagent"
+default-run = "openagent"
+version = "0.24.1-beta.7"
+description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+license = "GPL-3.0-or-later"
+
+[workspace]
+members = ["."]
+default-members = ["."]
+resolver = "2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "openagent_lib"
+path = "../sdk/rust/openagent-app/src/lib.rs"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+cc = "1"
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+openagent-runtime = { path = "../sdk/rust/openagent-runtime" }
+tauri = { version = "2", features = ["protocol-asset", "tray-icon", "image-png", "image-ico"] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+schemars = "1"
+rig = { version = "0.40", features = ["rmcp"] }
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["io"] }
+axum = "0.8"
+anyhow = "1"
+dirs = "5"
+toml = "0.8"
+walkdir = "2"
+ignore = "0.4"
+futures = "0.3"
+which = "6"
+glob = "0.3"
+rusqlite = { version = "0.32", features = ["bundled"] }
+uuid = { version = "1", features = ["v4"] }
+fastembed = { version = "4", features = ["ort-download-binaries"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+spider = { version = "2.52.9", default-features = false, features = ["sync", "reqwest_rustls_tls"] }
+tauri-plugin-i18n = "2"
+sys-locale = "0.3"
+dotenvy = "0.15"
+tracing = "0.1"
+opentelemetry = "0.31"
+opentelemetry_sdk = { version = "0.31", features = ["rt-tokio"] }
+opentelemetry-langfuse = "0.6"
+tracing-opentelemetry = "0.32"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+rmcp = { version = "1.6.0", features = [
+    "client", "macros",
+    "transport-streamable-http-client-reqwest",
+    "transport-child-process",
+    "which-command",
+] }
+regex = "1"
+http = "1"
+mime_guess = "2"
+percent-encoding = "2"
+chrono = { version = "0.4", features = ["clock"] }
+os_info = { version = "3.15.0", default-features = false }
+diffy = "0.3"
+zstd = "0.13"
+sha2 = "0.10"
+base64 = "0.22"
+bytes = "1"
+hnsw_rs = "0.3.4"
+html2text = "0.17.1"
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-autostart = "2.5.1"
+tauri-plugin-updater = "2.10.1"

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="OpenAgent is an open-source desktop AI workspace with multi-agent workflows, local project context, memory, skills, MCP tools, checkpoints, and reversible file changes." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://bang404.github.io/openagent/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OpenAgent" />
+    <meta property="og:title" content="OpenAgent — Desktop AI workspace" />
+    <meta property="og:description" content="An open-source desktop AI workspace for multi-agent workflows, memory, MCP tools, checkpoints, and reversible project work." />
+    <meta property="og:url" content="https://bang404.github.io/openagent/" />
+    <meta property="og:image" content="https://bang404.github.io/openagent/assets/openagent_banner.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="600" />
+    <meta property="og:image:alt" content="OpenAgent desktop AI workspace" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="OpenAgent — Desktop AI workspace" />
+    <meta name="twitter:description" content="An open-source desktop AI workspace for multi-agent workflows, memory, MCP tools, checkpoints, and reversible project work." />
+    <meta name="twitter:image" content="https://bang404.github.io/openagent/assets/openagent_banner.png" />
+    <title>OpenAgent — Desktop AI workspace</title>
+    <link rel="icon" href="../assets/openagent_icon_macos.png" />
+    <link rel="stylesheet" href="./site.css" />
+    <script src="./site.js" defer></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "OpenAgent",
+        "applicationCategory": "BusinessApplication",
+        "applicationSubCategory": "AI workspace",
+        "operatingSystem": "Windows, macOS, Linux",
+        "description": "An open-source desktop AI workspace for multi-agent workflows, local project context, memory, skills, MCP tools, checkpoints, and reversible file changes.",
+        "url": "https://bang404.github.io/openagent/",
+        "downloadUrl": "https://github.com/BANG404/openagent/releases/latest",
+        "image": "https://bang404.github.io/openagent/assets/openagent_banner.png",
+        "isAccessibleForFree": true,
+        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+        "codeRepository": "https://github.com/BANG404/openagent",
+        "featureList": "Sub-agents, Goal and Graph workflows, hybrid memory, skills, MCP tools, tool approvals, checkpoints, branches, file rollback, scheduled tasks, multimodal attachments, and interactive output"
+      }
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="OpenAgent home"><img src="../assets/openagent_icon_macos.png" alt="" /><span>OpenAgent</span></a>
+      <nav aria-label="Main navigation">
+        <a href="#components" data-i18n="nav.components">Features</a>
+        <a href="#control" data-i18n="nav.control">Control</a>
+        <a href="#workflow" data-i18n="nav.workflow">Workflow</a>
+        <a class="github-link" href="https://github.com/BANG404/openagent/releases/latest" data-i18n-html="nav.download">Download <span aria-hidden="true">↗</span></a>
+        <button class="language" type="button" data-language-toggle aria-label="Switch language">中文</button>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero page-width">
+        <div class="hero-intro">
+          <p class="kicker" data-i18n="hero.kicker">A native AI workspace</p>
+          <h1 data-i18n-html="hero.title">Give capable agents<br />a place to <i>work.</i></h1>
+          <p class="hero-copy" data-i18n="hero.description">Run capable agents with project context, tools, memory, skills, and reversible changes in one native desktop workspace.</p>
+          <div class="hero-actions">
+            <a class="button primary" href="#download" data-auto-download data-i18n="hero.primary">Download OpenAgent</a>
+            <a class="button secondary" href="https://github.com/BANG404/openagent" data-i18n="hero.secondary">View on GitHub</a>
+          </div>
+        </div>
+        <section id="download" class="downloads" aria-labelledby="downloads-title">
+          <div class="downloads-heading"><div><p class="kicker" data-i18n="downloads.kicker">Stable and Beta releases</p><h2 id="downloads-title" data-i18n="downloads.title">Download for your computer.</h2></div><a class="release-notes" href="https://github.com/BANG404/openagent/releases/latest" data-release-notes data-i18n-html="downloads.notes">Release notes <span aria-hidden="true">↗</span></a></div>
+          <div class="release-channels" role="tablist" aria-label="Release channel" data-i18n-aria-label="downloads.channels.label" data-release-channels hidden>
+            <button class="release-channel active" type="button" role="tab" aria-selected="true" data-release-channel="stable"><strong data-i18n="downloads.stable.title">Stable</strong><span data-i18n="downloads.stable.detail">Recommended for most users</span></button>
+            <button class="release-channel" type="button" role="tab" aria-selected="false" data-release-channel="beta"><strong data-i18n="downloads.beta.title">Beta</strong><span data-i18n="downloads.beta.detail">Newest features and fixes</span></button>
+          </div>
+          <div class="download-grid">
+            <a class="download-card" href="https://github.com/BANG404/openagent/releases/latest" data-download-key="windows"><span class="download-platform">Windows</span><strong data-i18n="downloads.windows.title">Windows 10 / 11</strong><small data-i18n="downloads.windows.detail">x64 installer · .exe</small></a>
+            <a class="download-card" href="https://github.com/BANG404/openagent/releases/latest" data-download-key="macArm"><span class="download-platform">macOS</span><strong data-i18n="downloads.mac_arm.title">Apple Silicon</strong><small data-i18n="downloads.mac_arm.detail">M1, M2, M3, M4 · .dmg</small></a>
+            <a class="download-card" href="https://github.com/BANG404/openagent/releases/latest" data-download-key="macIntel"><span class="download-platform">macOS</span><strong data-i18n="downloads.mac_intel.title">Intel Mac</strong><small data-i18n="downloads.mac_intel.detail">Intel processor · .dmg</small></a>
+            <a class="download-card" href="https://github.com/BANG404/openagent/releases/latest" data-download-key="linuxDeb"><span class="download-platform">Linux</span><strong data-i18n="downloads.linux_deb.title">Debian / Ubuntu</strong><small data-i18n="downloads.linux_deb.detail">x64 package · .deb</small></a>
+            <a class="download-card" href="https://github.com/BANG404/openagent/releases/latest" data-download-key="linuxRpm"><span class="download-platform">Linux</span><strong data-i18n="downloads.linux_rpm.title">Fedora / RHEL</strong><small data-i18n="downloads.linux_rpm.detail">x64 package · .rpm</small></a>
+            <a class="download-card" href="https://github.com/BANG404/openagent/releases/latest" data-download-key="linuxAppImage"><span class="download-platform">Linux</span><strong data-i18n="downloads.linux_appimage.title">Universal Linux</strong><small data-i18n="downloads.linux_appimage.detail">x64 portable app · AppImage</small></a>
+          </div>
+          <p class="download-version" data-release-version>Select Stable or Beta to see its latest published build.</p>
+        </section>
+        <dl class="principles">
+          <div><dt data-i18n="principles.native.title">Native</dt><dd data-i18n="principles.native.copy">A fast Tauri + Rust desktop app</dd></div>
+          <div><dt data-i18n="principles.local.title">Inspectable</dt><dd data-i18n="principles.local.copy">See tool calls, approvals, diffs, and history</dd></div>
+          <div><dt data-i18n="principles.open.title">Extensible</dt><dd data-i18n="principles.open.copy">Bring your own models, MCP tools, and skills</dd></div>
+        </dl>
+      </section>
+
+      <section id="components" class="component-section">
+        <div class="page-width section-heading">
+          <p class="kicker" data-i18n="components.kicker">One workspace, the complete loop</p>
+          <h2 data-i18n="components.title">More than a chat window.</h2>
+          <p data-i18n="components.copy">OpenAgent combines an agent runtime, project tools, durable context, and desktop controls so useful work can continue across turns and sessions.</p>
+        </div>
+        <div class="page-width component-grid">
+          <article class="component-card accent"><span class="component-mark">01</span><h3 data-i18n="cards.runtime.title">Agent runtime</h3><p data-i18n="cards.runtime.copy">Stream primary conversations, delegate nested sub-agents, ask structured follow-up questions, or run autonomous Goal and Graph workflows.</p></article>
+          <article class="component-card"><span class="component-mark">02</span><h3 data-i18n="cards.tools.title">Tools & MCP</h3><p data-i18n="cards.tools.copy">Work with files, terminal commands, fetched pages, search, and external MCP servers connected over HTTP or stdio.</p></article>
+          <article class="component-card"><span class="component-mark">03</span><h3 data-i18n="cards.memory.title">Memory & skills</h3><p data-i18n="cards.memory.copy">Recall useful knowledge across sessions with hybrid search, and load reusable global or workspace-scoped SKILL.md instructions.</p></article>
+          <article class="component-card"><span class="component-mark">04</span><h3 data-i18n="cards.history.title">Checkpoints & branches</h3><p data-i18n="cards.history.copy">Search conversations, keep a durable checkpoint for every turn, branch from earlier messages, inspect diffs, and roll work back.</p></article>
+          <article class="component-card"><span class="component-mark">05</span><h3 data-i18n="cards.output.title">Rich, interactive output</h3><p data-i18n="cards.output.copy">Render streaming Markdown, code, Mermaid, ECharts, interactive file and URL chips, plus sandboxed HTML previews with PNG export.</p></article>
+          <article class="component-card"><span class="component-mark">06</span><h3 data-i18n="cards.models.title">Models & context</h3><p data-i18n="cards.models.copy">Connect Anthropic, OpenAI, or compatible providers, switch models, attach multimodal files, and compact long conversations.</p></article>
+          <article class="component-card"><span class="component-mark">07</span><h3 data-i18n="cards.hooks.title">Scheduled tasks</h3><p data-i18n="cards.hooks.copy">Run recurring or one-off chat hooks in the background, restore them on startup, and receive desktop notifications.</p></article>
+          <article class="component-card"><span class="component-mark">08</span><h3 data-i18n="cards.workspace.title">Workspace knowledge</h3><p data-i18n="cards.workspace.copy">Keep project drafts, memory, skills, and DESIGN.md guidance separated by workspace or shared globally when needed.</p></article>
+          <article class="component-card"><span class="component-mark">09</span><h3 data-i18n="cards.desktop.title">Desktop experience</h3><p data-i18n="cards.desktop.copy">Use light or dark themes, Chinese or English, system tray controls, launch at startup, and native file-manager actions.</p></article>
+        </div>
+      </section>
+
+      <section id="control" class="control-section">
+        <div class="page-width control-layout">
+          <div class="control-heading">
+            <p class="kicker" data-i18n="control.kicker">Control without losing momentum</p>
+            <h2 data-i18n-html="control.title">Autonomy,<br />with receipts.</h2>
+            <p data-i18n="control.copy">Choose how independently agents can act while preserving the evidence needed to understand, approve, or undo their work.</p>
+          </div>
+          <div class="control-grid">
+            <article><span>01</span><h3 data-i18n="control.approval.title">Flexible approvals</h3><p data-i18n="control.approval.copy">Review every call, use model-assisted approval, disable approval, or apply the workspace sandbox.</p></article>
+            <article><span>02</span><h3 data-i18n="control.boundary.title">Workspace boundaries</h3><p data-i18n="control.boundary.copy">File and terminal actions stay aligned with the active project and its configured access policy.</p></article>
+            <article><span>03</span><h3 data-i18n="control.recovery.title">Durable recovery</h3><p data-i18n="control.recovery.copy">Conversation snapshots, branches, cancellations, and reverse diffs make experimentation recoverable.</p></article>
+            <article><span>04</span><h3 data-i18n="control.trace.title">Optional observability</h3><p data-i18n="control.trace.copy">Inspect local run details and optionally connect Langfuse tracing when deeper diagnostics are useful.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section id="workflow" class="workflow page-width">
+        <div class="workflow-intro"><p class="kicker" data-i18n="workflow.kicker">A clearer way to work</p><h2 data-i18n-html="workflow.title">Context that<br />doesn't disappear.</h2></div>
+        <ol>
+          <li><span>01</span><div><h3 data-i18n="workflow.one.title">Connect your model</h3><p data-i18n="workflow.one.copy">Add an Anthropic, OpenAI, or compatible provider and choose the model that fits the task.</p></div></li>
+          <li><span>02</span><div><h3 data-i18n="workflow.two.title">Open the right workspace</h3><p data-i18n="workflow.two.copy">Select a project, attach relevant files, and let local memory, skills, and DESIGN.md supply focused context.</p></div></li>
+          <li><span>03</span><div><h3 data-i18n="workflow.three.title">Watch and steer the work</h3><p data-i18n="workflow.three.copy">Follow streamed reasoning artifacts, tool calls, approvals, sub-agents, graph progress, and file changes as they happen.</p></div></li>
+          <li><span>04</span><div><h3 data-i18n="workflow.four.title">Keep or reverse the result</h3><p data-i18n="workflow.four.copy">Review the diff, retain useful knowledge in memory or skills, branch to explore another path, or roll changes back.</p></div></li>
+        </ol>
+      </section>
+
+      <section class="closing"><div class="page-width"><p class="kicker" data-i18n="closing.kicker">Open source desktop AI</p><h2 data-i18n-html="closing.title">Make your next<br />agent task feel grounded.</h2><p data-i18n="closing.copy">Download the latest desktop release, connect a provider, and build a workspace that works the way you do.</p><a class="button primary" href="#download" data-auto-download data-i18n="closing.action">Download the latest release</a></div></section>
+    </main>
+    <footer class="page-width"><a class="brand" href="#top"><img src="../assets/openagent_icon_macos.png" alt="" /><span>OpenAgent</span></a><span data-i18n="footer">Built with Tauri, SvelteKit, and Rust.</span><a href="https://github.com/BANG404/openagent">GitHub ↗</a></footer>
+  </body>
+</html>
