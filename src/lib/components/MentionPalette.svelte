@@ -18,12 +18,13 @@
   interface Props {
     items: PaletteItem[];
     activeIdx: number;
+    loading?: boolean;
     emptyText: string;
     onSelect: (item: PaletteItem) => void;
     onHover: (idx: number) => void;
   }
 
-  let { items, activeIdx, emptyText, onSelect, onHover }: Props = $props();
+  let { items, activeIdx, loading = false, emptyText, onSelect, onHover }: Props = $props();
   let listEl = $state<HTMLElement | null>(null);
 
   // Translate parent's index-based active selection into Command's value-based one.
@@ -66,7 +67,12 @@
   label="Suggestions"
 >
   <Command.List bind:ref={listEl} class="palette-list">
-    {#if items.length === 0}
+    {#if loading && items.length === 0}
+      <div class="palette-loading" role="status">
+        <span class="palette-spinner" aria-hidden="true"></span>
+        <span>{emptyText}</span>
+      </div>
+    {:else if items.length === 0}
       <Command.Empty class="palette-empty">{emptyText}</Command.Empty>
     {:else}
       {#each items as item (item.id)}
@@ -131,6 +137,30 @@
     line-height: 1.43;
     color: var(--text-muted);
     text-align: center;
+  }
+
+  .palette-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 10px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.43;
+  }
+
+  .palette-spinner {
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid color-mix(in srgb, currentColor 28%, transparent);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: palette-spin 0.75s linear infinite;
+  }
+
+  @keyframes palette-spin {
+    to { transform: rotate(360deg); }
   }
 
   :global(.palette-row) {

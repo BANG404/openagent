@@ -32,6 +32,13 @@
     drafts: DraftFileEntry[];
   }
 
+  interface MentionCatalog {
+    projectDrafts: DraftCategoryEntry[];
+    globalDrafts: DraftCategoryEntry[];
+    projectRoles: AgentRole[];
+    globalRoles: AgentRole[];
+  }
+
   interface Props {
     value: string;
     attachments: ChatAttachment[];
@@ -44,6 +51,7 @@
     sendTitle: string;
     stopTitle?: string;
     slashCommands?: SlashCommand[];
+    enableMentions?: boolean;
     showGlobalDraftsInMentions?: boolean;
     showAttachments?: boolean;
     showModelSelector?: boolean;
@@ -71,6 +79,7 @@
     sendTitle,
     stopTitle = "停止生成",
     slashCommands = [],
+    enableMentions = true,
     showGlobalDraftsInMentions = true,
     showAttachments = true,
     showModelSelector = true,
@@ -95,8 +104,12 @@
   let triggerStart = $state(0);
   let activeIdx = $state(0);
   let mentionItems = $state<PaletteItem[]>([]);
+  let mentionLoading = $state(false);
   // Token sequence guards out-of-order fetch results.
   let mentionFetchSeq = 0;
+  // Drafts and roles do not depend on the query. Reuse them while the palette
+  // remains open instead of issuing four IPC calls for every keystroke.
+  let mentionCatalogPromise: Promise<MentionCatalog> | null = null;
 
   const tauriAvailable = isTauri();
   const maxAttachments = 8;
@@ -320,7 +333,11 @@
   );
 
   const paletteEmptyText = $derived(
-    paletteMode === "slash" ? $t("paletteNoCommands") : $t("paletteNoFiles"),
+    paletteMode === "slash"
+      ? $t("paletteNoCommands")
+      : mentionLoading
+        ? $t("paletteLoadingMentions")
+        : $t("paletteNoFiles"),
   );
 
   $effect(() => {
@@ -355,10 +372,13 @@
   });
 
   function closePalette() {
+    mentionFetchSeq += 1;
     paletteMode = null;
     paletteQuery = "";
     activeIdx = 0;
     mentionItems = [];
+    mentionLoading = false;
+    mentionCatalogPromise = null;
   }
 
   // Find an active trigger (/ or @) given the caret position. Returns null if none.
@@ -374,6 +394,8 @@
         return { mode: "slash", start: 0, query: head.slice(1) };
       }
     }
+    if (!enableMentions) return null;
+
     // Mention: look back from the caret for the nearest `@` that is preceded by
     // start-of-text or whitespace, with no whitespace between `@` and caret.
     for (let i = caret - 1; i >= 0; i--) {
@@ -390,37 +412,45 @@
     return null;
   }
 
+  function loadMentionCatalog(): Promise<MentionCatalog> {
+    if (!mentionCatalogPromise) {
+      mentionCatalogPromise = Promise.all([
+        invoke<DraftCategoryEntry[]>("list_project_drafts", { scope: "local" }).catch(() => []),
+        showGlobalDraftsInMentions
+          ? invoke<DraftCategoryEntry[]>("list_project_drafts", { scope: "global" }).catch(() => [])
+          : Promise.resolve([]),
+        invoke<AgentRole[]>("list_agent_roles", { scope: "local" }).catch(() => []),
+        invoke<AgentRole[]>("list_agent_roles", { scope: "global" }).catch(() => []),
+      ]).then(([projectDrafts, globalDrafts, projectRoles, globalRoles]) => ({
+        projectDrafts,
+        globalDrafts,
+        projectRoles,
+        globalRoles,
+      }));
+    }
+    return mentionCatalogPromise;
+  }
+
   async function refreshMentionItems(query: string) {
-    if (!tauriAvailable) {
+    if (!enableMentions || !tauriAvailable) {
       mentionItems = [];
+      mentionLoading = false;
       return;
     }
     const seq = ++mentionFetchSeq;
+    mentionLoading = true;
     try {
-      const [
-        filesResult,
-        projectDraftsResult,
-        globalDraftsResult,
-        projectRolesResult,
-        globalRolesResult,
-      ] = await Promise.allSettled([
-        invoke<string[]>("list_workspace_files", { query }),
-        invoke<DraftCategoryEntry[]>("list_project_drafts", { scope: "local" }),
-        showGlobalDraftsInMentions
-          ? invoke<DraftCategoryEntry[]>("list_project_drafts", { scope: "global" })
-          : Promise.resolve([]),
-        invoke<AgentRole[]>("list_agent_roles", { scope: "local" }),
-        invoke<AgentRole[]>("list_agent_roles", { scope: "global" }),
+      const [files, catalog] = await Promise.all([
+        invoke<string[]>("list_workspace_files", { query }).catch(() => []),
+        loadMentionCatalog(),
       ]);
       if (seq !== mentionFetchSeq) return;
-      const files = filesResult.status === "fulfilled" ? filesResult.value : [];
       const normalizedQuery = query.trim().toLowerCase();
       const toDraftItems = (
-        result: PromiseSettledResult<DraftCategoryEntry[]>,
+        categories: DraftCategoryEntry[],
         scope: "项目" | "全局",
       ): PaletteItem[] => {
-        if (result.status !== "fulfilled") return [];
-        return result.value
+        return categories
           .flatMap((category) => category.drafts)
           .sort((a, b) => b.updated_at - a.updated_at || a.path.localeCompare(b.path))
           .filter((draft) => {
@@ -436,12 +466,12 @@
           }));
       };
       const draftItems = [
-        ...toDraftItems(projectDraftsResult, "项目"),
-        ...toDraftItems(globalDraftsResult, "全局"),
+        ...toDraftItems(catalog.projectDrafts, "项目"),
+        ...toDraftItems(catalog.globalDrafts, "全局"),
       ];
       const roleItems = [
-        ...(projectRolesResult.status === "fulfilled" ? projectRolesResult.value : []),
-        ...(globalRolesResult.status === "fulfilled" ? globalRolesResult.value : []),
+        ...catalog.projectRoles,
+        ...catalog.globalRoles,
       ]
         .filter((role, index, roles) => {
           const normalizedName = role.name.toLocaleLowerCase();
@@ -467,6 +497,8 @@
       }))];
     } catch {
       if (seq === mentionFetchSeq) mentionItems = [];
+    } finally {
+      if (seq === mentionFetchSeq) mentionLoading = false;
     }
   }
 
@@ -589,6 +621,7 @@
       <MentionPalette
         items={paletteItems}
         {activeIdx}
+        loading={paletteMode === "mention" && mentionLoading}
         emptyText={paletteEmptyText}
         onSelect={applySelection}
         onHover={(idx) => (activeIdx = idx)}

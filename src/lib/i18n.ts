@@ -423,6 +423,7 @@ const zh = {
   checkForUpdates: '检查更新',
   // Input palette (slash commands + @file mentions)
   paletteNoCommands: '无匹配的指令',
+  paletteLoadingMentions: '正在加载角色和文件…',
   paletteNoFiles: '未找到匹配的角色或文件',
   mentionRole: '角色',
   mentionProjectDraft: '项目草稿',
@@ -926,6 +927,7 @@ const en: Translations = {
   aboutVersion: `Version ${pkg.version}`,
   checkForUpdates: 'Check for updates',
   paletteNoCommands: 'No matching commands',
+  paletteLoadingMentions: 'Loading roles and files…',
   paletteNoFiles: 'No matching roles or files',
   mentionRole: 'Role',
   mentionProjectDraft: 'Project draft',

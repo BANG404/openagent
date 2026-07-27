@@ -998,6 +998,7 @@
                 bind:selectedModel
                 {modelOptions}
                 {slashCommands}
+                enableMentions={false}
                 placeholder={remoteModels.length ? $t("remoteComposerPlaceholder") : $t("remoteNoModelsPlaceholder")}
                 disabled={!workspaceId || loadingWorkspace}
                 isStreaming={running}
