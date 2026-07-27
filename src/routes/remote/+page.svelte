@@ -10,6 +10,7 @@
   import RoleSelector from "$lib/components/RoleSelector.svelte";
   import SidebarCollapseButton from "$lib/components/SidebarCollapseButton.svelte";
   import SidebarPrimaryActions from "$lib/components/SidebarPrimaryActions.svelte";
+  import Tooltip from "$lib/components/Tooltip.svelte";
   import Toast from "$lib/components/Toast.svelte";
   import ToolApprovalActions from "$lib/components/ToolApprovalActions.svelte";
   import UserInputForm from "$lib/components/UserInputForm.svelte";
@@ -84,6 +85,7 @@
   let loadingWorkspace = $state(false);
   let error = $state("");
   let commandNotice = $state("");
+  let inputAreaHeight = $state(120);
   let disconnect: (() => void) | null = null;
   let messagesEl = $state<HTMLElement | null>(null);
   let isDarkTheme = $state(false);
@@ -214,6 +216,9 @@
         ? [{ type: "text", content: liveAssistant.content }]
         : [];
   });
+  const newConversationLayout = $derived(
+    Boolean(workspaceId) && !loadingWorkspace && !conversation && messages.length === 0,
+  );
   const hasInlineInterrupt = $derived.by(() => projectedMessages.some((message) =>
     message.items?.some((item) => (
       item.type === "user_input"
@@ -873,14 +878,21 @@
 
 <TooltipPrimitive.Provider delayDuration={500} skipDelayDuration={300}>
   {#if screen === "loading"}
-    <main class="center-state">{$t("remoteConnecting")}</main>
+    <main class="center-state">
+      <img class="loading-logo" src="/assets/openagent_logo_text.svg" alt="OpenAgent" />
+      <span class="loading-indicator" aria-hidden="true"></span>
+      <span>{$t("remoteConnecting")}</span>
+    </main>
   {:else if screen === "pair"}
     <main class="gate-layout">
+      <div class="gate-aurora" aria-hidden="true"></div>
       <section class="gate-card">
         <div class="brand-lockup">
-          <div class="brand-mark">OA</div>
-          <div><h1>{$t("remoteConnectTitle")}</h1><p>{$t("remoteSecureControl")}</p></div>
+          <img class="brand-logo" src="/assets/openagent_logo_text.svg" alt="OpenAgent" />
+          <span class="remote-chip">Remote</span>
         </div>
+        <h1>{$t("remoteConnectTitle")}</h1>
+        <p class="gate-subtitle">{$t("remoteSecureControl")}</p>
         <label for="pairing-code">{$t("remoteGatewayPairingCode")}</label>
         <input
           id="pairing-code"
@@ -890,10 +902,14 @@
           bind:value={pairingCode}
           onkeydown={(event) => event.key === "Enter" && pair()}
           placeholder="XXXXXXXX"
+          spellcheck="false"
         />
         <p class="field-hint">{$t("remotePairingHint")}</p>
-        <button class="primary-action" disabled={busy || pairingCode.replace(/\s/g, "").length !== 8} onclick={pair}>{$t("remotePairDevice")}</button>
-        {#if error}<p class="error-note">{error}</p>{/if}
+        <button class="primary-action" disabled={busy || pairingCode.replace(/\s/g, "").length !== 8} onclick={pair}>
+          {#if busy}<span class="button-spinner" aria-hidden="true"></span>{/if}
+          {busy ? $t("remoteConnecting") : $t("remotePairDevice")}
+        </button>
+        {#if error}<p class="error-note" role="alert">{error}</p>{/if}
       </section>
     </main>
   {:else}
@@ -942,22 +958,27 @@
               onValueChange={(id) => id && void loadWorkspace(id)}
             />
             {#if sidebarCollapsed}
-              <button class="title-new-conversation" type="button" aria-label={$t("remoteNewConversation")} onclick={() => void newConversation()}>
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.75 4.25H5.5A1.75 1.75 0 0 0 3.75 6v8.5a1.75 1.75 0 0 0 1.75 1.75H14a1.75 1.75 0 0 0 1.75-1.75V8.25" /><path d="m9 11 6.35-6.35M12.75 4.25h3v3" /></svg>
-              </button>
+              <Tooltip text={$t("remoteNewConversation")} side="bottom">
+                <button class="title-new-conversation" type="button" aria-label={$t("remoteNewConversation")} onclick={() => void newConversation()}>
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.75 4.25H5.5A1.75 1.75 0 0 0 3.75 6v8.5a1.75 1.75 0 0 0 1.75 1.75H14a1.75 1.75 0 0 0 1.75-1.75V8.25" /><path d="m9 11 6.35-6.35M12.75 4.25h3v3" /></svg>
+                </button>
+              </Tooltip>
               <RoleSelector value={selectedRoleKey} {roles} compact onChange={(role) => void changeRole(role)} />
             {/if}
           </div>
-          <span class="connection-status"><span></span>{running ? $t("remoteAgentWorking") : $t("remoteHttpConnected")}</span>
+          <span class="connection-status" class:working={running} role="status" aria-live="polite">
+            <span></span>{running ? $t("awaitingStreamOutput") : $t("remoteHttpConnected")}
+          </span>
         </header>
 
         <main class="messages" bind:this={messagesEl}>
+          {#if newConversationLayout}
+            <div class="new-conversation-aurora" aria-hidden="true"></div>
+          {/if}
           {#if loadingWorkspace}
             <LoadingSkeleton variant="conversation" label={$t("remoteLoadingWorkspace")} />
           {:else if !workspaceId}
             <div class="empty-chat"><strong>{$t("remoteNoWorkspaceTitle")}</strong><span>{$t("remoteNoWorkspaceHint")}</span></div>
-          {:else if !conversation && conversations.length === 0}
-            <div class="empty-chat"><strong>{$t("remoteEmptyTitle")}</strong><span>{$t("remoteEmptyHint")}</span></div>
           {:else}
             <MessageList
               {messages}
@@ -970,7 +991,7 @@
               {activeBranchId}
               debugMode={false}
               {activeTree}
-              paddingBottom={170}
+              paddingBottom={inputAreaHeight + 24}
               showApiKeyWarn={remoteModels.length === 0}
               {shikiTheme}
               {mermaidConfig}
@@ -987,8 +1008,13 @@
           {/if}
         </main>
 
-        <div class="input-area">
-          <div class="conversation-aurora" aria-hidden="true"></div>
+        <div
+          class="input-area"
+          class:input-area-streaming={running}
+          class:input-area-new-conversation={newConversationLayout}
+          bind:clientHeight={inputAreaHeight}
+        >
+          <div class="conversation-aurora" class:conversation-aurora-streaming={running} aria-hidden="true"></div>
           <div class="input-inner">
             {#if currentFileChanges.length > 0 && !activeInterrupt}
               <FileChangeBanner changes={currentFileChanges} onRevert={revertFileChange} />
@@ -1044,19 +1070,33 @@
 </TooltipPrimitive.Provider>
 
 <style>
-  .center-state, .gate-layout { display: grid; min-height: 100dvh; place-items: center; padding: 40px 20px; background: var(--bg); color: var(--text-muted); }
-  .gate-card { width: min(100%, 440px); padding: 32px; border-radius: 18px; background: var(--control-surface); box-shadow: var(--raised-shadow); backdrop-filter: blur(16px) saturate(1.08); }
-  .gate-card h1 { margin: 0; color: var(--text); font-size: 17px; font-weight: 600; }
-  .brand-lockup { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
-  .brand-lockup p { margin: 1px 0 0; color: var(--text-muted); font-size: 12px; }
-  .brand-mark { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 8px; background: var(--primary); color: white; font-weight: 600; }
-  .gate-card > label { display: grid; gap: 8px; color: var(--text); font-size: 14px; }
-  .pairing-input { box-sizing: border-box; width: 100%; padding: 12px 18px; border: 0; border-radius: 9999px; outline: 0; background: var(--control-surface); box-shadow: var(--control-shadow); color: var(--text); font: 600 20px/1.4 "SFMono-Regular", Consolas, monospace; letter-spacing: .3em; text-align: center; text-transform: uppercase; }
+  @property --input-aurora-x-shift { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+  @property --input-aurora-y-shift { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+  @property --input-aurora-scale-shift { syntax: "<number>"; inherits: false; initial-value: 0; }
+
+  .center-state, .gate-layout { position: relative; display: grid; min-height: 100dvh; place-items: center; overflow: hidden; padding: 40px 20px; background: var(--bg); color: var(--text-muted); }
+  .center-state { align-content: center; gap: 12px; font-size: 12px; }
+  .loading-logo { width: 142px; height: auto; }
+  .loading-indicator { width: 18px; height: 18px; margin-top: 8px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 800ms linear infinite; }
+  .gate-aurora { position: absolute; left: 50%; top: 50%; width: min(880px, 115vw); height: min(620px, 82vh); background: radial-gradient(ellipse at 22% 46%, rgba(66,133,244,.2), transparent 54%), radial-gradient(ellipse at 50% 58%, rgba(52,168,83,.1), transparent 52%), radial-gradient(ellipse at 76% 40%, rgba(161,66,244,.15), transparent 54%); filter: blur(68px) saturate(1.14); opacity: .9; transform: translate(-50%, -50%); animation: gate-aurora 9s ease-in-out infinite alternate; pointer-events: none; }
+  .gate-card { position: relative; z-index: 1; width: min(100%, 440px); padding: 34px; border-radius: 18px; background: var(--control-surface); box-shadow: var(--raised-shadow); backdrop-filter: blur(20px) saturate(1.12); }
+  .gate-card h1 { margin: 0; color: var(--text); font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+  .gate-subtitle { margin: 3px 0 28px; color: var(--text-muted); font-size: 13px; }
+  .brand-lockup { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; }
+  .brand-logo { width: 146px; height: auto; }
+  .remote-chip { padding: 3px 8px; border-radius: 9999px; background: var(--item-selected-bg); color: var(--primary); font-size: 10px; font-weight: 600; letter-spacing: .02em; }
+  :global(html.dark) .brand-logo, :global(html.dark) .loading-logo { filter: invert(1) hue-rotate(180deg); }
+  .gate-card > label { display: grid; gap: 8px; color: var(--text); font-size: 13px; font-weight: 600; }
+  .pairing-input { box-sizing: border-box; width: 100%; margin-top: 8px; padding: 12px 18px 12px 24px; border: 0; border-radius: 9999px; outline: 0; background: var(--control-surface); box-shadow: var(--control-shadow); color: var(--text); font: 600 20px/1.4 "SFMono-Regular", Consolas, monospace; letter-spacing: .3em; text-align: center; text-transform: uppercase; }
   .pairing-input:focus { box-shadow: var(--control-shadow), var(--focus-ring); }
   .field-hint { margin: 8px 4px 0; color: var(--text-muted); font-size: 12px; line-height: 1.5; }
-  .primary-action { width: 100%; min-height: 44px; margin-top: 24px; padding: 11px 22px; border: 0; border-radius: 9999px; background: var(--primary); color: white; font: inherit; cursor: pointer; }
+  .primary-action { display: flex; width: 100%; min-height: 44px; align-items: center; justify-content: center; gap: 8px; margin-top: 24px; padding: 11px 22px; border: 0; border-radius: 9999px; background: var(--primary); color: white; font: inherit; font-weight: 600; cursor: pointer; transition: background 120ms ease, transform 120ms ease; }
+  .primary-action:hover:not(:disabled) { background: var(--primary-hover); }
+  .primary-action:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+  .primary-action:active:not(:disabled) { transform: scale(.985); }
   .primary-action:disabled { cursor: default; opacity: .4; }
-  .error-note, .composer-error { color: var(--danger, #dc2626); font-size: 12px; }
+  .button-spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.42); border-top-color: white; border-radius: 50%; animation: spin 800ms linear infinite; }
+  .error-note, .composer-error { margin-bottom: 0; color: var(--danger, #dc2626); font-size: 12px; }
 
   .app { --sidebar-width: 220px; display: flex; height: 100dvh; overflow: hidden; background: var(--bg); color: var(--text); }
   .sidebar { width: var(--sidebar-width); flex-shrink: 0; display: flex; flex-direction: column; overflow: visible; border-right: 1px solid var(--border); background: var(--sidebar-bg); transition: width 180ms cubic-bezier(.16, 1, .3, 1); user-select: none; }
@@ -1069,10 +1109,12 @@
   .main.sidebar-collapsed .title-bar { padding-left: 56px; }
   .title-bar-left { display: flex; min-width: 0; flex: 0 1 auto; align-items: center; gap: 6px; }
   :global(.remote-workspace-trigger) { max-width: min(280px, 42vw); border: 0; background: transparent; box-shadow: none; font-weight: 600; }
-  .connection-status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 9999px; background: var(--item-selected-bg); color: var(--primary); font-size: 11px; font-weight: 600; }
+  .connection-status { display: inline-flex; flex-shrink: 0; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 9999px; background: var(--item-selected-bg); color: var(--primary); font-size: 11px; font-weight: 600; }
   .connection-status > span { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-  .title-new-conversation { display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); }
-  .title-new-conversation:hover { background: var(--surface2); color: var(--text); }
+  .connection-status.working > span { animation: status-pulse 1.2s ease-in-out infinite; }
+  .title-new-conversation { display: grid; width: 28px; height: 28px; flex: 0 0 28px; place-items: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; transition: background 120ms ease, color 120ms ease; }
+  .title-new-conversation:hover, .title-new-conversation:focus-visible { background: var(--surface2); color: var(--text); outline: none; }
+  .title-new-conversation:focus-visible { box-shadow: var(--focus-ring); }
   .title-new-conversation svg { width: 18px; height: 18px; }
   .messages { position: relative; z-index: 1; display: flex; min-height: 0; flex: 1; flex-direction: column; overflow-x: clip; overflow-y: auto; overflow-anchor: none; }
   .empty-chat { display: grid; min-height: 100%; place-content: center; gap: 6px; color: var(--text-muted); text-align: center; }
@@ -1080,8 +1122,11 @@
   .empty-chat span { font-size: 13px; }
   .input-area { position: absolute; inset: auto 0 0; z-index: 10; padding-bottom: 16px; pointer-events: none; }
   .input-area::before { position: absolute; z-index: 0; inset: -48px 0 0; background: linear-gradient(to top, var(--bg) 0%, var(--bg) 60%, transparent 100%); content: ""; pointer-events: none; }
-  .conversation-aurora { position: absolute; top: calc(100% - 122px); left: 50%; z-index: 0; width: min(calc(100% + 100px), 1064px); height: 210px; background: radial-gradient(ellipse at 12% 62%, rgba(66,133,244,.34) 0 18%, transparent 43%), radial-gradient(ellipse at 36% 52%, rgba(161,66,244,.3) 0 16%, transparent 42%), radial-gradient(ellipse at 61% 64%, rgba(234,67,53,.32) 0 17%, transparent 44%), radial-gradient(ellipse at 84% 54%, rgba(251,188,5,.32) 0 18%, transparent 44%), radial-gradient(ellipse at 50% 78%, rgba(52,168,83,.3) 0 22%, transparent 50%); filter: blur(26px) saturate(1.35); opacity: .56; transform: translateX(-50%); pointer-events: none; }
-  .input-inner { position: relative; z-index: 2; box-sizing: border-box; width: min(760px, calc(100% - 32px)); margin: 0 auto; pointer-events: auto; }
+  .conversation-aurora { position: absolute; top: calc(100% - 122px); left: 50%; z-index: 0; width: min(calc(100% + 100px), 1064px); height: 210px; background: radial-gradient(ellipse at 12% 62%, rgba(66,133,244,.34) 0 18%, transparent 43%), radial-gradient(ellipse at 36% 52%, rgba(161,66,244,.3) 0 16%, transparent 42%), radial-gradient(ellipse at 61% 64%, rgba(234,67,53,.32) 0 17%, transparent 44%), radial-gradient(ellipse at 84% 54%, rgba(251,188,5,.32) 0 18%, transparent 44%), radial-gradient(ellipse at 50% 78%, rgba(52,168,83,.3) 0 22%, transparent 50%); filter: blur(26px) saturate(1.35); opacity: .56; pointer-events: none; --input-aurora-x-shift: 0%; --input-aurora-y-shift: 0%; --input-aurora-scale-shift: 0; transition: --input-aurora-x-shift 560ms cubic-bezier(.16,1,.3,1), --input-aurora-y-shift 560ms cubic-bezier(.16,1,.3,1), --input-aurora-scale-shift 560ms cubic-bezier(.16,1,.3,1), opacity 420ms ease, filter 560ms cubic-bezier(.16,1,.3,1); animation: input-area-aurora 7.5s ease-in-out infinite alternate; }
+  .conversation-aurora-streaming { --input-aurora-x-shift: 9%; --input-aurora-y-shift: 3%; --input-aurora-scale-shift: .2; opacity: .72; filter: blur(28px) saturate(1.45); }
+  .new-conversation-aurora { position: absolute; left: 50%; top: calc(50% - clamp(24px, 3vh, 40px)); z-index: 0; width: min(calc(100% - 96px), 1120px); height: clamp(260px, 34vh, 420px); background: radial-gradient(ellipse at 18% 46%, rgba(66,133,244,.2) 0 18%, transparent 56%), radial-gradient(ellipse at 43% 58%, rgba(52,168,83,.1) 0 18%, transparent 58%), radial-gradient(ellipse at 66% 42%, rgba(161,66,244,.12) 0 18%, transparent 58%), radial-gradient(ellipse at 84% 60%, rgba(251,188,5,.08) 0 16%, transparent 56%); filter: blur(72px) saturate(1.1); opacity: .9; transform: translate(-50%, -50%); animation: new-conversation-aurora 8s ease-in-out infinite alternate; pointer-events: none; }
+  .input-area-new-conversation::before, .input-area-new-conversation .conversation-aurora { opacity: 0; }
+  .input-inner { position: relative; z-index: 2; box-sizing: border-box; max-width: 900px; margin: 0 auto; padding: 0 32px; pointer-events: auto; }
   .composer-error { margin: 7px 0 0; text-align: center; }
   .composer-notice { margin: 7px 0 0; color: var(--text-muted); font-size: 12px; text-align: center; }
   .inline-interrupt-hint { margin: 0; padding: 10px; color: var(--text-muted); text-align: center; }
@@ -1089,10 +1134,21 @@
   .approval-copy { padding: 14px 16px; }
   .approval-copy p { margin: 0; font-weight: 600; }
   .approval-copy pre { max-height: 144px; margin: 8px 0 0; overflow: auto; white-space: pre-wrap; color: var(--text-muted); font-size: 12px; }
-  @media (prefers-reduced-motion: reduce) { .sidebar { transition: none; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes status-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+  @keyframes gate-aurora { from { transform: translate3d(-53%,-47%,0) scale(1.02); } to { transform: translate3d(-47%,-53%,0) scale(1.1); } }
+  @keyframes input-area-aurora {
+    0% { transform: translate3d(calc(-50% - 5% - var(--input-aurora-x-shift)), calc(8% + var(--input-aurora-y-shift)), 0) scale(calc(1.05 + var(--input-aurora-scale-shift))); }
+    50% { transform: translate3d(calc(-50% + 4% + var(--input-aurora-x-shift)), calc(3% - var(--input-aurora-y-shift)), 0) scale(calc(1.12 + var(--input-aurora-scale-shift))); }
+    100% { transform: translate3d(calc(-50% - 2% - var(--input-aurora-x-shift)), calc(6% + var(--input-aurora-y-shift)), 0) scale(calc(1.09 + var(--input-aurora-scale-shift))); }
+  }
+  @keyframes new-conversation-aurora { from { transform: translate3d(-54%,-46%,0) scale(1.04); } to { transform: translate3d(-46%,-52%,0) scale(1.1); } }
+  @media (prefers-reduced-motion: reduce) { .sidebar, .conversation-aurora, .new-conversation-aurora, .gate-aurora { transition: none; animation: none; } }
   @media (max-width: 760px) {
     .sidebar:not(.collapsed) { position: absolute; z-index: 30; inset: 0 auto 0 0; box-shadow: var(--raised-shadow); }
     .connection-status { max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .input-inner { width: calc(100% - 20px); }
+    .input-inner { padding: 0 10px; }
+    .new-conversation-aurora { width: calc(100% - 40px); }
+    .gate-card { padding: 28px 24px; }
   }
 </style>
