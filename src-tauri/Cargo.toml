@@ -38,7 +38,8 @@ schemars = "1"
 rig = { version = "0.40", features = ["rmcp"] }
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7", features = ["io"] }
-axum = "0.8"
+tokio-tungstenite = "0.29"
+axum = { version = "0.8", features = ["ws"] }
 anyhow = "1"
 dirs = "5"
 toml = "0.8"
