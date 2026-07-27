@@ -94,7 +94,7 @@
   </div>
 {:else if item.type === "thinking"}
   <details
-    class="thinking-block stream-item message-record"
+    class="thinking-block stream-item message-record pagination-atom"
     id={messageId ? `message-${messageId}` : undefined}
     data-message-id={messageId}
     data-stream-item={itemKey}
@@ -140,7 +140,7 @@
     <RetryAttempt {item} {shikiTheme} {mermaidConfig} {htmlPreviewConfig} {onSubmitUserInput} {onCancelUserInput} />
   </div>
 {:else if item.type === "user_input"}
-  <div class="stream-item message-record" id={messageId ? `message-${messageId}` : undefined} data-message-id={messageId} data-stream-item={itemKey}>
+  <div class="stream-item message-record pagination-atom" id={messageId ? `message-${messageId}` : undefined} data-message-id={messageId} data-stream-item={itemKey}>
     {#if item.state === "pending"}
       <UserInputForm request={item.request} onSubmit={onSubmitUserInput} onCancel={onCancelUserInput} />
     {:else}

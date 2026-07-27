@@ -274,9 +274,15 @@
     column-rule: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
   }
 
-  .virtual-message-row.content-columns :global(.assistant-msg) {
+  .virtual-message-row.content-columns > :global(.message-record) {
     content-visibility: visible;
     contain-intrinsic-size: none;
+  }
+
+  .virtual-message-row.content-columns > :global(.message-record:not(.assistant-msg)),
+  .virtual-message-row.content-columns :global(.pagination-atom),
+  .virtual-message-row.content-columns > :global(.thinking-status) {
+    break-inside: avoid-column;
   }
 
   .virtual-message-row.content-columns :global(details),
