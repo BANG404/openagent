@@ -93,16 +93,23 @@
     {/if}
   </div>
 {:else if item.type === "thinking"}
-  <details
+  <div
     class="thinking-block stream-item message-record"
     id={messageId ? `message-${messageId}` : undefined}
     data-message-id={messageId}
     data-stream-item={itemKey}
-    bind:open={thinkingOpen}
   >
-    <summary>Thinking</summary>
-    <pre>{renderThinkingContent(item.content)}</pre>
-  </details>
+    <button
+      type="button"
+      class="thinking-summary"
+      aria-expanded={thinkingOpen}
+      onclick={() => { thinkingOpen = !thinkingOpen; }}
+    >
+      <span class="thinking-marker" aria-hidden="true">{thinkingOpen ? "▾" : "▸"}</span>
+      <span>Thinking</span>
+    </button>
+    {#if thinkingOpen}<pre>{renderThinkingContent(item.content)}</pre>{/if}
+  </div>
 {:else if item.type === "tool_call"}
   <div class="stream-item message-record" id={messageId ? `message-${messageId}` : undefined} data-message-id={messageId} data-stream-item={itemKey}>
     <ToolCallCard
@@ -156,7 +163,9 @@
   :global(.message-record[data-file-preview-open]) { content-visibility: visible; }
   :global(.message-record[data-mermaid-expanded]) { content-visibility: visible; }
   .thinking-block { margin: 0 0 4px; border-left: 2px solid var(--border); padding: 4px 0 4px 10px; color: var(--text-muted); font-size: 13px; letter-spacing: 0; }
-  .thinking-block summary { cursor: pointer; user-select: none; font-size: 12px; line-height: 1.3; }
+  .thinking-summary { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; outline: none; background: transparent; color: inherit; cursor: pointer; user-select: none; font: inherit; font-size: 12px; line-height: 1.3; }
+  .thinking-summary:focus-visible { border-radius: 3px; box-shadow: var(--focus-ring); }
+  .thinking-marker { width: 9px; flex: none; text-align: center; }
   .thinking-block pre { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace); font-size: 12px; line-height: 1.45; }
   .compaction-status { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text-muted); font-size: 13px; }
   .compaction-status.failed { color: #b45309; border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.1); }

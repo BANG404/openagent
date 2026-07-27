@@ -290,7 +290,7 @@
     break-inside: auto;
   }
 
-  .virtual-message-row.content-columns :global(.thinking-block summary) {
+  .virtual-message-row.content-columns :global(.thinking-summary) {
     break-after: avoid-column;
   }
 
