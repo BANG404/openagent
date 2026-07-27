@@ -78,6 +78,22 @@ jobs:
           console.log(`prerelease=${manifest.channel === "beta"}`);
           NODE
 
+      - name: Require private release credentials
+        if: steps.release.outputs.active == 'true'
+        shell: bash
+        env:
+          OPENAGENT_SDK_DEPLOY_KEY: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [[ -z "$OPENAGENT_SDK_DEPLOY_KEY" ]]; then
+            echo "Repository secret OPENAGENT_SDK_DEPLOY_KEY is required." >&2
+            exit 1
+          fi
+          if [[ -z "$TAURI_SIGNING_PRIVATE_KEY" ]]; then
+            echo "Repository secret TAURI_SIGNING_PRIVATE_KEY is required." >&2
+            exit 1
+          fi
+
   tag:
     name: Tag verified commit
     needs: detect

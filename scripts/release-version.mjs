@@ -26,3 +26,72 @@ export function getMsiVersion(version) {
     ? `${major}.${minor}.${patch}`
     : `${major}.${minor}.${patch}.${prerelease}`;
 }
+
+/**
+ * Plan the version itself independently from Git tags. Conventional Commits
+ * provide `bump`; the selected channel only controls the Beta suffix.
+ *
+ * @param {string} currentVersion
+ * @param {"none" | "major" | "minor" | "patch"} bump
+ * @param {"beta" | "stable"} channel
+ * @param {{ betaNumber?: number, migrateLegacyBetaVersion?: boolean }} [options]
+ * @returns {{ version: string, baseVersion: string, promotion: boolean }}
+ */
+export function getNextReleaseVersion(currentVersion, bump, channel, options = {}) {
+  const match = currentVersion.match(releaseVersionPattern);
+  if (!match) throw new Error(`Unsupported version format: ${currentVersion}`);
+  if (channel !== "beta" && channel !== "stable") {
+    throw new Error(`Unsupported release channel: ${channel}`);
+  }
+
+  const major = Number.parseInt(match[1], 10);
+  const minor = Number.parseInt(match[2], 10);
+  const patch = Number.parseInt(match[3], 10);
+  const currentBase = `${major}.${minor}.${patch}`;
+  const isBeta = match[4] !== undefined;
+  const promotion = channel === "stable" && isBeta && bump === "none";
+
+  if (promotion) {
+    return { version: currentBase, baseVersion: currentBase, promotion: true };
+  }
+  if (bump === "none" && !isBeta) {
+    throw new Error("A stable version requires a release-worthy bump.");
+  }
+
+  let baseVersion;
+  if (isBeta && bump === "none" && !options.migrateLegacyBetaVersion) {
+    baseVersion = currentBase;
+  } else {
+    const effectiveBump = isBeta && bump === "none" ? "patch" : bump;
+    if (effectiveBump === "major") baseVersion = `${major + 1}.0.0`;
+    else if (effectiveBump === "minor") baseVersion = `${major}.${minor + 1}.0`;
+    else if (effectiveBump === "patch") baseVersion = `${major}.${minor}.${patch + 1}`;
+    else throw new Error(`Unsupported release bump: ${bump}`);
+  }
+
+  const version = channel === "beta"
+    ? `${baseVersion}-beta.${options.betaNumber ?? 1}`
+    : baseVersion;
+  return { version, baseVersion, promotion: false };
+}
+
+/**
+ * Resolve the next Beta counter from both immutable tags and the checked-in
+ * version. The latter keeps numbering continuous when historical tags are not
+ * present in a newly separated repository.
+ *
+ * @param {string} baseVersion
+ * @param {string[]} tags
+ * @param {string} currentVersion
+ * @returns {number}
+ */
+export function getNextBetaNumber(baseVersion, tags, currentVersion) {
+  const escapedBase = baseVersion.replaceAll(".", "\\.");
+  const matcher = new RegExp(`^v?${escapedBase}-beta\\.(\\d+)$`);
+  const numbers = [...tags, currentVersion]
+    .map((value) => value.match(matcher)?.[1])
+    .filter(Boolean)
+    .map((value) => Number.parseInt(value, 10))
+    .filter((value) => !Number.isNaN(value));
+  return numbers.length ? Math.max(...numbers) + 1 : 1;
+}

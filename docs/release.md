@@ -31,14 +31,24 @@ reachable `v*` tag and applies:
 - `patch`: any `fix` or `perf`
 - no release: docs, chore, refactor, style, test, and ci-only changes
 
-The selected release type controls the version:
+An update to the pinned private `sdk` gitlink is release-relevant. Its
+Conventional Commit subject therefore participates in the same bump rules as
+application source changes.
+
+The selected release channel controls the suffix and GitHub Release state. The
+release-relevant Conventional Commits control the `X.Y.Z` base version:
 
 - From a stable tag, `beta` calculates `X.Y.Z` from Conventional Commits and
   creates `vX.Y.Z-beta.1`.
-- From a beta tag, `beta` keeps `X.Y.Z` and increments the highest existing
-  beta number.
-- From a beta tag, `stable` removes the beta suffix without applying a second
-  bump.
+- From a beta tag, `beta` applies a new Conventional Commit bump to `X.Y.Z`
+  and resets the suffix to `beta.1`. If there is no new release-worthy bump,
+  it keeps `X.Y.Z` and increments the Beta number.
+- The next Beta number is calculated from both matching tags and the version
+  checked into the repository. This preserves the sequence even when older
+  tags are unavailable after repository separation.
+- From a beta tag, `stable` removes the beta suffix when there is no new
+  release-worthy bump. If new release-worthy commits exist, it applies their
+  bump to `X.Y.Z` and publishes that new stable version directly.
 - From a stable tag, `stable` calculates the next `X.Y.Z` directly.
 
 If legacy history contains both a stable tag and later beta tags with the same
@@ -95,6 +105,10 @@ Only then does it:
 4. publish the draft after every target succeeds;
 5. update the fixed Beta updater metadata when applicable;
 6. deploy the release landing page with the published tag.
+
+The target repository must define `OPENAGENT_SDK_DEPLOY_KEY` and
+`TAURI_SIGNING_PRIVATE_KEY`. Release validates both secrets before tagging or
+starting platform builds; secret values are never printed.
 
 The Release workflow does not repeat frontend tests, Rust tests, linting, or an
 isolated smoke binary. It builds the exact source SHA that already passed CI and

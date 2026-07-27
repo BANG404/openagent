@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: Release type / 发布类型
+        description: Release channel (Beta uses vX.Y.Z-beta.N) / 发布渠道
         required: true
         default: beta
         type: choice

@@ -1,6 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { getMsiVersion } from "./release-version.mjs";
+import {
+  getMsiVersion,
+  getNextBetaNumber,
+  getNextReleaseVersion,
+} from "./release-version.mjs";
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
@@ -19,6 +23,7 @@ const releaseFiles = [
 const releaseRelevantPaths = [
   "assets/**",
   "patches/**",
+  "sdk",
   "src/**",
   "src-tauri/**",
   "static/**",
@@ -169,52 +174,25 @@ function determineChannel() {
   throw new Error("Select a release type with --channel=beta or --channel=stable.");
 }
 
-function incrementVersion(version, bump) {
-  const { major, minor, patch } = parseSemver(version);
-  if (bump === "major") return `${major + 1}.0.0`;
-  if (bump === "minor") return `${major}.${minor + 1}.0`;
-  if (bump === "patch") return `${major}.${minor}.${patch + 1}`;
-  return version;
-}
-
-function getNextPrereleaseNumber(baseVersion, channel) {
+function getNextPrereleaseNumber(baseVersion, channel, currentVersion) {
   const tags = git(["tag", "--list", `v${baseVersion}-${channel}.*`])
     .split(/\r?\n/)
     .map((tag) => tag.trim())
     .filter(Boolean);
-  const matcher = new RegExp(`^v${baseVersion.replaceAll(".", "\\.")}-${channel}\\.(\\d+)$`);
-  const current = tags
-    .map((tag) => tag.match(matcher)?.[1])
-    .filter(Boolean)
-    .map((value) => Number.parseInt(value, 10))
-    .filter((value) => !Number.isNaN(value));
-  return current.length ? Math.max(...current) + 1 : 1;
+  return getNextBetaNumber(baseVersion, tags, currentVersion);
 }
 
 function getNextRelease(currentVersion, bump, channel, migrateLegacyBetaVersion = false) {
-  const current = parseSemver(currentVersion);
-  if (channel === "stable") {
-    if (current.prereleaseChannel) {
-      return {
-        version: current.base,
-        tag: `v${current.base}`,
-        promotion: true,
-      };
-    }
-    const version = incrementVersion(current.base, bump);
-    return { version, tag: `v${version}`, promotion: false };
-  }
-
-  if (current.prereleaseChannel && current.prereleaseChannel !== "beta") {
-    throw new Error(`Cannot create a beta release from ${currentVersion}.`);
-  }
-  const baseVersion =
-    current.prereleaseChannel && !migrateLegacyBetaVersion
-      ? current.base
-      : incrementVersion(current.base, current.prereleaseChannel ? "patch" : bump);
-  const prereleaseNumber = getNextPrereleaseNumber(baseVersion, "beta");
-  const version = `${baseVersion}-${channel}.${prereleaseNumber}`;
-  return { version, tag: `v${version}`, promotion: false };
+  const initial = getNextReleaseVersion(currentVersion, bump, channel, {
+    migrateLegacyBetaVersion,
+  });
+  const version = channel === "beta"
+    ? getNextReleaseVersion(currentVersion, bump, channel, {
+        betaNumber: getNextPrereleaseNumber(initial.baseVersion, "beta", currentVersion),
+        migrateLegacyBetaVersion,
+      }).version
+    : initial.version;
+  return { version, tag: `v${version}`, promotion: initial.promotion };
 }
 
 function assertReleaseFilesClean() {
@@ -576,8 +554,10 @@ function main() {
     .filter(Boolean);
   const bump = determineBump(commits);
   const current = parseSemver(releaseBaseVersion);
-  const promotion = channel === "stable" && Boolean(current.prereleaseChannel);
-  const betaIncrement = channel === "beta" && current.prereleaseChannel === "beta";
+  const promotion =
+    channel === "stable" && Boolean(current.prereleaseChannel) && bump === "none";
+  const betaIncrement =
+    channel === "beta" && current.prereleaseChannel === "beta" && bump === "none";
   // Older Beta bundles used the base version in Tauri, so 0.24.0-beta.7
   // would compare lower than an installed 0.24.0. Move the next Beta to the
   // following patch line once; later releases retain the full Beta version.
