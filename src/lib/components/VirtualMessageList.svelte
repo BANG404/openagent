@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick, type Snippet } from "svelte";
-  import type { MessageRenderEntry } from "$lib/toolCallGroups";
+  import { isAssistantTurnEntry, type MessageRenderEntry } from "$lib/toolCallGroups";
 
   interface Props {
     items: MessageRenderEntry[];
@@ -23,7 +23,6 @@
   }: Props = $props();
 
   const ITEM_GAP = 2;
-  const COLUMN_GAP = 32;
   let root = $state<HTMLElement | null>(null);
   let rootWidth = $state(0);
   let scrollTop = $state(0);
@@ -41,36 +40,22 @@
     measurementRevision;
     const starts: number[] = new Array(items.length);
     const sizes: number[] = new Array(items.length);
-    const rows: number[] = new Array(items.length);
-    const rowStarts: number[] = [];
-    const rowSizes: number[] = [];
     let totalSize = 0;
-    for (let row = 0; row * columnCount < items.length; row += 1) {
-      const rowStartIndex = row * columnCount;
-      let rowSize = 0;
-      rowStarts[row] = totalSize;
-      for (let column = 0; column < columnCount; column += 1) {
-        const index = rowStartIndex + column;
-        const item = items[index];
-        if (!item) break;
-        const size = measuredSizes.get(item.key) ?? estimateSize(item);
-        starts[index] = totalSize;
-        sizes[index] = size;
-        rows[index] = row;
-        rowSize = Math.max(rowSize, size);
-      }
-      rowSizes[row] = rowSize;
-      totalSize += rowSize;
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index];
+      starts[index] = totalSize;
+      sizes[index] = measuredSizes.get(item.key) ?? estimateSize(item);
+      totalSize += sizes[index];
     }
-    return { starts, sizes, rows, rowStarts, rowSizes, totalSize };
+    return { starts, sizes, totalSize };
   });
 
-  function lowerBoundRow(target: number) {
+  function lowerBound(target: number) {
     let low = 0;
-    let high = layout.rowStarts.length;
+    let high = items.length;
     while (low < high) {
       const middle = (low + high) >>> 1;
-      const end = layout.rowStarts[middle] + layout.rowSizes[middle];
+      const end = layout.starts[middle] + layout.sizes[middle];
       if (end < target) low = middle + 1;
       else high = middle;
     }
@@ -82,10 +67,8 @@
     const rootTop = root?.offsetTop ?? 0;
     const localTop = Math.max(0, scrollTop - rootTop);
     const localBottom = Math.max(localTop, scrollTop + viewportHeight - rootTop);
-    const startRow = Math.max(0, lowerBoundRow(Math.max(0, localTop - overscan)));
-    const endRow = Math.min(layout.rowStarts.length, lowerBoundRow(localBottom + overscan) + 1);
-    const start = Math.min(items.length, startRow * columnCount);
-    const end = Math.min(items.length, endRow * columnCount);
+    const start = Math.max(0, lowerBound(Math.max(0, localTop - overscan)));
+    const end = Math.min(items.length, lowerBound(localBottom + overscan) + 1);
     return { start, end };
   });
 
@@ -162,20 +145,11 @@
       const itemIndex = items.findIndex((candidate) => candidate.key === item.key);
       const rootTop = root?.offsetTop ?? 0;
       const itemTop = itemIndex >= 0 ? layout.starts[itemIndex] : 0;
-      const row = itemIndex >= 0 ? layout.rows[itemIndex] : -1;
-      const previousRowSize = row >= 0 ? layout.rowSizes[row] : previousSize;
-      const isAboveViewport = itemTop + previousRowSize + rootTop <= (scrollElement?.scrollTop ?? 0);
+      const isAboveViewport = itemTop + previousSize + rootTop <= (scrollElement?.scrollTop ?? 0);
       measuredSizes.set(item.key, nextSize);
-      const rowStartIndex = row * columnCount;
-      let nextRowSize = 0;
-      for (let column = 0; row >= 0 && column < columnCount; column += 1) {
-        const rowItem = items[rowStartIndex + column];
-        if (!rowItem) break;
-        nextRowSize = Math.max(nextRowSize, measuredSizes.get(rowItem.key) ?? estimateSize(rowItem));
-      }
       measurementRevision += 1;
       if (isAboveViewport && scrollElement && !suppressScrollAnchoring) {
-        scrollElement.scrollTop += nextRowSize - previousRowSize;
+        scrollElement.scrollTop += nextSize - previousSize;
       }
     };
 
@@ -258,9 +232,8 @@
   {#each visibleItems as virtual (virtual.item.key)}
     <div
       class="virtual-message-row"
+      class:content-columns={columnCount === 2 && isAssistantTurnEntry(virtual.item)}
       style:transform={`translateY(${layout.starts[virtual.index]}px)`}
-      style:left={columnCount === 2 && virtual.index % 2 === 1 ? `calc(50% + ${COLUMN_GAP / 2}px)` : "0"}
-      style:width={columnCount === 2 ? `calc(50% - ${COLUMN_GAP / 2}px)` : "100%"}
       use:measure={virtual.item}
       role="listitem"
       aria-posinset={virtual.index + 1}
@@ -292,5 +265,27 @@
     flex-direction: column;
     gap: 2px;
     will-change: transform;
+  }
+
+  .virtual-message-row.content-columns {
+    display: block;
+    column-count: 2;
+    column-gap: 32px;
+    column-rule: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  }
+
+  .virtual-message-row.content-columns :global(.assistant-msg) {
+    content-visibility: visible;
+    contain-intrinsic-size: none;
+  }
+
+  .virtual-message-row.content-columns :global(details),
+  .virtual-message-row.content-columns :global(pre),
+  .virtual-message-row.content-columns :global(table),
+  .virtual-message-row.content-columns :global(figure),
+  .virtual-message-row.content-columns :global(.tool-call-card),
+  .virtual-message-row.content-columns :global([data-file-preview-open]),
+  .virtual-message-row.content-columns :global([data-mermaid-expanded]) {
+    break-inside: avoid-column;
   }
 </style>
