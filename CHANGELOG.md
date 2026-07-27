@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.2-beta.1] - 2026-07-27
+
+### Bug Fixes
+- **chat**: Hide new conversation glow in dark mode
+- **chat**: Soften new conversation aurora edges
+- **remote**: Refresh rotated pairing code
+
 ## [0.25.1-beta.1] - 2026-07-27
 
 ### Bug Fixes
