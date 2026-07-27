@@ -90,7 +90,7 @@ export function getNextBetaNumber(baseVersion, tags, currentVersion) {
   const matcher = new RegExp(`^v?${escapedBase}-beta\\.(\\d+)$`);
   const numbers = [...tags, currentVersion]
     .map((value) => value.match(matcher)?.[1])
-    .filter(Boolean)
+    .filter((value) => value !== undefined)
     .map((value) => Number.parseInt(value, 10))
     .filter((value) => !Number.isNaN(value));
   return numbers.length ? Math.max(...numbers) + 1 : 1;
