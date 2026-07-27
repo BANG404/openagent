@@ -6,6 +6,7 @@ const repositoryRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const hostSourceRoot = resolve(repositoryRoot, "src-tauri", "src");
 const allowedHostSources = new Set([
   "bin/openagent-agent-server.rs",
+  "lib.rs",
   "main.rs",
 ]);
 
@@ -24,8 +25,11 @@ if (unexpectedHostSources.length > 0) {
 }
 
 const cargoManifest = readFileSync(resolve(repositoryRoot, "src-tauri", "Cargo.toml"), "utf8");
-if (!cargoManifest.includes('path = "../sdk/rust/openagent-app/src/lib.rs"')) {
-  throw new Error("The host Cargo library target must compile from the private SDK submodule");
+if (!cargoManifest.includes('path = "src/lib.rs"')) {
+  throw new Error("The host Cargo library target must compile from the Tauri adapter");
+}
+if (!cargoManifest.includes('openagent-app = { path = "../sdk/rust/openagent-app" }')) {
+  throw new Error("The Tauri adapter must depend on the private SDK application crate");
 }
 
 const requiredPrivateSources = [
@@ -55,4 +59,3 @@ if (missingPrivateSources.length > 0) {
 }
 
 console.log(`Private SDK boundary verified (${availablePrivateSources.size} backend source files)`);
-
