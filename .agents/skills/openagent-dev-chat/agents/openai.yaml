@@ -1,4 +1,0 @@
-interface:
-  display_name: "OpenAgent Dev Chat"
-  short_description: "Drive and diagnose a local debug instance"
-  default_prompt: "Use $openagent-dev-chat to debug this running OpenAgent conversation."

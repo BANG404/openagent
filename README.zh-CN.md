@@ -137,10 +137,14 @@
 ### 克隆与安装
 
 ```bash
-git clone https://github.com/BANG404/openagent.git
+git clone --recurse-submodules https://github.com/BANG404/openagent.git
 cd openagent
 bun install
 ```
+
+运行时 SDK 是私有子模块。从源码构建需要拥有 `BANG404/openagent-sdk` 的访问权限，
+并配置 GitHub 可接受的 SSH 密钥。已有工作区请先运行
+`git submodule update --init --recursive`，再安装依赖或构建。
 
 ### 开发模式启动
 
@@ -327,25 +331,16 @@ Agent 不再使用行内 AGUI 标签，而是可以通过调用内置的 `render
 ## 架构概览
 
 ```
-┌──────────────────────────────┐        Tauri IPC         ┌──────────────────────────────┐
-│   SvelteKit Webview (src/)   │  ◄──────────────────►   │  Rust Core (src-tauri/)       │
-│ ── routes/+page.svelte       │  invoke / event          │ ── commands/                  │
-│ ── lib/components/...        │  chat-chunk              │ ── tools.rs · terminal.rs     │
-│ ── lib/chatStream.ts         │  chat-tool-call          │ ── conversation_memory.rs     │
-│ ── lib/streamdown/...        │  chat-done               │ ── skills.rs · mcp.rs         │
-└──────────────────────────────┘                          │ ── checkpoint.rs · state.rs   │
-                                                          │ ── openagent-runtime crate    │
-                                                          └──────────────────────────────┘
-                                                                       │
-                                          ┌────────────────────────────┼────────────────────────────┐
-                                          ▼                            ▼                            ▼
-                                ┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
-                                │  SQLite + FTS5   │         │   LLM Providers   │         │   MCP Servers     │
-                                │  + fastembed     │         │  Claude · OpenAI  │         │  HTTP · stdio     │
-                                └──────────────────┘         └──────────────────┘         └──────────────────┘
+┌──────────────────────────────┐     类型化客户端/事件     ┌──────────────────────────────┐
+│   SvelteKit Webview (src/)   │  ◄────────────────────►  │  私有 SDK 子模块             │
+│   组件与交互状态             │                          │  运行时、后端与传输层         │
+└──────────────────────────────┘                          └──────────────────────────────┘
+                 │                                                     │
+                 └──────────── Tauri 薄宿主（src-tauri/）──────────────┘
 ```
 
-完整的贡献与架构说明参见 [`AGENTS.md`](AGENTS.md)。
+公开宿主与前端的贡献说明参见 [`AGENTS.md`](AGENTS.md)。SDK 内部架构及其贡献
+文档统一维护在私有子模块中。
 
 ---
 
@@ -356,26 +351,9 @@ Agent 不再使用行内 AGUI 标签，而是可以通过调用内置的 `render
 ├── src/                      # SvelteKit 前端（Svelte 5 · TypeScript）
 │   ├── routes/               # 页面组件
 │   └── lib/                  # 组件、状态、streamdown 渲染器、类型定义
-├── src-tauri/                # Tauri / Rust 后端
-│   ├── crates/
-│   │   └── openagent-runtime/ # 与 Tauri 解耦的输入路由契约
-│   ├── src/
-│   │   ├── lib.rs            # 应用初始化与插件注册
-│   │   ├── commands/         # 按领域组织的类型化 IPC 命令
-│   │   ├── config.rs         # 配置文件解析与管理
-│   │   ├── state.rs          # 全局应用状态定义
-│   │   ├── context.rs        # 系统提示词组装
-│   │   ├── context_compaction.rs # 树状对话上下文压缩逻辑
-│   │   ├── conversation_memory.rs # SQLite + fastembed 混合检索
-│   │   ├── checkpoint.rs     # 每轮检查点与反向 diff
-│   │   ├── skills.rs         # SKILL.md 自动发现
-│   │   ├── mcp.rs            # MCP 传输层与工具注入
-│   │   ├── tools.rs          # 内置开发工具 (读写文件、网页搜索、抓取等)
-│   │   ├── terminal.rs       # 终端执行与会话管理
-│   │   ├── sub_agent.rs      # 可复用角色与子 Agent 执行
-│   │   └── tracing_setup.rs  # OpenTelemetry 与 Langfuse 链路追踪初始化
-│   └── icons/                # 各平台应用图标
-└── docs/                     # 设计规范与架构说明
+├── src-tauri/                # Tauri 薄宿主、构建配置与打包元数据
+├── sdk/                      # 固定版本的私有 SDK Git 子模块
+└── docs/                     # 公开设计、集成与发布文档
 ```
 
 ---
@@ -442,7 +420,7 @@ LANGFUSE_HOST=https://cloud.langfuse.com
 
 ## 延伸阅读
 
-- [`AGENTS.md`](AGENTS.md) — 面向贡献者与 AI Agent 的架构参考
+- [`AGENTS.md`](AGENTS.md) — 公开宿主与前端贡献指南
 - [`CHANGELOG.md`](CHANGELOG.md) — 完整版本历史
 - [`docs/release.md`](docs/release.md) — 版本规则、beta/stable 渠道与发布流程
 - [`docs/design.md`](docs/design.md) — Apple 风格 UI 设计规范

@@ -138,10 +138,15 @@ To build from source instead, continue below.
 ### Clone & install
 
 ```bash
-git clone https://github.com/BANG404/openagent.git
+git clone --recurse-submodules https://github.com/BANG404/openagent.git
 cd openagent
 bun install
 ```
+
+The runtime SDK is a private submodule. Source builds require access to
+`BANG404/openagent-sdk` and an SSH key accepted by GitHub. For an existing
+checkout, initialize it with `git submodule update --init --recursive` before
+installing or building.
 
 ### Run in dev mode
 
@@ -327,25 +332,17 @@ Disabling the Memory Agent stops its post-conversation extraction task; the two 
 ## Architecture at a glance
 
 ```
-┌──────────────────────────────┐        Tauri IPC         ┌──────────────────────────────┐
-│   SvelteKit Webview (src/)   │  ◄──────────────────►   │  Rust Core (src-tauri/)       │
-│ ── routes/+page.svelte       │  invoke / event          │ ── commands/                  │
-│ ── lib/components/...        │  chat-chunk              │ ── tools.rs · terminal.rs     │
-│ ── lib/chatStream.ts         │  chat-tool-call          │ ── conversation_memory.rs     │
-│ ── lib/streamdown/...        │  chat-done               │ ── skills.rs · mcp.rs         │
-└──────────────────────────────┘                          │ ── checkpoint.rs · state.rs   │
-                                                          │ ── openagent-runtime crate    │
-                                                          └──────────────────────────────┘
-                                                                       │
-                                          ┌────────────────────────────┼────────────────────────────┐
-                                          ▼                            ▼                            ▼
-                                ┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
-                                │  SQLite + FTS5   │         │   LLM Providers   │         │   MCP Servers     │
-                                │  + fastembed     │         │  Claude · OpenAI  │         │  HTTP · stdio     │
-                                └──────────────────┘         └──────────────────┘         └──────────────────┘
+┌──────────────────────────────┐    typed client/events    ┌──────────────────────────────┐
+│   SvelteKit Webview (src/)   │  ◄────────────────────►  │  Private SDK submodule       │
+│   components · interaction   │                          │  runtime · backend · transport│
+└──────────────────────────────┘                          └──────────────────────────────┘
+                 │                                                     │
+                 └──────────── thin Tauri host (src-tauri/) ───────────┘
 ```
 
-See [`AGENTS.md`](AGENTS.md) for the current contributor and architecture guide.
+See [`AGENTS.md`](AGENTS.md) for the public host/frontend contributor guide.
+SDK internals and their contributor documentation are maintained in the
+private submodule.
 
 ---
 
@@ -356,26 +353,9 @@ See [`AGENTS.md`](AGENTS.md) for the current contributor and architecture guide.
 ├── src/                      # SvelteKit frontend (Svelte 5 · TypeScript)
 │   ├── routes/               # Page components
 │   └── lib/                  # Components, stores, streamdown, types
-├── src-tauri/                # Tauri / Rust backend
-│   ├── crates/
-│   │   └── openagent-runtime/ # Tauri-independent input routing contract
-│   ├── src/
-│   │   ├── lib.rs            # App setup, plugin registration
-│   │   ├── commands/         # Typed IPC commands grouped by domain
-│   │   ├── config.rs         # Config schema parsing and management
-│   │   ├── state.rs          # Global application state definition
-│   │   ├── context.rs        # System prompt assembly
-│   │   ├── context_compaction.rs # Context compaction logic for tree-based history
-│   │   ├── conversation_memory.rs # SQLite + fastembed hybrid retrieval
-│   │   ├── checkpoint.rs     # Per-turn checkpoints + reverse diffs
-│   │   ├── skills.rs         # SKILL.md discovery
-│   │   ├── mcp.rs            # MCP transports + tool injection
-│   │   ├── tools.rs          # Built-in dev tools (read/write file, web search, fetch, etc.)
-│   │   ├── terminal.rs       # Shell command execution and session management
-│   │   ├── sub_agent.rs      # Reusable role and child-agent execution
-│   │   └── tracing_setup.rs  # OpenTelemetry and Langfuse observability initialization
-│   └── icons/                # App icons (all platforms)
-└── docs/                     # Design specs and architecture notes
+├── src-tauri/                # Thin Tauri host, build config, and packaging
+├── sdk/                      # Pinned private SDK Git submodule
+└── docs/                     # Public design, integration, and release docs
 ```
 
 ---
@@ -469,7 +449,7 @@ For Anthropic, set `OPENAGENT_STRUCTURED_OUTPUT_PROVIDER=anthropic` and provide 
 
 ## Further reading
 
-- [`AGENTS.md`](AGENTS.md) — Contributor and architecture reference
+- [`AGENTS.md`](AGENTS.md) — Public host and frontend contributor guide
 - [`CHANGELOG.md`](CHANGELOG.md) — Full release history
 - [`docs/release.md`](docs/release.md) — Versioning, beta/stable channels, and publishing workflow
 - [`docs/design.md`](docs/design.md) — Apple-style design spec

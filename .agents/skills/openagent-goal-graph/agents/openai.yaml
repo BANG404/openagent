@@ -1,4 +1,0 @@
-interface:
-  display_name: "OpenAgent Goal and Graph"
-  short_description: "Goal and Graph execution state invariants"
-  default_prompt: "Use $openagent-goal-graph to modify Goal or Graph execution safely."

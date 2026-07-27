@@ -1,4 +1,0 @@
-interface:
-  display_name: "OpenAgent Conversation Runtime"
-  short_description: "Checkpoint and provider projection invariants"
-  default_prompt: "Use $openagent-conversation-runtime to safely change conversation persistence or streaming."
