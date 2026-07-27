@@ -4006,23 +4006,13 @@ let newConversationLayout = $derived(
       linear-gradient(180deg, rgba(232, 246, 255, 0.32), rgba(216, 237, 255, 0.18) 60%, transparent);
     filter: blur(72px) saturate(1.1);
     opacity: 0.9;
-    -webkit-mask-image: radial-gradient(
-      ellipse at center,
-      #000 0 34%,
-      rgba(0, 0, 0, 0.72) 52%,
-      rgba(0, 0, 0, 0.2) 70%,
-      transparent 86%
-    );
-    mask-image: radial-gradient(
-      ellipse at center,
-      #000 0 34%,
-      rgba(0, 0, 0, 0.72) 52%,
-      rgba(0, 0, 0, 0.2) 70%,
-      transparent 86%
-    );
     pointer-events: none;
     transform: translate(-50%, -50%);
     animation: new-conversation-aurora 8s ease-in-out infinite alternate;
+  }
+
+  :global(html.dark) .new-conversation-aurora {
+    display: none;
   }
 
   .input-area::after {

@@ -806,8 +806,9 @@
     overflow-wrap: anywhere;
   }
 
+  :global(html.dark) .memory-note::before,
   :global(html.dark) .memory-note::after {
-    background: rgba(28, 38, 54, 0.14);
+    display: none;
   }
 
   @keyframes memory-note-aurora {
