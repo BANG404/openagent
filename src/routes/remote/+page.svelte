@@ -467,6 +467,15 @@
       if (conversation?.conv_id !== convId) return;
       const previousPhase = conversation.phase;
       conversation = state;
+      if (state.title?.trim()) {
+        const index = remoteConversationMetas.findIndex((item) => item.id === convId);
+        if (index !== -1 && remoteConversationMetas[index].title !== state.title) {
+          remoteConversationMetas[index] = {
+            ...remoteConversationMetas[index],
+            title: state.title,
+          };
+        }
+      }
       if (resolvingInterrupt
         && !state.interrupts.some((interrupt) => interrupt.id === resolvingInterrupt?.id)) {
         resolvingInterrupt = null;
