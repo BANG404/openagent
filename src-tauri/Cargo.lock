@@ -6738,7 +6738,7 @@ dependencies = [
 
 [[package]]
 name = "openagent"
-version = "0.24.1-beta.7"
+version = "0.24.1-beta.8"
 dependencies = [
  "anyhow",
  "axum",
