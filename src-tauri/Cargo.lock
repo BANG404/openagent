@@ -6738,7 +6738,7 @@ dependencies = [
 
 [[package]]
 name = "openagent"
-version = "0.24.1-beta.8"
+version = "0.25.0-beta.1"
 dependencies = [
  "cc",
  "fastembed",
