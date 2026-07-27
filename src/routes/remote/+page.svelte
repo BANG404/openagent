@@ -84,6 +84,7 @@
   let attachments = $state<ChatAttachment[]>([]);
   let busy = $state(false);
   let loadingWorkspace = $state(false);
+  let loadingConversationId = $state<string | null>(null);
   let error = $state("");
   let commandNotice = $state("");
   let inputAreaHeight = $state(120);
@@ -218,7 +219,14 @@
         : [];
   });
   const newConversationLayout = $derived(
-    Boolean(workspaceId) && !loadingWorkspace && !conversation && messages.length === 0,
+    Boolean(workspaceId)
+      && !loadingWorkspace
+      && !loadingConversationId
+      && !conversation
+      && messages.length === 0,
+  );
+  const selectedConversationId = $derived(
+    loadingConversationId ?? conversation?.conv_id ?? null,
   );
   const hasInlineInterrupt = $derived.by(() => projectedMessages.some((message) =>
     message.items?.some((item) => (
@@ -566,8 +574,13 @@
   }
 
   async function selectConversation(id: string) {
-    if (id === conversation?.conv_id) return;
-    await perform(() => connectConversation(id));
+    if (id === conversation?.conv_id || loadingConversationId) return;
+    loadingConversationId = id;
+    try {
+      await perform(() => connectConversation(id));
+    } finally {
+      if (loadingConversationId === id) loadingConversationId = null;
+    }
   }
 
   async function togglePin(id: string) {
@@ -934,7 +947,7 @@
             <ConversationList
               {conversations}
               searchQuery={conversationSearchQuery}
-              activeConvId={conversation?.conv_id ?? null}
+              activeConvId={selectedConversationId}
               {streamingConvIds}
               hasMore={false}
               loadingMore={false}
@@ -978,6 +991,8 @@
           {/if}
           {#if loadingWorkspace}
             <LoadingSkeleton variant="new-conversation" label={$t("remoteLoadingWorkspace")} />
+          {:else if loadingConversationId}
+            <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
           {:else if !workspaceId}
             <div class="empty-chat"><strong>{$t("remoteNoWorkspaceTitle")}</strong><span>{$t("remoteNoWorkspaceHint")}</span></div>
           {:else}
@@ -1017,8 +1032,11 @@
         >
           <div class="conversation-aurora" class:conversation-aurora-streaming={running} aria-hidden="true"></div>
           <div class="input-inner">
-            {#if loadingWorkspace}
-              <LoadingSkeleton variant="composer" label={$t("remoteLoadingWorkspace")} />
+            {#if loadingWorkspace || loadingConversationId}
+              <LoadingSkeleton
+                variant="composer"
+                label={$t(loadingWorkspace ? "remoteLoadingWorkspace" : "loadingContent")}
+              />
             {:else}
             {#if currentFileChanges.length > 0 && !activeInterrupt}
               <FileChangeBanner changes={currentFileChanges} onRevert={revertFileChange} />
