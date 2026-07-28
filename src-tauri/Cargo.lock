@@ -6757,7 +6757,7 @@ dependencies = [
 
 [[package]]
 name = "openagent-app"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -6808,7 +6808,7 @@ dependencies = [
 
 [[package]]
 name = "openagent-runtime"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",
