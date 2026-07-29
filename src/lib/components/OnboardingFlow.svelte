@@ -3,6 +3,7 @@
   import { invoke } from "$lib/openagent/tauriClient";
   import { normalizeConfigShape } from "$lib/config";
   import type { AppConfig, DefaultModelBinding, ProviderConfig } from "$lib/types";
+  import WindowControls from "./WindowControls.svelte";
 
   let {
     config,
@@ -10,12 +11,18 @@
     onSave,
     onPickWorkspace,
     onComplete,
+    winMinimize,
+    winMaximize,
+    winClose,
   }: {
     config: AppConfig;
     workspacePath: string;
     onSave: (config: AppConfig) => Promise<void>;
     onPickWorkspace: () => Promise<void>;
     onComplete: () => void;
+    winMinimize: () => void;
+    winMaximize: () => void;
+    winClose: () => void;
   } = $props();
 
   let draft = $state<AppConfig>(
@@ -208,9 +215,14 @@
   }
 </script>
 
-<div class="onboarding-shell">
-  <div class="aurora" aria-hidden="true"></div>
-  <main class="onboarding-card" aria-label={copy.steps[step]}>
+<div class="onboarding-panel">
+  <header class="onboarding-header" data-tauri-drag-region>
+    <span>{draft.language === "en" ? "Getting started" : "入门设置"}</span>
+    <WindowControls onMinimize={winMinimize} onMaximize={winMaximize} onClose={winClose} />
+  </header>
+  <div class="onboarding-body">
+    <div class="aurora" aria-hidden="true"></div>
+    <main class="onboarding-layout" aria-label={copy.steps[step]}>
     <aside class="step-rail">
       <div class="brand">
         <span class="brand-mark">O</span>
@@ -345,18 +357,22 @@
         {/if}
       </footer>
     </section>
-  </main>
+    </main>
+  </div>
 </div>
 
 <style>
-  .onboarding-shell { position: relative; display: grid; place-items: center; min-height: 100vh; overflow: hidden; padding: 32px; box-sizing: border-box; background: var(--bg); color: var(--text); }
+  .onboarding-panel { display: flex; flex: 1; min-width: 0; flex-direction: column; overflow: hidden; background: var(--bg); color: var(--text); }
+  .onboarding-header { display: flex; align-items: center; justify-content: space-between; height: 48px; flex: none; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid var(--border); background: var(--bg); }
+  .onboarding-header > span { font-size: 14px; font-weight: 600; }
+  .onboarding-body { position: relative; display: grid; min-height: 0; flex: 1; overflow: hidden; }
   .aurora { position: absolute; inset: -30%; background: radial-gradient(circle at 25% 25%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 28%), radial-gradient(circle at 80% 75%, color-mix(in srgb, #7c3aed 12%, transparent), transparent 30%); filter: blur(24px); pointer-events: none; }
-  .onboarding-card { position: relative; display: grid; grid-template-columns: 230px minmax(0, 650px); width: min(880px, 100%); min-height: 590px; overflow: hidden; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); box-shadow: 0 28px 80px color-mix(in srgb, #000 18%, transparent); }
-  .step-rail { display: flex; flex-direction: column; padding: 28px 24px; border-right: 1px solid var(--border); background: color-mix(in srgb, var(--surface2) 60%, var(--surface)); }
+  .onboarding-layout { position: relative; display: grid; grid-template-columns: 240px minmax(0, 720px); width: min(100%, 1040px); height: 100%; min-height: 0; margin: 0 auto; overflow: hidden; }
+  .step-rail { display: flex; flex-direction: column; padding: 38px 28px 28px; border-right: 1px solid var(--border); background: color-mix(in srgb, var(--surface2) 55%, transparent); }
   .brand { display: flex; align-items: center; gap: 10px; font-size: 15px; }.brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: var(--primary); color: white; font-weight: 800; }
   ol { display: grid; gap: 2px; margin: 46px 0 0; padding: 0; list-style: none; } li { display: flex; align-items: center; gap: 11px; min-height: 42px; color: var(--text-muted); } li > span { display: grid; place-items: center; width: 24px; height: 24px; flex: none; border: 1px solid var(--border); border-radius: 50%; font-size: 11px; } li p { margin: 0; font-size: 12px; font-weight: 600; } li.active { color: var(--text); } li.active > span { border-color: var(--primary); background: var(--primary); color: white; } li.complete > span { border-color: color-mix(in srgb, var(--primary) 50%, var(--border)); color: var(--primary); }
   .privacy { margin: auto 0 0; color: var(--text-muted); font-size: 10px; line-height: 1.6; }
-  .step-content { display: flex; flex-direction: column; padding: 64px 64px 34px; min-width: 0; } h1 { margin: 8px 0 12px; font-size: 30px; letter-spacing: -.035em; } .eyebrow { margin: 0; color: var(--primary); font-size: 10px; font-weight: 800; letter-spacing: .16em; }.lead { max-width: 540px; margin: 0 0 34px; color: var(--text-muted); font-size: 14px; line-height: 1.65; }
+  .step-content { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow-y: auto; padding: clamp(38px, 7vh, 72px) clamp(32px, 6vw, 72px) 34px; } h1 { margin: 8px 0 12px; font-size: 30px; letter-spacing: -.035em; } .eyebrow { margin: 0; color: var(--primary); font-size: 10px; font-weight: 800; letter-spacing: .16em; }.lead { max-width: 540px; margin: 0 0 34px; color: var(--text-muted); font-size: 14px; line-height: 1.65; }
   .hero-icon { display: grid; place-items: center; width: 58px; height: 58px; margin-bottom: 18px; border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border)); border-radius: 18px; background: color-mix(in srgb, var(--primary) 10%, var(--surface)); color: var(--primary); font-size: 25px; }.hero-icon.ready { border-radius: 50%; background: var(--primary); color: white; }
   .workspace-card, .summary { padding: 17px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); }.workspace-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; }.workspace-card div { display: grid; min-width: 0; gap: 5px; }.workspace-card span, .summary span { color: var(--text-muted); font-size: 11px; }.workspace-card strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
   .form-grid { display: grid; gap: 18px; }.two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }.form-grid label { display: grid; gap: 7px; }.form-grid label > span { color: var(--text-muted); font-size: 11px; font-weight: 600; } input, select { box-sizing: border-box; width: 100%; height: 39px; padding: 0 11px; border: 1px solid var(--border); border-radius: 8px; outline: none; background: var(--bg); color: var(--text); font: inherit; font-size: 12px; } input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent); }
@@ -365,5 +381,5 @@
   .connection-row { display: flex; align-items: center; gap: 12px; }.connection-row p { margin: 0; color: var(--text-muted); font-size: 11px; }.success { color: #16865f !important; }.error { color: #d14343 !important; }
   .summary { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 11px 18px; }.summary strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
   footer { display: flex; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 30px; }
-  @media (max-width: 720px) { .onboarding-shell { padding: 0; }.onboarding-card { grid-template-columns: 1fr; min-height: 100vh; border: 0; border-radius: 0; }.step-rail { padding: 18px 22px; border: 0; border-bottom: 1px solid var(--border); }.step-rail ol { display: flex; justify-content: center; margin: 16px 0 0; }.step-rail li p, .privacy { display: none; }.step-content { padding: 36px 24px 24px; }.two { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .onboarding-layout { grid-template-columns: 1fr; }.step-rail { padding: 18px 22px; border: 0; border-bottom: 1px solid var(--border); }.step-rail ol { display: flex; justify-content: center; margin: 16px 0 0; }.step-rail li p, .privacy { display: none; }.step-content { padding: 32px 24px 24px; }.two { grid-template-columns: 1fr; } }
 </style>

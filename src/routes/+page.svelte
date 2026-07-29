@@ -3389,14 +3389,6 @@ let newConversationLayout = $derived(
 <TooltipPrimitive.Provider delayDuration={500} skipDelayDuration={300}>
 {#if isDevInspectorWindow && DevInspector}
   <DevInspector />
-{:else if onboardingOpen && config}
-  <OnboardingFlow
-    {config}
-    {workspacePath}
-    onSave={saveSettings}
-    onPickWorkspace={pickWorkspace}
-    onComplete={completeOnboarding}
-  />
 {:else}
 <div class="app" class:sidebar-collapsed={sidebarCollapsed}>
   <!-- ─── Sidebar ─────────────────────────────────────────────────────────────── -->
@@ -3462,7 +3454,18 @@ let newConversationLayout = $derived(
   </aside>
 
   <!-- ─── Design Panel ───────────────────────────────────────────────────── -->
-  {#if designOpen && DesignView}
+  {#if onboardingOpen && config}
+    <OnboardingFlow
+      {config}
+      {workspacePath}
+      onSave={saveSettings}
+      onPickWorkspace={pickWorkspace}
+      onComplete={completeOnboarding}
+      {winMinimize}
+      {winMaximize}
+      {winClose}
+    />
+  {:else if designOpen && DesignView}
     <DesignView
       {workspace}
       onClose={closeDesign}
@@ -3866,6 +3869,7 @@ let newConversationLayout = $derived(
   .app.sidebar-collapsed :global(.memory-header),
   .app.sidebar-collapsed :global(.roles-header),
   .app.sidebar-collapsed :global(.skills-header),
+  .app.sidebar-collapsed :global(.onboarding-header),
   .app.sidebar-collapsed :global(.settings-header) {
     padding-left: 56px;
   }
