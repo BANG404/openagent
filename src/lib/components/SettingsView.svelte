@@ -49,6 +49,23 @@
     recurring: boolean;
     created_at: number;
     next_run_at: number;
+    triggered_conversations: {
+      conv_id: string;
+      title: string;
+      triggered_at: number;
+    }[];
+    args: ScheduleChatHookArgs;
+  };
+  type ScheduleChatHookArgs = {
+    message: string;
+    delay_minutes?: number | null;
+    run_at?: string | null;
+    recurrence?: string | null;
+    interval_minutes?: number | null;
+    time_of_day?: string | null;
+    weekdays?: string[] | null;
+    conv_id?: string | null;
+    role_id?: string | null;
   };
   type RetryQueueKind = "chat_queue" | "flash_queue";
 
@@ -59,6 +76,7 @@
     initialNav,
     onSave,
     onClose,
+    onOpenConversation,
     onPickWorkspace,
     winMinimize,
     winMaximize,
@@ -70,6 +88,7 @@
     initialNav?: SettingsNav;
     onSave: (config: AppConfig) => Promise<void>;
     onClose: () => void;
+    onOpenConversation: (conversationId: string) => Promise<void>;
     onPickWorkspace: () => Promise<void>;
     winMinimize: () => void;
     winMaximize: () => void;
@@ -157,6 +176,8 @@
   let hookRoleKey = $state("openagent");
   let hookRoles = $state<AgentRole[]>([]);
   let hookStatus = $state("");
+  let editingHookId = $state<string | null>(null);
+  let editingHookConversationId = $state<string | null>(null);
   let memoryScope = $state<"global" | "local">("global");
   let memoryStatus = $state("");
   let memoryBusy = $state(false);
@@ -865,7 +886,10 @@
   );
 
   async function refreshHooks() {
-    scheduledHooks = await invoke<ScheduledChatHook[]>("list_scheduled_chat_hooks");
+    const definitions = await invoke<{ record: Omit<ScheduledChatHook, "args">; args: ScheduleChatHookArgs }[]>(
+      "list_scheduled_chat_hooks"
+    );
+    scheduledHooks = definitions.map(({ record, args }) => ({ ...record, args }));
   }
 
   async function refreshHookRoles() {
@@ -894,17 +918,19 @@
 
   async function cancelHook(id: string) {
     await invoke("cancel_scheduled_chat_hook", { id });
+    if (editingHookId === id) resetHookEditor();
     await refreshHooks();
   }
 
-  async function createHook() {
+  function hookArgs(): ScheduleChatHookArgs | null {
     const message = hookMessage.trim();
     if (!message) {
       hookStatus = tr("hookMessageRequired");
-      return;
+      return null;
     }
-    const args: Record<string, unknown> = { message };
+    const args: ScheduleChatHookArgs = { message };
     if (hookRoleKey !== "openagent") args.role_id = hookRoleKey;
+    if (editingHookConversationId) args.conv_id = editingHookConversationId;
     if (hookMode === "delay") {
       args.delay_minutes = hookDelayMinutes;
     } else if (hookMode === "run_at") {
@@ -920,9 +946,45 @@
       args.time_of_day = hookTimeOfDay;
       args.weekdays = hookWeekdays.split(",").map((d) => d.trim()).filter(Boolean);
     }
+    return args;
+  }
+
+  function resetHookEditor() {
+    editingHookId = null;
+    editingHookConversationId = null;
+    hookMessage = "";
+    hookMode = "delay";
+    hookDelayMinutes = 10;
+    hookRunAt = "";
+    hookTimeOfDay = "09:00";
+    hookIntervalMinutes = 60;
+    hookWeekdays = "mon,wed,fri";
+    hookRoleKey = "openagent";
+  }
+
+  function editHook(hook: ScheduledChatHook) {
+    editingHookId = hook.id;
+    editingHookConversationId = hook.args.conv_id ?? null;
+    hookMessage = hook.args.message;
+    hookRoleKey = hook.args.role_id ?? "openagent";
+    hookDelayMinutes = hook.args.delay_minutes ?? 10;
+    hookRunAt = hook.args.run_at ?? "";
+    hookIntervalMinutes = hook.args.interval_minutes ?? hook.args.delay_minutes ?? 60;
+    hookTimeOfDay = hook.args.time_of_day ?? "09:00";
+    hookWeekdays = hook.args.weekdays?.join(",") ?? "mon,wed,fri";
+    hookMode = (hook.args.recurrence as typeof hookMode | null)
+      ?? (hook.args.run_at ? "run_at" : "delay");
+    hookStatus = "";
+  }
+
+  async function saveHook() {
+    const args = hookArgs();
+    if (!args) return;
     try {
-      hookStatus = await invoke<string>("schedule_chat_hook", { args });
-      hookMessage = "";
+      hookStatus = editingHookId
+        ? await invoke<string>("update_scheduled_chat_hook", { id: editingHookId, args })
+        : await invoke<string>("schedule_chat_hook", { args });
+      resetHookEditor();
       await refreshHooks();
     } catch (err: any) {
       hookStatus = `${err}`;
@@ -1739,7 +1801,12 @@
             {/if}
           </div>
           <div class="key-input-row" style="margin-top:12px">
-            <button class="filter-toggle" onclick={createHook}>{$t('createHook')}</button>
+            <button class="filter-toggle" onclick={saveHook}>
+              {editingHookId ? $t('saveHookChanges') : $t('createHook')}
+            </button>
+            {#if editingHookId}
+              <button class="model-action-btn" onclick={resetHookEditor}>{$t('cancelEditHook')}</button>
+            {/if}
             {#if hookStatus}
               <div class="provider-status success">{hookStatus}</div>
             {/if}
@@ -1757,8 +1824,28 @@
                     <div class="provider-item-url">{$t('nextRunAt')}: {formatHookTime(hook.next_run_at)}</div>
                     <div class="provider-item-url">{$t('scheduledRole')}: {hookRoleName(hook.role_id)}</div>
                     <div class="provider-item-url">{hook.message}</div>
+                    {#if hook.triggered_conversations.length > 0}
+                      <div class="hook-conversations">
+                        <div class="hook-conversations-title">{$t('triggeredConversations')}</div>
+                        <div class="hook-conversations-scroll">
+                          {#each hook.triggered_conversations.slice().reverse() as conversation, index (`${conversation.conv_id}-${conversation.triggered_at}-${index}`)}
+                            <button
+                              class="hook-conversation-link"
+                              title={conversation.title}
+                              onclick={() => onOpenConversation(conversation.conv_id)}
+                            >
+                              <span>{conversation.title || $t('untitledConversation')}</span>
+                              <time>{formatHookTime(conversation.triggered_at)}</time>
+                            </button>
+                          {/each}
+                        </div>
+                      </div>
+                    {/if}
                   </div>
-                  <button class="model-action-btn" onclick={() => cancelHook(hook.id)}>{$t('cancel')}</button>
+                  <div class="hook-actions">
+                    <button class="model-action-btn" onclick={() => editHook(hook)}>{$t('editHook')}</button>
+                    <button class="model-action-btn" onclick={() => cancelHook(hook.id)}>{$t('cancel')}</button>
+                  </div>
                 </div>
               {/each}
             {:else}
@@ -3183,9 +3270,74 @@
 
   .hook-main {
     min-width: 0;
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 3px;
+  }
+
+  .hook-actions {
+    display: flex;
+    flex-shrink: 0;
+    align-self: flex-start;
+    gap: 6px;
+  }
+
+  .hook-conversations {
+    margin-top: 9px;
+    padding-top: 9px;
+    border-top: 1px solid var(--border);
+  }
+
+  .hook-conversations-title {
+    margin-bottom: 5px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .hook-conversations-scroll {
+    max-height: 152px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .hook-conversation-link {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .hook-conversation-link:hover {
+    background: var(--surface2);
+  }
+
+  .hook-conversation-link:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+
+  .hook-conversation-link span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hook-conversation-link time {
+    color: var(--text-secondary);
+    font-size: 11px;
+    white-space: nowrap;
   }
 
   .hook-textarea {

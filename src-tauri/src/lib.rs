@@ -9,7 +9,7 @@ use openagent_app::conversation_memory::{
 };
 use openagent_app::skills::SkillMetadata;
 use openagent_app::state::{
-    AppState, OpenAgentRuntime, RuntimeAsset, RuntimeHost, ScheduledChatHookRecord,
+    AppState, OpenAgentRuntime, RuntimeAsset, RuntimeHost, ScheduledChatHookDefinition,
 };
 use openagent_app::tools::ScheduleChatHookArgs;
 use openagent_app::{
@@ -636,7 +636,7 @@ async fn get_flash_status(runtime: State<'_, Arc<OpenAgentRuntime>>) -> Result<b
 #[tauri::command]
 async fn list_scheduled_chat_hooks(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
-) -> Result<Vec<ScheduledChatHookRecord>, String> {
+) -> Result<Vec<ScheduledChatHookDefinition>, String> {
     openagent_app::commands::list_scheduled_chat_hooks(runtime.state()).await
 }
 
@@ -654,6 +654,15 @@ async fn schedule_chat_hook(
     args: ScheduleChatHookArgs,
 ) -> Result<String, String> {
     openagent_app::commands::schedule_chat_hook(runtime.state(), args).await
+}
+
+#[tauri::command]
+async fn update_scheduled_chat_hook(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    id: String,
+    args: ScheduleChatHookArgs,
+) -> Result<String, String> {
+    openagent_app::commands::update_scheduled_chat_hook(runtime.state(), id, args).await
 }
 
 #[tauri::command]
@@ -1260,6 +1269,7 @@ fn run_with_mode(agent_server: bool) {
             list_scheduled_chat_hooks,
             cancel_scheduled_chat_hook,
             schedule_chat_hook,
+            update_scheduled_chat_hook,
             get_memory,
             save_memory,
             export_memory_backup,

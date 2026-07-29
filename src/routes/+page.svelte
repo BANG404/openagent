@@ -3118,6 +3118,11 @@ let newConversationLayout = $derived(
     if (config) setLocale((config.language ?? 'zh') as Locale);
   }
 
+  async function openHookConversation(conversationId: string) {
+    closeSettings();
+    await switchConversation(conversationId);
+  }
+
   async function saveSettings(nextConfig: AppConfig) {
     try {
       const snapshot = normalizeConfigShape(nextConfig);
@@ -3434,6 +3439,7 @@ let newConversationLayout = $derived(
       initialNav={settingsInitialNav}
       onSave={saveSettings}
       onClose={closeSettings}
+      onOpenConversation={openHookConversation}
       onPickWorkspace={pickWorkspace}
       {winMinimize}
       {winMaximize}
