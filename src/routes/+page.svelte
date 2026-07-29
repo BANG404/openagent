@@ -16,6 +16,7 @@
   import { t, tr, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import { showToast } from "$lib/toast";
   import { desktopOpenAgent as openAgent, invoke, listen } from "$lib/openagent/tauriClient";
+  import type { ChatRunStartedEvent } from "$lib/openagent";
   import {
     DEV_MAIN_DEBUG_VISIBILITY_EVENT,
     readMainDebugComponentsVisible,
@@ -1580,6 +1581,116 @@ let newConversationLayout = $derived(
     cacheRestoreSurface(restoringSurface, activeConvId, workspacePath);
   }
 
+  function insertExternalUserMessage(
+    convId: string,
+    userMessage: ChatMessage,
+    assistantMessageId: string,
+  ): void {
+    const index = conversations.findIndex((conversation) => conversation.id === convId);
+    if (index === -1 || conversations[index].messages.some((message) => message.id === userMessage.id)) {
+      return;
+    }
+    const existing = conversations[index];
+    const assistantIndex = existing.messages.findIndex((message) => message.id === assistantMessageId);
+    const messages = [...existing.messages];
+    messages.splice(assistantIndex === -1 ? messages.length : assistantIndex, 0, userMessage);
+    conversations[index] = { ...existing, messages, updatedAt: Date.now() };
+  }
+
+  function startProjectedChatStream(convId: string, assistantMessageId: string, startedAt: number): void {
+    const isSameRun = streamingConvIds[convId]
+      && streamAssistantMsgIds[convId] === assistantMessageId;
+    if (!isSameRun) {
+      convStreamItems = { ...convStreamItems, [convId]: [] };
+      streamAssistantMsgIds = { ...streamAssistantMsgIds, [convId]: assistantMessageId };
+      startStreamTiming(convId, startedAt);
+    }
+    streamingConvIds = { ...streamingConvIds, [convId]: true };
+    awaitingStreamOutputConvIds = { ...awaitingStreamOutputConvIds, [convId]: true };
+  }
+
+  function applyExternalChatRunStarted(event: ChatRunStartedEvent): void {
+    if (event.workspace !== (workspacePath || "")) return;
+    const startedAt = Date.now();
+    const userMessage: ChatMessage = {
+      id: event.msg_id,
+      role: "user",
+      content: event.message,
+      timestamp: startedAt,
+    };
+    const incoming: Conversation = {
+      id: event.conv_id,
+      title: event.title || $t("newConv"),
+      messages: [userMessage],
+      createdAt: event.created_at * 1000,
+      updatedAt: startedAt,
+      pinned: event.pinned,
+      parentConvId: event.parent_conv_id ?? undefined,
+      compactedFromConvId: event.compacted_from_conv_id ?? undefined,
+      flowKind: event.flow_kind ?? undefined,
+      flowStatus: event.flow_status ?? undefined,
+      roleId: event.role_id ?? undefined,
+    };
+    const existingIndex = conversations.findIndex((conversation) => conversation.id === event.conv_id);
+    if (existingIndex === -1) {
+      conversations = [incoming, ...conversations];
+    } else {
+      const existing = conversations[existingIndex];
+      conversations[existingIndex] = {
+        ...existing,
+        title: event.title || existing.title,
+        pinned: event.pinned,
+        parentConvId: event.parent_conv_id ?? undefined,
+        compactedFromConvId: event.compacted_from_conv_id ?? undefined,
+        flowKind: event.flow_kind ?? undefined,
+        flowStatus: event.flow_status ?? undefined,
+        roleId: event.role_id ?? undefined,
+        updatedAt: startedAt,
+      };
+      insertExternalUserMessage(event.conv_id, userMessage, event.asst_msg_id);
+    }
+
+    const eventRoleKey = event.role_id ?? defaultRoleKey;
+    if (event.conv_id === activeConvId && eventRoleKey !== selectedRoleKey) {
+      selectedRoleKey = eventRoleKey;
+      window.localStorage.setItem(roleSelectionStorageKey(), eventRoleKey);
+    }
+    startProjectedChatStream(event.conv_id, event.asst_msg_id, startedAt);
+
+    if (event.is_new) {
+      loadedConvIds.add(event.conv_id);
+      return;
+    }
+    if (!loadedConvIds.has(event.conv_id)) {
+      void loadMessagesForConv(event.conv_id, false).finally(() => {
+        insertExternalUserMessage(event.conv_id, userMessage, event.asst_msg_id);
+      });
+    }
+  }
+
+  function recoverUnannouncedChatStream(convId: string): void {
+    const startedAt = Date.now();
+    const assistantMessageId = crypto.randomUUID();
+    if (!conversations.some((conversation) => conversation.id === convId)) {
+      conversations = [{
+        id: convId,
+        title: $t("newConv"),
+        messages: [],
+        createdAt: startedAt,
+        updatedAt: startedAt,
+      }, ...conversations];
+    }
+    startProjectedChatStream(convId, assistantMessageId, startedAt);
+    void fetchConversationMeta(convId)
+      .then((conversation) => {
+        if (conversation) conversations = mergeConversationMetadata(conversations, [conversation]);
+        return loadMessagesForConv(convId, false);
+      })
+      .catch((error) => {
+        console.error(`Failed to recover externally started conversation ${convId}:`, error);
+      });
+  }
+
   async function setupGlobalEventListeners() {
     if (!tauriAvailable) return;
     const registrations: Array<Promise<() => void>> = [];
@@ -1832,72 +1943,14 @@ let newConversationLayout = $derived(
       }
     });
 
-    register<{
-      conv_id: string;
-      message: string;
-      msg_id: string;
-      asst_msg_id?: string;
-      workspace: string;
-      title: string;
-      is_new: boolean;
-      role_id: string | null;
-    }>(
-      "scheduled-chat-hook-started",
-      (e) => {
-        const { conv_id, message, msg_id, asst_msg_id, workspace: ws, title, is_new, role_id } = e.payload;
-        if (ws !== (workspacePath || "")) return;
-        const eventRoleKey = role_id ?? defaultRoleKey;
-        if (conv_id === activeConvId && eventRoleKey !== selectedRoleKey) {
-          selectedRoleKey = eventRoleKey;
-          window.localStorage.setItem(roleSelectionStorageKey(), eventRoleKey);
-        }
-        const userMsg: ChatMessage = {
-          id: msg_id,
-          role: "user",
-          content: message,
-          timestamp: Date.now(),
-        };
-        const existingIdx = conversations.findIndex((c) => c.id === conv_id);
-        if (eventRoleKey !== selectedRoleKey) {
-          if (existingIdx !== -1) {
-            conversations = conversations.filter((conversation) => conversation.id !== conv_id);
-          }
-          streamingConvIds = { ...streamingConvIds, [conv_id]: true };
-          convStreamItems = { ...convStreamItems, [conv_id]: [] };
-          streamAssistantMsgIds = { ...streamAssistantMsgIds, [conv_id]: asst_msg_id ?? crypto.randomUUID() };
-          startStreamTiming(conv_id, userMsg.timestamp);
-          return;
-        }
-        if (existingIdx === -1) {
-          conversations = [
-            {
-              id: conv_id,
-              title: title || $t("newConv"),
-              messages: [userMsg],
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              roleId: role_id ?? undefined,
-            },
-            ...conversations,
-          ];
-        } else if (!conversations[existingIdx].messages.some((m) => m.id === msg_id)) {
-          const existing = conversations[existingIdx];
-          conversations[existingIdx] = {
-            ...existing,
-            title: is_new ? title || existing.title : existing.title,
-            messages: [...existing.messages, userMsg],
-            updatedAt: Date.now(),
-          };
-        }
-        loadedConvIds.add(conv_id);
-        streamingConvIds = { ...streamingConvIds, [conv_id]: true };
-        convStreamItems = { ...convStreamItems, [conv_id]: [] };
-        streamAssistantMsgIds = { ...streamAssistantMsgIds, [conv_id]: asst_msg_id ?? crypto.randomUUID() };
-        startStreamTiming(conv_id, userMsg.timestamp);
-      },
-    );
     const chatEventRegistration = openAgent.subscribeToChatEvents({
+      onRunStarted: (event) => {
+        applyExternalChatRunStarted(event);
+      },
       onResponseStarted: (conv_id) => {
+        if (!streamingConvIds[conv_id]) {
+          recoverUnannouncedChatStream(conv_id);
+        }
         const items = convStreamItems[conv_id] ?? [];
         const hasStreamOutput = items.some((item) =>
           item.type === "text"
