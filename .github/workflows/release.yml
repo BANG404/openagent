@@ -288,12 +288,19 @@ jobs:
         run: |
           metadata_dir="$(mktemp -d)"
           metadata_path="$metadata_dir/latest.json"
+          public_metadata_path="$metadata_dir/public-latest.json"
           gh release download "$RELEASE_TAG" --pattern latest.json --output "$metadata_path" --clobber
+          expected_version="$(jq -er '.version' "$metadata_path")"
 
-          if ! gh release view beta >/dev/null 2>&1; then
-            tag_object="$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')"
-            release_commit="$(gh api "repos/$GH_REPO/git/tags/$tag_object" --jq '.object.sha')"
+          tag_object="$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')"
+          release_commit="$(gh api "repos/$GH_REPO/git/tags/$tag_object" --jq '.object.sha')"
+
+          beta_is_draft=true
+          if gh release view beta >/dev/null 2>&1; then
+            beta_is_draft="$(gh release view beta --json isDraft --jq '.isDraft')"
+          else
             gh release create beta \
+              --draft \
               --target "$release_commit" \
               --title "OpenAgent Beta updater channel" \
               --notes "This release hosts updater metadata for the current Beta build." \
@@ -301,6 +308,30 @@ jobs:
           fi
 
           gh release upload beta "$metadata_path" --clobber
+
+          if [[ "$beta_is_draft" == "true" ]]; then
+            gh release edit beta \
+              --target "$release_commit" \
+              --draft=false \
+              --prerelease
+          fi
+
+          public_metadata_url="https://github.com/$GH_REPO/releases/download/beta/latest.json"
+          for attempt in {1..5}; do
+            if curl --fail --location --silent --show-error \
+              "$public_metadata_url" \
+              --output "$public_metadata_path" \
+              && jq -e --arg version "$expected_version" \
+                '.version == $version and (.platforms | type == "object")' \
+                "$public_metadata_path" >/dev/null; then
+              echo "Beta updater metadata is public for $expected_version."
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+
+          echo "Beta updater metadata is not publicly available for $expected_version." >&2
+          exit 1
 
   deploy-pages:
     name: Deploy release page
