@@ -84,6 +84,15 @@ jobs:
         env:
           OPENAGENT_SDK_DEPLOY_KEY: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+          AZURE_AD_APPLICATION_CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
+          AZURE_AD_APPLICATION_SECRET: ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
+          AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          SELLER_ID: ${{ secrets.SELLER_ID }}
+          MS_STORE_APP_ID: ${{ vars.MS_STORE_APP_ID }}
+          MS_STORE_PACKAGE_IDENTITY_NAME: ${{ vars.MS_STORE_PACKAGE_IDENTITY_NAME }}
+          MS_STORE_PACKAGE_PUBLISHER: ${{ vars.MS_STORE_PACKAGE_PUBLISHER }}
+          MS_STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.MS_STORE_PUBLISHER_DISPLAY_NAME }}
         run: |
           if [[ -z "$OPENAGENT_SDK_DEPLOY_KEY" ]]; then
             echo "Repository secret OPENAGENT_SDK_DEPLOY_KEY is required." >&2
@@ -92,6 +101,34 @@ jobs:
           if [[ -z "$TAURI_SIGNING_PRIVATE_KEY" ]]; then
             echo "Repository secret TAURI_SIGNING_PRIVATE_KEY is required." >&2
             exit 1
+          fi
+
+          if [[ "$PRERELEASE" == "false" ]]; then
+            required_store_secrets=(
+              AZURE_AD_APPLICATION_CLIENT_ID
+              AZURE_AD_APPLICATION_SECRET
+              AZURE_AD_TENANT_ID
+              SELLER_ID
+            )
+            for name in "${required_store_secrets[@]}"; do
+              if [[ -z "${!name}" ]]; then
+                echo "Repository secret $name is required for Microsoft Store releases." >&2
+                exit 1
+              fi
+            done
+
+            required_store_variables=(
+              MS_STORE_APP_ID
+              MS_STORE_PACKAGE_IDENTITY_NAME
+              MS_STORE_PACKAGE_PUBLISHER
+              MS_STORE_PUBLISHER_DISPLAY_NAME
+            )
+            for name in "${required_store_variables[@]}"; do
+              if [[ -z "${!name}" ]]; then
+                echo "Repository variable $name is required for Microsoft Store releases." >&2
+                exit 1
+              fi
+            done
           fi
 
   tag:
@@ -226,6 +263,10 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
+      - name: Set up WinApp CLI
+        if: matrix.platform == 'windows-latest' && needs.detect.outputs.prerelease != 'true'
+        uses: microsoft/setup-WinAppCli@v0.1
+
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
 
@@ -257,17 +298,132 @@ jobs:
           retryAttempts: 2
           args: ${{ matrix.args }}
 
+      - name: Build Microsoft Store package
+        if: matrix.platform == 'windows-latest' && needs.detect.outputs.prerelease != 'true'
+        shell: pwsh
+        env:
+          MS_STORE_PACKAGE_IDENTITY_NAME: ${{ vars.MS_STORE_PACKAGE_IDENTITY_NAME }}
+          MS_STORE_PACKAGE_PUBLISHER: ${{ vars.MS_STORE_PACKAGE_PUBLISHER }}
+          MS_STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.MS_STORE_PUBLISHER_DISPLAY_NAME }}
+        run: |
+          $stage = Join-Path $env:RUNNER_TEMP "openagent-store"
+          $manifestPath = Join-Path $stage "Package.appxmanifest"
+          $packagePath = Join-Path $env:RUNNER_TEMP "openagent-store.msix"
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+          Copy-Item "src-tauri\target\release\openagent.exe" $stage
+          Get-ChildItem "src-tauri\target\release" -Filter *.dll -File |
+            Copy-Item -Destination $stage
+
+          $tauriConfig = Get-Content -Raw "src-tauri\tauri.conf.json" | ConvertFrom-Json
+          $storeVersion = $tauriConfig.bundle.windows.wix.version
+          if ($storeVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+            throw "Microsoft Store package version must have four numeric components, got '$storeVersion'."
+          }
+
+          winapp manifest generate $stage `
+            --package-name $env:MS_STORE_PACKAGE_IDENTITY_NAME `
+            --publisher-name $env:MS_STORE_PACKAGE_PUBLISHER `
+            --version $storeVersion `
+            --description "OpenAgent" `
+            --entrypoint (Join-Path $stage "openagent.exe") `
+            --logo-path "src-tauri\icons\icon.png" `
+            --if-exists overwrite
+          if ($LASTEXITCODE -ne 0) {
+            throw "WinApp CLI failed to generate the Microsoft Store manifest."
+          }
+
+          [xml] $manifest = Get-Content -Raw $manifestPath
+          $namespace = New-Object System.Xml.XmlNamespaceManager($manifest.NameTable)
+          $namespace.AddNamespace("appx", $manifest.DocumentElement.NamespaceURI)
+          $namespace.AddNamespace("uap", "http://schemas.microsoft.com/appx/manifest/uap/windows10")
+          $manifest.SelectSingleNode("/appx:Package/appx:Properties/appx:DisplayName", $namespace).InnerText = "OpenAgent"
+          $manifest.SelectSingleNode("/appx:Package/appx:Properties/appx:PublisherDisplayName", $namespace).InnerText = $env:MS_STORE_PUBLISHER_DISPLAY_NAME
+          $manifest.SelectSingleNode("/appx:Package/appx:Applications/appx:Application/uap:VisualElements", $namespace).SetAttribute("DisplayName", "OpenAgent")
+          $manifest.Save($manifestPath)
+
+          winapp pack $stage `
+            --manifest $manifestPath `
+            --output $packagePath `
+            --executable "openagent.exe"
+          if ($LASTEXITCODE -ne 0) {
+            throw "WinApp CLI failed to build the Microsoft Store package."
+          }
+
+      - name: Upload Microsoft Store package
+        if: matrix.platform == 'windows-latest' && needs.detect.outputs.prerelease != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: openagent-store-msix
+          path: ${{ runner.temp }}/openagent-store.msix
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-store:
+    name: Submit Microsoft Store update
+    needs:
+      - detect
+      - create-draft
+      - build
+    if: >-
+      needs.detect.outputs.prerelease != 'true'
+      && needs.create-draft.outputs.published != 'true'
+      && needs.build.result == 'success'
+    runs-on: windows-latest
+    steps:
+      - name: Download Microsoft Store package
+        uses: actions/download-artifact@v4
+        with:
+          name: openagent-store-msix
+          path: ${{ runner.temp }}/openagent-store
+
+      - name: Set up WinApp CLI
+        uses: microsoft/setup-WinAppCli@v0.1
+
+      - name: Configure Microsoft Store credentials
+        shell: pwsh
+        env:
+          AZURE_AD_APPLICATION_CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
+          AZURE_AD_APPLICATION_SECRET: ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
+          AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          SELLER_ID: ${{ secrets.SELLER_ID }}
+        run: |
+          winapp store reconfigure `
+            --tenantId $env:AZURE_AD_TENANT_ID `
+            --sellerId $env:SELLER_ID `
+            --clientId $env:AZURE_AD_APPLICATION_CLIENT_ID `
+            --clientSecret $env:AZURE_AD_APPLICATION_SECRET
+          if ($LASTEXITCODE -ne 0) {
+            throw "WinApp CLI failed to configure Microsoft Store credentials."
+          }
+
+      - name: Publish Microsoft Store submission
+        shell: pwsh
+        env:
+          MS_STORE_APP_ID: ${{ vars.MS_STORE_APP_ID }}
+        run: |
+          $package = Get-ChildItem "${{ runner.temp }}\openagent-store" -Filter *.msix -File -Recurse
+          if ($package.Count -ne 1) {
+            throw "Expected exactly one Microsoft Store MSIX package, found $($package.Count)."
+          }
+          $packagePath = $package[0].FullName
+          winapp store publish $packagePath --appId $env:MS_STORE_APP_ID
+          if ($LASTEXITCODE -ne 0) {
+            throw "WinApp CLI failed to submit the Microsoft Store update."
+          }
+
   publish:
     name: Publish release
     needs:
       - detect
       - create-draft
       - build
+      - publish-store
     if: >-
       always()
       && needs.detect.result == 'success'
       && needs.create-draft.result == 'success'
       && (needs.build.result == 'success' || needs.build.result == 'skipped')
+      && (needs.publish-store.result == 'success' || needs.publish-store.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Publish GitHub Release
