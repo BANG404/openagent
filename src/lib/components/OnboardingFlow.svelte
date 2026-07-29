@@ -221,28 +221,26 @@
     <WindowControls onMinimize={winMinimize} onMaximize={winMaximize} onClose={winClose} />
   </header>
   <div class="onboarding-body">
-    <div class="aurora" aria-hidden="true"></div>
-    <main class="onboarding-layout" aria-label={copy.steps[step]}>
-    <aside class="step-rail">
-      <div class="brand">
-        <span class="brand-mark">O</span>
-        <strong>OpenAgent</strong>
-      </div>
-      <ol>
+    <aside class="onboarding-nav">
+      <nav aria-label={draft.language === "en" ? "Setup steps" : "设置步骤"}>
         {#each copy.steps as label, index}
-          <li class:active={index === step} class:complete={index < step}>
+          <button
+            class="onboarding-nav-item"
+            class:active={index === step}
+            class:complete={index < step}
+            disabled={index > step}
+            onclick={() => { if (index < step) step = index; }}
+          >
             <span>{index < step ? "✓" : index + 1}</span>
-            <p>{label}</p>
-          </li>
+            {label}
+          </button>
         {/each}
-      </ol>
-      <p class="privacy">API Key 仅保存在本机配置中<br />Keys stay on this device</p>
+      </nav>
+      <p class="nav-note">API Key {draft.language === "en" ? "stays on this device" : "仅保存在本机配置中"}</p>
     </aside>
 
-    <section class="step-content">
+    <main class="step-content" aria-label={copy.steps[step]}>
       {#if step === 0}
-        <div class="hero-icon">✦</div>
-        <p class="eyebrow">OPENAGENT</p>
         <h1>{copy.welcomeTitle}</h1>
         <p class="lead">{copy.welcomeBody}</p>
         <div class="workspace-card">
@@ -253,7 +251,6 @@
           <button class="secondary" onclick={() => void onPickWorkspace()}>{copy.chooseWorkspace}</button>
         </div>
       {:else if step === 1}
-        <p class="eyebrow">01 · PREFERENCES</p>
         <h1>{copy.preferenceTitle}</h1>
         <p class="lead">{copy.preferenceBody}</p>
         <div class="form-grid two">
@@ -274,7 +271,6 @@
           </label>
         </div>
       {:else if step === 2}
-        <p class="eyebrow">02 · PROVIDER</p>
         <h1>{copy.providerTitle}</h1>
         <p class="lead">{copy.providerBody}</p>
         <div class="provider-tabs">
@@ -317,7 +313,6 @@
           </div>
         {/if}
       {:else if step === 3}
-        <p class="eyebrow">03 · MODELS</p>
         <h1>{copy.defaultTitle}</h1>
         <p class="lead">{copy.defaultBody}</p>
         <div class="form-grid">
@@ -335,8 +330,6 @@
           </label>
         </div>
       {:else}
-        <div class="hero-icon ready">✓</div>
-        <p class="eyebrow">ALL SET</p>
         <h1>{copy.readyTitle}</h1>
         <p class="lead">{copy.readyBody}</p>
         <div class="summary">
@@ -356,7 +349,6 @@
           <button class="primary" onclick={finish} disabled={saving}>{saving ? "…" : copy.finish}<span>→</span></button>
         {/if}
       </footer>
-    </section>
     </main>
   </div>
 </div>
@@ -365,21 +357,50 @@
   .onboarding-panel { display: flex; flex: 1; min-width: 0; flex-direction: column; overflow: hidden; background: var(--bg); color: var(--text); }
   .onboarding-header { display: flex; align-items: center; justify-content: space-between; height: 48px; flex: none; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid var(--border); background: var(--bg); }
   .onboarding-header > span { font-size: 14px; font-weight: 600; }
-  .onboarding-body { position: relative; display: grid; min-height: 0; flex: 1; overflow: hidden; }
-  .aurora { position: absolute; inset: -30%; background: radial-gradient(circle at 25% 25%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 28%), radial-gradient(circle at 80% 75%, color-mix(in srgb, #7c3aed 12%, transparent), transparent 30%); filter: blur(24px); pointer-events: none; }
-  .onboarding-layout { position: relative; display: grid; grid-template-columns: 240px minmax(0, 720px); width: min(100%, 1040px); height: 100%; min-height: 0; margin: 0 auto; overflow: hidden; }
-  .step-rail { display: flex; flex-direction: column; padding: 38px 28px 28px; border-right: 1px solid var(--border); background: color-mix(in srgb, var(--surface2) 55%, transparent); }
-  .brand { display: flex; align-items: center; gap: 10px; font-size: 15px; }.brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: var(--primary); color: white; font-weight: 800; }
-  ol { display: grid; gap: 2px; margin: 46px 0 0; padding: 0; list-style: none; } li { display: flex; align-items: center; gap: 11px; min-height: 42px; color: var(--text-muted); } li > span { display: grid; place-items: center; width: 24px; height: 24px; flex: none; border: 1px solid var(--border); border-radius: 50%; font-size: 11px; } li p { margin: 0; font-size: 12px; font-weight: 600; } li.active { color: var(--text); } li.active > span { border-color: var(--primary); background: var(--primary); color: white; } li.complete > span { border-color: color-mix(in srgb, var(--primary) 50%, var(--border)); color: var(--primary); }
-  .privacy { margin: auto 0 0; color: var(--text-muted); font-size: 10px; line-height: 1.6; }
-  .step-content { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow-y: auto; padding: clamp(38px, 7vh, 72px) clamp(32px, 6vw, 72px) 34px; } h1 { margin: 8px 0 12px; font-size: 30px; letter-spacing: -.035em; } .eyebrow { margin: 0; color: var(--primary); font-size: 10px; font-weight: 800; letter-spacing: .16em; }.lead { max-width: 540px; margin: 0 0 34px; color: var(--text-muted); font-size: 14px; line-height: 1.65; }
-  .hero-icon { display: grid; place-items: center; width: 58px; height: 58px; margin-bottom: 18px; border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border)); border-radius: 18px; background: color-mix(in srgb, var(--primary) 10%, var(--surface)); color: var(--primary); font-size: 25px; }.hero-icon.ready { border-radius: 50%; background: var(--primary); color: white; }
-  .workspace-card, .summary { padding: 17px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); }.workspace-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; }.workspace-card div { display: grid; min-width: 0; gap: 5px; }.workspace-card span, .summary span { color: var(--text-muted); font-size: 11px; }.workspace-card strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-  .form-grid { display: grid; gap: 18px; }.two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }.form-grid label { display: grid; gap: 7px; }.form-grid label > span { color: var(--text-muted); font-size: 11px; font-weight: 600; } input, select { box-sizing: border-box; width: 100%; height: 39px; padding: 0 11px; border: 1px solid var(--border); border-radius: 8px; outline: none; background: var(--bg); color: var(--text); font: inherit; font-size: 12px; } input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent); }
-  .provider-tabs { display: flex; gap: 6px; margin: -12px 0 20px; overflow-x: auto; }.provider-tabs button { display: flex; align-items: center; gap: 7px; white-space: nowrap; }.provider-tabs button.active { border-color: var(--primary); color: var(--primary); }.provider-tabs .add { border-style: dashed; }.provider-tabs span { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }.provider-tabs span.online { background: #22a06b; }
-  button { min-height: 36px; padding: 0 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; } button:hover:not(:disabled) { border-color: var(--primary); } button:disabled { cursor: default; opacity: .45; }.primary { display: flex; align-items: center; gap: 18px; border-color: var(--primary); background: var(--primary); color: white; }.primary span { font-size: 16px; }.secondary { background: transparent; }.verify { border-color: color-mix(in srgb, var(--primary) 50%, var(--border)); color: var(--primary); }
-  .connection-row { display: flex; align-items: center; gap: 12px; }.connection-row p { margin: 0; color: var(--text-muted); font-size: 11px; }.success { color: #16865f !important; }.error { color: #d14343 !important; }
-  .summary { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 11px 18px; }.summary strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+  .onboarding-body { display: flex; min-width: 0; min-height: 0; flex: 1; overflow: hidden; }
+  .onboarding-nav { display: flex; width: 172px; flex: none; flex-direction: column; box-sizing: border-box; padding: 12px 8px; border-right: 1px solid var(--border); background: var(--bg); }
+  .onboarding-nav nav { display: flex; flex-direction: column; gap: 2px; }
+  .onboarding-nav-item { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 34px; padding: 8px 10px; border: 0; border-radius: 7px; background: none; color: var(--text-muted); cursor: pointer; font: inherit; font-size: 13px; text-align: left; }
+  .onboarding-nav-item:hover:not(:disabled), .onboarding-nav-item.active { background: var(--surface); color: var(--text); }
+  .onboarding-nav-item.active { font-weight: 500; }
+  .onboarding-nav-item:disabled { cursor: default; opacity: .55; }
+  .onboarding-nav-item span { width: 16px; color: var(--text-muted); font-size: 11px; text-align: center; }
+  .onboarding-nav-item.complete span { color: var(--primary); }
+  .nav-note { margin: auto 10px 2px; color: var(--text-muted); font-size: 10px; line-height: 1.5; }
+  .step-content { display: flex; min-width: 0; min-height: 0; flex: 1; flex-direction: column; box-sizing: border-box; overflow-y: auto; padding: 40px max(24px, calc((100% - 720px) / 2)) 24px; }
+  h1 { margin: 0 0 9px; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
+  .lead { max-width: 600px; margin: 0 0 32px; color: var(--text-muted); font-size: 13px; line-height: 1.55; }
+  .workspace-card, .summary { padding: 16px; border: 0; border-radius: 8px; background: var(--surface); box-shadow: var(--control-shadow); }
+  .workspace-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+  .workspace-card div { display: grid; min-width: 0; gap: 5px; }
+  .workspace-card span, .summary span { color: var(--text-muted); font-size: 11px; }
+  .workspace-card strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+  .form-grid { display: grid; gap: 20px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid label { display: grid; gap: 7px; }
+  .form-grid label > span { color: var(--text-muted); font-size: 12px; font-weight: 600; }
+  input, select { box-sizing: border-box; width: 100%; height: 36px; padding: 0 11px; border: 0; border-radius: 8px; outline: none; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; box-shadow: var(--control-shadow); }
+  input:focus, select:focus { box-shadow: var(--control-shadow), var(--focus-ring); }
+  .provider-tabs { display: flex; gap: 6px; margin: -10px 0 20px; overflow-x: auto; }
+  .provider-tabs button { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+  .provider-tabs button.active { background: var(--surface2); color: var(--text); }
+  .provider-tabs .add { color: var(--primary); }
+  .provider-tabs span { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
+  .provider-tabs span.online { background: #22a06b; }
+  button { min-height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); color: var(--text); cursor: pointer; font: inherit; font-size: 12px; }
+  button:hover:not(:disabled) { background: var(--surface2); }
+  button:disabled { cursor: default; opacity: .5; }
+  .primary { display: flex; align-items: center; gap: 14px; border-color: var(--primary); background: var(--primary); color: white; }
+  .primary:hover:not(:disabled) { background: var(--primary-hover, var(--primary)); }
+  .primary span { font-size: 15px; }
+  .secondary { background: transparent; }
+  .verify { color: var(--primary); }
+  .connection-row { display: flex; align-items: center; gap: 12px; }
+  .connection-row p { margin: 0; color: var(--text-muted); font-size: 11px; }
+  .success { color: #16865f !important; }
+  .error { color: #d14343 !important; }
+  .summary { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 11px 18px; }
+  .summary strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
   footer { display: flex; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 30px; }
-  @media (max-width: 760px) { .onboarding-layout { grid-template-columns: 1fr; }.step-rail { padding: 18px 22px; border: 0; border-bottom: 1px solid var(--border); }.step-rail ol { display: flex; justify-content: center; margin: 16px 0 0; }.step-rail li p, .privacy { display: none; }.step-content { padding: 32px 24px 24px; }.two { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .onboarding-nav { width: 52px; padding-inline: 7px; }.onboarding-nav-item { justify-content: center; padding-inline: 0; font-size: 0; }.nav-note { display: none; }.step-content { padding: 28px 16px 20px; }.two { grid-template-columns: 1fr; } }
 </style>
