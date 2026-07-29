@@ -12,6 +12,7 @@
     readMainDebugComponentsVisible,
     writeMainDebugComponentsVisible,
   } from "$lib/devDebugVisibility";
+  import { ONBOARDING_OPEN_EVENT } from "$lib/onboarding";
   import type { ConversationMeta, TaskTrace } from "$lib/types";
 
   type TimelineKind = "user" | "assistant" | "thinking" | "tool" | "toolset" | "system";
@@ -239,6 +240,10 @@
     await emit(DEV_MAIN_DEBUG_VISIBILITY_EVENT, { visible });
   }
 
+  async function openOnboardingPreview(): Promise<void> {
+    await emit(ONBOARDING_OPEN_EVENT);
+  }
+
   onMount(async () => { appVersion = await getVersion().catch(() => "unknown"); await loadConversations(); });
   onDestroy(() => { if (downloadPreviewTimer) clearInterval(downloadPreviewTimer); });
 </script>
@@ -337,6 +342,13 @@
             />
             <span>{mainDebugComponentsVisible ? "Visible / 显示" : "Hidden / 隐藏"}</span>
           </label>
+        </article>
+        <article>
+          <div>
+            <h3>Onboarding flow / 新手引导</h3>
+            <p>Open the real onboarding flow in the main window without clearing saved settings. / 在主窗口打开真实引导流程，不清除已保存设置。</p>
+          </div>
+          <button onclick={openOnboardingPreview}>Open onboarding</button>
         </article>
         <article><div><h3>Update notification</h3><p>Persistent update notice with a simulated update action.</p></div><button onclick={showUpdatePreview}>Show update notice</button></article>
         <article><div><h3>Download notification</h3><p>Successful download toast with a simulated open-file action.</p></div><button onclick={showDownloadPreview}>Show download notice</button></article>

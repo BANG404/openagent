@@ -22,6 +22,11 @@
     readMainDebugComponentsVisible,
   } from "$lib/devDebugVisibility";
   import {
+    ONBOARDING_OPEN_EVENT,
+    hasCompletedOnboarding,
+    markOnboardingCompleted,
+  } from "$lib/onboarding";
+  import {
     clearQueuedChatMessages,
     dequeueChatMessage,
     enqueueChatMessage,
@@ -35,6 +40,7 @@
   import SidebarPrimaryActions from "$lib/components/SidebarPrimaryActions.svelte";
   import RoleSelector from "$lib/components/RoleSelector.svelte";
   import SidebarNav from "$lib/components/SidebarNav.svelte";
+  import OnboardingFlow from "$lib/components/OnboardingFlow.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
   import ChatQueue from "$lib/components/ChatQueue.svelte";
 import MessageList from "$lib/components/MessageList.svelte";
@@ -240,6 +246,7 @@ let newConversationLayout = $derived(
   let config = $state<AppConfig | null>(null);
   let isMemorySyncing = $state(false);
   let settingsOpen = $state(false);
+  let onboardingOpen = $state(false);
   let settingsInitialNav = $state<"general" | "providers" | "defaults" | "agents" | "memory" | "websearch" | "hooks" | "extensions" | "about" | undefined>(undefined);
   let designOpen = $state(false);
   let draftsOpen = $state(false);
@@ -1502,6 +1509,7 @@ let newConversationLayout = $derived(
         await restoreWorkspaceConversation(workspacePath);
       }
     } finally {
+      if (config && !hasCompletedOnboarding()) onboardingOpen = true;
       uiReadyAt = performance.now();
       initialLoading = false;
       await tick();
@@ -1714,6 +1722,9 @@ let newConversationLayout = $derived(
 
     register<{ visible: boolean }>(DEV_MAIN_DEBUG_VISIBILITY_EVENT, (event) => {
       showMainDebugComponents = event.payload.visible;
+    });
+    register(ONBOARDING_OPEN_EVENT, () => {
+      if (config) onboardingOpen = true;
     });
 
     register<{ conv_id: string; title: string }>("conversation-title-updated", (e) => {
@@ -3187,7 +3198,13 @@ let newConversationLayout = $derived(
       setLocale((config.language ?? 'zh') as Locale);
     } catch (err: any) {
       alert(`Save failed: ${err}`);
+      throw err;
     }
+  }
+
+  function completeOnboarding() {
+    markOnboardingCompleted();
+    onboardingOpen = false;
   }
 
   // ─── Design / Drafts / Memory ────────────────────────────────────────────────
@@ -3372,6 +3389,14 @@ let newConversationLayout = $derived(
 <TooltipPrimitive.Provider delayDuration={500} skipDelayDuration={300}>
 {#if isDevInspectorWindow && DevInspector}
   <DevInspector />
+{:else if onboardingOpen && config}
+  <OnboardingFlow
+    {config}
+    {workspacePath}
+    onSave={saveSettings}
+    onPickWorkspace={pickWorkspace}
+    onComplete={completeOnboarding}
+  />
 {:else}
 <div class="app" class:sidebar-collapsed={sidebarCollapsed}>
   <!-- ─── Sidebar ─────────────────────────────────────────────────────────────── -->
