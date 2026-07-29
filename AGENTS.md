@@ -86,7 +86,7 @@ legacy top-level category values.
 - Treat the private submodule revision as release-relevant source input.
 - For visible UI changes, verify light/dark themes and Chinese/English copy.
 - Do not edit generated `build/`, `.svelte-kit/`, or `target/` output.
-- Do not use the `control-in-app-browser` skill in this repository.
+
 
 ## Git workflow
 
