@@ -36,11 +36,15 @@
     type QueuedChatMessages,
   } from "$lib/chatQueue";
   import { resolveUserInput } from "$lib/chatStream";
+  import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
+  import {
+    projectCurrentFileChanges,
+    remoteConversationMetaToConversation,
+  } from "$lib/remoteConversationProjection";
   import type {
     AgentRole,
     ChatAttachment,
     ChatMessage,
-    Conversation,
     FileChange,
     StreamItem,
     UserInputRequest,
@@ -243,34 +247,17 @@
       ),
     ),
   );
-  const conversations = $derived(remoteConversationMetas.map(metaToConversation));
+  const conversations = $derived(remoteConversationMetas.map(remoteConversationMetaToConversation));
   const currentFileChanges = $derived.by(() => {
     const activeCheckpoints = activeTree ? ckIdsAlongActivePath(activeTree) : new Set<string>();
-    const branchChanges = activeCheckpoints.size
-      ? fileChanges.filter((change) => activeCheckpoints.has(change.checkpoint_id))
-      : fileChanges;
-    const byPath = new Map<string, FileChange>();
-    for (const change of branchChanges) {
-      const existing = byPath.get(change.path);
-      if (
-        !existing ||
-        (existing.old_patch !== null && change.old_patch === null) ||
-        (existing.old_patch !== null &&
-          change.old_patch !== null &&
-          (change.created_at > existing.created_at ||
-            (change.created_at === existing.created_at && change.seq > existing.seq)))
-      ) {
-        byPath.set(change.path, change);
-      }
-    }
-    return [...byPath.values()];
+    return projectCurrentFileChanges(fileChanges, activeCheckpoints);
   });
   const streamingConvIds = $derived(
     conversation && running ? { [conversation.conv_id]: true } : {},
   );
   const modelOptions = $derived(
     remoteModels.map((item) => ({
-      value: modelKey(item),
+      value: encodeModelBinding(item.provider_id, item.model),
       label: `${item.provider_name} · ${item.model}`,
       selectedLabel: item.model,
     })),
@@ -332,30 +319,9 @@
     };
   });
 
-  function metaToConversation(meta: RemoteConversationMeta): Conversation {
-    return {
-      id: meta.id,
-      title: meta.title,
-      messages: [],
-      createdAt: meta.created_at * 1000,
-      updatedAt: meta.updated_at * 1000,
-      pinned: meta.pinned,
-      parentConvId: meta.parent_conv_id,
-      compactedFromConvId: meta.compacted_from_conv_id,
-      flowKind: meta.flow_kind,
-      flowStatus: meta.flow_status,
-      roleId: meta.role_id,
-    };
-  }
-
-  function modelKey(model: RemoteModel): string {
-    return JSON.stringify([model.provider_id, model.model]);
-  }
-
   function selectedModelBinding() {
     if (!selectedModel) return null;
-    const [providerId, model] = JSON.parse(selectedModel) as [string, string];
-    return { providerId, model };
+    return decodeModelBinding(selectedModel);
   }
 
   function applyRemoteTheme(theme: "system" | "light" | "dark") {
@@ -425,7 +391,10 @@
     agentCommandSpecs = nextCommands;
     applyRemoteTheme(preferences.theme);
     setLocale(preferences.language as Locale);
-    selectedModel = modelKey(remoteModels.find((model) => model.is_default) ?? remoteModels[0]);
+    const defaultModel = remoteModels.find((model) => model.is_default) ?? remoteModels[0];
+    selectedModel = defaultModel
+      ? encodeModelBinding(defaultModel.provider_id, defaultModel.model)
+      : "";
     workspaceId = workspaces[0]?.id ?? "";
     screen = "chat";
     if (workspaceId) await loadWorkspace(workspaceId);

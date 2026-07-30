@@ -7,6 +7,14 @@
   import type { AgentRole, AppConfig, McpServerConfig, ProviderConfig } from "$lib/types";
   import { normalizeConfigShape } from "$lib/config";
   import { checkForAppUpdate } from "$lib/appUpdater";
+  import {
+    createProviderConfig,
+    mcpConnectionFingerprint,
+    providerConnectionFingerprint,
+    repairModelBindings,
+    replaceProviderModels,
+    type RetryQueueKind,
+  } from "$lib/settingsConfig";
   import { t, tr, setLocale, type Locale } from "$lib/i18n";
   import WindowControls from "./WindowControls.svelte";
   import Tooltip from "./Tooltip.svelte";
@@ -76,7 +84,6 @@
     conv_id?: string | null;
     role_id?: string | null;
   };
-  type RetryQueueKind = "chat_queue" | "flash_queue";
 
   let {
     config,
@@ -260,24 +267,6 @@
     autoSaveTimer = setTimeout(() => saveDraftConfig().catch(console.error), 600);
   });
 
-  function providerConnectionFingerprint(provider: ProviderConfig) {
-    return JSON.stringify([provider.provider, provider.api_key, provider.base_url]);
-  }
-
-  function mcpConnectionFingerprint(server: McpServerConfig) {
-    const sortedEntries = (record: Record<string, string>) =>
-      Object.entries(record).sort(([left], [right]) => left.localeCompare(right));
-    return JSON.stringify([
-      server.transport,
-      server.url,
-      server.bearer_token,
-      sortedEntries(server.headers),
-      server.command,
-      server.args,
-      sortedEntries(server.env),
-    ]);
-  }
-
   $effect(() => {
     if (!initializedFromConfig) return;
     for (const provider of draftConfig.providers) {
@@ -406,21 +395,8 @@
     selectedProviderId = draftConfig.providers[0]?.id ?? "";
   }
 
-  function createProvider(provider: ProviderConfig["provider"] = "openai"): ProviderConfig {
-    return {
-      id: crypto.randomUUID(),
-      name: provider === "anthropic" ? "Anthropic Node" : "OpenAI Compatible Node",
-      provider,
-      api_key: "",
-      base_url: "",
-      enabled: false,
-      models: [],
-      model_context_compaction_thresholds: {},
-    };
-  }
-
   function addProvider() {
-    const provider = createProvider();
+    const provider = createProviderConfig();
     draftConfig.providers = [...draftConfig.providers, provider];
     selectedProviderId = provider.id;
   }
@@ -601,15 +577,6 @@
     draftConfig.defaults[kind].model = model;
   }
 
-  function replaceProviderModels(provider: ProviderConfig, models: string[]) {
-    provider.models = models;
-    provider.model_context_compaction_thresholds = Object.fromEntries(
-      Object.entries(provider.model_context_compaction_thresholds ?? {}).filter(([model]) =>
-        models.includes(model),
-      ),
-    );
-  }
-
   function setModelCompactionThreshold(
     provider: ProviderConfig,
     modelName: string,
@@ -721,25 +688,7 @@
   }
 
   function repairDefaultModelBindings() {
-    const fallback = draftConfig.providers
-      .filter((provider) => provider.enabled)
-      .find((provider) => provider.models.length > 0);
-    for (const kind of ["chat_model", "flash_model"] as const) {
-      const binding = draftConfig.defaults[kind];
-      const provider = draftConfig.providers.find((item) => item.id === binding.provider_id);
-      if (!provider?.enabled || !provider.models.includes(binding.model)) {
-        binding.provider_id = fallback?.id ?? "";
-        binding.model = fallback?.models[0] ?? "";
-      }
-    }
-    draftConfig.model_retry.chat_queue = draftConfig.model_retry.chat_queue.filter((binding) => {
-      const provider = draftConfig.providers.find((item) => item.id === binding.provider_id);
-      return provider?.enabled && provider.models.includes(binding.model);
-    });
-    draftConfig.model_retry.flash_queue = draftConfig.model_retry.flash_queue.filter((binding) => {
-      const provider = draftConfig.providers.find((item) => item.id === binding.provider_id);
-      return provider?.enabled && provider.models.includes(binding.model);
-    });
+    repairModelBindings(draftConfig);
   }
 
   function addRetryQueueModel(kind: RetryQueueKind) {

@@ -21,6 +21,7 @@
   import { initializeTray } from "$lib/tray";
   import { t, tr, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import { showToast } from "$lib/toast";
+  import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
   import { desktopOpenAgent as openAgent, invoke, listen } from "$lib/openagent/tauriClient";
   import type { ChatRunStartedEvent } from "$lib/openagent";
   import {
@@ -409,27 +410,12 @@
     void syncChatQueuePending(convId);
   }
 
-  function modelKey(providerId: string, model: string) {
-    return JSON.stringify([providerId, model]);
-  }
-
-  function parseModelKey(value: string): { providerId: string; model: string } | null {
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) && parsed.length === 2
-        ? { providerId: String(parsed[0]), model: String(parsed[1]) }
-        : null;
-    } catch {
-      return null;
-    }
-  }
-
   let modelOptions = $derived.by(() =>
     (config?.providers ?? [])
       .filter((provider) => provider.enabled)
       .flatMap((provider) =>
         provider.models.map((model) => ({
-          value: modelKey(provider.id, model),
+          value: encodeModelBinding(provider.id, model),
           label: `${model} · ${provider.name}`,
           selectedLabel: model,
         })),
@@ -438,7 +424,7 @@
 
   $effect(() => {
     if (!config) return;
-    const fallback = modelKey(
+    const fallback = encodeModelBinding(
       config.defaults.chat_model.provider_id,
       config.defaults.chat_model.model,
     );
@@ -460,7 +446,7 @@
   }
 
   function handleModelChange(value: string) {
-    const binding = parseModelKey(value);
+    const binding = decodeModelBinding(value);
     if (!binding || !config) return;
     if (
       config.defaults.chat_model.provider_id === binding.providerId &&
@@ -2895,7 +2881,7 @@
         parentCheckpointId,
         branchId,
         attachments: attachments.map((attachment) => attachment.path),
-        modelBinding: parseModelKey(model),
+        modelBinding: decodeModelBinding(model),
         userMessageId: userMsg.id,
         assistantMessageId: assistantMsgId,
       })
@@ -3482,7 +3468,7 @@
       const outcome = await openAgent.submitInput({
         convId: activeConvId,
         text: "/compact",
-        modelBinding: parseModelKey(selectedModel),
+        modelBinding: decodeModelBinding(selectedModel),
       });
       const compacted = outcome.type === "immediate_command" && outcome.changed;
       showToast({
