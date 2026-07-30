@@ -604,6 +604,14 @@ async fn cancel_chat_message(
 }
 
 #[tauri::command]
+async fn skip_memory_retrieval(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    conv_id: String,
+) -> Result<(), String> {
+    openagent_app::commands::skip_memory_retrieval(runtime.state(), conv_id).await
+}
+
+#[tauri::command]
 async fn set_chat_queue_pending(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
@@ -1262,6 +1270,7 @@ fn run_with_mode(agent_server: bool) {
             debug_create_context_compaction_diagnostic,
             resume_interrupted_chat,
             cancel_chat_message,
+            skip_memory_retrieval,
             set_chat_queue_pending,
             debug_disconnect_model_requests,
             inspector_database_overview,

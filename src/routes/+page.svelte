@@ -23,7 +23,7 @@
   import { showToast } from "$lib/toast";
   import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
   import { desktopOpenAgent as openAgent, invoke, listen } from "$lib/openagent/tauriClient";
-  import type { ChatRunStartedEvent } from "$lib/openagent";
+  import type { ChatMemoryRetrievalStage, ChatRunStartedEvent } from "$lib/openagent";
   import {
     DEV_MAIN_DEBUG_VISIBILITY_EVENT,
     readMainDebugComponentsVisible,
@@ -223,6 +223,8 @@
   let streamStartedAt = $state<Record<string, number>>({});
   let streamFirstTokenAt = $state<Record<string, number>>({});
   let awaitingStreamOutputConvIds = $state<Record<string, boolean>>({});
+  let memoryRetrievalStages = $state<Record<string, ChatMemoryRetrievalStage>>({});
+  let memoryRetrievalSkippableConvIds = $state<Record<string, boolean>>({});
   // Checkpoint IDs from chat-checkpoint events, pending assignment to assistant messages
   let pendingCheckpointIds = $state<Record<string, string>>({});
   // Tracks which conv_ids have had their messages loaded from SQLite
@@ -487,11 +489,18 @@
   let isCurrentAwaitingStreamOutput = $derived(
     activeConvId ? !!awaitingStreamOutputConvIds[activeConvId] : false,
   );
+  let currentMemoryRetrievalStage = $derived(
+    activeConvId ? (memoryRetrievalStages[activeConvId] ?? null) : null,
+  );
+  let currentMemoryRetrievalCanSkip = $derived(
+    activeConvId ? !!memoryRetrievalSkippableConvIds[activeConvId] : false,
+  );
   const compactionOnlyConvIds = new Set<string>();
   let workspacePrefsSaveQueue: Promise<void> = Promise.resolve();
 
   function startStreamTiming(convId: string, startedAt = Date.now()) {
     clearAwaitingStreamOutput(convId);
+    clearMemoryRetrievalStage(convId);
     streamStartedAt = { ...streamStartedAt, [convId]: startedAt };
     const { [convId]: _firstTokenAt, ...rest } = streamFirstTokenAt;
     streamFirstTokenAt = rest;
@@ -506,6 +515,13 @@
     if (!awaitingStreamOutputConvIds[convId]) return;
     const { [convId]: _awaiting, ...rest } = awaitingStreamOutputConvIds;
     awaitingStreamOutputConvIds = rest;
+  }
+
+  function clearMemoryRetrievalStage(convId: string) {
+    const { [convId]: _stage, ...rest } = memoryRetrievalStages;
+    const { [convId]: _skippable, ...restSkippable } = memoryRetrievalSkippableConvIds;
+    memoryRetrievalStages = rest;
+    memoryRetrievalSkippableConvIds = restSkippable;
   }
 
   function applyStreamMutation(convId: string, mutate: (items: StreamItem[]) => StreamItem[]) {
@@ -1664,6 +1680,12 @@
     }
     streamingConvIds = { ...streamingConvIds, [convId]: true };
     awaitingStreamOutputConvIds = { ...awaitingStreamOutputConvIds, [convId]: true };
+    if (config?.memory_retrieval_enabled) {
+      memoryRetrievalStages = {
+        ...memoryRetrievalStages,
+        [convId]: "query_rewrite",
+      };
+    }
   }
 
   function applyExternalChatRunStarted(event: ChatRunStartedEvent): void {
@@ -1865,6 +1887,14 @@
         const { [source_conv_id]: old, ...rest } = awaitingStreamOutputConvIds;
         awaitingStreamOutputConvIds = { ...rest, [conv_id]: old };
       }
+      if (source_conv_id in memoryRetrievalStages) {
+        const { [source_conv_id]: old, ...rest } = memoryRetrievalStages;
+        memoryRetrievalStages = { ...rest, [conv_id]: old };
+      }
+      if (source_conv_id in memoryRetrievalSkippableConvIds) {
+        const { [source_conv_id]: old, ...rest } = memoryRetrievalSkippableConvIds;
+        memoryRetrievalSkippableConvIds = { ...rest, [conv_id]: old };
+      }
       if (compactionOnlyConvIds.has(source_conv_id)) {
         compactionOnlyConvIds.delete(source_conv_id);
         compactionOnlyConvIds.add(conv_id);
@@ -2042,6 +2072,7 @@
         if (!streamingConvIds[conv_id]) {
           recoverUnannouncedChatStream(conv_id);
         }
+        clearMemoryRetrievalStage(conv_id);
         const items = convStreamItems[conv_id] ?? [];
         const hasStreamOutput = items.some(
           (item) =>
@@ -2058,13 +2089,27 @@
           if (conv_id === activeConvId) scrollStreamToBottom();
         }
       },
+      onMemoryRetrieval: (conv_id, stage) => {
+        if (!streamingConvIds[conv_id]) {
+          recoverUnannouncedChatStream(conv_id);
+        }
+        clearAwaitingStreamOutput(conv_id);
+        memoryRetrievalStages = { ...memoryRetrievalStages, [conv_id]: stage };
+        memoryRetrievalSkippableConvIds = {
+          ...memoryRetrievalSkippableConvIds,
+          [conv_id]: stage !== "completed" && stage !== "skipped",
+        };
+        if (conv_id === activeConvId) scrollStreamToBottom();
+      },
       onChunk: (conv_id, text) => {
         if (text) clearAwaitingStreamOutput(conv_id);
+        if (text) clearMemoryRetrievalStage(conv_id);
         recordFirstToken(conv_id, text);
         applyStreamMutation(conv_id, (items) => appendChunk(items, text));
       },
       onThinkingChunk: (conv_id, text) => {
         if (text) clearAwaitingStreamOutput(conv_id);
+        if (text) clearMemoryRetrievalStage(conv_id);
         applyStreamMutation(conv_id, (items) => appendThinkingChunk(items, text));
       },
       onToolCall: (conv_id, name, args, toolUseId) => {
@@ -2261,12 +2306,17 @@
     const { [conv_id]: _startedAt, ...restStartedAt } = streamStartedAt;
     const { [conv_id]: _firstTokenAt, ...restFirstTokenAt } = streamFirstTokenAt;
     const { [conv_id]: _awaiting, ...restAwaiting } = awaitingStreamOutputConvIds;
+    const { [conv_id]: _memoryStage, ...restMemoryStages } = memoryRetrievalStages;
+    const { [conv_id]: _memorySkippable, ...restMemorySkippable } =
+      memoryRetrievalSkippableConvIds;
     convStreamItems = restItems;
     streamingConvIds = restStreaming;
     streamAssistantMsgIds = restAsstIds;
     streamStartedAt = restStartedAt;
     streamFirstTokenAt = restFirstTokenAt;
     awaitingStreamOutputConvIds = restAwaiting;
+    memoryRetrievalStages = restMemoryStages;
+    memoryRetrievalSkippableConvIds = restMemorySkippable;
   }
 
   function saveAssistantMessage(conv_id: string, msg: ChatMessage, checkpointId: string | null) {
@@ -2689,6 +2739,9 @@
       const { [id]: _pf, ...rpf } = pendingForkMessageId;
       const { [id]: _a, ...ra } = streamAssistantMsgIds;
       const { [id]: _awaiting, ...restAwaiting } = awaitingStreamOutputConvIds;
+      const { [id]: _memoryStage, ...restMemoryStages } = memoryRetrievalStages;
+      const { [id]: _memorySkippable, ...restMemorySkippable } =
+        memoryRetrievalSkippableConvIds;
       streamingConvIds = rs;
       convStreamItems = ri;
       pendingCheckpointIds = rc;
@@ -2696,6 +2749,8 @@
       pendingForkMessageId = rpf;
       streamAssistantMsgIds = ra;
       awaitingStreamOutputConvIds = restAwaiting;
+      memoryRetrievalStages = restMemoryStages;
+      memoryRetrievalSkippableConvIds = restMemorySkippable;
     }
     clearPendingInput(id);
     // Drop conv-scoped state so it doesn't outlive the conv
@@ -2845,6 +2900,12 @@
       ...awaitingStreamOutputConvIds,
       [convId]: true,
     };
+    if (config?.memory_retrieval_enabled) {
+      memoryRetrievalStages = {
+        ...memoryRetrievalStages,
+        [convId]: "query_rewrite",
+      };
+    }
     convStreamItems = { ...convStreamItems, [convId]: [] };
     streamAssistantMsgIds = { ...streamAssistantMsgIds, [convId]: assistantMsgId };
 
@@ -2987,6 +3048,29 @@
     // Do not make that queue delay the cancellation signal.
     void persistStreamDraft(activeConvId, true).catch(() => {});
     await invoke("cancel_chat_message", { convId: activeConvId }).catch(() => {});
+  }
+
+  async function skipCurrentMemoryRetrieval() {
+    if (!activeConvId || !currentMemoryRetrievalStage || !currentMemoryRetrievalCanSkip) return;
+    const convId = activeConvId;
+    const previousStage = currentMemoryRetrievalStage;
+    memoryRetrievalStages = { ...memoryRetrievalStages, [convId]: "skipped" };
+    memoryRetrievalSkippableConvIds = {
+      ...memoryRetrievalSkippableConvIds,
+      [convId]: false,
+    };
+    try {
+      await openAgent.skipMemoryRetrieval(convId);
+    } catch (error) {
+      if (streamingConvIds[convId] && memoryRetrievalStages[convId] === "skipped") {
+        memoryRetrievalStages = { ...memoryRetrievalStages, [convId]: previousStage };
+        memoryRetrievalSkippableConvIds = {
+          ...memoryRetrievalSkippableConvIds,
+          [convId]: true,
+        };
+      }
+      showToast({ title: String(error), variant: "error" });
+    }
   }
 
   const BOTTOM_SCROLL_THRESHOLD = 24;
@@ -3785,6 +3869,8 @@
                 scrollElement={messagesEl}
                 isStreaming={isCurrentStreaming}
                 isAwaitingStreamOutput={isCurrentAwaitingStreamOutput}
+                memoryRetrievalStage={currentMemoryRetrievalStage}
+                memoryRetrievalCanSkip={currentMemoryRetrievalCanSkip}
                 {currentStreamItems}
                 {currentStreamMessageId}
                 {activeConvId}
@@ -3814,6 +3900,7 @@
                 onSwitchBranch={switchBranchAt}
                 onSubmitUserInput={submitUserInput}
                 onCancelUserInput={cancelUserInput}
+                onSkipMemoryRetrieval={skipCurrentMemoryRetrieval}
               />
             {/if}
           </main>

@@ -8,6 +8,7 @@
   import { t } from "$lib/i18n";
   import { finalAssistantOutput } from "$lib/assistantOutput";
   import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
+  import type { ChatMemoryRetrievalStage } from "$lib/openagent";
   import type { ChatAttachment, ChatMessage, HtmlPreviewConfig, StreamItem } from "$lib/types";
   import AttachmentPreview from "./AttachmentPreview.svelte";
   import type { MermaidConfig } from "$lib/mermaidTheme";
@@ -25,6 +26,8 @@
     scrollElement: HTMLElement | null;
     isStreaming: boolean;
     isAwaitingStreamOutput: boolean;
+    memoryRetrievalStage?: ChatMemoryRetrievalStage | null;
+    memoryRetrievalCanSkip?: boolean;
     currentStreamItems: StreamItem[];
     currentStreamMessageId: string | null;
     activeConvId: string | null;
@@ -58,12 +61,15 @@
     onSwitchBranch: (convId: string, parentKey: string, targetIdx: number) => void;
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
     onCancelUserInput: (requestId: string) => void;
+    onSkipMemoryRetrieval?: () => void;
   }
   let {
     messages,
     scrollElement,
     isStreaming,
     isAwaitingStreamOutput,
+    memoryRetrievalStage = null,
+    memoryRetrievalCanSkip = false,
     currentStreamItems,
     currentStreamMessageId,
     activeConvId,
@@ -89,7 +95,23 @@
     onSwitchBranch,
     onSubmitUserInput,
     onCancelUserInput,
+    onSkipMemoryRetrieval = () => {},
   }: Props = $props();
+
+  function memoryRetrievalLabel(stage: ChatMemoryRetrievalStage): string {
+    switch (stage) {
+      case "query_rewrite":
+        return $t("memoryRetrievalQueryRewrite");
+      case "embedding":
+        return $t("memoryRetrievalEmbedding");
+      case "searching":
+        return $t("memoryRetrievalSearching");
+      case "completed":
+        return $t("memoryRetrievalCompleted");
+      case "skipped":
+        return $t("memoryRetrievalSkipped");
+    }
+  }
 
   let editingMsgId = $state<string | null>(null);
   let editingText = $state("");
@@ -435,7 +457,17 @@
             />
           {/if}
         {/each}
-        {#if assistantIsStreaming && isAwaitingStreamOutput}
+        {#if assistantIsStreaming && memoryRetrievalStage}
+          <div class="thinking-status memory-retrieval-status" role="status" aria-live="polite">
+            <span class="thinking-dot"></span>
+            <span>{memoryRetrievalLabel(memoryRetrievalStage)}</span>
+            {#if memoryRetrievalCanSkip}
+              <button class="skip-memory-btn" type="button" onclick={onSkipMemoryRetrieval}
+                >{$t("skipMemoryRetrieval")}</button
+              >
+            {/if}
+          </div>
+        {:else if assistantIsStreaming && isAwaitingStreamOutput}
           <div class="thinking-status" role="status" aria-live="polite">
             <span class="thinking-dot"></span>
             <span>{$t("awaitingStreamOutput")}</span>
@@ -725,6 +757,27 @@
     border-radius: 50%;
     background: var(--primary);
     animation: thinking-pulse 1.2s ease-in-out infinite;
+  }
+
+  .skip-memory-btn {
+    margin-left: 3px;
+    padding: 2px 7px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .skip-memory-btn:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--text-primary);
+  }
+
+  .skip-memory-btn:disabled {
+    cursor: default;
+    opacity: 0.55;
   }
 
   @keyframes thinking-pulse {
