@@ -84,20 +84,14 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       CHANGES_RESULT: ${{ needs.changes.result }}
+      AUTOMATION_SELECTED: ${{ needs.changes.outputs.automation }}
       AUTOMATION_RESULT: ${{ needs.automation.result }}
+      FRONTEND_SELECTED: ${{ needs.changes.outputs.frontend }}
       FRONTEND_RESULT: ${{ needs.frontend.result }}
+      NATIVE_SELECTED: ${{ needs.changes.outputs.native }}
       NATIVE_RESULT: ${{ needs.native.result }}
     steps:
+      - uses: actions/checkout@v4
+
       - name: Require every selected module to pass
-        shell: bash
-        run: |
-          for result in \
-            "$CHANGES_RESULT" \
-            "$AUTOMATION_RESULT" \
-            "$FRONTEND_RESULT" \
-            "$NATIVE_RESULT"; do
-            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
-              echo "A selected CI module finished with: $result" >&2
-              exit 1
-            fi
-          done
+        run: node scripts/verify-ci-results.mjs

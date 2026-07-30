@@ -20,6 +20,8 @@ use openagent_app::{
 use std::sync::Arc;
 use tauri::{Emitter, Manager, State};
 
+// Keep the flat arguments aligned with the existing typed Tauri command contract.
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 async fn submit_agent_input(
     runtime: State<'_, Arc<OpenAgentRuntime>>,

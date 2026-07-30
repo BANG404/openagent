@@ -56,10 +56,8 @@ jobs:
       - name: Check Rust formatting
         run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 
-      # The existing lint baseline has known findings. Keep reporting them while
-      # test/type/format failures remain blocking, then promote this to -D warnings.
       - name: Lint Rust
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 
       - name: Run Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
