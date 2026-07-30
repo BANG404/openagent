@@ -311,6 +311,8 @@ let newConversationLayout = $derived(
   let programmaticBottomScrollUntil = 0;
   let bottomScrollRunId = 0;
   let bottomScrollRaf: number | null = null;
+  let streamCompletionTailAnchor = $state<{ convId: string; token: number } | null>(null);
+  let streamCompletionTailAnchorSequence = 0;
   const tauriAvailable = isTauri();
   const browserModeNotice = "Desktop features require the Tauri runtime. Start this app with `bun tauri dev`, not `bun run dev`.";
   const fallbackConfig: AppConfig = {
@@ -878,12 +880,13 @@ let newConversationLayout = $derived(
     resolvingUserInputConvIds = { ...resolvingUserInputConvIds, [convId]: true };
     try {
       if (convId) {
+        const assistantMessageId = crypto.randomUUID();
         startStreamTiming(convId);
         streamingConvIds = { ...streamingConvIds, [convId]: true };
         // The approved card stays in the durable message list. Only output
         // produced after the resume belongs to this new stream message.
         convStreamItems = { ...convStreamItems, [convId]: [] };
-        streamAssistantMsgIds = { ...streamAssistantMsgIds, [convId]: crypto.randomUUID() };
+        streamAssistantMsgIds = { ...streamAssistantMsgIds, [convId]: assistantMessageId };
         // The resume command spans the entire follow-up provider stream. Show
         // the answer immediately instead of leaving the editable form mounted.
         markUserInputResolved(convId, requestId, "answered", { values });
@@ -892,6 +895,7 @@ let newConversationLayout = $derived(
           interruptId: requestId,
           response: JSON.stringify({ values }),
           branchId: activeBranchIds[convId] ?? null,
+          assistantMessageId,
         });
         clearPendingInput(convId, requestId);
       }
@@ -917,16 +921,18 @@ let newConversationLayout = $derived(
     resolvingUserInputConvIds = { ...resolvingUserInputConvIds, [convId]: true };
     try {
       if (convId) {
+        const assistantMessageId = crypto.randomUUID();
         startStreamTiming(convId);
         streamingConvIds = { ...streamingConvIds, [convId]: true };
         convStreamItems = { ...convStreamItems, [convId]: [] };
-        streamAssistantMsgIds = { ...streamAssistantMsgIds, [convId]: crypto.randomUUID() };
+        streamAssistantMsgIds = { ...streamAssistantMsgIds, [convId]: assistantMessageId };
         markUserInputResolved(convId, requestId, "cancelled", response);
         await openAgent.resumeInterrupt({
           convId,
           interruptId: requestId,
           response: JSON.stringify(response),
           branchId: activeBranchIds[convId] ?? null,
+          assistantMessageId,
         });
         clearPendingInput(convId, requestId);
       }
@@ -2186,6 +2192,7 @@ let newConversationLayout = $derived(
   }
 
   function finalizeStreamedMessage(conv_id: string, aborted: boolean, asstMsgId?: string, error?: string | null) {
+    beginStreamCompletionTailAnchor(conv_id);
     let items = convStreamItems[conv_id] ?? [];
     if (error) {
       items = [...items, { type: "runtime_notice", kind: "error", reason: error }];
@@ -2900,9 +2907,11 @@ let newConversationLayout = $derived(
   }
 
   function cancelBottomScrollFromUser() {
-    if (Date.now() >= programmaticBottomScrollUntil) return;
+    const hasCompletionAnchor = streamCompletionTailAnchor?.convId === activeConvId;
+    if (Date.now() >= programmaticBottomScrollUntil && !hasCompletionAnchor) return;
     bottomScrollRunId += 1;
     programmaticBottomScrollUntil = 0;
+    streamCompletionTailAnchor = null;
     followStreamToBottom = false;
     if (bottomScrollRaf !== null) {
       cancelAnimationFrame(bottomScrollRaf);
@@ -2943,11 +2952,33 @@ let newConversationLayout = $derived(
     if (!followStreamToBottom && Date.now() >= programmaticBottomScrollUntil) return;
     await tick();
     if ((!followStreamToBottom && Date.now() >= programmaticBottomScrollUntil) || !messagesEl) return;
-    programmaticBottomScrollUntil = 0;
     messagesEl.scrollTo({
       top: messagesEl.scrollHeight,
       behavior: "auto",
     });
+    followStreamToBottom = true;
+  }
+
+  function beginStreamCompletionTailAnchor(convId: string) {
+    if (
+      convId !== activeConvId
+      || (!followStreamToBottom && Date.now() >= programmaticBottomScrollUntil)
+    ) {
+      return;
+    }
+    followStreamToBottom = true;
+    programmaticBottomScrollUntil = Date.now() + 600;
+    streamCompletionTailAnchor = {
+      convId,
+      token: ++streamCompletionTailAnchorSequence,
+    };
+  }
+
+  function finishStreamCompletionTailAnchor(token: number) {
+    const anchor = streamCompletionTailAnchor;
+    if (!anchor || anchor.token !== token || anchor.convId !== activeConvId) return;
+    streamCompletionTailAnchor = null;
+    programmaticBottomScrollUntil = 0;
     followStreamToBottom = true;
   }
 
@@ -3634,6 +3665,10 @@ let newConversationLayout = $derived(
         htmlPreviewConfig={config?.html_preview}
         messageLayout={config?.message_layout ?? "single"}
         messageDoubleColumnMinWidth={config?.message_double_column_min_width ?? 1200}
+        tailAnchorToken={streamCompletionTailAnchor?.convId === activeConvId
+          ? streamCompletionTailAnchor.token
+          : null}
+        onTailAnchorSettled={finishStreamCompletionTailAnchor}
         {newConversationMemoryPrompt}
         {newConversationMemoryLoading}
         checkpointLoadError={activeConvId ? checkpointLoadErrors[activeConvId] ?? null : null}

@@ -10,6 +10,8 @@
     overscan?: number;
     responsiveColumns?: boolean;
     doubleColumnMinWidth?: number;
+    tailAnchorToken?: number | null;
+    onTailAnchorSettled?: (token: number) => void;
   }
 
   let {
@@ -20,6 +22,8 @@
     overscan = 800,
     responsiveColumns = false,
     doubleColumnMinWidth = 1200,
+    tailAnchorToken = null,
+    onTailAnchorSettled,
   }: Props = $props();
 
   const ITEM_GAP = 2;
@@ -30,6 +34,7 @@
   let measurementRevision = $state(0);
   let pinnedIndex = $state<number | null>(null);
   let navigationRunId = 0;
+  let tailAnchorRunId = 0;
   let suppressScrollAnchoring = false;
   const measuredSizes = new Map<string, number>();
   const observers = new Map<string, ResizeObserver>();
@@ -171,6 +176,31 @@
     return new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   }
 
+  async function settleTailAnchor(token: number) {
+    const runId = ++tailAnchorRunId;
+    await tick();
+    // The live row can first switch identity and then receive its measured
+    // durable height. Keep the tail pinned across both layout frames.
+    for (let frame = 0; frame < 2; frame += 1) {
+      await nextFrame();
+      if (runId !== tailAnchorRunId || tailAnchorToken !== token || !scrollElement) return;
+      scrollElement.scrollTop = scrollElement.scrollHeight;
+      syncViewport();
+    }
+    if (runId === tailAnchorRunId && tailAnchorToken === token) {
+      onTailAnchorSettled?.(token);
+    }
+  }
+
+  $effect(() => {
+    const token = tailAnchorToken;
+    if (token === null) {
+      tailAnchorRunId += 1;
+      return;
+    }
+    void settleTailAnchor(token);
+  });
+
   export async function scrollToKey(key: string) {
     const index = items.findIndex((item) =>
       item.kind === "tool_group"
@@ -216,6 +246,7 @@
 
   onMount(() => () => {
     navigationRunId += 1;
+    tailAnchorRunId += 1;
     for (const observer of observers.values()) observer.disconnect();
     observers.clear();
     renderedNodes.clear();

@@ -843,14 +843,18 @@
     resolvingInterrupt = { id: requestId, state, response };
     busy = true;
     error = "";
+    const assistantMessageId = randomUuid();
+    pendingAssistantMessageId = assistantMessageId;
     try {
       await client.resumeInterrupt({
         convId,
         interruptId: requestId,
         response: JSON.stringify(response),
+        assistantMessageId,
       });
     } catch (cause) {
       resolvingInterrupt = null;
+      pendingAssistantMessageId = null;
       error = cause instanceof Error ? cause.message : String(cause);
     } finally {
       busy = false;

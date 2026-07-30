@@ -36,6 +36,8 @@
     htmlPreviewConfig?: HtmlPreviewConfig;
     messageLayout?: "single" | "responsive_double";
     messageDoubleColumnMinWidth?: number;
+    tailAnchorToken?: number | null;
+    onTailAnchorSettled?: (token: number) => void;
     newConversationMemoryPrompt: string | null;
     newConversationMemoryLoading: boolean;
     checkpointLoadError?: string | null;
@@ -73,6 +75,8 @@
     htmlPreviewConfig,
     messageLayout = "single",
     messageDoubleColumnMinWidth = 1200,
+    tailAnchorToken = null,
+    onTailAnchorSettled,
     newConversationMemoryPrompt,
     newConversationMemoryLoading,
     checkpointLoadError = null,
@@ -318,6 +322,8 @@
     estimateSize={estimateEntrySize}
     responsiveColumns={messageLayout === "responsive_double"}
     doubleColumnMinWidth={messageDoubleColumnMinWidth}
+    {tailAnchorToken}
+    {onTailAnchorSettled}
   >
     {#snippet children(entry)}
     {#if isAssistantTurnEntry(entry)}

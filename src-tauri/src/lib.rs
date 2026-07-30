@@ -70,6 +70,7 @@ async fn resume_interrupted_chat(
     interrupt_id: String,
     response: String,
     branch_id: Option<String>,
+    assistant_message_id: String,
 ) -> Result<(), String> {
     OpenAgentFacade::new(runtime.inner().clone())
         .resume_interrupt(ResumeInterruptRequest {
@@ -77,6 +78,7 @@ async fn resume_interrupted_chat(
             interrupt_id,
             response,
             branch_id,
+            assistant_message_id,
         })
         .await
 }
