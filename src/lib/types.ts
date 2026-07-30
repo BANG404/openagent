@@ -209,9 +209,20 @@ export interface TaskTrace {
   tools: string;
   prompt: string;
   completion: string | null;
-  status: "requested" | "completed" | "failed" | "cancelled";
+  status: "requested" | "completed" | "failed" | "cancelled" | "interrupted";
   error: string | null;
+  usage: TaskTokenUsage | null;
   created_at: number;
+}
+
+export interface TaskTokenUsage {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  cached_input_tokens: number;
+  cache_creation_input_tokens: number;
+  tool_use_prompt_tokens: number;
+  reasoning_tokens: number;
 }
 
 export interface CheckpointMeta {

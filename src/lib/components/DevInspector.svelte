@@ -94,6 +94,13 @@
   function formatDate(seconds: number): string {
     return new Date(seconds * 1000).toLocaleString();
   }
+
+  function formatTokens(tokens: number): string {
+    return new Intl.NumberFormat([], { notation: "compact", maximumFractionDigits: 1 }).format(
+      tokens,
+    );
+  }
+
   function buildTaskTimeline(trace: TaskTrace): TimelineEvent[] {
     const base = { timestamp: trace.created_at, order: 0 };
     if (trace.task_kind === "chat_request") {
@@ -475,7 +482,22 @@
                 : "Select a request to inspect its entry messages."}
             </p>
           </div>
-          <div class="trace-stats"><span>{messageTimeline.length} events</span></div>
+          <div class="trace-stats">
+            <span>{messageTimeline.length} events</span>
+            {#if selectedTaskTrace?.usage}
+              <span
+                >{formatTokens(selectedTaskTrace.usage.input_tokens)} input · {formatTokens(
+                  selectedTaskTrace.usage.output_tokens,
+                )} output</span
+              >
+              <span
+                >{formatTokens(selectedTaskTrace.usage.cached_input_tokens)} cached
+                {#if selectedTaskTrace.usage.cache_creation_input_tokens > 0}
+                  · {formatTokens(selectedTaskTrace.usage.cache_creation_input_tokens)} written
+                {/if}</span
+              >
+            {/if}
+          </div>
         </div>
         <div class="message-timeline">
           {#each messageTimeline as event, index (event.id)}
