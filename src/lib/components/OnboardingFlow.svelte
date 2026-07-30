@@ -708,6 +708,9 @@
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
   }
+  .manual-model-row .secondary {
+    white-space: nowrap;
+  }
   .connection-row p {
     margin: 0;
     color: var(--text-muted);
