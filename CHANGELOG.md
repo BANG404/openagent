@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.27.0-beta.1] - 2026-07-30
+
+### Features
+- **chat**: Show memory retrieval progress
+- **chat**: Add completed response actions
+- **inspector**: Show prompt cache token usage
+
+### Bug Fixes
+- **chat**: Place actions after assistant turns
+
+### Styling
+- **frontend**: Fix page formatting
+
 ## [0.26.0-beta.1] - 2026-07-30
 
 ### Features
