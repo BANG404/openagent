@@ -3617,7 +3617,13 @@
   }
 
   .manual-model-row .model-search-input {
+    min-width: 0;
     margin-bottom: 0;
+  }
+
+  .manual-model-row .btn-secondary {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
   .model-list-box {
