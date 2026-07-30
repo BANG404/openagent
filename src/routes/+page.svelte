@@ -2001,11 +2001,26 @@ let newConversationLayout = $derived(
         if (conv_id === activeConvId) scrollStreamToBottom();
       },
       onToolResult: (conv_id, result, toolUseId) => {
-        if (attachApprovedToolResult(conv_id, result, toolUseId)) return;
+        const pendingToolCall = toolUseId
+          ? (convStreamItems[conv_id] ?? []).find((item) =>
+              item.type === "tool_call"
+              && item.toolUseId === toolUseId
+              && item.result === undefined
+            )
+          : [...(convStreamItems[conv_id] ?? [])].reverse().find((item) =>
+              item.type === "tool_call" && item.result === undefined
+            );
+        const rolesMayHaveChanged = pendingToolCall?.type === "tool_call"
+          && pendingToolCall.name === "dispatch_role";
+        if (attachApprovedToolResult(conv_id, result, toolUseId)) {
+          if (rolesMayHaveChanged) void loadAvailableRoles();
+          return;
+        }
         convStreamItems = {
           ...convStreamItems,
           [conv_id]: attachToolResult(convStreamItems[conv_id] ?? [], result, toolUseId),
         };
+        if (rolesMayHaveChanged) void loadAvailableRoles();
         persistStreamDraft(conv_id).catch(() => {});
         if (conv_id === activeConvId) scrollStreamToBottom();
       },
