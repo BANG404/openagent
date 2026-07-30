@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.26.0-beta.1] - 2026-07-30
+
+### Features
+- **onboarding**: Add first-run setup flow
+- **chat**: Sync external runs in desktop
+- **hooks**: Show triggered chats and support editing
+- **harness**: Integrate private headless SDK
+
+### Bug Fixes
+- **chat**: Keep branch tip backend authoritative
+- **ci**: Require selected checks to pass
+- **chat**: Repair dark theme rendering
+- **assets**: Reuse optimized application icon
+- **messages**: Keep stream tail stable on completion
+- **chat**: Refresh roles after delegated role creation
+- **onboarding**: Preserve the main window shell
+- **compaction**: Retain actionable summary context
+- **gateway**: Recover stale workspace connections
+
+### Refactoring
+- **frontend**: Extract configuration projections
+- **charts**: Load modular echarts runtime
+
+### Testing
+- **frontend**: Enforce bundle size budgets
+- **harness**: Exercise server contract in native CI
+
+### Styling
+- **onboarding**: Align setup with native panels
+
+### Miscellaneous
+- **deps**: Refresh compatible frontend packages
+- **frontend**: Enforce lint and formatting
+- **sdk**: Integrate harness release 0.1.1
+- **sdk**: Update harness CI revision
+
 ## [0.25.2-beta.1] - 2026-07-27
 
 ### Bug Fixes
