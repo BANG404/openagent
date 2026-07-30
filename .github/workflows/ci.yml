@@ -27,7 +27,7 @@ jobs:
       frontend: ${{ steps.modules.outputs.frontend }}
       native: ${{ steps.modules.outputs.native }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -91,7 +91,7 @@ jobs:
       NATIVE_SELECTED: ${{ needs.changes.outputs.native }}
       NATIVE_RESULT: ${{ needs.native.result }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Require every selected module to pass
         run: node scripts/verify-ci-results.mjs

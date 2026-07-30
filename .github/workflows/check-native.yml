@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Resolve pinned SDK revision
         id: sdk
@@ -23,7 +23,7 @@ jobs:
         run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
 
       - name: Check out private SDK
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
@@ -89,7 +89,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Resolve pinned SDK revision
         id: sdk
@@ -97,7 +97,7 @@ jobs:
         run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
 
       - name: Check out private SDK
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}

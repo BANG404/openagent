@@ -34,7 +34,7 @@ jobs:
       prerelease: ${{ steps.release.outputs.prerelease }}
       sha: ${{ github.event.workflow_run.head_sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 2
@@ -137,7 +137,7 @@ jobs:
     if: needs.detect.outputs.active == 'true'
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.detect.outputs.sha }}
           fetch-depth: 0
@@ -233,7 +233,7 @@ jobs:
             rust_target: ""
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.detect.outputs.tag }}
 
@@ -243,7 +243,7 @@ jobs:
         run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
 
       - name: Check out private SDK
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
