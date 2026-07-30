@@ -52,3 +52,6 @@ jobs:
 
       - name: Build frontend
         run: bun run build
+
+      - name: Check frontend bundle budgets
+        run: bun run check:bundle-size
