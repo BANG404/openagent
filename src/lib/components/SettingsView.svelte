@@ -180,6 +180,7 @@
   let manualModelName = $state("");
   let providerStatus = $state<Record<string, ProviderStatus>>({});
   let modelLoading = $state<Record<string, boolean>>({});
+  let chatgptOAuthAuthenticated = $state(false);
 
   type McpTestStatus = { tone: "idle" | "testing" | "success" | "error"; message: string };
   let mcpTestStatus = $state<Record<string, McpTestStatus>>({});
@@ -307,6 +308,7 @@
     refreshHooks().catch(() => {});
     refreshHookRoles().catch(() => {});
     refreshRemoteGateway().catch(() => {});
+    refreshChatgptAuthStatus().catch(() => {});
     const unlistenRemotePairingCode = listen("remote-gateway-pairing-code-rotated", () => {
       refreshRemoteGateway().catch(() => {});
     });
@@ -480,6 +482,27 @@
     return providerStatus[id] ?? { tone: "idle", message: "" };
   }
 
+  async function refreshChatgptAuthStatus() {
+    chatgptOAuthAuthenticated = await invoke<boolean>("get_chatgpt_auth_status");
+  }
+
+  async function logoutChatgpt(id: string) {
+    providerStatus = {
+      ...providerStatus,
+      [id]: { tone: "loading", message: $t("signingOutChatgpt") },
+    };
+    try {
+      await invoke<boolean>("logout_chatgpt");
+      chatgptOAuthAuthenticated = false;
+      providerStatus = {
+        ...providerStatus,
+        [id]: { tone: "success", message: $t("chatgptSignedOut") },
+      };
+    } catch (err: unknown) {
+      providerStatus = { ...providerStatus, [id]: { tone: "error", message: `${err}` } };
+    }
+  }
+
   async function testProvider(id: string) {
     const provider = draftConfig.providers.find((item) => item.id === id);
     if (!provider) return;
@@ -496,6 +519,9 @@
       if (provider.models.length === 0 && provider.enabled) {
         provider.enabled = false;
         repairDefaultModelBindings();
+      }
+      if (result.ok && provider.provider === "chatgpt" && !provider.api_key.trim()) {
+        chatgptOAuthAuthenticated = true;
       }
       providerStatus = {
         ...providerStatus,
@@ -1834,10 +1860,18 @@
                   />
                   <button
                     class="btn-secondary btn-sm"
-                    onclick={() => testProvider(selectedProvider.id)}
+                    onclick={() =>
+                      selectedProvider.provider === "chatgpt" &&
+                      !selectedProvider.api_key.trim() &&
+                      chatgptOAuthAuthenticated
+                        ? logoutChatgpt(selectedProvider.id)
+                        : testProvider(selectedProvider.id)}
+                    disabled={getStatus(selectedProvider.id).tone === "loading"}
                     >{selectedProvider.provider === "chatgpt" &&
                     !selectedProvider.api_key.trim()
-                      ? $t("signInChatgpt")
+                      ? chatgptOAuthAuthenticated
+                        ? $t("signOutChatgpt")
+                        : $t("signInChatgpt")
                       : $t("testConnection")}</button
                   >
                 </div>

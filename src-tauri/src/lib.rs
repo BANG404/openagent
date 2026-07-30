@@ -191,6 +191,16 @@ async fn fetch_provider_models(
 }
 
 #[tauri::command]
+async fn get_chatgpt_auth_status() -> Result<bool, String> {
+    openagent_app::commands::get_chatgpt_auth_status().await
+}
+
+#[tauri::command]
+async fn logout_chatgpt() -> Result<bool, String> {
+    openagent_app::commands::logout_chatgpt().await
+}
+
+#[tauri::command]
 async fn refresh_mcp_servers(runtime: State<'_, Arc<OpenAgentRuntime>>) -> Result<(), String> {
     openagent_app::commands::refresh_mcp_servers(runtime.state()).await
 }
@@ -1252,6 +1262,8 @@ fn run_with_mode(agent_server: bool) {
             set_default_chat_model,
             test_provider_connection,
             fetch_provider_models,
+            get_chatgpt_auth_status,
+            logout_chatgpt,
             set_workspace,
             get_workspace_context,
             get_remote_gateway_status,
