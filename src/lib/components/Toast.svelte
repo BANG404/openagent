@@ -8,7 +8,7 @@
     try {
       await toast.action.onClick();
     } finally {
-      dismissToast(toast.id);
+      if (toast.action.dismissOnClick !== false) dismissToast(toast.id);
     }
   }
 </script>

@@ -389,6 +389,12 @@ export type ProviderType =
   | "huggingface"
   | "chatgpt";
 
+export interface ProviderAuthDeviceCodeEvent {
+  provider: "chatgpt";
+  verification_uri: string;
+  user_code: string;
+}
+
 export interface AgentConfig {
   provider: ProviderType;
   model: string;

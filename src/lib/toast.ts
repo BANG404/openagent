@@ -5,6 +5,7 @@ export type ToastVariant = "info" | "success" | "error";
 export interface ToastAction {
   label: string;
   onClick: () => void | Promise<void>;
+  dismissOnClick?: boolean;
 }
 
 export interface Toast {

@@ -3,6 +3,7 @@
   import { homeDir } from "@tauri-apps/api/path";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
+  import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
   import { onMount, tick } from "svelte";
   import type { Component } from "svelte";
 
@@ -110,6 +111,7 @@
     DefaultModelBinding,
     WslDistribution,
     WslWorkspaceTarget,
+    ProviderAuthDeviceCodeEvent,
   } from "$lib/types";
 
   type AgentCommandSpec = {
@@ -1821,6 +1823,30 @@
         title: taskLabel ? `${$t("flashTaskFailed")} · ${taskLabel}` : $t("flashTaskFailed"),
         description: e.payload.error,
         variant: "error",
+      });
+    });
+
+    register<ProviderAuthDeviceCodeEvent>("provider-auth-device-code", (event) => {
+      const verificationUri = event.payload.verification_uri.trim();
+      const userCode = event.payload.user_code.trim();
+      if (!verificationUri || !userCode) return;
+      showToast({
+        title: $t("chatgptOAuthRequired"),
+        description: $t("chatgptOAuthCode").replace("{code}", userCode),
+        variant: "info",
+        durationMs: 0,
+        action: {
+          label: $t("chatgptOAuthOpen"),
+          dismissOnClick: false,
+          onClick: async () => {
+            try {
+              await navigator.clipboard.writeText(userCode);
+            } catch {
+              // Keep the toast visible so the code can still be copied manually.
+            }
+            await openExternalUrl(verificationUri);
+          },
+        },
       });
     });
 
