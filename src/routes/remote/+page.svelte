@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Tooltip as TooltipPrimitive } from "bits-ui";
   import { onMount } from "svelte";
-  import openAgentIconUrl from "../../../assets/openagent_icon_new.png?inline";
   import ChatQueue from "$lib/components/ChatQueue.svelte";
   import ConversationList from "$lib/components/ConversationList.svelte";
   import FileChangeBanner from "$lib/components/FileChangeBanner.svelte";
@@ -62,6 +61,7 @@
   import { randomUuid } from "$lib/uuid";
 
   type Screen = "loading" | "pair" | "chat";
+  const openAgentIconUrl = "/app-icon.png";
   const client = new OpenAgentClient(new HttpTransport());
   const defaultRoleKey = "openagent";
 

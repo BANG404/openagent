@@ -28,7 +28,7 @@ async function loadTrayIcon() {
   const defaultIcon = await defaultWindowIcon().catch(() => null);
   if (defaultIcon) return defaultIcon;
 
-  const response = await fetch("/assets/openagent_transparent.png");
+  const response = await fetch("/app-icon.png");
   const bytes = await response.arrayBuffer();
   return Image.fromBytes(bytes);
 }

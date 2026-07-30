@@ -2356,7 +2356,7 @@
     <Tabs.Content value="about" class="settings-tab-panel">
       <div class="settings-content-col">
         <div class="about-content">
-          <img class="about-logo-img" src="/assets/openagent_transparent.png" alt="OpenAgent" />
+          <img class="about-logo-img" src="/app-icon.png" alt="OpenAgent" />
           <h3 class="about-app-name">OpenAgent</h3>
           <p class="about-version">{$t('aboutVersion')}</p>
           <p class="about-desc">{$t('aboutDesc')}</p>
