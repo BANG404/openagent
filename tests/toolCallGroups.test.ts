@@ -2,6 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   appendLiveStreamEntry,
+  groupAssistantTurns,
   groupMessageToolCalls,
   groupStreamItems,
   isAssistantTurnEntry,
@@ -82,21 +83,72 @@ describe("tool-call grouping", () => {
   test("retains the virtual row key when a live stream becomes a completed message", () => {
     const assistantId = "assistant-1";
     const liveEntries = appendLiveStreamEntry([], assistantId);
-    const completedEntries = groupMessageToolCalls([
-      {
-        msg: {
-          id: assistantId,
-          role: "assistant",
-          content: "done",
-          timestamp: 0,
+    const completedEntries = groupAssistantTurns(
+      groupMessageToolCalls([
+        {
+          msg: {
+            id: assistantId,
+            role: "assistant",
+            content: "done",
+            timestamp: 0,
+          },
+          index: 0,
         },
-        index: 0,
-      },
-    ]);
+      ]),
+    );
 
     expect(liveEntries).toEqual([{ kind: "live_stream", key: assistantId }]);
     expect(completedEntries[0]?.key).toBe(liveEntries[0]?.key);
     expect(isAssistantTurnEntry(liveEntries[0])).toBe(true);
     expect(isAssistantTurnEntry(completedEntries[0])).toBe(true);
+  });
+
+  test("collapses every durable record in one assistant reply into one turn row", () => {
+    const entries = groupAssistantTurns(
+      groupMessageToolCalls([
+        {
+          msg: { id: "user-1", role: "user", content: "question", timestamp: 0 },
+          index: 0,
+        },
+        { msg: message("tool-1", call("read_file", "ok")), index: 1 },
+        { msg: message("tool-2", call("grep", "ok")), index: 2 },
+        {
+          msg: { id: "assistant-final", role: "assistant", content: "done", timestamp: 0 },
+          index: 3,
+        },
+      ]),
+    );
+
+    expect(entries).toHaveLength(2);
+    expect(entries[1]).toMatchObject({
+      kind: "assistant_turn",
+      key: "assistant-final",
+      finalIndex: 3,
+      messages: [{ id: "tool-1" }, { id: "tool-2" }, { id: "assistant-final" }],
+    });
+  });
+
+  test("keeps separate assistant replies in separate turn rows", () => {
+    const entries = groupAssistantTurns(
+      groupMessageToolCalls([
+        { msg: { id: "user-1", role: "user", content: "one", timestamp: 0 }, index: 0 },
+        {
+          msg: { id: "assistant-1", role: "assistant", content: "first", timestamp: 0 },
+          index: 1,
+        },
+        { msg: { id: "user-2", role: "user", content: "two", timestamp: 0 }, index: 2 },
+        {
+          msg: { id: "assistant-2", role: "assistant", content: "second", timestamp: 0 },
+          index: 3,
+        },
+      ]),
+    );
+
+    expect(entries.map((entry) => entry.kind)).toEqual([
+      "message",
+      "assistant_turn",
+      "message",
+      "assistant_turn",
+    ]);
   });
 });

@@ -33,6 +33,21 @@ describe("final assistant output", () => {
     ).toBe("Final answer");
   });
 
+  test("finds the final output across every record in one assistant reply", () => {
+    expect(
+      finalAssistantOutput([
+        assistantMessage({
+          id: "assistant-tool",
+          items: [
+            { type: "text", content: "I will inspect it." },
+            { type: "tool_call", name: "read_file", args: "{}", result: "contents" },
+          ],
+        }),
+        assistantMessage({ id: "assistant-final", content: "Final answer" }),
+      ]),
+    ).toBe("Final answer");
+  });
+
   test("treats a dedicated user-input tool as the final interaction", () => {
     expect(
       finalAssistantOutput(

@@ -205,9 +205,11 @@
     const index = items.findIndex((item) =>
       item.kind === "tool_group"
         ? item.messages.some((message) => message.id === key)
-        : item.kind === "message"
-          ? item.msg.id === key
-          : item.key === key,
+        : item.kind === "assistant_turn"
+          ? item.messages.some((message) => message.id === key)
+          : item.kind === "message"
+            ? item.msg.id === key
+            : item.key === key,
     );
     if (index < 0 || !scrollElement) return;
 

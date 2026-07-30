@@ -6,9 +6,8 @@ export type StreamItemSegment =
   | { kind: "item"; item: StreamItem; startIndex: number }
   | { kind: "tool_group"; items: ToolCallItem[]; startIndex: number };
 
-export type MessageRenderEntry =
+export type StoredMessageRenderEntry =
   | { kind: "message"; msg: ChatMessage; index: number; key: string }
-  | { kind: "live_stream"; key: string }
   | {
       kind: "tool_group";
       items: ToolCallItem[];
@@ -17,9 +16,21 @@ export type MessageRenderEntry =
       key: string;
     };
 
+export type MessageRenderEntry =
+  | StoredMessageRenderEntry
+  | { kind: "live_stream"; key: string }
+  | {
+      kind: "assistant_turn";
+      messages: ChatMessage[];
+      finalIndex: number;
+      key: string;
+    };
+
 export function isAssistantTurnEntry(entry: MessageRenderEntry): boolean {
   return (
-    entry.kind === "live_stream" || (entry.kind === "message" && entry.msg.role === "assistant")
+    entry.kind === "live_stream" ||
+    entry.kind === "assistant_turn" ||
+    (entry.kind === "message" && entry.msg.role === "assistant")
   );
 }
 
@@ -68,8 +79,8 @@ function standaloneGroupableToolCall(message: ChatMessage): ToolCallItem | null 
 
 export function groupMessageToolCalls(
   messages: Array<{ msg: ChatMessage; index: number }>,
-): MessageRenderEntry[] {
-  const entries: MessageRenderEntry[] = [];
+): StoredMessageRenderEntry[] {
+  const entries: StoredMessageRenderEntry[] = [];
   for (let position = 0; position < messages.length;) {
     const current = messages[position];
     const firstCall = standaloneGroupableToolCall(current.msg);
@@ -114,6 +125,48 @@ export function groupMessageToolCalls(
     position = end;
   }
   return entries;
+}
+
+function assistantMessages(entry: StoredMessageRenderEntry): ChatMessage[] | null {
+  if (entry.kind === "tool_group") return entry.messages;
+  return entry.msg.role === "assistant" ? [entry.msg] : null;
+}
+
+/** Collapse every durable assistant record in one reply into a single virtual turn row. */
+export function groupAssistantTurns(entries: StoredMessageRenderEntry[]): MessageRenderEntry[] {
+  const grouped: MessageRenderEntry[] = [];
+  for (let position = 0; position < entries.length;) {
+    const firstMessages = assistantMessages(entries[position]);
+    if (!firstMessages) {
+      grouped.push(entries[position]);
+      position += 1;
+      continue;
+    }
+
+    const messages: ChatMessage[] = [];
+    let finalIndex = entries[position].index;
+    let end = position;
+    while (end < entries.length) {
+      const nextEntry = entries[end];
+      const nextMessages = assistantMessages(nextEntry);
+      if (!nextMessages) break;
+      messages.push(...nextMessages);
+      finalIndex =
+        nextEntry.kind === "tool_group"
+          ? nextEntry.index + nextEntry.messages.length - 1
+          : nextEntry.index;
+      end += 1;
+    }
+
+    grouped.push({
+      kind: "assistant_turn",
+      messages,
+      finalIndex,
+      key: messages.at(-1)!.id,
+    });
+    position = end;
+  }
+  return grouped;
 }
 
 export function appendLiveStreamEntry(

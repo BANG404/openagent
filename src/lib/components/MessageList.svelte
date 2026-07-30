@@ -13,6 +13,7 @@
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import {
     appendLiveStreamEntry,
+    groupAssistantTurns,
     groupMessageToolCalls,
     groupStreamItems,
     isAssistantTurnEntry,
@@ -108,7 +109,7 @@
   let visibleMessages = $derived(
     messages.map((msg, index) => ({ msg, index })).filter(({ msg }) => !isHiddenMessage(msg)),
   );
-  let renderEntries = $derived(groupMessageToolCalls(visibleMessages));
+  let renderEntries = $derived(groupAssistantTurns(groupMessageToolCalls(visibleMessages)));
   let virtualEntries = $derived(
     appendLiveStreamEntry(renderEntries, isStreaming ? currentStreamMessageId : null),
   );
@@ -247,9 +248,30 @@
     virtualMessageList?.scrollToKey(id);
   }
 
-  function estimateEntrySize(entry: (typeof renderEntries)[number]) {
+  function entryAssistantMessages(entry: MessageRenderEntry): ChatMessage[] {
+    if (entry.kind === "assistant_turn") return entry.messages;
+    if (entry.kind === "message" && entry.msg.role === "assistant") return [entry.msg];
+    return [];
+  }
+
+  function estimateEntrySize(entry: MessageRenderEntry) {
     if (entry.kind === "live_stream") return 96;
     if (entry.kind === "tool_group") return 76;
+    if (entry.kind === "assistant_turn") {
+      const contentLength = entry.messages.reduce(
+        (turnTotal, message) =>
+          turnTotal +
+          message.content.length +
+          (message.items?.reduce(
+            (total, item) =>
+              total +
+              ("content" in item && typeof item.content === "string" ? item.content.length : 120),
+            0,
+          ) ?? 0),
+        0,
+      );
+      return Math.min(640, 92 + Math.ceil(contentLength / 100) * 24);
+    }
     if (isCompactionReplayUser(entry.msg)) return 58;
     if (entry.msg.role === "user")
       return Math.min(260, 70 + Math.ceil(entry.msg.content.length / 90) * 22);
@@ -266,19 +288,23 @@
 
   function assistantItems(entry: MessageRenderEntry): StreamItem[] {
     if (entry.kind === "live_stream") return currentStreamItems;
-    if (entry.kind !== "message" || entry.msg.role !== "assistant") return [];
-    if (entry.msg.items?.length) return entry.msg.items;
-    return entry.msg.content ? [{ type: "text", content: entry.msg.content }] : [];
+    return entryAssistantMessages(entry).flatMap((message) =>
+      message.items?.length
+        ? message.items
+        : message.content
+          ? [{ type: "text" as const, content: message.content }]
+          : [],
+    );
   }
 
-  async function copyAssistantOutput(message: ChatMessage, output: string) {
+  async function copyAssistantOutput(turnId: string, output: string) {
     if (!output) return;
     try {
       await navigator.clipboard.writeText(output);
-      copiedAssistantMessageId = message.id;
+      copiedAssistantMessageId = turnId;
       if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
       copyFeedbackTimer = setTimeout(() => {
-        if (copiedAssistantMessageId === message.id) copiedAssistantMessageId = null;
+        if (copiedAssistantMessageId === turnId) copiedAssistantMessageId = null;
         copyFeedbackTimer = null;
       }, 1800);
     } catch (error) {
@@ -353,16 +379,24 @@
   >
     {#snippet children(entry)}
       {#if isAssistantTurnEntry(entry)}
-        {@const assistantMsg = entry.kind === "message" ? entry.msg : null}
+        {@const turnMessages = entryAssistantMessages(entry)}
+        {@const assistantMsg = turnMessages.at(-1) ?? null}
+        {@const assistantMsgIdx =
+          entry.kind === "assistant_turn"
+            ? entry.finalIndex
+            : entry.kind === "message"
+              ? entry.index
+              : -1}
         {@const renderedAssistantItems = assistantItems(entry)}
         {@const assistantSegments = groupStreamItems(renderedAssistantItems)}
         {@const assistantIsStreaming = entry.kind === "live_stream"}
         {@const isRerunnable =
           assistantMsg !== null &&
+          assistantMsgIdx >= 0 &&
           !isStreaming &&
           Boolean(assistantMsg.checkpointId) &&
-          activeTree?.nodes[assistantMsg.checkpointId!]?.assistant?.id === assistantMsg.id}
-        {@const copyableOutput = assistantMsg ? finalAssistantOutput(assistantMsg) : ""}
+          Boolean(activeTree?.nodes[assistantMsg.checkpointId!])}
+        {@const copyableOutput = finalAssistantOutput(turnMessages)}
         {#each assistantSegments as segment (`${entry.key}-${segment.startIndex}`)}
           {#if segment.kind === "tool_group"}
             <div
@@ -407,21 +441,20 @@
             <span>{$t("awaitingStreamOutput")}</span>
           </div>
         {/if}
-        {#if entry.kind === "message"}
-          {@const msgIdx = entry.index}
-          {@const timing = runTiming(entry.msg, msgIdx)}
-          {#if isRerunnable || timing || entry.msg.timestamp > 0}
+        {#if assistantMsg}
+          {@const timing = runTiming(assistantMsg, assistantMsgIdx)}
+          {#if isRerunnable || timing || assistantMsg.timestamp > 0}
             <div
               class="msg-footer-row message-record"
-              id={renderedAssistantItems.length > 0 ? undefined : `message-${entry.msg.id}`}
-              data-message-id={renderedAssistantItems.length > 0 ? undefined : entry.msg.id}
+              id={renderedAssistantItems.length > 0 ? undefined : `message-${assistantMsg.id}`}
+              data-message-id={renderedAssistantItems.length > 0 ? undefined : assistantMsg.id}
             >
               {#if isRerunnable}
                 <div class="msg-actions">
                   <button
                     class="msg-action-btn"
                     aria-label={$t("rerun")}
-                    onclick={() => onReExecute(activeConvId!, msgIdx)}
+                    onclick={() => onReExecute(activeConvId!, assistantMsgIdx)}
                   >
                     <svg
                       viewBox="0 0 16 16"
@@ -442,9 +475,9 @@
                     <button
                       class="msg-action-btn"
                       aria-label={$t("copyFinalAnswer")}
-                      onclick={() => copyAssistantOutput(entry.msg, copyableOutput)}
+                      onclick={() => copyAssistantOutput(entry.key, copyableOutput)}
                     >
-                      {#if copiedAssistantMessageId === entry.msg.id}
+                      {#if copiedAssistantMessageId === entry.key}
                         <svg
                           viewBox="0 0 16 16"
                           fill="none"
@@ -489,7 +522,8 @@
                   {timing.total}
                 </span>
               {/if}
-              {#if entry.msg.timestamp > 0}<span class="ts">{formatTime(entry.msg.timestamp)}</span
+              {#if assistantMsg.timestamp > 0}<span class="ts"
+                  >{formatTime(assistantMsg.timestamp)}</span
                 >{/if}
             </div>
           {/if}
