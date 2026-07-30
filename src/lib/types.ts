@@ -364,8 +364,33 @@ export interface UserInputRequest {
   cancel_label?: string;
 }
 
+export type ProviderType =
+  | "anthropic"
+  | "openai"
+  | "azure"
+  | "gemini"
+  | "mistral"
+  | "cohere"
+  | "xai"
+  | "perplexity"
+  | "deepseek"
+  | "groq"
+  | "together"
+  | "openrouter"
+  | "hyperbolic"
+  | "moonshot"
+  | "minimax"
+  | "zai"
+  | "xiaomimimo"
+  | "mira"
+  | "doubleword"
+  | "ollama"
+  | "llamafile"
+  | "huggingface"
+  | "chatgpt";
+
 export interface AgentConfig {
-  provider: "anthropic" | "openai";
+  provider: ProviderType;
   model: string;
   api_key: string;
   base_url: string;
@@ -374,7 +399,7 @@ export interface AgentConfig {
 export interface ProviderConfig {
   id: string;
   name: string;
-  provider: "anthropic" | "openai";
+  provider: ProviderType;
   api_key: string;
   base_url: string;
   enabled: boolean;

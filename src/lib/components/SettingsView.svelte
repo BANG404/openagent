@@ -8,6 +8,12 @@
   import { normalizeConfigShape } from "$lib/config";
   import { checkForAppUpdate } from "$lib/appUpdater";
   import {
+    PROVIDER_CATALOG,
+    providerCatalogEntry,
+    providerDefaultBaseUrl,
+    providerRequiresApiKey,
+  } from "$lib/providerCatalog";
+  import {
     createProviderConfig,
     mcpConnectionFingerprint,
     providerConnectionFingerprint,
@@ -171,6 +177,7 @@
   let providerSearch = $state("");
   let providerFilter = $state<"all" | "enabled" | "disabled">("all");
   let modelSearch = $state("");
+  let manualModelName = $state("");
   let providerStatus = $state<Record<string, ProviderStatus>>({});
   let modelLoading = $state<Record<string, boolean>>({});
 
@@ -453,17 +460,20 @@
   }
 
   function getProviderUrl(provider: ProviderConfig) {
-    if (provider.provider === "anthropic") return provider.base_url || "api.anthropic.com";
-    return provider.base_url || "Custom endpoint";
+    return (
+      provider.base_url.trim() || providerDefaultBaseUrl(provider.provider) || "Custom endpoint"
+    );
   }
 
   function getProviderPreviewUrl(provider: ProviderConfig) {
-    const trimmed = provider.base_url.trim().replace(/\/$/, "");
-    if (provider.provider === "anthropic") return "https://api.anthropic.com/v1/messages";
-    if (!trimmed) return "https://api.openai.com/v1/chat/completions";
-    if (trimmed.endsWith("/chat/completions")) return trimmed;
-    if (trimmed.endsWith("/v1")) return `${trimmed}/chat/completions`;
-    return `${trimmed}/v1/chat/completions`;
+    return provider.base_url.trim() || providerDefaultBaseUrl(provider.provider);
+  }
+
+  function addManualModel(provider: ProviderConfig) {
+    const model = manualModelName.trim();
+    if (!model) return;
+    replaceProviderModels(provider, [...provider.models, model]);
+    manualModelName = "";
   }
 
   function getStatus(id: string): ProviderStatus {
@@ -1733,10 +1743,11 @@
                     onclick={() => {
                       selectedProviderId = provider.id;
                       modelSearch = "";
+                      manualModelName = "";
                     }}
                   >
                     <div class="provider-item-icon provider-type-{provider.provider}">
-                      {provider.provider === "anthropic" ? "A" : "O"}
+                      {providerCatalogEntry(provider.provider).badge}
                     </div>
                     <div class="provider-item-info">
                       <span class="provider-item-name">{provider.name}</span>
@@ -1799,10 +1810,7 @@
                 <span class="label-text">{$t("providerType")}</span>
                 <Select
                   bind:value={draftConfig.providers[selectedProviderIndex].provider}
-                  items={[
-                    { value: "openai", label: "OpenAI Compatible" },
-                    { value: "anthropic", label: "Anthropic" },
-                  ]}
+                  items={PROVIDER_CATALOG.map(({ value, label }) => ({ value, label }))}
                   ariaLabel={$t("providerType")}
                 />
               </div>
@@ -1811,7 +1819,13 @@
             <section class="detail-section">
               <h4 class="detail-section-title">{$t("apiSettings")}</h4>
               <div class="detail-label">
-                <span class="label-text">API Key</span>
+                <span class="label-text">
+                  {providerRequiresApiKey(selectedProvider.provider)
+                    ? $t("apiKey")
+                    : selectedProvider.provider === "chatgpt"
+                      ? $t("chatgptOAuthAccessToken")
+                      : $t("apiKeyOptional")}
+                </span>
                 <div class="key-input-row">
                   <input
                     type="password"
@@ -1829,9 +1843,8 @@
                 <input
                   class="detail-input"
                   bind:value={draftConfig.providers[selectedProviderIndex].base_url}
-                  placeholder={selectedProvider.provider === "anthropic"
-                    ? "https://api.anthropic.com"
-                    : "http://localhost:8009"}
+                  placeholder={providerDefaultBaseUrl(selectedProvider.provider) ||
+                    "https://your-resource.openai.azure.com"}
                 />
                 <span class="base-url-preview">{getProviderPreviewUrl(selectedProvider)}</span>
               </label>
@@ -1860,6 +1873,20 @@
                   bind:value={modelSearch}
                 />
               {/if}
+              <div class="manual-model-row">
+                <input
+                  class="model-search-input"
+                  placeholder={$t("modelOrDeploymentName")}
+                  bind:value={manualModelName}
+                  onkeydown={(event) => {
+                    if (event.key === "Enter") addManualModel(selectedProvider);
+                  }}
+                />
+                <button
+                  class="btn-secondary btn-sm"
+                  onclick={() => addManualModel(selectedProvider)}>{$t("addModel")}</button
+                >
+              </div>
               <div class="model-list-box">
                 {#if selectedProvider.models.length === 0}
                   <div class="model-list-empty">{$t("noModels")}</div>
@@ -3035,6 +3062,7 @@
     color: white;
     font-weight: 700;
     flex-shrink: 0;
+    background: #6366f1;
   }
 
   .provider-type-anthropic {
@@ -3541,6 +3569,17 @@
 
   .model-search-input:focus {
     box-shadow: var(--control-shadow), var(--focus-ring);
+  }
+
+  .manual-model-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .manual-model-row .model-search-input {
+    margin-bottom: 0;
   }
 
   .model-list-box {
