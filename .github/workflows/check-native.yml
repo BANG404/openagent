@@ -46,12 +46,18 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+
       - name: Verify private SDK boundary
         run: node scripts/verify-private-sdk-boundary.mjs
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: ./src-tauri -> target
+          workspaces: |
+            ./src-tauri -> target
+            ./sdk -> target
 
       - name: Check Rust formatting
         run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
@@ -61,6 +67,12 @@ jobs:
 
       - name: Run Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Verify harness OpenAPI contract
+        run: bun run check:harness-openapi
+
+      - name: Exercise the harness server contract
+        run: bun run test:harness-integration
 
   # Release builds the complete application on every supported platform. CI
   # keeps platform coverage lightweight by checking conditional Rust targets.
