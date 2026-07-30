@@ -494,6 +494,10 @@ jobs:
     needs:
       - detect
       - publish
+    if: >-
+      always()
+      && needs.detect.result == 'success'
+      && needs.publish.result == 'success'
     permissions:
       contents: read
       pages: write
