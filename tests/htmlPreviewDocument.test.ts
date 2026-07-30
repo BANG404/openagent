@@ -10,19 +10,30 @@ describe("HTML preview document base", () => {
     const html = '<!doctype html><html><head><base href="https://wrong.example/"><title>Preview</title></head><body><img src="frames/one.png"></body></html>';
     const result = injectHtmlPreviewBase(html, "http://asset.localhost/%2Fworkspace%2Fsnapshots");
 
-    expect(result).toContain('<head><base href="http://asset.localhost/%2Fworkspace%2Fsnapshots/"><base href="https://wrong.example/">');
+    expect(result).toContain('<head><base href="http://asset.localhost/%2Fworkspace%2Fsnapshots/"><style data-openagent-preview-theme>:root{color-scheme:light}html,body{background-color:Canvas;color:CanvasText}</style><base href="https://wrong.example/">');
   });
 
   test("creates a head when the source document omits one", () => {
     const result = injectHtmlPreviewBase("<html><body>Preview</body></html>", "asset://localhost/%2Ftmp%2Fpreview/");
 
-    expect(result).toBe('<html><head><base href="asset://localhost/%2Ftmp%2Fpreview/"></head><body>Preview</body></html>');
+    expect(result).toBe('<html><head><base href="asset://localhost/%2Ftmp%2Fpreview/"><style data-openagent-preview-theme>:root{color-scheme:light}html,body{background-color:Canvas;color:CanvasText}</style></head><body>Preview</body></html>');
   });
 
   test("escapes the generated base attribute and preserves one trailing slash", () => {
     expect(htmlPreviewDirectoryUrl("asset://localhost/root/")).toBe("asset://localhost/root/");
     expect(injectHtmlPreviewBase("Preview", 'asset://localhost/a&b"c')).toBe(
-      '<base href="asset://localhost/a&amp;b&quot;c/">Preview',
+      '<base href="asset://localhost/a&amp;b&quot;c/"><style data-openagent-preview-theme>:root{color-scheme:light}html,body{background-color:Canvas;color:CanvasText}</style>Preview',
     );
+  });
+
+  test("injects dark defaults without overriding later document styles", () => {
+    const result = injectHtmlPreviewBase(
+      "<html><head><style>body{background:hotpink}</style></head><body>Preview</body></html>",
+      "asset://localhost/root",
+      "dark",
+    );
+
+    expect(result).toContain(":root{color-scheme:dark}");
+    expect(result.indexOf("data-openagent-preview-theme")).toBeLessThan(result.indexOf("background:hotpink"));
   });
 });

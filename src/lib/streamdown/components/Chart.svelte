@@ -4,13 +4,17 @@
 
   let {
     args,
+    isDark = false,
   }: {
     args: Record<string, unknown>;
     rawArgs?: Array<[string, Value]>;
+    isDark?: boolean;
   } = $props();
 
   let container: HTMLDivElement | null = $state(null);
   let chart: any = null;
+  let echartsModule: typeof import("echarts") | null = null;
+  let chartIsDark: boolean | null = null;
   let resizeObs: ResizeObserver | null = null;
 
   const type = $derived(typeof args.type === "string" ? args.type : "bar");
@@ -20,16 +24,7 @@
   const series = $derived(Array.isArray(args.series) ? (args.series as unknown[]) : []);
   const height = $derived(typeof args.height === "number" ? args.height : type === "pie" ? 320 : 300);
 
-  function isDark(): boolean {
-    if (typeof document === "undefined") return false;
-    const cls = document.documentElement.classList;
-    if (cls.contains("dark")) return true;
-    if (cls.contains("light")) return false;
-    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-  }
-
-  function buildOption() {
-    const dark = isDark();
+  function buildOption(dark: boolean) {
     const textColor = dark ? "#e2e8f0" : "#1d1d1f";
     const axisColor = dark ? "#8892a4" : "#6e6e73";
     const gridColor = dark ? "#2d3148" : "#d8d8df";
@@ -119,22 +114,32 @@
 
   onMount(async () => {
     if (!container) return;
-    const echarts = await import("echarts");
-    chart = echarts.init(container, isDark() ? "dark" : undefined, { renderer: "canvas" });
-    chart.setOption(buildOption());
+    echartsModule = await import("echarts");
+    chart = echartsModule.init(container, isDark ? "dark" : undefined, { renderer: "canvas" });
+    chartIsDark = isDark;
+    chart.setOption(buildOption(isDark));
     resizeObs = new ResizeObserver(() => chart?.resize());
     resizeObs.observe(container);
   });
 
   $effect(() => {
-    if (!chart) return;
-    chart.setOption(buildOption(), true);
+    const dark = isDark;
+    const option = buildOption(dark);
+    if (!chart || !container || !echartsModule) return;
+    if (chartIsDark !== dark) {
+      chart.dispose();
+      chart = echartsModule.init(container, dark ? "dark" : undefined, { renderer: "canvas" });
+      chartIsDark = dark;
+    }
+    chart.setOption(option, true);
   });
 
   onDestroy(() => {
     resizeObs?.disconnect();
     chart?.dispose();
     chart = null;
+    echartsModule = null;
+    chartIsDark = null;
   });
 </script>
 

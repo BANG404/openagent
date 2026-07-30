@@ -11,10 +11,12 @@
   let {
     args,
     htmlPreviewConfig,
+    isDark = false,
   }: {
     args: Record<string, unknown>;
     rawArgs?: Array<[string, Value]>;
     htmlPreviewConfig?: HtmlPreviewConfig;
+    isDark?: boolean;
   } = $props();
 
   let frame: HTMLIFrameElement | null = $state(null);
@@ -24,14 +26,19 @@
   let expanded = $state(false);
   let frameHeight = $state(480);
   let busy = $state<"copy" | "png" | "open" | null>(null);
-  let fileCode = $state("");
+  let rawFileCode = $state("");
+  let assetBaseUrl = $state("");
   let loadError = $state("");
   let loadSeq = 0;
   const capabilities = useOpenAgentUiCapabilities();
 
   const title = $derived(typeof args.title === "string" && args.title.trim() ? args.title : "HTML display");
   const path = $derived(typeof args.path === "string" ? args.path.trim() : "");
-  const code = $derived(fileCode);
+  const code = $derived(
+    rawFileCode
+      ? injectHtmlPreviewBase(rawFileCode, assetBaseUrl, isDark ? "dark" : "light")
+      : "",
+  );
   const fixedHeight = $derived.by(() => {
     const configured = htmlPreviewConfig?.fixed_height ?? 480;
     const value = typeof args.height === "number" ? args.height : configured;
@@ -217,7 +224,8 @@
     const currentPath = path;
     const seq = ++loadSeq;
     loadError = "";
-    fileCode = "";
+    rawFileCode = "";
+    assetBaseUrl = "";
     expanded = false;
     frameHeight = fixedHeight;
 
@@ -226,7 +234,8 @@
     capabilities.readHtmlPreview(currentPath)
       .then((preview) => {
         if (seq !== loadSeq) return;
-        fileCode = injectHtmlPreviewBase(preview.content, preview.assetBaseUrl);
+        rawFileCode = preview.content;
+        assetBaseUrl = preview.assetBaseUrl;
       })
       .catch((err) => {
         if (seq !== loadSeq) return;
@@ -401,7 +410,8 @@
     width: 100%;
     border: 0;
     border-radius: 7px;
-    background: white;
+    background: var(--surface);
+    color-scheme: light dark;
     overflow: hidden;
   }
 

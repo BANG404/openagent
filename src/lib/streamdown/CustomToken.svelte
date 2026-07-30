@@ -12,9 +12,11 @@
   let {
     token,
     htmlPreviewConfig,
+    isDark = false,
   }: {
     token: ComponentToken;
     htmlPreviewConfig?: HtmlPreviewConfig;
+    isDark?: boolean;
   } = $props();
 
   const args = $derived(evalArgs(token.args));
@@ -27,13 +29,13 @@
 {:else if token.name === "Url" || token.name === "Link"}
   <UrlCard {args} rawArgs={token.args} />
 {:else if token.name === "Chart"}
-  <ChartCard {args} rawArgs={token.args} />
+  <ChartCard {args} rawArgs={token.args} {isDark} />
 {:else if token.name === "Image"}
   <Media {args} rawArgs={token.args} kind="image" />
 {:else if token.name === "Video"}
   <Media {args} rawArgs={token.args} kind="video" />
 {:else if token.name === "Html"}
-  <HtmlPreview {args} rawArgs={token.args} {htmlPreviewConfig} />
+  <HtmlPreview {args} rawArgs={token.args} {htmlPreviewConfig} {isDark} />
 {:else}
   <!-- Unknown component: render the raw call so it's not silently swallowed. -->
   <code class="unknown-component">{token.raw}</code>

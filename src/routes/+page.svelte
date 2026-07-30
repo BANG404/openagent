@@ -1461,6 +1461,16 @@ let newConversationLayout = $derived(
     await Promise.all([switchConversation(id), loadChildren]);
   }
 
+  onMount(() => {
+    if (isDevInspectorWindow) return;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const syncSystemTheme = () => {
+      if ((config?.theme ?? "system") === "system") applyTheme("system");
+    };
+    media.addEventListener("change", syncSystemTheme);
+    return () => media.removeEventListener("change", syncSystemTheme);
+  });
+
   onMount(async () => {
     if (isDevInspectorWindow) return;
     const mountedAt = performance.now();

@@ -84,7 +84,7 @@
     <Streamdown content={isStreaming && isLastText ? item.content + "▋" : (isLastText ? item.content : item.content.trimEnd())} controls={{ table: false }} components={{ code: Code, mermaid: Mermaid, math: MathBlock }} extensions={customExtensions} {shikiTheme} {mermaidConfig}>
       {#snippet children({ token })}
         {#if (token as ComponentToken).type === "component"}
-          <CustomToken token={token as ComponentToken} {htmlPreviewConfig} />
+          <CustomToken token={token as ComponentToken} {htmlPreviewConfig} isDark={shikiTheme === "github-dark"} />
         {/if}
       {/snippet}
     </Streamdown>

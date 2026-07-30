@@ -132,7 +132,7 @@
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: 12px;
-    background: var(--surface1);
+    background: var(--surface);
     box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 5%, transparent);
   }
 
@@ -190,7 +190,7 @@
     position: absolute;
     inset: 0;
     min-height: 0;
-    background: color-mix(in srgb, var(--surface1) 82%, transparent);
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
     backdrop-filter: blur(3px);
   }
 

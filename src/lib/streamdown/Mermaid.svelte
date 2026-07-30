@@ -18,6 +18,7 @@
   } = $props();
 
   let mermaidReady = $state(false);
+  let mermaidNode: HTMLElement | null = $state(null);
   let renderError = $state("");
   let renderGeneration = 0;
 
@@ -96,12 +97,16 @@
     }
   });
 
-  const renderMermaid = async (code: string, element: HTMLElement) => {
+  const renderMermaid = async (
+    code: string,
+    element: HTMLElement,
+    config: MermaidConfig | undefined,
+  ) => {
     const generation = ++renderGeneration;
     try {
       const { svg: svgString } = await renderMermaidSvg(
         code,
-        streamdown.mermaidConfig as MermaidConfig | undefined,
+        config,
       );
       if (generation !== renderGeneration) return;
       const svgTarget = element.querySelector("[data-mermaid-svg]") as HTMLElement | null;
@@ -128,11 +133,18 @@
   };
 
   function attachMermaid(node: HTMLElement) {
-    void renderMermaid(token.text, node);
+    mermaidNode = node;
     return () => {
+      if (mermaidNode === node) mermaidNode = null;
       renderGeneration += 1;
     };
   }
+
+  $effect(() => {
+    const config = streamdown.mermaidConfig as MermaidConfig | undefined;
+    if (!mermaidReady || !mermaidNode) return;
+    void renderMermaid(token.text, mermaidNode, config);
+  });
 
   function saveFile(filename: string, content: string, mimeType: string) {
     if (typeof window.__OPENAGENT_DOWNLOAD__ === "function") {
@@ -188,7 +200,7 @@
       canvas.height = cloned.height * ratio;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--surface").trim() || "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL("image/png");
@@ -333,7 +345,7 @@
   }
 
   .mermaid-render-error strong {
-    color: #b42318;
+    color: var(--danger);
     font-family: inherit;
   }
 </style>
