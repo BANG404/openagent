@@ -1834,7 +1834,11 @@
                   />
                   <button
                     class="btn-secondary btn-sm"
-                    onclick={() => testProvider(selectedProvider.id)}>{$t("testConnection")}</button
+                    onclick={() => testProvider(selectedProvider.id)}
+                    >{selectedProvider.provider === "chatgpt" &&
+                    !selectedProvider.api_key.trim()
+                      ? $t("signInChatgpt")
+                      : $t("testConnection")}</button
                   >
                 </div>
               </div>

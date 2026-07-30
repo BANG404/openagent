@@ -23,6 +23,7 @@
   import { t, tr, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import { showToast } from "$lib/toast";
   import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
+  import { providerRequiresApiKey } from "$lib/providerCatalog";
   import { desktopOpenAgent as openAgent, invoke, listen } from "$lib/openagent/tauriClient";
   import type { ChatMemoryRetrievalStage, ChatRunStartedEvent } from "$lib/openagent";
   import {
@@ -141,6 +142,14 @@
           | "open_settings";
         original_text: string;
       };
+
+  function shouldShowDefaultProviderCredentialWarning(appConfig: AppConfig | null): boolean {
+    if (!appConfig) return false;
+    const provider = appConfig.providers.find(
+      (item) => item.id === appConfig.defaults.chat_model.provider_id,
+    );
+    return !provider || (providerRequiresApiKey(provider.provider) && !provider.api_key.trim());
+  }
 
   const isDevInspectorWindow =
     import.meta.env.DEV &&
@@ -3902,9 +3911,7 @@
                 debugMode={isDebugMode}
                 activeTree={activeConvId ? convTrees[activeConvId] : undefined}
                 paddingBottom={inputAreaHeight + 24}
-                showApiKeyWarn={!config?.providers.find(
-                  (provider) => provider.id === config?.defaults.chat_model.provider_id,
-                )?.api_key}
+                showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(config)}
                 {shikiTheme}
                 {mermaidConfig}
                 htmlPreviewConfig={config?.html_preview}
