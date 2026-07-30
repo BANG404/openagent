@@ -1,0 +1,67 @@
+// @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
+import { describe, expect, test } from "bun:test";
+import { finalAssistantOutput } from "../src/lib/assistantOutput";
+
+const assistantMessage = (overrides = {}) => ({
+  id: "assistant-1",
+  role: "assistant",
+  content: "",
+  timestamp: 0,
+  ...overrides,
+});
+
+describe("final assistant output", () => {
+  test("uses plain message content when no structured items are present", () => {
+    expect(finalAssistantOutput(assistantMessage({ content: "  Final answer  " }))).toBe(
+      "Final answer",
+    );
+  });
+
+  test("copies only text emitted after the final tool call", () => {
+    expect(
+      finalAssistantOutput(
+        assistantMessage({
+          items: [
+            { type: "text", content: "I will inspect it." },
+            { type: "tool_call", name: "read_file", args: "{}", result: "contents" },
+            { type: "thinking", content: "private reasoning" },
+            { type: "text", content: "Final " },
+            { type: "text", content: "answer" },
+          ],
+        }),
+      ),
+    ).toBe("Final answer");
+  });
+
+  test("treats a dedicated user-input tool as the final interaction", () => {
+    expect(
+      finalAssistantOutput(
+        assistantMessage({
+          items: [
+            { type: "text", content: "Before input" },
+            {
+              type: "user_input",
+              request: { request_id: "question-1", conv_id: "conv-1", fields: [] },
+              state: "answered",
+            },
+            { type: "text", content: "After input" },
+          ],
+        }),
+      ),
+    ).toBe("After input");
+  });
+
+  test("does not fall back to pre-tool content when no final text exists", () => {
+    expect(
+      finalAssistantOutput(
+        assistantMessage({
+          content: "Pre-tool content",
+          items: [
+            { type: "text", content: "Pre-tool content" },
+            { type: "tool_call", name: "read_file", args: "{}", result: "contents" },
+          ],
+        }),
+      ),
+    ).toBe("");
+  });
+});

@@ -6,6 +6,7 @@
   import VirtualMessageList from "./VirtualMessageList.svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import { t } from "$lib/i18n";
+  import { finalAssistantOutput } from "$lib/assistantOutput";
   import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
   import type { ChatAttachment, ChatMessage, HtmlPreviewConfig, StreamItem } from "$lib/types";
   import AttachmentPreview from "./AttachmentPreview.svelte";
@@ -95,6 +96,8 @@
   let editingTextarea = $state<HTMLTextAreaElement | null>(null);
   let expandedUserMessageIds = $state(new Set<string>());
   let streamedOpenThinkingItemKeys = $state(new Set<string>());
+  let copiedAssistantMessageId = $state<string | null>(null);
+  let copyFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
   let virtualMessageList = $state<VirtualMessageList | null>(null);
   function isHiddenMessage(msg: ChatMessage) {
     return msg.role === "system";
@@ -267,6 +270,21 @@
     if (entry.msg.items?.length) return entry.msg.items;
     return entry.msg.content ? [{ type: "text", content: entry.msg.content }] : [];
   }
+
+  async function copyAssistantOutput(message: ChatMessage, output: string) {
+    if (!output) return;
+    try {
+      await navigator.clipboard.writeText(output);
+      copiedAssistantMessageId = message.id;
+      if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
+      copyFeedbackTimer = setTimeout(() => {
+        if (copiedAssistantMessageId === message.id) copiedAssistantMessageId = null;
+        copyFeedbackTimer = null;
+      }, 1800);
+    } catch (error) {
+      console.warn("Failed to copy assistant output", error);
+    }
+  }
 </script>
 
 <div
@@ -344,6 +362,7 @@
           !isStreaming &&
           Boolean(assistantMsg.checkpointId) &&
           activeTree?.nodes[assistantMsg.checkpointId!]?.assistant?.id === assistantMsg.id}
+        {@const copyableOutput = assistantMsg ? finalAssistantOutput(assistantMsg) : ""}
         {#each assistantSegments as segment (`${entry.key}-${segment.startIndex}`)}
           {#if segment.kind === "tool_group"}
             <div
@@ -399,26 +418,68 @@
             >
               {#if isRerunnable}
                 <div class="msg-actions">
-                  <Tooltip text={$t("rerun")}>
-                    <button
-                      class="rerun-btn"
-                      aria-label={$t("rerun")}
-                      onclick={() => onReExecute(activeConvId!, msgIdx)}
+                  <button
+                    class="msg-action-btn"
+                    aria-label={$t("rerun")}
+                    onclick={() => onReExecute(activeConvId!, msgIdx)}
+                  >
+                    <svg
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      width="12"
+                      height="12"
+                      aria-hidden="true"
                     >
-                      <svg
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.6"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        width="12"
-                        height="12"
-                      >
-                        <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5M14 2v4h-4" />
-                      </svg>
+                      <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5M14 2v4h-4" />
+                    </svg>
+                    <span>{$t("rerun")}</span>
+                  </button>
+                  {#if copyableOutput}
+                    <button
+                      class="msg-action-btn"
+                      aria-label={$t("copyFinalAnswer")}
+                      onclick={() => copyAssistantOutput(entry.msg, copyableOutput)}
+                    >
+                      {#if copiedAssistantMessageId === entry.msg.id}
+                        <svg
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          width="12"
+                          height="12"
+                          aria-hidden="true"
+                        >
+                          <path d="m3 8.5 3 3 7-7" />
+                        </svg>
+                        <span>{$t("copied")}</span>
+                      {:else}
+                        <svg
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          width="12"
+                          height="12"
+                          aria-hidden="true"
+                        >
+                          <rect x="5" y="5" width="8" height="8" rx="1.5" />
+                          <path
+                            d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"
+                          />
+                        </svg>
+                        <span>{$t("copyFinalAnswer")}</span>
+                      {/if}
                     </button>
-                  </Tooltip>
+                  {/if}
                 </div>
               {/if}
               {#if timing}
@@ -1211,9 +1272,10 @@
     line-height: 1;
     user-select: none;
   }
-  .rerun-btn {
+  .msg-action-btn {
     display: inline-flex;
     align-items: center;
+    gap: 4px;
     padding: 3px 6px;
     border-radius: 5px;
     font-size: 11px;
@@ -1221,13 +1283,13 @@
     border: 1px solid var(--border);
     color: var(--text-muted);
   }
-  .rerun-btn {
+  .msg-action-btn {
     cursor: pointer;
     transition:
       background 0.12s,
       color 0.12s;
   }
-  .rerun-btn:hover {
+  .msg-action-btn:hover {
     background: var(--surface2);
     color: var(--text);
   }
