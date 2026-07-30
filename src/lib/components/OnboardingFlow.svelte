@@ -2,7 +2,13 @@
   import { untrack } from "svelte";
   import { invoke } from "$lib/openagent/tauriClient";
   import { normalizeConfigShape } from "$lib/config";
-  import type { AppConfig, DefaultModelBinding, ProviderConfig } from "$lib/types";
+  import type { AppConfig, DefaultModelBinding } from "$lib/types";
+  import { createProviderConfig } from "$lib/settingsConfig";
+  import {
+    PROVIDER_CATALOG,
+    providerDefaultBaseUrl,
+    providerRequiresApiKey,
+  } from "$lib/providerCatalog";
   import WindowControls from "./WindowControls.svelte";
 
   let {
@@ -32,6 +38,7 @@
   let selectedProviderId = $state(draft.providers[0]?.id ?? "");
   let connectionStatus = $state<"idle" | "loading" | "success" | "error">("idle");
   let connectionMessage = $state("");
+  let manualModelName = $state("");
   let saving = $state(false);
   let saveError = $state("");
 
@@ -65,15 +72,19 @@
           dark: "Dark",
           providerTitle: "Connect a model service",
           providerBody:
-            "Add an OpenAI-compatible or Anthropic endpoint, then verify the connection and load its models.",
+            "Choose a Rig built-in model service, then verify the connection and load its models.",
           addProvider: "Add service",
           providerName: "Service name",
           providerType: "Service type",
           baseUrl: "Base URL (optional)",
           apiKey: "API key",
+          optionalApiKey: "API key (optional)",
+          oauthAccessToken: "Access token (optional; blank uses OAuth)",
           verify: "Verify and load models",
           verifying: "Connecting…",
           modelsLoaded: "Connection succeeded. {count} models loaded.",
+          addModel: "Add model",
+          modelName: "Model or deployment name",
           defaultTitle: "Choose default models",
           defaultBody:
             "The chat model handles conversations. The flash model handles lightweight background tasks.",
@@ -101,15 +112,19 @@
           light: "浅色",
           dark: "深色",
           providerTitle: "连接模型服务",
-          providerBody: "添加 OpenAI 兼容或 Anthropic 服务，验证连接并获取可用模型。",
+          providerBody: "选择 Rig 内置模型服务，验证连接并获取可用模型。",
           addProvider: "添加服务",
           providerName: "服务名称",
           providerType: "服务类型",
           baseUrl: "服务地址（可选）",
           apiKey: "API Key",
+          optionalApiKey: "API Key（可选）",
+          oauthAccessToken: "访问令牌（可选；留空使用 OAuth）",
           verify: "验证连接并获取模型",
           verifying: "正在连接…",
           modelsLoaded: "连接成功，已获取 {count} 个模型。",
+          addModel: "添加模型",
+          modelName: "模型或部署名称",
           defaultTitle: "选择默认模型",
           defaultBody: "对话模型用于日常任务，Flash 模型用于标题、记忆等轻量后台任务。",
           chatModel: "对话模型",
@@ -152,16 +167,7 @@
   );
 
   function addProvider() {
-    const provider: ProviderConfig = {
-      id: crypto.randomUUID(),
-      name: "OpenAI Compatible",
-      provider: "openai",
-      api_key: "",
-      base_url: "",
-      enabled: false,
-      models: [],
-      model_context_compaction_thresholds: {},
-    };
+    const provider = createProviderConfig();
     draft.providers = [...draft.providers, provider];
     selectedProviderId = provider.id;
     connectionStatus = "idle";
@@ -176,7 +182,11 @@
   }
 
   async function verifyProvider() {
-    if (!selectedProvider || !selectedProvider.api_key.trim()) return;
+    if (
+      !selectedProvider ||
+      (providerRequiresApiKey(selectedProvider.provider) && !selectedProvider.api_key.trim())
+    )
+      return;
     connectionStatus = "loading";
     connectionMessage = "";
     try {
@@ -199,6 +209,14 @@
       connectionStatus = "error";
       connectionMessage = `${error}`;
     }
+  }
+
+  function addManualModel() {
+    if (!selectedProvider) return;
+    const model = manualModelName.trim();
+    if (!model) return;
+    selectedProvider.models = Array.from(new Set([...selectedProvider.models, model])).sort();
+    manualModelName = "";
   }
 
   function setModel(kind: "chat_model" | "flash_model", value: string) {
@@ -318,8 +336,9 @@
               <label>
                 <span>{copy.providerType}</span>
                 <select bind:value={selectedProvider.provider} onchange={resetConnection}>
-                  <option value="openai">OpenAI Compatible</option>
-                  <option value="anthropic">Anthropic</option>
+                  {#each PROVIDER_CATALOG as entry (entry.value)}
+                    <option value={entry.value}>{entry.label}</option>
+                  {/each}
                 </select>
               </label>
             </div>
@@ -328,13 +347,18 @@
               <input
                 bind:value={selectedProvider.base_url}
                 oninput={resetConnection}
-                placeholder={selectedProvider.provider === "openai"
-                  ? "https://api.openai.com/v1"
-                  : "https://api.anthropic.com"}
+                placeholder={providerDefaultBaseUrl(selectedProvider.provider) ||
+                  "https://your-resource.openai.azure.com"}
               />
             </label>
             <label>
-              <span>{copy.apiKey}</span>
+              <span>
+                {providerRequiresApiKey(selectedProvider.provider)
+                  ? copy.apiKey
+                  : selectedProvider.provider === "chatgpt"
+                    ? copy.oauthAccessToken
+                    : copy.optionalApiKey}
+              </span>
               <input
                 type="password"
                 bind:value={selectedProvider.api_key}
@@ -342,11 +366,23 @@
                 placeholder="••••••••••••••••"
               />
             </label>
+            <div class="manual-model-row">
+              <input
+                bind:value={manualModelName}
+                placeholder={copy.modelName}
+                onkeydown={(event) => {
+                  if (event.key === "Enter") addManualModel();
+                }}
+              />
+              <button class="secondary" onclick={addManualModel}>{copy.addModel}</button>
+            </div>
             <div class="connection-row">
               <button
                 class="verify"
                 onclick={verifyProvider}
-                disabled={!selectedProvider.api_key.trim() || connectionStatus === "loading"}
+                disabled={(providerRequiresApiKey(selectedProvider.provider) &&
+                  !selectedProvider.api_key.trim()) ||
+                  connectionStatus === "loading"}
               >
                 {connectionStatus === "loading" ? copy.verifying : copy.verify}
               </button>
@@ -666,6 +702,11 @@
     display: flex;
     align-items: center;
     gap: 12px;
+  }
+  .manual-model-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
   }
   .connection-row p {
     margin: 0;

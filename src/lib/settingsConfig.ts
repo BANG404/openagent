@@ -1,4 +1,5 @@
 import type { AppConfig, McpServerConfig, ProviderConfig } from "$lib/types";
+import { providerCatalogEntry } from "$lib/providerCatalog";
 
 export type RetryQueueKind = "chat_queue" | "flash_queue";
 
@@ -8,7 +9,7 @@ export function createProviderConfig(
 ): ProviderConfig {
   return {
     id,
-    name: provider === "anthropic" ? "Anthropic Node" : "OpenAI Compatible Node",
+    name: `${providerCatalogEntry(provider).label} Node`,
     provider,
     api_key: "",
     base_url: "",
