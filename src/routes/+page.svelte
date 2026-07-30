@@ -2307,8 +2307,7 @@
     const { [conv_id]: _firstTokenAt, ...restFirstTokenAt } = streamFirstTokenAt;
     const { [conv_id]: _awaiting, ...restAwaiting } = awaitingStreamOutputConvIds;
     const { [conv_id]: _memoryStage, ...restMemoryStages } = memoryRetrievalStages;
-    const { [conv_id]: _memorySkippable, ...restMemorySkippable } =
-      memoryRetrievalSkippableConvIds;
+    const { [conv_id]: _memorySkippable, ...restMemorySkippable } = memoryRetrievalSkippableConvIds;
     convStreamItems = restItems;
     streamingConvIds = restStreaming;
     streamAssistantMsgIds = restAsstIds;
@@ -2740,8 +2739,7 @@
       const { [id]: _a, ...ra } = streamAssistantMsgIds;
       const { [id]: _awaiting, ...restAwaiting } = awaitingStreamOutputConvIds;
       const { [id]: _memoryStage, ...restMemoryStages } = memoryRetrievalStages;
-      const { [id]: _memorySkippable, ...restMemorySkippable } =
-        memoryRetrievalSkippableConvIds;
+      const { [id]: _memorySkippable, ...restMemorySkippable } = memoryRetrievalSkippableConvIds;
       streamingConvIds = rs;
       convStreamItems = ri;
       pendingCheckpointIds = rc;
