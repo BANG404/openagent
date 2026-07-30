@@ -54,7 +54,8 @@
   }
 
   function compactionText(value: Extract<StreamItem, { type: "compaction" }>) {
-    if (value.stage === "failed") return value.error ? `${$t("compactionFailed")}: ${value.error}` : $t("compactionFailed");
+    if (value.stage === "failed")
+      return value.error ? `${$t("compactionFailed")}: ${value.error}` : $t("compactionFailed");
     if (value.stage === "creating") return $t("compactionCreating");
     if (value.stage === "summarizing") return $t("compactionSummarizing");
     return $t("compactionChecking");
@@ -63,7 +64,7 @@
 
 <div class="retry-attempt">
   <div class="attempt-content">
-    {#each attemptSegments as segment}
+    {#each attemptSegments as segment (segment.startIndex)}
       {#if segment.kind === "tool_group"}
         <ToolCallGroup
           items={segment.items}
@@ -72,51 +73,76 @@
           {onCancelUserInput}
         />
       {:else}
-      {@const attemptItem = segment.item}
-      {@const idx = segment.startIndex}
-      {#if attemptItem.type === "text"}
-        <Streamdown content={attemptItem.content.trimEnd()} controls={{ table: false }} components={{ code: Code, mermaid: Mermaid, math: MathBlock }} extensions={customExtensions} {shikiTheme} {mermaidConfig}>
-          {#snippet children({ token })}
-            {#if (token as ComponentToken).type === "component"}
-              <CustomToken token={token as ComponentToken} {htmlPreviewConfig} isDark={shikiTheme === "github-dark"} />
-            {/if}
-          {/snippet}
-        </Streamdown>
-      {:else if attemptItem.type === "thinking"}
-        <details class="thinking-block">
-          <summary>Thinking</summary>
-          <pre>{attemptItem.content.trimEnd()}</pre>
-        </details>
-      {:else if attemptItem.type === "tool_call"}
-        <ToolCallCard
-          name={attemptItem.name}
-          args={attemptItem.args}
-          result={attemptItem.result}
-          expanded={expandedToolCalls.has(idx)}
-          argHint={toolArgHint(attemptItem.args)}
-          approval={attemptItem.approval}
-          onApprove={(requestId) => onSubmitUserInput(requestId, { approved: true })}
-          onDeny={onCancelUserInput}
-          {htmlPreviewConfig}
-          {mermaidConfig}
-          onToggle={() => toggleToolCall(idx)}
-        />
-      {:else if attemptItem.type === "compaction"}
-        <div class="compaction-status" class:failed={attemptItem.stage === "failed"}>{compactionText(attemptItem)}</div>
-      {:else if attemptItem.type === "user_input"}
-        {#if attemptItem.state === "pending"}
-          <UserInputForm request={attemptItem.request} onSubmit={onSubmitUserInput} onCancel={onCancelUserInput} />
-        {:else}
-          <UserInputSummary request={attemptItem.request} state={attemptItem.state} response={attemptItem.response} />
+        {@const attemptItem = segment.item}
+        {@const idx = segment.startIndex}
+        {#if attemptItem.type === "text"}
+          <Streamdown
+            content={attemptItem.content.trimEnd()}
+            controls={{ table: false }}
+            components={{ code: Code, mermaid: Mermaid, math: MathBlock }}
+            extensions={customExtensions}
+            {shikiTheme}
+            {mermaidConfig}
+          >
+            {#snippet children({ token })}
+              {#if (token as ComponentToken).type === "component"}
+                <CustomToken
+                  token={token as ComponentToken}
+                  {htmlPreviewConfig}
+                  isDark={shikiTheme === "github-dark"}
+                />
+              {/if}
+            {/snippet}
+          </Streamdown>
+        {:else if attemptItem.type === "thinking"}
+          <details class="thinking-block">
+            <summary>Thinking</summary>
+            <pre>{attemptItem.content.trimEnd()}</pre>
+          </details>
+        {:else if attemptItem.type === "tool_call"}
+          <ToolCallCard
+            name={attemptItem.name}
+            args={attemptItem.args}
+            result={attemptItem.result}
+            expanded={expandedToolCalls.has(idx)}
+            argHint={toolArgHint(attemptItem.args)}
+            approval={attemptItem.approval}
+            onApprove={(requestId) => onSubmitUserInput(requestId, { approved: true })}
+            onDeny={onCancelUserInput}
+            {htmlPreviewConfig}
+            {mermaidConfig}
+            onToggle={() => toggleToolCall(idx)}
+          />
+        {:else if attemptItem.type === "compaction"}
+          <div class="compaction-status" class:failed={attemptItem.stage === "failed"}>
+            {compactionText(attemptItem)}
+          </div>
+        {:else if attemptItem.type === "user_input"}
+          {#if attemptItem.state === "pending"}
+            <UserInputForm
+              request={attemptItem.request}
+              onSubmit={onSubmitUserInput}
+              onCancel={onCancelUserInput}
+            />
+          {:else}
+            <UserInputSummary
+              request={attemptItem.request}
+              state={attemptItem.state}
+              response={attemptItem.response}
+            />
+          {/if}
+        {:else if attemptItem.type === "attachment"}
+          <div class="attempt-attachment">{attemptItem.attachment.name}</div>
         {/if}
-      {:else if attemptItem.type === "attachment"}
-        <div class="attempt-attachment">{attemptItem.attachment.name}</div>
-      {/if}
       {/if}
     {/each}
   </div>
   <div class="retry-divider" role="separator">
-    <span>{$t("retryAttempt")} · {item.attempt}/{item.maxAttempts}{item.model ? ` · ${item.model}` : ""}</span>
+    <span
+      >{$t("retryAttempt")} · {item.attempt}/{item.maxAttempts}{item.model
+        ? ` · ${item.model}`
+        : ""}</span
+    >
   </div>
   {#if item.error}<p class="retry-error">{item.error}</p>{/if}
 </div>

@@ -66,13 +66,30 @@
 
 <div class="banner">
   <button class="banner-header" onclick={toggleExpand}>
-    <svg class="banner-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M9 2H3a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V7L9 2z"/>
-      <path d="M9 2v5h5"/>
+    <svg
+      class="banner-icon"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M9 2H3a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V7L9 2z" />
+      <path d="M9 2v5h5" />
     </svg>
     <span class="banner-title">{changes.length} 个文件已修改</span>
-    <svg class="banner-chevron" class:open={expanded} viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M1 1l4 4 4-4"/>
+    <svg
+      class="banner-chevron"
+      class:open={expanded}
+      viewBox="0 0 10 6"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M1 1l4 4 4-4" />
     </svg>
   </button>
 
@@ -81,24 +98,41 @@
       {#each changes as change (change.id)}
         <div class="change-row">
           <div class="change-main">
-            <svg class="change-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2 4h12M2 8h8M2 12h5"/>
+            <svg
+              class="change-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M2 4h12M2 8h8M2 12h5" />
             </svg>
             <Tooltip text={change.path}>
               <span class="change-path">{shortPath(change.path)}</span>
             </Tooltip>
-            <span class="change-op" class:change-op-write={change.old_patch === null} class:change-op-edit={change.old_patch !== null}>{change.old_patch === null ? "新建" : "编辑"}</span>
+            <span
+              class="change-op"
+              class:change-op-write={change.old_patch === null}
+              class:change-op-edit={change.old_patch !== null}
+              >{change.old_patch === null ? "新建" : "编辑"}</span
+            >
             <div class="change-actions">
               {#if change.old_patch !== null}
                 <Tooltip text="查看差异">
                   <button
                     class="diff-btn"
                     class:active={expandedDiffs.has(change.id)}
-                    onclick={() => toggleDiff(change.id)}
-                  >diff</button>
+                    onclick={() => toggleDiff(change.id)}>diff</button
+                  >
                 </Tooltip>
               {/if}
-              <Tooltip text={change.old_patch === null ? "删除此文件（新建文件的撤回）" : "恢复到修改前的状态"}>
+              <Tooltip
+                text={change.old_patch === null
+                  ? "删除此文件（新建文件的撤回）"
+                  : "恢复到修改前的状态"}
+              >
                 <button
                   class="revert-btn"
                   disabled={revertingIds.has(change.id)}
@@ -112,7 +146,7 @@
 
           {#if expandedDiffs.has(change.id) && change.old_patch}
             <div class="diff-view">
-              {#each parseDiff(change.old_patch) as line}
+              {#each parseDiff(change.old_patch) as line, index (`${line.type}-${index}`)}
                 {#if line.type !== "header"}
                   <div class="diff-line diff-{line.type}">{line.text}</div>
                 {/if}
@@ -253,7 +287,10 @@
     color: var(--text-muted);
     cursor: pointer;
     font-family: "JetBrains Mono", monospace;
-    transition: background 0.1s, color 0.1s, border-color 0.1s;
+    transition:
+      background 0.1s,
+      color 0.1s,
+      border-color 0.1s;
   }
 
   .diff-btn:hover,
@@ -271,7 +308,10 @@
     font-size: 11px;
     color: var(--text-muted);
     cursor: pointer;
-    transition: background 0.1s, color 0.1s, border-color 0.1s;
+    transition:
+      background 0.1s,
+      color 0.1s,
+      border-color 0.1s;
   }
 
   .revert-btn:hover:not(:disabled) {

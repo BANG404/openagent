@@ -58,7 +58,8 @@ async function handleDownload(payload: DownloadPayload): Promise<void> {
       },
     });
   } catch (err) {
-    const msg = typeof err === "string" ? err : (err as { message?: string })?.message ?? String(err);
+    const msg =
+      typeof err === "string" ? err : ((err as { message?: string })?.message ?? String(err));
     showToast({
       title: tr("toastDownloadFailed"),
       description: msg,
@@ -68,7 +69,6 @@ async function handleDownload(payload: DownloadPayload): Promise<void> {
 }
 
 declare global {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
   interface Window {
     __OPENAGENT_DOWNLOAD__?: (payload: DownloadPayload) => Promise<void> | void;
   }

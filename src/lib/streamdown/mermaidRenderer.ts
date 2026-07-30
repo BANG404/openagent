@@ -29,7 +29,7 @@ export type MermaidToolResult =
 
 export type MermaidToolFailure = Extract<MermaidToolResult, { ok: false }>;
 
-let mermaidModule: Promise<typeof import("mermaid")["default"]> | null = null;
+let mermaidModule: Promise<(typeof import("mermaid"))["default"]> | null = null;
 let renderQueue: Promise<void> = Promise.resolve();
 let renderSequence = 0;
 
@@ -97,39 +97,41 @@ export function renderMermaidSvg(
       ...dimensions,
     };
   });
-  renderQueue = run.then(() => undefined, () => undefined);
+  renderQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
   return run;
 }
 
 function numericLocation(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0
-    ? value
-    : undefined;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
 }
 
 export function mermaidToolFailure(error: unknown): MermaidToolFailure {
-  const record = error && typeof error === "object"
-    ? error as Record<string, unknown>
-    : null;
-  const hash = record?.hash && typeof record.hash === "object"
-    ? record.hash as Record<string, unknown>
-    : null;
-  const loc = hash?.loc && typeof hash.loc === "object"
-    ? hash.loc as Record<string, unknown>
-    : null;
-  const rawMessage = error instanceof Error
-    ? error.message
-    : typeof error === "string"
-      ? error
-      : typeof record?.message === "string"
-        ? record.message
-        : String(error);
+  const record = error && typeof error === "object" ? (error as Record<string, unknown>) : null;
+  const hash =
+    record?.hash && typeof record.hash === "object"
+      ? (record.hash as Record<string, unknown>)
+      : null;
+  const loc =
+    hash?.loc && typeof hash.loc === "object" ? (hash.loc as Record<string, unknown>) : null;
+  const rawMessage =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : typeof record?.message === "string"
+          ? record.message
+          : String(error);
   const message = rawMessage.replace(/\s+$/g, "").slice(0, 1600);
-  const line = numericLocation(loc?.first_line)
-    ?? numericLocation(record?.line)
-    ?? numericLocation(/line\s+(\d+)/i.exec(message)?.[1] ? Number(/line\s+(\d+)/i.exec(message)?.[1]) : undefined);
-  const column = numericLocation(loc?.first_column)
-    ?? numericLocation(record?.column);
+  const line =
+    numericLocation(loc?.first_line) ??
+    numericLocation(record?.line) ??
+    numericLocation(
+      /line\s+(\d+)/i.exec(message)?.[1] ? Number(/line\s+(\d+)/i.exec(message)?.[1]) : undefined,
+    );
+  const column = numericLocation(loc?.first_column) ?? numericLocation(record?.column);
 
   return {
     ok: false,

@@ -69,9 +69,8 @@ export function getNextReleaseVersion(currentVersion, bump, channel, options = {
     else throw new Error(`Unsupported release bump: ${bump}`);
   }
 
-  const version = channel === "beta"
-    ? `${baseVersion}-beta.${options.betaNumber ?? 1}`
-    : baseVersion;
+  const version =
+    channel === "beta" ? `${baseVersion}-beta.${options.betaNumber ?? 1}` : baseVersion;
   return { version, baseVersion, promotion: false };
 }
 

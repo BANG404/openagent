@@ -18,9 +18,7 @@ async function showMainWindow(appWindow: Window) {
 function isPrimaryActivate(event: TrayIconEvent) {
   return (
     event.type === "DoubleClick" ||
-    (event.type === "Click" &&
-      event.button === "Left" &&
-      event.buttonState === "Up")
+    (event.type === "Click" && event.button === "Left" && event.buttonState === "Up")
   );
 }
 

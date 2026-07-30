@@ -16,11 +16,13 @@ interface StartupRestoreCache {
 function readCache(): StartupRestoreCache {
   if (typeof window === "undefined") return { last: null, workspaces: {} };
   try {
-    const value = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null") as StartupRestoreCache | null;
-    return value
-      && value.workspaces
-      && typeof value.workspaces === "object"
-      && !Array.isArray(value.workspaces)
+    const value = JSON.parse(
+      window.localStorage.getItem(STORAGE_KEY) ?? "null",
+    ) as StartupRestoreCache | null;
+    return value &&
+      value.workspaces &&
+      typeof value.workspaces === "object" &&
+      !Array.isArray(value.workspaces)
       ? value
       : { last: null, workspaces: {} };
   } catch {
@@ -30,12 +32,12 @@ function readCache(): StartupRestoreCache {
 
 function validHint(value: StartupRestoreHint | null | undefined): StartupRestoreHint | null {
   if (
-    !value
-    || typeof value.workspace !== "string"
-    || (value.surface !== "conversation" && value.surface !== "new-conversation")
-    || (value.conversationId !== null && typeof value.conversationId !== "string")
-    || (value.surface === "conversation" && !value.conversationId)
-    || (value.surface === "new-conversation" && value.conversationId !== null)
+    !value ||
+    typeof value.workspace !== "string" ||
+    (value.surface !== "conversation" && value.surface !== "new-conversation") ||
+    (value.conversationId !== null && typeof value.conversationId !== "string") ||
+    (value.surface === "conversation" && !value.conversationId) ||
+    (value.surface === "new-conversation" && value.conversationId !== null)
   ) {
     return null;
   }

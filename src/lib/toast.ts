@@ -58,5 +58,5 @@ export function dismissToast(id: number): void {
 
 /** Update an existing visible toast, for example to reflect download progress. */
 export function updateToast(id: number, patch: Partial<Omit<Toast, "id">>): void {
-  toasts.update((list) => list.map((toast) => toast.id === id ? { ...toast, ...patch } : toast));
+  toasts.update((list) => list.map((toast) => (toast.id === id ? { ...toast, ...patch } : toast)));
 }

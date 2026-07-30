@@ -41,6 +41,12 @@ jobs:
       - name: Check Svelte and TypeScript
         run: bun run check
 
+      - name: Lint frontend source
+        run: bun run lint:frontend
+
+      - name: Check frontend formatting
+        run: bun run format:check
+
       - name: Run frontend tests
         run: bun run test
 

@@ -78,17 +78,15 @@
   });
 
   let visibleItems = $derived.by(() => {
-    const visible = items
-      .slice(visibleRange.start, visibleRange.end)
-      .map((item, offset) => ({
-        item,
-        index: visibleRange.start + offset,
-      }));
+    const visible = items.slice(visibleRange.start, visibleRange.end).map((item, offset) => ({
+      item,
+      index: visibleRange.start + offset,
+    }));
     if (
-      pinnedIndex !== null
-      && pinnedIndex >= 0
-      && pinnedIndex < items.length
-      && (pinnedIndex < visibleRange.start || pinnedIndex >= visibleRange.end)
+      pinnedIndex !== null &&
+      pinnedIndex >= 0 &&
+      pinnedIndex < items.length &&
+      (pinnedIndex < visibleRange.start || pinnedIndex >= visibleRange.end)
     ) {
       visible.push({ item: items[pinnedIndex], index: pinnedIndex });
       visible.sort((left, right) => left.index - right.index);
@@ -118,7 +116,9 @@
   $effect(() => {
     const container = root;
     if (!container) return;
-    const syncWidth = () => { rootWidth = container.clientWidth; };
+    const syncWidth = () => {
+      rootWidth = container.clientWidth;
+    };
     syncWidth();
     const resizeObserver = new ResizeObserver(syncWidth);
     resizeObserver.observe(container);
@@ -207,7 +207,7 @@
         ? item.messages.some((message) => message.id === key)
         : item.kind === "message"
           ? item.msg.id === key
-          : item.key === key
+          : item.key === key,
     );
     if (index < 0 || !scrollElement) return;
 
@@ -230,10 +230,7 @@
         const scrollerRect = scrollElement.getBoundingClientRect();
         const correction = targetRect.top - scrollerRect.top - 72;
         if (Math.abs(correction) < 1) break;
-        scrollElement.scrollTop = Math.max(
-          0,
-          scrollElement.scrollTop + correction,
-        );
+        scrollElement.scrollTop = Math.max(0, scrollElement.scrollTop + correction);
         syncViewport();
       }
     } finally {
@@ -310,7 +307,8 @@
     contain-intrinsic-size: none;
   }
 
-  .virtual-message-row.content-columns > :global(.message-record:not(.assistant-msg):not(.thinking-block)),
+  .virtual-message-row.content-columns
+    > :global(.message-record:not(.assistant-msg):not(.thinking-block)),
   .virtual-message-row.content-columns :global(.pagination-atom),
   .virtual-message-row.content-columns > :global(.thinking-status) {
     break-inside: avoid-column;

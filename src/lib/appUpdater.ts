@@ -9,7 +9,11 @@ function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function updateProgressMessage(event: DownloadEvent, downloadedBytes: number, totalBytes?: number): string {
+function updateProgressMessage(
+  event: DownloadEvent,
+  downloadedBytes: number,
+  totalBytes?: number,
+): string {
   if (event.event === "Started") {
     return "正在下载更新包...";
   }

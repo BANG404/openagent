@@ -6,7 +6,10 @@ export type MermaidFullscreenPortal = {
   restore: () => void;
 };
 
-export function setContainingMessageExpanded(target: Element | null, expanded: boolean): HTMLElement | null {
+export function setContainingMessageExpanded(
+  target: Element | null,
+  expanded: boolean,
+): HTMLElement | null {
   const messageRecord = target?.closest<HTMLElement>(".message-record") ?? null;
   if (!messageRecord) return null;
   messageRecord.toggleAttribute(MERMAID_EXPANDED_RECORD_ATTRIBUTE, expanded);

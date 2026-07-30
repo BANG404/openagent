@@ -14,7 +14,16 @@
   import Switch from "./ui/Switch.svelte";
   import Combobox from "./ui/Combobox.svelte";
 
-  type SettingsNav = "general" | "providers" | "defaults" | "agents" | "memory" | "websearch" | "hooks" | "extensions" | "about";
+  type SettingsNav =
+    | "general"
+    | "providers"
+    | "defaults"
+    | "agents"
+    | "memory"
+    | "websearch"
+    | "hooks"
+    | "extensions"
+    | "about";
   type ProviderStatus = {
     tone: "idle" | "loading" | "success" | "error";
     message: string;
@@ -75,9 +84,7 @@
     isMemorySyncing,
     initialNav,
     onSave,
-    onClose,
     onOpenConversation,
-    onPickWorkspace,
     winMinimize,
     winMaximize,
     winClose,
@@ -87,9 +94,7 @@
     isMemorySyncing: boolean;
     initialNav?: SettingsNav;
     onSave: (config: AppConfig) => Promise<void>;
-    onClose: () => void;
     onOpenConversation: (conversationId: string) => Promise<void>;
-    onPickWorkspace: () => Promise<void>;
     winMinimize: () => void;
     winMaximize: () => void;
     winClose: () => void;
@@ -167,7 +172,9 @@
   let selectedMcpId = $state<string | null>(null);
   let scheduledHooks = $state<ScheduledChatHook[]>([]);
   let hookMessage = $state("");
-  let hookMode = $state<"delay" | "run_at" | "interval_minutes" | "daily" | "weekdays" | "weekly">("delay");
+  let hookMode = $state<"delay" | "run_at" | "interval_minutes" | "daily" | "weekdays" | "weekly">(
+    "delay",
+  );
   let hookDelayMinutes = $state(10);
   let hookRunAt = $state("");
   let hookTimeOfDay = $state("09:00");
@@ -206,7 +213,9 @@
   const providerConnectionFingerprints = new Map<string, string>();
   const mcpConnectionFingerprints = new Map<string, string>();
 
-  let draftConfig = $state<AppConfig>(normalizeConfigShape(untrack(() => config) ?? fallbackConfig));
+  let draftConfig = $state<AppConfig>(
+    normalizeConfigShape(untrack(() => config) ?? fallbackConfig),
+  );
   // The page normally waits for settings to load before mounting this view.
   // Keep this guard as a second line of defence: a view initially mounted with
   // `config === null` must never autosave the empty fallback over providers.
@@ -223,8 +232,10 @@
   function snapshotDraftConfig() {
     const snapshot = $state.snapshot(draftConfig) as AppConfig;
     const fallbackId = snapshot.providers[0]?.id ?? "";
-    if (!snapshot.defaults.chat_model.provider_id) snapshot.defaults.chat_model.provider_id = fallbackId;
-    if (!snapshot.defaults.flash_model.provider_id) snapshot.defaults.flash_model.provider_id = fallbackId;
+    if (!snapshot.defaults.chat_model.provider_id)
+      snapshot.defaults.chat_model.provider_id = fallbackId;
+    if (!snapshot.defaults.flash_model.provider_id)
+      snapshot.defaults.flash_model.provider_id = fallbackId;
     return snapshot;
   }
 
@@ -235,9 +246,7 @@
     }
     if (!initializedFromConfig) return Promise.resolve();
     const snapshot = snapshotDraftConfig();
-    pendingSave = pendingSave
-      .catch(() => {})
-      .then(() => onSave(snapshot));
+    pendingSave = pendingSave.catch(() => {}).then(() => onSave(snapshot));
     return pendingSave;
   }
 
@@ -353,7 +362,9 @@
       await navigator.clipboard.writeText(value);
       copiedRemoteValue = kind;
       if (remoteCopyTimer) clearTimeout(remoteCopyTimer);
-      remoteCopyTimer = setTimeout(() => { copiedRemoteValue = null; }, 1800);
+      remoteCopyTimer = setTimeout(() => {
+        copiedRemoteValue = null;
+      }, 1800);
     } catch (error) {
       remoteGatewayMessage = `${error}`;
     }
@@ -362,14 +373,16 @@
   let filteredProviders = $derived.by(() => {
     const query = providerSearch.trim().toLowerCase();
     return draftConfig.providers.filter((provider) => {
-      const matchesQuery = !query
-        || provider.name.toLowerCase().includes(query)
-        || provider.provider.toLowerCase().includes(query)
-        || provider.base_url.toLowerCase().includes(query)
-        || provider.models.some((model) => model.toLowerCase().includes(query));
-      const matchesFilter = providerFilter === "all"
-        || (providerFilter === "enabled" && provider.enabled)
-        || (providerFilter === "disabled" && !provider.enabled);
+      const matchesQuery =
+        !query ||
+        provider.name.toLowerCase().includes(query) ||
+        provider.provider.toLowerCase().includes(query) ||
+        provider.base_url.toLowerCase().includes(query) ||
+        provider.models.some((model) => model.toLowerCase().includes(query));
+      const matchesFilter =
+        providerFilter === "all" ||
+        (providerFilter === "enabled" && provider.enabled) ||
+        (providerFilter === "disabled" && !provider.enabled);
       return matchesQuery && matchesFilter;
     });
   });
@@ -381,27 +394,16 @@
   });
 
   let selectedProviderIndex = $derived(
-    draftConfig.providers.findIndex((provider) => provider.id === selectedProviderId)
+    draftConfig.providers.findIndex((provider) => provider.id === selectedProviderId),
   );
 
   let selectedProvider = $derived(
-    selectedProviderIndex >= 0 ? draftConfig.providers[selectedProviderIndex] : null
+    selectedProviderIndex >= 0 ? draftConfig.providers[selectedProviderIndex] : null,
   );
 
   function ensureSelectedProvider() {
     if (draftConfig.providers.some((provider) => provider.id === selectedProviderId)) return;
     selectedProviderId = draftConfig.providers[0]?.id ?? "";
-  }
-
-  function normalizeDraftDefaults() {
-    ensureSelectedProvider();
-    const fallbackProviderId = draftConfig.providers[0]?.id ?? "";
-    if (!draftConfig.defaults.chat_model.provider_id) {
-      draftConfig.defaults.chat_model.provider_id = fallbackProviderId;
-    }
-    if (!draftConfig.defaults.flash_model.provider_id) {
-      draftConfig.defaults.flash_model.provider_id = fallbackProviderId;
-    }
   }
 
   function createProvider(provider: ProviderConfig["provider"] = "openai"): ProviderConfig {
@@ -424,7 +426,7 @@
   }
 
   $effect(() => {
-    setLocale((draftConfig.language ?? 'zh') as Locale);
+    setLocale((draftConfig.language ?? "zh") as Locale);
   });
 
   $effect(() => {
@@ -454,7 +456,7 @@
         lastAutostartTarget = actual;
         draftConfig.launch_on_startup = actual;
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (seq === autostartRequestSeq) {
         autostartStatus = `${err}`;
         try {
@@ -495,7 +497,10 @@
   async function testProvider(id: string) {
     const provider = draftConfig.providers.find((item) => item.id === id);
     if (!provider) return;
-    providerStatus = { ...providerStatus, [id]: { tone: "loading", message: $t('checkingConnection') } };
+    providerStatus = {
+      ...providerStatus,
+      [id]: { tone: "loading", message: $t("checkingConnection") },
+    };
 
     try {
       const result = await invoke<ProviderProbeResult>("test_provider_connection", {
@@ -513,7 +518,7 @@
           message: `${result.message}${result.models.length ? ` 路 ${result.models.length} models` : ""}`,
         },
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       providerStatus = { ...providerStatus, [id]: { tone: "error", message: `${err}` } };
     }
   }
@@ -539,7 +544,7 @@
         ...providerStatus,
         [id]: { tone: "success", message: `Loaded ${provider.models.length} models` },
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       providerStatus = { ...providerStatus, [id]: { tone: "error", message: `${err}` } };
     } finally {
       modelLoading = { ...modelLoading, [id]: false };
@@ -559,12 +564,17 @@
     // checked. Autosave may run before a network request completes.
     provider.enabled = false;
     modelLoading = { ...modelLoading, [id]: true };
-    providerStatus = { ...providerStatus, [id]: { tone: "loading", message: $t("checkingConnection") } };
+    providerStatus = {
+      ...providerStatus,
+      [id]: { tone: "loading", message: $t("checkingConnection") },
+    };
     try {
       const models = await invoke<string[]>("fetch_provider_models", {
         request: { provider: $state.snapshot(provider) },
       });
-      const normalizedModels = Array.from(new Set(models.map((model) => model.trim()).filter(Boolean))).sort();
+      const normalizedModels = Array.from(
+        new Set(models.map((model) => model.trim()).filter(Boolean)),
+      ).sort();
       if (normalizedModels.length === 0) {
         throw new Error($t("providerNoModelsReturned"));
       }
@@ -573,9 +583,12 @@
       repairDefaultModelBindings();
       providerStatus = {
         ...providerStatus,
-        [id]: { tone: "success", message: `${$t("providerEnabledWithModels")} ${normalizedModels.length}` },
+        [id]: {
+          tone: "success",
+          message: `${$t("providerEnabledWithModels")} ${normalizedModels.length}`,
+        },
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       provider.enabled = false;
       providerStatus = { ...providerStatus, [id]: { tone: "error", message: `${err}` } };
     } finally {
@@ -591,8 +604,9 @@
   function replaceProviderModels(provider: ProviderConfig, models: string[]) {
     provider.models = models;
     provider.model_context_compaction_thresholds = Object.fromEntries(
-      Object.entries(provider.model_context_compaction_thresholds ?? {})
-        .filter(([model]) => models.includes(model)),
+      Object.entries(provider.model_context_compaction_thresholds ?? {}).filter(([model]) =>
+        models.includes(model),
+      ),
     );
   }
 
@@ -654,7 +668,7 @@
 
     const previousName = modelConfigOriginalName;
     if (nextName !== previousName) {
-      provider.models = provider.models.map((model) => model === previousName ? nextName : model);
+      provider.models = provider.models.map((model) => (model === previousName ? nextName : model));
       for (const kind of ["chat_model", "flash_model"] as const) {
         const binding = draftConfig.defaults[kind];
         if (binding.provider_id === provider.id && binding.model === previousName) {
@@ -741,7 +755,9 @@
   }
 
   function removeRetryQueueModel(kind: RetryQueueKind, index: number) {
-    draftConfig.model_retry[kind] = draftConfig.model_retry[kind].filter((_, itemIndex) => itemIndex !== index);
+    draftConfig.model_retry[kind] = draftConfig.model_retry[kind].filter(
+      (_, itemIndex) => itemIndex !== index,
+    );
   }
 
   function startRetryQueueDrag(kind: RetryQueueKind, index: number, event: DragEvent) {
@@ -795,12 +811,13 @@
   async function testMcpServer(id: string) {
     const server = draftConfig.mcp.servers.find((s) => s.id === id);
     if (!server) return;
-    const notReady =
-      server.transport === "http" ? !server.url.trim() : !server.command.trim();
+    const notReady = server.transport === "http" ? !server.url.trim() : !server.command.trim();
     if (notReady) return;
     mcpTestStatus = { ...mcpTestStatus, [id]: { tone: "testing", message: $t("mcpTesting") } };
     try {
-      const result = await invoke<McpProbeResult>("test_mcp_server", { server: $state.snapshot(server) });
+      const result = await invoke<McpProbeResult>("test_mcp_server", {
+        server: $state.snapshot(server),
+      });
       mcpTestStatus = {
         ...mcpTestStatus,
         [id]: {
@@ -808,8 +825,11 @@
           message: `${result.tools.length} ${$t("mcpToolCount")}, ${result.resources.length} ${$t("mcpResourceCount")}`,
         },
       };
-    } catch (err: any) {
-      mcpTestStatus = { ...mcpTestStatus, [id]: { tone: "error", message: `${$t("mcpTestFailed")}: ${err}` } };
+    } catch (err: unknown) {
+      mcpTestStatus = {
+        ...mcpTestStatus,
+        [id]: { tone: "error", message: `${$t("mcpTestFailed")}: ${err}` },
+      };
     }
   }
 
@@ -833,7 +853,9 @@
 
     mcpTestStatus = { ...mcpTestStatus, [id]: { tone: "testing", message: $t("mcpTesting") } };
     try {
-      const result = await invoke<McpProbeResult>("test_mcp_server", { server: $state.snapshot(server) });
+      const result = await invoke<McpProbeResult>("test_mcp_server", {
+        server: $state.snapshot(server),
+      });
       server.enabled = true;
       mcpTestStatus = {
         ...mcpTestStatus,
@@ -842,9 +864,12 @@
           message: `${result.tools.length} ${$t("mcpToolCount")}, ${result.resources.length} ${$t("mcpResourceCount")}`,
         },
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       server.enabled = false;
-      mcpTestStatus = { ...mcpTestStatus, [id]: { tone: "error", message: `${$t("mcpTestFailed")}: ${err}` } };
+      mcpTestStatus = {
+        ...mcpTestStatus,
+        [id]: { tone: "error", message: `${$t("mcpTestFailed")}: ${err}` },
+      };
     }
   }
 
@@ -879,16 +904,14 @@
   }
 
   let selectedMcpServer = $derived(
-    draftConfig.mcp.servers.find((s) => s.id === selectedMcpId) ?? null
+    draftConfig.mcp.servers.find((s) => s.id === selectedMcpId) ?? null,
   );
-  let selectedMcpIndex = $derived(
-    draftConfig.mcp.servers.findIndex((s) => s.id === selectedMcpId)
-  );
+  let selectedMcpIndex = $derived(draftConfig.mcp.servers.findIndex((s) => s.id === selectedMcpId));
 
   async function refreshHooks() {
-    const definitions = await invoke<{ record: Omit<ScheduledChatHook, "args">; args: ScheduleChatHookArgs }[]>(
-      "list_scheduled_chat_hooks"
-    );
+    const definitions = await invoke<
+      { record: Omit<ScheduledChatHook, "args">; args: ScheduleChatHookArgs }[]
+    >("list_scheduled_chat_hooks");
     scheduledHooks = definitions.map(({ record, args }) => ({ ...record, args }));
   }
 
@@ -944,7 +967,10 @@
     } else {
       args.recurrence = "weekly";
       args.time_of_day = hookTimeOfDay;
-      args.weekdays = hookWeekdays.split(",").map((d) => d.trim()).filter(Boolean);
+      args.weekdays = hookWeekdays
+        .split(",")
+        .map((d) => d.trim())
+        .filter(Boolean);
     }
     return args;
   }
@@ -972,8 +998,8 @@
     hookIntervalMinutes = hook.args.interval_minutes ?? hook.args.delay_minutes ?? 60;
     hookTimeOfDay = hook.args.time_of_day ?? "09:00";
     hookWeekdays = hook.args.weekdays?.join(",") ?? "mon,wed,fri";
-    hookMode = (hook.args.recurrence as typeof hookMode | null)
-      ?? (hook.args.run_at ? "run_at" : "delay");
+    hookMode =
+      (hook.args.recurrence as typeof hookMode | null) ?? (hook.args.run_at ? "run_at" : "delay");
     hookStatus = "";
   }
 
@@ -986,7 +1012,7 @@
         : await invoke<string>("schedule_chat_hook", { args });
       resetHookEditor();
       await refreshHooks();
-    } catch (err: any) {
+    } catch (err: unknown) {
       hookStatus = `${err}`;
     }
   }
@@ -1012,7 +1038,7 @@
         encoding: "utf8",
       });
       memoryStatus = `${tr("memoryExported")} ${savedPath}`;
-    } catch (err: any) {
+    } catch (err: unknown) {
       memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
     } finally {
       memoryBusy = false;
@@ -1035,12 +1061,12 @@
     memoryStatus = "";
     try {
       const content = await invoke<string>("read_text_file", { path: selected });
-      const result = await invoke<{ user_memory_imported: boolean; agent_memories_imported: number }>(
-        "import_memory_backup",
-        { scope: memoryScope, content, replace }
-      );
+      const result = await invoke<{
+        user_memory_imported: boolean;
+        agent_memories_imported: number;
+      }>("import_memory_backup", { scope: memoryScope, content, replace });
       memoryStatus = `${tr("memoryImported")} ${result.agent_memories_imported} ${tr("memoryAgentEntries")}`;
-    } catch (err: any) {
+    } catch (err: unknown) {
       memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
     } finally {
       memoryBusy = false;
@@ -1069,7 +1095,7 @@
       memoryClearCloseHandled = true;
       memoryClearDialogOpen = false;
       memoryClearInput = "";
-    } catch (err: any) {
+    } catch (err: unknown) {
       memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
     } finally {
       memoryBusy = false;
@@ -1086,7 +1112,7 @@
 
 <div class="settings-panel">
   <div class="settings-header" data-tauri-drag-region>
-    <span class="settings-header-title">{$t('settingsTitle')}</span>
+    <span class="settings-header-title">{$t("settingsTitle")}</span>
     <div class="title-actions">
       {#if isMemorySyncing}
         <Tooltip text="Memory syncing">
@@ -1107,69 +1133,154 @@
     <Tabs.List class="settings-nav-col">
       <div class="settings-nav-items">
         <Tabs.Trigger value="general" class="settings-nav-item">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <circle cx="8" cy="8" r="2.4" />
-            <path d="M8 1.8v1.4M8 12.8v1.4M3.6 3.6l1 1M11.4 11.4l1 1M1.8 8h1.4M12.8 8h1.4M3.6 12.4l1-1M11.4 4.6l1-1" />
+            <path
+              d="M8 1.8v1.4M8 12.8v1.4M3.6 3.6l1 1M11.4 11.4l1 1M1.8 8h1.4M12.8 8h1.4M3.6 12.4l1-1M11.4 4.6l1-1"
+            />
           </svg>
-          {$t('general')}
+          {$t("general")}
         </Tabs.Trigger>
         <Tabs.Trigger value="providers" class="settings-nav-item">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <rect x="2.5" y="3" width="11" height="3.5" rx="1" />
             <rect x="2.5" y="9.5" width="11" height="3.5" rx="1" />
             <path d="M5 4.75h.01M5 11.25h.01M8 6.5v3" />
           </svg>
-          {$t('providers')}
+          {$t("providers")}
         </Tabs.Trigger>
         <Tabs.Trigger value="defaults" class="settings-nav-item">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 2.2l1.7 3.5 3.8.6-2.8 2.7.7 3.8L8 11l-3.4 1.8.7-3.8-2.8-2.7 3.8-.6L8 2.2z" />
+          <svg
+            class="nav-icon"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path
+              d="M8 2.2l1.7 3.5 3.8.6-2.8 2.7.7 3.8L8 11l-3.4 1.8.7-3.8-2.8-2.7 3.8-.6L8 2.2z"
+            />
           </svg>
-          {$t('defaultModels')}
+          {$t("defaultModels")}
         </Tabs.Trigger>
         <Tabs.Trigger value="agents" class="settings-nav-item">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <path d="M4.2 4.2h7.6v5.2H8.7L6 12v-2.6H4.2z" />
             <path d="M6 6.2h4M6 8h2.6" />
           </svg>
-          {$t('flashAgents')}
+          {$t("flashAgents")}
         </Tabs.Trigger>
         <Tabs.Trigger value="memory" class="settings-nav-item">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <ellipse cx="8" cy="3.5" rx="5" ry="1.8" />
             <path d="M3 3.5v6.8c0 1 2.2 1.8 5 1.8s5-.8 5-1.8V3.5" />
             <path d="M3 7c0 1 2.2 1.8 5 1.8s5-.8 5-1.8" />
           </svg>
-          {$t('memoryManagement')}
+          {$t("memoryManagement")}
         </Tabs.Trigger>
         <Tabs.Trigger value="websearch" class="settings-nav-item">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <circle cx="7" cy="7" r="4" />
             <path d="M10 10l3.2 3.2" />
           </svg>
-          {$t('webSearch')}
+          {$t("webSearch")}
         </Tabs.Trigger>
         <Tabs.Trigger value="extensions" class="settings-nav-item">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <path d="M6 2.5v3M10 2.5v3M4.5 5.5h7v2.8a3.5 3.5 0 0 1-7 0V5.5zM8 11.8v1.7" />
           </svg>
-          {$t('extensions')}
+          {$t("extensions")}
         </Tabs.Trigger>
         <Tabs.Trigger value="hooks" class="settings-nav-item">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <circle cx="8" cy="8" r="5.5" />
             <path d="M8 4.8V8l2.2 1.4" />
           </svg>
-          {$t('hooks')}
+          {$t("hooks")}
         </Tabs.Trigger>
       </div>
       <div class="settings-nav-bottom">
         <Tabs.Trigger value="about" class="settings-nav-item">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <circle cx="8" cy="8" r="5.5" />
             <path d="M8 7.5v3.2M8 5.2h.01" />
           </svg>
-          {$t('about')}
+          {$t("about")}
         </Tabs.Trigger>
       </div>
     </Tabs.List>
@@ -1177,44 +1288,44 @@
     <Tabs.Content value="general" class="settings-tab-panel">
       <div class="settings-content-col">
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t('appearance')}</h4>
+          <h4 class="detail-section-title">{$t("appearance")}</h4>
           <div class="detail-label">
-            <span class="label-text">{$t('theme')}</span>
+            <span class="label-text">{$t("theme")}</span>
             <Select
               bind:value={draftConfig.theme}
               items={[
-                { value: 'system', label: $t('themeSystem') },
-                { value: 'light', label: $t('themeLight') },
-                { value: 'dark', label: $t('themeDark') },
+                { value: "system", label: $t("themeSystem") },
+                { value: "light", label: $t("themeLight") },
+                { value: "dark", label: $t("themeDark") },
               ]}
-              ariaLabel={$t('theme')}
+              ariaLabel={$t("theme")}
             />
           </div>
           <div class="detail-label">
-            <span class="label-text">{$t('language')}</span>
+            <span class="label-text">{$t("language")}</span>
             <Select
               bind:value={draftConfig.language}
               items={[
-                { value: 'zh', label: '中文' },
-                { value: 'en', label: 'English' },
+                { value: "zh", label: "中文" },
+                { value: "en", label: "English" },
               ]}
-              ariaLabel={$t('language')}
+              ariaLabel={$t("language")}
             />
           </div>
           <div class="detail-label">
-            <span class="label-text">{$t('messageLayout')}</span>
+            <span class="label-text">{$t("messageLayout")}</span>
             <Select
               bind:value={draftConfig.message_layout}
               items={[
-                { value: 'single', label: $t('messageLayoutSingle') },
-                { value: 'responsive_double', label: $t('messageLayoutResponsiveDouble') },
+                { value: "single", label: $t("messageLayoutSingle") },
+                { value: "responsive_double", label: $t("messageLayoutResponsiveDouble") },
               ]}
-              ariaLabel={$t('messageLayout')}
+              ariaLabel={$t("messageLayout")}
             />
           </div>
-          {#if draftConfig.message_layout === 'responsive_double'}
+          {#if draftConfig.message_layout === "responsive_double"}
             <label class="execution-value-row message-layout-threshold">
-              <span class="label-text">{$t('messageDoubleColumnMinWidth')}</span>
+              <span class="label-text">{$t("messageDoubleColumnMinWidth")}</span>
               <input
                 type="number"
                 class="detail-input execution-number-input"
@@ -1224,98 +1335,146 @@
                 bind:value={draftConfig.message_double_column_min_width}
               />
             </label>
-            <p class="detail-hint">{$t('messageDoubleColumnHint')}</p>
+            <p class="detail-hint">{$t("messageDoubleColumnHint")}</p>
           {/if}
         </section>
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t('workspaceBehavior')}</h4>
+          <h4 class="detail-section-title">{$t("workspaceBehavior")}</h4>
           <div class="detail-label">
-            <span class="label-text">{$t('workspaceSelectionBehavior')}</span>
+            <span class="label-text">{$t("workspaceSelectionBehavior")}</span>
             <Select
               bind:value={draftConfig.workspace_open_mode}
               items={[
-                { value: 'ask', label: $t('workspaceOpenAsk') },
-                { value: 'new_window', label: $t('workspaceOpenNewWindow') },
-                { value: 'current_window', label: $t('workspaceOpenCurrentWindow') },
+                { value: "ask", label: $t("workspaceOpenAsk") },
+                { value: "new_window", label: $t("workspaceOpenNewWindow") },
+                { value: "current_window", label: $t("workspaceOpenCurrentWindow") },
               ]}
-              ariaLabel={$t('workspaceSelectionBehavior')}
+              ariaLabel={$t("workspaceSelectionBehavior")}
             />
           </div>
-          <p class="detail-hint">{$t('workspaceSelectionBehaviorHint')}</p>
+          <p class="detail-hint">{$t("workspaceSelectionBehaviorHint")}</p>
         </section>
         <section class="detail-section">
           <div class="detail-section-header remote-gateway-heading">
             <div>
-              <h4 class="detail-section-title">{$t('remoteGateway')}</h4>
-              <p class="remote-gateway-subtitle">{$t('remoteGatewaySubtitle')}</p>
+              <h4 class="detail-section-title">{$t("remoteGateway")}</h4>
+              <p class="remote-gateway-subtitle">{$t("remoteGatewaySubtitle")}</p>
             </div>
             <span class:active={draftConfig.remote_gateway.enabled} class="remote-gateway-status">
-              <span></span>{draftConfig.remote_gateway.enabled ? $t('remoteGatewayRunning') : $t('remoteGatewayStopped')}
+              <span></span>{draftConfig.remote_gateway.enabled
+                ? $t("remoteGatewayRunning")
+                : $t("remoteGatewayStopped")}
             </span>
           </div>
           <div class="remote-gateway-card">
             <div class="remote-gateway-toggle-row">
               <div class="remote-gateway-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                  ><rect x="3" y="4" width="18" height="13" rx="2" /><path
+                    d="M8 21h8M12 17v4"
+                  /></svg
+                >
               </div>
               <div class="startup-copy">
-                <span class="label-text">{$t('remoteGatewayEnabled')}</span>
-                <p class="detail-hint">{$t('remoteGatewayHint')}</p>
+                <span class="label-text">{$t("remoteGatewayEnabled")}</span>
+                <p class="detail-hint">{$t("remoteGatewayHint")}</p>
               </div>
-              <Switch bind:checked={draftConfig.remote_gateway.enabled} ariaLabel={$t('remoteGatewayEnabled')} />
+              <Switch
+                bind:checked={draftConfig.remote_gateway.enabled}
+                ariaLabel={$t("remoteGatewayEnabled")}
+              />
             </div>
             <div class="remote-gateway-toggle-row remote-gateway-workspace-row">
               <div class="remote-gateway-icon workspace" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 17a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4"/><circle cx="12" cy="7" r="3"/><path d="M2 11a10 10 0 0 1 20 0"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                  ><path d="M4 17a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4" /><circle
+                    cx="12"
+                    cy="7"
+                    r="3"
+                  /><path d="M2 11a10 10 0 0 1 20 0" /></svg
+                >
               </div>
               <div class="startup-copy">
-                <span class="label-text">{$t('remoteGatewayLanAccess')}</span>
-                <p class="detail-hint">{$t('remoteGatewayLanAccessHint')}</p>
+                <span class="label-text">{$t("remoteGatewayLanAccess")}</span>
+                <p class="detail-hint">{$t("remoteGatewayLanAccessHint")}</p>
               </div>
-              <Switch bind:checked={draftConfig.remote_gateway.allow_lan_access} ariaLabel={$t('remoteGatewayLanAccess')} />
+              <Switch
+                bind:checked={draftConfig.remote_gateway.allow_lan_access}
+                ariaLabel={$t("remoteGatewayLanAccess")}
+              />
             </div>
             <div class="remote-gateway-toggle-row remote-gateway-workspace-row">
               <div class="remote-gateway-icon workspace" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3.5 6.5h6l2 2h9v9.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                  ><path d="M3.5 6.5h6l2 2h9v9.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" /></svg
+                >
               </div>
               <div class="startup-copy">
-                <span class="label-text">{$t('remoteGatewayCurrentWorkspace')}</span>
-                <p class="detail-hint remote-workspace-path">{workspacePath || $t('noWorkspace')}</p>
+                <span class="label-text">{$t("remoteGatewayCurrentWorkspace")}</span>
+                <p class="detail-hint remote-workspace-path">
+                  {workspacePath || $t("noWorkspace")}
+                </p>
               </div>
-              <Switch checked={Boolean(workspacePath) && draftConfig.remote_gateway.allowed_workspaces.includes(workspacePath)} disabled={!workspacePath} onCheckedChange={toggleCurrentWorkspaceAccess} ariaLabel={$t('remoteGatewayCurrentWorkspace')} />
+              <Switch
+                checked={Boolean(workspacePath) &&
+                  draftConfig.remote_gateway.allowed_workspaces.includes(workspacePath)}
+                disabled={!workspacePath}
+                onCheckedChange={toggleCurrentWorkspaceAccess}
+                ariaLabel={$t("remoteGatewayCurrentWorkspace")}
+              />
             </div>
           </div>
           {#if draftConfig.remote_gateway.enabled && remoteGatewayStatus}
             <div class="remote-gateway-credentials">
               <div class="remote-credential-row">
                 <div class="remote-credential-copy">
-                  <span class="remote-credential-label">{$t('remoteGatewayLocalUrl')}</span>
+                  <span class="remote-credential-label">{$t("remoteGatewayLocalUrl")}</span>
                   <code>{remoteGatewayStatus.url}</code>
                 </div>
-                <button class="remote-credential-action" onclick={() => copyRemoteGatewayValue(remoteGatewayStatus?.url ?? "", "url")}>
-                  {copiedRemoteValue === 'url' ? $t('remoteGatewayCopied') : $t('copy')}
+                <button
+                  class="remote-credential-action"
+                  onclick={() => copyRemoteGatewayValue(remoteGatewayStatus?.url ?? "", "url")}
+                >
+                  {copiedRemoteValue === "url" ? $t("remoteGatewayCopied") : $t("copy")}
                 </button>
               </div>
               {#if draftConfig.remote_gateway.allow_lan_access && remoteGatewayStatus.lan_url}
                 <div class="remote-credential-row">
                   <div class="remote-credential-copy">
-                    <span class="remote-credential-label">{$t('remoteGatewayLanUrl')}</span>
+                    <span class="remote-credential-label">{$t("remoteGatewayLanUrl")}</span>
                     <code>{remoteGatewayStatus.lan_url}</code>
                   </div>
-                  <button class="remote-credential-action" onclick={() => copyRemoteGatewayValue(remoteGatewayStatus?.lan_url ?? "", "lan")}>{copiedRemoteValue === 'lan' ? $t('remoteGatewayCopied') : $t('copy')}</button>
+                  <button
+                    class="remote-credential-action"
+                    onclick={() =>
+                      copyRemoteGatewayValue(remoteGatewayStatus?.lan_url ?? "", "lan")}
+                    >{copiedRemoteValue === "lan" ? $t("remoteGatewayCopied") : $t("copy")}</button
+                  >
                 </div>
               {/if}
               <div class="remote-credential-row pairing">
                 <div class="remote-credential-copy">
-                  <span class="remote-credential-label">{$t('remoteGatewayPairingCode')}</span>
+                  <span class="remote-credential-label">{$t("remoteGatewayPairingCode")}</span>
                   <code>{remoteGatewayStatus.pairing_code}</code>
                 </div>
                 <div class="remote-credential-actions">
-                  <button class="remote-credential-action" onclick={() => copyRemoteGatewayValue(remoteGatewayStatus?.pairing_code ?? "", "code")}>{copiedRemoteValue === 'code' ? $t('remoteGatewayCopied') : $t('copy')}</button>
-                  <button class="remote-credential-action primary" disabled={remoteGatewayBusy} onclick={rotateRemotePairingCode}>{$t('remoteGatewayRotate')}</button>
+                  <button
+                    class="remote-credential-action"
+                    onclick={() =>
+                      copyRemoteGatewayValue(remoteGatewayStatus?.pairing_code ?? "", "code")}
+                    >{copiedRemoteValue === "code" ? $t("remoteGatewayCopied") : $t("copy")}</button
+                  >
+                  <button
+                    class="remote-credential-action primary"
+                    disabled={remoteGatewayBusy}
+                    onclick={rotateRemotePairingCode}>{$t("remoteGatewayRotate")}</button
+                  >
                 </div>
               </div>
-              <div class="remote-security-note"><span aria-hidden="true">⌁</span><p>{$t('remoteGatewayProxyHint')}</p></div>
+              <div class="remote-security-note">
+                <span aria-hidden="true">⌁</span>
+                <p>{$t("remoteGatewayProxyHint")}</p>
+              </div>
             </div>
           {/if}
           {#if remoteGatewayMessage}
@@ -1323,48 +1482,48 @@
           {/if}
         </section>
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t('approvalMode')}</h4>
+          <h4 class="detail-section-title">{$t("approvalMode")}</h4>
           <div class="detail-label">
             <Select
               bind:value={draftConfig.approval_mode}
               items={[
                 {
-                  value: 'manual',
-                  label: $t('approvalModeManual'),
-                  description: $t('approvalModeManualDescription'),
+                  value: "manual",
+                  label: $t("approvalModeManual"),
+                  description: $t("approvalModeManualDescription"),
                 },
                 {
-                  value: 'auto',
-                  label: $t('approvalModeAuto'),
-                  description: $t('approvalModeAutoDescription'),
+                  value: "auto",
+                  label: $t("approvalModeAuto"),
+                  description: $t("approvalModeAutoDescription"),
                 },
                 {
-                  value: 'off',
-                  label: $t('approvalModeOff'),
-                  description: $t('approvalModeOffDescription'),
+                  value: "off",
+                  label: $t("approvalModeOff"),
+                  description: $t("approvalModeOffDescription"),
                 },
                 {
-                  value: 'sandbox',
-                  label: $t('approvalModeSandbox'),
-                  description: $t('approvalModeSandboxDescription'),
+                  value: "sandbox",
+                  label: $t("approvalModeSandbox"),
+                  description: $t("approvalModeSandboxDescription"),
                 },
               ]}
-              ariaLabel={$t('approvalMode')}
+              ariaLabel={$t("approvalMode")}
             />
           </div>
           <p class="detail-hint">{$t(approvalModeDescriptionKey[draftConfig.approval_mode])}</p>
         </section>
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t('startup')}</h4>
+          <h4 class="detail-section-title">{$t("startup")}</h4>
           <div class="startup-row">
             <div class="startup-copy">
-              <span class="label-text">{$t('launchOnStartup')}</span>
-              <p class="detail-hint">{$t('launchOnStartupHint')}</p>
+              <span class="label-text">{$t("launchOnStartup")}</span>
+              <p class="detail-hint">{$t("launchOnStartupHint")}</p>
             </div>
             <Switch
               bind:checked={draftConfig.launch_on_startup}
               disabled={!autostartReady || autostartSyncing}
-              ariaLabel={$t('launchOnStartup')}
+              ariaLabel={$t("launchOnStartup")}
             />
           </div>
           {#if autostartStatus}
@@ -1372,24 +1531,24 @@
           {/if}
         </section>
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t('mentionPalette')}</h4>
+          <h4 class="detail-section-title">{$t("mentionPalette")}</h4>
           <div class="startup-row">
             <div class="startup-copy">
-              <span class="label-text">{$t('showGlobalDraftsInMentions')}</span>
-              <p class="detail-hint">{$t('showGlobalDraftsInMentionsHint')}</p>
+              <span class="label-text">{$t("showGlobalDraftsInMentions")}</span>
+              <p class="detail-hint">{$t("showGlobalDraftsInMentionsHint")}</p>
             </div>
             <Switch
               bind:checked={draftConfig.mention_palette_show_global_drafts}
-              ariaLabel={$t('showGlobalDraftsInMentions')}
+              ariaLabel={$t("showGlobalDraftsInMentions")}
             />
           </div>
         </section>
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t('htmlPreview')}</h4>
+          <h4 class="detail-section-title">{$t("htmlPreview")}</h4>
           <div class="execution-settings">
             <div class="execution-setting">
               <label class="execution-value-row">
-                <span class="label-text">{$t('htmlPreviewFixedHeight')}</span>
+                <span class="label-text">{$t("htmlPreviewFixedHeight")}</span>
                 <input
                   type="number"
                   class="detail-input execution-number-input"
@@ -1403,21 +1562,21 @@
           </div>
         </section>
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t('agentExecution')}</h4>
+          <h4 class="detail-section-title">{$t("agentExecution")}</h4>
           <div class="execution-settings">
             <div class="execution-setting">
               <div class="startup-row execution-toggle-row">
                 <div class="startup-copy">
-                  <span class="label-text">{$t('agentTurnLimit')}</span>
-                  <p class="detail-hint">{$t('agentTurnLimitHint')}</p>
+                  <span class="label-text">{$t("agentTurnLimit")}</span>
+                  <p class="detail-hint">{$t("agentTurnLimitHint")}</p>
                 </div>
                 <Switch
                   bind:checked={draftConfig.agent_turn_limit_enabled}
-                  ariaLabel={$t('agentTurnLimit')}
+                  ariaLabel={$t("agentTurnLimit")}
                 />
               </div>
               <label class="execution-value-row">
-                <span class="label-text">{$t('agentMaxTurns')}</span>
+                <span class="label-text">{$t("agentMaxTurns")}</span>
                 <input
                   type="number"
                   class="detail-input execution-number-input"
@@ -1429,7 +1588,6 @@
                 />
               </label>
             </div>
-
           </div>
         </section>
       </div>
@@ -1438,52 +1596,72 @@
     <Tabs.Content value="memory" class="settings-tab-panel">
       <div class="settings-content-col">
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t('memoryManagement')}</h4>
+          <h4 class="detail-section-title">{$t("memoryManagement")}</h4>
           <div class="detail-label">
-            <span class="label-text">{$t('scope')}</span>
+            <span class="label-text">{$t("scope")}</span>
             <Select
               bind:value={memoryScope}
               items={[
-                { value: 'global', label: $t('globalTab') },
-                { value: 'local', label: $t('projectTab') },
+                { value: "global", label: $t("globalTab") },
+                { value: "local", label: $t("projectTab") },
               ]}
-              ariaLabel={$t('scope')}
+              ariaLabel={$t("scope")}
             />
             {#if memoryScope === "local" && !workspacePath}
-              <p class="detail-hint">{$t('memoryNoWorkspace')}</p>
+              <p class="detail-hint">{$t("memoryNoWorkspace")}</p>
             {:else}
-              <p class="detail-hint">{$t('memoryManagementHint')}</p>
+              <p class="detail-hint">{$t("memoryManagementHint")}</p>
             {/if}
           </div>
         </section>
 
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t('memoryBackup')}</h4>
+          <h4 class="detail-section-title">{$t("memoryBackup")}</h4>
           <div class="memory-action-grid">
-            <button class="filter-toggle" onclick={exportMemory} disabled={memoryBusy || !memoryScopeAvailable()}>
-              {$t('exportMemory')}
+            <button
+              class="filter-toggle"
+              onclick={exportMemory}
+              disabled={memoryBusy || !memoryScopeAvailable()}
+            >
+              {$t("exportMemory")}
             </button>
-            <button class="filter-toggle" onclick={() => importMemory(false)} disabled={memoryBusy || !memoryScopeAvailable()}>
-              {$t('importMemoryMerge')}
+            <button
+              class="filter-toggle"
+              onclick={() => importMemory(false)}
+              disabled={memoryBusy || !memoryScopeAvailable()}
+            >
+              {$t("importMemoryMerge")}
             </button>
-            <button class="filter-toggle" onclick={() => importMemory(true)} disabled={memoryBusy || !memoryScopeAvailable()}>
-              {$t('importMemoryReplace')}
+            <button
+              class="filter-toggle"
+              onclick={() => importMemory(true)}
+              disabled={memoryBusy || !memoryScopeAvailable()}
+            >
+              {$t("importMemoryReplace")}
             </button>
           </div>
         </section>
 
         <section class="detail-section danger-zone">
           <div>
-            <p class="danger-title">{$t('clearMemory')}</p>
-            <p class="danger-copy">{$t('clearMemoryDesc')}</p>
+            <p class="danger-title">{$t("clearMemory")}</p>
+            <p class="danger-copy">{$t("clearMemoryDesc")}</p>
           </div>
-          <button class="filter-toggle danger-btn" onclick={clearMemoryScope} disabled={memoryBusy || !memoryScopeAvailable()}>
-            {$t('clearMemory')}
+          <button
+            class="filter-toggle danger-btn"
+            onclick={clearMemoryScope}
+            disabled={memoryBusy || !memoryScopeAvailable()}
+          >
+            {$t("clearMemory")}
           </button>
         </section>
 
         {#if memoryStatus}
-          <div class="provider-status {memoryStatus.includes(tr('memoryOperationFailed')) ? 'error' : 'success'}">
+          <div
+            class="provider-status {memoryStatus.includes(tr('memoryOperationFailed'))
+              ? 'error'
+              : 'success'}"
+          >
             {memoryStatus}
           </div>
         {/if}
@@ -1493,9 +1671,9 @@
     <Tabs.Content value="websearch" class="settings-tab-panel">
       <div class="settings-content-col">
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t('fetchSettings')}</h4>
+          <h4 class="detail-section-title">{$t("fetchSettings")}</h4>
           <label class="detail-label">
-            <span class="label-text">{$t('fetchPageSize')}</span>
+            <span class="label-text">{$t("fetchPageSize")}</span>
             <input
               type="number"
               class="detail-input"
@@ -1505,64 +1683,64 @@
               bind:value={draftConfig.fetch.page_size}
             />
           </label>
-          <p class="detail-hint">{$t('fetchPageSizeHint')}</p>
+          <p class="detail-hint">{$t("fetchPageSizeHint")}</p>
         </section>
 
         <section class="detail-section">
           <div class="detail-label">
-            <span class="label-text">{$t('searchProvider')}</span>
+            <span class="label-text">{$t("searchProvider")}</span>
             <Select
               bind:value={draftConfig.web_search.provider}
               items={[
-                { value: 'brave', label: $t('searchProviderBrave') },
-                { value: 'tavily', label: $t('searchProviderTavily') },
-                { value: 'searxng', label: $t('searchProviderSearxng') },
+                { value: "brave", label: $t("searchProviderBrave") },
+                { value: "tavily", label: $t("searchProviderTavily") },
+                { value: "searxng", label: $t("searchProviderSearxng") },
               ]}
-              ariaLabel={$t('searchProvider')}
+              ariaLabel={$t("searchProvider")}
             />
           </div>
-          <p class="detail-hint">{$t('searchProviderDesc')}</p>
+          <p class="detail-hint">{$t("searchProviderDesc")}</p>
         </section>
 
         {#if draftConfig.web_search.provider === "brave"}
           <section class="detail-section">
-            <h4 class="detail-section-title">{$t('searchProviderBrave')}</h4>
+            <h4 class="detail-section-title">{$t("searchProviderBrave")}</h4>
             <label class="detail-label">
-              <span class="label-text">{$t('braveApiKey')}</span>
+              <span class="label-text">{$t("braveApiKey")}</span>
               <input
                 type="password"
                 class="detail-input"
-                placeholder={$t('braveApiKeyPlaceholder')}
+                placeholder={$t("braveApiKeyPlaceholder")}
                 bind:value={draftConfig.web_search.brave_api_key}
               />
             </label>
           </section>
         {:else if draftConfig.web_search.provider === "tavily"}
           <section class="detail-section">
-            <h4 class="detail-section-title">{$t('searchProviderTavily')}</h4>
+            <h4 class="detail-section-title">{$t("searchProviderTavily")}</h4>
             <label class="detail-label">
-              <span class="label-text">{$t('tavilyApiKey')}</span>
+              <span class="label-text">{$t("tavilyApiKey")}</span>
               <input
                 type="password"
                 class="detail-input"
-                placeholder={$t('tavilyApiKeyPlaceholder')}
+                placeholder={$t("tavilyApiKeyPlaceholder")}
                 bind:value={draftConfig.web_search.tavily_api_key}
               />
             </label>
           </section>
         {:else if draftConfig.web_search.provider === "searxng"}
           <section class="detail-section">
-            <h4 class="detail-section-title">{$t('searchProviderSearxng')}</h4>
+            <h4 class="detail-section-title">{$t("searchProviderSearxng")}</h4>
             <label class="detail-label">
-              <span class="label-text">{$t('searxngBaseUrl')}</span>
+              <span class="label-text">{$t("searxngBaseUrl")}</span>
               <input
                 type="text"
                 class="detail-input"
-                placeholder={$t('searxngBaseUrlPlaceholder')}
+                placeholder={$t("searxngBaseUrlPlaceholder")}
                 bind:value={draftConfig.web_search.searxng_base_url}
               />
             </label>
-            <p class="detail-hint">{$t('searxngHint')}</p>
+            <p class="detail-hint">{$t("searxngHint")}</p>
           </section>
         {/if}
       </div>
@@ -1572,14 +1750,27 @@
       <div class="settings-list-col">
         <div class="list-search-bar">
           <div class="list-toolbar">
-            <input class="list-search-input" placeholder={$t('searchProviders')} bind:value={providerSearch} />
+            <input
+              class="list-search-input"
+              placeholder={$t("searchProviders")}
+              bind:value={providerSearch}
+            />
             <button
               class="filter-toggle"
               onclick={() => {
-                providerFilter = providerFilter === "all" ? "enabled" : providerFilter === "enabled" ? "disabled" : "all";
+                providerFilter =
+                  providerFilter === "all"
+                    ? "enabled"
+                    : providerFilter === "enabled"
+                      ? "disabled"
+                      : "all";
               }}
             >
-              {providerFilter === "all" ? $t('filterAll') : providerFilter === "enabled" ? $t('filterEnabled') : $t('filterDisabled')}
+              {providerFilter === "all"
+                ? $t("filterAll")
+                : providerFilter === "enabled"
+                  ? $t("filterEnabled")
+                  : $t("filterDisabled")}
             </button>
           </div>
         </div>
@@ -1590,7 +1781,10 @@
                 <ContextMenu.Trigger>
                   <button
                     class="provider-item {selectedProviderId === provider.id ? 'active' : ''}"
-                    onclick={() => { selectedProviderId = provider.id; modelSearch = ""; }}
+                    onclick={() => {
+                      selectedProviderId = provider.id;
+                      modelSearch = "";
+                    }}
                   >
                     <div class="provider-item-icon provider-type-{provider.provider}">
                       {provider.provider === "anthropic" ? "A" : "O"}
@@ -1599,24 +1793,30 @@
                       <span class="provider-item-name">{provider.name}</span>
                       <span class="provider-item-url">{getProviderUrl(provider)}</span>
                     </div>
-                    <span class:provider-enabled-dot={provider.enabled} class:provider-disabled-dot={!provider.enabled}></span>
+                    <span
+                      class:provider-enabled-dot={provider.enabled}
+                      class:provider-disabled-dot={!provider.enabled}
+                    ></span>
                   </button>
                 </ContextMenu.Trigger>
                 <ContextMenu.Portal>
                   <ContextMenu.Content class="ctx-menu-content">
-                    <ContextMenu.Item class="ctx-menu-item ctx-menu-item-danger" onclick={() => removeProvider(provider.id)}>
-                      {$t('deleteNode')}
+                    <ContextMenu.Item
+                      class="ctx-menu-item ctx-menu-item-danger"
+                      onclick={() => removeProvider(provider.id)}
+                    >
+                      {$t("deleteNode")}
                     </ContextMenu.Item>
                   </ContextMenu.Content>
                 </ContextMenu.Portal>
               </ContextMenu.Root>
             {/each}
           {:else}
-            <div class="provider-list-empty">{$t('noProviders')}</div>
+            <div class="provider-list-empty">{$t("noProviders")}</div>
           {/if}
         </div>
         <div class="list-footer">
-          <button class="add-provider-btn" onclick={addProvider}>{$t('addProvider')}</button>
+          <button class="add-provider-btn" onclick={addProvider}>{$t("addProvider")}</button>
         </div>
       </div>
 
@@ -1626,51 +1826,63 @@
             <span class="detail-service-name">{selectedProvider.name}</span>
             <div class="detail-actions">
               <div class="toggle-row">
-                <span>{$t('providerEnabled')}</span>
+                <span>{$t("providerEnabled")}</span>
                 <Switch
                   bind:checked={draftConfig.providers[selectedProviderIndex].enabled}
                   disabled={modelLoading[selectedProvider.id]}
                   onCheckedChange={(checked) => setProviderEnabled(selectedProvider.id, checked)}
-                  ariaLabel={$t('providerEnabled')}
+                  ariaLabel={$t("providerEnabled")}
                 />
               </div>
             </div>
           </div>
           <div class="detail-content">
             <section class="detail-section">
-              <h4 class="detail-section-title">{$t('basicInfo')}</h4>
+              <h4 class="detail-section-title">{$t("basicInfo")}</h4>
               <label class="detail-label">
-                <span class="label-text">{$t('providerName')}</span>
-                <input class="detail-input" bind:value={draftConfig.providers[selectedProviderIndex].name} />
+                <span class="label-text">{$t("providerName")}</span>
+                <input
+                  class="detail-input"
+                  bind:value={draftConfig.providers[selectedProviderIndex].name}
+                />
               </label>
               <div class="detail-label">
-                <span class="label-text">{$t('providerType')}</span>
+                <span class="label-text">{$t("providerType")}</span>
                 <Select
                   bind:value={draftConfig.providers[selectedProviderIndex].provider}
                   items={[
-                    { value: 'openai', label: 'OpenAI Compatible' },
-                    { value: 'anthropic', label: 'Anthropic' },
+                    { value: "openai", label: "OpenAI Compatible" },
+                    { value: "anthropic", label: "Anthropic" },
                   ]}
-                  ariaLabel={$t('providerType')}
+                  ariaLabel={$t("providerType")}
                 />
               </div>
             </section>
 
             <section class="detail-section">
-              <h4 class="detail-section-title">{$t('apiSettings')}</h4>
+              <h4 class="detail-section-title">{$t("apiSettings")}</h4>
               <div class="detail-label">
                 <span class="label-text">API Key</span>
                 <div class="key-input-row">
-                  <input type="password" class="detail-input" bind:value={draftConfig.providers[selectedProviderIndex].api_key} />
-                  <button class="btn-secondary btn-sm" onclick={() => testProvider(selectedProvider.id)}>{$t('testConnection')}</button>
+                  <input
+                    type="password"
+                    class="detail-input"
+                    bind:value={draftConfig.providers[selectedProviderIndex].api_key}
+                  />
+                  <button
+                    class="btn-secondary btn-sm"
+                    onclick={() => testProvider(selectedProvider.id)}>{$t("testConnection")}</button
+                  >
                 </div>
               </div>
               <label class="detail-label">
-                <span class="label-text">{$t('apiUrl')}</span>
+                <span class="label-text">{$t("apiUrl")}</span>
                 <input
                   class="detail-input"
                   bind:value={draftConfig.providers[selectedProviderIndex].base_url}
-                  placeholder={selectedProvider.provider === "anthropic" ? "https://api.anthropic.com" : "http://localhost:8009"}
+                  placeholder={selectedProvider.provider === "anthropic"
+                    ? "https://api.anthropic.com"
+                    : "http://localhost:8009"}
                 />
                 <span class="base-url-preview">{getProviderPreviewUrl(selectedProvider)}</span>
               </label>
@@ -1683,33 +1895,51 @@
 
             <section class="detail-section">
               <div class="detail-section-header">
-                <h4 class="detail-section-title">{$t('modelList')}</h4>
-                <button class="btn-secondary btn-sm" onclick={() => fetchModels(selectedProvider.id)} disabled={modelLoading[selectedProvider.id]}>
-                  {modelLoading[selectedProvider.id] ? $t('syncing') : $t('fetchModels')}
+                <h4 class="detail-section-title">{$t("modelList")}</h4>
+                <button
+                  class="btn-secondary btn-sm"
+                  onclick={() => fetchModels(selectedProvider.id)}
+                  disabled={modelLoading[selectedProvider.id]}
+                >
+                  {modelLoading[selectedProvider.id] ? $t("syncing") : $t("fetchModels")}
                 </button>
               </div>
               {#if selectedProvider.models.length > 0}
                 <input
                   class="model-search-input"
-                  placeholder={$t('searchModels')}
+                  placeholder={$t("searchModels")}
                   bind:value={modelSearch}
                 />
               {/if}
               <div class="model-list-box">
                 {#if selectedProvider.models.length === 0}
-                  <div class="model-list-empty">{$t('noModels')}</div>
+                  <div class="model-list-empty">{$t("noModels")}</div>
                 {:else if filteredModels.length === 0}
                   <div class="model-list-empty">{modelSearch}</div>
                 {:else}
-                  {#each filteredModels as modelName}
+                  {#each filteredModels as modelName (modelName)}
                     <div class="model-item">
                       <div class="model-main">
                         <span class="model-name">{modelName}</span>
                       </div>
                       <div class="model-item-actions">
-                        <button class="model-action-btn" onclick={() => setDefaultModel("chat_model", selectedProvider.id, modelName)}>Chat</button>
-                        <button class="model-action-btn" onclick={() => setDefaultModel("flash_model", selectedProvider.id, modelName)}>Flash</button>
-                        <button class="model-action-btn" onclick={() => openModelConfig(selectedProvider.id, modelName)}>{$t('configure')}</button>
+                        <button
+                          class="model-action-btn"
+                          onclick={() =>
+                            setDefaultModel("chat_model", selectedProvider.id, modelName)}
+                          >Chat</button
+                        >
+                        <button
+                          class="model-action-btn"
+                          onclick={() =>
+                            setDefaultModel("flash_model", selectedProvider.id, modelName)}
+                          >Flash</button
+                        >
+                        <button
+                          class="model-action-btn"
+                          onclick={() => openModelConfig(selectedProvider.id, modelName)}
+                          >{$t("configure")}</button
+                        >
                       </div>
                     </div>
                   {/each}
@@ -1720,10 +1950,12 @@
             <section class="detail-section">
               <div class="danger-zone">
                 <div>
-                  <div class="danger-title">{$t('deleteNode')}</div>
-                  <div class="danger-copy">{$t('deleteNodeDesc')}</div>
+                  <div class="danger-title">{$t("deleteNode")}</div>
+                  <div class="danger-copy">{$t("deleteNodeDesc")}</div>
                 </div>
-                <button class="danger-btn" onclick={() => removeProvider(selectedProvider.id)}>{$t('deleteNode')}</button>
+                <button class="danger-btn" onclick={() => removeProvider(selectedProvider.id)}
+                  >{$t("deleteNode")}</button
+                >
               </div>
             </section>
           </div>
@@ -1735,66 +1967,82 @@
       <div class="settings-content-col">
         <section class="detail-section">
           <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t('scheduledHooks')}</h4>
-            <button class="filter-toggle" onclick={refreshHooks}>{$t('refresh')}</button>
+            <h4 class="detail-section-title">{$t("scheduledHooks")}</h4>
+            <button class="filter-toggle" onclick={refreshHooks}>{$t("refresh")}</button>
           </div>
           <div class="detail-grid">
             <label class="detail-label" style="grid-column: 1 / -1">
-              <span class="label-text">{$t('hookUserMessage')}</span>
-              <textarea class="detail-input hook-textarea" bind:value={hookMessage} placeholder={$t('hookUserMessagePlaceholder')}></textarea>
+              <span class="label-text">{$t("hookUserMessage")}</span>
+              <textarea
+                class="detail-input hook-textarea"
+                bind:value={hookMessage}
+                placeholder={$t("hookUserMessagePlaceholder")}></textarea>
             </label>
             <div class="detail-label">
-              <span class="label-text">{$t('hookSchedule')}</span>
+              <span class="label-text">{$t("hookSchedule")}</span>
               <Select
                 bind:value={hookMode}
                 items={[
-                  { value: "delay", label: $t('hookModeDelay') },
-                  { value: "run_at", label: $t('hookModeRunAt') },
-                  { value: "interval_minutes", label: $t('hookModeInterval') },
-                  { value: "daily", label: $t('hookModeDaily') },
-                  { value: "weekdays", label: $t('hookModeWeekdays') },
-                  { value: "weekly", label: $t('hookModeWeekly') },
+                  { value: "delay", label: $t("hookModeDelay") },
+                  { value: "run_at", label: $t("hookModeRunAt") },
+                  { value: "interval_minutes", label: $t("hookModeInterval") },
+                  { value: "daily", label: $t("hookModeDaily") },
+                  { value: "weekdays", label: $t("hookModeWeekdays") },
+                  { value: "weekly", label: $t("hookModeWeekly") },
                 ]}
-                ariaLabel={$t('hookSchedule')}
+                ariaLabel={$t("hookSchedule")}
               />
             </div>
             <div class="detail-label">
-              <span class="label-text">{$t('scheduledRole')}</span>
+              <span class="label-text">{$t("scheduledRole")}</span>
               <Select
                 bind:value={hookRoleKey}
                 items={[
-                  { value: "openagent", label: $t("defaultRoleName"), description: $t("defaultRoleDescription") },
-                  ...hookRoles.map((role) => ({ value: role.id, label: role.name, description: role.description })),
+                  {
+                    value: "openagent",
+                    label: $t("defaultRoleName"),
+                    description: $t("defaultRoleDescription"),
+                  },
+                  ...hookRoles.map((role) => ({
+                    value: role.id,
+                    label: role.name,
+                    description: role.description,
+                  })),
                 ]}
                 searchable
                 searchPlaceholder={$t("roleSelectorSearch")}
                 emptyText={$t("noMatchingRoles")}
-                ariaLabel={$t('scheduledRole')}
+                ariaLabel={$t("scheduledRole")}
               />
             </div>
             {#if hookMode === "delay"}
               <label class="detail-label">
-                <span class="label-text">{$t('hookDelayMinutes')}</span>
+                <span class="label-text">{$t("hookDelayMinutes")}</span>
                 <input class="detail-input" type="number" min="1" bind:value={hookDelayMinutes} />
               </label>
             {:else if hookMode === "run_at"}
               <label class="detail-label">
-                <span class="label-text">{$t('hookRunAt')}</span>
+                <span class="label-text">{$t("hookRunAt")}</span>
                 <input class="detail-input" bind:value={hookRunAt} placeholder="2026-06-17 18:30" />
               </label>
             {:else if hookMode === "interval_minutes"}
               <label class="detail-label">
-                <span class="label-text">{$t('hookIntervalMinutes')}</span>
-                <input class="detail-input" type="number" min="1" bind:value={hookIntervalMinutes} />
+                <span class="label-text">{$t("hookIntervalMinutes")}</span>
+                <input
+                  class="detail-input"
+                  type="number"
+                  min="1"
+                  bind:value={hookIntervalMinutes}
+                />
               </label>
             {:else}
               <label class="detail-label">
-                <span class="label-text">{$t('hookTimeOfDay')}</span>
+                <span class="label-text">{$t("hookTimeOfDay")}</span>
                 <input class="detail-input" bind:value={hookTimeOfDay} placeholder="09:00" />
               </label>
               {#if hookMode === "weekly"}
                 <label class="detail-label" style="grid-column: 1 / -1">
-                  <span class="label-text">{$t('hookWeekdays')}</span>
+                  <span class="label-text">{$t("hookWeekdays")}</span>
                   <input class="detail-input" bind:value={hookWeekdays} placeholder="mon,wed,fri" />
                 </label>
               {/if}
@@ -1802,10 +2050,12 @@
           </div>
           <div class="key-input-row" style="margin-top:12px">
             <button class="filter-toggle" onclick={saveHook}>
-              {editingHookId ? $t('saveHookChanges') : $t('createHook')}
+              {editingHookId ? $t("saveHookChanges") : $t("createHook")}
             </button>
             {#if editingHookId}
-              <button class="model-action-btn" onclick={resetHookEditor}>{$t('cancelEditHook')}</button>
+              <button class="model-action-btn" onclick={resetHookEditor}
+                >{$t("cancelEditHook")}</button
+              >
             {/if}
             {#if hookStatus}
               <div class="provider-status success">{hookStatus}</div>
@@ -1814,27 +2064,33 @@
         </section>
 
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t('activeHooks')}</h4>
+          <h4 class="detail-section-title">{$t("activeHooks")}</h4>
           <div class="model-list-box">
             {#if scheduledHooks.length > 0}
               {#each scheduledHooks as hook (hook.id)}
                 <div class="hook-item">
                   <div class="hook-main">
                     <div class="model-name">{hook.schedule}</div>
-                    <div class="provider-item-url">{$t('nextRunAt')}: {formatHookTime(hook.next_run_at)}</div>
-                    <div class="provider-item-url">{$t('scheduledRole')}: {hookRoleName(hook.role_id)}</div>
+                    <div class="provider-item-url">
+                      {$t("nextRunAt")}: {formatHookTime(hook.next_run_at)}
+                    </div>
+                    <div class="provider-item-url">
+                      {$t("scheduledRole")}: {hookRoleName(hook.role_id)}
+                    </div>
                     <div class="provider-item-url">{hook.message}</div>
                     {#if hook.triggered_conversations.length > 0}
                       <div class="hook-conversations">
-                        <div class="hook-conversations-title">{$t('triggeredConversations')}</div>
+                        <div class="hook-conversations-title">{$t("triggeredConversations")}</div>
                         <div class="hook-conversations-scroll">
-                          {#each hook.triggered_conversations.slice().reverse() as conversation, index (`${conversation.conv_id}-${conversation.triggered_at}-${index}`)}
+                          {#each hook.triggered_conversations
+                            .slice()
+                            .reverse() as conversation, index (`${conversation.conv_id}-${conversation.triggered_at}-${index}`)}
                             <button
                               class="hook-conversation-link"
                               title={conversation.title}
                               onclick={() => onOpenConversation(conversation.conv_id)}
                             >
-                              <span>{conversation.title || $t('untitledConversation')}</span>
+                              <span>{conversation.title || $t("untitledConversation")}</span>
                               <time>{formatHookTime(conversation.triggered_at)}</time>
                             </button>
                           {/each}
@@ -1843,13 +2099,17 @@
                     {/if}
                   </div>
                   <div class="hook-actions">
-                    <button class="model-action-btn" onclick={() => editHook(hook)}>{$t('editHook')}</button>
-                    <button class="model-action-btn" onclick={() => cancelHook(hook.id)}>{$t('cancel')}</button>
+                    <button class="model-action-btn" onclick={() => editHook(hook)}
+                      >{$t("editHook")}</button
+                    >
+                    <button class="model-action-btn" onclick={() => cancelHook(hook.id)}
+                      >{$t("cancel")}</button
+                    >
                   </div>
                 </div>
               {/each}
             {:else}
-              <div class="model-list-empty">{$t('noActiveHooks')}</div>
+              <div class="model-list-empty">{$t("noActiveHooks")}</div>
             {/if}
           </div>
         </section>
@@ -1858,32 +2118,37 @@
     <Tabs.Content value="defaults" class="settings-tab-panel">
       <div class="settings-content-col">
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t('chatModel')}</h4>
+          <h4 class="detail-section-title">{$t("chatModel")}</h4>
           <div class="detail-label">
-            <span class="label-text">{$t('providerNode')}</span>
+            <span class="label-text">{$t("providerNode")}</span>
             <Select
               bind:value={draftConfig.defaults.chat_model.provider_id}
               items={enabledProviderOptions()}
-              ariaLabel={$t('providerNode')}
+              ariaLabel={$t("providerNode")}
             />
           </div>
           <div class="detail-label">
-            <span class="label-text">{$t('model')}</span>
+            <span class="label-text">{$t("model")}</span>
             <Combobox
               bind:value={draftConfig.defaults.chat_model.model}
-              items={providerModels(draftConfig.defaults.chat_model.provider_id).map((m) => ({ value: m, label: m }))}
-              placeholder={$t('model')}
-              ariaLabel={$t('model')}
+              items={providerModels(draftConfig.defaults.chat_model.provider_id).map((m) => ({
+                value: m,
+                label: m,
+              }))}
+              placeholder={$t("model")}
+              ariaLabel={$t("model")}
             />
           </div>
         </section>
         <section class="detail-section">
           <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t('chatModelRetryQueue')}</h4>
-            <button class="btn-secondary btn-sm" onclick={() => addRetryQueueModel("chat_queue")}>{$t('add')}</button>
+            <h4 class="detail-section-title">{$t("chatModelRetryQueue")}</h4>
+            <button class="btn-secondary btn-sm" onclick={() => addRetryQueueModel("chat_queue")}
+              >{$t("add")}</button
+            >
           </div>
           <label class="detail-label">
-            <span class="label-text">{$t('retryCountPerModel')}</span>
+            <span class="label-text">{$t("retryCountPerModel")}</span>
             <input
               class="detail-input"
               type="number"
@@ -1893,7 +2158,7 @@
             />
           </label>
           <label class="detail-label">
-            <span class="label-text">{$t('retryDelayMs')}</span>
+            <span class="label-text">{$t("retryDelayMs")}</span>
             <input
               class="detail-input"
               type="number"
@@ -1907,7 +2172,8 @@
             {#if draftConfig.model_retry.chat_queue.length > 0}
               {#each draftConfig.model_retry.chat_queue as binding, index (binding)}
                 <div
-                  class:retry-queue-dragging={draggedRetryQueue?.kind === "chat_queue" && draggedRetryQueue.index === index}
+                  class:retry-queue-dragging={draggedRetryQueue?.kind === "chat_queue" &&
+                    draggedRetryQueue.index === index}
                   class="model-item retry-queue-item"
                   role="listitem"
                   ondragover={(event) => event.preventDefault()}
@@ -1917,62 +2183,75 @@
                     class="retry-queue-drag-handle"
                     type="button"
                     draggable="true"
-                    aria-label={$t('retryQueueDragHandle')}
-                    title={$t('retryQueueDragHandle')}
+                    aria-label={$t("retryQueueDragHandle")}
+                    title={$t("retryQueueDragHandle")}
                     ondragstart={(event) => startRetryQueueDrag("chat_queue", index, event)}
-                    ondragend={() => draggedRetryQueue = null}
-                  >⠇</button>
+                    ondragend={() => (draggedRetryQueue = null)}>⠇</button
+                  >
                   <div class="retry-queue-fields">
                     <Select
                       bind:value={binding.provider_id}
                       items={enabledProviderOptions()}
-                      ariaLabel={$t('providerNode')}
+                      ariaLabel={$t("providerNode")}
                     />
                     <Combobox
                       bind:value={binding.model}
-                      items={providerModels(binding.provider_id).map((m) => ({ value: m, label: m }))}
-                      placeholder={$t('model')}
-                      ariaLabel={$t('model')}
+                      items={providerModels(binding.provider_id).map((m) => ({
+                        value: m,
+                        label: m,
+                      }))}
+                      placeholder={$t("model")}
+                      ariaLabel={$t("model")}
                     />
                   </div>
-                  <button class="model-action-btn" onclick={() => removeRetryQueueModel("chat_queue", index)}>{$t('delete')}</button>
+                  <button
+                    class="model-action-btn"
+                    onclick={() => removeRetryQueueModel("chat_queue", index)}
+                    >{$t("delete")}</button
+                  >
                 </div>
               {/each}
             {:else}
-              <div class="model-list-empty">{$t('noQueuedChatFallbackModels')}</div>
+              <div class="model-list-empty">{$t("noQueuedChatFallbackModels")}</div>
             {/if}
           </div>
         </section>
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t('flashModel')}</h4>
+          <h4 class="detail-section-title">{$t("flashModel")}</h4>
           <div class="detail-label">
-            <span class="label-text">{$t('providerNode')}</span>
+            <span class="label-text">{$t("providerNode")}</span>
             <Select
               bind:value={draftConfig.defaults.flash_model.provider_id}
               items={enabledProviderOptions()}
-              ariaLabel={$t('providerNode')}
+              ariaLabel={$t("providerNode")}
             />
           </div>
           <div class="detail-label">
-            <span class="label-text">{$t('model')}</span>
+            <span class="label-text">{$t("model")}</span>
             <Combobox
               bind:value={draftConfig.defaults.flash_model.model}
-              items={providerModels(draftConfig.defaults.flash_model.provider_id).map((m) => ({ value: m, label: m }))}
-              placeholder={$t('model')}
-              ariaLabel={$t('model')}
+              items={providerModels(draftConfig.defaults.flash_model.provider_id).map((m) => ({
+                value: m,
+                label: m,
+              }))}
+              placeholder={$t("model")}
+              ariaLabel={$t("model")}
             />
           </div>
         </section>
         <section class="detail-section">
           <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t('flashModelRetryQueue')}</h4>
-            <button class="btn-secondary btn-sm" onclick={() => addRetryQueueModel("flash_queue")}>{$t('add')}</button>
+            <h4 class="detail-section-title">{$t("flashModelRetryQueue")}</h4>
+            <button class="btn-secondary btn-sm" onclick={() => addRetryQueueModel("flash_queue")}
+              >{$t("add")}</button
+            >
           </div>
           <div class="model-list-box retry-queue-list">
             {#if draftConfig.model_retry.flash_queue.length > 0}
               {#each draftConfig.model_retry.flash_queue as binding, index (binding)}
                 <div
-                  class:retry-queue-dragging={draggedRetryQueue?.kind === "flash_queue" && draggedRetryQueue.index === index}
+                  class:retry-queue-dragging={draggedRetryQueue?.kind === "flash_queue" &&
+                    draggedRetryQueue.index === index}
                   class="model-item retry-queue-item"
                   role="listitem"
                   ondragover={(event) => event.preventDefault()}
@@ -1982,20 +2261,36 @@
                     class="retry-queue-drag-handle"
                     type="button"
                     draggable="true"
-                    aria-label={$t('retryQueueDragHandle')}
-                    title={$t('retryQueueDragHandle')}
+                    aria-label={$t("retryQueueDragHandle")}
+                    title={$t("retryQueueDragHandle")}
                     ondragstart={(event) => startRetryQueueDrag("flash_queue", index, event)}
-                    ondragend={() => draggedRetryQueue = null}
-                  >⠇</button>
+                    ondragend={() => (draggedRetryQueue = null)}>⠇</button
+                  >
                   <div class="retry-queue-fields">
-                    <Select bind:value={binding.provider_id} items={enabledProviderOptions()} ariaLabel={$t('providerNode')} />
-                    <Combobox bind:value={binding.model} items={providerModels(binding.provider_id).map((m) => ({ value: m, label: m }))} placeholder={$t('model')} ariaLabel={$t('model')} />
+                    <Select
+                      bind:value={binding.provider_id}
+                      items={enabledProviderOptions()}
+                      ariaLabel={$t("providerNode")}
+                    />
+                    <Combobox
+                      bind:value={binding.model}
+                      items={providerModels(binding.provider_id).map((m) => ({
+                        value: m,
+                        label: m,
+                      }))}
+                      placeholder={$t("model")}
+                      ariaLabel={$t("model")}
+                    />
                   </div>
-                  <button class="model-action-btn" onclick={() => removeRetryQueueModel("flash_queue", index)}>{$t('delete')}</button>
+                  <button
+                    class="model-action-btn"
+                    onclick={() => removeRetryQueueModel("flash_queue", index)}
+                    >{$t("delete")}</button
+                  >
                 </div>
               {/each}
             {:else}
-              <div class="model-list-empty">{$t('noQueuedFlashFallbackModels')}</div>
+              <div class="model-list-empty">{$t("noQueuedFlashFallbackModels")}</div>
             {/if}
           </div>
         </section>
@@ -2006,128 +2301,123 @@
       <div class="settings-content-col">
         <section class="detail-section">
           <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t('autoApprovalTask')}</h4>
+            <h4 class="detail-section-title">{$t("autoApprovalTask")}</h4>
           </div>
-          <p class="detail-hint">{$t('autoApprovalTaskDescription')}</p>
+          <p class="detail-hint">{$t("autoApprovalTaskDescription")}</p>
           <label class="detail-label">
-            <span class="label-text">{$t('agentExtraPrompt')}</span>
+            <span class="label-text">{$t("agentExtraPrompt")}</span>
             <textarea
               class="detail-input hook-textarea"
               bind:value={draftConfig.flash_agents.tool_approval.prompt}
-              placeholder={$t('terminalApprovalTaskPromptPlaceholder')}
-            ></textarea>
+              placeholder={$t("terminalApprovalTaskPromptPlaceholder")}></textarea>
           </label>
         </section>
 
         <section class="detail-section">
           <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t('titleAgent')}</h4>
+            <h4 class="detail-section-title">{$t("titleAgent")}</h4>
             <Switch
               bind:checked={draftConfig.flash_agents.title.enabled}
-              ariaLabel={$t('titleAgentEnabled')}
+              ariaLabel={$t("titleAgentEnabled")}
             />
           </div>
-          <p class="detail-hint">{$t('titleTaskDescription')}</p>
+          <p class="detail-hint">{$t("titleTaskDescription")}</p>
           <label class="detail-label">
-            <span class="label-text">{$t('agentExtraPrompt')}</span>
+            <span class="label-text">{$t("agentExtraPrompt")}</span>
             <textarea
               class="detail-input hook-textarea"
               bind:value={draftConfig.flash_agents.title.prompt}
-              placeholder={$t('titleAgentPromptPlaceholder')}
-            ></textarea>
+              placeholder={$t("titleAgentPromptPlaceholder")}></textarea>
           </label>
         </section>
 
         <section class="detail-section">
           <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t('skillCategoryAgent')}</h4>
+            <h4 class="detail-section-title">{$t("skillCategoryAgent")}</h4>
             <Switch
               bind:checked={draftConfig.flash_agents.skill_category.enabled}
-              ariaLabel={$t('skillCategoryAgentEnabled')}
+              ariaLabel={$t("skillCategoryAgentEnabled")}
             />
           </div>
-          <p class="detail-hint">{$t('skillCategoryTaskDescription')}</p>
+          <p class="detail-hint">{$t("skillCategoryTaskDescription")}</p>
           <label class="detail-label">
-            <span class="label-text">{$t('agentExtraPrompt')}</span>
+            <span class="label-text">{$t("agentExtraPrompt")}</span>
             <textarea
               class="detail-input hook-textarea"
               bind:value={draftConfig.flash_agents.skill_category.prompt}
-              placeholder={$t('skillCategoryAgentPromptPlaceholder')}
-            ></textarea>
+              placeholder={$t("skillCategoryAgentPromptPlaceholder")}></textarea>
           </label>
         </section>
 
         <section class="detail-section memory-settings">
           <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t('memoryAgent')}</h4>
+            <h4 class="detail-section-title">{$t("memoryAgent")}</h4>
             <Switch
               bind:checked={draftConfig.flash_agents.memory.enabled}
-              ariaLabel={$t('memoryAgentEnabled')}
+              ariaLabel={$t("memoryAgentEnabled")}
             />
           </div>
-          <p class="detail-hint">{$t('memoryTaskDescription')}</p>
+          <p class="detail-hint">{$t("memoryTaskDescription")}</p>
           <div class="memory-option-list">
             <div class="memory-option">
               <div class="memory-option-copy">
-                <h5>{$t('newConversationSummary')}</h5>
-                <p>{$t('newConversationSummaryDescription')}</p>
+                <h5>{$t("newConversationSummary")}</h5>
+                <p>{$t("newConversationSummaryDescription")}</p>
               </div>
               <Switch
                 bind:checked={draftConfig.flash_agents.new_conversation_summary.enabled}
-                ariaLabel={$t('newConversationSummaryEnabled')}
+                ariaLabel={$t("newConversationSummaryEnabled")}
               />
             </div>
             <div class="memory-option">
               <div class="memory-option-copy">
-                <h5>{$t('memoryRetrieval')}</h5>
-                <p>{$t('memoryRetrievalDescription')}</p>
+                <h5>{$t("memoryRetrieval")}</h5>
+                <p>{$t("memoryRetrievalDescription")}</p>
               </div>
               <Switch
                 bind:checked={draftConfig.memory_retrieval_enabled}
-                ariaLabel={$t('memoryRetrievalEnabled')}
+                ariaLabel={$t("memoryRetrievalEnabled")}
               />
             </div>
           </div>
           <label class="detail-label memory-prompt">
-            <span class="label-text">{$t('agentExtraPrompt')}</span>
+            <span class="label-text">{$t("agentExtraPrompt")}</span>
             <textarea
               class="detail-input hook-textarea"
               bind:value={draftConfig.flash_agents.memory.prompt}
-              placeholder={$t('memoryAgentPromptPlaceholder')}
-            ></textarea>
+              placeholder={$t("memoryAgentPromptPlaceholder")}></textarea>
           </label>
         </section>
 
         <section class="detail-section">
           <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t('hookAgent')}</h4>
+            <h4 class="detail-section-title">{$t("hookAgent")}</h4>
             <Switch
               bind:checked={draftConfig.flash_agents.hook.enabled}
-              ariaLabel={$t('hookAgentEnabled')}
+              ariaLabel={$t("hookAgentEnabled")}
             />
           </div>
-          <p class="detail-hint">{$t('hookTaskDescription')}</p>
+          <p class="detail-hint">{$t("hookTaskDescription")}</p>
           <label class="detail-label">
-            <span class="label-text">{$t('agentExtraPrompt')}</span>
+            <span class="label-text">{$t("agentExtraPrompt")}</span>
             <textarea
               class="detail-input hook-textarea"
               bind:value={draftConfig.flash_agents.hook.prompt}
-              placeholder={$t('hookAgentPromptPlaceholder')}
-            ></textarea>
+              placeholder={$t("hookAgentPromptPlaceholder")}></textarea>
           </label>
         </section>
 
         <section class="detail-section">
           <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t('compactionTask')}</h4>
+            <h4 class="detail-section-title">{$t("compactionTask")}</h4>
             <Switch
               bind:checked={draftConfig.context_compaction_enabled}
-              ariaLabel={$t('contextCompaction')}
+              ariaLabel={$t("contextCompaction")}
             />
           </div>
-          <p class="detail-hint">{$t('compactionTaskDescription')}</p>
+          <p class="detail-hint">{$t("compactionTaskDescription")}</p>
           <label class="detail-label">
-            <span class="label-text">{$t('contextCompactionThreshold')}</span>
+            <span class="label-text">{$t("contextCompactionThreshold")}</span>
             <input
               type="number"
               class="detail-input compaction-threshold-input"
@@ -2139,12 +2429,11 @@
             />
           </label>
           <label class="detail-label">
-            <span class="label-text">{$t('agentExtraPrompt')}</span>
+            <span class="label-text">{$t("agentExtraPrompt")}</span>
             <textarea
               class="detail-input hook-textarea"
               bind:value={draftConfig.context_compaction_prompt}
-              placeholder={$t('compactionTaskPromptPlaceholder')}
-            ></textarea>
+              placeholder={$t("compactionTaskPromptPlaceholder")}></textarea>
           </label>
         </section>
       </div>
@@ -2154,7 +2443,7 @@
       <div class="settings-list-col">
         <div class="provider-list">
           {#if draftConfig.mcp.servers.length === 0}
-            <div class="provider-list-empty">{$t('noMcpServers')}</div>
+            <div class="provider-list-empty">{$t("noMcpServers")}</div>
           {:else}
             {#each draftConfig.mcp.servers as server (server.id)}
               <ContextMenu.Root>
@@ -2166,15 +2455,25 @@
                     <div class="provider-item-icon mcp-icon">M</div>
                     <div class="provider-item-info">
                       <span class="provider-item-name">{server.name || "Unnamed"}</span>
-                      <span class="provider-item-url">{server.transport === 'stdio' ? (server.command || $t('mcpCommandPlaceholder')) : (server.url || $t('mcpServerUrlPlaceholder'))}</span>
+                      <span class="provider-item-url"
+                        >{server.transport === "stdio"
+                          ? server.command || $t("mcpCommandPlaceholder")
+                          : server.url || $t("mcpServerUrlPlaceholder")}</span
+                      >
                     </div>
-                    <span class:provider-enabled-dot={server.enabled} class:provider-disabled-dot={!server.enabled}></span>
+                    <span
+                      class:provider-enabled-dot={server.enabled}
+                      class:provider-disabled-dot={!server.enabled}
+                    ></span>
                   </button>
                 </ContextMenu.Trigger>
                 <ContextMenu.Portal>
                   <ContextMenu.Content class="ctx-menu-content">
-                    <ContextMenu.Item class="ctx-menu-item ctx-menu-item-danger" onclick={() => removeMcpServer(server.id)}>
-                      {$t('deleteNode')}
+                    <ContextMenu.Item
+                      class="ctx-menu-item ctx-menu-item-danger"
+                      onclick={() => removeMcpServer(server.id)}
+                    >
+                      {$t("deleteNode")}
                     </ContextMenu.Item>
                   </ContextMenu.Content>
                 </ContextMenu.Portal>
@@ -2183,7 +2482,7 @@
           {/if}
         </div>
         <div class="list-footer">
-          <button class="add-provider-btn" onclick={addMcpServer}>{$t('addMcpServer')}</button>
+          <button class="add-provider-btn" onclick={addMcpServer}>{$t("addMcpServer")}</button>
         </div>
       </div>
 
@@ -2195,97 +2494,113 @@
             <span class="detail-service-name">{server.name || "Unnamed Server"}</span>
             <div class="detail-actions">
               <div class="toggle-row">
-                <span>{$t('mcpEnabled')}</span>
+                <span>{$t("mcpEnabled")}</span>
                 <Switch
                   bind:checked={draftConfig.mcp.servers[selectedMcpIndex].enabled}
                   disabled={status?.tone === "testing"}
                   onCheckedChange={(checked) => setMcpEnabled(server.id, checked)}
-                  ariaLabel={$t('mcpEnabled')}
+                  ariaLabel={$t("mcpEnabled")}
                 />
               </div>
             </div>
           </div>
           <div class="detail-content">
             <section class="detail-section">
-              <h4 class="detail-section-title">{$t('basicInfo')}</h4>
+              <h4 class="detail-section-title">{$t("basicInfo")}</h4>
               <div class="detail-grid">
                 <label class="detail-label">
-                  <span class="label-text">{$t('mcpServerName')}</span>
-                  <input class="detail-input" bind:value={draftConfig.mcp.servers[selectedMcpIndex].name} placeholder="My MCP Server" />
+                  <span class="label-text">{$t("mcpServerName")}</span>
+                  <input
+                    class="detail-input"
+                    bind:value={draftConfig.mcp.servers[selectedMcpIndex].name}
+                    placeholder="My MCP Server"
+                  />
                 </label>
               </div>
             </section>
 
             <section class="detail-section">
-              <h4 class="detail-section-title">{$t('apiSettings')}</h4>
+              <h4 class="detail-section-title">{$t("apiSettings")}</h4>
               <div class="detail-grid">
                 <div class="detail-label">
-                  <span class="label-text">{$t('mcpTransport')}</span>
+                  <span class="label-text">{$t("mcpTransport")}</span>
                   <Select
                     bind:value={draftConfig.mcp.servers[selectedMcpIndex].transport}
                     items={[
-                      { value: 'http', label: $t('mcpTransportHttp') },
-                      { value: 'stdio', label: $t('mcpTransportStdio') },
+                      { value: "http", label: $t("mcpTransportHttp") },
+                      { value: "stdio", label: $t("mcpTransportStdio") },
                     ]}
-                    ariaLabel={$t('mcpTransport')}
+                    ariaLabel={$t("mcpTransport")}
                   />
                 </div>
 
                 {#if server.transport === "http"}
                   <label class="detail-label">
-                    <span class="label-text">{$t('mcpServerUrl')}</span>
+                    <span class="label-text">{$t("mcpServerUrl")}</span>
                     <input
                       class="detail-input"
                       bind:value={draftConfig.mcp.servers[selectedMcpIndex].url}
-                      placeholder={$t('mcpServerUrlPlaceholder')}
+                      placeholder={$t("mcpServerUrlPlaceholder")}
                     />
                   </label>
                   <label class="detail-label">
-                    <span class="label-text">{$t('mcpBearerToken')}</span>
+                    <span class="label-text">{$t("mcpBearerToken")}</span>
                     <input
                       type="password"
                       class="detail-input"
                       bind:value={draftConfig.mcp.servers[selectedMcpIndex].bearer_token}
-                      placeholder={$t('mcpBearerTokenPlaceholder')}
+                      placeholder={$t("mcpBearerTokenPlaceholder")}
                     />
                   </label>
                   <div class="detail-label" style="grid-column: 1 / -1">
-                    <span class="label-text">{$t('mcpHeaders')}</span>
-                    {#each Object.entries(draftConfig.mcp.servers[selectedMcpIndex].headers) as [k, v] (k)}
+                    <span class="label-text">{$t("mcpHeaders")}</span>
+                    {#each Object.entries(draftConfig.mcp.servers[selectedMcpIndex].headers) as [k] (k)}
                       <div class="env-row">
                         <input
                           class="detail-input env-key"
                           value={k}
-                          placeholder={$t('mcpHeaderKeyPlaceholder')}
-                          onchange={(e) => updateHeaderKey(selectedMcpIndex, k, (e.target as HTMLInputElement).value)}
+                          placeholder={$t("mcpHeaderKeyPlaceholder")}
+                          onchange={(e) =>
+                            updateHeaderKey(
+                              selectedMcpIndex,
+                              k,
+                              (e.target as HTMLInputElement).value,
+                            )}
                         />
                         <input
                           class="detail-input env-val"
                           bind:value={draftConfig.mcp.servers[selectedMcpIndex].headers[k]}
-                          placeholder={$t('mcpHeaderValPlaceholder')}
+                          placeholder={$t("mcpHeaderValPlaceholder")}
                         />
-                        <button class="model-action-btn" onclick={() => removeHeader(selectedMcpIndex, k)}>×</button>
+                        <button
+                          class="model-action-btn"
+                          onclick={() => removeHeader(selectedMcpIndex, k)}>×</button
+                        >
                       </div>
                     {/each}
-                    <button class="filter-toggle" style="margin-top:6px" onclick={() => addHeader(selectedMcpIndex)}>
-                      {$t('addHeader')}
+                    <button
+                      class="filter-toggle"
+                      style="margin-top:6px"
+                      onclick={() => addHeader(selectedMcpIndex)}
+                    >
+                      {$t("addHeader")}
                     </button>
                   </div>
                 {:else}
                   <label class="detail-label">
-                    <span class="label-text">{$t('mcpCommand')}</span>
+                    <span class="label-text">{$t("mcpCommand")}</span>
                     <input
                       class="detail-input"
                       bind:value={draftConfig.mcp.servers[selectedMcpIndex].command}
-                      placeholder={$t('mcpCommandPlaceholder')}
+                      placeholder={$t("mcpCommandPlaceholder")}
                     />
                   </label>
                   <label class="detail-label">
-                    <span class="label-text">{$t('mcpArgs')}</span>
+                    <span class="label-text">{$t("mcpArgs")}</span>
                     <input
                       class="detail-input"
                       value={draftConfig.mcp.servers[selectedMcpIndex].args.join(" ")}
-                      placeholder={$t('mcpArgsPlaceholder')}
+                      placeholder={$t("mcpArgsPlaceholder")}
                       oninput={(e) => {
                         const v = (e.target as HTMLInputElement).value.trim();
                         draftConfig.mcp.servers[selectedMcpIndex].args = v ? v.split(/\s+/) : [];
@@ -2294,25 +2609,33 @@
                   </label>
 
                   <div class="detail-label" style="grid-column: 1 / -1">
-                    <span class="label-text">{$t('mcpEnvVars')}</span>
-                    {#each Object.entries(draftConfig.mcp.servers[selectedMcpIndex].env) as [k, v] (k)}
+                    <span class="label-text">{$t("mcpEnvVars")}</span>
+                    {#each Object.entries(draftConfig.mcp.servers[selectedMcpIndex].env) as [k] (k)}
                       <div class="env-row">
                         <input
                           class="detail-input env-key"
                           value={k}
-                          placeholder={$t('mcpEnvKeyPlaceholder')}
-                          onchange={(e) => updateEnvKey(selectedMcpIndex, k, (e.target as HTMLInputElement).value)}
+                          placeholder={$t("mcpEnvKeyPlaceholder")}
+                          onchange={(e) =>
+                            updateEnvKey(selectedMcpIndex, k, (e.target as HTMLInputElement).value)}
                         />
                         <input
                           class="detail-input env-val"
                           bind:value={draftConfig.mcp.servers[selectedMcpIndex].env[k]}
-                          placeholder={$t('mcpEnvValPlaceholder')}
+                          placeholder={$t("mcpEnvValPlaceholder")}
                         />
-                        <button class="model-action-btn" onclick={() => removeEnvVar(selectedMcpIndex, k)}>×</button>
+                        <button
+                          class="model-action-btn"
+                          onclick={() => removeEnvVar(selectedMcpIndex, k)}>×</button
+                        >
                       </div>
                     {/each}
-                    <button class="filter-toggle" style="margin-top:6px" onclick={() => addEnvVar(selectedMcpIndex)}>
-                      {$t('addEnvVar')}
+                    <button
+                      class="filter-toggle"
+                      style="margin-top:6px"
+                      onclick={() => addEnvVar(selectedMcpIndex)}
+                    >
+                      {$t("addEnvVar")}
                     </button>
                   </div>
                 {/if}
@@ -2324,21 +2647,28 @@
                   onclick={() => testMcpServer(server.id)}
                   disabled={status?.tone === "testing"}
                 >
-                  {status?.tone === "testing" ? $t('mcpTesting') : $t('testMcpServer')}
+                  {status?.tone === "testing" ? $t("mcpTesting") : $t("testMcpServer")}
                 </button>
               </div>
               {#if status && status.tone !== "idle"}
-                <div class="provider-status {status.tone === 'success' ? 'success' : status.tone === 'error' ? 'error' : 'loading'}" style="margin-top:8px">
+                <div
+                  class="provider-status {status.tone === 'success'
+                    ? 'success'
+                    : status.tone === 'error'
+                      ? 'error'
+                      : 'loading'}"
+                  style="margin-top:8px"
+                >
                   {status.message}
                 </div>
               {/if}
             </section>
 
             <section class="detail-section danger-zone">
-              <p class="danger-title">{$t('deleteNode')}</p>
-              <p class="danger-copy">{$t('deleteNodeDesc')}</p>
+              <p class="danger-title">{$t("deleteNode")}</p>
+              <p class="danger-copy">{$t("deleteNodeDesc")}</p>
               <button class="filter-toggle danger-btn" onclick={() => removeMcpServer(server.id)}>
-                {$t('deleteMcpServer')}
+                {$t("deleteMcpServer")}
               </button>
             </section>
           </div>
@@ -2347,7 +2677,7 @@
         <div class="settings-detail-col">
           <div class="extensions-placeholder">
             <span class="placeholder-icon">MCP</span>
-            <p>{$t('noMcpServersHint')}</p>
+            <p>{$t("noMcpServersHint")}</p>
           </div>
         </div>
       {/if}
@@ -2358,11 +2688,14 @@
         <div class="about-content">
           <img class="about-logo-img" src="/app-icon.png" alt="OpenAgent" />
           <h3 class="about-app-name">OpenAgent</h3>
-          <p class="about-version">{$t('aboutVersion')}</p>
-          <p class="about-desc">{$t('aboutDesc')}</p>
+          <p class="about-version">{$t("aboutVersion")}</p>
+          <p class="about-desc">{$t("aboutDesc")}</p>
           <a class="about-contact" href="mailto:iumm@ibat.ac.cn">iumm@ibat.ac.cn</a>
-          <button class="btn-secondary btn-sm about-update-button" onclick={() => checkForAppUpdate(true)}>
-            {$t('checkForUpdates')}
+          <button
+            class="btn-secondary btn-sm about-update-button"
+            onclick={() => checkForAppUpdate(true)}
+          >
+            {$t("checkForUpdates")}
           </button>
         </div>
       </div>
@@ -2387,13 +2720,13 @@
   <Dialog.Portal>
     <Dialog.Overlay class="dialog-overlay" />
     <Dialog.Content class="dialog">
-      <Dialog.Title class="dialog-title">{$t('clearMemory')}</Dialog.Title>
+      <Dialog.Title class="dialog-title">{$t("clearMemory")}</Dialog.Title>
 
-      <p class="dialog-copy">{$t('memoryClearConfirm')}</p>
-      <div class="confirm-token">{$t('memoryClearConfirmText')}</div>
+      <p class="dialog-copy">{$t("memoryClearConfirm")}</p>
+      <div class="confirm-token">{$t("memoryClearConfirmText")}</div>
 
       <label class="dialog-field" for="memory-clear-confirm-input">
-        <span class="label-text">{$t('memoryClearTypePrompt')}</span>
+        <span class="label-text">{$t("memoryClearTypePrompt")}</span>
         <input
           id="memory-clear-confirm-input"
           class="detail-input"
@@ -2405,14 +2738,14 @@
 
       <div class="dialog-actions">
         <button class="btn-secondary" onclick={cancelClearMemoryScope} disabled={memoryBusy}>
-          {$t('cancel')}
+          {$t("cancel")}
         </button>
         <button
           class="btn-primary danger-primary"
           onclick={confirmClearMemoryScope}
-          disabled={memoryBusy || memoryClearInput !== $t('memoryClearConfirmText')}
+          disabled={memoryBusy || memoryClearInput !== $t("memoryClearConfirmText")}
         >
-          {$t('clearMemory')}
+          {$t("clearMemory")}
         </button>
       </div>
     </Dialog.Content>
@@ -2423,11 +2756,11 @@
   <Dialog.Portal>
     <Dialog.Overlay class="dialog-overlay" />
     <Dialog.Content class="dialog">
-      <Dialog.Title class="dialog-title">{$t('modelConfiguration')}</Dialog.Title>
+      <Dialog.Title class="dialog-title">{$t("modelConfiguration")}</Dialog.Title>
 
       <div class="model-config-fields">
         <label class="dialog-field" for="model-config-name">
-          <span class="label-text">{$t('modelName')}</span>
+          <span class="label-text">{$t("modelName")}</span>
           <input
             id="model-config-name"
             class="detail-input"
@@ -2438,7 +2771,7 @@
         </label>
 
         <label class="dialog-field" for="model-config-threshold">
-          <span class="label-text">{$t('modelCompactionThreshold')}</span>
+          <span class="label-text">{$t("modelCompactionThreshold")}</span>
           <input
             id="model-config-threshold"
             class="detail-input"
@@ -2451,7 +2784,8 @@
             onkeydown={(event) => event.key === "Enter" && saveModelConfig()}
           />
           <span class="field-hint">
-            {$t('modelCompactionThresholdHint')} {draftConfig.context_compaction_threshold}
+            {$t("modelCompactionThresholdHint")}
+            {draftConfig.context_compaction_threshold}
           </span>
         </label>
       </div>
@@ -2462,14 +2796,22 @@
 
       <div class="dialog-actions model-config-actions">
         <button class="danger-btn" onclick={deleteConfiguredModel}>
-          {$t('deleteModel')}
+          {$t("deleteModel")}
         </button>
         <div class="dialog-actions-end">
-          <button class="dialog-action-quiet" type="button" onclick={() => modelConfigDialogOpen = false}>
-            {$t('cancel')}
+          <button
+            class="dialog-action-quiet"
+            type="button"
+            onclick={() => (modelConfigDialogOpen = false)}
+          >
+            {$t("cancel")}
           </button>
-          <button class="btn-primary" onclick={saveModelConfig} disabled={Boolean(modelConfigValidationError())}>
-            {$t('save')}
+          <button
+            class="btn-primary"
+            onclick={saveModelConfig}
+            disabled={Boolean(modelConfigValidationError())}
+          >
+            {$t("save")}
           </button>
         </div>
       </div>
@@ -2519,8 +2861,13 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
+    }
   }
 
   :global(.settings-body) {
@@ -2568,7 +2915,9 @@
     color: var(--text-muted);
     cursor: pointer;
     text-align: left;
-    transition: background 0.12s, color 0.12s;
+    transition:
+      background 0.12s,
+      color 0.12s;
   }
 
   :global(.settings-nav-item:hover:not([data-state="active"])) {
@@ -2666,9 +3015,11 @@
     cursor: pointer;
     white-space: nowrap;
     box-shadow: var(--control-shadow);
-    transition: transform 0.1s, background 0.1s;
+    transition:
+      transform 0.1s,
+      background 0.1s;
   }
-  
+
   .model-action-btn {
     border: 1px solid var(--border);
     border-radius: 9999px;
@@ -2678,12 +3029,15 @@
     font-size: 12px;
     cursor: pointer;
     white-space: nowrap;
-    transition: transform 0.1s, background 0.1s;
+    transition:
+      transform 0.1s,
+      background 0.1s;
   }
   .model-action-btn:hover {
     background: var(--surface2);
   }
-  .model-action-btn:active, .filter-toggle:active {
+  .model-action-btn:active,
+  .filter-toggle:active {
     transform: scale(0.95);
   }
 
@@ -2709,7 +3063,9 @@
     padding: 6px 10px;
     cursor: pointer;
     text-align: left;
-    transition: background 0.12s, color 0.12s;
+    transition:
+      background 0.12s,
+      color 0.12s;
   }
 
   .provider-item:hover {
@@ -3156,7 +3512,7 @@
     gap: 12px;
     margin-bottom: 12px;
   }
-  
+
   .detail-section-header .detail-section-title {
     margin: 0;
   }

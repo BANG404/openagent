@@ -60,7 +60,14 @@
     />
     <Combobox.Trigger class="ui-combobox-trigger" aria-label={ariaLabel}>
       <svg viewBox="0 0 16 16" aria-hidden="true">
-        <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        <path
+          d="M4 6l4 4 4-4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
       </svg>
     </Combobox.Trigger>
   </div>
@@ -71,12 +78,24 @@
           <div class="ui-combobox-empty">无匹配项</div>
         {:else}
           {#each filteredItems as item (item.value)}
-            <Combobox.Item value={item.value} label={item.label} disabled={item.disabled} class="ui-combobox-item">
+            <Combobox.Item
+              value={item.value}
+              label={item.label}
+              disabled={item.disabled}
+              class="ui-combobox-item"
+            >
               {#snippet children({ selected })}
                 <span class="ui-combobox-item-label">{item.label}</span>
                 {#if selected}
                   <svg class="ui-combobox-check" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+                    <path
+                      d="M3.5 8.5l3 3 6-7"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                 {/if}
               {/snippet}
@@ -130,7 +149,9 @@
     border-radius: 6px;
     color: var(--text-muted, #888);
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    transition:
+      background 0.15s,
+      color 0.15s;
   }
   :global(.ui-combobox-trigger:hover) {
     background: var(--surface2);

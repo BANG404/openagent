@@ -36,14 +36,14 @@
   let chartIsDark: boolean | null = null;
   let resizeObs: ResizeObserver | null = null;
 
-  const type = $derived<ChartType>(
-    args.type === "line" || args.type === "pie" ? args.type : "bar",
-  );
+  const type = $derived<ChartType>(args.type === "line" || args.type === "pie" ? args.type : "bar");
   const title = $derived(typeof args.title === "string" ? args.title : "");
   const labels = $derived(Array.isArray(args.labels) ? (args.labels as unknown[]).map(String) : []);
   const dataArr = $derived(Array.isArray(args.data) ? (args.data as unknown[]) : []);
   const series = $derived(Array.isArray(args.series) ? (args.series as unknown[]) : []);
-  const height = $derived(typeof args.height === "number" ? args.height : type === "pie" ? 320 : 300);
+  const height = $derived(
+    typeof args.height === "number" ? args.height : type === "pie" ? 320 : 300,
+  );
 
   function buildOption(dark: boolean) {
     const textColor = dark ? "#e2e8f0" : "#1d1d1f";
@@ -53,13 +53,18 @@
     // Vertical layout: [title] [legend] [chart body]
     // title sits at top:8; legend sits below it; chart grid sits below legend.
     const titleH = title ? 24 : 0; // approx title block height
-    const legendH = 26;            // approx legend block height
+    const legendH = 26; // approx legend block height
     const padTop = 8;
     const legendTop = padTop + titleH + (title ? 4 : 0);
     const bodyTop = legendTop + legendH;
 
     const titleOpt = title
-      ? { text: title, left: "center" as const, top: padTop, textStyle: { color: textColor, fontSize: 13, fontWeight: 500 as const } }
+      ? {
+          text: title,
+          left: "center" as const,
+          top: padTop,
+          textStyle: { color: textColor, fontSize: 13, fontWeight: 500 as const },
+        }
       : undefined;
 
     const base: ChartOption = {
@@ -136,7 +141,9 @@
   onMount(async () => {
     if (!container) return;
     echartsModule = await import("../echartsRuntime");
-    chart = echartsModule.initializeChart(container, isDark ? "dark" : undefined, { renderer: "canvas" });
+    chart = echartsModule.initializeChart(container, isDark ? "dark" : undefined, {
+      renderer: "canvas",
+    });
     chartIsDark = isDark;
     chart.setOption(buildOption(isDark));
     resizeObs = new ResizeObserver(() => chart?.resize());
@@ -149,7 +156,9 @@
     if (!chart || !container || !echartsModule) return;
     if (chartIsDark !== dark) {
       chart.dispose();
-      chart = echartsModule.initializeChart(container, dark ? "dark" : undefined, { renderer: "canvas" });
+      chart = echartsModule.initializeChart(container, dark ? "dark" : undefined, {
+        renderer: "canvas",
+      });
       chartIsDark = dark;
     }
     chart.setOption(option, true);

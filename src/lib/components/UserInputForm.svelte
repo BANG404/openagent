@@ -61,9 +61,7 @@
   }
 
   function submit() {
-    const missing = request.fields.some(
-      (f) => isRequired(f) && isEmpty(f, values[f.name]),
-    );
+    const missing = request.fields.some((f) => isRequired(f) && isEmpty(f, values[f.name]));
     if (missing) {
       showErrors = true;
       return;
@@ -83,9 +81,7 @@
 
   function toggleGroup(name: string, option: string) {
     const list = (values[name] as string[]) ?? [];
-    values[name] = list.includes(option)
-      ? list.filter((o) => o !== option)
-      : [...list, option];
+    values[name] = list.includes(option) ? list.filter((o) => o !== option) : [...list, option];
   }
 
   const inputBase =
@@ -135,7 +131,7 @@
             {#if isRequired(field)}<span class="text-[#ef4444] ml-0.5">*</span>{/if}
           </span>
           <div class="flex flex-col gap-1 mt-0.5">
-            {#each field.options as option}
+            {#each field.options as option (option)}
               <label
                 class="flex items-center gap-2 text-[13px] text-[var(--text)] cursor-pointer select-none"
               >
@@ -173,8 +169,7 @@
               placeholder={field.placeholder ?? ""}
               value={String(values[field.name] ?? "")}
               rows="3"
-              oninput={(e) => (values[field.name] = e.currentTarget.value)}
-            ></textarea>
+              oninput={(e) => (values[field.name] = e.currentTarget.value)}></textarea>
           {:else if field.type === "select"}
             <select
               id={`f-${request.request_id}-${field.name}`}
@@ -183,7 +178,7 @@
               onchange={(e) => (values[field.name] = e.currentTarget.value)}
             >
               <option value="" disabled>—</option>
-              {#each field.options as option}
+              {#each field.options as option (option)}
                 <option value={option}>{option}</option>
               {/each}
             </select>

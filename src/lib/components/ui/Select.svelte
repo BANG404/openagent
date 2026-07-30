@@ -54,10 +54,9 @@
     return items.filter((item) => item.label.toLocaleLowerCase().includes(query));
   });
 
-  function handleOpenChange(open: boolean) {
+  function handleOpenChange(_open: boolean) {
     searchQuery = "";
   }
-
 </script>
 
 <Select.Root
@@ -75,7 +74,14 @@
       {selectedLabel || placeholder}
     </span>
     <svg class="ui-select-caret" viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      <path
+        d="M4 6l4 4 4-4"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
     </svg>
   </Select.Trigger>
   <Select.Portal>
@@ -84,7 +90,13 @@
         <div class="ui-select-search-wrap">
           <svg class="ui-select-search-icon" viewBox="0 0 16 16" aria-hidden="true">
             <circle cx="7" cy="7" r="4.25" fill="none" stroke="currentColor" stroke-width="1.5" />
-            <path d="m10.25 10.25 3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            <path
+              d="m10.25 10.25 3 3"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+            />
           </svg>
           <input
             class="ui-select-search"
@@ -102,7 +114,12 @@
           <div class="ui-select-empty">{emptyText}</div>
         {:else}
           {#each filteredItems as item (item.value)}
-            <Select.Item value={item.value} label={item.label} disabled={item.disabled} class="ui-select-item">
+            <Select.Item
+              value={item.value}
+              label={item.label}
+              disabled={item.disabled}
+              class="ui-select-item"
+            >
               {#snippet children({ selected })}
                 <span class="ui-select-item-copy">
                   <span class="ui-select-item-label">{item.label}</span>
@@ -112,7 +129,14 @@
                 </span>
                 {#if selected}
                   <svg class="ui-select-check" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+                    <path
+                      d="M3.5 8.5l3 3 6-7"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                 {/if}
               {/snippet}

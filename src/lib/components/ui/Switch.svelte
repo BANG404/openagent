@@ -18,7 +18,15 @@
   } = $props();
 </script>
 
-<Switch.Root bind:checked {disabled} {name} {id} {onCheckedChange} class="ui-switch" aria-label={ariaLabel}>
+<Switch.Root
+  bind:checked
+  {disabled}
+  {name}
+  {id}
+  {onCheckedChange}
+  class="ui-switch"
+  aria-label={ariaLabel}
+>
   <Switch.Thumb class="ui-switch-thumb" />
 </Switch.Root>
 

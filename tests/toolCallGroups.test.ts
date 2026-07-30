@@ -34,11 +34,7 @@ describe("tool-call grouping", () => {
       call("write_file"),
     ]);
 
-    expect(segments.map((segment) => segment.kind)).toEqual([
-      "tool_group",
-      "item",
-      "item",
-    ]);
+    expect(segments.map((segment) => segment.kind)).toEqual(["tool_group", "item", "item"]);
   });
 
   test("keeps specialized and approval tool calls outside groups", () => {

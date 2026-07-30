@@ -1,9 +1,7 @@
 import { readFileSync } from "node:fs";
 
 const messageFile = process.argv[2];
-const message = messageFile
-  ? readFileSync(messageFile, "utf8")
-  : readFileSync(0, "utf8");
+const message = messageFile ? readFileSync(messageFile, "utf8") : readFileSync(0, "utf8");
 
 const firstLine = message
   .split(/\r?\n/)

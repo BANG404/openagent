@@ -53,7 +53,9 @@
   const parsedArgs = $derived.by((): JsonObject | null => {
     try {
       const parsed = JSON.parse(args);
-      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as JsonObject : null;
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as JsonObject)
+        : null;
     } catch {
       return null;
     }
@@ -74,23 +76,26 @@
       ? $t("dispatchRoleTool")
       : name === "search_roles"
         ? $t("searchRolesTool")
-        : name
+        : name,
   );
   const filePath = $derived(getString(parsedArgs, "file_path") || getString(parsedArgs, "path"));
   const pattern = $derived(getString(parsedArgs, "pattern"));
   const globFilter = $derived(getString(parsedArgs, "glob"));
   const resultText = $derived(result ?? "");
-  const status = $derived(toolCallStatus(
-    { type: "tool_call", name, args, result } satisfies ToolCallItem,
-    showRunning,
-  ));
-  const statusText = $derived($t(status === "success"
-    ? "toolStatusSuccess"
-    : status === "failed"
-      ? "toolStatusFailed"
-      : status === "running"
-        ? "toolStatusRunning"
-        : "toolStatusPending"));
+  const status = $derived(
+    toolCallStatus({ type: "tool_call", name, args, result } satisfies ToolCallItem, showRunning),
+  );
+  const statusText = $derived(
+    $t(
+      status === "success"
+        ? "toolStatusSuccess"
+        : status === "failed"
+          ? "toolStatusFailed"
+          : status === "running"
+            ? "toolStatusRunning"
+            : "toolStatusPending",
+    ),
+  );
   const resultSummary = $derived.by(() => summarizeResult(name, resultText));
   const writeContent = $derived(getString(parsedArgs, "content"));
   const oldString = $derived(getString(parsedArgs, "old_string"));
@@ -148,7 +153,7 @@
     try {
       const parsed = JSON.parse(text);
       return Array.isArray(parsed) && parsed.every((item) => typeof item === "string")
-        ? parsed as string[]
+        ? (parsed as string[])
         : null;
     } catch {
       return null;
@@ -190,13 +195,21 @@
     const oldLines = oldText.split("\n");
     const newLines = newText.split("\n");
     let prefix = 0;
-    while (prefix < oldLines.length && prefix < newLines.length && oldLines[prefix] === newLines[prefix]) {
+    while (
+      prefix < oldLines.length &&
+      prefix < newLines.length &&
+      oldLines[prefix] === newLines[prefix]
+    ) {
       prefix += 1;
     }
 
     let oldSuffix = oldLines.length - 1;
     let newSuffix = newLines.length - 1;
-    while (oldSuffix >= prefix && newSuffix >= prefix && oldLines[oldSuffix] === newLines[newSuffix]) {
+    while (
+      oldSuffix >= prefix &&
+      newSuffix >= prefix &&
+      oldLines[oldSuffix] === newLines[newSuffix]
+    ) {
       oldSuffix -= 1;
       newSuffix -= 1;
     }
@@ -224,7 +237,7 @@
       await capabilities.openPath(path);
     } catch (e) {
       console.warn("open_path failed", e);
-      const msg = typeof e === "string" ? e : (e as { message?: string })?.message ?? String(e);
+      const msg = typeof e === "string" ? e : ((e as { message?: string })?.message ?? String(e));
       alert(msg);
     }
   }
@@ -240,7 +253,6 @@
   async function openContainingFolder(path: string, event?: MouseEvent) {
     await openPath(parentPath(path), event);
   }
-
 </script>
 
 {#if htmlArgs}
@@ -279,22 +291,50 @@
           class:tool-pending={status === "pending"}
           title={statusText}
         >
-          <span aria-hidden="true">{status === "success" ? "✓" : status === "failed" ? "×" : status === "running" ? "…" : "○"}</span>
+          <span aria-hidden="true"
+            >{status === "success"
+              ? "✓"
+              : status === "failed"
+                ? "×"
+                : status === "running"
+                  ? "…"
+                  : "○"}</span
+          >
           <span class="sr-only">{statusText}</span>
         </span>
         <span class="tool-chevron" class:expanded aria-hidden="true">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 4l4 4-4 4"/>
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M6 4l4 4-4 4" />
           </svg>
         </span>
       </button>
       {#if isFocusedTool && filePath}
         <Tooltip text={$t("openContainingFolder")}>
           {#snippet trigger(props)}
-            <button {...props} class="tool-icon-btn" aria-label={$t("openContainingFolder")} onclick={(event) => openContainingFolder(filePath, event)}>
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M1.8 4.5h4.4l1.2 1.4h6.8v6.6a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1z"/>
-                <path d="M1.8 6h12.4"/>
+            <button
+              {...props}
+              class="tool-icon-btn"
+              aria-label={$t("openContainingFolder")}
+              onclick={(event) => openContainingFolder(filePath, event)}
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M1.8 4.5h4.4l1.2 1.4h6.8v6.6a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1z" />
+                <path d="M1.8 6h12.4" />
               </svg>
             </button>
           {/snippet}
@@ -314,10 +354,22 @@
       {#if isFocusedTool}
         <div class="tool-detail">
           {#if filePath}
-            <button class="path-chip" onclick={(event) => openPath(filePath, event)} title={filePath}>
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M3 2.5h6l4 4V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V3a.5.5 0 0 1 .5-.5z"/>
-                <path d="M9 2.5V6.5h4"/>
+            <button
+              class="path-chip"
+              onclick={(event) => openPath(filePath, event)}
+              title={filePath}
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 2.5h6l4 4V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V3a.5.5 0 0 1 .5-.5z" />
+                <path d="M9 2.5V6.5h4" />
               </svg>
               <span>{filePath}</span>
             </button>
@@ -330,7 +382,7 @@
             </div>
             {#if result !== undefined}
               <div class="code-table">
-                {#each readPreviewLines as row}
+                {#each readPreviewLines as row (row.line)}
                   <div class="code-row">
                     <span class="line-no">{row.line}</span>
                     <span class="line-content">{row.content}</span>
@@ -350,7 +402,7 @@
               <span>{lineCount(oldString)} -> {lineCount(newString)} lines</span>
             </div>
             <div class="diff-view">
-              {#each editDiff as line}
+              {#each editDiff as line, index (`${line.type}-${index}`)}
                 <div class="diff-line diff-{line.type}">{line.text}</div>
               {/each}
             </div>
@@ -361,8 +413,12 @@
             </div>
             {#if globResults}
               <div class="result-list">
-                {#each globResults.slice(0, 100) as path}
-                  <button class="result-row" onclick={(event) => openPath(path, event)} title={path}>
+                {#each globResults.slice(0, 100) as path, index (`${path}-${index}`)}
+                  <button
+                    class="result-row"
+                    onclick={(event) => openPath(path, event)}
+                    title={path}
+                  >
                     <span class="result-path">{path}</span>
                   </button>
                 {/each}
@@ -377,8 +433,12 @@
             </div>
             {#if grepResults}
               <div class="grep-list">
-                {#each grepResults.slice(0, 100) as match}
-                  <button class="grep-row" onclick={(event) => openPath(match.file, event)} title={`${match.file}:${match.line}`}>
+                {#each grepResults.slice(0, 100) as match, index (`${match.file}:${match.line}:${index}`)}
+                  <button
+                    class="grep-row"
+                    onclick={(event) => openPath(match.file, event)}
+                    title={`${match.file}:${match.line}`}
+                  >
                     <span class="grep-file">{shortPath(match.file)}</span>
                     <span class="grep-line">{match.line}</span>
                     <span class="grep-content">{match.content}</span>
@@ -743,8 +803,13 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
+    }
   }
 
   .sr-only {

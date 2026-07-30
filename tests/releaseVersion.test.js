@@ -38,27 +38,21 @@ describe("Beta release numbers", () => {
   });
 
   test("starts at one after the X.Y.Z base changes", () => {
-    expect(
-      getNextBetaNumber("0.25.0", ["v0.24.1-beta.9"], "0.24.1-beta.7"),
-    ).toBe(1);
+    expect(getNextBetaNumber("0.25.0", ["v0.24.1-beta.9"], "0.24.1-beta.7")).toBe(1);
   });
 });
 
 describe("release channel versions", () => {
   test("applies the same commit bump before selecting Beta or Stable", () => {
-    expect(getNextReleaseVersion("1.2.3", "minor", "beta").version).toBe(
-      "1.3.0-beta.1",
-    );
+    expect(getNextReleaseVersion("1.2.3", "minor", "beta").version).toBe("1.3.0-beta.1");
     expect(getNextReleaseVersion("1.2.3", "minor", "stable").version).toBe("1.3.0");
   });
 
   test("increments Beta on the same base only without a new bump", () => {
-    expect(
-      getNextReleaseVersion("1.2.3-beta.7", "none", "beta", { betaNumber: 8 }).version,
-    ).toBe("1.2.3-beta.8");
-    expect(getNextReleaseVersion("1.2.3-beta.7", "patch", "beta").version).toBe(
-      "1.2.4-beta.1",
+    expect(getNextReleaseVersion("1.2.3-beta.7", "none", "beta", { betaNumber: 8 }).version).toBe(
+      "1.2.3-beta.8",
     );
+    expect(getNextReleaseVersion("1.2.3-beta.7", "patch", "beta").version).toBe("1.2.4-beta.1");
   });
 
   test("promotes an unchanged Beta or bumps a changed Beta to Stable", () => {
@@ -67,8 +61,6 @@ describe("release channel versions", () => {
       baseVersion: "1.2.3",
       promotion: true,
     });
-    expect(getNextReleaseVersion("1.2.3-beta.7", "minor", "stable").version).toBe(
-      "1.3.0",
-    );
+    expect(getNextReleaseVersion("1.2.3-beta.7", "minor", "stable").version).toBe("1.3.0");
   });
 });

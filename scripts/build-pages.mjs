@@ -60,4 +60,7 @@ await cp("assets", `${output}/assets`, { recursive: true });
 const indexPath = `${output}/index.html`;
 const index = await readFile(indexPath, "utf8");
 await writeFile(indexPath, index.replaceAll("../assets/", "./assets/"));
-await writeFile(`${output}/downloads.json`, `${JSON.stringify(await buildDownloadManifest(), null, 2)}\n`);
+await writeFile(
+  `${output}/downloads.json`,
+  `${JSON.stringify(await buildDownloadManifest(), null, 2)}\n`,
+);

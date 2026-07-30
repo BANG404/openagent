@@ -29,18 +29,14 @@
 
   let open = $state(false);
 
-  let folderName = $derived(
-    workspaceFolderName(workspace?.path)
-  );
+  let folderName = $derived(workspaceFolderName(workspace?.path));
   let workspaceTooltip = $derived(
     workspace?.environment.kind === "wsl"
       ? `${workspace.environment.distribution}:${workspace.environment.linux_path}`
-      : (workspace?.path ?? $t("switchWorkspace"))
+      : (workspace?.path ?? $t("switchWorkspace")),
   );
 
-  let otherRecent = $derived(
-    recentWorkspaces.filter((w) => w.path !== workspacePath)
-  );
+  let otherRecent = $derived(recentWorkspaces.filter((w) => w.path !== workspacePath));
 
   async function openWorkspaceLocation(path: string) {
     if (!tauriAvailable) return;
@@ -69,8 +65,17 @@
         {#if workspace?.environment.kind === "wsl"}
           <span class="wsl-badge">WSL</span>
         {/if}
-        <svg class="ws-chevron" class:open viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M1 1l4 4 4-4"/>
+        <svg
+          class="ws-chevron"
+          class:open
+          viewBox="0 0 10 6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M1 1l4 4 4-4" />
         </svg>
       </DropdownMenu.Trigger>
     </Tooltip>
@@ -82,14 +87,28 @@
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DropdownMenu.Item class="ws-dropdown-item ws-open-folder" onSelect={onPick}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 13V5.5L6.5 3H14v10H2zM2 5.5h4.5V3"/>
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M2 13V5.5L6.5 3H14v10H2zM2 5.5h4.5V3" />
           </svg>
           {$t("openFolder")}
         </DropdownMenu.Item>
         <DropdownMenu.Item class="ws-dropdown-item ws-open-folder" onSelect={onPickWsl}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3.5 7 8l-4 4.5M8.5 12.5H13"/>
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M3 3.5 7 8l-4 4.5M8.5 12.5H13" />
           </svg>
           {$t("openWslFolder")}
         </DropdownMenu.Item>
@@ -99,9 +118,16 @@
             disabled={!tauriAvailable}
             onSelect={() => openWorkspaceLocation(workspacePath)}
           >
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2.5 4.5h4l1.25 1.5h5.75v7.5h-11z"/>
-              <path d="M10 3h3v3M13 3 9 7"/>
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M2.5 4.5h4l1.25 1.5h5.75v7.5h-11z" />
+              <path d="M10 3h3v3M13 3 9 7" />
             </svg>
             {$t("openCurrentWorkspaceLocation")}
           </DropdownMenu.Item>
@@ -113,8 +139,15 @@
               <div class="ws-recent-row">
                 <Tooltip text={ws.path} side="right" block>
                   <DropdownMenu.Item class="ws-dropdown-item" onSelect={() => onSelect(ws.path)}>
-                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M2 13V5.5L6.5 3H14v10H2zM2 5.5h4.5V3"/>
+                    <svg
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M2 13V5.5L6.5 3H14v10H2zM2 5.5h4.5V3" />
                     </svg>
                     <span class="ws-dropdown-name">{ws.name}</span>
                   </DropdownMenu.Item>
@@ -126,9 +159,16 @@
                     aria-label={$t("openFileLocation")}
                     onclick={(event) => handleOpenWorkspaceLocation(event, ws.path)}
                   >
-                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M2.5 4.5h4l1.25 1.5h5.75v7.5h-11z"/>
-                      <path d="M10 3h3v3M13 3 9 7"/>
+                    <svg
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M2.5 4.5h4l1.25 1.5h5.75v7.5h-11z" />
+                      <path d="M10 3h3v3M13 3 9 7" />
                     </svg>
                   </button>
                 </Tooltip>
@@ -207,7 +247,7 @@
     transform: rotate(180deg);
   }
 
-:global(.ws-dropdown) {
+  :global(.ws-dropdown) {
     background: var(--control-surface);
     border: 0;
     border-radius: 8px;

@@ -2,11 +2,7 @@ import { getContext, setContext } from "svelte";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
 import { tr } from "$lib/i18n";
-import type {
-  HtmlPreviewFile,
-  WorkspaceMediaSource,
-  WorkspaceTextSnippet,
-} from "./contracts";
+import type { HtmlPreviewFile, WorkspaceMediaSource, WorkspaceTextSnippet } from "./contracts";
 import { desktopOpenAgent, invoke } from "./tauriClient";
 
 export interface SavedDownload {
@@ -21,7 +17,11 @@ export interface OpenAgentUiCapabilities {
   resolveMedia(path: string, kind: "image" | "video"): Promise<WorkspaceMediaSource>;
   readHtmlPreview(path: string): Promise<HtmlPreviewFile>;
   repairAttachment(blobId: string, name: string): Promise<boolean>;
-  saveDownloadFile(filename: string, content: string, encoding: "base64" | "utf8"): Promise<SavedDownload>;
+  saveDownloadFile(
+    filename: string,
+    content: string,
+    encoding: "base64" | "utf8",
+  ): Promise<SavedDownload>;
 }
 
 const UI_CAPABILITIES_CONTEXT = Symbol("openagent-ui-capabilities");
@@ -57,6 +57,7 @@ export function provideOpenAgentUiCapabilities(capabilities: OpenAgentUiCapabili
 }
 
 export function useOpenAgentUiCapabilities(): OpenAgentUiCapabilities {
-  return getContext<OpenAgentUiCapabilities | undefined>(UI_CAPABILITIES_CONTEXT)
-    ?? desktopCapabilities;
+  return (
+    getContext<OpenAgentUiCapabilities | undefined>(UI_CAPABILITIES_CONTEXT) ?? desktopCapabilities
+  );
 }

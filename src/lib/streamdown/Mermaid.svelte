@@ -11,7 +11,7 @@
 
   const {
     token,
-    id
+    id,
   }: {
     token: { text: string };
     id: string;
@@ -34,17 +34,27 @@
           stroke="currentColor" stroke-width="2" stroke-linecap="round"
           stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
           ${paths}
-        </svg>`
+        </svg>`,
     }));
 
   const fitViewIcon = icon(
-    '<path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" /><rect width="10" height="8" x="7" y="8" rx="1" />'
+    '<path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" /><rect width="10" height="8" x="7" y="8" rx="1" />',
   );
-  const zoomInIcon = icon('<circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line x1="11" x2="11" y1="8" y2="14" /><line x1="8" x2="14" y1="11" y2="11" />');
-  const zoomOutIcon = icon('<circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line x1="8" x2="14" y1="11" y2="11" />');
-  const fullscreenIcon = icon('<path d="m15 15 6 6" /><path d="m15 9 6-6" /><path d="M21 16v5h-5" /><path d="M21 8V3h-5" /><path d="M3 16v5h5" /><path d="m3 21 6-6" /><path d="M3 8V3h5" /><path d="M9 9 3 3" />');
-  const copyIcon = icon('<rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />');
-  const downloadIcon = icon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" />');
+  const zoomInIcon = icon(
+    '<circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line x1="11" x2="11" y1="8" y2="14" /><line x1="8" x2="14" y1="11" y2="11" />',
+  );
+  const zoomOutIcon = icon(
+    '<circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line x1="8" x2="14" y1="11" y2="11" />',
+  );
+  const fullscreenIcon = icon(
+    '<path d="m15 15 6 6" /><path d="m15 9 6-6" /><path d="M21 16v5h-5" /><path d="M21 8V3h-5" /><path d="M3 16v5h5" /><path d="m3 21 6-6" /><path d="M3 8V3h5" /><path d="M9 9 3 3" />',
+  );
+  const copyIcon = icon(
+    '<rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />',
+  );
+  const downloadIcon = icon(
+    '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" />',
+  );
 
   let downloadOpen = $state(false);
 
@@ -55,8 +65,9 @@
     } catch (err) {
       showToast({
         title: "Copy failed",
-        description: typeof err === "string" ? err : (err as { message?: string })?.message ?? String(err),
-        variant: "error"
+        description:
+          typeof err === "string" ? err : ((err as { message?: string })?.message ?? String(err)),
+        variant: "error",
       });
     }
   }
@@ -83,7 +94,7 @@
           offEnter();
           offLeave();
         };
-      }
+      },
     };
   };
 
@@ -94,7 +105,7 @@
     zoomSpeed: 1,
     get activateMouseWheel() {
       return insider.isInside;
-    }
+    },
   });
 
   const renderMermaid = async (
@@ -104,10 +115,7 @@
   ) => {
     const generation = ++renderGeneration;
     try {
-      const { svg: svgString } = await renderMermaidSvg(
-        code,
-        config,
-      );
+      const { svg: svgString } = await renderMermaidSvg(code, config);
       if (generation !== renderGeneration) return;
       const svgTarget = element.querySelector("[data-mermaid-svg]") as HTMLElement | null;
       if (!svgTarget) return;
@@ -117,8 +125,16 @@
       const renderedSvg = svgTarget.querySelector(":scope > svg") as SVGSVGElement | null;
       if (renderedSvg) {
         const viewBox = renderedSvg.viewBox?.baseVal;
-        const width = viewBox?.width || Number.parseFloat(renderedSvg.getAttribute("width") || "") || renderedSvg.getBBox().width || 800;
-        const height = viewBox?.height || Number.parseFloat(renderedSvg.getAttribute("height") || "") || renderedSvg.getBBox().height || 600;
+        const width =
+          viewBox?.width ||
+          Number.parseFloat(renderedSvg.getAttribute("width") || "") ||
+          renderedSvg.getBBox().width ||
+          800;
+        const height =
+          viewBox?.height ||
+          Number.parseFloat(renderedSvg.getAttribute("height") || "") ||
+          renderedSvg.getBBox().height ||
+          600;
         renderedSvg.setAttribute("width", String(width));
         renderedSvg.setAttribute("height", String(height));
         renderedSvg.style.maxWidth = "none";
@@ -182,7 +198,11 @@
   function downloadSvg() {
     const cloned = cloneRenderedSvg();
     if (!cloned) return;
-    saveFile("mermaid-diagram.svg", new XMLSerializer().serializeToString(cloned.cloned), "image/svg+xml");
+    saveFile(
+      "mermaid-diagram.svg",
+      new XMLSerializer().serializeToString(cloned.cloned),
+      "image/svg+xml",
+    );
     downloadOpen = false;
   }
 
@@ -200,13 +220,19 @@
       canvas.height = cloned.height * ratio;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--surface").trim() || "#ffffff";
+      ctx.fillStyle =
+        getComputedStyle(document.documentElement).getPropertyValue("--surface").trim() ||
+        "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL("image/png");
       const content = dataUrl.split(",")[1] ?? "";
       if (typeof window.__OPENAGENT_DOWNLOAD__ === "function") {
-        window.__OPENAGENT_DOWNLOAD__({ filename: "mermaid-diagram.png", content, mimeType: "image/png" });
+        window.__OPENAGENT_DOWNLOAD__({
+          filename: "mermaid-diagram.png",
+          content,
+          mimeType: "image/png",
+        });
       } else {
         const link = document.createElement("a");
         link.href = dataUrl;
@@ -228,26 +254,57 @@
       class={streamdown.theme.mermaid.base}
       {@attach attachMermaid}
       {@attach insider.attach}
-      data-expanded={"false"}
+      data-expanded="false"
     >
       {#if streamdown.controls.mermaid}
         <div class={`${streamdown.theme.mermaid.buttons} mermaid-controls`}>
-          <button class={streamdown.theme.components.button} aria-label="Zoom to fit" onclick={() => panzoom.zoomToFit()} data-panzoom-ignore>
+          <button
+            class={streamdown.theme.components.button}
+            aria-label="Zoom to fit"
+            onclick={() => panzoom.zoomToFit()}
+            data-panzoom-ignore
+          >
             {@render (streamdown.icons?.fitView || fitViewIcon)()}
           </button>
-          <button class={streamdown.theme.components.button} aria-label="Zoom in" onclick={() => panzoom.zoomIn()} data-panzoom-ignore>
+          <button
+            class={streamdown.theme.components.button}
+            aria-label="Zoom in"
+            onclick={() => panzoom.zoomIn()}
+            data-panzoom-ignore
+          >
             {@render (streamdown.icons?.zoomIn || zoomInIcon)()}
           </button>
-          <button class={streamdown.theme.components.button} aria-label="Zoom out" onclick={() => panzoom.zoomOut()} data-panzoom-ignore>
+          <button
+            class={streamdown.theme.components.button}
+            aria-label="Zoom out"
+            onclick={() => panzoom.zoomOut()}
+            data-panzoom-ignore
+          >
             {@render (streamdown.icons?.zoomOut || zoomOutIcon)()}
           </button>
-          <button class={streamdown.theme.components.button} aria-label="Toggle expand" onclick={() => panzoom.toggleExpand()} data-panzoom-ignore>
+          <button
+            class={streamdown.theme.components.button}
+            aria-label="Toggle expand"
+            onclick={() => panzoom.toggleExpand()}
+            data-panzoom-ignore
+          >
             {@render (streamdown.icons?.fullscreen || fullscreenIcon)()}
           </button>
-          <button class={streamdown.theme.components.button} aria-label="Copy Mermaid source code" title="Copy Mermaid source code" onclick={copySourceCode} data-panzoom-ignore>
+          <button
+            class={streamdown.theme.components.button}
+            aria-label="Copy Mermaid source code"
+            title="Copy Mermaid source code"
+            onclick={copySourceCode}
+            data-panzoom-ignore
+          >
             {@render copyIcon()}
           </button>
-          <button class={streamdown.theme.components.button} aria-label="Download diagram" onclick={() => (downloadOpen = !downloadOpen)} data-panzoom-ignore>
+          <button
+            class={streamdown.theme.components.button}
+            aria-label="Download diagram"
+            onclick={() => (downloadOpen = !downloadOpen)}
+            data-panzoom-ignore
+          >
             {@render (streamdown.icons?.download || downloadIcon)()}
           </button>
           {#if downloadOpen}

@@ -55,12 +55,7 @@ export type StreamItem =
     };
 
 export type ContextCompactionStage =
-  | "checking"
-  | "summarizing"
-  | "creating"
-  | "done"
-  | "skipped"
-  | "failed";
+  "checking" | "summarizing" | "creating" | "done" | "skipped" | "failed";
 
 export interface ChatMessage {
   id: string;
@@ -92,11 +87,11 @@ export type AgentMessageTag =
 export type SerializableAgentMessage =
   | { role: "system"; content: string; tag?: AgentMessageTag }
   | {
-    role: "user" | "assistant";
-    content: Array<Record<string, unknown>>;
-    id?: string | null;
-    tag?: AgentMessageTag;
-  };
+      role: "user" | "assistant";
+      content: Array<Record<string, unknown>>;
+      id?: string | null;
+      tag?: AgentMessageTag;
+    };
 
 export interface Conversation {
   id: string;
@@ -245,7 +240,13 @@ export interface CheckpointMessage {
 export interface CheckpointData {
   messages: CheckpointMessage[];
   file_change_ids: string[];
-  phase: "before_completion" | "interrupted" | "final_completed" | "final_cancelled" | "final_failed" | null;
+  phase:
+    | "before_completion"
+    | "interrupted"
+    | "final_completed"
+    | "final_cancelled"
+    | "final_failed"
+    | null;
   flow?: {
     kind: "goal" | "graph";
     state: Record<string, unknown>;
@@ -275,9 +276,7 @@ export interface WorkspaceContext {
   path: string | null;
   git_branch: string | null;
   has_agent_dir: boolean;
-  environment:
-    | { kind: "local" }
-    | { kind: "wsl"; distribution: string; linux_path: string };
+  environment: { kind: "local" } | { kind: "wsl"; distribution: string; linux_path: string };
 }
 
 export interface WslDistribution {
@@ -314,9 +313,30 @@ export interface AgentRole {
 // ─── ask_user interactive tool ────────────────────────────────────────────────
 
 export type AskUserField =
-  | { type: "text"; name: string; label: string; placeholder?: string; default?: string; required?: boolean }
-  | { type: "textarea"; name: string; label: string; placeholder?: string; default?: string; required?: boolean }
-  | { type: "select"; name: string; label: string; options: string[]; default?: string; required?: boolean }
+  | {
+      type: "text";
+      name: string;
+      label: string;
+      placeholder?: string;
+      default?: string;
+      required?: boolean;
+    }
+  | {
+      type: "textarea";
+      name: string;
+      label: string;
+      placeholder?: string;
+      default?: string;
+      required?: boolean;
+    }
+  | {
+      type: "select";
+      name: string;
+      label: string;
+      options: string[];
+      default?: string;
+      required?: boolean;
+    }
   | { type: "checkbox"; name: string; label: string; default?: boolean }
   | { type: "checkbox_group"; name: string; label: string; options: string[]; default?: string[] }
   | { type: "date"; name: string; label: string; default?: string; required?: boolean }

@@ -9,11 +9,7 @@ const ZERO_SHA = /^0+$/;
  * @param {string[]} entries
  */
 function matchesPath(file, entries) {
-  return entries.some((entry) => (
-    entry.endsWith("/")
-      ? file.startsWith(entry)
-      : file === entry
-  ));
+  return entries.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) : file === entry));
 }
 
 /**
@@ -31,9 +27,10 @@ export function classifyChangedModules(files, forceAll = false) {
     "src-tauri/Cargo.lock",
     "CHANGELOG.md",
   ]);
-  const releaseOnly = normalized.includes(".github/release.json")
-    && normalized.length > 0
-    && normalized.every((file) => releaseFiles.has(file));
+  const releaseOnly =
+    normalized.includes(".github/release.json") &&
+    normalized.length > 0 &&
+    normalized.every((file) => releaseFiles.has(file));
 
   if (!all && releaseOnly) {
     return {
@@ -43,34 +40,40 @@ export function classifyChangedModules(files, forceAll = false) {
     };
   }
 
-  const automation = all || normalized.some((file) => matchesPath(file, [
-    ".github/",
-    "scripts/",
-    "docs/release.md",
-    "package.json",
-    "bun.lock",
-  ]));
+  const automation =
+    all ||
+    normalized.some((file) =>
+      matchesPath(file, [".github/", "scripts/", "docs/release.md", "package.json", "bun.lock"]),
+    );
 
-  const frontend = all || normalized.some((file) => matchesPath(file, [
-    ".github/workflows/check-frontend.yml",
-    "src/",
-    "static/",
-    "tests/",
-    "package.json",
-    "bun.lock",
-    "svelte.config.js",
-    "tsconfig.json",
-    "vite.config.js",
-    "sdk",
-  ]));
+  const frontend =
+    all ||
+    normalized.some((file) =>
+      matchesPath(file, [
+        ".github/workflows/check-frontend.yml",
+        "src/",
+        "static/",
+        "tests/",
+        "package.json",
+        "bun.lock",
+        "svelte.config.js",
+        "tsconfig.json",
+        "vite.config.js",
+        "sdk",
+      ]),
+    );
 
-  const native = all || normalized.some((file) => matchesPath(file, [
-    ".github/workflows/check-native.yml",
-    "src-tauri/",
-    "package.json",
-    "bun.lock",
-    "sdk",
-  ]));
+  const native =
+    all ||
+    normalized.some((file) =>
+      matchesPath(file, [
+        ".github/workflows/check-native.yml",
+        "src-tauri/",
+        "package.json",
+        "bun.lock",
+        "sdk",
+      ]),
+    );
 
   return { automation, frontend, native };
 }
@@ -81,11 +84,9 @@ export function classifyChangedModules(files, forceAll = false) {
  * @returns {string[]}
  */
 function changedFiles(baseSha, headSha) {
-  return execFileSync(
-    "git",
-    ["diff", "--name-only", "--diff-filter=ACMRT", baseSha, headSha],
-    { encoding: "utf8" },
-  )
+  return execFileSync("git", ["diff", "--name-only", "--diff-filter=ACMRT", baseSha, headSha], {
+    encoding: "utf8",
+  })
     .split(/\r?\n/)
     .map((file) => file.trim())
     .filter(Boolean);
@@ -94,9 +95,7 @@ function changedFiles(baseSha, headSha) {
 function main() {
   const baseSha = process.env.CI_BASE_SHA?.trim() ?? "";
   const headSha = process.env.CI_HEAD_SHA?.trim() || "HEAD";
-  const forceAll = process.env.CI_FORCE_ALL === "true"
-    || !baseSha
-    || ZERO_SHA.test(baseSha);
+  const forceAll = process.env.CI_FORCE_ALL === "true" || !baseSha || ZERO_SHA.test(baseSha);
 
   /** @type {string[]} */
   let files = [];

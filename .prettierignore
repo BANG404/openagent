@@ -1,0 +1,9 @@
+.svelte-kit/
+build/
+dist/
+dist-pages/
+node_modules/
+sdk/
+src-tauri/
+CHANGELOG.md
+bun.lock

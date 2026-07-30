@@ -1,10 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import {
-  getMsiVersion,
-  getNextBetaNumber,
-  getNextReleaseVersion,
-} from "./release-version.mjs";
+import { getMsiVersion, getNextBetaNumber, getNextReleaseVersion } from "./release-version.mjs";
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
@@ -186,12 +182,13 @@ function getNextRelease(currentVersion, bump, channel, migrateLegacyBetaVersion 
   const initial = getNextReleaseVersion(currentVersion, bump, channel, {
     migrateLegacyBetaVersion,
   });
-  const version = channel === "beta"
-    ? getNextReleaseVersion(currentVersion, bump, channel, {
-        betaNumber: getNextPrereleaseNumber(initial.baseVersion, "beta", currentVersion),
-        migrateLegacyBetaVersion,
-      }).version
-    : initial.version;
+  const version =
+    channel === "beta"
+      ? getNextReleaseVersion(currentVersion, bump, channel, {
+          betaNumber: getNextPrereleaseNumber(initial.baseVersion, "beta", currentVersion),
+          migrateLegacyBetaVersion,
+        }).version
+      : initial.version;
   return { version, tag: `v${version}`, promotion: initial.promotion };
 }
 
@@ -282,7 +279,9 @@ function assertTauriConfigChange() {
   current.bundle.windows.wix.version = previous.bundle.windows.wix.version;
   current.plugins.updater.endpoints = previous.plugins.updater.endpoints;
   if (JSON.stringify(current) !== JSON.stringify(previous)) {
-    throw new Error(`${file} contains changes outside version, MSI version, and updater endpoints.`);
+    throw new Error(
+      `${file} contains changes outside version, MSI version, and updater endpoints.`,
+    );
   }
 }
 
@@ -291,9 +290,7 @@ function cargoPackageVersion(content) {
 }
 
 function lockfilePackageVersion(content) {
-  return content.match(
-    /\[\[package\]\]\r?\nname = "openagent"\r?\nversion = "([^"]+)"/,
-  )?.[1] ?? "";
+  return content.match(/\[\[package\]\]\r?\nname = "openagent"\r?\nversion = "([^"]+)"/)?.[1] ?? "";
 }
 
 function assertOnlyVersionChanged(file, versionPattern, normalizeVersion) {
@@ -323,8 +320,8 @@ function verifyChangelog(version) {
   const previousPrefix = previous.slice(0, previousRelease).trimEnd();
   const previousHistory = previous.slice(previousRelease);
   if (
-    !current.startsWith(`${previousPrefix}\n\n## [${version}]`)
-    || !current.endsWith(previousHistory)
+    !current.startsWith(`${previousPrefix}\n\n## [${version}]`) ||
+    !current.endsWith(previousHistory)
   ) {
     throw new Error("CHANGELOG.md must prepend one release section without editing history.");
   }
@@ -346,9 +343,7 @@ function verifyPendingRelease() {
     throw new Error(`Release channel ${manifest.channel} does not match ${manifest.version}.`);
   }
 
-  const changed = git(["diff", "--name-only", "HEAD^", "HEAD"])
-    .split(/\r?\n/)
-    .filter(Boolean);
+  const changed = git(["diff", "--name-only", "HEAD^", "HEAD"]).split(/\r?\n/).filter(Boolean);
   const unexpected = changed.filter((file) => !releaseFiles.includes(file));
   const missing = releaseFiles.filter((file) => !changed.includes(file));
   if (unexpected.length || missing.length) {
@@ -356,21 +351,19 @@ function verifyPendingRelease() {
       [
         unexpected.length ? `Unexpected release files: ${unexpected.join(", ")}` : "",
         missing.length ? `Missing release files: ${missing.join(", ")}` : "",
-      ].filter(Boolean).join("\n"),
+      ]
+        .filter(Boolean)
+        .join("\n"),
     );
   }
 
   assertSameJsonExcept("package.json", ["version"]);
   assertTauriConfigChange();
-  assertOnlyVersionChanged(
-    "src-tauri/Cargo.toml",
-    cargoPackageVersion,
-    (content, version) => content.replace(/^version = ".+"$/m, `version = "${version}"`),
+  assertOnlyVersionChanged("src-tauri/Cargo.toml", cargoPackageVersion, (content, version) =>
+    content.replace(/^version = ".+"$/m, `version = "${version}"`),
   );
-  assertOnlyVersionChanged(
-    "src-tauri/Cargo.lock",
-    lockfilePackageVersion,
-    (content, version) => content.replace(
+  assertOnlyVersionChanged("src-tauri/Cargo.lock", lockfilePackageVersion, (content, version) =>
+    content.replace(
       /(\[\[package\]\]\r?\nname = "openagent"\r?\nversion = )".+?"/,
       `$1"${version}"`,
     ),
@@ -400,9 +393,10 @@ function verifyPendingRelease() {
     );
   }
 
-  const expectedEndpoint = manifest.channel === "beta"
-    ? "https://github.com/BANG404/openagent/releases/download/beta/latest.json"
-    : "https://github.com/BANG404/openagent/releases/latest/download/latest.json";
+  const expectedEndpoint =
+    manifest.channel === "beta"
+      ? "https://github.com/BANG404/openagent/releases/download/beta/latest.json"
+      : "https://github.com/BANG404/openagent/releases/latest/download/latest.json";
   const endpoints = tauriConfig.plugins?.updater?.endpoints;
   if (JSON.stringify(endpoints) !== JSON.stringify([expectedEndpoint])) {
     throw new Error(`Updater endpoint does not match the ${manifest.channel} channel.`);
@@ -539,8 +533,7 @@ function main() {
     );
   }
   const latest = parseSemver(latestVersion);
-  const collidingStableTag =
-    Boolean(latest.prereleaseChannel) && tagExists(`v${latest.base}`);
+  const collidingStableTag = Boolean(latest.prereleaseChannel) && tagExists(`v${latest.base}`);
   const releaseBaseTag = collidingStableTag ? `v${latest.base}` : lastTag;
   const releaseBaseVersion = collidingStableTag ? latest.base : latestVersion;
   if (collidingStableTag) {
@@ -554,15 +547,13 @@ function main() {
     .filter(Boolean);
   const bump = determineBump(commits);
   const current = parseSemver(releaseBaseVersion);
-  const promotion =
-    channel === "stable" && Boolean(current.prereleaseChannel) && bump === "none";
+  const promotion = channel === "stable" && Boolean(current.prereleaseChannel) && bump === "none";
   const betaIncrement =
     channel === "beta" && current.prereleaseChannel === "beta" && bump === "none";
   // Older Beta bundles used the base version in Tauri, so 0.24.0-beta.7
   // would compare lower than an installed 0.24.0. Move the next Beta to the
   // following patch line once; later releases retain the full Beta version.
-  const migrateLegacyBetaVersion =
-    betaIncrement && currentTauriVersion === current.base;
+  const migrateLegacyBetaVersion = betaIncrement && currentTauriVersion === current.base;
 
   if (bump === "none" && !promotion && !betaIncrement) {
     console.log("No release-worthy Conventional Commits found.");

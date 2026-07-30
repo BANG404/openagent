@@ -39,7 +39,7 @@
     const normalized = query.trim().toLocaleLowerCase();
     if (!normalized) return roles;
     return roles.filter((role) =>
-      `${role.name}\n${role.description}`.toLocaleLowerCase().includes(normalized)
+      `${role.name}\n${role.description}`.toLocaleLowerCase().includes(normalized),
     );
   });
 
@@ -105,9 +105,10 @@
         description: description.trim(),
       });
       const existingIndex = roles.findIndex((role) => role.id === saved.id);
-      roles = existingIndex >= 0
-        ? roles.map((role) => role.id === saved.id ? saved : role)
-        : [saved, ...roles];
+      roles =
+        existingIndex >= 0
+          ? roles.map((role) => (role.id === saved.id ? saved : role))
+          : [saved, ...roles];
       selectedRole = saved;
       editingNew = false;
       name = saved.name;
@@ -157,7 +158,11 @@
   <header class="roles-header" data-tauri-drag-region>
     <div class="header-leading">
       <span class="roles-header-title">{$t("rolesTitle")}</span>
-      <ScopeToggle value={activeScope} projectEnabled={Boolean(workspace?.path)} onChange={switchScope} />
+      <ScopeToggle
+        value={activeScope}
+        projectEnabled={Boolean(workspace?.path)}
+        onChange={switchScope}
+      />
     </div>
     <WindowControls onMinimize={winMinimize} onMaximize={winMaximize} onClose={winClose} />
   </header>
@@ -166,7 +171,13 @@
     <aside class="role-list-column">
       <div class="role-search-wrap">
         <label class="search-box">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          >
             <circle cx="7" cy="7" r="4.5" />
             <path d="m10.5 10.5 3 3" />
           </svg>
@@ -194,7 +205,9 @@
               class:active={selectedRole?.id === role.id}
               onclick={() => selectRole(role)}
             >
-              <span class="role-avatar" aria-hidden="true">{role.name.slice(0, 1).toLocaleUpperCase()}</span>
+              <span class="role-avatar" aria-hidden="true"
+                >{role.name.slice(0, 1).toLocaleUpperCase()}</span
+              >
               <span class="role-item-copy">
                 <strong>{role.name}</strong>
                 <small>{role.description}</small>
@@ -206,7 +219,13 @@
 
       <div class="role-list-footer">
         <button class="new-role-button" onclick={startNewRole}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          >
             <path d="M8 3v10M3 8h10" />
           </svg>
           {$t("newRole")}
@@ -230,15 +249,19 @@
         <div class="editor-form">
           <div class="form-field">
             <label for="role-name">{$t("roleName")}</label>
-            <input id="role-name" bind:value={name} maxlength="120" placeholder={$t("roleNamePlaceholder")} />
+            <input
+              id="role-name"
+              bind:value={name}
+              maxlength="120"
+              placeholder={$t("roleNamePlaceholder")}
+            />
           </div>
           <div class="form-field description-field">
             <label for="role-description">{$t("roleDescription")}</label>
             <textarea
               id="role-description"
               bind:value={description}
-              placeholder={$t("roleDescriptionPlaceholder")}
-            ></textarea>
+              placeholder={$t("roleDescriptionPlaceholder")}></textarea>
             <p>{$t("roleDescriptionHint")}</p>
           </div>
 
@@ -248,7 +271,9 @@
                 {$t("deleteRole")}
               </button>
             {/if}
-            <span class:save-error={saveMessage && saveMessage !== $t("roleSaved")}>{saveMessage}</span>
+            <span class:save-error={saveMessage && saveMessage !== $t("roleSaved")}
+              >{saveMessage}</span
+            >
             <button
               class="save-button"
               disabled={!name.trim() || !description.trim() || saving}
@@ -260,7 +285,14 @@
         </div>
       {:else}
         <div class="editor-placeholder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <circle cx="12" cy="7" r="3.5" />
             <path d="M5.5 20c.5-4 2.6-6 6.5-6s6 2 6.5 6" />
           </svg>

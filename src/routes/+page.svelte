@@ -5,6 +5,12 @@
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { onMount, tick } from "svelte";
   import type { Component } from "svelte";
+
+  // Lazy-loaded feature views expose different prop contracts; each render site
+  // below remains checked against the concrete component after loading.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type LazyViewComponent = Component<any>;
+
   import WindowControls from "$lib/components/WindowControls.svelte";
   import Tooltip from "$lib/components/Tooltip.svelte";
   import Toast from "$lib/components/Toast.svelte";
@@ -43,8 +49,8 @@
   import OnboardingFlow from "$lib/components/OnboardingFlow.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
   import ChatQueue from "$lib/components/ChatQueue.svelte";
-import MessageList from "$lib/components/MessageList.svelte";
-import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
+  import MessageList from "$lib/components/MessageList.svelte";
+  import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
@@ -90,11 +96,8 @@ import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
     Conversation,
     WorkspaceContext,
     AppConfig,
-    ToolCallRecord,
     StreamItem,
-    ConversationMeta,
     ConversationPageCursor,
-    CheckpointMeta,
     FileChange,
     RecentWorkspace,
     UserInputRequest,
@@ -152,37 +155,35 @@ import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   }
 
   // ─── State ────────────────────────────────────────────────────────────────────
-const startupRestoreHint = readStartupRestoreHint();
-let conversations = $state<Conversation[]>([]);
-let conversationNextCursor = $state<ConversationPageCursor | null>(null);
-let loadingMoreConversations = $state(false);
-let searchConversations = $state<Conversation[]>([]);
-let searchConversationNextCursor = $state<ConversationPageCursor | null>(null);
-let loadingMoreSearchConversations = $state(false);
-let conversationSearchGeneration = 0;
-let conversationSearchTimer: ReturnType<typeof setTimeout> | null = null;
-let activeConvId = $state<string | null>(startupRestoreHint?.conversationId ?? null);
-const defaultRoleKey = "openagent";
-let agentRoles = $state<AgentRole[]>([]);
-let selectedRoleKey = $state(defaultRoleKey);
-let selectedRoleId = $derived(selectedRoleKey === defaultRoleKey ? null : selectedRoleKey);
-let initialLoading = $state(true);
-let workspaceLoading = $state(false);
-let loadingConversationIds = $state<Record<string, boolean>>({});
-let restoringSurface = $state<CachedRestoreSurface>(
-  startupRestoreHint?.surface ?? "new-conversation",
-);
-let agentCommandSpecs = $state<AgentCommandSpec[]>([]);
-let mainContentLoading = $derived(
-  initialLoading
-    || workspaceLoading
-    || Boolean(activeConvId && loadingConversationIds[activeConvId]),
-);
-let newConversationLayout = $derived(
-  mainContentLoading
-    ? restoringSurface === "new-conversation"
-    : activeConvId === null,
-);
+  const startupRestoreHint = readStartupRestoreHint();
+  let conversations = $state<Conversation[]>([]);
+  let conversationNextCursor = $state<ConversationPageCursor | null>(null);
+  let loadingMoreConversations = $state(false);
+  let searchConversations = $state<Conversation[]>([]);
+  let searchConversationNextCursor = $state<ConversationPageCursor | null>(null);
+  let loadingMoreSearchConversations = $state(false);
+  let conversationSearchGeneration = 0;
+  let conversationSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  let activeConvId = $state<string | null>(startupRestoreHint?.conversationId ?? null);
+  const defaultRoleKey = "openagent";
+  let agentRoles = $state<AgentRole[]>([]);
+  let selectedRoleKey = $state(defaultRoleKey);
+  let selectedRoleId = $derived(selectedRoleKey === defaultRoleKey ? null : selectedRoleKey);
+  let initialLoading = $state(true);
+  let workspaceLoading = $state(false);
+  let loadingConversationIds = $state<Record<string, boolean>>({});
+  let restoringSurface = $state<CachedRestoreSurface>(
+    startupRestoreHint?.surface ?? "new-conversation",
+  );
+  let agentCommandSpecs = $state<AgentCommandSpec[]>([]);
+  let mainContentLoading = $derived(
+    initialLoading ||
+      workspaceLoading ||
+      Boolean(activeConvId && loadingConversationIds[activeConvId]),
+  );
+  let newConversationLayout = $derived(
+    mainContentLoading ? restoringSurface === "new-conversation" : activeConvId === null,
+  );
   let conversationSearchQuery = $state("");
   let sidebarConversations = $derived.by(() => {
     const source = conversationSearchQuery.trim() ? searchConversations : conversations;
@@ -207,14 +208,12 @@ let newConversationLayout = $derived(
       : conversationNextCursor !== null,
   );
   let sidebarLoadingMoreConversations = $derived(
-    conversationSearchQuery.trim()
-      ? loadingMoreSearchConversations
-      : loadingMoreConversations,
+    conversationSearchQuery.trim() ? loadingMoreSearchConversations : loadingMoreConversations,
   );
   const sidebarCollapsedStorageKey = "openagent.sidebar.collapsed";
   let sidebarCollapsed = $state(
-    typeof window !== "undefined"
-      && window.localStorage.getItem(sidebarCollapsedStorageKey) === "true",
+    typeof window !== "undefined" &&
+      window.localStorage.getItem(sidebarCollapsedStorageKey) === "true",
   );
   // Per-conversation streaming state — keyed by conv_id
   let streamingConvIds = $state<Record<string, boolean>>({});
@@ -247,18 +246,29 @@ let newConversationLayout = $derived(
   let isMemorySyncing = $state(false);
   let settingsOpen = $state(false);
   let onboardingOpen = $state(false);
-  let settingsInitialNav = $state<"general" | "providers" | "defaults" | "agents" | "memory" | "websearch" | "hooks" | "extensions" | "about" | undefined>(undefined);
+  let settingsInitialNav = $state<
+    | "general"
+    | "providers"
+    | "defaults"
+    | "agents"
+    | "memory"
+    | "websearch"
+    | "hooks"
+    | "extensions"
+    | "about"
+    | undefined
+  >(undefined);
   let designOpen = $state(false);
   let draftsOpen = $state(false);
   let memoryOpen = $state(false);
   let rolesOpen = $state(false);
   let skillsOpen = $state(false);
-  let SettingsView = $state<Component<any> | null>(null);
-  let DesignView = $state<Component<any> | null>(null);
-  let DraftsView = $state<Component<any> | null>(null);
-  let MemoryView = $state<Component<any> | null>(null);
-  let RolesView = $state<Component<any> | null>(null);
-  let SkillsView = $state<Component<any> | null>(null);
+  let SettingsView = $state<LazyViewComponent | null>(null);
+  let DesignView = $state<LazyViewComponent | null>(null);
+  let DraftsView = $state<LazyViewComponent | null>(null);
+  let MemoryView = $state<LazyViewComponent | null>(null);
+  let RolesView = $state<LazyViewComponent | null>(null);
+  let SkillsView = $state<LazyViewComponent | null>(null);
   let workspacePath = $state("");
   let recentWorkspaces = $state<RecentWorkspace[]>([]);
   let pendingWorkspacePath = $state<string | null>(null);
@@ -284,7 +294,7 @@ let newConversationLayout = $derived(
       workspacePath,
       config?.language ?? "zh",
       newConversationGeneratedReminder,
-    )
+    ),
   );
 
   // ─── Branch / Re-execute state ────────────────────────────────────────────────
@@ -314,7 +324,8 @@ let newConversationLayout = $derived(
   let streamCompletionTailAnchor = $state<{ convId: string; token: number } | null>(null);
   let streamCompletionTailAnchorSequence = 0;
   const tauriAvailable = isTauri();
-  const browserModeNotice = "Desktop features require the Tauri runtime. Start this app with `bun tauri dev`, not `bun run dev`.";
+  const browserModeNotice =
+    "Desktop features require the Tauri runtime. Start this app with `bun tauri dev`, not `bun run dev`.";
   const fallbackConfig: AppConfig = {
     providers: [],
     defaults: {
@@ -370,9 +381,7 @@ let newConversationLayout = $derived(
   };
 
   // Single source of truth: messages are derived from conversations[]
-  let messages = $derived(
-    conversations.find((c) => c.id === activeConvId)?.messages ?? []
-  );
+  let messages = $derived(conversations.find((c) => c.id === activeConvId)?.messages ?? []);
 
   let inputText = $state("");
   let inputAttachments = $state<ChatAttachment[]>([]);
@@ -454,8 +463,8 @@ let newConversationLayout = $derived(
     const binding = parseModelKey(value);
     if (!binding || !config) return;
     if (
-      config.defaults.chat_model.provider_id === binding.providerId
-      && config.defaults.chat_model.model === binding.model
+      config.defaults.chat_model.provider_id === binding.providerId &&
+      config.defaults.chat_model.model === binding.model
     ) {
       return;
     }
@@ -523,23 +532,28 @@ let newConversationLayout = $derived(
   let currentFileChanges = $derived.by(() => {
     const persisted = activeConvId ? (fileChangesPerConv[activeConvId] ?? []) : [];
     const live = activeConvId ? (liveFileChangesPerConv[activeConvId] ?? []) : [];
-    const all = [...persisted, ...live.filter((change) => !persisted.some((saved) => saved.id === change.id))];
+    const all = [
+      ...persisted,
+      ...live.filter((change) => !persisted.some((saved) => saved.id === change.id)),
+    ];
     // Restrict to checkpoints that belong to the currently active branch tail.
     // Without this filter, file changes from sibling branches would leak into the banner.
     // A self-contained tip snapshot assigns its display records to the tip.
     // File changes still belong to every checkpoint on the selected branch,
     // so derive that set from the tree rather than rendered message IDs.
-    const activeCheckpoints = activeConvId && convTrees[activeConvId]
-      ? ckIdsAlongActivePath(convTrees[activeConvId])
-      : new Set(
-        messages
-          .filter((m) => m.role === "assistant" && m.checkpointId)
-          .map((m) => m.checkpointId!),
-      );
+    const activeCheckpoints =
+      activeConvId && convTrees[activeConvId]
+        ? ckIdsAlongActivePath(convTrees[activeConvId])
+        : new Set(
+            messages
+              .filter((m) => m.role === "assistant" && m.checkpointId)
+              .map((m) => m.checkpointId!),
+          );
     const liveChangeIds = new Set(live.map((change) => change.id));
-    const branchScoped = activeCheckpoints.size === 0 && !isCurrentStreaming
-      ? all
-      : all.filter((c) => activeCheckpoints.has(c.checkpoint_id) || liveChangeIds.has(c.id));
+    const branchScoped =
+      activeCheckpoints.size === 0 && !isCurrentStreaming
+        ? all
+        : all.filter((c) => activeCheckpoints.has(c.checkpoint_id) || liveChangeIds.has(c.id));
     // Deduplicate per path: prefer "new file" (old_patch===null) over edits;
     // among multiple edits for the same path keep only the latest.
     const byPath = new Map<string, FileChange>();
@@ -550,7 +564,10 @@ let newConversationLayout = $derived(
       } else if (existing.old_patch !== null && c.old_patch === null) {
         byPath.set(c.path, c);
       } else if (existing.old_patch !== null && c.old_patch !== null) {
-        if (c.created_at > existing.created_at || (c.created_at === existing.created_at && c.seq > existing.seq)) {
+        if (
+          c.created_at > existing.created_at ||
+          (c.created_at === existing.created_at && c.seq > existing.seq)
+        ) {
           byPath.set(c.path, c);
         }
       }
@@ -558,17 +575,15 @@ let newConversationLayout = $derived(
     return Array.from(byPath.values());
   });
 
-  async function loadMessagesForConv(
-    convId: string,
-    showLoadingState = true,
-  ): Promise<void> {
+  async function loadMessagesForConv(convId: string, showLoadingState = true): Promise<void> {
     if (loadedConvIds.has(convId)) return;
     loadedConvIds.add(convId);
     if (!tauriAvailable) return;
     const messageIdsAtStart = showLoadingState
       ? undefined
       : new Set(
-          conversations.find((conversation) => conversation.id === convId)
+          conversations
+            .find((conversation) => conversation.id === convId)
             ?.messages.map((message) => message.id) ?? [],
         );
     if (showLoadingState) {
@@ -578,7 +593,9 @@ let newConversationLayout = $derived(
       const [checkpoints, savedTip, branches] = await Promise.all([
         fetchRenderableCheckpoints(convId),
         invoke<string | null>("get_active_branch_tip", { convId }).catch(() => null),
-        invoke<Array<{ id: string; head_checkpoint_id: string | null }>>("get_branches", { convId }).catch(() => []),
+        invoke<Array<{ id: string; head_checkpoint_id: string | null }>>("get_branches", {
+          convId,
+        }).catch(() => []),
       ]);
       await hydrateConversation(
         convId,
@@ -640,13 +657,17 @@ let newConversationLayout = $derived(
       // A normal completed turn is already represented by the client-side
       // stream finalizer. Keep those message instances when only checkpoint
       // metadata changed so the visible transcript does not remount.
-      const sameVisibleStructure = visible.length === msgs.length && visible.every((message, index) => {
-        const restored = msgs[index];
-        return message.id === restored.id
-          && message.role === restored.role
-          && message.content === restored.content
-          && isCompactionBoundary(message) === isCompactionBoundary(restored);
-      });
+      const sameVisibleStructure =
+        visible.length === msgs.length &&
+        visible.every((message, index) => {
+          const restored = msgs[index];
+          return (
+            message.id === restored.id &&
+            message.role === restored.role &&
+            message.content === restored.content &&
+            isCompactionBoundary(message) === isCompactionBoundary(restored)
+          );
+        });
 
       conversations[idx] = sameVisibleStructure
         ? {
@@ -677,9 +698,9 @@ let newConversationLayout = $derived(
     messages: ChatMessage[],
     checkpoints: Awaited<ReturnType<typeof fetchRenderableCheckpoints>>,
   ): ChatMessage[] {
-    const assistant = [...messages].reverse().find((message) =>
-      message.role === "assistant" && message.checkpointId,
-    );
+    const assistant = [...messages]
+      .reverse()
+      .find((message) => message.role === "assistant" && message.checkpointId);
     if (!assistant?.checkpointId) return messages;
 
     const checkpoint = checkpoints.find(
@@ -699,13 +720,18 @@ let newConversationLayout = $derived(
       let matched = false;
       restored = restored.map((message) => {
         const items = message.items;
-        if (!items?.some((item) => item.type === "tool_call" && item.toolUseId === request.request_id)) {
+        if (
+          !items?.some((item) => item.type === "tool_call" && item.toolUseId === request.request_id)
+        ) {
           return message;
         }
         matched = true;
-        const withoutAskUserCard = request.kind === "ask_user"
-          ? items.filter((item) => item.type !== "tool_call" || item.toolUseId !== request.request_id)
-          : items;
+        const withoutAskUserCard =
+          request.kind === "ask_user"
+            ? items.filter(
+                (item) => item.type !== "tool_call" || item.toolUseId !== request.request_id,
+              )
+            : items;
         return { ...message, items: appendUserInput(withoutAskUserCard, request) };
       });
       // A legacy checkpoint can lack the provider ID on an ask_user card. Its
@@ -742,48 +768,50 @@ let newConversationLayout = $derived(
     const pending = checkpoint.data.messages
       .filter((message) => message.role === "assistant")
       .flatMap((message) => message.content)
-      .filter((content) => (
-        content.type === "tool_use"
-        && !resolved.has(String(content.id))
-      ));
+      .filter((content) => content.type === "tool_use" && !resolved.has(String(content.id)));
     return pending.flatMap((content) => {
       const toolUse = content as { id: string; name: string; input?: unknown };
       if (toolUse.name === "ask_user") {
         const request = askUserRequestFromToolUse(toolUse as Record<string, unknown>, convId);
         return request ? [request] : [];
       }
-      return [{
-        request_id: toolUse.id,
-        conv_id: convId,
-        kind: "tool_approval" as const,
-        title: "Approve tool call",
-        description: `Review the exact tool call before allowing it:\n\n${toolUse.name}\n${JSON.stringify(toolUse.input, null, 2)}`,
-        fields: [{ type: "confirm" as const, name: "approved", label: "Approve this tool call once", default: false }],
-        submit_label: "Approve and continue",
-        cancel_label: "Deny",
-      }];
+      return [
+        {
+          request_id: toolUse.id,
+          conv_id: convId,
+          kind: "tool_approval" as const,
+          title: "Approve tool call",
+          description: `Review the exact tool call before allowing it:\n\n${toolUse.name}\n${JSON.stringify(toolUse.input, null, 2)}`,
+          fields: [
+            {
+              type: "confirm" as const,
+              name: "approved",
+              label: "Approve this tool call once",
+              default: false,
+            },
+          ],
+          submit_label: "Approve and continue",
+          cancel_label: "Deny",
+        },
+      ];
     });
   }
 
   /** Attach a follow-up approval to the already-finalized interrupted turn.
    * Intermediate approvals do not re-emit their ToolCall, so restricting the
    * event to `convStreamItems` loses the next form until a full refresh. */
-  function attachPendingUserInputToMessages(
-    convId: string,
-    request: UserInputRequest,
-  ): boolean {
+  function attachPendingUserInputToMessages(convId: string, request: UserInputRequest): boolean {
     const convIdx = conversations.findIndex((conversation) => conversation.id === convId);
     if (convIdx === -1) return false;
     const conv = conversations[convIdx];
     let matched = false;
     const messages = conv.messages.map((message) => {
       if (message.role !== "assistant" || !message.items) return message;
-      const ownsRequest = message.items.some((item) =>
-        item.type === "tool_call"
-        && (
-          item.toolUseId === request.request_id
-          || item.approval?.request.request_id === request.request_id
-        ),
+      const ownsRequest = message.items.some(
+        (item) =>
+          item.type === "tool_call" &&
+          (item.toolUseId === request.request_id ||
+            item.approval?.request.request_id === request.request_id),
       );
       if (!ownsRequest) return message;
       matched = true;
@@ -795,7 +823,10 @@ let newConversationLayout = $derived(
     return matched;
   }
 
-  async function syncAgentHistoryToActivePath(convId: string, tree = convTrees[convId]): Promise<void> {
+  async function syncAgentHistoryToActivePath(
+    convId: string,
+    tree = convTrees[convId],
+  ): Promise<void> {
     if (!tauriAvailable) return;
     const path = tree ? computeActivePath(tree) : [];
     const tipCheckpoint = [...path]
@@ -817,10 +848,15 @@ let newConversationLayout = $derived(
       return activeBranchIds[convId];
     }
     if (forkedFromCheckpointId === undefined) {
-      const branches = await invoke<Array<{ id: string; head_checkpoint_id: string | null }>>("get_branches", { convId }).catch(() => []);
+      const branches = await invoke<Array<{ id: string; head_checkpoint_id: string | null }>>(
+        "get_branches",
+        { convId },
+      ).catch(() => []);
       const tip = [...(convTrees[convId] ? computeActivePath(convTrees[convId]) : [])]
-        .reverse().find((message) => message.role === "assistant" && message.checkpointId)?.checkpointId;
-      const existing = branches.find((branch) => branch.head_checkpoint_id === tip) ?? branches.at(-1);
+        .reverse()
+        .find((message) => message.role === "assistant" && message.checkpointId)?.checkpointId;
+      const existing =
+        branches.find((branch) => branch.head_checkpoint_id === tip) ?? branches.at(-1);
       if (existing) {
         activeBranchIds = { ...activeBranchIds, [convId]: existing.id };
         return existing.id;
@@ -852,9 +888,7 @@ let newConversationLayout = $derived(
 
   function clearLiveFileChanges(convId: string, changeIds?: Set<string>) {
     const current = liveFileChangesPerConv[convId] ?? [];
-    const remaining = changeIds
-      ? current.filter((change) => !changeIds.has(change.id))
-      : [];
+    const remaining = changeIds ? current.filter((change) => !changeIds.has(change.id)) : [];
     if (remaining.length > 0) {
       liveFileChangesPerConv = { ...liveFileChangesPerConv, [convId]: remaining };
       return;
@@ -865,8 +899,8 @@ let newConversationLayout = $derived(
 
   function clearPendingInput(convId: string, requestId?: string) {
     if (
-      convId in pendingUserInputs
-      && (!requestId || pendingUserInputs[convId]?.request_id === requestId)
+      convId in pendingUserInputs &&
+      (!requestId || pendingUserInputs[convId]?.request_id === requestId)
     ) {
       const { [convId]: _drop, ...rest } = pendingUserInputs;
       pendingUserInputs = rest;
@@ -965,7 +999,11 @@ let newConversationLayout = $derived(
       const next = { ...msg, items: resolveUserInput(msg.items, requestId, state, response) };
       return next;
     });
-    conversations[convIdx] = { ...conversations[convIdx], messages: updatedMessages, updatedAt: Date.now() };
+    conversations[convIdx] = {
+      ...conversations[convIdx],
+      messages: updatedMessages,
+      updatedAt: Date.now(),
+    };
     const changedMsg = updatedMessages.find((msg) =>
       msg.items?.some((i) => hasInputRequest(i, requestId)),
     );
@@ -973,15 +1011,13 @@ let newConversationLayout = $derived(
   }
 
   function hasInputRequest(item: StreamItem, requestId: string): boolean {
-    return (item.type === "user_input" && item.request.request_id === requestId)
-      || (item.type === "tool_call" && item.approval?.request.request_id === requestId);
+    return (
+      (item.type === "user_input" && item.request.request_id === requestId) ||
+      (item.type === "tool_call" && item.approval?.request.request_id === requestId)
+    );
   }
 
-  function attachApprovedToolResult(
-    convId: string,
-    result: string,
-    toolUseId?: string,
-  ): boolean {
+  function attachApprovedToolResult(convId: string, result: string, toolUseId?: string): boolean {
     const convIdx = conversations.findIndex((c) => c.id === convId);
     if (convIdx === -1) return false;
 
@@ -989,15 +1025,13 @@ let newConversationLayout = $derived(
     for (let messageIndex = conv.messages.length - 1; messageIndex >= 0; messageIndex--) {
       const message = conv.messages[messageIndex];
       if (message.role !== "assistant" || !message.items) continue;
-      const itemIndex = message.items.findIndex((item) =>
-        item.type === "tool_call"
-        && item.result === undefined
-        && (
-          toolUseId
-            ? item.toolUseId === toolUseId
-              || item.approval?.request.request_id === toolUseId
-            : item.approval?.state === "answered"
-        ),
+      const itemIndex = message.items.findIndex(
+        (item) =>
+          item.type === "tool_call" &&
+          item.result === undefined &&
+          (toolUseId
+            ? item.toolUseId === toolUseId || item.approval?.request.request_id === toolUseId
+            : item.approval?.state === "answered"),
       );
       if (itemIndex === -1) continue;
 
@@ -1007,9 +1041,7 @@ let newConversationLayout = $derived(
       items[itemIndex] = {
         ...item,
         result,
-        approval: item.approval
-          ? { ...item.approval, state: "answered" }
-          : item.approval,
+        approval: item.approval ? { ...item.approval, state: "answered" } : item.approval,
       };
       const updated = { ...message, items };
       const messages = [...conv.messages];
@@ -1063,21 +1095,27 @@ let newConversationLayout = $derived(
     }
     const userMsg = conv.messages[userMsgIdx];
     if (!userMsg || userMsg.role !== "user") return;
-    const sourceAttachments = newAttachments ?? (userMsg.items ?? [])
-      .filter((item): item is Extract<StreamItem, { type: "attachment" }> => item.type === "attachment")
-      .map((item) => item.attachment);
+    const sourceAttachments =
+      newAttachments ??
+      (userMsg.items ?? [])
+        .filter(
+          (item): item is Extract<StreamItem, { type: "attachment" }> => item.type === "attachment",
+        )
+        .map((item) => item.attachment);
     const text = (newText ?? userMsg.content).trim();
     if (!text && sourceAttachments.length === 0) return;
     let resendAttachments: ChatAttachment[];
     try {
-      resendAttachments = await Promise.all(sourceAttachments.map(async (attachment) => {
-        if (!attachment.path.startsWith("sha256:")) return attachment;
-        const path = await invoke<string>("materialize_attachment_blob", {
-          blobId: attachment.path,
-          name: attachment.name,
-        });
-        return { ...attachment, path };
-      }));
+      resendAttachments = await Promise.all(
+        sourceAttachments.map(async (attachment) => {
+          if (!attachment.path.startsWith("sha256:")) return attachment;
+          const path = await invoke<string>("materialize_attachment_blob", {
+            blobId: attachment.path,
+            name: attachment.name,
+          });
+          return { ...attachment, path };
+        }),
+      );
     } catch (error) {
       showToast({
         title: $t("attachmentRestoreFailed"),
@@ -1091,10 +1129,7 @@ let newConversationLayout = $derived(
     // even though older messages were introduced by earlier checkpoints. Find
     // the first checkpoint on the selected path that contains this stable user
     // id; its parent is the exact history prefix before the edited turn.
-    const newSiblingParentCk = findForkParentCheckpointId(
-      convTrees[convId],
-      userMsg.id,
-    );
+    const newSiblingParentCk = findForkParentCheckpointId(convTrees[convId], userMsg.id);
     if (newSiblingParentCk === undefined) return;
 
     try {
@@ -1115,7 +1150,11 @@ let newConversationLayout = $derived(
       await invoke("revert_file_change_keep", { changeId: change.id }).catch(() => {});
     }
 
-    conversations[convIdx] = { ...conv, messages: conv.messages.slice(0, userMsgIdx), updatedAt: Date.now() };
+    conversations[convIdx] = {
+      ...conv,
+      messages: conv.messages.slice(0, userMsgIdx),
+      updatedAt: Date.now(),
+    };
 
     // Tell finalize: attach the new turn as a sibling under newSiblingParentCk.
     pendingParentCk = { ...pendingParentCk, [convId]: newSiblingParentCk };
@@ -1141,7 +1180,7 @@ let newConversationLayout = $derived(
     const tree = convTrees[convId];
     if (!tree) return;
     const siblings =
-      parentKey === ROOT_KEY ? tree.rootIds : tree.nodes[parentKey]?.childIds ?? [];
+      parentKey === ROOT_KEY ? tree.rootIds : (tree.nodes[parentKey]?.childIds ?? []);
     const currentIdx = tree.activeChild[parentKey];
     if (targetIdx === currentIdx) return;
     if (targetIdx < 0 || targetIdx >= siblings.length) return;
@@ -1205,7 +1244,10 @@ let newConversationLayout = $derived(
       // branch id are aligned. The resume command uses these values to reject
       // approvals aimed at a different branch.
       await invoke("set_active_branch_tip", { convId, checkpointId: savedTip });
-      const branches = await invoke<Array<{ id: string; head_checkpoint_id: string | null }>>("get_branches", { convId }).catch(() => []);
+      const branches = await invoke<Array<{ id: string; head_checkpoint_id: string | null }>>(
+        "get_branches",
+        { convId },
+      ).catch(() => []);
       const branch = branches.find((item) => item.head_checkpoint_id === savedTip);
       if (branch) activeBranchIds = { ...activeBranchIds, [convId]: branch.id };
     }
@@ -1286,8 +1328,8 @@ let newConversationLayout = $derived(
   async function reloadRoleConversations(preserveConversationId?: string | null): Promise<void> {
     if (!tauriAvailable) return;
     const preserved = preserveConversationId
-      ? conversations.find((conversation) => conversation.id === preserveConversationId)
-        ?? await fetchConversationMeta(preserveConversationId).catch(() => null)
+      ? (conversations.find((conversation) => conversation.id === preserveConversationId) ??
+        (await fetchConversationMeta(preserveConversationId).catch(() => null)))
       : null;
     const page = await fetchConversationPage(
       workspacePath || null,
@@ -1297,9 +1339,10 @@ let newConversationLayout = $derived(
       true,
       selectedRoleId,
     );
-    const current = preserved && !conversations.some((item) => item.id === preserved.id)
-      ? [...conversations, preserved]
-      : conversations;
+    const current =
+      preserved && !conversations.some((item) => item.id === preserved.id)
+        ? [...conversations, preserved]
+        : conversations;
     conversations = mergeConversationMetadata(current, page.conversations);
     conversationNextCursor = page.nextCursor;
   }
@@ -1348,8 +1391,9 @@ let newConversationLayout = $derived(
       lineage.push(current);
       const parentId: string | undefined = current.parentConvId;
       if (!parentId) break;
-      current = conversations.find((conversation) => conversation.id === parentId)
-        ?? await fetchConversationMeta(parentId).catch(() => null);
+      current =
+        conversations.find((conversation) => conversation.id === parentId) ??
+        (await fetchConversationMeta(parentId).catch(() => null));
     }
     conversations = mergeConversationMetadata(conversations, lineage);
   }
@@ -1371,10 +1415,7 @@ let newConversationLayout = $derived(
           selectedRoleId,
         );
         if (generation !== conversationSearchGeneration) return;
-        searchConversations = mergeConversationMetadata(
-          searchConversations,
-          page.conversations,
-        );
+        searchConversations = mergeConversationMetadata(searchConversations, page.conversations);
         searchConversationNextCursor = page.nextCursor;
       } catch {
         // Keep the cursor so the observer can retry when it intersects again.
@@ -1475,38 +1516,36 @@ let newConversationLayout = $derived(
     if (isDevInspectorWindow) return;
     const mountedAt = performance.now();
     let bootstrapReadyAt = mountedAt;
-    let uiReadyAt = mountedAt;
     let startupApplied = false;
     try {
-    // Seed isDarkTheme before settings load so shikiTheme is correct from first render
-    isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      // Seed isDarkTheme before settings load so shikiTheme is correct from first render
+      isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-    if (tauriAvailable) {
-      // Register chat events before bootstrap. If one legacy conversation
-      // cannot be restored, the fallback surface must still receive stream
-      // chunks and terminal events for newly submitted turns.
-      await setupGlobalEventListeners();
-      const bootstrap = await invoke<StartupBootstrap>("get_startup_bootstrap");
-      bootstrapReadyAt = performance.now();
-      await applyStartupBootstrap(bootstrap);
-      startupApplied = true;
-      installDownloadHook();
-      if (launchContext?.conversation_id) {
-        await revealMemorySource(
-          launchContext.conversation_id,
-          launchContext.message_id ?? "",
-        );
+      if (tauriAvailable) {
+        // Register chat events before bootstrap. If one legacy conversation
+        // cannot be restored, the fallback surface must still receive stream
+        // chunks and terminal events for newly submitted turns.
+        await setupGlobalEventListeners();
+        const bootstrap = await invoke<StartupBootstrap>("get_startup_bootstrap");
+        bootstrapReadyAt = performance.now();
+        await applyStartupBootstrap(bootstrap);
+        startupApplied = true;
+        installDownloadHook();
+        if (launchContext?.conversation_id) {
+          await revealMemorySource(launchContext.conversation_id, launchContext.message_id ?? "");
+        }
+      } else {
+        await loadSettings();
+        await loadWorkspace();
+        restoringSurface = "new-conversation";
+        activeConvId = null;
       }
-    } else {
-      await loadSettings();
-      await loadWorkspace();
-      restoringSurface = "new-conversation";
-      activeConvId = null;
-    }
     } catch (error) {
       console.error("Failed to apply startup bootstrap:", error);
       if (tauriAvailable) {
-        launchContext = await invoke<typeof launchContext>("get_workspace_launch_context").catch(() => null);
+        launchContext = await invoke<typeof launchContext>("get_workspace_launch_context").catch(
+          () => null,
+        );
         await loadSettings();
         if (launchContext?.workspace) workspacePath = launchContext.workspace;
         await loadWorkspace();
@@ -1526,12 +1565,14 @@ let newConversationLayout = $derived(
       }
     } finally {
       if (config && !hasCompletedOnboarding()) onboardingOpen = true;
-      uiReadyAt = performance.now();
+      const uiReadyAt = performance.now();
       initialLoading = false;
       await tick();
       if (tauriAvailable) {
         await invoke("reveal_main_window").catch(async () => {
-          await getCurrentWindow().show().catch(() => {});
+          await getCurrentWindow()
+            .show()
+            .catch(() => {});
         });
         const revealedAt = performance.now();
         console.info("[startup] main window revealed", {
@@ -1556,10 +1597,7 @@ let newConversationLayout = $derived(
         void checkForAppUpdate();
       }
       if (!startupApplied && launchContext?.conversation_id) {
-        void openMemorySource(
-          launchContext.conversation_id,
-          launchContext.message_id ?? "",
-        );
+        void openMemorySource(launchContext.conversation_id, launchContext.message_id ?? "");
       }
     }
   });
@@ -1611,19 +1649,28 @@ let newConversationLayout = $derived(
     assistantMessageId: string,
   ): void {
     const index = conversations.findIndex((conversation) => conversation.id === convId);
-    if (index === -1 || conversations[index].messages.some((message) => message.id === userMessage.id)) {
+    if (
+      index === -1 ||
+      conversations[index].messages.some((message) => message.id === userMessage.id)
+    ) {
       return;
     }
     const existing = conversations[index];
-    const assistantIndex = existing.messages.findIndex((message) => message.id === assistantMessageId);
+    const assistantIndex = existing.messages.findIndex(
+      (message) => message.id === assistantMessageId,
+    );
     const messages = [...existing.messages];
     messages.splice(assistantIndex === -1 ? messages.length : assistantIndex, 0, userMessage);
     conversations[index] = { ...existing, messages, updatedAt: Date.now() };
   }
 
-  function startProjectedChatStream(convId: string, assistantMessageId: string, startedAt: number): void {
-    const isSameRun = streamingConvIds[convId]
-      && streamAssistantMsgIds[convId] === assistantMessageId;
+  function startProjectedChatStream(
+    convId: string,
+    assistantMessageId: string,
+    startedAt: number,
+  ): void {
+    const isSameRun =
+      streamingConvIds[convId] && streamAssistantMsgIds[convId] === assistantMessageId;
     if (!isSameRun) {
       convStreamItems = { ...convStreamItems, [convId]: [] };
       streamAssistantMsgIds = { ...streamAssistantMsgIds, [convId]: assistantMessageId };
@@ -1655,7 +1702,9 @@ let newConversationLayout = $derived(
       flowStatus: event.flow_status ?? undefined,
       roleId: event.role_id ?? undefined,
     };
-    const existingIndex = conversations.findIndex((conversation) => conversation.id === event.conv_id);
+    const existingIndex = conversations.findIndex(
+      (conversation) => conversation.id === event.conv_id,
+    );
     if (existingIndex === -1) {
       conversations = [incoming, ...conversations];
     } else {
@@ -1696,13 +1745,16 @@ let newConversationLayout = $derived(
     const startedAt = Date.now();
     const assistantMessageId = crypto.randomUUID();
     if (!conversations.some((conversation) => conversation.id === convId)) {
-      conversations = [{
-        id: convId,
-        title: $t("newConv"),
-        messages: [],
-        createdAt: startedAt,
-        updatedAt: startedAt,
-      }, ...conversations];
+      conversations = [
+        {
+          id: convId,
+          title: $t("newConv"),
+          messages: [],
+          createdAt: startedAt,
+          updatedAt: startedAt,
+        },
+        ...conversations,
+      ];
     }
     startProjectedChatStream(convId, assistantMessageId, startedAt);
     void fetchConversationMeta(convId)
@@ -1718,10 +1770,7 @@ let newConversationLayout = $derived(
   async function setupGlobalEventListeners() {
     if (!tauriAvailable) return;
     const registrations: Array<Promise<() => void>> = [];
-    const register = <T,>(
-      event: string,
-      handler: (event: { payload: T }) => void,
-    ) => {
+    const register = <T,>(event: string, handler: (event: { payload: T }) => void) => {
       registrations.push(listen<T>(event, handler));
     };
 
@@ -1761,9 +1810,7 @@ let newConversationLayout = $derived(
         hook: $t("flashTaskHook"),
       }[e.payload.task_kind];
       showToast({
-        title: taskLabel
-          ? `${$t("flashTaskFailed")} · ${taskLabel}`
-          : $t("flashTaskFailed"),
+        title: taskLabel ? `${$t("flashTaskFailed")} · ${taskLabel}` : $t("flashTaskFailed"),
         description: e.payload.error,
         variant: "error",
       });
@@ -1788,8 +1835,11 @@ let newConversationLayout = $derived(
     }>("conversation-compacted", (e) => {
       const { source_conv_id, conv_id, title, workspace: ws, user_message_id } = e.payload;
       if (ws !== (workspacePath || "")) return;
-      const sourceIdx = conversations.findIndex((conversation) => conversation.id === source_conv_id);
-      if (sourceIdx === -1 || conversations.some((conversation) => conversation.id === conv_id)) return;
+      const sourceIdx = conversations.findIndex(
+        (conversation) => conversation.id === source_conv_id,
+      );
+      if (sourceIdx === -1 || conversations.some((conversation) => conversation.id === conv_id))
+        return;
 
       const source = conversations[sourceIdx];
       const movedMessages = user_message_id
@@ -1836,52 +1886,75 @@ let newConversationLayout = $derived(
       if (activeConvId === source_conv_id) {
         activeConvId = conv_id;
         cacheRestoreSurface("conversation", conv_id);
-        invoke("set_active_conversation", { convId: conv_id, workspace: workspacePath || "" }).catch(() => {});
+        invoke("set_active_conversation", {
+          convId: conv_id,
+          workspace: workspacePath || "",
+        }).catch(() => {});
       }
     });
 
-
     // subagent-started: a delegated role or graph node created a child conversation
-    register<{ parent_conv_id: string | null; sub_conv_id: string; title: string; task: string; role_id?: string; task_msg_id: string; asst_msg_id?: string; branch_id?: string; workspace: string; hidden_task?: boolean; flow_kind?: string }>(
-      "subagent-started",
-      (e) => {
-        const { sub_conv_id, title, task, role_id, task_msg_id, asst_msg_id, branch_id, workspace: ws, parent_conv_id, hidden_task, flow_kind } = e.payload;
-        // Only show sub-convs that belong to the current workspace
-        if (ws !== (workspacePath || "")) return;
-        // Avoid duplicates (event can fire once per spawn)
-        if (conversations.some((c) => c.id === sub_conv_id)) return;
-        // Rust already persisted this message; reuse its ID for display
-        const taskMsg: ChatMessage = {
-          id: task_msg_id,
-          role: "user",
-          content: task,
-          timestamp: Date.now(),
-        };
-        const subConv: Conversation = {
-          id: sub_conv_id,
-          title,
-          messages: hidden_task ? [] : [taskMsg],
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          parentConvId: parent_conv_id ?? undefined,
-          roleId: role_id,
-          flowKind: flow_kind,
-          flowStatus: flow_kind ? "running" : undefined,
-        };
-        conversations = [subConv, ...conversations];
-        loadedConvIds.add(sub_conv_id);
-        streamingConvIds = { ...streamingConvIds, [sub_conv_id]: true };
-        convStreamItems = { ...convStreamItems, [sub_conv_id]: [] };
-        streamAssistantMsgIds = {
-          ...streamAssistantMsgIds,
-          [sub_conv_id]: asst_msg_id ?? crypto.randomUUID(),
-        };
-        if (branch_id) {
-          activeBranchIds = { ...activeBranchIds, [sub_conv_id]: branch_id };
-        }
-        startStreamTiming(sub_conv_id, taskMsg.timestamp);
-      },
-    );
+    register<{
+      parent_conv_id: string | null;
+      sub_conv_id: string;
+      title: string;
+      task: string;
+      role_id?: string;
+      task_msg_id: string;
+      asst_msg_id?: string;
+      branch_id?: string;
+      workspace: string;
+      hidden_task?: boolean;
+      flow_kind?: string;
+    }>("subagent-started", (e) => {
+      const {
+        sub_conv_id,
+        title,
+        task,
+        role_id,
+        task_msg_id,
+        asst_msg_id,
+        branch_id,
+        workspace: ws,
+        parent_conv_id,
+        hidden_task,
+        flow_kind,
+      } = e.payload;
+      // Only show sub-convs that belong to the current workspace
+      if (ws !== (workspacePath || "")) return;
+      // Avoid duplicates (event can fire once per spawn)
+      if (conversations.some((c) => c.id === sub_conv_id)) return;
+      // Rust already persisted this message; reuse its ID for display
+      const taskMsg: ChatMessage = {
+        id: task_msg_id,
+        role: "user",
+        content: task,
+        timestamp: Date.now(),
+      };
+      const subConv: Conversation = {
+        id: sub_conv_id,
+        title,
+        messages: hidden_task ? [] : [taskMsg],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        parentConvId: parent_conv_id ?? undefined,
+        roleId: role_id,
+        flowKind: flow_kind,
+        flowStatus: flow_kind ? "running" : undefined,
+      };
+      conversations = [subConv, ...conversations];
+      loadedConvIds.add(sub_conv_id);
+      streamingConvIds = { ...streamingConvIds, [sub_conv_id]: true };
+      convStreamItems = { ...convStreamItems, [sub_conv_id]: [] };
+      streamAssistantMsgIds = {
+        ...streamAssistantMsgIds,
+        [sub_conv_id]: asst_msg_id ?? crypto.randomUUID(),
+      };
+      if (branch_id) {
+        activeBranchIds = { ...activeBranchIds, [sub_conv_id]: branch_id };
+      }
+      startStreamTiming(sub_conv_id, taskMsg.timestamp);
+    });
 
     // ask_user tool: backend emits with conv_id + form schema; we stash it per-conv
     // so switching convs doesn't lose an in-flight form.
@@ -1908,10 +1981,12 @@ let newConversationLayout = $derived(
       }>("chat-mermaid-render-request", (e) => {
         const request = e.payload;
         void renderMermaidToolResult(request.source, mermaidConfig)
-          .then((renderResult) => openAgent.submitInterruptResponse({
-            interruptId: request.request_id,
-            response: JSON.stringify(renderResult),
-          }))
+          .then((renderResult) =>
+            openAgent.submitInterruptResponse({
+              interruptId: request.request_id,
+              response: JSON.stringify(renderResult),
+            }),
+          )
           .catch((error) => {
             console.warn("Failed to return Mermaid render result", error);
           });
@@ -1936,8 +2011,8 @@ let newConversationLayout = $derived(
       const idx = conversations.findIndex((c) => c.id === conv_id);
       if (idx !== -1) {
         const existing = conversations[idx];
-        const shouldAppendUser = !hidden_message
-          && !existing.messages.some((message) => message.id === msg_id);
+        const shouldAppendUser =
+          !hidden_message && !existing.messages.some((message) => message.id === msg_id);
         conversations[idx] = {
           ...existing,
           flowKind: kind,
@@ -1948,7 +2023,10 @@ let newConversationLayout = $derived(
       }
       streamingConvIds = { ...streamingConvIds, [conv_id]: true };
       convStreamItems = { ...convStreamItems, [conv_id]: [] };
-      streamAssistantMsgIds = { ...streamAssistantMsgIds, [conv_id]: asst_msg_id ?? crypto.randomUUID() };
+      streamAssistantMsgIds = {
+        ...streamAssistantMsgIds,
+        [conv_id]: asst_msg_id ?? crypto.randomUUID(),
+      };
       startStreamTiming(conv_id, Date.now());
       if (conv_id === activeConvId) scrollStreamToBottom();
     });
@@ -1979,12 +2057,12 @@ let newConversationLayout = $derived(
           recoverUnannouncedChatStream(conv_id);
         }
         const items = convStreamItems[conv_id] ?? [];
-        const hasStreamOutput = items.some((item) =>
-          item.type === "text"
-          || item.type === "thinking"
-          || (item.type === "retry" && item.items.some((nested) =>
-            nested.type === "text" || nested.type === "thinking"
-          ))
+        const hasStreamOutput = items.some(
+          (item) =>
+            item.type === "text" ||
+            item.type === "thinking" ||
+            (item.type === "retry" &&
+              item.items.some((nested) => nested.type === "text" || nested.type === "thinking")),
         );
         if (!hasStreamOutput && streamingConvIds[conv_id]) {
           awaitingStreamOutputConvIds = {
@@ -2018,16 +2096,17 @@ let newConversationLayout = $derived(
       },
       onToolResult: (conv_id, result, toolUseId) => {
         const pendingToolCall = toolUseId
-          ? (convStreamItems[conv_id] ?? []).find((item) =>
-              item.type === "tool_call"
-              && item.toolUseId === toolUseId
-              && item.result === undefined
+          ? (convStreamItems[conv_id] ?? []).find(
+              (item) =>
+                item.type === "tool_call" &&
+                item.toolUseId === toolUseId &&
+                item.result === undefined,
             )
-          : [...(convStreamItems[conv_id] ?? [])].reverse().find((item) =>
-              item.type === "tool_call" && item.result === undefined
-            );
-        const rolesMayHaveChanged = pendingToolCall?.type === "tool_call"
-          && pendingToolCall.name === "dispatch_role";
+          : [...(convStreamItems[conv_id] ?? [])]
+              .reverse()
+              .find((item) => item.type === "tool_call" && item.result === undefined);
+        const rolesMayHaveChanged =
+          pendingToolCall?.type === "tool_call" && pendingToolCall.name === "dispatch_role";
         if (attachApprovedToolResult(conv_id, result, toolUseId)) {
           if (rolesMayHaveChanged) void loadAvailableRoles();
           return;
@@ -2060,7 +2139,14 @@ let newConversationLayout = $derived(
           ...convStreamItems,
           [conv_id]: [
             ...previousAttempts,
-            { type: "retry", items: failedAttemptItems, attempt: attempt - 1, maxAttempts, model, error },
+            {
+              type: "retry",
+              items: failedAttemptItems,
+              attempt: attempt - 1,
+              maxAttempts,
+              model,
+              error,
+            },
           ],
         };
         const { [conv_id]: _ck, ...restCk } = pendingCheckpointIds;
@@ -2082,10 +2168,13 @@ let newConversationLayout = $derived(
           streamAssistantMsgIds = { ...streamAssistantMsgIds, [conv_id]: crypto.randomUUID() };
         }
         if (["done", "skipped", "failed"].includes(stage) && compactionOnlyConvIds.has(conv_id)) {
-          setTimeout(() => {
-            compactionOnlyConvIds.delete(conv_id);
-            cleanupStreamState(conv_id);
-          }, stage === "failed" ? 1600 : 400);
+          setTimeout(
+            () => {
+              compactionOnlyConvIds.delete(conv_id);
+              cleanupStreamState(conv_id);
+            },
+            stage === "failed" ? 1600 : 400,
+          );
         } else if (stage === "failed") {
           setTimeout(() => {
             convStreamItems = {
@@ -2094,7 +2183,11 @@ let newConversationLayout = $derived(
             };
           }, 1600);
         }
-        if (conv_id === activeConvId && !hadProgress && items.some((item) => item.type === "compaction")) {
+        if (
+          conv_id === activeConvId &&
+          !hadProgress &&
+          items.some((item) => item.type === "compaction")
+        ) {
           scrollStreamToBottom();
         }
       },
@@ -2201,17 +2294,25 @@ let newConversationLayout = $derived(
     void conv_id;
   }
 
-  function finalizeStreamedMessage(conv_id: string, aborted: boolean, asstMsgId?: string, error?: string | null) {
+  function finalizeStreamedMessage(
+    conv_id: string,
+    aborted: boolean,
+    asstMsgId?: string,
+    error?: string | null,
+  ) {
     beginStreamCompletionTailAnchor(conv_id);
     let items = convStreamItems[conv_id] ?? [];
     if (error) {
       items = [...items, { type: "runtime_notice", kind: "error", reason: error }];
     } else if (aborted) {
-      items = [...items, {
-        type: "runtime_notice",
-        kind: "interrupted",
-        reason: tr("agentRunInterrupted"),
-      }];
+      items = [
+        ...items,
+        {
+          type: "runtime_notice",
+          kind: "interrupted",
+          reason: tr("agentRunInterrupted"),
+        },
+      ];
     }
     const fullText = collapseStreamText(items);
     const hasContent = fullText.length > 0 || items.some((i) => i.type !== "text");
@@ -2380,7 +2481,10 @@ let newConversationLayout = $derived(
     newConversationMemoryLoading = true;
     if (!tauriAvailable) {
       newConversationMemories = [];
-      newConversationGeneratedReminder = loadHomepageReminder(workspacePath, config?.language ?? "zh");
+      newConversationGeneratedReminder = loadHomepageReminder(
+        workspacePath,
+        config?.language ?? "zh",
+      );
       newConversationMemoryLoading = false;
       return;
     }
@@ -2404,11 +2508,17 @@ let newConversationLayout = $derived(
         })
         .sort((a, b) => b.updated_at - a.updated_at)
         .slice(0, 3);
-      newConversationGeneratedReminder = loadHomepageReminder(workspacePath, config?.language ?? "zh");
+      newConversationGeneratedReminder = loadHomepageReminder(
+        workspacePath,
+        config?.language ?? "zh",
+      );
     } catch {
       if (generation !== newConversationMemoryLoadGeneration) return;
       newConversationMemories = [];
-      newConversationGeneratedReminder = loadHomepageReminder(workspacePath, config?.language ?? "zh");
+      newConversationGeneratedReminder = loadHomepageReminder(
+        workspacePath,
+        config?.language ?? "zh",
+      );
     } finally {
       if (generation === newConversationMemoryLoadGeneration) {
         newConversationMemoryLoading = false;
@@ -2458,7 +2568,9 @@ let newConversationLayout = $derived(
 
   function loadHomepageReminder(currentWorkspace: string, language: Locale) {
     if (typeof window === "undefined") return null;
-    const value = window.localStorage.getItem(homepageReminderStorageKey(currentWorkspace, language))?.trim();
+    const value = window.localStorage
+      .getItem(homepageReminderStorageKey(currentWorkspace, language))
+      ?.trim();
     return value || null;
   }
 
@@ -2498,7 +2610,9 @@ let newConversationLayout = $derived(
 
   async function restoreWorkspaceConversation(path: string) {
     const savedActiveId = tauriAvailable
-      ? await invoke<string | null>("get_active_conv_id", { workspace: path || "" }).catch(() => null)
+      ? await invoke<string | null>("get_active_conv_id", { workspace: path || "" }).catch(
+          () => null,
+        )
       : null;
     let target = savedActiveId
       ? conversations.find((conversation) => conversation.id === savedActiveId)
@@ -2523,8 +2637,9 @@ let newConversationLayout = $derived(
   }
 
   async function switchConversation(id: string) {
-    const target = conversations.find((conversation) => conversation.id === id)
-      ?? await fetchConversationMeta(id).catch(() => null);
+    const target =
+      conversations.find((conversation) => conversation.id === id) ??
+      (await fetchConversationMeta(id).catch(() => null));
     const targetRoleKey = target?.roleId ?? defaultRoleKey;
     if (targetRoleKey !== selectedRoleKey) {
       selectedRoleKey = targetRoleKey;
@@ -2538,14 +2653,19 @@ let newConversationLayout = $derived(
     restoringSurface = "conversation";
     activeConvId = id;
     cacheRestoreSurface("conversation", id);
-    if (tauriAvailable) invoke("set_active_conversation", { convId: id, workspace: workspacePath || "" }).catch(() => {});
+    if (tauriAvailable)
+      invoke("set_active_conversation", { convId: id, workspace: workspacePath || "" }).catch(
+        () => {},
+      );
     await Promise.all([loadMessagesForConv(id), loadFileChangesForConv(id)]);
     await scrollToBottom();
   }
 
   async function openMemorySource(convId: string, messageId: string) {
     if (tauriAvailable) {
-      const sourceWorkspace = await invoke<string | null>("get_conversation_workspace", { convId }).catch(() => null);
+      const sourceWorkspace = await invoke<string | null>("get_conversation_workspace", {
+        convId,
+      }).catch(() => null);
       if (sourceWorkspace && sourceWorkspace !== workspacePath) {
         await addToRecentWorkspaces(sourceWorkspace);
         await invoke("open_workspace_window", {
@@ -2666,7 +2786,7 @@ let newConversationLayout = $derived(
       const wsPath = workspacePath || "";
       const conv: Conversation = {
         id: newId,
-        title: $t('newConv'),
+        title: $t("newConv"),
         messages: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -2682,7 +2802,7 @@ let newConversationLayout = $derived(
       // Persist creation and the durable active selection atomically.
       await invoke("create_conversation", {
         id: newId,
-        title: $t('newConv'),
+        title: $t("newConv"),
         workspace: wsPath,
         parentConvId: null,
         roleId: selectedRoleId,
@@ -2718,7 +2838,7 @@ let newConversationLayout = $derived(
     conversations[convIdx] = {
       ...conversations[convIdx],
       messages: [...priorMessages, userMsg],
-      title: newTitle ?? $t('newConv'),
+      title: newTitle ?? $t("newConv"),
       updatedAt: Date.now(),
     };
 
@@ -2727,7 +2847,11 @@ let newConversationLayout = $derived(
     if (isFirstUserMsg && newTitle) {
       await invoke("update_conversation", {
         convId,
-        patch: { title: newTitle, title_source: "fallback", updated_at: Math.floor(Date.now() / 1000) },
+        patch: {
+          title: newTitle,
+          title_source: "fallback",
+          updated_at: Math.floor(Date.now() / 1000),
+        },
       }).catch(() => {});
     }
 
@@ -2764,43 +2888,46 @@ let newConversationLayout = $derived(
     await scrollToBottom();
 
     // Fire and forget — global listeners handle chunk/checkpoint/done events
-    openAgent.submitInput({
-      convId,
-      text,
-      parentCheckpointId,
-      branchId,
-      attachments: attachments.map((attachment) => attachment.path),
-      modelBinding: parseModelKey(model),
-      userMessageId: userMsg.id,
-      assistantMessageId: assistantMsgId,
-    }).then(() => {
-      // Events are the live path, but the completed checkpoint is authoritative.
-      // If a terminal event was lost, reconcile instead of leaving a permanent
-      // streaming row and sidebar dot.
-      if (!streamingConvIds[convId]) return;
-      loadedConvIds.delete(convId);
-      void loadMessagesForConv(convId, false).finally(() => {
+    openAgent
+      .submitInput({
+        convId,
+        text,
+        parentCheckpointId,
+        branchId,
+        attachments: attachments.map((attachment) => attachment.path),
+        modelBinding: parseModelKey(model),
+        userMessageId: userMsg.id,
+        assistantMessageId: assistantMsgId,
+      })
+      .then(() => {
+        // Events are the live path, but the completed checkpoint is authoritative.
+        // If a terminal event was lost, reconcile instead of leaving a permanent
+        // streaming row and sidebar dot.
         if (!streamingConvIds[convId]) return;
-        cleanupStreamState(convId);
-        void dispatchNextQueuedMessage(convId);
-      });
-    }).catch((err: unknown) => {
-      const errMsg: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: `Error: ${err}`,
-        timestamp: Date.now(),
-      };
-      const idx = conversations.findIndex((c) => c.id === convId);
-      if (idx !== -1) {
-        conversations[idx] = {
-          ...conversations[idx],
-          messages: [...conversations[idx].messages, errMsg],
-          updatedAt: Date.now(),
+        loadedConvIds.delete(convId);
+        void loadMessagesForConv(convId, false).finally(() => {
+          if (!streamingConvIds[convId]) return;
+          cleanupStreamState(convId);
+          void dispatchNextQueuedMessage(convId);
+        });
+      })
+      .catch((err: unknown) => {
+        const errMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: `Error: ${err}`,
+          timestamp: Date.now(),
         };
-      }
-      cleanupStreamState(convId!);
-    });
+        const idx = conversations.findIndex((c) => c.id === convId);
+        if (idx !== -1) {
+          conversations[idx] = {
+            ...conversations[idx],
+            messages: [...conversations[idx].messages, errMsg],
+            updatedAt: Date.now(),
+          };
+        }
+        cleanupStreamState(convId!);
+      });
   }
 
   async function sendMessage() {
@@ -2808,16 +2935,16 @@ let newConversationLayout = $derived(
     const attachments = [...inputAttachments];
     if (!text.trim() && attachments.length === 0) return;
 
-    if (text.trimStart().startsWith("/") && await handleClientSlashInput(text)) {
+    if (text.trimStart().startsWith("/") && (await handleClientSlashInput(text))) {
       return;
     }
 
     if (activeConvId && streamingConvIds[activeConvId]) {
-      queuedChatMessages = enqueueChatMessage(
-        queuedChatMessages,
-        activeConvId,
-        { text, attachments, model: selectedModel },
-      );
+      queuedChatMessages = enqueueChatMessage(queuedChatMessages, activeConvId, {
+        text,
+        attachments,
+        model: selectedModel,
+      });
       await syncChatQueuePending(activeConvId);
       inputText = "";
       inputAttachments = [];
@@ -2844,9 +2971,7 @@ let newConversationLayout = $derived(
     } catch (error) {
       const inputError = error as { code?: string };
       showToast({
-        title: inputError.code === "missing_argument"
-          ? tr("goalCommandNeedsText")
-          : String(error),
+        title: inputError.code === "missing_argument" ? tr("goalCommandNeedsText") : String(error),
         variant: "error",
       });
       return true;
@@ -2881,31 +3006,14 @@ let newConversationLayout = $derived(
     await invoke("cancel_chat_message", { convId: activeConvId }).catch(() => {});
   }
 
-  async function clearChat() {
-    if (!tauriAvailable) return;
-    if (!activeConvId) return;
-    const convId = activeConvId;
-    await invoke("clear_conversation", { convId }).catch(() => {});
-    const idx = conversations.findIndex((c) => c.id === convId);
-    if (idx !== -1) {
-      conversations[idx] = {
-        ...conversations[idx],
-        messages: [],
-        title: $t('newConv'),
-        updatedAt: Date.now(),
-      };
-    }
-    if (convId in convTrees) {
-      const { [convId]: _t, ...rt } = convTrees;
-      convTrees = rt;
-    }
-  }
-
   const BOTTOM_SCROLL_THRESHOLD = 24;
 
   function isMessagesScrolledToBottom() {
     if (!messagesEl) return true;
-    return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight <= BOTTOM_SCROLL_THRESHOLD;
+    return (
+      messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight <=
+      BOTTOM_SCROLL_THRESHOLD
+    );
   }
 
   function handleMessagesScroll() {
@@ -2947,7 +3055,11 @@ let newConversationLayout = $derived(
     el.scrollTo({ top: el.scrollHeight, behavior });
 
     const keepNavigating = () => {
-      if (runId !== bottomScrollRunId || Date.now() >= programmaticBottomScrollUntil || !messagesEl) {
+      if (
+        runId !== bottomScrollRunId ||
+        Date.now() >= programmaticBottomScrollUntil ||
+        !messagesEl
+      ) {
         if (runId === bottomScrollRunId) programmaticBottomScrollUntil = 0;
         bottomScrollRaf = null;
         return;
@@ -2961,7 +3073,8 @@ let newConversationLayout = $derived(
   async function scrollStreamToBottom() {
     if (!followStreamToBottom && Date.now() >= programmaticBottomScrollUntil) return;
     await tick();
-    if ((!followStreamToBottom && Date.now() >= programmaticBottomScrollUntil) || !messagesEl) return;
+    if ((!followStreamToBottom && Date.now() >= programmaticBottomScrollUntil) || !messagesEl)
+      return;
     messagesEl.scrollTo({
       top: messagesEl.scrollHeight,
       behavior: "auto",
@@ -2971,8 +3084,8 @@ let newConversationLayout = $derived(
 
   function beginStreamCompletionTailAnchor(convId: string) {
     if (
-      convId !== activeConvId
-      || (!followStreamToBottom && Date.now() >= programmaticBottomScrollUntil)
+      convId !== activeConvId ||
+      (!followStreamToBottom && Date.now() >= programmaticBottomScrollUntil)
     ) {
       return;
     }
@@ -3029,49 +3142,60 @@ let newConversationLayout = $derived(
     restoringSurface = restoreHint?.surface ?? "new-conversation";
     activeConvId = restoreHint?.conversationId ?? null;
     try {
-    workspacePath = path;
+      workspacePath = path;
 
-    // Reset loaded tracking for old workspace's convs
-    loadedConvIds.clear();
-    conversations = [];
-    conversationNextCursor = null;
-    searchConversations = [];
-    searchConversationNextCursor = null;
-    conversationSearchGeneration += 1;
+      // Reset loaded tracking for old workspace's convs
+      loadedConvIds.clear();
+      conversations = [];
+      conversationNextCursor = null;
+      searchConversations = [];
+      searchConversationNextCursor = null;
+      conversationSearchGeneration += 1;
 
-    // Load only the first page; the sidebar requests subsequent pages on scroll.
-    if (tauriAvailable) {
-      selectedRoleKey = storedRoleSelection(path);
-      await loadAvailableRoles();
-      const page = await fetchConversationPage(path || null, null, 30, null, true, selectedRoleId);
-      conversations = page.conversations;
-      conversationNextCursor = page.nextCursor;
-    }
+      // Load only the first page; the sidebar requests subsequent pages on scroll.
+      if (tauriAvailable) {
+        selectedRoleKey = storedRoleSelection(path);
+        await loadAvailableRoles();
+        const page = await fetchConversationPage(
+          path || null,
+          null,
+          30,
+          null,
+          true,
+          selectedRoleId,
+        );
+        conversations = page.conversations;
+        conversationNextCursor = page.nextCursor;
+      }
 
-    // Restore the durable active conversation before loading ancillary workspace data.
-    await restoreWorkspaceConversation(path);
+      // Restore the durable active conversation before loading ancillary workspace data.
+      await restoreWorkspaceConversation(path);
 
-    await addToRecentWorkspaces(path);
+      await addToRecentWorkspaces(path);
 
-    if (!tauriAvailable) {
-      workspace = {
-        path,
-        git_branch: null,
-        has_agent_dir: false,
-        environment: { kind: "local" },
-      };
+      if (!tauriAvailable) {
+        workspace = {
+          path,
+          git_branch: null,
+          has_agent_dir: false,
+          environment: { kind: "local" },
+        };
+        await loadNewConversationMemories();
+        return;
+      }
+      await invoke("set_workspace", { path: path || null });
+      workspace = await invoke<WorkspaceContext>("get_workspace_context");
       await loadNewConversationMemories();
-      return;
-    }
-    await invoke("set_workspace", { path: path || null });
-    workspace = await invoke<WorkspaceContext>("get_workspace_context");
-    await loadNewConversationMemories();
     } finally {
       workspaceLoading = false;
     }
   }
 
-  async function openWorkspaceInNewWindow(path: string, conversationId?: string, messageId?: string) {
+  async function openWorkspaceInNewWindow(
+    path: string,
+    conversationId?: string,
+    messageId?: string,
+  ) {
     if (!tauriAvailable) return;
     await addToRecentWorkspaces(path);
     await invoke("open_workspace_window", {
@@ -3106,10 +3230,7 @@ let newConversationLayout = $derived(
   async function addToRecentWorkspaces(path: string) {
     if (!path) return;
     const name = path.split(/[/\\]/).filter(Boolean).pop() ?? path;
-    recentWorkspaces = [
-      { path, name },
-      ...recentWorkspaces.filter((w) => w.path !== path),
-    ];
+    recentWorkspaces = [{ path, name }, ...recentWorkspaces.filter((w) => w.path !== path)];
     if (!tauriAvailable) return;
 
     // Serialize writes and await the latest one at workspace-switch boundaries.
@@ -3235,7 +3356,7 @@ let newConversationLayout = $derived(
   function closeSettings() {
     settingsOpen = false;
     settingsInitialNav = undefined;
-    if (config) setLocale((config.language ?? 'zh') as Locale);
+    if (config) setLocale((config.language ?? "zh") as Locale);
   }
 
   async function openHookConversation(conversationId: string) {
@@ -3251,8 +3372,8 @@ let newConversationLayout = $derived(
       }
       config = structuredClone(snapshot);
       applyTheme(config.theme ?? "system");
-      setLocale((config.language ?? 'zh') as Locale);
-    } catch (err: any) {
+      setLocale((config.language ?? "zh") as Locale);
+    } catch (err: unknown) {
       alert(`Save failed: ${err}`);
       throw err;
     }
@@ -3381,28 +3502,51 @@ let newConversationLayout = $derived(
 
   function slashCommandRun(name: string): (() => void) | null {
     switch (name) {
-      case "new": return () => newConversation();
-      case "model": return () => openSettings("defaults");
-      case "drafts": return () => openDrafts();
-      case "memory": return () => openMemory();
-      case "compact": return () => { void compactCurrentConversation(); };
-      case "goal": return () => { inputText = "/goal "; };
-      case "graph": return () => { inputText = "/graph "; };
-      case "skills": return () => openSkills();
-      case "settings": return () => openSettings();
-      default: return null;
+      case "new":
+        return () => newConversation();
+      case "model":
+        return () => openSettings("defaults");
+      case "drafts":
+        return () => openDrafts();
+      case "memory":
+        return () => openMemory();
+      case "compact":
+        return () => {
+          void compactCurrentConversation();
+        };
+      case "goal":
+        return () => {
+          inputText = "/goal ";
+        };
+      case "graph":
+        return () => {
+          inputText = "/graph ";
+        };
+      case "skills":
+        return () => openSkills();
+      case "settings":
+        return () => openSettings();
+      default:
+        return null;
     }
   }
 
   function clientActionRun(action: string): (() => void) | null {
     switch (action) {
-      case "new_conversation": return () => newConversation();
-      case "open_model_settings": return () => openSettings("defaults");
-      case "open_drafts": return () => openDrafts();
-      case "open_memory": return () => openMemory();
-      case "open_skills": return () => openSkills();
-      case "open_settings": return () => openSettings();
-      default: return null;
+      case "new_conversation":
+        return () => newConversation();
+      case "open_model_settings":
+        return () => openSettings("defaults");
+      case "open_drafts":
+        return () => openDrafts();
+      case "open_memory":
+        return () => openMemory();
+      case "open_skills":
+        return () => openSkills();
+      case "open_settings":
+        return () => openSettings();
+      default:
+        return null;
     }
   }
 
@@ -3410,13 +3554,15 @@ let newConversationLayout = $derived(
     agentCommandSpecs.flatMap((spec) => {
       const run = slashCommandRun(spec.name);
       if (!run) return [];
-      return [{
-        id: spec.name,
-        name: spec.name,
-        label: $t(spec.label_key as TranslationKeys),
-        description: $t(spec.description_key as TranslationKeys),
-        run,
-      }];
+      return [
+        {
+          id: spec.name,
+          name: spec.name,
+          label: $t(spec.label_key as TranslationKeys),
+          description: $t(spec.description_key as TranslationKeys),
+          run,
+        },
+      ];
     }),
   );
 
@@ -3425,7 +3571,7 @@ let newConversationLayout = $derived(
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
   const winMinimize = () => appWindow?.minimize();
   const winMaximize = () => appWindow?.toggleMaximize();
-  const winClose = () => launchContext?.workspace ? appWindow?.close() : appWindow?.hide();
+  const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
 
   function toggleSidebar() {
     sidebarCollapsed = !sidebarCollapsed;
@@ -3437,313 +3583,317 @@ let newConversationLayout = $derived(
   function handleContextMenu(event: MouseEvent) {
     if (!isDebugBuild) event.preventDefault();
   }
-
 </script>
 
 <svelte:window oncontextmenu={handleContextMenu} />
 
 <TooltipPrimitive.Provider delayDuration={500} skipDelayDuration={300}>
-{#if isDevInspectorWindow && DevInspector}
-  <DevInspector />
-{:else}
-<div class="app" class:sidebar-collapsed={sidebarCollapsed}>
-  <!-- ─── Sidebar ─────────────────────────────────────────────────────────────── -->
-  <aside class="sidebar" class:collapsed={sidebarCollapsed}>
-    <div class="sidebar-top" data-tauri-drag-region>
-      {#if !sidebarCollapsed}
-        <RoleSelector
-          value={selectedRoleKey}
-          roles={agentRoles}
-          header
-          onChange={(role) => void changeConversationRole(role)}
-        />
-      {/if}
-      <SidebarCollapseButton collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
-    </div>
-    {#if !sidebarCollapsed}
-      <SidebarPrimaryActions
-        searchQuery={conversationSearchQuery}
-        onNew={newConversation}
-        onSearch={handleConversationSearch}
-      />
-
-      {#if initialLoading || workspaceLoading}
-        <LoadingSkeleton variant="sidebar" rows={8} label={$t("loadingContent")} />
-      {:else}
-        <ConversationList
-          conversations={sidebarConversations}
-          searchQuery={conversationSearchQuery}
-          {activeConvId}
-          {streamingConvIds}
-          hasMore={sidebarHasMoreConversations}
-          loadingMore={sidebarLoadingMoreConversations}
-          onLoadMore={() => void loadNextConversationPage()}
-          onSelect={(id) => {
-            if (settingsOpen) closeSettings();
-            if (designOpen) designOpen = false;
-            if (draftsOpen) draftsOpen = false;
-            if (memoryOpen) memoryOpen = false;
-            if (rolesOpen) rolesOpen = false;
-            if (skillsOpen) skillsOpen = false;
-            void selectSidebarConversation(id);
-          }}
-          onTogglePin={togglePin}
-          onDelete={deleteConversation}
-        />
-      {/if}
-
-      <SidebarNav
-        {designOpen}
-        {draftsOpen}
-        {memoryOpen}
-        {rolesOpen}
-        {skillsOpen}
-        {settingsOpen}
-        onToggleDesign={designOpen ? closeDesign : openDesign}
-        onToggleDrafts={draftsOpen ? closeDrafts : openDrafts}
-        onToggleMemory={memoryOpen ? closeMemory : openMemory}
-        onToggleRoles={rolesOpen ? closeRoles : openRoles}
-        onToggleSkills={skillsOpen ? closeSkills : openSkills}
-        onToggleSettings={settingsOpen ? closeSettings : openSettings}
-      />
-    {/if}
-  </aside>
-
-  <!-- ─── Design Panel ───────────────────────────────────────────────────── -->
-  {#if onboardingOpen && config}
-    <OnboardingFlow
-      {config}
-      {workspacePath}
-      onSave={saveSettings}
-      onPickWorkspace={pickWorkspace}
-      onComplete={completeOnboarding}
-      {winMinimize}
-      {winMaximize}
-      {winClose}
-    />
-  {:else if designOpen && DesignView}
-    <DesignView
-      {workspace}
-      onClose={closeDesign}
-      {winMinimize}
-      {winMaximize}
-      {winClose}
-    />
-  <!-- ─── Drafts Panel ───────────────────────────────────────────────────── -->
-  {:else if draftsOpen && DraftsView}
-    <DraftsView
-      {workspace}
-      onClose={closeDrafts}
-      {winMinimize}
-      {winMaximize}
-      {winClose}
-    />
-  <!-- ─── Memory Panel ───────────────────────────────────────────────────── -->
-  {:else if memoryOpen && MemoryView}
-    <MemoryView
-      {workspace}
-      {isMemorySyncing}
-      onClose={closeMemory}
-      onOpenSource={openMemorySource}
-      {winMinimize}
-      {winMaximize}
-      {winClose}
-    />
-  <!-- ─── Roles Panel ─────────────────────────────────────────────────────── -->
-  {:else if rolesOpen && RolesView}
-    <RolesView
-      {workspace}
-      onRolesChanged={() => void handleRolesChanged()}
-      {winMinimize}
-      {winMaximize}
-      {winClose}
-    />
-  <!-- ─── Skills Panel ────────────────────────────────────────────────────── -->
-  {:else if skillsOpen && SkillsView}
-    <SkillsView
-      {workspace}
-      onClose={closeSkills}
-      {winMinimize}
-      {winMaximize}
-      {winClose}
-    />
-  <!-- ─── Settings Panel ──────────────────────────────────────────────────── -->
-  {:else if settingsOpen && SettingsView}
-    <SettingsView
-      {config}
-      {workspacePath}
-      {isMemorySyncing}
-      initialNav={settingsInitialNav}
-      onSave={saveSettings}
-      onClose={closeSettings}
-      onOpenConversation={openHookConversation}
-      onPickWorkspace={pickWorkspace}
-      {winMinimize}
-      {winMaximize}
-      {winClose}
-    />
+  {#if isDevInspectorWindow && DevInspector}
+    <DevInspector />
   {:else}
-  <div class="main" class:sidebar-collapsed={sidebarCollapsed}>
-    <!-- Title Bar -->
-    <header class="title-bar" data-tauri-drag-region>
-      <div class="title-bar-left">
-        <WorkspaceSwitcher
-          {workspace}
-          {workspacePath}
-          {recentWorkspaces}
-          {tauriAvailable}
-          {browserModeNotice}
-          onPick={pickWorkspace}
-          onPickWsl={pickWslWorkspace}
-          onSelect={requestWorkspace}
-        />
-        {#if sidebarCollapsed}
-          <Tooltip text={$t("newChat")} side="bottom">
-            <button
-              class="title-new-conversation"
-              type="button"
-              aria-label={$t("newChat")}
-              onclick={newConversation}
-            >
-              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M11.75 4.25H5.5A1.75 1.75 0 0 0 3.75 6v8.5a1.75 1.75 0 0 0 1.75 1.75H14a1.75 1.75 0 0 0 1.75-1.75V8.25" />
-                <path d="m9 11 6.35-6.35M12.75 4.25h3v3" />
-              </svg>
-            </button>
-          </Tooltip>
-          <RoleSelector
-            value={selectedRoleKey}
-            roles={agentRoles}
-            compact
-            onChange={(role) => void changeConversationRole(role)}
+    <div class="app" class:sidebar-collapsed={sidebarCollapsed}>
+      <!-- ─── Sidebar ─────────────────────────────────────────────────────────────── -->
+      <aside class="sidebar" class:collapsed={sidebarCollapsed}>
+        <div class="sidebar-top" data-tauri-drag-region>
+          {#if !sidebarCollapsed}
+            <RoleSelector
+              value={selectedRoleKey}
+              roles={agentRoles}
+              header
+              onChange={(role) => void changeConversationRole(role)}
+            />
+          {/if}
+          <SidebarCollapseButton collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+        </div>
+        {#if !sidebarCollapsed}
+          <SidebarPrimaryActions
+            searchQuery={conversationSearchQuery}
+            onNew={newConversation}
+            onSearch={handleConversationSearch}
+          />
+
+          {#if initialLoading || workspaceLoading}
+            <LoadingSkeleton variant="sidebar" rows={8} label={$t("loadingContent")} />
+          {:else}
+            <ConversationList
+              conversations={sidebarConversations}
+              searchQuery={conversationSearchQuery}
+              {activeConvId}
+              {streamingConvIds}
+              hasMore={sidebarHasMoreConversations}
+              loadingMore={sidebarLoadingMoreConversations}
+              onLoadMore={() => void loadNextConversationPage()}
+              onSelect={(id) => {
+                if (settingsOpen) closeSettings();
+                if (designOpen) designOpen = false;
+                if (draftsOpen) draftsOpen = false;
+                if (memoryOpen) memoryOpen = false;
+                if (rolesOpen) rolesOpen = false;
+                if (skillsOpen) skillsOpen = false;
+                void selectSidebarConversation(id);
+              }}
+              onTogglePin={togglePin}
+              onDelete={deleteConversation}
+            />
+          {/if}
+
+          <SidebarNav
+            {designOpen}
+            {draftsOpen}
+            {memoryOpen}
+            {rolesOpen}
+            {skillsOpen}
+            {settingsOpen}
+            onToggleDesign={designOpen ? closeDesign : openDesign}
+            onToggleDrafts={draftsOpen ? closeDrafts : openDrafts}
+            onToggleMemory={memoryOpen ? closeMemory : openMemory}
+            onToggleRoles={rolesOpen ? closeRoles : openRoles}
+            onToggleSkills={skillsOpen ? closeSkills : openSkills}
+            onToggleSettings={settingsOpen ? closeSettings : openSettings}
           />
         {/if}
-        {#if workspace?.git_branch}
-          <span class="branch-pill" title={`${$t("gitBranch")}: ${workspace.git_branch}`}>⎇ {workspace.git_branch}</span>
-        {/if}
-      </div>
-      <div class="title-bar-drag-handle" data-tauri-drag-region aria-hidden="true"></div>
-      <div class="title-actions">
-        {#if isMemorySyncing}
-          <Tooltip text="Memory syncing">
-            <span class="sync-dot">●</span>
-          </Tooltip>
-        {/if}
-        <WindowControls onMinimize={winMinimize} onMaximize={winMaximize} onClose={winClose} />
-      </div>
-    </header>
+      </aside>
 
-    {#if !tauriAvailable}
-      <div class="runtime-banner">{browserModeNotice}</div>
-    {/if}
-
-    <!-- Messages -->
-    <main
-      class="messages"
-      bind:this={messagesEl}
-      onscroll={handleMessagesScroll}
-      onwheel={cancelBottomScrollFromUser}
-      ontouchstart={cancelBottomScrollFromUser}
-      onpointerdown={cancelBottomScrollFromUser}
-    >
-      {#if newConversationLayout}
-        <div class="new-conversation-aurora" aria-hidden="true"></div>
-      {/if}
-      {#if mainContentLoading}
-        <LoadingSkeleton
-          variant={restoringSurface === "new-conversation"
-            ? "new-conversation"
-            : "conversation"}
-          label={$t("loadingContent")}
+      <!-- ─── Design Panel ───────────────────────────────────────────────────── -->
+      {#if onboardingOpen && config}
+        <OnboardingFlow
+          {config}
+          {workspacePath}
+          onSave={saveSettings}
+          onPickWorkspace={pickWorkspace}
+          onComplete={completeOnboarding}
+          {winMinimize}
+          {winMaximize}
+          {winClose}
+        />
+      {:else if designOpen && DesignView}
+        <DesignView {workspace} onClose={closeDesign} {winMinimize} {winMaximize} {winClose} />
+        <!-- ─── Drafts Panel ───────────────────────────────────────────────────── -->
+      {:else if draftsOpen && DraftsView}
+        <DraftsView {workspace} onClose={closeDrafts} {winMinimize} {winMaximize} {winClose} />
+        <!-- ─── Memory Panel ───────────────────────────────────────────────────── -->
+      {:else if memoryOpen && MemoryView}
+        <MemoryView
+          {workspace}
+          {isMemorySyncing}
+          onOpenSource={openMemorySource}
+          {winMinimize}
+          {winMaximize}
+          {winClose}
+        />
+        <!-- ─── Roles Panel ─────────────────────────────────────────────────────── -->
+      {:else if rolesOpen && RolesView}
+        <RolesView
+          {workspace}
+          onRolesChanged={() => void handleRolesChanged()}
+          {winMinimize}
+          {winMaximize}
+          {winClose}
+        />
+        <!-- ─── Skills Panel ────────────────────────────────────────────────────── -->
+      {:else if skillsOpen && SkillsView}
+        <SkillsView {workspace} {winMinimize} {winMaximize} {winClose} />
+        <!-- ─── Settings Panel ──────────────────────────────────────────────────── -->
+      {:else if settingsOpen && SettingsView}
+        <SettingsView
+          {config}
+          {workspacePath}
+          {isMemorySyncing}
+          initialNav={settingsInitialNav}
+          onSave={saveSettings}
+          onOpenConversation={openHookConversation}
+          {winMinimize}
+          {winMaximize}
+          {winClose}
         />
       {:else}
-        <MessageList
-        {messages}
-        scrollElement={messagesEl}
-        isStreaming={isCurrentStreaming}
-        isAwaitingStreamOutput={isCurrentAwaitingStreamOutput}
-        {currentStreamItems}
-        {currentStreamMessageId}
-        {activeConvId}
-        activeBranchId={activeConvId ? activeBranchIds[activeConvId] ?? null : null}
-        debugMode={isDebugMode}
-        activeTree={activeConvId ? convTrees[activeConvId] : undefined}
-        paddingBottom={inputAreaHeight + 24}
-        showApiKeyWarn={!config?.providers.find((provider) => provider.id === config?.defaults.chat_model.provider_id)?.api_key}
-        {shikiTheme}
-        {mermaidConfig}
-        htmlPreviewConfig={config?.html_preview}
-        messageLayout={config?.message_layout ?? "single"}
-        messageDoubleColumnMinWidth={config?.message_double_column_min_width ?? 1200}
-        tailAnchorToken={streamCompletionTailAnchor?.convId === activeConvId
-          ? streamCompletionTailAnchor.token
-          : null}
-        onTailAnchorSettled={finishStreamCompletionTailAnchor}
-        {newConversationMemoryPrompt}
-        {newConversationMemoryLoading}
-        checkpointLoadError={activeConvId ? checkpointLoadErrors[activeConvId] ?? null : null}
-        onCommitEdit={commitEdit}
-        onReExecute={reExecuteMsg}
-        onSwitchBranch={switchBranchAt}
-        onSubmitUserInput={submitUserInput}
-        onCancelUserInput={cancelUserInput}
-        />
-      {/if}
-    </main>
+        <div class="main" class:sidebar-collapsed={sidebarCollapsed}>
+          <!-- Title Bar -->
+          <header class="title-bar" data-tauri-drag-region>
+            <div class="title-bar-left">
+              <WorkspaceSwitcher
+                {workspace}
+                {workspacePath}
+                {recentWorkspaces}
+                {tauriAvailable}
+                {browserModeNotice}
+                onPick={pickWorkspace}
+                onPickWsl={pickWslWorkspace}
+                onSelect={requestWorkspace}
+              />
+              {#if sidebarCollapsed}
+                <Tooltip text={$t("newChat")} side="bottom">
+                  <button
+                    class="title-new-conversation"
+                    type="button"
+                    aria-label={$t("newChat")}
+                    onclick={newConversation}
+                  >
+                    <svg
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M11.75 4.25H5.5A1.75 1.75 0 0 0 3.75 6v8.5a1.75 1.75 0 0 0 1.75 1.75H14a1.75 1.75 0 0 0 1.75-1.75V8.25"
+                      />
+                      <path d="m9 11 6.35-6.35M12.75 4.25h3v3" />
+                    </svg>
+                  </button>
+                </Tooltip>
+                <RoleSelector
+                  value={selectedRoleKey}
+                  roles={agentRoles}
+                  compact
+                  onChange={(role) => void changeConversationRole(role)}
+                />
+              {/if}
+              {#if workspace?.git_branch}
+                <span class="branch-pill" title={`${$t("gitBranch")}: ${workspace.git_branch}`}
+                  >⎇ {workspace.git_branch}</span
+                >
+              {/if}
+            </div>
+            <div class="title-bar-drag-handle" data-tauri-drag-region aria-hidden="true"></div>
+            <div class="title-actions">
+              {#if isMemorySyncing}
+                <Tooltip text="Memory syncing">
+                  <span class="sync-dot">●</span>
+                </Tooltip>
+              {/if}
+              <WindowControls
+                onMinimize={winMinimize}
+                onMaximize={winMaximize}
+                onClose={winClose}
+              />
+            </div>
+          </header>
 
-    <!-- Input -->
-    <div
-      class="input-area"
-      class:input-area-streaming={isCurrentStreaming}
-      class:input-area-new-conversation={newConversationLayout}
-      bind:clientHeight={inputAreaHeight}
-    >
-      <div
-        class="conversation-aurora"
-        class:conversation-aurora-streaming={isCurrentStreaming}
-        aria-hidden="true"
-      ></div>
-      <div class="input-inner">
-        {#if mainContentLoading}
-          <LoadingSkeleton variant="composer" label={$t("loadingContent")} />
-        {:else}
-        {#if currentFileChanges.length > 0}
-          <FileChangeBanner
-            changes={currentFileChanges}
-            onRevert={handleRevertFileChange}
-          />
-        {/if}
-        {#if activeConvId}
-          <ChatQueue
-            items={queuedChatMessages[activeConvId] ?? []}
-            onRemove={(index) => removeQueuedMessage(activeConvId!, index)}
-            onClear={() => clearQueuedMessages(activeConvId!)}
-          />
-        {/if}
-        <MessageInput
-          bind:value={inputText}
-          bind:attachments={inputAttachments}
-          bind:selectedModel
-          {modelOptions}
-          placeholder={tauriAvailable ? (modelOptions.length ? $t('inputPlaceholder') : $t('modelSetupHint')) : browserModeNotice}
-          disabled={!tauriAvailable}
-          isStreaming={isCurrentStreaming}
-          sendDisabled={(!inputText.trim() && inputAttachments.length === 0) || !tauriAvailable || modelOptions.length === 0}
-          sendTitle={$t('send')}
-          {slashCommands}
-          showGlobalDraftsInMentions={config?.mention_palette_show_global_drafts ?? true}
-          onConfigureModels={() => openSettings("providers")}
-          onModelChange={handleModelChange}
-          onSend={sendMessage}
-          onStop={stopMessage}
-        />
-        {/if}
-      </div>
+          {#if !tauriAvailable}
+            <div class="runtime-banner">{browserModeNotice}</div>
+          {/if}
+
+          <!-- Messages -->
+          <main
+            class="messages"
+            bind:this={messagesEl}
+            onscroll={handleMessagesScroll}
+            onwheel={cancelBottomScrollFromUser}
+            ontouchstart={cancelBottomScrollFromUser}
+            onpointerdown={cancelBottomScrollFromUser}
+          >
+            {#if newConversationLayout}
+              <div class="new-conversation-aurora" aria-hidden="true"></div>
+            {/if}
+            {#if mainContentLoading}
+              <LoadingSkeleton
+                variant={restoringSurface === "new-conversation"
+                  ? "new-conversation"
+                  : "conversation"}
+                label={$t("loadingContent")}
+              />
+            {:else}
+              <MessageList
+                {messages}
+                scrollElement={messagesEl}
+                isStreaming={isCurrentStreaming}
+                isAwaitingStreamOutput={isCurrentAwaitingStreamOutput}
+                {currentStreamItems}
+                {currentStreamMessageId}
+                {activeConvId}
+                activeBranchId={activeConvId ? (activeBranchIds[activeConvId] ?? null) : null}
+                debugMode={isDebugMode}
+                activeTree={activeConvId ? convTrees[activeConvId] : undefined}
+                paddingBottom={inputAreaHeight + 24}
+                showApiKeyWarn={!config?.providers.find(
+                  (provider) => provider.id === config?.defaults.chat_model.provider_id,
+                )?.api_key}
+                {shikiTheme}
+                {mermaidConfig}
+                htmlPreviewConfig={config?.html_preview}
+                messageLayout={config?.message_layout ?? "single"}
+                messageDoubleColumnMinWidth={config?.message_double_column_min_width ?? 1200}
+                tailAnchorToken={streamCompletionTailAnchor?.convId === activeConvId
+                  ? streamCompletionTailAnchor.token
+                  : null}
+                onTailAnchorSettled={finishStreamCompletionTailAnchor}
+                {newConversationMemoryPrompt}
+                {newConversationMemoryLoading}
+                checkpointLoadError={activeConvId
+                  ? (checkpointLoadErrors[activeConvId] ?? null)
+                  : null}
+                onCommitEdit={commitEdit}
+                onReExecute={reExecuteMsg}
+                onSwitchBranch={switchBranchAt}
+                onSubmitUserInput={submitUserInput}
+                onCancelUserInput={cancelUserInput}
+              />
+            {/if}
+          </main>
+
+          <!-- Input -->
+          <div
+            class="input-area"
+            class:input-area-streaming={isCurrentStreaming}
+            class:input-area-new-conversation={newConversationLayout}
+            bind:clientHeight={inputAreaHeight}
+          >
+            <div
+              class="conversation-aurora"
+              class:conversation-aurora-streaming={isCurrentStreaming}
+              aria-hidden="true"
+            ></div>
+            <div class="input-inner">
+              {#if mainContentLoading}
+                <LoadingSkeleton variant="composer" label={$t("loadingContent")} />
+              {:else}
+                {#if currentFileChanges.length > 0}
+                  <FileChangeBanner
+                    changes={currentFileChanges}
+                    onRevert={handleRevertFileChange}
+                  />
+                {/if}
+                {#if activeConvId}
+                  <ChatQueue
+                    items={queuedChatMessages[activeConvId] ?? []}
+                    onRemove={(index) => removeQueuedMessage(activeConvId!, index)}
+                    onClear={() => clearQueuedMessages(activeConvId!)}
+                  />
+                {/if}
+                <MessageInput
+                  bind:value={inputText}
+                  bind:attachments={inputAttachments}
+                  bind:selectedModel
+                  {modelOptions}
+                  placeholder={tauriAvailable
+                    ? modelOptions.length
+                      ? $t("inputPlaceholder")
+                      : $t("modelSetupHint")
+                    : browserModeNotice}
+                  disabled={!tauriAvailable}
+                  isStreaming={isCurrentStreaming}
+                  sendDisabled={(!inputText.trim() && inputAttachments.length === 0) ||
+                    !tauriAvailable ||
+                    modelOptions.length === 0}
+                  sendTitle={$t("send")}
+                  {slashCommands}
+                  showGlobalDraftsInMentions={config?.mention_palette_show_global_drafts ?? true}
+                  onConfigureModels={() => openSettings("providers")}
+                  onModelChange={handleModelChange}
+                  onSend={sendMessage}
+                  onStop={stopMessage}
+                />
+              {/if}
+            </div>
+          </div>
+        </div>
+      {/if}
     </div>
-  </div>
   {/if}
-</div>
-{/if}
 </TooltipPrimitive.Provider>
 
 <Dialog.Root
@@ -3814,7 +3964,9 @@ let newConversationLayout = $derived(
           <button
             class="dialog-action-quiet"
             type="button"
-            onclick={() => { wslPickerOpen = false; }}
+            onclick={() => {
+              wslPickerOpen = false;
+            }}
           >
             {$t("cancel")}
           </button>
@@ -3833,22 +3985,32 @@ let newConversationLayout = $derived(
 
 <Dialog.Root
   open={pendingWorkspacePath !== null}
-  onOpenChange={(open) => { if (!open) pendingWorkspacePath = null; }}
+  onOpenChange={(open) => {
+    if (!open) pendingWorkspacePath = null;
+  }}
 >
   <Dialog.Portal>
     <Dialog.Overlay class="dialog-overlay" />
     <Dialog.Content class="dialog workspace-choice-dialog">
-      <Dialog.Title class="dialog-title">{$t('workspaceOpenDialogTitle')}</Dialog.Title>
+      <Dialog.Title class="dialog-title">{$t("workspaceOpenDialogTitle")}</Dialog.Title>
       <Dialog.Description class="workspace-choice-description">
-        {$t('workspaceOpenDialogDescription')}
+        {$t("workspaceOpenDialogDescription")}
       </Dialog.Description>
       <div class="workspace-choice-path">{pendingWorkspacePath}</div>
       <div class="dialog-actions">
-        <button class="dialog-action-quiet" type="button" onclick={() => resolveWorkspaceChoice('current_window')}>
-          {$t('workspaceSwitchCurrent')}
+        <button
+          class="dialog-action-quiet"
+          type="button"
+          onclick={() => resolveWorkspaceChoice("current_window")}
+        >
+          {$t("workspaceSwitchCurrent")}
         </button>
-        <button class="btn-primary" type="button" onclick={() => resolveWorkspaceChoice('new_window')}>
-          {$t('workspaceCreateWindow')}
+        <button
+          class="btn-primary"
+          type="button"
+          onclick={() => resolveWorkspaceChoice("new_window")}
+        >
+          {$t("workspaceCreateWindow")}
         </button>
       </div>
     </Dialog.Content>
@@ -3856,7 +4018,6 @@ let newConversationLayout = $derived(
 </Dialog.Root>
 
 <Toast />
-
 
 <style>
   @property --input-aurora-x-shift {
@@ -3950,7 +4111,7 @@ let newConversationLayout = $derived(
     flex-direction: column;
     overflow: hidden;
   }
-/* Title Bar */
+  /* Title Bar */
   .title-bar {
     position: absolute;
     top: 0;
@@ -4007,7 +4168,9 @@ let newConversationLayout = $derived(
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
-    transition: background 120ms ease, color 120ms ease;
+    transition:
+      background 120ms ease,
+      color 120ms ease;
   }
 
   .title-new-conversation:hover,
@@ -4053,7 +4216,7 @@ let newConversationLayout = $derived(
     flex-shrink: 0;
   }
 
-.sync-dot {
+  .sync-dot {
     color: var(--primary);
     font-size: 10px;
     margin-right: 2px;
@@ -4061,8 +4224,13 @@ let newConversationLayout = $derived(
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
+    }
   }
 
   /* Messages */
@@ -4171,9 +4339,19 @@ let newConversationLayout = $derived(
     width: min(calc(100% + 24px), 988px);
     height: 90px;
     z-index: 1;
-    background:
-      linear-gradient(to top, rgba(245, 245, 247, 0.82), rgba(245, 245, 247, 0.08) 72%, transparent);
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
+    background: linear-gradient(
+      to top,
+      rgba(245, 245, 247, 0.82),
+      rgba(245, 245, 247, 0.08) 72%,
+      transparent
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      #000 10%,
+      #000 90%,
+      transparent 100%
+    );
     mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
     pointer-events: none;
     transform: translateX(-50%);
@@ -4200,13 +4378,21 @@ let newConversationLayout = $derived(
   }
 
   .input-area-streaming::after {
-    background:
-      linear-gradient(to top, rgba(245, 245, 247, 0.62), rgba(245, 245, 247, 0.04) 72%, transparent);
+    background: linear-gradient(
+      to top,
+      rgba(245, 245, 247, 0.62),
+      rgba(245, 245, 247, 0.04) 72%,
+      transparent
+    );
   }
 
   :global(html.dark) .input-area::after {
-    background:
-      linear-gradient(to top, rgba(15, 17, 23, 0.76), rgba(15, 17, 23, 0.08) 72%, transparent);
+    background: linear-gradient(
+      to top,
+      rgba(15, 17, 23, 0.76),
+      rgba(15, 17, 23, 0.08) 72%,
+      transparent
+    );
   }
 
   .input-inner {
@@ -4220,39 +4406,50 @@ let newConversationLayout = $derived(
 
   @media (prefers-color-scheme: dark) {
     .input-area::after {
-      background:
-        linear-gradient(to top, rgba(15, 17, 23, 0.76), rgba(15, 17, 23, 0.08) 72%, transparent);
+      background: linear-gradient(
+        to top,
+        rgba(15, 17, 23, 0.76),
+        rgba(15, 17, 23, 0.08) 72%,
+        transparent
+      );
     }
 
     :global(html.light) .input-area::after {
-      background:
-        linear-gradient(to top, rgba(245, 245, 247, 0.82), rgba(245, 245, 247, 0.08) 72%, transparent);
+      background: linear-gradient(
+        to top,
+        rgba(245, 245, 247, 0.82),
+        rgba(245, 245, 247, 0.08) 72%,
+        transparent
+      );
     }
   }
 
   @keyframes input-area-aurora {
     0% {
       transform: translate3d(
-        calc(-50% - 5% - var(--input-aurora-x-shift)),
-        calc(8% + var(--input-aurora-y-shift)),
-        0
-      ) scale(calc(1.05 + var(--input-aurora-scale-shift)));
+          calc(-50% - 5% - var(--input-aurora-x-shift)),
+          calc(8% + var(--input-aurora-y-shift)),
+          0
+        )
+        scale(calc(1.05 + var(--input-aurora-scale-shift)));
       background-position: 0% 50%;
     }
     50% {
       transform: translate3d(
-        calc(-50% + 4% + var(--input-aurora-x-shift)),
-        calc(3% - var(--input-aurora-y-shift)),
-        0
-      ) scale(calc(1.12 + var(--input-aurora-scale-shift)));
+          calc(-50% + 4% + var(--input-aurora-x-shift)),
+          calc(3% - var(--input-aurora-y-shift)),
+          0
+        )
+        scale(calc(1.12 + var(--input-aurora-scale-shift)));
       background-position: 100% 50%;
     }
     100% {
       transform: translate3d(
-        calc(-50% - 2% - var(--input-aurora-x-shift)),
-        calc(6% + var(--input-aurora-y-shift)),
-        0
-      ) scale(calc(1.09 + var(--input-aurora-scale-shift)));
+          calc(-50% - 2% - var(--input-aurora-x-shift)),
+          calc(6% + var(--input-aurora-y-shift)),
+          0
+        )
+        scale(calc(1.09 + var(--input-aurora-scale-shift)));
       background-position: 40% 100%;
     }
   }
@@ -4282,7 +4479,6 @@ let newConversationLayout = $derived(
       transition: none;
     }
   }
-
 
   /* ─── Dialogs ─────────────────────────────────────────────────────────────── */
 
@@ -4464,7 +4660,9 @@ let newConversationLayout = $derived(
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
+    transition:
+      background 0.15s,
+      transform 0.1s;
   }
 
   :global(.btn-primary:hover) {
@@ -4484,13 +4682,15 @@ let newConversationLayout = $derived(
     font-size: 13px;
     cursor: pointer;
     box-shadow: var(--control-shadow);
-    transition: background 0.15s, transform 0.1s;
+    transition:
+      background 0.15s,
+      transform 0.1s;
   }
 
   :global(.btn-secondary:hover) {
     background: var(--border);
   }
-  
+
   :global(.btn-secondary:active) {
     transform: scale(0.95);
   }
@@ -4499,7 +4699,6 @@ let newConversationLayout = $derived(
     padding: 6px 12px;
     font-size: 13px;
   }
-
 
   /* ─── Streamdown table overrides ─────────────────────────────────────────── */
 
@@ -4564,9 +4763,18 @@ let newConversationLayout = $derived(
     color: var(--text);
   }
 
-  :global(.assistant-msg h1) { font-size: 21px; letter-spacing: -0.28px; }
-  :global(.assistant-msg h2) { font-size: 17px; letter-spacing: -0.374px; }
-  :global(.assistant-msg h3) { font-size: 15px; letter-spacing: -0.374px; }
+  :global(.assistant-msg h1) {
+    font-size: 21px;
+    letter-spacing: -0.28px;
+  }
+  :global(.assistant-msg h2) {
+    font-size: 17px;
+    letter-spacing: -0.374px;
+  }
+  :global(.assistant-msg h3) {
+    font-size: 15px;
+    letter-spacing: -0.374px;
+  }
 
   :global(.assistant-msg ul, .assistant-msg ol) {
     margin: 4px 0 10px;
@@ -4719,7 +4927,9 @@ let newConversationLayout = $derived(
     background: transparent !important;
     color: var(--text-muted) !important;
     border-radius: 6px !important;
-    transition: background 0.12s, color 0.12s !important;
+    transition:
+      background 0.12s,
+      color 0.12s !important;
   }
   :global([data-streamdown-mermaid] button:hover) {
     background: var(--surface2) !important;
@@ -4767,5 +4977,4 @@ let newConversationLayout = $derived(
   }
 
   /* ─── Settings Panel ─────────────────────────────────────────────────────── */
-
 </style>

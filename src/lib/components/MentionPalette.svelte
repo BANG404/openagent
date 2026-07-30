@@ -76,11 +76,7 @@
       <Command.Empty class="palette-empty">{emptyText}</Command.Empty>
     {:else}
       {#each items as item (item.id)}
-        <Command.Item
-          value={item.id}
-          onSelect={() => onSelect(item)}
-          class="palette-row"
-        >
+        <Command.Item value={item.id} onSelect={() => onSelect(item)} class="palette-row">
           <span class="palette-label">{item.label}</span>
           {#if item.detail}
             <span class="palette-detail">{item.detail}</span>
@@ -160,7 +156,9 @@
   }
 
   @keyframes palette-spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   :global(.palette-row) {

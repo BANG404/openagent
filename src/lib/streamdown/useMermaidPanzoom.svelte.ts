@@ -70,7 +70,7 @@ export function useMermaidPanzoom(opts: PanzoomOptions = {}) {
           [bbox.x, bbox.y],
           [bbox.x + bbox.width, bbox.y],
           [bbox.x + bbox.width, bbox.y + bbox.height],
-          [bbox.x, bbox.y + bbox.height]
+          [bbox.x, bbox.y + bbox.height],
         ].map(([px, py]) => {
           point.x = px;
           point.y = py;
@@ -158,12 +158,19 @@ export function useMermaidPanzoom(opts: PanzoomOptions = {}) {
     if (!parent) return;
     const parentRect = parent.getBoundingClientRect();
     const natural = contentBounds();
-    if (!natural || natural.width <= 0 || natural.height <= 0 || parentRect.width <= 0 || parentRect.height <= 0) return;
+    if (
+      !natural ||
+      natural.width <= 0 ||
+      natural.height <= 0 ||
+      parentRect.width <= 0 ||
+      parentRect.height <= 0
+    )
+      return;
     scale = clampScale(
       Math.min(
         (parentRect.width * (1 - 2 * padding)) / natural.width,
-        (parentRect.height * (1 - 2 * padding)) / natural.height
-      )
+        (parentRect.height * (1 - 2 * padding)) / natural.height,
+      ),
     );
     x = (parentRect.width - natural.width * scale) / 2 - natural.x * scale;
     y = (parentRect.height - natural.height * scale) / 2 - natural.y * scale;
@@ -214,7 +221,12 @@ export function useMermaidPanzoom(opts: PanzoomOptions = {}) {
     if (e.key === "Escape" && isExpanded) expand(false);
   }
 
-  function add(target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions) {
+  function add(
+    target: EventTarget,
+    type: string,
+    handler: EventListener,
+    options?: AddEventListenerOptions,
+  ) {
     target.addEventListener(type, handler, options);
     const off = () => target.removeEventListener(type, handler, options);
     listeners.add(off);
@@ -285,6 +297,6 @@ export function useMermaidPanzoom(opts: PanzoomOptions = {}) {
     toggleExpand: () => expand(!isExpanded),
     get expanded() {
       return isExpanded;
-    }
+    },
   };
 }

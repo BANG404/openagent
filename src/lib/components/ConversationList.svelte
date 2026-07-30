@@ -34,8 +34,10 @@
   let normalizedSearchQuery = $derived(searchQuery.trim().toLowerCase());
   let searchResults = $derived(
     normalizedSearchQuery
-      ? conversations.filter((conversation) => conversation.title.toLowerCase().includes(normalizedSearchQuery))
-      : []
+      ? conversations.filter((conversation) =>
+          conversation.title.toLowerCase().includes(normalizedSearchQuery),
+        )
+      : [],
   );
 
   // A role-filtered delegated conversation retains its durable parent link,
@@ -44,11 +46,14 @@
   let topLevel = $derived.by(() => {
     const visibleIds = new Set(conversations.map((conversation) => conversation.id));
     return conversations
-      .filter((conversation) => !conversation.parentConvId || !visibleIds.has(conversation.parentConvId))
-      .sort((a, b) =>
-        (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)
-        || b.updatedAt - a.updatedAt
-        || b.id.localeCompare(a.id)
+      .filter(
+        (conversation) => !conversation.parentConvId || !visibleIds.has(conversation.parentConvId),
+      )
+      .sort(
+        (a, b) =>
+          (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) ||
+          b.updatedAt - a.updatedAt ||
+          b.id.localeCompare(a.id),
       );
   });
 
@@ -64,7 +69,10 @@
     }
     // Sort each group newest-first
     for (const [k, arr] of map) {
-      map.set(k, arr.sort((a, b) => b.updatedAt - a.updatedAt));
+      map.set(
+        k,
+        arr.sort((a, b) => b.updatedAt - a.updatedAt),
+      );
     }
     return map;
   });
@@ -141,18 +149,35 @@
 {#snippet nestedThreadItems(items: Conversation[], depth: number)}
   {#each items as sub (sub.id)}
     <button
-      class="sub-conv-item {sub.id === activeConvId ? 'active' : ''} {streamingConvIds[sub.id] ? 'streaming' : ''} {sub.flowKind ? 'flow' : ''}"
+      class="sub-conv-item {sub.id === activeConvId ? 'active' : ''} {streamingConvIds[sub.id]
+        ? 'streaming'
+        : ''} {sub.flowKind ? 'flow' : ''}"
       style:padding-left={`${8 + depth * 12}px`}
       onclick={() => onSelect(sub.id)}
     >
       {#if sub.flowKind}
-        <span class="flow-badge {flowMark(sub.flowKind)} {sub.flowStatus ?? 'running'}" aria-label={sub.flowKind}>
+        <span
+          class="flow-badge {flowMark(sub.flowKind)} {sub.flowStatus ?? 'running'}"
+          aria-label={sub.flowKind}
+        >
           {#if flowMark(sub.flowKind) === "goal"}
-            <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.4" /><circle cx="8" cy="8" r="2" /></svg>
+            <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"
+              ><circle cx="8" cy="8" r="5.4" /><circle cx="8" cy="8" r="2" /></svg
+            >
           {:else if flowMark(sub.flowKind) === "node"}
-            <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="2" /><path d="M8 2.5V4M8 12v1.5M2.5 8H4M12 8h1.5" /></svg>
+            <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"
+              ><rect x="4" y="4" width="8" height="8" rx="2" /><path
+                d="M8 2.5V4M8 12v1.5M2.5 8H4M12 8h1.5"
+              /></svg
+            >
           {:else}
-            <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="4" cy="5" r="1.7" /><circle cx="11.5" cy="4" r="1.7" /><circle cx="8.5" cy="11.5" r="1.7" /><path d="M5.6 4.8 9.8 4.2M5 6.2l2.6 4M10.4 5.5 9 9.9" /></svg>
+            <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"
+              ><circle cx="4" cy="5" r="1.7" /><circle cx="11.5" cy="4" r="1.7" /><circle
+                cx="8.5"
+                cy="11.5"
+                r="1.7"
+              /><path d="M5.6 4.8 9.8 4.2M5 6.2l2.6 4M10.4 5.5 9 9.9" /></svg
+            >
           {/if}
         </span>
       {:else}
@@ -162,7 +187,18 @@
       {#if streamingConvIds[sub.id]}
         <span class="conv-streaming-dot" aria-label="Streaming"></span>
       {:else}
-        <span class="conv-delete" role="button" tabindex="0" aria-label="Delete sub-conversation" onclick={(e) => { e.stopPropagation(); onDelete(sub.id); }} onkeydown={(e) => e.key === "Enter" && (e.stopPropagation(), onDelete(sub.id))}>&times;</span>
+        <span
+          class="conv-delete"
+          role="button"
+          tabindex="0"
+          aria-label="Delete sub-conversation"
+          onclick={(e) => {
+            e.stopPropagation();
+            onDelete(sub.id);
+          }}
+          onkeydown={(e) => e.key === "Enter" && (e.stopPropagation(), onDelete(sub.id))}
+          >&times;</span
+        >
       {/if}
     </button>
     {#if isActiveBranch(sub.id) && childMap.has(sub.id)}
@@ -172,184 +208,229 @@
 {/snippet}
 
 <div class:has-streaming={hasStreaming} class="conv-list-shell">
-<div class="conv-list" bind:this={listElement}>
-  {#if normalizedSearchQuery}
-    {#if searchResults.length === 0}
-      <div class="search-empty">
-        {#if loadingMore}
-          <span class="conversation-page-spinner" aria-hidden="true"></span>
-          <span>{$t("loadingContent")}</span>
-        {:else}
-          {$t("noConversationSearchResults")}
-        {/if}
+  <div class="conv-list" bind:this={listElement}>
+    {#if normalizedSearchQuery}
+      {#if searchResults.length === 0}
+        <div class="search-empty">
+          {#if loadingMore}
+            <span class="conversation-page-spinner" aria-hidden="true"></span>
+            <span>{$t("loadingContent")}</span>
+          {:else}
+            {$t("noConversationSearchResults")}
+          {/if}
+        </div>
+      {:else}
+        <div class="search-results" aria-label={$t("searchResults")}>
+          {#each searchResults as conv (conv.id)}
+            <button
+              class="conv-item {conv.id === activeConvId ? 'active' : ''} {streamingConvIds[conv.id]
+                ? 'streaming'
+                : ''}"
+              onclick={() => onSelect(conv.id)}
+            >
+              <svg
+                class="search-result-icon"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 4.5h10M3 8h7M3 11.5h5" />
+              </svg>
+              <span class="conv-title">{conv.title}</span>
+              {#if streamingConvIds[conv.id]}
+                <span class="conv-streaming-dot" aria-label="Streaming"></span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    {:else if topLevel.length === 0}
+      <div class="empty-conversations">
+        <div class="empty-conversations-icon" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><path d="M7 18.5 3.5 21l1.2-4.2A8 8 0 1 1 20 12" /><path
+              d="M8.5 12h.01M12 12h.01M15.5 12h.01"
+            /></svg
+          >
+        </div>
+        <strong>{$t("emptyConversationsTitle")}</strong>
       </div>
     {:else}
-      <div class="search-results" aria-label={$t("searchResults")}>
-        {#each searchResults as conv (conv.id)}
-          <button
-            class="conv-item {conv.id === activeConvId ? 'active' : ''} {streamingConvIds[conv.id] ? 'streaming' : ''}"
-            onclick={() => onSelect(conv.id)}
-          >
-            <svg class="search-result-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M3 4.5h10M3 8h7M3 11.5h5" />
-            </svg>
-            <span class="conv-title">{conv.title}</span>
-            {#if streamingConvIds[conv.id]}
-              <span class="conv-streaming-dot" aria-label="Streaming"></span>
-            {/if}
-          </button>
-        {/each}
-      </div>
-    {/if}
-  {:else if topLevel.length === 0}
-    <div class="empty-conversations">
-      <div class="empty-conversations-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5 3.5 21l1.2-4.2A8 8 0 1 1 20 12"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/></svg>
-      </div>
-      <strong>{$t('emptyConversationsTitle')}</strong>
-    </div>
-  {:else}
-  {#each topLevel as conv, i (conv.id)}
-    {#if i > 0 && !conv.pinned && topLevel[i - 1].pinned}
-      <div class="conv-list-divider"></div>
-    {/if}
+      {#each topLevel as conv, i (conv.id)}
+        {#if i > 0 && !conv.pinned && topLevel[i - 1].pinned}
+          <div class="conv-list-divider"></div>
+        {/if}
 
-    <!-- Top-level conversation -->
-    <ContextMenu.Root>
-      <ContextMenu.Trigger class="conv-context-trigger">
-        <button
-          class="conv-item {conv.id === activeConvId ? 'active' : ''} {streamingConvIds[conv.id] ? 'streaming' : ''} {conv.flowKind ? 'flow' : ''}"
-          onclick={() => onSelect(conv.id)}
-        >
-          {#if conv.pinned}
-            <svg class="conv-pin-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"/>
-            </svg>
-          {/if}
-          {#if conv.flowKind}
-            <span class="flow-badge {flowMark(conv.flowKind)} {conv.flowStatus ?? 'running'}" aria-label={conv.flowKind}>
-              {#if flowMark(conv.flowKind) === "goal"}
-                <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <circle cx="8" cy="8" r="5.4" />
-                  <circle cx="8" cy="8" r="2" />
-                </svg>
-              {:else if flowMark(conv.flowKind) === "node"}
-                <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <rect x="4" y="4" width="8" height="8" rx="2" />
-                  <path d="M8 2.5V4M8 12v1.5M2.5 8H4M12 8h1.5" />
-                </svg>
-              {:else}
-                <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <circle cx="4" cy="5" r="1.7" />
-                  <circle cx="11.5" cy="4" r="1.7" />
-                  <circle cx="8.5" cy="11.5" r="1.7" />
-                  <path d="M5.6 4.8 9.8 4.2M5 6.2l2.6 4M10.4 5.5 9 9.9" />
+        <!-- Top-level conversation -->
+        <ContextMenu.Root>
+          <ContextMenu.Trigger class="conv-context-trigger">
+            <button
+              class="conv-item {conv.id === activeConvId ? 'active' : ''} {streamingConvIds[conv.id]
+                ? 'streaming'
+                : ''} {conv.flowKind ? 'flow' : ''}"
+              onclick={() => onSelect(conv.id)}
+            >
+              {#if conv.pinned}
+                <svg
+                  class="conv-pin-icon"
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"
+                  />
                 </svg>
               {/if}
-            </span>
-          {/if}
-          <span class="conv-title">{conv.title}</span>
-          {#if streamingConvIds[conv.id]}
-            <span class="conv-streaming-dot" aria-label="Streaming"></span>
-          {:else}
-            <span
-              class="conv-delete"
-              role="button"
-              tabindex="0"
-              aria-label="Delete conversation"
-              onclick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
-              onkeydown={(e) => e.key === "Enter" && (e.stopPropagation(), onDelete(conv.id))}
-            >×</span>
-          {/if}
-        </button>
-      </ContextMenu.Trigger>
-      <ContextMenu.Portal>
-        <ContextMenu.Content class="ctx-menu-content">
-          <ContextMenu.Item
-            class="ctx-menu-item"
-            onclick={() => onTogglePin(conv.id)}
-          >
-            {conv.pinned ? $t('unpinConv') : $t('pinConv')}
-          </ContextMenu.Item>
-          <div class="ctx-menu-separator"></div>
-          <ContextMenu.Item
-            class="ctx-menu-item ctx-menu-item-danger"
-            onclick={() => onDelete(conv.id)}
-          >
-            {$t('deleteConv')}
-          </ContextMenu.Item>
-        </ContextMenu.Content>
-      </ContextMenu.Portal>
-    </ContextMenu.Root>
+              {#if conv.flowKind}
+                <span
+                  class="flow-badge {flowMark(conv.flowKind)} {conv.flowStatus ?? 'running'}"
+                  aria-label={conv.flowKind}
+                >
+                  {#if flowMark(conv.flowKind) === "goal"}
+                    <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <circle cx="8" cy="8" r="5.4" />
+                      <circle cx="8" cy="8" r="2" />
+                    </svg>
+                  {:else if flowMark(conv.flowKind) === "node"}
+                    <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <rect x="4" y="4" width="8" height="8" rx="2" />
+                      <path d="M8 2.5V4M8 12v1.5M2.5 8H4M12 8h1.5" />
+                    </svg>
+                  {:else}
+                    <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <circle cx="4" cy="5" r="1.7" />
+                      <circle cx="11.5" cy="4" r="1.7" />
+                      <circle cx="8.5" cy="11.5" r="1.7" />
+                      <path d="M5.6 4.8 9.8 4.2M5 6.2l2.6 4M10.4 5.5 9 9.9" />
+                    </svg>
+                  {/if}
+                </span>
+              {/if}
+              <span class="conv-title">{conv.title}</span>
+              {#if streamingConvIds[conv.id]}
+                <span class="conv-streaming-dot" aria-label="Streaming"></span>
+              {:else}
+                <span
+                  class="conv-delete"
+                  role="button"
+                  tabindex="0"
+                  aria-label="Delete conversation"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    onDelete(conv.id);
+                  }}
+                  onkeydown={(e) => e.key === "Enter" && (e.stopPropagation(), onDelete(conv.id))}
+                  >×</span
+                >
+              {/if}
+            </button>
+          </ContextMenu.Trigger>
+          <ContextMenu.Portal>
+            <ContextMenu.Content class="ctx-menu-content">
+              <ContextMenu.Item class="ctx-menu-item" onclick={() => onTogglePin(conv.id)}>
+                {conv.pinned ? $t("unpinConv") : $t("pinConv")}
+              </ContextMenu.Item>
+              <div class="ctx-menu-separator"></div>
+              <ContextMenu.Item
+                class="ctx-menu-item ctx-menu-item-danger"
+                onclick={() => onDelete(conv.id)}
+              >
+                {$t("deleteConv")}
+              </ContextMenu.Item>
+            </ContextMenu.Content>
+          </ContextMenu.Portal>
+        </ContextMenu.Root>
 
-    <!-- Sub-conversations nested under this parent -->
-    {#if visibleSubConvMap.has(conv.id)}
-      <div class="sub-conv-group">
-        {#each visibleSubConvMap.get(conv.id)! as sub (sub.id)}
-          <button
-            class="sub-conv-item {sub.id === activeConvId ? 'active' : ''} {streamingConvIds[sub.id] ? 'streaming' : ''} {sub.flowKind ? 'flow' : ''}"
-            style:padding-left="20px"
-            onclick={() => onSelect(sub.id)}
-          >
-            {#if sub.flowKind}
-              <span class="flow-badge {flowMark(sub.flowKind)} {sub.flowStatus ?? 'running'}" aria-label={sub.flowKind}>
-                {#if flowMark(sub.flowKind) === "goal"}
-                  <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <circle cx="8" cy="8" r="5.4" />
-                    <circle cx="8" cy="8" r="2" />
-                  </svg>
-                {:else if flowMark(sub.flowKind) === "node"}
-                  <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <rect x="4" y="4" width="8" height="8" rx="2" />
-                    <path d="M8 2.5V4M8 12v1.5M2.5 8H4M12 8h1.5" />
-                  </svg>
+        <!-- Sub-conversations nested under this parent -->
+        {#if visibleSubConvMap.has(conv.id)}
+          <div class="sub-conv-group">
+            {#each visibleSubConvMap.get(conv.id)! as sub (sub.id)}
+              <button
+                class="sub-conv-item {sub.id === activeConvId ? 'active' : ''} {streamingConvIds[
+                  sub.id
+                ]
+                  ? 'streaming'
+                  : ''} {sub.flowKind ? 'flow' : ''}"
+                style:padding-left="20px"
+                onclick={() => onSelect(sub.id)}
+              >
+                {#if sub.flowKind}
+                  <span
+                    class="flow-badge {flowMark(sub.flowKind)} {sub.flowStatus ?? 'running'}"
+                    aria-label={sub.flowKind}
+                  >
+                    {#if flowMark(sub.flowKind) === "goal"}
+                      <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <circle cx="8" cy="8" r="5.4" />
+                        <circle cx="8" cy="8" r="2" />
+                      </svg>
+                    {:else if flowMark(sub.flowKind) === "node"}
+                      <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <rect x="4" y="4" width="8" height="8" rx="2" />
+                        <path d="M8 2.5V4M8 12v1.5M2.5 8H4M12 8h1.5" />
+                      </svg>
+                    {:else}
+                      <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <circle cx="4" cy="5" r="1.7" />
+                        <circle cx="11.5" cy="4" r="1.7" />
+                        <circle cx="8.5" cy="11.5" r="1.7" />
+                        <path d="M5.6 4.8 9.8 4.2M5 6.2l2.6 4M10.4 5.5 9 9.9" />
+                      </svg>
+                    {/if}
+                  </span>
                 {:else}
-                  <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <circle cx="4" cy="5" r="1.7" />
-                    <circle cx="11.5" cy="4" r="1.7" />
-                    <circle cx="8.5" cy="11.5" r="1.7" />
-                    <path d="M5.6 4.8 9.8 4.2M5 6.2l2.6 4M10.4 5.5 9 9.9" />
-                  </svg>
+                  {@render delegatedRoleBadge()}
                 {/if}
-              </span>
-            {:else}
-              {@render delegatedRoleBadge()}
-            {/if}
-            <span class="conv-title">{sub.title}</span>
-            {#if streamingConvIds[sub.id]}
-              <span class="conv-streaming-dot" aria-label="Streaming"></span>
-            {:else}
-              <span
-                class="conv-delete"
-                role="button"
-                tabindex="0"
-                aria-label="Delete sub-conversation"
-                onclick={(e) => { e.stopPropagation(); onDelete(sub.id); }}
-                onkeydown={(e) => e.key === "Enter" && (e.stopPropagation(), onDelete(sub.id))}
-              >×</span>
-            {/if}
-          </button>
-          {#if isActiveBranch(sub.id) && childMap.has(sub.id)}
-            {@render nestedThreadItems(childMap.get(sub.id)!, 2)}
-          {/if}
-        {/each}
+                <span class="conv-title">{sub.title}</span>
+                {#if streamingConvIds[sub.id]}
+                  <span class="conv-streaming-dot" aria-label="Streaming"></span>
+                {:else}
+                  <span
+                    class="conv-delete"
+                    role="button"
+                    tabindex="0"
+                    aria-label="Delete sub-conversation"
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      onDelete(sub.id);
+                    }}
+                    onkeydown={(e) => e.key === "Enter" && (e.stopPropagation(), onDelete(sub.id))}
+                    >×</span
+                  >
+                {/if}
+              </button>
+              {#if isActiveBranch(sub.id) && childMap.has(sub.id)}
+                {@render nestedThreadItems(childMap.get(sub.id)!, 2)}
+              {/if}
+            {/each}
+          </div>
+        {/if}
+      {/each}
+    {/if}
+    {#if hasMore}
+      <div
+        class="conversation-page-sentinel"
+        class:loading={loadingMore}
+        bind:this={pageSentinel}
+        aria-label={loadingMore ? $t("loadingContent") : undefined}
+      >
+        {#if loadingMore}
+          <span class="conversation-page-spinner" aria-hidden="true"></span>
+        {/if}
       </div>
     {/if}
-  {/each}
-  {/if}
-  {#if hasMore}
-    <div
-      class="conversation-page-sentinel"
-      class:loading={loadingMore}
-      bind:this={pageSentinel}
-      aria-label={loadingMore ? $t("loadingContent") : undefined}
-    >
-      {#if loadingMore}
-        <span class="conversation-page-spinner" aria-hidden="true"></span>
-      {/if}
-    </div>
-  {/if}
-</div>
+  </div>
 </div>
 
 <style>
@@ -443,8 +524,15 @@
     background: color-mix(in srgb, var(--primary) 10%, transparent);
   }
 
-  .empty-conversations-icon svg { width: 19px; height: 19px; }
-  .empty-conversations strong { color: var(--text); font-size: 13px; font-weight: 600; }
+  .empty-conversations-icon svg {
+    width: 19px;
+    height: 19px;
+  }
+  .empty-conversations strong {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+  }
   .search-empty {
     display: flex;
     align-items: center;
@@ -482,7 +570,9 @@
   }
 
   @keyframes conversation-page-spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .search-result-icon {
@@ -507,7 +597,9 @@
     color: var(--text-muted);
     font-size: 13px;
     gap: 6px;
-    transition: background 0.12s, color 0.12s;
+    transition:
+      background 0.12s,
+      color 0.12s;
   }
 
   .conv-item:hover:not(.active) {
@@ -684,7 +776,9 @@
     color: var(--text-muted);
     font-size: 13px;
     gap: 6px;
-    transition: background 0.12s, color 0.12s;
+    transition:
+      background 0.12s,
+      color 0.12s;
   }
 
   .sub-conv-item:hover:not(.active) {
@@ -710,24 +804,31 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
+    }
   }
 
   @keyframes sidebar-aurora {
     0% {
       transform: translate3d(
-        calc(-1% - var(--sidebar-aurora-x-shift)),
-        calc(-1% - var(--sidebar-aurora-y-shift)),
-        0
-      ) scale(calc(0.99 - var(--sidebar-aurora-scale-shift)));
+          calc(-1% - var(--sidebar-aurora-x-shift)),
+          calc(-1% - var(--sidebar-aurora-y-shift)),
+          0
+        )
+        scale(calc(0.99 - var(--sidebar-aurora-scale-shift)));
     }
     100% {
       transform: translate3d(
-        calc(1% + var(--sidebar-aurora-x-shift)),
-        calc(1% + var(--sidebar-aurora-y-shift)),
-        0
-      ) scale(calc(1.01 + var(--sidebar-aurora-scale-shift)));
+          calc(1% + var(--sidebar-aurora-x-shift)),
+          calc(1% + var(--sidebar-aurora-y-shift)),
+          0
+        )
+        scale(calc(1.01 + var(--sidebar-aurora-scale-shift)));
     }
   }
 

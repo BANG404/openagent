@@ -1,10 +1,6 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
-  import {
-    toolCallStatus,
-    type ToolCallItem,
-    type ToolCallStatus,
-  } from "$lib/toolCallGroups";
+  import { toolCallStatus, type ToolCallItem, type ToolCallStatus } from "$lib/toolCallGroups";
   import type { HtmlPreviewConfig } from "$lib/types";
   import ToolCallCard from "./ToolCallCard.svelte";
 
@@ -58,13 +54,15 @@
   }
 
   function statusLabel(status: ToolCallStatus): string {
-    return $t(status === "success"
-      ? "toolStatusSuccess"
-      : status === "failed"
-        ? "toolStatusFailed"
-        : status === "running"
-          ? "toolStatusRunning"
-          : "toolStatusPending");
+    return $t(
+      status === "success"
+        ? "toolStatusSuccess"
+        : status === "failed"
+          ? "toolStatusFailed"
+          : status === "running"
+            ? "toolStatusRunning"
+            : "toolStatusPending",
+    );
   }
 </script>
 
@@ -73,11 +71,18 @@
     class="tool-call-group-toggle"
     type="button"
     aria-expanded={expanded}
-    onclick={() => expanded = !expanded}
+    onclick={() => (expanded = !expanded)}
   >
     <span class="group-chevron" class:expanded aria-hidden="true">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 4l4 4-4 4"/>
+      <svg
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M6 4l4 4-4 4" />
       </svg>
     </span>
     <span class="group-title">{$t("toolCallGroup")}</span>
@@ -107,7 +112,8 @@
         </span>
       {/if}
     </span>
-    <span class="sr-only">{expanded ? $t("toolCallGroupCollapse") : $t("toolCallGroupExpand")}</span>
+    <span class="sr-only">{expanded ? $t("toolCallGroupCollapse") : $t("toolCallGroupExpand")}</span
+    >
   </button>
 
   {#if expanded}
@@ -230,10 +236,19 @@
     line-height: 1;
   }
 
-  .status.success { color: #22c55e; }
-  .status.failed { color: var(--danger, #dc2626); }
-  .status.running { color: var(--primary); animation: pulse 1.2s ease-in-out infinite; }
-  .status.pending { color: var(--text-muted); }
+  .status.success {
+    color: #22c55e;
+  }
+  .status.failed {
+    color: var(--danger, #dc2626);
+  }
+  .status.running {
+    color: var(--primary);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .status.pending {
+    color: var(--text-muted);
+  }
 
   .tool-call-group-items {
     display: flex;
@@ -261,8 +276,13 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.35; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {

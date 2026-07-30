@@ -26,6 +26,12 @@ jobs:
       - name: Validate GitHub Actions
         run: bun run lint:actions
 
+      - name: Lint JavaScript and frontend source
+        run: bun run lint:frontend
+
+      - name: Check repository formatting
+        run: bun run format:check
+
       - name: Test CI module classification
         run: bun test tests/ciChanges.test.js
 

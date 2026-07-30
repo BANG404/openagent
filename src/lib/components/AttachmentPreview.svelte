@@ -28,12 +28,12 @@
   const uiCapabilities = useOpenAgentUiCapabilities();
 
   const previewCache = getPreviewCache();
-  const extension = $derived(
-    attachment.name.split(".").pop()?.toUpperCase().slice(0, 5) || "FILE",
-  );
+  const extension = $derived(attachment.name.split(".").pop()?.toUpperCase().slice(0, 5) || "FILE");
   const canLoadPreview = $derived(
-    attachment.kind === "image"
-      || /\.(svg|pdf|txt|md|markdown|json|ya?ml|toml|rtf|html?|css|csv|xml|jsx?|tsx?|py)$/i.test(attachment.name),
+    attachment.kind === "image" ||
+      /\.(svg|pdf|txt|md|markdown|json|ya?ml|toml|rtf|html?|css|csv|xml|jsx?|tsx?|py)$/i.test(
+        attachment.name,
+      ),
   );
 
   $effect(() => {
@@ -57,12 +57,14 @@
         : invoke<PreviewPayload>("read_attachment_preview", { locator, name });
       previewCache.set(key, request);
     }
-    request.then((value) => {
-      if (attachment.path === locator && attachment.name === name) preview = value;
-    }).catch(() => {
-      previewCache.delete(key);
-      if (attachment.path === locator && attachment.name === name) failed = true;
-    });
+    request
+      .then((value) => {
+        if (attachment.path === locator && attachment.name === name) preview = value;
+      })
+      .catch(() => {
+        previewCache.delete(key);
+        if (attachment.path === locator && attachment.name === name) failed = true;
+      });
   });
 
   function getPreviewCache() {
@@ -157,7 +159,10 @@
       <Dialog.Content class="attachment-dialog">
         <header>
           <Dialog.Title>{attachment.name}</Dialog.Title>
-          <Dialog.Close aria-label={$t("closeAttachmentPreview")} title={$t("closeAttachmentPreview")}>
+          <Dialog.Close
+            aria-label={$t("closeAttachmentPreview")}
+            title={$t("closeAttachmentPreview")}
+          >
             <svg viewBox="0 0 14 14" aria-hidden="true">
               <path d="M3 3 L11 11 M11 3 L3 11" />
             </svg>
@@ -176,7 +181,9 @@
               <strong>{extension}</strong>
               <p>{$t("attachmentPreviewUnavailable")}</p>
               {#if attachment.path.startsWith("sha256:")}
-                <button type="button" onclick={repairPreview}>{$t("selectOriginalAttachment")}</button>
+                <button type="button" onclick={repairPreview}
+                  >{$t("selectOriginalAttachment")}</button
+                >
               {/if}
               {#if repairError}
                 <small role="alert">{repairError}</small>
@@ -210,8 +217,11 @@
     place-items: center;
     overflow: hidden;
     border-bottom: 1px solid var(--border);
-    background:
-      linear-gradient(135deg, color-mix(in srgb, var(--primary) 13%, var(--surface2)), var(--surface2));
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--primary) 13%, var(--surface2)),
+      var(--surface2)
+    );
   }
 
   .thumbnail.image {
@@ -233,7 +243,11 @@
     padding: 7px;
     color: var(--text-muted);
     background: var(--surface2);
-    font: 7px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+    font:
+      7px/1.35 ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      monospace;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     opacity: 0.9;
@@ -299,7 +313,9 @@
     border-radius: 11px;
     background: var(--surface);
     box-shadow: none;
-    transition: background 0.15s, transform 0.15s;
+    transition:
+      background 0.15s,
+      transform 0.15s;
   }
 
   .message-capsule:hover,
@@ -400,7 +416,10 @@
     background: transparent;
     color: var(--text-muted);
     transform: translateY(-50%);
-    transition: background 0.12s, color 0.12s, transform 0.12s;
+    transition:
+      background 0.12s,
+      color 0.12s,
+      transform 0.12s;
   }
 
   .remove-button svg,
@@ -553,7 +572,11 @@
     padding: 22px;
     color: var(--text);
     background: var(--surface);
-    font: 12px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace;
+    font:
+      12px/1.65 ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      monospace;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }

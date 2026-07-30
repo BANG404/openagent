@@ -46,10 +46,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
         .filter(([, rawThreshold]) => Number.isFinite(Number(rawThreshold)))
         .map(([model, rawThreshold]) => {
           const threshold = Number(rawThreshold);
-          return [
-            model,
-            Math.min(1_000_000, Math.max(1_000, Math.floor(threshold))),
-          ];
+          return [model, Math.min(1_000_000, Math.max(1_000, Math.floor(threshold)))];
         }),
     );
     return {
@@ -65,7 +62,15 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
 
   const mcp = {
     servers: (input.mcp?.servers ?? []).map((s) => {
-      const defaults = { transport: "http" as const, url: "", bearer_token: "", headers: {} as Record<string, string>, command: "", args: [] as string[], env: {} as Record<string, string> };
+      const defaults = {
+        transport: "http" as const,
+        url: "",
+        bearer_token: "",
+        headers: {} as Record<string, string>,
+        command: "",
+        args: [] as string[],
+        env: {} as Record<string, string>,
+      };
       return { ...defaults, ...s };
     }),
   };
@@ -122,7 +127,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
   return {
     ...input,
     approval_mode,
-    language: input.language ?? 'zh',
+    language: input.language ?? "zh",
     launch_on_startup: input.launch_on_startup ?? false,
     mention_palette_show_global_drafts: input.mention_palette_show_global_drafts ?? true,
     message_layout: ["single", "responsive_double"].includes(input.message_layout)
@@ -141,8 +146,12 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
     model_retry: {
       retry_count: retryCount,
       retry_delay_ms: retryDelayMs,
-      chat_queue: (input.model_retry?.chat_queue ?? []).filter((binding) => binding.provider_id && binding.model),
-      flash_queue: (input.model_retry?.flash_queue ?? []).filter((binding) => binding.provider_id && binding.model),
+      chat_queue: (input.model_retry?.chat_queue ?? []).filter(
+        (binding) => binding.provider_id && binding.model,
+      ),
+      flash_queue: (input.model_retry?.flash_queue ?? []).filter(
+        (binding) => binding.provider_id && binding.model,
+      ),
     },
     web_search,
     html_preview,

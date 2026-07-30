@@ -225,12 +225,12 @@ jobs:
             rust_target: x86_64-apple-darwin
           - name: Linux x64
             platform: ubuntu-22.04
-            args: ''
-            rust_target: ''
+            args: ""
+            rust_target: ""
           - name: Windows x64
             platform: windows-latest
-            args: ''
-            rust_target: ''
+            args: ""
+            rust_target: ""
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4

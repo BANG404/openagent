@@ -91,7 +91,11 @@
   <div class="design-header" data-tauri-drag-region>
     <div class="header-leading">
       <span class="design-header-title">{$t("designModule")}</span>
-      <ScopeToggle value={activeScope} projectEnabled={Boolean(workspace?.path)} onChange={switchScope} />
+      <ScopeToggle
+        value={activeScope}
+        projectEnabled={Boolean(workspace?.path)}
+        onChange={switchScope}
+      />
     </div>
     <div class="title-actions">
       {#if saveState}<span class="save-state">{saveState}</span>{/if}

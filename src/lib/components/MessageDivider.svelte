@@ -9,19 +9,11 @@
     streamItemKey: string;
   }
 
-  let {
-    title,
-    detail,
-    tone = "neutral",
-    messageId,
-    streamItemKey,
-  }: Props = $props();
+  let { title, detail, tone = "neutral", messageId, streamItemKey }: Props = $props();
 
   let expanded = $state(false);
   const collapsible = $derived(
-    tone === "danger"
-      && !!detail
-      && (detail.length > 420 || detail.split(/\r?\n/).length > 5),
+    tone === "danger" && !!detail && (detail.length > 420 || detail.split(/\r?\n/).length > 5),
   );
 </script>
 
@@ -43,8 +35,9 @@
           class="detail-toggle"
           type="button"
           aria-expanded={expanded}
-          onclick={() => expanded = !expanded}
-        >{expanded ? $t("collapseSection") : $t("expandSection")}</button>
+          onclick={() => (expanded = !expanded)}
+          >{expanded ? $t("collapseSection") : $t("expandSection")}</button
+        >
       {/if}
     {/if}
   </span>
@@ -73,14 +66,21 @@
     gap: 6px;
     max-width: min(70%, 720px);
   }
-  .divider-content strong { flex: none; font-weight: 600; }
+  .divider-content strong {
+    flex: none;
+    font-weight: 600;
+  }
   .divider-detail {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .message-divider.danger { color: var(--danger, #dc2626); }
-  .message-divider.danger .divider-content { align-items: flex-start; }
+  .message-divider.danger {
+    color: var(--danger, #dc2626);
+  }
+  .message-divider.danger .divider-content {
+    align-items: flex-start;
+  }
   .message-divider.danger .divider-detail {
     overflow-wrap: anywhere;
     text-overflow: clip;
@@ -104,7 +104,9 @@
     font: inherit;
     font-weight: 600;
   }
-  .detail-toggle:hover { text-decoration: underline; }
+  .detail-toggle:hover {
+    text-decoration: underline;
+  }
   .detail-toggle:focus-visible {
     border-radius: 3px;
     box-shadow: var(--focus-ring);
@@ -113,5 +115,8 @@
   .message-divider.danger .divider-line {
     background: color-mix(in srgb, var(--danger, #dc2626) 35%, transparent);
   }
-  .message-record { content-visibility: auto; contain-intrinsic-size: auto 40px; }
+  .message-record {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 40px;
+  }
 </style>

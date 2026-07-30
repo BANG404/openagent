@@ -102,16 +102,17 @@
   function isCompactionReplayUser(msg: ChatMessage) {
     return msg.role === "user" && msg.tags?.includes("context_compaction") === true;
   }
-  let visibleMessages = $derived(messages
-    .map((msg, index) => ({ msg, index }))
-    .filter(({ msg }) => !isHiddenMessage(msg)));
+  let visibleMessages = $derived(
+    messages.map((msg, index) => ({ msg, index })).filter(({ msg }) => !isHiddenMessage(msg)),
+  );
   let renderEntries = $derived(groupMessageToolCalls(visibleMessages));
   let virtualEntries = $derived(
     appendLiveStreamEntry(renderEntries, isStreaming ? currentStreamMessageId : null),
   );
   let currentSegments = $derived(groupStreamItems(currentStreamItems));
-  let userMessageIndex = $derived(visibleMessages
-    .filter(({ msg }) => msg.role === "user" && !isCompactionReplayUser(msg)));
+  let userMessageIndex = $derived(
+    visibleMessages.filter(({ msg }) => msg.role === "user" && !isCompactionReplayUser(msg)),
+  );
   const USER_INDEX_PREVIEW_LIMIT = 4;
   const USER_MESSAGE_COLLAPSE_LENGTH = 800;
   const USER_MESSAGE_COLLAPSE_LINES = 8;
@@ -129,11 +130,7 @@
     cancelEdit();
   });
 
-  function commitEdit(
-    convId: string,
-    userMsgIdx: number,
-    attachments: ChatAttachment[],
-  ) {
+  function commitEdit(convId: string, userMsgIdx: number, attachments: ChatAttachment[]) {
     const text = editingText;
     const retainedAttachments = attachments.filter(
       (attachment) => !removedAttachmentPaths.has(attachment.path),
@@ -171,7 +168,10 @@
   }
 
   function isLongUserMessage(content: string) {
-    return content.length > USER_MESSAGE_COLLAPSE_LENGTH || content.split("\n").length > USER_MESSAGE_COLLAPSE_LINES;
+    return (
+      content.length > USER_MESSAGE_COLLAPSE_LENGTH ||
+      content.split("\n").length > USER_MESSAGE_COLLAPSE_LINES
+    );
   }
 
   function isUserMessageCollapsed(msg: ChatMessage) {
@@ -206,21 +206,25 @@
 
   function formatDuration(milliseconds: number) {
     if (milliseconds < 1_000) return `${Math.max(0, Math.round(milliseconds))}ms`;
-    if (milliseconds < 60_000) return `${(milliseconds / 1_000).toFixed(milliseconds < 10_000 ? 1 : 0)}s`;
+    if (milliseconds < 60_000)
+      return `${(milliseconds / 1_000).toFixed(milliseconds < 10_000 ? 1 : 0)}s`;
     const seconds = Math.round(milliseconds / 1_000);
     return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
   }
 
   function runTiming(msg: ChatMessage, msgIdx: number) {
     if (!msg.completedAt) return null;
-    const userMessage = [...messages.slice(0, msgIdx)].reverse().find((item) => item.role === "user");
+    const userMessage = [...messages.slice(0, msgIdx)]
+      .reverse()
+      .find((item) => item.role === "user");
     if (!userMessage) return null;
     return {
-      firstToken: msg.firstTokenAt ? formatDuration(msg.firstTokenAt - userMessage.timestamp) : null,
+      firstToken: msg.firstTokenAt
+        ? formatDuration(msg.firstTokenAt - userMessage.timestamp)
+        : null,
       total: formatDuration(msg.completedAt - userMessage.timestamp),
     };
   }
-
 
   function formatTime(ts: number) {
     return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -244,10 +248,16 @@
     if (entry.kind === "live_stream") return 96;
     if (entry.kind === "tool_group") return 76;
     if (isCompactionReplayUser(entry.msg)) return 58;
-    if (entry.msg.role === "user") return Math.min(260, 70 + Math.ceil(entry.msg.content.length / 90) * 22);
-    const contentLength = entry.msg.content.length
-      + (entry.msg.items?.reduce((total, item) =>
-        total + ("content" in item && typeof item.content === "string" ? item.content.length : 120), 0) ?? 0);
+    if (entry.msg.role === "user")
+      return Math.min(260, 70 + Math.ceil(entry.msg.content.length / 90) * 22);
+    const contentLength =
+      entry.msg.content.length +
+      (entry.msg.items?.reduce(
+        (total, item) =>
+          total +
+          ("content" in item && typeof item.content === "string" ? item.content.length : 120),
+        0,
+      ) ?? 0);
     return Math.min(640, 92 + Math.ceil(contentLength / 100) * 24);
   }
 
@@ -272,13 +282,14 @@
     <aside class="debug-context" aria-label="Debug context">
       <span>debug</span>
       <code title={activeConvId}>conversation: {activeConvId}</code>
-      <code title={activeBranchId ?? "No active branch"}>branch: {activeBranchId ?? "pending"}</code>
+      <code title={activeBranchId ?? "No active branch"}>branch: {activeBranchId ?? "pending"}</code
+      >
     </aside>
   {/if}
 
   {#if userMessageIndex.length > 1}
     <nav class="user-message-index" aria-label="User message index">
-      {#each userMessageIndex as item, index}
+      {#each userMessageIndex as item, index (item.msg.id)}
         <button
           type="button"
           class:with-preview={index < USER_INDEX_PREVIEW_LIMIT}
@@ -300,17 +311,14 @@
   {#if visibleMessages.length === 0 && !isStreaming}
     <div class="new-conversation-context">
       {#if newConversationMemoryLoading}
-        <LoadingSkeleton
-          variant="memory-note"
-          label={$t("loadingContent")}
-        />
+        <LoadingSkeleton variant="memory-note" label={$t("loadingContent")} />
       {:else if newConversationMemoryPrompt}
         <div class="memory-note">
           <p>{newConversationMemoryPrompt}</p>
         </div>
       {/if}
       {#if showApiKeyWarn}
-        <p class="warn">{$t('configApiKey')}</p>
+        <p class="warn">{$t("configApiKey")}</p>
       {/if}
     </div>
   {/if}
@@ -326,197 +334,258 @@
     {onTailAnchorSettled}
   >
     {#snippet children(entry)}
-    {#if isAssistantTurnEntry(entry)}
-      {@const assistantMsg = entry.kind === "message" ? entry.msg : null}
-      {@const renderedAssistantItems = assistantItems(entry)}
-      {@const assistantSegments = groupStreamItems(renderedAssistantItems)}
-      {@const assistantIsStreaming = entry.kind === "live_stream"}
-      {@const isRerunnable = assistantMsg !== null
-        && !isStreaming
-        && Boolean(assistantMsg.checkpointId)
-        && activeTree?.nodes[assistantMsg.checkpointId!]?.assistant?.id === assistantMsg.id}
-      {#each assistantSegments as segment (`${entry.key}-${segment.startIndex}`)}
-        {#if segment.kind === "tool_group"}
-          <div class="stream-item message-record" data-stream-item={`${entry.key}-${segment.startIndex}`}>
-            <ToolCallGroup
-              items={segment.items}
+      {#if isAssistantTurnEntry(entry)}
+        {@const assistantMsg = entry.kind === "message" ? entry.msg : null}
+        {@const renderedAssistantItems = assistantItems(entry)}
+        {@const assistantSegments = groupStreamItems(renderedAssistantItems)}
+        {@const assistantIsStreaming = entry.kind === "live_stream"}
+        {@const isRerunnable =
+          assistantMsg !== null &&
+          !isStreaming &&
+          Boolean(assistantMsg.checkpointId) &&
+          activeTree?.nodes[assistantMsg.checkpointId!]?.assistant?.id === assistantMsg.id}
+        {#each assistantSegments as segment (`${entry.key}-${segment.startIndex}`)}
+          {#if segment.kind === "tool_group"}
+            <div
+              class="stream-item message-record"
+              data-stream-item={`${entry.key}-${segment.startIndex}`}
+            >
+              <ToolCallGroup
+                items={segment.items}
+                isStreaming={assistantIsStreaming}
+                {htmlPreviewConfig}
+                {onSubmitUserInput}
+                {onCancelUserInput}
+              />
+            </div>
+          {:else}
+            <StreamItemRenderer
+              item={segment.item}
+              itemKey={`${entry.key}-${segment.startIndex}`}
+              messageId={segment.startIndex === 0 && assistantMsg ? assistantMsg.id : undefined}
+              isLastText={segment.item.type === "text" &&
+                (assistantIsStreaming
+                  ? segment.startIndex === renderedAssistantItems.length - 1
+                  : !renderedAssistantItems
+                      .slice(segment.startIndex + 1)
+                      .some((next) => next.type === "text"))}
               isStreaming={assistantIsStreaming}
+              debugCheckpointId={debugMode && isRerunnable ? assistantMsg?.checkpointId : undefined}
+              initialThinkingOpen={streamedOpenThinkingItemKeys.has(
+                `${entry.key}-${segment.startIndex}`,
+              )}
+              {shikiTheme}
+              {mermaidConfig}
               {htmlPreviewConfig}
               {onSubmitUserInput}
               {onCancelUserInput}
             />
+          {/if}
+        {/each}
+        {#if assistantIsStreaming && isAwaitingStreamOutput}
+          <div class="thinking-status" role="status" aria-live="polite">
+            <span class="thinking-dot"></span>
+            <span>{$t("awaitingStreamOutput")}</span>
           </div>
-        {:else}
-          <StreamItemRenderer
-            item={segment.item}
-            itemKey={`${entry.key}-${segment.startIndex}`}
-            messageId={segment.startIndex === 0 && assistantMsg ? assistantMsg.id : undefined}
-            isLastText={segment.item.type === "text"
-              && (assistantIsStreaming
-                ? segment.startIndex === renderedAssistantItems.length - 1
-                : !renderedAssistantItems.slice(segment.startIndex + 1).some((next) => next.type === "text"))}
-            isStreaming={assistantIsStreaming}
-            debugCheckpointId={debugMode && isRerunnable ? assistantMsg?.checkpointId : undefined}
-            initialThinkingOpen={streamedOpenThinkingItemKeys.has(`${entry.key}-${segment.startIndex}`)}
-            {shikiTheme}
-            {mermaidConfig}
+        {/if}
+        {#if entry.kind === "message"}
+          {@const msgIdx = entry.index}
+          {@const timing = runTiming(entry.msg, msgIdx)}
+          {#if isRerunnable || timing || entry.msg.timestamp > 0}
+            <div
+              class="msg-footer-row message-record"
+              id={renderedAssistantItems.length > 0 ? undefined : `message-${entry.msg.id}`}
+              data-message-id={renderedAssistantItems.length > 0 ? undefined : entry.msg.id}
+            >
+              {#if isRerunnable}
+                <div class="msg-actions">
+                  <Tooltip text={$t("rerun")}>
+                    <button
+                      class="rerun-btn"
+                      aria-label={$t("rerun")}
+                      onclick={() => onReExecute(activeConvId!, msgIdx)}
+                    >
+                      <svg
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        width="12"
+                        height="12"
+                      >
+                        <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5M14 2v4h-4" />
+                      </svg>
+                    </button>
+                  </Tooltip>
+                </div>
+              {/if}
+              {#if timing}
+                <span class="run-timing">
+                  {#if timing.firstToken}{$t("firstTokenTime")} {timing.firstToken} ·
+                  {/if}{$t("totalRunTime")}
+                  {timing.total}
+                </span>
+              {/if}
+              {#if entry.msg.timestamp > 0}<span class="ts">{formatTime(entry.msg.timestamp)}</span
+                >{/if}
+            </div>
+          {/if}
+        {/if}
+      {:else if entry.kind === "tool_group"}
+        {@const firstMessage = entry.messages[0]}
+        <div
+          class="stream-item message-record"
+          id={`message-${firstMessage.id}`}
+          data-message-id={firstMessage.id}
+        >
+          <ToolCallGroup
+            items={entry.items}
             {htmlPreviewConfig}
             {onSubmitUserInput}
             {onCancelUserInput}
           />
-        {/if}
-      {/each}
-      {#if assistantIsStreaming && isAwaitingStreamOutput}
-        <div class="thinking-status" role="status" aria-live="polite">
-          <span class="thinking-dot"></span>
-          <span>{$t('awaitingStreamOutput')}</span>
         </div>
-      {/if}
-      {#if entry.kind === "message"}
+      {:else if entry.kind === "message"}
+        {@const msg = entry.msg}
         {@const msgIdx = entry.index}
-        {@const timing = runTiming(entry.msg, msgIdx)}
-        {#if isRerunnable || timing || entry.msg.timestamp > 0}
-          <div class="msg-footer-row message-record" id={renderedAssistantItems.length > 0 ? undefined : `message-${entry.msg.id}`} data-message-id={renderedAssistantItems.length > 0 ? undefined : entry.msg.id}>
-            {#if isRerunnable}
-              <div class="msg-actions">
-                <Tooltip text={$t('rerun')}>
-                  <button class="rerun-btn" aria-label={$t('rerun')} onclick={() => onReExecute(activeConvId!, msgIdx)}>
-                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
-                      <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5M14 2v4h-4"/>
-                    </svg>
-                  </button>
-                </Tooltip>
+        {#if isCompactionReplayUser(msg)}
+          <div
+            class="compaction-divider message-record"
+            id={`message-${msg.id}`}
+            data-message-id={msg.id}
+            role="separator"
+          >
+            <span>{$t("compactionCompleted")}</span>
+          </div>
+        {:else if msg.role === "user"}
+          {@const siblingInfo = activeConvId
+            ? getSiblingInfoForUserMessage(activeTree, msg.id)
+            : null}
+          {@const attachmentItems = msg.items?.filter((item) => item.type === "attachment") ?? []}
+          {@const attachments = attachmentItems.map((item) => item.attachment)}
+          {@const isEditingThisMessage = editingMsgId === msg.id}
+          {@const retainedAttachmentCount = attachments.filter(
+            (attachment) => !removedAttachmentPaths.has(attachment.path),
+          ).length}
+          {@const isDirty =
+            isEditingThisMessage &&
+            (editingText !== msg.content || removedAttachmentPaths.size > 0)}
+          {@const canSubmitEdit =
+            isDirty && (editingText.trim().length > 0 || retainedAttachmentCount > 0)}
+          <div class="user-msg message-record" id={`message-${msg.id}`} data-message-id={msg.id}>
+            {#if editingMsgId === msg.id}
+              <textarea
+                bind:this={editingTextarea}
+                class="user-content-edit"
+                value={editingText}
+                readonly={isStreaming}
+                oninput={(e) => {
+                  editingText = e.currentTarget.value;
+                }}
+                onkeydown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && canSubmitEdit) {
+                    e.preventDefault();
+                    commitEdit(activeConvId!, msgIdx, attachments);
+                  } else if (e.key === "Escape") {
+                    cancelEdit();
+                    (e.currentTarget as HTMLTextAreaElement).blur();
+                  }
+                }}></textarea>
+            {:else if editable}
+              <div
+                class="user-content"
+                class:collapsed={isUserMessageCollapsed(msg)}
+                role="button"
+                tabindex="0"
+                aria-label={$t("editMsgTitle")}
+                onclick={() => startEdit(msg)}
+                onkeydown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    startEdit(msg);
+                  }
+                }}
+              >
+                {msg.content}
+              </div>
+            {:else}
+              <div class="user-content readonly" class:collapsed={isUserMessageCollapsed(msg)}>
+                {msg.content}
               </div>
             {/if}
-            {#if timing}
-              <span class="run-timing">
-                {#if timing.firstToken}{$t("firstTokenTime")} {timing.firstToken} · {/if}{$t("totalRunTime")} {timing.total}
-              </span>
+            {#if attachments.length > 0}
+              <div class="user-attachments">
+                {#each attachments.filter((attachment) => !isEditingThisMessage || !removedAttachmentPaths.has(attachment.path)) as attachment (attachment.path)}
+                  <AttachmentPreview
+                    {attachment}
+                    loadPreview={attachmentPreviewLoader}
+                    onRemove={!editable || isStreaming
+                      ? undefined
+                      : () => stageAttachmentRemoval(msg, attachment.path)}
+                  />
+                {/each}
+              </div>
             {/if}
-            {#if entry.msg.timestamp > 0}<span class="ts">{formatTime(entry.msg.timestamp)}</span>{/if}
+            {#if isLongUserMessage(msg.content) && editingMsgId !== msg.id}
+              <button
+                class="user-collapse-btn"
+                type="button"
+                aria-expanded={!isUserMessageCollapsed(msg)}
+                onclick={(e) => {
+                  e.stopPropagation();
+                  toggleUserMessage(msg.id);
+                }}
+                >{isUserMessageCollapsed(msg) ? $t("expandSection") : $t("collapseSection")}</button
+              >
+            {/if}
+            <div class="edit-actions" class:show={isDirty}>
+              <button class="edit-cancel-btn" type="button" onclick={cancelEdit}
+                >{$t("cancel")}</button
+              >
+              <button
+                class="edit-confirm-btn"
+                type="button"
+                disabled={!canSubmitEdit}
+                onclick={() => commitEdit(activeConvId!, msgIdx, attachments)}>{$t("send")}</button
+              >
+            </div>
+            <div class="msg-meta-row">
+              {#if debugMode && msg.checkpointId}
+                <code class="debug-checkpoint" title={msg.checkpointId}
+                  >checkpoint: {msg.checkpointId}</code
+                >
+              {/if}
+              {#if siblingInfo}
+                <div class="msg-branch-nav">
+                  <Tooltip text={isStreaming ? $t("branchLockedWhileStreaming") : ""}>
+                    <button
+                      class="branch-nav-btn"
+                      disabled={siblingInfo.activeIdx === 0 || isStreaming}
+                      onclick={() => switchBranch(siblingInfo.parentKey, siblingInfo.activeIdx - 1)}
+                      >‹</button
+                    >
+                  </Tooltip>
+                  <span class="branch-nav-label"
+                    >{siblingInfo.activeIdx + 1} / {siblingInfo.siblings.length}</span
+                  >
+                  <Tooltip text={isStreaming ? $t("branchLockedWhileStreaming") : ""}>
+                    <button
+                      class="branch-nav-btn"
+                      disabled={siblingInfo.activeIdx === siblingInfo.siblings.length - 1 ||
+                        isStreaming}
+                      onclick={() => switchBranch(siblingInfo.parentKey, siblingInfo.activeIdx + 1)}
+                      >›</button
+                    >
+                  </Tooltip>
+                </div>
+              {/if}
+              {#if msg.timestamp > 0}<span class="ts">{formatTime(msg.timestamp)}</span>{/if}
+            </div>
           </div>
         {/if}
       {/if}
-    {:else if entry.kind === "tool_group"}
-      {@const firstMessage = entry.messages[0]}
-      <div
-        class="stream-item message-record"
-        id={`message-${firstMessage.id}`}
-        data-message-id={firstMessage.id}
-      >
-        <ToolCallGroup
-          items={entry.items}
-          {htmlPreviewConfig}
-          {onSubmitUserInput}
-          {onCancelUserInput}
-        />
-      </div>
-    {:else if entry.kind === "message"}
-    {@const msg = entry.msg}
-    {@const msgIdx = entry.index}
-    {#if isCompactionReplayUser(msg)}
-      <div
-        class="compaction-divider message-record"
-        id={`message-${msg.id}`}
-        data-message-id={msg.id}
-        role="separator"
-      ><span>{$t("compactionCompleted")}</span></div>
-    {:else if msg.role === "user"}
-      {@const siblingInfo = activeConvId ? getSiblingInfoForUserMessage(activeTree, msg.id) : null}
-      {@const attachmentItems = msg.items?.filter((item) => item.type === "attachment") ?? []}
-      {@const attachments = attachmentItems.map((item) => item.attachment)}
-      {@const isEditingThisMessage = editingMsgId === msg.id}
-      {@const retainedAttachmentCount = attachments.filter(
-        (attachment) => !removedAttachmentPaths.has(attachment.path)
-      ).length}
-      {@const isDirty = isEditingThisMessage
-        && (editingText !== msg.content || removedAttachmentPaths.size > 0)}
-      {@const canSubmitEdit = isDirty
-        && (editingText.trim().length > 0 || retainedAttachmentCount > 0)}
-      <div class="user-msg message-record" id={`message-${msg.id}`} data-message-id={msg.id}>
-        {#if editingMsgId === msg.id}
-          <textarea
-            bind:this={editingTextarea}
-            class="user-content-edit"
-            value={editingText}
-            readonly={isStreaming}
-            oninput={(e) => { editingText = e.currentTarget.value; }}
-            onkeydown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && canSubmitEdit) {
-                e.preventDefault();
-                commitEdit(activeConvId!, msgIdx, attachments);
-              }
-              else if (e.key === "Escape") { cancelEdit(); (e.currentTarget as HTMLTextAreaElement).blur(); }
-            }}
-          ></textarea>
-        {:else if editable}
-          <div
-            class="user-content"
-            class:collapsed={isUserMessageCollapsed(msg)}
-            role="button"
-            tabindex="0"
-            aria-label={$t("editMsgTitle")}
-            onclick={() => startEdit(msg)}
-            onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startEdit(msg); } }}
-          >{msg.content}</div>
-        {:else}
-          <div
-            class="user-content readonly"
-            class:collapsed={isUserMessageCollapsed(msg)}
-          >{msg.content}</div>
-        {/if}
-        {#if attachments.length > 0}
-          <div class="user-attachments">
-            {#each attachments.filter((attachment) =>
-              !isEditingThisMessage || !removedAttachmentPaths.has(attachment.path)
-            ) as attachment (attachment.path)}
-              <AttachmentPreview
-                {attachment}
-                loadPreview={attachmentPreviewLoader}
-                onRemove={!editable || isStreaming
-                  ? undefined
-                  : () => stageAttachmentRemoval(msg, attachment.path)}
-              />
-            {/each}
-          </div>
-        {/if}
-        {#if isLongUserMessage(msg.content) && editingMsgId !== msg.id}
-          <button
-            class="user-collapse-btn"
-            type="button"
-            aria-expanded={!isUserMessageCollapsed(msg)}
-            onclick={(e) => { e.stopPropagation(); toggleUserMessage(msg.id); }}
-          >{isUserMessageCollapsed(msg) ? $t("expandSection") : $t("collapseSection")}</button>
-        {/if}
-        <div class="edit-actions" class:show={isDirty}>
-          <button class="edit-cancel-btn" type="button" onclick={cancelEdit}>{$t('cancel')}</button>
-          <button
-            class="edit-confirm-btn"
-            type="button"
-            disabled={!canSubmitEdit}
-            onclick={() => commitEdit(activeConvId!, msgIdx, attachments)}
-          >{$t('send')}</button>
-        </div>
-        <div class="msg-meta-row">
-          {#if debugMode && msg.checkpointId}
-            <code class="debug-checkpoint" title={msg.checkpointId}>checkpoint: {msg.checkpointId}</code>
-          {/if}
-          {#if siblingInfo}
-            <div class="msg-branch-nav">
-              <Tooltip text={isStreaming ? $t('branchLockedWhileStreaming') : ''}>
-                <button class="branch-nav-btn" disabled={siblingInfo.activeIdx === 0 || isStreaming} onclick={() => switchBranch(siblingInfo.parentKey, siblingInfo.activeIdx - 1)}>‹</button>
-              </Tooltip>
-              <span class="branch-nav-label">{siblingInfo.activeIdx + 1} / {siblingInfo.siblings.length}</span>
-              <Tooltip text={isStreaming ? $t('branchLockedWhileStreaming') : ''}>
-                <button class="branch-nav-btn" disabled={siblingInfo.activeIdx === siblingInfo.siblings.length - 1 || isStreaming} onclick={() => switchBranch(siblingInfo.parentKey, siblingInfo.activeIdx + 1)}>›</button>
-              </Tooltip>
-            </div>
-          {/if}
-          {#if msg.timestamp > 0}<span class="ts">{formatTime(msg.timestamp)}</span>{/if}
-        </div>
-      </div>
-    {/if}
-    {/if}
     {/snippet}
   </VirtualMessageList>
 </div>
@@ -564,8 +633,15 @@
   }
 
   @keyframes thinking-pulse {
-    0%, 100% { opacity: 0.35; transform: scale(0.82); }
-    50% { opacity: 1; transform: scale(1); }
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scale(0.82);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -674,7 +750,10 @@
     margin-right: 0;
     border-radius: 999px;
     background: color-mix(in srgb, var(--text-muted) 64%, transparent);
-    transition: width 0.12s ease, background 0.12s ease, transform 0.12s ease;
+    transition:
+      width 0.12s ease,
+      background 0.12s ease,
+      transform 0.12s ease;
   }
 
   .user-message-index button:hover .index-mark,
@@ -702,7 +781,9 @@
     opacity: 0;
     transform: translateX(8px) scale(0.98);
     pointer-events: none;
-    transition: opacity 0.12s ease, transform 0.12s ease;
+    transition:
+      opacity 0.12s ease,
+      transform 0.12s ease;
   }
 
   .with-preview:hover .index-preview,
@@ -771,17 +852,54 @@
     height: calc(100% + clamp(240px, 28vh, 420px));
     z-index: -2;
     background:
-      radial-gradient(ellipse at 18% 36%, rgba(66, 133, 244, 0.2) 0 14%, rgba(66, 133, 244, 0.1) 34%, transparent 72%),
-      radial-gradient(ellipse at 42% 54%, rgba(52, 168, 83, 0.1) 0 16%, rgba(52, 168, 83, 0.06) 38%, transparent 76%),
-      radial-gradient(ellipse at 68% 34%, rgba(161, 66, 244, 0.12) 0 14%, rgba(161, 66, 244, 0.06) 36%, transparent 74%),
-      radial-gradient(ellipse at 82% 58%, rgba(251, 188, 5, 0.08) 0 12%, rgba(251, 188, 5, 0.04) 34%, transparent 72%),
-      linear-gradient(180deg, rgba(232, 246, 255, 0.36), rgba(216, 237, 255, 0.22) 58%, transparent 100%);
+      radial-gradient(
+        ellipse at 18% 36%,
+        rgba(66, 133, 244, 0.2) 0 14%,
+        rgba(66, 133, 244, 0.1) 34%,
+        transparent 72%
+      ),
+      radial-gradient(
+        ellipse at 42% 54%,
+        rgba(52, 168, 83, 0.1) 0 16%,
+        rgba(52, 168, 83, 0.06) 38%,
+        transparent 76%
+      ),
+      radial-gradient(
+        ellipse at 68% 34%,
+        rgba(161, 66, 244, 0.12) 0 14%,
+        rgba(161, 66, 244, 0.06) 36%,
+        transparent 74%
+      ),
+      radial-gradient(
+        ellipse at 82% 58%,
+        rgba(251, 188, 5, 0.08) 0 12%,
+        rgba(251, 188, 5, 0.04) 34%,
+        transparent 72%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(232, 246, 255, 0.36),
+        rgba(216, 237, 255, 0.22) 58%,
+        transparent 100%
+      );
     filter: blur(56px) saturate(1.12);
     opacity: 0.28;
     transform: translate3d(-50%, -50%, 0) scale(1.04);
     animation: memory-note-aurora 8s ease-in-out infinite alternate;
-    -webkit-mask-image: radial-gradient(ellipse at center, #000 0 34%, rgba(0, 0, 0, 0.7) 52%, rgba(0, 0, 0, 0.22) 76%, transparent 100%);
-    mask-image: radial-gradient(ellipse at center, #000 0 34%, rgba(0, 0, 0, 0.7) 52%, rgba(0, 0, 0, 0.22) 76%, transparent 100%);
+    -webkit-mask-image: radial-gradient(
+      ellipse at center,
+      #000 0 34%,
+      rgba(0, 0, 0, 0.7) 52%,
+      rgba(0, 0, 0, 0.22) 76%,
+      transparent 100%
+    );
+    mask-image: radial-gradient(
+      ellipse at center,
+      #000 0 34%,
+      rgba(0, 0, 0, 0.7) 52%,
+      rgba(0, 0, 0, 0.22) 76%,
+      transparent 100%
+    );
     pointer-events: none;
   }
 
@@ -796,8 +914,20 @@
     background: rgba(245, 250, 255, 0.08);
     filter: blur(76px);
     transform: translate(-50%, -50%);
-    -webkit-mask-image: radial-gradient(ellipse at center, #000 0 36%, rgba(0, 0, 0, 0.58) 58%, rgba(0, 0, 0, 0.18) 78%, transparent 100%);
-    mask-image: radial-gradient(ellipse at center, #000 0 36%, rgba(0, 0, 0, 0.58) 58%, rgba(0, 0, 0, 0.18) 78%, transparent 100%);
+    -webkit-mask-image: radial-gradient(
+      ellipse at center,
+      #000 0 36%,
+      rgba(0, 0, 0, 0.58) 58%,
+      rgba(0, 0, 0, 0.18) 78%,
+      transparent 100%
+    );
+    mask-image: radial-gradient(
+      ellipse at center,
+      #000 0 36%,
+      rgba(0, 0, 0, 0.58) 58%,
+      rgba(0, 0, 0, 0.18) 78%,
+      transparent 100%
+    );
     pointer-events: none;
   }
 
@@ -967,7 +1097,11 @@
     max-height: 0;
     opacity: 0;
     transform: translateY(6px);
-    transition: max-height 0.2s ease, opacity 0.18s ease, transform 0.18s ease, margin-top 0.18s ease;
+    transition:
+      max-height 0.2s ease,
+      opacity 0.18s ease,
+      transform 0.18s ease,
+      margin-top 0.18s ease;
     pointer-events: none;
   }
   .edit-actions.show {
@@ -977,7 +1111,8 @@
     transform: translateY(0);
     pointer-events: auto;
   }
-  .edit-cancel-btn, .edit-confirm-btn {
+  .edit-cancel-btn,
+  .edit-confirm-btn {
     padding: 4px 12px;
     border-radius: 6px;
     font-size: 12px;
@@ -985,14 +1120,21 @@
     border: 0;
     background: var(--surface2);
     color: var(--text-muted);
-    transition: background 0.1s, color 0.1s;
+    transition:
+      background 0.1s,
+      color 0.1s;
   }
   .edit-confirm-btn {
     background: var(--primary);
     color: white;
   }
-  .edit-cancel-btn:hover { background: var(--border); color: var(--text); }
-  .edit-confirm-btn:hover:not(:disabled) { background: var(--primary-hover); }
+  .edit-cancel-btn:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+  .edit-confirm-btn:hover:not(:disabled) {
+    background: var(--primary-hover);
+  }
   .edit-confirm-btn:disabled {
     cursor: default;
     opacity: 0.45;
@@ -1005,7 +1147,9 @@
     gap: 8px;
     margin-top: 4px;
   }
-  .msg-meta-row .ts { margin-top: 0; }
+  .msg-meta-row .ts {
+    margin-top: 0;
+  }
 
   .msg-branch-nav {
     display: inline-flex;
@@ -1029,11 +1173,23 @@
     font-size: 13px;
     line-height: 1;
     padding: 0;
-    transition: background 0.1s, color 0.1s;
+    transition:
+      background 0.1s,
+      color 0.1s;
   }
-  .branch-nav-btn:hover:not(:disabled) { background: var(--surface2); color: var(--text); }
-  .branch-nav-btn:disabled { opacity: 0.35; cursor: default; }
-  .branch-nav-label { min-width: 32px; text-align: center; letter-spacing: 0.2px; }
+  .branch-nav-btn:hover:not(:disabled) {
+    background: var(--surface2);
+    color: var(--text);
+  }
+  .branch-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .branch-nav-label {
+    min-width: 32px;
+    text-align: center;
+    letter-spacing: 0.2px;
+  }
 
   .msg-footer-row {
     display: flex;
@@ -1041,7 +1197,9 @@
     gap: 8px;
     margin-top: 6px;
   }
-  .msg-footer-row .ts { margin-top: 0; }
+  .msg-footer-row .ts {
+    margin-top: 0;
+  }
 
   .msg-actions {
     display: flex;
@@ -1065,9 +1223,14 @@
   }
   .rerun-btn {
     cursor: pointer;
-    transition: background 0.12s, color 0.12s;
+    transition:
+      background 0.12s,
+      color 0.12s;
   }
-  .rerun-btn:hover { background: var(--surface2); color: var(--text); }
+  .rerun-btn:hover {
+    background: var(--surface2);
+    color: var(--text);
+  }
 
   .ts {
     font-size: 10px;
@@ -1092,5 +1255,4 @@
     flex: 1;
     background: color-mix(in srgb, var(--border) 75%, transparent);
   }
-
 </style>

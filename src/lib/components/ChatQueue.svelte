@@ -25,7 +25,9 @@
 {#if items.length > 0}
   <section class="chat-queue" aria-label={$t("messageQueue")}>
     <div class="queue-header">
-      <span class="queue-title">{$t("messageQueue")} <span class="queue-count">{items.length}</span></span>
+      <span class="queue-title"
+        >{$t("messageQueue")} <span class="queue-count">{items.length}</span></span
+      >
       <button class="clear-btn" type="button" onclick={onClear}>{$t("clearQueue")}</button>
     </div>
     <ol class="queue-items">
@@ -34,7 +36,11 @@
           <span class="queue-index">{index + 1}</span>
           <span class="queue-summary" title={itemSummary(item)}>{itemSummary(item)}</span>
           {#if item.attachments.length > 0}
-            <span class="attachment-count" title={item.attachments.map((attachment) => attachment.name).join(", ")}>📎 {item.attachments.length}</span>
+            <span
+              class="attachment-count"
+              title={item.attachments.map((attachment) => attachment.name).join(", ")}
+              >📎 {item.attachments.length}</span
+            >
           {/if}
           <button
             class="remove-btn"
@@ -76,7 +82,9 @@
     font-size: 11px;
   }
 
-  .queue-title { font-weight: 600; }
+  .queue-title {
+    font-weight: 600;
+  }
   .queue-count {
     display: inline-flex;
     min-width: 16px;
@@ -95,17 +103,80 @@
     color: var(--text-muted);
     cursor: pointer;
   }
-  .clear-btn { padding: 3px 5px; font: inherit; }
-  .clear-btn:hover, .clear-btn:focus-visible, .remove-btn:hover, .remove-btn:focus-visible { color: var(--text); }
-  .clear-btn:focus-visible, .remove-btn:focus-visible { box-shadow: var(--focus-ring); outline: none; }
+  .clear-btn {
+    padding: 3px 5px;
+    font: inherit;
+  }
+  .clear-btn:hover,
+  .clear-btn:focus-visible,
+  .remove-btn:hover,
+  .remove-btn:focus-visible {
+    color: var(--text);
+  }
+  .clear-btn:focus-visible,
+  .remove-btn:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+  }
 
-  .queue-items { display: flex; flex-direction: column; gap: 1px; margin: 0; padding: 4px; list-style: none; }
-  .queue-item { min-width: 0; gap: 8px; padding: 5px 6px; border-radius: 8px; font-size: 12px; }
-  .queue-item:hover { background: var(--surface2); }
-  .queue-index { width: 15px; flex: none; color: var(--text-muted); text-align: center; font-variant-numeric: tabular-nums; }
-  .queue-summary { min-width: 0; flex: 1; overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
-  .attachment-count { flex: none; color: var(--text-muted); font-size: 11px; white-space: nowrap; }
-  .remove-btn { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex: none; border-radius: 5px; }
-  .remove-btn:hover, .remove-btn:focus-visible { background: color-mix(in srgb, var(--border) 72%, transparent); }
-  .remove-btn svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.5; }
+  .queue-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+  }
+  .queue-item {
+    min-width: 0;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .queue-item:hover {
+    background: var(--surface2);
+  }
+  .queue-index {
+    width: 15px;
+    flex: none;
+    color: var(--text-muted);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .queue-summary {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    color: var(--text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .attachment-count {
+    flex: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .remove-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    flex: none;
+    border-radius: 5px;
+  }
+  .remove-btn:hover,
+  .remove-btn:focus-visible {
+    background: color-mix(in srgb, var(--border) 72%, transparent);
+  }
+  .remove-btn svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1.5;
+  }
 </style>

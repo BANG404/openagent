@@ -22,7 +22,7 @@
     try {
       const parsed = JSON.parse(result);
       return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-        ? parsed as JsonObject
+        ? (parsed as JsonObject)
         : null;
     } catch {
       return null;
@@ -58,7 +58,9 @@
   {#if error}
     <div class="error" role="alert">
       <strong>
-        {$t("mermaidRenderError")}{error.line !== null ? ` (${error.line}${error.column !== null ? `:${error.column}` : ""})` : ""}
+        {$t("mermaidRenderError")}{error.line !== null
+          ? ` (${error.line}${error.column !== null ? `:${error.column}` : ""})`
+          : ""}
       </strong>
       <pre>{error.message}</pre>
     </div>

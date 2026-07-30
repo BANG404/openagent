@@ -42,7 +42,10 @@ const NUMBER = /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/;
 
 class Parser {
   pos: number;
-  constructor(public src: string, start: number) {
+  constructor(
+    public src: string,
+    start: number,
+  ) {
     this.pos = start;
   }
 
@@ -97,7 +100,7 @@ class Parser {
       this.pos += 3;
       const start = this.pos;
       const close = this.src.indexOf('"""', this.pos);
-      if (close < 0) return { ok: false, error: this.err("unterminated \"\"\"string\"\"\"") };
+      if (close < 0) return { ok: false, error: this.err('unterminated """string"""') };
       const text = this.src.slice(start, close);
       this.pos = close + 3;
       return { ok: true, value: text };
@@ -109,13 +112,21 @@ class Parser {
       const ch = this.src[this.pos];
       if (ch === "\\") {
         const n = this.src[this.pos + 1] ?? "";
-        const escMap: Record<string, string> = { n: "\n", r: "\r", t: "\t", '"': '"', "\\": "\\", "/": "/" };
+        const escMap: Record<string, string> = {
+          n: "\n",
+          r: "\r",
+          t: "\t",
+          '"': '"',
+          "\\": "\\",
+          "/": "/",
+        };
         if (n in escMap) {
           out += escMap[n];
           this.pos += 2;
         } else if (n === "u") {
           const hex = this.src.slice(this.pos + 2, this.pos + 6);
-          if (!/^[0-9a-fA-F]{4}$/.test(hex)) return { ok: false, error: this.err("bad \\u escape") };
+          if (!/^[0-9a-fA-F]{4}$/.test(hex))
+            return { ok: false, error: this.err("bad \\u escape") };
           out += String.fromCharCode(parseInt(hex, 16));
           this.pos += 6;
         } else {
@@ -286,7 +297,10 @@ class Parser {
         this.skipWs();
         const right = this.parsePrimary();
         if (!right.ok) return right;
-        left = { ok: true, value: { kind: "binary", op: "+", left: left.value, right: right.value } };
+        left = {
+          ok: true,
+          value: { kind: "binary", op: "+", left: left.value, right: right.value },
+        };
         continue;
       }
       break;

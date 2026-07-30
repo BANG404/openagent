@@ -17,18 +17,19 @@ export type MessageRenderEntry =
       key: string;
     };
 
-export function isAssistantTurnEntry(
-  entry: MessageRenderEntry,
-): boolean {
-  return entry.kind === "live_stream"
-    || (entry.kind === "message" && entry.msg.role === "assistant");
+export function isAssistantTurnEntry(entry: MessageRenderEntry): boolean {
+  return (
+    entry.kind === "live_stream" || (entry.kind === "message" && entry.msg.role === "assistant")
+  );
 }
 
 export function isGroupableToolCall(item: StreamItem): item is ToolCallItem {
-  return item.type === "tool_call"
-    && item.name !== "render_html"
-    && item.name !== "render_mermaid"
-    && item.approval === undefined;
+  return (
+    item.type === "tool_call" &&
+    item.name !== "render_html" &&
+    item.name !== "render_mermaid" &&
+    item.approval === undefined
+  );
 }
 
 export function groupStreamItems(items: StreamItem[]): StreamItemSegment[] {
@@ -59,9 +60,7 @@ export function groupStreamItems(items: StreamItem[]): StreamItemSegment[] {
   return segments;
 }
 
-function standaloneGroupableToolCall(
-  message: ChatMessage,
-): ToolCallItem | null {
+function standaloneGroupableToolCall(message: ChatMessage): ToolCallItem | null {
   if (message.role !== "assistant" || message.items?.length !== 1) return null;
   const item = message.items[0];
   return isGroupableToolCall(item) ? item : null;
@@ -121,17 +120,12 @@ export function appendLiveStreamEntry(
   entries: MessageRenderEntry[],
   streamMessageId: string | null,
 ): MessageRenderEntry[] {
-  return streamMessageId
-    ? [...entries, { kind: "live_stream", key: streamMessageId }]
-    : entries;
+  return streamMessageId ? [...entries, { kind: "live_stream", key: streamMessageId }] : entries;
 }
 
 export type ToolCallStatus = "pending" | "running" | "success" | "failed";
 
-export function toolCallStatus(
-  item: ToolCallItem,
-  showRunning: boolean,
-): ToolCallStatus {
+export function toolCallStatus(item: ToolCallItem, showRunning: boolean): ToolCallStatus {
   if (item.result === undefined) return showRunning ? "running" : "pending";
   const text = item.result.trim();
   if (/^(error|failed|failure)\b\s*:?\s*/i.test(text)) return "failed";

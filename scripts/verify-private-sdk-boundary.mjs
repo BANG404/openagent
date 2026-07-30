@@ -4,11 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const hostSourceRoot = resolve(repositoryRoot, "src-tauri", "src");
-const allowedHostSources = new Set([
-  "bin/openagent-agent-server.rs",
-  "lib.rs",
-  "main.rs",
-]);
+const allowedHostSources = new Set(["bin/openagent-agent-server.rs", "lib.rs", "main.rs"]);
 
 function filesBelow(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -21,7 +17,9 @@ const unexpectedHostSources = filesBelow(hostSourceRoot)
   .map((path) => relative(hostSourceRoot, path).replaceAll("\\", "/"))
   .filter((path) => !allowedHostSources.has(path));
 if (unexpectedHostSources.length > 0) {
-  throw new Error(`Private backend source leaked into the host tree: ${unexpectedHostSources.join(", ")}`);
+  throw new Error(
+    `Private backend source leaked into the host tree: ${unexpectedHostSources.join(", ")}`,
+  );
 }
 
 const cargoManifest = readFileSync(resolve(repositoryRoot, "src-tauri", "Cargo.toml"), "utf8");
@@ -51,9 +49,13 @@ const requiredPrivateSources = [
 ];
 const privateSourceRoot = resolve(repositoryRoot, "sdk", "rust", "openagent-app", "src");
 const availablePrivateSources = new Set(
-  filesBelow(privateSourceRoot).map((path) => relative(privateSourceRoot, path).replaceAll("\\", "/")),
+  filesBelow(privateSourceRoot).map((path) =>
+    relative(privateSourceRoot, path).replaceAll("\\", "/"),
+  ),
 );
-const missingPrivateSources = requiredPrivateSources.filter((path) => !availablePrivateSources.has(path));
+const missingPrivateSources = requiredPrivateSources.filter(
+  (path) => !availablePrivateSources.has(path),
+);
 if (missingPrivateSources.length > 0) {
   throw new Error(`Private SDK checkout is incomplete: ${missingPrivateSources.join(", ")}`);
 }

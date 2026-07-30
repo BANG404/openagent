@@ -1,7 +1,1 @@
-export {
-  desktopOpenAgent,
-  emit,
-  invoke,
-  listen,
-} from "../../../sdk/typescript/src/tauriClient";
-
+export { desktopOpenAgent, emit, invoke, listen } from "../../../sdk/typescript/src/tauriClient";

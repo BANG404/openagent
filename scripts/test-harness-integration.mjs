@@ -3,13 +3,7 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
 const repositoryRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
-const serverManifest = resolve(
-  repositoryRoot,
-  "sdk",
-  "rust",
-  "openagent-server",
-  "Cargo.toml",
-);
+const serverManifest = resolve(repositoryRoot, "sdk", "rust", "openagent-server", "Cargo.toml");
 const serverBinary = resolve(
   repositoryRoot,
   "sdk",

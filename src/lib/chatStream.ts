@@ -76,8 +76,9 @@ export function attachToolResult(
 ): StreamItem[] {
   const next = [...items];
   if (toolUseId) {
-    const exact = next.findIndex((item) =>
-      item.type === "tool_call" && item.toolUseId === toolUseId && item.result === undefined,
+    const exact = next.findIndex(
+      (item) =>
+        item.type === "tool_call" && item.toolUseId === toolUseId && item.result === undefined,
     );
     if (exact >= 0) {
       const item = next[exact];
@@ -95,17 +96,15 @@ export function attachToolResult(
   return next;
 }
 
-export function appendUserInput(
-  items: StreamItem[],
-  request: UserInputRequest,
-): StreamItem[] {
+export function appendUserInput(items: StreamItem[], request: UserInputRequest): StreamItem[] {
   if (request.kind === "tool_approval") {
     const next = [...items];
-    const matchingIndex = next.findIndex((item) =>
-      item.type === "tool_call"
-      && item.toolUseId === request.request_id
-      && item.result === undefined
-      && item.approval === undefined,
+    const matchingIndex = next.findIndex(
+      (item) =>
+        item.type === "tool_call" &&
+        item.toolUseId === request.request_id &&
+        item.result === undefined &&
+        item.approval === undefined,
     );
     if (matchingIndex >= 0) {
       const item = next[matchingIndex];
@@ -153,7 +152,7 @@ export function appendCompactionProgress(
   const existingIndex = items.findIndex((item) => item.type === "compaction");
   const progress: StreamItem = { type: "compaction", stage, error };
   if (existingIndex === -1) return [...items, progress];
-  return items.map((item, index) => index === existingIndex ? progress : item);
+  return items.map((item, index) => (index === existingIndex ? progress : item));
 }
 
 export function resolveUserInput(

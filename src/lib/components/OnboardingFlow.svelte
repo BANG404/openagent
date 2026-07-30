@@ -38,81 +38,90 @@
   $effect(() => {
     const theme = draft.theme;
     document.documentElement.classList.remove("dark", "light");
-    const resolved = theme === "system"
-      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-      : theme;
+    const resolved =
+      theme === "system"
+        ? window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light"
+        : theme;
     document.documentElement.classList.add(resolved);
   });
 
-  const copy = $derived(draft.language === "en" ? {
-    steps: ["Welcome", "Preferences", "Model service", "Default models", "Ready"],
-    welcomeTitle: "Welcome to OpenAgent",
-    welcomeBody: "Let’s set up the essentials so your first conversation is ready to run.",
-    workspace: "Current workspace",
-    noWorkspace: "No workspace selected",
-    chooseWorkspace: "Choose workspace",
-    preferenceTitle: "Make OpenAgent yours",
-    preferenceBody: "You can change these preferences at any time in Settings.",
-    language: "Language",
-    theme: "Theme",
-    system: "System",
-    light: "Light",
-    dark: "Dark",
-    providerTitle: "Connect a model service",
-    providerBody: "Add an OpenAI-compatible or Anthropic endpoint, then verify the connection and load its models.",
-    addProvider: "Add service",
-    providerName: "Service name",
-    providerType: "Service type",
-    baseUrl: "Base URL (optional)",
-    apiKey: "API key",
-    verify: "Verify and load models",
-    verifying: "Connecting…",
-    modelsLoaded: "Connection succeeded. {count} models loaded.",
-    defaultTitle: "Choose default models",
-    defaultBody: "The chat model handles conversations. The flash model handles lightweight background tasks.",
-    chatModel: "Chat model",
-    flashModel: "Flash model",
-    readyTitle: "You’re ready",
-    readyBody: "OpenAgent is configured. Start a conversation and give it a real task.",
-    back: "Back",
-    next: "Continue",
-    finish: "Start using OpenAgent",
-    saveFailed: "Could not save settings",
-  } : {
-    steps: ["欢迎", "偏好", "模型服务", "默认模型", "完成"],
-    welcomeTitle: "欢迎使用 OpenAgent",
-    welcomeBody: "用几步完成必要配置，接下来就可以直接开始第一段对话。",
-    workspace: "当前工作区",
-    noWorkspace: "尚未选择工作区",
-    chooseWorkspace: "选择工作区",
-    preferenceTitle: "设置你的使用偏好",
-    preferenceBody: "这些选项之后都可以随时在设置中修改。",
-    language: "界面语言",
-    theme: "外观主题",
-    system: "跟随系统",
-    light: "浅色",
-    dark: "深色",
-    providerTitle: "连接模型服务",
-    providerBody: "添加 OpenAI 兼容或 Anthropic 服务，验证连接并获取可用模型。",
-    addProvider: "添加服务",
-    providerName: "服务名称",
-    providerType: "服务类型",
-    baseUrl: "服务地址（可选）",
-    apiKey: "API Key",
-    verify: "验证连接并获取模型",
-    verifying: "正在连接…",
-    modelsLoaded: "连接成功，已获取 {count} 个模型。",
-    defaultTitle: "选择默认模型",
-    defaultBody: "对话模型用于日常任务，Flash 模型用于标题、记忆等轻量后台任务。",
-    chatModel: "对话模型",
-    flashModel: "Flash 模型",
-    readyTitle: "一切就绪",
-    readyBody: "OpenAgent 已完成配置。开始一段对话，把真正的任务交给它吧。",
-    back: "上一步",
-    next: "继续",
-    finish: "开始使用 OpenAgent",
-    saveFailed: "无法保存设置",
-  });
+  const copy = $derived(
+    draft.language === "en"
+      ? {
+          steps: ["Welcome", "Preferences", "Model service", "Default models", "Ready"],
+          welcomeTitle: "Welcome to OpenAgent",
+          welcomeBody: "Let’s set up the essentials so your first conversation is ready to run.",
+          workspace: "Current workspace",
+          noWorkspace: "No workspace selected",
+          chooseWorkspace: "Choose workspace",
+          preferenceTitle: "Make OpenAgent yours",
+          preferenceBody: "You can change these preferences at any time in Settings.",
+          language: "Language",
+          theme: "Theme",
+          system: "System",
+          light: "Light",
+          dark: "Dark",
+          providerTitle: "Connect a model service",
+          providerBody:
+            "Add an OpenAI-compatible or Anthropic endpoint, then verify the connection and load its models.",
+          addProvider: "Add service",
+          providerName: "Service name",
+          providerType: "Service type",
+          baseUrl: "Base URL (optional)",
+          apiKey: "API key",
+          verify: "Verify and load models",
+          verifying: "Connecting…",
+          modelsLoaded: "Connection succeeded. {count} models loaded.",
+          defaultTitle: "Choose default models",
+          defaultBody:
+            "The chat model handles conversations. The flash model handles lightweight background tasks.",
+          chatModel: "Chat model",
+          flashModel: "Flash model",
+          readyTitle: "You’re ready",
+          readyBody: "OpenAgent is configured. Start a conversation and give it a real task.",
+          back: "Back",
+          next: "Continue",
+          finish: "Start using OpenAgent",
+          saveFailed: "Could not save settings",
+        }
+      : {
+          steps: ["欢迎", "偏好", "模型服务", "默认模型", "完成"],
+          welcomeTitle: "欢迎使用 OpenAgent",
+          welcomeBody: "用几步完成必要配置，接下来就可以直接开始第一段对话。",
+          workspace: "当前工作区",
+          noWorkspace: "尚未选择工作区",
+          chooseWorkspace: "选择工作区",
+          preferenceTitle: "设置你的使用偏好",
+          preferenceBody: "这些选项之后都可以随时在设置中修改。",
+          language: "界面语言",
+          theme: "外观主题",
+          system: "跟随系统",
+          light: "浅色",
+          dark: "深色",
+          providerTitle: "连接模型服务",
+          providerBody: "添加 OpenAI 兼容或 Anthropic 服务，验证连接并获取可用模型。",
+          addProvider: "添加服务",
+          providerName: "服务名称",
+          providerType: "服务类型",
+          baseUrl: "服务地址（可选）",
+          apiKey: "API Key",
+          verify: "验证连接并获取模型",
+          verifying: "正在连接…",
+          modelsLoaded: "连接成功，已获取 {count} 个模型。",
+          defaultTitle: "选择默认模型",
+          defaultBody: "对话模型用于日常任务，Flash 模型用于标题、记忆等轻量后台任务。",
+          chatModel: "对话模型",
+          flashModel: "Flash 模型",
+          readyTitle: "一切就绪",
+          readyBody: "OpenAgent 已完成配置。开始一段对话，把真正的任务交给它吧。",
+          back: "上一步",
+          next: "继续",
+          finish: "开始使用 OpenAgent",
+          saveFailed: "无法保存设置",
+        },
+  );
 
   let selectedProvider = $derived(
     draft.providers.find((provider) => provider.id === selectedProviderId) ?? null,
@@ -120,19 +129,25 @@
   let modelBindings = $derived.by(() =>
     draft.providers
       .filter((provider) => provider.enabled)
-      .flatMap((provider) => provider.models.map((model) => ({
-        value: JSON.stringify([provider.id, model]),
-        label: `${model} · ${provider.name}`,
-        binding: { provider_id: provider.id, model } satisfies DefaultModelBinding,
-      }))),
+      .flatMap((provider) =>
+        provider.models.map((model) => ({
+          value: JSON.stringify([provider.id, model]),
+          label: `${model} · ${provider.name}`,
+          binding: { provider_id: provider.id, model } satisfies DefaultModelBinding,
+        })),
+      ),
   );
   let canContinue = $derived(
-    step < 2
-      || (step === 2
+    step < 2 ||
+      (step === 2
         ? Boolean(selectedProvider?.enabled && selectedProvider.models.length)
         : step === 3
-          ? modelBindings.some((option) => option.value === bindingValue(draft.defaults.chat_model))
-            && modelBindings.some((option) => option.value === bindingValue(draft.defaults.flash_model))
+          ? modelBindings.some(
+              (option) => option.value === bindingValue(draft.defaults.chat_model),
+            ) &&
+            modelBindings.some(
+              (option) => option.value === bindingValue(draft.defaults.flash_model),
+            )
           : true),
   );
 
@@ -168,7 +183,9 @@
       const models = await invoke<string[]>("fetch_provider_models", {
         request: { provider: $state.snapshot(selectedProvider) },
       });
-      const normalized = Array.from(new Set(models.map((model) => model.trim()).filter(Boolean))).sort();
+      const normalized = Array.from(
+        new Set(models.map((model) => model.trim()).filter(Boolean)),
+      ).sort();
       if (!normalized.length) throw new Error("No models returned");
       selectedProvider.models = normalized;
       selectedProvider.enabled = true;
@@ -194,10 +211,11 @@
   }
 
   function bindingAvailable(binding: DefaultModelBinding) {
-    return draft.providers.some((provider) =>
-      provider.enabled
-      && provider.id === binding.provider_id
-      && provider.models.includes(binding.model)
+    return draft.providers.some(
+      (provider) =>
+        provider.enabled &&
+        provider.id === binding.provider_id &&
+        provider.models.includes(binding.model),
     );
   }
 
@@ -223,20 +241,24 @@
   <div class="onboarding-body">
     <aside class="onboarding-nav">
       <nav aria-label={draft.language === "en" ? "Setup steps" : "设置步骤"}>
-        {#each copy.steps as label, index}
+        {#each copy.steps as label, index (index)}
           <button
             class="onboarding-nav-item"
             class:active={index === step}
             class:complete={index < step}
             disabled={index > step}
-            onclick={() => { if (index < step) step = index; }}
+            onclick={() => {
+              if (index < step) step = index;
+            }}
           >
             <span>{index < step ? "✓" : index + 1}</span>
             {label}
           </button>
         {/each}
       </nav>
-      <p class="nav-note">API Key {draft.language === "en" ? "stays on this device" : "仅保存在本机配置中"}</p>
+      <p class="nav-note">
+        API Key {draft.language === "en" ? "stays on this device" : "仅保存在本机配置中"}
+      </p>
     </aside>
 
     <main class="step-content" aria-label={copy.steps[step]}>
@@ -248,7 +270,9 @@
             <span>{copy.workspace}</span>
             <strong>{workspacePath || copy.noWorkspace}</strong>
           </div>
-          <button class="secondary" onclick={() => void onPickWorkspace()}>{copy.chooseWorkspace}</button>
+          <button class="secondary" onclick={() => void onPickWorkspace()}
+            >{copy.chooseWorkspace}</button
+          >
         </div>
       {:else if step === 1}
         <h1>{copy.preferenceTitle}</h1>
@@ -274,8 +298,11 @@
         <h1>{copy.providerTitle}</h1>
         <p class="lead">{copy.providerBody}</p>
         <div class="provider-tabs">
-          {#each draft.providers as provider}
-            <button class:active={provider.id === selectedProviderId} onclick={() => selectedProviderId = provider.id}>
+          {#each draft.providers as provider (provider.id)}
+            <button
+              class:active={provider.id === selectedProviderId}
+              onclick={() => (selectedProviderId = provider.id)}
+            >
               <span class:online={provider.enabled}></span>{provider.name}
             </button>
           {/each}
@@ -298,17 +325,37 @@
             </div>
             <label>
               <span>{copy.baseUrl}</span>
-              <input bind:value={selectedProvider.base_url} oninput={resetConnection} placeholder={selectedProvider.provider === "openai" ? "https://api.openai.com/v1" : "https://api.anthropic.com"} />
+              <input
+                bind:value={selectedProvider.base_url}
+                oninput={resetConnection}
+                placeholder={selectedProvider.provider === "openai"
+                  ? "https://api.openai.com/v1"
+                  : "https://api.anthropic.com"}
+              />
             </label>
             <label>
               <span>{copy.apiKey}</span>
-              <input type="password" bind:value={selectedProvider.api_key} oninput={resetConnection} placeholder="••••••••••••••••" />
+              <input
+                type="password"
+                bind:value={selectedProvider.api_key}
+                oninput={resetConnection}
+                placeholder="••••••••••••••••"
+              />
             </label>
             <div class="connection-row">
-              <button class="verify" onclick={verifyProvider} disabled={!selectedProvider.api_key.trim() || connectionStatus === "loading"}>
+              <button
+                class="verify"
+                onclick={verifyProvider}
+                disabled={!selectedProvider.api_key.trim() || connectionStatus === "loading"}
+              >
                 {connectionStatus === "loading" ? copy.verifying : copy.verify}
               </button>
-              {#if connectionMessage}<p class:success={connectionStatus === "success"} class:error={connectionStatus === "error"}>{connectionMessage}</p>{/if}
+              {#if connectionMessage}<p
+                  class:success={connectionStatus === "success"}
+                  class:error={connectionStatus === "error"}
+                >
+                  {connectionMessage}
+                </p>{/if}
             </div>
           </div>
         {/if}
@@ -318,14 +365,24 @@
         <div class="form-grid">
           <label>
             <span>{copy.chatModel}</span>
-            <select value={bindingValue(draft.defaults.chat_model)} onchange={(event) => setModel("chat_model", event.currentTarget.value)}>
-              {#each modelBindings as option}<option value={option.value}>{option.label}</option>{/each}
+            <select
+              value={bindingValue(draft.defaults.chat_model)}
+              onchange={(event) => setModel("chat_model", event.currentTarget.value)}
+            >
+              {#each modelBindings as option (option.value)}<option value={option.value}
+                  >{option.label}</option
+                >{/each}
             </select>
           </label>
           <label>
             <span>{copy.flashModel}</span>
-            <select value={bindingValue(draft.defaults.flash_model)} onchange={(event) => setModel("flash_model", event.currentTarget.value)}>
-              {#each modelBindings as option}<option value={option.value}>{option.label}</option>{/each}
+            <select
+              value={bindingValue(draft.defaults.flash_model)}
+              onchange={(event) => setModel("flash_model", event.currentTarget.value)}
+            >
+              {#each modelBindings as option (option.value)}<option value={option.value}
+                  >{option.label}</option
+                >{/each}
             </select>
           </label>
         </div>
@@ -342,11 +399,17 @@
       {/if}
 
       <footer>
-        <button class="secondary" onclick={() => step -= 1} disabled={step === 0 || saving}>{copy.back}</button>
+        <button class="secondary" onclick={() => (step -= 1)} disabled={step === 0 || saving}
+          >{copy.back}</button
+        >
         {#if step < 4}
-          <button class="primary" onclick={() => step += 1} disabled={!canContinue}>{copy.next}<span>→</span></button>
+          <button class="primary" onclick={() => (step += 1)} disabled={!canContinue}
+            >{copy.next}<span>→</span></button
+          >
         {:else}
-          <button class="primary" onclick={finish} disabled={saving}>{saving ? "…" : copy.finish}<span>→</span></button>
+          <button class="primary" onclick={finish} disabled={saving}
+            >{saving ? "…" : copy.finish}<span>→</span></button
+          >
         {/if}
       </footer>
     </main>
@@ -354,53 +417,303 @@
 </div>
 
 <style>
-  .onboarding-panel { display: flex; flex: 1; min-width: 0; flex-direction: column; overflow: hidden; background: var(--bg); color: var(--text); }
-  .onboarding-header { display: flex; align-items: center; justify-content: space-between; height: 48px; flex: none; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid var(--border); background: var(--bg); }
-  .onboarding-header > span { font-size: 14px; font-weight: 600; }
-  .onboarding-body { display: flex; min-width: 0; min-height: 0; flex: 1; overflow: hidden; }
-  .onboarding-nav { display: flex; width: 172px; flex: none; flex-direction: column; box-sizing: border-box; padding: 12px 8px; border-right: 1px solid var(--border); background: var(--bg); }
-  .onboarding-nav nav { display: flex; flex-direction: column; gap: 2px; }
-  .onboarding-nav-item { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 34px; padding: 8px 10px; border: 0; border-radius: 7px; background: none; color: var(--text-muted); cursor: pointer; font: inherit; font-size: 13px; text-align: left; }
-  .onboarding-nav-item:hover:not(:disabled), .onboarding-nav-item.active { background: var(--surface); color: var(--text); }
-  .onboarding-nav-item.active { font-weight: 500; }
-  .onboarding-nav-item:disabled { cursor: default; opacity: .55; }
-  .onboarding-nav-item span { width: 16px; color: var(--text-muted); font-size: 11px; text-align: center; }
-  .onboarding-nav-item.complete span { color: var(--primary); }
-  .nav-note { margin: auto 10px 2px; color: var(--text-muted); font-size: 10px; line-height: 1.5; }
-  .step-content { display: flex; min-width: 0; min-height: 0; flex: 1; flex-direction: column; box-sizing: border-box; overflow-y: auto; padding: 40px max(24px, calc((100% - 720px) / 2)) 24px; }
-  h1 { margin: 0 0 9px; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
-  .lead { max-width: 600px; margin: 0 0 32px; color: var(--text-muted); font-size: 13px; line-height: 1.55; }
-  .workspace-card, .summary { padding: 16px; border: 0; border-radius: 8px; background: var(--surface); box-shadow: var(--control-shadow); }
-  .workspace-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
-  .workspace-card div { display: grid; min-width: 0; gap: 5px; }
-  .workspace-card span, .summary span { color: var(--text-muted); font-size: 11px; }
-  .workspace-card strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-  .form-grid { display: grid; gap: 20px; }
-  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .form-grid label { display: grid; gap: 7px; }
-  .form-grid label > span { color: var(--text-muted); font-size: 12px; font-weight: 600; }
-  input, select { box-sizing: border-box; width: 100%; height: 36px; padding: 0 11px; border: 0; border-radius: 8px; outline: none; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; box-shadow: var(--control-shadow); }
-  input:focus, select:focus { box-shadow: var(--control-shadow), var(--focus-ring); }
-  .provider-tabs { display: flex; gap: 6px; margin: -10px 0 20px; overflow-x: auto; }
-  .provider-tabs button { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
-  .provider-tabs button.active { background: var(--surface2); color: var(--text); }
-  .provider-tabs .add { color: var(--primary); }
-  .provider-tabs span { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
-  .provider-tabs span.online { background: #22a06b; }
-  button { min-height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); color: var(--text); cursor: pointer; font: inherit; font-size: 12px; }
-  button:hover:not(:disabled) { background: var(--surface2); }
-  button:disabled { cursor: default; opacity: .5; }
-  .primary { display: flex; align-items: center; gap: 14px; border-color: var(--primary); background: var(--primary); color: white; }
-  .primary:hover:not(:disabled) { background: var(--primary-hover, var(--primary)); }
-  .primary span { font-size: 15px; }
-  .secondary { background: transparent; }
-  .verify { color: var(--primary); }
-  .connection-row { display: flex; align-items: center; gap: 12px; }
-  .connection-row p { margin: 0; color: var(--text-muted); font-size: 11px; }
-  .success { color: #16865f !important; }
-  .error { color: #d14343 !important; }
-  .summary { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 11px 18px; }
-  .summary strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-  footer { display: flex; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 30px; }
-  @media (max-width: 760px) { .onboarding-nav { width: 52px; padding-inline: 7px; }.onboarding-nav-item { justify-content: center; padding-inline: 0; font-size: 0; }.nav-note { display: none; }.step-content { padding: 28px 16px 20px; }.two { grid-template-columns: 1fr; } }
+  .onboarding-panel {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .onboarding-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 48px;
+    flex: none;
+    box-sizing: border-box;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .onboarding-header > span {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .onboarding-body {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+  .onboarding-nav {
+    display: flex;
+    width: 172px;
+    flex: none;
+    flex-direction: column;
+    box-sizing: border-box;
+    padding: 12px 8px;
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .onboarding-nav nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .onboarding-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 34px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 7px;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+  }
+  .onboarding-nav-item:hover:not(:disabled),
+  .onboarding-nav-item.active {
+    background: var(--surface);
+    color: var(--text);
+  }
+  .onboarding-nav-item.active {
+    font-weight: 500;
+  }
+  .onboarding-nav-item:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+  .onboarding-nav-item span {
+    width: 16px;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-align: center;
+  }
+  .onboarding-nav-item.complete span {
+    color: var(--primary);
+  }
+  .nav-note {
+    margin: auto 10px 2px;
+    color: var(--text-muted);
+    font-size: 10px;
+    line-height: 1.5;
+  }
+  .step-content {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow-y: auto;
+    padding: 40px max(24px, calc((100% - 720px) / 2)) 24px;
+  }
+  h1 {
+    margin: 0 0 9px;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .lead {
+    max-width: 600px;
+    margin: 0 0 32px;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .workspace-card,
+  .summary {
+    padding: 16px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: var(--control-shadow);
+  }
+  .workspace-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+  }
+  .workspace-card div {
+    display: grid;
+    min-width: 0;
+    gap: 5px;
+  }
+  .workspace-card span,
+  .summary span {
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+  .workspace-card strong {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .form-grid {
+    display: grid;
+    gap: 20px;
+  }
+  .two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .form-grid label {
+    display: grid;
+    gap: 7px;
+  }
+  .form-grid label > span {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  input,
+  select {
+    box-sizing: border-box;
+    width: 100%;
+    height: 36px;
+    padding: 0 11px;
+    border: 0;
+    border-radius: 8px;
+    outline: none;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    box-shadow: var(--control-shadow);
+  }
+  input:focus,
+  select:focus {
+    box-shadow: var(--control-shadow), var(--focus-ring);
+  }
+  .provider-tabs {
+    display: flex;
+    gap: 6px;
+    margin: -10px 0 20px;
+    overflow-x: auto;
+  }
+  .provider-tabs button {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+  }
+  .provider-tabs button.active {
+    background: var(--surface2);
+    color: var(--text);
+  }
+  .provider-tabs .add {
+    color: var(--primary);
+  }
+  .provider-tabs span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+  .provider-tabs span.online {
+    background: #22a06b;
+  }
+  button {
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+  }
+  button:hover:not(:disabled) {
+    background: var(--surface2);
+  }
+  button:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+  .primary {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+  }
+  .primary:hover:not(:disabled) {
+    background: var(--primary-hover, var(--primary));
+  }
+  .primary span {
+    font-size: 15px;
+  }
+  .secondary {
+    background: transparent;
+  }
+  .verify {
+    color: var(--primary);
+  }
+  .connection-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .connection-row p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+  .success {
+    color: #16865f !important;
+  }
+  .error {
+    color: #d14343 !important;
+  }
+  .summary {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 11px 18px;
+  }
+  .summary strong {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 30px;
+  }
+  @media (max-width: 760px) {
+    .onboarding-nav {
+      width: 52px;
+      padding-inline: 7px;
+    }
+    .onboarding-nav-item {
+      justify-content: center;
+      padding-inline: 0;
+      font-size: 0;
+    }
+    .nav-note {
+      display: none;
+    }
+    .step-content {
+      padding: 28px 16px 20px;
+    }
+    .two {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>

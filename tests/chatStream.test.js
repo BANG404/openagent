@@ -23,22 +23,26 @@ describe("background checkpoint reconciliation", () => {
     const previousAssistant = message("assistant-1", "assistant", "done");
     const queuedUser = message("user-2", "user", "queued");
 
-    expect(preserveMessagesAddedDuringHydration(
-      [previousUser, previousAssistant, queuedUser],
-      [previousUser, previousAssistant],
-      new Set(["user-1", "assistant-1"]),
-    )).toEqual([previousUser, previousAssistant, queuedUser]);
+    expect(
+      preserveMessagesAddedDuringHydration(
+        [previousUser, previousAssistant, queuedUser],
+        [previousUser, previousAssistant],
+        new Set(["user-1", "assistant-1"]),
+      ),
+    ).toEqual([previousUser, previousAssistant, queuedUser]);
   });
 
   test("does not duplicate a message already present in the durable snapshot", () => {
     const previousUser = message("user-1", "user", "first");
     const queuedUser = message("user-2", "user", "queued");
 
-    expect(preserveMessagesAddedDuringHydration(
-      [previousUser, queuedUser],
-      [previousUser, queuedUser],
-      new Set(["user-1"]),
-    )).toEqual([previousUser, queuedUser]);
+    expect(
+      preserveMessagesAddedDuringHydration(
+        [previousUser, queuedUser],
+        [previousUser, queuedUser],
+        new Set(["user-1"]),
+      ),
+    ).toEqual([previousUser, queuedUser]);
   });
 });
 
@@ -78,14 +82,18 @@ describe("resolveUserInput", () => {
       fields: [{ type: "text", name: "name", label: "Name" }],
     };
 
-    expect(resolveUserInput([
-      { type: "user_input", request, state: "pending" },
-    ], "ask-1", "answered", { values: { name: "Ada" } })).toEqual([{
-      type: "user_input",
-      request,
-      state: "answered",
-      response: { values: { name: "Ada" } },
-    }]);
+    expect(
+      resolveUserInput([{ type: "user_input", request, state: "pending" }], "ask-1", "answered", {
+        values: { name: "Ada" },
+      }),
+    ).toEqual([
+      {
+        type: "user_input",
+        request,
+        state: "answered",
+        response: { values: { name: "Ada" } },
+      },
+    ]);
   });
 });
 
@@ -93,10 +101,41 @@ describe("getSiblingInfoForUserMessage", () => {
   test("keeps branch navigation on its originating user message after a later tip snapshot", () => {
     const tree = {
       nodes: {
-        parent: { ckId: "parent", parentCkId: null, createdAt: 1, timelineMessages: [], isSelfContainedSnapshot: false, childIds: ["original", "branch"] },
-        original: { ckId: "original", parentCkId: "parent", createdAt: 2, user: { id: "original-user" }, timelineMessages: [], isSelfContainedSnapshot: false, childIds: [] },
-        branch: { ckId: "branch", parentCkId: "parent", createdAt: 3, user: { id: "branch-user" }, timelineMessages: [], isSelfContainedSnapshot: false, childIds: ["branch-tip"] },
-        "branch-tip": { ckId: "branch-tip", parentCkId: "branch", createdAt: 4, user: { id: "later-user" }, timelineMessages: [], isSelfContainedSnapshot: true, childIds: [] },
+        parent: {
+          ckId: "parent",
+          parentCkId: null,
+          createdAt: 1,
+          timelineMessages: [],
+          isSelfContainedSnapshot: false,
+          childIds: ["original", "branch"],
+        },
+        original: {
+          ckId: "original",
+          parentCkId: "parent",
+          createdAt: 2,
+          user: { id: "original-user" },
+          timelineMessages: [],
+          isSelfContainedSnapshot: false,
+          childIds: [],
+        },
+        branch: {
+          ckId: "branch",
+          parentCkId: "parent",
+          createdAt: 3,
+          user: { id: "branch-user" },
+          timelineMessages: [],
+          isSelfContainedSnapshot: false,
+          childIds: ["branch-tip"],
+        },
+        "branch-tip": {
+          ckId: "branch-tip",
+          parentCkId: "branch",
+          createdAt: 4,
+          user: { id: "later-user" },
+          timelineMessages: [],
+          isSelfContainedSnapshot: true,
+          childIds: [],
+        },
       },
       rootIds: ["parent"],
       activeChild: { [ROOT_KEY]: 0, parent: 1, branch: 0 },
@@ -192,10 +231,10 @@ describe("buildTreeFromCheckpoints", () => {
       activeChild: { ...initial.activeChild, [ROOT_KEY]: 0, root: 0 },
     };
 
-    const reloaded = buildTreeFromCheckpoints([
-      ...checkpoints,
-      checkpoint("newest", "root", 4),
-    ], viewingEarlier);
+    const reloaded = buildTreeFromCheckpoints(
+      [...checkpoints, checkpoint("newest", "root", 4)],
+      viewingEarlier,
+    );
 
     expect(reloaded.activeChild.root).toBe(0);
     expect(reloaded.nodes.root.childIds[reloaded.activeChild.root]).toBe("earlier");
@@ -245,77 +284,89 @@ describe("buildTreeFromCheckpoints", () => {
       completed_at: null,
       tags: [],
     });
-    const tree = buildTreeFromCheckpoints([{
-      meta: {
-        checkpoint_id: "final",
-        parent_checkpoint_id: null,
-        created_at: 1,
+    const tree = buildTreeFromCheckpoints([
+      {
+        meta: {
+          checkpoint_id: "final",
+          parent_checkpoint_id: null,
+          created_at: 1,
+        },
+        data: {
+          phase: "final_completed",
+          messages: [
+            record("ask", "assistant", {
+              type: "tool_use",
+              id: "ask-1",
+              name: "ask_user",
+              input: {
+                title: "Choose",
+                fields: [{ type: "select", name: "choice", label: "Choice", options: ["A", "B"] }],
+              },
+            }),
+            record("answer", "user", {
+              type: "tool_result",
+              tool_use_id: "ask-1",
+              content: JSON.stringify({ values: { choice: "B" } }),
+            }),
+          ],
+        },
       },
-      data: {
-        phase: "final_completed",
-        messages: [
-          record("ask", "assistant", {
-            type: "tool_use",
-            id: "ask-1",
-            name: "ask_user",
-            input: {
-              title: "Choose",
-              fields: [{ type: "select", name: "choice", label: "Choice", options: ["A", "B"] }],
-            },
-          }),
-          record("answer", "user", {
-            type: "tool_result",
-            tool_use_id: "ask-1",
-            content: JSON.stringify({ values: { choice: "B" } }),
-          }),
-        ],
-      },
-    }]);
+    ]);
 
     expect(tree.nodes.final.timelineMessages).toHaveLength(1);
-    expect(tree.nodes.final.timelineMessages[0].items).toEqual([{
-      type: "user_input",
-      request: {
-        request_id: "ask-1",
-        conv_id: null,
-        kind: "ask_user",
-        title: "Choose",
-        fields: [{ type: "select", name: "choice", label: "Choice", options: ["A", "B"] }],
+    expect(tree.nodes.final.timelineMessages[0].items).toEqual([
+      {
+        type: "user_input",
+        request: {
+          request_id: "ask-1",
+          conv_id: null,
+          kind: "ask_user",
+          title: "Choose",
+          fields: [{ type: "select", name: "choice", label: "Choice", options: ["A", "B"] }],
+        },
+        state: "answered",
+        response: { values: { choice: "B" } },
       },
-      state: "answered",
-      response: { values: { choice: "B" } },
-    }]);
+    ]);
   });
 
   test("normalizes object options when restoring ask_user from a checkpoint", () => {
-    const tree = buildTreeFromCheckpoints([{
-      meta: { checkpoint_id: "interrupted", parent_checkpoint_id: null, created_at: 1 },
-      data: {
-        phase: "interrupted",
-        messages: [{
-          id: "ask",
-          role: "assistant",
-          content: [{
-            type: "tool_use",
-            id: "ask-1",
-            name: "ask_user",
-            input: {
-              fields: [{
-                type: "select",
-                name: "choice",
-                label: "Choice",
-                options: [{ label: "A" }, { label: "Bee", value: "B" }],
-              }],
+    const tree = buildTreeFromCheckpoints([
+      {
+        meta: { checkpoint_id: "interrupted", parent_checkpoint_id: null, created_at: 1 },
+        data: {
+          phase: "interrupted",
+          messages: [
+            {
+              id: "ask",
+              role: "assistant",
+              content: [
+                {
+                  type: "tool_use",
+                  id: "ask-1",
+                  name: "ask_user",
+                  input: {
+                    fields: [
+                      {
+                        type: "select",
+                        name: "choice",
+                        label: "Choice",
+                        options: [{ label: "A" }, { label: "Bee", value: "B" }],
+                      },
+                    ],
+                  },
+                },
+              ],
+              status: "completed",
+              timestamp: 0,
+              first_token_at: null,
+              completed_at: null,
+              tags: [],
             },
-          }],
-          status: "completed",
-          timestamp: 0,
-          first_token_at: null,
-          completed_at: null,
-          tags: [],
-        }],
+          ],
+        },
       },
-    }]);
+    ]);
 
     expect(tree.nodes.interrupted.timelineMessages[0].items[0]).toMatchObject({
       type: "user_input",
@@ -336,26 +387,29 @@ describe("buildTreeFromCheckpoints", () => {
       completed_at: null,
       tags: [],
     });
-    const denial = "Tool 'ask_user' was not approved because the user continued the conversation. It was not executed.";
-    const tree = buildTreeFromCheckpoints([{
-      meta: { checkpoint_id: "final", parent_checkpoint_id: null, created_at: 1 },
-      data: {
-        phase: "final_completed",
-        messages: [
-          record("ask", "assistant", {
-            type: "tool_use",
-            id: "ask-1",
-            name: "ask_user",
-            input: { fields: [{ type: "text", name: "choice", label: "Choice" }] },
-          }),
-          record("denial", "user", {
-            type: "tool_result",
-            tool_use_id: "ask-1",
-            content: [{ type: "text", text: denial }],
-          }),
-        ],
+    const denial =
+      "Tool 'ask_user' was not approved because the user continued the conversation. It was not executed.";
+    const tree = buildTreeFromCheckpoints([
+      {
+        meta: { checkpoint_id: "final", parent_checkpoint_id: null, created_at: 1 },
+        data: {
+          phase: "final_completed",
+          messages: [
+            record("ask", "assistant", {
+              type: "tool_use",
+              id: "ask-1",
+              name: "ask_user",
+              input: { fields: [{ type: "text", name: "choice", label: "Choice" }] },
+            }),
+            record("denial", "user", {
+              type: "tool_result",
+              tool_use_id: "ask-1",
+              content: [{ type: "text", text: denial }],
+            }),
+          ],
+        },
       },
-    }]);
+    ]);
 
     expect(tree.nodes.final.timelineMessages[0].items[0]).toMatchObject({
       type: "user_input",
@@ -364,27 +418,33 @@ describe("buildTreeFromCheckpoints", () => {
   });
 
   test("restores an unanswered ask_user as a pending form instead of a tool card", () => {
-    const tree = buildTreeFromCheckpoints([{
-      meta: { checkpoint_id: "interrupted", parent_checkpoint_id: null, created_at: 1 },
-      data: {
-        phase: "interrupted",
-        messages: [{
-          id: "ask",
-          role: "assistant",
-          content: [{
-            type: "tool_use",
-            id: "ask-1",
-            name: "ask_user",
-            input: { fields: [{ type: "text", name: "name", label: "Name" }] },
-          }],
-          status: "completed",
-          timestamp: 0,
-          first_token_at: null,
-          completed_at: null,
-          tags: [],
-        }],
+    const tree = buildTreeFromCheckpoints([
+      {
+        meta: { checkpoint_id: "interrupted", parent_checkpoint_id: null, created_at: 1 },
+        data: {
+          phase: "interrupted",
+          messages: [
+            {
+              id: "ask",
+              role: "assistant",
+              content: [
+                {
+                  type: "tool_use",
+                  id: "ask-1",
+                  name: "ask_user",
+                  input: { fields: [{ type: "text", name: "name", label: "Name" }] },
+                },
+              ],
+              status: "completed",
+              timestamp: 0,
+              first_token_at: null,
+              completed_at: null,
+              tags: [],
+            },
+          ],
+        },
       },
-    }]);
+    ]);
 
     expect(tree.nodes.interrupted.timelineMessages[0].items[0]).toMatchObject({
       type: "user_input",
@@ -394,28 +454,34 @@ describe("buildTreeFromCheckpoints", () => {
   });
 
   test("restores durable runtime terminal messages as special notice items", () => {
-    const tree = buildTreeFromCheckpoints([{
-      meta: { checkpoint_id: "failed", parent_checkpoint_id: null, created_at: 1 },
-      data: {
-        phase: "final_failed",
-        messages: [{
-          id: "runtime-error",
-          role: "assistant",
-          content: [{ type: "runtime_error", reason: "Provider disconnected" }],
-          status: "completed",
-          timestamp: 1,
-          first_token_at: null,
-          completed_at: null,
-          tags: [],
-        }],
+    const tree = buildTreeFromCheckpoints([
+      {
+        meta: { checkpoint_id: "failed", parent_checkpoint_id: null, created_at: 1 },
+        data: {
+          phase: "final_failed",
+          messages: [
+            {
+              id: "runtime-error",
+              role: "assistant",
+              content: [{ type: "runtime_error", reason: "Provider disconnected" }],
+              status: "completed",
+              timestamp: 1,
+              first_token_at: null,
+              completed_at: null,
+              tags: [],
+            },
+          ],
+        },
       },
-    }]);
+    ]);
 
-    expect(tree.nodes.failed.timelineMessages[0].items).toEqual([{
-      type: "runtime_notice",
-      kind: "error",
-      reason: "Provider disconnected",
-    }]);
+    expect(tree.nodes.failed.timelineMessages[0].items).toEqual([
+      {
+        type: "runtime_notice",
+        kind: "error",
+        reason: "Provider disconnected",
+      },
+    ]);
   });
 
   test("hides goal continuation prompts while projecting checkpoint flow metadata", () => {
@@ -429,31 +495,28 @@ describe("buildTreeFromCheckpoints", () => {
       completed_at: null,
       tags,
     });
-    const tree = buildTreeFromCheckpoints([{
-      meta: { checkpoint_id: "goal-running", parent_checkpoint_id: null, created_at: 1 },
-      data: {
-        phase: "before_completion",
-        flow: {
-          kind: "goal",
-          state: {
-            objective: "Ship the feature",
-            graph_node_id: null,
-            todos: [{ id: "implement", task: "Implement it", status: "in_progress" }],
-            status: "running",
+    const tree = buildTreeFromCheckpoints([
+      {
+        meta: { checkpoint_id: "goal-running", parent_checkpoint_id: null, created_at: 1 },
+        data: {
+          phase: "before_completion",
+          flow: {
+            kind: "goal",
+            state: {
+              objective: "Ship the feature",
+              graph_node_id: null,
+              todos: [{ id: "implement", task: "Implement it", status: "in_progress" }],
+              status: "running",
+            },
           },
+          messages: [
+            record("goal-command", "user", "/goal Ship the feature", ["goal_bootstrap"]),
+            record("assistant", "assistant", "I am working on it."),
+            record("goal-control", "user", "Continue the incomplete goal.", ["goal_continuation"]),
+          ],
         },
-        messages: [
-          record("goal-command", "user", "/goal Ship the feature", ["goal_bootstrap"]),
-          record("assistant", "assistant", "I am working on it."),
-          record(
-            "goal-control",
-            "user",
-            "Continue the incomplete goal.",
-            ["goal_continuation"],
-          ),
-        ],
       },
-    }]);
+    ]);
 
     expect(tree.nodes["goal-running"]).toMatchObject({
       flowKind: "goal",

@@ -13,13 +13,11 @@
 
   let {
     workspace,
-    onClose,
     winMinimize,
     winMaximize,
     winClose,
   }: {
     workspace: WorkspaceContext | null;
-    onClose: () => void;
     winMinimize: () => void;
     winMaximize: () => void;
     winClose: () => void;
@@ -54,9 +52,7 @@
   let isCreating = $state(false);
   let createError = $state("");
 
-  let visibleSkills = $derived(
-    allSkills.filter((s) => s.scope === activeScope)
-  );
+  let visibleSkills = $derived(allSkills.filter((s) => s.scope === activeScope));
   let skillGroups = $derived.by(() => {
     const groups = new Map<string, SkillGroup>();
     for (const skill of visibleSkills) {
@@ -245,7 +241,11 @@
   <div class="skills-header" data-tauri-drag-region>
     <div class="header-leading">
       <span class="skills-header-title">{$t("skillsTitle")}</span>
-      <ScopeToggle value={activeScope} projectEnabled={Boolean(workspace?.path)} onChange={switchScope} />
+      <ScopeToggle
+        value={activeScope}
+        projectEnabled={Boolean(workspace?.path)}
+        onChange={switchScope}
+      />
     </div>
     <div class="title-actions">
       <WindowControls onMinimize={winMinimize} onMaximize={winMaximize} onClose={winClose} />
@@ -262,10 +262,18 @@
             <LoadingSkeleton variant="detail-list" rows={5} label={$t("loadingContent")} />
           {:else if visibleSkills.length === 0}
             <div class="skill-empty">
-              <svg class="skill-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5"/>
-                <path d="M2 12l10 5 10-5"/>
+              <svg
+                class="skill-empty-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
               </svg>
               <p class="skill-empty-text">{$t("noSkills")}</p>
               <p class="skill-empty-hint">{$t("noSkillsHint")}</p>
@@ -346,17 +354,40 @@
         </div>
 
         <div class="skill-list-footer">
-          <button class="skill-footer-btn skill-footer-btn-primary" onclick={() => (showNewDialog = true)}>
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M8 3v10M3 8h10"/>
+          <button
+            class="skill-footer-btn skill-footer-btn-primary"
+            onclick={() => (showNewDialog = true)}
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M8 3v10M3 8h10" />
             </svg>
             {$t("newSkill")}
           </button>
           <Tooltip text={$t("openSkillsDir")}>
-            <button class="skill-footer-btn" aria-label={$t("openSkillsDir")} onclick={handleOpenSkillsDir}>
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3H6l1.5 2H12.5A1.5 1.5 0 0 1 14 6.5v6A1.5 1.5 0 0 1 12.5 14h-9A1.5 1.5 0 0 1 2 12.5V4.5z"/>
-                <path d="M9 9.5 11 7.5 9 5.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <button
+              class="skill-footer-btn"
+              aria-label={$t("openSkillsDir")}
+              onclick={handleOpenSkillsDir}
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M2 4.5A1.5 1.5 0 0 1 3.5 3H6l1.5 2H12.5A1.5 1.5 0 0 1 14 6.5v6A1.5 1.5 0 0 1 12.5 14h-9A1.5 1.5 0 0 1 2 12.5V4.5z"
+                />
+                <path d="M9 9.5 11 7.5 9 5.5" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
           </Tooltip>
@@ -387,12 +418,19 @@
           />
         {:else}
           <div class="editor-placeholder">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
             </svg>
             <p>从左侧选择技能来编辑 SKILL.md</p>
           </div>
@@ -626,7 +664,9 @@
     padding: 6px 10px;
     font-size: 12px;
     cursor: pointer;
-    transition: background 0.12s, color 0.12s;
+    transition:
+      background 0.12s,
+      color 0.12s;
     white-space: nowrap;
     box-shadow: var(--control-shadow);
   }

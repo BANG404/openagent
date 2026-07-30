@@ -49,7 +49,7 @@
   let draftLoadVersion = 0;
   let flatDrafts = $derived(draftCategories.flatMap((c) => c.drafts));
   let selectedDraft = $derived(
-    selectedDraftPath ? flatDrafts.find((draft) => draft.path === selectedDraftPath) : undefined
+    selectedDraftPath ? flatDrafts.find((draft) => draft.path === selectedDraftPath) : undefined,
   );
 
   onMount(() => {
@@ -70,7 +70,9 @@
     }
     draftsLoading = true;
     try {
-      draftCategories = await invoke<DraftCategoryEntry[]>("list_project_drafts", { scope: activeScope });
+      draftCategories = await invoke<DraftCategoryEntry[]>("list_project_drafts", {
+        scope: activeScope,
+      });
       const drafts = draftCategories.flatMap((c) => c.drafts);
       if (!selectedDraftPath && drafts.length > 0) {
         await selectDraft(drafts[0]);
@@ -93,7 +95,10 @@
     selectedContentLoaded = false;
     draftContentLoading = true;
     try {
-      const content = await invoke<string>("get_project_draft", { scope: activeScope, path: draft.path });
+      const content = await invoke<string>("get_project_draft", {
+        scope: activeScope,
+        path: draft.path,
+      });
       if (loadVersion !== draftLoadVersion) return;
       draftContent = content;
       selectedContentLoaded = true;
@@ -114,8 +119,8 @@
       category = { name: entry.category, drafts: [] };
       next.push(category);
     }
-    category.drafts = [entry, ...category.drafts].sort((a, b) =>
-      b.updated_at - a.updated_at || a.name.localeCompare(b.name)
+    category.drafts = [entry, ...category.drafts].sort(
+      (a, b) => b.updated_at - a.updated_at || a.name.localeCompare(b.name),
     );
     draftCategories = next
       .filter((item) => item.drafts.length > 0)
@@ -224,16 +229,34 @@
   <div class="drafts-header" data-tauri-drag-region>
     <div class="header-leading">
       <span class="drafts-header-title">{$t("projectDrafts")}</span>
-      <ScopeToggle value={activeScope} projectEnabled={Boolean(workspace?.path)} onChange={switchScope} />
+      <ScopeToggle
+        value={activeScope}
+        projectEnabled={Boolean(workspace?.path)}
+        onChange={switchScope}
+      />
     </div>
     <div class="title-actions">
       {#if draftSaveState}
         <span class="save-state">{draftSaveState}</span>
       {/if}
       <Tooltip text={$t("openDraftsDir")}>
-        <button class="icon-btn" disabled={activeScope === "local" && !workspace?.path} aria-label={$t("openDraftsDir")} onclick={openDraftsDir}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3H6l1.5 2H12.5A1.5 1.5 0 0 1 14 6.5v5A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5v-7z"/>
+        <button
+          class="icon-btn"
+          disabled={activeScope === "local" && !workspace?.path}
+          aria-label={$t("openDraftsDir")}
+          onclick={openDraftsDir}
+        >
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M2 4.5A1.5 1.5 0 0 1 3.5 3H6l1.5 2H12.5A1.5 1.5 0 0 1 14 6.5v5A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5v-7z"
+            />
           </svg>
         </button>
       </Tooltip>
@@ -246,7 +269,13 @@
   {:else}
     <div class="draft-body">
       <aside class="draft-list-pane">
-        <form class="draft-create-form" onsubmit={(event) => { event.preventDefault(); createDraft(); }}>
+        <form
+          class="draft-create-form"
+          onsubmit={(event) => {
+            event.preventDefault();
+            createDraft();
+          }}
+        >
           <input
             bind:value={draftCategoryInput}
             class="draft-input"
@@ -261,9 +290,20 @@
               aria-label={$t("draftTitle")}
             />
             <Tooltip text={$t("newDraft")}>
-              <button class="icon-btn create-draft-btn" type="submit" disabled={!draftTitleInput.trim()} aria-label={$t("newDraft")}>
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                  <path d="M8 3v10M3 8h10"/>
+              <button
+                class="icon-btn create-draft-btn"
+                type="submit"
+                disabled={!draftTitleInput.trim()}
+                aria-label={$t("newDraft")}
+              >
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                >
+                  <path d="M8 3v10M3 8h10" />
                 </svg>
               </button>
             </Tooltip>
@@ -291,7 +331,10 @@
                         role="button"
                         tabindex="0"
                         aria-label={$t("deleteDraft")}
-                        onclick={(event) => { event.stopPropagation(); deleteDraft(draft); }}
+                        onclick={(event) => {
+                          event.stopPropagation();
+                          deleteDraft(draft);
+                        }}
                         onkeydown={(event) => {
                           if (event.key === "Enter" || event.key === " ") {
                             event.preventDefault();
@@ -300,9 +343,15 @@
                           }
                         }}
                       >
-                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                          <path d="M3 4h10M6 4V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V4"/>
-                          <path d="M5 4l.5 9h5l.5-9"/>
+                        <svg
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                        >
+                          <path d="M3 4h10M6 4V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V4" />
+                          <path d="M5 4l.5 9h5l.5-9" />
                         </svg>
                       </span>
                     </Tooltip>
@@ -388,7 +437,10 @@
     color: var(--text-muted);
     cursor: pointer;
     padding: 4px;
-    transition: background 0.12s, color 0.12s, transform 0.1s;
+    transition:
+      background 0.12s,
+      color 0.12s,
+      transform 0.1s;
   }
 
   .icon-btn:hover:not(:disabled) {
@@ -496,7 +548,9 @@
     cursor: pointer;
     padding: 5px 6px 5px 8px;
     text-align: left;
-    transition: background 0.12s, color 0.12s;
+    transition:
+      background 0.12s,
+      color 0.12s;
   }
 
   .draft-item:hover {

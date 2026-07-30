@@ -34,10 +34,22 @@
     opacity: 0.4;
     animation: pulse 1.2s infinite ease-in-out;
   }
-  .dot:nth-child(2) { animation-delay: 0.15s; }
-  .dot:nth-child(3) { animation-delay: 0.3s; }
+  .dot:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .dot:nth-child(3) {
+    animation-delay: 0.3s;
+  }
   @keyframes pulse {
-    0%, 80%, 100% { opacity: 0.2; transform: scale(0.9); }
-    40% { opacity: 1; transform: scale(1.1); }
+    0%,
+    80%,
+    100% {
+      opacity: 0.2;
+      transform: scale(0.9);
+    }
+    40% {
+      opacity: 1;
+      transform: scale(1.1);
+    }
   }
 </style>

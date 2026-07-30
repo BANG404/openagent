@@ -32,12 +32,12 @@
   let loadSeq = 0;
   const capabilities = useOpenAgentUiCapabilities();
 
-  const title = $derived(typeof args.title === "string" && args.title.trim() ? args.title : "HTML display");
+  const title = $derived(
+    typeof args.title === "string" && args.title.trim() ? args.title : "HTML display",
+  );
   const path = $derived(typeof args.path === "string" ? args.path.trim() : "");
   const code = $derived(
-    rawFileCode
-      ? injectHtmlPreviewBase(rawFileCode, assetBaseUrl, isDark ? "dark" : "light")
-      : "",
+    rawFileCode ? injectHtmlPreviewBase(rawFileCode, assetBaseUrl, isDark ? "dark" : "light") : "",
   );
   const fixedHeight = $derived.by(() => {
     const configured = htmlPreviewConfig?.fixed_height ?? 480;
@@ -47,12 +47,13 @@
   const displayHeight = $derived(expanded ? Math.max(frameHeight, fixedHeight) : fixedHeight);
 
   function safeFilename(ext: "png"): string {
-    const base = title
-      .trim()
-      .replace(/[\\/:*?"<>|]+/g, "_")
-      .replace(/\s+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 80) || "html-preview";
+    const base =
+      title
+        .trim()
+        .replace(/[\\/:*?"<>|]+/g, "_")
+        .replace(/\s+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 80) || "html-preview";
     return `${base}.${ext}`;
   }
 
@@ -121,7 +122,8 @@
     } catch (err) {
       showToast({
         title: tr("toastDownloadFailed"),
-        description: typeof err === "string" ? err : (err as { message?: string })?.message ?? String(err),
+        description:
+          typeof err === "string" ? err : ((err as { message?: string })?.message ?? String(err)),
         variant: "error",
       });
     } finally {
@@ -144,7 +146,8 @@
     } catch (err) {
       showToast({
         title: "Copy failed",
-        description: typeof err === "string" ? err : (err as { message?: string })?.message ?? String(err),
+        description:
+          typeof err === "string" ? err : ((err as { message?: string })?.message ?? String(err)),
         variant: "error",
       });
     } finally {
@@ -160,7 +163,8 @@
     } catch (err) {
       showToast({
         title: "Open failed",
-        description: typeof err === "string" ? err : (err as { message?: string })?.message ?? String(err),
+        description:
+          typeof err === "string" ? err : ((err as { message?: string })?.message ?? String(err)),
         variant: "error",
       });
     } finally {
@@ -231,7 +235,8 @@
 
     if (!currentPath) return;
 
-    capabilities.readHtmlPreview(currentPath)
+    capabilities
+      .readHtmlPreview(currentPath)
       .then((preview) => {
         if (seq !== loadSeq) return;
         rawFileCode = preview.content;
@@ -239,7 +244,8 @@
       })
       .catch((err) => {
         if (seq !== loadSeq) return;
-        loadError = typeof err === "string" ? err : (err as { message?: string })?.message ?? String(err);
+        loadError =
+          typeof err === "string" ? err : ((err as { message?: string })?.message ?? String(err));
       });
   });
 </script>
@@ -259,14 +265,30 @@
         aria-label={expanded ? "Use fixed height" : "Expand to content"}
       >
         {#if expanded}
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <path d="M5.25 2.75v3h-3" />
             <path d="M2.75 5.75 6 2.5" />
             <path d="M10.75 13.25v-3h3" />
             <path d="M13.25 10.25 10 13.5" />
           </svg>
         {:else}
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <path d="M6 2.5H2.5V6" />
             <path d="M2.75 2.75 6.25 6.25" />
             <path d="M10 13.5h3.5V10" />
@@ -275,33 +297,79 @@
         {/if}
       </button>
       {#if path}
-        <button type="button" onclick={openHtmlFile} disabled={busy !== null} title="Open HTML file" aria-label="Open HTML file">
+        <button
+          type="button"
+          onclick={openHtmlFile}
+          disabled={busy !== null}
+          title="Open HTML file"
+          aria-label="Open HTML file"
+        >
           {#if busy === "open"}
             <span class="busy-dot"></span>
           {:else}
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <path d="M9 2.75h4.25V7" />
               <path d="M8.25 7.75 13 3" />
-              <path d="M6.75 4H4.25A1.25 1.25 0 0 0 3 5.25v6.5A1.25 1.25 0 0 0 4.25 13h6.5A1.25 1.25 0 0 0 12 11.75V9.25" />
+              <path
+                d="M6.75 4H4.25A1.25 1.25 0 0 0 3 5.25v6.5A1.25 1.25 0 0 0 4.25 13h6.5A1.25 1.25 0 0 0 12 11.75V9.25"
+              />
             </svg>
           {/if}
         </button>
       {/if}
-      <button type="button" onclick={copyHtml} disabled={busy !== null} title="Copy text" aria-label="Copy text">
+      <button
+        type="button"
+        onclick={copyHtml}
+        disabled={busy !== null}
+        title="Copy text"
+        aria-label="Copy text"
+      >
         {#if busy === "copy"}
           <span class="busy-dot"></span>
         {:else}
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <rect x="5.25" y="4.25" width="7" height="9" rx="1.25" />
-            <path d="M3.75 11.25h-.5A1.25 1.25 0 0 1 2 10V3.25A1.25 1.25 0 0 1 3.25 2h5.5A1.25 1.25 0 0 1 10 3.25v.5" />
+            <path
+              d="M3.75 11.25h-.5A1.25 1.25 0 0 1 2 10V3.25A1.25 1.25 0 0 1 3.25 2h5.5A1.25 1.25 0 0 1 10 3.25v.5"
+            />
           </svg>
         {/if}
       </button>
-      <button type="button" onclick={downloadImage} disabled={busy !== null} title="Download image" aria-label="Download image">
+      <button
+        type="button"
+        onclick={downloadImage}
+        disabled={busy !== null}
+        title="Download image"
+        aria-label="Download image"
+      >
         {#if busy === "png"}
           <span class="busy-dot"></span>
         {:else}
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <path d="M8 2.5v7" />
             <path d="M5.25 7.25 8 10l2.75-2.75" />
             <path d="M3 12.75h10" />
@@ -313,7 +381,7 @@
       <iframe
         bind:this={frame}
         class="preview"
-        title={title}
+        {title}
         srcdoc={code}
         sandbox="allow-same-origin"
         referrerpolicy="no-referrer"
@@ -370,7 +438,10 @@
     background: color-mix(in srgb, var(--surface) 86%, transparent);
     color: var(--text-muted);
     cursor: pointer;
-    transition: background 0.12s, color 0.12s, transform 0.12s;
+    transition:
+      background 0.12s,
+      color 0.12s,
+      transform 0.12s;
   }
 
   .actions button:hover:not(:disabled) {
@@ -434,7 +505,8 @@
   }
 
   @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
     }
     50% {

@@ -44,6 +44,9 @@ export function dequeueChatMessage(
   if (!next) return { queue };
   return {
     next,
-    queue: remaining.length > 0 ? { ...queue, [convId]: remaining } : clearQueuedChatMessages(queue, convId),
+    queue:
+      remaining.length > 0
+        ? { ...queue, [convId]: remaining }
+        : clearQueuedChatMessages(queue, convId),
   };
 }

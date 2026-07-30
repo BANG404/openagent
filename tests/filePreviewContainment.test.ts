@@ -6,10 +6,12 @@ import {
   setContainingFilePreviewOpen,
 } from "../src/lib/streamdown/filePreviewContainment";
 
-function elementWithRecord(record: {
-  setAttribute(name: string, value: string): void;
-  removeAttribute(name: string): void;
-} | null): Element {
+function elementWithRecord(
+  record: {
+    setAttribute(name: string, value: string): void;
+    removeAttribute(name: string): void;
+  } | null,
+): Element {
   return {
     closest: () => record,
   } as unknown as Element;

@@ -12,7 +12,7 @@ on:
       release_tag:
         required: false
         type: string
-        default: ''
+        default: ""
 
 permissions:
   contents: read

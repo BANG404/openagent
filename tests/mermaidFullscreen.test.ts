@@ -8,10 +8,12 @@ import {
   setContainingMessageExpanded,
 } from "../src/lib/streamdown/mermaidFullscreen";
 
-function elementWithRecord(record: {
-  toggleAttribute(name: string, force?: boolean): boolean;
-  removeAttribute(name: string): void;
-} | null): Element {
+function elementWithRecord(
+  record: {
+    toggleAttribute(name: string, force?: boolean): boolean;
+    removeAttribute(name: string): void;
+  } | null,
+): Element {
   return {
     closest: () => record,
   } as unknown as Element;

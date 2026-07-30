@@ -17,7 +17,9 @@
   } = $props();
 
   const path = $derived(typeof args.path === "string" ? args.path : "");
-  const lines = $derived(typeof args.lines === "string" || typeof args.lines === "number" ? String(args.lines) : "");
+  const lines = $derived(
+    typeof args.lines === "string" || typeof args.lines === "number" ? String(args.lines) : "",
+  );
   const lineRange = $derived(parseFileLineRange(args.lines));
   const label = $derived(typeof args.label === "string" ? args.label : "");
 
@@ -43,7 +45,7 @@
       await capabilities.openPath(path);
     } catch (e) {
       console.warn("open_path failed", e);
-      const msg = typeof e === "string" ? e : (e as { message?: string })?.message ?? String(e);
+      const msg = typeof e === "string" ? e : ((e as { message?: string })?.message ?? String(e));
       alert(msg);
     }
   }
@@ -96,11 +98,22 @@
     disabled={!path}
     title={path}
   >
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true">
-      <path d="M3 2.5h6l4 4V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V3a.5.5 0 0 1 .5-.5z"/>
-      <path d="M9 2.5V6.5h4"/>
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      width="13"
+      height="13"
+      aria-hidden="true"
+    >
+      <path d="M3 2.5h6l4 4V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V3a.5.5 0 0 1 .5-.5z" />
+      <path d="M9 2.5V6.5h4" />
     </svg>
-    <span class="name">{label || filename}</span>{#if lines}<span class="lines">:{lines}</span>{/if}{#if dirHint() && !label}<span class="dir">{dirHint()}</span>{/if}
+    <span class="name">{label || filename}</span>{#if lines}<span class="lines">:{lines}</span
+      >{/if}{#if dirHint() && !label}<span class="dir">{dirHint()}</span>{/if}
   </button>
   {#if previewOpen && lineRange}
     <span class="file-preview" role="tooltip">
@@ -108,10 +121,12 @@
       {#if previewLoading}
         <span class="preview-status">{$t("filePreviewLoading")}</span>
       {:else if previewError}
-        <span class="preview-status preview-error" title={previewError}>{$t("filePreviewUnavailable")}</span>
+        <span class="preview-status preview-error" title={previewError}
+          >{$t("filePreviewUnavailable")}</span
+        >
       {:else if preview}
         <span class="preview-code">
-          {#each preview.lines as content, index}
+          {#each preview.lines as content, index (preview.startLine + index)}
             <span class="preview-row">
               <span class="preview-line">{preview.startLine + index}</span>
               <span class="preview-content">{content}</span>
@@ -146,7 +161,9 @@
     line-height: 1.3;
     cursor: pointer;
     vertical-align: baseline;
-    transition: background 0.12s, border-color 0.12s;
+    transition:
+      background 0.12s,
+      border-color 0.12s;
     font-family: inherit;
   }
   .file-ref:hover:not(:disabled) {

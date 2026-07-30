@@ -49,7 +49,8 @@
       return;
     }
     loading = true;
-    void capabilities.resolveMedia(current.value, currentKind)
+    void capabilities
+      .resolveMedia(current.value, currentKind)
       .then((result) => {
         if (!cancelled) resolvedSrc = result.url;
       })
@@ -80,9 +81,17 @@
   <div class="media-stage" class:loading>
     {#if errorDetail}
       <div class="media-status media-error" role="status" title={errorDetail}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-          <path d="M12 8v5m0 3.5v.5"/>
-          <path d="M10.4 3.7 2.6 17.2A1.9 1.9 0 0 0 4.3 20h15.4a1.9 1.9 0 0 0 1.7-2.8L13.6 3.7a1.9 1.9 0 0 0-3.2 0Z"/>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          aria-hidden="true"
+        >
+          <path d="M12 8v5m0 3.5v.5" />
+          <path
+            d="M10.4 3.7 2.6 17.2A1.9 1.9 0 0 0 4.3 20h15.4a1.9 1.9 0 0 0 1.7-2.8L13.6 3.7a1.9 1.9 0 0 0-3.2 0Z"
+          />
         </svg>
         <span>{$t("aguiMediaUnavailable")}</span>
       </div>
@@ -143,11 +152,31 @@
     place-items: center;
     overflow: hidden;
     background:
-      linear-gradient(45deg, color-mix(in srgb, var(--border) 28%, transparent) 25%, transparent 25%),
-      linear-gradient(-45deg, color-mix(in srgb, var(--border) 28%, transparent) 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, color-mix(in srgb, var(--border) 28%, transparent) 75%),
-      linear-gradient(-45deg, transparent 75%, color-mix(in srgb, var(--border) 28%, transparent) 75%);
-    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      linear-gradient(
+        45deg,
+        color-mix(in srgb, var(--border) 28%, transparent) 25%,
+        transparent 25%
+      ),
+      linear-gradient(
+        -45deg,
+        color-mix(in srgb, var(--border) 28%, transparent) 25%,
+        transparent 25%
+      ),
+      linear-gradient(
+        45deg,
+        transparent 75%,
+        color-mix(in srgb, var(--border) 28%, transparent) 75%
+      ),
+      linear-gradient(
+        -45deg,
+        transparent 75%,
+        color-mix(in srgb, var(--border) 28%, transparent) 75%
+      );
+    background-position:
+      0 0,
+      0 8px,
+      8px -8px,
+      -8px 0;
     background-size: 16px 16px;
   }
 

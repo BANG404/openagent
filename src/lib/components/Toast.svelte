@@ -15,10 +15,7 @@
 
 <div class="toast-stack" role="region" aria-live="polite">
   {#each $toasts as toast (toast.id)}
-    <div
-      class="toast"
-      transition:fly={{ y: -16, duration: 180 }}
-    >
+    <div class="toast" transition:fly={{ y: -16, duration: 180 }}>
       <div class="toast-body">
         <div class="toast-title">{toast.title}</div>
         {#if toast.description}
@@ -27,14 +24,23 @@
       </div>
       <div class="toast-actions">
         {#if toast.action}
-          <button class="toast-action" onclick={() => runAction(toast)}>{toast.action.label}</button>
+          <button class="toast-action" onclick={() => runAction(toast)}>{toast.action.label}</button
+          >
         {/if}
         <button
           class="toast-dismiss"
           onclick={() => dismissToast(toast.id)}
           aria-label={$t("toastDismiss")}
         >
-          <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <svg
+            viewBox="0 0 14 14"
+            width="12"
+            height="12"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          >
             <path d="M3 3 L11 11 M11 3 L3 11" />
           </svg>
         </button>
@@ -134,7 +140,10 @@
     justify-content: center;
     border-radius: 8px;
     cursor: pointer;
-    transition: background 0.12s, color 0.12s, transform 0.12s;
+    transition:
+      background 0.12s,
+      color 0.12s,
+      transform 0.12s;
     padding: 0;
   }
   .toast-dismiss:hover {

@@ -4,7 +4,13 @@
 // the user sees. Nested branch arrows fall out naturally from rendering this path.
 
 import { appendChunk } from "./chatStream";
-import type { ChatMessage, CheckpointMessage, RenderableCheckpoint, StreamItem, UserInputRequest } from "./types";
+import type {
+  ChatMessage,
+  CheckpointMessage,
+  RenderableCheckpoint,
+  StreamItem,
+  UserInputRequest,
+} from "./types";
 
 export const ROOT_KEY = "__root__";
 
@@ -49,12 +55,9 @@ export interface ConvTree {
   activeChild: Record<string, number>; // parentCkId (or ROOT_KEY) → index into childIds/rootIds
 }
 
-export function isCompactionBoundary(
-  message: ChatMessage,
-): boolean {
+export function isCompactionBoundary(message: ChatMessage): boolean {
   if (!message.checkpointId) return false;
-  return message.role === "system"
-    && message.tags?.includes("context_compaction") === true;
+  return message.role === "system" && message.tags?.includes("context_compaction") === true;
 }
 
 function isHiddenCheckpointRecord(record: CheckpointMessage): boolean {
@@ -62,11 +65,13 @@ function isHiddenCheckpointRecord(record: CheckpointMessage): boolean {
   // replayed user message is a durable UI boundary. Keep the latter in the
   // timeline so MessageList can render its compaction divider (and omit it
   // from the user-message index).
-  return record.role === "system"
-    || record.tags.includes("goal_continuation")
-    || record.tags.includes("graph_continuation")
-    || record.tags.includes("graph_node_bootstrap")
-    || record.tags.includes("graph_node_continuation");
+  return (
+    record.role === "system" ||
+    record.tags.includes("goal_continuation") ||
+    record.tags.includes("graph_continuation") ||
+    record.tags.includes("graph_node_bootstrap") ||
+    record.tags.includes("graph_node_continuation")
+  );
 }
 
 function normalizeAskUserOptions(options: unknown): unknown {
@@ -75,11 +80,12 @@ function normalizeAskUserOptions(options: unknown): unknown {
     if (typeof option === "string") return [option];
     if (!option || typeof option !== "object" || Array.isArray(option)) return [];
     const record = option as Record<string, unknown>;
-    const value = typeof record.value === "string"
-      ? record.value
-      : typeof record.label === "string"
-        ? record.label
-        : null;
+    const value =
+      typeof record.value === "string"
+        ? record.value
+        : typeof record.label === "string"
+          ? record.label
+          : null;
     return value === null ? [] : [value];
   });
 }
@@ -98,7 +104,12 @@ export function askUserRequestFromToolUse(
   part: Record<string, unknown>,
   convId: string | null = null,
 ): UserInputRequest | null {
-  if (part.name !== "ask_user" || !part.input || typeof part.input !== "object" || Array.isArray(part.input)) {
+  if (
+    part.name !== "ask_user" ||
+    !part.input ||
+    typeof part.input !== "object" ||
+    Array.isArray(part.input)
+  ) {
     return null;
   }
   const request: Record<string, unknown> = {
@@ -109,7 +120,7 @@ export function askUserRequestFromToolUse(
   };
   request.fields = normalizeAskUserFields(request.fields);
   return request.request_id && Array.isArray(request.fields)
-    ? request as unknown as UserInputRequest
+    ? (request as unknown as UserInputRequest)
     : null;
 }
 
@@ -178,7 +189,7 @@ function recordToMessage(
   const isToolResult = r.content.some((part) => part.type === "tool_result");
   return {
     id: r.id,
-    role: isToolResult ? "assistant" : r.role as ChatMessage["role"],
+    role: isToolResult ? "assistant" : (r.role as ChatMessage["role"]),
     content,
     timestamp: r.timestamp,
     items: derivedItems.length ? derivedItems : undefined,
@@ -199,18 +210,21 @@ export function checkpointRecordsToMessages(
 ): ChatMessage[] {
   const messages: ChatMessage[] = [];
   for (const record of orderCheckpointRecords(records)) {
-    const isCompactionBoundaryRecord = record.role === "system"
-      && record.tags.includes("context_compaction");
+    const isCompactionBoundaryRecord =
+      record.role === "system" && record.tags.includes("context_compaction");
     if (isCompactionBoundaryRecord || isHiddenCheckpointRecord(record)) continue;
     const toolResults = record.content.filter((part) => part.type === "tool_result");
-    if (toolResults.length > 0 && toolResults.every((part) => {
-      const toolUseId = String(part.tool_use_id ?? "");
-      return Boolean(toolUseId) && attachPersistedToolResult(
-        messages,
-        toolUseId,
-        toolResultText(part.content),
-      );
-    })) continue;
+    if (
+      toolResults.length > 0 &&
+      toolResults.every((part) => {
+        const toolUseId = String(part.tool_use_id ?? "");
+        return (
+          Boolean(toolUseId) &&
+          attachPersistedToolResult(messages, toolUseId, toolResultText(part.content))
+        );
+      })
+    )
+      continue;
     messages.push(recordToMessage(record, checkpointId, convId));
   }
   return messages;
@@ -220,7 +234,7 @@ function persistedItems(items: string | null | undefined): StreamItem[] {
   if (!items) return [];
   try {
     const parsed: unknown = JSON.parse(items);
-    return Array.isArray(parsed) ? parsed as StreamItem[] : [];
+    return Array.isArray(parsed) ? (parsed as StreamItem[]) : [];
   } catch {
     return [];
   }
@@ -230,9 +244,10 @@ function toolResultText(content: unknown): string {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
   return content
-    .filter((item): item is Record<string, unknown> => (
-      Boolean(item) && typeof item === "object" && !Array.isArray(item)
-    ))
+    .filter(
+      (item): item is Record<string, unknown> =>
+        Boolean(item) && typeof item === "object" && !Array.isArray(item),
+    )
     .filter((item) => item.type === "text" && typeof item.text === "string")
     .map((item) => String(item.text))
     .join("\n");
@@ -246,13 +261,13 @@ function attachPersistedToolResult(
   for (let messageIndex = messages.length - 1; messageIndex >= 0; messageIndex--) {
     const message = messages[messageIndex];
     if (!message.items) continue;
-    const itemIndex = message.items.findIndex((item) => (
-      item.type === "tool_call" && item.toolUseId === toolUseId && item.result === undefined
-    ) || (
-      item.type === "user_input"
-      && item.request.request_id === toolUseId
-      && item.state === "pending"
-    ));
+    const itemIndex = message.items.findIndex(
+      (item) =>
+        (item.type === "tool_call" && item.toolUseId === toolUseId && item.result === undefined) ||
+        (item.type === "user_input" &&
+          item.request.request_id === toolUseId &&
+          item.state === "pending"),
+    );
     if (itemIndex < 0) continue;
     const items = [...message.items];
     const item = items[itemIndex];
@@ -260,13 +275,15 @@ function attachPersistedToolResult(
       items[itemIndex] = { ...item, result };
     } else if (item.type === "user_input") {
       const response = parsePersistedUserInputResponse(result);
-      const cancelled = Boolean(
-        response && typeof response === "object" && !Array.isArray(response)
-        && (response as Record<string, unknown>).cancelled === true,
-      ) || (
-        typeof response === "string"
-        && response.includes("was not approved because the user continued the conversation")
-      );
+      const cancelled =
+        Boolean(
+          response &&
+          typeof response === "object" &&
+          !Array.isArray(response) &&
+          (response as Record<string, unknown>).cancelled === true,
+        ) ||
+        (typeof response === "string" &&
+          response.includes("was not approved because the user continued the conversation"));
       items[itemIndex] = {
         ...item,
         state: cancelled ? "cancelled" : "answered",
@@ -307,13 +324,15 @@ export function buildTreeFromCheckpoints(
       ckId: m.checkpoint_id,
       parentCkId: m.parent_checkpoint_id,
       createdAt: m.created_at,
-      flowKind: checkpoint.data.flow?.kind === "goal"
-        && typeof checkpoint.data.flow.state.graph_node_id === "string"
-        ? "graph-node"
-        : checkpoint.data.flow?.kind,
-      flowStatus: typeof checkpoint.data.flow?.state.status === "string"
-        ? checkpoint.data.flow.state.status
-        : undefined,
+      flowKind:
+        checkpoint.data.flow?.kind === "goal" &&
+        typeof checkpoint.data.flow.state.graph_node_id === "string"
+          ? "graph-node"
+          : checkpoint.data.flow?.kind,
+      flowStatus:
+        typeof checkpoint.data.flow?.state.status === "string"
+          ? checkpoint.data.flow.state.status
+          : undefined,
       timelineMessages: [],
       isSelfContainedSnapshot: false,
       childIds: [],
@@ -325,8 +344,8 @@ export function buildTreeFromCheckpoints(
     const node = nodes[ckId];
     const records = orderCheckpointRecords(checkpoint.data.messages);
     for (const record of records) {
-      const isCompactionBoundaryRecord = record.role === "system"
-        && record.tags.includes("context_compaction");
+      const isCompactionBoundaryRecord =
+        record.role === "system" && record.tags.includes("context_compaction");
       if (isCompactionBoundaryRecord) {
         continue;
       }
@@ -335,14 +354,20 @@ export function buildTreeFromCheckpoints(
       // record is intentionally retained as the visible compaction boundary.
       if (isHiddenCheckpointRecord(record)) continue;
       const toolResults = record.content.filter((part) => part.type === "tool_result");
-      if (toolResults.length > 0 && toolResults.every((part) => {
-        const toolUseId = String(part.tool_use_id ?? "");
-        return Boolean(toolUseId) && attachPersistedToolResult(
-          node.timelineMessages,
-          toolUseId,
-          toolResultText(part.content),
-        );
-      })) {
+      if (
+        toolResults.length > 0 &&
+        toolResults.every((part) => {
+          const toolUseId = String(part.tool_use_id ?? "");
+          return (
+            Boolean(toolUseId) &&
+            attachPersistedToolResult(
+              node.timelineMessages,
+              toolUseId,
+              toolResultText(part.content),
+            )
+          );
+        })
+      ) {
         continue;
       }
       const message = recordToMessage(record, ckId);
@@ -351,9 +376,6 @@ export function buildTreeFromCheckpoints(
       else if (record.role === "assistant") node.assistant = message;
       else node.systemMessages = [...(node.systemMessages ?? []), message];
     }
-    const parent = checkpoint.meta.parent_checkpoint_id
-      ? nodes[checkpoint.meta.parent_checkpoint_id]
-      : undefined;
     // Checkpoints are complete snapshots. Compaction can replace older
     // provider-generated IDs, so identity comparison with the parent's
     // rendered messages incorrectly treats a complete snapshot as a delta.
@@ -363,8 +385,8 @@ export function buildTreeFromCheckpoints(
     const parentCheckpoint = checkpoint.meta.parent_checkpoint_id
       ? checkpointsById.get(checkpoint.meta.parent_checkpoint_id)
       : undefined;
-    node.isSelfContainedSnapshot = !parentCheckpoint
-      || records.length >= parentCheckpoint.data.messages.length;
+    node.isSelfContainedSnapshot =
+      !parentCheckpoint || records.length >= parentCheckpoint.data.messages.length;
   }
 
   const rootIds: string[] = [];
@@ -375,8 +397,7 @@ export function buildTreeFromCheckpoints(
       rootIds.push(node.ckId);
     }
   }
-  const sortByCreated = (a: string, b: string) =>
-    nodes[a].createdAt - nodes[b].createdAt;
+  const sortByCreated = (a: string, b: string) => nodes[a].createdAt - nodes[b].createdAt;
   rootIds.sort(sortByCreated);
   for (const n of Object.values(nodes)) n.childIds.sort(sortByCreated);
 
@@ -393,9 +414,9 @@ export function buildTreeFromCheckpoints(
     const previousSiblings = (parentKey: string) =>
       parentKey === ROOT_KEY
         ? previousTree.rootIds
-        : previousTree.nodes[parentKey]?.childIds ?? [];
+        : (previousTree.nodes[parentKey]?.childIds ?? []);
     const nextSiblings = (parentKey: string) =>
-      parentKey === ROOT_KEY ? rootIds : nodes[parentKey]?.childIds ?? [];
+      parentKey === ROOT_KEY ? rootIds : (nodes[parentKey]?.childIds ?? []);
 
     for (const [parentKey, previousIndex] of Object.entries(previousTree.activeChild)) {
       const selectedId = previousSiblings(parentKey)[previousIndex];
@@ -418,9 +439,11 @@ export function computeActivePath(tree: ConvTree): ChatMessage[] {
   while (ckId) {
     const node: CkTreeNode | undefined = tree.nodes[ckId];
     if (!node) break;
-    path.push(...node.timelineMessages.map((message) =>
-      message.role === "user" ? { ...message, checkpointId: node.ckId } : message,
-    ));
+    path.push(
+      ...node.timelineMessages.map((message) =>
+        message.role === "user" ? { ...message, checkpointId: node.ckId } : message,
+      ),
+    );
     tip = node;
     const childIdx: number | undefined = tree.activeChild[node.ckId];
     if (childIdx === undefined || childIdx < 0 || node.childIds.length === 0) break;
@@ -447,9 +470,7 @@ export function selectActivePathToCheckpoint(tree: ConvTree, tipCheckpointId: st
     const node: CkTreeNode | undefined = tree.nodes[ckId];
     if (!node) break;
     const parentKey = node.parentCkId ?? ROOT_KEY;
-    const siblings = node.parentCkId
-      ? tree.nodes[node.parentCkId]?.childIds ?? []
-      : tree.rootIds;
+    const siblings = node.parentCkId ? (tree.nodes[node.parentCkId]?.childIds ?? []) : tree.rootIds;
     const index = siblings.indexOf(ckId);
     if (index >= 0) activeChild[parentKey] = index;
     ckId = node.parentCkId;
@@ -466,9 +487,7 @@ export function getSiblingInfo(
   const node = tree.nodes[ckId];
   if (!node) return null;
   const parentKey = node.parentCkId ?? ROOT_KEY;
-  const siblings = node.parentCkId
-    ? tree.nodes[node.parentCkId]?.childIds ?? []
-    : tree.rootIds;
+  const siblings = node.parentCkId ? (tree.nodes[node.parentCkId]?.childIds ?? []) : tree.rootIds;
   if (siblings.length < 2) return null;
   const activeIdx = tree.activeChild[parentKey] ?? siblings.length - 1;
   return { parentKey, siblings, activeIdx };
@@ -505,9 +524,13 @@ function findUserMessageIntroduction(
 ): CkTreeNode | undefined {
   for (const ckId of ckIdsOnActivePath(tree)) {
     const node = tree.nodes[ckId];
-    if (node && (node.user?.id === userMessageId
-      || node.timelineMessages.some((message) =>
-        message.role === "user" && message.id === userMessageId))) {
+    if (
+      node &&
+      (node.user?.id === userMessageId ||
+        node.timelineMessages.some(
+          (message) => message.role === "user" && message.id === userMessageId,
+        ))
+    ) {
       return node;
     }
   }
@@ -594,8 +617,7 @@ export function ckIdsAlongActivePath(
   if (tree.rootIds.length === 0) return set;
   const pick = (k: string, fallback: number) =>
     activeChildOverride?.[k] ?? tree.activeChild[k] ?? fallback;
-  let ckId: string | undefined =
-    tree.rootIds[pick(ROOT_KEY, tree.rootIds.length - 1)];
+  let ckId: string | undefined = tree.rootIds[pick(ROOT_KEY, tree.rootIds.length - 1)];
   while (ckId) {
     const node: CkTreeNode | undefined = tree.nodes[ckId];
     if (!node) break;

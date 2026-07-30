@@ -15,10 +15,20 @@
 <div class="tool-approval" role="group" aria-label={$t("toolApprovalRequired")}>
   <span class="tool-approval-label">{$t("toolApprovalRequired")}</span>
   <div class="tool-approval-actions">
-    <button disabled={disabled} class="tool-approval-deny" type="button" onclick={() => onDeny(request.request_id)}>
+    <button
+      {disabled}
+      class="tool-approval-deny"
+      type="button"
+      onclick={() => onDeny(request.request_id)}
+    >
       {request.cancel_label ?? $t("toolApprovalDeny")}
     </button>
-    <button disabled={disabled} class="tool-approval-approve" type="button" onclick={() => onApprove(request.request_id)}>
+    <button
+      {disabled}
+      class="tool-approval-approve"
+      type="button"
+      onclick={() => onApprove(request.request_id)}
+    >
       {request.submit_label ?? $t("toolApprovalApprove")}
     </button>
   </div>

@@ -69,7 +69,7 @@
     <div class="schema-skeleton">
       <span class="block schema-title"></span>
       <div class="schema-cards">
-        {#each Array(3) as _}
+        {#each Array(3) as _, index (index)}
           <span class="block schema-card"></span>
         {/each}
       </div>
@@ -79,28 +79,28 @@
       <span class="block"></span>
     </div>
     <div class="table-head">
-      {#each Array(4) as _}<span class="block"></span>{/each}
+      {#each Array(4) as _, index (index)}<span class="block"></span>{/each}
     </div>
-    {#each Array(rows) as _}
+    {#each Array(rows) as _, rowIndex (rowIndex)}
       <div class="table-row">
-        {#each Array(4) as _}<span class="block"></span>{/each}
+        {#each Array(4) as _, columnIndex (columnIndex)}<span class="block"></span>{/each}
       </div>
     {/each}
   {:else if variant === "sidebar"}
-    {#each Array(rows) as _, index}
+    {#each Array(rows) as _, index (index)}
       <div class="sidebar-row" class:active={index === 0}>
         <span class="block line" style={`width:${72 - (index % 3) * 10}%`}></span>
       </div>
     {/each}
   {:else if variant === "draft-list"}
     <span class="block category-line"></span>
-    {#each Array(rows) as _, index}
+    {#each Array(rows) as _, index (index)}
       <div class="draft-row" class:active={index === 0}>
         <span class="block line" style={`width:${68 - (index % 3) * 9}%`}></span>
       </div>
     {/each}
   {:else if variant === "memory-list"}
-    {#each Array(rows) as _, index}
+    {#each Array(rows) as _, index (index)}
       <div class="memory-card">
         <span class="block meta-line"></span>
         <span class="block line" style={`width:${88 - (index % 2) * 14}%`}></span>
@@ -108,14 +108,14 @@
       </div>
     {/each}
   {:else if variant === "detail-list"}
-    {#each Array(rows) as _, index}
+    {#each Array(rows) as _, index (index)}
       <div class="detail-row" class:active={index === 0}>
         <span class="block line" style={`width:${68 - (index % 3) * 10}%`}></span>
         <span class="block line secondary" style={`width:${42 + (index % 2) * 12}%`}></span>
       </div>
     {/each}
   {:else if variant === "list"}
-    {#each Array(rows) as _, index}
+    {#each Array(rows) as _, index (index)}
       <div class="list-row">
         <span class="block icon"></span>
         <span class="list-copy">
@@ -127,15 +127,13 @@
   {:else}
     <div class="editor-toolbar">
       <span class="block editor-toggle"></span>
-      {#each Array(7) as _, index}
+      {#each Array(7) as _, index (index)}
         <span class="block editor-tool" class:wide-tool={index === 1}></span>
       {/each}
     </div>
     <div class="editor-copy">
-      {#each Array(rows) as _, index}
-        <span
-          class="block line"
-          style={`width:${index === rows - 1 ? 38 : 92 - (index % 4) * 9}%`}
+      {#each Array(rows) as _, index (index)}
+        <span class="block line" style={`width:${index === rows - 1 ? 38 : 92 - (index % 4) * 9}%`}
         ></span>
       {/each}
     </div>
@@ -455,10 +453,16 @@
   }
 
   .conversation .wide,
-  .new-conversation .wide { width: 100%; }
+  .new-conversation .wide {
+    width: 100%;
+  }
   .conversation .medium,
-  .new-conversation .medium { width: 76%; }
-  .conversation .short { width: 48%; }
+  .new-conversation .medium {
+    width: 76%;
+  }
+  .conversation .short {
+    width: 48%;
+  }
 
   .new-conversation {
     position: relative;
@@ -571,11 +575,17 @@
   }
 
   @keyframes shimmer {
-    from { background-position: 100% 0; }
-    to { background-position: -100% 0; }
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .block { animation: none; }
+    .block {
+      animation: none;
+    }
   }
 </style>

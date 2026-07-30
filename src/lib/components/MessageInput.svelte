@@ -117,9 +117,31 @@
   const maxAttachments = 8;
   const maxAttachmentBytes = 20 * 1024 * 1024;
   const supportedAttachmentExtensions = new Set([
-    "png", "jpg", "jpeg", "gif", "webp", "svg",
-    "pdf", "txt", "md", "markdown", "rtf", "html", "htm", "css", "csv", "xml",
-    "js", "jsx", "ts", "tsx", "py", "json", "yaml", "yml", "toml",
+    "png",
+    "jpg",
+    "jpeg",
+    "gif",
+    "webp",
+    "svg",
+    "pdf",
+    "txt",
+    "md",
+    "markdown",
+    "rtf",
+    "html",
+    "htm",
+    "css",
+    "csv",
+    "xml",
+    "js",
+    "jsx",
+    "ts",
+    "tsx",
+    "py",
+    "json",
+    "yaml",
+    "yml",
+    "toml",
   ]);
 
   function attachmentKind(path: string): ChatAttachment["kind"] {
@@ -133,8 +155,11 @@
       .map((path) => ({
         path,
         name: pasted
-          ? path.split(/[/\\]/).pop()?.replace(/^[0-9a-f-]{36}-/i, "") ?? path
-          : path.split(/[/\\]/).pop() ?? path,
+          ? (path
+              .split(/[/\\]/)
+              .pop()
+              ?.replace(/^[0-9a-f-]{36}-/i, "") ?? path)
+          : (path.split(/[/\\]/).pop() ?? path),
         kind: attachmentKind(path),
       }));
     attachments = [...attachments, ...added].slice(0, maxAttachments);
@@ -142,10 +167,10 @@
 
   function appendAttachmentRecords(items: ChatAttachment[]) {
     const known = new Set(attachments.map((item) => item.path));
-    attachments = [
-      ...attachments,
-      ...items.filter((item) => !known.has(item.path)),
-    ].slice(0, maxAttachments);
+    attachments = [...attachments, ...items.filter((item) => !known.has(item.path))].slice(
+      0,
+      maxAttachments,
+    );
   }
 
   async function pickAttachments() {
@@ -157,16 +182,39 @@
     const selected = await openDialog({
       multiple: true,
       directory: false,
-      filters: [{
-        name: "Multimodal files",
-        extensions: [
-          "png", "jpg", "jpeg", "gif", "webp", "svg",
-          "pdf", "txt", "md", "markdown", "rtf", "html", "css", "csv", "xml",
-          "js", "jsx", "ts", "tsx", "py", "json", "yaml", "yml", "toml",
-        ],
-      }],
+      filters: [
+        {
+          name: "Multimodal files",
+          extensions: [
+            "png",
+            "jpg",
+            "jpeg",
+            "gif",
+            "webp",
+            "svg",
+            "pdf",
+            "txt",
+            "md",
+            "markdown",
+            "rtf",
+            "html",
+            "css",
+            "csv",
+            "xml",
+            "js",
+            "jsx",
+            "ts",
+            "tsx",
+            "py",
+            "json",
+            "yaml",
+            "yml",
+            "toml",
+          ],
+        },
+      ],
     });
-    const paths = typeof selected === "string" ? [selected] : selected ?? [];
+    const paths = typeof selected === "string" ? [selected] : (selected ?? []);
     appendAttachments(paths);
   }
 
@@ -177,27 +225,25 @@
       showToast({ title: $t("attachmentLimitReached"), variant: "error" });
       return;
     }
-    const accepted = files
-      .slice(0, availableSlots)
-      .filter((file) => {
-        if (file.size > maxAttachmentBytes) {
-          showToast({
-            title: $t("attachmentPasteFailed"),
-            description: `${file.name || "Attachment"}: ${$t("attachmentTooLarge")}`,
-            variant: "error",
-          });
-          return false;
-        }
-        if (!isSupportedAttachment(file.name)) {
-          showToast({
-            title: $t("attachmentPasteFailed"),
-            description: `${file.name}: ${$t("attachmentUnsupported")}`,
-            variant: "error",
-          });
-          return false;
-        }
-        return true;
-      });
+    const accepted = files.slice(0, availableSlots).filter((file) => {
+      if (file.size > maxAttachmentBytes) {
+        showToast({
+          title: $t("attachmentPasteFailed"),
+          description: `${file.name || "Attachment"}: ${$t("attachmentTooLarge")}`,
+          variant: "error",
+        });
+        return false;
+      }
+      if (!isSupportedAttachment(file.name)) {
+        showToast({
+          title: $t("attachmentPasteFailed"),
+          description: `${file.name}: ${$t("attachmentUnsupported")}`,
+          variant: "error",
+        });
+        return false;
+      }
+      return true;
+    });
     try {
       appendAttachmentRecords(await onUploadAttachments(accepted));
     } catch (error) {
@@ -236,11 +282,12 @@
 
   function pastedFileName(file: File, index: number): string {
     if (file.name.trim()) return file.name;
-    const extension = file.type === "image/jpeg"
-      ? "jpg"
-      : file.type === "image/svg+xml"
-        ? "svg"
-        : file.type.split("/")[1] || "png";
+    const extension =
+      file.type === "image/jpeg"
+        ? "jpg"
+        : file.type === "image/svg+xml"
+          ? "svg"
+          : file.type.split("/")[1] || "png";
     return `pasted-${Date.now()}-${index + 1}.${extension}`;
   }
 
@@ -295,7 +342,9 @@
           return invoke<string>("save_pasted_attachment", { name, contentBase64 });
         }),
     );
-    const paths = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
+    const paths = results.flatMap((result) =>
+      result.status === "fulfilled" ? [result.value] : [],
+    );
     appendAttachments(paths, true);
     const failed = results.find((result) => result.status === "rejected");
     if (failed?.status === "rejected") {
@@ -330,9 +379,7 @@
       }));
   });
 
-  const paletteItems = $derived(
-    paletteMode === "slash" ? slashPaletteItems : mentionItems,
-  );
+  const paletteItems = $derived(paletteMode === "slash" ? slashPaletteItems : mentionItems);
 
   const paletteEmptyText = $derived(
     paletteMode === "slash"
@@ -462,7 +509,8 @@
           .sort((a, b) => b.updated_at - a.updated_at || a.path.localeCompare(b.path))
           .filter((draft) => {
             if (!normalizedQuery) return true;
-            const searchable = `草稿/${scope}/${draft.path} ${draft.name} ${draft.category}`.toLowerCase();
+            const searchable =
+              `草稿/${scope}/${draft.path} ${draft.name} ${draft.category}`.toLowerCase();
             return searchable.includes(normalizedQuery);
           })
           .map((draft) => ({
@@ -476,15 +524,14 @@
         ...toDraftItems(catalog.projectDrafts, "项目"),
         ...toDraftItems(catalog.globalDrafts, "全局"),
       ];
-      const roleItems = [
-        ...catalog.projectRoles,
-        ...catalog.globalRoles,
-      ]
+      const roleItems = [...catalog.projectRoles, ...catalog.globalRoles]
         .filter((role, index, roles) => {
           const normalizedName = role.name.toLocaleLowerCase();
-          return roles.findIndex(
-            (candidate) => candidate.name.toLocaleLowerCase() === normalizedName,
-          ) === index;
+          return (
+            roles.findIndex(
+              (candidate) => candidate.name.toLocaleLowerCase() === normalizedName,
+            ) === index
+          );
         })
         .filter((role) => {
           if (!normalizedQuery) return true;
@@ -497,11 +544,15 @@
           detail: Array.from(role.description).slice(0, 50).join(""),
           hint: $t("mentionRole"),
         }));
-      mentionItems = [...roleItems, ...draftItems, ...files.map((path) => ({
-        id: path,
-        label: path.split("/").pop() ?? path,
-        detail: path,
-      }))];
+      mentionItems = [
+        ...roleItems,
+        ...draftItems,
+        ...files.map((path) => ({
+          id: path,
+          label: path.split("/").pop() ?? path,
+          detail: path,
+        })),
+      ];
     } catch {
       if (seq === mentionFetchSeq) mentionItems = [];
     } finally {
@@ -667,46 +718,64 @@
         // Defer so the mousedown on a palette row still fires.
         setTimeout(() => closePalette(), 100);
       }}
-      {disabled}
-    ></textarea>
+      {disabled}></textarea>
     {#if showAttachments || showModelSelector}
-    <div class="composer-toolbar">
-      {#if showAttachments}<Tooltip text={$t("attachFiles")}>
-        {#snippet trigger(props)}
-          <button class="attach-btn" type="button" aria-label={$t("attachFiles")} {...props} disabled={disabled} onclick={pickAttachments}>
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M5.5 8.8 10 4.3a2.1 2.1 0 0 1 3 3l-6 6a3.4 3.4 0 0 1-4.8-4.8l6-6"/><path d="m5 10 5.4-5.4"/></svg>
-          </button>
-        {/snippet}
-      </Tooltip>{/if}
-      {#if showModelSelector && modelOptions.length === 0}
-        <Tooltip text={$t("modelSetupHint")}>
-          {#snippet trigger(props)}
-            <button
-              class="composer-model-trigger model-setup-btn"
-              type="button"
-              {...props}
-              disabled={disabled}
-              onclick={onConfigureModels}
-            >{$t("configureModels")}</button>
-          {/snippet}
-        </Tooltip>
-      {:else if showModelSelector}
-        <Select
-          bind:value={selectedModel}
-          items={modelOptions}
-          placeholder={$t("selectModel")}
-          {disabled}
-          triggerClass="composer-model-trigger"
-          contentClass="composer-model-content"
-          contentSide="top"
-          searchable
-          searchPlaceholder={$t("searchModels")}
-          emptyText={$t("noMatchingModels")}
-          ariaLabel={$t("selectModel")}
-          onValueChange={onModelChange}
-        />
-      {/if}
-    </div>
+      <div class="composer-toolbar">
+        {#if showAttachments}<Tooltip text={$t("attachFiles")}>
+            {#snippet trigger(props)}
+              <button
+                class="attach-btn"
+                type="button"
+                aria-label={$t("attachFiles")}
+                {...props}
+                {disabled}
+                onclick={pickAttachments}
+              >
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  width="16"
+                  height="16"
+                  ><path
+                    d="M5.5 8.8 10 4.3a2.1 2.1 0 0 1 3 3l-6 6a3.4 3.4 0 0 1-4.8-4.8l6-6"
+                  /><path d="m5 10 5.4-5.4" /></svg
+                >
+              </button>
+            {/snippet}
+          </Tooltip>{/if}
+        {#if showModelSelector && modelOptions.length === 0}
+          <Tooltip text={$t("modelSetupHint")}>
+            {#snippet trigger(props)}
+              <button
+                class="composer-model-trigger model-setup-btn"
+                type="button"
+                {...props}
+                {disabled}
+                onclick={onConfigureModels}>{$t("configureModels")}</button
+              >
+            {/snippet}
+          </Tooltip>
+        {:else if showModelSelector}
+          <Select
+            bind:value={selectedModel}
+            items={modelOptions}
+            placeholder={$t("selectModel")}
+            {disabled}
+            triggerClass="composer-model-trigger"
+            contentClass="composer-model-content"
+            contentSide="top"
+            searchable
+            searchPlaceholder={$t("searchModels")}
+            emptyText={$t("noMatchingModels")}
+            ariaLabel={$t("selectModel")}
+            onValueChange={onModelChange}
+          />
+        {/if}
+      </div>
     {/if}
   </div>
   {#if isStreaming}
@@ -720,17 +789,28 @@
           disabled={sendDisabled}
           onclick={onSend}
         >
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M8 13V3m-5 5 5-5 5 5"/></svg>
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            width="16"
+            height="16"><path d="M8 13V3m-5 5 5-5 5 5" /></svg
+          >
         </button>
       {/snippet}
     </Tooltip>
     {#if showStopButton}<Tooltip text={stopTitle}>
-      {#snippet trigger(props)}
-        <button class="stop-btn" aria-label={stopTitle} {...props} onclick={onStop}>
-          <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12"><rect x="3" y="3" width="10" height="10" rx="1"/></svg>
-        </button>
-      {/snippet}
-    </Tooltip>{/if}
+        {#snippet trigger(props)}
+          <button class="stop-btn" aria-label={stopTitle} {...props} onclick={onStop}>
+            <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12"
+              ><rect x="3" y="3" width="10" height="10" rx="1" /></svg
+            >
+          </button>
+        {/snippet}
+      </Tooltip>{/if}
   {:else}
     <Tooltip text={sendTitle}>
       {#snippet trigger(props)}
@@ -741,7 +821,16 @@
           disabled={sendDisabled}
           onclick={onSend}
         >
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M8 13V3m-5 5l5-5 5 5"/></svg>
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            width="16"
+            height="16"><path d="M8 13V3m-5 5l5-5 5 5" /></svg
+          >
         </button>
       {/snippet}
     </Tooltip>
@@ -764,8 +853,7 @@
     background: var(--control-surface);
     border: 0;
     border-radius: 18px;
-    transition:
-      box-shadow 1.35s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: box-shadow 1.35s cubic-bezier(0.16, 1, 0.3, 1);
     -webkit-backdrop-filter: blur(12px) saturate(1.05);
     backdrop-filter: blur(12px) saturate(1.05);
     box-shadow: var(--control-shadow);
@@ -777,11 +865,16 @@
   }
 
   .composer-streaming {
-    box-shadow: var(--control-shadow), 0 8px 28px rgba(66, 133, 244, 0.1);
+    box-shadow:
+      var(--control-shadow),
+      0 8px 28px rgba(66, 133, 244, 0.1);
   }
 
   .composer-streaming:focus-within {
-    box-shadow: var(--control-shadow), 0 8px 28px rgba(66, 133, 244, 0.1), var(--focus-ring);
+    box-shadow:
+      var(--control-shadow),
+      0 8px 28px rgba(66, 133, 244, 0.1),
+      var(--focus-ring);
   }
 
   .composer-disabled {
@@ -927,7 +1020,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s, transform 0.1s, opacity 0.15s;
+    transition:
+      background 0.15s,
+      transform 0.1s,
+      opacity 0.15s;
     user-select: none;
   }
 
@@ -960,7 +1056,10 @@
     align-items: center;
     justify-content: center;
     box-shadow: var(--control-shadow);
-    transition: background 0.15s, color 0.15s, transform 0.1s;
+    transition:
+      background 0.15s,
+      color 0.15s,
+      transform 0.1s;
     user-select: none;
   }
 
@@ -977,5 +1076,4 @@
   .stop-btn:active {
     transform: scale(0.95);
   }
-
 </style>

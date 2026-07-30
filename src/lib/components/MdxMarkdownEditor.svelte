@@ -15,12 +15,7 @@
     insertMarkdown: (value: string) => void;
   };
 
-  let {
-    value,
-    onChange,
-    placeholder = "",
-    class: className = "",
-  }: EditorProps = $props();
+  let { value, onChange, placeholder = "", class: className = "" }: EditorProps = $props();
 
   let hostEl = $state<HTMLDivElement | null>(null);
   let editorRef: EditorMethods | null = null;
@@ -47,10 +42,7 @@
 
     const handlePaste = (event: ClipboardEvent) => {
       const target = event.target;
-      if (
-        !(target instanceof Element) ||
-        !target.closest(".mdxeditor-root-contenteditable")
-      ) {
+      if (!(target instanceof Element) || !target.closest(".mdxeditor-root-contenteditable")) {
         return;
       }
 
@@ -225,11 +217,12 @@
 
   function imageFileName(file: File): string {
     if (file.name.trim()) return file.name;
-    const extension = file.type === "image/jpeg"
-      ? "jpg"
-      : file.type === "image/svg+xml"
-        ? "svg"
-        : file.type.split("/")[1] || "png";
+    const extension =
+      file.type === "image/jpeg"
+        ? "jpg"
+        : file.type === "image/svg+xml"
+          ? "svg"
+          : file.type.split("/")[1] || "png";
     return `image-${Date.now()}.${extension}`;
   }
 

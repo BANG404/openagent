@@ -12,7 +12,6 @@
   let {
     workspace,
     isMemorySyncing,
-    onClose,
     onOpenSource,
     winMinimize,
     winMaximize,
@@ -20,7 +19,6 @@
   }: {
     workspace: WorkspaceContext | null;
     isMemorySyncing: boolean;
-    onClose: () => void;
     onOpenSource: (convId: string, messageId: string) => void;
     winMinimize: () => void;
     winMaximize: () => void;
@@ -41,9 +39,7 @@
   let agentMemoriesLoading = $state(true);
   let loadedMemoryScopes = new Set<MemoryScope>();
   let currentMemory = $derived(activeScope === "global" ? globalMemory : localMemory);
-  let agentScope = $derived(
-    activeScope === "global" ? "global" : (workspace?.path ?? "global")
-  );
+  let agentScope = $derived(activeScope === "global" ? "global" : (workspace?.path ?? "global"));
 
   onMount(() => {
     void loadMemory();
@@ -151,10 +147,7 @@
     const sectionHeaderHeight = 35;
     const splitterHeight = 7;
     const reservedHeight = sectionHeaderHeight * 2 + splitterHeight;
-    const maxHeight = Math.max(
-      minPanelHeight,
-      contentHeight - reservedHeight - minPanelHeight
-    );
+    const maxHeight = Math.max(minPanelHeight, contentHeight - reservedHeight - minPanelHeight);
     return Math.min(Math.max(height, minPanelHeight), maxHeight);
   }
 
@@ -189,7 +182,11 @@
   <div class="memory-header" data-tauri-drag-region>
     <div class="header-leading">
       <span class="memory-header-title">{$t("memoryFiles")}</span>
-      <ScopeToggle value={activeScope} projectEnabled={Boolean(workspace?.path)} onChange={switchScope} />
+      <ScopeToggle
+        value={activeScope}
+        projectEnabled={Boolean(workspace?.path)}
+        onChange={switchScope}
+      />
     </div>
     <div class="title-actions">
       {#if isMemorySyncing}
@@ -203,7 +200,6 @@
 
   {#snippet bodyPanel()}
     <div class="memory-content-col" bind:this={memoryContentEl}>
-
       <!-- User memory editor -->
       <div class="memory-section user-section" class:collapsed={userCollapsed}>
         <div class="section-header">
@@ -215,7 +211,15 @@
               aria-expanded={!userCollapsed}
               onclick={() => (userCollapsed = !userCollapsed)}
             >
-              <svg class:expanded={!userCollapsed} viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                class:expanded={!userCollapsed}
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="M4 6l4 4 4-4" />
               </svg>
             </button>
@@ -226,10 +230,10 @@
             <LoadingSkeleton variant="editor" rows={7} label={$t("loadingContent")} />
           {:else}
             <MdxMarkdownEditor
-            class="memory-mdx-editor"
-            value={currentMemory}
-            onChange={handleUserInput}
-            placeholder="在此编写你的个人记忆、偏好、项目背景..."
+              class="memory-mdx-editor"
+              value={currentMemory}
+              onChange={handleUserInput}
+              placeholder="在此编写你的个人记忆、偏好、项目背景..."
             />
           {/if}
         {/if}
@@ -266,7 +270,15 @@
               aria-expanded={!agentCollapsed}
               onclick={() => (agentCollapsed = !agentCollapsed)}
             >
-              <svg class:expanded={!agentCollapsed} viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                class:expanded={!agentCollapsed}
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="M4 6l4 4 4-4" />
               </svg>
             </button>
@@ -279,10 +291,17 @@
           {:else if agentMemories.length === 0}
             <div class="agent-empty">
               <div class="agent-empty-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <ellipse cx="12" cy="5" rx="9" ry="3"/>
-                  <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/>
-                  <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <ellipse cx="12" cy="5" rx="9" ry="3" />
+                  <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
+                  <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" />
                 </svg>
               </div>
               <p class="agent-empty-text">{$t("agentMemoryEmpty")}</p>
@@ -298,8 +317,10 @@
                       <button
                         type="button"
                         class="agent-source-btn"
-                        onclick={() => onOpenSource(entry.source_conv_id!, entry.source_message_id!)}
-                      >{$t("memorySource")}</button>
+                        onclick={() =>
+                          onOpenSource(entry.source_conv_id!, entry.source_message_id!)}
+                        >{$t("memorySource")}</button
+                      >
                     {/if}
                   </div>
                   <div class="agent-entry-body">
@@ -310,10 +331,16 @@
                         aria-label={$t("deleteMemory")}
                         onclick={() => deleteAgentMemory(entry.id)}
                       >
-                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                          <path d="M3 4h10M6 4V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V4"/>
-                          <path d="M5 4l.5 9h5l.5-9"/>
-                          <path d="M7 7v4M9 7v4"/>
+                        <svg
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                        >
+                          <path d="M3 4h10M6 4V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V4" />
+                          <path d="M5 4l.5 9h5l.5-9" />
+                          <path d="M7 7v4M9 7v4" />
                         </svg>
                       </button>
                     </Tooltip>
@@ -371,8 +398,13 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
+    }
   }
 
   :global(.memory-body) {
@@ -450,7 +482,9 @@
     color: var(--text-muted);
     cursor: pointer;
     padding: 4px;
-    transition: background 0.12s, color 0.12s;
+    transition:
+      background 0.12s,
+      color 0.12s;
   }
 
   .section-toggle-btn:hover {
@@ -622,7 +656,9 @@
     cursor: pointer;
   }
 
-  .agent-source-btn:hover { text-decoration: underline; }
+  .agent-source-btn:hover {
+    text-decoration: underline;
+  }
 
   .agent-entry-body {
     display: flex;
@@ -652,7 +688,9 @@
     border-radius: 4px;
     cursor: pointer;
     color: var(--text-muted);
-    transition: background 0.12s, color 0.12s;
+    transition:
+      background 0.12s,
+      color 0.12s;
     padding: 3px;
     margin-top: 1px;
   }
@@ -666,5 +704,4 @@
     width: 100%;
     height: 100%;
   }
-
 </style>
