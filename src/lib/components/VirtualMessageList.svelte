@@ -330,7 +330,6 @@
   .virtual-message-row.content-columns :global(table),
   .virtual-message-row.content-columns :global(figure),
   .virtual-message-row.content-columns :global(.tool-call-card),
-  .virtual-message-row.content-columns :global([data-file-preview-open]),
   .virtual-message-row.content-columns :global([data-mermaid-expanded]) {
     break-inside: avoid-column;
   }

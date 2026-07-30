@@ -51,8 +51,8 @@
   }
 
   async function showPreview() {
-    setPreviewOpen(true);
     if (!path || !lineRange) return;
+    setPreviewOpen(true);
     const key = `${path}:${lineRange.start}-${lineRange.end}`;
     if (loadedKey === key && (preview || previewError)) return;
 
