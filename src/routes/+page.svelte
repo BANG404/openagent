@@ -2218,9 +2218,6 @@
       conv_id in pendingParentCk ? pendingParentCk[conv_id] : undefined,
     );
     convTrees = { ...convTrees, [conv_id]: newTree };
-    if (tauriAvailable) {
-      void invoke("set_active_branch_tip", { convId: conv_id, checkpointId: ckId });
-    }
 
     if (userMsg) {
       const stamped = visibleMsgs.map((m) =>
