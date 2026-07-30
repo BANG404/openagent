@@ -1,6 +1,25 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
+  import type { BarSeriesOption, LineSeriesOption, PieSeriesOption } from "echarts/charts";
+  import type {
+    GridComponentOption,
+    LegendComponentOption,
+    TitleComponentOption,
+    TooltipComponentOption,
+  } from "echarts/components";
+  import type { ComposeOption, ECharts } from "echarts/core";
   import type { Value } from "../parser";
+
+  type ChartType = "bar" | "line" | "pie";
+  type ChartOption = ComposeOption<
+    | BarSeriesOption
+    | LineSeriesOption
+    | PieSeriesOption
+    | GridComponentOption
+    | LegendComponentOption
+    | TitleComponentOption
+    | TooltipComponentOption
+  >;
 
   let {
     args,
@@ -12,12 +31,14 @@
   } = $props();
 
   let container: HTMLDivElement | null = $state(null);
-  let chart: any = null;
-  let echartsModule: typeof import("echarts") | null = null;
+  let chart: ECharts | null = null;
+  let echartsModule: typeof import("../echartsRuntime") | null = null;
   let chartIsDark: boolean | null = null;
   let resizeObs: ResizeObserver | null = null;
 
-  const type = $derived(typeof args.type === "string" ? args.type : "bar");
+  const type = $derived<ChartType>(
+    args.type === "line" || args.type === "pie" ? args.type : "bar",
+  );
   const title = $derived(typeof args.title === "string" ? args.title : "");
   const labels = $derived(Array.isArray(args.labels) ? (args.labels as unknown[]).map(String) : []);
   const dataArr = $derived(Array.isArray(args.data) ? (args.data as unknown[]) : []);
@@ -41,7 +62,7 @@
       ? { text: title, left: "center" as const, top: padTop, textStyle: { color: textColor, fontSize: 13, fontWeight: 500 as const } }
       : undefined;
 
-    const base: any = {
+    const base: ChartOption = {
       title: titleOpt,
       tooltip: { trigger: type === "pie" ? "item" : "axis", confine: true },
       legend: {
@@ -114,8 +135,8 @@
 
   onMount(async () => {
     if (!container) return;
-    echartsModule = await import("echarts");
-    chart = echartsModule.init(container, isDark ? "dark" : undefined, { renderer: "canvas" });
+    echartsModule = await import("../echartsRuntime");
+    chart = echartsModule.initializeChart(container, isDark ? "dark" : undefined, { renderer: "canvas" });
     chartIsDark = isDark;
     chart.setOption(buildOption(isDark));
     resizeObs = new ResizeObserver(() => chart?.resize());
@@ -128,7 +149,7 @@
     if (!chart || !container || !echartsModule) return;
     if (chartIsDark !== dark) {
       chart.dispose();
-      chart = echartsModule.init(container, dark ? "dark" : undefined, { renderer: "canvas" });
+      chart = echartsModule.initializeChart(container, dark ? "dark" : undefined, { renderer: "canvas" });
       chartIsDark = dark;
     }
     chart.setOption(option, true);
