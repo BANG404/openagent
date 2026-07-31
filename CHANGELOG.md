@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.28.1-beta.1] - 2026-07-31
+
+### Bug Fixes
+- **chat**: Paginate process records across columns
+
 ## [0.28.0-beta.1] - 2026-07-31
 
 ### Features
