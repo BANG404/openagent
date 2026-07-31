@@ -36,7 +36,12 @@ jobs:
         env:
           CI_BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
-          CI_FORCE_ALL: ${{ github.event_name == 'workflow_dispatch' && inputs.base_sha == '' }}
+          CI_FORCE_ALL: >-
+            ${{
+              (github.event_name == 'push'
+              && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')))
+              || (github.event_name == 'workflow_dispatch' && inputs.base_sha == '')
+            }}
         run: node scripts/ci-changes.mjs >> "$GITHUB_OUTPUT"
 
       - name: Require agent-facing documentation for logic changes

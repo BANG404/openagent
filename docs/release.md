@@ -61,9 +61,11 @@ and recalculates from the existing stable tag instead of overwriting it.
 ## Release Lines and Pull Requests
 
 The persistent `release/X.Y` branch is the reviewed source of truth for one
-minor release line. A preparation run requires successful CI for its exact head
-SHA, then creates an ephemeral `prepare/vX.Y.Z...` branch and opens a pull
-request back to `release/X.Y`.
+minor release line. A preparation run requires the exact head SHA's push CI to
+have succeeded every automation, frontend, Rust quality, Windows, and macOS
+job; a successful aggregate status with any required job skipped is rejected.
+The workflow then creates an ephemeral `prepare/vX.Y.Z...` branch and opens a
+pull request back to `release/X.Y`.
 
 Ordinary Beta preparation adds one `chore: release vX.Y.Z-beta.N` commit that
 changes only:
@@ -141,11 +143,16 @@ promotes those artifacts without rebuilding them.
 
 `ci.yml` classifies changed paths before calling reusable workflows:
 
+- Every push to `master` or `release/*` forces all modules so a newer
+  path-limited run cannot hide a failed or cancelled platform check from an
+  earlier commit.
 - Frontend source and browser-independent tests run once on Linux.
 - Rust and Tauri changes run Rust quality checks, Rust tests, and a complete
   desktop build on Linux, Windows, and macOS.
 - Workflow changes select every module.
-- Generated release metadata runs only its strict integrity check.
+- Generated release metadata can run only its strict integrity check on its
+  preparation branch and pull request; after merge, the `release/*` push runs
+  every module before artifact release begins.
 - Documentation-only changes skip expensive modules.
 
 The always-present `CI / Required` job is the single branch-protection status.

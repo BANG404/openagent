@@ -70,19 +70,26 @@ jobs:
           fi
 
           base_sha="$(git rev-parse HEAD)"
-          ci_url="$(
+          ci_run="$(
             gh run list \
               --workflow ci.yml \
               --commit "$base_sha" \
+              --event push \
               --status success \
               --limit 1 \
-              --json url \
-              --jq '.[0].url // empty'
+              --json databaseId,url \
+              --jq '.[0] | [.databaseId, .url] | @tsv'
           )"
-          if [[ -z "$ci_url" ]]; then
-            echo "$line_branch commit $base_sha has no successful CI run." >&2
+          if [[ -z "$ci_run" ]]; then
+            echo "$line_branch commit $base_sha has no successful push CI run." >&2
             exit 1
           fi
+          IFS=$'\t' read -r ci_run_id ci_url <<< "$ci_run"
+          ci_jobs_json="$(
+            gh api "repos/$GH_REPO/actions/runs/$ci_run_id/jobs?per_page=100" \
+              --jq '[.jobs[] | {name, conclusion}]'
+          )"
+          CI_JOBS_JSON="$ci_jobs_json" bun scripts/verify-release-ci.mjs
           if [[ "$new_line" == "true" ]]; then
             echo "Creating persistent release line $line_branch from verified master."
             git push origin "HEAD:refs/heads/$line_branch"
