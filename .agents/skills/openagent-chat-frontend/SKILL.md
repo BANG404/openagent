@@ -110,8 +110,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   textarea's measured height grow the card through a small multi-line range;
   an attachment adds one compact row, and content beyond the maximum scrolls
   internally. Render attachments as a shadowless, single-line compact strip
-  over the composer and scroll it horizontally so attachments never push the
-  footer or send control out of the card. Treat the native attachment dialog
+  in normal flow above the textarea and scroll it horizontally so scrolled text
+  never passes beneath a fixed attachment overlay. Keep attachment and send
+  controls vertically aligned at the composer end, and do not render a leading
+  glyph before the quick-chat textarea. Treat the native attachment dialog
   like the workspace picker: suppress focus-close for its full lifetime and
   restore launcher focus after it closes.
 - General settings owns the persisted quick-chat accelerator. Capturing a new

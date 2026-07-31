@@ -85,13 +85,6 @@
   </header>
 
   <div class="quick-composer">
-    <span class="composer-glyph" aria-hidden="true">
-      <svg viewBox="0 0 20 20" fill="none">
-        <path d="M10 2.75a7.25 7.25 0 1 0 7.25 7.25" />
-        <path d="M10 6.25A3.75 3.75 0 1 0 13.75 10" />
-        <circle cx="10" cy="10" r="1.15" fill="currentColor" stroke="none" />
-      </svg>
-    </span>
     <div class="composer-slot">
       {@render composer()}
     </div>
@@ -192,7 +185,7 @@
     grid-template-rows: 38px minmax(87px, auto) 1px 48px;
     width: 100%;
     min-height: 174px;
-    max-height: 237px;
+    max-height: 265px;
     overflow: hidden;
     background: var(--surface);
     color: var(--text);
@@ -320,40 +313,24 @@
 
   .quick-composer {
     display: grid;
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     min-height: 0;
     align-items: start;
     padding: 6px 18px 8px 14px;
     overflow: hidden;
   }
 
-  .composer-glyph {
-    display: grid;
-    width: 34px;
-    height: 46px;
-    place-items: center;
-    color: var(--text-muted);
-  }
-
-  .composer-glyph svg {
-    width: 19px;
-    height: 19px;
-    stroke: currentColor;
-    stroke-width: 1.35;
-    stroke-linecap: round;
-  }
-
   .composer-slot {
     min-width: 0;
     min-height: 73px;
-    max-height: 136px;
+    max-height: 164px;
     overflow: hidden;
   }
 
   .composer-slot :global(.input-wrapper),
   .composer-slot :global(.composer) {
     min-height: 73px;
-    max-height: 136px;
+    max-height: 164px;
   }
 
   .composer-slot :global(.composer) {
@@ -373,7 +350,7 @@
   .composer-slot :global(.composer-toolbar) {
     position: absolute;
     right: 40px;
-    bottom: 0;
+    bottom: 4px;
     left: auto;
     width: 34px;
     height: 34px;
@@ -395,15 +372,11 @@
   }
 
   .composer-slot :global(.attachment-list) {
-    position: absolute;
-    top: 2px;
-    right: 48px;
-    left: 2px;
-    z-index: 3;
+    position: relative;
     height: 28px;
     flex-wrap: nowrap;
     gap: 5px;
-    padding: 0;
+    padding: 2px 88px 0 2px;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
@@ -414,9 +387,8 @@
   }
 
   .composer-slot :global(.composer:has(.attachment-list) .input) {
-    min-height: 88px;
-    padding-top: 34px;
-    font-size: 14px;
+    min-height: 54px;
+    padding-top: 9px;
   }
 
   .composer-slot :global(.attachment-preview.compact) {
