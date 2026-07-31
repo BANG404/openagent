@@ -49,7 +49,7 @@ describe("settings config helpers", () => {
   test("creates deterministic provider defaults when an id is supplied", () => {
     expect(createProviderConfig("anthropic", "provider-id")).toMatchObject({
       id: "provider-id",
-      name: "Anthropic Node",
+      name: "Anthropic Claude Node",
       provider: "anthropic",
       enabled: false,
       models: [],
