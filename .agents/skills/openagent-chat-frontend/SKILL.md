@@ -78,25 +78,29 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 ## Quick chat
 
-- The Raycast-style quick chat is a presentation mode of the primary window,
-  not a second chat client. It must reuse the active conversation, optimistic
-  messages, backend-preallocated assistant ID, stream items, queue, composer
-  draft, model binding, role selection, and workspace state owned by the page
-  shell.
+- The Raycast-style quick chat is a launcher presentation of the primary
+  window, not a second chat client. It owns no transcript. Every submission
+  creates a fresh durable conversation with the selected model, role, and
+  workspace, starts that turn through the shared SDK client, then restores the
+  main window on the newly created streaming conversation.
 - Entering quick chat may resize, center, and temporarily pin the primary
   window, but closing it must restore the prior size, position, maximized state,
-  and visibility. Opening the full application from quick chat restores the
-  same geometry while forcing the window visible.
+  and visibility. Losing native window focus closes it. Opening the full
+  application or submitting from quick chat restores the same geometry while
+  forcing the window visible.
+- A webview cannot paint beyond its native window bounds. Keep the launcher
+  compact while selectors are closed, temporarily expand and recenter the
+  native window while a selector is open, and shrink it when the selector
+  closes. Selector content has a fixed scrollable height; role descriptions are
+  line-clamped so one role cannot consume the menu.
 - General settings owns the persisted quick-chat accelerator. Capturing a new
   accelerator requires at least one modifier and stores the portable Tauri
   representation. Re-registration is transactional: unregister the old
   accelerator, register the new one, and restore the old registration plus
   saved value when the operating system rejects or already owns the new
   accelerator.
-- Role and workspace changes from quick chat deliberately start from the same
-  durable boundaries as the full application: changing a role selects a new
-  conversation surface, while changing a workspace restores that workspace's
-  active durable surface. Never maintain quick-chat-only conversation history.
+- Role and workspace changes from quick chat set the context for the next fresh
+  conversation. Never restore or render quick-chat-only conversation history.
 - Keep the development-only `quick-chat-preview` query available for browser
   layout verification; it must not register shortcuts or emulate native
   window behavior outside Tauri.

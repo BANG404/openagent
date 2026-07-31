@@ -20,21 +20,15 @@
     selectedWorkspace,
     workspaceOptions,
     shortcutLabel,
-    isStreaming = false,
-    isEmpty = false,
     workspaceLoading = false,
-    transcript,
     composer,
     onModelChange,
     onRoleChange,
     onWorkspaceChange,
     onPickWorkspace,
-    onNewConversation,
+    onSelectorOpenChange,
     onOpenFullApp,
     onClose,
-    onMessagesElementChange,
-    onMessagesScroll,
-    onCancelScroll,
   }: {
     selectedModel: string;
     modelOptions: SelectItem[];
@@ -43,34 +37,29 @@
     selectedWorkspace: string;
     workspaceOptions: SelectItem[];
     shortcutLabel: string;
-    isStreaming?: boolean;
-    isEmpty?: boolean;
     workspaceLoading?: boolean;
-    transcript: Snippet<[HTMLElement | null]>;
     composer: Snippet;
     onModelChange: (value: string) => void;
     onRoleChange: (value: string) => void;
     onWorkspaceChange: (value: string) => void;
     onPickWorkspace: () => void;
-    onNewConversation: () => void;
+    onSelectorOpenChange: (open: boolean) => void;
     onOpenFullApp: () => void;
     onClose: () => void;
-    onMessagesElementChange: (element: HTMLElement | null) => void;
-    onMessagesScroll: () => void;
-    onCancelScroll: () => void;
   } = $props();
 
-  let messagesEl = $state<HTMLElement | null>(null);
+  let openSelector = $state<"model" | "role" | "workspace" | null>(null);
 
-  $effect(() => {
-    onMessagesElementChange(messagesEl);
-    return () => onMessagesElementChange(null);
-  });
+  function handleSelectorOpenChange(selector: "model" | "role" | "workspace", open: boolean) {
+    if (open) openSelector = selector;
+    else if (openSelector === selector) openSelector = null;
+    onSelectorOpenChange(openSelector !== null);
+  }
 </script>
 
 <section
   class="quick-chat"
-  class:streaming={isStreaming}
+  class:selector-open={openSelector !== null}
   aria-label={$t("quickChat")}
   data-tauri-drag-region
 >
@@ -83,9 +72,6 @@
         </svg>
       </span>
       <span>{$t("quickChat")}</span>
-      {#if isStreaming}
-        <span class="streaming-dot" aria-label={$t("quickChatThinking")}></span>
-      {/if}
     </div>
     <div class="quick-window-actions">
       <kbd>{shortcutLabel}</kbd>
@@ -119,32 +105,7 @@
     </div>
   </div>
 
-  <div class="quick-divider"></div>
-
-  <main
-    class="quick-results"
-    class:empty={isEmpty}
-    bind:this={messagesEl}
-    onscroll={onMessagesScroll}
-    onwheel={onCancelScroll}
-    ontouchstart={onCancelScroll}
-    onpointerdown={onCancelScroll}
-  >
-    {#if isEmpty}
-      <div class="quick-empty">
-        <div class="quick-empty-icon" aria-hidden="true">
-          <svg viewBox="0 0 32 32" fill="none">
-            <path d="M8.5 9.5h15v10.75h-8.25L11 24v-3.75H8.5z" />
-            <path d="M12 13h8M12 16.5h5.5" />
-          </svg>
-        </div>
-        <strong>{$t("quickChatReady")}</strong>
-        <span>{$t("quickChatHint")}</span>
-      </div>
-    {:else}
-      {@render transcript(messagesEl)}
-    {/if}
-  </main>
+  <div class="quick-selector-space"></div>
 
   <footer class="quick-footer">
     <div class="quick-selectors">
@@ -166,6 +127,7 @@
           emptyText={$t("noMatchingModels")}
           ariaLabel={$t("selectModel")}
           onValueChange={onModelChange}
+          onOpenChange={(open) => handleSelectorOpenChange("model", open)}
         />
       </div>
       <div class="quick-select role-select">
@@ -177,13 +139,14 @@
           value={selectedRole}
           items={roleOptions}
           triggerClass="quick-select-trigger"
-          contentClass="quick-select-content"
+          contentClass="quick-select-content quick-role-select-content"
           contentSide="top"
           searchable
           searchPlaceholder={$t("roleSelectorSearch")}
           emptyText={$t("noMatchingRoles")}
           ariaLabel={$t("selectRole")}
           onValueChange={onRoleChange}
+          onOpenChange={(open) => handleSelectorOpenChange("role", open)}
         />
       </div>
       <div class="quick-select workspace-select">
@@ -203,6 +166,7 @@
           emptyText={$t("noRecentWorkspaces")}
           ariaLabel={$t("switchWorkspace")}
           onValueChange={onWorkspaceChange}
+          onOpenChange={(open) => handleSelectorOpenChange("workspace", open)}
         />
       </div>
       <Tooltip text={$t("openFolder")} side="top">
@@ -220,14 +184,6 @@
         </button>
       </Tooltip>
     </div>
-    <Tooltip text={$t("newChat")} side="top">
-      <button class="new-chat" type="button" aria-label={$t("newChat")} onclick={onNewConversation}>
-        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M3 4.25h6.5v7.5H3zM9.5 6.5 13 3M10 3h3v3" />
-        </svg>
-        <span>{$t("newChat")}</span>
-      </button>
-    </Tooltip>
   </footer>
 </section>
 
@@ -235,7 +191,7 @@
   .quick-chat {
     position: relative;
     display: grid;
-    grid-template-rows: 38px auto 1px minmax(0, 1fr) 48px;
+    grid-template-rows: 38px auto 1px 48px;
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -247,6 +203,10 @@
       0 24px 80px rgba(0, 0, 0, 0.3);
     -webkit-backdrop-filter: blur(28px) saturate(1.18);
     backdrop-filter: blur(28px) saturate(1.18);
+  }
+
+  .quick-chat.selector-open {
+    grid-template-rows: 38px auto minmax(0, 1fr) 48px;
   }
 
   .quick-chat::before {
@@ -264,14 +224,9 @@
     pointer-events: none;
   }
 
-  .quick-chat.streaming::before {
-    opacity: 0.92;
-  }
-
   .quick-header,
   .quick-composer,
-  .quick-divider,
-  .quick-results,
+  .quick-selector-space,
   .quick-footer {
     position: relative;
     z-index: 1;
@@ -316,15 +271,6 @@
     stroke-linecap: round;
   }
 
-  .streaming-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 999px;
-    background: var(--primary);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 12%, transparent);
-    animation: quick-pulse 1.4s ease-in-out infinite;
-  }
-
   .quick-window-actions {
     display: flex;
     align-items: center;
@@ -343,8 +289,7 @@
   }
 
   .quick-window-actions button,
-  .pick-workspace,
-  .new-chat {
+  .pick-workspace {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -364,16 +309,13 @@
   .quick-window-actions button:hover,
   .quick-window-actions button:focus-visible,
   .pick-workspace:hover:not(:disabled),
-  .pick-workspace:focus-visible,
-  .new-chat:hover,
-  .new-chat:focus-visible {
+  .pick-workspace:focus-visible {
     background: color-mix(in srgb, var(--text) 7%, transparent);
     color: var(--text);
   }
 
   .quick-window-actions button:focus-visible,
-  .pick-workspace:focus-visible,
-  .new-chat:focus-visible {
+  .pick-workspace:focus-visible {
     box-shadow: var(--focus-ring);
   }
 
@@ -446,62 +388,9 @@
     bottom: 8px;
   }
 
-  .quick-divider {
+  .quick-selector-space {
     margin: 0 14px;
-    background: color-mix(in srgb, var(--text) 8%, transparent);
-  }
-
-  .quick-results {
-    min-height: 0;
-    overflow: auto;
-    overflow-anchor: none;
-    background: color-mix(in srgb, var(--bg) 28%, transparent);
-  }
-
-  .quick-results.empty {
-    display: grid;
-    place-items: center;
-  }
-
-  .quick-empty {
-    display: grid;
-    justify-items: center;
-    gap: 5px;
-    padding: 24px;
-    color: var(--text-muted);
-    text-align: center;
-  }
-
-  .quick-empty-icon {
-    display: grid;
-    width: 44px;
-    height: 44px;
-    margin-bottom: 4px;
-    place-items: center;
-    border-radius: 14px;
-    background: color-mix(in srgb, var(--primary) 9%, transparent);
-    color: var(--primary);
-  }
-
-  .quick-empty-icon svg {
-    width: 27px;
-    height: 27px;
-    stroke: currentColor;
-    stroke-width: 1.35;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .quick-empty strong {
-    color: var(--text);
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .quick-empty span {
-    max-width: 390px;
-    font-size: 12px;
-    line-height: 1.55;
+    border-top: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
   }
 
   .quick-footer {
@@ -569,8 +458,17 @@
   }
 
   :global(.quick-select-content) {
+    height: min(286px, var(--bits-select-content-available-height, 286px));
     min-width: 230px;
     max-width: 360px;
+  }
+
+  :global(.quick-role-select-content .ui-select-item-description) {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 
   .pick-workspace {
@@ -585,8 +483,7 @@
     cursor: default;
   }
 
-  .pick-workspace svg,
-  .new-chat svg {
+  .pick-workspace svg {
     width: 15px;
     height: 15px;
     stroke: currentColor;
@@ -595,32 +492,9 @@
     stroke-linejoin: round;
   }
 
-  .new-chat {
-    height: 32px;
-    flex: 0 0 auto;
-    gap: 6px;
-    border-radius: 7px;
-    padding: 0 9px;
-    font: inherit;
-    font-size: 11px;
-  }
-
-  @keyframes quick-pulse {
-    0%,
-    100% {
-      opacity: 0.45;
-      transform: scale(0.86);
-    }
-    50% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
   @media (max-width: 680px) {
     kbd,
-    .quick-select > svg,
-    .new-chat span {
+    .quick-select > svg {
       display: none;
     }
 
@@ -634,12 +508,6 @@
 
     .workspace-select {
       max-width: 150px;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .streaming-dot {
-      animation: none;
     }
   }
 </style>

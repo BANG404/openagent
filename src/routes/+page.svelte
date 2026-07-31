@@ -416,6 +416,8 @@
   let inputAttachments = $state<ChatAttachment[]>([]);
   let selectedModel = $state("");
   let quickChatOpen = $state(isQuickChatPreview);
+  let quickChatSelectorOpen = $state(false);
+  let quickChatFocusArmed = false;
   let registeredQuickChatShortcut: string | null = null;
   let quickWindowTransition: Promise<void> = Promise.resolve();
   let quickWindowSnapshot: {
@@ -3747,11 +3749,15 @@
   // ─── Window Controls ─────────────────────────────────────────────────────────
 
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
+  const quickChatCompactSize = { width: 760, height: 190 };
+  const quickChatExpandedSize = { width: 760, height: 440 };
   const winMinimize = () => appWindow?.minimize();
   const winMaximize = () => appWindow?.toggleMaximize();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
   async function showQuickChatWindow() {
     if (!appWindow || quickChatOpen) return;
+    quickChatFocusArmed = false;
+    quickChatSelectorOpen = false;
     quickWindowSnapshot = {
       position: await appWindow.outerPosition(),
       size: await appWindow.outerSize(),
@@ -3759,8 +3765,10 @@
       visible: await appWindow.isVisible(),
     };
     if (quickWindowSnapshot.maximized) await appWindow.unmaximize();
-    await appWindow.setMinSize(new LogicalSize(680, 420));
-    await appWindow.setSize(new LogicalSize(760, 560));
+    await appWindow.setMinSize(new LogicalSize(680, quickChatCompactSize.height));
+    await appWindow.setSize(
+      new LogicalSize(quickChatCompactSize.width, quickChatCompactSize.height),
+    );
     await appWindow.center();
     await appWindow.setAlwaysOnTop(true);
     quickChatOpen = true;
@@ -3768,11 +3776,14 @@
     await appWindow.unminimize().catch(() => {});
     await appWindow.show();
     await appWindow.setFocus();
+    quickChatFocusArmed = true;
   }
 
   async function restoreMainWindow(forceVisible: boolean) {
     if (!appWindow) return;
     const snapshot = quickWindowSnapshot;
+    quickChatFocusArmed = false;
+    quickChatSelectorOpen = false;
     quickChatOpen = false;
     quickWindowSnapshot = null;
     await tick();
@@ -3822,6 +3833,18 @@
     return queueQuickWindowTransition(() => restoreMainWindow(true));
   }
 
+  function handleQuickSelectorOpenChange(open: boolean) {
+    quickChatSelectorOpen = open;
+    if (!appWindow || !quickChatOpen) return;
+    void queueQuickWindowTransition(async () => {
+      if (!quickChatOpen || quickChatSelectorOpen !== open) return;
+      const size = open ? quickChatExpandedSize : quickChatCompactSize;
+      await appWindow.setMinSize(new LogicalSize(680, size.height));
+      await appWindow.setSize(new LogicalSize(size.width, size.height));
+      await appWindow.center();
+    });
+  }
+
   async function replaceQuickChatShortcut(shortcut: string) {
     if (!tauriAvailable) return;
     const nextShortcut = normalizeQuickChatShortcut(shortcut);
@@ -3863,6 +3886,27 @@
     void closeQuickChat();
   }
 
+  async function sendQuickChatMessage() {
+    const text = inputText;
+    const attachments = [...inputAttachments];
+    if (!text.trim() && attachments.length === 0) return;
+    if (!tauriAvailable) {
+      alert(browserModeNotice);
+      return;
+    }
+    if (!selectedModel || !modelOptions.some((option) => option.value === selectedModel)) {
+      showToast({ title: $t("modelSetupRequired"), variant: "error" });
+      await openFullAppFromQuickChat();
+      await openSettings("providers");
+      return;
+    }
+
+    const model = selectedModel;
+    await newConversation();
+    await dispatchQueuedOrImmediateMessage(text, null, attachments, model, true);
+    if (activeConvId) await openFullAppFromQuickChat();
+  }
+
   function handleQuickModelChange(value: string) {
     selectedModel = value;
     handleModelChange(value);
@@ -3888,7 +3932,11 @@
   }
 
   onMount(() => {
+    const unlistenQuickChatFocus = appWindow?.onFocusChanged(({ payload: focused }) => {
+      if (!focused && quickChatOpen && quickChatFocusArmed) void closeQuickChat();
+    });
     return () => {
+      void unlistenQuickChatFocus?.then((dispose) => dispose());
       if (registeredQuickChatShortcut) {
         void unregister(registeredQuickChatShortcut).catch(() => {});
       }
@@ -3913,19 +3961,14 @@
         shortcutLabel={formatQuickChatShortcut(
           config?.quick_chat_shortcut ?? DEFAULT_QUICK_CHAT_SHORTCUT,
         )}
-        isStreaming={isCurrentStreaming}
-        isEmpty={!activeConvId && messages.length === 0 && !isCurrentStreaming}
         {workspaceLoading}
         onModelChange={handleQuickModelChange}
         onRoleChange={handleQuickRoleChange}
         onWorkspaceChange={handleQuickWorkspaceChange}
         onPickWorkspace={() => void pickWorkspace(true)}
-        onNewConversation={newConversation}
+        onSelectorOpenChange={handleQuickSelectorOpenChange}
         onOpenFullApp={() => void openFullAppFromQuickChat()}
         onClose={() => void closeQuickChat()}
-        onMessagesElementChange={(element) => (messagesEl = element)}
-        onMessagesScroll={handleMessagesScroll}
-        onCancelScroll={cancelBottomScrollFromUser}
       >
         {#snippet composer()}
           <MessageInput
@@ -3939,7 +3982,7 @@
                 : $t("modelSetupHint")
               : browserModeNotice}
             disabled={!tauriAvailable}
-            isStreaming={isCurrentStreaming}
+            isStreaming={false}
             sendDisabled={(!inputText.trim() && inputAttachments.length === 0) ||
               !tauriAvailable ||
               modelOptions.length === 0}
@@ -3948,44 +3991,8 @@
             enableMentions={false}
             showAttachments
             showModelSelector={false}
-            onSend={sendMessage}
+            onSend={sendQuickChatMessage}
             onStop={stopMessage}
-          />
-        {/snippet}
-        {#snippet transcript(scrollElement)}
-          <MessageList
-            {messages}
-            {scrollElement}
-            isStreaming={isCurrentStreaming}
-            isAwaitingStreamOutput={isCurrentAwaitingStreamOutput}
-            memoryRetrievalStage={currentMemoryRetrievalStage}
-            memoryRetrievalCanSkip={currentMemoryRetrievalCanSkip}
-            {currentStreamItems}
-            {currentStreamMessageId}
-            {activeConvId}
-            activeBranchId={activeConvId ? (activeBranchIds[activeConvId] ?? null) : null}
-            debugMode={false}
-            activeTree={activeConvId ? convTrees[activeConvId] : undefined}
-            paddingBottom={24}
-            showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(config)}
-            {shikiTheme}
-            {mermaidConfig}
-            htmlPreviewConfig={config?.html_preview}
-            messageLayout="single"
-            messageDoubleColumnMinWidth={9999}
-            tailAnchorToken={streamCompletionTailAnchor?.convId === activeConvId
-              ? streamCompletionTailAnchor.token
-              : null}
-            onTailAnchorSettled={finishStreamCompletionTailAnchor}
-            newConversationMemoryPrompt={null}
-            newConversationMemoryLoading={false}
-            checkpointLoadError={activeConvId ? (checkpointLoadErrors[activeConvId] ?? null) : null}
-            onCommitEdit={commitEdit}
-            onReExecute={reExecuteMsg}
-            onSwitchBranch={switchBranchAt}
-            onSubmitUserInput={submitUserInput}
-            onCancelUserInput={cancelUserInput}
-            onSkipMemoryRetrieval={skipCurrentMemoryRetrieval}
           />
         {/snippet}
       </QuickChat>

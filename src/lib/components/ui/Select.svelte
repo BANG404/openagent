@@ -24,6 +24,7 @@
     name,
     ariaLabel,
     onValueChange,
+    onOpenChange,
   }: {
     value?: string;
     items: Item[];
@@ -39,6 +40,7 @@
     name?: string;
     ariaLabel?: string;
     onValueChange?: (value: string) => void;
+    onOpenChange?: (open: boolean) => void;
   } = $props();
 
   let searchQuery = $state("");
@@ -54,8 +56,9 @@
     return items.filter((item) => item.label.toLocaleLowerCase().includes(query));
   });
 
-  function handleOpenChange(_open: boolean) {
+  function handleOpenStateChange(open: boolean) {
     searchQuery = "";
+    onOpenChange?.(open);
   }
 </script>
 
@@ -66,7 +69,7 @@
   {disabled}
   {name}
   allowDeselect={false}
-  onOpenChange={handleOpenChange}
+  onOpenChange={handleOpenStateChange}
   {onValueChange}
 >
   <Select.Trigger {id} class="ui-select-trigger {triggerClass}" aria-label={ariaLabel}>

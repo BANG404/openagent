@@ -242,18 +242,22 @@ with the accelerator configured in General settings
 platform-native label, requires at least one modifier, applies a captured
 combination immediately, and provides a quiet reset action. Registration
 conflicts appear inline and leave the previous accelerator active. The primary
-desktop window temporarily becomes a centered 760 × 560px always-on-top
-palette, then restores its previous geometry and visibility on `Escape`, close,
-or shortcut toggle. The palette is one continuous raised surface with a 14px
-radius: a quiet draggable utility header, a large borderless composer, a
-scrollable single-column transcript, and a 48px footer for model, role, and
-workspace selectors. It reuses the normal conversation and streaming state
-instead of creating a separate transcript. The model selector updates the
-default chat binding, role changes open a new role conversation surface, and
-workspace changes restore that workspace in the current window. “Open full
-window” keeps the application visible after geometry restoration. Use
-restrained aurora light behind the composer only; the transcript and controls
-remain on semantically filled surfaces with the shared shadow tokens. The
+desktop window temporarily becomes a centered 760 × 190px always-on-top
+launcher, then restores its previous geometry and visibility on `Escape`,
+close, shortcut toggle, or native focus loss. The launcher is one continuous
+raised surface with a 14px radius: a quiet draggable utility header, a large
+borderless composer, and a 48px footer for model, role, and workspace selectors.
+It has no transcript. Every submission creates a fresh durable conversation,
+starts the turn through the shared SDK client, restores the main window, and
+shows that new streaming conversation. Because a webview cannot render beyond
+its native bounds, opening a selector temporarily expands and recenters the
+window to 760 × 440px; closing the selector returns to the compact height.
+Selector content uses a fixed scrollable height, and role descriptions are
+limited to two lines. The model selector updates the default chat binding,
+while role and workspace choices set the context for the next conversation.
+“Open full window” keeps the application visible after geometry restoration.
+Use restrained aurora light behind the composer only; controls remain on
+semantically filled surfaces with the shared shadow tokens. The
 `quick-chat-preview` development query renders this layout without native
 window or shortcut behavior for browser-based light/dark and localization
 checks.
