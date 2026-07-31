@@ -17,7 +17,15 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - In responsive double-column mode, expanded process records participate in
   pagination instead of moving as one container. Keep the process header with
   its first record and preserve the same atomic break rules used by ordinary
-  assistant content.
+  assistant content. Keep the completed-turn metadata and action footer outside
+  column balancing as one full-width row below both columns.
+- Position virtual rows without transform-promoted layers. CSS multi-column
+  assistant content must not be nested in a forced compositor layer because it
+  can flicker during WebView2 repaint invalidation.
+- Disable per-record `content-visibility` for every message nested inside a
+  double-column turn, including expanded process records. Viewport culling
+  inside a fragmented column can repeatedly invalidate the trailing column at
+  the viewport boundary.
 - Use the backend-preallocated assistant message ID as the live row key.
   Streaming and durable forms must share the same assistant-turn branch and
   keyed stream-item children.

@@ -263,7 +263,7 @@
     <div
       class="virtual-message-row"
       class:content-columns={columnCount === 2 && isAssistantTurnEntry(virtual.item)}
-      style:transform={`translateY(${layout.starts[virtual.index]}px)`}
+      style:top={`${layout.starts[virtual.index]}px`}
       use:measure={virtual.item}
       role="listitem"
       aria-posinset={virtual.index + 1}
@@ -288,13 +288,11 @@
 
   .virtual-message-row {
     position: absolute;
-    top: 0;
     left: 0;
     display: flex;
     width: 100%;
     flex-direction: column;
     gap: 2px;
-    will-change: transform;
   }
 
   .virtual-message-row.content-columns {
@@ -304,7 +302,7 @@
     column-rule: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
   }
 
-  .virtual-message-row.content-columns > :global(.message-record) {
+  .virtual-message-row.content-columns :global(.message-record) {
     content-visibility: visible;
     contain-intrinsic-size: none;
   }
@@ -336,6 +334,11 @@
 
   .virtual-message-row.content-columns :global(.process-record-content) {
     display: block;
+  }
+
+  .virtual-message-row.content-columns :global(.pagination-footer) {
+    column-span: all;
+    break-inside: avoid;
   }
 
   .virtual-message-row.content-columns

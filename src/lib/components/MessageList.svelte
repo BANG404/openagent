@@ -497,7 +497,7 @@
         {#if assistantMsg}
           {#if isRerunnable || timing || assistantMsg.timestamp > 0}
             <div
-              class="msg-footer-row message-record"
+              class="msg-footer-row message-record pagination-footer"
               id={renderedAssistantItems.length > 0 ? undefined : `message-${assistantMsg.id}`}
               data-message-id={renderedAssistantItems.length > 0 ? undefined : assistantMsg.id}
             >
