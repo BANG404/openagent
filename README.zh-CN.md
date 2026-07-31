@@ -78,7 +78,7 @@
 - **子 Agent 委派** — Chat Agent 可通过 `spawn_agent` 工具将子任务委派给嵌套子 Agent；进度实时流式输出，并以层级方式显示在侧边栏父对话下方。
 - **可复用 Agent 角色** — 创建全局或项目范围的角色工作流，通过混合搜索发现角色，并派发为专业子 Agent。角色既可在首次使用时由主 Agent 自动创建，也可在**角色**面板中管理。
 - **目标与任务图自主执行 (Goal & Graph Loops)** — 在对话框中输入 `/goal` 即可启动以目标为导向、自动迭代的执行循环；输入 `/graph` 可以针对复杂任务先规划生成一个结构化的任务依赖图（`create_goal_graph_config`），并支持并发或异步地按步骤执行各节点任务，在前端展示实时的任务图执行进度。
-- **混合长期记忆** — SQLite + FTS5 + 384 维向量嵌入（fastembed `AllMiniLML6V2`），结合时间衰减权重实现跨会话精准召回。检索前可选用 Flash 任务将最新消息改写为聚焦的语义查询，使记忆匹配意图而不只依赖原始措辞。
+- **混合长期记忆** — SQLite + FTS5 + 随安装包提供、可离线运行的 384 维量化向量嵌入（fastembed `AllMiniLML6V2Q`），结合时间衰减权重实现跨会话精准召回。检索前可选用 Flash 任务将最新消息改写为聚焦的语义查询，使记忆匹配意图而不只依赖原始措辞。
 - **交互式用户提问（`ask_user`）** — Agent 在任务中途可暂停并向用户弹出结构化表单——支持 `text`、`select`、`checkbox_group`、`confirm`、`date` 等多种字段类型。Agent 阻塞等待用户提交后继续执行，彻底告别单次猜测模糊指令的窘境。
 
 ### 交互式输出
@@ -416,6 +416,7 @@ LANGFUSE_HOST=https://cloud.langfuse.com
 - [`AGENTS.md`](AGENTS.md) — 公开宿主与前端贡献指南
 - [`CHANGELOG.md`](CHANGELOG.md) — 完整版本历史
 - [`docs/release.md`](docs/release.md) — 版本规则、beta/stable 渠道与发布流程
+- [`docs/embedding-model.md`](docs/embedding-model.md) — 随包模型的来源、大小与校验方式
 - [`docs/design.md`](docs/design.md) — Apple 风格 UI 设计规范
 - [Tauri 文档](https://tauri.app/) · [SvelteKit 文档](https://kit.svelte.dev/) · [rig（Rust LLM 框架）](https://github.com/0xPlaygrounds/rig)
 

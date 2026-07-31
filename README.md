@@ -79,7 +79,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 - **Sub-Agent Delegation** — The Chat Agent can call `spawn_agent` to delegate tasks to nested sub-agents; progress streams in real-time into a sub-conversation shown nested under the parent in the sidebar.
 - **Reusable Agent Roles** — Create global or project-scoped role workflows, discover them with hybrid search, and dispatch them as specialized child agents. Roles can be created automatically on first use or managed from the **Roles** panel.
 - **Goal & Graph Loops (Autonomous Execution)** — Type `/goal` in the chat to run a self-correcting loop directly aiming at the objective. Type `/graph` to first plan a structured DAG task graph (`create_goal_graph_config`) and execute nodes asynchronously with parallel processing, feeding live graph status updates to the frontend.
-- **Hybrid Long-Term Memory** — SQLite + FTS5 + 384-dim embeddings (fastembed `AllMiniLML6V2`) blended with time decay for cross-session recall. Before retrieval, an optional Flash task rewrites the latest message into a focused semantic query, so stored memories are matched to intent rather than just wording.
+- **Hybrid Long-Term Memory** — SQLite + FTS5 + bundled, offline 384-dim embeddings (fastembed `AllMiniLML6V2Q`) blended with time decay for cross-session recall. Before retrieval, an optional Flash task rewrites the latest message into a focused semantic query, so stored memories are matched to intent rather than just wording.
 - **Interactive User Prompts (`ask_user`)** — The agent can pause mid-task and surface a structured form to the user — `text`, `select`, `checkbox_group`, `confirm`, `date`, and more. The agent blocks until the user responds, then continues with the collected values. No more one-shot guessing on ambiguous instructions.
 
 ### Interactive output
@@ -445,6 +445,7 @@ For Anthropic, set `OPENAGENT_STRUCTURED_OUTPUT_PROVIDER=anthropic` and provide 
 - [`AGENTS.md`](AGENTS.md) — Public host and frontend contributor guide
 - [`CHANGELOG.md`](CHANGELOG.md) — Full release history
 - [`docs/release.md`](docs/release.md) — Versioning, beta/stable channels, and publishing workflow
+- [`docs/embedding-model.md`](docs/embedding-model.md) — Bundled model provenance, size, and verification
 - [`docs/harness-sdk.md`](docs/harness-sdk.md) — Headless third-party harness integration without publishing the core runtime
 - [`docs/design.md`](docs/design.md) — Apple-style design spec
 - [Tauri docs](https://tauri.app/) · [SvelteKit docs](https://kit.svelte.dev/) · [rig (Rust LLM)](https://github.com/0xPlaygrounds/rig)

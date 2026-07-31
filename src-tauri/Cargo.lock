@@ -6225,7 +6225,6 @@ name = "openagent"
 version = "0.28.2-beta.1"
 dependencies = [
  "cc",
- "fastembed",
  "openagent-app",
  "serde_json",
  "tauri",

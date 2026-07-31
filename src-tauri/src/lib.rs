@@ -18,7 +18,9 @@ use openagent_app::{
     RuntimeBootstrap, SubmissionOutcome, SubmitInterruptResponseRequest,
 };
 use std::sync::Arc;
-use tauri::{Emitter, Manager, State};
+use tauri::{path::BaseDirectory, Emitter, Manager, State};
+
+const EMBEDDING_MODEL_RESOURCE_PATH: &str = "models/all-MiniLM-L6-v2-q";
 
 // Keep the flat arguments aligned with the existing typed Tauri command contract.
 #[allow(clippy::too_many_arguments)]
@@ -1235,19 +1237,19 @@ fn run_with_mode(agent_server: bool) {
             });
 
             if !agent_server {
-                // Initialize embedding model in the background so the app starts instantly.
-                // The model (~100 MB) is cached in the system's HuggingFace cache dir after
-                // first download. Hybrid memory search gracefully falls back to keyword +
-                // time scoring while the model is loading.
+                // Initialize the bundled quantized model in the background so startup is not
+                // blocked. Hybrid memory search gracefully falls back to keyword + time scoring
+                // while it is loading or if the packaged resource cannot be initialized.
                 let em = app.state::<AppState>().embedding_model.clone();
+                let model_dir = app
+                    .path()
+                    .resolve(EMBEDDING_MODEL_RESOURCE_PATH, BaseDirectory::Resource);
                 tauri::async_runtime::spawn(async move {
-                    let result = tokio::task::spawn_blocking(|| {
-                        use fastembed::{EmbeddingModel, InitOptions, TextEmbedding};
-                        TextEmbedding::try_new(
-                            InitOptions::new(EmbeddingModel::AllMiniLML6V2)
-                                .with_show_download_progress(false),
-                        )
-                        .map(Arc::new)
+                    let result = tokio::task::spawn_blocking(move || {
+                        let model_dir = model_dir.map_err(|error| {
+                            format!("failed to resolve bundled embedding resources: {error}")
+                        })?;
+                        openagent_app::embedding::load_bundled_model(model_dir).map(Arc::new)
                     })
                     .await;
 
@@ -1379,4 +1381,35 @@ fn run_with_mode(agent_server: bool) {
     // tauri::async_runtime (a global Tokio runtime) is still alive, because the
     // BatchSpanProcessor needs an async context to export the final HTTP batch.
     tracing_setup::shutdown_tracing();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn bundled_embedding_model_runs_offline() {
+        let model_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join(EMBEDDING_MODEL_RESOURCE_PATH);
+        let model = openagent_app::embedding::load_bundled_model(model_dir)
+            .expect("bundled model should load");
+        let embeddings = model
+            .embed(
+                vec![
+                    "A desktop agent remembers useful context.",
+                    "桌面智能体会记住有用的上下文。",
+                ],
+                None,
+            )
+            .expect("bundled model should produce embeddings");
+
+        assert_eq!(embeddings.len(), 2);
+        assert!(embeddings.iter().all(|embedding| embedding.len() == 384));
+        assert!(embeddings
+            .iter()
+            .flatten()
+            .all(|component| component.is_finite()));
+    }
 }

@@ -68,6 +68,9 @@ jobs:
       - name: Run Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
 
+      - name: Verify bundled embedding resources
+        run: bun run check:embedding-model
+
       - name: Verify harness OpenAPI contract
         run: bun run check:harness-openapi
 
@@ -132,6 +135,9 @@ jobs:
       - name: Check all Rust targets on macOS
         if: runner.os != 'Windows'
         run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
+
+      - name: Exercise bundled embedding model
+        run: cargo test --manifest-path src-tauri/Cargo.toml bundled_embedding_model_runs_offline
 
       - name: Report sccache statistics
         if: always() && runner.os == 'Windows'
