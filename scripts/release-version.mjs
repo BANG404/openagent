@@ -94,3 +94,26 @@ export function getNextBetaNumber(baseVersion, tags, currentVersion) {
     .filter((value) => !Number.isNaN(value));
   return numbers.length ? Math.max(...numbers) + 1 : 1;
 }
+
+/**
+ * Resolve the immutable Stable target for a Beta selected from a persistent
+ * X.Y release line.
+ *
+ * @param {string} betaTag
+ * @param {string} releaseLine
+ * @returns {{ sourceVersion: string, version: string, tag: string }}
+ */
+export function getStablePromotion(betaTag, releaseLine) {
+  if (!/^\d+\.\d+$/.test(releaseLine)) {
+    throw new Error(`Release line must use X.Y form, got: ${releaseLine}`);
+  }
+  const match = betaTag.match(/^v(\d+\.\d+\.\d+)-beta\.(\d+)$/);
+  if (!match) {
+    throw new Error(`Stable promotion source must be a Beta tag, got ${betaTag}.`);
+  }
+  const version = match[1];
+  if (!version.startsWith(`${releaseLine}.`)) {
+    throw new Error(`${betaTag} does not belong to release line ${releaseLine}.`);
+  }
+  return { sourceVersion: betaTag.slice(1), version, tag: `v${version}` };
+}

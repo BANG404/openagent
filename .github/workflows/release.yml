@@ -7,10 +7,10 @@ on:
     types:
       - completed
     branches:
-      - master
+      - release/*
 
 concurrency:
-  group: release-master
+  group: release-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: false
 
 permissions:
@@ -196,7 +196,7 @@ jobs:
               --draft
               --verify-tag
               --title "OpenAgent $RELEASE_TAG [$RELEASE_CHANNEL]"
-              --notes "See the [CHANGELOG](https://github.com/$GITHUB_REPOSITORY/blob/master/CHANGELOG.md) for details."
+              --notes "See the [CHANGELOG](https://github.com/$GITHUB_REPOSITORY/blob/$RELEASE_TAG/CHANGELOG.md) for details."
             )
             if [[ "$PRERELEASE" == "true" ]]; then
               args+=(--prerelease)

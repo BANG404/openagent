@@ -1,12 +1,20 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { getMsiVersion, getNextBetaNumber, getNextReleaseVersion } from "./release-version.mjs";
+import {
+  getMsiVersion,
+  getNextBetaNumber,
+  getNextReleaseVersion,
+  getStablePromotion,
+} from "./release-version.mjs";
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
 const ci = args.has("--ci");
 const verify = args.has("--verify");
 const channelArg = process.argv.find((arg) => arg.startsWith("--channel="))?.split("=", 2)[1];
+const promoteBetaTag = process.argv
+  .find((arg) => arg.startsWith("--promote-beta="))
+  ?.split("=", 2)[1];
 const releaseManifestFile = ".github/release.json";
 const releaseFiles = [
   releaseManifestFile,
@@ -23,6 +31,19 @@ const releaseRelevantPaths = [
   "src/**",
   "src-tauri/**",
   "static/**",
+  "bun.lock",
+  "package.json",
+  "svelte.config.js",
+  "tsconfig.json",
+  "vite.config.js",
+];
+const promotionSourcePaths = [
+  "assets",
+  "patches",
+  "sdk",
+  "src",
+  "src-tauri",
+  "static",
   "bun.lock",
   "package.json",
   "svelte.config.js",
@@ -68,6 +89,15 @@ function getLastTag() {
 function tagExists(tag) {
   try {
     git(["rev-parse", "-q", "--verify", `refs/tags/${tag}`]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function refHasPath(reference, path) {
+  try {
+    git(["cat-file", "-e", `${reference}:${path}`]);
     return true;
   } catch {
     return false;
@@ -242,26 +272,25 @@ function updateCargoLock(version) {
   writeFileSync(file, updated);
 }
 
-function updateReleaseManifest(version, tag, channel) {
-  writeFileSync(
-    releaseManifestFile,
-    `${JSON.stringify({ ready: true, version, tag, channel }, null, 2)}\n`,
-  );
+function updateReleaseManifest(version, tag, channel, sourceTag = "") {
+  const manifest = { ready: true, version, tag, channel };
+  if (sourceTag) manifest.sourceTag = sourceTag;
+  writeFileSync(releaseManifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
 function readJson(file) {
   return JSON.parse(readFileSync(file, "utf8"));
 }
 
-function readParentFile(file) {
-  return execFileSync("git", ["show", `HEAD^:${file}`], {
+function readReferenceFile(reference, file) {
+  return execFileSync("git", ["show", `${reference}:${file}`], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
 }
 
-function assertSameJsonExcept(currentFile, ignoredKeys) {
-  const previous = JSON.parse(readParentFile(currentFile));
+function assertSameJsonExcept(currentFile, ignoredKeys, baselineRef) {
+  const previous = JSON.parse(readReferenceFile(baselineRef, currentFile));
   const current = readJson(currentFile);
   for (const key of ignoredKeys) {
     current[key] = previous[key];
@@ -271,9 +300,9 @@ function assertSameJsonExcept(currentFile, ignoredKeys) {
   }
 }
 
-function assertTauriConfigChange() {
+function assertTauriConfigChange(baselineRef) {
   const file = "src-tauri/tauri.conf.json";
-  const previous = JSON.parse(readParentFile(file));
+  const previous = JSON.parse(readReferenceFile(baselineRef, file));
   const current = readJson(file);
   current.version = previous.version;
   current.bundle.windows.wix.version = previous.bundle.windows.wix.version;
@@ -293,8 +322,8 @@ function lockfilePackageVersion(content) {
   return content.match(/\[\[package\]\]\r?\nname = "openagent"\r?\nversion = "([^"]+)"/)?.[1] ?? "";
 }
 
-function assertOnlyVersionChanged(file, versionPattern, normalizeVersion) {
-  const previous = readParentFile(file);
+function assertOnlyVersionChanged(file, versionPattern, normalizeVersion, baselineRef) {
+  const previous = readReferenceFile(baselineRef, file);
   const current = readFileSync(file, "utf8");
   const previousVersion = versionPattern(previous);
   const currentVersion = versionPattern(current);
@@ -307,7 +336,7 @@ function assertOnlyVersionChanged(file, versionPattern, normalizeVersion) {
 }
 
 function verifyChangelog(version) {
-  const previous = readParentFile("CHANGELOG.md");
+  const previous = readReferenceFile("HEAD^", "CHANGELOG.md");
   const current = readFileSync("CHANGELOG.md", "utf8");
   const previousRelease = previous.search(/^## \[/m);
   if (previousRelease < 0) {
@@ -342,9 +371,23 @@ function verifyPendingRelease() {
   if ((manifest.channel === "beta") !== isBeta) {
     throw new Error(`Release channel ${manifest.channel} does not match ${manifest.version}.`);
   }
+  const sourceTag = manifest.sourceTag ?? "";
+  if (sourceTag) {
+    if (manifest.channel !== "stable") {
+      throw new Error("Only Stable releases may declare a Beta source tag.");
+    }
+    const sourceVersion = versionFromTag(sourceTag);
+    const source = parseSemver(sourceVersion);
+    if (source.prereleaseChannel !== "beta" || source.base !== manifest.version) {
+      throw new Error(`Beta source ${sourceTag} cannot be promoted to ${manifest.version}.`);
+    }
+    if (!tagExists(sourceTag)) {
+      throw new Error(`Beta source tag ${sourceTag} does not exist.`);
+    }
+  }
 
   const changed = git(["diff", "--name-only", "HEAD^", "HEAD"]).split(/\r?\n/).filter(Boolean);
-  const unexpected = changed.filter((file) => !releaseFiles.includes(file));
+  const unexpected = sourceTag ? [] : changed.filter((file) => !releaseFiles.includes(file));
   const missing = releaseFiles.filter((file) => !changed.includes(file));
   if (unexpected.length || missing.length) {
     throw new Error(
@@ -357,16 +400,43 @@ function verifyPendingRelease() {
     );
   }
 
-  assertSameJsonExcept("package.json", ["version"]);
-  assertTauriConfigChange();
-  assertOnlyVersionChanged("src-tauri/Cargo.toml", cargoPackageVersion, (content, version) =>
-    content.replace(/^version = ".+"$/m, `version = "${version}"`),
+  if (sourceTag) {
+    const sourceDifferences = git([
+      "diff",
+      "--name-only",
+      sourceTag,
+      "HEAD",
+      "--",
+      ...promotionSourcePaths,
+    ])
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .filter((file) => !releaseFiles.includes(normalizePath(file)));
+    if (sourceDifferences.length) {
+      throw new Error(
+        `Stable promotion differs from ${sourceTag}: ${sourceDifferences.join(", ")}`,
+      );
+    }
+  }
+
+  const baselineRef = sourceTag || "HEAD^";
+  assertSameJsonExcept("package.json", ["version"], baselineRef);
+  assertTauriConfigChange(baselineRef);
+  assertOnlyVersionChanged(
+    "src-tauri/Cargo.toml",
+    cargoPackageVersion,
+    (content, version) => content.replace(/^version = ".+"$/m, `version = "${version}"`),
+    baselineRef,
   );
-  assertOnlyVersionChanged("src-tauri/Cargo.lock", lockfilePackageVersion, (content, version) =>
-    content.replace(
-      /(\[\[package\]\]\r?\nname = "openagent"\r?\nversion = )".+?"/,
-      `$1"${version}"`,
-    ),
+  assertOnlyVersionChanged(
+    "src-tauri/Cargo.lock",
+    lockfilePackageVersion,
+    (content, version) =>
+      content.replace(
+        /(\[\[package\]\]\r?\nname = "openagent"\r?\nversion = )".+?"/,
+        `$1"${version}"`,
+      ),
+    baselineRef,
   );
   verifyChangelog(manifest.version);
 
@@ -516,16 +586,54 @@ function main() {
     run("git", ["config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"]);
   }
 
-  const currentVersion = getCurrentVersion();
-  const currentTauriVersion = getCurrentTauriVersion();
   const branch = getCurrentBranch();
-  if (!dryRun && !branch.startsWith("release/")) {
+  if (!dryRun && !branch.startsWith("release/") && !branch.startsWith("prepare/")) {
     throw new Error(
-      `Release commits must be prepared on a release/* branch, not ${branch || "detached HEAD"}.`,
+      `Release commits must be prepared on a release/* or prepare/* branch, not ${branch || "detached HEAD"}.`,
     );
   }
   const channel = determineChannel();
-  const lastTag = getLastTag();
+  if (promoteBetaTag && channel !== "stable") {
+    throw new Error("--promote-beta requires --channel=stable.");
+  }
+
+  if (promoteBetaTag) {
+    const promotion = getStablePromotion(
+      promoteBetaTag,
+      versionFromTag(promoteBetaTag).split(".").slice(0, 2).join("."),
+    );
+    if (!tagExists(promoteBetaTag)) {
+      throw new Error(`Beta source tag ${promoteBetaTag} does not exist.`);
+    }
+    if (tagExists(promotion.tag)) {
+      throw new Error(`Stable tag ${promotion.tag} already exists.`);
+    }
+    if (!dryRun) {
+      git(["merge-base", "--is-ancestor", promoteBetaTag, "HEAD"]);
+      const restorablePaths = promotionSourcePaths.filter(
+        (path) => refHasPath("HEAD", path) || refHasPath(promoteBetaTag, path),
+      );
+      git([
+        "restore",
+        "--source",
+        promoteBetaTag,
+        "--staged",
+        "--worktree",
+        "--",
+        ...restorablePaths,
+      ]);
+      try {
+        git(["diff", "--cached", "--quiet"]);
+      } catch {
+        run("git", ["commit", "-m", `chore(release): restore ${promoteBetaTag} source`]);
+      }
+    }
+  }
+
+  const currentVersion =
+    promoteBetaTag && dryRun ? versionFromTag(promoteBetaTag) : getCurrentVersion();
+  const currentTauriVersion = getCurrentTauriVersion();
+  const lastTag = promoteBetaTag || getLastTag();
   const latestVersion = lastTag ? versionFromTag(lastTag) : currentVersion;
   if (currentVersion !== latestVersion) {
     throw new Error(
@@ -533,7 +641,8 @@ function main() {
     );
   }
   const latest = parseSemver(latestVersion);
-  const collidingStableTag = Boolean(latest.prereleaseChannel) && tagExists(`v${latest.base}`);
+  const collidingStableTag =
+    !promoteBetaTag && Boolean(latest.prereleaseChannel) && tagExists(`v${latest.base}`);
   const releaseBaseTag = collidingStableTag ? `v${latest.base}` : lastTag;
   const releaseBaseVersion = collidingStableTag ? latest.base : latestVersion;
   if (collidingStableTag) {
@@ -542,9 +651,9 @@ function main() {
     );
   }
 
-  const commits = getReleaseRelevantCommitMessages(releaseBaseTag)
-    .map(parseConventionalCommit)
-    .filter(Boolean);
+  const commits = promoteBetaTag
+    ? []
+    : getReleaseRelevantCommitMessages(releaseBaseTag).map(parseConventionalCommit).filter(Boolean);
   const bump = determineBump(commits);
   const current = parseSemver(releaseBaseVersion);
   const promotion = channel === "stable" && Boolean(current.prereleaseChannel) && bump === "none";
@@ -586,7 +695,7 @@ function main() {
   updateTauriConfig(nextVersion, channel);
   updateCargoToml(nextVersion);
   updateCargoLock(nextVersion);
-  updateReleaseManifest(nextVersion, nextTag, channel);
+  updateReleaseManifest(nextVersion, nextTag, channel, promoteBetaTag);
   if (promotion) {
     updatePromotionChangelog(nextVersion, currentVersion);
   } else {

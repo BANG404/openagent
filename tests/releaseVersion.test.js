@@ -4,6 +4,7 @@ import {
   getMsiVersion,
   getNextBetaNumber,
   getNextReleaseVersion,
+  getStablePromotion,
 } from "../scripts/release-version.mjs";
 
 describe("MSI release versions", () => {
@@ -62,5 +63,21 @@ describe("release channel versions", () => {
       promotion: true,
     });
     expect(getNextReleaseVersion("1.2.3-beta.7", "minor", "stable").version).toBe("1.3.0");
+  });
+});
+
+describe("Stable promotion sources", () => {
+  test("maps a selected Beta on the release line to its Stable tag", () => {
+    expect(getStablePromotion("v1.2.3-beta.4", "1.2")).toEqual({
+      sourceVersion: "1.2.3-beta.4",
+      version: "1.2.3",
+      tag: "v1.2.3",
+    });
+  });
+
+  test("rejects malformed tags and tags from another release line", () => {
+    expect(() => getStablePromotion("v1.2.3", "1.2")).toThrow();
+    expect(() => getStablePromotion("v1.3.0-beta.1", "1.2")).toThrow();
+    expect(() => getStablePromotion("v1.2.3-beta.1", "release/1.2")).toThrow();
   });
 });
