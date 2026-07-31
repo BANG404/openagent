@@ -106,11 +106,14 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Do not apply shadows to the launcher card or selector content. Selector
   content has a fixed scrollable height; role
   descriptions are line-clamped so one role cannot consume the menu.
-- Keep the compact composer row fixed-height. Inline textarea height mutations
-  from the shared message input must not grow the launcher: long drafts scroll
-  inside the textarea. Render attachments as a shadowless, single-line compact
-  strip over the composer and scroll it horizontally so attachments never push
-  the footer or send control out of the card.
+- Keep the compact composer height bounded and content-driven. Let the shared
+  textarea's measured height grow the card through a small multi-line range;
+  an attachment adds one compact row, and content beyond the maximum scrolls
+  internally. Render attachments as a shadowless, single-line compact strip
+  over the composer and scroll it horizontally so attachments never push the
+  footer or send control out of the card. Treat the native attachment dialog
+  like the workspace picker: suppress focus-close for its full lifetime and
+  restore launcher focus after it closes.
 - General settings owns the persisted quick-chat accelerator. Capturing a new
   accelerator requires at least one modifier and stores the portable Tauri
   representation. Re-registration is transactional: unregister the old

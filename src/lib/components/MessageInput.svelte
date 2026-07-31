@@ -59,6 +59,8 @@
     showStopButton?: boolean;
     onConfigureModels?: () => void;
     onModelChange?: (value: string) => void;
+    /** Protect native-window focus while the Tauri attachment dialog is open. */
+    onAttachmentPickerOpenChange?: (open: boolean) => void | Promise<void>;
     /** Upload browser-selected files through the active non-Tauri transport. */
     onUploadAttachments?: (files: File[]) => Promise<ChatAttachment[]>;
     attachmentPreviewLoader?: (
@@ -88,6 +90,7 @@
     showStopButton = true,
     onConfigureModels = () => {},
     onModelChange = () => {},
+    onAttachmentPickerOpenChange,
     onUploadAttachments,
     attachmentPreviewLoader,
     onSend,
@@ -179,43 +182,48 @@
       browserFileInput?.click();
       return;
     }
-    const selected = await openDialog({
-      multiple: true,
-      directory: false,
-      filters: [
-        {
-          name: "Multimodal files",
-          extensions: [
-            "png",
-            "jpg",
-            "jpeg",
-            "gif",
-            "webp",
-            "svg",
-            "pdf",
-            "txt",
-            "md",
-            "markdown",
-            "rtf",
-            "html",
-            "css",
-            "csv",
-            "xml",
-            "js",
-            "jsx",
-            "ts",
-            "tsx",
-            "py",
-            "json",
-            "yaml",
-            "yml",
-            "toml",
-          ],
-        },
-      ],
-    });
-    const paths = typeof selected === "string" ? [selected] : (selected ?? []);
-    appendAttachments(paths);
+    await onAttachmentPickerOpenChange?.(true);
+    try {
+      const selected = await openDialog({
+        multiple: true,
+        directory: false,
+        filters: [
+          {
+            name: "Multimodal files",
+            extensions: [
+              "png",
+              "jpg",
+              "jpeg",
+              "gif",
+              "webp",
+              "svg",
+              "pdf",
+              "txt",
+              "md",
+              "markdown",
+              "rtf",
+              "html",
+              "css",
+              "csv",
+              "xml",
+              "js",
+              "jsx",
+              "ts",
+              "tsx",
+              "py",
+              "json",
+              "yaml",
+              "yml",
+              "toml",
+            ],
+          },
+        ],
+      });
+      const paths = typeof selected === "string" ? [selected] : (selected ?? []);
+      appendAttachments(paths);
+    } finally {
+      await onAttachmentPickerOpenChange?.(false);
+    }
   }
 
   async function uploadBrowserFiles(files: File[]) {

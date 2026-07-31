@@ -189,9 +189,10 @@
   .quick-chat {
     position: relative;
     display: grid;
-    grid-template-rows: 38px 87px 1px 48px;
+    grid-template-rows: 38px minmax(87px, auto) 1px 48px;
     width: 100%;
-    height: 174px;
+    min-height: 174px;
+    max-height: 237px;
     overflow: hidden;
     background: var(--surface);
     color: var(--text);
@@ -344,13 +345,15 @@
 
   .composer-slot {
     min-width: 0;
-    height: 73px;
+    min-height: 73px;
+    max-height: 136px;
     overflow: hidden;
   }
 
   .composer-slot :global(.input-wrapper),
   .composer-slot :global(.composer) {
-    height: 73px;
+    min-height: 73px;
+    max-height: 136px;
   }
 
   .composer-slot :global(.composer) {
@@ -369,18 +372,18 @@
 
   .composer-slot :global(.composer-toolbar) {
     position: absolute;
-    right: 0;
+    right: 40px;
     bottom: 0;
-    left: 0;
+    left: auto;
+    width: 34px;
     height: 34px;
-    padding: 0 48px 4px 9px;
+    padding: 0 0 4px;
   }
 
   .composer-slot :global(.input) {
-    height: 54px !important;
     min-height: 54px;
-    max-height: 54px;
-    padding: 9px 48px 7px 2px;
+    max-height: 122px;
+    padding: 9px 88px 7px 2px;
     overflow-y: auto;
     font-size: 18px;
     line-height: 1.45;
@@ -411,6 +414,7 @@
   }
 
   .composer-slot :global(.composer:has(.attachment-list) .input) {
+    min-height: 88px;
     padding-top: 34px;
     font-size: 14px;
   }

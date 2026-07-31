@@ -4035,6 +4035,18 @@
     }
   }
 
+  async function handleQuickAttachmentPickerOpenChange(open: boolean) {
+    if (!isQuickChatWindow || !appWindow) return;
+    if (open) {
+      quickChatFocusArmed = false;
+      quickChatFocusSuppressed = true;
+      return;
+    }
+    await appWindow.setFocus().catch(() => {});
+    quickChatFocusSuppressed = false;
+    quickChatFocusArmed = true;
+  }
+
   function toggleSidebar() {
     sidebarCollapsed = !sidebarCollapsed;
     window.localStorage.setItem(sidebarCollapsedStorageKey, String(sidebarCollapsed));
@@ -4117,6 +4129,7 @@
             enableMentions={false}
             showAttachments
             showModelSelector={false}
+            onAttachmentPickerOpenChange={handleQuickAttachmentPickerOpenChange}
             onSend={sendQuickChatMessage}
             onStop={stopMessage}
           />
