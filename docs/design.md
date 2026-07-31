@@ -249,7 +249,10 @@ raised surface with a 14px radius: a quiet draggable utility header, a large
 borderless composer, and a 48px footer for model, role, and workspace selectors.
 It has no transcript. Every submission creates a fresh durable conversation,
 starts the turn through the shared SDK client, restores the main window, and
-shows that new streaming conversation. Because a webview cannot render beyond
+shows that new streaming conversation. Submission takes ownership of the window
+transition: native focus loss cannot close it while the turn starts, and a
+startup failure still restores the visible full window. Because a webview cannot
+render beyond
 its native bounds, opening a selector temporarily expands and recenters the
 window to 760 × 440px; closing the selector returns to the compact height.
 Selector content uses a fixed scrollable height, and role descriptions are

@@ -87,7 +87,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   window, but closing it must restore the prior size, position, maximized state,
   and visibility. Losing native window focus closes it. Opening the full
   application or submitting from quick chat restores the same geometry while
-  forcing the window visible.
+  forcing the window visible. Once a submission starts, disarm focus-loss
+  closing and restore the visible main window in a guaranteed cleanup path,
+  including when conversation or branch startup fails.
 - A webview cannot paint beyond its native window bounds. Keep the launcher
   compact while selectors are closed, temporarily expand and recenter the
   native window while a selector is open, and shrink it when the selector

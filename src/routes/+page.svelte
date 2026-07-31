@@ -31,6 +31,7 @@
     formatQuickChatShortcut,
     normalizeQuickChatShortcut,
   } from "$lib/quickChatShortcut";
+  import { runQuickChatSubmission } from "$lib/quickChatSubmission";
   import { desktopOpenAgent as openAgent, invoke, listen } from "$lib/openagent/tauriClient";
   import type { ChatMemoryRetrievalStage, ChatRunStartedEvent } from "$lib/openagent";
   import {
@@ -417,6 +418,7 @@
   let selectedModel = $state("");
   let quickChatOpen = $state(isQuickChatPreview);
   let quickChatSelectorOpen = $state(false);
+  let quickChatSubmitting = $state(false);
   let quickChatFocusArmed = false;
   let registeredQuickChatShortcut: string | null = null;
   let quickWindowTransition: Promise<void> = Promise.resolve();
@@ -3887,6 +3889,7 @@
   }
 
   async function sendQuickChatMessage() {
+    if (quickChatSubmitting) return;
     const text = inputText;
     const attachments = [...inputAttachments];
     if (!text.trim() && attachments.length === 0) return;
@@ -3902,9 +3905,22 @@
     }
 
     const model = selectedModel;
-    await newConversation();
-    await dispatchQueuedOrImmediateMessage(text, null, attachments, model, true);
-    if (activeConvId) await openFullAppFromQuickChat();
+    quickChatSubmitting = true;
+    // Submission owns the next window transition. Native focus changes while
+    // the turn is starting must not race it with the ordinary close behavior.
+    quickChatFocusArmed = false;
+    try {
+      await runQuickChatSubmission(
+        async () => {
+          await newConversation();
+          await dispatchQueuedOrImmediateMessage(text, null, attachments, model, true);
+        },
+        openFullAppFromQuickChat,
+        (error) => showToast({ title: String(error), variant: "error" }),
+      );
+    } finally {
+      quickChatSubmitting = false;
+    }
   }
 
   function handleQuickModelChange(value: string) {
@@ -3981,10 +3997,11 @@
                 ? $t("quickChatPlaceholder")
                 : $t("modelSetupHint")
               : browserModeNotice}
-            disabled={!tauriAvailable}
+            disabled={!tauriAvailable || quickChatSubmitting}
             isStreaming={false}
             sendDisabled={(!inputText.trim() && inputAttachments.length === 0) ||
               !tauriAvailable ||
+              quickChatSubmitting ||
               modelOptions.length === 0}
             sendTitle={$t("send")}
             slashCommands={[]}
