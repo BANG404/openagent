@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.28.0-beta.1] - 2026-07-31
+
+### Features
+- **chat**: Collapse process records before final output
+- **providers**: Add ChatGPT OAuth session controls
+- **providers**: Expose Rig built-in services
+
+### Bug Fixes
+- **ci**: Restore frontend quality checks
+- **editor**: Localize markdown editor controls
+- **chat**: Update title generation runtime
+- **settings**: Prevent add-model button wrapping
+- **providers**: Align ChatGPT OAuth experience
+- **providers**: Surface ChatGPT OAuth login
+- **onboarding**: Keep add model label on one line
+- **chat**: Stabilize file links in columns
+
+### Miscellaneous
+- **agent**: Enforce living documentation updates
+
 ## [0.27.0-beta.1] - 2026-07-30
 
 ### Features
