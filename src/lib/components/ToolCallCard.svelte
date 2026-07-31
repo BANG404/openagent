@@ -262,7 +262,7 @@
 {:else if mermaidArgs}
   <MermaidToolPreview args={mermaidArgs} {result} {mermaidConfig} />
 {:else}
-  <div class="tool-call-card" class:tool-focused={isFocusedTool}>
+  <div class="tool-call-card">
     <div class="tool-call-header">
       <button
         class="tool-toggle"
@@ -470,10 +470,6 @@
     overflow: hidden;
     font-size: 12px;
     background: var(--surface);
-  }
-
-  .tool-focused {
-    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
   }
 
   .tool-call-header {
