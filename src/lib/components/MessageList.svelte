@@ -2,11 +2,15 @@
   import { tick } from "svelte";
   import StreamItemRenderer from "./StreamItemRenderer.svelte";
   import ToolCallGroup from "./ToolCallGroup.svelte";
+  import ProcessRecordGroup from "./ProcessRecordGroup.svelte";
   import Tooltip from "./Tooltip.svelte";
   import VirtualMessageList from "./VirtualMessageList.svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import { t } from "$lib/i18n";
-  import { finalAssistantOutput } from "$lib/assistantOutput";
+  import {
+    finalAssistantOutput,
+    finalAssistantOutputStartIndex,
+  } from "$lib/assistantOutput";
   import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
   import type { ChatAttachment, ChatMessage, HtmlPreviewConfig, StreamItem } from "$lib/types";
@@ -19,6 +23,7 @@
     groupStreamItems,
     isAssistantTurnEntry,
     type MessageRenderEntry,
+    type StreamItemSegment,
   } from "$lib/toolCallGroups";
 
   interface Props {
@@ -280,19 +285,18 @@
     if (entry.kind === "live_stream") return 96;
     if (entry.kind === "tool_group") return 76;
     if (entry.kind === "assistant_turn") {
-      const contentLength = entry.messages.reduce(
-        (turnTotal, message) =>
-          turnTotal +
-          message.content.length +
-          (message.items?.reduce(
-            (total, item) =>
-              total +
-              ("content" in item && typeof item.content === "string" ? item.content.length : 120),
-            0,
-          ) ?? 0),
-        0,
-      );
-      return Math.min(640, 92 + Math.ceil(contentLength / 100) * 24);
+      const items = assistantItems(entry);
+      const finalOutputStart = finalAssistantOutputStartIndex(items);
+      const contentLength = items
+        .slice(finalOutputStart)
+        .reduce(
+          (total, item) =>
+            total + ("content" in item && typeof item.content === "string" ? item.content.length : 0),
+          0,
+        );
+      const processHeaderHeight =
+        finalOutputStart > 0 && finalOutputStart < items.length ? 44 : 0;
+      return Math.min(640, 92 + processHeaderHeight + Math.ceil(contentLength / 100) * 24);
     }
     if (isCompactionReplayUser(entry.msg)) return 58;
     if (entry.msg.role === "user")
@@ -412,6 +416,13 @@
         {@const renderedAssistantItems = assistantItems(entry)}
         {@const assistantSegments = groupStreamItems(renderedAssistantItems)}
         {@const assistantIsStreaming = entry.kind === "live_stream"}
+        {@const finalOutputStart = finalAssistantOutputStartIndex(renderedAssistantItems)}
+        {@const processSegments = assistantSegments.filter(
+          (segment) => segment.startIndex < finalOutputStart,
+        )}
+        {@const finalSegments = assistantSegments.filter(
+          (segment) => segment.startIndex >= finalOutputStart,
+        )}
         {@const isRerunnable =
           assistantMsg !== null &&
           assistantMsgIdx >= 0 &&
@@ -419,44 +430,57 @@
           Boolean(assistantMsg.checkpointId) &&
           Boolean(activeTree?.nodes[assistantMsg.checkpointId!])}
         {@const copyableOutput = finalAssistantOutput(turnMessages)}
-        {#each assistantSegments as segment (`${entry.key}-${segment.startIndex}`)}
-          {#if segment.kind === "tool_group"}
-            <div
-              class="stream-item message-record"
-              data-stream-item={`${entry.key}-${segment.startIndex}`}
-            >
-              <ToolCallGroup
-                items={segment.items}
+        {@const timing = assistantMsg ? runTiming(assistantMsg, assistantMsgIdx) : null}
+        {#snippet renderAssistantSegments(segments: StreamItemSegment[])}
+          {#each segments as segment (`${entry.key}-${segment.startIndex}`)}
+            {#if segment.kind === "tool_group"}
+              <div
+                class="stream-item message-record"
+                data-stream-item={`${entry.key}-${segment.startIndex}`}
+              >
+                <ToolCallGroup
+                  items={segment.items}
+                  isStreaming={assistantIsStreaming}
+                  {htmlPreviewConfig}
+                  {onSubmitUserInput}
+                  {onCancelUserInput}
+                />
+              </div>
+            {:else}
+              <StreamItemRenderer
+                item={segment.item}
+                itemKey={`${entry.key}-${segment.startIndex}`}
+                messageId={segment.startIndex === 0 && assistantMsg ? assistantMsg.id : undefined}
+                isLastText={segment.item.type === "text" &&
+                  (assistantIsStreaming
+                    ? segment.startIndex === renderedAssistantItems.length - 1
+                    : !renderedAssistantItems
+                        .slice(segment.startIndex + 1)
+                        .some((next) => next.type === "text"))}
                 isStreaming={assistantIsStreaming}
+                debugCheckpointId={debugMode && isRerunnable
+                  ? assistantMsg?.checkpointId
+                  : undefined}
+                initialThinkingOpen={streamedOpenThinkingItemKeys.has(
+                  `${entry.key}-${segment.startIndex}`,
+                )}
+                {shikiTheme}
+                {mermaidConfig}
                 {htmlPreviewConfig}
                 {onSubmitUserInput}
                 {onCancelUserInput}
               />
-            </div>
-          {:else}
-            <StreamItemRenderer
-              item={segment.item}
-              itemKey={`${entry.key}-${segment.startIndex}`}
-              messageId={segment.startIndex === 0 && assistantMsg ? assistantMsg.id : undefined}
-              isLastText={segment.item.type === "text" &&
-                (assistantIsStreaming
-                  ? segment.startIndex === renderedAssistantItems.length - 1
-                  : !renderedAssistantItems
-                      .slice(segment.startIndex + 1)
-                      .some((next) => next.type === "text"))}
-              isStreaming={assistantIsStreaming}
-              debugCheckpointId={debugMode && isRerunnable ? assistantMsg?.checkpointId : undefined}
-              initialThinkingOpen={streamedOpenThinkingItemKeys.has(
-                `${entry.key}-${segment.startIndex}`,
-              )}
-              {shikiTheme}
-              {mermaidConfig}
-              {htmlPreviewConfig}
-              {onSubmitUserInput}
-              {onCancelUserInput}
-            />
-          {/if}
-        {/each}
+            {/if}
+          {/each}
+        {/snippet}
+        {#if processSegments.length > 0 && finalSegments.length > 0}
+          <ProcessRecordGroup isStreaming={assistantIsStreaming} duration={timing?.total}>
+            {@render renderAssistantSegments(processSegments)}
+          </ProcessRecordGroup>
+          {@render renderAssistantSegments(finalSegments)}
+        {:else}
+          {@render renderAssistantSegments(assistantSegments)}
+        {/if}
         {#if assistantIsStreaming && memoryRetrievalStage}
           <div class="thinking-status memory-retrieval-status" role="status" aria-live="polite">
             <span class="thinking-dot"></span>
@@ -474,7 +498,6 @@
           </div>
         {/if}
         {#if assistantMsg}
-          {@const timing = runTiming(assistantMsg, assistantMsgIdx)}
           {#if isRerunnable || timing || assistantMsg.timestamp > 0}
             <div
               class="msg-footer-row message-record"

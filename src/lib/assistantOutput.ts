@@ -1,10 +1,18 @@
 import type { ChatMessage, StreamItem } from "./types";
 
-function isToolInteraction(item: StreamItem): boolean {
-  return item.type === "tool_call" || item.type === "user_input";
+/**
+ * Return the first item in the trailing, uninterrupted final-text run.
+ *
+ * Everything before this boundary is process output: reasoning, tool
+ * interactions, notices, and any narration that preceded those records.
+ */
+export function finalAssistantOutputStartIndex(items: StreamItem[]): number {
+  let index = items.length;
+  while (index > 0 && items[index - 1].type === "text") index -= 1;
+  return index;
 }
 
-/** Return only the model text emitted after the assistant turn's final tool interaction. */
+/** Return only the trailing final-text run from an assistant turn. */
 export function finalAssistantOutput(messageOrMessages: ChatMessage | ChatMessage[]): string {
   const messages = Array.isArray(messageOrMessages) ? messageOrMessages : [messageOrMessages];
   const assistantMessages = messages.filter((message) => message.role === "assistant");
@@ -17,16 +25,8 @@ export function finalAssistantOutput(messageOrMessages: ChatMessage | ChatMessag
   );
   if (items.length === 0) return "";
 
-  let finalToolIndex = -1;
-  for (let index = items.length - 1; index >= 0; index -= 1) {
-    if (isToolInteraction(items[index])) {
-      finalToolIndex = index;
-      break;
-    }
-  }
-
   return items
-    .slice(finalToolIndex + 1)
+    .slice(finalAssistantOutputStartIndex(items))
     .filter((item): item is Extract<StreamItem, { type: "text" }> => item.type === "text")
     .map((item) => item.content)
     .join("")
