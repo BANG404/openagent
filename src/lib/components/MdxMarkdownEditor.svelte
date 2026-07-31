@@ -1,5 +1,6 @@
 <script lang="ts">
   import { convertFileSrc, isTauri } from "@tauri-apps/api/core";
+  import { locale, tr, type TranslationKeys } from "$lib/i18n";
   import { invoke } from "$lib/openagent/tauriClient";
   import { onDestroy, onMount } from "svelte";
 
@@ -26,6 +27,81 @@
   let applyingExternalValue = false;
   let removePasteListener: (() => void) | null = null;
   const tauriAvailable = isTauri();
+  const editorTranslationKeys = {
+    "toolbar.richText": "mdEditorRichText",
+    "toolbar.source": "mdEditorSource",
+    "toolbar.undo": "mdEditorUndo",
+    "toolbar.redo": "mdEditorRedo",
+    "toolbar.blockTypes.paragraph": "mdEditorParagraph",
+    "toolbar.blockTypes.quote": "mdEditorQuote",
+    "toolbar.blockTypes.heading": "mdEditorHeading",
+    "toolbar.blockTypeSelect.selectBlockTypeTooltip": "mdEditorSelectBlockType",
+    "toolbar.blockTypeSelect.placeholder": "mdEditorBlockType",
+    "toolbar.bold": "mdEditorBold",
+    "toolbar.removeBold": "mdEditorRemoveBold",
+    "toolbar.italic": "mdEditorItalic",
+    "toolbar.removeItalic": "mdEditorRemoveItalic",
+    "toolbar.underline": "mdEditorUnderline",
+    "toolbar.removeUnderline": "mdEditorRemoveUnderline",
+    "toolbar.inlineCode": "mdEditorInlineCode",
+    "toolbar.removeInlineCode": "mdEditorRemoveInlineCode",
+    "toolbar.bulletedList": "mdEditorBulletedList",
+    "toolbar.numberedList": "mdEditorNumberedList",
+    "toolbar.checkList": "mdEditorCheckList",
+    "toolbar.link": "mdEditorCreateLink",
+    "toolbar.image": "mdEditorInsertImage",
+    "toolbar.table": "mdEditorInsertTable",
+    "toolbar.thematicBreak": "mdEditorInsertThematicBreak",
+    "toolbar.toggleGroup": "mdEditorToggleGroup",
+    "dialog.close": "mdEditorCloseDialog",
+    "dialogControls.save": "mdEditorSave",
+    "dialogControls.cancel": "mdEditorCancel",
+    "createLink.url": "mdEditorLinkUrl",
+    "createLink.urlPlaceholder": "mdEditorLinkUrlPlaceholder",
+    "createLink.text": "mdEditorLinkText",
+    "createLink.textTooltip": "mdEditorLinkTextTooltip",
+    "createLink.title": "mdEditorLinkTitle",
+    "createLink.titleTooltip": "mdEditorLinkTitleTooltip",
+    "createLink.saveTooltip": "mdEditorSetUrl",
+    "createLink.cancelTooltip": "mdEditorCancelLinkChange",
+    "linkPreview.open": "mdEditorOpenLink",
+    "linkPreview.edit": "mdEditorEditLink",
+    "linkPreview.copyToClipboard": "mdEditorCopyLink",
+    "linkPreview.copied": "mdEditorCopied",
+    "linkPreview.remove": "mdEditorRemoveLink",
+    "uploadImage.dialogTitle": "mdEditorUploadImage",
+    "uploadImage.uploadInstructions": "mdEditorUploadImageFromDevice",
+    "uploadImage.addViaUrlInstructions": "mdEditorAddImageUrl",
+    "uploadImage.addViaUrlInstructionsNoUpload": "mdEditorAddImageUrlNoUpload",
+    "uploadImage.autoCompletePlaceholder": "mdEditorImageUrlPlaceholder",
+    "uploadImage.alt": "mdEditorImageAlt",
+    "uploadImage.title": "mdEditorImageTitle",
+    "uploadImage.width": "mdEditorImageWidth",
+    "uploadImage.height": "mdEditorImageHeight",
+    "imageEditor.deleteImage": "mdEditorDeleteImage",
+    "imageEditor.editImage": "mdEditorEditImage",
+    "table.deleteTable": "mdEditorDeleteTable",
+    "table.columnMenu": "mdEditorColumnMenu",
+    "table.textAlignment": "mdEditorTextAlignment",
+    "table.alignLeft": "mdEditorAlignLeft",
+    "table.alignCenter": "mdEditorAlignCenter",
+    "table.alignRight": "mdEditorAlignRight",
+    "table.insertColumnLeft": "mdEditorInsertColumnLeft",
+    "table.insertColumnRight": "mdEditorInsertColumnRight",
+    "table.deleteColumn": "mdEditorDeleteColumn",
+    "table.rowMenu": "mdEditorRowMenu",
+    "table.insertRowAbove": "mdEditorInsertRowAbove",
+    "table.insertRowBelow": "mdEditorInsertRowBelow",
+    "table.deleteRow": "mdEditorDeleteRow",
+    "codeBlock.language": "mdEditorCodeLanguage",
+    "codeBlock.selectLanguage": "mdEditorSelectCodeLanguage",
+    "codeBlock.inlineLanguage": "mdEditorLanguage",
+    "codeblock.delete": "mdEditorDeleteCodeBlock",
+    "frontmatterEditor.title": "mdEditorFrontmatterTitle",
+    "frontmatterEditor.key": "mdEditorFrontmatterKey",
+    "frontmatterEditor.value": "mdEditorFrontmatterValue",
+    "frontmatterEditor.addEntry": "mdEditorFrontmatterAddEntry",
+  } as const satisfies Record<string, TranslationKeys>;
 
   onMount(async () => {
     const [react, reactDom, mdxEditor] = await Promise.all([
@@ -82,6 +158,24 @@
       applyingExternalValue = false;
     });
   });
+
+  $effect(() => {
+    $locale;
+    renderEditor();
+  });
+
+  function translateEditor(
+    key: string,
+    defaultValue: string,
+    interpolations: Record<string, unknown> = {},
+  ): string {
+    const translationKey = editorTranslationKeys[key as keyof typeof editorTranslationKeys];
+    let translated = translationKey ? tr(translationKey) : defaultValue;
+    for (const [name, replacement] of Object.entries(interpolations)) {
+      translated = translated.replaceAll(`{{${name}}}`, String(replacement));
+    }
+    return translated;
+  }
 
   function renderEditor() {
     if (!React || !editorModule || !reactRoot) return;
@@ -159,6 +253,7 @@
         spellCheck: false,
         suppressHtmlProcessing: true,
         placeholder,
+        translation: translateEditor,
         plugins: [
           headingsPlugin(),
           listsPlugin(),
@@ -205,12 +300,12 @@
       reader.onload = () => {
         const result = reader.result;
         if (typeof result !== "string") {
-          reject(new Error("Unable to read image"));
+          reject(new Error(tr("mdEditorReadImageFailed")));
           return;
         }
         resolve(result.slice(result.indexOf(",") + 1));
       };
-      reader.onerror = () => reject(reader.error ?? new Error("Unable to read image"));
+      reader.onerror = () => reject(reader.error ?? new Error(tr("mdEditorReadImageFailed")));
       reader.readAsDataURL(file);
     });
   }
@@ -231,7 +326,7 @@
       return URL.createObjectURL(file);
     }
     if (!file.type.startsWith("image/")) {
-      throw new Error("Only image files can be inserted");
+      throw new Error(tr("mdEditorOnlyImages"));
     }
     const contentBase64 = await fileToBase64(file);
     const path = await invoke<string>("save_pasted_attachment", {
