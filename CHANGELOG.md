@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.29.1-beta.1] - 2026-07-31
+
+### Bug Fixes
+- **settings**: Reload persisted configuration safely
+- **native**: Align macOS private API config
+- **native**: Enable macOS transparent windows
+
 ## [0.29.0-beta.1] - 2026-07-31
 
 ### Features
