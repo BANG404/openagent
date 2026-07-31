@@ -4,6 +4,7 @@ import {
   getMsiVersion,
   getNextBetaNumber,
   getNextReleaseVersion,
+  getReleaseLine,
   getStablePromotion,
 } from "../scripts/release-version.mjs";
 
@@ -40,6 +41,20 @@ describe("Beta release numbers", () => {
 
   test("starts at one after the X.Y.Z base changes", () => {
     expect(getNextBetaNumber("0.25.0", ["v0.24.1-beta.9"], "0.24.1-beta.7")).toBe(1);
+  });
+});
+
+describe("release lines", () => {
+  test("derives X.Y from planned Beta versions and selected Beta tags", () => {
+    expect(getReleaseLine("1.2.3-beta.4")).toBe("1.2");
+    expect(getReleaseLine("v1.2.3-beta.4")).toBe("1.2");
+    expect(getReleaseLine("1.2.3")).toBe("1.2");
+  });
+
+  test("rejects values that cannot identify a release line", () => {
+    expect(() => getReleaseLine("1.2")).toThrow();
+    expect(() => getReleaseLine("release/1.2")).toThrow();
+    expect(() => getReleaseLine("v1.2.3-rc.1")).toThrow();
   });
 });
 

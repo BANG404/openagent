@@ -21,11 +21,15 @@ feat!: remove deprecated config field
 
 Development commits land on `master`; ordinary pushes there never create a
 version or tag. Releases are maintained on persistent `release/X.Y` branches.
-Start the `Prepare Release` workflow, enter the `X.Y` release line, and choose
-`beta` or `stable`. If the release line does not exist, the workflow creates it
-from the current `master` commit after requiring that exact commit to have a
-successful `CI / Required` run. Subsequent fixes for that version line must be
-merged or cherry-picked into `release/X.Y` before preparing another Beta.
+Start the `Prepare Release` workflow and choose `beta` or `stable`. Beta is the
+default and needs no other input: the workflow calculates the planned Beta
+version from the selected workflow ref and derives its `X.Y` release line.
+Stable requires an explicit `vX.Y.Z-beta.N` tag and derives the same release
+line from that tag; it never silently selects the latest Beta. If the derived
+release line does not exist, the workflow creates it from the selected ref
+after requiring that exact commit to have a successful `CI / Required` run.
+Subsequent fixes for that version line must be merged or cherry-picked into
+`release/X.Y` before preparing another Beta.
 
 For Beta preparation, `scripts/release.mjs` inspects release-relevant commits
 on the selected line since its latest reachable `v*` tag and applies:
@@ -50,9 +54,9 @@ release-relevant Conventional Commits control the `X.Y.Z` base version:
 - The next Beta number is calculated from both matching tags and the version
   checked into the repository. This preserves the sequence even when older
   tags are unavailable after repository separation.
-- Stable preparation requires an explicit `vX.Y.Z-beta.N` tag from the selected
-  release line. The target is always the matching immutable `vX.Y.Z`; Stable
-  preparation never silently selects the latest Beta.
+- Stable preparation requires an explicit `vX.Y.Z-beta.N` tag. Its release line
+  is derived from the tag, and the target is always the matching immutable
+  `vX.Y.Z`; Stable preparation never silently selects the latest Beta.
 
 If legacy history contains both a stable tag and later beta tags with the same
 `X.Y.Z`, the suffix cannot be removed safely. The script detects that collision

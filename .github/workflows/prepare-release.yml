@@ -3,10 +3,6 @@ name: Prepare Release
 on:
   workflow_dispatch:
     inputs:
-      release_line:
-        description: Persistent release line X.Y (for example 0.29) / 长期发布线
-        required: true
-        type: string
       release_type:
         description: Release channel (Beta uses vX.Y.Z-beta.N) / 发布渠道
         required: true
@@ -21,7 +17,7 @@ on:
         type: string
 
 concurrency:
-  group: prepare-release-${{ inputs.release_line }}
+  group: prepare-release
   cancel-in-progress: false
 
 permissions:
@@ -50,13 +46,36 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_CHANNEL: ${{ inputs.release_type }}
-          RELEASE_LINE: ${{ inputs.release_line }}
           BETA_TAG: ${{ inputs.beta_tag }}
         shell: bash
         run: |
-          if [[ ! "$RELEASE_LINE" =~ ^[0-9]+\.[0-9]+$ ]]; then
-            echo "Release line must use X.Y form, got: $RELEASE_LINE" >&2
-            exit 1
+          if [[ "$RELEASE_CHANNEL" == "stable" ]]; then
+            if [[ -z "$BETA_TAG" ]]; then
+              echo "A Beta tag is required when preparing a Stable release." >&2
+              exit 1
+            fi
+            if [[ ! "$BETA_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
+              echo "Stable promotion source must be a Beta tag, got: $BETA_TAG" >&2
+              exit 1
+            fi
+            RELEASE_LINE="$(node --input-type=module -e \
+              "import { getReleaseLine } from './scripts/release-version.mjs'; console.log(getReleaseLine(process.argv[1]));" \
+              "$BETA_TAG")"
+          else
+            if [[ -n "$BETA_TAG" ]]; then
+              echo "beta_tag is only valid when preparing a Stable release." >&2
+              exit 1
+            fi
+            release_plan="$(bun scripts/release.mjs --dry-run --channel=beta)"
+            printf '%s\n' "$release_plan"
+            planned_version="$(printf '%s\n' "$release_plan" | sed -nE 's/^[^[:space:]]+ -> ([^[:space:]]+) \(.+$/\1/p')"
+            if [[ -z "$planned_version" || "$(printf '%s\n' "$planned_version" | wc -l)" -ne 1 ]]; then
+              echo "Unable to determine exactly one Beta version from the release plan." >&2
+              exit 1
+            fi
+            RELEASE_LINE="$(node --input-type=module -e \
+              "import { getReleaseLine } from './scripts/release-version.mjs'; console.log(getReleaseLine(process.argv[1]));" \
+              "$planned_version")"
           fi
 
           line_branch="release/$RELEASE_LINE"
@@ -98,14 +117,6 @@ jobs:
           source_tag=""
           promotion_arg=""
           if [[ "$RELEASE_CHANNEL" == "stable" ]]; then
-            if [[ -z "$BETA_TAG" ]]; then
-              echo "A Beta tag is required when preparing a Stable release." >&2
-              exit 1
-            fi
-            if [[ ! "$BETA_TAG" =~ ^v${RELEASE_LINE//./\.}\.[0-9]+-beta\.[0-9]+$ ]]; then
-              echo "$BETA_TAG does not belong to release line $RELEASE_LINE." >&2
-              exit 1
-            fi
             if ! git rev-parse --verify --quiet "refs/tags/$BETA_TAG^{commit}" >/dev/null; then
               echo "Beta tag $BETA_TAG does not exist." >&2
               exit 1
@@ -121,13 +132,11 @@ jobs:
             fi
             source_tag="$BETA_TAG"
             promotion_arg="--promote-beta=$BETA_TAG"
-          elif [[ -n "$BETA_TAG" ]]; then
-            echo "beta_tag is only valid when preparing a Stable release." >&2
-            exit 1
           fi
 
           {
             echo "branch=$line_branch"
+            echo "release_line=$RELEASE_LINE"
             echo "sha=$base_sha"
             echo "ci_url=$ci_url"
             echo "source_tag=$source_tag"
@@ -138,7 +147,7 @@ jobs:
         id: release
         env:
           RELEASE_CHANNEL: ${{ inputs.release_type }}
-          RELEASE_LINE: ${{ inputs.release_line }}
+          RELEASE_LINE: ${{ steps.base.outputs.release_line }}
           RELEASE_BASE_SHA: ${{ steps.base.outputs.sha }}
           PROMOTION_ARG: ${{ steps.base.outputs.promotion_arg }}
           SOURCE_TAG: ${{ steps.base.outputs.source_tag }}

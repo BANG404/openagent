@@ -96,6 +96,22 @@ export function getNextBetaNumber(baseVersion, tags, currentVersion) {
 }
 
 /**
+ * Derive the persistent X.Y release line from a release version or tag.
+ *
+ * @param {string} versionOrTag
+ * @returns {string}
+ */
+export function getReleaseLine(versionOrTag) {
+  const match = versionOrTag.match(/^v?(\d+)\.(\d+)\.\d+(?:-beta\.\d+)?$/);
+  if (!match) {
+    throw new Error(
+      `Release version or tag must use X.Y.Z or vX.Y.Z-beta.N form, got: ${versionOrTag}`,
+    );
+  }
+  return `${match[1]}.${match[2]}`;
+}
+
+/**
  * Resolve the immutable Stable target for a Beta selected from a persistent
  * X.Y release line.
  *
