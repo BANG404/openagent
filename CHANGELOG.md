@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.28.2-beta.1] - 2026-07-31
+
+### Bug Fixes
+- **chat**: Stabilize double-column rendering
+
 ## [0.28.1-beta.1] - 2026-07-31
 
 ### Bug Fixes
