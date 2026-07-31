@@ -45,6 +45,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   by their matching ToolResult after streaming, reload, and branch switches.
 - Group consecutive ordinary ToolCalls into one collapsed summary row with
   independently expandable calls.
+- Keep ordinary and enhanced file/search tool cards on the same neutral
+  perimeter. Reserve the blue accent for real interaction state such as
+  keyboard focus or an actively running tool, not for the tool's type.
 - Keep `ask_user`, approvals, HTML previews, and other dedicated tools outside
   ordinary grouping.
 - Render `render_mermaid` as a standalone virtual row from ToolCall source and
