@@ -105,9 +105,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   expanded selector size before showing it, keep that size fixed for the whole
   visible session, and shrink it only after hiding; resizing a visible
   transparent webview causes native-window jitter. The host's Tauri dependency
-  must retain the `macos-private-api` feature because macOS otherwise omits the
-  transparent window builder API at compile time. Clicking the unused
-  transparent area dismisses the launcher.
+  must retain the `macos-private-api` feature and `app.macOSPrivateApi` must
+  remain enabled in `tauri.conf.json`; Tauri rejects every platform build when
+  the Cargo feature and configuration allowlist disagree, while macOS omits
+  the transparent window builder API when both are disabled. Clicking the
+  unused transparent area dismisses the launcher.
   Keep the card and selector surfaces opaque, use the title row as an explicit
   native drag handle, and open selectors below and visually outside the card,
   aligned to their trigger start edge, without collision-based side flipping.

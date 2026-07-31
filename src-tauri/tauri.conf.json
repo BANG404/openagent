@@ -13,6 +13,7 @@
     ]
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "openagent",
