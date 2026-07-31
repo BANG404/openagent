@@ -647,6 +647,7 @@
                 role="button"
                 tabindex="0"
                 aria-label={$t("editMsgTitle")}
+                title={$t("editMsgTitle")}
                 onclick={() => startEdit(msg)}
                 onkeydown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -656,6 +657,21 @@
                 }}
               >
                 {msg.content}
+                <span class="user-edit-hint" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    width="13"
+                    height="13"
+                  >
+                    <path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L6 12l-3 .75.75-3 7.75-7.25Z" />
+                    <path d="m10 4 2 2" />
+                  </svg>
+                </span>
               </div>
             {:else}
               <div class="user-content readonly" class:collapsed={isUserMessageCollapsed(msg)}>
@@ -1214,6 +1230,33 @@
     text-align: left;
     outline: none;
     box-shadow: var(--control-shadow);
+  }
+  .user-edit-hint {
+    position: absolute;
+    top: 50%;
+    right: calc(100% + 7px);
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    box-shadow: var(--control-shadow);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(3px, -50%);
+    transition:
+      opacity 0.12s ease,
+      transform 0.12s ease,
+      color 0.12s ease;
+  }
+  .user-content:hover .user-edit-hint,
+  .user-content:focus-visible .user-edit-hint {
+    color: var(--text);
+    opacity: 1;
+    transform: translate(0, -50%);
   }
   .user-content:focus-visible {
     box-shadow: var(--control-shadow), var(--focus-ring);

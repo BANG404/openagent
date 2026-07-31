@@ -53,6 +53,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 ## Attachments and editing
 
 - Reuse one attachment preview component in composer and restored transcript.
+- Keep editable user messages discoverable without adding a second action
+  target: the message bubble retains its accessible edit label and reveals a
+  non-interactive pencil affordance on pointer hover or keyboard focus.
 - Restored previews load blob bytes on demand. Do not embed bytes in checkpoint
   IPC payloads.
 - Removing a restored attachment is a staged edit: cancel restores it; send
