@@ -85,6 +85,6 @@ resulting invariant and delete superseded guidance instead of appending a
 changelog. Update `docs/` as well when the public product or architecture
 contract changes.
 
-Run `bun run check`. For visible changes, verify light/dark themes, Chinese and
-English copy, streaming-to-durable finalization, reload, and branch switching.
-Run `bun run check:docs` before handoff.
+Run `bun run check` and `bun run format:check`. For visible changes, verify
+light/dark themes, Chinese and English copy, streaming-to-durable finalization,
+reload, and branch switching. Run `bun run check:docs` before handoff.

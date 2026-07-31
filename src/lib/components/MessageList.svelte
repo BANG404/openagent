@@ -7,10 +7,7 @@
   import VirtualMessageList from "./VirtualMessageList.svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import { t } from "$lib/i18n";
-  import {
-    finalAssistantOutput,
-    finalAssistantOutputStartIndex,
-  } from "$lib/assistantOutput";
+  import { finalAssistantOutput, finalAssistantOutputStartIndex } from "$lib/assistantOutput";
   import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
   import type { ChatAttachment, ChatMessage, HtmlPreviewConfig, StreamItem } from "$lib/types";
@@ -291,11 +288,11 @@
         .slice(finalOutputStart)
         .reduce(
           (total, item) =>
-            total + ("content" in item && typeof item.content === "string" ? item.content.length : 0),
+            total +
+            ("content" in item && typeof item.content === "string" ? item.content.length : 0),
           0,
         );
-      const processHeaderHeight =
-        finalOutputStart > 0 && finalOutputStart < items.length ? 44 : 0;
+      const processHeaderHeight = finalOutputStart > 0 && finalOutputStart < items.length ? 44 : 0;
       return Math.min(640, 92 + processHeaderHeight + Math.ceil(contentLength / 100) * 24);
     }
     if (isCompactionReplayUser(entry.msg)) return 58;

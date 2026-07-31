@@ -1867,8 +1867,7 @@
                         ? logoutChatgpt(selectedProvider.id)
                         : testProvider(selectedProvider.id)}
                     disabled={getStatus(selectedProvider.id).tone === "loading"}
-                    >{selectedProvider.provider === "chatgpt" &&
-                    !selectedProvider.api_key.trim()
+                    >{selectedProvider.provider === "chatgpt" && !selectedProvider.api_key.trim()
                       ? chatgptOAuthAuthenticated
                         ? $t("signOutChatgpt")
                         : $t("signInChatgpt")

@@ -1,9 +1,6 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
-import {
-  finalAssistantOutput,
-  finalAssistantOutputStartIndex,
-} from "../src/lib/assistantOutput";
+import { finalAssistantOutput, finalAssistantOutputStartIndex } from "../src/lib/assistantOutput";
 
 const assistantMessage = (overrides = {}) => ({
   id: "assistant-1",

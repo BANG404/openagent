@@ -35,10 +35,19 @@ const CHAT_FRONTEND_FILES = [
 
 const CHAT_SKILL = ".agents/skills/openagent-chat-frontend/SKILL.md";
 
+/**
+ * @param {string[]} files
+ * @returns {string[]}
+ */
 function normalize(files) {
   return [...new Set(files.map((file) => file.trim().replaceAll("\\", "/")).filter(Boolean))];
 }
 
+/**
+ * @param {string} file
+ * @param {RegExp[]} patterns
+ * @returns {boolean}
+ */
 function matchesAny(file, patterns) {
   return patterns.some((pattern) => pattern.test(file));
 }
@@ -73,6 +82,10 @@ export function documentationSyncErrors(files) {
   return errors;
 }
 
+/**
+ * @param {string[]} args
+ * @returns {string[]}
+ */
 function gitLines(args) {
   return execFileSync("git", args, { encoding: "utf8" }).split(/\r?\n/).filter(Boolean);
 }

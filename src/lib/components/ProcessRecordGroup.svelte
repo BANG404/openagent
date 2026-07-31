@@ -19,11 +19,7 @@
   });
 
   let label = $derived(
-    isStreaming
-      ? $t("working")
-      : duration
-        ? `${$t("workedFor")} ${duration}`
-        : $t("workDetails"),
+    isStreaming ? $t("working") : duration ? `${$t("workedFor")} ${duration}` : $t("workDetails"),
   );
 </script>
 
