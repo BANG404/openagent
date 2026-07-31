@@ -1093,6 +1093,13 @@ fn run_with_mode(agent_server: bool) {
         builder.plugin(tauri_plugin_updater::Builder::new().build())
     };
 
+    #[cfg(desktop)]
+    let builder = if agent_server {
+        builder
+    } else {
+        builder.plugin(tauri_plugin_global_shortcut::Builder::new().build())
+    };
+
     let mut context = tauri::generate_context!();
     if agent_server {
         context.config_mut().app.windows.clear();

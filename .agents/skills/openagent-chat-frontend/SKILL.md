@@ -76,6 +76,25 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Do not render approval controls for a switched branch until its active tip is
   durable.
 
+## Quick chat
+
+- The Raycast-style quick chat is a presentation mode of the primary window,
+  not a second chat client. It must reuse the active conversation, optimistic
+  messages, backend-preallocated assistant ID, stream items, queue, composer
+  draft, model binding, role selection, and workspace state owned by the page
+  shell.
+- Entering quick chat may resize, center, and temporarily pin the primary
+  window, but closing it must restore the prior size, position, maximized state,
+  and visibility. Opening the full application from quick chat restores the
+  same geometry while forcing the window visible.
+- Role and workspace changes from quick chat deliberately start from the same
+  durable boundaries as the full application: changing a role selects a new
+  conversation surface, while changing a workspace restores that workspace's
+  active durable surface. Never maintain quick-chat-only conversation history.
+- Keep the development-only `quick-chat-preview` query available for browser
+  layout verification; it must not register shortcuts or emulate native
+  window behavior outside Tauri.
+
 ## IPC and events
 
 - Keep Rust event payloads aligned with `src/lib/types.ts`.

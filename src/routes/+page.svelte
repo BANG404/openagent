@@ -1,7 +1,9 @@
 <script lang="ts">
   import { isTauri } from "@tauri-apps/api/core";
+  import { LogicalSize, type PhysicalPosition, type PhysicalSize } from "@tauri-apps/api/dpi";
   import { homeDir } from "@tauri-apps/api/path";
   import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
   import { onMount, tick } from "svelte";
@@ -54,6 +56,7 @@
   import ChatQueue from "$lib/components/ChatQueue.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
+  import QuickChat from "$lib/components/QuickChat.svelte";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
@@ -151,10 +154,16 @@
     return !provider || (providerRequiresApiKey(provider.provider) && !provider.api_key.trim());
   }
 
-  const isDevInspectorWindow =
-    import.meta.env.DEV &&
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).has("dev-inspector");
+  const devQuery =
+    import.meta.env.DEV && typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search)
+      : null;
+  const isDevInspectorWindow = devQuery?.has("dev-inspector") === true;
+  const isQuickChatPreview = devQuery?.has("quick-chat-preview") === true;
+  const quickChatPreviewTheme =
+    devQuery?.get("quick-chat-preview-theme") === "dark" ? "dark" : null;
+  const quickChatPreviewLocale: Locale | null =
+    devQuery?.get("quick-chat-preview-locale") === "en" ? "en" : null;
   const isDebugBuild = import.meta.env.DEV;
   let showMainDebugComponents = $state(readMainDebugComponentsVisible());
   let isDebugMode = $derived(isDebugBuild && showMainDebugComponents);
@@ -400,6 +409,15 @@
   let inputText = $state("");
   let inputAttachments = $state<ChatAttachment[]>([]);
   let selectedModel = $state("");
+  let quickChatOpen = $state(isQuickChatPreview);
+  let quickShortcutRegistered = false;
+  let quickWindowTransition: Promise<void> = Promise.resolve();
+  let quickWindowSnapshot: {
+    position: PhysicalPosition;
+    size: PhysicalSize;
+    maximized: boolean;
+    visible: boolean;
+  } | null = null;
   let defaultChatModelSaveQueue: Promise<void> = Promise.resolve();
   // Keep pending submissions scoped to their conversation so switching chats while
   // a response is streaming never sends a message to the wrong conversation.
@@ -434,6 +452,45 @@
         })),
       ),
   );
+
+  let quickRoleOptions = $derived([
+    {
+      value: defaultRoleKey,
+      label: $t("defaultRoleName"),
+      description: $t("defaultRoleDescription"),
+    },
+    ...agentRoles.map((role) => ({
+      value: role.id,
+      label: role.name,
+      description: role.description,
+    })),
+  ]);
+
+  let quickWorkspaceOptions = $derived.by(() => {
+    const options = [
+      ...(workspacePath
+        ? [
+            {
+              value: workspacePath,
+              label:
+                recentWorkspaces.find((recent) => recent.path === workspacePath)?.name ??
+                workspacePath.split(/[/\\]/).filter(Boolean).pop() ??
+                workspacePath,
+              description: workspacePath,
+            },
+          ]
+        : []),
+      ...recentWorkspaces.map((recent) => ({
+        value: recent.path,
+        label: recent.name,
+        description: recent.path,
+      })),
+    ];
+    return options.filter(
+      (option, index) =>
+        options.findIndex((candidate) => candidate.value === option.value) === index,
+    );
+  });
 
   $effect(() => {
     if (!config) return;
@@ -1607,6 +1664,9 @@
       pollMemoryStatus();
       if (!launchContext?.workspace) {
         void initializeTray();
+        void initializeQuickChatShortcut().catch((error) => {
+          console.warn("Failed to register quick chat shortcut", error);
+        });
         void checkForAppUpdate();
       }
       if (!startupApplied && launchContext?.conversation_id) {
@@ -2511,8 +2571,8 @@
   async function loadSettings() {
     if (!tauriAvailable) {
       config = normalizeConfigShape(fallbackConfig);
-      applyTheme(config.theme ?? "system");
-      await initI18n(config.language);
+      applyTheme(quickChatPreviewTheme ?? config.theme ?? "system");
+      await initI18n(quickChatPreviewLocale ?? config.language);
       return;
     }
 
@@ -3344,7 +3404,7 @@
     await workspacePrefsSaveQueue.catch(() => {});
   }
 
-  async function pickWorkspace() {
+  async function pickWorkspace(applyToCurrentWindow = false) {
     if (!tauriAvailable) {
       alert(browserModeNotice);
       return;
@@ -3352,7 +3412,8 @@
     const defaultPath = await homeDir();
     const selected = await openDialog({ directory: true, multiple: false, defaultPath });
     if (typeof selected === "string" && selected) {
-      await requestWorkspace(selected);
+      if (applyToCurrentWindow) await applyWorkspace(selected);
+      else await requestWorkspace(selected);
     }
   }
 
@@ -3672,6 +3733,107 @@
   const winMinimize = () => appWindow?.minimize();
   const winMaximize = () => appWindow?.toggleMaximize();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
+  const quickChatShortcut = "CommandOrControl+Shift+Space";
+
+  async function showQuickChatWindow() {
+    if (!appWindow || quickChatOpen) return;
+    quickWindowSnapshot = {
+      position: await appWindow.outerPosition(),
+      size: await appWindow.outerSize(),
+      maximized: await appWindow.isMaximized(),
+      visible: await appWindow.isVisible(),
+    };
+    if (quickWindowSnapshot.maximized) await appWindow.unmaximize();
+    await appWindow.setMinSize(new LogicalSize(680, 420));
+    await appWindow.setSize(new LogicalSize(760, 560));
+    await appWindow.center();
+    await appWindow.setAlwaysOnTop(true);
+    quickChatOpen = true;
+    await tick();
+    await appWindow.unminimize().catch(() => {});
+    await appWindow.show();
+    await appWindow.setFocus();
+  }
+
+  async function restoreMainWindow(forceVisible: boolean) {
+    if (!appWindow) return;
+    const snapshot = quickWindowSnapshot;
+    quickChatOpen = false;
+    quickWindowSnapshot = null;
+    await tick();
+    await appWindow.setAlwaysOnTop(false).catch(() => {});
+    if (snapshot) {
+      await appWindow.setMinSize(new LogicalSize(1040, 500)).catch(() => {});
+      await appWindow.setSize(snapshot.size).catch(() => {});
+      await appWindow.setPosition(snapshot.position).catch(() => {});
+      if (snapshot.maximized) await appWindow.maximize().catch(() => {});
+      if (forceVisible || snapshot.visible) {
+        await appWindow.show();
+        await appWindow.setFocus().catch(() => {});
+      } else {
+        await appWindow.hide();
+      }
+      return;
+    }
+    if (forceVisible) {
+      await appWindow.show();
+      await appWindow.setFocus().catch(() => {});
+    } else {
+      await appWindow.hide();
+    }
+  }
+
+  function queueQuickWindowTransition(operation: () => Promise<void>) {
+    quickWindowTransition = quickWindowTransition
+      .catch(() => {})
+      .then(operation)
+      .catch((error) => {
+        console.warn("Quick chat window transition failed", error);
+      });
+    return quickWindowTransition;
+  }
+
+  function toggleQuickChat() {
+    return queueQuickWindowTransition(() =>
+      quickChatOpen ? restoreMainWindow(false) : showQuickChatWindow(),
+    );
+  }
+
+  function closeQuickChat() {
+    return queueQuickWindowTransition(() => restoreMainWindow(false));
+  }
+
+  function openFullAppFromQuickChat() {
+    return queueQuickWindowTransition(() => restoreMainWindow(true));
+  }
+
+  async function initializeQuickChatShortcut() {
+    if (!tauriAvailable || quickShortcutRegistered) return;
+    await unregister(quickChatShortcut).catch(() => {});
+    await register(quickChatShortcut, (event) => {
+      if (event.state === "Pressed") void toggleQuickChat();
+    });
+    quickShortcutRegistered = true;
+  }
+
+  function handleQuickChatKeydown(event: KeyboardEvent) {
+    if (!quickChatOpen || event.key !== "Escape") return;
+    event.preventDefault();
+    void closeQuickChat();
+  }
+
+  function handleQuickModelChange(value: string) {
+    selectedModel = value;
+    handleModelChange(value);
+  }
+
+  function handleQuickRoleChange(value: string) {
+    void changeConversationRole(value);
+  }
+
+  function handleQuickWorkspaceChange(value: string) {
+    if (value && value !== workspacePath) void applyWorkspace(value);
+  }
 
   function toggleSidebar() {
     sidebarCollapsed = !sidebarCollapsed;
@@ -3683,13 +3845,105 @@
   function handleContextMenu(event: MouseEvent) {
     if (!isDebugBuild) event.preventDefault();
   }
+
+  onMount(() => {
+    return () => {
+      if (quickShortcutRegistered) void unregister(quickChatShortcut).catch(() => {});
+    };
+  });
 </script>
 
-<svelte:window oncontextmenu={handleContextMenu} />
+<svelte:window oncontextmenu={handleContextMenu} onkeydown={handleQuickChatKeydown} />
 
 <TooltipPrimitive.Provider delayDuration={500} skipDelayDuration={300}>
   {#if isDevInspectorWindow && DevInspector}
     <DevInspector />
+  {:else if quickChatOpen}
+    <div class="quick-chat-stage">
+      <QuickChat
+        {selectedModel}
+        {modelOptions}
+        selectedRole={selectedRoleKey}
+        roleOptions={quickRoleOptions}
+        selectedWorkspace={workspacePath}
+        workspaceOptions={quickWorkspaceOptions}
+        isStreaming={isCurrentStreaming}
+        isEmpty={!activeConvId && messages.length === 0 && !isCurrentStreaming}
+        {workspaceLoading}
+        onModelChange={handleQuickModelChange}
+        onRoleChange={handleQuickRoleChange}
+        onWorkspaceChange={handleQuickWorkspaceChange}
+        onPickWorkspace={() => void pickWorkspace(true)}
+        onNewConversation={newConversation}
+        onOpenFullApp={() => void openFullAppFromQuickChat()}
+        onClose={() => void closeQuickChat()}
+        onMessagesElementChange={(element) => (messagesEl = element)}
+        onMessagesScroll={handleMessagesScroll}
+        onCancelScroll={cancelBottomScrollFromUser}
+      >
+        {#snippet composer()}
+          <MessageInput
+            bind:value={inputText}
+            bind:attachments={inputAttachments}
+            bind:selectedModel
+            {modelOptions}
+            placeholder={tauriAvailable
+              ? modelOptions.length
+                ? $t("quickChatPlaceholder")
+                : $t("modelSetupHint")
+              : browserModeNotice}
+            disabled={!tauriAvailable}
+            isStreaming={isCurrentStreaming}
+            sendDisabled={(!inputText.trim() && inputAttachments.length === 0) ||
+              !tauriAvailable ||
+              modelOptions.length === 0}
+            sendTitle={$t("send")}
+            slashCommands={[]}
+            enableMentions={false}
+            showAttachments
+            showModelSelector={false}
+            onSend={sendMessage}
+            onStop={stopMessage}
+          />
+        {/snippet}
+        {#snippet transcript(scrollElement)}
+          <MessageList
+            {messages}
+            {scrollElement}
+            isStreaming={isCurrentStreaming}
+            isAwaitingStreamOutput={isCurrentAwaitingStreamOutput}
+            memoryRetrievalStage={currentMemoryRetrievalStage}
+            memoryRetrievalCanSkip={currentMemoryRetrievalCanSkip}
+            {currentStreamItems}
+            {currentStreamMessageId}
+            {activeConvId}
+            activeBranchId={activeConvId ? (activeBranchIds[activeConvId] ?? null) : null}
+            debugMode={false}
+            activeTree={activeConvId ? convTrees[activeConvId] : undefined}
+            paddingBottom={24}
+            showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(config)}
+            {shikiTheme}
+            {mermaidConfig}
+            htmlPreviewConfig={config?.html_preview}
+            messageLayout="single"
+            messageDoubleColumnMinWidth={9999}
+            tailAnchorToken={streamCompletionTailAnchor?.convId === activeConvId
+              ? streamCompletionTailAnchor.token
+              : null}
+            onTailAnchorSettled={finishStreamCompletionTailAnchor}
+            newConversationMemoryPrompt={null}
+            newConversationMemoryLoading={false}
+            checkpointLoadError={activeConvId ? (checkpointLoadErrors[activeConvId] ?? null) : null}
+            onCommitEdit={commitEdit}
+            onReExecute={reExecuteMsg}
+            onSwitchBranch={switchBranchAt}
+            onSubmitUserInput={submitUserInput}
+            onCancelUserInput={cancelUserInput}
+            onSkipMemoryRetrieval={skipCurrentMemoryRetrieval}
+          />
+        {/snippet}
+      </QuickChat>
+    </div>
   {:else}
     <div class="app" class:sidebar-collapsed={sidebarCollapsed}>
       <!-- ─── Sidebar ─────────────────────────────────────────────────────────────── -->
@@ -4137,6 +4391,14 @@
     syntax: "<number>";
     inherits: false;
     initial-value: 0;
+  }
+
+  .quick-chat-stage {
+    width: 100vw;
+    height: 100vh;
+    padding: 8px;
+    overflow: hidden;
+    background: var(--bg);
   }
 
   .app {
