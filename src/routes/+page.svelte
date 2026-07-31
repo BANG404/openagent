@@ -1,7 +1,8 @@
 <script lang="ts">
   import { isTauri } from "@tauri-apps/api/core";
-  import { LogicalSize, type PhysicalPosition, type PhysicalSize } from "@tauri-apps/api/dpi";
+  import { LogicalSize } from "@tauri-apps/api/dpi";
   import { homeDir } from "@tauri-apps/api/path";
+  import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
@@ -31,7 +32,7 @@
     formatQuickChatShortcut,
     normalizeQuickChatShortcut,
   } from "$lib/quickChatShortcut";
-  import { runQuickChatSubmission } from "$lib/quickChatSubmission";
+  import { loadQuickChatPreferences, saveQuickChatPreferences } from "$lib/quickChatPreferences";
   import { desktopOpenAgent as openAgent, invoke, listen } from "$lib/openagent/tauriClient";
   import type { ChatMemoryRetrievalStage, ChatRunStartedEvent } from "$lib/openagent";
   import {
@@ -160,12 +161,13 @@
     return !provider || (providerRequiresApiKey(provider.provider) && !provider.api_key.trim());
   }
 
-  const devQuery =
-    import.meta.env.DEV && typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search)
-      : null;
+  const runtimeQuery =
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const devQuery = import.meta.env.DEV ? runtimeQuery : null;
   const isDevInspectorWindow = devQuery?.has("dev-inspector") === true;
   const isQuickChatPreview = devQuery?.has("quick-chat-preview") === true;
+  const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
+  const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
   const quickChatPreviewTheme =
     devQuery?.get("quick-chat-preview-theme") === "dark" ? "dark" : null;
   const quickChatPreviewLocale: Locale | null =
@@ -416,18 +418,16 @@
   let inputText = $state("");
   let inputAttachments = $state<ChatAttachment[]>([]);
   let selectedModel = $state("");
-  let quickChatOpen = $state(isQuickChatPreview);
+  let quickChatModel = $state("");
+  let quickChatRole = $state(defaultRoleKey);
+  let quickChatWorkspace = $state("");
+  let quickChatRoles = $state<AgentRole[]>([]);
   let quickChatSelectorOpen = $state(false);
   let quickChatSubmitting = $state(false);
   let quickChatFocusArmed = false;
+  let quickChatFocusSuppressed = false;
   let registeredQuickChatShortcut: string | null = null;
   let quickWindowTransition: Promise<void> = Promise.resolve();
-  let quickWindowSnapshot: {
-    position: PhysicalPosition;
-    size: PhysicalSize;
-    maximized: boolean;
-    visible: boolean;
-  } | null = null;
   let defaultChatModelSaveQueue: Promise<void> = Promise.resolve();
   // Keep pending submissions scoped to their conversation so switching chats while
   // a response is streaming never sends a message to the wrong conversation.
@@ -469,7 +469,7 @@
       label: $t("defaultRoleName"),
       description: $t("defaultRoleDescription"),
     },
-    ...agentRoles.map((role) => ({
+    ...quickChatRoles.map((role) => ({
       value: role.id,
       label: role.name,
       description: role.description,
@@ -478,15 +478,15 @@
 
   let quickWorkspaceOptions = $derived.by(() => {
     const options = [
-      ...(workspacePath
+      ...(quickChatWorkspace
         ? [
             {
-              value: workspacePath,
+              value: quickChatWorkspace,
               label:
-                recentWorkspaces.find((recent) => recent.path === workspacePath)?.name ??
-                workspacePath.split(/[/\\]/).filter(Boolean).pop() ??
-                workspacePath,
-              description: workspacePath,
+                recentWorkspaces.find((recent) => recent.path === quickChatWorkspace)?.name ??
+                quickChatWorkspace.split(/[/\\]/).filter(Boolean).pop() ??
+                quickChatWorkspace,
+              description: quickChatWorkspace,
             },
           ]
         : []),
@@ -1405,6 +1405,52 @@
     }
   }
 
+  function persistQuickChatPreferences(): void {
+    if (typeof window === "undefined") return;
+    saveQuickChatPreferences(window.localStorage, {
+      model: quickChatModel,
+      role: quickChatRole,
+      workspace: quickChatWorkspace,
+    });
+  }
+
+  async function loadQuickChatRoles(workspace: string): Promise<void> {
+    if (!tauriAvailable) {
+      quickChatRoles = [];
+      quickChatRole = defaultRoleKey;
+      return;
+    }
+    quickChatRoles = await invoke<AgentRole[]>("list_agent_roles_for_workspace", {
+      workspace,
+    }).catch(() => []);
+    if (
+      quickChatRole !== defaultRoleKey &&
+      !quickChatRoles.some((role) => role.id === quickChatRole)
+    ) {
+      quickChatRole = defaultRoleKey;
+    }
+  }
+
+  async function initializeQuickChatSurface(): Promise<void> {
+    await loadSettings();
+    const preferences = loadQuickChatPreferences(window.localStorage);
+    const fallbackModel = config
+      ? encodeModelBinding(config.defaults.chat_model.provider_id, config.defaults.chat_model.model)
+      : "";
+    quickChatModel = modelOptions.some((option) => option.value === preferences.model)
+      ? (preferences.model ?? "")
+      : modelOptions.some((option) => option.value === fallbackModel)
+        ? fallbackModel
+        : (modelOptions[0]?.value ?? "");
+    quickChatWorkspace =
+      preferences.workspace || config?.workspace || recentWorkspaces[0]?.path || "";
+    if (!quickChatWorkspace && tauriAvailable) quickChatWorkspace = await homeDir();
+    quickChatRole = preferences.role || defaultRoleKey;
+    await loadQuickChatRoles(quickChatWorkspace);
+    persistQuickChatPreferences();
+    initialLoading = false;
+  }
+
   async function reloadRoleConversations(preserveConversationId?: string | null): Promise<void> {
     if (!tauriAvailable) return;
     const preserved = preserveConversationId
@@ -1594,6 +1640,11 @@
 
   onMount(async () => {
     if (isDevInspectorWindow) return;
+    if (isQuickChatSurface) {
+      if (isQuickChatWindow) document.documentElement.classList.add("quick-chat-window");
+      await initializeQuickChatSurface();
+      return;
+    }
     const mountedAt = performance.now();
     let bootstrapReadyAt = mountedAt;
     let startupApplied = false;
@@ -3752,63 +3803,38 @@
 
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
   const quickChatCompactSize = { width: 760, height: 190 };
-  const quickChatExpandedSize = { width: 760, height: 440 };
+  const quickChatExpandedSize = { width: 760, height: 500 };
   const winMinimize = () => appWindow?.minimize();
   const winMaximize = () => appWindow?.toggleMaximize();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
-  async function showQuickChatWindow() {
-    if (!appWindow || quickChatOpen) return;
-    quickChatFocusArmed = false;
-    quickChatSelectorOpen = false;
-    quickWindowSnapshot = {
-      position: await appWindow.outerPosition(),
-      size: await appWindow.outerSize(),
-      maximized: await appWindow.isMaximized(),
-      visible: await appWindow.isVisible(),
-    };
-    if (quickWindowSnapshot.maximized) await appWindow.unmaximize();
-    await appWindow.setMinSize(new LogicalSize(680, quickChatCompactSize.height));
-    await appWindow.setSize(
-      new LogicalSize(quickChatCompactSize.width, quickChatCompactSize.height),
-    );
-    await appWindow.center();
-    await appWindow.setAlwaysOnTop(true);
-    quickChatOpen = true;
-    await tick();
-    await appWindow.unminimize().catch(() => {});
-    await appWindow.show();
-    await appWindow.setFocus();
-    quickChatFocusArmed = true;
+
+  async function getQuickChatWindow() {
+    if (!tauriAvailable) return null;
+    return isQuickChatWindow ? appWindow : await WebviewWindow.getByLabel("quick-chat");
   }
 
-  async function restoreMainWindow(forceVisible: boolean) {
-    if (!appWindow) return;
-    const snapshot = quickWindowSnapshot;
+  async function showQuickChatWindow() {
+    const quickWindow = await getQuickChatWindow();
+    if (!quickWindow) return;
+    await quickWindow.setSize(
+      new LogicalSize(quickChatCompactSize.width, quickChatCompactSize.height),
+    );
+    await quickWindow.center();
+    await quickWindow.unminimize().catch(() => {});
+    await quickWindow.show();
+    await quickWindow.setFocus();
+  }
+
+  async function hideQuickChatWindow() {
+    const quickWindow = await getQuickChatWindow();
+    if (!quickWindow) return;
     quickChatFocusArmed = false;
+    quickChatFocusSuppressed = false;
     quickChatSelectorOpen = false;
-    quickChatOpen = false;
-    quickWindowSnapshot = null;
-    await tick();
-    await appWindow.setAlwaysOnTop(false).catch(() => {});
-    if (snapshot) {
-      await appWindow.setMinSize(new LogicalSize(1040, 500)).catch(() => {});
-      await appWindow.setSize(snapshot.size).catch(() => {});
-      await appWindow.setPosition(snapshot.position).catch(() => {});
-      if (snapshot.maximized) await appWindow.maximize().catch(() => {});
-      if (forceVisible || snapshot.visible) {
-        await appWindow.show();
-        await appWindow.setFocus().catch(() => {});
-      } else {
-        await appWindow.hide();
-      }
-      return;
-    }
-    if (forceVisible) {
-      await appWindow.show();
-      await appWindow.setFocus().catch(() => {});
-    } else {
-      await appWindow.hide();
-    }
+    await quickWindow.hide();
+    await quickWindow
+      .setSize(new LogicalSize(quickChatCompactSize.width, quickChatCompactSize.height))
+      .catch(() => {});
   }
 
   function queueQuickWindowTransition(operation: () => Promise<void>) {
@@ -3821,30 +3847,71 @@
     return quickWindowTransition;
   }
 
-  function toggleQuickChat() {
+  async function toggleQuickChat() {
+    const quickWindow = await getQuickChatWindow();
+    if (!quickWindow) return;
+    const visible = await quickWindow.isVisible();
     return queueQuickWindowTransition(() =>
-      quickChatOpen ? restoreMainWindow(false) : showQuickChatWindow(),
+      visible ? hideQuickChatWindow() : showQuickChatWindow(),
     );
   }
 
   function closeQuickChat() {
-    return queueQuickWindowTransition(() => restoreMainWindow(false));
+    return queueQuickWindowTransition(hideQuickChatWindow);
   }
 
-  function openFullAppFromQuickChat() {
-    return queueQuickWindowTransition(() => restoreMainWindow(true));
+  async function openFullAppFromQuickChat() {
+    if (!tauriAvailable) {
+      alert(browserModeNotice);
+      return;
+    }
+    quickChatFocusArmed = false;
+    quickChatFocusSuppressed = true;
+    try {
+      if (quickChatWorkspace) {
+        await invoke("open_workspace_window", {
+          path: quickChatWorkspace,
+          conversationId: null,
+          messageId: null,
+        });
+      } else {
+        const mainWindow = await WebviewWindow.getByLabel("main");
+        await mainWindow?.show();
+        await mainWindow?.setFocus();
+      }
+      await closeQuickChat();
+    } catch (error) {
+      showToast({ title: String(error), variant: "error" });
+      await appWindow?.setFocus().catch(() => {});
+      quickChatFocusSuppressed = false;
+      quickChatFocusArmed = true;
+    }
   }
 
   function handleQuickSelectorOpenChange(open: boolean) {
     quickChatSelectorOpen = open;
-    if (!appWindow || !quickChatOpen) return;
+    if (!isQuickChatWindow || !appWindow) return;
     void queueQuickWindowTransition(async () => {
-      if (!quickChatOpen || quickChatSelectorOpen !== open) return;
+      if (quickChatSelectorOpen !== open) return;
       const size = open ? quickChatExpandedSize : quickChatCompactSize;
-      await appWindow.setMinSize(new LogicalSize(680, size.height));
       await appWindow.setSize(new LogicalSize(size.width, size.height));
-      await appWindow.center();
     });
+  }
+
+  async function startQuickChatDrag(event: PointerEvent) {
+    if (!isQuickChatWindow || !appWindow || event.button !== 0) return;
+    const target = event.target;
+    if (target instanceof Element && target.closest("button, input, textarea, select, a")) return;
+    event.preventDefault();
+    quickChatFocusArmed = false;
+    quickChatFocusSuppressed = true;
+    try {
+      await appWindow.startDragging();
+      await appWindow.setFocus().catch(() => {});
+    } finally {
+      quickChatFocusSuppressed = false;
+      quickChatFocusArmed = true;
+    }
   }
 
   async function replaceQuickChatShortcut(shortcut: string) {
@@ -3883,7 +3950,7 @@
   }
 
   function handleQuickChatKeydown(event: KeyboardEvent) {
-    if (!quickChatOpen || event.key !== "Escape") return;
+    if (!isQuickChatSurface || event.key !== "Escape") return;
     event.preventDefault();
     void closeQuickChat();
   }
@@ -3897,43 +3964,79 @@
       alert(browserModeNotice);
       return;
     }
-    if (!selectedModel || !modelOptions.some((option) => option.value === selectedModel)) {
+    if (!quickChatModel || !modelOptions.some((option) => option.value === quickChatModel)) {
       showToast({ title: $t("modelSetupRequired"), variant: "error" });
-      await openFullAppFromQuickChat();
-      await openSettings("providers");
       return;
     }
 
-    const model = selectedModel;
+    if (!quickChatWorkspace) {
+      showToast({ title: $t("switchWorkspace"), variant: "error" });
+      return;
+    }
+    const model = quickChatModel;
     quickChatSubmitting = true;
-    // Submission owns the next window transition. Native focus changes while
-    // the turn is starting must not race it with the ordinary close behavior.
     quickChatFocusArmed = false;
+    quickChatFocusSuppressed = true;
     try {
-      await runQuickChatSubmission(
-        async () => {
-          await newConversation();
-          await dispatchQueuedOrImmediateMessage(text, null, attachments, model, true);
-        },
-        openFullAppFromQuickChat,
-        (error) => showToast({ title: String(error), variant: "error" }),
-      );
+      await invoke<string>("submit_quick_chat", {
+        workspace: quickChatWorkspace,
+        text: text.trim() || $t("attachmentOnlyPrompt"),
+        attachments: attachments.map((attachment) => attachment.path),
+        modelBinding: decodeModelBinding(model),
+        roleId: quickChatRole === defaultRoleKey ? null : quickChatRole,
+      });
+      inputText = "";
+      inputAttachments = [];
+      await closeQuickChat();
+    } catch (error) {
+      showToast({ title: String(error), variant: "error" });
+      await appWindow?.setFocus().catch(() => {});
+      quickChatFocusSuppressed = false;
+      quickChatFocusArmed = true;
     } finally {
       quickChatSubmitting = false;
     }
   }
 
   function handleQuickModelChange(value: string) {
-    selectedModel = value;
-    handleModelChange(value);
+    quickChatModel = value;
+    persistQuickChatPreferences();
   }
 
   function handleQuickRoleChange(value: string) {
-    void changeConversationRole(value);
+    quickChatRole = value;
+    persistQuickChatPreferences();
   }
 
-  function handleQuickWorkspaceChange(value: string) {
-    if (value && value !== workspacePath) void applyWorkspace(value);
+  async function handleQuickWorkspaceChange(value: string) {
+    if (!value || value === quickChatWorkspace) return;
+    quickChatWorkspace = value;
+    quickChatRole = defaultRoleKey;
+    await loadQuickChatRoles(value);
+    persistQuickChatPreferences();
+  }
+
+  async function pickQuickChatWorkspace() {
+    if (!tauriAvailable) return;
+    quickChatFocusArmed = false;
+    quickChatFocusSuppressed = true;
+    try {
+      const selected = await openDialog({
+        directory: true,
+        multiple: false,
+        defaultPath: quickChatWorkspace || (await homeDir()),
+      });
+      if (typeof selected === "string" && selected) {
+        quickChatWorkspace = selected;
+        quickChatRole = defaultRoleKey;
+        await loadQuickChatRoles(selected);
+        persistQuickChatPreferences();
+      }
+      await appWindow?.setFocus().catch(() => {});
+    } finally {
+      quickChatFocusSuppressed = false;
+      quickChatFocusArmed = true;
+    }
   }
 
   function toggleSidebar() {
@@ -3949,7 +4052,13 @@
 
   onMount(() => {
     const unlistenQuickChatFocus = appWindow?.onFocusChanged(({ payload: focused }) => {
-      if (!focused && quickChatOpen && quickChatFocusArmed) void closeQuickChat();
+      if (!isQuickChatWindow) return;
+      if (quickChatFocusSuppressed) return;
+      if (focused) {
+        quickChatFocusArmed = true;
+      } else if (quickChatFocusArmed) {
+        void closeQuickChat();
+      }
     });
     return () => {
       void unlistenQuickChatFocus?.then((dispose) => dispose());
@@ -3965,14 +4074,14 @@
 <TooltipPrimitive.Provider delayDuration={500} skipDelayDuration={300}>
   {#if isDevInspectorWindow && DevInspector}
     <DevInspector />
-  {:else if quickChatOpen}
+  {:else if isQuickChatSurface}
     <div class="quick-chat-stage">
       <QuickChat
-        {selectedModel}
+        selectedModel={quickChatModel}
         {modelOptions}
-        selectedRole={selectedRoleKey}
+        selectedRole={quickChatRole}
         roleOptions={quickRoleOptions}
-        selectedWorkspace={workspacePath}
+        selectedWorkspace={quickChatWorkspace}
         workspaceOptions={quickWorkspaceOptions}
         shortcutLabel={formatQuickChatShortcut(
           config?.quick_chat_shortcut ?? DEFAULT_QUICK_CHAT_SHORTCUT,
@@ -3981,8 +4090,9 @@
         onModelChange={handleQuickModelChange}
         onRoleChange={handleQuickRoleChange}
         onWorkspaceChange={handleQuickWorkspaceChange}
-        onPickWorkspace={() => void pickWorkspace(true)}
+        onPickWorkspace={() => void pickQuickChatWorkspace()}
         onSelectorOpenChange={handleQuickSelectorOpenChange}
+        onDragStart={startQuickChatDrag}
         onOpenFullApp={() => void openFullAppFromQuickChat()}
         onClose={() => void closeQuickChat()}
       >
@@ -3990,7 +4100,7 @@
           <MessageInput
             bind:value={inputText}
             bind:attachments={inputAttachments}
-            bind:selectedModel
+            selectedModel={quickChatModel}
             {modelOptions}
             placeholder={tauriAvailable
               ? modelOptions.length
@@ -4465,10 +4575,15 @@
 
   .quick-chat-stage {
     width: 100vw;
-    height: 100vh;
+    height: 190px;
     padding: 8px;
-    overflow: hidden;
-    background: var(--bg);
+    overflow: visible;
+    background: transparent;
+  }
+
+  :global(html.quick-chat-window),
+  :global(html.quick-chat-window body) {
+    background: transparent;
   }
 
   .app {

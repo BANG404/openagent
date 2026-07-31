@@ -27,6 +27,7 @@
     onWorkspaceChange,
     onPickWorkspace,
     onSelectorOpenChange,
+    onDragStart,
     onOpenFullApp,
     onClose,
   }: {
@@ -44,6 +45,7 @@
     onWorkspaceChange: (value: string) => void;
     onPickWorkspace: () => void;
     onSelectorOpenChange: (open: boolean) => void;
+    onDragStart: (event: PointerEvent) => void;
     onOpenFullApp: () => void;
     onClose: () => void;
   } = $props();
@@ -57,13 +59,13 @@
   }
 </script>
 
-<section
-  class="quick-chat"
-  class:selector-open={openSelector !== null}
-  aria-label={$t("quickChat")}
-  data-tauri-drag-region
->
-  <header class="quick-header" data-tauri-drag-region>
+<section class="quick-chat" aria-label={$t("quickChat")} data-tauri-drag-region>
+  <header
+    class="quick-header"
+    role="presentation"
+    data-tauri-drag-region
+    onpointerdown={onDragStart}
+  >
     <div class="quick-brand" data-tauri-drag-region>
       <span class="quick-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none">
@@ -121,7 +123,10 @@
           disabled={modelOptions.length === 0}
           triggerClass="quick-select-trigger"
           contentClass="quick-select-content"
-          contentSide="top"
+          contentSide="bottom"
+          contentSideOffset={10}
+          contentAlign="start"
+          contentAvoidCollisions={false}
           searchable
           searchPlaceholder={$t("searchModels")}
           emptyText={$t("noMatchingModels")}
@@ -140,7 +145,10 @@
           items={roleOptions}
           triggerClass="quick-select-trigger"
           contentClass="quick-select-content quick-role-select-content"
-          contentSide="top"
+          contentSide="bottom"
+          contentSideOffset={10}
+          contentAlign="start"
+          contentAvoidCollisions={false}
           searchable
           searchPlaceholder={$t("roleSelectorSearch")}
           emptyText={$t("noMatchingRoles")}
@@ -160,7 +168,10 @@
           disabled={workspaceLoading || workspaceOptions.length === 0}
           triggerClass="quick-select-trigger"
           contentClass="quick-select-content"
-          contentSide="top"
+          contentSide="bottom"
+          contentSideOffset={10}
+          contentAlign="start"
+          contentAvoidCollisions={false}
           searchable
           searchPlaceholder={$t("switchWorkspace")}
           emptyText={$t("noRecentWorkspaces")}
@@ -195,18 +206,12 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: color-mix(in srgb, var(--surface) 91%, transparent);
+    background: var(--surface);
     color: var(--text);
     border-radius: 14px;
     box-shadow:
       inset 0 0 0 1px color-mix(in srgb, var(--text) 8%, transparent),
-      0 24px 80px rgba(0, 0, 0, 0.3);
-    -webkit-backdrop-filter: blur(28px) saturate(1.18);
-    backdrop-filter: blur(28px) saturate(1.18);
-  }
-
-  .quick-chat.selector-open {
-    grid-template-rows: 38px auto minmax(0, 1fr) 48px;
+      0 8px 20px rgba(0, 0, 0, 0.12);
   }
 
   .quick-chat::before {
@@ -369,6 +374,15 @@
     box-shadow: none;
   }
 
+  .composer-slot :global(.composer-toolbar) {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 34px;
+    padding: 0 48px 4px 9px;
+  }
+
   .composer-slot :global(.input) {
     min-height: 54px;
     max-height: 108px;
@@ -461,6 +475,10 @@
     height: min(286px, var(--bits-select-content-available-height, 286px));
     min-width: 230px;
     max-width: 360px;
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
   }
 
   :global(.quick-role-select-content .ui-select-item-description) {

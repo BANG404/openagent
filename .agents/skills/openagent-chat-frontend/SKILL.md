@@ -78,31 +78,39 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 ## Quick chat
 
-- The Raycast-style quick chat is a launcher presentation of the primary
-  window, not a second chat client. It owns no transcript. Every submission
-  creates a fresh durable conversation with the selected model, role, and
-  workspace, starts that turn through the shared SDK client, then restores the
-  main window on the newly created streaming conversation.
-- Entering quick chat may resize, center, and temporarily pin the primary
-  window, but closing it must restore the prior size, position, maximized state,
-  and visibility. Losing native window focus closes it. Opening the full
-  application or submitting from quick chat restores the same geometry while
-  forcing the window visible. Once a submission starts, disarm focus-loss
-  closing and restore the visible main window in a guaranteed cleanup path,
-  including when conversation or branch startup fails.
+- The Raycast-style quick chat is a dedicated, workspace-neutral Tauri window,
+  not a presentation mode of `main` and not a second chat client. It owns no
+  transcript. The primary process owns its shortcut and launcher lifecycle,
+  while workspace windows retain their size, position, visibility, and runtime
+  state.
+- Quick chat persists its own last-selected model, role, and workspace. Every
+  submission creates a fresh durable conversation, routes the first turn to
+  the selected workspace process, opens or focuses that workspace window, and
+  displays the new streaming conversation there. The launcher must not mutate
+  the primary window's active workspace, role, model default, or transcript.
+- Losing native focus closes the launcher except while a submission, native
+  picker, or window drag owns focus. Suppress focus-close handling for the full
+  native operation rather than only disarming its current state, because focus
+  can toggle during the operation. A submission hides the launcher only after
+  the target workspace accepted the turn; failures keep it visible with its
+  draft intact.
 - A webview cannot paint beyond its native window bounds. Keep the launcher
-  compact while selectors are closed, temporarily expand and recenter the
-  native window while a selector is open, and shrink it when the selector
-  closes. Selector content has a fixed scrollable height; role descriptions are
-  line-clamped so one role cannot consume the menu.
+  card compact and fixed-height, temporarily expand only its transparent native
+  window while a selector is open, and shrink it when the selector closes.
+  Keep the card and selector surfaces opaque, use the title row as an explicit
+  native drag handle, and open selectors below and visually outside the card,
+  aligned to their trigger start edge, without collision-based side flipping.
+  Use restrained launcher-specific shadows so the transparent expansion area
+  has no visible haze. Selector content has a fixed scrollable height; role
+  descriptions are line-clamped so one role cannot consume the menu.
 - General settings owns the persisted quick-chat accelerator. Capturing a new
   accelerator requires at least one modifier and stores the portable Tauri
   representation. Re-registration is transactional: unregister the old
   accelerator, register the new one, and restore the old registration plus
   saved value when the operating system rejects or already owns the new
   accelerator.
-- Role and workspace changes from quick chat set the context for the next fresh
-  conversation. Never restore or render quick-chat-only conversation history.
+- Role and workspace changes affect only the next quick-chat conversation.
+  Never restore or render conversation history in the launcher.
 - Keep the development-only `quick-chat-preview` query available for browser
   layout verification; it must not register shortcuts or emulate native
   window behavior outside Tauri.

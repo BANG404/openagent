@@ -110,6 +110,14 @@ async fn list_agent_roles(
 }
 
 #[tauri::command]
+async fn list_agent_roles_for_workspace(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    workspace: String,
+) -> Result<Vec<AgentRole>, String> {
+    openagent_app::commands::list_agent_roles_for_workspace(runtime.state(), workspace).await
+}
+
+#[tauri::command]
 async fn save_agent_role(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     id: Option<String>,
@@ -979,6 +987,28 @@ async fn open_workspace_window(
 }
 
 #[tauri::command]
+async fn submit_quick_chat(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    workspace: String,
+    text: String,
+    attachments: Option<Vec<String>>,
+    model_binding: Option<ChatModelBinding>,
+    role_id: Option<String>,
+) -> Result<String, String> {
+    openagent_app::commands::submit_quick_chat(
+        runtime.inner().clone(),
+        QuickChatSubmission {
+            workspace,
+            text,
+            attachments: attachments.unwrap_or_default(),
+            model_binding,
+            role_id,
+        },
+    )
+    .await
+}
+
+#[tauri::command]
 async fn get_conversation_workspace(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
@@ -1150,6 +1180,25 @@ fn run_with_mode(agent_server: bool) {
                 }
             }
 
+            if !agent_server && !is_workspace_window {
+                tauri::WebviewWindowBuilder::new(
+                    app,
+                    "quick-chat",
+                    tauri::WebviewUrl::App("/?quick-chat-window=1".into()),
+                )
+                .title("OpenAgent Quick Chat")
+                .inner_size(760.0, 190.0)
+                .min_inner_size(680.0, 190.0)
+                .decorations(false)
+                .transparent(true)
+                .resizable(false)
+                .always_on_top(true)
+                .skip_taskbar(true)
+                .shadow(false)
+                .visible(false)
+                .build()?;
+            }
+
             // Publish the AppHandle to anything that needs to emit events to the
             // frontend from outside a command (e.g. AskUserTool).
             let state = app.state::<AppState>();
@@ -1283,6 +1332,7 @@ fn run_with_mode(agent_server: bool) {
             get_startup_bootstrap,
             get_workspace_launch_context,
             open_workspace_window,
+            submit_quick_chat,
             get_conversation_workspace,
             clear_conversation,
             submit_agent_input,
@@ -1312,6 +1362,7 @@ fn run_with_mode(agent_server: bool) {
             get_agent_memories,
             delete_agent_memory,
             list_agent_roles,
+            list_agent_roles_for_workspace,
             save_agent_role,
             delete_agent_role,
             list_project_drafts,

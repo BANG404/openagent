@@ -242,25 +242,31 @@ with the accelerator configured in General settings
 platform-native label, requires at least one modifier, applies a captured
 combination immediately, and provides a quiet reset action. Registration
 conflicts appear inline and leave the previous accelerator active. The primary
-desktop window temporarily becomes a centered 760 × 190px always-on-top
-launcher, then restores its previous geometry and visibility on `Escape`,
-close, shortcut toggle, or native focus loss. The launcher is one continuous
-raised surface with a 14px radius: a quiet draggable utility header, a large
-borderless composer, and a 48px footer for model, role, and workspace selectors.
-It has no transcript. Every submission creates a fresh durable conversation,
-starts the turn through the shared SDK client, restores the main window, and
-shows that new streaming conversation. Submission takes ownership of the window
-transition: native focus loss cannot close it while the turn starts, and a
-startup failure still restores the visible full window. Because a webview cannot
-render beyond
-its native bounds, opening a selector temporarily expands and recenters the
-window to 760 × 440px; closing the selector returns to the compact height.
-Selector content uses a fixed scrollable height, and role descriptions are
-limited to two lines. The model selector updates the default chat binding,
-while role and workspace choices set the context for the next conversation.
-“Open full window” keeps the application visible after geometry restoration.
-Use restrained aurora light behind the composer only; controls remain on
-semantically filled surfaces with the shared shadow tokens. The
+desktop process owns a separate centered 760 × 190px always-on-top launcher;
+workspace windows never resize or change visibility when it opens. The launcher
+is one continuous raised surface with a 14px radius: a quiet draggable utility
+header, a large borderless composer, and a 48px footer for model, role, and
+workspace selectors. It has no transcript and remembers its own model, role,
+and workspace tuple without changing the primary window's defaults. Every
+submission creates a fresh durable conversation, routes the turn to the selected
+workspace process, opens or focuses that workspace window, and shows the new
+streaming conversation there. Failures keep the launcher and draft visible.
+Because a webview cannot render beyond its native bounds, opening a selector
+temporarily expands only the transparent launcher window to 760 × 500px while
+the visible card remains compact; the menu opens below and outside the card.
+Closing the selector returns the native window to the compact height.
+The card and selector surfaces are opaque; transparency belongs only to the
+unused part of the expanded native window. Selectors stay below their trigger,
+align to its start edge, and do not use collision-based side flipping. The
+title row is the native window drag handle, drag-time focus changes must not
+close the launcher, and launcher shadows stay tight enough that the transparent
+expansion area has no visible haze. Selector content uses a fixed scrollable
+height, and role descriptions are limited to two lines. Model, role, and
+workspace selectors update only the launcher's remembered tuple for the next
+conversation. “Open full window” opens or focuses the selected workspace
+without starting a conversation. Use restrained aurora light behind the
+composer only; controls remain on semantically filled surfaces with a tight
+launcher-specific shadow. The
 `quick-chat-preview` development query renders this layout without native
 window or shortcut behavior for browser-based light/dark and localization
 checks.

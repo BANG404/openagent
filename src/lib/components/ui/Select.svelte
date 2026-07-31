@@ -20,6 +20,9 @@
     searchPlaceholder = "",
     emptyText = "",
     contentSide = "bottom",
+    contentSideOffset = 6,
+    contentAlign = "center",
+    contentAvoidCollisions = true,
     id,
     name,
     ariaLabel,
@@ -36,6 +39,9 @@
     searchPlaceholder?: string;
     emptyText?: string;
     contentSide?: "top" | "right" | "bottom" | "left";
+    contentSideOffset?: number;
+    contentAlign?: "start" | "center" | "end";
+    contentAvoidCollisions?: boolean;
     id?: string;
     name?: string;
     ariaLabel?: string;
@@ -88,7 +94,13 @@
     </svg>
   </Select.Trigger>
   <Select.Portal>
-    <Select.Content class="ui-select-content {contentClass}" side={contentSide} sideOffset={6}>
+    <Select.Content
+      class="ui-select-content {contentClass}"
+      side={contentSide}
+      sideOffset={contentSideOffset}
+      align={contentAlign}
+      avoidCollisions={contentAvoidCollisions}
+    >
       {#if searchable}
         <div class="ui-select-search-wrap">
           <svg class="ui-select-search-icon" viewBox="0 0 16 16" aria-hidden="true">
