@@ -14,6 +14,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 - Completed messages and the active response share the dynamic-height virtual
   list.
+- In responsive double-column mode, expanded process records participate in
+  pagination instead of moving as one container. Keep the process header with
+  its first record and preserve the same atomic break rules used by ordinary
+  assistant content.
 - Use the backend-preallocated assistant message ID as the live row key.
   Streaming and durable forms must share the same assistant-turn branch and
   keyed stream-item children.

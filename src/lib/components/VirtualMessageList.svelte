@@ -325,6 +325,25 @@
     break-after: avoid-column;
   }
 
+  .virtual-message-row.content-columns :global(.process-records) {
+    break-inside: auto;
+  }
+
+  .virtual-message-row.content-columns :global(.process-records > summary) {
+    break-inside: avoid-column;
+    break-after: avoid-column;
+  }
+
+  .virtual-message-row.content-columns :global(.process-record-content) {
+    display: block;
+  }
+
+  .virtual-message-row.content-columns
+    :global(.process-record-content > .message-record:not(.assistant-msg):not(.thinking-block)) {
+    break-inside: avoid-column;
+    margin-bottom: 4px;
+  }
+
   .virtual-message-row.content-columns :global(details),
   .virtual-message-row.content-columns :global(pre),
   .virtual-message-row.content-columns :global(table),
