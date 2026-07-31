@@ -237,21 +237,26 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 **`application-floating-surface`** — Shared treatment for dialogs, menus, popovers, command palettes, dropdown content, toasts, and floating previews. Use `var(--control-surface)`, no outer border, `var(--raised-shadow)`, and optional restrained backdrop blur. Internal dividers may remain when they separate content regions; status colors should use an inset accent or focus ring rather than restoring a perimeter border.
 
 **`quick-chat-palette`** — A Raycast-style compact conversation surface opened
-with `CommandOrControl+Shift+Space`. The primary desktop window temporarily
-becomes a centered 760 × 560px always-on-top palette, then restores its previous
-geometry and visibility on `Escape`, close, or shortcut toggle. The palette is
-one continuous raised surface with a 14px radius: a quiet draggable utility
-header, a large borderless composer, a scrollable single-column transcript, and
-a 48px footer for model, role, and workspace selectors. It reuses the normal
-conversation and streaming state instead of creating a separate transcript.
-The model selector updates the default chat binding, role changes open a new
-role conversation surface, and workspace changes restore that workspace in the
-current window. “Open full window” keeps the application visible after geometry
-restoration. Use restrained aurora light behind the composer only; the
-transcript and controls remain on semantically filled surfaces with the shared
-shadow tokens. The `quick-chat-preview` development query renders this layout
-without native window or shortcut behavior for browser-based light/dark and
-localization checks.
+with the accelerator configured in General settings
+(`CommandOrControl+Shift+Space` by default). The accelerator recorder shows the
+platform-native label, requires at least one modifier, applies a captured
+combination immediately, and provides a quiet reset action. Registration
+conflicts appear inline and leave the previous accelerator active. The primary
+desktop window temporarily becomes a centered 760 × 560px always-on-top
+palette, then restores its previous geometry and visibility on `Escape`, close,
+or shortcut toggle. The palette is one continuous raised surface with a 14px
+radius: a quiet draggable utility header, a large borderless composer, a
+scrollable single-column transcript, and a 48px footer for model, role, and
+workspace selectors. It reuses the normal conversation and streaming state
+instead of creating a separate transcript. The model selector updates the
+default chat binding, role changes open a new role conversation surface, and
+workspace changes restore that workspace in the current window. “Open full
+window” keeps the application visible after geometry restoration. Use
+restrained aurora light behind the composer only; the transcript and controls
+remain on semantically filled surfaces with the shared shadow tokens. The
+`quick-chat-preview` development query renders this layout without native
+window or shortcut behavior for browser-based light/dark and localization
+checks.
 
 Error and validation states were not surfaced in the analyzed pages.
 

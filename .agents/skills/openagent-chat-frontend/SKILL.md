@@ -87,6 +87,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   window, but closing it must restore the prior size, position, maximized state,
   and visibility. Opening the full application from quick chat restores the
   same geometry while forcing the window visible.
+- General settings owns the persisted quick-chat accelerator. Capturing a new
+  accelerator requires at least one modifier and stores the portable Tauri
+  representation. Re-registration is transactional: unregister the old
+  accelerator, register the new one, and restore the old registration plus
+  saved value when the operating system rejects or already owns the new
+  accelerator.
 - Role and workspace changes from quick chat deliberately start from the same
   durable boundaries as the full application: changing a role selects a new
   conversation surface, while changing a workspace restores that workspace's

@@ -26,6 +26,11 @@
   import { showToast } from "$lib/toast";
   import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
   import { providerRequiresApiKey } from "$lib/providerCatalog";
+  import {
+    DEFAULT_QUICK_CHAT_SHORTCUT,
+    formatQuickChatShortcut,
+    normalizeQuickChatShortcut,
+  } from "$lib/quickChatShortcut";
   import { desktopOpenAgent as openAgent, invoke, listen } from "$lib/openagent/tauriClient";
   import type { ChatMemoryRetrievalStage, ChatRunStartedEvent } from "$lib/openagent";
   import {
@@ -391,6 +396,7 @@
       page_size: 12000,
     },
     launch_on_startup: false,
+    quick_chat_shortcut: DEFAULT_QUICK_CHAT_SHORTCUT,
     mention_palette_show_global_drafts: true,
     message_layout: "single",
     message_double_column_min_width: 1200,
@@ -410,7 +416,7 @@
   let inputAttachments = $state<ChatAttachment[]>([]);
   let selectedModel = $state("");
   let quickChatOpen = $state(isQuickChatPreview);
-  let quickShortcutRegistered = false;
+  let registeredQuickChatShortcut: string | null = null;
   let quickWindowTransition: Promise<void> = Promise.resolve();
   let quickWindowSnapshot: {
     position: PhysicalPosition;
@@ -3526,8 +3532,16 @@
   }
 
   async function saveSettings(nextConfig: AppConfig) {
+    const previousShortcut = normalizeQuickChatShortcut(
+      config?.quick_chat_shortcut ?? DEFAULT_QUICK_CHAT_SHORTCUT,
+    );
+    const nextShortcut = normalizeQuickChatShortcut(nextConfig.quick_chat_shortcut);
+    const shortcutChanged = previousShortcut !== nextShortcut;
     try {
       const snapshot = normalizeConfigShape(nextConfig);
+      if (shortcutChanged && !launchContext?.workspace) {
+        await replaceQuickChatShortcut(nextShortcut);
+      }
       if (tauriAvailable) {
         await invoke("save_settings", { config: snapshot });
       }
@@ -3535,6 +3549,9 @@
       applyTheme(config.theme ?? "system");
       setLocale((config.language ?? "zh") as Locale);
     } catch (err: unknown) {
+      if (shortcutChanged && !launchContext?.workspace) {
+        await replaceQuickChatShortcut(previousShortcut).catch(() => {});
+      }
       alert(`Save failed: ${err}`);
       throw err;
     }
@@ -3733,8 +3750,6 @@
   const winMinimize = () => appWindow?.minimize();
   const winMaximize = () => appWindow?.toggleMaximize();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
-  const quickChatShortcut = "CommandOrControl+Shift+Space";
-
   async function showQuickChatWindow() {
     if (!appWindow || quickChatOpen) return;
     quickWindowSnapshot = {
@@ -3807,13 +3822,39 @@
     return queueQuickWindowTransition(() => restoreMainWindow(true));
   }
 
+  async function replaceQuickChatShortcut(shortcut: string) {
+    if (!tauriAvailable) return;
+    const nextShortcut = normalizeQuickChatShortcut(shortcut);
+    const previousShortcut = registeredQuickChatShortcut;
+    if (previousShortcut === nextShortcut) return;
+    if (previousShortcut) await unregister(previousShortcut);
+    try {
+      await register(nextShortcut, (event) => {
+        if (event.state === "Pressed") void toggleQuickChat();
+      });
+      registeredQuickChatShortcut = nextShortcut;
+    } catch (error) {
+      if (previousShortcut) {
+        try {
+          await register(previousShortcut, (event) => {
+            if (event.state === "Pressed") void toggleQuickChat();
+          });
+          registeredQuickChatShortcut = previousShortcut;
+        } catch {
+          registeredQuickChatShortcut = null;
+        }
+      }
+      throw error;
+    }
+  }
+
   async function initializeQuickChatShortcut() {
-    if (!tauriAvailable || quickShortcutRegistered) return;
-    await unregister(quickChatShortcut).catch(() => {});
-    await register(quickChatShortcut, (event) => {
-      if (event.state === "Pressed") void toggleQuickChat();
-    });
-    quickShortcutRegistered = true;
+    if (!tauriAvailable || registeredQuickChatShortcut) return;
+    const shortcut = normalizeQuickChatShortcut(
+      config?.quick_chat_shortcut ?? DEFAULT_QUICK_CHAT_SHORTCUT,
+    );
+    await unregister(shortcut).catch(() => {});
+    await replaceQuickChatShortcut(shortcut);
   }
 
   function handleQuickChatKeydown(event: KeyboardEvent) {
@@ -3848,7 +3889,9 @@
 
   onMount(() => {
     return () => {
-      if (quickShortcutRegistered) void unregister(quickChatShortcut).catch(() => {});
+      if (registeredQuickChatShortcut) {
+        void unregister(registeredQuickChatShortcut).catch(() => {});
+      }
     };
   });
 </script>
@@ -3867,6 +3910,9 @@
         roleOptions={quickRoleOptions}
         selectedWorkspace={workspacePath}
         workspaceOptions={quickWorkspaceOptions}
+        shortcutLabel={formatQuickChatShortcut(
+          config?.quick_chat_shortcut ?? DEFAULT_QUICK_CHAT_SHORTCUT,
+        )}
         isStreaming={isCurrentStreaming}
         isEmpty={!activeConvId && messages.length === 0 && !isCurrentStreaming}
         {workspaceLoading}

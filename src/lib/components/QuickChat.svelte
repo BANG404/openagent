@@ -19,6 +19,7 @@
     roleOptions,
     selectedWorkspace,
     workspaceOptions,
+    shortcutLabel,
     isStreaming = false,
     isEmpty = false,
     workspaceLoading = false,
@@ -41,6 +42,7 @@
     roleOptions: SelectItem[];
     selectedWorkspace: string;
     workspaceOptions: SelectItem[];
+    shortcutLabel: string;
     isStreaming?: boolean;
     isEmpty?: boolean;
     workspaceLoading?: boolean;
@@ -86,7 +88,7 @@
       {/if}
     </div>
     <div class="quick-window-actions">
-      <kbd>{$t("quickChatShortcut")}</kbd>
+      <kbd>{shortcutLabel}</kbd>
       <Tooltip text={$t("openFullApp")} side="bottom">
         <button type="button" aria-label={$t("openFullApp")} onclick={onOpenFullApp}>
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">

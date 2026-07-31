@@ -2,9 +2,14 @@
   import { invoke, listen } from "$lib/openagent/tauriClient";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
-  import { onMount, untrack } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import { ContextMenu, Dialog, Tabs } from "bits-ui";
   import type { AgentRole, AppConfig, McpServerConfig, ProviderConfig } from "$lib/types";
+  import {
+    captureQuickChatShortcut,
+    DEFAULT_QUICK_CHAT_SHORTCUT,
+    formatQuickChatShortcut,
+  } from "$lib/quickChatShortcut";
   import { normalizeConfigShape } from "$lib/config";
   import { checkForAppUpdate } from "$lib/appUpdater";
   import {
@@ -138,6 +143,7 @@
     theme: "system",
     language: "zh",
     launch_on_startup: false,
+    quick_chat_shortcut: DEFAULT_QUICK_CHAT_SHORTCUT,
     mention_palette_show_global_drafts: true,
     message_layout: "single",
     message_double_column_min_width: 1200,
@@ -231,6 +237,11 @@
   let draftConfig = $state<AppConfig>(
     normalizeConfigShape(untrack(() => config) ?? fallbackConfig),
   );
+  let quickShortcutRecording = $state(false);
+  let quickShortcutStatus = $state<{
+    tone: "idle" | "saving" | "success" | "error";
+    message: string;
+  }>({ tone: "idle", message: "" });
   // The page normally waits for settings to load before mounting this view.
   // Keep this guard as a second line of defence: a view initially mounted with
   // `config === null` must never autosave the empty fallback over providers.
@@ -263,6 +274,49 @@
     const snapshot = snapshotDraftConfig();
     pendingSave = pendingSave.catch(() => {}).then(() => onSave(snapshot));
     return pendingSave;
+  }
+
+  async function commitQuickChatShortcut(shortcut: string) {
+    const previousShortcut = draftConfig.quick_chat_shortcut;
+    quickShortcutRecording = false;
+    if (shortcut === previousShortcut) {
+      quickShortcutStatus = { tone: "idle", message: "" };
+      return;
+    }
+    draftConfig.quick_chat_shortcut = shortcut;
+    quickShortcutStatus = { tone: "saving", message: $t("quickShortcutSaving") };
+    await tick();
+    try {
+      await saveDraftConfig();
+      quickShortcutStatus = { tone: "success", message: $t("quickShortcutSaved") };
+    } catch {
+      draftConfig.quick_chat_shortcut = previousShortcut;
+      quickShortcutStatus = { tone: "error", message: $t("quickShortcutUnavailable") };
+    }
+  }
+
+  function handleQuickShortcutKeydown(event: KeyboardEvent) {
+    if (!quickShortcutRecording) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.key === "Escape") {
+      quickShortcutRecording = false;
+      quickShortcutStatus = { tone: "idle", message: "" };
+      return;
+    }
+    const captured = captureQuickChatShortcut(event);
+    if (captured.kind === "pending") return;
+    if (captured.kind === "error") {
+      quickShortcutStatus = {
+        tone: "error",
+        message:
+          captured.reason === "modifier_required"
+            ? $t("quickShortcutModifierRequired")
+            : $t("quickShortcutUnsupported"),
+      };
+      return;
+    }
+    void commitQuickChatShortcut(captured.value);
   }
 
   $effect(() => {
@@ -1321,6 +1375,56 @@
               />
             </label>
             <p class="detail-hint">{$t("messageDoubleColumnHint")}</p>
+          {/if}
+        </section>
+        <section class="detail-section">
+          <h4 class="detail-section-title">{$t("quickChat")}</h4>
+          <div class="shortcut-setting-row">
+            <div class="shortcut-setting-copy">
+              <span class="label-text">{$t("quickShortcutLabel")}</span>
+              <p class="detail-hint">{$t("quickShortcutHint")}</p>
+            </div>
+            <div class="shortcut-setting-controls">
+              <button
+                type="button"
+                class="shortcut-recorder"
+                class:recording={quickShortcutRecording}
+                aria-label={$t("quickShortcutLabel")}
+                aria-pressed={quickShortcutRecording}
+                onclick={() => {
+                  quickShortcutRecording = true;
+                  quickShortcutStatus = { tone: "idle", message: "" };
+                }}
+                onkeydown={handleQuickShortcutKeydown}
+                onblur={() => (quickShortcutRecording = false)}
+              >
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <rect x="2" y="3.25" width="12" height="9.5" rx="2" />
+                  <path d="M4.5 6h.01M7 6h.01M9.5 6h.01M12 6h.01M5.25 9.5h5.5" />
+                </svg>
+                <span>
+                  {quickShortcutRecording
+                    ? $t("quickShortcutRecording")
+                    : formatQuickChatShortcut(draftConfig.quick_chat_shortcut)}
+                </span>
+              </button>
+              <button
+                type="button"
+                class="dialog-action-quiet shortcut-reset"
+                disabled={draftConfig.quick_chat_shortcut === DEFAULT_QUICK_CHAT_SHORTCUT}
+                onclick={() => void commitQuickChatShortcut(DEFAULT_QUICK_CHAT_SHORTCUT)}
+              >
+                {$t("reset")}
+              </button>
+            </div>
+          </div>
+          {#if quickShortcutStatus.message}
+            <div
+              class="shortcut-status {quickShortcutStatus.tone}"
+              role={quickShortcutStatus.tone === "error" ? "alert" : "status"}
+            >
+              {quickShortcutStatus.message}
+            </div>
           {/if}
         </section>
         <section class="detail-section">
@@ -3243,6 +3347,95 @@
 
   .startup-copy {
     min-width: 0;
+  }
+
+  .shortcut-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: var(--control-shadow);
+  }
+
+  .shortcut-setting-copy {
+    min-width: 0;
+  }
+
+  .shortcut-setting-copy .detail-hint {
+    margin-left: 0;
+  }
+
+  .shortcut-setting-controls {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .shortcut-recorder {
+    display: inline-flex;
+    min-width: 190px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 7px;
+    background: var(--control-surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+    box-shadow: var(--control-shadow);
+  }
+
+  .shortcut-recorder:hover,
+  .shortcut-recorder:focus-visible,
+  .shortcut-recorder.recording {
+    box-shadow: var(--control-shadow), var(--focus-ring);
+  }
+
+  .shortcut-recorder.recording {
+    color: var(--primary);
+  }
+
+  .shortcut-recorder svg {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    stroke: currentColor;
+    stroke-width: 1.35;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .shortcut-reset {
+    min-width: auto;
+    padding: 6px 8px;
+  }
+
+  .shortcut-reset:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .shortcut-status {
+    margin: 8px 4px 0;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  .shortcut-status.success {
+    color: #15803d;
+  }
+
+  .shortcut-status.error {
+    color: var(--danger);
   }
 
   .remote-gateway-heading {

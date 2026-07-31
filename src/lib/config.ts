@@ -1,4 +1,5 @@
 import type { AppConfig, FetchConfig, HtmlPreviewConfig, WebSearchConfig } from "./types";
+import { normalizeQuickChatShortcut } from "./quickChatShortcut";
 
 function defaultWebSearch(): WebSearchConfig {
   return {
@@ -129,6 +130,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
     approval_mode,
     language: input.language ?? "zh",
     launch_on_startup: input.launch_on_startup ?? false,
+    quick_chat_shortcut: normalizeQuickChatShortcut(input.quick_chat_shortcut),
     mention_palette_show_global_drafts: input.mention_palette_show_global_drafts ?? true,
     message_layout: ["single", "responsive_double"].includes(input.message_layout)
       ? input.message_layout
