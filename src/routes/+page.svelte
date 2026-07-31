@@ -4,6 +4,10 @@
   import { homeDir } from "@tauri-apps/api/path";
   import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
   import { getCurrentWindow } from "@tauri-apps/api/window";
+  import {
+    disable as disableAutostart,
+    enable as enableAutostart,
+  } from "@tauri-apps/plugin-autostart";
   import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
@@ -1930,6 +1934,39 @@
     register(ONBOARDING_OPEN_EVENT, () => {
       if (config) onboardingOpen = true;
     });
+    register("settings-changed", () => {
+      void invoke<AppConfig>("get_settings")
+        .then((reloaded) => {
+          const previousAutostart = config?.launch_on_startup ?? false;
+          const previousShortcut = normalizeQuickChatShortcut(
+            config?.quick_chat_shortcut ?? DEFAULT_QUICK_CHAT_SHORTCUT,
+          );
+          const next = normalizeConfigShape(reloaded);
+          const nextShortcut = normalizeQuickChatShortcut(next.quick_chat_shortcut);
+          config = structuredClone(next);
+          applyTheme(config.theme ?? "system");
+          setLocale((config.language ?? "zh") as Locale);
+          if (previousShortcut !== nextShortcut && !launchContext?.workspace) {
+            void replaceQuickChatShortcut(nextShortcut).catch((error) =>
+              console.error("Failed to apply reloaded quick-chat shortcut:", error),
+            );
+          }
+          if (previousAutostart !== next.launch_on_startup && !launchContext?.workspace) {
+            const syncAutostart = next.launch_on_startup ? enableAutostart : disableAutostart;
+            void syncAutostart().catch((error) =>
+              console.error("Failed to apply reloaded autostart setting:", error),
+            );
+          }
+        })
+        .catch((error) => console.error("Failed to apply reloaded settings:", error));
+    });
+    register("settings-reload-failed", () => {
+      showToast({
+        title: $t("settingsReloadFailed"),
+        description: $t("settingsReloadFailedHint"),
+        variant: "error",
+      });
+    });
 
     register<{ conv_id: string; title: string }>("conversation-title-updated", (e) => {
       const { conv_id, title } = e.payload;
@@ -3585,7 +3622,7 @@
     await switchConversation(conversationId);
   }
 
-  async function saveSettings(nextConfig: AppConfig) {
+  async function saveSettings(nextConfig: AppConfig, baseConfig?: AppConfig) {
     const previousShortcut = normalizeQuickChatShortcut(
       config?.quick_chat_shortcut ?? DEFAULT_QUICK_CHAT_SHORTCUT,
     );
@@ -3593,20 +3630,28 @@
     const shortcutChanged = previousShortcut !== nextShortcut;
     try {
       const snapshot = normalizeConfigShape(nextConfig);
+      let savedSnapshot = snapshot;
       if (shortcutChanged && !launchContext?.workspace) {
         await replaceQuickChatShortcut(nextShortcut);
       }
       if (tauriAvailable) {
-        await invoke("save_settings", { config: snapshot });
+        const saved = await invoke<AppConfig>("save_settings", {
+          config: snapshot,
+          baseConfig: normalizeConfigShape(baseConfig ?? config ?? snapshot),
+        });
+        savedSnapshot = normalizeConfigShape(saved);
       }
-      config = structuredClone(snapshot);
+      config = structuredClone(savedSnapshot);
       applyTheme(config.theme ?? "system");
       setLocale((config.language ?? "zh") as Locale);
+      return structuredClone(savedSnapshot);
     } catch (err: unknown) {
       if (shortcutChanged && !launchContext?.workspace) {
         await replaceQuickChatShortcut(previousShortcut).catch(() => {});
       }
-      alert(`Save failed: ${err}`);
+      const conflict = `${err}`.includes("SETTINGS_CONFLICT:");
+      if (conflict) await loadSettings();
+      alert(`${$t(conflict ? "settingsSaveConflict" : "settingsSaveFailed")}: ${err}`);
       throw err;
     }
   }

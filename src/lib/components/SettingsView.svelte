@@ -111,7 +111,7 @@
     workspacePath: string;
     isMemorySyncing: boolean;
     initialNav?: SettingsNav;
-    onSave: (config: AppConfig) => Promise<void>;
+    onSave: (config: AppConfig, baseConfig?: AppConfig) => Promise<AppConfig>;
     onOpenConversation: (conversationId: string) => Promise<void>;
     winMinimize: () => void;
     winMaximize: () => void;
@@ -230,6 +230,7 @@
   let draggedRetryQueue = $state<{ kind: RetryQueueKind; index: number } | null>(null);
   let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
   let autoSaveInitialized = false;
+  let suppressNextAutoSave = false;
   let pendingSave: Promise<void> = Promise.resolve();
   const providerConnectionFingerprints = new Map<string, string>();
   const mcpConnectionFingerprints = new Map<string, string>();
@@ -246,13 +247,37 @@
   // Keep this guard as a second line of defence: a view initially mounted with
   // `config === null` must never autosave the empty fallback over providers.
   let initializedFromConfig = $state(false);
+  let acceptedConfigFingerprint = JSON.stringify(
+    normalizeConfigShape(untrack(() => config) ?? fallbackConfig),
+  );
   ensureSelectedProvider();
 
   $effect(() => {
-    if (initializedFromConfig || !config) return;
-    draftConfig = normalizeConfigShape(config);
+    if (!config) return;
+    const incoming = normalizeConfigShape(config);
+    const incomingFingerprint = JSON.stringify(incoming);
+    if (!initializedFromConfig) {
+      draftConfig = incoming;
+      acceptedConfigFingerprint = incomingFingerprint;
+      ensureSelectedProvider();
+      initializedFromConfig = true;
+      return;
+    }
+    if (incomingFingerprint === acceptedConfigFingerprint) return;
+
+    const draftFingerprint = JSON.stringify($state.snapshot(draftConfig));
+    if (draftFingerprint === incomingFingerprint) {
+      acceptedConfigFingerprint = incomingFingerprint;
+      return;
+    }
+    // Preserve an unsaved local edit until the backend can merge it against
+    // the exact base snapshot or report a conflict. Clean drafts hot-reload.
+    if (draftFingerprint !== acceptedConfigFingerprint) return;
+
+    suppressNextAutoSave = true;
+    draftConfig = incoming;
+    acceptedConfigFingerprint = incomingFingerprint;
     ensureSelectedProvider();
-    initializedFromConfig = true;
   });
 
   function snapshotDraftConfig() {
@@ -265,6 +290,35 @@
     return snapshot;
   }
 
+  function rebaseDraftValue(base: unknown, saved: unknown, edited: unknown): unknown {
+    if (JSON.stringify(edited) === JSON.stringify(base)) return structuredClone(saved);
+    if (
+      base !== null &&
+      saved !== null &&
+      edited !== null &&
+      typeof base === "object" &&
+      typeof saved === "object" &&
+      typeof edited === "object" &&
+      !Array.isArray(base) &&
+      !Array.isArray(saved) &&
+      !Array.isArray(edited)
+    ) {
+      const baseRecord = base as Record<string, unknown>;
+      const savedRecord = saved as Record<string, unknown>;
+      const editedRecord = edited as Record<string, unknown>;
+      const rebased: Record<string, unknown> = {};
+      for (const key of new Set([
+        ...Object.keys(baseRecord),
+        ...Object.keys(savedRecord),
+        ...Object.keys(editedRecord),
+      ])) {
+        rebased[key] = rebaseDraftValue(baseRecord[key], savedRecord[key], editedRecord[key]);
+      }
+      return rebased;
+    }
+    return structuredClone(edited);
+  }
+
   function saveDraftConfig() {
     if (autoSaveTimer) {
       clearTimeout(autoSaveTimer);
@@ -272,7 +326,32 @@
     }
     if (!initializedFromConfig) return Promise.resolve();
     const snapshot = snapshotDraftConfig();
-    pendingSave = pendingSave.catch(() => {}).then(() => onSave(snapshot));
+    const baseConfig = JSON.parse(acceptedConfigFingerprint) as AppConfig;
+    pendingSave = pendingSave
+      .catch(() => {})
+      .then(async () => {
+        try {
+          const saved = normalizeConfigShape(await onSave(snapshot, baseConfig));
+          const edited = snapshotDraftConfig();
+          const rebased = normalizeConfigShape(
+            rebaseDraftValue(snapshot, saved, edited) as AppConfig,
+          );
+          suppressNextAutoSave = true;
+          draftConfig = rebased;
+          acceptedConfigFingerprint = JSON.stringify(saved);
+          ensureSelectedProvider();
+        } catch (error) {
+          await tick();
+          if (config) {
+            const latest = normalizeConfigShape(config);
+            suppressNextAutoSave = true;
+            draftConfig = latest;
+            acceptedConfigFingerprint = JSON.stringify(latest);
+            ensureSelectedProvider();
+          }
+          throw error;
+        }
+      });
     return pendingSave;
   }
 
@@ -321,6 +400,10 @@
 
   $effect(() => {
     JSON.stringify(draftConfig);
+    if (suppressNextAutoSave) {
+      suppressNextAutoSave = false;
+      return;
+    }
     if (!autoSaveInitialized) {
       autoSaveInitialized = true;
       return;

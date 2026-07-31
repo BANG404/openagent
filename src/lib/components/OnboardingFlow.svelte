@@ -23,7 +23,7 @@
   }: {
     config: AppConfig;
     workspacePath: string;
-    onSave: (config: AppConfig) => Promise<void>;
+    onSave: (config: AppConfig) => Promise<AppConfig>;
     onPickWorkspace: () => Promise<void>;
     onComplete: () => void;
     winMinimize: () => void;

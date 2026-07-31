@@ -145,8 +145,9 @@ async fn get_settings(runtime: State<'_, Arc<OpenAgentRuntime>>) -> Result<Confi
 async fn save_settings(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     config: Config,
-) -> Result<(), String> {
-    openagent_app::commands::save_settings(runtime.state(), config).await
+    base_config: Option<Config>,
+) -> Result<Config, String> {
+    openagent_app::commands::save_settings(runtime.state(), config, base_config).await
 }
 
 #[tauri::command]
@@ -1206,6 +1207,9 @@ fn run_with_mode(agent_server: bool) {
             let _ = runtime.set_host(Arc::new(TauriRuntimeHost {
                 app: app.handle().clone(),
             }));
+            tauri::async_runtime::spawn(openagent_app::commands::watch_config(
+                runtime.inner().clone(),
+            ));
             let mut runtime_events = state.event_bus.subscribe();
             let event_app = app.handle().clone();
             tauri::async_runtime::spawn(async move {

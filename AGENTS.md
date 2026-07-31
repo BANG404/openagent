@@ -75,8 +75,8 @@ source-of-truth rules to mapped areas such as the chat frontend.
 
 | Scope | Location |
 | --- | --- |
-| Config and SQLite | `~/.config/openagent/` |
-| Global memory | `~/.config/openagent/memory.md` |
+| Config and SQLite | `OPENAGENT_HOME`, normally `~/.openagent/` on Linux or the platform user configuration directory |
+| Global memory | `<OPENAGENT_HOME>/memory.md` |
 | Global skills | `~/.agents/skills/<name>/SKILL.md` |
 | Workspace state and skills | `<workspace>/.agents/` |
 | Workspace design | `<workspace>/DESIGN.md` |

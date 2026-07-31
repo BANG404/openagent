@@ -163,7 +163,7 @@ The built installers / app bundle land in `src-tauri/target/release/bundle/`.
 
 ## Configure your first provider
 
-On first launch OpenAgent creates `~/.config/openagent/config.toml`. Open **Settings → Providers** and add a provider, or edit the file directly. Until an available model is configured, the composer keeps sending disabled and provides a **Configure models** shortcut to Settings.
+On first launch OpenAgent creates `config.toml` in its user data root (`~/.openagent` on Linux and the corresponding user configuration directory on Windows/macOS). Set `OPENAGENT_HOME` to override the root. Open **Settings → Providers** and add a provider, or edit the file directly; valid external edits hot-reload. See [Configuration and application data](docs/configuration.md) for atomic-save, backup, migration, and conflict behavior. Until an available model is configured, the composer keeps sending disabled and provides a **Configure models** shortcut to Settings.
 
 ```toml
 [[providers]]

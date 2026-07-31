@@ -142,6 +142,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 ## IPC and events
 
 - Keep Rust event payloads aligned with `src/lib/types.ts`.
+- Configuration-change events are notifications only. Never project the
+  configuration itself through the shared runtime event bus because it contains
+  provider secrets and the bus can feed non-Tauri transports; desktop surfaces
+  reload it through the local settings command. Settings autosave must retain
+  the exact base snapshot, merge independent external changes, reject
+  overlapping changes, and rebase edits made while a save is in flight.
 - `chat-response-started` means the stream connected, not that content arrived.
   Clear transient waiting state on the first text/thinking chunk and every
   terminal path.
