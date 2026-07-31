@@ -27,7 +27,7 @@
 ## Table of contents
 
 - [Table of contents](#table-of-contents)
-- [What's new in 0.24](#whats-new-in-024)
+- [Changelog](#changelog)
 - [Highlights](#highlights)
   - [Agent runtime](#agent-runtime)
   - [Interactive output](#interactive-output)
@@ -65,16 +65,9 @@
 
 ---
 
-## What's new in 0.24
+## Changelog
 
-- **One window per workspace** — Open multiple projects at once while each window keeps its own active workspace; selecting an already-open workspace focuses its existing window.
-- **Reusable delegated roles** — Save specialized agent workflows globally or per project, search them by responsibility, and dispatch them into live child conversations.
-- **Smarter Skill discovery** — Group Skills with `metadata.category`; uncategorized Skills can be classified by a Flash task so large catalogs use progressive disclosure instead of filling every prompt.
-- **Durable multimodal branches** — Image, PDF, and text attachments have rich previews, survive reloads and checkpoints, and remain available when editing a message to create a new branch.
-- **Faster long conversations** — Conversation search and pagination, virtualized completed history, stable streaming rows, queued follow-up messages, and cancellable compaction keep large histories responsive.
-- **Richer tool output** — Validated Mermaid rendering, image/video AGUI media, source-line previews, and managed background terminal sessions make long-running and visual work easier to follow.
-
-For the complete release history and fixes, see [`CHANGELOG.md`](CHANGELOG.md).
+See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 
 ---
 
