@@ -251,22 +251,23 @@ and workspace tuple without changing the primary window's defaults. Every
 submission creates a fresh durable conversation, routes the turn to the selected
 workspace process, opens or focuses that workspace window, and shows the new
 streaming conversation there. Failures keep the launcher and draft visible.
-Because a webview cannot render beyond its native bounds, opening a selector
-temporarily expands only the transparent launcher window to 760 × 500px while
-the visible card remains compact; the menu opens below and outside the card.
-Closing the selector returns the native window to the compact height.
+Because a webview cannot render beyond its native bounds, prepare the
+transparent launcher window at 760 × 500px before showing it and keep that
+native size fixed for the whole visible session; the card remains compact and
+the menu opens below and outside it without visible-window resize jitter.
+Shrink the native window only after hiding it. Clicking the unused transparent
+area dismisses the launcher.
 The card and selector surfaces are opaque; transparency belongs only to the
 unused part of the expanded native window. Selectors stay below their trigger,
 align to its start edge, and do not use collision-based side flipping. The
-title row is the native window drag handle, drag-time focus changes must not
-close the launcher, and launcher shadows stay tight enough that the transparent
-expansion area has no visible haze. Selector content uses a fixed scrollable
+title row is the native window drag handle, and drag-time focus changes must not
+close the launcher. Do not apply shadows to the launcher card or selector
+content. Selector content uses a fixed scrollable
 height, and role descriptions are limited to two lines. Model, role, and
 workspace selectors update only the launcher's remembered tuple for the next
 conversation. “Open full window” opens or focuses the selected workspace
 without starting a conversation. Use restrained aurora light behind the
-composer only; controls remain on semantically filled surfaces with a tight
-launcher-specific shadow. The
+composer only; controls remain on semantically filled surfaces. The
 `quick-chat-preview` development query renders this layout without native
 window or shortcut behavior for browser-based light/dark and localization
 checks.

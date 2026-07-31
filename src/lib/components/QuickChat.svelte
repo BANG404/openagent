@@ -26,7 +26,6 @@
     onRoleChange,
     onWorkspaceChange,
     onPickWorkspace,
-    onSelectorOpenChange,
     onDragStart,
     onOpenFullApp,
     onClose,
@@ -44,19 +43,10 @@
     onRoleChange: (value: string) => void;
     onWorkspaceChange: (value: string) => void;
     onPickWorkspace: () => void;
-    onSelectorOpenChange: (open: boolean) => void;
     onDragStart: (event: PointerEvent) => void;
     onOpenFullApp: () => void;
     onClose: () => void;
   } = $props();
-
-  let openSelector = $state<"model" | "role" | "workspace" | null>(null);
-
-  function handleSelectorOpenChange(selector: "model" | "role" | "workspace", open: boolean) {
-    if (open) openSelector = selector;
-    else if (openSelector === selector) openSelector = null;
-    onSelectorOpenChange(openSelector !== null);
-  }
 </script>
 
 <section class="quick-chat" aria-label={$t("quickChat")} data-tauri-drag-region>
@@ -132,7 +122,6 @@
           emptyText={$t("noMatchingModels")}
           ariaLabel={$t("selectModel")}
           onValueChange={onModelChange}
-          onOpenChange={(open) => handleSelectorOpenChange("model", open)}
         />
       </div>
       <div class="quick-select role-select">
@@ -154,7 +143,6 @@
           emptyText={$t("noMatchingRoles")}
           ariaLabel={$t("selectRole")}
           onValueChange={onRoleChange}
-          onOpenChange={(open) => handleSelectorOpenChange("role", open)}
         />
       </div>
       <div class="quick-select workspace-select">
@@ -177,7 +165,6 @@
           emptyText={$t("noRecentWorkspaces")}
           ariaLabel={$t("switchWorkspace")}
           onValueChange={onWorkspaceChange}
-          onOpenChange={(open) => handleSelectorOpenChange("workspace", open)}
         />
       </div>
       <Tooltip text={$t("openFolder")} side="top">
@@ -204,14 +191,12 @@
     display: grid;
     grid-template-rows: 38px auto 1px 48px;
     width: 100%;
-    height: 100%;
+    height: 174px;
     overflow: hidden;
     background: var(--surface);
     color: var(--text);
     border-radius: 14px;
-    box-shadow:
-      inset 0 0 0 1px color-mix(in srgb, var(--text) 8%, transparent),
-      0 8px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: none;
   }
 
   .quick-chat::before {
@@ -478,7 +463,7 @@
     background: var(--surface);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: none;
   }
 
   :global(.quick-role-select-content .ui-select-item-description) {

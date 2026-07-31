@@ -95,13 +95,16 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the target workspace accepted the turn; failures keep it visible with its
   draft intact.
 - A webview cannot paint beyond its native window bounds. Keep the launcher
-  card compact and fixed-height, temporarily expand only its transparent native
-  window while a selector is open, and shrink it when the selector closes.
+  card compact and fixed-height. Prepare the transparent native window at its
+  expanded selector size before showing it, keep that size fixed for the whole
+  visible session, and shrink it only after hiding; resizing a visible
+  transparent webview causes native-window jitter. Clicking the unused
+  transparent area dismisses the launcher.
   Keep the card and selector surfaces opaque, use the title row as an explicit
   native drag handle, and open selectors below and visually outside the card,
   aligned to their trigger start edge, without collision-based side flipping.
-  Use restrained launcher-specific shadows so the transparent expansion area
-  has no visible haze. Selector content has a fixed scrollable height; role
+  Do not apply shadows to the launcher card or selector content. Selector
+  content has a fixed scrollable height; role
   descriptions are line-clamped so one role cannot consume the menu.
 - General settings owns the persisted quick-chat accelerator. Capturing a new
   accelerator requires at least one modifier and stores the portable Tauri

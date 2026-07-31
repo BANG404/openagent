@@ -422,7 +422,6 @@
   let quickChatRole = $state(defaultRoleKey);
   let quickChatWorkspace = $state("");
   let quickChatRoles = $state<AgentRole[]>([]);
-  let quickChatSelectorOpen = $state(false);
   let quickChatSubmitting = $state(false);
   let quickChatFocusArmed = false;
   let quickChatFocusSuppressed = false;
@@ -3820,6 +3819,9 @@
       new LogicalSize(quickChatCompactSize.width, quickChatCompactSize.height),
     );
     await quickWindow.center();
+    await quickWindow.setSize(
+      new LogicalSize(quickChatExpandedSize.width, quickChatExpandedSize.height),
+    );
     await quickWindow.unminimize().catch(() => {});
     await quickWindow.show();
     await quickWindow.setFocus();
@@ -3830,7 +3832,6 @@
     if (!quickWindow) return;
     quickChatFocusArmed = false;
     quickChatFocusSuppressed = false;
-    quickChatSelectorOpen = false;
     await quickWindow.hide();
     await quickWindow
       .setSize(new LogicalSize(quickChatCompactSize.width, quickChatCompactSize.height))
@@ -3888,16 +3889,6 @@
     }
   }
 
-  function handleQuickSelectorOpenChange(open: boolean) {
-    quickChatSelectorOpen = open;
-    if (!isQuickChatWindow || !appWindow) return;
-    void queueQuickWindowTransition(async () => {
-      if (quickChatSelectorOpen !== open) return;
-      const size = open ? quickChatExpandedSize : quickChatCompactSize;
-      await appWindow.setSize(new LogicalSize(size.width, size.height));
-    });
-  }
-
   async function startQuickChatDrag(event: PointerEvent) {
     if (!isQuickChatWindow || !appWindow || event.button !== 0) return;
     const target = event.target;
@@ -3912,6 +3903,11 @@
       quickChatFocusSuppressed = false;
       quickChatFocusArmed = true;
     }
+  }
+
+  function dismissQuickChatFromTransparentArea(event: PointerEvent) {
+    if (!isQuickChatWindow || event.target !== event.currentTarget) return;
+    void closeQuickChat();
   }
 
   async function replaceQuickChatShortcut(shortcut: string) {
@@ -4075,7 +4071,11 @@
   {#if isDevInspectorWindow && DevInspector}
     <DevInspector />
   {:else if isQuickChatSurface}
-    <div class="quick-chat-stage">
+    <div
+      class="quick-chat-stage"
+      role="presentation"
+      onpointerdown={dismissQuickChatFromTransparentArea}
+    >
       <QuickChat
         selectedModel={quickChatModel}
         {modelOptions}
@@ -4091,7 +4091,6 @@
         onRoleChange={handleQuickRoleChange}
         onWorkspaceChange={handleQuickWorkspaceChange}
         onPickWorkspace={() => void pickQuickChatWorkspace()}
-        onSelectorOpenChange={handleQuickSelectorOpenChange}
         onDragStart={startQuickChatDrag}
         onOpenFullApp={() => void openFullAppFromQuickChat()}
         onClose={() => void closeQuickChat()}
@@ -4575,7 +4574,7 @@
 
   .quick-chat-stage {
     width: 100vw;
-    height: 190px;
+    height: 100vh;
     padding: 8px;
     overflow: visible;
     background: transparent;
