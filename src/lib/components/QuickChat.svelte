@@ -189,7 +189,7 @@
   .quick-chat {
     position: relative;
     display: grid;
-    grid-template-rows: 38px auto 1px 48px;
+    grid-template-rows: 38px 87px 1px 48px;
     width: 100%;
     height: 174px;
     overflow: hidden;
@@ -320,9 +320,10 @@
   .quick-composer {
     display: grid;
     grid-template-columns: 34px minmax(0, 1fr);
-    min-height: 78px;
+    min-height: 0;
     align-items: start;
     padding: 6px 18px 8px 14px;
+    overflow: hidden;
   }
 
   .composer-glyph {
@@ -343,6 +344,13 @@
 
   .composer-slot {
     min-width: 0;
+    height: 73px;
+    overflow: hidden;
+  }
+
+  .composer-slot :global(.input-wrapper),
+  .composer-slot :global(.composer) {
+    height: 73px;
   }
 
   .composer-slot :global(.composer) {
@@ -369,9 +377,11 @@
   }
 
   .composer-slot :global(.input) {
+    height: 54px !important;
     min-height: 54px;
-    max-height: 108px;
+    max-height: 54px;
     padding: 9px 48px 7px 2px;
+    overflow-y: auto;
     font-size: 18px;
     line-height: 1.45;
     letter-spacing: -0.01em;
@@ -379,6 +389,66 @@
 
   .composer-slot :global(.input::placeholder) {
     color: color-mix(in srgb, var(--text-muted) 75%, transparent);
+  }
+
+  .composer-slot :global(.attachment-list) {
+    position: absolute;
+    top: 2px;
+    right: 48px;
+    left: 2px;
+    z-index: 3;
+    height: 28px;
+    flex-wrap: nowrap;
+    gap: 5px;
+    padding: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .composer-slot :global(.attachment-list::-webkit-scrollbar) {
+    display: none;
+  }
+
+  .composer-slot :global(.composer:has(.attachment-list) .input) {
+    padding-top: 34px;
+    font-size: 14px;
+  }
+
+  .composer-slot :global(.attachment-preview.compact) {
+    width: min(180px, 100%);
+    height: 28px;
+    flex: 0 0 auto;
+    grid-template-columns: 28px minmax(0, 1fr);
+    box-shadow: none;
+  }
+
+  .composer-slot :global(.attachment-preview.compact .thumbnail) {
+    height: 28px;
+  }
+
+  .composer-slot :global(.attachment-preview.compact .file-fold) {
+    width: 15px;
+    height: 18px;
+  }
+
+  .composer-slot :global(.attachment-preview.compact .file-fold::after) {
+    width: 5px;
+    height: 5px;
+  }
+
+  .composer-slot :global(.attachment-preview.compact .attachment-meta) {
+    padding: 2px 26px 2px 7px;
+  }
+
+  .composer-slot :global(.attachment-preview.compact .attachment-meta small) {
+    display: none;
+  }
+
+  .composer-slot :global(.attachment-preview.compact .remove-button) {
+    right: 3px;
+    width: 22px;
+    height: 22px;
   }
 
   .composer-slot :global(.send-btn),

@@ -267,7 +267,10 @@ height, and role descriptions are limited to two lines. Model, role, and
 workspace selectors update only the launcher's remembered tuple for the next
 conversation. “Open full window” opens or focuses the selected workspace
 without starting a conversation. Use restrained aurora light behind the
-composer only; controls remain on semantically filled surfaces. The
+composer only; controls remain on semantically filled surfaces. The compact
+composer row never grows: long drafts scroll inside the textarea, while
+attachments use a shadowless 28px single-line strip with horizontal overflow
+instead of pushing the footer. The
 `quick-chat-preview` development query renders this layout without native
 window or shortcut behavior for browser-based light/dark and localization
 checks.

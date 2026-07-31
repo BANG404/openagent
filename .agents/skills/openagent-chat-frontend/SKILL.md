@@ -106,6 +106,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Do not apply shadows to the launcher card or selector content. Selector
   content has a fixed scrollable height; role
   descriptions are line-clamped so one role cannot consume the menu.
+- Keep the compact composer row fixed-height. Inline textarea height mutations
+  from the shared message input must not grow the launcher: long drafts scroll
+  inside the textarea. Render attachments as a shadowless, single-line compact
+  strip over the composer and scroll it horizontally so attachments never push
+  the footer or send control out of the card.
 - General settings owns the persisted quick-chat accelerator. Capturing a new
   accelerator requires at least one modifier and stores the portable Tauri
   representation. Re-registration is transactional: unregister the old
@@ -115,8 +120,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Role and workspace changes affect only the next quick-chat conversation.
   Never restore or render conversation history in the launcher.
 - Keep the development-only `quick-chat-preview` query available for browser
-  layout verification; it must not register shortcuts or emulate native
-  window behavior outside Tauri.
+  layout verification. Its composer and browser-backed attachment picker stay
+  interactive for overflow stress checks, but submission stays disabled; it
+  must not register shortcuts or emulate native window behavior outside Tauri.
 
 ## IPC and events
 

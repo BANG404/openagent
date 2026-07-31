@@ -4106,7 +4106,7 @@
                 ? $t("quickChatPlaceholder")
                 : $t("modelSetupHint")
               : browserModeNotice}
-            disabled={!tauriAvailable || quickChatSubmitting}
+            disabled={(!tauriAvailable && !isQuickChatPreview) || quickChatSubmitting}
             isStreaming={false}
             sendDisabled={(!inputText.trim() && inputAttachments.length === 0) ||
               !tauriAvailable ||
