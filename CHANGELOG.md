@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.29.0-beta.1] - 2026-07-31
+
+### Features
+- **chat**: Hint editable user messages
+- **chat**: Move quick chat into independent window
+- **chat**: Make quick chat a conversation launcher
+- **memory**: Bundle quantized embedding model
+- **settings**: Configure quick chat shortcut
+- **chat**: Add global quick chat palette
+
+### Bug Fixes
+- **chat**: Remove type-based tool card focus styling
+- **chat**: Allow stopping sandbox approval
+- **chat**: Separate quick attachments from draft scroll
+- **chat**: Size quick composer from content
+- **chat**: Contain quick chat composer overflow
+- **chat**: Prevent quick chat dropdown jitter
+- **chat**: Restore full window after quick submission
+
 ## [0.28.2-beta.1] - 2026-07-31
 
 ### Bug Fixes
