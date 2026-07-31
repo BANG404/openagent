@@ -9,6 +9,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "check:bundle-size": "bun scripts/check-bundle-size.mjs",
+    "check:docs": "bun scripts/check-docs-sync.mjs",
     "build:pages": "bun scripts/build-pages.mjs",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

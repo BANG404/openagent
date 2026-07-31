@@ -8,6 +8,10 @@ requires them.
 
 ## Read the relevant project guide first
 
+- Treat implementation and agent-facing documentation as one change. Before
+  editing, identify the behavior, invariant, ownership boundary, or workflow
+  that the change affects and read its source-of-truth document. See
+  `docs/agent-workflow.md` for the documentation map and completion checklist.
 - For chat transcript UI, virtualization, streaming/final reconciliation,
   restore/bootstrap UI, attachment previews, or chat events, read the
   `openagent-chat-frontend` workspace skill.
@@ -33,6 +37,10 @@ cd src-tauri && cargo build
 Run the smallest relevant check first. Before handing off frontend or
 cross-stack work, run `bun run check`; run `cargo check` for native changes
 when practical.
+
+Run `bun run check:docs` before handing off any logic change. The check requires
+an agent-facing documentation update in the same change and applies stricter
+source-of-truth rules to mapped areas such as the chat frontend.
 
 ## Public repository ownership
 
@@ -80,6 +88,17 @@ legacy top-level category values.
 
 ## Safe changes and verification
 
+- When logic changes, update the relevant `AGENTS.md`, `docs/*.md`, README, or
+  workspace `SKILL.md` in the same commit. Document the resulting behavior and
+  durable constraints, not a chronological edit log. If the existing
+  documentation remains correct, improve it with the newly confirmed invariant,
+  boundary, failure mode, or verification procedure.
+- Keep instructions close to their owner: repository-wide rules belong here;
+  subsystem architecture belongs in `docs/`; repeatable agent procedures and
+  fragile invariants belong in the triggering skill; SDK internals belong in
+  the private SDK repository.
+- During review, reject logic-only changes and stale instructions. Tests prove
+  behavior; they do not replace agent-facing documentation.
 - File/database-backed views need explicit loading state and layout-stable
   skeletons.
 - Keep provider secrets out of source control.

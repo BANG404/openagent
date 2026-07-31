@@ -39,6 +39,12 @@ jobs:
           CI_FORCE_ALL: ${{ github.event_name == 'workflow_dispatch' && inputs.base_sha == '' }}
         run: node scripts/ci-changes.mjs >> "$GITHUB_OUTPUT"
 
+      - name: Require agent-facing documentation for logic changes
+        env:
+          DOCS_BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          DOCS_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+        run: node scripts/check-docs-sync.mjs
+
   automation:
     name: Automation
     needs: changes
