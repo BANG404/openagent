@@ -135,6 +135,33 @@ Only then does it:
 5. update the fixed Beta updater metadata when applicable;
 6. deploy the release landing page with the published tag.
 
+### Microsoft Store package
+
+Stable releases also stage and submit one unsigned x64 MSIX through Partner
+Center. Beta releases do not submit a Store package. The Store layout must
+mirror the Windows desktop bundle's runtime inputs: the main executable, the
+agent-server executable, release-root DLLs, and the bundled embedding model.
+The packaging step fails before submission when a required staged resource is
+missing. Store package versions are independent from the WiX installer version:
+Stable SemVer `X.Y.Z` maps to `(X+1).Y.Z.0`. This keeps the required fourth
+component at zero, avoids a forbidden zero first component during `0.x`
+development, and remains monotonic across later Stable releases.
+
+The native ONNX Runtime used by local semantic retrieval dynamically links the
+Visual C++ 14 runtime. Every generated `Package.appxmanifest` therefore declares
+`Microsoft.VCLibs.140.00.UWPDesktop` as a framework dependency. Do not assume a
+review machine already has `MSVCP140.dll`, copy an arbitrary DLL downloaded
+from the internet, or rely on Partner Center to infer this dependency. The
+Store installs and services the declared framework package together with both
+the first published package and all later updates.
+
+For a rejected first submission, keep the existing Partner Center product and
+identity, build a higher four-part MSIX version through the normal Stable
+release workflow, and replace the failed submission package. Do not create a
+second Store product or change the reserved package identity. Before submitting
+manually, inspect `Package.appxmanifest` in the staged layout and confirm the
+VCLibs package dependency is present.
+
 The target repository must define `OPENAGENT_SDK_DEPLOY_KEY` and
 `TAURI_SIGNING_PRIVATE_KEY`. Release validates both secrets before tagging or
 starting platform builds; secret values are never printed.
