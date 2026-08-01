@@ -84,9 +84,7 @@
               disabled={item.disabled}
               class="ui-combobox-item"
             >
-              {#snippet children()}
-                <span class="ui-combobox-item-label">{item.label}</span>
-              {/snippet}
+              <span class="ui-combobox-item-label">{item.label}</span>
             </Combobox.Item>
           {/each}
         {/if}

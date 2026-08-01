@@ -256,3 +256,5 @@ contract changes.
 Run `bun run check` and `bun run format:check`. For visible changes, verify
 light/dark themes, Chinese and English copy, streaming-to-durable finalization,
 reload, and branch switching. Run `bun run check:docs` before handoff.
+Keep transcript imports aligned with rendered branches so obsolete loading-state
+components do not survive as lint failures after their UI branch is removed.

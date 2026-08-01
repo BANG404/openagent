@@ -135,14 +135,12 @@
               disabled={item.disabled}
               class="ui-select-item"
             >
-              {#snippet children()}
-                <span class="ui-select-item-copy">
-                  <span class="ui-select-item-label">{item.label}</span>
-                  {#if item.description}
-                    <span class="ui-select-item-description">{item.description}</span>
-                  {/if}
-                </span>
-              {/snippet}
+              <span class="ui-select-item-copy">
+                <span class="ui-select-item-label">{item.label}</span>
+                {#if item.description}
+                  <span class="ui-select-item-description">{item.description}</span>
+                {/if}
+              </span>
             </Select.Item>
           {/each}
         {/if}

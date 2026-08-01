@@ -98,12 +98,10 @@
         {:else}
           {#each filteredItems as item (item.value)}
             <Select.Item value={item.value} label={item.label} class="role-selector-item">
-              {#snippet children()}
-                <span class="role-selector-item-copy">
-                  <span class="role-selector-item-name">{item.label}</span>
-                  <span class="role-selector-item-description">{item.description}</span>
-                </span>
-              {/snippet}
+              <span class="role-selector-item-copy">
+                <span class="role-selector-item-name">{item.label}</span>
+                <span class="role-selector-item-description">{item.description}</span>
+              </span>
             </Select.Item>
           {/each}
         {/if}

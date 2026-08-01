@@ -5,7 +5,6 @@
   import ProcessRecordGroup from "./ProcessRecordGroup.svelte";
   import Tooltip from "./Tooltip.svelte";
   import VirtualMessageList from "./VirtualMessageList.svelte";
-  import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import NewConversationContext from "./NewConversationContext.svelte";
   import { t } from "$lib/i18n";
   import { finalAssistantOutput, finalAssistantOutputStartIndex } from "$lib/assistantOutput";

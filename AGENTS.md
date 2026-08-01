@@ -58,6 +58,8 @@ source-of-truth rules to mapped areas such as the chat frontend.
   `src/lib/components/`; keep leaf components presentational.
 - Put `invoke()` calls and cross-component state in feature containers or the
   page shell. Use Svelte 5 runes and one-way data flow.
+- Render ordinary component children directly. Use an explicit Svelte
+  `children` snippet only when the child contract requires snippet parameters.
 - `src/lib/streamdown/` is the only extension point for streamed Markdown,
   code, Mermaid, ECharts, and AGUI rendering.
 - Follow `docs/design.md` and prefer Bits UI primitives.
