@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.30.0-beta.1] - 2026-08-01
+
+### Features
+- **chat**: Support ChatGPT reasoning effort
+- **providers**: Explain manual ChatGPT model entry
+
+### Bug Fixes
+- **quick-chat**: Inset launcher shadow
+- **sdk**: Prevent agent worker stack overflow
+- **sdk**: Expose raw tool errors
+- **goal**: Update todo result handling
+- **chat**: Refresh quick chat models
+- **db**: Harden conversation schema upgrades
+- **db**: Update conversation schema migration
+- **settings**: Capture shortcut without button focus
+- **settings**: Reload persisted configuration safely
+- **native**: Align macOS private API config
+- **native**: Enable macOS transparent windows
+
+### Refactoring
+- **host**: Consume embeddable runtime crate
+
+### Styling
+- **sidebar**: Remove background glow
+
+### Miscellaneous
+- **sdk**: Update compaction summary structure
+- **sdk**: Update embeddable runtime
+
 ## [0.29.0-beta.1] - 2026-07-31
 
 ### Features
