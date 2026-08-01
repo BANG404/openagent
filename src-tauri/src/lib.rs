@@ -1094,7 +1094,8 @@ fn run_with_mode(agent_server: bool) {
         runtime,
         state: app_state,
         html_preview_roots,
-    } = bootstrap_runtime(agent_server);
+    } = bootstrap_runtime(agent_server)
+        .unwrap_or_else(|error| panic!("Failed to initialize OpenAgent runtime: {error:#}"));
 
     let protocol_roots = html_preview_roots;
     let builder = tauri::Builder::default()

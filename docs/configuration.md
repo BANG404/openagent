@@ -18,6 +18,7 @@ The root contains these user-maintained or durable files:
 | `config.toml.bak` | Previous valid configuration used for startup recovery |
 | `memory.md` | Global user memory |
 | `messages.db` | Conversation and checkpoint storage |
+| `messages.db.pre-schema-v<N>.bak` | SQLite-consistent snapshot retained before an automatic database schema upgrade |
 | `scheduled_chat_hooks.json` | Durable scheduled-chat definitions |
 | `drafts/`, `DESIGN.md` | Global drafts and design context |
 
@@ -50,3 +51,24 @@ canonical file instead of resetting unspecified fields to defaults.
 Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
 permissions and do not commit it to source control.
+
+OpenAgent upgrades an older `messages.db` automatically at startup. A populated
+database is backed up before migration, and the migration either commits in
+full or leaves the original schema unchanged. If the database was created by a
+newer OpenAgent version, or validation/migration fails, startup stops rather
+than continuing without conversation persistence. Keep the reported backup
+until the upgraded application and conversation history have been verified.
+
+The current compatibility window is explicit:
+
+| Stored schema | Source releases | Startup behavior |
+| --- | --- | --- |
+| No database | Any clean installation | Create schema v1 |
+| Unversioned legacy schema | `v0.25.0-beta.1` through `v0.29.1-beta.1` | Back up, recognize known legacy table shapes, migrate atomically to v1 |
+| Schema v1 | Current release line | Validate and open |
+| Higher than schema v1 | A newer OpenAgent build | Refuse to open without modifying the database |
+
+Unreleased databases older than `v0.25.0-beta.1` are not implicitly declared
+compatible. They are migrated only when their tables match a known legacy
+shape; otherwise startup stops with the original database and migration backup
+preserved.
