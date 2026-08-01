@@ -114,7 +114,14 @@ legacy top-level category values.
 ## Git workflow
 
 Create a focused Conventional Commit for each independently usable, verified
-unit:
+unit. After completing and verifying an implementation task, create that local
+commit automatically; do not wait for a separate user request or leave the
+verified task changes uncommitted. Keep changes uncommitted only when the user
+explicitly requests it, verification is failing, or the task cannot be isolated
+from unrelated work. Committing does not authorize pushing; push only when the
+user requests it.
+
+Use this commit format:
 
 ```text
 <type>(<scope>): <imperative summary>
