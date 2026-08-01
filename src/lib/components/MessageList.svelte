@@ -6,6 +6,7 @@
   import Tooltip from "./Tooltip.svelte";
   import VirtualMessageList from "./VirtualMessageList.svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
+  import NewConversationContext from "./NewConversationContext.svelte";
   import { t } from "$lib/i18n";
   import { finalAssistantOutput, finalAssistantOutputStartIndex } from "$lib/assistantOutput";
   import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
@@ -47,6 +48,7 @@
     onTailAnchorSettled?: (token: number) => void;
     newConversationMemoryPrompt: string | null;
     newConversationMemoryLoading: boolean;
+    showNewConversationContext?: boolean;
     checkpointLoadError?: string | null;
     editable?: boolean;
     attachmentPreviewLoader?: (
@@ -89,6 +91,7 @@
     onTailAnchorSettled,
     newConversationMemoryPrompt,
     newConversationMemoryLoading,
+    showNewConversationContext = true,
     checkpointLoadError = null,
     editable = true,
     attachmentPreviewLoader,
@@ -375,19 +378,12 @@
     </nav>
   {/if}
 
-  {#if visibleMessages.length === 0 && !isStreaming}
-    <div class="new-conversation-context">
-      {#if newConversationMemoryLoading}
-        <LoadingSkeleton variant="memory-note" label={$t("loadingContent")} />
-      {:else if newConversationMemoryPrompt}
-        <div class="memory-note">
-          <p>{newConversationMemoryPrompt}</p>
-        </div>
-      {/if}
-      {#if showApiKeyWarn}
-        <p class="warn">{$t("configApiKey")}</p>
-      {/if}
-    </div>
+  {#if visibleMessages.length === 0 && !isStreaming && showNewConversationContext}
+    <NewConversationContext
+      prompt={newConversationMemoryPrompt}
+      loading={newConversationMemoryLoading}
+      {showApiKeyWarn}
+    />
   {/if}
 
   <VirtualMessageList
@@ -990,170 +986,7 @@
     overflow-wrap: anywhere;
   }
 
-  .new-conversation-context {
-    position: absolute;
-    left: 0;
-    right: 0;
-    /* Anchor the copy immediately above the centered new-conversation composer. */
-    top: calc(50% + 24px);
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    width: auto;
-    max-width: none;
-    text-align: center;
-    color: var(--text-muted);
-    gap: 12px;
-    margin: 0;
-    padding: 0 32px;
-    transform: translateY(-100%);
-    pointer-events: none;
-  }
-
-  .memory-note {
-    position: relative;
-    isolation: isolate;
-    width: fit-content;
-    max-width: min(100%, 720px);
-    padding: 0 clamp(34px, 5vw, 64px);
-    box-sizing: border-box;
-    border: 0;
-    background: transparent;
-    /* The empty-state container ignores pointer events, but this generated
-       memory prompt should still be selectable and copyable. */
-    pointer-events: auto;
-    user-select: text;
-  }
-
-  .memory-note::before {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: calc(100% + clamp(360px, 38vw, 720px));
-    height: calc(100% + clamp(240px, 28vh, 420px));
-    z-index: -2;
-    background:
-      radial-gradient(
-        ellipse at 18% 36%,
-        rgba(66, 133, 244, 0.2) 0 14%,
-        rgba(66, 133, 244, 0.1) 34%,
-        transparent 72%
-      ),
-      radial-gradient(
-        ellipse at 42% 54%,
-        rgba(52, 168, 83, 0.1) 0 16%,
-        rgba(52, 168, 83, 0.06) 38%,
-        transparent 76%
-      ),
-      radial-gradient(
-        ellipse at 68% 34%,
-        rgba(161, 66, 244, 0.12) 0 14%,
-        rgba(161, 66, 244, 0.06) 36%,
-        transparent 74%
-      ),
-      radial-gradient(
-        ellipse at 82% 58%,
-        rgba(251, 188, 5, 0.08) 0 12%,
-        rgba(251, 188, 5, 0.04) 34%,
-        transparent 72%
-      ),
-      linear-gradient(
-        180deg,
-        rgba(232, 246, 255, 0.36),
-        rgba(216, 237, 255, 0.22) 58%,
-        transparent 100%
-      );
-    filter: blur(56px) saturate(1.12);
-    opacity: 0.28;
-    transform: translate3d(-50%, -50%, 0) scale(1.04);
-    animation: memory-note-aurora 8s ease-in-out infinite alternate;
-    -webkit-mask-image: radial-gradient(
-      ellipse at center,
-      #000 0 34%,
-      rgba(0, 0, 0, 0.7) 52%,
-      rgba(0, 0, 0, 0.22) 76%,
-      transparent 100%
-    );
-    mask-image: radial-gradient(
-      ellipse at center,
-      #000 0 34%,
-      rgba(0, 0, 0, 0.7) 52%,
-      rgba(0, 0, 0, 0.22) 76%,
-      transparent 100%
-    );
-    pointer-events: none;
-  }
-
-  .memory-note::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: calc(100% + clamp(300px, 32vw, 600px));
-    height: calc(100% + clamp(200px, 24vh, 360px));
-    z-index: -1;
-    background: rgba(245, 250, 255, 0.08);
-    filter: blur(76px);
-    transform: translate(-50%, -50%);
-    -webkit-mask-image: radial-gradient(
-      ellipse at center,
-      #000 0 36%,
-      rgba(0, 0, 0, 0.58) 58%,
-      rgba(0, 0, 0, 0.18) 78%,
-      transparent 100%
-    );
-    mask-image: radial-gradient(
-      ellipse at center,
-      #000 0 36%,
-      rgba(0, 0, 0, 0.58) 58%,
-      rgba(0, 0, 0, 0.18) 78%,
-      transparent 100%
-    );
-    pointer-events: none;
-  }
-
-  .memory-note p {
-    position: relative;
-    z-index: 1;
-    margin: 0;
-    color: var(--text);
-    font-size: 18px;
-    line-height: 1.55;
-    font-weight: 500;
-    overflow-wrap: anywhere;
-  }
-
-  :global(html.dark) .memory-note::before,
-  :global(html.dark) .memory-note::after {
-    display: none;
-  }
-
-  @keyframes memory-note-aurora {
-    0% {
-      transform: translate3d(calc(-50% - 5%), calc(-50% + 4%), 0) scale(1.04);
-    }
-    45% {
-      transform: translate3d(calc(-50% + 4%), calc(-50% - 3%), 0) scale(1.12);
-    }
-    100% {
-      transform: translate3d(calc(-50% - 1%), calc(-50% + 2%), 0) scale(1.08);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .memory-note::before {
-      animation: none;
-    }
-  }
-
   @media (max-width: 720px) {
-    .new-conversation-context {
-      padding: 0 20px;
-    }
-
     .user-message-index {
       right: 8px;
       width: 38px;
@@ -1162,12 +995,6 @@
     .index-preview {
       display: none;
     }
-  }
-
-  .warn {
-    color: #f59e0b !important;
-    font-size: 13px;
-    margin-top: 4px;
   }
 
   .user-msg {
@@ -1191,9 +1018,9 @@
     width: auto;
     max-width: 100%;
     box-sizing: border-box;
-    background: var(--surface2);
+    background: var(--control-surface);
     border: 0;
-    border-radius: 12px;
+    border-radius: 18px;
     padding: 9px 14px;
     margin: 0;
     font-family: inherit;
@@ -1208,6 +1035,8 @@
     outline: none;
     overflow: hidden;
     field-sizing: content;
+    -webkit-backdrop-filter: blur(12px) saturate(1.05);
+    backdrop-filter: blur(12px) saturate(1.05);
     box-shadow: var(--control-shadow);
     transition: box-shadow 0.15s;
   }
@@ -1218,8 +1047,8 @@
     box-sizing: border-box;
     padding: 9px 14px;
     border: 0;
-    border-radius: 12px;
-    background: var(--surface2);
+    border-radius: 18px;
+    background: var(--control-surface);
     color: var(--text);
     font-size: 14px;
     line-height: 1.47;
@@ -1229,6 +1058,8 @@
     cursor: text;
     text-align: left;
     outline: none;
+    -webkit-backdrop-filter: blur(12px) saturate(1.05);
+    backdrop-filter: blur(12px) saturate(1.05);
     box-shadow: var(--control-shadow);
   }
   .user-edit-hint {
@@ -1241,7 +1072,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 6px;
-    background: var(--surface2);
+    background: var(--control-surface);
     color: var(--text-muted);
     box-shadow: var(--control-shadow);
     opacity: 0;
@@ -1275,7 +1106,7 @@
     bottom: 0;
     width: 64px;
     height: 2.2em;
-    background: linear-gradient(90deg, transparent, var(--surface2) 72%);
+    background: linear-gradient(90deg, transparent, var(--control-surface) 72%);
     pointer-events: none;
   }
   .user-collapse-btn {

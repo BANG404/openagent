@@ -7,6 +7,7 @@
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
+  import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import RoleSelector from "$lib/components/RoleSelector.svelte";
   import SidebarCollapseButton from "$lib/components/SidebarCollapseButton.svelte";
   import SidebarPrimaryActions from "$lib/components/SidebarPrimaryActions.svelte";
@@ -1079,6 +1080,7 @@
               {mermaidConfig}
               newConversationMemoryPrompt={$t("remoteNewConversationGreeting")}
               newConversationMemoryLoading={false}
+              showNewConversationContext={!newConversationLayout}
               editable={!running}
               attachmentPreviewLoader={(locator, name) =>
                 client.getRemoteAttachmentPreview(locator, name)}
@@ -1105,6 +1107,14 @@
             class:conversation-aurora-streaming={running}
             aria-hidden="true"
           ></div>
+          {#if newConversationLayout}
+            <NewConversationContext
+              prompt={$t("remoteNewConversationGreeting")}
+              loading={false}
+              showApiKeyWarn={remoteModels.length === 0}
+              placement="stack"
+            />
+          {/if}
           <div class="input-inner">
             {#if loadingWorkspace || loadingConversationId}
               <LoadingSkeleton
@@ -1616,6 +1626,12 @@
   .input-area-new-conversation::before,
   .input-area-new-conversation .conversation-aurora {
     opacity: 0;
+  }
+  .input-area-new-conversation {
+    top: 50%;
+    bottom: auto;
+    padding-bottom: 0;
+    transform: translateY(-50%);
   }
   .input-inner {
     position: relative;

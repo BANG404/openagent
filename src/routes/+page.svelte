@@ -71,6 +71,7 @@
   import ReasoningEffortSelect from "$lib/components/ReasoningEffortSelect.svelte";
   import ChatQueue from "$lib/components/ChatQueue.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
+  import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import QuickChat from "$lib/components/QuickChat.svelte";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
@@ -4492,14 +4493,9 @@
             {#if newConversationLayout}
               <div class="new-conversation-aurora" aria-hidden="true"></div>
             {/if}
-            {#if mainContentLoading}
-              <LoadingSkeleton
-                variant={restoringSurface === "new-conversation"
-                  ? "new-conversation"
-                  : "conversation"}
-                label={$t("loadingContent")}
-              />
-            {:else}
+            {#if mainContentLoading && restoringSurface !== "new-conversation"}
+              <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
+            {:else if !mainContentLoading}
               <MessageList
                 {messages}
                 scrollElement={messagesEl}
@@ -4526,6 +4522,7 @@
                 onTailAnchorSettled={finishStreamCompletionTailAnchor}
                 {newConversationMemoryPrompt}
                 {newConversationMemoryLoading}
+                showNewConversationContext={!newConversationLayout}
                 checkpointLoadError={activeConvId
                   ? (checkpointLoadErrors[activeConvId] ?? null)
                   : null}
@@ -4551,6 +4548,14 @@
               class:conversation-aurora-streaming={isCurrentStreaming}
               aria-hidden="true"
             ></div>
+            {#if newConversationLayout}
+              <NewConversationContext
+                prompt={newConversationMemoryPrompt}
+                loading={mainContentLoading || newConversationMemoryLoading}
+                showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(config)}
+                placement="stack"
+              />
+            {/if}
             <div class="input-inner">
               {#if mainContentLoading}
                 <LoadingSkeleton variant="composer" label={$t("loadingContent")} />
@@ -5094,8 +5099,10 @@
   }
 
   .input-area-new-conversation {
-    top: calc(50% + 48px);
+    top: 50%;
     bottom: auto;
+    padding-bottom: 0;
+    transform: translateY(-50%);
   }
 
   .input-area-new-conversation .conversation-aurora {

@@ -78,7 +78,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   atomically before its first turn.
 - Keep the main window hidden until the bootstrap snapshot is applied; retain
   the failure watchdog.
-- Use transcript-shaped and composer skeletons during history loading.
+- Use transcript-shaped and composer skeletons during history loading. A new
+  conversation's greeting and composer skeletons belong to the same measured
+  centered stack so their placeholders cannot overlap. Skeleton user bubbles
+  mirror the translucent composer surface instead of introducing a separate
+  opaque message treatment.
 - Keep the conversation sidebar background flat and free of decorative glow;
   communicate active streaming through the conversation row indicator only.
 - Keep desktop conversation rows at a compact 30px height. Ellipsize long
@@ -87,7 +91,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Use the theme canvas for the workspace surface and retain the low-contrast
   ambient aurora behind the composer and new-conversation greeting. On a new
   conversation, treat the greeting and composer as one centered vertical
-  stack; ordinary conversations keep the composer anchored to the bottom.
+  stack whose measured total height determines its vertical position; do not
+  position the greeting and composer independently. Ordinary conversations
+  keep the composer anchored to the bottom.
 - An explicitly empty durable active-conversation marker restores the centered
   new-conversation surface, even when older conversations exist. Never fall
   back to the newest conversation.

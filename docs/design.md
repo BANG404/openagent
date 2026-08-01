@@ -231,7 +231,7 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 
 **`search-input`** — The accessories search input. Background `{colors.canvas}`, text `{colors.ink}` in `{typography.body}` (17px), 1px solid `rgba(0, 0, 0, 0.08)` border, rounded `{rounded.pill}` (full pill — search is also pill-shaped, matching the CTA grammar), padding 12px × 20px, height 44px. Leading icon: search glyph at 14px, muted tint.
 
-**`application-input-surface`** — Shared desktop-application treatment for text inputs, textareas, select/combobox triggers, and the chat composer. Use `var(--control-surface)` (or a semantically equivalent filled surface), no outer border, `var(--control-shadow)`, and the component's established radius. Focus adds `var(--focus-ring)` without changing layout. Searchable dropdown inputs follow the same treatment.
+**`application-input-surface`** — Shared desktop-application treatment for text inputs, textareas, select/combobox triggers, the chat composer, and user-message bubbles. Use `var(--control-surface)` (or a semantically equivalent filled surface), no outer border, `var(--control-shadow)`, and the component's established radius. User-message loading placeholders retain this same translucent surface. Focus adds `var(--focus-ring)` without changing layout. Searchable dropdown inputs follow the same treatment.
 
 Search inputs inside raised selector menus are the compact exception: they stay transparent and shadowless at rest, with only the focus ring appearing during keyboard focus. Apply this consistently to role, model, workspace, and any future searchable dropdown.
 

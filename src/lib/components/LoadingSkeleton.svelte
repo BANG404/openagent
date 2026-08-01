@@ -428,8 +428,11 @@
     width: min(58%, 450px);
     margin-left: auto;
     padding: 11px 14px;
-    border-radius: 12px;
-    background: var(--surface2);
+    border-radius: 18px;
+    background: var(--control-surface);
+    -webkit-backdrop-filter: blur(12px) saturate(1.05);
+    backdrop-filter: blur(12px) saturate(1.05);
+    box-shadow: var(--control-shadow);
   }
 
   .user-bubble.compact {
@@ -525,9 +528,12 @@
     box-sizing: border-box;
     min-height: 87px;
     overflow: hidden;
-    border: 1px solid var(--border);
+    border: 0;
     border-radius: 18px;
-    background: var(--surface2);
+    background: var(--control-surface);
+    -webkit-backdrop-filter: blur(12px) saturate(1.05);
+    backdrop-filter: blur(12px) saturate(1.05);
+    box-shadow: var(--control-shadow);
   }
 
   .composer-placeholder {
