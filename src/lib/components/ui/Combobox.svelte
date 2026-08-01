@@ -206,6 +206,9 @@
     outline: none;
     user-select: none;
   }
+  :global(.ui-combobox-item + .ui-combobox-item) {
+    margin-top: var(--menu-item-stack-gap);
+  }
   :global(.ui-combobox-item[data-highlighted]:not([data-selected])) {
     background: var(--bg);
   }

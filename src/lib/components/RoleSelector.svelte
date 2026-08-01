@@ -284,6 +284,9 @@
     outline: none;
     cursor: pointer;
   }
+  :global(.role-selector-item + .role-selector-item) {
+    margin-top: var(--menu-item-stack-gap);
+  }
   :global(.role-selector-item[data-highlighted]:not([data-selected])) {
     background: color-mix(in srgb, var(--text) 7%, transparent);
   }

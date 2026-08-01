@@ -378,6 +378,10 @@
     box-shadow: 0 8px 24px var(--shadow);
   }
 
+  .download-menu button + button {
+    margin-top: var(--menu-item-stack-gap);
+  }
+
   /* The SVG canvas is absolutely positioned and rendered after the controls.
      Keep the controls in their own stacking layer so the canvas cannot absorb
      clicks intended for the top-right actions. */

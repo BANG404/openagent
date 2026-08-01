@@ -280,6 +280,11 @@
     outline: none;
   }
 
+  :global(.ws-dropdown-item + .ws-dropdown-item),
+  .ws-recent-row + .ws-recent-row {
+    margin-top: var(--menu-item-stack-gap);
+  }
+
   .ws-recent-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 30px;

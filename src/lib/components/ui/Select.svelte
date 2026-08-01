@@ -288,6 +288,9 @@
     outline: none;
     user-select: none;
   }
+  :global(.ui-select-item + .ui-select-item) {
+    margin-top: var(--menu-item-stack-gap);
+  }
   :global(.ui-select-item[data-highlighted]:not([data-selected])) {
     background: color-mix(in srgb, var(--text) 7%, transparent);
   }

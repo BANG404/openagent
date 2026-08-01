@@ -75,9 +75,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep click-opened menus, context menus, selects, comboboxes, and compact
   download choices on one desktop menu scale: 12px labels on a 20px line,
   28px minimum height for single-line items, 4px by 14px item padding, 6px
-  content inset, 5px item radius, 8px content radius, and 7px vertical space
-  around separators. Options with descriptions may grow vertically and use
-  11px secondary copy; do not compress them to the single-line height.
+  content inset, 5px item radius, 8px content radius, a 3px gap between
+  adjacent items, and 7px vertical space around separators. The gap must keep
+  neighboring hover and selected fills visibly separate. Options with
+  descriptions may grow vertically and use 11px secondary copy; do not
+  compress them to the single-line height.
 
 ## Startup and restore
 

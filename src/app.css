@@ -34,6 +34,7 @@
     --menu-item-line-height: 20px;
     --menu-item-description-size: 11px;
     --menu-item-description-line-height: 1.35;
+    --menu-item-stack-gap: 3px;
     --menu-separator-margin: 7px 0;
   }
 
@@ -174,6 +175,10 @@
     width: 100%;
     text-align: left;
     user-select: none;
+  }
+
+  .ctx-menu-item + .ctx-menu-item {
+    margin-top: var(--menu-item-stack-gap);
   }
 
   .ctx-menu-item:hover:not([data-selected]),

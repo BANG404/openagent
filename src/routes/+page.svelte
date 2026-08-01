@@ -5704,6 +5704,9 @@
     color: var(--text) !important;
     border-radius: var(--menu-item-radius) !important;
   }
+  :global([data-streamdown-mermaid] .download-menu button + button) {
+    margin-top: var(--menu-item-stack-gap) !important;
+  }
   :global([data-streamdown-mermaid] .download-menu button:hover) {
     background: var(--surface2) !important;
     color: var(--text) !important;
