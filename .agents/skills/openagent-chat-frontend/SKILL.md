@@ -87,7 +87,6 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Place older workspaces in a side-opening recent-workspaces submenu that
   supports hover, click, and keyboard navigation while retaining path tooltips
   and the per-workspace open-location action.
-
 - Keep the composer slash-command and mention palette on the shared compact
   menu row scale. Align its width to the composer, use a 14px floating-surface
   radius with the shared 6px inset, and let both surfaces follow their visible
@@ -115,13 +114,21 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   communicate active streaming through the conversation row indicator only.
 - Keep desktop conversation rows at a compact 30px height. Ellipsize long
   titles at rest, reveal their complete text with a measured horizontal scroll
-  on pointer hover, and retain the static ellipsis under reduced motion.
+  on pointer hover, and retain the static ellipsis under reduced motion. Keep
+  a 3px parent-owned gap between adjacent conversation rows so hover and active
+  fills remain visibly separate at every nesting depth and in search results.
+  Keep the new-conversation and search actions, conversation rows, expanded
+  sidebar navigation, and settings navigation on the same single-line scale:
+  30px height, 13px type on an 18px line, 10px horizontal padding, an 8px
+  content gap, a 7px radius, and a 3px parent-owned row gap. The workspace role
+  selector at the top of the sidebar remains a distinct selector control.
 - Use the theme canvas for the workspace surface and retain the low-contrast
   ambient aurora behind the composer and new-conversation greeting. On a new
   conversation, treat the greeting and composer as one centered vertical
-  stack whose measured total height determines its vertical position; do not
-  position the greeting and composer independently. Ordinary conversations
-  keep the composer anchored to the bottom.
+  stack whose measured total height determines its vertical position, and
+  constrain that centered composer to a 760px outer column. Do not position the
+  greeting and composer independently. Ordinary conversations keep the composer
+  anchored to the bottom in the wider 900px outer column.
 - An explicitly empty durable active-conversation marker restores the centered
   new-conversation surface, even when older conversations exist. Never fall
   back to the newest conversation.
@@ -169,8 +176,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Give the launcher card only a restrained shadow and keep enough transparent
   stage padding around it that the shadow never meets or clips against the
   native window boundary. Keep selector content shadowless. Let selector content
-  follow its items up to a bounded scrollable maximum height; role
-  descriptions are line-clamped so one role cannot consume the menu.
+  follow its items up to a bounded scrollable maximum height; role descriptions
+  stay on one ellipsized line so one role cannot consume the menu. Each selector trigger owns its leading
+  icon, label, and caret as one hover, focus, open-state, and pointer target.
 - Keep the compact composer height bounded and content-driven. Let the shared
   textarea's measured height grow the card through a small multi-line range;
   an attachment adds one compact row, and content beyond the maximum scrolls
@@ -208,7 +216,6 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the shared workspace menu and recent-workspaces submenu. Its `-theme` and
   `-locale` query parameters must keep light/dark and Chinese/English pointer
   and keyboard interaction checks addressable without native state.
-
 - Keep the development-only `command-palette-preview` query available for the
   shared composer slash-command palette. Its `-theme` and `-locale` query
   parameters must keep light/dark and Chinese/English keyboard, scrolling, and
