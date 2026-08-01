@@ -74,7 +74,7 @@
   </Select.Trigger>
   <Select.Portal>
     <Select.Content
-      class="role-selector-content {compact ? 'compact' : ''}"
+      class="role-selector-content {compact ? 'compact' : ''} {header ? 'header' : ''}"
       side="bottom"
       sideOffset={6}
     >
@@ -228,6 +228,9 @@
   }
   :global(.role-selector-content.compact) {
     width: min(240px, calc(100vw - 24px));
+  }
+  :global(.role-selector-content.header) {
+    width: min(max(var(--bits-select-anchor-width), 240px), calc(100vw - 24px));
   }
   .role-selector-search-wrap {
     position: relative;
