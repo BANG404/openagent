@@ -583,7 +583,7 @@
   .table-list {
     display: grid;
     align-content: start;
-    gap: 2px;
+    gap: var(--list-item-stack-gap);
     overflow: auto;
     padding: 7px;
   }

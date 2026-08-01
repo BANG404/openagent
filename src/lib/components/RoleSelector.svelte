@@ -318,14 +318,13 @@
     font-size: var(--menu-item-font-size);
   }
   .role-selector-item-description {
-    display: -webkit-box;
+    display: block;
     overflow: hidden;
     color: var(--text-muted);
     font-size: var(--menu-item-description-size);
     line-height: var(--menu-item-description-line-height);
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .role-selector-check {
     width: 14px;

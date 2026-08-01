@@ -5256,6 +5256,10 @@
     pointer-events: auto;
   }
 
+  .input-area-new-conversation .input-inner {
+    max-width: 760px;
+  }
+
   @media (prefers-color-scheme: dark) {
     .input-area::after {
       background: linear-gradient(

@@ -227,19 +227,22 @@
     border-top: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--list-item-stack-gap);
   }
 
   .sidebar-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--list-item-compact-content-gap);
     width: 100%;
+    height: var(--list-item-compact-height);
     background: none;
     border: none;
-    border-radius: 7px;
-    padding: 8px 10px;
-    font-size: 13px;
+    border-radius: var(--list-item-compact-radius);
+    padding: 4px var(--list-item-compact-padding-inline);
+    font: inherit;
+    font-size: var(--list-item-compact-font-size);
+    line-height: var(--list-item-compact-line-height);
     color: var(--text-muted);
     cursor: pointer;
     text-align: left;

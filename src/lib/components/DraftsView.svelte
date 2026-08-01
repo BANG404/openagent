@@ -558,6 +558,10 @@
     color: var(--text);
   }
 
+  .draft-item + .draft-item {
+    margin-top: var(--list-item-stack-gap);
+  }
+
   .draft-item.active {
     background: var(--surface);
     color: var(--text);

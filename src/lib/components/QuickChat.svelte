@@ -455,19 +455,22 @@
   .quick-select {
     display: grid;
     min-width: 0;
-    grid-template-columns: 18px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     align-items: center;
     color: var(--text-muted);
   }
 
   .quick-select > svg {
+    z-index: 1;
+    grid-area: 1 / 1;
     width: 14px;
     height: 14px;
-    justify-self: end;
+    margin-left: 5px;
     stroke: currentColor;
     stroke-width: 1.3;
     stroke-linecap: round;
     stroke-linejoin: round;
+    pointer-events: none;
   }
 
   .model-select {
@@ -483,12 +486,13 @@
   }
 
   .quick-select :global(.quick-select-trigger) {
+    grid-area: 1 / 1;
     width: auto;
     min-width: 0;
     max-width: 100%;
     height: 30px;
     gap: 3px;
-    padding: 4px 5px;
+    padding: 4px 5px 4px 23px;
     background: transparent;
     box-shadow: none;
     color: var(--text-muted);
@@ -513,11 +517,10 @@
   }
 
   :global(.quick-role-select-content .ui-select-item-description) {
-    display: -webkit-box;
+    display: block;
     overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .pick-workspace {
@@ -549,6 +552,10 @@
 
     .quick-select {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    .quick-select :global(.quick-select-trigger) {
+      padding-left: 5px;
     }
 
     .model-select {

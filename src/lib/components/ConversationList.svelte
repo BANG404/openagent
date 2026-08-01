@@ -477,6 +477,9 @@
     z-index: 1;
     box-sizing: border-box;
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--list-item-stack-gap);
     overflow-y: auto;
     overflow-x: hidden;
     padding: 4px 6px;
@@ -525,7 +528,7 @@
 
   .search-results {
     display: grid;
-    gap: 2px;
+    gap: var(--list-item-stack-gap);
   }
 
   .conversation-page-sentinel {
@@ -565,17 +568,19 @@
     display: flex;
     align-items: center;
     width: 100%;
-    height: 30px;
+    height: var(--list-item-compact-height);
     box-sizing: border-box;
     background: none;
     border: none;
-    border-radius: 7px;
-    padding: 4px 10px;
+    border-radius: var(--list-item-compact-radius);
+    padding: 4px var(--list-item-compact-padding-inline);
     cursor: pointer;
     text-align: left;
     color: var(--text-muted);
-    font-size: 13px;
-    gap: 6px;
+    font: inherit;
+    font-size: var(--list-item-compact-font-size);
+    line-height: var(--list-item-compact-line-height);
+    gap: var(--list-item-compact-content-gap);
     transition:
       background 0.12s,
       color 0.12s;
@@ -763,7 +768,9 @@
   /* Sub-conversation styles */
   .sub-conv-group {
     padding-left: 0;
-    margin-bottom: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--list-item-stack-gap);
   }
 
   .sub-conv-item {
@@ -771,17 +778,19 @@
     display: flex;
     align-items: center;
     width: 100%;
-    height: 30px;
+    height: var(--list-item-compact-height);
     box-sizing: border-box;
     background: none;
     border: none;
-    border-radius: 7px;
+    border-radius: var(--list-item-compact-radius);
     padding: 4px 8px;
     cursor: pointer;
     text-align: left;
     color: var(--text-muted);
-    font-size: 13px;
-    gap: 6px;
+    font: inherit;
+    font-size: var(--list-item-compact-font-size);
+    line-height: var(--list-item-compact-line-height);
+    gap: var(--list-item-compact-content-gap);
     transition:
       background 0.12s,
       color 0.12s;

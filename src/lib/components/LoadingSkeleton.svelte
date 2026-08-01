@@ -241,6 +241,7 @@
   .draft-list {
     display: grid;
     align-content: start;
+    gap: var(--list-item-stack-gap);
     padding: 4px 6px;
   }
 
@@ -253,9 +254,9 @@
   .sidebar-row {
     display: flex;
     align-items: center;
-    min-height: 32px;
-    padding: 0 10px;
-    border-radius: 7px;
+    height: var(--list-item-compact-height);
+    padding: 0 var(--list-item-compact-padding-inline);
+    border-radius: var(--list-item-compact-radius);
   }
 
   .sidebar-row.active,
@@ -268,7 +269,6 @@
   }
 
   .draft-list {
-    gap: 2px;
     padding: 12px 8px 4px;
   }
 
@@ -318,7 +318,7 @@
   .detail-list {
     display: grid;
     align-content: start;
-    gap: 2px;
+    gap: var(--list-item-stack-gap);
     padding: 8px;
   }
 

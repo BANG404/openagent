@@ -506,7 +506,7 @@
   .onboarding-nav nav {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--list-item-stack-gap);
   }
   .onboarding-nav-item {
     display: flex;

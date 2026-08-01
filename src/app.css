@@ -35,6 +35,13 @@
     --menu-item-description-size: 11px;
     --menu-item-description-line-height: 1.35;
     --menu-item-stack-gap: 3px;
+    --list-item-stack-gap: var(--menu-item-stack-gap);
+    --list-item-compact-height: 30px;
+    --list-item-compact-padding-inline: 10px;
+    --list-item-compact-content-gap: 8px;
+    --list-item-compact-radius: 7px;
+    --list-item-compact-font-size: 13px;
+    --list-item-compact-line-height: 18px;
     --menu-separator-margin: 7px 0;
   }
 

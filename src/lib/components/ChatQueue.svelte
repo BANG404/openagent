@@ -122,7 +122,7 @@
   .queue-items {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: var(--list-item-stack-gap);
     margin: 0;
     padding: 4px;
     list-style: none;

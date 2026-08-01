@@ -117,7 +117,7 @@
 <style>
   .sidebar-primary-actions {
     display: grid;
-    gap: 2px;
+    gap: var(--list-item-stack-gap);
     padding: 4px 8px 8px;
   }
 
@@ -125,17 +125,18 @@
   .sidebar-search-row {
     box-sizing: border-box;
     width: 100%;
-    min-height: 34px;
+    height: var(--list-item-compact-height);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--list-item-compact-content-gap);
     border: 0;
-    border-radius: 7px;
-    padding: 6px 8px;
+    border-radius: var(--list-item-compact-radius);
+    padding: 4px var(--list-item-compact-padding-inline);
     background: transparent;
     color: var(--text);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--list-item-compact-font-size);
+    line-height: var(--list-item-compact-line-height);
   }
 
   .sidebar-primary-action {
@@ -176,7 +177,8 @@
     background: transparent;
     color: var(--text);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--list-item-compact-font-size);
+    line-height: var(--list-item-compact-line-height);
   }
 
   .sidebar-search-row input::placeholder {

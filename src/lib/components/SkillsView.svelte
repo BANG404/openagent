@@ -561,7 +561,7 @@
     display: flex;
     flex-direction: column;
     padding: 8px;
-    gap: 2px;
+    gap: var(--list-item-stack-gap);
   }
 
   :global(.skill-ctx-trigger) {
@@ -572,7 +572,7 @@
   .skill-group {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--list-item-stack-gap);
   }
 
   .skill-group + .skill-group {
@@ -640,7 +640,7 @@
   .skill-group-items {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--list-item-stack-gap);
   }
 
   .skill-list-footer {

@@ -395,7 +395,7 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--list-item-stack-gap);
     padding: 0 8px 8px;
     overflow-y: auto;
   }

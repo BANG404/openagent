@@ -2216,6 +2216,7 @@
                   })),
                 ]}
                 searchable
+                contentClass="scheduled-role-select-content"
                 searchPlaceholder={$t("roleSelectorSearch")}
                 emptyText={$t("noMatchingRoles")}
                 ariaLabel={$t("scheduledRole")}
@@ -3097,13 +3098,13 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--list-item-stack-gap);
   }
 
   .settings-nav-bottom {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--list-item-stack-gap);
     border-top: 1px solid var(--border);
     padding-top: 8px;
   }
@@ -3111,13 +3112,16 @@
   :global(.settings-nav-item) {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--list-item-compact-content-gap);
     width: 100%;
+    height: var(--list-item-compact-height);
     background: none;
     border: none;
-    border-radius: 7px;
-    padding: 8px 10px;
-    font-size: 13px;
+    border-radius: var(--list-item-compact-radius);
+    padding: 4px var(--list-item-compact-padding-inline);
+    font: inherit;
+    font-size: var(--list-item-compact-font-size);
+    line-height: var(--list-item-compact-line-height);
     color: var(--text-muted);
     cursor: pointer;
     text-align: left;
@@ -3254,6 +3258,9 @@
 
   .provider-list {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--list-item-stack-gap);
     overflow-y: auto;
     padding: 6px;
   }
@@ -4244,5 +4251,11 @@
     width: 64px;
     height: 64px;
     border-radius: 14px;
+  }
+
+  :global(.scheduled-role-select-content .ui-select-item-description) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 </style>

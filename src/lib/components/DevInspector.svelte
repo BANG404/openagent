@@ -879,7 +879,7 @@
     display: grid;
     flex: 1;
     min-height: 0;
-    gap: 2px;
+    gap: var(--list-item-stack-gap);
     overflow: auto;
     padding: 7px;
   }
