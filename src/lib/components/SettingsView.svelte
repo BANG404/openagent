@@ -3819,6 +3819,11 @@
     padding: 20px 24px;
   }
 
+  .detail-content,
+  .settings-content-col {
+    padding-inline: max(24px, calc((100% - 680px) / 2));
+  }
+
   .detail-section {
     margin-bottom: 28px;
   }
