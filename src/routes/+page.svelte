@@ -4658,7 +4658,7 @@
   .quick-chat-stage {
     width: 100vw;
     height: 100vh;
-    padding: 8px;
+    padding: 16px 16px 20px;
     overflow: visible;
     background: transparent;
   }

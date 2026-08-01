@@ -190,7 +190,7 @@
     background: var(--surface);
     color: var(--text);
     border-radius: 14px;
-    box-shadow: none;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--shadow) 72%, transparent);
   }
 
   .quick-chat::before {
