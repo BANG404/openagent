@@ -694,6 +694,7 @@
       <MentionPalette
         items={paletteItems}
         {activeIdx}
+        fixedHeight={paletteMode === "slash"}
         loading={paletteMode === "mention" && mentionLoading}
         emptyText={paletteEmptyText}
         onSelect={applySelection}

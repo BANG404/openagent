@@ -18,13 +18,22 @@
   interface Props {
     items: PaletteItem[];
     activeIdx: number;
+    fixedHeight?: boolean;
     loading?: boolean;
     emptyText: string;
     onSelect: (item: PaletteItem) => void;
     onHover: (idx: number) => void;
   }
 
-  let { items, activeIdx, loading = false, emptyText, onSelect, onHover }: Props = $props();
+  let {
+    items,
+    activeIdx,
+    fixedHeight = false,
+    loading = false,
+    emptyText,
+    onSelect,
+    onHover,
+  }: Props = $props();
   let listEl = $state<HTMLElement | null>(null);
 
   // Translate parent's index-based active selection into Command's value-based one.
@@ -63,7 +72,7 @@
   onValueChange={handleValueChange}
   loop
   disableInitialScroll
-  class="palette"
+  class={fixedHeight ? "palette palette-fixed" : "palette"}
   label="Suggestions"
 >
   <Command.List bind:ref={listEl} class="palette-list">
@@ -111,9 +120,9 @@
   :global(.palette) {
     background: var(--control-surface);
     border: 0;
-    border-radius: 18px;
-    padding: 6px;
-    max-height: 240px;
+    border-radius: 14px;
+    padding: var(--menu-content-padding);
+    max-height: 320px;
     overflow: hidden;
     outline: none;
     -webkit-backdrop-filter: blur(12px) saturate(1.08);
@@ -122,9 +131,20 @@
   }
 
   :global(.palette-list) {
-    max-height: 228px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--menu-item-stack-gap);
+    max-height: calc(320px - (2 * var(--menu-content-padding)));
     overflow-y: auto;
     overscroll-behavior: contain;
+  }
+
+  :global(.palette-fixed) {
+    height: 320px;
+  }
+
+  :global(.palette-fixed .palette-list) {
+    height: calc(320px - (2 * var(--menu-content-padding)));
   }
 
   :global(.palette-empty) {
@@ -163,14 +183,14 @@
 
   :global(.palette-row) {
     display: flex;
-    align-items: baseline;
-    gap: 8px;
+    align-items: center;
+    gap: var(--menu-item-gap);
     width: 100%;
     background: transparent;
     border: none;
-    border-radius: 8px;
-    min-height: 34px;
-    padding: 5px 10px;
+    border-radius: var(--menu-item-radius);
+    min-height: var(--menu-item-min-height);
+    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
     cursor: pointer;
     text-align: left;
     outline: none;
@@ -190,18 +210,17 @@
   }
 
   :global(.palette-label) {
-    font-size: 14px;
+    font-size: var(--menu-item-font-size);
     font-weight: 400;
-    line-height: 1.43;
-    letter-spacing: -0.224px;
+    line-height: var(--menu-item-line-height);
     color: var(--text);
     white-space: nowrap;
     flex-shrink: 0;
   }
 
   :global(.palette-detail) {
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: var(--menu-item-description-size);
+    line-height: var(--menu-item-description-line-height);
     color: var(--text-muted);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -210,8 +229,8 @@
   }
 
   :global(.palette-hint) {
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: var(--menu-item-description-size);
+    line-height: var(--menu-item-description-line-height);
     color: var(--text-muted);
     white-space: nowrap;
     flex-shrink: 0;
@@ -219,8 +238,9 @@
   }
 
   :global(.palette-mark) {
-    width: 26px;
-    height: 26px;
+    width: 20px;
+    height: 20px;
+    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -233,8 +253,8 @@
   }
 
   :global(.palette-mark-icon) {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     stroke: currentColor;
     stroke-width: 1.4;
     stroke-linecap: round;

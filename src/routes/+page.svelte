@@ -179,6 +179,7 @@
   const isQuickChatPreview = devQuery?.has("quick-chat-preview") === true;
   const isReasoningEffortPreview = devQuery?.has("reasoning-effort-preview") === true;
   const isWorkspaceSwitcherPreview = devQuery?.has("workspace-switcher-preview") === true;
+  const isCommandPalettePreview = devQuery?.has("command-palette-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
   const quickChatPreviewTheme =
@@ -207,6 +208,18 @@
     devQuery?.get("workspace-switcher-preview-locale") === "en"
       ? "en"
       : devQuery?.get("workspace-switcher-preview-locale") === "zh"
+        ? "zh"
+        : null;
+  const commandPalettePreviewTheme =
+    devQuery?.get("command-palette-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("command-palette-preview-theme") === "light"
+        ? "light"
+        : null;
+  const commandPalettePreviewLocale: Locale | null =
+    devQuery?.get("command-palette-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("command-palette-preview-locale") === "zh"
         ? "zh"
         : null;
   const workspaceSwitcherPreviewWorkspace: WorkspaceContext = {
@@ -469,6 +482,8 @@
 
   let inputText = $state("");
   let inputAttachments = $state<ChatAttachment[]>([]);
+  let commandPalettePreviewValue = $state("");
+  let commandPalettePreviewAttachments = $state<ChatAttachment[]>([]);
   let selectedModel = $state("");
   let reasoningEffortPreviewValue = $state<ReasoningEffort>("high");
   let quickChatModel = $state("");
@@ -2797,14 +2812,16 @@
     if (!tauriAvailable) {
       config = normalizeConfigShape(fallbackConfig);
       applyTheme(
-        workspaceSwitcherPreviewTheme ??
+        commandPalettePreviewTheme ??
+          workspaceSwitcherPreviewTheme ??
           reasoningEffortPreviewTheme ??
           quickChatPreviewTheme ??
           config.theme ??
           "system",
       );
       await initI18n(
-        workspaceSwitcherPreviewLocale ??
+        commandPalettePreviewLocale ??
+          workspaceSwitcherPreviewLocale ??
           reasoningEffortPreviewLocale ??
           quickChatPreviewLocale ??
           config.language,
@@ -3981,6 +3998,25 @@
       ];
     }),
   );
+  let commandPalettePreviewCommands = $derived.by<SlashCommand[]>(() =>
+    [
+      ["new", "slashCmdNewLabel", "slashCmdNewDesc"],
+      ["model", "slashCmdModelLabel", "slashCmdModelDesc"],
+      ["drafts", "slashCmdDraftsLabel", "slashCmdDraftsDesc"],
+      ["memory", "slashCmdMemoryLabel", "slashCmdMemoryDesc"],
+      ["compact", "slashCmdCompactLabel", "slashCmdCompactDesc"],
+      ["goal", "slashCmdGoalLabel", "slashCmdGoalDesc"],
+      ["graph", "slashCmdGraphLabel", "slashCmdGraphDesc"],
+      ["skills", "slashCmdSkillsLabel", "slashCmdSkillsDesc"],
+      ["settings", "slashCmdSettingsLabel", "slashCmdSettingsDesc"],
+    ].map(([name, labelKey, descriptionKey]) => ({
+      id: name,
+      name,
+      label: $t(labelKey as TranslationKeys),
+      description: $t(descriptionKey as TranslationKeys),
+      run: () => {},
+    })),
+  );
 
   // ─── Window Controls ─────────────────────────────────────────────────────────
 
@@ -4278,6 +4314,27 @@
         onPick={() => {}}
         onPickWsl={() => {}}
         onSelect={() => {}}
+      />
+    </main>
+  {:else if isCommandPalettePreview}
+    <main class="command-palette-preview-stage">
+      <MessageInput
+        bind:value={commandPalettePreviewValue}
+        bind:attachments={commandPalettePreviewAttachments}
+        selectedModel=""
+        modelOptions={[]}
+        placeholder={$t("inputPlaceholder")}
+        disabled={false}
+        isStreaming={false}
+        sendDisabled={true}
+        sendTitle={$t("send")}
+        slashCommands={commandPalettePreviewCommands}
+        enableMentions={false}
+        showAttachments={false}
+        showModelSelector={false}
+        showStopButton={false}
+        onSend={() => {}}
+        onStop={() => {}}
       />
     </main>
   {:else if isReasoningEffortPreview}
@@ -5782,6 +5839,19 @@
     padding: 96px 32px 32px;
     box-sizing: border-box;
     background: var(--bg);
+  }
+
+  .command-palette-preview-stage {
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-end;
+    padding: 16px 15px;
+    box-sizing: border-box;
+    background: var(--bg);
+  }
+
+  .command-palette-preview-stage :global(.input-wrapper) {
+    width: 100%;
   }
 
   .workspace-switcher-preview-stage :global(.workspace-btn) {

@@ -85,6 +85,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   supports hover, click, and keyboard navigation while retaining path tooltips
   and the per-workspace open-location action.
 
+- Keep the composer slash-command and mention palette on the shared compact
+  menu row scale. Align its width to the composer, use a 14px floating-surface
+  radius with the shared 6px inset, keep the slash-command surface at a stable
+  320px outer height, and let filtered mention results shrink only up to that
+  same cap. Keep both lists independently scrollable so opening or navigating
+  them never moves the composer.
+
 ## Startup and restore
 
 - Use the synchronous per-workspace restore hint only for first render, then
@@ -192,6 +199,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the shared workspace menu and recent-workspaces submenu. Its `-theme` and
   `-locale` query parameters must keep light/dark and Chinese/English pointer
   and keyboard interaction checks addressable without native state.
+
+- Keep the development-only `command-palette-preview` query available for the
+  shared composer slash-command palette. Its `-theme` and `-locale` query
+  parameters must keep light/dark and Chinese/English keyboard, scrolling, and
+  selection checks addressable without onboarding or native state.
 
 ## IPC and events
 
