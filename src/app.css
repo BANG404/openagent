@@ -23,6 +23,18 @@
     --focus-ring: inset 0 0 0 1px var(--primary);
     --item-selected-bg: rgba(0, 102, 204, 0.09);
     --item-selected-hover-bg: rgba(0, 102, 204, 0.16);
+    --menu-content-radius: 8px;
+    --menu-content-padding: 6px;
+    --menu-item-min-height: 28px;
+    --menu-item-padding-block: 4px;
+    --menu-item-padding-inline: 14px;
+    --menu-item-gap: 8px;
+    --menu-item-radius: 5px;
+    --menu-item-font-size: 12px;
+    --menu-item-line-height: 20px;
+    --menu-item-description-size: 11px;
+    --menu-item-description-line-height: 1.35;
+    --menu-separator-margin: 7px 0;
   }
 
   /* Dark mode via system preference */
@@ -135,8 +147,8 @@
   .ctx-menu-content {
     background: var(--control-surface);
     border: 0;
-    border-radius: 8px;
-    padding: 4px;
+    border-radius: var(--menu-content-radius);
+    padding: var(--menu-content-padding);
     min-width: 148px;
     -webkit-backdrop-filter: blur(12px) saturate(1.08);
     backdrop-filter: blur(12px) saturate(1.08);
@@ -147,10 +159,12 @@
   .ctx-menu-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 12px;
-    border-radius: 5px;
-    font-size: 13px;
+    gap: var(--menu-item-gap);
+    min-height: var(--menu-item-min-height);
+    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
+    border-radius: var(--menu-item-radius);
+    font-size: var(--menu-item-font-size);
+    line-height: var(--menu-item-line-height);
     color: var(--text);
     cursor: pointer;
     transition: background 0.1s;
@@ -189,7 +203,7 @@
   .ctx-menu-separator {
     height: 1px;
     background: var(--border);
-    margin: 4px 0;
+    margin: var(--menu-separator-margin);
   }
 
   /* Tooltip (bits-ui) — global so Portal-rendered content gets styled */

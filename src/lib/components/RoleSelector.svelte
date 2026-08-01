@@ -222,8 +222,8 @@
     max-width: calc(100vw - 24px);
     box-sizing: border-box;
     max-height: min(420px, var(--bits-select-content-available-height, 420px));
-    padding: 4px;
-    border-radius: 9px;
+    padding: var(--menu-content-padding);
+    border-radius: var(--menu-content-radius);
     background: color-mix(in srgb, var(--surface) 76%, transparent);
     box-shadow: var(--raised-shadow);
     -webkit-backdrop-filter: blur(12px) saturate(1.08);
@@ -258,7 +258,8 @@
     background: transparent;
     color: var(--text);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--menu-item-font-size);
+    line-height: var(--menu-item-line-height);
     outline: none;
     box-shadow: none;
   }
@@ -273,9 +274,12 @@
   :global(.role-selector-item) {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 9px;
-    border-radius: 6px;
+    gap: var(--menu-item-gap);
+    min-height: var(--menu-item-min-height);
+    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
+    border-radius: var(--menu-item-radius);
+    font-size: var(--menu-item-font-size);
+    line-height: var(--menu-item-line-height);
     color: var(--text);
     outline: none;
     cursor: pointer;
@@ -286,15 +290,16 @@
   :global(.role-selector-item[data-selected]) {
     background: color-mix(in srgb, var(--text) 12%, transparent);
     color: var(--text);
-    font-weight: 500;
   }
   :global(.role-selector-item[data-selected][data-highlighted]) {
     background: color-mix(in srgb, var(--text) 16%, transparent);
   }
   .role-selector-empty {
-    padding: 12px;
+    min-height: var(--menu-item-min-height);
+    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--menu-item-font-size);
+    line-height: var(--menu-item-line-height);
     text-align: center;
   }
   .role-selector-item-copy {
@@ -307,14 +312,14 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 13px;
+    font-size: var(--menu-item-font-size);
   }
   .role-selector-item-description {
     display: -webkit-box;
     overflow: hidden;
     color: var(--text-muted);
-    font-size: 11px;
-    line-height: 1.35;
+    font-size: var(--menu-item-description-size);
+    line-height: var(--menu-item-description-line-height);
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;

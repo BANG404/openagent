@@ -5681,10 +5681,10 @@
     flex-direction: column !important;
     min-width: 88px !important;
     margin: 0 !important;
-    padding: 4px !important;
+    padding: var(--menu-content-padding) !important;
     background: var(--control-surface) !important;
     border: 0 !important;
-    border-radius: 8px !important;
+    border-radius: var(--menu-content-radius) !important;
     -webkit-backdrop-filter: blur(12px) saturate(1.08) !important;
     backdrop-filter: blur(12px) saturate(1.08) !important;
     box-shadow: var(--raised-shadow) !important;
@@ -5693,15 +5693,16 @@
     display: flex !important;
     align-items: center !important;
     width: 100% !important;
+    min-height: var(--menu-item-min-height) !important;
     height: auto !important;
-    padding: 7px 12px !important;
+    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline) !important;
     margin: 0 !important;
-    font-size: 13px !important;
-    letter-spacing: -0.224px !important;
+    font-size: var(--menu-item-font-size) !important;
+    line-height: var(--menu-item-line-height) !important;
     text-align: left !important;
     justify-content: flex-start !important;
     color: var(--text) !important;
-    border-radius: 5px !important;
+    border-radius: var(--menu-item-radius) !important;
   }
   :global([data-streamdown-mermaid] .download-menu button:hover) {
     background: var(--surface2) !important;

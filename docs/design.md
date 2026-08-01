@@ -237,6 +237,8 @@ Search inputs inside raised selector menus are the compact exception: they stay 
 
 **`application-floating-surface`** — Shared treatment for dialogs, menus, popovers, command palettes, dropdown content, toasts, and floating previews. Use `var(--control-surface)`, no outer border, `var(--raised-shadow)`, and optional restrained backdrop blur. Internal dividers may remain when they separate content regions; status colors should use an inset accent or focus ring rather than restoring a perimeter border.
 
+**`application-menu-item`** — Shared compact scale for every click-opened menu, context menu, select, combobox, and download-option row. Floating content uses an 8px radius with a 6px inner inset. A single-line row uses 12px type on a 20px line, a 28px minimum height, 4px vertical and 14px horizontal padding, an 8px content gap, and a 5px row radius. Separators keep 7px of space above and below their 1px rule. Rows with descriptions retain the same title scale and horizontal inset but grow vertically to fit 11px secondary copy; never compress or clip descriptive content to force the 28px single-line height.
+
 **`quick-chat-palette`** — A Raycast-style compact conversation surface opened
 with the accelerator configured in General settings
 (`CommandOrControl+Shift+Space` by default). The accelerator recorder shows the

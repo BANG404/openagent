@@ -215,11 +215,11 @@
     max-height: var(--bits-select-content-available-height, 320px);
     background: color-mix(in srgb, var(--surface) 76%, transparent);
     border: 0;
-    border-radius: 8px;
+    border-radius: var(--menu-content-radius);
     -webkit-backdrop-filter: blur(12px) saturate(1.08);
     backdrop-filter: blur(12px) saturate(1.08);
     box-shadow: var(--raised-shadow);
-    padding: 4px;
+    padding: var(--menu-content-padding);
     outline: none;
     overflow: hidden;
   }
@@ -250,7 +250,8 @@
     background: transparent;
     color: var(--text);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--menu-item-font-size);
+    line-height: var(--menu-item-line-height);
     outline: none;
     box-shadow: none;
     padding: 7px 10px 7px 30px;
@@ -265,19 +266,23 @@
     cursor: pointer;
   }
   .ui-select-empty {
-    padding: 10px 12px;
+    min-height: var(--menu-item-min-height);
+    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
     color: var(--text-muted, #888);
-    font-size: 13px;
+    font-size: var(--menu-item-font-size);
+    line-height: var(--menu-item-line-height);
     text-align: center;
   }
   :global(.ui-select-item) {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 13px;
+    gap: var(--menu-item-gap);
+    min-height: var(--menu-item-min-height);
+    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
+    border-radius: var(--menu-item-radius);
+    font-size: var(--menu-item-font-size);
+    line-height: var(--menu-item-line-height);
     color: var(--text);
     cursor: pointer;
     outline: none;
@@ -289,7 +294,6 @@
   :global(.ui-select-item[data-selected]) {
     background: color-mix(in srgb, var(--text) 12%, transparent);
     color: var(--text);
-    font-weight: 500;
   }
   :global(.ui-select-item[data-selected][data-highlighted]) {
     background: color-mix(in srgb, var(--text) 16%, transparent);
@@ -313,8 +317,8 @@
   }
   :global(.ui-select-item-description) {
     color: var(--text-muted, #888);
-    font-size: 12px;
-    line-height: 1.35;
+    font-size: var(--menu-item-description-size);
+    line-height: var(--menu-item-description-line-height);
   }
   :global(.ui-select-item[data-selected] .ui-select-item-description) {
     color: var(--text-muted, #888);

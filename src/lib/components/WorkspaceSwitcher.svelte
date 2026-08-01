@@ -250,8 +250,8 @@
   :global(.ws-dropdown) {
     background: var(--control-surface);
     border: 0;
-    border-radius: 8px;
-    padding: 4px;
+    border-radius: var(--menu-content-radius);
+    padding: var(--menu-content-padding);
     min-width: 200px;
     max-width: 340px;
     z-index: 201;
@@ -264,13 +264,15 @@
   :global(.ws-dropdown-item) {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--menu-item-gap);
     width: 100%;
     background: none;
     border: none;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-size: 13px;
+    border-radius: var(--menu-item-radius);
+    min-height: var(--menu-item-min-height);
+    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
+    font-size: var(--menu-item-font-size);
+    line-height: var(--menu-item-line-height);
     color: var(--text);
     cursor: pointer;
     text-align: left;
@@ -363,6 +365,6 @@
   :global(.ws-dropdown-divider) {
     height: 1px;
     background: var(--border);
-    margin: 4px 0;
+    margin: var(--menu-separator-margin);
   }
 </style>

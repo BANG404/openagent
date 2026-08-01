@@ -371,9 +371,9 @@
     display: flex;
     flex-direction: column;
     min-width: 72px;
-    padding: 4px;
+    padding: var(--menu-content-padding);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--menu-content-radius);
     background: var(--surface);
     box-shadow: 0 8px 24px var(--shadow);
   }
