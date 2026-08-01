@@ -309,16 +309,32 @@ jobs:
           $stage = Join-Path $env:RUNNER_TEMP "openagent-store"
           $manifestPath = Join-Path $stage "Package.appxmanifest"
           $packagePath = Join-Path $env:RUNNER_TEMP "openagent-store.msix"
+          if (Test-Path -LiteralPath $stage) {
+            Remove-Item -LiteralPath $stage -Recurse -Force
+          }
           New-Item -ItemType Directory -Path $stage -Force | Out-Null
           Copy-Item "src-tauri\target\release\openagent.exe" $stage
+          Copy-Item "src-tauri\target\release\openagent-agent-server.exe" $stage
           Get-ChildItem "src-tauri\target\release" -Filter *.dll -File |
             Copy-Item -Destination $stage
+          Copy-Item "src-tauri\resources\models\all-MiniLM-L6-v2-q" `
+            (Join-Path $stage "models\all-MiniLM-L6-v2-q") `
+            -Recurse
 
           $tauriConfig = Get-Content -Raw "src-tauri\tauri.conf.json" | ConvertFrom-Json
-          $storeVersion = $tauriConfig.bundle.windows.wix.version
-          if ($storeVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
-            throw "Microsoft Store package version must have four numeric components, got '$storeVersion'."
+          if ($tauriConfig.version -notmatch '^(\d+)\.(\d+)\.(\d+)$') {
+            throw "Microsoft Store releases require a stable SemVer version, got '$($tauriConfig.version)'."
           }
+          $storeVersionParts = @(
+            [int] $Matches[1] + 1
+            [int] $Matches[2]
+            [int] $Matches[3]
+            0
+          )
+          if (($storeVersionParts | Where-Object { $_ -gt 65535 }).Count -ne 0) {
+            throw "Microsoft Store package version components must not exceed 65535."
+          }
+          $storeVersion = $storeVersionParts -join "."
 
           winapp manifest generate $stage `
             --package-name $env:MS_STORE_PACKAGE_IDENTITY_NAME `
@@ -339,7 +355,35 @@ jobs:
           $manifest.SelectSingleNode("/appx:Package/appx:Properties/appx:DisplayName", $namespace).InnerText = "OpenAgent"
           $manifest.SelectSingleNode("/appx:Package/appx:Properties/appx:PublisherDisplayName", $namespace).InnerText = $env:MS_STORE_PUBLISHER_DISPLAY_NAME
           $manifest.SelectSingleNode("/appx:Package/appx:Applications/appx:Application/uap:VisualElements", $namespace).SetAttribute("DisplayName", "OpenAgent")
+
+          # fastembed's prebuilt ONNX Runtime links the VC++ 14 runtime dynamically.
+          # This framework dependency lets the Store install and service
+          # MSVCP140.dll and MSVCP140_1.dll with the application.
+          $dependencies = $manifest.SelectSingleNode("/appx:Package/appx:Dependencies", $namespace)
+          if ($null -eq $dependencies) {
+            throw "Generated Microsoft Store manifest has no Dependencies element."
+          }
+          $vcLibs = $manifest.CreateElement("PackageDependency", $manifest.DocumentElement.NamespaceURI)
+          $vcLibs.SetAttribute("Name", "Microsoft.VCLibs.140.00.UWPDesktop")
+          $vcLibs.SetAttribute("MinVersion", "14.0.27323.0")
+          $vcLibs.SetAttribute("Publisher", "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US")
+          $dependencies.AppendChild($vcLibs) | Out-Null
           $manifest.Save($manifestPath)
+
+          [xml] $savedManifest = Get-Content -Raw $manifestPath
+          $savedNamespace = New-Object System.Xml.XmlNamespaceManager($savedManifest.NameTable)
+          $savedNamespace.AddNamespace("appx", $savedManifest.DocumentElement.NamespaceURI)
+          $savedVcLibs = $savedManifest.SelectSingleNode(
+            "/appx:Package/appx:Dependencies/appx:PackageDependency[@Name='Microsoft.VCLibs.140.00.UWPDesktop']",
+            $savedNamespace
+          )
+          if ($null -eq $savedVcLibs -or $savedVcLibs.MinVersion -ne "14.0.27323.0") {
+            throw "Microsoft Store manifest is missing the required VC++ runtime dependency."
+          }
+          $modelPath = Join-Path $stage "models\all-MiniLM-L6-v2-q\model_quantized.onnx"
+          if (-not (Test-Path -LiteralPath $modelPath)) {
+            throw "Microsoft Store package staging is missing the bundled embedding model."
+          }
 
           winapp pack $stage `
             --manifest $manifestPath `
