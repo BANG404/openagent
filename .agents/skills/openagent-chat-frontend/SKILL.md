@@ -87,10 +87,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 - Keep the composer slash-command and mention palette on the shared compact
   menu row scale. Align its width to the composer, use a 14px floating-surface
-  radius with the shared 6px inset, keep the slash-command surface at a stable
-  320px outer height, and let filtered mention results shrink only up to that
-  same cap. Keep both lists independently scrollable so opening or navigating
-  them never moves the composer.
+  radius with the shared 6px inset, and let both surfaces follow their visible
+  items up to a 320px outer maximum. Only overflow scrolls independently, so
+  short result sets leave no trailing empty area and opening or navigating them
+  never moves the composer.
 
 ## Startup and restore
 

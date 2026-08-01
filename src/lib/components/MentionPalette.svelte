@@ -18,22 +18,13 @@
   interface Props {
     items: PaletteItem[];
     activeIdx: number;
-    fixedHeight?: boolean;
     loading?: boolean;
     emptyText: string;
     onSelect: (item: PaletteItem) => void;
     onHover: (idx: number) => void;
   }
 
-  let {
-    items,
-    activeIdx,
-    fixedHeight = false,
-    loading = false,
-    emptyText,
-    onSelect,
-    onHover,
-  }: Props = $props();
+  let { items, activeIdx, loading = false, emptyText, onSelect, onHover }: Props = $props();
   let listEl = $state<HTMLElement | null>(null);
 
   // Translate parent's index-based active selection into Command's value-based one.
@@ -72,7 +63,7 @@
   onValueChange={handleValueChange}
   loop
   disableInitialScroll
-  class={fixedHeight ? "palette palette-fixed" : "palette"}
+  class="palette"
   label="Suggestions"
 >
   <Command.List bind:ref={listEl} class="palette-list">
@@ -137,14 +128,6 @@
     max-height: calc(320px - (2 * var(--menu-content-padding)));
     overflow-y: auto;
     overscroll-behavior: contain;
-  }
-
-  :global(.palette-fixed) {
-    height: 320px;
-  }
-
-  :global(.palette-fixed .palette-list) {
-    height: calc(320px - (2 * var(--menu-content-padding)));
   }
 
   :global(.palette-empty) {
