@@ -592,9 +592,7 @@
   }
 
   .conv-item.active {
-    background: color-mix(in srgb, var(--surface) 76%, transparent);
-    -webkit-backdrop-filter: blur(8px) saturate(1.05);
-    backdrop-filter: blur(8px) saturate(1.05);
+    background: color-mix(in srgb, var(--surface) 42%, transparent);
     color: var(--text);
     font-weight: 500;
   }
@@ -603,19 +601,12 @@
   .sub-conv-item.active::before {
     content: "";
     position: absolute;
-    left: 0;
-    width: 2px;
-    border-radius: 1px;
-    background: var(--primary);
-  }
-
-  .conv-item.active::before {
     top: 5px;
     bottom: 5px;
-  }
-
-  .conv-item.active:hover {
-    background: color-mix(in srgb, var(--surface) 76%, transparent);
+    left: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
   }
 
   .conv-title {
@@ -802,20 +793,9 @@
   }
 
   .sub-conv-item.active {
-    background: color-mix(in srgb, var(--surface) 76%, transparent);
-    -webkit-backdrop-filter: blur(8px) saturate(1.05);
-    backdrop-filter: blur(8px) saturate(1.05);
+    background: color-mix(in srgb, var(--surface) 42%, transparent);
     color: var(--text);
     font-weight: 500;
-  }
-
-  .sub-conv-item.active::before {
-    top: 5px;
-    bottom: 5px;
-  }
-
-  .sub-conv-item.active:hover {
-    background: color-mix(in srgb, var(--surface) 76%, transparent);
   }
 
   @keyframes pulse {

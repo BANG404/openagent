@@ -135,25 +135,13 @@
               disabled={item.disabled}
               class="ui-select-item"
             >
-              {#snippet children({ selected })}
+              {#snippet children()}
                 <span class="ui-select-item-copy">
                   <span class="ui-select-item-label">{item.label}</span>
                   {#if item.description}
                     <span class="ui-select-item-description">{item.description}</span>
                   {/if}
                 </span>
-                {#if selected}
-                  <svg class="ui-select-check" viewBox="0 0 16 16" aria-hidden="true">
-                    <path
-                      d="M3.5 8.5l3 3 6-7"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.75"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                {/if}
               {/snippet}
             </Select.Item>
           {/each}
@@ -274,6 +262,7 @@
     text-align: center;
   }
   :global(.ui-select-item) {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -291,15 +280,23 @@
   :global(.ui-select-item + .ui-select-item) {
     margin-top: var(--menu-item-stack-gap);
   }
-  :global(.ui-select-item[data-highlighted]:not([data-selected])) {
+  :global(.ui-select-item[data-highlighted]:not([data-selected])),
+  :global(.ui-select-item:hover:not([data-selected])) {
     background: color-mix(in srgb, var(--text) 7%, transparent);
   }
   :global(.ui-select-item[data-selected]) {
-    background: color-mix(in srgb, var(--text) 12%, transparent);
+    background: color-mix(in srgb, var(--text) 7%, transparent);
     color: var(--text);
   }
-  :global(.ui-select-item[data-selected][data-highlighted]) {
-    background: color-mix(in srgb, var(--text) 16%, transparent);
+  :global(.ui-select-item[data-selected]::before) {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
   }
   :global(.ui-select-item[data-disabled]) {
     opacity: 0.4;
@@ -325,11 +322,5 @@
   }
   :global(.ui-select-item[data-selected] .ui-select-item-description) {
     color: var(--text-muted, #888);
-  }
-  :global(.ui-select-check) {
-    width: 14px;
-    height: 14px;
-    color: var(--primary);
-    flex-shrink: 0;
   }
 </style>

@@ -284,6 +284,7 @@
   }
 
   :global(.ws-dropdown-item) {
+    position: relative;
     display: flex;
     align-items: center;
     gap: var(--menu-item-gap);
@@ -387,13 +388,19 @@
   }
 
   :global(.ws-dropdown-item[data-selected]) {
-    background: var(--item-selected-bg);
+    background: var(--bg);
     color: var(--text);
   }
 
-  :global(.ws-dropdown-item[data-selected][data-highlighted]),
-  :global(.ws-dropdown-item[data-selected]:hover) {
-    background: var(--item-selected-hover-bg);
+  :global(.ws-dropdown-item[data-selected]::before) {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
   }
 
   :global(.ws-dropdown-item svg) {

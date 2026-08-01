@@ -169,6 +169,7 @@
   }
 
   :global(.palette-row) {
+    position: relative;
     display: flex;
     align-items: center;
     gap: var(--menu-item-gap);
@@ -189,11 +190,18 @@
   }
 
   :global(.palette-row[data-selected]) {
-    background: var(--item-selected-bg);
+    background: var(--bg);
   }
 
-  :global(.palette-row[data-selected]:hover) {
-    background: var(--item-selected-hover-bg);
+  :global(.palette-row[data-selected]::before) {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
   }
 
   :global(.palette-label) {

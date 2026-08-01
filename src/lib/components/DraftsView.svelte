@@ -536,6 +536,7 @@
   }
 
   .draft-item {
+    position: relative;
     width: 100%;
     min-height: 32px;
     display: flex;
@@ -563,8 +564,19 @@
   }
 
   .draft-item.active {
-    background: var(--surface);
+    background: var(--surface2);
     color: var(--text);
+  }
+
+  .draft-item.active::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
   }
 
   .draft-item-name {

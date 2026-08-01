@@ -83,6 +83,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   neighboring hover and selected fills visibly separate. Options with
   descriptions may grow vertically and use 11px secondary copy; do not
   compress them to the single-line height.
+- Keep selection signaling consistent across floating option rows and persistent
+  navigation lists: each component keeps its ordinary neutral hover fill for
+  the selected row and adds a square-ended primary-colored left rail. Do not
+  introduce a stronger selected fill, checkmark, selected text color, or rounded
+  endpoints on that rail.
 - Keep the workspace switcher's root menu focused on open-folder actions.
   Place older workspaces in a side-opening recent-workspaces submenu that
   supports hover, click, and keyboard navigation while retaining path tooltips

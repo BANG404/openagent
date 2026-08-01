@@ -84,20 +84,8 @@
               disabled={item.disabled}
               class="ui-combobox-item"
             >
-              {#snippet children({ selected })}
+              {#snippet children()}
                 <span class="ui-combobox-item-label">{item.label}</span>
-                {#if selected}
-                  <svg class="ui-combobox-check" viewBox="0 0 16 16" aria-hidden="true">
-                    <path
-                      d="M3.5 8.5l3 3 6-7"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.75"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                {/if}
               {/snippet}
             </Combobox.Item>
           {/each}
@@ -192,6 +180,7 @@
     text-align: center;
   }
   :global(.ui-combobox-item) {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -209,15 +198,23 @@
   :global(.ui-combobox-item + .ui-combobox-item) {
     margin-top: var(--menu-item-stack-gap);
   }
-  :global(.ui-combobox-item[data-highlighted]:not([data-selected])) {
+  :global(.ui-combobox-item[data-highlighted]:not([data-selected])),
+  :global(.ui-combobox-item:hover:not([data-selected])) {
     background: var(--bg);
   }
   :global(.ui-combobox-item[data-selected]) {
-    background: var(--item-selected-bg);
-    color: var(--primary);
+    background: var(--bg);
+    color: var(--text);
   }
-  :global(.ui-combobox-item[data-selected][data-highlighted]) {
-    background: var(--item-selected-hover-bg);
+  :global(.ui-combobox-item[data-selected]::before) {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
   }
   :global(.ui-combobox-item[data-disabled]) {
     opacity: 0.4;
@@ -229,11 +226,5 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  :global(.ui-combobox-check) {
-    width: 14px;
-    height: 14px;
-    color: var(--primary);
-    flex-shrink: 0;
   }
 </style>

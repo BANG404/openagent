@@ -98,16 +98,11 @@
         {:else}
           {#each filteredItems as item (item.value)}
             <Select.Item value={item.value} label={item.label} class="role-selector-item">
-              {#snippet children({ selected: itemSelected })}
+              {#snippet children()}
                 <span class="role-selector-item-copy">
                   <span class="role-selector-item-name">{item.label}</span>
                   <span class="role-selector-item-description">{item.description}</span>
                 </span>
-                {#if itemSelected}
-                  <svg class="role-selector-check" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M3.5 8.5l3 3 6-7" />
-                  </svg>
-                {/if}
               {/snippet}
             </Select.Item>
           {/each}
@@ -272,6 +267,7 @@
     overflow-y: auto;
   }
   :global(.role-selector-item) {
+    position: relative;
     display: flex;
     align-items: center;
     gap: var(--menu-item-gap);
@@ -287,15 +283,23 @@
   :global(.role-selector-item + .role-selector-item) {
     margin-top: var(--menu-item-stack-gap);
   }
-  :global(.role-selector-item[data-highlighted]:not([data-selected])) {
+  :global(.role-selector-item[data-highlighted]:not([data-selected])),
+  :global(.role-selector-item:hover:not([data-selected])) {
     background: color-mix(in srgb, var(--text) 7%, transparent);
   }
   :global(.role-selector-item[data-selected]) {
-    background: color-mix(in srgb, var(--text) 12%, transparent);
+    background: color-mix(in srgb, var(--text) 7%, transparent);
     color: var(--text);
   }
-  :global(.role-selector-item[data-selected][data-highlighted]) {
-    background: color-mix(in srgb, var(--text) 16%, transparent);
+  :global(.role-selector-item[data-selected]::before) {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
   }
   .role-selector-empty {
     min-height: var(--menu-item-min-height);
@@ -325,18 +329,5 @@
     line-height: var(--menu-item-description-line-height);
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .role-selector-check {
-    width: 14px;
-    height: 14px;
-    flex: 0 0 14px;
-    color: var(--primary);
-  }
-  .role-selector-check path {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.75;
-    stroke-linecap: round;
-    stroke-linejoin: round;
   }
 </style>

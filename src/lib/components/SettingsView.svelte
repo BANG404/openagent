@@ -3110,6 +3110,7 @@
   }
 
   :global(.settings-nav-item) {
+    position: relative;
     display: flex;
     align-items: center;
     gap: var(--list-item-compact-content-gap);
@@ -3136,9 +3137,20 @@
   }
 
   :global(.settings-nav-item[data-state="active"]) {
-    background: var(--surface);
+    background: var(--surface2);
     color: var(--text);
     font-weight: 500;
+  }
+
+  :global(.settings-nav-item[data-state="active"]::before) {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
   }
 
   :global(.settings-nav-item:focus-visible) {
@@ -3266,6 +3278,7 @@
   }
 
   .provider-item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -3286,8 +3299,19 @@
   }
 
   .provider-item.active {
-    background: var(--surface2);
+    background: var(--bg);
     color: var(--text);
+  }
+
+  .provider-item.active::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
   }
 
   .provider-item-icon {

@@ -165,6 +165,7 @@
   }
 
   .ctx-menu-item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: var(--menu-item-gap);
@@ -194,13 +195,19 @@
   }
 
   .ctx-menu-item[data-selected] {
-    background: var(--item-selected-bg);
-    color: var(--primary);
+    background: var(--bg);
+    color: var(--text);
   }
 
-  .ctx-menu-item[data-selected]:hover,
-  .ctx-menu-item[data-selected][data-highlighted] {
-    background: var(--item-selected-hover-bg);
+  .ctx-menu-item[data-selected]::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
   }
 
   .ctx-menu-item-danger {

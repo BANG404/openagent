@@ -727,6 +727,7 @@
   }
 
   .skill-item {
+    position: relative;
     width: 100%;
     background: none;
     border: none;
@@ -744,7 +745,18 @@
   }
 
   .skill-item.active {
-    background: var(--surface);
+    background: var(--surface2);
+  }
+
+  .skill-item.active::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
   }
 
   .skill-item-main {

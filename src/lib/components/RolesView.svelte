@@ -406,6 +406,7 @@
     align-items: flex-start;
     gap: 9px;
     padding: 9px;
+    position: relative;
     border: 0;
     border-radius: 8px;
     background: transparent;
@@ -419,7 +420,18 @@
   }
 
   .role-item.active {
-    background: var(--surface);
+    background: var(--surface2);
+  }
+
+  .role-item.active::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
   }
 
   .role-avatar {

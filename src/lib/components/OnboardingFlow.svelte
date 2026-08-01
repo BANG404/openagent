@@ -509,6 +509,7 @@
     gap: var(--list-item-stack-gap);
   }
   .onboarding-nav-item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -524,13 +525,24 @@
     font-size: 13px;
     text-align: left;
   }
-  .onboarding-nav-item:hover:not(:disabled),
-  .onboarding-nav-item.active {
+  .onboarding-nav-item:hover:not(:disabled) {
     background: var(--surface);
     color: var(--text);
   }
   .onboarding-nav-item.active {
+    background: var(--surface);
+    color: var(--text);
     font-weight: 500;
+  }
+  .onboarding-nav-item.active::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 2px;
+    background: var(--primary);
+    pointer-events: none;
   }
   .onboarding-nav-item:disabled {
     cursor: default;
