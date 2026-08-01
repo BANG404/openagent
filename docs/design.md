@@ -15,7 +15,7 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 - Whisper-soft elevation used only when a product image needs to breathe — exactly one drop-shadow in the entire system.
 - Tight two-row nav: slim `{component.global-nav}` + product-specific `{component.sub-nav-frosted}` with persistent right-aligned primary CTA.
 - Section rhythm across multiple pages: light hero → dark product tile → light utility tile → dark tile → parchment footer — a predictable pulse.
-- **Application-only aurora:** low-contrast, blurred multicolor light is permitted behind the chat composer, empty conversation state, generated memory note, and conversation sidebar. It is an ambient status layer, never content chrome.
+- **Application-only aurora:** low-contrast, blurred multicolor light is permitted behind the chat composer, empty conversation state, and generated memory note. It is an ambient status layer, never content chrome; the conversation sidebar remains a flat surface.
 
 ## Colors
 
@@ -147,7 +147,6 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 | Placement | Footprint & baseline | Motion | Active streaming state |
 |---|---|---|---|
 | `{component.input-aurora}` | Centered below the composer; `min(100% + 100px, 1064px)` × 210px; blurred 26px; 56% opacity | 7.5s, three-position drift, scale 1.05–1.12 | Shift x/y by 9%/3%, add 0.2 scale, raise opacity to 72%, blur to 28px, saturation to 1.45. Canvas veil becomes lighter. |
-| `{component.sidebar-aurora}` | Full conversation-list shell with 28% horizontal overflow; blurred 30px; 30% opacity | 9s, subtle two-position drift, scale 0.99–1.01 | Shift x/y by 3%/4%, add 0.06 scale, raise opacity to 72%, blur to 32px, saturation to 1.16. |
 | `{component.empty-state-aurora}` | Centered behind empty-state copy; `min(100% - 96px, 1120px)` × `clamp(260px, 34vh, 420px)`; blurred 72px; 90% opacity | 8s, three-position drift, scale 1.04–1.10 | No separate active state. |
 | `{component.memory-note-aurora}` | Centered around the generated memory note; extends 360–720px horizontally and 240–420px vertically beyond it; blurred 56px; 28% opacity | 8s, three-position drift, scale 1.04–1.12 | No separate active state; use an additional very soft canvas glow behind the colored layer for legibility. |
 

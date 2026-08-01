@@ -76,6 +76,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the main window hidden until the bootstrap snapshot is applied; retain
   the failure watchdog.
 - Use transcript-shaped and composer skeletons during history loading.
+- Keep the conversation sidebar background flat and free of decorative glow;
+  communicate active streaming through the conversation row indicator only.
 - An explicitly empty durable active-conversation marker restores the centered
   new-conversation surface, even when older conversations exist. Never fall
   back to the newest conversation.

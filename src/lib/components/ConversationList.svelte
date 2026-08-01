@@ -77,8 +77,6 @@
     return map;
   });
 
-  let hasStreaming = $derived(Object.values(streamingConvIds).some(Boolean));
-
   let visibleSubConvMap = $derived.by(() => {
     const map = new Map<string, Conversation[]>();
     for (const root of topLevel) {
@@ -207,7 +205,7 @@
   {/each}
 {/snippet}
 
-<div class:has-streaming={hasStreaming} class="conv-list-shell">
+<div class="conv-list-shell">
   <div class="conv-list" bind:this={listElement}>
     {#if normalizedSearchQuery}
       {#if searchResults.length === 0}
@@ -434,63 +432,12 @@
 </div>
 
 <style>
-  @property --sidebar-aurora-x-shift {
-    syntax: "<percentage>";
-    inherits: false;
-    initial-value: 0%;
-  }
-
-  @property --sidebar-aurora-y-shift {
-    syntax: "<percentage>";
-    inherits: false;
-    initial-value: 0%;
-  }
-
-  @property --sidebar-aurora-scale-shift {
-    syntax: "<number>";
-    inherits: false;
-    initial-value: 0;
-  }
-
   .conv-list-shell {
     position: relative;
-    isolation: isolate;
     flex: 1;
     min-height: 0;
     overflow-x: hidden;
     overflow-y: hidden;
-  }
-
-  .conv-list-shell::before {
-    content: "";
-    position: absolute;
-    inset: 0 -28%;
-    z-index: 0;
-    pointer-events: none;
-    opacity: 0.3;
-    background:
-      radial-gradient(ellipse at 18% 50%, rgba(66, 133, 244, 0.2), transparent 62%),
-      radial-gradient(ellipse at 52% 38%, rgba(161, 66, 244, 0.16), transparent 58%),
-      radial-gradient(ellipse at 84% 58%, rgba(52, 168, 83, 0.14), transparent 58%);
-    filter: blur(30px) saturate(1.08);
-    --sidebar-aurora-x-shift: 0%;
-    --sidebar-aurora-y-shift: 0%;
-    --sidebar-aurora-scale-shift: 0;
-    transition:
-      --sidebar-aurora-x-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
-      --sidebar-aurora-y-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
-      --sidebar-aurora-scale-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
-      opacity 420ms ease,
-      filter 560ms cubic-bezier(0.16, 1, 0.3, 1);
-    animation: sidebar-aurora 9s ease-in-out infinite alternate;
-  }
-
-  .conv-list-shell.has-streaming::before {
-    --sidebar-aurora-x-shift: 3%;
-    --sidebar-aurora-y-shift: 4%;
-    --sidebar-aurora-scale-shift: 0.06;
-    opacity: 0.72;
-    filter: blur(32px) saturate(1.16);
   }
 
   .conv-list {
@@ -813,27 +760,7 @@
     }
   }
 
-  @keyframes sidebar-aurora {
-    0% {
-      transform: translate3d(
-          calc(-1% - var(--sidebar-aurora-x-shift)),
-          calc(-1% - var(--sidebar-aurora-y-shift)),
-          0
-        )
-        scale(calc(0.99 - var(--sidebar-aurora-scale-shift)));
-    }
-    100% {
-      transform: translate3d(
-          calc(1% + var(--sidebar-aurora-x-shift)),
-          calc(1% + var(--sidebar-aurora-y-shift)),
-          0
-        )
-        scale(calc(1.01 + var(--sidebar-aurora-scale-shift)));
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .conv-list-shell::before,
     .conv-streaming-dot {
       animation: none;
     }
