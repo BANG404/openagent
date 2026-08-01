@@ -1,4 +1,10 @@
-import type { AppConfig, FetchConfig, HtmlPreviewConfig, WebSearchConfig } from "./types";
+import type {
+  AppConfig,
+  FetchConfig,
+  HtmlPreviewConfig,
+  ReasoningEffort,
+  WebSearchConfig,
+} from "./types";
 import { normalizeQuickChatShortcut } from "./quickChatShortcut";
 
 function defaultWebSearch(): WebSearchConfig {
@@ -21,6 +27,8 @@ function defaultFetch(): FetchConfig {
     page_size: 12_000,
   };
 }
+
+const reasoningEfforts = new Set<ReasoningEffort>(["low", "medium", "high", "xhigh", "max"]);
 
 export function normalizeConfigShape(input: AppConfig): AppConfig {
   const requestedMaxTurns = Number(input.agent_max_turns);
@@ -50,10 +58,19 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
           return [model, Math.min(1_000_000, Math.max(1_000, Math.floor(threshold)))];
         }),
     );
+    const model_reasoning_efforts = Object.fromEntries(
+      Object.entries(provider.model_reasoning_efforts ?? {}).filter(
+        ([model, effort]) =>
+          provider.provider === "chatgpt" &&
+          configuredModels.has(model) &&
+          reasoningEfforts.has(effort as ReasoningEffort),
+      ),
+    ) as Record<string, ReasoningEffort>;
     return {
       ...provider,
       models: provider.models ?? [],
       model_context_compaction_thresholds,
+      model_reasoning_efforts,
     };
   });
   const defaults = input.defaults ?? {

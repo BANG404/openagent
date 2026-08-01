@@ -23,6 +23,7 @@ function provider(
     enabled,
     models,
     model_context_compaction_thresholds: thresholds,
+    model_reasoning_efforts: {},
   };
 }
 
@@ -70,11 +71,13 @@ describe("settings config helpers", () => {
     expect(draft.model_retry.flash_queue).toEqual([]);
   });
 
-  test("prunes thresholds when provider models are replaced", () => {
+  test("prunes per-model settings when provider models are replaced", () => {
     const item = provider("enabled", true, ["old", "keep"], { old: 1000, keep: 2000 });
+    item.model_reasoning_efforts = { old: "low", keep: "high" };
     replaceProviderModels(item, ["keep", "new"]);
     expect(item.models).toEqual(["keep", "new"]);
     expect(item.model_context_compaction_thresholds).toEqual({ keep: 2000 });
+    expect(item.model_reasoning_efforts).toEqual({ keep: "high" });
   });
 
   test("fingerprints equivalent MCP maps independently of insertion order", () => {

@@ -400,7 +400,10 @@ export interface AgentConfig {
   model: string;
   api_key: string;
   base_url: string;
+  reasoning_effort?: ReasoningEffort | null;
 }
+
+export type ReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max";
 
 export interface ProviderConfig {
   id: string;
@@ -412,6 +415,8 @@ export interface ProviderConfig {
   models: string[];
   /** Optional per-model thresholds; missing entries inherit the global value. */
   model_context_compaction_thresholds: Record<string, number>;
+  /** Optional ChatGPT OAuth Responses API reasoning effort per model. */
+  model_reasoning_efforts: Record<string, ReasoningEffort>;
 }
 
 export interface DefaultModelBinding {

@@ -4,7 +4,9 @@ use openagent_runtime::checkpoint::{
     TaskTrace,
 };
 use openagent_runtime::commands::*;
-use openagent_runtime::config::{Config, DefaultModelBinding, McpServerConfig, RecentWorkspace};
+use openagent_runtime::config::{
+    Config, DefaultModelBinding, McpServerConfig, ReasoningEffort, RecentWorkspace,
+};
 use openagent_runtime::conversation_memory::{
     AgentMemoryEntry, AgentRole, ConversationPage, ConversationPageCursor,
 };
@@ -164,6 +166,22 @@ async fn set_default_chat_model(
     binding: DefaultModelBinding,
 ) -> Result<DefaultModelBinding, String> {
     openagent_runtime::commands::set_default_chat_model(runtime.state(), binding).await
+}
+
+#[tauri::command]
+async fn set_model_reasoning_effort(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    provider_id: String,
+    model: String,
+    effort: ReasoningEffort,
+) -> Result<ReasoningEffort, String> {
+    openagent_runtime::commands::set_model_reasoning_effort(
+        runtime.state(),
+        provider_id,
+        model,
+        effort,
+    )
+    .await
 }
 
 #[tauri::command]
@@ -1345,6 +1363,7 @@ fn run_with_mode(agent_server: bool) {
             get_settings,
             save_settings,
             set_default_chat_model,
+            set_model_reasoning_effort,
             test_provider_connection,
             fetch_provider_models,
             get_chatgpt_auth_status,

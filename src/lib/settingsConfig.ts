@@ -16,6 +16,7 @@ export function createProviderConfig(
     enabled: false,
     models: [],
     model_context_compaction_thresholds: {},
+    model_reasoning_efforts: {},
   };
 }
 
@@ -41,6 +42,11 @@ export function replaceProviderModels(provider: ProviderConfig, models: string[]
   provider.models = models;
   provider.model_context_compaction_thresholds = Object.fromEntries(
     Object.entries(provider.model_context_compaction_thresholds ?? {}).filter(([model]) =>
+      models.includes(model),
+    ),
+  );
+  provider.model_reasoning_efforts = Object.fromEntries(
+    Object.entries(provider.model_reasoning_efforts ?? {}).filter(([model]) =>
       models.includes(model),
     ),
   );

@@ -57,8 +57,14 @@ account entitlements. In particular, the ChatGPT OAuth service exposes Rig's
 built-in catalog, which may lag the models available to an account. Its settings
 and onboarding views therefore call out manual model entry; fetching that
 catalog again replaces the configured model list, including manually added
-names. OpenAgent does not currently expose model reasoning-effort or ChatGPT
-speed/service-tier controls, so requests use the provider path's defaults.
+names. For ChatGPT OAuth models, the composer exposes Light, Medium, High,
+Extra High, and Ultra reasoning effort. The selection is stored per model and
+projected to the Responses API as `reasoning.effort = low | medium | high |
+xhigh | max`; chat retries, interrupt resumes, and flash-agent work use the
+same model setting. A model without an explicit selection keeps the provider's
+default (shown as Medium in the composer). OpenAgent does not currently expose
+ChatGPT speed/service-tier controls, so request scheduling uses the provider
+path's default.
 
 OpenAgent upgrades an older `messages.db` automatically at startup. A populated
 database is backed up before migration, and the migration either commits in

@@ -149,6 +149,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   layout verification. Its composer and browser-backed attachment picker stay
   interactive for overflow stress checks, but submission stays disabled; it
   must not register shortcuts or emulate native window behavior outside Tauri.
+- Keep the development-only `reasoning-effort-preview` query available as a
+  direct, interactive browser surface for the shared ChatGPT OAuth effort
+  selector. It must bypass onboarding and native state, and its `-theme` and
+  `-locale` query parameters must keep light/dark and Chinese/English checks
+  addressable without navigation.
 
 ## IPC and events
 

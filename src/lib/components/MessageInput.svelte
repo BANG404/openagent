@@ -3,11 +3,12 @@
   import { invoke } from "$lib/openagent/tauriClient";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { onMount, tick } from "svelte";
-  import type { AgentRole, ChatAttachment } from "$lib/types";
+  import type { AgentRole, ChatAttachment, ReasoningEffort } from "$lib/types";
   import AttachmentPreview from "./AttachmentPreview.svelte";
   import MentionPalette, { type PaletteItem } from "./MentionPalette.svelte";
   import Select from "./ui/Select.svelte";
   import Tooltip from "./Tooltip.svelte";
+  import ReasoningEffortSelect from "./ReasoningEffortSelect.svelte";
   import { t } from "$lib/i18n";
   import { showToast } from "$lib/toast";
 
@@ -56,9 +57,12 @@
     showGlobalDraftsInMentions?: boolean;
     showAttachments?: boolean;
     showModelSelector?: boolean;
+    showReasoningEffort?: boolean;
+    reasoningEffort?: ReasoningEffort;
     showStopButton?: boolean;
     onConfigureModels?: () => void;
     onModelChange?: (value: string) => void;
+    onReasoningEffortChange?: (value: ReasoningEffort) => void;
     /** Protect native-window focus while the Tauri attachment dialog is open. */
     onAttachmentPickerOpenChange?: (open: boolean) => void | Promise<void>;
     /** Upload browser-selected files through the active non-Tauri transport. */
@@ -87,9 +91,12 @@
     showGlobalDraftsInMentions = true,
     showAttachments = true,
     showModelSelector = true,
+    showReasoningEffort = false,
+    reasoningEffort = "medium",
     showStopButton = true,
     onConfigureModels = () => {},
     onModelChange = () => {},
+    onReasoningEffortChange = () => {},
     onAttachmentPickerOpenChange,
     onUploadAttachments,
     attachmentPreviewLoader,
@@ -698,7 +705,7 @@
     class="composer"
     class:composer-disabled={disabled}
     class:composer-streaming={isStreaming}
-    class:composer-compact={!showAttachments && !showModelSelector}
+    class:composer-compact={!showAttachments && !showModelSelector && !showReasoningEffort}
   >
     {#if attachments.length > 0}
       <div class="attachment-list">
@@ -727,7 +734,7 @@
         setTimeout(() => closePalette(), 100);
       }}
       {disabled}></textarea>
-    {#if showAttachments || showModelSelector}
+    {#if showAttachments || showModelSelector || showReasoningEffort}
       <div class="composer-toolbar">
         {#if showAttachments}<Tooltip text={$t("attachFiles")}>
             {#snippet trigger(props)}
@@ -781,6 +788,13 @@
             emptyText={$t("noMatchingModels")}
             ariaLabel={$t("selectModel")}
             onValueChange={onModelChange}
+          />
+        {/if}
+        {#if showReasoningEffort}
+          <ReasoningEffortSelect
+            value={reasoningEffort}
+            {disabled}
+            onValueChange={onReasoningEffortChange}
           />
         {/if}
       </div>

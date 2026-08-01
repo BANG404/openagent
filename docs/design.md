@@ -284,6 +284,15 @@ workspace selection. The
 window or shortcut behavior for browser-based light/dark and localization
 checks.
 
+The main composer shows a reasoning-effort selector after the model selector
+only for ChatGPT OAuth models. Its labels map to the provider values Light =
+`low`, Medium = `medium`, High = `high`, Extra High = `xhigh`, and Ultra =
+`max`; the Ultra row warns that it consumes usage limits faster. In development,
+`?reasoning-effort-preview` renders the interactive selector directly without
+onboarding or native runtime state. Add
+`reasoning-effort-preview-theme=light|dark` and
+`reasoning-effort-preview-locale=zh|en` to verify theme and localization.
+
 Error and validation states were not surfaced in the analyzed pages.
 
 ### Footer

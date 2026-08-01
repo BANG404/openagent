@@ -68,6 +68,7 @@
   import SidebarNav from "$lib/components/SidebarNav.svelte";
   import OnboardingFlow from "$lib/components/OnboardingFlow.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
+  import ReasoningEffortSelect from "$lib/components/ReasoningEffortSelect.svelte";
   import ChatQueue from "$lib/components/ChatQueue.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
@@ -131,6 +132,7 @@
     WslDistribution,
     WslWorkspaceTarget,
     ProviderAuthDeviceCodeEvent,
+    ReasoningEffort,
   } from "$lib/types";
 
   type AgentCommandSpec = {
@@ -174,12 +176,25 @@
   const devQuery = import.meta.env.DEV ? runtimeQuery : null;
   const isDevInspectorWindow = devQuery?.has("dev-inspector") === true;
   const isQuickChatPreview = devQuery?.has("quick-chat-preview") === true;
+  const isReasoningEffortPreview = devQuery?.has("reasoning-effort-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
   const quickChatPreviewTheme =
     devQuery?.get("quick-chat-preview-theme") === "dark" ? "dark" : null;
   const quickChatPreviewLocale: Locale | null =
     devQuery?.get("quick-chat-preview-locale") === "en" ? "en" : null;
+  const reasoningEffortPreviewTheme =
+    devQuery?.get("reasoning-effort-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("reasoning-effort-preview-theme") === "light"
+        ? "light"
+        : null;
+  const reasoningEffortPreviewLocale: Locale | null =
+    devQuery?.get("reasoning-effort-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("reasoning-effort-preview-locale") === "zh"
+        ? "zh"
+        : null;
   const isDebugBuild = import.meta.env.DEV;
   let showMainDebugComponents = $state(readMainDebugComponentsVisible());
   let isDebugMode = $derived(isDebugBuild && showMainDebugComponents);
@@ -426,6 +441,7 @@
   let inputText = $state("");
   let inputAttachments = $state<ChatAttachment[]>([]);
   let selectedModel = $state("");
+  let reasoningEffortPreviewValue = $state<ReasoningEffort>("high");
   let quickChatModel = $state("");
   let quickChatRole = $state(defaultRoleKey);
   let quickChatWorkspace = $state("");
@@ -437,6 +453,7 @@
   let registeredQuickChatShortcut: string | null = null;
   let quickWindowTransition: Promise<void> = Promise.resolve();
   let defaultChatModelSaveQueue: Promise<void> = Promise.resolve();
+  let modelReasoningEffortSaveQueue: Promise<void> = Promise.resolve();
   // Keep pending submissions scoped to their conversation so switching chats while
   // a response is streaming never sends a message to the wrong conversation.
   let queuedChatMessages = $state<Record<string, QueuedChatMessage[]>>({});
@@ -470,6 +487,19 @@
         })),
       ),
   );
+
+  let selectedModelProvider = $derived.by(() => {
+    const binding = decodeModelBinding(selectedModel);
+    if (!binding) return null;
+    return config?.providers.find((provider) => provider.id === binding.providerId) ?? null;
+  });
+  let selectedReasoningEffort = $derived.by(() => {
+    const binding = decodeModelBinding(selectedModel);
+    if (!binding || !selectedModelProvider) return "medium" as ReasoningEffort;
+    return (selectedModelProvider.model_reasoning_efforts?.[binding.model] ??
+      "medium") as ReasoningEffort;
+  });
+  let selectedModelSupportsReasoning = $derived(selectedModelProvider?.provider === "chatgpt");
 
   let quickRoleOptions = $derived([
     {
@@ -561,6 +591,51 @@
         if (selectedModel === value) {
           await loadSettings();
           alert(`Save failed: ${error}`);
+        }
+      }
+    });
+  }
+
+  function updateModelReasoningEffort(providerId: string, model: string, effort: ReasoningEffort) {
+    if (!config) return;
+    config = {
+      ...config,
+      providers: config.providers.map((provider) =>
+        provider.id === providerId
+          ? {
+              ...provider,
+              model_reasoning_efforts: {
+                ...(provider.model_reasoning_efforts ?? {}),
+                [model]: effort,
+              },
+            }
+          : provider,
+      ),
+    };
+  }
+
+  function handleReasoningEffortChange(effort: ReasoningEffort) {
+    const binding = decodeModelBinding(selectedModel);
+    if (!binding || selectedModelProvider?.provider !== "chatgpt") return;
+    updateModelReasoningEffort(binding.providerId, binding.model, effort);
+    if (!tauriAvailable) return;
+
+    const requestedModel = selectedModel;
+    modelReasoningEffortSaveQueue = modelReasoningEffortSaveQueue.then(async () => {
+      try {
+        const savedEffort = await invoke<ReasoningEffort>("set_model_reasoning_effort", {
+          providerId: binding.providerId,
+          model: binding.model,
+          effort,
+        });
+        if (selectedModel === requestedModel) {
+          updateModelReasoningEffort(binding.providerId, binding.model, savedEffort);
+        }
+      } catch (error) {
+        console.error("Failed to save model reasoning effort:", error);
+        if (selectedModel === requestedModel) {
+          await loadSettings();
+          showToast({ title: String(error), variant: "error" });
         }
       }
     });
@@ -2692,8 +2767,8 @@
   async function loadSettings() {
     if (!tauriAvailable) {
       config = normalizeConfigShape(fallbackConfig);
-      applyTheme(quickChatPreviewTheme ?? config.theme ?? "system");
-      await initI18n(quickChatPreviewLocale ?? config.language);
+      applyTheme(reasoningEffortPreviewTheme ?? quickChatPreviewTheme ?? config.theme ?? "system");
+      await initI18n(reasoningEffortPreviewLocale ?? quickChatPreviewLocale ?? config.language);
       return;
     }
 
@@ -4152,6 +4227,18 @@
 <TooltipPrimitive.Provider delayDuration={500} skipDelayDuration={300}>
   {#if isDevInspectorWindow && DevInspector}
     <DevInspector />
+  {:else if isReasoningEffortPreview}
+    <main class="reasoning-effort-preview-stage">
+      <section class="reasoning-effort-preview-card">
+        <div class="reasoning-effort-preview-model">ChatGPT OAuth · gpt-5.6</div>
+        <ReasoningEffortSelect
+          value={reasoningEffortPreviewValue}
+          contentSide="bottom"
+          onValueChange={(value) => (reasoningEffortPreviewValue = value)}
+        />
+        <code>reasoning.effort = "{reasoningEffortPreviewValue}"</code>
+      </section>
+    </main>
   {:else if isQuickChatSurface}
     <div
       class="quick-chat-stage"
@@ -4501,6 +4588,9 @@
                   showGlobalDraftsInMentions={config?.mention_palette_show_global_drafts ?? true}
                   onConfigureModels={() => openSettings("providers")}
                   onModelChange={handleModelChange}
+                  showReasoningEffort={selectedModelSupportsReasoning}
+                  reasoningEffort={selectedReasoningEffort}
+                  onReasoningEffortChange={handleReasoningEffortChange}
                   onSend={sendMessage}
                   onStop={stopMessage}
                 />
@@ -5607,4 +5697,34 @@
   }
 
   /* ─── Settings Panel ─────────────────────────────────────────────────────── */
+  .reasoning-effort-preview-stage {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+    box-sizing: border-box;
+    background: var(--bg);
+  }
+
+  .reasoning-effort-preview-card {
+    width: min(420px, calc(100vw - 48px));
+    display: grid;
+    gap: 18px;
+    padding: 24px;
+    box-sizing: border-box;
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: var(--raised-shadow);
+  }
+
+  .reasoning-effort-preview-model {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .reasoning-effort-preview-card code {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
 </style>
