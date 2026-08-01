@@ -109,11 +109,12 @@
 
 <style>
   :global(.palette) {
+    box-sizing: border-box;
     background: var(--control-surface);
     border: 0;
     border-radius: 14px;
     padding: var(--menu-content-padding);
-    max-height: 320px;
+    max-height: min(320px, var(--palette-available-height, 320px));
     overflow: hidden;
     outline: none;
     -webkit-backdrop-filter: blur(12px) saturate(1.08);
@@ -125,7 +126,10 @@
     display: flex;
     flex-direction: column;
     gap: var(--menu-item-stack-gap);
-    max-height: calc(320px - (2 * var(--menu-content-padding)));
+    max-height: max(
+      0px,
+      calc(min(320px, var(--palette-available-height, 320px)) - (2 * var(--menu-content-padding)))
+    );
     overflow-y: auto;
     overscroll-behavior: contain;
   }

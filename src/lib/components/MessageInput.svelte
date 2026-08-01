@@ -105,6 +105,7 @@
   }: Props = $props();
 
   let textareaEl = $state<HTMLTextAreaElement | null>(null);
+  let composerEl = $state<HTMLElement | null>(null);
   let browserFileInput = $state<HTMLInputElement | null>(null);
   let wasDisabled = $state(false);
 
@@ -117,6 +118,7 @@
   let activeIdx = $state(0);
   let mentionItems = $state<PaletteItem[]>([]);
   let mentionLoading = $state(false);
+  let paletteAvailableHeight = $state(320);
   // Token sequence guards out-of-order fetch results.
   let mentionFetchSeq = 0;
   // Drafts and roles do not depend on the query. Reuse them while the palette
@@ -125,6 +127,9 @@
 
   const tauriAvailable = isTauri();
   const maxAttachments = 8;
+  const paletteConfiguredMaxHeight = 320;
+  const paletteComposerGap = 6;
+  const paletteViewportInset = 8;
   const maxAttachmentBytes = 20 * 1024 * 1024;
   const supportedAttachmentExtensions = new Set([
     "png",
@@ -410,8 +415,47 @@
     }
   });
 
+  function syncPaletteAvailableHeight() {
+    if (!composerEl) return;
+    const viewportTop = window.visualViewport?.offsetTop ?? 0;
+    const availableHeight =
+      composerEl.getBoundingClientRect().top -
+      viewportTop -
+      paletteComposerGap -
+      paletteViewportInset;
+    paletteAvailableHeight = Math.max(
+      0,
+      Math.min(paletteConfiguredMaxHeight, Math.floor(availableHeight)),
+    );
+  }
+
+  $effect(() => {
+    if (!paletteMode) {
+      paletteAvailableHeight = paletteConfiguredMaxHeight;
+      return;
+    }
+    void tick().then(syncPaletteAvailableHeight);
+  });
+
   onMount(() => {
     focusInput();
+    const syncOpenPalette = () => {
+      if (paletteMode) syncPaletteAvailableHeight();
+    };
+    const composerResizeObserver = new ResizeObserver(syncOpenPalette);
+    if (composerEl) composerResizeObserver.observe(composerEl);
+    window.addEventListener("resize", syncOpenPalette);
+    window.addEventListener("scroll", syncOpenPalette, true);
+    window.visualViewport?.addEventListener("resize", syncOpenPalette);
+    window.visualViewport?.addEventListener("scroll", syncOpenPalette);
+
+    return () => {
+      composerResizeObserver.disconnect();
+      window.removeEventListener("resize", syncOpenPalette);
+      window.removeEventListener("scroll", syncOpenPalette, true);
+      window.visualViewport?.removeEventListener("resize", syncOpenPalette);
+      window.visualViewport?.removeEventListener("scroll", syncOpenPalette);
+    };
   });
 
   $effect(() => {
@@ -585,6 +629,7 @@
     }
     const modeChanged = trigger.mode !== paletteMode;
     paletteMode = trigger.mode;
+    syncPaletteAvailableHeight();
     triggerStart = trigger.start;
     paletteQuery = trigger.query;
     if (modeChanged) activeIdx = 0;
@@ -690,7 +735,7 @@
     />
   {/if}
   {#if paletteMode}
-    <div class="palette-anchor">
+    <div class="palette-anchor" style={`--palette-available-height: ${paletteAvailableHeight}px`}>
       <MentionPalette
         items={paletteItems}
         {activeIdx}
@@ -703,6 +748,7 @@
   {/if}
   <div
     class="composer"
+    bind:this={composerEl}
     class:composer-disabled={disabled}
     class:composer-streaming={isStreaming}
     class:composer-compact={!showAttachments && !showModelSelector && !showReasoningEffort}

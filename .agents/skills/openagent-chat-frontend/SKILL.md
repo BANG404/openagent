@@ -88,9 +88,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the composer slash-command and mention palette on the shared compact
   menu row scale. Align its width to the composer, use a 14px floating-surface
   radius with the shared 6px inset, and let both surfaces follow their visible
-  items up to a 320px outer maximum. Only overflow scrolls independently, so
-  short result sets leave no trailing empty area and opening or navigating them
-  never moves the composer.
+  items up to the lesser of the configured 320px maximum and the live space
+  above the composer, retaining an 8px viewport inset. Recalculate that space
+  for window, visual-viewport, composer-height, and scroll changes. Only
+  overflow scrolls independently, so short result sets leave no trailing empty
+  area, constrained windows never clip the palette, and opening or navigating
+  them never moves the composer.
 
 ## Startup and restore
 
