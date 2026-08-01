@@ -4,6 +4,7 @@
   import MathBlock from "svelte-streamdown/math";
   import Mermaid from "$lib/streamdown/Mermaid.svelte";
   import CustomToken from "$lib/streamdown/CustomToken.svelte";
+  import { chatMarkdownTheme } from "$lib/streamdown/chatMarkdownTheme";
   import { customExtensions } from "$lib/streamdown/extensions";
   import type { ComponentToken } from "$lib/streamdown/extensions";
   import type { HtmlPreviewConfig, StreamItem } from "$lib/types";
@@ -81,6 +82,7 @@
             controls={{ table: false }}
             components={{ code: Code, mermaid: Mermaid, math: MathBlock }}
             extensions={customExtensions}
+            theme={chatMarkdownTheme}
             {shikiTheme}
             {mermaidConfig}
           >

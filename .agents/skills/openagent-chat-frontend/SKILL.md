@@ -17,6 +17,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep ordinary transcript copy and the shared composer textarea on the same
   compact 14px type scale so streaming and editable durable content do not
   change apparent size.
+- Keep streamed Markdown list markers outside the list-item content so loose
+  lists whose items contain block paragraphs align each marker with the first
+  content line.
 - In responsive double-column mode, expanded process records participate in
   pagination instead of moving as one container. Keep the process header with
   its first record and preserve the same atomic break rules used by ordinary

@@ -12,6 +12,7 @@
   import type { HtmlPreviewConfig, StreamItem } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { customExtensions, type ComponentToken } from "$lib/streamdown/extensions";
+  import { chatMarkdownTheme } from "$lib/streamdown/chatMarkdownTheme";
   import CustomToken from "$lib/streamdown/CustomToken.svelte";
 
   interface Props {
@@ -95,6 +96,7 @@
       controls={{ table: false }}
       components={{ code: Code, mermaid: Mermaid, math: MathBlock }}
       extensions={customExtensions}
+      theme={chatMarkdownTheme}
       {shikiTheme}
       {mermaidConfig}
     >
