@@ -240,7 +240,9 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 with the accelerator configured in General settings
 (`CommandOrControl+Shift+Space` by default). The accelerator recorder shows the
 platform-native label, requires at least one modifier, applies a captured
-combination immediately, and provides a quiet reset action. Registration
+combination immediately, and provides a quiet reset action. Shortcut recording
+continues after a pointer click even on platforms where buttons do not receive
+keyboard focus. Registration
 conflicts appear inline and leave the previous accelerator active. The primary
 desktop process owns a separate centered 760 × 190px always-on-top launcher;
 workspace windows never resize or change visibility when it opens. The launcher

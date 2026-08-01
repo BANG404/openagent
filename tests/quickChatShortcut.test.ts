@@ -9,6 +9,17 @@ import {
 } from "../src/lib/quickChatShortcut";
 
 describe("quick chat shortcut", () => {
+  test("records from the window instead of relying on button focus", async () => {
+    const settingsSource = await Bun.file(
+      new URL("../src/lib/components/SettingsView.svelte", import.meta.url),
+    ).text();
+
+    expect(settingsSource).toContain("<svelte:window onkeydown={handleQuickShortcutKeydown} />");
+    expect(settingsSource).not.toMatch(
+      /class="shortcut-recorder"[\s\S]*?onkeydown=\{handleQuickShortcutKeydown\}/,
+    );
+  });
+
   test("normalizes missing and unsafe shortcuts to the default", () => {
     expect(normalizeQuickChatShortcut(undefined)).toBe(DEFAULT_QUICK_CHAT_SHORTCUT);
     expect(normalizeQuickChatShortcut("KeyK")).toBe(DEFAULT_QUICK_CHAT_SHORTCUT);

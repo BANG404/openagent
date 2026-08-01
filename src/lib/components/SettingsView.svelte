@@ -1232,6 +1232,8 @@
   }
 </script>
 
+<svelte:window onkeydown={handleQuickShortcutKeydown} />
+
 <div class="settings-panel">
   <div class="settings-header" data-tauri-drag-region>
     <span class="settings-header-title">{$t("settingsTitle")}</span>
@@ -1478,7 +1480,6 @@
                   quickShortcutRecording = true;
                   quickShortcutStatus = { tone: "idle", message: "" };
                 }}
-                onkeydown={handleQuickShortcutKeydown}
                 onblur={() => (quickShortcutRecording = false)}
               >
                 <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">

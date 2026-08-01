@@ -128,7 +128,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   restore launcher focus after it closes.
 - General settings owns the persisted quick-chat accelerator. Capturing a new
   accelerator requires at least one modifier and stores the portable Tauri
-  representation. Re-registration is transactional: unregister the old
+  representation. Capture keydown events at the window level while recording;
+  do not depend on the recorder button retaining keyboard focus because macOS
+  WebKit may not focus a button after a pointer click. Re-registration is
+  transactional: unregister the old
   accelerator, register the new one, and restore the old registration plus
   saved value when the operating system rejects or already owns the new
   accelerator.
