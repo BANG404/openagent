@@ -1,20 +1,21 @@
-use openagent_app::checkpoint::{
+use openagent_app::bootstrap_runtime;
+use openagent_runtime::checkpoint::{
     BranchMeta, CheckpointMeta, ConvPatch, ConversationMeta, FileChange, RenderableCheckpoint,
     TaskTrace,
 };
-use openagent_app::commands::*;
-use openagent_app::config::{Config, DefaultModelBinding, McpServerConfig, RecentWorkspace};
-use openagent_app::conversation_memory::{
+use openagent_runtime::commands::*;
+use openagent_runtime::config::{Config, DefaultModelBinding, McpServerConfig, RecentWorkspace};
+use openagent_runtime::conversation_memory::{
     AgentMemoryEntry, AgentRole, ConversationPage, ConversationPageCursor,
 };
-use openagent_app::skills::SkillMetadata;
-use openagent_app::state::{
-    AppState, OpenAgentRuntime, RuntimeAsset, RuntimeHost, ScheduledChatHookDefinition,
+use openagent_runtime::skills::SkillMetadata;
+use openagent_runtime::state::{
+    OpenAgentRuntime, RuntimeAsset, RuntimeHost, ScheduledChatHookDefinition,
 };
-use openagent_app::tools::ScheduleChatHookArgs;
-use openagent_app::{
-    bootstrap_runtime, html_preview_protocol, mcp, tools, tracing_setup, AgentInputRequest,
-    ChatModelBinding, CommandSpec, InputError, ResolvedInput, ResumeInterruptRequest,
+use openagent_runtime::tools::ScheduleChatHookArgs;
+use openagent_runtime::{
+    html_preview_protocol, mcp, tools, tracing_setup, AgentInputRequest, ChatModelBinding,
+    CommandSpec, CreateConversationRequest, InputError, ResolvedInput, ResumeInterruptRequest,
     RuntimeBootstrap, SubmissionOutcome, SubmitInterruptResponseRequest,
 };
 use std::sync::Arc;
@@ -36,7 +37,9 @@ async fn submit_agent_input(
     user_message_id: Option<String>,
     assistant_message_id: Option<String>,
 ) -> Result<SubmissionOutcome, String> {
-    OpenAgentFacade::new(runtime.inner().clone())
+    runtime
+        .inner()
+        .facade()
         .submit_agent_input(AgentInputRequest {
             conv_id,
             text,
@@ -76,7 +79,9 @@ async fn resume_interrupted_chat(
     branch_id: Option<String>,
     assistant_message_id: String,
 ) -> Result<(), String> {
-    OpenAgentFacade::new(runtime.inner().clone())
+    runtime
+        .inner()
+        .facade()
         .resume_interrupt(ResumeInterruptRequest {
             conv_id,
             interrupt_id,
@@ -93,7 +98,9 @@ async fn submit_interrupt_response(
     interrupt_id: String,
     response: String,
 ) -> Result<(), String> {
-    OpenAgentFacade::new(runtime.inner().clone())
+    runtime
+        .inner()
+        .facade()
         .submit_interrupt_response(SubmitInterruptResponseRequest {
             interrupt_id,
             response,
@@ -106,7 +113,7 @@ async fn list_agent_roles(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     scope: String,
 ) -> Result<Vec<AgentRole>, String> {
-    openagent_app::commands::list_agent_roles(runtime.state(), scope).await
+    openagent_runtime::commands::list_agent_roles(runtime.state(), scope).await
 }
 
 #[tauri::command]
@@ -114,7 +121,7 @@ async fn list_agent_roles_for_workspace(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     workspace: String,
 ) -> Result<Vec<AgentRole>, String> {
-    openagent_app::commands::list_agent_roles_for_workspace(runtime.state(), workspace).await
+    openagent_runtime::commands::list_agent_roles_for_workspace(runtime.state(), workspace).await
 }
 
 #[tauri::command]
@@ -125,7 +132,8 @@ async fn save_agent_role(
     name: String,
     description: String,
 ) -> Result<AgentRole, String> {
-    openagent_app::commands::save_agent_role(runtime.state(), id, scope, name, description).await
+    openagent_runtime::commands::save_agent_role(runtime.state(), id, scope, name, description)
+        .await
 }
 
 #[tauri::command]
@@ -133,12 +141,12 @@ async fn delete_agent_role(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     id: String,
 ) -> Result<(), String> {
-    openagent_app::commands::delete_agent_role(runtime.state(), id).await
+    openagent_runtime::commands::delete_agent_role(runtime.state(), id).await
 }
 
 #[tauri::command]
 async fn get_settings(runtime: State<'_, Arc<OpenAgentRuntime>>) -> Result<Config, String> {
-    openagent_app::commands::get_settings(runtime.state()).await
+    openagent_runtime::commands::get_settings(runtime.state()).await
 }
 
 #[tauri::command]
@@ -147,7 +155,7 @@ async fn save_settings(
     config: Config,
     base_config: Option<Config>,
 ) -> Result<Config, String> {
-    openagent_app::commands::save_settings(runtime.state(), config, base_config).await
+    openagent_runtime::commands::save_settings(runtime.state(), config, base_config).await
 }
 
 #[tauri::command]
@@ -155,7 +163,7 @@ async fn set_default_chat_model(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     binding: DefaultModelBinding,
 ) -> Result<DefaultModelBinding, String> {
-    openagent_app::commands::set_default_chat_model(runtime.state(), binding).await
+    openagent_runtime::commands::set_default_chat_model(runtime.state(), binding).await
 }
 
 #[tauri::command]
@@ -164,7 +172,7 @@ async fn save_workspace_prefs(
     workspace: String,
     recent_workspaces: Vec<RecentWorkspace>,
 ) -> Result<(), String> {
-    openagent_app::commands::save_workspace_prefs(runtime.state(), workspace, recent_workspaces)
+    openagent_runtime::commands::save_workspace_prefs(runtime.state(), workspace, recent_workspaces)
         .await
 }
 
@@ -174,7 +182,7 @@ async fn set_active_conversation(
     conv_id: Option<String>,
     workspace: String,
 ) -> Result<(), String> {
-    openagent_app::commands::set_active_conversation(runtime.state(), conv_id, workspace).await
+    openagent_runtime::commands::set_active_conversation(runtime.state(), conv_id, workspace).await
 }
 
 #[tauri::command]
@@ -182,7 +190,7 @@ async fn get_active_conv_id(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     workspace: String,
 ) -> Result<Option<String>, String> {
-    openagent_app::commands::get_active_conv_id(runtime.state(), workspace).await
+    openagent_runtime::commands::get_active_conv_id(runtime.state(), workspace).await
 }
 
 #[tauri::command]
@@ -190,7 +198,7 @@ async fn test_provider_connection(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     request: ProviderProbeRequest,
 ) -> Result<ProviderProbeResult, String> {
-    openagent_app::commands::test_provider_connection(runtime.inner(), request).await
+    openagent_runtime::commands::test_provider_connection(runtime.inner(), request).await
 }
 
 #[tauri::command]
@@ -198,29 +206,29 @@ async fn fetch_provider_models(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     request: ProviderProbeRequest,
 ) -> Result<Vec<String>, String> {
-    openagent_app::commands::fetch_provider_models(runtime.inner(), request).await
+    openagent_runtime::commands::fetch_provider_models(runtime.inner(), request).await
 }
 
 #[tauri::command]
 async fn get_chatgpt_auth_status() -> Result<bool, String> {
-    openagent_app::commands::get_chatgpt_auth_status().await
+    openagent_runtime::commands::get_chatgpt_auth_status().await
 }
 
 #[tauri::command]
 async fn logout_chatgpt() -> Result<bool, String> {
-    openagent_app::commands::logout_chatgpt().await
+    openagent_runtime::commands::logout_chatgpt().await
 }
 
 #[tauri::command]
 async fn refresh_mcp_servers(runtime: State<'_, Arc<OpenAgentRuntime>>) -> Result<(), String> {
-    openagent_app::commands::refresh_mcp_servers(runtime.state()).await
+    openagent_runtime::commands::refresh_mcp_servers(runtime.state()).await
 }
 
 #[tauri::command]
 async fn inspector_database_overview(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<InspectorDatabaseOverview, String> {
-    openagent_app::commands::inspector_database_overview(runtime.state()).await
+    openagent_runtime::commands::inspector_database_overview(runtime.state()).await
 }
 
 #[tauri::command]
@@ -233,7 +241,7 @@ async fn inspector_table_data(
     offset: Option<u32>,
     limit: Option<u32>,
 ) -> Result<InspectorTableData, String> {
-    openagent_app::commands::inspector_table_data(
+    openagent_runtime::commands::inspector_table_data(
         runtime.state(),
         table_name,
         search,
@@ -250,7 +258,7 @@ async fn get_conversations(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     workspace: Option<String>,
 ) -> Result<Vec<ConversationMeta>, String> {
-    openagent_app::commands::get_conversations(runtime.state(), workspace).await
+    openagent_runtime::commands::get_conversations(runtime.state(), workspace).await
 }
 
 #[tauri::command]
@@ -263,7 +271,7 @@ async fn get_conversation_page(
     filter_by_role: Option<bool>,
     role_id: Option<String>,
 ) -> Result<ConversationPage, String> {
-    openagent_app::commands::get_conversation_page(
+    openagent_runtime::commands::get_conversation_page(
         runtime.state(),
         workspace,
         cursor,
@@ -280,7 +288,7 @@ async fn get_conversation_meta(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
 ) -> Result<Option<ConversationMeta>, String> {
-    openagent_app::commands::get_conversation_meta(runtime.state(), conv_id).await
+    openagent_runtime::commands::get_conversation_meta(runtime.state(), conv_id).await
 }
 
 #[tauri::command]
@@ -289,7 +297,7 @@ async fn get_child_conversations(
     parent_conv_id: String,
     workspace: Option<String>,
 ) -> Result<Vec<ConversationMeta>, String> {
-    openagent_app::commands::get_child_conversations(runtime.state(), parent_conv_id, workspace)
+    openagent_runtime::commands::get_child_conversations(runtime.state(), parent_conv_id, workspace)
         .await
 }
 
@@ -302,15 +310,16 @@ async fn create_conversation(
     parent_conv_id: Option<String>,
     role_id: Option<String>,
 ) -> Result<(), String> {
-    openagent_app::commands::create_conversation(
-        runtime.state(),
-        id,
-        title,
-        workspace,
-        parent_conv_id,
-        role_id,
-    )
-    .await
+    runtime
+        .facade()
+        .create_conversation(CreateConversationRequest {
+            id,
+            title,
+            workspace,
+            parent_conv_id,
+            role_id,
+        })
+        .await
 }
 
 #[tauri::command]
@@ -319,7 +328,7 @@ async fn update_conversation(
     conv_id: String,
     patch: ConvPatch,
 ) -> Result<(), String> {
-    openagent_app::commands::update_conversation(runtime.state(), conv_id, patch).await
+    openagent_runtime::commands::update_conversation(runtime.state(), conv_id, patch).await
 }
 
 #[tauri::command]
@@ -331,7 +340,7 @@ async fn create_branch(
     forked_from_checkpoint_id: Option<String>,
     forked_from_message_id: Option<String>,
 ) -> Result<(), String> {
-    openagent_app::commands::create_branch(
+    openagent_runtime::commands::create_branch(
         runtime.state(),
         id,
         conv_id,
@@ -347,7 +356,7 @@ async fn get_branches(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
 ) -> Result<Vec<BranchMeta>, String> {
-    openagent_app::commands::get_branches(runtime.state(), conv_id).await
+    openagent_runtime::commands::get_branches(runtime.state(), conv_id).await
 }
 
 #[tauri::command]
@@ -356,7 +365,7 @@ async fn set_branch_head(
     branch_id: String,
     checkpoint_id: String,
 ) -> Result<(), String> {
-    openagent_app::commands::set_branch_head(runtime.state(), branch_id, checkpoint_id).await
+    openagent_runtime::commands::set_branch_head(runtime.state(), branch_id, checkpoint_id).await
 }
 
 #[tauri::command]
@@ -365,7 +374,8 @@ async fn set_active_branch_tip(
     conv_id: String,
     checkpoint_id: String,
 ) -> Result<(), String> {
-    openagent_app::commands::set_active_branch_tip(runtime.state(), conv_id, checkpoint_id).await
+    openagent_runtime::commands::set_active_branch_tip(runtime.state(), conv_id, checkpoint_id)
+        .await
 }
 
 #[tauri::command]
@@ -373,7 +383,7 @@ async fn get_active_branch_tip(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
 ) -> Result<Option<String>, String> {
-    openagent_app::commands::get_active_branch_tip(runtime.state(), conv_id).await
+    openagent_runtime::commands::get_active_branch_tip(runtime.state(), conv_id).await
 }
 
 #[tauri::command]
@@ -381,14 +391,14 @@ async fn delete_conversation(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
 ) -> Result<(), String> {
-    openagent_app::commands::delete_conversation(runtime.state(), conv_id).await
+    runtime.facade().delete_conversation(conv_id).await
 }
 
 #[tauri::command]
 async fn get_task_traces(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<Vec<TaskTrace>, String> {
-    openagent_app::commands::get_task_traces(runtime.state()).await
+    openagent_runtime::commands::get_task_traces(runtime.state()).await
 }
 
 #[tauri::command]
@@ -396,7 +406,7 @@ async fn get_latest_checkpoint(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
 ) -> Result<Option<CheckpointMeta>, String> {
-    openagent_app::commands::get_latest_checkpoint(runtime.state(), conv_id).await
+    openagent_runtime::commands::get_latest_checkpoint(runtime.state(), conv_id).await
 }
 
 #[tauri::command]
@@ -404,7 +414,7 @@ async fn get_checkpoint_metas(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
 ) -> Result<Vec<CheckpointMeta>, String> {
-    openagent_app::commands::get_checkpoint_metas(runtime.state(), conv_id).await
+    openagent_runtime::commands::get_checkpoint_metas(runtime.state(), conv_id).await
 }
 
 #[tauri::command]
@@ -412,7 +422,7 @@ async fn get_renderable_checkpoints(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
 ) -> Result<Vec<RenderableCheckpoint>, String> {
-    openagent_app::commands::get_renderable_checkpoints(runtime.state(), conv_id).await
+    runtime.facade().renderable_checkpoints(conv_id).await
 }
 
 #[tauri::command]
@@ -421,7 +431,8 @@ async fn rollback_to_checkpoint(
     conv_id: String,
     checkpoint_id: String,
 ) -> Result<(), String> {
-    openagent_app::commands::rollback_to_checkpoint(runtime.state(), conv_id, checkpoint_id).await
+    openagent_runtime::commands::rollback_to_checkpoint(runtime.state(), conv_id, checkpoint_id)
+        .await
 }
 
 #[tauri::command]
@@ -430,7 +441,8 @@ async fn restore_agent_history(
     conv_id: String,
     checkpoint_id: Option<String>,
 ) -> Result<(), String> {
-    openagent_app::commands::restore_agent_history(runtime.state(), conv_id, checkpoint_id).await
+    openagent_runtime::commands::restore_agent_history(runtime.state(), conv_id, checkpoint_id)
+        .await
 }
 
 #[tauri::command]
@@ -438,7 +450,7 @@ async fn get_file_changes(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
 ) -> Result<Vec<FileChange>, String> {
-    openagent_app::commands::get_file_changes(runtime.state(), conv_id).await
+    openagent_runtime::commands::get_file_changes(runtime.state(), conv_id).await
 }
 
 #[tauri::command]
@@ -446,7 +458,7 @@ async fn revert_file_change(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     change_id: String,
 ) -> Result<String, String> {
-    openagent_app::commands::revert_file_change(runtime.state(), change_id).await
+    openagent_runtime::commands::revert_file_change(runtime.state(), change_id).await
 }
 
 #[tauri::command]
@@ -454,7 +466,7 @@ async fn revert_file_change_keep(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     change_id: String,
 ) -> Result<String, String> {
-    openagent_app::commands::revert_file_change_keep(runtime.state(), change_id).await
+    openagent_runtime::commands::revert_file_change_keep(runtime.state(), change_id).await
 }
 
 #[tauri::command]
@@ -462,24 +474,24 @@ async fn apply_file_change_forward(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     change_id: String,
 ) -> Result<String, String> {
-    openagent_app::commands::apply_file_change_forward(runtime.state(), change_id).await
+    openagent_runtime::commands::apply_file_change_forward(runtime.state(), change_id).await
 }
 
 #[tauri::command]
 async fn list_skills(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<Vec<SkillMetadata>, String> {
-    openagent_app::commands::list_skills(runtime.state()).await
+    openagent_runtime::commands::list_skills(runtime.state()).await
 }
 
 #[tauri::command]
 async fn get_skill_content(path: String) -> Result<String, String> {
-    openagent_app::commands::get_skill_content(path).await
+    openagent_runtime::commands::get_skill_content(path).await
 }
 
 #[tauri::command]
 async fn save_skill_content(path: String, content: String) -> Result<(), String> {
-    openagent_app::commands::save_skill_content(path, content).await
+    openagent_runtime::commands::save_skill_content(path, content).await
 }
 
 #[tauri::command]
@@ -489,12 +501,12 @@ async fn create_skill(
     name: String,
     description: String,
 ) -> Result<SkillMetadata, String> {
-    openagent_app::commands::create_skill(runtime.state(), scope, name, description).await
+    openagent_runtime::commands::create_skill(runtime.state(), scope, name, description).await
 }
 
 #[tauri::command]
 async fn delete_skill(path: String) -> Result<(), String> {
-    openagent_app::commands::delete_skill(path).await
+    openagent_runtime::commands::delete_skill(path).await
 }
 
 #[tauri::command]
@@ -502,7 +514,7 @@ async fn get_skills_dir(
     scope: String,
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<String, String> {
-    openagent_app::commands::get_skills_dir(scope, runtime.state()).await
+    openagent_runtime::commands::get_skills_dir(scope, runtime.state()).await
 }
 
 #[tauri::command]
@@ -513,7 +525,7 @@ async fn open_path(
 ) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
 
-    let resolved = openagent_app::commands::resolve_open_path(path, runtime.state()).await?;
+    let resolved = openagent_runtime::commands::resolve_open_path(path, runtime.state()).await?;
     app_handle
         .opener()
         .open_path(resolved, None::<&str>)
@@ -525,12 +537,12 @@ async fn read_html_preview_file(
     path: String,
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<HtmlPreviewFile, String> {
-    openagent_app::commands::read_html_preview_file(path, runtime.state()).await
+    openagent_runtime::commands::read_html_preview_file(path, runtime.state()).await
 }
 
 #[tauri::command]
 async fn read_text_file(path: String) -> Result<String, String> {
-    openagent_app::commands::read_text_file(path).await
+    openagent_runtime::commands::read_text_file(path).await
 }
 
 #[tauri::command]
@@ -540,7 +552,7 @@ async fn read_workspace_text_snippet(
     end_line: usize,
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<WorkspaceTextSnippet, String> {
-    openagent_app::commands::read_workspace_text_snippet(
+    openagent_runtime::commands::read_workspace_text_snippet(
         path,
         start_line,
         end_line,
@@ -557,7 +569,7 @@ async fn resolve_workspace_media_source(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<WorkspaceMediaSource, String> {
     let source =
-        openagent_app::commands::resolve_workspace_media_source(path, kind, runtime.state())
+        openagent_runtime::commands::resolve_workspace_media_source(path, kind, runtime.state())
             .await?;
     app_handle
         .asset_protocol_scope()
@@ -572,14 +584,14 @@ async fn save_download_file(
     content: String,
     encoding: Option<String>,
 ) -> Result<String, String> {
-    openagent_app::commands::save_download_file(filename, content, encoding).await
+    openagent_runtime::commands::save_download_file(filename, content, encoding).await
 }
 
 #[tauri::command]
 async fn get_mcp_servers(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<Vec<McpServerConfig>, String> {
-    openagent_app::commands::get_mcp_servers(runtime.state()).await
+    openagent_runtime::commands::get_mcp_servers(runtime.state()).await
 }
 
 #[tauri::command]
@@ -587,17 +599,17 @@ async fn save_mcp_servers(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     servers: Vec<McpServerConfig>,
 ) -> Result<(), String> {
-    openagent_app::commands::save_mcp_servers(runtime.state(), servers).await
+    openagent_runtime::commands::save_mcp_servers(runtime.state(), servers).await
 }
 
 #[tauri::command]
 async fn test_mcp_server(server: McpServerConfig) -> Result<mcp::McpProbeResult, String> {
-    openagent_app::commands::test_mcp_server(server).await
+    openagent_runtime::commands::test_mcp_server(server).await
 }
 
 #[tauri::command]
 fn get_system_locale() -> String {
-    openagent_app::commands::get_system_locale()
+    openagent_runtime::commands::get_system_locale()
 }
 
 #[tauri::command]
@@ -605,7 +617,7 @@ async fn list_workspace_files(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     query: Option<String>,
 ) -> Result<Vec<String>, String> {
-    openagent_app::commands::list_workspace_files(runtime.state(), query).await
+    openagent_runtime::commands::list_workspace_files(runtime.state(), query).await
 }
 
 #[tauri::command]
@@ -613,7 +625,7 @@ async fn clear_conversation(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
 ) -> Result<(), String> {
-    openagent_app::commands::clear_conversation(runtime.state(), conv_id).await
+    openagent_runtime::commands::clear_conversation(runtime.state(), conv_id).await
 }
 
 #[tauri::command]
@@ -621,7 +633,7 @@ async fn cancel_chat_message(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
 ) -> Result<(), String> {
-    openagent_app::commands::cancel_chat_message(runtime.state(), conv_id).await
+    runtime.facade().cancel_conversation(conv_id).await
 }
 
 #[tauri::command]
@@ -629,7 +641,7 @@ async fn skip_memory_retrieval(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
 ) -> Result<(), String> {
-    openagent_app::commands::skip_memory_retrieval(runtime.state(), conv_id).await
+    openagent_runtime::commands::skip_memory_retrieval(runtime.state(), conv_id).await
 }
 
 #[tauri::command]
@@ -638,19 +650,19 @@ async fn set_chat_queue_pending(
     conv_id: String,
     pending: bool,
 ) -> Result<(), String> {
-    openagent_app::commands::set_chat_queue_pending(runtime.state(), conv_id, pending).await
+    openagent_runtime::commands::set_chat_queue_pending(runtime.state(), conv_id, pending).await
 }
 
 #[tauri::command]
 async fn debug_disconnect_model_requests(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<Vec<String>, String> {
-    openagent_app::commands::debug_disconnect_model_requests(runtime.state()).await
+    openagent_runtime::commands::debug_disconnect_model_requests(runtime.state()).await
 }
 
 #[tauri::command]
 async fn get_memory_status(runtime: State<'_, Arc<OpenAgentRuntime>>) -> Result<bool, String> {
-    openagent_app::commands::get_memory_status(runtime.state()).await
+    openagent_runtime::commands::get_memory_status(runtime.state()).await
 }
 
 #[tauri::command]
@@ -658,19 +670,19 @@ async fn trigger_flash_agent(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: Option<String>,
 ) -> Result<(), String> {
-    openagent_app::commands::trigger_flash_agent(runtime.state(), conv_id).await
+    openagent_runtime::commands::trigger_flash_agent(runtime.state(), conv_id).await
 }
 
 #[tauri::command]
 async fn get_flash_status(runtime: State<'_, Arc<OpenAgentRuntime>>) -> Result<bool, String> {
-    openagent_app::commands::get_flash_status(runtime.state()).await
+    openagent_runtime::commands::get_flash_status(runtime.state()).await
 }
 
 #[tauri::command]
 async fn list_scheduled_chat_hooks(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<Vec<ScheduledChatHookDefinition>, String> {
-    openagent_app::commands::list_scheduled_chat_hooks(runtime.state()).await
+    openagent_runtime::commands::list_scheduled_chat_hooks(runtime.state()).await
 }
 
 #[tauri::command]
@@ -678,7 +690,7 @@ async fn cancel_scheduled_chat_hook(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     id: String,
 ) -> Result<(), String> {
-    openagent_app::commands::cancel_scheduled_chat_hook(runtime.state(), id).await
+    openagent_runtime::commands::cancel_scheduled_chat_hook(runtime.state(), id).await
 }
 
 #[tauri::command]
@@ -686,7 +698,7 @@ async fn schedule_chat_hook(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     args: ScheduleChatHookArgs,
 ) -> Result<String, String> {
-    openagent_app::commands::schedule_chat_hook(runtime.state(), args).await
+    openagent_runtime::commands::schedule_chat_hook(runtime.state(), args).await
 }
 
 #[tauri::command]
@@ -695,7 +707,7 @@ async fn update_scheduled_chat_hook(
     id: String,
     args: ScheduleChatHookArgs,
 ) -> Result<String, String> {
-    openagent_app::commands::update_scheduled_chat_hook(runtime.state(), id, args).await
+    openagent_runtime::commands::update_scheduled_chat_hook(runtime.state(), id, args).await
 }
 
 #[tauri::command]
@@ -704,7 +716,7 @@ async fn get_agent_memories(
     scope: String,
     query: Option<String>,
 ) -> Result<Vec<AgentMemoryEntry>, String> {
-    openagent_app::commands::get_agent_memories(runtime.state(), scope, query).await
+    openagent_runtime::commands::get_agent_memories(runtime.state(), scope, query).await
 }
 
 #[tauri::command]
@@ -712,7 +724,7 @@ async fn delete_agent_memory(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     id: String,
 ) -> Result<(), String> {
-    openagent_app::commands::delete_agent_memory(runtime.state(), id).await
+    openagent_runtime::commands::delete_agent_memory(runtime.state(), id).await
 }
 
 #[tauri::command]
@@ -720,7 +732,8 @@ async fn trigger_memory_agent(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: Option<String>,
 ) -> Result<(), String> {
-    openagent_app::commands::trigger_memory_agent(runtime.inner(), runtime.state(), conv_id).await
+    openagent_runtime::commands::trigger_memory_agent(runtime.inner(), runtime.state(), conv_id)
+        .await
 }
 
 #[tauri::command]
@@ -728,7 +741,7 @@ async fn get_memory(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     scope: String,
 ) -> Result<String, String> {
-    openagent_app::commands::get_memory(runtime.inner(), runtime.state(), scope).await
+    openagent_runtime::commands::get_memory(runtime.inner(), runtime.state(), scope).await
 }
 
 #[tauri::command]
@@ -737,7 +750,7 @@ async fn save_memory(
     scope: String,
     content: String,
 ) -> Result<(), String> {
-    openagent_app::commands::save_memory(runtime.inner(), runtime.state(), scope, content).await
+    openagent_runtime::commands::save_memory(runtime.inner(), runtime.state(), scope, content).await
 }
 
 #[tauri::command]
@@ -745,7 +758,7 @@ async fn export_memory_backup(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     scope: String,
 ) -> Result<String, String> {
-    openagent_app::commands::export_memory_backup(runtime.inner(), runtime.state(), scope).await
+    openagent_runtime::commands::export_memory_backup(runtime.inner(), runtime.state(), scope).await
 }
 
 #[tauri::command]
@@ -755,7 +768,7 @@ async fn import_memory_backup(
     content: String,
     replace: bool,
 ) -> Result<MemoryImportResult, String> {
-    openagent_app::commands::import_memory_backup(
+    openagent_runtime::commands::import_memory_backup(
         runtime.inner(),
         runtime.state(),
         scope,
@@ -770,7 +783,7 @@ async fn clear_memory(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     scope: String,
 ) -> Result<(), String> {
-    openagent_app::commands::clear_memory(runtime.inner(), runtime.state(), scope).await
+    openagent_runtime::commands::clear_memory(runtime.inner(), runtime.state(), scope).await
 }
 
 #[tauri::command]
@@ -778,7 +791,7 @@ async fn list_project_drafts(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     scope: String,
 ) -> Result<Vec<DraftCategoryEntry>, String> {
-    openagent_app::commands::list_project_drafts(runtime.inner(), runtime.state(), scope).await
+    openagent_runtime::commands::list_project_drafts(runtime.inner(), runtime.state(), scope).await
 }
 
 #[tauri::command]
@@ -786,7 +799,7 @@ async fn ensure_project_drafts_dir(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     scope: String,
 ) -> Result<String, String> {
-    openagent_app::commands::ensure_project_drafts_dir(runtime.inner(), runtime.state(), scope)
+    openagent_runtime::commands::ensure_project_drafts_dir(runtime.inner(), runtime.state(), scope)
         .await
 }
 
@@ -796,7 +809,8 @@ async fn get_project_draft(
     scope: String,
     path: String,
 ) -> Result<String, String> {
-    openagent_app::commands::get_project_draft(runtime.inner(), runtime.state(), scope, path).await
+    openagent_runtime::commands::get_project_draft(runtime.inner(), runtime.state(), scope, path)
+        .await
 }
 
 #[tauri::command]
@@ -807,7 +821,7 @@ async fn save_project_draft(
     name: String,
     content: String,
 ) -> Result<DraftFileEntry, String> {
-    openagent_app::commands::save_project_draft(
+    openagent_runtime::commands::save_project_draft(
         runtime.inner(),
         runtime.state(),
         scope,
@@ -824,7 +838,7 @@ async fn delete_project_draft(
     scope: String,
     path: String,
 ) -> Result<(), String> {
-    openagent_app::commands::delete_project_draft(runtime.inner(), runtime.state(), scope, path)
+    openagent_runtime::commands::delete_project_draft(runtime.inner(), runtime.state(), scope, path)
         .await
 }
 
@@ -833,7 +847,7 @@ async fn get_design_document(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     scope: String,
 ) -> Result<String, String> {
-    openagent_app::commands::get_design_document(runtime.inner(), runtime.state(), scope).await
+    openagent_runtime::commands::get_design_document(runtime.inner(), runtime.state(), scope).await
 }
 
 #[tauri::command]
@@ -842,13 +856,18 @@ async fn save_design_document(
     scope: String,
     content: String,
 ) -> Result<(), String> {
-    openagent_app::commands::save_design_document(runtime.inner(), runtime.state(), scope, content)
-        .await
+    openagent_runtime::commands::save_design_document(
+        runtime.inner(),
+        runtime.state(),
+        scope,
+        content,
+    )
+    .await
 }
 
 #[tauri::command]
 async fn save_pasted_attachment(name: String, content_base64: String) -> Result<String, String> {
-    openagent_app::commands::save_pasted_attachment(name, content_base64).await
+    openagent_runtime::commands::save_pasted_attachment(name, content_base64).await
 }
 
 #[tauri::command]
@@ -857,7 +876,7 @@ async fn materialize_attachment_blob(
     blob_id: String,
     name: String,
 ) -> Result<String, String> {
-    openagent_app::commands::materialize_attachment_blob(runtime.state(), blob_id, name).await
+    openagent_runtime::commands::materialize_attachment_blob(runtime.state(), blob_id, name).await
 }
 
 #[tauri::command]
@@ -867,7 +886,7 @@ async fn repair_attachment_blob(
     name: String,
     path: String,
 ) -> Result<(), String> {
-    openagent_app::commands::repair_attachment_blob(runtime.state(), blob_id, name, path).await
+    openagent_runtime::commands::repair_attachment_blob(runtime.state(), blob_id, name, path).await
 }
 
 #[tauri::command]
@@ -877,7 +896,7 @@ async fn repair_attachment_blob_content(
     name: String,
     content_base64: String,
 ) -> Result<(), String> {
-    openagent_app::commands::repair_attachment_blob_content(
+    openagent_runtime::commands::repair_attachment_blob_content(
         runtime.state(),
         blob_id,
         name,
@@ -892,7 +911,7 @@ async fn read_attachment_preview(
     locator: String,
     name: String,
 ) -> Result<AttachmentPreview, String> {
-    openagent_app::commands::read_attachment_preview(runtime.state(), locator, name).await
+    openagent_runtime::commands::read_attachment_preview(runtime.state(), locator, name).await
 }
 
 #[tauri::command]
@@ -923,39 +942,39 @@ fn reveal_main_window(
 
 #[tauri::command]
 async fn get_remote_gateway_status() -> Result<RemoteGatewayStatus, String> {
-    openagent_app::commands::get_remote_gateway_status().await
+    openagent_runtime::commands::get_remote_gateway_status().await
 }
 
 #[tauri::command]
 async fn rotate_remote_gateway_pairing_code() -> Result<String, String> {
-    openagent_app::commands::rotate_remote_gateway_pairing_code().await
+    openagent_runtime::commands::rotate_remote_gateway_pairing_code().await
 }
 
 #[tauri::command]
-async fn list_wsl_distributions() -> Result<Vec<openagent_app::wsl::WslDistribution>, String> {
-    openagent_app::commands::list_wsl_distributions().await
+async fn list_wsl_distributions() -> Result<Vec<openagent_runtime::wsl::WslDistribution>, String> {
+    openagent_runtime::commands::list_wsl_distributions().await
 }
 
 #[tauri::command]
 async fn get_wsl_home(
     distribution: String,
-) -> Result<openagent_app::wsl::WslWorkspaceTarget, String> {
-    openagent_app::commands::get_wsl_home(distribution).await
+) -> Result<openagent_runtime::wsl::WslWorkspaceTarget, String> {
+    openagent_runtime::commands::get_wsl_home(distribution).await
 }
 
 #[tauri::command]
 async fn resolve_wsl_workspace(
     distribution: String,
     linux_path: String,
-) -> Result<openagent_app::wsl::WslWorkspaceTarget, String> {
-    openagent_app::commands::resolve_wsl_workspace(distribution, linux_path).await
+) -> Result<openagent_runtime::wsl::WslWorkspaceTarget, String> {
+    openagent_runtime::commands::resolve_wsl_workspace(distribution, linux_path).await
 }
 
 #[tauri::command]
 async fn get_startup_bootstrap(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<StartupBootstrap, String> {
-    openagent_app::commands::get_startup_bootstrap(runtime.inner().clone()).await
+    openagent_runtime::commands::get_startup_bootstrap(runtime.inner().clone()).await
 }
 
 #[tauri::command]
@@ -963,19 +982,19 @@ async fn set_workspace(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     path: Option<String>,
 ) -> Result<(), String> {
-    openagent_app::commands::set_workspace(runtime.inner().clone(), path).await
+    openagent_runtime::commands::set_workspace(runtime.inner().clone(), path).await
 }
 
 #[tauri::command]
 async fn get_workspace_context(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<WorkspaceContext, String> {
-    openagent_app::commands::get_workspace_context(runtime.state()).await
+    openagent_runtime::commands::get_workspace_context(runtime.state()).await
 }
 
 #[tauri::command]
 fn get_workspace_launch_context() -> WorkspaceLaunchContext {
-    openagent_app::commands::get_workspace_launch_context()
+    openagent_runtime::commands::get_workspace_launch_context()
 }
 
 #[tauri::command]
@@ -984,7 +1003,7 @@ async fn open_workspace_window(
     conversation_id: Option<String>,
     message_id: Option<String>,
 ) -> Result<(), String> {
-    openagent_app::commands::open_workspace_window(path, conversation_id, message_id).await
+    openagent_runtime::commands::open_workspace_window(path, conversation_id, message_id).await
 }
 
 #[tauri::command]
@@ -996,7 +1015,7 @@ async fn submit_quick_chat(
     model_binding: Option<ChatModelBinding>,
     role_id: Option<String>,
 ) -> Result<String, String> {
-    openagent_app::commands::submit_quick_chat(
+    openagent_runtime::commands::submit_quick_chat(
         runtime.inner().clone(),
         QuickChatSubmission {
             workspace,
@@ -1014,7 +1033,7 @@ async fn get_conversation_workspace(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
 ) -> Result<Option<String>, String> {
-    openagent_app::commands::get_conversation_workspace(runtime.state(), conv_id).await
+    openagent_runtime::commands::get_conversation_workspace(runtime.state(), conv_id).await
 }
 
 struct TauriRuntimeHost {
@@ -1092,7 +1111,6 @@ fn run_with_mode(agent_server: bool) {
     let RuntimeBootstrap {
         initial_locale,
         runtime,
-        state: app_state,
         html_preview_roots,
     } = bootstrap_runtime(agent_server)
         .unwrap_or_else(|error| panic!("Failed to initialize OpenAgent runtime: {error:#}"));
@@ -1142,7 +1160,6 @@ fn run_with_mode(agent_server: bool) {
     builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(app_state)
         .manage(runtime)
         .setup(move |app| {
             // init_tracing() spawns a background Tokio task (batch exporter). The
@@ -1203,15 +1220,15 @@ fn run_with_mode(agent_server: bool) {
 
             // Publish the AppHandle to anything that needs to emit events to the
             // frontend from outside a command (e.g. AskUserTool).
-            let state = app.state::<AppState>();
             let runtime = app.state::<Arc<OpenAgentRuntime>>();
+            let state = runtime.state();
             let _ = runtime.set_host(Arc::new(TauriRuntimeHost {
                 app: app.handle().clone(),
             }));
-            tauri::async_runtime::spawn(openagent_app::commands::watch_config(
+            tauri::async_runtime::spawn(openagent_runtime::commands::watch_config(
                 runtime.inner().clone(),
             ));
-            let mut runtime_events = state.event_bus.subscribe();
+            let mut runtime_events = runtime.subscribe();
             let event_app = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 loop {
@@ -1274,7 +1291,8 @@ fn run_with_mode(agent_server: bool) {
             // path so the webview can begin bootstrapping immediately.
             let startup_app = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                let state = startup_app.state::<AppState>();
+                let runtime = startup_app.state::<Arc<OpenAgentRuntime>>();
+                let state = runtime.state();
                 let config = state.config.lock().await.clone();
                 let tool_server = state.tool_server.lock().await.clone();
                 let recall_tool_server = state.recall_tool_server.lock().await.clone();
@@ -1294,7 +1312,11 @@ fn run_with_mode(agent_server: bool) {
                 // Initialize the bundled quantized model in the background so startup is not
                 // blocked. Hybrid memory search gracefully falls back to keyword + time scoring
                 // while it is loading or if the packaged resource cannot be initialized.
-                let em = app.state::<AppState>().embedding_model.clone();
+                let em = app
+                    .state::<Arc<OpenAgentRuntime>>()
+                    .state()
+                    .embedding_model
+                    .clone();
                 let model_dir = app
                     .path()
                     .resolve(EMBEDDING_MODEL_RESOURCE_PATH, BaseDirectory::Resource);
@@ -1303,7 +1325,7 @@ fn run_with_mode(agent_server: bool) {
                         let model_dir = model_dir.map_err(|error| {
                             format!("failed to resolve bundled embedding resources: {error}")
                         })?;
-                        openagent_app::embedding::load_bundled_model(model_dir).map(Arc::new)
+                        openagent_runtime::embedding::load_bundled_model(model_dir).map(Arc::new)
                     })
                     .await;
 
@@ -1449,7 +1471,7 @@ mod tests {
         let model_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("resources")
             .join(EMBEDDING_MODEL_RESOURCE_PATH);
-        let model = openagent_app::embedding::load_bundled_model(model_dir)
+        let model = openagent_runtime::embedding::load_bundled_model(model_dir)
             .expect("bundled model should load");
         let embeddings = model
             .embed(

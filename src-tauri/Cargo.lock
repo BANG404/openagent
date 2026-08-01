@@ -6236,6 +6236,7 @@ version = "0.29.0-beta.1"
 dependencies = [
  "cc",
  "openagent-app",
+ "openagent-runtime",
  "serde_json",
  "tauri",
  "tauri-build",
@@ -6251,6 +6252,23 @@ dependencies = [
 
 [[package]]
 name = "openagent-app"
+version = "0.1.1"
+dependencies = [
+ "anyhow",
+ "openagent-runtime",
+ "tokio",
+]
+
+[[package]]
+name = "openagent-protocol"
+version = "0.1.1"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "openagent-runtime"
 version = "0.1.1"
 dependencies = [
  "anyhow",
@@ -6270,7 +6288,7 @@ dependencies = [
  "http",
  "ignore",
  "mime_guess",
- "openagent-runtime",
+ "openagent-protocol",
  "opentelemetry",
  "opentelemetry-langfuse",
  "opentelemetry_sdk",
@@ -6301,15 +6319,6 @@ dependencies = [
  "walkdir",
  "which 6.0.3",
  "zstd",
-]
-
-[[package]]
-name = "openagent-runtime"
-version = "0.1.1"
-dependencies = [
- "serde",
- "serde_json",
- "tokio",
 ]
 
 [[package]]

@@ -47,9 +47,11 @@ source-of-truth rules to mapped areas such as the chat frontend.
 - `sdk/` is a pinned private Git submodule. Treat it as a separate repository:
   commit SDK changes there first, then commit only the resulting gitlink update
   here with any required host/frontend integration.
-- `src-tauri/` is the host package boundary. Keep Rust source there limited to
-  thin binary entry points, Tauri Builder/command/event adapters, desktop
-  capabilities, build configuration, and packaging metadata.
+- `src-tauri/` is the host package boundary. It uses `openagent-app` only to
+  apply OpenAgent product bootstrap and `openagent-runtime` for execution APIs.
+  Keep Rust source there limited to thin binary entry points, Tauri
+  Builder/command/event adapters, desktop capabilities, build configuration,
+  and packaging metadata.
 - `src/routes/+page.svelte` is the frontend composition root. Put new views in
   `src/lib/components/`; keep leaf components presentational.
 - Put `invoke()` calls and cross-component state in feature containers or the
