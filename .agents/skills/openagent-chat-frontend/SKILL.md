@@ -80,6 +80,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   neighboring hover and selected fills visibly separate. Options with
   descriptions may grow vertically and use 11px secondary copy; do not
   compress them to the single-line height.
+- Keep the workspace switcher's root menu focused on open-folder actions.
+  Place older workspaces in a side-opening recent-workspaces submenu that
+  supports hover, click, and keyboard navigation while retaining path tooltips
+  and the per-workspace open-location action.
 
 ## Startup and restore
 
@@ -184,6 +188,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   selector. It must bypass onboarding and native state, and its `-theme` and
   `-locale` query parameters must keep light/dark and Chinese/English checks
   addressable without navigation.
+- Keep the development-only `workspace-switcher-preview` query available for
+  the shared workspace menu and recent-workspaces submenu. Its `-theme` and
+  `-locale` query parameters must keep light/dark and Chinese/English pointer
+  and keyboard interaction checks addressable without native state.
 
 ## IPC and events
 

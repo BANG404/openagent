@@ -178,6 +178,7 @@
   const isDevInspectorWindow = devQuery?.has("dev-inspector") === true;
   const isQuickChatPreview = devQuery?.has("quick-chat-preview") === true;
   const isReasoningEffortPreview = devQuery?.has("reasoning-effort-preview") === true;
+  const isWorkspaceSwitcherPreview = devQuery?.has("workspace-switcher-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
   const quickChatPreviewTheme =
@@ -196,6 +197,33 @@
       : devQuery?.get("reasoning-effort-preview-locale") === "zh"
         ? "zh"
         : null;
+  const workspaceSwitcherPreviewTheme =
+    devQuery?.get("workspace-switcher-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("workspace-switcher-preview-theme") === "light"
+        ? "light"
+        : null;
+  const workspaceSwitcherPreviewLocale: Locale | null =
+    devQuery?.get("workspace-switcher-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("workspace-switcher-preview-locale") === "zh"
+        ? "zh"
+        : null;
+  const workspaceSwitcherPreviewWorkspace: WorkspaceContext = {
+    path: "C:\\Projects\\Temp",
+    git_branch: null,
+    has_agent_dir: false,
+    environment: { kind: "local" },
+  };
+  const workspaceSwitcherPreviewRecents: RecentWorkspace[] = [
+    { name: "Temp", path: "C:\\Projects\\Temp" },
+    { name: "openagent", path: "C:\\Projects\\openagent" },
+    { name: "documents", path: "C:\\Projects\\documents" },
+    { name: "design-system", path: "C:\\Projects\\design-system" },
+    { name: "agent-runtime", path: "C:\\Projects\\agent-runtime" },
+    { name: "playground", path: "C:\\Projects\\playground" },
+    { name: "research", path: "C:\\Projects\\research" },
+  ];
   const isDebugBuild = import.meta.env.DEV;
   let showMainDebugComponents = $state(readMainDebugComponentsVisible());
   let isDebugMode = $derived(isDebugBuild && showMainDebugComponents);
@@ -2768,8 +2796,19 @@
   async function loadSettings() {
     if (!tauriAvailable) {
       config = normalizeConfigShape(fallbackConfig);
-      applyTheme(reasoningEffortPreviewTheme ?? quickChatPreviewTheme ?? config.theme ?? "system");
-      await initI18n(reasoningEffortPreviewLocale ?? quickChatPreviewLocale ?? config.language);
+      applyTheme(
+        workspaceSwitcherPreviewTheme ??
+          reasoningEffortPreviewTheme ??
+          quickChatPreviewTheme ??
+          config.theme ??
+          "system",
+      );
+      await initI18n(
+        workspaceSwitcherPreviewLocale ??
+          reasoningEffortPreviewLocale ??
+          quickChatPreviewLocale ??
+          config.language,
+      );
       return;
     }
 
@@ -4228,6 +4267,19 @@
 <TooltipPrimitive.Provider delayDuration={500} skipDelayDuration={300}>
   {#if isDevInspectorWindow && DevInspector}
     <DevInspector />
+  {:else if isWorkspaceSwitcherPreview}
+    <main class="workspace-switcher-preview-stage">
+      <WorkspaceSwitcher
+        workspace={workspaceSwitcherPreviewWorkspace}
+        workspacePath={workspaceSwitcherPreviewWorkspace.path ?? ""}
+        recentWorkspaces={workspaceSwitcherPreviewRecents}
+        tauriAvailable={true}
+        browserModeNotice=""
+        onPick={() => {}}
+        onPickWsl={() => {}}
+        onSelect={() => {}}
+      />
+    </main>
   {:else if isReasoningEffortPreview}
     <main class="reasoning-effort-preview-stage">
       <section class="reasoning-effort-preview-card">
@@ -5720,6 +5772,21 @@
     padding: 32px;
     box-sizing: border-box;
     background: var(--bg);
+  }
+
+  .workspace-switcher-preview-stage {
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 96px 32px 32px;
+    box-sizing: border-box;
+    background: var(--bg);
+  }
+
+  .workspace-switcher-preview-stage :global(.workspace-btn) {
+    background: var(--control-surface);
+    box-shadow: var(--control-shadow);
   }
 
   .reasoning-effort-preview-card {

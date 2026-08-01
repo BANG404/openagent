@@ -134,47 +134,69 @@
         {/if}
         {#if otherRecent.length > 0}
           <DropdownMenu.Separator class="ws-dropdown-divider" />
-          <div class="ws-recent-list">
-            {#each otherRecent as ws (ws.path)}
-              <div class="ws-recent-row">
-                <Tooltip text={ws.path} side="right" block>
-                  <DropdownMenu.Item class="ws-dropdown-item" onSelect={() => onSelect(ws.path)}>
-                    <svg
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path d="M2 13V5.5L6.5 3H14v10H2zM2 5.5h4.5V3" />
-                    </svg>
-                    <span class="ws-dropdown-name">{ws.name}</span>
-                  </DropdownMenu.Item>
-                </Tooltip>
-                <Tooltip text={$t("openFileLocation")} side="right">
-                  <button
-                    class="ws-location-btn"
-                    type="button"
-                    aria-label={$t("openFileLocation")}
-                    onclick={(event) => handleOpenWorkspaceLocation(event, ws.path)}
-                  >
-                    <svg
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path d="M2.5 4.5h4l1.25 1.5h5.75v7.5h-11z" />
-                      <path d="M10 3h3v3M13 3 9 7" />
-                    </svg>
-                  </button>
-                </Tooltip>
-              </div>
-            {/each}
-          </div>
+          <DropdownMenu.Sub>
+            <DropdownMenu.SubTrigger
+              class="ws-dropdown-item ws-recent-trigger"
+              textValue={$t("recentWorkspaces")}
+            >
+              <span class="ws-dropdown-name">{$t("recentWorkspaces")}</span>
+              <svg class="ws-submenu-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="m6 4 4 4-4 4" />
+              </svg>
+            </DropdownMenu.SubTrigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.SubContent
+                class="ws-dropdown ws-recent-submenu"
+                sideOffset={6}
+                alignOffset={-6}
+              >
+                <div class="ws-recent-list">
+                  {#each otherRecent as ws (ws.path)}
+                    <div class="ws-recent-row">
+                      <Tooltip text={ws.path} side="right" block>
+                        <DropdownMenu.Item
+                          class="ws-dropdown-item"
+                          onSelect={() => onSelect(ws.path)}
+                        >
+                          <svg
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M2 13V5.5L6.5 3H14v10H2zM2 5.5h4.5V3" />
+                          </svg>
+                          <span class="ws-dropdown-name">{ws.name}</span>
+                        </DropdownMenu.Item>
+                      </Tooltip>
+                      <Tooltip text={$t("openFileLocation")} side="right">
+                        <button
+                          class="ws-location-btn"
+                          type="button"
+                          aria-label={$t("openFileLocation")}
+                          onclick={(event) => handleOpenWorkspaceLocation(event, ws.path)}
+                        >
+                          <svg
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M2.5 4.5h4l1.25 1.5h5.75v7.5h-11z" />
+                            <path d="M10 3h3v3M13 3 9 7" />
+                          </svg>
+                        </button>
+                      </Tooltip>
+                    </div>
+                  {/each}
+                </div>
+              </DropdownMenu.SubContent>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Sub>
         {/if}
       </DropdownMenu.Content>
     </DropdownMenu.Portal>
@@ -285,6 +307,29 @@
     margin-top: var(--menu-item-stack-gap);
   }
 
+  :global(.ws-recent-trigger) {
+    justify-content: space-between;
+  }
+
+  :global(.ws-recent-trigger[data-state="open"]) {
+    background: var(--bg);
+  }
+
+  :global(.ws-submenu-chevron) {
+    width: 12px;
+    height: 12px;
+    margin-left: auto;
+    color: var(--text-muted);
+  }
+
+  :global(.ws-submenu-chevron path) {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
   .ws-recent-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 30px;
@@ -295,6 +340,11 @@
     max-height: min(240px, calc(100vh - 160px));
     overflow-y: auto;
     overscroll-behavior: contain;
+  }
+
+  :global(.ws-recent-submenu) {
+    min-width: 240px;
+    max-width: min(340px, calc(100vw - 24px));
   }
 
   .ws-recent-row :global(.ws-dropdown-item) {
