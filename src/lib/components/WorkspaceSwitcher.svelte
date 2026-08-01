@@ -388,7 +388,7 @@
 
   :global(.ws-dropdown-item[data-selected]) {
     background: var(--item-selected-bg);
-    color: var(--primary);
+    color: var(--text);
   }
 
   :global(.ws-dropdown-item[data-selected][data-highlighted]),
@@ -401,14 +401,6 @@
     height: 14px;
     flex-shrink: 0;
     color: var(--text-muted);
-  }
-
-  :global(.ws-open-folder) {
-    color: var(--primary);
-  }
-
-  :global(.ws-open-folder svg) {
-    color: var(--primary);
   }
 
   .ws-dropdown-name {

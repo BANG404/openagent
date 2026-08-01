@@ -4181,16 +4181,17 @@
   }
 
   :global(.btn-primary.danger-primary) {
-    background: #dc2626;
+    background: var(--danger);
   }
 
   :global(.btn-primary.danger-primary:hover) {
-    background: #b91c1c;
+    background: color-mix(in srgb, var(--danger) 82%, var(--text));
   }
 
   .danger-zone {
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    background: rgba(239, 68, 68, 0.05);
+    border: 0;
+    background: color-mix(in srgb, var(--danger) 6%, var(--surface2));
+    box-shadow: var(--control-shadow);
   }
 
   .danger-title,
@@ -4201,7 +4202,7 @@
   }
 
   .danger-btn {
-    color: #dc2626;
+    color: var(--danger);
   }
 
   .content-col-title {
