@@ -231,11 +231,17 @@
   const workspaceSwitcherPreviewRecents: RecentWorkspace[] = [
     { name: "Temp", path: "C:\\Projects\\Temp" },
     { name: "openagent", path: "C:\\Projects\\openagent" },
+    {
+      name: "openagent-wsl",
+      path: "\\\\wsl.localhost\\Ubuntu-24.04\\home\\developer\\Projects\\openagent",
+    },
     { name: "documents", path: "C:\\Projects\\documents" },
     { name: "design-system", path: "C:\\Projects\\design-system" },
     { name: "agent-runtime", path: "C:\\Projects\\agent-runtime" },
     { name: "playground", path: "C:\\Projects\\playground" },
     { name: "research", path: "C:\\Projects\\research" },
+    { name: "experiments", path: "C:\\Projects\\experiments" },
+    { name: "archive", path: "D:\\Workspace Archive\\2026\\archive" },
   ];
   const isDebugBuild = import.meta.env.DEV;
   let showMainDebugComponents = $state(readMainDebugComponentsVisible());

@@ -251,7 +251,7 @@ Search inputs inside raised selector menus are the compact exception: they stay 
 
 The composer slash-command and mention palette uses the same compact row scale. Its floating surface follows the composer width and uses a 14px radius with a 6px inset. Let both palettes size to their visible items up to the lesser of the configured 320px maximum and the live space above the composer, retaining an 8px viewport inset. Recalculate that space when the window, visual viewport, composer height, or scroll position changes. Only overflow scrolls independently, so short result sets have no trailing empty area, constrained windows never clip the palette, and opening or navigating the list never moves the composer.
 
-Long secondary collections should not make a primary action menu scroll. The workspace switcher keeps open-folder actions in its root menu and exposes older workspaces through a side-opening “Recent workspaces” submenu. The submenu must support pointer hover, click, and keyboard navigation, preserve path tooltips and per-workspace location actions, and reuse the shared menu density.
+Long secondary collections should not make a primary action menu scroll. The workspace switcher keeps open-folder actions in its root menu and exposes older workspaces through a side-opening “Recent workspaces” submenu. The submenu must support pointer hover, click, and keyboard navigation, show complete paths with explicit WSL badges and no per-row icons, keep its scrollbar flush with the right edge, and reuse the shared menu density.
 
 **`quick-chat-palette`** — A Raycast-style compact conversation surface opened
 with the accelerator configured in General settings

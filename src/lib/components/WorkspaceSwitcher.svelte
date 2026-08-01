@@ -3,7 +3,7 @@
   import { DropdownMenu } from "bits-ui";
   import type { WorkspaceContext, RecentWorkspace } from "$lib/types";
   import { t } from "$lib/i18n";
-  import { workspaceFolderName } from "$lib/workspacePath";
+  import { isWslWorkspacePath, workspaceFolderName } from "$lib/workspacePath";
   import Tooltip from "./Tooltip.svelte";
 
   interface Props {
@@ -45,12 +45,6 @@
     } catch (error) {
       console.warn("Failed to open workspace location", error);
     }
-  }
-
-  function handleOpenWorkspaceLocation(event: Event, path: string) {
-    event.preventDefault();
-    event.stopPropagation();
-    void openWorkspaceLocation(path);
   }
 </script>
 
@@ -158,38 +152,11 @@
                           class="ws-dropdown-item"
                           onSelect={() => onSelect(ws.path)}
                         >
-                          <svg
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <path d="M2 13V5.5L6.5 3H14v10H2zM2 5.5h4.5V3" />
-                          </svg>
-                          <span class="ws-dropdown-name">{ws.name}</span>
+                          {#if isWslWorkspacePath(ws.path)}
+                            <span class="wsl-badge">WSL</span>
+                          {/if}
+                          <span class="ws-workspace-path">{ws.path}</span>
                         </DropdownMenu.Item>
-                      </Tooltip>
-                      <Tooltip text={$t("openFileLocation")} side="right">
-                        <button
-                          class="ws-location-btn"
-                          type="button"
-                          aria-label={$t("openFileLocation")}
-                          onclick={(event) => handleOpenWorkspaceLocation(event, ws.path)}
-                        >
-                          <svg
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <path d="M2.5 4.5h4l1.25 1.5h5.75v7.5h-11z" />
-                            <path d="M10 3h3v3M13 3 9 7" />
-                          </svg>
-                        </button>
                       </Tooltip>
                     </div>
                   {/each}
@@ -332,54 +299,24 @@
   }
 
   .ws-recent-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 30px;
-    align-items: center;
+    display: block;
   }
 
   .ws-recent-list {
     max-height: min(240px, calc(100vh - 160px));
     overflow-y: auto;
     overscroll-behavior: contain;
+    margin-right: calc(-1 * var(--menu-content-padding));
+    padding-right: var(--menu-content-padding);
   }
 
   :global(.ws-recent-submenu) {
-    min-width: 240px;
-    max-width: min(340px, calc(100vw - 24px));
+    width: min(460px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
   }
 
   .ws-recent-row :global(.ws-dropdown-item) {
     min-width: 0;
-  }
-
-  :global(.ws-location-btn) {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    padding: 0;
-    background: transparent;
-    border: none;
-    border-radius: 4px;
-    color: var(--text-muted);
-    cursor: pointer;
-    outline: none;
-  }
-
-  :global(.ws-location-btn:hover),
-  :global(.ws-location-btn:focus-visible) {
-    background: var(--bg);
-    color: var(--text);
-  }
-
-  :global(.ws-location-btn:focus-visible) {
-    box-shadow: var(--focus-ring);
-  }
-
-  :global(.ws-location-btn svg) {
-    width: 14px;
-    height: 14px;
   }
 
   :global(.ws-dropdown-item[data-highlighted]:not([data-selected])),
@@ -414,6 +351,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .ws-workspace-path {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    line-height: 16px;
   }
 
   :global(.ws-dropdown-divider) {

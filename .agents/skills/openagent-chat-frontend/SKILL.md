@@ -90,8 +90,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   endpoints on that rail.
 - Keep the workspace switcher's root menu focused on open-folder actions.
   Place older workspaces in a side-opening recent-workspaces submenu that
-  supports hover, click, and keyboard navigation while retaining path tooltips
-  and the per-workspace open-location action.
+  supports hover, click, and keyboard navigation. Show each complete workspace
+  path without per-row icons, mark WSL shares explicitly, and keep an overflowing
+  list's scrollbar flush with the submenu's right edge.
 - Keep the composer slash-command and mention palette on the shared compact
   menu row scale. Align its width to the composer, use a 14px floating-surface
   radius with the shared 6px inset, and let both surfaces follow their visible

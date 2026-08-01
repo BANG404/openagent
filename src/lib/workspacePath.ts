@@ -7,3 +7,7 @@ export function workspaceFolderName(
   const segments = path.split(/[/\\]+/).filter(Boolean);
   return segments.at(-1) ?? fallback;
 }
+
+export function isWslWorkspacePath(path: string): boolean {
+  return /^(?:\\\\wsl(?:\.localhost|\$)\\|\\\\\?\\UNC\\wsl(?:\.localhost|\$)\\)/i.test(path);
+}
