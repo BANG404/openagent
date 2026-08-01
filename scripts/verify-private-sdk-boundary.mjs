@@ -29,8 +29,11 @@ if (!cargoManifest.includes('path = "src/lib.rs"')) {
 if (!cargoManifest.includes('openagent-app = { path = "../sdk/rust/openagent-app" }')) {
   throw new Error("The Tauri adapter must depend on the private SDK application crate");
 }
+if (!cargoManifest.includes('openagent-runtime = { path = "../sdk/rust/openagent-runtime" }')) {
+  throw new Error("The Tauri adapter must depend on the private SDK runtime crate");
+}
 
-const requiredPrivateSources = [
+const requiredRuntimeSources = [
   "chat_lifecycle.rs",
   "checkpoint.rs",
   "commands/chat_common.rs",
@@ -47,17 +50,19 @@ const requiredPrivateSources = [
   "tool_approval.rs",
   "tools.rs",
 ];
-const privateSourceRoot = resolve(repositoryRoot, "sdk", "rust", "openagent-app", "src");
-const availablePrivateSources = new Set(
-  filesBelow(privateSourceRoot).map((path) =>
-    relative(privateSourceRoot, path).replaceAll("\\", "/"),
+const runtimeSourceRoot = resolve(repositoryRoot, "sdk", "rust", "openagent-runtime", "src");
+const availableRuntimeSources = new Set(
+  filesBelow(runtimeSourceRoot).map((path) =>
+    relative(runtimeSourceRoot, path).replaceAll("\\", "/"),
   ),
 );
-const missingPrivateSources = requiredPrivateSources.filter(
-  (path) => !availablePrivateSources.has(path),
+const missingRuntimeSources = requiredRuntimeSources.filter(
+  (path) => !availableRuntimeSources.has(path),
 );
-if (missingPrivateSources.length > 0) {
-  throw new Error(`Private SDK checkout is incomplete: ${missingPrivateSources.join(", ")}`);
+if (missingRuntimeSources.length > 0) {
+  throw new Error(
+    `Private SDK runtime checkout is incomplete: ${missingRuntimeSources.join(", ")}`,
+  );
 }
 
-console.log(`Private SDK boundary verified (${availablePrivateSources.size} backend source files)`);
+console.log(`Private SDK boundary verified (${availableRuntimeSources.size} runtime source files)`);

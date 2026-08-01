@@ -51,7 +51,9 @@ source-of-truth rules to mapped areas such as the chat frontend.
   apply OpenAgent product bootstrap and `openagent-runtime` for execution APIs.
   Keep Rust source there limited to thin binary entry points, Tauri
   Builder/command/event adapters, desktop capabilities, build configuration,
-  and packaging metadata.
+  and packaging metadata. The private SDK boundary check must validate backend
+  sources under `sdk/rust/openagent-runtime/src` and require both SDK crates;
+  keep that check aligned whenever crate ownership changes.
 - `src/routes/+page.svelte` is the frontend composition root. Put new views in
   `src/lib/components/`; keep leaf components presentational.
 - Put `invoke()` calls and cross-component state in feature containers or the
