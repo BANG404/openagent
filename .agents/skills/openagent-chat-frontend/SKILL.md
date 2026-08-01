@@ -84,10 +84,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep desktop conversation rows at a compact 30px height. Ellipsize long
   titles at rest, reveal their complete text with a measured horizontal scroll
   on pointer hover, and retain the static ellipsis under reduced motion.
-- In the light theme, the workspace surface to the right of the sidebar is
-  pure white and free of ambient aurora. On a new conversation, treat the
-  greeting and composer as one centered vertical stack; ordinary conversations
-  keep the composer anchored to the bottom.
+- Use the theme canvas for the workspace surface and retain the low-contrast
+  ambient aurora behind the composer and new-conversation greeting. On a new
+  conversation, treat the greeting and composer as one centered vertical
+  stack; ordinary conversations keep the composer anchored to the bottom.
 - An explicitly empty durable active-conversation marker restores the centered
   new-conversation surface, even when older conversations exist. Never fall
   back to the newest conversation.
@@ -155,6 +155,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   accelerator.
 - Role and workspace changes affect only the next quick-chat conversation.
   Never restore or render conversation history in the launcher.
+- Keep the search field inside every searchable selector menu transparent and
+  shadowless at rest, including role, model, and workspace selectors. Show only
+  the shared focus ring during keyboard focus.
 - Keep the development-only `quick-chat-preview` query available for browser
   layout verification. Its composer and browser-backed attachment picker stay
   interactive for overflow stress checks, but submission stays disabled; it

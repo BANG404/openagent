@@ -247,16 +247,16 @@
     box-sizing: border-box;
     border: 0;
     border-radius: 6px;
-    background: var(--surface2);
+    background: transparent;
     color: var(--text);
     font: inherit;
     font-size: 13px;
     outline: none;
-    box-shadow: var(--control-shadow);
+    box-shadow: none;
     padding: 7px 10px 7px 30px;
   }
-  .ui-select-search:focus {
-    box-shadow: var(--control-shadow), var(--focus-ring);
+  .ui-select-search:focus-visible {
+    box-shadow: var(--focus-ring);
   }
   .ui-select-search::placeholder {
     color: var(--text-muted, #888);

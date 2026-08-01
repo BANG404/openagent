@@ -1028,7 +1028,7 @@
   }
 
   .memory-note::before {
-    content: none;
+    content: "";
     position: absolute;
     left: 50%;
     top: 50%;
@@ -1088,7 +1088,7 @@
   }
 
   .memory-note::after {
-    content: none;
+    content: "";
     position: absolute;
     left: 50%;
     top: 50%;
