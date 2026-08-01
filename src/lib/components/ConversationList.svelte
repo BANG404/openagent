@@ -122,6 +122,32 @@
     return "graph";
   }
 
+  function trackTitleOverflow(node: HTMLElement) {
+    const copy = node.querySelector<HTMLElement>(".conv-title-text");
+    if (!copy) return;
+
+    const update = () => {
+      const overflow = Math.max(0, copy.scrollWidth - node.clientWidth);
+      node.dataset.overflowing = overflow > 2 ? "true" : "false";
+      node.style.setProperty("--title-overflow", `${overflow}px`);
+      node.style.setProperty("--title-scroll-duration", `${Math.max(2.8, overflow / 28)}s`);
+    };
+
+    const resizeObserver = new ResizeObserver(update);
+    const mutationObserver = new MutationObserver(update);
+    resizeObserver.observe(node);
+    mutationObserver.observe(copy, { childList: true, characterData: true, subtree: true });
+    const updateFrame = requestAnimationFrame(update);
+
+    return {
+      destroy() {
+        cancelAnimationFrame(updateFrame);
+        resizeObserver.disconnect();
+        mutationObserver.disconnect();
+      },
+    };
+  }
+
   $effect(() => {
     if (!listElement || !pageSentinel || !hasMore) return;
     const observer = new IntersectionObserver(
@@ -141,6 +167,12 @@
       <circle cx="8" cy="5.25" r="2.35" />
       <path d="M3.75 13c.35-2.35 1.85-3.65 4.25-3.65s3.9 1.3 4.25 3.65" />
     </svg>
+  </span>
+{/snippet}
+
+{#snippet conversationTitle(title: string)}
+  <span class="conv-title" {title} use:trackTitleOverflow>
+    <span class="conv-title-text">{title}</span>
   </span>
 {/snippet}
 
@@ -181,7 +213,7 @@
       {:else}
         {@render delegatedRoleBadge()}
       {/if}
-      <span class="conv-title">{sub.title}</span>
+      {@render conversationTitle(sub.title)}
       {#if streamingConvIds[sub.id]}
         <span class="conv-streaming-dot" aria-label="Streaming"></span>
       {:else}
@@ -238,7 +270,7 @@
               >
                 <path d="M3 4.5h10M3 8h7M3 11.5h5" />
               </svg>
-              <span class="conv-title">{conv.title}</span>
+              {@render conversationTitle(conv.title)}
               {#if streamingConvIds[conv.id]}
                 <span class="conv-streaming-dot" aria-label="Streaming"></span>
               {/if}
@@ -315,7 +347,7 @@
                   {/if}
                 </span>
               {/if}
-              <span class="conv-title">{conv.title}</span>
+              {@render conversationTitle(conv.title)}
               {#if streamingConvIds[conv.id]}
                 <span class="conv-streaming-dot" aria-label="Streaming"></span>
               {:else}
@@ -390,7 +422,7 @@
                 {:else}
                   {@render delegatedRoleBadge()}
                 {/if}
-                <span class="conv-title">{sub.title}</span>
+                {@render conversationTitle(sub.title)}
                 {#if streamingConvIds[sub.id]}
                   <span class="conv-streaming-dot" aria-label="Streaming"></span>
                 {:else}
@@ -533,12 +565,12 @@
     display: flex;
     align-items: center;
     width: 100%;
-    height: 36px;
+    height: 30px;
     box-sizing: border-box;
     background: none;
     border: none;
     border-radius: 7px;
-    padding: 7px 10px;
+    padding: 4px 10px;
     cursor: pointer;
     text-align: left;
     color: var(--text-muted);
@@ -573,8 +605,8 @@
   }
 
   .conv-item.active::before {
-    top: 7px;
-    bottom: 7px;
+    top: 5px;
+    bottom: 5px;
   }
 
   .conv-item.active:hover {
@@ -585,8 +617,35 @@
     flex: 1;
     min-width: 0;
     overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .conv-title-text {
+    display: block;
+    width: 100%;
+    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  :global(.conv-item:hover .conv-title[data-overflowing="true"] .conv-title-text),
+  :global(.sub-conv-item:hover .conv-title[data-overflowing="true"] .conv-title-text) {
+    width: max-content;
+    min-width: 100%;
+    overflow: visible;
+    text-overflow: clip;
+    animation: conversation-title-scroll var(--title-scroll-duration) ease-in-out 0.35s forwards;
+  }
+
+  @keyframes conversation-title-scroll {
+    0%,
+    12% {
+      transform: translateX(0);
+    }
+    88%,
+    100% {
+      transform: translateX(calc(-1 * var(--title-overflow)));
+    }
   }
 
   .conv-delete {
@@ -712,12 +771,12 @@
     display: flex;
     align-items: center;
     width: 100%;
-    height: 36px;
+    height: 30px;
     box-sizing: border-box;
     background: none;
     border: none;
     border-radius: 7px;
-    padding: 7px 8px;
+    padding: 4px 8px;
     cursor: pointer;
     text-align: left;
     color: var(--text-muted);
@@ -742,8 +801,8 @@
   }
 
   .sub-conv-item.active::before {
-    top: 7px;
-    bottom: 7px;
+    top: 5px;
+    bottom: 5px;
   }
 
   .sub-conv-item.active:hover {
@@ -763,6 +822,16 @@
   @media (prefers-reduced-motion: reduce) {
     .conv-streaming-dot {
       animation: none;
+    }
+
+    :global(.conv-item:hover .conv-title[data-overflowing="true"] .conv-title-text),
+    :global(.sub-conv-item:hover .conv-title[data-overflowing="true"] .conv-title-text) {
+      animation: none;
+      width: 100%;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transform: none;
     }
   }
 </style>

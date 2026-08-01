@@ -15,7 +15,7 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 - Whisper-soft elevation used only when a product image needs to breathe — exactly one drop-shadow in the entire system.
 - Tight two-row nav: slim `{component.global-nav}` + product-specific `{component.sub-nav-frosted}` with persistent right-aligned primary CTA.
 - Section rhythm across multiple pages: light hero → dark product tile → light utility tile → dark tile → parchment footer — a predictable pulse.
-- **Application-only aurora:** low-contrast, blurred multicolor light is permitted behind the chat composer, empty conversation state, and generated memory note. It is an ambient status layer, never content chrome; the conversation sidebar remains a flat surface.
+- **Application canvas:** the desktop chat surface to the right of the sidebar is pure white in the light theme and free of decorative aurora. The conversation sidebar remains a distinct flat surface; dark mode retains its dark canvas.
 
 ## Colors
 
@@ -232,6 +232,8 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 **`search-input`** — The accessories search input. Background `{colors.canvas}`, text `{colors.ink}` in `{typography.body}` (17px), 1px solid `rgba(0, 0, 0, 0.08)` border, rounded `{rounded.pill}` (full pill — search is also pill-shaped, matching the CTA grammar), padding 12px × 20px, height 44px. Leading icon: search glyph at 14px, muted tint.
 
 **`application-input-surface`** — Shared desktop-application treatment for text inputs, textareas, select/combobox triggers, and the chat composer. Use `var(--control-surface)` (or a semantically equivalent filled surface), no outer border, `var(--control-shadow)`, and the component's established radius. Focus adds `var(--focus-ring)` without changing layout. Searchable dropdown inputs follow the same treatment.
+
+The role selector is the compact exception inside an already raised menu: its search input stays transparent and shadowless at rest, with only the focus ring appearing during keyboard focus.
 
 **`application-floating-surface`** — Shared treatment for dialogs, menus, popovers, command palettes, dropdown content, toasts, and floating previews. Use `var(--control-surface)`, no outer border, `var(--raised-shadow)`, and optional restrained backdrop blur. Internal dividers may remain when they separate content regions; status colors should use an inset accent or focus ring rather than restoring a perimeter border.
 

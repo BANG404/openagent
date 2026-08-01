@@ -14,6 +14,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 - Completed messages and the active response share the dynamic-height virtual
   list.
+- Keep ordinary transcript copy and the shared composer textarea on the same
+  compact 14px type scale so streaming and editable durable content do not
+  change apparent size.
 - In responsive double-column mode, expanded process records participate in
   pagination instead of moving as one container. Keep the process header with
   its first record and preserve the same atomic break rules used by ordinary
@@ -78,6 +81,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Use transcript-shaped and composer skeletons during history loading.
 - Keep the conversation sidebar background flat and free of decorative glow;
   communicate active streaming through the conversation row indicator only.
+- Keep desktop conversation rows at a compact 30px height. Ellipsize long
+  titles at rest, reveal their complete text with a measured horizontal scroll
+  on pointer hover, and retain the static ellipsis under reduced motion.
+- In the light theme, the workspace surface to the right of the sidebar is
+  pure white and free of ambient aurora. On a new conversation, treat the
+  greeting and composer as one centered vertical stack; ordinary conversations
+  keep the composer anchored to the bottom.
 - An explicitly empty durable active-conversation marker restores the centered
   new-conversation surface, even when older conversations exist. Never fall
   back to the newest conversation.

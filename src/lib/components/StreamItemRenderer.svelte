@@ -214,7 +214,7 @@
   .assistant-msg {
     width: 100%;
     color: var(--text);
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.47;
     letter-spacing: -0.374px;
   }

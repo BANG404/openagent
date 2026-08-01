@@ -255,12 +255,15 @@
     border: 0;
     border-radius: 6px;
     padding: 7px 10px 7px 30px;
-    background: var(--surface2);
+    background: transparent;
     color: var(--text);
     font: inherit;
     font-size: 13px;
     outline: none;
-    box-shadow: var(--control-shadow);
+    box-shadow: none;
+  }
+  .role-selector-search-wrap input:focus-visible {
+    box-shadow: var(--focus-ring);
   }
   :global(.role-selector-viewport) {
     min-height: 0;

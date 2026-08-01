@@ -935,7 +935,7 @@
     padding: 12px 18px 4px;
     color: var(--text);
     font-family: inherit;
-    font-size: 15px;
+    font-size: 14px;
     resize: none;
     outline: none;
     line-height: 1.47;

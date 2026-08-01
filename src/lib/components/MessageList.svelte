@@ -769,6 +769,7 @@
 
   .messages-inner-empty {
     max-width: none;
+    padding-bottom: 0 !important;
   }
 
   .messages-inner-responsive-double:not(.messages-inner-empty) {
@@ -993,9 +994,8 @@
     position: absolute;
     left: 0;
     right: 0;
-    /* Keep the empty-state copy and its aurora nearly centered, with a subtle
-       upward bias that leaves more visual room for the composer below. */
-    top: calc(50% - clamp(24px, 3vh, 40px));
+    /* Anchor the copy immediately above the centered new-conversation composer. */
+    top: calc(50% + 24px);
     z-index: 1;
     display: flex;
     flex-direction: column;
@@ -1008,7 +1008,7 @@
     gap: 12px;
     margin: 0;
     padding: 0 32px;
-    transform: translateY(-50%);
+    transform: translateY(-100%);
     pointer-events: none;
   }
 
@@ -1017,7 +1017,7 @@
     isolation: isolate;
     width: fit-content;
     max-width: min(100%, 720px);
-    padding: 26px clamp(34px, 5vw, 64px);
+    padding: 0 clamp(34px, 5vw, 64px);
     box-sizing: border-box;
     border: 0;
     background: transparent;
@@ -1028,7 +1028,7 @@
   }
 
   .memory-note::before {
-    content: "";
+    content: none;
     position: absolute;
     left: 50%;
     top: 50%;
@@ -1088,7 +1088,7 @@
   }
 
   .memory-note::after {
-    content: "";
+    content: none;
     position: absolute;
     left: 50%;
     top: 50%;
@@ -1197,7 +1197,7 @@
     padding: 9px 14px;
     margin: 0;
     font-family: inherit;
-    font-size: 15px;
+    font-size: 14px;
     white-space: pre-wrap;
     word-break: break-word;
     color: var(--text);
@@ -1221,7 +1221,7 @@
     border-radius: 12px;
     background: var(--surface2);
     color: var(--text);
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.47;
     letter-spacing: -0.374px;
     white-space: pre-wrap;
