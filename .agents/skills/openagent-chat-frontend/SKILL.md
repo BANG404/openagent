@@ -152,8 +152,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   aligned to their trigger start edge, without collision-based side flipping.
   Give the launcher card only a restrained shadow and keep enough transparent
   stage padding around it that the shadow never meets or clips against the
-  native window boundary. Keep selector content shadowless. Selector content
-  has a fixed scrollable height; role
+  native window boundary. Keep selector content shadowless. Let selector content
+  follow its items up to a bounded scrollable maximum height; role
   descriptions are line-clamped so one role cannot consume the menu.
 - Keep the compact composer height bounded and content-driven. Let the shared
   textarea's measured height grow the card through a small multi-line range;

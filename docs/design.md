@@ -272,8 +272,9 @@ align to its start edge, and do not use collision-based side flipping. The
 title row is the native window drag handle, and drag-time focus changes must not
 close the launcher. Give the launcher card a restrained shadow, contained by
 transparent stage padding so it never meets or clips against the native window
-boundary; selector content remains shadowless. Selector content uses a fixed scrollable
-height, and role descriptions are limited to two lines. Model, role, and
+boundary; selector content remains shadowless. Selector content follows its items
+up to a bounded scrollable maximum height, and role descriptions are limited to
+two lines. Model, role, and
 workspace selectors update only the launcher's remembered tuple for the next
 conversation. Configuration changes refresh the available launcher models
 without replacing a remembered model that remains valid; an unavailable model

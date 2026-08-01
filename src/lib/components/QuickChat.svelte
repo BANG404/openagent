@@ -503,7 +503,7 @@
   }
 
   :global(.quick-select-content) {
-    height: min(286px, var(--bits-select-content-available-height, 286px));
+    max-height: min(286px, var(--bits-select-content-available-height, 286px));
     min-width: 230px;
     max-width: 360px;
     background: var(--surface);
