@@ -2970,6 +2970,17 @@
       openSettings("providers");
       return;
     }
+    const newConversationSurfaceVisible =
+      !mainContentLoading &&
+      newConversationLayout &&
+      !onboardingOpen &&
+      !settingsOpen &&
+      !designOpen &&
+      !draftsOpen &&
+      !memoryOpen &&
+      !rolesOpen &&
+      !skillsOpen;
+    if (newConversationSurfaceVisible) return;
     if (settingsOpen) closeSettings();
     if (designOpen) designOpen = false;
     if (draftsOpen) draftsOpen = false;

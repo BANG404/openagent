@@ -233,6 +233,8 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 
 **`application-input-surface`** — Shared desktop-application treatment for text inputs, textareas, select/combobox triggers, the chat composer, and user-message bubbles. Use `var(--control-surface)` (or a semantically equivalent filled surface), no outer border, `var(--control-shadow)`, and the component's established radius. User-message loading placeholders retain this same translucent surface. Focus adds `var(--focus-ring)` without changing layout. Searchable dropdown inputs follow the same treatment.
 
+**`application-new-conversation-surface`** — The empty-conversation greeting and composer form one stable centered state. Repeating the new-conversation action while this state is already visible leaves the greeting, composer, and loading state unchanged; loading placeholders are reserved for a real restore or data refresh, not for acknowledging an already-selected destination.
+
 Search inputs inside raised selector menus are the compact exception: they stay transparent and shadowless at rest, with only the focus ring appearing during keyboard focus. Apply this consistently to role, model, workspace, and any future searchable dropdown.
 
 **`application-floating-surface`** — Shared treatment for dialogs, menus, popovers, command palettes, dropdown content, toasts, and floating previews. Use `var(--control-surface)`, no outer border, `var(--raised-shadow)`, and optional restrained backdrop blur. Internal dividers may remain when they separate content regions; status colors should use an inset accent or focus ring rather than restoring a perimeter border.

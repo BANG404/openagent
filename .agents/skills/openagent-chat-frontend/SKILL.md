@@ -119,6 +119,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - An explicitly empty durable active-conversation marker restores the centered
   new-conversation surface, even when older conversations exist. Never fall
   back to the newest conversation.
+- Treat the new-conversation action as idempotent while that surface is already
+  visible. Do not reload its memory greeting, rewrite its durable active marker,
+  or toggle its loading skeleton on a repeated click.
 - Do not render approval controls for a switched branch until its active tip is
   durable.
 
