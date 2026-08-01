@@ -94,6 +94,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the selected workspace process, opens or focuses that workspace window, and
   displays the new streaming conversation there. The launcher must not mutate
   the primary window's active workspace, role, model default, or transcript.
+  Reload launcher settings when configuration changes so enabled model options
+  stay current. Preserve the launcher's model while it remains available; if
+  it becomes unavailable, fall back to the configured default and then the
+  first available model.
 - Losing native focus closes the launcher except while a submission, native
   picker, or window drag owns focus. Suppress focus-close handling for the full
   native operation rather than only disarming its current state, because focus

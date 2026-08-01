@@ -6,6 +6,17 @@ export interface QuickChatPreferences {
 
 const storageKey = "openagent.quick-chat-preferences:v1";
 
+export function resolveQuickChatModel(
+  preferredModel: string | null | undefined,
+  defaultModel: string | null | undefined,
+  availableModels: readonly string[],
+): string {
+  const available = new Set(availableModels);
+  if (preferredModel && available.has(preferredModel)) return preferredModel;
+  if (defaultModel && available.has(defaultModel)) return defaultModel;
+  return availableModels[0] ?? "";
+}
+
 export function loadQuickChatPreferences(storage: Storage): Partial<QuickChatPreferences> {
   try {
     const value = JSON.parse(storage.getItem(storageKey) ?? "null");

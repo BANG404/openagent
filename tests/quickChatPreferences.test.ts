@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   loadQuickChatPreferences,
+  resolveQuickChatModel,
   saveQuickChatPreferences,
 } from "../src/lib/quickChatPreferences";
 
@@ -46,5 +47,27 @@ describe("quick chat preferences", () => {
       role: undefined,
       workspace: "C:\\work",
     });
+  });
+
+  test("preserves an available launcher model when settings change", () => {
+    expect(
+      resolveQuickChatModel("provider:preferred", "provider:default", [
+        "provider:default",
+        "provider:preferred",
+      ]),
+    ).toBe("provider:preferred");
+  });
+
+  test("falls back after the launcher model becomes unavailable", () => {
+    expect(
+      resolveQuickChatModel("provider:removed", "provider:default", [
+        "provider:first",
+        "provider:default",
+      ]),
+    ).toBe("provider:default");
+    expect(resolveQuickChatModel("provider:removed", "provider:removed", ["provider:first"])).toBe(
+      "provider:first",
+    );
+    expect(resolveQuickChatModel("provider:removed", "provider:removed", [])).toBe("");
   });
 });

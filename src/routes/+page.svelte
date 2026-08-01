@@ -36,7 +36,11 @@
     formatQuickChatShortcut,
     normalizeQuickChatShortcut,
   } from "$lib/quickChatShortcut";
-  import { loadQuickChatPreferences, saveQuickChatPreferences } from "$lib/quickChatPreferences";
+  import {
+    loadQuickChatPreferences,
+    resolveQuickChatModel,
+    saveQuickChatPreferences,
+  } from "$lib/quickChatPreferences";
   import { desktopOpenAgent as openAgent, invoke, listen } from "$lib/openagent/tauriClient";
   import type { ChatMemoryRetrievalStage, ChatRunStartedEvent } from "$lib/openagent";
   import {
@@ -429,6 +433,7 @@
   let quickChatSubmitting = $state(false);
   let quickChatFocusArmed = false;
   let quickChatFocusSuppressed = false;
+  let unlistenQuickChatSettings: Promise<() => void> | null = null;
   let registeredQuickChatShortcut: string | null = null;
   let quickWindowTransition: Promise<void> = Promise.resolve();
   let defaultChatModelSaveQueue: Promise<void> = Promise.resolve();
@@ -1440,11 +1445,11 @@
     const fallbackModel = config
       ? encodeModelBinding(config.defaults.chat_model.provider_id, config.defaults.chat_model.model)
       : "";
-    quickChatModel = modelOptions.some((option) => option.value === preferences.model)
-      ? (preferences.model ?? "")
-      : modelOptions.some((option) => option.value === fallbackModel)
-        ? fallbackModel
-        : (modelOptions[0]?.value ?? "");
+    quickChatModel = resolveQuickChatModel(
+      preferences.model,
+      fallbackModel,
+      modelOptions.map((option) => option.value),
+    );
     quickChatWorkspace =
       preferences.workspace || config?.workspace || recentWorkspaces[0]?.path || "";
     if (!quickChatWorkspace && tauriAvailable) quickChatWorkspace = await homeDir();
@@ -1452,6 +1457,20 @@
     await loadQuickChatRoles(quickChatWorkspace);
     persistQuickChatPreferences();
     initialLoading = false;
+  }
+
+  async function reloadQuickChatSettings(): Promise<void> {
+    const preferredModel = quickChatModel;
+    await loadSettings();
+    const fallbackModel = config
+      ? encodeModelBinding(config.defaults.chat_model.provider_id, config.defaults.chat_model.model)
+      : "";
+    quickChatModel = resolveQuickChatModel(
+      preferredModel,
+      fallbackModel,
+      modelOptions.map((option) => option.value),
+    );
+    persistQuickChatPreferences();
   }
 
   async function reloadRoleConversations(preserveConversationId?: string | null): Promise<void> {
@@ -1646,6 +1665,11 @@
     if (isQuickChatSurface) {
       if (isQuickChatWindow) document.documentElement.classList.add("quick-chat-window");
       await initializeQuickChatSurface();
+      if (isQuickChatWindow && tauriAvailable) {
+        unlistenQuickChatSettings = listen("settings-changed", () => {
+          void reloadQuickChatSettings();
+        });
+      }
       return;
     }
     const mountedAt = performance.now();
@@ -4115,6 +4139,7 @@
     });
     return () => {
       void unlistenQuickChatFocus?.then((dispose) => dispose());
+      void unlistenQuickChatSettings?.then((dispose) => dispose());
       if (registeredQuickChatShortcut) {
         void unregister(registeredQuickChatShortcut).catch(() => {});
       }

@@ -267,8 +267,10 @@ close the launcher. Do not apply shadows to the launcher card or selector
 content. Selector content uses a fixed scrollable
 height, and role descriptions are limited to two lines. Model, role, and
 workspace selectors update only the launcher's remembered tuple for the next
-conversation. “Open full window” opens or focuses the selected workspace
-without starting a conversation. Use restrained aurora light behind the
+conversation. Configuration changes refresh the available launcher models
+without replacing a remembered model that remains valid; an unavailable model
+falls back to the configured default. “Open full window” opens or focuses the
+selected workspace without starting a conversation. Use restrained aurora light behind the
 composer only; controls remain on semantically filled surfaces. The compact
 composer grows from its base height using the textarea's measured multi-line
 height, and an attachment adds one compact row; content beyond the bounded
