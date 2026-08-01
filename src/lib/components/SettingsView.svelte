@@ -2091,6 +2091,11 @@
                   {modelLoading[selectedProvider.id] ? $t("syncing") : $t("fetchModels")}
                 </button>
               </div>
+              {#if selectedProvider.provider === "chatgpt"}
+                <p class="chatgpt-model-catalog-hint" role="note">
+                  {$t("chatgptModelCatalogHint")}
+                </p>
+              {/if}
               {#if selectedProvider.models.length > 0}
                 <input
                   class="model-search-input"
@@ -3890,6 +3895,17 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 8px;
+  }
+
+  .chatgpt-model-catalog-hint {
+    margin: 0 0 12px;
+    border-left: 3px solid var(--primary);
+    border-radius: 0 9px 9px 0;
+    padding: 9px 11px;
+    background: var(--surface2);
+    color: var(--text-muted, #888);
+    font-size: 12px;
+    line-height: 1.5;
   }
 
   .manual-model-row .model-search-input {

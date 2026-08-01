@@ -299,6 +299,8 @@ const zh = {
   searchModels: "搜索模型...",
   syncing: "同步中...",
   fetchModels: "获取模型列表",
+  chatgptModelCatalogHint:
+    "ChatGPT OAuth 当前仅提供内置模型列表，可能不完整或不是最新版本。建议在下方手动添加你的账号可用的模型名称；再次获取模型列表会替换手动添加的条目。",
   noModels: '暂无模型，点击"获取模型列表"同步。',
   configure: "配置",
   modelConfiguration: "模型配置",
@@ -959,6 +961,8 @@ const en: Translations = {
   searchModels: "Search models...",
   syncing: "Syncing...",
   fetchModels: "Fetch Models",
+  chatgptModelCatalogHint:
+    "ChatGPT OAuth currently shows a built-in model list that may be incomplete or outdated. Add model names available to your account manually below; fetching models again replaces manual entries.",
   noModels: 'No models. Click "Fetch Models" to sync.',
   configure: "Configure",
   modelConfiguration: "Model Configuration",

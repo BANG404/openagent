@@ -52,6 +52,14 @@ Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
 permissions and do not commit it to source control.
 
+Provider model catalogs are editable configuration rather than an authority on
+account entitlements. In particular, the ChatGPT OAuth service exposes Rig's
+built-in catalog, which may lag the models available to an account. Its settings
+and onboarding views therefore call out manual model entry; fetching that
+catalog again replaces the configured model list, including manually added
+names. OpenAgent does not currently expose model reasoning-effort or ChatGPT
+speed/service-tier controls, so requests use the provider path's defaults.
+
 OpenAgent upgrades an older `messages.db` automatically at startup. A populated
 database is backed up before migration, and the migration either commits in
 full or leaves the original schema unchanged. If the database was created by a

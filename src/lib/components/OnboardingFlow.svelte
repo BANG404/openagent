@@ -85,6 +85,8 @@
           modelsLoaded: "Connection succeeded. {count} models loaded.",
           addModel: "Add model",
           modelName: "Model or deployment name",
+          chatgptModelCatalogHint:
+            "ChatGPT OAuth uses a built-in model list that may be incomplete or outdated. Verify sign-in first, then add model names available to your account manually; verifying again replaces manual entries.",
           defaultTitle: "Choose default models",
           defaultBody:
             "The chat model handles conversations. The flash model handles lightweight background tasks.",
@@ -125,6 +127,8 @@
           modelsLoaded: "连接成功，已获取 {count} 个模型。",
           addModel: "添加模型",
           modelName: "模型或部署名称",
+          chatgptModelCatalogHint:
+            "ChatGPT OAuth 使用内置模型列表，可能不完整或不是最新版本。请先验证登录，再手动添加账号可用的模型名称；再次验证会替换手动添加的条目。",
           defaultTitle: "选择默认模型",
           defaultBody: "对话模型用于日常任务，Flash 模型用于标题、记忆等轻量后台任务。",
           chatModel: "对话模型",
@@ -366,6 +370,11 @@
                 placeholder="••••••••••••••••"
               />
             </label>
+            {#if selectedProvider.provider === "chatgpt"}
+              <p class="chatgpt-model-catalog-hint" role="note">
+                {copy.chatgptModelCatalogHint}
+              </p>
+            {/if}
             <div class="manual-model-row">
               <input
                 bind:value={manualModelName}
@@ -707,6 +716,16 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
+  }
+  .chatgpt-model-catalog-hint {
+    margin: 0;
+    border-left: 3px solid var(--primary);
+    border-radius: 0 9px 9px 0;
+    padding: 9px 11px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
   }
   .manual-model-row .secondary {
     white-space: nowrap;
