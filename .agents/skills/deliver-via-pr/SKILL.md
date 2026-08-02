@@ -80,8 +80,12 @@ retain the task worktree until the merge is confirmed.
 
 - Resolve the exact absolute task-worktree path and verify it is registered,
   clean, not the default worktree, and dedicated to the merged branch.
-- Remove that worktree without force, then delete the merged local task branch
-  with `git branch -d`. Let the PR merge delete its remote branch.
+- Confirm the PR is merged and its remote branch is gone, record the exact local
+  branch name, then remove that worktree without force.
+- A squash merge does not make the task commit an ancestor of `master`, so
+  `git branch -d` normally refuses the final cleanup. After all preceding checks
+  pass, delete only the recorded task branch with `git branch -D`. Never use
+  forced deletion for an open, unmerged, dirty, or ambiguously owned task.
 - Fetch and fast-forward the default worktree when it is clean. Never overwrite
   user changes to synchronize it.
 - Report the PR URL, merge commit, CI result, and cleanup result.

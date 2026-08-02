@@ -59,6 +59,12 @@ after GitHub reports the PR as merged and the worktree is clean. Never force
 cleanup, remove the default worktree, or delete an unmerged branch to make the
 workflow appear complete.
 
+Squash merging leaves the task commit outside `master` ancestry, so ordinary
+`git branch -d` usually refuses to delete the already-merged local branch. Force
+deletion is permitted only for the exact recorded task branch after confirming
+the PR is merged, its remote branch is gone, and its registered worktree was
+cleanly removed. This narrow cleanup exception never applies to unmerged work.
+
 ## Source-of-truth map
 
 | Change area | Documentation to update |
