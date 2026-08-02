@@ -5,6 +5,7 @@ node_modules/
 build/
 dist/
 dist-pages/
+output/
 .svelte-kit/
 
 # IDE
