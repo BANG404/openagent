@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.31.0-beta.1] - 2026-08-02
+
+### Features
+- **chat**: Add sidebar history navigation
+- **chat**: Add paginated book reading mode
+- **ui**: Nest recent workspaces submenu
+
+### Bug Fixes
+- **chat**: Stabilize process record expansion
+- **workspace**: Restore recent submenu indicator
+- **workspace**: Remove switcher menu icons
+- **chat**: Extend fullscreen drag regions
+- **chat**: Restore fullscreen window dragging
+- **chat**: Stabilize book mode pagination
+- **chat**: Clamp long user messages by complete lines
+- **chat**: Recognize user compaction boundaries
+- **workspace**: Clarify recent workspace paths
+- **frontend**: Satisfy Svelte lint rules
+- **sidebar**: Widen role selector popup
+- **settings**: Constrain content track width
+- **chat**: Align loose list markers
+- **chat**: Keep command palette within viewport
+- **chat**: Size command palette to content
+- **chat**: Keep new conversation action idempotent
+- **quick-chat**: Adapt selector menu height
+- **chat**: Align empty state and message surfaces
+- **chat**: Restore backdrop and unify search menus
+
+### Refactoring
+- **ui**: Replace native titles with shared tooltips
+
+### Styling
+- **ui**: Unify selected row treatment
+- **ui**: Standardize compact list spacing
+- **chat**: Align command palette sizing
+- **ui**: Align menu and danger surfaces
+- **ui**: Separate adjacent menu states
+- **ui**: Unify compact menu sizing
+- **chat**: Align conversation workspace layout
+
 ## [0.29.0-beta.1] - 2026-07-31
 
 ### Features
