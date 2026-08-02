@@ -59,18 +59,6 @@
         {#if workspace?.environment.kind === "wsl"}
           <span class="wsl-badge">WSL</span>
         {/if}
-        <svg
-          class="ws-chevron"
-          class:open
-          viewBox="0 0 10 6"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M1 1l4 4 4-4" />
-        </svg>
       </DropdownMenu.Trigger>
     </Tooltip>
     <DropdownMenu.Portal>
@@ -81,29 +69,9 @@
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DropdownMenu.Item class="ws-dropdown-item ws-open-folder" onSelect={onPick}>
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M2 13V5.5L6.5 3H14v10H2zM2 5.5h4.5V3" />
-          </svg>
           {$t("openFolder")}
         </DropdownMenu.Item>
         <DropdownMenu.Item class="ws-dropdown-item ws-open-folder" onSelect={onPickWsl}>
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M3 3.5 7 8l-4 4.5M8.5 12.5H13" />
-          </svg>
           {$t("openWslFolder")}
         </DropdownMenu.Item>
         {#if workspacePath}
@@ -123,9 +91,6 @@
               textValue={$t("recentWorkspaces")}
             >
               <span class="ws-dropdown-name">{$t("recentWorkspaces")}</span>
-              <svg class="ws-submenu-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="m6 4 4 4-4 4" />
-              </svg>
             </DropdownMenu.SubTrigger>
             <DropdownMenu.Portal>
               <DropdownMenu.SubContent
@@ -213,18 +178,6 @@
     line-height: 1.2;
   }
 
-  .ws-chevron {
-    width: 10px;
-    height: 10px;
-    color: var(--text-muted);
-    flex-shrink: 0;
-    transition: transform 0.15s;
-  }
-
-  .ws-chevron.open {
-    transform: rotate(180deg);
-  }
-
   :global(.ws-dropdown) {
     background: var(--control-surface);
     border: 0;
@@ -272,21 +225,6 @@
     background: var(--bg);
   }
 
-  :global(.ws-submenu-chevron) {
-    width: 12px;
-    height: 12px;
-    margin-left: auto;
-    color: var(--text-muted);
-  }
-
-  :global(.ws-submenu-chevron path) {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
   .ws-recent-row {
     display: block;
   }
@@ -327,13 +265,6 @@
     width: 2px;
     background: var(--primary);
     pointer-events: none;
-  }
-
-  :global(.ws-dropdown-item svg) {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-    color: var(--text-muted);
   }
 
   .ws-dropdown-name {
