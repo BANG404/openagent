@@ -122,6 +122,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   introduce a stronger selected fill, checkmark, selected text color, or rounded
   endpoints on that rail.
 - Keep the workspace switcher's root menu focused on open-folder actions.
+  Keep the current-folder-location action text-only instead of repeating a
+  folder glyph beside it.
   Place older workspaces in a side-opening recent-workspaces submenu that
   supports hover, click, and keyboard navigation. Show each complete workspace
   path without per-row icons, mark WSL shares explicitly, and keep an overflowing
@@ -151,6 +153,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   opaque message treatment.
 - Keep the conversation sidebar background flat and free of decorative glow;
   communicate active streaming through the conversation row indicator only.
+- Size the expanded sidebar's header role trigger to its visible role name and
+  omit the redundant caret. Keep its adjacent back and forward controls tied to
+  the window's real destination history: conversations, the new-conversation
+  surface, and feature views all participate; visiting a new destination after
+  going back discards the abandoned forward branch, and deleting a conversation
+  removes its stale destinations.
 - Keep desktop conversation rows at a compact 30px height. Ellipsize long
   titles at rest, reveal their complete text with a measured horizontal scroll
   on pointer hover, retain the static ellipsis under reduced motion, and do not

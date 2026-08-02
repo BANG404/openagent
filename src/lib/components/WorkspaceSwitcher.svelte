@@ -112,17 +112,6 @@
             disabled={!tauriAvailable}
             onSelect={() => openWorkspaceLocation(workspacePath)}
           >
-            <svg
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M2.5 4.5h4l1.25 1.5h5.75v7.5h-11z" />
-              <path d="M10 3h3v3M13 3 9 7" />
-            </svg>
             {$t("openCurrentWorkspaceLocation")}
           </DropdownMenu.Item>
         {/if}

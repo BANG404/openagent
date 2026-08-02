@@ -63,6 +63,7 @@
   import WorkspaceSwitcher from "$lib/components/WorkspaceSwitcher.svelte";
   import ConversationList from "$lib/components/ConversationList.svelte";
   import SidebarCollapseButton from "$lib/components/SidebarCollapseButton.svelte";
+  import SidebarHistoryControls from "$lib/components/SidebarHistoryControls.svelte";
   import SidebarPrimaryActions from "$lib/components/SidebarPrimaryActions.svelte";
   import RoleSelector from "$lib/components/RoleSelector.svelte";
   import SidebarNav from "$lib/components/SidebarNav.svelte";
@@ -115,6 +116,14 @@
     writeStartupRestoreHint,
     type CachedRestoreSurface,
   } from "$lib/startupRestoreCache";
+  import {
+    createNavigationHistory,
+    moveNavigationHistory,
+    recordNavigationLocation,
+    removeNavigationLocations,
+    type AppNavigationHistory,
+    type AppNavigationLocation,
+  } from "$lib/navigationHistory";
   import type {
     ChatMessage,
     Conversation,
@@ -419,6 +428,9 @@
   let memoryOpen = $state(false);
   let rolesOpen = $state(false);
   let skillsOpen = $state(false);
+  let navigationHistory = $state<AppNavigationHistory>(createNavigationHistory());
+  let navigationTransitioning = $state(false);
+  let navigationCaptureDepth = $state(0);
   let SettingsView = $state<LazyViewComponent | null>(null);
   let DesignView = $state<LazyViewComponent | null>(null);
   let DraftsView = $state<LazyViewComponent | null>(null);
@@ -643,6 +655,52 @@
       (option, index) =>
         options.findIndex((candidate) => candidate.value === option.value) === index,
     );
+  });
+
+  let currentNavigationLocation = $derived.by<AppNavigationLocation>(() => ({
+    workspacePath,
+    surface: designOpen
+      ? "design"
+      : draftsOpen
+        ? "drafts"
+        : memoryOpen
+          ? "memory"
+          : rolesOpen
+            ? "roles"
+            : skillsOpen
+              ? "skills"
+              : settingsOpen
+                ? "settings"
+                : "chat",
+    conversationId: activeConvId,
+    roleKey: selectedRoleKey,
+  }));
+  let canGoBack = $derived(
+    !navigationTransitioning && navigationCaptureDepth === 0 && navigationHistory.index > 0,
+  );
+  let canGoForward = $derived(
+    !navigationTransitioning &&
+      navigationCaptureDepth === 0 &&
+      navigationHistory.index < navigationHistory.entries.length - 1,
+  );
+
+  $effect(() => {
+    if (
+      isDevInspectorWindow ||
+      isQuickChatSurface ||
+      isBookModePreview ||
+      isWorkspaceSwitcherPreview ||
+      isCommandPalettePreview ||
+      isReasoningEffortPreview ||
+      initialLoading ||
+      workspaceLoading ||
+      navigationTransitioning ||
+      navigationCaptureDepth > 0
+    ) {
+      return;
+    }
+    const nextHistory = recordNavigationLocation(navigationHistory, currentNavigationLocation);
+    if (nextHistory !== navigationHistory) navigationHistory = nextHistory;
   });
 
   $effect(() => {
@@ -1677,20 +1735,7 @@
 
   async function changeConversationRole(roleKey: string): Promise<void> {
     if (roleKey === selectedRoleKey) return;
-    selectedRoleKey = roleKey;
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(roleSelectionStorageKey(), roleKey);
-    }
-    handleConversationSearch("");
-    restoringSurface = "new-conversation";
-    activeConvId = null;
-    cacheRestoreSurface("new-conversation", null);
-    await reloadRoleConversations();
-    await invoke("set_active_conversation", {
-      convId: null,
-      workspace: workspacePath || "",
-    }).catch(() => {});
-    void loadNewConversationMemories();
+    await activateNewConversationSurface(roleKey);
   }
 
   async function handleRolesChanged(): Promise<void> {
@@ -1812,22 +1857,27 @@
   }
 
   async function selectSidebarConversation(id: string): Promise<void> {
-    if (!conversations.some((conversation) => conversation.id === id)) {
-      const meta = searchConversations.find((conversation) => conversation.id === id);
-      if (meta) await ensureConversationLineage(meta);
+    navigationCaptureDepth += 1;
+    try {
+      if (!conversations.some((conversation) => conversation.id === id)) {
+        const meta = searchConversations.find((conversation) => conversation.id === id);
+        if (meta) await ensureConversationLineage(meta);
+      }
+      const requestedWorkspace = workspacePath;
+      const loadChildren = tauriAvailable
+        ? fetchChildConversations(id, requestedWorkspace || null)
+            .then((children) => {
+              if (requestedWorkspace !== workspacePath) return;
+              conversations = mergeConversationMetadata(conversations, children);
+            })
+            .catch((error) => {
+              console.error(`Failed to load child conversations for ${id}:`, error);
+            })
+        : Promise.resolve();
+      await Promise.all([switchConversation(id), loadChildren]);
+    } finally {
+      navigationCaptureDepth -= 1;
     }
-    const requestedWorkspace = workspacePath;
-    const loadChildren = tauriAvailable
-      ? fetchChildConversations(id, requestedWorkspace || null)
-          .then((children) => {
-            if (requestedWorkspace !== workspacePath) return;
-            conversations = mergeConversationMetadata(conversations, children);
-          })
-          .catch((error) => {
-            console.error(`Failed to load child conversations for ${id}:`, error);
-          })
-      : Promise.resolve();
-    await Promise.all([switchConversation(id), loadChildren]);
   }
 
   onMount(() => {
@@ -3027,6 +3077,28 @@
     writeStartupRestoreHint({ workspace, surface, conversationId });
   }
 
+  async function activateNewConversationSurface(roleKey = selectedRoleKey): Promise<void> {
+    const roleChanged = roleKey !== selectedRoleKey;
+    if (roleChanged) {
+      selectedRoleKey = roleKey;
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(roleSelectionStorageKey(), roleKey);
+      }
+      handleConversationSearch("");
+    }
+    restoringSurface = "new-conversation";
+    activeConvId = null;
+    cacheRestoreSurface("new-conversation", null);
+    if (roleChanged) await reloadRoleConversations();
+    if (tauriAvailable) {
+      await invoke("set_active_conversation", {
+        convId: null,
+        workspace: workspacePath || "",
+      }).catch(() => {});
+    }
+    void loadNewConversationMemories();
+  }
+
   async function newConversation() {
     if (modelOptions.length === 0) {
       showToast({ title: $t("modelSetupRequired"), variant: "error" });
@@ -3050,16 +3122,7 @@
     if (memoryOpen) memoryOpen = false;
     if (rolesOpen) rolesOpen = false;
     if (skillsOpen) skillsOpen = false;
-    restoringSurface = "new-conversation";
-    activeConvId = null;
-    cacheRestoreSurface("new-conversation", null);
-    void loadNewConversationMemories();
-    if (tauriAvailable) {
-      await invoke("set_active_conversation", {
-        convId: null,
-        workspace: workspacePath || "",
-      }).catch(() => {});
-    }
+    await activateNewConversationSurface();
   }
 
   async function restoreWorkspaceConversation(path: string) {
@@ -3134,16 +3197,21 @@
   }
 
   async function revealMemorySource(convId: string, messageId: string) {
-    memoryOpen = false;
-    await switchConversation(convId);
-    await tick();
-    const target = document.getElementById(`message-${messageId}`);
-    if (!target) return;
-    target.scrollIntoView({ behavior: "smooth", block: "center" });
-    target.classList.remove("memory-source-highlight");
-    void target.getBoundingClientRect();
-    target.classList.add("memory-source-highlight");
-    window.setTimeout(() => target.classList.remove("memory-source-highlight"), 2400);
+    navigationCaptureDepth += 1;
+    try {
+      memoryOpen = false;
+      await switchConversation(convId);
+      await tick();
+      const target = document.getElementById(`message-${messageId}`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.classList.remove("memory-source-highlight");
+      void target.getBoundingClientRect();
+      target.classList.add("memory-source-highlight");
+      window.setTimeout(() => target.classList.remove("memory-source-highlight"), 2400);
+    } finally {
+      navigationCaptureDepth -= 1;
+    }
   }
 
   async function deleteConversation(id: string) {
@@ -3187,6 +3255,10 @@
     }
 
     conversations = conversations.filter((c) => c.id !== id);
+    navigationHistory = removeNavigationLocations(
+      navigationHistory,
+      (location) => location.workspacePath === workspacePath && location.conversationId === id,
+    );
     loadedConvIds.delete(id);
     invoke("delete_conversation", { convId: id }).catch(() => {});
     if (activeConvId === id) {
@@ -3848,8 +3920,13 @@
   }
 
   async function openHookConversation(conversationId: string) {
-    closeSettings();
-    await switchConversation(conversationId);
+    navigationCaptureDepth += 1;
+    try {
+      closeSettings();
+      await switchConversation(conversationId);
+    } finally {
+      navigationCaptureDepth -= 1;
+    }
   }
 
   async function saveSettings(nextConfig: AppConfig, baseConfig?: AppConfig) {
@@ -3981,6 +4058,71 @@
 
   function closeSkills() {
     skillsOpen = false;
+  }
+
+  function closeAuxiliarySurfaces(): void {
+    if (settingsOpen) closeSettings();
+    designOpen = false;
+    draftsOpen = false;
+    memoryOpen = false;
+    rolesOpen = false;
+    skillsOpen = false;
+  }
+
+  async function restoreNavigationLocation(location: AppNavigationLocation): Promise<void> {
+    closeAuxiliarySurfaces();
+    if (location.workspacePath !== workspacePath) {
+      await applyWorkspace(location.workspacePath);
+    }
+    if (location.conversationId) {
+      await switchConversation(location.conversationId);
+    } else {
+      await activateNewConversationSurface(location.roleKey);
+    }
+
+    switch (location.surface) {
+      case "design":
+        await openDesign();
+        break;
+      case "drafts":
+        await openDrafts();
+        break;
+      case "memory":
+        await openMemory();
+        break;
+      case "roles":
+        await openRoles();
+        break;
+      case "skills":
+        await openSkills();
+        break;
+      case "settings":
+        await openSettings();
+        break;
+      case "chat":
+        break;
+    }
+  }
+
+  async function navigateHistory(offset: -1 | 1): Promise<void> {
+    if (navigationTransitioning) return;
+    const move = moveNavigationHistory(navigationHistory, offset);
+    if (!move) return;
+    const previousHistory = navigationHistory;
+    navigationTransitioning = true;
+    navigationHistory = move.history;
+    try {
+      await restoreNavigationLocation(move.location);
+    } catch (error) {
+      navigationHistory = previousHistory;
+      showToast({
+        title: $t("navigationFailed"),
+        description: String(error),
+        variant: "error",
+      });
+    } finally {
+      navigationTransitioning = false;
+    }
   }
 
   async function compactCurrentConversation() {
@@ -4494,12 +4636,20 @@
       <aside class="sidebar" class:collapsed={sidebarCollapsed}>
         <div class="sidebar-top" data-tauri-drag-region>
           {#if !sidebarCollapsed}
-            <RoleSelector
-              value={selectedRoleKey}
-              roles={agentRoles}
-              header
-              onChange={(role) => void changeConversationRole(role)}
-            />
+            <div class="sidebar-navigation-start" data-tauri-drag-region>
+              <RoleSelector
+                value={selectedRoleKey}
+                roles={agentRoles}
+                header
+                onChange={(role) => void changeConversationRole(role)}
+              />
+              <SidebarHistoryControls
+                {canGoBack}
+                {canGoForward}
+                onBack={() => void navigateHistory(-1)}
+                onForward={() => void navigateHistory(1)}
+              />
+            </div>
           {/if}
           <SidebarCollapseButton collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
         </div>
@@ -4994,7 +5144,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 2px;
+  }
+
+  .sidebar-navigation-start {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
   }
 
   .sidebar.collapsed .sidebar-top {

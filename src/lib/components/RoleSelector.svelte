@@ -71,9 +71,11 @@
             <span class="role-selector-name">{selected.label}</span>
           </span>
         {/if}
-        <svg class="role-selector-caret" viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M4 6l4 4 4-4" />
-        </svg>
+        {#if !header}
+          <svg class="role-selector-caret" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M4 6l4 4 4-4" />
+          </svg>
+        {/if}
       </Select.Trigger>
     {/snippet}
   </Tooltip>
@@ -157,13 +159,16 @@
     color: var(--text);
   }
   :global(.role-selector-trigger.header) {
+    width: auto;
     min-width: 0;
-    flex: 1;
+    max-width: 100%;
+    flex: 0 1 auto;
     padding-inline: 8px;
     font-size: 14px;
     font-weight: 600;
   }
   :global(.role-selector-trigger.header .role-selector-copy) {
+    flex: 0 1 auto;
     font-size: 14px;
   }
   :global(.role-selector-trigger.header .role-selector-name) {
