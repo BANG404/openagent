@@ -48,6 +48,22 @@ The `Required` pull-request check runs the selected frontend, automation, and
 native jobs plus `check:docs`. Fix failures on the same task branch and let CI
 rerun; do not merge a red or pending `Required` check.
 
+## Browser-backed frontend workflow
+
+Use the `playwright` skill for every repository workflow that renders or
+interacts with the frontend in a browser. Its bundled wrapper launches
+`@playwright/cli` through `bunx`; do not substitute `npx` or another browser
+control surface. This includes, without limitation, verifying frontend changes,
+reproducing browser-visible bugs, exercising preview routes and interactions,
+checking responsive layouts, light/dark themes, and Chinese/English copy, and
+capturing software screenshots, PDFs, videos, or traces.
+
+Start the required development server, open the target through the skill,
+snapshot before using element references, and re-snapshot after navigation or
+material DOM changes. Prefer dedicated browser preview routes for state that
+would otherwise require native Tauri setup. Store browser artifacts under
+`output/playwright/`; do not add new top-level artifact directories.
+
 ## Public repository ownership
 
 - `sdk/` is a pinned private Git submodule. Treat it as a separate repository:
