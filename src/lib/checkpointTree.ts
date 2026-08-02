@@ -57,14 +57,16 @@ export interface ConvTree {
 
 export function isCompactionBoundary(message: ChatMessage): boolean {
   if (!message.checkpointId) return false;
-  return message.role === "system" && message.tags?.includes("context_compaction") === true;
+  return (
+    (message.role === "system" || message.role === "user") &&
+    message.tags?.includes("context_compaction") === true
+  );
 }
 
 function isHiddenCheckpointRecord(record: CheckpointMessage): boolean {
-  // Compaction's system message is restoration-only, but the immediately
-  // replayed user message is a durable UI boundary. Keep the latter in the
-  // timeline so MessageList can render its compaction divider (and omit it
-  // from the user-message index).
+  // Legacy compaction system messages are restoration-only. Both their replay
+  // users and new inline-summary users remain durable UI boundaries so
+  // MessageList can render the divider and omit them from the user index.
   return (
     record.role === "system" ||
     record.tags.includes("goal_continuation") ||

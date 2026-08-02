@@ -44,6 +44,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   in the background. Do not show the conversation-loading skeleton, remount an
   unchanged transcript, overwrite backend history, or remove optimistic
   messages from a queued turn.
+- New checkpoints carry compacted context inside the tagged user replay rather
+  than adding a system message. Represent the whole record only by the divider,
+  while continuing to restore legacy system-boundary checkpoints.
 
 ## Tool and interrupt rendering
 

@@ -195,8 +195,8 @@ describe("getSiblingInfoForUserMessage", () => {
 });
 
 describe("isCompactionBoundary", () => {
-  test("recognizes the durable system compaction tag", () => {
-    const message = {
+  test("recognizes legacy system and inline user compaction tags", () => {
+    const legacySystem = {
       id: "assistant-1",
       role: "system",
       content: "done",
@@ -204,8 +204,14 @@ describe("isCompactionBoundary", () => {
       checkpointId: "checkpoint-1",
       tags: ["context_compaction"],
     };
+    const inlineUser = {
+      ...legacySystem,
+      id: "user-1",
+      role: "user",
+    };
 
-    expect(isCompactionBoundary(message)).toBe(true);
+    expect(isCompactionBoundary(legacySystem)).toBe(true);
+    expect(isCompactionBoundary(inlineUser)).toBe(true);
   });
 });
 
