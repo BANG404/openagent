@@ -54,9 +54,7 @@
 - [Architecture at a glance](#architecture-at-a-glance)
 - [Project structure](#project-structure)
 - [Repository activity](#repository-activity)
-  - [Star history](#star-history)
 - [Contributors](#contributors)
-- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [Observability (optional)](#observability-optional)
   - [Tool-call structured output integration test](#tool-call-structured-output-integration-test)
@@ -357,12 +355,6 @@ private submodule.
 
 ![Alt](https://repobeats.axiom.co/api/embed/6192dc6d5dec9295a44312fb2bba5b0d362280e2.svg "Repobeats analytics image")
 
-### Star history
-
-<a href="https://star-history.com/#BANG404/openagent&Date">
-  <img alt="Star History" src="https://api.star-history.com/svg?repos=BANG404/openagent&type=Date" width="600" />
-</a>
-
 ---
 
 ## Contributors
@@ -372,17 +364,6 @@ Thanks goes to these wonderful people:
 <a href="https://github.com/BANG404/openagent/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=BANG404/openagent" alt="Contributors" />
 </a>
-
----
-
-## Roadmap
-
-- [ ] First-class screenshots & demo GIFs in this README
-- [x] Pre-built installers via GitHub Releases (beta / stable channels)
-- [ ] In-app skill marketplace
-- [x] Dedicated windows for multiple workspaces
-
-See [open issues](https://github.com/BANG404/openagent/issues) for the full backlog and feel free to file new ones.
 
 ---
 
