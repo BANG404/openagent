@@ -342,7 +342,7 @@
   class="messages-inner"
   class:messages-inner-empty={visibleMessages.length === 0 && !isStreaming}
   class:messages-inner-responsive-double={messageLayout === "responsive_double"}
-  style="padding-bottom: {paddingBottom}px"
+  style="padding-bottom: {paddingBottom}px; --user-message-collapse-lines: {USER_MESSAGE_COLLAPSE_LINES}"
 >
   {#if checkpointLoadError}
     <div class="checkpoint-load-error" role="alert">{checkpointLoadError}</div>
@@ -651,7 +651,7 @@
                   }
                 }}
               >
-                {msg.content}
+                <span class="user-content-text">{msg.content}</span>
                 <span class="user-edit-hint" aria-hidden="true">
                   <svg
                     viewBox="0 0 16 16"
@@ -670,7 +670,7 @@
               </div>
             {:else}
               <div class="user-content readonly" class:collapsed={isUserMessageCollapsed(msg)}>
-                {msg.content}
+                <span class="user-content-text">{msg.content}</span>
               </div>
             {/if}
             {#if attachments.length > 0}
@@ -1052,8 +1052,6 @@
     font-size: 14px;
     line-height: 1.47;
     letter-spacing: -0.374px;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
     cursor: text;
     text-align: left;
     outline: none;
@@ -1094,15 +1092,23 @@
   .user-content.readonly {
     cursor: default;
   }
-  .user-content.collapsed {
-    max-height: calc(1.47em * 8 + 18px);
+  .user-content-text {
+    display: block;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .user-content.collapsed .user-content-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: var(--user-message-collapse-lines);
+    line-clamp: var(--user-message-collapse-lines);
     overflow: hidden;
   }
   .user-content.collapsed::after {
     content: "";
     position: absolute;
     right: 0;
-    bottom: 0;
+    bottom: 9px;
     width: 64px;
     height: 2.2em;
     background: linear-gradient(90deg, transparent, var(--control-surface) 72%);
