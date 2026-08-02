@@ -98,7 +98,6 @@ jobs:
             stable_version="${BETA_TAG#v}"
             stable_version="${stable_version%-beta.*}"
             base_branch="release/stable/$stable_version"
-            beta_sha="$(git rev-parse "$BETA_TAG^{commit}")"
             if git ls-remote --exit-code --heads origin "refs/heads/$base_branch" >/dev/null; then
               git fetch origin "refs/heads/$base_branch:refs/remotes/origin/$base_branch"
               base_sha="$(git rev-parse "origin/$base_branch")"

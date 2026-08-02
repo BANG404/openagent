@@ -649,7 +649,6 @@ function main() {
   const currentTauriVersion = getCurrentTauriVersion();
   const lastTag = promoteBetaTag || getLatestTag();
   const latestVersion = lastTag ? versionFromTag(lastTag) : currentVersion;
-  const latest = parseSemver(latestVersion);
   const releaseBaseTag = lastTag;
   const releaseBaseVersion = latestVersion;
 

@@ -200,6 +200,10 @@ The always-present `CI / Required` job is the single branch-protection status.
 
 ## Local Commands
 
+Release automation changes must pass both `bun run lint:frontend` and
+`bun run lint:actions`. These checks reject warnings as well as errors, including
+unused JavaScript and shell variables in release scripts and workflow steps.
+
 Dry runs can execute on any branch:
 
 ```bash
