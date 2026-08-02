@@ -404,6 +404,8 @@ OpenAgent 会在 `<OPENAGENT_HOME>/logs` 下按天写入结构化应用日志，
 **设置 → 通用 → 隐私与诊断**中即时关闭。远程日志不会包含对话、模型输出、工具参数、
 配置值、密钥、前端原始错误消息或堆栈。
 
+![隐私与诊断设置](docs/assets/diagnostic-log-collection-zh.png)
+
 Langfuse 模型追踪与应用日志相互隔离，并保持可选：
 
 在项目根目录创建 `.env` 文件以启用 Langfuse 追踪：

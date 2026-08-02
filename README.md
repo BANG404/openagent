@@ -408,6 +408,8 @@ disabled immediately in **Settings → General → Privacy & diagnostics**. Remo
 logs never include conversations, model output, tool arguments, configuration
 values, secrets, raw frontend error messages, or stack traces.
 
+![Privacy and diagnostics setting](docs/assets/diagnostic-log-collection-en.png)
+
 Langfuse model tracing remains optional and separate from application logs.
 
 Drop a `.env` in the project root to enable Langfuse tracing:
