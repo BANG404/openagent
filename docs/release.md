@@ -127,7 +127,9 @@ a push to `release/stable/X.Y.Z`. CI validates the exact merge SHA. After the
 successful `CI` workflow completes, `release.yml` accepts Beta markers only from
 `master` and Stable markers only from `release/stable/*`, repeats metadata and
 source-integrity validation, and creates an annotated tag pointing to that same
-SHA. Pushes to ephemeral `prepare/*` or Beta archive branches cannot publish.
+SHA. The detection checkout includes complete tag history because release
+metadata validation resolves `previousTag` against local immutable tag refs.
+Pushes to ephemeral `prepare/*` or Beta archive branches cannot publish.
 
 Only then does it:
 
