@@ -528,6 +528,7 @@ export interface AppConfig {
   mention_palette_show_global_drafts: boolean;
   message_layout: "single" | "responsive_double";
   message_double_column_min_width: number;
+  book_mode_font_size: number;
   workspace_open_mode: "ask" | "new_window" | "current_window";
   workspace?: string;
   recent_workspaces?: RecentWorkspace[];

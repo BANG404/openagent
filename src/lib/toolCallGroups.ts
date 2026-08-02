@@ -132,7 +132,19 @@ function assistantMessages(entry: StoredMessageRenderEntry): ChatMessage[] | nul
   return entry.msg.role === "assistant" ? [entry.msg] : null;
 }
 
-/** Collapse every durable assistant record in one reply into a single virtual turn row. */
+function isCompactionContinuation(entry: StoredMessageRenderEntry): boolean {
+  return (
+    entry.kind === "message" &&
+    entry.msg.role === "user" &&
+    entry.msg.tags?.includes("context_compaction") === true
+  );
+}
+
+/**
+ * Collapse every durable assistant record in one reply into a single virtual
+ * turn row. A compaction replay is an internal continuation boundary, not a
+ * new user turn, so keep it inside the reply that resumes after compaction.
+ */
 export function groupAssistantTurns(entries: StoredMessageRenderEntry[]): MessageRenderEntry[] {
   const grouped: MessageRenderEntry[] = [];
   for (let position = 0; position < entries.length;) {
@@ -149,20 +161,43 @@ export function groupAssistantTurns(entries: StoredMessageRenderEntry[]): Messag
     while (end < entries.length) {
       const nextEntry = entries[end];
       const nextMessages = assistantMessages(nextEntry);
-      if (!nextMessages) break;
-      messages.push(...nextMessages);
-      finalIndex =
-        nextEntry.kind === "tool_group"
-          ? nextEntry.index + nextEntry.messages.length - 1
-          : nextEntry.index;
-      end += 1;
+      if (nextMessages) {
+        messages.push(...nextMessages);
+        finalIndex =
+          nextEntry.kind === "tool_group"
+            ? nextEntry.index + nextEntry.messages.length - 1
+            : nextEntry.index;
+        end += 1;
+        continue;
+      }
+
+      if (isCompactionContinuation(nextEntry)) {
+        let continuationEnd = end;
+        while (
+          continuationEnd < entries.length &&
+          isCompactionContinuation(entries[continuationEnd])
+        ) {
+          continuationEnd += 1;
+        }
+        if (continuationEnd < entries.length && assistantMessages(entries[continuationEnd])) {
+          for (let index = end; index < continuationEnd; index += 1) {
+            const boundary = entries[index];
+            if (boundary.kind === "message") messages.push(boundary.msg);
+          }
+          end = continuationEnd;
+          continue;
+        }
+      }
+
+      break;
     }
 
+    const finalAssistantMessage = messages.findLast((message) => message.role === "assistant")!;
     grouped.push({
       kind: "assistant_turn",
       messages,
       finalIndex,
-      key: messages.at(-1)!.id,
+      key: finalAssistantMessage.id,
     });
     position = end;
   }

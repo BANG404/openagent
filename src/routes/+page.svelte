@@ -71,6 +71,7 @@
   import ReasoningEffortSelect from "$lib/components/ReasoningEffortSelect.svelte";
   import ChatQueue from "$lib/components/ChatQueue.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
+  import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import QuickChat from "$lib/components/QuickChat.svelte";
@@ -180,6 +181,7 @@
   const isReasoningEffortPreview = devQuery?.has("reasoning-effort-preview") === true;
   const isWorkspaceSwitcherPreview = devQuery?.has("workspace-switcher-preview") === true;
   const isCommandPalettePreview = devQuery?.has("command-palette-preview") === true;
+  const isBookModePreview = devQuery?.has("book-mode-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
   const quickChatPreviewTheme =
@@ -222,6 +224,58 @@
       : devQuery?.get("command-palette-preview-locale") === "zh"
         ? "zh"
         : null;
+  const bookModePreviewTheme =
+    devQuery?.get("book-mode-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("book-mode-preview-theme") === "light"
+        ? "light"
+        : null;
+  const bookModePreviewLocale: Locale | null =
+    devQuery?.get("book-mode-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("book-mode-preview-locale") === "zh"
+        ? "zh"
+        : null;
+  const bookModePreviewTable = [
+    "| Section | Status | Notes |",
+    "| --- | --- | --- |",
+    ...Array.from(
+      { length: 18 },
+      (_, index) =>
+        `| Row ${index + 1} | Complete | Row-level book pagination fixture ${index + 1} |`,
+    ),
+  ].join("\n");
+  const bookModePreviewTurns: AgentBookTurn[] = [
+    {
+      key: "book-preview-one",
+      items: [
+        {
+          type: "thinking",
+          content:
+            "Check the request, inspect the relevant files, and preserve the reply boundary.",
+        },
+        {
+          type: "tool_call",
+          name: "read_files",
+          args: JSON.stringify({ paths: ["MessageList.svelte", "checkpointTree.ts"] }),
+          result: "Read the transcript grouping and compaction boundary logic.",
+        },
+        { type: "compaction_boundary" },
+        {
+          type: "text",
+          content: `${bookModePreviewTable}\n\n${Array.from(
+            { length: 28 },
+            (_, index) =>
+              `### ${index + 1}. 连贯阅读\n\n书籍模式会把一次完整的 Agent 输出保持在同一章中。正文从左栏自然流向右栏，超出当前展开页时继续到下一页；压缩续接、工具过程和最终结论都保留原有顺序。`,
+          ).join("\n\n")}`,
+        },
+      ],
+    },
+    {
+      key: "book-preview-two",
+      items: [{ type: "text", content: "第二条 Agent 消息用于验证章节切换。" }],
+    },
+  ];
   const workspaceSwitcherPreviewWorkspace: WorkspaceContext = {
     path: "C:\\Projects\\Temp",
     git_branch: null,
@@ -474,6 +528,7 @@
     mention_palette_show_global_drafts: true,
     message_layout: "single",
     message_double_column_min_width: 1200,
+    book_mode_font_size: 17,
     workspace_open_mode: "ask",
     memory_retrieval_enabled: true,
     remote_gateway: {
@@ -2818,7 +2873,8 @@
     if (!tauriAvailable) {
       config = normalizeConfigShape(fallbackConfig);
       applyTheme(
-        commandPalettePreviewTheme ??
+        bookModePreviewTheme ??
+          commandPalettePreviewTheme ??
           workspaceSwitcherPreviewTheme ??
           reasoningEffortPreviewTheme ??
           quickChatPreviewTheme ??
@@ -2826,7 +2882,8 @@
           "system",
       );
       await initI18n(
-        commandPalettePreviewLocale ??
+        bookModePreviewLocale ??
+          commandPalettePreviewLocale ??
           workspaceSwitcherPreviewLocale ??
           reasoningEffortPreviewLocale ??
           quickChatPreviewLocale ??
@@ -4320,6 +4377,17 @@
 <TooltipPrimitive.Provider delayDuration={500} skipDelayDuration={300}>
   {#if isDevInspectorWindow && DevInspector}
     <DevInspector />
+  {:else if isBookModePreview}
+    <AgentBookReader
+      turns={bookModePreviewTurns}
+      activeKey="book-preview-one"
+      shikiTheme={bookModePreviewTheme === "dark" ? "github-dark" : "github-light"}
+      mermaidConfig={mermaidConfigFor(bookModePreviewTheme === "dark")}
+      fontSize={17}
+      onClose={() => {}}
+      onSubmitUserInput={() => {}}
+      onCancelUserInput={() => {}}
+    />
   {:else if isWorkspaceSwitcherPreview}
     <main class="workspace-switcher-preview-stage">
       <WorkspaceSwitcher
@@ -4583,9 +4651,9 @@
                 />
               {/if}
               {#if workspace?.git_branch}
-                <span class="branch-pill" title={`${$t("gitBranch")}: ${workspace.git_branch}`}
-                  >⎇ {workspace.git_branch}</span
-                >
+                <Tooltip text={`${$t("gitBranch")}: ${workspace.git_branch}`}>
+                  <span class="branch-pill">⎇ {workspace.git_branch}</span>
+                </Tooltip>
               {/if}
             </div>
             <div class="title-bar-drag-handle" data-tauri-drag-region aria-hidden="true"></div>
@@ -4642,6 +4710,7 @@
                 htmlPreviewConfig={config?.html_preview}
                 messageLayout={config?.message_layout ?? "single"}
                 messageDoubleColumnMinWidth={config?.message_double_column_min_width ?? 1200}
+                bookModeFontSize={config?.book_mode_font_size ?? 17}
                 tailAnchorToken={streamCompletionTailAnchor?.convId === activeConvId
                   ? streamCompletionTailAnchor.token
                   : null}

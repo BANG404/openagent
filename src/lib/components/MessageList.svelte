@@ -3,6 +3,7 @@
   import StreamItemRenderer from "./StreamItemRenderer.svelte";
   import ToolCallGroup from "./ToolCallGroup.svelte";
   import ProcessRecordGroup from "./ProcessRecordGroup.svelte";
+  import AgentBookReader, { type AgentBookTurn } from "./AgentBookReader.svelte";
   import Tooltip from "./Tooltip.svelte";
   import VirtualMessageList from "./VirtualMessageList.svelte";
   import NewConversationContext from "./NewConversationContext.svelte";
@@ -43,6 +44,7 @@
     htmlPreviewConfig?: HtmlPreviewConfig;
     messageLayout?: "single" | "responsive_double";
     messageDoubleColumnMinWidth?: number;
+    bookModeFontSize?: number;
     tailAnchorToken?: number | null;
     onTailAnchorSettled?: (token: number) => void;
     newConversationMemoryPrompt: string | null;
@@ -86,6 +88,7 @@
     htmlPreviewConfig,
     messageLayout = "single",
     messageDoubleColumnMinWidth = 1200,
+    bookModeFontSize = 17,
     tailAnchorToken = null,
     onTailAnchorSettled,
     newConversationMemoryPrompt,
@@ -124,6 +127,7 @@
   let expandedUserMessageIds = $state(new Set<string>());
   let streamedOpenThinkingItemKeys = $state(new Set<string>());
   let copiedAssistantMessageId = $state<string | null>(null);
+  let readingTurnKey = $state<string | null>(null);
   let copyFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
   let virtualMessageList = $state<VirtualMessageList | null>(null);
   function isHiddenMessage(msg: ChatMessage) {
@@ -136,6 +140,11 @@
     messages.map((msg, index) => ({ msg, index })).filter(({ msg }) => !isHiddenMessage(msg)),
   );
   let renderEntries = $derived(groupAssistantTurns(groupMessageToolCalls(visibleMessages)));
+  let bookTurns = $derived(
+    renderEntries.flatMap((entry): AgentBookTurn[] =>
+      isAssistantTurnEntry(entry) ? [{ key: entry.key, items: assistantItems(entry) }] : [],
+    ),
+  );
   let virtualEntries = $derived(
     appendLiveStreamEntry(renderEntries, isStreaming ? currentStreamMessageId : null),
   );
@@ -158,6 +167,7 @@
   $effect(() => {
     activeConvId;
     cancelEdit();
+    readingTurnKey = null;
   });
 
   function commitEdit(convId: string, userMsgIdx: number, attachments: ChatAttachment[]) {
@@ -246,7 +256,7 @@
     if (!msg.completedAt) return null;
     const userMessage = [...messages.slice(0, msgIdx)]
       .reverse()
-      .find((item) => item.role === "user");
+      .find((item) => item.role === "user" && !isCompactionReplayUser(item));
     if (!userMessage) return null;
     return {
       firstToken: msg.firstTokenAt
@@ -275,7 +285,9 @@
   }
 
   function entryAssistantMessages(entry: MessageRenderEntry): ChatMessage[] {
-    if (entry.kind === "assistant_turn") return entry.messages;
+    if (entry.kind === "assistant_turn") {
+      return entry.messages.filter((message) => message.role === "assistant");
+    }
     if (entry.kind === "message" && entry.msg.role === "assistant") return [entry.msg];
     return [];
   }
@@ -313,6 +325,17 @@
 
   function assistantItems(entry: MessageRenderEntry): StreamItem[] {
     if (entry.kind === "live_stream") return currentStreamItems;
+    if (entry.kind === "assistant_turn") {
+      return entry.messages.flatMap((message) => {
+        if (isCompactionReplayUser(message)) return [{ type: "compaction_boundary" as const }];
+        if (message.role !== "assistant") return [];
+        return message.items?.length
+          ? message.items
+          : message.content
+            ? [{ type: "text" as const, content: message.content }]
+            : [];
+      });
+    }
     return entryAssistantMessages(entry).flatMap((message) =>
       message.items?.length
         ? message.items
@@ -350,29 +373,36 @@
   {#if debugMode && activeConvId}
     <aside class="debug-context" aria-label="Debug context">
       <span>debug</span>
-      <code title={activeConvId}>conversation: {activeConvId}</code>
-      <code title={activeBranchId ?? "No active branch"}>branch: {activeBranchId ?? "pending"}</code
-      >
+      <Tooltip text={activeConvId}>
+        <code>conversation: {activeConvId}</code>
+      </Tooltip>
+      <Tooltip text={activeBranchId ?? "No active branch"}>
+        <code>branch: {activeBranchId ?? "pending"}</code>
+      </Tooltip>
     </aside>
   {/if}
 
   {#if userMessageIndex.length > 1}
     <nav class="user-message-index" aria-label="User message index">
       {#each userMessageIndex as item, index (item.msg.id)}
-        <button
-          type="button"
-          class:with-preview={index < USER_INDEX_PREVIEW_LIMIT}
-          title={userIndexTitle(item.msg.content, index)}
-          aria-label={userIndexTitle(item.msg.content, index)}
-          onclick={() => scrollToMessage(item.msg.id)}
-        >
-          {#if index < USER_INDEX_PREVIEW_LIMIT}
-            <span class="index-preview">
-              <span class="index-preview-text">{userIndexSnippet(item.msg.content)}</span>
-            </span>
-          {/if}
-          <span class="index-mark" aria-hidden="true"></span>
-        </button>
+        <Tooltip text={userIndexTitle(item.msg.content, index)} side="left">
+          {#snippet trigger(props)}
+            <button
+              {...props}
+              type="button"
+              class:with-preview={index < USER_INDEX_PREVIEW_LIMIT}
+              aria-label={userIndexTitle(item.msg.content, index)}
+              onclick={() => scrollToMessage(item.msg.id)}
+            >
+              {#if index < USER_INDEX_PREVIEW_LIMIT}
+                <span class="index-preview">
+                  <span class="index-preview-text">{userIndexSnippet(item.msg.content)}</span>
+                </span>
+              {/if}
+              <span class="index-mark" aria-hidden="true"></span>
+            </button>
+          {/snippet}
+        </Tooltip>
       {/each}
     </nav>
   {/if}
@@ -490,34 +520,36 @@
           </div>
         {/if}
         {#if assistantMsg}
-          {#if isRerunnable || timing || assistantMsg.timestamp > 0}
+          {#if isRerunnable || timing || assistantMsg.timestamp > 0 || renderedAssistantItems.length > 0}
             <div
               class="msg-footer-row message-record pagination-footer"
               id={renderedAssistantItems.length > 0 ? undefined : `message-${assistantMsg.id}`}
               data-message-id={renderedAssistantItems.length > 0 ? undefined : assistantMsg.id}
             >
-              {#if isRerunnable}
+              {#if isRerunnable || copyableOutput || renderedAssistantItems.length > 0}
                 <div class="msg-actions">
-                  <button
-                    class="msg-action-btn"
-                    aria-label={$t("rerun")}
-                    onclick={() => onReExecute(activeConvId!, assistantMsgIdx)}
-                  >
-                    <svg
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.6"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      width="12"
-                      height="12"
-                      aria-hidden="true"
+                  {#if isRerunnable}
+                    <button
+                      class="msg-action-btn"
+                      aria-label={$t("rerun")}
+                      onclick={() => onReExecute(activeConvId!, assistantMsgIdx)}
                     >
-                      <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5M14 2v4h-4" />
-                    </svg>
-                    <span>{$t("rerun")}</span>
-                  </button>
+                      <svg
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        width="12"
+                        height="12"
+                        aria-hidden="true"
+                      >
+                        <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5M14 2v4h-4" />
+                      </svg>
+                      <span>{$t("rerun")}</span>
+                    </button>
+                  {/if}
                   {#if copyableOutput}
                     <button
                       class="msg-action-btn"
@@ -558,6 +590,29 @@
                         </svg>
                         <span>{$t("copyFinalAnswer")}</span>
                       {/if}
+                    </button>
+                  {/if}
+                  {#if renderedAssistantItems.length > 0}
+                    <button
+                      class="msg-action-btn"
+                      aria-label={$t("openBookMode")}
+                      onclick={() => (readingTurnKey = entry.key)}
+                    >
+                      <svg
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        width="12"
+                        height="12"
+                        aria-hidden="true"
+                      >
+                        <path d="M2.5 3.2c1.7-.5 3.5-.1 5.5 1.2v8.4c-2-1.3-3.8-1.7-5.5-1.2V3.2Z" />
+                        <path d="M13.5 3.2c-1.7-.5-3.5-.1-5.5 1.2v8.4c2-1.3 3.8-1.7 5.5-1.2V3.2Z" />
+                      </svg>
+                      <span>{$t("bookMode")}</span>
                     </button>
                   {/if}
                 </div>
@@ -636,38 +691,42 @@
                   }
                 }}></textarea>
             {:else if editable}
-              <div
-                class="user-content"
-                class:collapsed={isUserMessageCollapsed(msg)}
-                role="button"
-                tabindex="0"
-                aria-label={$t("editMsgTitle")}
-                title={$t("editMsgTitle")}
-                onclick={() => startEdit(msg)}
-                onkeydown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    startEdit(msg);
-                  }
-                }}
-              >
-                <span class="user-content-text">{msg.content}</span>
-                <span class="user-edit-hint" aria-hidden="true">
-                  <svg
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    width="13"
-                    height="13"
+              <Tooltip text={$t("editMsgTitle")}>
+                {#snippet trigger(props)}
+                  <div
+                    {...props}
+                    class="user-content"
+                    class:collapsed={isUserMessageCollapsed(msg)}
+                    role="button"
+                    tabindex="0"
+                    aria-label={$t("editMsgTitle")}
+                    onclick={() => startEdit(msg)}
+                    onkeydown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        startEdit(msg);
+                      }
+                    }}
                   >
-                    <path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L6 12l-3 .75.75-3 7.75-7.25Z" />
-                    <path d="m10 4 2 2" />
-                  </svg>
-                </span>
-              </div>
+                    <span class="user-content-text">{msg.content}</span>
+                    <span class="user-edit-hint" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        width="13"
+                        height="13"
+                      >
+                        <path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L6 12l-3 .75.75-3 7.75-7.25Z" />
+                        <path d="m10 4 2 2" />
+                      </svg>
+                    </span>
+                  </div>
+                {/snippet}
+              </Tooltip>
             {:else}
               <div class="user-content readonly" class:collapsed={isUserMessageCollapsed(msg)}>
                 <span class="user-content-text">{msg.content}</span>
@@ -711,9 +770,9 @@
             </div>
             <div class="msg-meta-row">
               {#if debugMode && msg.checkpointId}
-                <code class="debug-checkpoint" title={msg.checkpointId}
-                  >checkpoint: {msg.checkpointId}</code
-                >
+                <Tooltip text={msg.checkpointId}>
+                  <code class="debug-checkpoint">checkpoint: {msg.checkpointId}</code>
+                </Tooltip>
               {/if}
               {#if siblingInfo}
                 <div class="msg-branch-nav">
@@ -747,6 +806,20 @@
     {/snippet}
   </VirtualMessageList>
 </div>
+
+{#if readingTurnKey}
+  <AgentBookReader
+    turns={bookTurns}
+    activeKey={readingTurnKey}
+    {shikiTheme}
+    {mermaidConfig}
+    {htmlPreviewConfig}
+    fontSize={bookModeFontSize}
+    onClose={() => (readingTurnKey = null)}
+    {onSubmitUserInput}
+    {onCancelUserInput}
+  />
+{/if}
 
 <style>
   .messages-inner {
@@ -1036,7 +1109,7 @@
     field-sizing: content;
     -webkit-backdrop-filter: blur(12px) saturate(1.05);
     backdrop-filter: blur(12px) saturate(1.05);
-    box-shadow: var(--control-shadow);
+    box-shadow: none;
     transition: box-shadow 0.15s;
   }
   .user-content {
@@ -1057,7 +1130,7 @@
     outline: none;
     -webkit-backdrop-filter: blur(12px) saturate(1.05);
     backdrop-filter: blur(12px) saturate(1.05);
-    box-shadow: var(--control-shadow);
+    box-shadow: none;
   }
   .user-edit-hint {
     position: absolute;
@@ -1087,7 +1160,7 @@
     transform: translate(0, -50%);
   }
   .user-content:focus-visible {
-    box-shadow: var(--control-shadow), var(--focus-ring);
+    box-shadow: var(--focus-ring);
   }
   .user-content.readonly {
     cursor: default;
@@ -1130,7 +1203,7 @@
     color: var(--text);
   }
   .user-content-edit:not(:read-only):focus {
-    box-shadow: var(--control-shadow), var(--focus-ring);
+    box-shadow: var(--focus-ring);
   }
   .user-content-edit:read-only {
     cursor: default;

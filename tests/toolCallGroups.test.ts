@@ -151,4 +151,42 @@ describe("tool-call grouping", () => {
       "assistant_turn",
     ]);
   });
+
+  test("keeps a compaction continuation inside one complete assistant reply", () => {
+    const entries = groupAssistantTurns(
+      groupMessageToolCalls([
+        { msg: { id: "user-1", role: "user", content: "question", timestamp: 0 }, index: 0 },
+        {
+          msg: { id: "assistant-before", role: "assistant", content: "Working", timestamp: 0 },
+          index: 1,
+        },
+        {
+          msg: {
+            id: "compaction-replay",
+            role: "user",
+            content: "question",
+            timestamp: 0,
+            tags: ["context_compaction"],
+          },
+          index: 2,
+        },
+        {
+          msg: { id: "assistant-final", role: "assistant", content: "Done", timestamp: 0 },
+          index: 3,
+        },
+      ]),
+    );
+
+    expect(entries).toHaveLength(2);
+    expect(entries[1]).toMatchObject({
+      kind: "assistant_turn",
+      key: "assistant-final",
+      finalIndex: 3,
+      messages: [
+        { id: "assistant-before" },
+        { id: "compaction-replay" },
+        { id: "assistant-final" },
+      ],
+    });
+  });
 });

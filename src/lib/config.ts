@@ -115,6 +115,10 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
   const messageDoubleColumnMinWidth = Number.isFinite(requestedDoubleColumnMinWidth)
     ? Math.min(2400, Math.max(960, Math.floor(requestedDoubleColumnMinWidth)))
     : 1200;
+  const requestedBookModeFontSize = Number(input.book_mode_font_size);
+  const bookModeFontSize = Number.isFinite(requestedBookModeFontSize)
+    ? Math.min(24, Math.max(14, Math.floor(requestedBookModeFontSize)))
+    : 17;
   const flash_agents = {
     title: {
       enabled: input.flash_agents?.title?.enabled ?? true,
@@ -153,6 +157,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
       ? input.message_layout
       : "single",
     message_double_column_min_width: messageDoubleColumnMinWidth,
+    book_mode_font_size: bookModeFontSize,
     workspace_open_mode: ["ask", "new_window", "current_window"].includes(input.workspace_open_mode)
       ? input.workspace_open_mode
       : "ask",

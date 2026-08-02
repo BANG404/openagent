@@ -147,6 +147,7 @@
     mention_palette_show_global_drafts: true,
     message_layout: "single",
     message_double_column_min_width: 1200,
+    book_mode_font_size: 17,
     workspace_open_mode: "ask",
     agent_turn_limit_enabled: false,
     agent_max_turns: 10,
@@ -1461,6 +1462,18 @@
             </label>
             <p class="detail-hint">{$t("messageDoubleColumnHint")}</p>
           {/if}
+          <label class="execution-value-row message-layout-threshold">
+            <span class="label-text">{$t("bookModeFontSize")}</span>
+            <input
+              type="number"
+              class="detail-input execution-number-input"
+              min="14"
+              max="24"
+              step="1"
+              bind:value={draftConfig.book_mode_font_size}
+            />
+          </label>
+          <p class="detail-hint">{$t("bookModeFontSizeHint")}</p>
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("quickChat")}</h4>
@@ -2292,14 +2305,18 @@
                           {#each hook.triggered_conversations
                             .slice()
                             .reverse() as conversation, index (`${conversation.conv_id}-${conversation.triggered_at}-${index}`)}
-                            <button
-                              class="hook-conversation-link"
-                              title={conversation.title}
-                              onclick={() => onOpenConversation(conversation.conv_id)}
-                            >
-                              <span>{conversation.title || $t("untitledConversation")}</span>
-                              <time>{formatHookTime(conversation.triggered_at)}</time>
-                            </button>
+                            <Tooltip text={conversation.title}>
+                              {#snippet trigger(props)}
+                                <button
+                                  {...props}
+                                  class="hook-conversation-link"
+                                  onclick={() => onOpenConversation(conversation.conv_id)}
+                                >
+                                  <span>{conversation.title || $t("untitledConversation")}</span>
+                                  <time>{formatHookTime(conversation.triggered_at)}</time>
+                                </button>
+                              {/snippet}
+                            </Tooltip>
                           {/each}
                         </div>
                       </div>
@@ -2386,15 +2403,19 @@
                   ondragover={(event) => event.preventDefault()}
                   ondrop={(event) => dropRetryQueueModel("chat_queue", index, event)}
                 >
-                  <button
-                    class="retry-queue-drag-handle"
-                    type="button"
-                    draggable="true"
-                    aria-label={$t("retryQueueDragHandle")}
-                    title={$t("retryQueueDragHandle")}
-                    ondragstart={(event) => startRetryQueueDrag("chat_queue", index, event)}
-                    ondragend={() => (draggedRetryQueue = null)}>⠇</button
-                  >
+                  <Tooltip text={$t("retryQueueDragHandle")}>
+                    {#snippet trigger(props)}
+                      <button
+                        {...props}
+                        class="retry-queue-drag-handle"
+                        type="button"
+                        draggable="true"
+                        aria-label={$t("retryQueueDragHandle")}
+                        ondragstart={(event) => startRetryQueueDrag("chat_queue", index, event)}
+                        ondragend={() => (draggedRetryQueue = null)}>⠇</button
+                      >
+                    {/snippet}
+                  </Tooltip>
                   <div class="retry-queue-fields">
                     <Select
                       bind:value={binding.provider_id}
@@ -2464,15 +2485,19 @@
                   ondragover={(event) => event.preventDefault()}
                   ondrop={(event) => dropRetryQueueModel("flash_queue", index, event)}
                 >
-                  <button
-                    class="retry-queue-drag-handle"
-                    type="button"
-                    draggable="true"
-                    aria-label={$t("retryQueueDragHandle")}
-                    title={$t("retryQueueDragHandle")}
-                    ondragstart={(event) => startRetryQueueDrag("flash_queue", index, event)}
-                    ondragend={() => (draggedRetryQueue = null)}>⠇</button
-                  >
+                  <Tooltip text={$t("retryQueueDragHandle")}>
+                    {#snippet trigger(props)}
+                      <button
+                        {...props}
+                        class="retry-queue-drag-handle"
+                        type="button"
+                        draggable="true"
+                        aria-label={$t("retryQueueDragHandle")}
+                        ondragstart={(event) => startRetryQueueDrag("flash_queue", index, event)}
+                        ondragend={() => (draggedRetryQueue = null)}>⠇</button
+                      >
+                    {/snippet}
+                  </Tooltip>
                   <div class="retry-queue-fields">
                     <Select
                       bind:value={binding.provider_id}

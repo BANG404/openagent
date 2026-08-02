@@ -38,6 +38,22 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Finalization updates the existing row instead of replacing its DOM subtree,
   preserving open thinking sections. Restored historical thinking starts
   collapsed.
+- Treat assistant records separated only by a tagged context-compaction replay
+  as one complete Agent reply. Keep the compaction boundary at its real
+  position inside that reply, with one action footer after the final record.
+  Book mode opens from that footer and flows each complete reply continuously
+  across a two-column, full-window spread, adding pages when the reply exceeds
+  one spread. Match Mermaid fullscreen's fixed viewport footprint and inner
+  framed surface, without duplicating native window controls; keep only the two
+  dedicated page-turn controls at the vertical center of the reading surface.
+  The persisted body font size belongs to General settings.
+  Fragment Markdown tables between rows instead of treating the whole table as
+  one page-sized atom. Keep rich atomic embeds such as images, video, charts,
+  Mermaid, code, and HTML previews within the usable page height; preserve
+  their native containment or internal scrolling rather than clipping content.
+  Recalculate after embedded media loads as well as after resize or expansion.
+  Retain the same collapsible process-record grouping instead of flattening or
+  dropping work details.
 - The application virtualizer owns tail following and above-viewport height
   correction; keep native browser anchoring disabled.
 - After completion, reconcile the optimistic turn with its durable checkpoint
@@ -68,6 +84,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep editable user messages discoverable without adding a second action
   target: the message bubble retains its accessible edit label and reveals a
   non-interactive pencil affordance on pointer hover or keyboard focus.
+- Collapse long user-message text by a fixed number of complete rendered lines
+  on an inner content layer. Keep bubble padding outside the clamp so changing
+  type metrics cannot expose or crop a partial trailing line. Apply preserved
+  whitespace only to that content layer so template spacing around it cannot
+  create leading or trailing blank lines.
 - Restored previews load blob bytes on demand. Do not embed bytes in checkpoint
   IPC payloads.
 - Removing a restored attachment is a staged edit: cancel restores it; send
@@ -123,9 +144,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   communicate active streaming through the conversation row indicator only.
 - Keep desktop conversation rows at a compact 30px height. Ellipsize long
   titles at rest, reveal their complete text with a measured horizontal scroll
-  on pointer hover, and retain the static ellipsis under reduced motion. Keep
-  a 3px parent-owned gap between adjacent conversation rows so hover and active
-  fills remain visibly separate at every nesting depth and in search results.
+  on pointer hover, retain the static ellipsis under reduced motion, and do not
+  add a tooltip to conversation titles. Keep a 3px parent-owned gap between
+  adjacent conversation rows so hover and active fills remain visibly separate
+  at every nesting depth and in search results.
   Keep the new-conversation and search actions, conversation rows, expanded
   sidebar navigation, and settings navigation on the same single-line scale:
   30px height, 13px type on an 18px line, 10px horizontal padding, an 8px
@@ -229,6 +251,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   shared composer slash-command palette. Its `-theme` and `-locale` query
   parameters must keep light/dark and Chinese/English keyboard, scrolling, and
   selection checks addressable without onboarding or native state.
+- Keep the development-only `book-mode-preview` query available with long,
+  process-bearing fixture content. Its `-theme` and `-locale` query parameters
+  must keep two-column flow, multi-page navigation, process collapse, and
+  light/dark Chinese/English checks addressable without onboarding or native
+  state.
 
 ## IPC and events
 
