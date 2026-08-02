@@ -32,14 +32,15 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Position virtual rows without transform-promoted layers. CSS multi-column
   assistant content must not be nested in a forced compositor layer because it
   can flicker during WebView2 repaint invalidation.
-- Disable per-record `content-visibility` for every message nested inside a
-  double-column turn, including expanded process records. Viewport culling
-  inside a fragmented column can repeatedly invalidate the trailing column at
-  the viewport boundary. Every multi-column owner must apply this override
-  itself; book mode renders through a dialog portal and cannot inherit the
-  virtual list's descendant rules. Keep pagination recalculation positioning
-  immediate so it cannot compete with the smooth animation reserved for an
-  explicit page turn.
+- Disable per-record `content-visibility` inside every rendered virtual row in
+  both single- and double-column layouts; the outer virtualizer is the sole
+  transcript culling boundary. A skipped overscan record can otherwise report
+  its intrinsic placeholder height through `ResizeObserver`, collapse the
+  virtual scroll range, and move the reader before its full height returns.
+  Every multi-column owner must apply this override itself; book mode renders
+  through a dialog portal and cannot inherit the virtual list's descendant
+  rules. Keep pagination recalculation positioning immediate so it cannot
+  compete with the smooth animation reserved for an explicit page turn.
 - Use the backend-preallocated assistant message ID as the live row key.
   Streaming and durable forms must share the same assistant-turn branch and
   keyed stream-item children.
