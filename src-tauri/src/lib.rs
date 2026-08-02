@@ -160,6 +160,67 @@ async fn save_settings(
     openagent_runtime::commands::save_settings(runtime.state(), config, base_config).await
 }
 
+fn diagnostic_event_name(value: &str) -> &'static str {
+    match value {
+        "frontend_uncaught_error" => "frontend_uncaught_error",
+        "frontend_unhandled_rejection" => "frontend_unhandled_rejection",
+        "settings_save_failed" => "settings_save_failed",
+        _ => "unknown_event",
+    }
+}
+
+fn diagnostic_component(value: &str) -> &'static str {
+    match value {
+        "window" => "window",
+        "SettingsView" => "SettingsView",
+        _ => "unknown_component",
+    }
+}
+
+fn diagnostic_error_type(value: &str) -> &'static str {
+    match value {
+        "Error" => "Error",
+        "EvalError" => "EvalError",
+        "RangeError" => "RangeError",
+        "ReferenceError" => "ReferenceError",
+        "SyntaxError" => "SyntaxError",
+        "TypeError" => "TypeError",
+        "URIError" => "URIError",
+        "AggregateError" => "AggregateError",
+        "AbortError" => "AbortError",
+        "NetworkError" => "NetworkError",
+        "NotAllowedError" => "NotAllowedError",
+        "NotFoundError" => "NotFoundError",
+        "NotReadableError" => "NotReadableError",
+        "NotSupportedError" => "NotSupportedError",
+        "OperationError" => "OperationError",
+        "QuotaExceededError" => "QuotaExceededError",
+        "SecurityError" => "SecurityError",
+        "TimeoutError" => "TimeoutError",
+        "UnknownError" => "UnknownError",
+        "bigint" => "bigint",
+        "boolean" => "boolean",
+        "function" => "function",
+        "number" => "number",
+        "object" => "object",
+        "string" => "string",
+        "symbol" => "symbol",
+        "undefined" => "undefined",
+        _ => "unknown_error_type",
+    }
+}
+
+#[tauri::command]
+fn report_frontend_diagnostic(event_name: String, component: String, error_kind: String) {
+    tracing::error!(
+        target: "openagent::diagnostics",
+        event_name = diagnostic_event_name(&event_name),
+        code_namespace = diagnostic_component(&component),
+        error_type = diagnostic_error_type(&error_kind),
+        "frontend operation failed"
+    );
+}
+
 #[tauri::command]
 async fn set_default_chat_model(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
@@ -1178,13 +1239,20 @@ fn run_with_mode(agent_server: bool) {
     builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(runtime)
+        .manage(runtime.clone())
         .setup(move |app| {
             // init_tracing() spawns a background Tokio task (batch exporter). The
             // .setup() callback runs on the main thread which is not a Tokio worker
             // thread, so we use block_on to enter the runtime context before calling it.
             tauri::async_runtime::block_on(async {
-                tracing_setup::init_tracing();
+                let diagnostic_logs_enabled = runtime
+                    .state()
+                    .config
+                    .lock()
+                    .await
+                    .diagnostic_log_collection_enabled;
+                tracing_setup::set_diagnostic_log_collection_enabled(diagnostic_logs_enabled);
+                tracing_setup::init_tracing_with_service_version(env!("CARGO_PKG_VERSION"));
             });
             tracing::info!(
                 target: "openagent::startup",
@@ -1362,6 +1430,7 @@ fn run_with_mode(agent_server: bool) {
         .invoke_handler(tauri::generate_handler![
             get_settings,
             save_settings,
+            report_frontend_diagnostic,
             set_default_chat_model,
             set_model_reasoning_effort,
             test_provider_connection,
@@ -1484,6 +1553,22 @@ fn run_with_mode(agent_server: bool) {
 mod tests {
     use super::*;
     use std::path::Path;
+
+    #[test]
+    fn diagnostic_fields_are_allowlisted() {
+        assert_eq!(
+            diagnostic_event_name("frontend_uncaught_error"),
+            "frontend_uncaught_error"
+        );
+        assert_eq!(diagnostic_component("SettingsView"), "SettingsView");
+        assert_eq!(diagnostic_error_type("TypeError"), "TypeError");
+        assert_eq!(diagnostic_event_name("raw user message"), "unknown_event");
+        assert_eq!(
+            diagnostic_component("C:/Users/example/private"),
+            "unknown_component"
+        );
+        assert_eq!(diagnostic_error_type("secretError"), "unknown_error_type");
+    }
 
     #[test]
     fn bundled_embedding_model_runs_offline() {

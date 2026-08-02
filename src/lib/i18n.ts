@@ -261,6 +261,10 @@ const zh = {
   startup: "启动",
   launchOnStartup: "开机自启",
   launchOnStartupHint: "登录系统后自动启动 OpenAgent。",
+  privacyDiagnostics: "隐私与诊断",
+  diagnosticLogCollection: "发送软件错误与诊断日志",
+  diagnosticLogCollectionHint:
+    "默认开启，用于定位崩溃、配置加载和界面异常。不会发送对话内容、模型输出、工具参数、配置内容或密钥；关闭后仅保留本地轮转日志。",
   mentionPalette: "提及面板",
   showGlobalDraftsInMentions: "显示全局草稿",
   showGlobalDraftsInMentionsHint: "在 MentionPalette 的 @ 提及结果中显示全局草稿。",
@@ -945,6 +949,10 @@ const en: Translations = {
   startup: "Startup",
   launchOnStartup: "Launch at startup",
   launchOnStartupHint: "Start OpenAgent automatically after you sign in.",
+  privacyDiagnostics: "Privacy & diagnostics",
+  diagnosticLogCollection: "Send software errors and diagnostic logs",
+  diagnosticLogCollectionHint:
+    "Enabled by default to diagnose crashes, configuration loading, and UI failures. Conversation content, model output, tool arguments, configuration values, and secrets are never sent. Disabling this keeps only rotating local logs.",
   mentionPalette: "Mention palette",
   showGlobalDraftsInMentions: "Show global drafts",
   showGlobalDraftsInMentionsHint: "Show global drafts in MentionPalette @ mention results.",

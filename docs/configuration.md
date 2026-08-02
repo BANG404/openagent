@@ -20,6 +20,7 @@ The root contains these user-maintained or durable files:
 | `messages.db` | Conversation and checkpoint storage |
 | `messages.db.pre-schema-v<N>.bak` | SQLite-consistent snapshot retained before an automatic database schema upgrade |
 | `scheduled_chat_hooks.json` | Durable scheduled-chat definitions |
+| `logs/openagent.<date>.jsonl` | Local structured application diagnostics; daily rotation with the latest 15 files retained |
 | `drafts/`, `DESIGN.md` | Global drafts and design context |
 
 Workspace-scoped memory, skills, drafts, and design files remain under that
@@ -51,6 +52,27 @@ canonical file instead of resetting unspecified fields to defaults.
 Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
 permissions and do not commit it to source control.
+
+## Software error collection
+
+`diagnostic_log_collection_enabled` defaults to `true` and is exposed in
+General settings. It controls remote diagnostic upload immediately without an
+application restart. Turning it off stops OTLP export while continuing to keep
+rotating local logs so the user can inspect or deliberately share them during
+support.
+
+Remote diagnostics contain application version, operating system, architecture,
+severity, an allowlisted event name, component, and error type. They exclude
+conversation content, prompts, model output, tool arguments and results,
+configuration values, credentials, file contents, raw frontend error messages,
+and stack traces. Model-context spans remain isolated in the optional Langfuse
+pipeline and are not application logs.
+
+Release builds receive the write-only ingestion credential from the
+`OPENAGENT_LOGS_INGEST_TOKEN` repository secret. Local builds may set the same
+environment variable and may override the default
+`https://openagentlogs.odn.cc/v1/logs` destination with
+`OPENAGENT_LOGS_ENDPOINT`.
 
 Provider model catalogs are editable configuration rather than an authority on
 account entitlements. In particular, the ChatGPT OAuth service exposes Rig's

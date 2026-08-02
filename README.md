@@ -399,7 +399,16 @@ Project conventions live in [`AGENTS.md`](AGENTS.md); the UI/UX spec lives in [`
 
 ---
 
-## Observability (optional)
+## Observability
+
+OpenAgent writes daily structured application logs under
+`<OPENAGENT_HOME>/logs` and retains the latest 15 files. Privacy-filtered error
+diagnostics are sent to the OpenAgent OTLP endpoint by default and can be
+disabled immediately in **Settings → General → Privacy & diagnostics**. Remote
+logs never include conversations, model output, tool arguments, configuration
+values, secrets, raw frontend error messages, or stack traces.
+
+Langfuse model tracing remains optional and separate from application logs.
 
 Drop a `.env` in the project root to enable Langfuse tracing:
 

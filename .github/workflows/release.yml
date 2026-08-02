@@ -302,6 +302,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          OPENAGENT_LOGS_INGEST_TOKEN: ${{ secrets.OPENAGENT_LOGS_INGEST_TOKEN }}
         with:
           tagName: ${{ needs.detect.outputs.tag }}
           releaseName: OpenAgent ${{ needs.detect.outputs.tag }} [${{ needs.detect.outputs.channel }}]

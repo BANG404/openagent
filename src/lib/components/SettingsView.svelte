@@ -11,6 +11,7 @@
     formatQuickChatShortcut,
   } from "$lib/quickChatShortcut";
   import { normalizeConfigShape } from "$lib/config";
+  import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
   import { checkForAppUpdate } from "$lib/appUpdater";
   import {
     PROVIDER_CATALOG,
@@ -143,6 +144,7 @@
     theme: "system",
     language: "zh",
     launch_on_startup: false,
+    diagnostic_log_collection_enabled: true,
     quick_chat_shortcut: DEFAULT_QUICK_CHAT_SHORTCUT,
     mention_palette_show_global_drafts: true,
     message_layout: "single",
@@ -342,6 +344,7 @@
           acceptedConfigFingerprint = JSON.stringify(saved);
           ensureSelectedProvider();
         } catch (error) {
+          reportFrontendDiagnostic("settings_save_failed", "SettingsView", error);
           await tick();
           if (config) {
             const latest = normalizeConfigShape(config);
@@ -1698,6 +1701,19 @@
             />
           </div>
           <p class="detail-hint">{$t(approvalModeDescriptionKey[draftConfig.approval_mode])}</p>
+        </section>
+        <section class="detail-section">
+          <h4 class="detail-section-title">{$t("privacyDiagnostics")}</h4>
+          <div class="startup-row">
+            <div class="startup-copy">
+              <span class="label-text">{$t("diagnosticLogCollection")}</span>
+              <p class="detail-hint">{$t("diagnosticLogCollectionHint")}</p>
+            </div>
+            <Switch
+              bind:checked={draftConfig.diagnostic_log_collection_enabled}
+              ariaLabel={$t("diagnosticLogCollection")}
+            />
+          </div>
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("startup")}</h4>
