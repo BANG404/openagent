@@ -11,19 +11,18 @@ describe("release CI verification", () => {
     expect(() => verifyReleaseCiJobs(successfulJobs())).not.toThrow();
   });
 
-  test("rejects a run that skipped a required platform", () => {
+  test("accepts skipped modules after the Required aggregate succeeds", () => {
     const jobs = successfulJobs().map((job) =>
-      job.name === "Native desktop / Check macOS arm64" ? { ...job, conclusion: "skipped" } : job,
+      job.name === "Detect changed modules" ? job : { ...job, conclusion: "success" },
     );
-    expect(() => verifyReleaseCiJobs(jobs)).toThrow(
-      "Native desktop / Check macOS arm64 must succeed before release preparation; got: skipped",
-    );
+    jobs.push({ name: "Native desktop / Check macOS arm64", conclusion: "skipped" });
+    expect(() => verifyReleaseCiJobs(jobs)).not.toThrow();
   });
 
   test("rejects a run without a required job", () => {
-    const jobs = successfulJobs().filter((job) => job.name !== "Native desktop / Rust quality");
+    const jobs = successfulJobs().filter((job) => job.name !== "Detect changed modules");
     expect(() => verifyReleaseCiJobs(jobs)).toThrow(
-      "Native desktop / Rust quality must succeed before release preparation; got: missing",
+      "Detect changed modules must succeed before release preparation; got: missing",
     );
   });
 });

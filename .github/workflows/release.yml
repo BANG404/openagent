@@ -7,7 +7,8 @@ on:
     types:
       - completed
     branches:
-      - release/*
+      - master
+      - release/stable/**
 
 concurrency:
   group: release-${{ github.event.workflow_run.head_branch }}
@@ -45,6 +46,8 @@ jobs:
 
       - name: Validate release marker and metadata
         id: release
+        env:
+          RELEASE_BRANCH: ${{ github.event.workflow_run.head_branch }}
         shell: bash
         run: |
           echo "active=false" >> "$GITHUB_OUTPUT"
@@ -55,6 +58,16 @@ jobs:
           ready="$(node -p "JSON.parse(require('fs').readFileSync('.github/release.json', 'utf8')).ready")"
           if [[ "$ready" != "true" ]]; then
             exit 0
+          fi
+
+          manifest_channel="$(node -p "JSON.parse(require('fs').readFileSync('.github/release.json', 'utf8')).channel")"
+          if [[ "$manifest_channel" == "beta" && "$RELEASE_BRANCH" != "master" ]]; then
+            echo "Beta releases must be merged to master, not $RELEASE_BRANCH." >&2
+            exit 1
+          fi
+          if [[ "$manifest_channel" == "stable" && "$RELEASE_BRANCH" != release/stable/* ]]; then
+            echo "Stable releases must be merged to release/stable/X.Y.Z, not $RELEASE_BRANCH." >&2
+            exit 1
           fi
 
           tag="$(node -p "JSON.parse(require('fs').readFileSync('.github/release.json', 'utf8')).tag")"
@@ -532,6 +545,42 @@ jobs:
 
           echo "Beta updater metadata is not publicly available for $expected_version." >&2
           exit 1
+
+  archive-beta:
+    name: Archive Beta release source
+    needs:
+      - detect
+      - publish
+    if: >-
+      needs.detect.outputs.prerelease == 'true'
+      && needs.publish.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Fast-forward the Beta release archive
+        env:
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+          RELEASE_SHA: ${{ needs.detect.outputs.sha }}
+        shell: bash
+        run: |
+          release_line="$(node --input-type=module -e \
+            "import { getReleaseLine } from './scripts/release-version.mjs'; console.log(getReleaseLine(process.argv[1]));" \
+            "$RELEASE_TAG")"
+          archive_branch="release/beta/$release_line"
+
+          if git ls-remote --exit-code --heads origin "refs/heads/$archive_branch" >/dev/null; then
+            git fetch origin "refs/heads/$archive_branch:refs/remotes/origin/$archive_branch"
+            previous="$(git rev-parse "origin/$archive_branch")"
+            if ! git merge-base --is-ancestor "$previous" "$RELEASE_SHA"; then
+              echo "$archive_branch cannot fast-forward from $previous to $RELEASE_SHA." >&2
+              exit 1
+            fi
+          fi
+          git push origin "$RELEASE_SHA:refs/heads/$archive_branch"
 
   deploy-pages:
     name: Deploy release page

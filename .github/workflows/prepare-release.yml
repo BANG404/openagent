@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: Release channel (Beta uses vX.Y.Z-beta.N) / 发布渠道
+        description: Release channel (Beta uses master) / 发布渠道
         required: true
         default: beta
         type: choice
@@ -40,7 +40,7 @@ jobs:
         with:
           bun-version: 1.2.21
 
-      - name: Resolve the persistent release line
+      - name: Resolve the immutable release source
         id: base
         env:
           GH_TOKEN: ${{ github.token }}
@@ -49,94 +49,104 @@ jobs:
           BETA_TAG: ${{ inputs.beta_tag }}
         shell: bash
         run: |
-          if [[ "$RELEASE_CHANNEL" == "stable" ]]; then
-            if [[ -z "$BETA_TAG" ]]; then
-              echo "A Beta tag is required when preparing a Stable release." >&2
-              exit 1
-            fi
-            if [[ ! "$BETA_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
-              echo "Stable promotion source must be a Beta tag, got: $BETA_TAG" >&2
-              exit 1
-            fi
-            RELEASE_LINE="$(node --input-type=module -e \
-              "import { getReleaseLine } from './scripts/release-version.mjs'; console.log(getReleaseLine(process.argv[1]));" \
-              "$BETA_TAG")"
-          else
+          source_tag=""
+          promotion_arg=""
+          if [[ "$RELEASE_CHANNEL" == "beta" ]]; then
             if [[ -n "$BETA_TAG" ]]; then
               echo "beta_tag is only valid when preparing a Stable release." >&2
               exit 1
             fi
-            release_plan="$(bun scripts/release.mjs --dry-run --channel=beta)"
-            printf '%s\n' "$release_plan"
-            planned_version="$(printf '%s\n' "$release_plan" | sed -nE 's/^[^[:space:]]+ -> ([^[:space:]]+) \(.+$/\1/p')"
-            if [[ -z "$planned_version" || "$(printf '%s\n' "$planned_version" | wc -l)" -ne 1 ]]; then
-              echo "Unable to determine exactly one Beta version from the release plan." >&2
+            base_branch="master"
+            base_sha="$(git rev-parse HEAD)"
+
+            ci_run="$(
+              gh run list \
+                --workflow ci.yml \
+                --commit "$base_sha" \
+                --event push \
+                --status success \
+                --limit 1 \
+                --json databaseId,url \
+                --jq '.[0] | [.databaseId, .url] | @tsv'
+            )"
+            if [[ -z "$ci_run" ]]; then
+              echo "master commit $base_sha has no successful push CI run." >&2
               exit 1
             fi
-            RELEASE_LINE="$(node --input-type=module -e \
-              "import { getReleaseLine } from './scripts/release-version.mjs'; console.log(getReleaseLine(process.argv[1]));" \
-              "$planned_version")"
-          fi
-
-          line_branch="release/$RELEASE_LINE"
-          new_line=false
-          if git ls-remote --exit-code --heads origin "refs/heads/$line_branch" >/dev/null; then
-            git fetch origin "refs/heads/$line_branch:refs/remotes/origin/$line_branch"
-            git switch --detach "origin/$line_branch"
+            IFS=$'\t' read -r ci_run_id ci_url <<< "$ci_run"
+            ci_jobs_json="$(
+              gh api "repos/$GH_REPO/actions/runs/$ci_run_id/jobs?per_page=100" \
+                --jq '[.jobs[] | {name, conclusion}]'
+            )"
+            CI_JOBS_JSON="$ci_jobs_json" bun scripts/verify-release-ci.mjs
           else
-            git switch -c "$line_branch"
-            new_line=true
-          fi
-
-          base_sha="$(git rev-parse HEAD)"
-          ci_run="$(
-            gh run list \
-              --workflow ci.yml \
-              --commit "$base_sha" \
-              --event push \
-              --status success \
-              --limit 1 \
-              --json databaseId,url \
-              --jq '.[0] | [.databaseId, .url] | @tsv'
-          )"
-          if [[ -z "$ci_run" ]]; then
-            echo "$line_branch commit $base_sha has no successful push CI run." >&2
-            exit 1
-          fi
-          IFS=$'\t' read -r ci_run_id ci_url <<< "$ci_run"
-          ci_jobs_json="$(
-            gh api "repos/$GH_REPO/actions/runs/$ci_run_id/jobs?per_page=100" \
-              --jq '[.jobs[] | {name, conclusion}]'
-          )"
-          CI_JOBS_JSON="$ci_jobs_json" bun scripts/verify-release-ci.mjs
-          if [[ "$new_line" == "true" ]]; then
-            echo "Creating persistent release line $line_branch from verified master."
-            git push origin "HEAD:refs/heads/$line_branch"
-          fi
-
-          source_tag=""
-          promotion_arg=""
-          if [[ "$RELEASE_CHANNEL" == "stable" ]]; then
+            if [[ ! "$BETA_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
+              echo "Stable preparation requires a Beta tag, got: $BETA_TAG" >&2
+              exit 1
+            fi
             if ! git rev-parse --verify --quiet "refs/tags/$BETA_TAG^{commit}" >/dev/null; then
               echo "Beta tag $BETA_TAG does not exist." >&2
               exit 1
             fi
-            if ! git merge-base --is-ancestor "$BETA_TAG" HEAD; then
-              echo "Beta tag $BETA_TAG is not part of $line_branch." >&2
+            release_state="$(gh release view "$BETA_TAG" --json isDraft,isPrerelease --jq '[.isDraft, .isPrerelease] | @tsv')"
+            IFS=$'\t' read -r is_draft is_prerelease <<< "$release_state"
+            if [[ "$is_draft" != "false" || "$is_prerelease" != "true" ]]; then
+              echo "$BETA_TAG must be a published Beta release before Stable promotion." >&2
               exit 1
             fi
-            stable_tag="${BETA_TAG%-beta.*}"
-            if git ls-remote --exit-code --tags origin "refs/tags/$stable_tag" >/dev/null; then
-              echo "Stable tag $stable_tag already exists and is immutable." >&2
-              exit 1
+
+            stable_version="${BETA_TAG#v}"
+            stable_version="${stable_version%-beta.*}"
+            base_branch="release/stable/$stable_version"
+            beta_sha="$(git rev-parse "$BETA_TAG^{commit}")"
+            if git ls-remote --exit-code --heads origin "refs/heads/$base_branch" >/dev/null; then
+              git fetch origin "refs/heads/$base_branch:refs/remotes/origin/$base_branch"
+              base_sha="$(git rev-parse "origin/$base_branch")"
+              if ! git merge-base --is-ancestor "$BETA_TAG" "$base_sha"; then
+                echo "$base_branch is not based on $BETA_TAG." >&2
+                exit 1
+              fi
+              if ! git diff --quiet "$BETA_TAG" "$base_sha" -- \
+                assets patches sdk src src-tauri static bun.lock package.json \
+                svelte.config.js tsconfig.json vite.config.js; then
+                echo "$base_branch no longer matches the product source in $BETA_TAG." >&2
+                exit 1
+              fi
+            else
+              automation_sha="$(git rev-parse master)"
+              git switch -c "$base_branch" "$BETA_TAG"
+              git restore --source "$automation_sha" -- \
+                .github/workflows \
+                scripts \
+                docs/release.md \
+                tests/ciChanges.test.js \
+                tests/docsSync.test.js \
+                tests/releaseCi.test.js \
+                tests/releaseVersion.test.js
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git add \
+                .github/workflows \
+                scripts \
+                docs/release.md \
+                tests/ciChanges.test.js \
+                tests/docsSync.test.js \
+                tests/releaseCi.test.js \
+                tests/releaseVersion.test.js
+              # Always keep the archive head separate from the Beta release
+              # marker so branch creation cannot be mistaken for a new release.
+              git commit --allow-empty -m "chore(release): refresh promotion automation"
+              base_sha="$(git rev-parse HEAD)"
+              git push origin "HEAD:refs/heads/$base_branch"
             fi
+            git switch --detach "$base_sha"
             source_tag="$BETA_TAG"
             promotion_arg="--promote-beta=$BETA_TAG"
+            ci_url="https://github.com/$GH_REPO/releases/tag/$BETA_TAG"
           fi
 
           {
-            echo "branch=$line_branch"
-            echo "release_line=$RELEASE_LINE"
+            echo "branch=$base_branch"
             echo "sha=$base_sha"
             echo "ci_url=$ci_url"
             echo "source_tag=$source_tag"
@@ -147,7 +157,6 @@ jobs:
         id: release
         env:
           RELEASE_CHANNEL: ${{ inputs.release_type }}
-          RELEASE_LINE: ${{ steps.base.outputs.release_line }}
           RELEASE_BASE_SHA: ${{ steps.base.outputs.sha }}
           PROMOTION_ARG: ${{ steps.base.outputs.promotion_arg }}
           SOURCE_TAG: ${{ steps.base.outputs.source_tag }}
@@ -163,10 +172,6 @@ jobs:
           version="$(printf '%s\n' "$release_plan" | sed -nE 's/^[^[:space:]]+ -> ([^[:space:]]+) \(.+$/\1/p')"
           if [[ -z "$version" || "$(printf '%s\n' "$version" | wc -l)" -ne 1 ]]; then
             echo "Unable to determine exactly one release version from the release plan." >&2
-            exit 1
-          fi
-          if [[ "$version" != "$RELEASE_LINE".* ]]; then
-            echo "Planned version $version does not belong to release line $RELEASE_LINE." >&2
             exit 1
           fi
 
@@ -199,13 +204,8 @@ jobs:
             git push origin "HEAD:refs/heads/$branch"
           fi
 
-          if ! git merge-base --is-ancestor "$RELEASE_BASE_SHA" HEAD; then
-            echo "$branch is not based on the current release-line head $RELEASE_BASE_SHA." >&2
-            exit 1
-          fi
-          commit_count="$(git rev-list --count "$RELEASE_BASE_SHA..HEAD")"
-          if [[ "$commit_count" -lt 1 || "$commit_count" -gt 2 ]]; then
-            echo "$branch must contain one release commit and at most one source-restore commit." >&2
+          if [[ "$(git rev-parse HEAD^)" != "$RELEASE_BASE_SHA" ]]; then
+            echo "$branch must contain exactly one release commit based on $RELEASE_BASE_SHA." >&2
             exit 1
           fi
 
@@ -221,33 +221,30 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_BRANCH: ${{ steps.release.outputs.branch }}
-          RELEASE_LINE_BRANCH: ${{ steps.base.outputs.branch }}
+          RELEASE_BASE_BRANCH: ${{ steps.base.outputs.branch }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
           BASE_CI_URL: ${{ steps.base.outputs.ci_url }}
           SOURCE_TAG: ${{ steps.base.outputs.source_tag }}
         shell: bash
         run: |
-          pr_url="$(gh pr list --base "$RELEASE_LINE_BRANCH" --head "$RELEASE_BRANCH" --state open --json url --jq '.[0].url // empty')"
+          pr_url="$(gh pr list --base "$RELEASE_BASE_BRANCH" --head "$RELEASE_BRANCH" --state open --json url --jq '.[0].url // empty')"
           if [[ -z "$pr_url" ]]; then
             source_note=""
             if [[ -n "$SOURCE_TAG" ]]; then
-              source_note=" Source snapshot: \`$SOURCE_TAG\`."
+              source_note=" Exact product snapshot: \`$SOURCE_TAG\`."
             fi
             pr_url="$(
               gh pr create \
-                --base "$RELEASE_LINE_BRANCH" \
+                --base "$RELEASE_BASE_BRANCH" \
                 --head "$RELEASE_BRANCH" \
                 --title "chore: release $RELEASE_TAG" \
-                --body "Generated release metadata for \`$RELEASE_TAG\` on \`$RELEASE_LINE_BRANCH\`.$source_note The release-line base passed [CI]($BASE_CI_URL). Merge only after the release metadata check passes."
+                --body "Generated release metadata for \`$RELEASE_TAG\`.$source_note The source passed [verification]($BASE_CI_URL). Merge only after \`CI / Required\` passes."
             )"
           else
             echo "Reusing existing release pull request: $pr_url"
           fi
           echo "url=$pr_url" >> "$GITHUB_OUTPUT"
 
-      # Pull requests created with GITHUB_TOKEN require approval before their
-      # pull_request-triggered workflows start. Dispatch CI explicitly so the
-      # release metadata check is available immediately on the PR head SHA.
       - name: Start CI for the release commit
         env:
           GH_TOKEN: ${{ github.token }}
@@ -259,7 +256,7 @@ jobs:
 
       - name: Summarize
         env:
-          RELEASE_LINE_BRANCH: ${{ steps.base.outputs.branch }}
+          RELEASE_BASE_BRANCH: ${{ steps.base.outputs.branch }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
           SOURCE_TAG: ${{ steps.base.outputs.source_tag }}
           PR_URL: ${{ steps.pull_request.outputs.url }}
@@ -268,7 +265,7 @@ jobs:
           {
             echo "### Release PR ready"
             echo
-            echo "- Release line: \`$RELEASE_LINE_BRANCH\`"
+            echo "- Merge target: \`$RELEASE_BASE_BRANCH\`"
             echo "- Tag after merge: \`$RELEASE_TAG\`"
             if [[ -n "$SOURCE_TAG" ]]; then
               echo "- Promoted Beta: \`$SOURCE_TAG\`"

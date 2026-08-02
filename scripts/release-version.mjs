@@ -1,6 +1,39 @@
 const releaseVersionPattern = /^(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?$/;
 
 /**
+ * Select the highest immutable release tag by SemVer precedence. Stable tags
+ * sort after Beta tags for the same X.Y.Z base, regardless of tag creation
+ * time or reachability from the current branch.
+ *
+ * @param {string[]} tags
+ * @returns {string}
+ */
+export function getLatestReleaseTag(tags) {
+  const parsed = [];
+  for (const tag of tags) {
+    const match = tag.match(/^v(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?$/);
+    if (!match) continue;
+    parsed.push({
+      tag,
+      major: Number.parseInt(match[1], 10),
+      minor: Number.parseInt(match[2], 10),
+      patch: Number.parseInt(match[3], 10),
+      stable: match[4] === undefined,
+      beta: match[4] === undefined ? 0 : Number.parseInt(match[4], 10),
+    });
+  }
+
+  parsed.sort((left, right) => {
+    if (left.major !== right.major) return right.major - left.major;
+    if (left.minor !== right.minor) return right.minor - left.minor;
+    if (left.patch !== right.patch) return right.patch - left.patch;
+    if (left.stable !== right.stable) return Number(right.stable) - Number(left.stable);
+    return right.beta - left.beta;
+  });
+  return parsed[0]?.tag ?? "";
+}
+
+/**
  * @param {string} version
  * @returns {string}
  */

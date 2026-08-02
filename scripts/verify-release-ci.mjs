@@ -1,14 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
-export const REQUIRED_RELEASE_CI_JOBS = [
-  "Automation / GitHub Actions",
-  "Frontend / Type, test, and build",
-  "Native desktop / Rust quality",
-  "Native desktop / Check Windows x64",
-  "Native desktop / Check macOS arm64",
-  "Required",
-];
+export const REQUIRED_RELEASE_CI_JOBS = ["Detect changed modules", "Required"];
 
 /**
  * @param {Array<{ name?: string; conclusion?: string | null }>} jobs
@@ -31,7 +24,7 @@ function main() {
     throw new Error("CI_JOBS_JSON must contain an array of workflow jobs.");
   }
   verifyReleaseCiJobs(jobs);
-  console.log("Release base passed every required full CI job.");
+  console.log("Release base passed change detection and every selected CI module.");
 }
 
 const entry = process.argv[1] ? resolve(process.argv[1]) : "";

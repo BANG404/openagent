@@ -4,6 +4,7 @@ import {
   getMsiVersion,
   getNextBetaNumber,
   getNextReleaseVersion,
+  getLatestReleaseTag,
   getStablePromotion,
 } from "./release-version.mjs";
 
@@ -78,12 +79,12 @@ function getCurrentBranch() {
   return git(["branch", "--show-current"]) || process.env.GITHUB_REF_NAME || "";
 }
 
-function getLastTag() {
-  try {
-    return git(["describe", "--tags", "--match", "v[0-9]*", "--abbrev=0"]);
-  } catch {
-    return "";
-  }
+function getLatestTag() {
+  const tags = git(["tag", "--list", "v[0-9]*"])
+    .split(/\r?\n/)
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+  return getLatestReleaseTag(tags);
 }
 
 function tagExists(tag) {
@@ -133,7 +134,8 @@ function getChangedFiles(commitHash) {
 }
 
 function getReleaseRelevantCommitMessages(lastTag) {
-  const range = lastTag ? `${lastTag}..HEAD` : "HEAD";
+  const sourceBase = lastTag ? git(["merge-base", lastTag, "HEAD"]) : "";
+  const range = sourceBase ? `${sourceBase}..HEAD` : "HEAD";
   const hashes = git(["log", range, "--format=%H"])
     .split(/\r?\n/)
     .map((hash) => hash.trim())
@@ -272,8 +274,8 @@ function updateCargoLock(version) {
   writeFileSync(file, updated);
 }
 
-function updateReleaseManifest(version, tag, channel, sourceTag = "") {
-  const manifest = { ready: true, version, tag, channel };
+function updateReleaseManifest(version, tag, channel, sourceSha, previousTag, sourceTag = "") {
+  const manifest = { ready: true, version, tag, channel, sourceSha, previousTag };
   if (sourceTag) manifest.sourceTag = sourceTag;
   writeFileSync(releaseManifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
 }
@@ -372,6 +374,19 @@ function verifyPendingRelease() {
     throw new Error(`Release channel ${manifest.channel} does not match ${manifest.version}.`);
   }
   const sourceTag = manifest.sourceTag ?? "";
+  const sourceSha = manifest.sourceSha ?? "";
+  if (!/^[0-9a-f]{40}$/.test(sourceSha)) {
+    throw new Error(`Release source SHA is invalid: ${sourceSha || "(missing)"}.`);
+  }
+  const expectedSourceSha = sourceTag
+    ? git(["rev-parse", `${sourceTag}^{commit}`])
+    : git(["rev-parse", "HEAD^"]);
+  if (sourceSha !== expectedSourceSha) {
+    throw new Error(`Release source SHA ${sourceSha} does not match ${expectedSourceSha}.`);
+  }
+  if (manifest.previousTag && !tagExists(manifest.previousTag)) {
+    throw new Error(`Previous release tag ${manifest.previousTag} does not exist.`);
+  }
   if (sourceTag) {
     if (manifest.channel !== "stable") {
       throw new Error("Only Stable releases may declare a Beta source tag.");
@@ -630,26 +645,13 @@ function main() {
     }
   }
 
-  const currentVersion =
-    promoteBetaTag && dryRun ? versionFromTag(promoteBetaTag) : getCurrentVersion();
+  const currentVersion = getCurrentVersion();
   const currentTauriVersion = getCurrentTauriVersion();
-  const lastTag = promoteBetaTag || getLastTag();
+  const lastTag = promoteBetaTag || getLatestTag();
   const latestVersion = lastTag ? versionFromTag(lastTag) : currentVersion;
-  if (currentVersion !== latestVersion) {
-    throw new Error(
-      `Version files (${currentVersion}) do not match the latest reachable tag (${latestVersion}).`,
-    );
-  }
   const latest = parseSemver(latestVersion);
-  const collidingStableTag =
-    !promoteBetaTag && Boolean(latest.prereleaseChannel) && tagExists(`v${latest.base}`);
-  const releaseBaseTag = collidingStableTag ? `v${latest.base}` : lastTag;
-  const releaseBaseVersion = collidingStableTag ? latest.base : latestVersion;
-  if (collidingStableTag) {
-    console.warn(
-      `${lastTag} cannot be promoted because v${latest.base} already exists; recalculating from v${latest.base}.`,
-    );
-  }
+  const releaseBaseTag = lastTag;
+  const releaseBaseVersion = latestVersion;
 
   const commits = promoteBetaTag
     ? []
@@ -691,11 +693,12 @@ function main() {
   }
 
   assertReleaseFilesClean();
+  const sourceSha = git(["rev-parse", promoteBetaTag ? `${promoteBetaTag}^{commit}` : "HEAD"]);
   updateJsonVersion("package.json", nextVersion);
   updateTauriConfig(nextVersion, channel);
   updateCargoToml(nextVersion);
   updateCargoLock(nextVersion);
-  updateReleaseManifest(nextVersion, nextTag, channel, promoteBetaTag);
+  updateReleaseManifest(nextVersion, nextTag, channel, sourceSha, lastTag, promoteBetaTag);
   if (promotion) {
     updatePromotionChangelog(nextVersion, currentVersion);
   } else {

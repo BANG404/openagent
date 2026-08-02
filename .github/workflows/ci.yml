@@ -9,6 +9,9 @@ on:
         type: string
   pull_request:
   push:
+    branches:
+      - master
+      - release/stable/**
   merge_group:
 
 concurrency:
@@ -38,9 +41,7 @@ jobs:
           CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
           CI_FORCE_ALL: >-
             ${{
-              (github.event_name == 'push'
-              && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')))
-              || (github.event_name == 'workflow_dispatch' && inputs.base_sha == '')
+              github.event_name == 'workflow_dispatch' && inputs.base_sha == ''
             }}
         run: node scripts/ci-changes.mjs >> "$GITHUB_OUTPUT"
 

@@ -93,9 +93,20 @@ function changedFiles(baseSha, headSha) {
 }
 
 function main() {
-  const baseSha = process.env.CI_BASE_SHA?.trim() ?? "";
+  let baseSha = process.env.CI_BASE_SHA?.trim() ?? "";
   const headSha = process.env.CI_HEAD_SHA?.trim() || "HEAD";
-  const forceAll = process.env.CI_FORCE_ALL === "true" || !baseSha || ZERO_SHA.test(baseSha);
+  let forceAll = process.env.CI_FORCE_ALL === "true" || !baseSha;
+
+  // A newly created release archive branch reports an all-zero `before` SHA.
+  // Its head already has history, so compare the exact parent instead of
+  // treating the immutable Beta snapshot as an entirely new repository.
+  if (!forceAll && ZERO_SHA.test(baseSha)) {
+    try {
+      baseSha = execFileSync("git", ["rev-parse", `${headSha}^`], { encoding: "utf8" }).trim();
+    } catch {
+      forceAll = true;
+    }
+  }
 
   /** @type {string[]} */
   let files = [];

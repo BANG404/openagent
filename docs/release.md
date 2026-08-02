@@ -19,20 +19,23 @@ feat!: remove deprecated config field
 
 ## Version Bumps
 
-Development commits land on `master`; ordinary pushes there never create a
-version or tag. Releases are maintained on persistent `release/X.Y` branches.
-Start the `Prepare Release` workflow and choose `beta` or `stable`. Beta is the
-default and needs no other input: the workflow calculates the planned Beta
-version from the selected workflow ref and derives its `X.Y` release line.
-Stable requires an explicit `vX.Y.Z-beta.N` tag and derives the same release
-line from that tag; it never silently selects the latest Beta. If the derived
-release line does not exist, the workflow creates it from the selected ref
-after requiring that exact commit to have a successful `CI / Required` run.
-Subsequent fixes for that version line must be merged or cherry-picked into
-`release/X.Y` before preparing another Beta.
+Development commits and Beta release metadata land on `master`. Ordinary
+pushes never create a version or tag by themselves. Start `Prepare Release` and
+choose `beta` or `stable`. Beta is the default, uses the current verified
+`master` head, and opens its generated metadata PR back to `master`.
 
-For Beta preparation, `scripts/release.mjs` inspects release-relevant commits
-on the selected line since its latest reachable `v*` tag and applies:
+Stable requires an explicit published `vX.Y.Z-beta.N` tag and never silently
+selects the latest Beta. The workflow creates `release/stable/X.Y.Z` from that
+immutable Beta commit, adds one commit that refreshes only release automation
+and its tests/docs, and opens the Stable metadata PR to that
+branch. Product source remains byte-for-byte aligned with the selected Beta
+without restoring old application code into a newer `master`. The merged Stable
+branch is also the durable source snapshot for that version.
+
+For Beta preparation, `scripts/release.mjs` selects the highest immutable
+SemVer tag across all release branches. It uses that tag's merge base with
+`master` as the previous product source, then inspects release-relevant commits
+to the selected `master` head and applies:
 
 - `major`: any breaking commit, such as `feat!:` or a `BREAKING CHANGE:` footer
 - `minor`: any `feat`
@@ -51,9 +54,9 @@ release-relevant Conventional Commits control the `X.Y.Z` base version:
 - From a beta tag, `beta` applies a new Conventional Commit bump to `X.Y.Z`
   and resets the suffix to `beta.1`. If there is no new release-worthy bump,
   it keeps `X.Y.Z` and increments the Beta number.
-- The next Beta number is calculated from both matching tags and the version
-  checked into the repository. This preserves the sequence even when older
-  tags are unavailable after repository separation.
+- The next Beta number is calculated from matching immutable tags and the
+  baseline version. Checked-in version files may lag during migration from the
+  legacy divergent release lines; they are reconciled by the next Beta PR.
 - Stable preparation requires an explicit `vX.Y.Z-beta.N` tag. Its release line
   is derived from the tag, and the target is always the matching immutable
   `vX.Y.Z`; Stable preparation never silently selects the latest Beta.
@@ -62,14 +65,20 @@ If legacy history contains both a stable tag and later beta tags with the same
 `X.Y.Z`, the suffix cannot be removed safely. The script detects that collision
 and recalculates from the existing stable tag instead of overwriting it.
 
-## Release Lines and Pull Requests
+## Release Sources and Pull Requests
 
-The persistent `release/X.Y` branch is the reviewed source of truth for one
-minor release line. A preparation run requires the exact head SHA's push CI to
-have succeeded every automation, frontend, Rust quality, Windows, and macOS
-job; a successful aggregate status with any required job skipped is rejected.
-The workflow then creates an ephemeral `prepare/vX.Y.Z...` branch and opens a
-pull request back to `release/X.Y`.
+A Beta preparation run requires the exact `master` head SHA to have a
+successful push CI run. The workflow requires successful change detection and
+the `CI / Required` aggregate, which proves that every module selected by the
+path router passed. It then creates an ephemeral `prepare/vX.Y.Z-beta.N` branch
+and opens a pull request back to `master`.
+
+A Stable preparation requires its selected Beta tag to be a published
+prerelease. `release/stable/X.Y.Z` starts from that tag, contains one
+automation-refresh commit that cannot touch product paths, and the ephemeral
+`prepare/vX.Y.Z` branch adds one Stable metadata commit. A pre-existing Stable
+source branch is reusable only while the selected tag remains its ancestor and
+its product tree still matches that tag; product drift stops preparation.
 
 Ordinary Beta preparation adds one `chore: release vX.Y.Z-beta.N` commit that
 changes only:
@@ -81,49 +90,44 @@ changes only:
 - `src-tauri/Cargo.lock`
 - `CHANGELOG.md`
 
-Stable preparation accepts any Beta tag reachable from the selected release
-line, not only its newest tag. When the selected Beta is older than the line
-head, the preparation branch first adds one source-restore commit. That commit
-restores release-relevant product source, configuration, dependencies, and the
-pinned SDK revision from the selected Beta while retaining current release
-automation and documentation. The following release commit changes the version,
-updater channel, manifest, and changelog to Stable. Verification compares the
-resulting product source with the selected Beta tag and allows differences only
-in the generated release files.
+Stable preparation accepts any published Beta tag, not only its newest tag.
+Because its target branch starts at that exact tag, the release commit changes
+only the version, updater channel, manifest, and changelog. Verification compares
+the resulting product source with the selected Beta tag and allows differences
+only in generated release files.
 
 If a retry finds the same `prepare/vX.Y.Z...` branch, it verifies that branch's
-metadata, channel, selected Beta source, current release-line ancestry, and
-one-or-two-commit shape before reusing it; it also reuses an already-open release
-PR. An existing immutable release tag stops preparation rather than allowing the
-version to be reused. The workflow explicitly dispatches CI for the preparation
-head SHA.
+metadata, channel, selected source, exact one-commit shape, and current base
+before reusing it; it also reuses an already-open release PR. An existing
+immutable release tag stops preparation. The workflow explicitly dispatches CI
+for the preparation head SHA.
 GitHub requires approval for a normal `pull_request` workflow created with
 `GITHUB_TOKEN`, so the explicit dispatch provides the release check immediately.
 
-Change detection recognizes an ordinary one-commit release as generated
-metadata and reuses the successful base CI instead of rerunning frontend and
-Rust suites. Restoring an older Beta changes product paths, so CI runs the
-affected frontend and native suites again. The automation check verifies that:
+Change detection recognizes a one-commit release as generated metadata and
+reuses the successful source CI instead of rerunning frontend and Rust suites.
+The automation check verifies that:
 
 - all four runtime version fields match the requested tag;
 - Beta/Stable updater endpoints match the selected channel;
 - JSON manifests contain no unrelated edits;
 - Cargo files change only the OpenAgent package version;
 - the release commit contains every expected file and no unexpected file.
-- a Stable promotion declares a reachable Beta source whose `X.Y.Z` matches the
-  Stable target, and its product source matches that tag outside generated
-  release files.
+- `sourceSha` identifies the direct Beta source parent or the selected immutable
+  Beta tag, and `previousTag` exists;
+- a Stable promotion declares a Beta source whose `X.Y.Z` matches the Stable
+  target, and its product source matches that tag outside generated files.
 
 Review and merge the PR only after `CI / Required` passes.
 
 ## Publishing
 
-Merging the Release PR creates a normal push to `release/X.Y`. CI validates that
-exact merge SHA. After the successful `CI` workflow completes, `release.yml`
-listens only to persistent `release/*` branches, checks that the release marker
-changed and is ready, repeats the metadata and promotion-source integrity
-validation, and creates an annotated tag pointing to that same SHA. Pushes to
-ephemeral `prepare/*` branches cannot publish a release.
+Merging a Beta PR creates a normal push to `master`; merging a Stable PR creates
+a push to `release/stable/X.Y.Z`. CI validates the exact merge SHA. After the
+successful `CI` workflow completes, `release.yml` accepts Beta markers only from
+`master` and Stable markers only from `release/stable/*`, repeats metadata and
+source-integrity validation, and creates an annotated tag pointing to that same
+SHA. Pushes to ephemeral `prepare/*` or Beta archive branches cannot publish.
 
 Only then does it:
 
@@ -133,7 +137,8 @@ Only then does it:
 3. upload signed updater and installer artifacts;
 4. publish the draft after every target succeeds;
 5. update the fixed Beta updater metadata when applicable;
-6. deploy the release landing page with the published tag.
+6. fast-forward `release/beta/X.Y` to the published Beta SHA when applicable;
+7. deploy the release landing page with the published tag.
 
 ### Microsoft Store package
 
@@ -174,16 +179,21 @@ promotes those artifacts without rebuilding them.
 
 `ci.yml` classifies changed paths before calling reusable workflows:
 
-- Every push to `master` or `release/*` forces all modules so a newer
-  path-limited run cannot hide a failed or cancelled platform check from an
-  earlier commit.
+- Pull requests and pushes to `master` or `release/stable/*` run every module
+  selected by the exact base-to-head path delta. The always-present aggregate
+  proves that every selected module passed; release preparation validates both
+  change detection and that aggregate instead of requiring unrelated modules.
 - Frontend source and browser-independent tests run once on Linux.
 - Rust and Tauri changes run Rust quality checks, Rust tests, and a complete
   desktop build on Linux, Windows, and macOS.
 - Workflow changes select every module.
-- Generated release metadata can run only its strict integrity check on its
-  preparation branch and pull request; after merge, the `release/*` push runs
-  every module before artifact release begins.
+- Generated release metadata runs only its strict integrity check before and
+  after merge. Its manifest binds the release commit to an already-verified
+  source SHA, avoiding a second frontend/native matrix for metadata-only Beta
+  increments.
+- Creation of a Stable archive branch reports an all-zero GitHub `before` SHA;
+  change detection falls back to the branch head's parent instead of treating
+  the existing Beta snapshot as an entirely new repository.
 - Documentation-only changes skip expensive modules.
 
 The always-present `CI / Required` job is the single branch-protection status.
@@ -197,19 +207,28 @@ bun run release:beta:dry-run
 bun run release:stable:dry-run
 ```
 
-To prepare a Beta release commit locally, check out its persistent release line:
+To prepare a Beta release commit locally, create a preparation branch from
+`master`:
 
 ```bash
-git switch release/0.29
+git switch -c prepare/v0.31.0-beta.1 master
 bun run release:prepare:beta
 ```
 
-To reproduce Stable preparation locally, create an ephemeral branch from the
-current release-line head and name the selected Beta explicitly:
+To reproduce Stable preparation locally, create its archive branch at the
+selected Beta and name that source explicitly:
 
 ```bash
-git switch -c prepare/v0.29.0 release/0.29
-bun scripts/release.mjs --channel=stable --promote-beta=v0.29.0-beta.1
+git switch -c release/stable/0.31.0 v0.31.0-beta.2
+git restore --source master -- .github/workflows scripts docs/release.md \
+  tests/ciChanges.test.js tests/docsSync.test.js \
+  tests/releaseCi.test.js tests/releaseVersion.test.js
+git add .github/workflows scripts docs/release.md \
+  tests/ciChanges.test.js tests/docsSync.test.js \
+  tests/releaseCi.test.js tests/releaseVersion.test.js
+git commit --allow-empty -m "chore(release): refresh promotion automation"
+git switch -c prepare/v0.31.0
+bun scripts/release.mjs --channel=stable --promote-beta=v0.31.0-beta.2
 ```
 
 The script refuses to create release commits outside `release/*` or `prepare/*`

@@ -2,11 +2,24 @@
 import { describe, expect, test } from "bun:test";
 import {
   getMsiVersion,
+  getLatestReleaseTag,
   getNextBetaNumber,
   getNextReleaseVersion,
   getReleaseLine,
   getStablePromotion,
 } from "../scripts/release-version.mjs";
+
+describe("release tag precedence", () => {
+  test("selects the highest SemVer across divergent release branches", () => {
+    expect(
+      getLatestReleaseTag(["v0.29.9", "v0.30.0-beta.1", "v0.30.0-beta.3", "not-a-release"]),
+    ).toBe("v0.30.0-beta.3");
+  });
+
+  test("prefers Stable over Beta for the same base", () => {
+    expect(getLatestReleaseTag(["v1.2.3-beta.9", "v1.2.3"])).toBe("v1.2.3");
+  });
+});
 
 describe("MSI release versions", () => {
   test("keeps stable releases as three numeric components", () => {
