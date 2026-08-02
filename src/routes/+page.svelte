@@ -35,13 +35,14 @@
     DEFAULT_QUICK_CHAT_SHORTCUT,
     formatQuickChatShortcut,
     normalizeQuickChatShortcut,
+    QUICK_CHAT_FOCUS_INPUT_EVENT,
   } from "$lib/quickChatShortcut";
   import {
     loadQuickChatPreferences,
     resolveQuickChatModel,
     saveQuickChatPreferences,
   } from "$lib/quickChatPreferences";
-  import { desktopOpenAgent as openAgent, invoke, listen } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent as openAgent, emit, invoke, listen } from "$lib/openagent/tauriClient";
   import type { ChatMemoryRetrievalStage, ChatRunStartedEvent } from "$lib/openagent";
   import {
     DEV_MAIN_DEBUG_VISIBILITY_EVENT,
@@ -564,6 +565,7 @@
   let quickChatWorkspace = $state("");
   let quickChatRoles = $state<AgentRole[]>([]);
   let quickChatSubmitting = $state(false);
+  let quickChatInputFocusRequest = $state(0);
   let quickChatFocusArmed = false;
   let quickChatFocusSuppressed = false;
   let unlistenQuickChatSettings: Promise<() => void> | null = null;
@@ -4261,6 +4263,7 @@
     await quickWindow.unminimize().catch(() => {});
     await quickWindow.show();
     await quickWindow.setFocus();
+    await emit(QUICK_CHAT_FOCUS_INPUT_EVENT);
   }
 
   async function hideQuickChatWindow() {
@@ -4495,6 +4498,11 @@
   }
 
   onMount(() => {
+    const unlistenQuickChatInputFocus = isQuickChatWindow
+      ? listen(QUICK_CHAT_FOCUS_INPUT_EVENT, () => {
+          quickChatInputFocusRequest += 1;
+        })
+      : null;
     const unlistenQuickChatFocus = appWindow?.onFocusChanged(({ payload: focused }) => {
       if (!isQuickChatWindow) return;
       if (quickChatFocusSuppressed) return;
@@ -4505,6 +4513,7 @@
       }
     });
     return () => {
+      void unlistenQuickChatInputFocus?.then((dispose) => dispose());
       void unlistenQuickChatFocus?.then((dispose) => dispose());
       void unlistenQuickChatSettings?.then((dispose) => dispose());
       if (registeredQuickChatShortcut) {
@@ -4623,6 +4632,7 @@
             enableMentions={false}
             showAttachments
             showModelSelector={false}
+            focusRequest={quickChatInputFocusRequest}
             onAttachmentPickerOpenChange={handleQuickAttachmentPickerOpenChange}
             onSend={sendQuickChatMessage}
             onStop={stopMessage}

@@ -67,6 +67,8 @@
     onAttachmentPickerOpenChange?: (open: boolean) => void | Promise<void>;
     /** Upload browser-selected files through the active non-Tauri transport. */
     onUploadAttachments?: (files: File[]) => Promise<ChatAttachment[]>;
+    /** Increment to return keyboard focus to the composer textarea. */
+    focusRequest?: number;
     attachmentPreviewLoader?: (
       locator: string,
       name: string,
@@ -99,6 +101,7 @@
     onReasoningEffortChange = () => {},
     onAttachmentPickerOpenChange,
     onUploadAttachments,
+    focusRequest = 0,
     attachmentPreviewLoader,
     onSend,
     onStop,
@@ -463,6 +466,10 @@
       focusInput();
     }
     wasDisabled = disabled;
+  });
+
+  $effect(() => {
+    if (focusRequest > 0) void focusInput();
   });
 
   async function focusInput() {
