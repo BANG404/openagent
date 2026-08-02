@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deliver via PR"
+  short_description: "Ship OpenAgent changes through PR CI"
+  default_prompt: "Use $deliver-via-pr to implement and deliver this OpenAgent task through its protected PR workflow."

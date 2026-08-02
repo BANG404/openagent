@@ -18,6 +18,9 @@ requires them.
 - Before changing anything under `sdk/`, read `sdk/AGENTS.md` and every skill it
   requires for the affected SDK area. SDK implementation rules belong there,
   not in this public repository's guides.
+- For every task that changes repository files, read and follow the
+  `deliver-via-pr` workspace skill before editing. It owns branch, worktree,
+  pull request, CI, merge, and cleanup procedure.
 
 ## Commands
 
@@ -34,13 +37,16 @@ cd src-tauri && cargo check
 cd src-tauri && cargo build
 ```
 
-Run the smallest relevant check first. Before handing off frontend or
-cross-stack work, run `bun run check`; run `cargo check` for native changes
-when practical.
+GitHub pull-request CI is the authoritative delivery verification. For ordinary
+implementation tasks, do not run local lint, test, check, or build commands
+that duplicate CI. Before committing, inspect the complete diff and run
+`git diff --check`. Tool-specific validation required to create an artifact,
+interactive checks needed to implement a change, and checks explicitly
+requested by the user are not duplicate delivery tests.
 
-Run `bun run check:docs` before handing off any logic change. The check requires
-an agent-facing documentation update in the same change and applies stricter
-source-of-truth rules to mapped areas such as the chat frontend.
+The `Required` pull-request check runs the selected frontend, automation, and
+native jobs plus `check:docs`. Fix failures on the same task branch and let CI
+rerun; do not merge a red or pending `Required` check.
 
 ## Public repository ownership
 
@@ -115,13 +121,23 @@ legacy top-level category values.
 
 ## Git workflow
 
-Create a focused Conventional Commit for each independently usable, verified
-unit. After completing and verifying an implementation task, create that local
-commit automatically; do not wait for a separate user request or leave the
-verified task changes uncommitted. Keep changes uncommitted only when the user
-explicitly requests it, verification is failing, or the task cannot be isolated
-from unrelated work. Committing does not authorize pushing; push only when the
-user requests it.
+Repository-changing tasks use the complete `deliver-via-pr` workflow by
+default. A request to implement or modify the repository authorizes creating an
+isolated task branch and worktree, committing the intended changes, pushing the
+task branch, opening a ready pull request, waiting for GitHub Actions, merging
+after `Required` succeeds, and cleaning up the task worktree and branch. Stop
+before an explicitly excluded stage when the user asks for local-only work,
+uncommitted changes, no push, or no merge.
+
+Never implement ordinary tasks directly in the default-branch worktree. Start
+the task branch from the latest `origin/master`; preserve unrelated worktrees
+and user changes. Keep the worktree until the pull request is confirmed merged,
+then remove only that registered, clean task worktree and its merged local
+branch.
+
+Create a focused Conventional Commit for each independently usable unit. Keep
+changes uncommitted only when the user explicitly requests it, the change
+cannot be isolated safely, or the task is being handed back without delivery.
 
 Use this commit format:
 
@@ -133,6 +149,9 @@ Use `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, or `style`. Inspect
 status and the intended diff, stage explicit paths only, and confirm the
 resulting commit. Never use `git add .` or include unrelated changes.
 
-For pull requests, summarize user-visible behavior, frontend/SDK impact,
+Open implementation pull requests as ready for review so CI and merge can
+proceed. Summarize user-visible behavior, frontend/SDK impact,
 configuration or dependency changes, and linked issues. Include screenshots or
-recordings for UI changes.
+recordings for UI changes. The repository owner may bypass only the review
+requirement on their own PR after `Required` succeeds. Third-party PRs require
+one owner approval and must merge without bypass.
