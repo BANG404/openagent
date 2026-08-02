@@ -291,6 +291,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 ## IPC and events
 
 - Keep Rust event payloads aligned with `src/lib/types.ts`.
+- Global frontend diagnostics may cross the local Tauri boundary only as
+  allowlisted event, component, and error-type labels. Never forward exception
+  messages, stack traces, transcript content, model output, tool data,
+  configuration values, file content, or secrets. Remote export must honor the
+  persisted diagnostics opt-out immediately; local rotating application logs
+  remain available for deliberate support sharing.
 - Configuration-change events are notifications only. Never project the
   configuration itself through the shared runtime event bus because it contains
   provider secrets and the bus can feed non-Tauri transports; desktop surfaces
