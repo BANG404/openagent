@@ -537,6 +537,7 @@
       page_size: 12000,
     },
     launch_on_startup: false,
+    diagnostic_log_collection_enabled: true,
     quick_chat_shortcut: DEFAULT_QUICK_CHAT_SHORTCUT,
     mention_palette_show_global_drafts: true,
     message_layout: "single",
