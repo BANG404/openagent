@@ -6232,7 +6232,7 @@ dependencies = [
 
 [[package]]
 name = "openagent"
-version = "0.30.0-beta.2"
+version = "0.30.0-beta.3"
 dependencies = [
  "cc",
  "openagent-app",
