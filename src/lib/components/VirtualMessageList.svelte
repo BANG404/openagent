@@ -354,7 +354,7 @@
     column-rule: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
   }
 
-  .virtual-message-row.content-columns :global(.message-record) {
+  .virtual-message-row :global(.message-record) {
     content-visibility: visible;
     contain-intrinsic-size: none;
   }

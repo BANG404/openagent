@@ -36,4 +36,13 @@ describe("process record group", () => {
       /:global\(\.agent-book-page \.process-record-summary\)\s*\{[^}]*break-inside: avoid-column;[^}]*break-after: avoid-column;/s,
     );
   });
+
+  test("keeps every rendered virtual row fully measurable", async () => {
+    const source = await readFile(virtualMessageListUrl, "utf8");
+
+    expect(source).toMatch(
+      /\.virtual-message-row :global\(\.message-record\)\s*\{[^}]*content-visibility: visible;[^}]*contain-intrinsic-size: none;/s,
+    );
+    expect(source).not.toContain(".virtual-message-row.content-columns :global(.message-record)");
+  });
 });
