@@ -49,8 +49,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   across a two-column, full-window spread, adding pages when the reply exceeds
   one spread. Match Mermaid fullscreen's fixed viewport footprint and inner
   framed surface, without duplicating native window controls. Both fullscreen
-  surfaces reserve a top drag region for the native window and keep that region
-  outside page-turn, Mermaid pan/zoom, and toolbar controls; keep only the two
+  surfaces reserve a continuous drag region from the outermost top window edge
+  through their header and keep it outside page-turn, Mermaid pan/zoom, and
+  toolbar controls; keep only the two
   dedicated page-turn controls at the vertical center of the reading surface.
   The persisted body font size belongs to General settings.
   Fragment Markdown tables between rows instead of treating the whole table as

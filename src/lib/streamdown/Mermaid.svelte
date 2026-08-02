@@ -258,6 +258,12 @@
       data-expanded="false"
     >
       <div
+        class="mermaid-window-edge-drag-region"
+        data-tauri-drag-region
+        data-panzoom-ignore
+        aria-hidden="true"
+      ></div>
+      <div
         class="mermaid-window-drag-region"
         data-tauri-drag-region
         data-panzoom-ignore
@@ -367,8 +373,20 @@
     margin: 0;
   }
 
+  .mermaid-window-edge-drag-region,
   .mermaid-window-drag-region {
     display: none;
+  }
+
+  :global([data-streamdown-mermaid][data-expanded="true"]) .mermaid-window-edge-drag-region,
+  :global([data-streamdown-mermaid] > [data-expanded="true"]) .mermaid-window-edge-drag-region {
+    position: fixed;
+    z-index: 3;
+    top: 0;
+    right: 0;
+    left: 0;
+    display: block;
+    height: 16px;
   }
 
   :global([data-streamdown-mermaid][data-expanded="true"]) .mermaid-window-drag-region,

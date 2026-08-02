@@ -190,6 +190,11 @@
   <Dialog.Portal>
     <Dialog.Overlay class="agent-book-overlay" />
     <Dialog.Content class="agent-book-dialog" onkeydown={handleKeydown}>
+      <div
+        class="agent-book-window-edge-drag-region"
+        data-tauri-drag-region
+        aria-hidden="true"
+      ></div>
       <header class="agent-book-toolbar" data-tauri-drag-region>
         <div class="agent-book-drag-region" data-tauri-drag-region aria-hidden="true"></div>
         <div class="agent-book-heading">
@@ -290,6 +295,15 @@
     gap: 20px;
     padding-left: 8px;
     background: transparent;
+  }
+
+  .agent-book-window-edge-drag-region {
+    position: absolute;
+    z-index: 4;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 24px;
   }
 
   .agent-book-heading {

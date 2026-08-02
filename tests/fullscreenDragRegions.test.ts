@@ -12,6 +12,10 @@ describe("fullscreen window drag regions", () => {
     expect(source).toMatch(
       /class="agent-book-drag-region"\s+data-tauri-drag-region\s+aria-hidden="true"/,
     );
+    expect(source).toMatch(
+      /class="agent-book-window-edge-drag-region"\s+data-tauri-drag-region\s+aria-hidden="true"/,
+    );
+    expect(source).toMatch(/\.agent-book-window-edge-drag-region\s*{[^}]*height: 24px;/s);
     expect(source).toContain("inset: 0 42px 0 0;");
     expect(source).toMatch(/\.agent-book-controls\s*{[^}]*z-index: 2;/s);
   });
@@ -22,7 +26,11 @@ describe("fullscreen window drag regions", () => {
     expect(source).toMatch(
       /class="mermaid-window-drag-region"\s+data-tauri-drag-region\s+data-panzoom-ignore/,
     );
+    expect(source).toMatch(
+      /class="mermaid-window-edge-drag-region"\s+data-tauri-drag-region\s+data-panzoom-ignore/,
+    );
     expect(source).toContain('[data-streamdown-mermaid][data-expanded="true"]');
-    expect(source).toMatch(/\.mermaid-window-drag-region\s*{\s*display: none;/);
+    expect(source).toMatch(/\.mermaid-window-edge-drag-region,\s*\.mermaid-window-drag-region/);
+    expect(source).toMatch(/\.mermaid-window-edge-drag-region\s*{[^}]*height: 16px;/s);
   });
 });
