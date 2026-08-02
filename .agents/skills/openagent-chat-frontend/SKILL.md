@@ -49,6 +49,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Treat assistant records separated only by a tagged context-compaction replay
   as one complete Agent reply. Keep the compaction boundary at its real
   position inside that reply, with one action footer after the final record.
+  Do not show the reply actions—including regenerate, copy, and book mode—while
+  the conversation is streaming, even when a durable prefix exists before a
+  live context-compaction continuation. Reveal the actions together only after
+  the complete Agent reply finishes.
   Book mode opens from that footer and flows each complete reply continuously
   across a two-column, full-window spread, adding pages when the reply exceeds
   one spread. Match Mermaid fullscreen's fixed viewport footprint and inner
