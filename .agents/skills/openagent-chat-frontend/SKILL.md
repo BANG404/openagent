@@ -167,11 +167,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the conversation sidebar background flat and free of decorative glow;
   communicate active streaming through the conversation row indicator only.
 - Size the expanded sidebar's header role trigger to its visible role name and
-  omit the redundant caret. Keep its adjacent back and forward controls tied to
-  the window's real destination history: conversations, the new-conversation
-  surface, and feature views all participate; visiting a new destination after
-  going back discards the abandoned forward branch, and deleting a conversation
-  removes its stale destinations.
+  omit the redundant caret. Keep the back and forward controls fixed beside the
+  sidebar-collapse button so role-name length cannot move them. Tie those
+  controls to the window's real destination history: conversations, the
+  new-conversation surface, and feature views all participate; visiting a new
+  destination after going back discards the abandoned forward branch, and
+  deleting a conversation removes its stale destinations.
 - Keep desktop conversation rows at a compact 30px height. Ellipsize long
   titles at rest, reveal their complete text with a measured horizontal scroll
   on pointer hover, retain the static ellipsis under reduced motion, and do not
