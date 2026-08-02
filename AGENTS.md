@@ -50,10 +50,11 @@ rerun; do not merge a red or pending `Required` check.
 
 ## Browser-backed frontend workflow
 
-Use the `playwright` skill for every repository workflow that renders or
-interacts with the frontend in a browser. Its bundled wrapper launches
-`@playwright/cli` through `bunx`; do not substitute `npx` or another browser
-control surface. This includes, without limitation, verifying frontend changes,
+Use the workspace `playwright` skill for every repository workflow that renders
+or interacts with the frontend in a browser. Use its bundled wrapper, which
+prefers an installed `playwright-cli`, then resolves it through Bun, with
+Node/npm as an allowed fallback; do not substitute another browser control
+surface. This includes, without limitation, verifying frontend changes,
 reproducing browser-visible bugs, exercising preview routes and interactions,
 checking responsive layouts, light/dark themes, and Chinese/English copy, and
 capturing software screenshots, PDFs, videos, or traces.
@@ -61,8 +62,10 @@ capturing software screenshots, PDFs, videos, or traces.
 Start the required development server, open the target through the skill,
 snapshot before using element references, and re-snapshot after navigation or
 material DOM changes. Prefer dedicated browser preview routes for state that
-would otherwise require native Tauri setup. Store browser artifacts under
-`output/playwright/`; do not add new top-level artifact directories.
+would otherwise require native Tauri setup. Keep automatic browser artifacts in
+the system temporary directory through the skill wrapper. Do not create
+repository-root output directories; copy only explicitly requested deliverables
+to a deliberate tracked location.
 
 ## Public repository ownership
 
