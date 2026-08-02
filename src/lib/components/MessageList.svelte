@@ -452,6 +452,9 @@
           Boolean(assistantMsg.checkpointId) &&
           Boolean(activeTree?.nodes[assistantMsg.checkpointId!])}
         {@const copyableOutput = finalAssistantOutput(turnMessages)}
+        {@const showAssistantActions =
+          !isStreaming &&
+          (isRerunnable || Boolean(copyableOutput) || renderedAssistantItems.length > 0)}
         {@const timing = assistantMsg ? runTiming(assistantMsg, assistantMsgIdx) : null}
         {#snippet renderAssistantSegments(segments: StreamItemSegment[])}
           {#each segments as segment (`${entry.key}-${segment.startIndex}`)}
@@ -526,7 +529,7 @@
               id={renderedAssistantItems.length > 0 ? undefined : `message-${assistantMsg.id}`}
               data-message-id={renderedAssistantItems.length > 0 ? undefined : assistantMsg.id}
             >
-              {#if isRerunnable || copyableOutput || renderedAssistantItems.length > 0}
+              {#if showAssistantActions}
                 <div class="msg-actions">
                   {#if isRerunnable}
                     <button
