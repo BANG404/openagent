@@ -3,12 +3,28 @@ import { describe, expect, test } from "bun:test";
 
 import {
   DEFAULT_QUICK_CHAT_SHORTCUT,
+  QUICK_CHAT_FOCUS_INPUT_EVENT,
   captureQuickChatShortcut,
   formatQuickChatShortcut,
   normalizeQuickChatShortcut,
 } from "../src/lib/quickChatShortcut";
 
 describe("quick chat shortcut", () => {
+  test("returns focus to the composer whenever the shortcut reveals the launcher", async () => {
+    const [pageSource, inputSource] = await Promise.all([
+      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/components/MessageInput.svelte", import.meta.url)).text(),
+    ]);
+
+    expect(QUICK_CHAT_FOCUS_INPUT_EVENT).toBe("quick-chat-focus-input");
+    expect(pageSource).toMatch(
+      /await quickWindow\.setFocus\(\);\s+await emit\(QUICK_CHAT_FOCUS_INPUT_EVENT\);/,
+    );
+    expect(pageSource).toContain("quickChatInputFocusRequest += 1;");
+    expect(pageSource).toContain("focusRequest={quickChatInputFocusRequest}");
+    expect(inputSource).toMatch(/if \(focusRequest > 0\) void focusInput\(\);/);
+  });
+
   test("records from the window instead of relying on button focus", async () => {
     const settingsSource = await Bun.file(
       new URL("../src/lib/components/SettingsView.svelte", import.meta.url),

@@ -1,4 +1,5 @@
 export const DEFAULT_QUICK_CHAT_SHORTCUT = "CommandOrControl+Shift+Space";
+export const QUICK_CHAT_FOCUS_INPUT_EVENT = "quick-chat-focus-input";
 
 const modifierCodes = new Set([
   "AltLeft",

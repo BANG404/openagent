@@ -269,11 +269,13 @@ desktop process owns a separate centered 760 × 190px always-on-top launcher;
 workspace windows never resize or change visibility when it opens. The launcher
 is one continuous raised surface with a 14px radius: a quiet draggable utility
 header, a large borderless composer, and a 48px footer for model, role, and
-workspace selectors. It has no transcript and remembers its own model, role,
-and workspace tuple without changing the primary window's defaults. Every
-submission creates a fresh durable conversation, routes the turn to the selected
-workspace process, opens or focuses that workspace window, and shows the new
-streaming conversation there. Failures keep the launcher and draft visible.
+workspace selectors. Each shortcut reveal returns keyboard focus to the composer
+so typing can begin immediately even though the hidden launcher window and its
+input remain mounted between sessions. It has no transcript and remembers its own
+model, role, and workspace tuple without changing the primary window's defaults.
+Every submission creates a fresh durable conversation, routes the turn to the
+selected workspace process, opens or focuses that workspace window, and shows the
+new streaming conversation there. Failures keep the launcher and draft visible.
 Because a webview cannot render beyond its native bounds, prepare the
 transparent launcher window at 760 × 500px before showing it and keep that
 native size fixed for the whole visible session; the card remains compact and

@@ -215,7 +215,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   native operation rather than only disarming its current state, because focus
   can toggle during the operation. A submission hides the launcher only after
   the target workspace accepted the turn; failures keep it visible with its
-  draft intact.
+  draft intact. Every shortcut reveal must explicitly return DOM focus to the
+  composer textarea after the native launcher window has been shown and focused;
+  the persistent hidden window does not remount its composer between sessions.
 - A webview cannot paint beyond its native window bounds. Keep the launcher
   card compact and fixed-height. Prepare the transparent native window at its
   expanded selector size before showing it, keep that size fixed for the whole
