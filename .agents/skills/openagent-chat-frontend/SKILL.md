@@ -24,7 +24,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   pagination instead of moving as one container. Keep the process header with
   its first record and preserve the same atomic break rules used by ordinary
   assistant content. Keep the completed-turn metadata and action footer outside
-  column balancing as one full-width row below both columns.
+  column balancing as one full-width row below both columns. Use an explicit
+  button-controlled process group instead of a native `details` element because
+  WebView2 can lose toggle hit testing when an interactive element is fragmented
+  across CSS columns. Keep collapsed process children mounted so their local UI
+  state survives reopening.
 - Position virtual rows without transform-promoted layers. CSS multi-column
   assistant content must not be nested in a forced compositor layer because it
   can flicker during WebView2 repaint invalidation.

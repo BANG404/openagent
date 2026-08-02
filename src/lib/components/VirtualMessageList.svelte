@@ -327,7 +327,7 @@
     break-inside: auto;
   }
 
-  .virtual-message-row.content-columns :global(.process-records > summary) {
+  .virtual-message-row.content-columns :global(.process-record-summary) {
     break-inside: avoid-column;
     break-after: avoid-column;
   }

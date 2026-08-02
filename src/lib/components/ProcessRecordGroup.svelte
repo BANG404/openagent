@@ -23,10 +23,13 @@
   );
 </script>
 
-<details class="process-records" bind:open>
-  <summary
+<div class="process-records" data-open={open ? "true" : undefined}>
+  <button
+    type="button"
+    class="process-record-summary"
     aria-label={open ? $t("collapseWorkDetails") : $t("expandWorkDetails")}
     aria-expanded={open}
+    onclick={() => (open = !open)}
   >
     <span>{label}</span>
     <svg
@@ -41,11 +44,11 @@
     >
       <path d="m6 4 4 4-4 4" />
     </svg>
-  </summary>
-  <div class="process-record-content">
+  </button>
+  <div class="process-record-content" hidden={!open}>
     {@render children()}
   </div>
-</details>
+</div>
 
 <style>
   .process-records {
@@ -53,28 +56,29 @@
     margin: 0 0 14px;
   }
 
-  .process-records summary {
+  .process-record-summary {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    width: 100%;
     min-height: 30px;
     padding: 0 0 8px;
     border-bottom: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+    border-top: 0;
+    border-right: 0;
+    border-left: 0;
+    outline: none;
+    background: transparent;
     color: var(--text-muted);
+    font-family: inherit;
     font-size: 13px;
     line-height: 1.35;
     cursor: pointer;
-    list-style: none;
     user-select: none;
   }
 
-  .process-records summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .process-records summary:focus-visible {
+  .process-record-summary:focus-visible {
     border-radius: 4px;
-    outline: none;
     box-shadow: var(--focus-ring);
   }
 
@@ -85,7 +89,7 @@
     transition: transform 0.16s ease;
   }
 
-  .process-records[open] .process-chevron {
+  .process-records[data-open="true"] .process-chevron {
     transform: rotate(90deg);
   }
 

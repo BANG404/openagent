@@ -91,7 +91,7 @@
     resizeObserver.observe(element);
     mutationObserver.observe(element, {
       attributes: true,
-      attributeFilter: ["open"],
+      attributeFilter: ["open", "hidden"],
       childList: true,
       subtree: true,
     });
@@ -425,7 +425,7 @@
     break-inside: auto;
   }
 
-  :global(.agent-book-page .process-records > summary) {
+  :global(.agent-book-page .process-record-summary) {
     break-inside: avoid-column;
     break-after: avoid-column;
   }
