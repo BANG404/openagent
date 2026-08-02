@@ -4654,15 +4654,19 @@
                 header
                 onChange={(role) => void changeConversationRole(role)}
               />
+            </div>
+            <div class="sidebar-navigation-end" data-tauri-drag-region>
               <SidebarHistoryControls
                 {canGoBack}
                 {canGoForward}
                 onBack={() => void navigateHistory(-1)}
                 onForward={() => void navigateHistory(1)}
               />
+              <SidebarCollapseButton collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
             </div>
+          {:else}
+            <SidebarCollapseButton collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
           {/if}
-          <SidebarCollapseButton collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
         </div>
         {#if !sidebarCollapsed}
           <SidebarPrimaryActions
@@ -5160,9 +5164,17 @@
 
   .sidebar-navigation-start {
     min-width: 0;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .sidebar-navigation-end {
     display: flex;
     align-items: center;
     gap: 2px;
+    flex: 0 0 auto;
   }
 
   .sidebar.collapsed .sidebar-top {
