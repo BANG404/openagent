@@ -14,8 +14,7 @@ function successfulJobs() {
 
 describe("release CI verification", () => {
   test("fetches tags before validating release metadata", () => {
-    const detectJob = releaseWorkflow.match(/ {2}detect:\n(?<job>[\s\S]*?)\n {2}tag:/)?.groups
-      ?.job;
+    const detectJob = releaseWorkflow.match(/ {2}detect:\n(?<job>[\s\S]*?)\n {2}tag:/)?.groups?.job;
 
     expect(detectJob).toContain("fetch-depth: 0");
   });
