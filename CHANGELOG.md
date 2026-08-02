@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.30.0-beta.2] - 2026-08-02
+
 ## [0.30.0-beta.1] - 2026-08-01
 
 ### Features
