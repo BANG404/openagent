@@ -6,6 +6,7 @@
   import { onDestroy, onMount } from "svelte";
   import Toast from "$lib/components/Toast.svelte";
   import InspectorDatabase from "$lib/components/InspectorDatabase.svelte";
+  import Tooltip from "$lib/components/Tooltip.svelte";
   import { showToast, updateToast } from "$lib/toast";
   import {
     DEV_MAIN_DEBUG_VISIBILITY_EVENT,
@@ -456,17 +457,21 @@
         </div>
         <div class="conversation-list">
           {#each traces as trace (trace.id)}
-            <button
-              class:active={trace.id === selectedTaskTraceId}
-              onclick={() => selectTrace(trace)}
-              title={trace.id}
-            >
-              <strong>{trace.title}</strong><span
-                >{trace.task.session_id
-                  ? `session ${trace.task.session_id.slice(0, 8)}`
-                  : "legacy session"} · {trace.task.model} · {formatDate(trace.timestamp)}</span
-              >
-            </button>
+            <Tooltip text={trace.id}>
+              {#snippet trigger(props)}
+                <button
+                  {...props}
+                  class:active={trace.id === selectedTaskTraceId}
+                  onclick={() => selectTrace(trace)}
+                >
+                  <strong>{trace.title}</strong><span
+                    >{trace.task.session_id
+                      ? `session ${trace.task.session_id.slice(0, 8)}`
+                      : "legacy session"} · {trace.task.model} · {formatDate(trace.timestamp)}</span
+                  >
+                </button>
+              {/snippet}
+            </Tooltip>
           {:else}<p class="muted empty">No traces match this filter.</p>{/each}
         </div>
       </aside>

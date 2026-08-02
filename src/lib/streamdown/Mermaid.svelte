@@ -3,6 +3,7 @@
   import { on } from "svelte/events";
   import { useStreamdown } from "svelte-streamdown";
   import { showToast } from "$lib/toast";
+  import Tooltip from "$lib/components/Tooltip.svelte";
   import type { MermaidConfig } from "mermaid";
   import { loadMermaid, mermaidToolFailure, renderMermaidSvg } from "./mermaidRenderer";
   import { useMermaidPanzoom } from "./useMermaidPanzoom.svelte";
@@ -290,15 +291,19 @@
           >
             {@render (streamdown.icons?.fullscreen || fullscreenIcon)()}
           </button>
-          <button
-            class={streamdown.theme.components.button}
-            aria-label="Copy Mermaid source code"
-            title="Copy Mermaid source code"
-            onclick={copySourceCode}
-            data-panzoom-ignore
-          >
-            {@render copyIcon()}
-          </button>
+          <Tooltip text="Copy Mermaid source code">
+            {#snippet trigger(props)}
+              <button
+                {...props}
+                class={streamdown.theme.components.button}
+                aria-label="Copy Mermaid source code"
+                onclick={copySourceCode}
+                data-panzoom-ignore
+              >
+                {@render copyIcon()}
+              </button>
+            {/snippet}
+          </Tooltip>
           <button
             class={streamdown.theme.components.button}
             aria-label="Download diagram"

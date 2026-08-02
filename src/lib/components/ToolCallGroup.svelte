@@ -3,6 +3,7 @@
   import { toolCallStatus, type ToolCallItem, type ToolCallStatus } from "$lib/toolCallGroups";
   import type { HtmlPreviewConfig } from "$lib/types";
   import ToolCallCard from "./ToolCallCard.svelte";
+  import Tooltip from "./Tooltip.svelte";
 
   interface Props {
     items: ToolCallItem[];
@@ -92,24 +93,32 @@
     </span>
     <span class="group-statuses">
       {#if statusCounts.failed}
-        <span class="status failed" title={`${statusCounts.failed} ${statusLabel("failed")}`}>
-          <span aria-hidden="true">×</span><span>{statusCounts.failed}</span>
-        </span>
+        <Tooltip text={`${statusCounts.failed} ${statusLabel("failed")}`}>
+          <span class="status failed">
+            <span aria-hidden="true">×</span><span>{statusCounts.failed}</span>
+          </span>
+        </Tooltip>
       {/if}
       {#if statusCounts.running}
-        <span class="status running" title={`${statusCounts.running} ${statusLabel("running")}`}>
-          <span aria-hidden="true">…</span><span>{statusCounts.running}</span>
-        </span>
+        <Tooltip text={`${statusCounts.running} ${statusLabel("running")}`}>
+          <span class="status running">
+            <span aria-hidden="true">…</span><span>{statusCounts.running}</span>
+          </span>
+        </Tooltip>
       {/if}
       {#if statusCounts.pending}
-        <span class="status pending" title={`${statusCounts.pending} ${statusLabel("pending")}`}>
-          <span aria-hidden="true">○</span><span>{statusCounts.pending}</span>
-        </span>
+        <Tooltip text={`${statusCounts.pending} ${statusLabel("pending")}`}>
+          <span class="status pending">
+            <span aria-hidden="true">○</span><span>{statusCounts.pending}</span>
+          </span>
+        </Tooltip>
       {/if}
       {#if statusCounts.success}
-        <span class="status success" title={`${statusCounts.success} ${statusLabel("success")}`}>
-          <span aria-hidden="true">✓</span><span>{statusCounts.success}</span>
-        </span>
+        <Tooltip text={`${statusCounts.success} ${statusLabel("success")}`}>
+          <span class="status success">
+            <span aria-hidden="true">✓</span><span>{statusCounts.success}</span>
+          </span>
+        </Tooltip>
       {/if}
     </span>
     <span class="sr-only">{expanded ? $t("toolCallGroupCollapse") : $t("toolCallGroupExpand")}</span

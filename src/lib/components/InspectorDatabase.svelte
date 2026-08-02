@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import InspectorJsonValue from "$lib/components/InspectorJsonValue.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
+  import Tooltip from "$lib/components/Tooltip.svelte";
 
   type TableSummary = { name: string; row_count: number; column_count: number };
   type Column = {
@@ -283,7 +284,13 @@
       </div>
       <button onclick={loadOverview} disabled={loading}>Refresh</button>
     </div>
-    {#if overview}<p class="database-path" title={overview.path}>{overview.path}</p>{/if}
+    {#if overview}
+      <Tooltip text={overview.path}>
+        {#snippet trigger(props)}
+          <p {...props} class="database-path">{overview?.path}</p>
+        {/snippet}
+      </Tooltip>
+    {/if}
     <div class="table-list">
       {#if loading && !overview}
         <LoadingSkeleton variant="detail-list" rows={6} label="Loading database tables" />
@@ -362,24 +369,28 @@
           <thead
             ><tr
               >{#each tableData.columns as column (column.cid)}<th
-                  title={column.data_type}
                   aria-sort={sortColumn === column.name
                     ? sortDirection === "asc"
                       ? "ascending"
                       : "descending"
                     : "none"}
-                  ><button
-                    class:active-sort={sortColumn === column.name}
-                    onclick={() => toggleSort(column.name)}
-                    disabled={loading}
-                    >{column.name}<span aria-hidden="true"
-                      >{sortColumn === column.name
-                        ? sortDirection === "asc"
-                          ? " ▲"
-                          : " ▼"
-                        : " ↕"}</span
-                    ></button
-                  ></th
+                  ><Tooltip text={column.data_type}>
+                    {#snippet trigger(props)}
+                      <button
+                        {...props}
+                        class:active-sort={sortColumn === column.name}
+                        onclick={() => toggleSort(column.name)}
+                        disabled={loading}
+                        >{column.name}<span aria-hidden="true"
+                          >{sortColumn === column.name
+                            ? sortDirection === "asc"
+                              ? " ▲"
+                              : " ▼"
+                            : " ↕"}</span
+                        ></button
+                      >
+                    {/snippet}
+                  </Tooltip></th
                 >{/each}</tr
             ></thead
           >
@@ -390,11 +401,15 @@
                     class:selected={selectedCell?.rowIndex === rowIndex &&
                       selectedCell.columnIndex === columnIndex}
                     class:null-value={value === "NULL"}
-                    title={timestampDisplay(value, tableData.columns[columnIndex]?.name ?? "")
-                      ? `${timestampDisplay(value, tableData.columns[columnIndex]?.name ?? "")}\nUnix timestamp: ${value}`
-                      : cellPreview(value, tableData.columns[columnIndex]?.name ?? "")}
                     onclick={() => selectCell(rowIndex, columnIndex)}
-                    >{cellPreview(value, tableData.columns[columnIndex]?.name ?? "")}</td
+                    ><Tooltip
+                      text={timestampDisplay(value, tableData.columns[columnIndex]?.name ?? "")
+                        ? `${timestampDisplay(value, tableData.columns[columnIndex]?.name ?? "")}\nUnix timestamp: ${value}`
+                        : cellPreview(value, tableData.columns[columnIndex]?.name ?? "")}
+                      block
+                    >
+                      <span>{cellPreview(value, tableData.columns[columnIndex]?.name ?? "")}</span>
+                    </Tooltip></td
                   >{/each}</tr
               >
             {:else}<tr

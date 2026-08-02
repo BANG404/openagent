@@ -4,6 +4,7 @@
   import { t } from "$lib/i18n";
   import type { Value } from "../parser";
   import { parseFileLineRange } from "../fileLines";
+  import Tooltip from "$lib/components/Tooltip.svelte";
   import {
     clearContainingFilePreviewOpen,
     setContainingFilePreviewOpen,
@@ -90,40 +91,44 @@
   onmouseenter={showPreview}
   onmouseleave={() => setPreviewOpen(false)}
 >
-  <button
-    class="file-ref"
-    onclick={open}
-    onfocus={showPreview}
-    onblur={() => setPreviewOpen(false)}
-    disabled={!path}
-    title={path}
-  >
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      width="13"
-      height="13"
-      aria-hidden="true"
-    >
-      <path d="M3 2.5h6l4 4V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V3a.5.5 0 0 1 .5-.5z" />
-      <path d="M9 2.5V6.5h4" />
-    </svg>
-    <span class="name">{label || filename}</span>{#if lines}<span class="lines">:{lines}</span
-      >{/if}{#if dirHint() && !label}<span class="dir">{dirHint()}</span>{/if}
-  </button>
+  <Tooltip text={lineRange ? "" : path}>
+    {#snippet trigger(props)}
+      <button
+        {...props}
+        class="file-ref"
+        onclick={open}
+        onfocus={showPreview}
+        onblur={() => setPreviewOpen(false)}
+        disabled={!path}
+      >
+        <svg
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          width="13"
+          height="13"
+          aria-hidden="true"
+        >
+          <path d="M3 2.5h6l4 4V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V3a.5.5 0 0 1 .5-.5z" />
+          <path d="M9 2.5V6.5h4" />
+        </svg>
+        <span class="name">{label || filename}</span>{#if lines}<span class="lines">:{lines}</span
+          >{/if}{#if dirHint() && !label}<span class="dir">{dirHint()}</span>{/if}
+      </button>
+    {/snippet}
+  </Tooltip>
   {#if previewOpen && lineRange}
     <span class="file-preview" role="tooltip">
       <span class="preview-heading">{path}:{lineRange.start}-{lineRange.end}</span>
       {#if previewLoading}
         <span class="preview-status">{$t("filePreviewLoading")}</span>
       {:else if previewError}
-        <span class="preview-status preview-error" title={previewError}
-          >{$t("filePreviewUnavailable")}</span
-        >
+        <Tooltip text={previewError}>
+          <span class="preview-status preview-error">{$t("filePreviewUnavailable")}</span>
+        </Tooltip>
       {:else if preview}
         <span class="preview-code">
           {#each preview.lines as content, index (preview.startLine + index)}

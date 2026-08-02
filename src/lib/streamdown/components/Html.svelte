@@ -4,6 +4,7 @@
   import { showToast } from "$lib/toast";
   import { tr } from "$lib/i18n";
   import ScrollArea from "$lib/components/ui/ScrollArea.svelte";
+  import Tooltip from "$lib/components/Tooltip.svelte";
   import type { HtmlPreviewConfig } from "$lib/types";
   import type { Value } from "../parser";
   import { injectHtmlPreviewBase } from "../htmlPreviewDocument";
@@ -255,127 +256,143 @@
     <div class="empty error">{loadError}</div>
   {:else if code}
     <div class="actions" aria-label={title}>
-      <button
-        type="button"
-        onclick={() => {
-          expanded = !expanded;
-          if (expanded) measureFrame();
-        }}
-        title={expanded ? "Use fixed height" : "Expand to content"}
-        aria-label={expanded ? "Use fixed height" : "Expand to content"}
-      >
-        {#if expanded}
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
+      <Tooltip text={expanded ? "Use fixed height" : "Expand to content"}>
+        {#snippet trigger(props)}
+          <button
+            {...props}
+            type="button"
+            onclick={() => {
+              expanded = !expanded;
+              if (expanded) measureFrame();
+            }}
+            aria-label={expanded ? "Use fixed height" : "Expand to content"}
           >
-            <path d="M5.25 2.75v3h-3" />
-            <path d="M2.75 5.75 6 2.5" />
-            <path d="M10.75 13.25v-3h3" />
-            <path d="M13.25 10.25 10 13.5" />
-          </svg>
-        {:else}
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M6 2.5H2.5V6" />
-            <path d="M2.75 2.75 6.25 6.25" />
-            <path d="M10 13.5h3.5V10" />
-            <path d="M13.25 13.25 9.75 9.75" />
-          </svg>
-        {/if}
-      </button>
+            {#if expanded}
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M5.25 2.75v3h-3" />
+                <path d="M2.75 5.75 6 2.5" />
+                <path d="M10.75 13.25v-3h3" />
+                <path d="M13.25 10.25 10 13.5" />
+              </svg>
+            {:else}
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M6 2.5H2.5V6" />
+                <path d="M2.75 2.75 6.25 6.25" />
+                <path d="M10 13.5h3.5V10" />
+                <path d="M13.25 13.25 9.75 9.75" />
+              </svg>
+            {/if}
+          </button>
+        {/snippet}
+      </Tooltip>
       {#if path}
-        <button
-          type="button"
-          onclick={openHtmlFile}
-          disabled={busy !== null}
-          title="Open HTML file"
-          aria-label="Open HTML file"
-        >
-          {#if busy === "open"}
-            <span class="busy-dot"></span>
-          {:else}
-            <svg
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
+        <Tooltip text="Open HTML file">
+          {#snippet trigger(props)}
+            <button
+              {...props}
+              type="button"
+              onclick={openHtmlFile}
+              disabled={busy !== null}
+              aria-label="Open HTML file"
             >
-              <path d="M9 2.75h4.25V7" />
-              <path d="M8.25 7.75 13 3" />
-              <path
-                d="M6.75 4H4.25A1.25 1.25 0 0 0 3 5.25v6.5A1.25 1.25 0 0 0 4.25 13h6.5A1.25 1.25 0 0 0 12 11.75V9.25"
-              />
-            </svg>
-          {/if}
-        </button>
+              {#if busy === "open"}
+                <span class="busy-dot"></span>
+              {:else}
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M9 2.75h4.25V7" />
+                  <path d="M8.25 7.75 13 3" />
+                  <path
+                    d="M6.75 4H4.25A1.25 1.25 0 0 0 3 5.25v6.5A1.25 1.25 0 0 0 4.25 13h6.5A1.25 1.25 0 0 0 12 11.75V9.25"
+                  />
+                </svg>
+              {/if}
+            </button>
+          {/snippet}
+        </Tooltip>
       {/if}
-      <button
-        type="button"
-        onclick={copyHtml}
-        disabled={busy !== null}
-        title="Copy text"
-        aria-label="Copy text"
-      >
-        {#if busy === "copy"}
-          <span class="busy-dot"></span>
-        {:else}
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
+      <Tooltip text="Copy text">
+        {#snippet trigger(props)}
+          <button
+            {...props}
+            type="button"
+            onclick={copyHtml}
+            disabled={busy !== null}
+            aria-label="Copy text"
           >
-            <rect x="5.25" y="4.25" width="7" height="9" rx="1.25" />
-            <path
-              d="M3.75 11.25h-.5A1.25 1.25 0 0 1 2 10V3.25A1.25 1.25 0 0 1 3.25 2h5.5A1.25 1.25 0 0 1 10 3.25v.5"
-            />
-          </svg>
-        {/if}
-      </button>
-      <button
-        type="button"
-        onclick={downloadImage}
-        disabled={busy !== null}
-        title="Download image"
-        aria-label="Download image"
-      >
-        {#if busy === "png"}
-          <span class="busy-dot"></span>
-        {:else}
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
+            {#if busy === "copy"}
+              <span class="busy-dot"></span>
+            {:else}
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="5.25" y="4.25" width="7" height="9" rx="1.25" />
+                <path
+                  d="M3.75 11.25h-.5A1.25 1.25 0 0 1 2 10V3.25A1.25 1.25 0 0 1 3.25 2h5.5A1.25 1.25 0 0 1 10 3.25v.5"
+                />
+              </svg>
+            {/if}
+          </button>
+        {/snippet}
+      </Tooltip>
+      <Tooltip text="Download image">
+        {#snippet trigger(props)}
+          <button
+            {...props}
+            type="button"
+            onclick={downloadImage}
+            disabled={busy !== null}
+            aria-label="Download image"
           >
-            <path d="M8 2.5v7" />
-            <path d="M5.25 7.25 8 10l2.75-2.75" />
-            <path d="M3 12.75h10" />
-          </svg>
-        {/if}
-      </button>
+            {#if busy === "png"}
+              <span class="busy-dot"></span>
+            {:else}
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M8 2.5v7" />
+                <path d="M5.25 7.25 8 10l2.75-2.75" />
+                <path d="M3 12.75h10" />
+              </svg>
+            {/if}
+          </button>
+        {/snippet}
+      </Tooltip>
     </div>
     <ScrollArea class="preview-scroll-area" height={`${displayHeight}px`}>
       <iframe

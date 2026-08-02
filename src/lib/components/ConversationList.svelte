@@ -171,7 +171,7 @@
 {/snippet}
 
 {#snippet conversationTitle(title: string)}
-  <span class="conv-title" {title} use:trackTitleOverflow>
+  <span class="conv-title" use:trackTitleOverflow>
     <span class="conv-title-text">{title}</span>
   </span>
 {/snippet}

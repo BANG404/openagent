@@ -432,7 +432,7 @@
     background: var(--control-surface);
     -webkit-backdrop-filter: blur(12px) saturate(1.05);
     backdrop-filter: blur(12px) saturate(1.05);
-    box-shadow: var(--control-shadow);
+    box-shadow: none;
   }
 
   .user-bubble.compact {

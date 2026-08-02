@@ -283,25 +283,26 @@
         {:else if !expanded && argHint}
           <span class="tool-arg-hint">{argHint}</span>
         {/if}
-        <span
-          class="tool-status"
-          class:tool-done={status === "success"}
-          class:tool-failed={status === "failed"}
-          class:tool-running={status === "running"}
-          class:tool-pending={status === "pending"}
-          title={statusText}
-        >
-          <span aria-hidden="true"
-            >{status === "success"
-              ? "✓"
-              : status === "failed"
-                ? "×"
-                : status === "running"
-                  ? "…"
-                  : "○"}</span
+        <Tooltip text={statusText}>
+          <span
+            class="tool-status"
+            class:tool-done={status === "success"}
+            class:tool-failed={status === "failed"}
+            class:tool-running={status === "running"}
+            class:tool-pending={status === "pending"}
           >
-          <span class="sr-only">{statusText}</span>
-        </span>
+            <span aria-hidden="true"
+              >{status === "success"
+                ? "✓"
+                : status === "failed"
+                  ? "×"
+                  : status === "running"
+                    ? "…"
+                    : "○"}</span
+            >
+            <span class="sr-only">{statusText}</span>
+          </span>
+        </Tooltip>
         <span class="tool-chevron" class:expanded aria-hidden="true">
           <svg
             viewBox="0 0 16 16"
@@ -354,25 +355,27 @@
       {#if isFocusedTool}
         <div class="tool-detail">
           {#if filePath}
-            <button
-              class="path-chip"
-              onclick={(event) => openPath(filePath, event)}
-              title={filePath}
-            >
-              <svg
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M3 2.5h6l4 4V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V3a.5.5 0 0 1 .5-.5z" />
-                <path d="M9 2.5V6.5h4" />
-              </svg>
-              <span>{filePath}</span>
-            </button>
+            <Tooltip text={filePath}>
+              {#snippet trigger(props)}
+                <button {...props} class="path-chip" onclick={(event) => openPath(filePath, event)}>
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M3 2.5h6l4 4V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V3a.5.5 0 0 1 .5-.5z"
+                    />
+                    <path d="M9 2.5V6.5h4" />
+                  </svg>
+                  <span>{filePath}</span>
+                </button>
+              {/snippet}
+            </Tooltip>
           {/if}
 
           {#if name === "read_file"}
@@ -414,13 +417,17 @@
             {#if globResults}
               <div class="result-list">
                 {#each globResults.slice(0, 100) as path, index (`${path}-${index}`)}
-                  <button
-                    class="result-row"
-                    onclick={(event) => openPath(path, event)}
-                    title={path}
-                  >
-                    <span class="result-path">{path}</span>
-                  </button>
+                  <Tooltip text={path}>
+                    {#snippet trigger(props)}
+                      <button
+                        {...props}
+                        class="result-row"
+                        onclick={(event) => openPath(path, event)}
+                      >
+                        <span class="result-path">{path}</span>
+                      </button>
+                    {/snippet}
+                  </Tooltip>
                 {/each}
               </div>
             {:else if result !== undefined}
@@ -434,15 +441,19 @@
             {#if grepResults}
               <div class="grep-list">
                 {#each grepResults.slice(0, 100) as match, index (`${match.file}:${match.line}:${index}`)}
-                  <button
-                    class="grep-row"
-                    onclick={(event) => openPath(match.file, event)}
-                    title={`${match.file}:${match.line}`}
-                  >
-                    <span class="grep-file">{shortPath(match.file)}</span>
-                    <span class="grep-line">{match.line}</span>
-                    <span class="grep-content">{match.content}</span>
-                  </button>
+                  <Tooltip text={`${match.file}:${match.line}`}>
+                    {#snippet trigger(props)}
+                      <button
+                        {...props}
+                        class="grep-row"
+                        onclick={(event) => openPath(match.file, event)}
+                      >
+                        <span class="grep-file">{shortPath(match.file)}</span>
+                        <span class="grep-line">{match.line}</span>
+                        <span class="grep-content">{match.content}</span>
+                      </button>
+                    {/snippet}
+                  </Tooltip>
                 {/each}
               </div>
             {:else if result !== undefined}

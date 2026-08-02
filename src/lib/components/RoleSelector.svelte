@@ -2,6 +2,7 @@
   import { Select } from "bits-ui";
   import { t } from "$lib/i18n";
   import type { AgentRole } from "$lib/types";
+  import Tooltip from "./Tooltip.svelte";
 
   let {
     value,
@@ -49,29 +50,33 @@
   onValueChange={(next) => next && onChange(next)}
   onOpenChange={() => (query = "")}
 >
-  <Select.Trigger
-    class="role-selector-trigger {compact ? 'compact' : ''} {header ? 'header' : ''}"
-    aria-label={$t("selectRole")}
-    title={compact ? `${$t("selectRole")}: ${selected.label}` : undefined}
-  >
-    {#if !header}
-      <svg class="role-selector-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <circle cx="10" cy="6.25" r="2.75" />
-        <path d="M4.75 16c.4-3 2.15-4.7 5.25-4.7s4.85 1.7 5.25 4.7" />
-      </svg>
-    {/if}
-    {#if !compact}
-      <span class="role-selector-copy">
+  <Tooltip text={compact ? `${$t("selectRole")}: ${selected.label}` : ""}>
+    {#snippet trigger(props)}
+      <Select.Trigger
+        {...props}
+        class="role-selector-trigger {compact ? 'compact' : ''} {header ? 'header' : ''}"
+        aria-label={$t("selectRole")}
+      >
         {#if !header}
-          <span class="role-selector-label">{$t("roleConversationLabel")}</span>
+          <svg class="role-selector-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <circle cx="10" cy="6.25" r="2.75" />
+            <path d="M4.75 16c.4-3 2.15-4.7 5.25-4.7s4.85 1.7 5.25 4.7" />
+          </svg>
         {/if}
-        <span class="role-selector-name">{selected.label}</span>
-      </span>
-    {/if}
-    <svg class="role-selector-caret" viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M4 6l4 4 4-4" />
-    </svg>
-  </Select.Trigger>
+        {#if !compact}
+          <span class="role-selector-copy">
+            {#if !header}
+              <span class="role-selector-label">{$t("roleConversationLabel")}</span>
+            {/if}
+            <span class="role-selector-name">{selected.label}</span>
+          </span>
+        {/if}
+        <svg class="role-selector-caret" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4 6l4 4 4-4" />
+        </svg>
+      </Select.Trigger>
+    {/snippet}
+  </Tooltip>
   <Select.Portal>
     <Select.Content
       class="role-selector-content {compact ? 'compact' : ''} {header ? 'header' : ''}"

@@ -2,6 +2,7 @@
   import { fly } from "svelte/transition";
   import { toasts, dismissToast, type Toast } from "$lib/toast";
   import { t } from "$lib/i18n";
+  import Tooltip from "./Tooltip.svelte";
 
   async function runAction(toast: Toast) {
     if (!toast.action) return;
@@ -19,7 +20,11 @@
       <div class="toast-body">
         <div class="toast-title">{toast.title}</div>
         {#if toast.description}
-          <div class="toast-desc" title={toast.description}>{toast.description}</div>
+          <Tooltip text={toast.description}>
+            {#snippet trigger(props)}
+              <div {...props} class="toast-desc">{toast.description}</div>
+            {/snippet}
+          </Tooltip>
         {/if}
       </div>
       <div class="toast-actions">

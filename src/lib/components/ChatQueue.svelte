@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ChatAttachment } from "$lib/types";
   import { t } from "$lib/i18n";
+  import Tooltip from "./Tooltip.svelte";
 
   interface QueueItem {
     text: string;
@@ -34,23 +35,31 @@
       {#each items as item, index (index)}
         <li class="queue-item">
           <span class="queue-index">{index + 1}</span>
-          <span class="queue-summary" title={itemSummary(item)}>{itemSummary(item)}</span>
+          <Tooltip text={itemSummary(item)}>
+            {#snippet trigger(props)}
+              <span {...props} class="queue-summary">{itemSummary(item)}</span>
+            {/snippet}
+          </Tooltip>
           {#if item.attachments.length > 0}
-            <span
-              class="attachment-count"
-              title={item.attachments.map((attachment) => attachment.name).join(", ")}
-              >📎 {item.attachments.length}</span
-            >
+            <Tooltip text={item.attachments.map((attachment) => attachment.name).join(", ")}>
+              {#snippet trigger(props)}
+                <span {...props} class="attachment-count">📎 {item.attachments.length}</span>
+              {/snippet}
+            </Tooltip>
           {/if}
-          <button
-            class="remove-btn"
-            type="button"
-            aria-label={$t("removeQueuedMessage")}
-            title={$t("removeQueuedMessage")}
-            onclick={() => onRemove(index)}
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" /></svg>
-          </button>
+          <Tooltip text={$t("removeQueuedMessage")}>
+            {#snippet trigger(props)}
+              <button
+                {...props}
+                class="remove-btn"
+                type="button"
+                aria-label={$t("removeQueuedMessage")}
+                onclick={() => onRemove(index)}
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" /></svg>
+              </button>
+            {/snippet}
+          </Tooltip>
         </li>
       {/each}
     </ol>

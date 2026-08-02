@@ -5,6 +5,7 @@
   import { t } from "$lib/i18n";
   import { useOpenAgentUiCapabilities } from "$lib/openagent";
   import type { ChatAttachment } from "$lib/types";
+  import Tooltip from "./Tooltip.svelte";
 
   type PreviewPayload = {
     kind: "image" | "text" | "pdf" | "file";
@@ -99,25 +100,28 @@
   class:compact={size === "compact"}
   class:message-capsule={size === "large"}
   class:failed
-  title={attachment.name}
 >
   {#if size === "large"}
-    <button class="capsule-trigger" type="button" onclick={openPreview}>
-      <div class="thumbnail" class:image={preview?.kind === "image"}>
-        {#if preview?.kind === "image" && preview.data_url}
-          <img src={preview.data_url} alt="" />
-        {:else if preview?.kind === "text" && preview.text}
-          <pre aria-hidden="true">{preview.text}</pre>
-        {:else}
-          <span class="file-fold" aria-hidden="true"></span>
-          <strong>{extension}</strong>
-        {/if}
-      </div>
-      <div class="attachment-meta">
-        <span>{attachment.name}</span>
-        <small>{extension}</small>
-      </div>
-    </button>
+    <Tooltip text={attachment.name}>
+      {#snippet trigger(props)}
+        <button {...props} class="capsule-trigger" type="button" onclick={openPreview}>
+          <div class="thumbnail" class:image={preview?.kind === "image"}>
+            {#if preview?.kind === "image" && preview.data_url}
+              <img src={preview.data_url} alt="" />
+            {:else if preview?.kind === "text" && preview.text}
+              <pre aria-hidden="true">{preview.text}</pre>
+            {:else}
+              <span class="file-fold" aria-hidden="true"></span>
+              <strong>{extension}</strong>
+            {/if}
+          </div>
+          <div class="attachment-meta">
+            <span>{attachment.name}</span>
+            <small>{extension}</small>
+          </div>
+        </button>
+      {/snippet}
+    </Tooltip>
   {:else}
     <div class="thumbnail" class:image={preview?.kind === "image"}>
       {#if preview?.kind === "image" && preview.data_url}
@@ -129,26 +133,34 @@
         <strong>{extension}</strong>
       {/if}
     </div>
-    <div class="attachment-meta">
-      <span>{attachment.name}</span>
-      <small>{extension}</small>
-    </div>
+    <Tooltip text={attachment.name}>
+      {#snippet trigger(props)}
+        <div {...props} class="attachment-meta">
+          <span>{attachment.name}</span>
+          <small>{extension}</small>
+        </div>
+      {/snippet}
+    </Tooltip>
   {/if}
   {#if onRemove}
-    <button
-      class="remove-button"
-      type="button"
-      aria-label={`${$t("removeAttachment")}: ${attachment.name}`}
-      title={$t("removeAttachment")}
-      onclick={(event) => {
-        event.stopPropagation();
-        onRemove();
-      }}
-    >
-      <svg viewBox="0 0 14 14" aria-hidden="true">
-        <path d="M3 3 L11 11 M11 3 L3 11" />
-      </svg>
-    </button>
+    <Tooltip text={$t("removeAttachment")}>
+      {#snippet trigger(props)}
+        <button
+          {...props}
+          class="remove-button"
+          type="button"
+          aria-label={`${$t("removeAttachment")}: ${attachment.name}`}
+          onclick={(event) => {
+            event.stopPropagation();
+            onRemove();
+          }}
+        >
+          <svg viewBox="0 0 14 14" aria-hidden="true">
+            <path d="M3 3 L11 11 M11 3 L3 11" />
+          </svg>
+        </button>
+      {/snippet}
+    </Tooltip>
   {/if}
 </article>
 
@@ -159,14 +171,15 @@
       <Dialog.Content class="attachment-dialog">
         <header>
           <Dialog.Title>{attachment.name}</Dialog.Title>
-          <Dialog.Close
-            aria-label={$t("closeAttachmentPreview")}
-            title={$t("closeAttachmentPreview")}
-          >
-            <svg viewBox="0 0 14 14" aria-hidden="true">
-              <path d="M3 3 L11 11 M11 3 L3 11" />
-            </svg>
-          </Dialog.Close>
+          <Tooltip text={$t("closeAttachmentPreview")}>
+            {#snippet trigger(props)}
+              <Dialog.Close {...props} aria-label={$t("closeAttachmentPreview")}>
+                <svg viewBox="0 0 14 14" aria-hidden="true">
+                  <path d="M3 3 L11 11 M11 3 L3 11" />
+                </svg>
+              </Dialog.Close>
+            {/snippet}
+          </Tooltip>
         </header>
         <div class="attachment-dialog-body">
           {#if preview?.kind === "image" && preview.data_url}

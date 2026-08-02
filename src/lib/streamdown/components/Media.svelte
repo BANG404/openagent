@@ -3,6 +3,7 @@
   import { t } from "$lib/i18n";
   import type { Value } from "../parser";
   import { classifyMediaSource, mediaDisplayName } from "../mediaSource";
+  import Tooltip from "$lib/components/Tooltip.svelte";
 
   let {
     args,
@@ -80,21 +81,25 @@
 <figure class:video={kind === "video"} class="agui-media">
   <div class="media-stage" class:loading>
     {#if errorDetail}
-      <div class="media-status media-error" role="status" title={errorDetail}>
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.6"
-          aria-hidden="true"
-        >
-          <path d="M12 8v5m0 3.5v.5" />
-          <path
-            d="M10.4 3.7 2.6 17.2A1.9 1.9 0 0 0 4.3 20h15.4a1.9 1.9 0 0 0 1.7-2.8L13.6 3.7a1.9 1.9 0 0 0-3.2 0Z"
-          />
-        </svg>
-        <span>{$t("aguiMediaUnavailable")}</span>
-      </div>
+      <Tooltip text={errorDetail}>
+        {#snippet trigger(props)}
+          <div {...props} class="media-status media-error" role="status">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              aria-hidden="true"
+            >
+              <path d="M12 8v5m0 3.5v.5" />
+              <path
+                d="M10.4 3.7 2.6 17.2A1.9 1.9 0 0 0 4.3 20h15.4a1.9 1.9 0 0 0 1.7-2.8L13.6 3.7a1.9 1.9 0 0 0-3.2 0Z"
+              />
+            </svg>
+            <span>{$t("aguiMediaUnavailable")}</span>
+          </div>
+        {/snippet}
+      </Tooltip>
     {:else if resolvedSrc}
       {#if kind === "image"}
         <img
