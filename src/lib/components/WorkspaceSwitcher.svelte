@@ -91,6 +91,9 @@
               textValue={$t("recentWorkspaces")}
             >
               <span class="ws-dropdown-name">{$t("recentWorkspaces")}</span>
+              <svg class="ws-submenu-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="m6 4 4 4-4 4" />
+              </svg>
             </DropdownMenu.SubTrigger>
             <DropdownMenu.Portal>
               <DropdownMenu.SubContent
@@ -223,6 +226,21 @@
 
   :global(.ws-recent-trigger[data-state="open"]) {
     background: var(--bg);
+  }
+
+  :global(.ws-submenu-chevron) {
+    width: 12px;
+    height: 12px;
+    margin-left: auto;
+    color: var(--text-muted);
+  }
+
+  :global(.ws-submenu-chevron path) {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   .ws-recent-row {
