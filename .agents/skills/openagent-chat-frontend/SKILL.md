@@ -31,7 +31,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Disable per-record `content-visibility` for every message nested inside a
   double-column turn, including expanded process records. Viewport culling
   inside a fragmented column can repeatedly invalidate the trailing column at
-  the viewport boundary.
+  the viewport boundary. Every multi-column owner must apply this override
+  itself; book mode renders through a dialog portal and cannot inherit the
+  virtual list's descendant rules. Keep pagination recalculation positioning
+  immediate so it cannot compete with the smooth animation reserved for an
+  explicit page turn.
 - Use the backend-preallocated assistant message ID as the live row key.
   Streaming and durable forms must share the same assistant-turn branch and
   keyed stream-item children.
@@ -53,7 +57,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   their native containment or internal scrolling rather than clipping content.
   Recalculate after embedded media loads as well as after resize or expansion.
   Retain the same collapsible process-record grouping instead of flattening or
-  dropping work details.
+  dropping work details. When expanded, change the process content from its
+  ordinary flex stack to a fragmentable block inside the book's multi-column
+  owner, and keep only atomic records from splitting across columns.
 - The application virtualizer owns tail following and above-viewport height
   correction; keep native browser anchoring disabled.
 - After completion, reconcile the optimistic turn with its durable checkpoint

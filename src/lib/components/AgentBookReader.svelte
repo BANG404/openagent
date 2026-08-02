@@ -134,7 +134,7 @@
     pageCount = Math.max(1, Math.ceil(columnCount / columnsPerPage));
     pageStride = columnsPerPage * (columnWidth + columnGap);
     pageIndex = Math.min(pageIndex, pageCount - 1);
-    pageElement.scrollTo({ left: pageIndex * pageStride });
+    pageElement.scrollTo({ left: pageIndex * pageStride, behavior: "auto" });
   }
 
   function movePage(offset: number) {
@@ -377,7 +377,7 @@
     column-count: auto;
     column-fill: auto;
     column-gap: clamp(56px, 7vw, 108px);
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
   }
 
   :global(.agent-book-page .assistant-msg) {
@@ -386,9 +386,37 @@
     letter-spacing: -0.22px;
   }
 
-  :global(.agent-book-page .message-record:not(.assistant-msg)),
+  :global(.agent-book-page .message-record) {
+    content-visibility: visible;
+    contain-intrinsic-size: none;
+  }
+
+  :global(.agent-book-page .message-record:not(.assistant-msg):not(.thinking-block)),
+  .book-record {
+    break-inside: avoid-column;
+  }
+
+  :global(.agent-book-page .thinking-block),
+  :global(.agent-book-page .thinking-block pre),
+  :global(.agent-book-page .process-records) {
+    break-inside: auto;
+  }
+
   :global(.agent-book-page .process-records > summary) {
-    break-inside: avoid;
+    break-inside: avoid-column;
+    break-after: avoid-column;
+  }
+
+  :global(.agent-book-page .process-record-content) {
+    display: block;
+  }
+
+  :global(
+    .agent-book-page
+      .process-record-content
+      > .message-record:not(.assistant-msg):not(.thinking-block)
+  ) {
+    margin-bottom: 4px;
   }
 
   :global(.agent-book-page [data-streamdown-table]) {
