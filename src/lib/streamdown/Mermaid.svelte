@@ -257,6 +257,12 @@
       {@attach insider.attach}
       data-expanded="false"
     >
+      <div
+        class="mermaid-window-drag-region"
+        data-tauri-drag-region
+        data-panzoom-ignore
+        aria-hidden="true"
+      ></div>
       {#if streamdown.controls.mermaid}
         <div class={`${streamdown.theme.mermaid.buttons} mermaid-controls`}>
           <button
@@ -359,6 +365,21 @@
     height: auto;
     z-index: 2147483647;
     margin: 0;
+  }
+
+  .mermaid-window-drag-region {
+    display: none;
+  }
+
+  :global([data-streamdown-mermaid][data-expanded="true"]) .mermaid-window-drag-region,
+  :global([data-streamdown-mermaid] > [data-expanded="true"]) .mermaid-window-drag-region {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    right: 252px;
+    left: 0;
+    display: block;
+    height: 44px;
   }
 
   :global(div[id^="dmermaid-"]) {

@@ -191,6 +191,7 @@
     <Dialog.Overlay class="agent-book-overlay" />
     <Dialog.Content class="agent-book-dialog" onkeydown={handleKeydown}>
       <header class="agent-book-toolbar" data-tauri-drag-region>
+        <div class="agent-book-drag-region" data-tauri-drag-region aria-hidden="true"></div>
         <div class="agent-book-heading">
           <Dialog.Title>{$t("bookMode")}</Dialog.Title>
           <Dialog.Description>
@@ -298,6 +299,12 @@
     gap: 10px;
   }
 
+  .agent-book-drag-region {
+    position: absolute;
+    z-index: 1;
+    inset: 0 42px 0 0;
+  }
+
   .agent-book-heading :global([data-dialog-title]) {
     font-size: 14px;
     font-weight: 600;
@@ -309,6 +316,8 @@
   }
 
   .agent-book-controls {
+    position: relative;
+    z-index: 2;
     display: flex;
     flex: none;
     align-items: center;
