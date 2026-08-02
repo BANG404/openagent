@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { onMount, tick, type Snippet } from "svelte";
+  import { flushSync, onMount, tick, type Snippet } from "svelte";
   import { isAssistantTurnEntry, type MessageRenderEntry } from "$lib/toolCallGroups";
+  import { anchoredScrollTop, selectVirtualScrollAnchor } from "$lib/virtualScrollAnchor";
 
   interface Props {
     items: MessageRenderEntry[];
@@ -33,10 +34,12 @@
   let viewportHeight = $state(0);
   let measurementRevision = $state(0);
   let pinnedIndex = $state<number | null>(null);
+  let measurementAnchorKey = $state<string | null>(null);
   let navigationRunId = 0;
   let tailAnchorRunId = 0;
-  let suppressScrollAnchoring = false;
+  let measurementFrame: number | null = null;
   const measuredSizes = new Map<string, number>();
+  const pendingSizes = new Map<string, number>();
   const observers = new Map<string, ResizeObserver>();
   const renderedNodes = new Map<string, HTMLElement>();
   let columnCount = $derived(responsiveColumns && rootWidth >= doubleColumnMinWidth ? 2 : 1);
@@ -82,15 +85,21 @@
       item,
       index: visibleRange.start + offset,
     }));
-    if (
-      pinnedIndex !== null &&
-      pinnedIndex >= 0 &&
-      pinnedIndex < items.length &&
-      (pinnedIndex < visibleRange.start || pinnedIndex >= visibleRange.end)
-    ) {
-      visible.push({ item: items[pinnedIndex], index: pinnedIndex });
-      visible.sort((left, right) => left.index - right.index);
+    const extraIndexes = new Set<number>();
+    if (pinnedIndex !== null) extraIndexes.add(pinnedIndex);
+    if (measurementAnchorKey !== null) {
+      extraIndexes.add(items.findIndex((item) => item.key === measurementAnchorKey));
     }
+    for (const index of extraIndexes) {
+      if (
+        index >= 0 &&
+        index < items.length &&
+        (index < visibleRange.start || index >= visibleRange.end)
+      ) {
+        visible.push({ item: items[index], index });
+      }
+    }
+    visible.sort((left, right) => left.index - right.index);
     return visible;
   });
 
@@ -141,21 +150,57 @@
     }
   });
 
+  function captureViewportAnchor() {
+    const scroller = scrollElement;
+    if (!scroller) return null;
+    const viewportTop = scroller.getBoundingClientRect().top;
+    const candidates = [...renderedNodes].map(([key, node]) => {
+      const rect = node.getBoundingClientRect();
+      return { key, top: rect.top, bottom: rect.bottom };
+    });
+    const key = selectVirtualScrollAnchor(candidates, viewportTop);
+    const node = key ? renderedNodes.get(key) : null;
+    if (!node) return null;
+    return { key, node, top: node.getBoundingClientRect().top };
+  }
+
+  function commitMeasurements() {
+    measurementFrame = null;
+    const updates = [...pendingSizes].filter(
+      ([key, nextSize]) => measuredSizes.get(key) !== nextSize,
+    );
+    pendingSizes.clear();
+    if (updates.length === 0) return;
+
+    const scroller = scrollElement;
+    const anchor = captureViewportAnchor();
+    flushSync(() => {
+      measurementAnchorKey = anchor?.key ?? null;
+      for (const [key, nextSize] of updates) measuredSizes.set(key, nextSize);
+      measurementRevision += 1;
+    });
+
+    if (scroller && anchor?.node.isConnected) {
+      scroller.scrollTop = anchoredScrollTop(
+        scroller.scrollTop,
+        anchor.top,
+        anchor.node.getBoundingClientRect().top,
+      );
+      syncViewport();
+    }
+    flushSync(() => {
+      measurementAnchorKey = null;
+    });
+  }
+
+  function queueMeasurement(key: string, nextSize: number) {
+    pendingSizes.set(key, nextSize);
+    if (measurementFrame === null) measurementFrame = requestAnimationFrame(commitMeasurements);
+  }
+
   function measure(node: HTMLElement, item: MessageRenderEntry) {
     const update = () => {
-      const nextSize = Math.ceil(node.getBoundingClientRect().height) + ITEM_GAP;
-      const previousSize = measuredSizes.get(item.key) ?? estimateSize(item);
-      if (nextSize === measuredSizes.get(item.key)) return;
-
-      const itemIndex = items.findIndex((candidate) => candidate.key === item.key);
-      const rootTop = root?.offsetTop ?? 0;
-      const itemTop = itemIndex >= 0 ? layout.starts[itemIndex] : 0;
-      const isAboveViewport = itemTop + previousSize + rootTop <= (scrollElement?.scrollTop ?? 0);
-      measuredSizes.set(item.key, nextSize);
-      measurementRevision += 1;
-      if (isAboveViewport && scrollElement && !suppressScrollAnchoring) {
-        scrollElement.scrollTop += nextSize - previousSize;
-      }
+      queueMeasurement(item.key, Math.ceil(node.getBoundingClientRect().height) + ITEM_GAP);
     };
 
     const observer = new ResizeObserver(update);
@@ -216,12 +261,12 @@
     const runId = ++navigationRunId;
     const itemKey = items[index].key;
     pinnedIndex = index;
-    suppressScrollAnchoring = true;
     try {
       // Pin the target into the rendered set before changing the viewport.
       // This mounts only the destination row, not every virtual slice between
       // the current position and it.
-      for (let attempt = 0; attempt < 3; attempt += 1) {
+      let stableFrames = 0;
+      for (let attempt = 0; attempt < 8 && stableFrames < 2; attempt += 1) {
         await tick();
         await nextFrame();
         if (runId !== navigationRunId || !scrollElement) return;
@@ -231,14 +276,17 @@
         const targetRect = targetNode.getBoundingClientRect();
         const scrollerRect = scrollElement.getBoundingClientRect();
         const correction = targetRect.top - scrollerRect.top - 72;
-        if (Math.abs(correction) < 1) break;
+        if (Math.abs(correction) < 1) {
+          stableFrames += 1;
+          continue;
+        }
+        stableFrames = 0;
         scrollElement.scrollTop = Math.max(0, scrollElement.scrollTop + correction);
         syncViewport();
       }
     } finally {
       if (runId === navigationRunId) {
         pinnedIndex = null;
-        suppressScrollAnchoring = false;
       }
     }
   }
@@ -246,6 +294,10 @@
   onMount(() => () => {
     navigationRunId += 1;
     tailAnchorRunId += 1;
+    if (measurementFrame !== null) cancelAnimationFrame(measurementFrame);
+    measurementFrame = null;
+    measurementAnchorKey = null;
+    pendingSizes.clear();
     for (const observer of observers.values()) observer.disconnect();
     observers.clear();
     renderedNodes.clear();

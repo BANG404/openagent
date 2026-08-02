@@ -71,8 +71,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   dropping work details. When expanded, change the process content from its
   ordinary flex stack to a fragmentable block inside the book's multi-column
   owner, and keep only atomic records from splitting across columns.
-- The application virtualizer owns tail following and above-viewport height
-  correction; keep native browser anchoring disabled.
+- The application virtualizer owns tail following and height correction; keep
+  native browser anchoring disabled. Batch dynamic row measurements per frame
+  and preserve the first rendered row crossing the viewport start by its real
+  DOM coordinate, so resolving estimates cannot move the reader. Keep an index
+  destination mounted until its real row position remains aligned across
+  consecutive layout frames.
 - After completion, reconcile the optimistic turn with its durable checkpoint
   in the background. Do not show the conversation-loading skeleton, remount an
   unchanged transcript, overwrite backend history, or remove optimistic
