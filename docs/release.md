@@ -216,6 +216,15 @@ the public run. The public repository stores the reporter App ID in
 `OPENAGENT_CI_REPORTER_PRIVATE_KEY`; the App installation is limited to the
 private SDK repository.
 
+The private dispatcher also sends capability booleans derived from its own
+base-to-head path delta. Rust formatting, lint, tests, Linux/macOS sandbox
+checks, TypeScript SDK checks, the Linux/Windows Harness matrix, and public-host
+compatibility are independent jobs. GitHub's failed-job rerun therefore repeats
+only failed capabilities and the aggregate status. Dependency caches may hold
+Cargo registry/git data and Bun's public package downloads, but every Rust cache
+must set `cache-targets: false`; private target or compiler outputs remain
+forbidden in public caches.
+
 ## Local Commands
 
 Release automation changes must pass both `bun run lint:frontend` and
