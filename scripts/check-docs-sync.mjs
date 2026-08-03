@@ -9,8 +9,8 @@ const AGENT_DOCUMENTATION = [
   /^README(?:\.[^/]+)?\.md$/,
   /^CHANGELOG\.md$/,
   /^docs\/.+\.md$/,
-  /^\.agents\/skills\/[^/]+\/SKILL\.md$/,
-  /^static\/skills\/[^/]+\/SKILL\.md$/,
+  /^\.agents\/skills\/[^/]+\/.+\.md$/,
+  /^static\/skills\/[^/]+\/.+\.md$/,
 ];
 
 const LOGIC_FILES = [
@@ -33,7 +33,7 @@ const CHAT_FRONTEND_FILES = [
   /^src\/lib\/streamdown\//,
 ];
 
-const CHAT_SKILL = ".agents/skills/openagent-chat-frontend/SKILL.md";
+const CHAT_SKILL_DOCUMENTATION = /^\.agents\/skills\/openagent-chat-frontend\/.+\.md$/;
 
 /**
  * @param {string[]} files
@@ -73,9 +73,9 @@ export function documentationSyncErrors(files) {
   }
 
   const chatLogic = logic.filter((file) => matchesAny(file, CHAT_FRONTEND_FILES));
-  if (chatLogic.length > 0 && !changed.includes(CHAT_SKILL)) {
+  if (chatLogic.length > 0 && !changed.some((file) => CHAT_SKILL_DOCUMENTATION.test(file))) {
     errors.push(
-      `Chat frontend logic changed without ${CHAT_SKILL}. Update the skill's current invariant in the same change.`,
+      "Chat frontend logic changed without Markdown under .agents/skills/openagent-chat-frontend/. Update the skill's current invariant in the same change.",
     );
   }
 

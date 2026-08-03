@@ -17,7 +17,7 @@ describe("agent-facing documentation synchronization", () => {
     const errors = documentationSyncErrors(["src/lib/chatStream.ts", "docs/design.md"]);
 
     expect(errors).toEqual([
-      "Chat frontend logic changed without .agents/skills/openagent-chat-frontend/SKILL.md. Update the skill's current invariant in the same change.",
+      "Chat frontend logic changed without Markdown under .agents/skills/openagent-chat-frontend/. Update the skill's current invariant in the same change.",
     ]);
   });
 
@@ -26,6 +26,13 @@ describe("agent-facing documentation synchronization", () => {
       documentationSyncErrors([
         "src/lib/components/MessageList.svelte",
         ".agents/skills/openagent-chat-frontend/SKILL.md",
+      ]),
+    ).toEqual([]);
+
+    expect(
+      documentationSyncErrors([
+        "src/lib/chatStream.ts",
+        ".agents/skills/openagent-chat-frontend/references/streaming.md",
       ]),
     ).toEqual([]);
   });
