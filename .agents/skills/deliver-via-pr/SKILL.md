@@ -42,12 +42,17 @@ retain the task worktree until the merge is confirmed.
 - Keep public behavior and architecture in `docs/`; keep repeatable procedures
   and fragile agent-facing invariants in the triggering skill. Do not duplicate
   the same rule across both surfaces.
-- Do not run local lint, test, check, build, or documentation-sync commands that
-  duplicate CI. Run only implementation-time interactive checks, explicitly
-  requested checks, and artifact validators mandated by another selected skill.
-- Before committing, inspect `git status`, the complete diff, and
-  `git diff --check`.
-- Stage explicit paths only. Create focused Conventional Commits using the
+- Do not manually run local lint, test, check, build, or documentation-sync
+  commands that duplicate CI. Run only implementation-time interactive checks,
+  explicitly requested checks, and artifact validators mandated by another
+  selected skill.
+- Before committing, inspect `git status` and the complete diff, then stage
+  explicit paths only and run `bun run preflight`. Staging first lets the Git
+  whitespace guard inspect new file contents. The preflight owns the diff and
+  documentation guardrails and selects fast module checks through the same
+  classifier as PR CI. Use `--base <ref>` only when the PR does not target
+  `master`.
+- Inspect the staged diff and create focused Conventional Commits using the
   repository's allowed types.
 
 ## 4. Push and open the PR
@@ -55,8 +60,9 @@ retain the task worktree until the merge is confirmed.
 - Push the task branch with upstream tracking.
 - Open a ready PR against `master`; do not use a draft because CI and merge are
   part of the requested delivery.
-- Describe user-visible behavior, affected boundaries, documentation, and the
-  fact that local test suites were intentionally deferred to PR CI.
+- Describe user-visible behavior, affected boundaries, documentation, the local
+  preflight result, and the exhaustive or platform-specific checks deferred to
+  PR CI.
 - Never include unrelated commits or files. If the base moved and strict CI
   requires an update, update the branch without rewriting user-owned history.
 
