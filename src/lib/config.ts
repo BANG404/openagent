@@ -33,7 +33,10 @@ export function defaultPermissionProfile(): PermissionProfile {
   return {
     enforcement: "managed",
     file_system: {
-      entries: [{ path: { kind: "workspace" }, access: "write" }],
+      entries: [
+        { path: { kind: "host_root" }, access: "read" },
+        { path: { kind: "workspace" }, access: "write" },
+      ],
     },
     network: "enabled",
   };

@@ -62,14 +62,17 @@ Tool approval controls whether an individual call pauses for review;
 `permission_profile` independently controls the capabilities available after a
 call is allowed. Approval never widens the active permission profile.
 
-The default `managed` profile grants `write` access to the active workspace;
-write access includes reading. Managed profiles may contain multiple
+The default `managed` profile grants `read` access to the host filesystem and
+`write` access to the active workspace; write access includes reading. Broad
+writable roots keep `.git`, `.agents`, and `.codex` read-only unless a narrower
+explicit write entry reopens a subtree. Managed profiles may contain multiple
 filesystem entries using `read`, `write`, or `deny`. The most specific matching
 path wins, and `deny` wins when equally specific entries conflict. A path with
-no matching entry is rejected. Workspace entries may name a relative subpath;
-absolute entries name an additional host path. Existing targets and the nearest
-existing ancestor of new targets are canonicalized before matching, so `..`
-and existing symbolic-link ancestors cannot escape a managed root.
+no matching entry is rejected. `host_root` names the volume or filesystem root
+containing the workspace, workspace entries may name a relative subpath, and
+absolute entries name an additional host path. Existing targets and the
+nearest existing ancestor of new targets are canonicalized before matching, so
+`..` and existing symbolic-link ancestors cannot escape a managed root.
 
 An `external` profile delegates confinement to the embedding host, while
 `disabled` explicitly selects ambient host filesystem access. These are
@@ -83,10 +86,12 @@ and its resolved executable and ancestor directories must be root-owned and not
 group- or world-writable. macOS uses the fixed system `sandbox-exec` executable
 and a deny-by-default Seatbelt policy. A managed terminal launch fails before
 spawning when the selected backend or its trusted executable cannot enforce the
-requested filesystem or restricted-network capability. Windows does not yet
-register a native process backend, so terminal processes there retain the
-legacy ambient launch behavior and a restricted network setting is not an OS
-boundary.
+requested filesystem or restricted-network capability. Windows uses the Codex
+restricted-token wrapper with capability SIDs, ACL overlays, inherited standard
+I/O, and a kill-on-close Job Object. Its non-elevated backend enforces the
+filesystem policy but does not claim restricted-network support; an explicitly
+restricted network profile therefore fails before spawn until the elevated WFP
+setup lifecycle is packaged.
 
 Built-in read, list, search, create, and edit tools do not depend on the
 terminal backend. They run in process and route every model-facing path through

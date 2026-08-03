@@ -20,13 +20,16 @@ describe("diagnostic log collection config", () => {
 });
 
 describe("permission profile config", () => {
-  test("defaults older payloads to managed workspace write access", () => {
+  test("defaults older payloads to host read and workspace write access", () => {
     const normalized = normalizeConfigShape({} as AppConfig);
 
     expect(normalized.permission_profile).toEqual({
       enforcement: "managed",
       file_system: {
-        entries: [{ path: { kind: "workspace" }, access: "write" }],
+        entries: [
+          { path: { kind: "host_root" }, access: "read" },
+          { path: { kind: "workspace" }, access: "write" },
+        ],
       },
       network: "enabled",
     });

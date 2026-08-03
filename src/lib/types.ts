@@ -456,7 +456,9 @@ export type FileSystemAccess = "read" | "write" | "deny";
 export type NetworkAccess = "restricted" | "enabled";
 
 export type FileSystemPermissionPath =
-  { kind: "workspace"; subpath?: string } | { kind: "absolute"; path: string };
+  | { kind: "host_root" }
+  | { kind: "workspace"; subpath?: string }
+  | { kind: "absolute"; path: string };
 
 export interface FileSystemPermissionEntry {
   path: FileSystemPermissionPath;
