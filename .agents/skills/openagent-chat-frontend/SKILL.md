@@ -315,6 +315,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   reload it through the local settings command. Settings autosave must retain
   the exact base snapshot, merge independent external changes, reject
   overlapping changes, and rebase edits made while a save is in flight.
+- Keep additive configuration fields in `src/lib/types.ts` optional at the
+  transport boundary so an older bootstrap or fallback snapshot remains
+  readable. Materialize their canonical defaults only in
+  `normalizeConfigShape`; page shells and settings components must not copy
+  those defaults into independent fallback objects.
 - `chat-response-started` means the stream connected, not that content arrived.
   Clear transient waiting state on the first text/thinking chunk and every
   terminal path.

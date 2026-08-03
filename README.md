@@ -185,14 +185,14 @@ Open **Settings → Web Search** and configure the provider you want to use. The
 
 ### Choose a tool approval mode
 
-Open **Settings → General → Approval Mode** to control how agent tool calls run. When a call needs your approval, OpenAgent pauses the conversation, shows the exact tool name and arguments, and resumes after you approve or deny it.
+Open **Settings → General → Approval Mode** to control when agent tool calls pause for review. Approval and runtime permissions are independent: approving a call never expands its filesystem or network capabilities. The default managed permission profile grants read/write access within the active workspace and declares network access enabled; restricted network profiles require a native process-sandbox backend to enforce them.
 
 | Mode | Behavior |
 | --- | --- |
 | **Manual** | Ask you to approve every tool call. |
 | **Automatic** | A Flash task assesses the impact; important or uncertain calls still come to you for review. |
 | **Off** | Run all tool calls without the approval flow. |
-| **Sandbox** (default) | Apply the workspace policy only to file-management and terminal tools: workspace-local work proceeds, while attempts to escape the workspace are denied. Approving a paused file-tool call permits that exact call to run but does not grant access outside the workspace. Other built-in and MCP tools keep their normal behavior. |
+| **Sandbox** (default) | Use model-assisted approval for file-management and terminal tools while the independent permission profile remains authoritative. Other built-in and MCP tools skip this approval flow. |
 
 ---
 
