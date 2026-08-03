@@ -139,6 +139,11 @@ The runtime SDK is a private submodule. Source builds require access to
 checkout, initialize it with `git submodule update --init --recursive` before
 installing or building.
 
+The desktop Cargo workspace also pins the proxy-capable WebSocket forks
+required by the audited Codex Windows sandbox revision used by the SDK. Keep
+those root-level patches aligned when advancing the SDK gitlink; Cargo does not
+inherit patches from a transitive workspace.
+
 ### Run in dev mode
 
 ```bash
