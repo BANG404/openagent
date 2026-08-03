@@ -198,7 +198,19 @@ promotes those artifacts without rebuilding them.
   the existing Beta snapshot as an entirely new repository.
 - Documentation-only changes skip expensive modules.
 
-The always-present `CI / Required` job is the single branch-protection status.
+The always-present `CI / Required` job remains the authoritative aggregate for
+each CI run. GitHub attaches a `pull_request` workflow to a generated merge SHA,
+which is replaced whenever an active `master` advances. A trusted
+`workflow_run` reporter therefore copies only the latest completed PR CI
+conclusion to `Required PR Head` on the immutable PR head SHA. Superseded runs
+cannot overwrite a newer conclusion. The branch ruleset requires this stable
+head status with strict up-to-date checking disabled, so unrelated merges do
+not erase a completed PR's validation and force the entire matrix to repeat.
+
+The repository is owned by a personal account, for which GitHub does not offer
+native merge queues. If ownership moves to an organization, prefer a native
+merge queue and keep the existing `merge_group` CI trigger so the queued merge
+commit is tested against the latest target branch.
 
 Private SDK changes use the public `sdk-ci.yml` workflow so their Rust,
 Harness, host-compatibility, and native process-sandbox jobs run on public
