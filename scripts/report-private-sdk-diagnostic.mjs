@@ -35,7 +35,7 @@ export async function collectPrivateDiagnostic(
   try {
     name = (await readFile(resolve(directory, PRIVATE_DIAGNOSTIC_POINTER), "utf8")).trim();
   } catch (error) {
-    if (error && typeof error === "object" && error.code === "ENOENT") {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
       return { diagnostic: "", truncated: false };
     }
     throw error;
