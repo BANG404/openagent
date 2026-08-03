@@ -72,9 +72,11 @@ An `external` profile delegates confinement to the embedding host, while
 `disabled` explicitly selects ambient host filesystem access. These are
 different security contracts and are not inferred from the approval mode. The
 profile also records whether network access is `enabled` or `restricted`; the
-native terminal process-sandbox layer owns enforcement of that field. The
-current product default remains `enabled`, and a restricted value is
-declarative until such a backend consumes it.
+runtime SDK now provides one shared process-sandbox contract for foreground,
+background, resumed-approval, and delegated terminal launches. The desktop
+product does not yet register a native platform backend, so its current default
+remains `enabled` and a `restricted` value remains declarative. Built-in file
+tools continue to enforce the managed filesystem policy independently.
 
 ## Software error collection
 

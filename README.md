@@ -185,7 +185,7 @@ Open **Settings → Web Search** and configure the provider you want to use. The
 
 ### Choose a tool approval mode
 
-Open **Settings → General → Approval Mode** to control when agent tool calls pause for review. Approval and runtime permissions are independent: approving a call never expands its filesystem or network capabilities. The default managed permission profile grants read/write access within the active workspace and declares network access enabled; restricted network profiles require a native process-sandbox backend to enforce them.
+Open **Settings → General → Approval Mode** to control when agent tool calls pause for review. Approval and runtime permissions are independent: approving a call never expands its filesystem or network capabilities. The default managed permission profile grants read/write access within the active workspace and declares network access enabled. The SDK has a shared process-sandbox integration point, but the desktop product does not yet register a native backend, so restricted network profiles remain declarative there.
 
 | Mode | Behavior |
 | --- | --- |
