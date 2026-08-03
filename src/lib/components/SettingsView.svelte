@@ -12,7 +12,7 @@
   } from "$lib/quickChatShortcut";
   import { normalizeConfigShape } from "$lib/config";
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
-  import { checkForAppUpdate } from "$lib/appUpdater";
+  import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
   import {
     PROVIDER_CATALOG,
     providerCatalogEntry,
@@ -2941,9 +2941,11 @@
           <a class="about-contact" href="mailto:iumm@ibat.ac.cn">iumm@ibat.ac.cn</a>
           <button
             class="btn-secondary btn-sm about-update-button"
+            disabled={$appUpdateState !== "idle"}
+            aria-busy={$appUpdateState === "checking"}
             onclick={() => checkForAppUpdate(true)}
           >
-            {$t("checkForUpdates")}
+            {$appUpdateState === "checking" ? $t("checkingForUpdates") : $t("checkForUpdates")}
           </button>
         </div>
       </div>
@@ -4315,6 +4317,11 @@
 
   .about-update-button {
     margin-top: 8px;
+  }
+
+  .about-update-button:disabled {
+    cursor: wait;
+    opacity: 0.6;
   }
 
   .about-logo-img {

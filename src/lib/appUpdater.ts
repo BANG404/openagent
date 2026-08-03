@@ -1,9 +1,18 @@
 import { invoke } from "$lib/openagent/tauriClient";
 import { check, type DownloadEvent, type Update } from "@tauri-apps/plugin-updater";
+import { get, readonly, writable } from "svelte/store";
+import { t, type TranslationKeys } from "$lib/i18n";
+import { AppUpdateTimeoutError, withAppUpdateTimeout } from "$lib/appUpdateTimeout";
 import { dismissToast, showToast, updateToast } from "$lib/toast";
 
-let checking = false;
-let installing = false;
+export type AppUpdateState = "idle" | "checking" | "installing";
+
+const mutableAppUpdateState = writable<AppUpdateState>("idle");
+export const appUpdateState = readonly(mutableAppUpdateState);
+
+function translate(key: TranslationKeys): string {
+  return get(t)(key);
+}
 
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -15,21 +24,21 @@ function updateProgressMessage(
   totalBytes?: number,
 ): string {
   if (event.event === "Started") {
-    return "正在下载更新包...";
+    return translate("updateDownloading");
   }
   if (event.event === "Finished") {
-    return "正在安装更新...";
+    return translate("updateInstalling");
   }
   if (totalBytes && totalBytes > 0) {
     const percent = Math.min(100, Math.round((downloadedBytes / totalBytes) * 100));
-    return `已下载 ${percent}%`;
+    return `${translate("updateDownloaded")} ${percent}%`;
   }
-  return "正在下载更新包...";
+  return translate("updateDownloading");
 }
 
 async function installUpdate(update: Update): Promise<void> {
-  if (installing) return;
-  installing = true;
+  if (get(mutableAppUpdateState) !== "idle") return;
+  mutableAppUpdateState.set("installing");
 
   let downloadedBytes = 0;
   let totalBytes: number | undefined;
@@ -38,8 +47,8 @@ async function installUpdate(update: Update): Promise<void> {
 
   try {
     progressToastId = showToast({
-      title: "正在更新 OpenAgent",
-      description: "正在下载更新包...",
+      title: translate("updateInProgress"),
+      description: translate("updateDownloading"),
       durationMs: 0,
     });
 
@@ -56,21 +65,21 @@ async function installUpdate(update: Update): Promise<void> {
         lastProgressBucket = bucket;
         if (progressToastId === null) return;
         updateToast(progressToastId, {
-          title: "正在更新 OpenAgent",
+          title: translate("updateInProgress"),
           description: updateProgressMessage(event, downloadedBytes, totalBytes),
         });
       }
     });
 
     showToast({
-      title: "更新已安装",
-      description: "OpenAgent 将重启以完成更新。",
+      title: translate("updateInstalled"),
+      description: translate("updateRestarting"),
       durationMs: 3000,
     });
     await invoke("restart_app");
   } catch (error) {
     showToast({
-      title: "更新失败",
+      title: translate("updateFailed"),
       description: describeError(error),
       variant: "error",
       durationMs: 8000,
@@ -79,21 +88,21 @@ async function installUpdate(update: Update): Promise<void> {
     if (progressToastId !== null) {
       dismissToast(progressToastId);
     }
-    installing = false;
+    mutableAppUpdateState.set("idle");
   }
 }
 
 export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<void> {
-  if (checking || installing) return;
-  checking = true;
+  if (get(mutableAppUpdateState) !== "idle") return;
+  mutableAppUpdateState.set("checking");
 
   try {
-    const update = await check();
+    const update = await withAppUpdateTimeout(check());
     if (!update) {
       if (notifyWhenUpToDate) {
         showToast({
-          title: "已是最新版本",
-          description: "OpenAgent 当前已是最新版本。",
+          title: translate("updateCurrent"),
+          description: translate("updateCurrentDescription"),
           durationMs: 3000,
         });
       }
@@ -101,11 +110,11 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
     }
 
     showToast({
-      title: `发现新版本 ${update.version}`,
-      description: update.body || "可在应用内下载并安装更新。",
+      title: `${translate("updateAvailable")} ${update.version}`,
+      description: update.body || translate("updateAvailableDescription"),
       durationMs: 0,
       action: {
-        label: "更新并重启",
+        label: translate("updateAndRestart"),
         onClick: () => installUpdate(update),
       },
     });
@@ -113,13 +122,16 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
     console.warn("[openagent] Update check failed", error);
     if (notifyWhenUpToDate) {
       showToast({
-        title: "检查更新失败",
-        description: describeError(error),
+        title: translate("updateCheckFailed"),
+        description:
+          error instanceof AppUpdateTimeoutError
+            ? translate("updateCheckTimedOut")
+            : describeError(error),
         variant: "error",
         durationMs: 8000,
       });
     }
   } finally {
-    checking = false;
+    mutableAppUpdateState.set("idle");
   }
 }

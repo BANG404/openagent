@@ -106,7 +106,7 @@ to a deliberate tracked location.
 
 | Scope | Location |
 | --- | --- |
-| Config and SQLite | `OPENAGENT_HOME`, normally `~/.openagent/` on Linux or the platform user configuration directory |
+| Config and SQLite | `OPENAGENT_HOME`, defaulting to `~/.openagent/` on every platform |
 | Global memory | `<OPENAGENT_HOME>/memory.md` |
 | Global skills | `~/.agents/skills/<name>/SKILL.md` |
 | Workspace state and skills | `<workspace>/.agents/` |
