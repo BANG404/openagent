@@ -45,9 +45,15 @@ that duplicate CI. Before committing, inspect the complete diff and run
 interactive checks needed to implement a change, and checks explicitly
 requested by the user are not duplicate delivery tests.
 
-The `Required` pull-request check runs the selected frontend, automation, and
-native jobs plus `check:docs`. Fix failures on the same task branch and let CI
-rerun; do not merge a red or pending `Required` check.
+The `Required` pull-request check runs `check:docs` and aggregates every check
+selected from the base-to-head file diff. Frontend and automation are top-level
+modules; native verification is selected independently for Rust quality,
+Windows/macOS compilation, bundled embedding behavior, and the Harness
+contract. Changes to the CI router or result verifier force every capability,
+as do dependency or private SDK changes for all of their consumers. Keep the
+path classifier, its tests, reusable-workflow inputs, and both aggregate checks
+aligned whenever a module boundary changes. Fix failures on the same task
+branch and let CI rerun; do not merge a red or pending `Required` check.
 
 ## Browser-backed frontend workflow
 
