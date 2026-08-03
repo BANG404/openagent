@@ -191,6 +191,7 @@
   const isReasoningEffortPreview = devQuery?.has("reasoning-effort-preview") === true;
   const isWorkspaceSwitcherPreview = devQuery?.has("workspace-switcher-preview") === true;
   const isCommandPalettePreview = devQuery?.has("command-palette-preview") === true;
+  const isPauseControlPreview = devQuery?.has("pause-control-preview") === true;
   const isBookModePreview = devQuery?.has("book-mode-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
@@ -232,6 +233,18 @@
     devQuery?.get("command-palette-preview-locale") === "en"
       ? "en"
       : devQuery?.get("command-palette-preview-locale") === "zh"
+        ? "zh"
+        : null;
+  const pauseControlPreviewTheme =
+    devQuery?.get("pause-control-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("pause-control-preview-theme") === "light"
+        ? "light"
+        : null;
+  const pauseControlPreviewLocale: Locale | null =
+    devQuery?.get("pause-control-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("pause-control-preview-locale") === "zh"
         ? "zh"
         : null;
   const bookModePreviewTheme =
@@ -381,6 +394,7 @@
   );
   // Per-conversation streaming state — keyed by conv_id
   let streamingConvIds = $state<Record<string, boolean>>({});
+  let streamPausedConvIds = $state<Record<string, boolean>>({});
   let convStreamItems = $state<Record<string, StreamItem[]>>({});
   let streamAssistantMsgIds = $state<Record<string, string>>({});
   let streamStartedAt = $state<Record<string, number>>({});
@@ -560,6 +574,9 @@
   let inputAttachments = $state<ChatAttachment[]>([]);
   let commandPalettePreviewValue = $state("");
   let commandPalettePreviewAttachments = $state<ChatAttachment[]>([]);
+  let pauseControlPreviewValue = $state("");
+  let pauseControlPreviewAttachments = $state<ChatAttachment[]>([]);
+  let pauseControlPreviewPaused = $state(false);
   let selectedModel = $state("");
   let reasoningEffortPreviewValue = $state<ReasoningEffort>("high");
   let quickChatModel = $state("");
@@ -695,6 +712,7 @@
       isBookModePreview ||
       isWorkspaceSwitcherPreview ||
       isCommandPalettePreview ||
+      isPauseControlPreview ||
       isReasoningEffortPreview ||
       initialLoading ||
       workspaceLoading ||
@@ -810,6 +828,7 @@
 
   // Streaming state for the currently visible conversation
   let isCurrentStreaming = $derived(activeConvId ? !!streamingConvIds[activeConvId] : false);
+  let isCurrentStreamPaused = $derived(activeConvId ? !!streamPausedConvIds[activeConvId] : false);
   let currentStreamItems = $derived(activeConvId ? (convStreamItems[activeConvId] ?? []) : []);
   let currentStreamMessageId = $derived(
     activeConvId ? (streamAssistantMsgIds[activeConvId] ?? null) : null,
@@ -2752,6 +2771,7 @@
   function cleanupStreamState(conv_id: string) {
     const { [conv_id]: _items, ...restItems } = convStreamItems;
     const { [conv_id]: _streaming, ...restStreaming } = streamingConvIds;
+    const { [conv_id]: _paused, ...restPaused } = streamPausedConvIds;
     const { [conv_id]: _asstId, ...restAsstIds } = streamAssistantMsgIds;
     const { [conv_id]: _startedAt, ...restStartedAt } = streamStartedAt;
     const { [conv_id]: _firstTokenAt, ...restFirstTokenAt } = streamFirstTokenAt;
@@ -2760,6 +2780,7 @@
     const { [conv_id]: _memorySkippable, ...restMemorySkippable } = memoryRetrievalSkippableConvIds;
     convStreamItems = restItems;
     streamingConvIds = restStreaming;
+    streamPausedConvIds = restPaused;
     streamAssistantMsgIds = restAsstIds;
     streamStartedAt = restStartedAt;
     streamFirstTokenAt = restFirstTokenAt;
@@ -2928,6 +2949,7 @@
       config = normalizeConfigShape(fallbackConfig);
       applyTheme(
         bookModePreviewTheme ??
+          pauseControlPreviewTheme ??
           commandPalettePreviewTheme ??
           workspaceSwitcherPreviewTheme ??
           reasoningEffortPreviewTheme ??
@@ -2937,6 +2959,7 @@
       );
       await initI18n(
         bookModePreviewLocale ??
+          pauseControlPreviewLocale ??
           commandPalettePreviewLocale ??
           workspaceSwitcherPreviewLocale ??
           reasoningEffortPreviewLocale ??
@@ -3480,6 +3503,7 @@
     }
 
     if (activeConvId && streamingConvIds[activeConvId]) {
+      const paused = !!streamPausedConvIds[activeConvId];
       queuedChatMessages = enqueueChatMessage(queuedChatMessages, activeConvId, {
         text,
         attachments,
@@ -3488,6 +3512,7 @@
       await syncChatQueuePending(activeConvId);
       inputText = "";
       inputAttachments = [];
+      if (paused) await setStreamPaused(activeConvId, false);
       return;
     }
 
@@ -3544,6 +3569,29 @@
     // Do not make that queue delay the cancellation signal.
     void persistStreamDraft(activeConvId, true).catch(() => {});
     await invoke("cancel_chat_message", { convId: activeConvId }).catch(() => {});
+  }
+
+  async function setStreamPaused(convId: string, paused: boolean) {
+    const previous = !!streamPausedConvIds[convId];
+    streamPausedConvIds = { ...streamPausedConvIds, [convId]: paused };
+    try {
+      await openAgent.setConversationStreamPaused(convId, paused);
+    } catch (error) {
+      if (streamingConvIds[convId] && streamPausedConvIds[convId] === paused) {
+        streamPausedConvIds = { ...streamPausedConvIds, [convId]: previous };
+      }
+      showToast({ title: String(error), variant: "error" });
+    }
+  }
+
+  async function pauseCurrentStream() {
+    if (!activeConvId || !isCurrentStreaming || isCurrentStreamPaused) return;
+    await setStreamPaused(activeConvId, true);
+  }
+
+  async function resumeCurrentStream() {
+    if (!activeConvId || !isCurrentStreaming || !isCurrentStreamPaused) return;
+    await setStreamPaused(activeConvId, false);
   }
 
   async function skipCurrentMemoryRetrieval() {
@@ -4554,6 +4602,31 @@
         onSelect={() => {}}
       />
     </main>
+  {:else if isPauseControlPreview}
+    <main class="command-palette-preview-stage">
+      <MessageInput
+        bind:value={pauseControlPreviewValue}
+        bind:attachments={pauseControlPreviewAttachments}
+        selectedModel=""
+        modelOptions={[]}
+        placeholder={$t("inputPlaceholder")}
+        disabled={false}
+        isStreaming
+        isPaused={pauseControlPreviewPaused}
+        sendDisabled={!pauseControlPreviewValue.trim()}
+        sendTitle={$t("send")}
+        pauseTitle={$t("pauseOutput")}
+        resumeTitle={$t("resumeOutput")}
+        stopTitle={$t("stopOutput")}
+        enableMentions={false}
+        showAttachments={false}
+        showModelSelector={false}
+        onSend={() => (pauseControlPreviewValue = "")}
+        onStop={() => {}}
+        onPause={() => (pauseControlPreviewPaused = true)}
+        onResume={() => (pauseControlPreviewPaused = false)}
+      />
+    </main>
   {:else if isCommandPalettePreview}
     <main class="command-palette-preview-stage">
       <MessageInput
@@ -4946,10 +5019,14 @@
                     : browserModeNotice}
                   disabled={!tauriAvailable}
                   isStreaming={isCurrentStreaming}
+                  isPaused={isCurrentStreamPaused}
                   sendDisabled={(!inputText.trim() && inputAttachments.length === 0) ||
                     !tauriAvailable ||
                     modelOptions.length === 0}
                   sendTitle={$t("send")}
+                  pauseTitle={$t("pauseOutput")}
+                  resumeTitle={$t("resumeOutput")}
+                  stopTitle={$t("stopOutput")}
                   {slashCommands}
                   showGlobalDraftsInMentions={config?.mention_palette_show_global_drafts ?? true}
                   onConfigureModels={() => openSettings("providers")}
@@ -4959,6 +5036,8 @@
                   onReasoningEffortChange={handleReasoningEffortChange}
                   onSend={sendMessage}
                   onStop={stopMessage}
+                  onPause={pauseCurrentStream}
+                  onResume={resumeCurrentStream}
                 />
               {/if}
             </div>
