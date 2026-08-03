@@ -38,6 +38,7 @@ describe("CI module classification", () => {
     };
     expect(classifyChangedModules([".github/workflows/ci.yml"])).toEqual(all);
     expect(classifyChangedModules(["scripts/ci-changes.mjs"])).toEqual(all);
+    expect(classifyChangedModules(["scripts/preflight.mjs"])).toEqual(all);
     expect(classifyChangedModules(["scripts/verify-ci-results.mjs"])).toEqual(all);
   });
 

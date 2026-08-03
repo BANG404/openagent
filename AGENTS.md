@@ -32,18 +32,27 @@ Use Bun for JavaScript dependencies and scripts. Prefix shell commands with
 bun run dev                 # Vite, port 14221
 bun run build
 bun run check               # Svelte + TypeScript
+bun run preflight           # Fast checks selected from the diff against origin/master
 bun tauri dev
 bun tauri build
 cd src-tauri && cargo check
 cd src-tauri && cargo build
 ```
 
-GitHub pull-request CI is the authoritative delivery verification. For ordinary
-implementation tasks, do not run local lint, test, check, or build commands
-that duplicate CI. Before committing, inspect the complete diff and run
-`git diff --check`. Tool-specific validation required to create an artifact,
+GitHub pull-request CI is the authoritative delivery verification. Before
+committing, inspect the complete diff and run `bun run preflight`; it compares
+the branch, index, and worktree plus untracked filenames with `origin/master`,
+enforces the documentation and diff guardrails, and uses the CI path classifier
+to run only fast checks for affected modules. Stage intended new files first so
+the Git whitespace guard can inspect their contents. Use
+`bun run preflight -- --dry-run` to inspect the plan or `--base <ref>` when the
+target branch is not `master`.
+Do not manually run additional lint, test, check, or build commands that
+duplicate CI. Tool-specific validation required to create an artifact,
 interactive checks needed to implement a change, and checks explicitly
-requested by the user are not duplicate delivery tests.
+requested by the user remain allowed. Cross-platform builds, complete native
+quality suites, frontend production builds, bundle budgets, embedding runtime
+tests, and Harness integration tests remain PR-CI responsibilities.
 
 The `Required` pull-request check runs `check:docs` and aggregates every check
 selected from the base-to-head file diff. Frontend and automation are top-level
