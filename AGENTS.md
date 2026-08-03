@@ -10,8 +10,9 @@ requires them.
 
 - Treat implementation and agent-facing documentation as one change. Before
   editing, identify the behavior, invariant, ownership boundary, or workflow
-  that the change affects and read its source-of-truth document. See
-  `docs/agent-workflow.md` for the documentation map and completion checklist.
+  that the change affects and read its source of truth. The
+  `deliver-via-pr` workspace skill owns the documentation map and handoff
+  checklist as well as repository delivery.
 - For chat transcript UI, virtualization, streaming/final reconciliation,
   restore/bootstrap UI, attachment previews, or chat events, read the
   `openagent-chat-frontend` workspace skill.
@@ -147,30 +148,3 @@ task branch, opening a ready pull request, waiting for GitHub Actions, merging
 after `Required` succeeds, and cleaning up the task worktree and branch. Stop
 before an explicitly excluded stage when the user asks for local-only work,
 uncommitted changes, no push, or no merge.
-
-Never implement ordinary tasks directly in the default-branch worktree. Start
-the task branch from the latest `origin/master`; preserve unrelated worktrees
-and user changes. Keep the worktree until the pull request is confirmed merged,
-then remove only that registered, clean task worktree and its merged local
-branch.
-
-Create a focused Conventional Commit for each independently usable unit. Keep
-changes uncommitted only when the user explicitly requests it, the change
-cannot be isolated safely, or the task is being handed back without delivery.
-
-Use this commit format:
-
-```text
-<type>(<scope>): <imperative summary>
-```
-
-Use `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, or `style`. Inspect
-status and the intended diff, stage explicit paths only, and confirm the
-resulting commit. Never use `git add .` or include unrelated changes.
-
-Open implementation pull requests as ready for review so CI and merge can
-proceed. Summarize user-visible behavior, frontend/SDK impact,
-configuration or dependency changes, and linked issues. Include screenshots or
-recordings for UI changes. The repository owner may bypass only the review
-requirement on their own PR after `Required` succeeds. Third-party PRs require
-one owner approval and must merge without bypass.

@@ -14,6 +14,9 @@ retain the task worktree until the merge is confirmed.
 ## 1. Establish scope
 
 - Read the nearest `AGENTS.md` and the mapped source-of-truth documentation.
+- Before changing product or automation logic, agent instructions, or
+  documentation, read [references/living-documentation.md](references/living-documentation.md)
+  and select exactly one primary documentation owner for each changed behavior.
 - Run `git status --short --branch`, `git worktree list`, `gh auth status`, and
   resolve the remote default branch.
 - If the user requests diagnosis or review only, do not create a branch or make
@@ -36,6 +39,9 @@ retain the task worktree until the merge is confirmed.
 
 - Make implementation, focused test coverage, and agent-facing documentation
   changes together.
+- Keep public behavior and architecture in `docs/`; keep repeatable procedures
+  and fragile agent-facing invariants in the triggering skill. Do not duplicate
+  the same rule across both surfaces.
 - Do not run local lint, test, check, build, or documentation-sync commands that
   duplicate CI. Run only implementation-time interactive checks, explicitly
   requested checks, and artifact validators mandated by another selected skill.
