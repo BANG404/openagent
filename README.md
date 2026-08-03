@@ -100,7 +100,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 - **Context Compaction & Tree Conversations** — Automatically or manually compact long conversations into tree structures to save tokens, preserving history lineage via search-based message recall.
 - **Responsive Conversation History** — Search and paginate the sidebar, queue follow-up messages during a run, and navigate virtualized transcripts without loading the entire history into the DOM.
 - **Scheduled Chat Hooks** — Define recurring or one-off tasks triggered in the background. Hooks are fully persistent, auto-restored on startup, and supported by system tray notifications.
-- **Project Drafts & Global/Local Scopes** — Keep drafts, memory, and skills scoped globally (in `~/.config/openagent`) or locally to your active workspace (in `.agents/`).
+- **Project Drafts & Global/Local Scopes** — Keep drafts, memory, and skills scoped globally (in `~/.openagent`) or locally to your active workspace (in `.agents/`).
 - **DESIGN.md & MDX Editor** — Dedicated edit panel for `DESIGN.md` in your workspace, plus a rich markdown editor (MdxMarkdownEditor) integrated into memory and skill management.
 - **Multi-Workspace Desktop Integration** — Open each workspace in a dedicated window, focus existing workspace windows instead of duplicating them, launch on startup, minimize to the system tray, and reveal workspace locations in the native file manager.
 - **Observability** — Optional Langfuse tracing via OpenTelemetry (`gen_ai.*` attributes).
@@ -161,7 +161,7 @@ The built installers / app bundle land in `src-tauri/target/release/bundle/`.
 
 ## Configure your first provider
 
-On first launch OpenAgent creates `config.toml` in its user data root (`~/.openagent` on Linux and the corresponding user configuration directory on Windows/macOS). Set `OPENAGENT_HOME` to override the root. Open **Settings → Providers** and add a provider, or edit the file directly; valid external edits hot-reload. See [Configuration and application data](docs/configuration.md) for atomic-save, backup, migration, and conflict behavior. Until an available model is configured, the composer keeps sending disabled and provides a **Configure models** shortcut to Settings.
+On first launch OpenAgent creates `config.toml` in its cross-platform user data root (`~/.openagent` on Linux, macOS, and Windows). Set `OPENAGENT_HOME` to override the complete root. Open **Settings → Providers** and add a provider, or edit the file directly; valid external edits hot-reload. See [Configuration and application data](docs/configuration.md) for atomic-save, backup, migration, and conflict behavior. Until an available model is configured, the composer keeps sending disabled and provides a **Configure models** shortcut to Settings.
 
 ```toml
 [[providers]]
@@ -306,7 +306,7 @@ Memory files have **two zones**. The Memory Agent only writes below the marker c
 <!-- Memory Agent only operates below this comment -->
 ```
 
-- Global memory → `~/.config/openagent/memory.md` (every conversation)
+- Global memory → `~/.openagent/memory.md` (every conversation)
 - Local memory  → `<workspace>/.agents/memory.md` (workspace-scoped)
 
 ## Agent memory controls

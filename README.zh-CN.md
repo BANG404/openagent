@@ -101,7 +101,7 @@
 - **上下文压缩与树状对话** — 支持自动或手动对话压缩以节省 Token 消耗，并在 UI 中渲染为树状分支，结合基于谱系的消息检索，确保历史记忆不丢失。
 - **高响应对话历史** — 可搜索和分页浏览侧边栏，在运行期间排队发送后续消息，并通过虚拟化消息列表流畅导航长对话。
 - **定时聊天钩子（Scheduled Hooks）** — 支持配置定时或单次后台触发的聊天任务，支持持久化、开机自动恢复以及系统托盘通知。
-- **项目草稿与全局/本地作用域** — 支持草稿（Drafts）、记忆（Memory）与技能（Skills）的全局作用域（`~/.config/openagent`）和本地工作区作用域（`.agents/`）隔离。
+- **项目草稿与全局/本地作用域** — 支持草稿（Drafts）、记忆（Memory）与技能（Skills）的全局作用域（`~/.openagent`）和本地工作区作用域（`.agents/`）隔离。
 - **DESIGN.md 面板与 MDX 编辑器** — 提供工作区 `DESIGN.md` 专属可视化编辑面板，并在记忆和技能管理中集成富文本 Markdown 编辑器（MdxMarkdownEditor）。
 - **多工作区桌面集成** — 每个工作区使用独立窗口，已有工作区窗口会被聚焦而非重复打开；同时支持开机自启、最小化到系统托盘及在文件管理器中定位工作区。
 - **可观测性** — 通过 OpenTelemetry 接入 Langfuse 追踪（含 `gen_ai.*` 属性）。
@@ -161,7 +161,7 @@ bun tauri build
 
 ## 配置第一个 Provider
 
-首次启动时，OpenAgent 会自动在 `~/.config/openagent/config.toml` 创建配置文件。  
+首次启动时，OpenAgent 会在所有平台统一使用的 `~/.openagent/config.toml` 创建配置文件；可通过 `OPENAGENT_HOME` 覆盖整个应用状态根目录。
 打开 **设置 → Providers** 添加提供商，或直接编辑该文件。尚未配置可用模型时，输入框会禁用发送，并提供跳转到设置的“配置模型”入口：
 
 ```toml
@@ -307,7 +307,7 @@ Agent 不再使用行内 AGUI 标签，而是可以通过调用内置的 `render
 <!-- Memory Agent 仅在此注释以下进行操作 -->
 ```
 
-- **全局记忆** → `~/.config/openagent/memory.md`（注入每次对话）
+- **全局记忆** → `~/.openagent/memory.md`（注入每次对话）
 - **工作区记忆** → `<workspace>/.agents/memory.md`（仅在对应工作区生效）
 
 ## Agent 记忆控制

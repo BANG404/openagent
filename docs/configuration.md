@@ -2,13 +2,16 @@
 
 OpenAgent keeps user-scoped settings and durable application data under one
 application-data root. Set `OPENAGENT_HOME` to choose that root explicitly.
-Without an override, Linux uses `~/.openagent`, Windows uses
-`%APPDATA%\openagent`, and macOS uses the platform Application Support directory.
-`OPENAGENT_CONFIG_DIR` remains an alias for deployments that already set it.
+Without an override, every platform uses `~/.openagent`, including Windows and
+macOS. This keeps the complete OpenAgent home relocatable and gives command-line,
+desktop, and test environments the same path contract.
 
-On Linux, an existing `~/.config/openagent` directory is moved to
-`~/.openagent` once when the new root does not exist. OpenAgent never merges two
-populated roots automatically.
+An existing platform configuration directory—such as
+`%APPDATA%\openagent` on Windows, `~/.config/openagent` on Linux, or the former
+Application Support location on macOS—is moved to `~/.openagent` once when the
+new root does not exist. The complete root moves together, including
+configuration, conversations, logs, attachments, and other durable state.
+OpenAgent never merges two populated roots automatically.
 
 The root contains these user-maintained or durable files:
 
