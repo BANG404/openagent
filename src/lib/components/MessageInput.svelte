@@ -51,6 +51,9 @@
     sendDisabled: boolean;
     sendTitle: string;
     stopTitle?: string;
+    isPaused?: boolean;
+    pauseTitle?: string;
+    resumeTitle?: string;
     slashCommands?: SlashCommand[];
     enableMentions?: boolean;
     loadMentionItems?: (query: string) => Promise<PaletteItem[]>;
@@ -75,6 +78,8 @@
     ) => Promise<{ kind: "image" | "text" | "pdf" | "file"; data_url?: string; text?: string }>;
     onSend: () => void;
     onStop: () => void;
+    onPause?: () => void;
+    onResume?: () => void;
   }
   let {
     value = $bindable(),
@@ -87,6 +92,9 @@
     sendDisabled,
     sendTitle,
     stopTitle = "停止生成",
+    isPaused = false,
+    pauseTitle = "暂停输出",
+    resumeTitle = "继续输出",
     slashCommands = [],
     enableMentions = true,
     loadMentionItems,
@@ -105,12 +113,28 @@
     attachmentPreviewLoader,
     onSend,
     onStop,
+    onPause = () => {},
+    onResume = () => {},
   }: Props = $props();
 
   let textareaEl = $state<HTMLTextAreaElement | null>(null);
   let composerEl = $state<HTMLElement | null>(null);
   let browserFileInput = $state<HTMLInputElement | null>(null);
   let wasDisabled = $state(false);
+  const hasComposerContent = $derived(Boolean(value.trim() || attachments.length));
+  const streamingPrimaryTitle = $derived(
+    hasComposerContent ? sendTitle : isPaused ? resumeTitle : pauseTitle,
+  );
+
+  function runPrimaryAction() {
+    if (!isStreaming || hasComposerContent) {
+      onSend();
+    } else if (isPaused) {
+      onResume();
+    } else {
+      onPause();
+    }
+  }
 
   // ─── Palette state ─────────────────────────────────────────────────────────
   type Mode = "slash" | "mention";
@@ -714,7 +738,7 @@
 
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      runPrimaryAction();
     }
   }
 
@@ -854,26 +878,42 @@
     {/if}
   </div>
   {#if isStreaming}
-    <Tooltip text={sendTitle}>
+    <Tooltip text={streamingPrimaryTitle}>
       {#snippet trigger(props)}
         <button
           class="send-btn"
           class:queue-btn={showStopButton}
-          aria-label={sendTitle}
+          aria-label={streamingPrimaryTitle}
           {...props}
-          disabled={sendDisabled}
-          onclick={onSend}
+          disabled={hasComposerContent ? sendDisabled : disabled}
+          onclick={runPrimaryAction}
         >
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            width="16"
-            height="16"><path d="M8 13V3m-5 5 5-5 5 5" /></svg
-          >
+          {#if hasComposerContent}
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              width="16"
+              height="16"><path d="M8 13V3m-5 5 5-5 5 5" /></svg
+            >
+          {:else if isPaused}
+            <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"
+              ><path d="M5 3.4v9.2L12 8 5 3.4Z" /></svg
+            >
+          {:else}
+            <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"
+              ><rect x="4" y="3" width="3" height="10" rx="1" /><rect
+                x="9"
+                y="3"
+                width="3"
+                height="10"
+                rx="1"
+              /></svg
+            >
+          {/if}
         </button>
       {/snippet}
     </Tooltip>
