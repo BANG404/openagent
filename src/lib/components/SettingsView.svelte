@@ -10,7 +10,7 @@
     DEFAULT_QUICK_CHAT_SHORTCUT,
     formatQuickChatShortcut,
   } from "$lib/quickChatShortcut";
-  import { normalizeConfigShape } from "$lib/config";
+  import { defaultPermissionProfile, normalizeConfigShape } from "$lib/config";
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
   import { checkForAppUpdate } from "$lib/appUpdater";
   import {
@@ -140,6 +140,7 @@
       tool_approval: { enabled: true, prompt: "" },
     },
     approval_mode: "sandbox",
+    permission_profile: defaultPermissionProfile(),
     mcp: { servers: [] },
     theme: "system",
     language: "zh",
