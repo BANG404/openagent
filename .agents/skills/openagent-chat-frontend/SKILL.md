@@ -334,6 +334,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   readable. Materialize their canonical defaults only in
   `normalizeConfigShape`; page shells and settings components must not copy
   those defaults into independent fallback objects.
+- Keep the canonical managed permission fallback layered as `host_root` read
+  followed by workspace write. The frontend transport type and normalization
+  must preserve `host_root`; collapsing an older payload to workspace-only
+  access makes restored configuration diverge from the runtime sandbox policy.
 - `chat-response-started` means the stream connected, not that content arrived.
   Clear transient waiting state on the first text/thinking chunk and every
   terminal path.

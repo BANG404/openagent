@@ -121,13 +121,25 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: ./src-tauri -> target
+          workspaces: |
+            ./src-tauri -> target
+            ./sdk -> target
           shared-key: platform-${{ matrix.os }}
           cache-targets: false
 
       - name: Check all Rust targets on Windows
         if: runner.os == 'Windows'
         run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
+
+      - name: Exercise the Windows restricted-token filesystem boundary
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cargo test --manifest-path sdk/Cargo.toml -p openagent-server restricted_token_writes_workspace_and_blocks_outside_and_metadata *> "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Windows process sandbox test failed; private diagnostic output was suppressed."
+            exit 1
+          }
 
       - name: Check all Rust targets on macOS
         if: runner.os != 'Windows'

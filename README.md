@@ -191,7 +191,7 @@ Open **Settings → Web Search** and configure the provider you want to use. The
 
 ### Choose a tool approval mode
 
-Open **Settings → General → Approval Mode** to control when agent tool calls pause for review. Approval and runtime permissions are independent: approving a call never expands its filesystem or network capabilities. The default managed permission profile grants read/write access within the active workspace and declares network access enabled. Managed terminal processes are isolated with Bubblewrap on Linux and Seatbelt on macOS; Windows does not yet provide an OS-enforced terminal sandbox. Built-in file-reading, search, creation, and editing tools enforce the same canonical workspace policy independently of the terminal backend.
+Open **Settings → General → Approval Mode** to control when agent tool calls pause for review. Approval and runtime permissions are independent: approving a call never expands its filesystem or network capabilities. The default managed permission profile grants host-wide reads and workspace-scoped writes, keeps `.git`, `.agents`, and `.codex` read-only beneath broad writable roots, and declares network access enabled. Managed terminal processes are isolated with Bubblewrap on Linux, Seatbelt on macOS, and the pinned Codex restricted-token/ACL wrapper on Windows. The non-elevated Windows backend does not yet enforce restricted networking, so an explicitly restricted network profile fails before spawn there. Built-in file-reading, search, creation, and editing tools enforce the same canonical filesystem policy independently of the terminal backend.
 
 | Mode | Behavior |
 | --- | --- |
