@@ -1,0 +1,331 @@
+name: Public SDK CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      sdk_sha:
+        description: Immutable commit from BANG404/openagent-sdk
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-sdk-ci-${{ inputs.sdk_sha }}
+  cancel-in-progress: false
+
+env:
+  SDK_REPOSITORY: BANG404/openagent-sdk
+  SDK_STATUS_CONTEXT: Public SDK CI
+
+jobs:
+  pending:
+    name: Report pending status
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Validate SDK revision
+        env:
+          SDK_SHA: ${{ inputs.sdk_sha }}
+        run: |
+          if [[ ! "$SDK_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::sdk_sha must be a full lowercase commit SHA."
+            exit 1
+          fi
+
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+
+      - name: Report pending SDK status
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SDK_SHA: ${{ inputs.sdk_sha }}
+          TARGET_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/$SDK_REPOSITORY/commits/$SDK_SHA" --silent
+          gh api --method POST "repos/$SDK_REPOSITORY/statuses/$SDK_SHA" \
+            -f state=pending \
+            -f context="$SDK_STATUS_CONTEXT" \
+            -f description="Public runners are validating this private SDK revision" \
+            -f target_url="$TARGET_URL" --silent
+
+  rust:
+    name: Rust workspace
+    needs: pending
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ inputs.sdk_sha }}
+          path: sdk
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check Rust formatting
+        working-directory: sdk
+        run: |
+          if ! cargo fmt --all -- --check >"$RUNNER_TEMP/sdk-rust-format.log" 2>&1; then
+            echo "::error::Rust formatting failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+      - name: Lint Rust workspace
+        working-directory: sdk
+        run: |
+          if ! cargo clippy --workspace --all-targets --all-features >"$RUNNER_TEMP/sdk-rust-clippy.log" 2>&1; then
+            echo "::error::Rust lint failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+      - name: Test Rust workspace
+        working-directory: sdk
+        run: |
+          if ! cargo test --workspace --all-features >"$RUNNER_TEMP/sdk-rust-test.log" 2>&1; then
+            echo "::error::Rust tests failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+  harness-client:
+    name: Harness client (${{ matrix.name }})
+    needs: pending
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-22.04
+          - name: Windows
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ inputs.sdk_sha }}
+          path: sdk
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+
+      - name: Build harness server
+        shell: bash
+        working-directory: sdk
+        run: |
+          if ! cargo build -p openagent-server >"$RUNNER_TEMP/sdk-harness-server.log" 2>&1; then
+            echo "::error::Harness server build failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+      - name: Install harness dependencies
+        shell: bash
+        working-directory: sdk/harness-typescript
+        run: |
+          if ! bun install --frozen-lockfile >"$RUNNER_TEMP/sdk-harness-install.log" 2>&1; then
+            echo "::error::Harness dependency installation failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+      - name: Check harness types
+        shell: bash
+        working-directory: sdk/harness-typescript
+        run: |
+          if ! bun run check >"$RUNNER_TEMP/sdk-harness-check.log" 2>&1; then
+            echo "::error::Harness type checking failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+      - name: Verify harness OpenAPI
+        shell: bash
+        working-directory: sdk/harness-typescript
+        run: |
+          if ! bun run check:openapi >"$RUNNER_TEMP/sdk-harness-openapi.log" 2>&1; then
+            echo "::error::Harness OpenAPI verification failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+      - name: Test harness client
+        shell: bash
+        working-directory: sdk/harness-typescript
+        env:
+          OPENAGENT_SERVER_BINARY: ${{ github.workspace }}/sdk/target/debug/openagent-server${{ runner.os == 'Windows' && '.exe' || '' }}
+        run: |
+          if ! bun test >"$RUNNER_TEMP/sdk-harness-test.log" 2>&1; then
+            echo "::error::Harness client tests failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+      - name: Build harness package
+        shell: bash
+        working-directory: sdk/harness-typescript
+        run: |
+          if ! bun run build >"$RUNNER_TEMP/sdk-harness-build.log" 2>&1; then
+            echo "::error::Harness package build failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+      - name: Verify harness package contents
+        shell: bash
+        working-directory: sdk/harness-typescript
+        run: |
+          if ! npm pack --dry-run >"$RUNNER_TEMP/sdk-harness-pack.log" 2>&1; then
+            echo "::error::Harness package verification failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+  host-compatibility:
+    name: Public host compatibility
+    needs: pending
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out public host
+        uses: actions/checkout@v7
+        with:
+          path: host
+          submodules: false
+
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ inputs.sdk_sha }}
+          path: host/sdk
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update >/dev/null
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            pkg-config >/dev/null
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+
+      - name: Install host dependencies
+        working-directory: host
+        run: |
+          if ! bun install --frozen-lockfile >"$RUNNER_TEMP/sdk-host-install.log" 2>&1; then
+            echo "::error::Host dependency installation failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+      - name: Check public frontend compatibility
+        working-directory: host
+        run: |
+          if ! bun run check >"$RUNNER_TEMP/sdk-host-frontend.log" 2>&1; then
+            echo "::error::Public frontend compatibility failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+      - name: Check public native compatibility
+        working-directory: host
+        run: |
+          if ! cargo check --manifest-path src-tauri/Cargo.toml --all-targets >"$RUNNER_TEMP/sdk-host-native.log" 2>&1; then
+            echo "::error::Public native compatibility failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+  required:
+    name: Required SDK
+    if: always()
+    needs:
+      - pending
+      - rust
+      - harness-client
+      - host-compatibility
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+
+      - name: Report final SDK status
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SDK_SHA: ${{ inputs.sdk_sha }}
+          PENDING_RESULT: ${{ needs.pending.result }}
+          RUST_RESULT: ${{ needs.rust.result }}
+          HARNESS_RESULT: ${{ needs.harness-client.result }}
+          HOST_RESULT: ${{ needs.host-compatibility.result }}
+          TARGET_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          state=failure
+          description="Public SDK validation failed"
+          if [[ "$PENDING_RESULT" == success \
+            && "$RUST_RESULT" == success \
+            && "$HARNESS_RESULT" == success \
+            && "$HOST_RESULT" == success ]]; then
+            state=success
+            description="Public SDK validation passed"
+          fi
+          gh api --method POST "repos/$SDK_REPOSITORY/statuses/$SDK_SHA" \
+            -f state="$state" \
+            -f context="$SDK_STATUS_CONTEXT" \
+            -f description="$description" \
+            -f target_url="$TARGET_URL" --silent
+          if [[ "$state" != success ]]; then
+            exit 1
+          fi

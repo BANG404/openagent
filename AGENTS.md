@@ -55,6 +55,13 @@ path classifier, its tests, reusable-workflow inputs, and both aggregate checks
 aligned whenever a module boundary changes. Fix failures on the same task
 branch and let CI rerun; do not merge a red or pending `Required` check.
 
+Private SDK pull requests dispatch `sdk-ci.yml` on this public repository at an
+immutable SDK commit. That workflow must keep private command output and build
+artifacts out of public logs, artifacts, and target caches, and must report the
+aggregate `Public SDK CI` commit status back through the least-privileged
+reporter GitHub App. The private repository owns only the dispatcher workflow
+and requires that reported status before merge.
+
 ## Browser-backed frontend workflow
 
 Use the workspace `playwright` skill for every repository workflow that renders
