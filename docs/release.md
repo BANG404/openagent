@@ -208,10 +208,9 @@ aggregate `Public SDK CI` commit status. Because workflow logs are public, SDK
 command output is suppressed, build outputs are never uploaded, and Rust target
 or compiler-output caches are disabled for jobs that compile private source.
 Only generic pass/fail diagnostics may appear in the public run. The public
-repository stores the reporter App client ID in
-`OPENAGENT_CI_REPORTER_CLIENT_ID` and its private key in
-`OPENAGENT_CI_REPORTER_PRIVATE_KEY`; token creation uses the current v3 action's
-`client-id` input rather than the deprecated numeric App ID input.
+repository stores the reporter App ID in `OPENAGENT_CI_REPORTER_APP_ID` and its
+private key in `OPENAGENT_CI_REPORTER_PRIVATE_KEY`; the App installation is
+limited to the private SDK repository.
 
 ## Local Commands
 
