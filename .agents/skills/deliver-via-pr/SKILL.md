@@ -42,12 +42,17 @@ retain the task worktree until the merge is confirmed.
 - Keep public behavior and architecture in `docs/`; keep repeatable procedures
   and fragile agent-facing invariants in the triggering skill. Do not duplicate
   the same rule across both surfaces.
-- Do not run local lint, test, check, build, or documentation-sync commands that
-  duplicate CI. Run only implementation-time interactive checks, explicitly
-  requested checks, and artifact validators mandated by another selected skill.
-- Before committing, inspect `git status`, the complete diff, and
-  `git diff --check`.
-- Stage explicit paths only. Create focused Conventional Commits using the
+- Do not manually run local lint, test, check, build, or documentation-sync
+  commands that duplicate CI. Run only implementation-time interactive checks,
+  explicitly requested checks, and artifact validators mandated by another
+  selected skill.
+- Before committing, inspect `git status` and the complete diff, then stage
+  explicit paths only and run `bun run preflight`. Staging first lets the Git
+  whitespace guard inspect new file contents. The preflight owns the diff and
+  documentation guardrails and selects fast module checks through the same
+  classifier as PR CI. Use `--base <ref>` only when the PR does not target
+  `master`.
+- Inspect the staged diff and create focused Conventional Commits using the
   repository's allowed types.
 
 ## 4. Push and open the PR
@@ -55,8 +60,9 @@ retain the task worktree until the merge is confirmed.
 - Push the task branch with upstream tracking.
 - Open a ready PR against `master`; do not use a draft because CI and merge are
   part of the requested delivery.
-- Describe user-visible behavior, affected boundaries, documentation, and the
-  fact that local test suites were intentionally deferred to PR CI.
+- Describe user-visible behavior, affected boundaries, documentation, the local
+  preflight result, and the exhaustive or platform-specific checks deferred to
+  PR CI.
 - Never include unrelated commits or files. Do not update a branch solely
   because `master` moved after CI started. The stable PR-head status is designed
   to survive that movement without creating another commit or CI run.
@@ -77,10 +83,11 @@ retain the task worktree until the merge is confirmed.
 ## 6. Apply the review policy and merge
 
 - For a PR authored under the repository-owner account, wait for both
-  `Required` and `Required PR Head`, then merge with the review-only admin bypass using
-  `gh pr merge <PR> --admin --squash --delete-branch`.
+  `Required` and `Required PR Head`, then merge with the review-only admin bypass
+  using `gh pr merge <PR> --admin --squash --delete-branch`.
 - For a third-party PR, approve it as the owner, do not select bypass, wait for
-  both required statuses, and merge normally with `gh pr review <PR> --approve` followed by
+  both required statuses, and merge normally with
+  `gh pr review <PR> --approve` followed by
   `gh pr merge <PR> --squash --delete-branch`.
 - Do not attempt to approve an owner-authored PR; GitHub does not count self
   approval.

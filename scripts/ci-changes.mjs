@@ -21,6 +21,7 @@ export function classifyChangedModules(files, forceAll = false) {
   const routerFiles = new Set([
     ".github/workflows/ci.yml",
     "scripts/ci-changes.mjs",
+    "scripts/preflight.mjs",
     "scripts/verify-ci-results.mjs",
   ]);
   const all = forceAll || normalized.some((file) => routerFiles.has(file));
@@ -63,6 +64,7 @@ export function classifyChangedModules(files, forceAll = false) {
     "tests/ciChanges.test.js",
     "tests/ciResults.test.js",
     "tests/docsSync.test.js",
+    "tests/preflight.test.js",
     "tests/releaseCi.test.js",
     "tests/releaseVersion.test.js",
   ]);
