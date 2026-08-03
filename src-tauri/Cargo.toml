@@ -48,3 +48,10 @@ tracing = "0.1"
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-updater = "2.10.1"
+
+[target.'cfg(windows)'.dependencies]
+# Keep the Codex Windows sandbox graph compatible with the repository's Rust
+# 1.95 toolchain until the stable Rama release lowers its 1.96 MSRV.
+rama-error = "=0.3.0-alpha.4"
+rama-macros = "=0.3.0-alpha.4"
+rama-utils = "=0.3.0-alpha.4"
