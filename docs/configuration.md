@@ -77,9 +77,23 @@ different security contracts and are not inferred from the approval mode. The
 profile also records whether network access is `enabled` or `restricted`; the
 runtime SDK now provides one shared process-sandbox contract for foreground,
 background, resumed-approval, and delegated terminal launches. The desktop
-product does not yet register a native platform backend, so its current default
-remains `enabled` and a `restricted` value remains declarative. Built-in file
-tools continue to enforce the managed filesystem policy independently.
+product registers the native backend on Linux and macOS. Linux uses Bubblewrap
+for mount and network namespace isolation. `bwrap` must be available on `PATH`,
+and its resolved executable and ancestor directories must be root-owned and not
+group- or world-writable. macOS uses the fixed system `sandbox-exec` executable
+and a deny-by-default Seatbelt policy. A managed terminal launch fails before
+spawning when the selected backend or its trusted executable cannot enforce the
+requested filesystem or restricted-network capability. Windows does not yet
+register a native process backend, so terminal processes there retain the
+legacy ambient launch behavior and a restricted network setting is not an OS
+boundary.
+
+Built-in read, list, search, create, and edit tools do not depend on the
+terminal backend. They run in process and route every model-facing path through
+the same canonical workspace authorization gateway, including symlink and new
+path handling. This preserves the managed filesystem policy for system tools
+outside the terminal while keeping trusted application-owned file access a
+separate boundary.
 
 ## Software error collection
 
