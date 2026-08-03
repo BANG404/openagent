@@ -166,7 +166,14 @@ jobs:
           $env:CARGO_TARGET_DIR = (Resolve-Path "src-tauri\target").Path
           cargo test --manifest-path sdk/Cargo.toml -p openagent-server elevated_offline_account_blocks_loopback_network_access *> "$env:RUNNER_TEMP/sdk-windows-wfp-test.log"
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "Windows WFP sandbox test failed; private diagnostic output was suppressed."
+            $diagnostic = Select-String -Path "$env:RUNNER_TEMP/sdk-windows-wfp-test.log" -Pattern 'OPENAGENT_WFP_DIAGNOSTIC=[a-z-]+' -AllMatches |
+              ForEach-Object { $_.Matches.Value } |
+              Select-Object -Last 1
+            if ($diagnostic) {
+              Write-Error "Windows WFP sandbox test failed: $diagnostic. Private diagnostic output was suppressed."
+            } else {
+              Write-Error "Windows WFP sandbox test failed; private diagnostic output was suppressed."
+            }
             exit 1
           }
 
