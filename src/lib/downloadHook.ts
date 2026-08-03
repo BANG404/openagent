@@ -47,6 +47,7 @@ async function handleDownload(payload: DownloadPayload): Promise<void> {
     showToast({
       title: tr("toastDownloadSuccess"),
       description: savedPath,
+      descriptionFromEnd: true,
       variant: "success",
       action: {
         label: tr("toastOpenFile"),

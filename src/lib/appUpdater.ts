@@ -1,6 +1,8 @@
 import { invoke } from "$lib/openagent/tauriClient";
 import { check, type DownloadEvent, type Update } from "@tauri-apps/plugin-updater";
+import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
 import { get, readonly, writable } from "svelte/store";
+import { appUpdateReleaseUrl } from "$lib/appUpdateRelease";
 import { t, type TranslationKeys } from "$lib/i18n";
 import { AppUpdateTimeoutError, withAppUpdateTimeout } from "$lib/appUpdateTimeout";
 import { dismissToast, showToast, updateToast } from "$lib/toast";
@@ -109,10 +111,16 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
       return;
     }
 
+    const releaseUrl = appUpdateReleaseUrl(update.version);
     showToast({
       title: `${translate("updateAvailable")} ${update.version}`,
       description: update.body || translate("updateAvailableDescription"),
       durationMs: 0,
+      link: {
+        label: translate("updateChangelog"),
+        href: releaseUrl,
+        onClick: () => openExternalUrl(releaseUrl),
+      },
       action: {
         label: translate("updateAndRestart"),
         onClick: () => installUpdate(update),

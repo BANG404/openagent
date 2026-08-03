@@ -4,7 +4,6 @@
   import { emit } from "$lib/openagent/tauriClient";
   import { check } from "@tauri-apps/plugin-updater";
   import { onDestroy, onMount } from "svelte";
-  import Toast from "$lib/components/Toast.svelte";
   import InspectorDatabase from "$lib/components/InspectorDatabase.svelte";
   import Tooltip from "$lib/components/Tooltip.svelte";
   import { showToast, updateToast } from "$lib/toast";
@@ -330,6 +329,11 @@
       title: "Update available · 99.0.0",
       description: "A preview of the notification shown when OpenAgent finds a new version.",
       durationMs: 0,
+      link: {
+        label: "View changelog",
+        href: "https://github.com/BANG404/openagent/releases/tag/v99.0.0",
+        onClick: () => {},
+      },
       action: {
         label: "Update and restart",
         onClick: () => {
@@ -347,6 +351,7 @@
     showToast({
       title: "Download complete",
       description: "C:\\Users\\you\\Downloads\\trajectory.json",
+      descriptionFromEnd: true,
       variant: "success",
       durationMs: 6000,
       action: {
@@ -724,8 +729,6 @@
     </section>
   {/if}
 </main>
-
-<Toast />
 
 <style>
   main {
