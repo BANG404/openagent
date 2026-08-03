@@ -99,6 +99,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   ordinary grouping.
 - Render `render_mermaid` as a standalone virtual row from ToolCall source and
   restore it from the matching durable ToolResult.
+- During an active stream, the empty composer's primary action pauses output;
+  once paused it resumes output, unless a draft or attachment is present, in
+  which case it remains the send action. Sending a queued follow-up from the
+  paused state resumes the current stream so queue dispatch cannot deadlock.
+  Keep stop as a separate terminal action and clear transient pause state on
+  every terminal path and conversation switch.
 
 ## Attachments and editing
 
@@ -284,6 +290,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   shared composer slash-command palette. Its `-theme` and `-locale` query
   parameters must keep light/dark and Chinese/English keyboard, scrolling, and
   selection checks addressable without onboarding or native state.
+- Keep the development-only `pause-control-preview` query available for the
+  shared composer's streaming primary action. Its `-theme` and `-locale`
+  parameters must keep pause, resume, send, light/dark, and Chinese/English
+  checks addressable without a native runtime.
 - Keep the development-only `book-mode-preview` query available with long,
   process-bearing fixture content. Its `-theme` and `-locale` query parameters
   must keep two-column flow, multi-page navigation, process collapse, and

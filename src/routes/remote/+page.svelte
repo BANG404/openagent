@@ -100,6 +100,7 @@
   let sidebarCollapsed = $state(false);
   let optimisticUser = $state<ChatMessage | null>(null);
   let pendingAssistantMessageId = $state<string | null>(null);
+  let streamPaused = $state(false);
   let forkDisplayMessages = $state<ChatMessage[] | null>(null);
   let queuedChatMessages = $state<QueuedChatMessages>({});
   let resolvingInterrupt = $state<{
@@ -413,6 +414,7 @@
     fileChanges = [];
     optimisticUser = null;
     pendingAssistantMessageId = null;
+    streamPaused = false;
     forkDisplayMessages = null;
     try {
       [roles, remoteConversationMetas] = await Promise.all([
@@ -480,6 +482,7 @@
     fileChanges = [];
     optimisticUser = null;
     pendingAssistantMessageId = null;
+    streamPaused = false;
     forkDisplayMessages = null;
     resolvingInterrupt = null;
     error = "";
@@ -491,6 +494,7 @@
     disconnect = null;
     optimisticUser = null;
     pendingAssistantMessageId = null;
+    streamPaused = false;
     forkDisplayMessages = null;
     activeTree = undefined;
     activeBranchId = null;
@@ -528,6 +532,7 @@
           pendingAssistantMessageId = null;
         }
         if (previousPhase === "before_completion" && state.phase !== "before_completion") {
+          streamPaused = false;
           void refreshConversations();
           void loadConversationHistory(convId);
           if (
@@ -631,6 +636,7 @@
       });
       instruction = "";
       attachments = [];
+      if (streamPaused) await setStreamPaused(false);
       return;
     }
     busy = true;
@@ -837,6 +843,18 @@
   async function stopMessage() {
     if (!conversation || !running) return;
     await perform(() => client.cancelRemoteConversation(conversation!.conv_id));
+  }
+
+  async function setStreamPaused(paused: boolean) {
+    if (!conversation || !running) return;
+    const previous = streamPaused;
+    streamPaused = paused;
+    try {
+      await client.setConversationStreamPaused(conversation.conv_id, paused);
+    } catch (cause) {
+      if (streamPaused === paused) streamPaused = previous;
+      error = cause instanceof Error ? cause.message : String(cause);
+    }
   }
 
   async function answer(requestId: string, values: Record<string, unknown>) {
@@ -1169,11 +1187,15 @@
                     : $t("remoteNoModelsPlaceholder")}
                   disabled={!workspaceId || loadingWorkspace}
                   isStreaming={running}
+                  isPaused={streamPaused}
                   sendDisabled={(!instruction.trim() && attachments.length === 0) ||
                     !workspaceId ||
                     remoteModels.length === 0 ||
                     busy}
                   sendTitle={running ? $t("remoteQueueInstruction") : $t("send")}
+                  pauseTitle={$t("pauseOutput")}
+                  resumeTitle={$t("resumeOutput")}
+                  stopTitle={$t("stopOutput")}
                   showAttachments
                   showModelSelector
                   showStopButton
@@ -1182,6 +1204,8 @@
                     client.getRemoteAttachmentPreview(locator, name)}
                   onSend={sendInstruction}
                   onStop={stopMessage}
+                  onPause={() => setStreamPaused(true)}
+                  onResume={() => setStreamPaused(false)}
                 />
               {/if}
               {#if error}<p class="composer-error">{error}</p>{/if}
