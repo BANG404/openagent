@@ -223,7 +223,10 @@ revision and report the aggregate `Public SDK CI` commit status. Because
 workflow logs are public, SDK command output is suppressed, build outputs are
 never uploaded, and Rust target or compiler-output caches are disabled for jobs
 that compile private source. Only generic pass/fail diagnostics may appear in
-the public run. When a capability command fails, it records the name of that
+the public run. The Linux sandbox test may additionally expose one fixed
+`OPENAGENT_LINUX_SANDBOX_DIAGNOSTIC=[a-z-]+` category so a failed boundary stage
+can be identified without revealing commands, paths, environment values, or
+private source. When a capability command fails, it records the name of that
 command's `sdk-*.log` file; the runner reads only that file from its temporary
 directory, redacts values held in sensitive environment variables, limits the
 retained output, and creates a failed
