@@ -223,7 +223,9 @@ compatibility are independent jobs. GitHub's failed-job rerun therefore repeats
 only failed capabilities and the aggregate status. Dependency caches may hold
 Cargo registry/git data and Bun's public package downloads, but every Rust cache
 must set `cache-targets: false`; private target or compiler outputs remain
-forbidden in public caches.
+forbidden in public caches. A host-repository SDK gitlink update still selects
+every public consumer capability because that repository cannot infer the
+private path delta from the gitlink alone.
 
 ## Local Commands
 
