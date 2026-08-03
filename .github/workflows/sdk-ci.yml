@@ -7,6 +7,36 @@ on:
         description: Immutable commit from BANG404/openagent-sdk
         required: true
         type: string
+      rust:
+        description: Run Rust formatting, lint, and workspace tests
+        required: true
+        default: true
+        type: boolean
+      linux_sandbox:
+        description: Exercise the Linux process sandbox
+        required: true
+        default: true
+        type: boolean
+      macos_sandbox:
+        description: Exercise the macOS process sandbox
+        required: true
+        default: true
+        type: boolean
+      typescript:
+        description: Check and test the TypeScript SDK
+        required: true
+        default: true
+        type: boolean
+      harness:
+        description: Check the Harness client on Linux and Windows
+        required: true
+        default: true
+        type: boolean
+      host:
+        description: Check compatibility with the public host
+        required: true
+        default: true
+        type: boolean
 
 permissions:
   contents: read
@@ -56,21 +86,21 @@ jobs:
             -f description="Public runners are validating this private SDK revision" \
             -f target_url="$TARGET_URL" --silent
 
-  rust:
-    name: Rust workspace
+  rust-format:
+    name: Rust formatting
+    if: inputs.rust
     needs: pending
     runs-on: ubuntu-22.04
-    timeout-minutes: 45
+    timeout-minutes: 10
     steps:
       - name: Create SDK reporter token
         id: app-token
         uses: actions/create-github-app-token@v2
-        with:
+        with: &reporter
           app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
           repositories: openagent-sdk
-
       - name: Check out private SDK
         uses: actions/checkout@v7
         with:
@@ -79,11 +109,9 @@ jobs:
           path: sdk
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
-
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
-
+          components: rustfmt
       - name: Check Rust formatting
         working-directory: sdk
         run: |
@@ -92,6 +120,33 @@ jobs:
             exit 1
           fi
 
+  rust-clippy:
+    name: Rust lint
+    if: inputs.rust
+    needs: pending
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with: *reporter
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with: &sdk-checkout
+          repository: BANG404/openagent-sdk
+          ref: ${{ inputs.sdk_sha }}
+          path: sdk
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with: &rust-cache
+          workspaces: ./sdk -> target
+          shared-key: public-sdk-dependencies
+          cache-targets: false
       - name: Lint Rust workspace
         working-directory: sdk
         run: |
@@ -100,6 +155,48 @@ jobs:
             exit 1
           fi
 
+  rust-tests:
+    name: Rust tests
+    if: inputs.rust
+    needs: pending
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with: *reporter
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with: *sdk-checkout
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: *rust-cache
+      - name: Test Rust workspace
+        working-directory: sdk
+        run: |
+          if ! cargo test --workspace --all-features >"$RUNNER_TEMP/sdk-rust-test.log" 2>&1; then
+            echo "::error::Rust tests failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+  linux-process-sandbox:
+    name: Linux process sandbox
+    if: inputs.linux_sandbox
+    needs: pending
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with: *reporter
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with: *sdk-checkout
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: *rust-cache
       - name: Install Linux process sandbox dependency
         run: |
           sudo apt-get update >/dev/null
@@ -107,19 +204,19 @@ jobs:
           if sysctl -N kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 >/dev/null
           fi
-
-      - name: Test Rust workspace
+      - name: Exercise the Bubblewrap filesystem boundary
         working-directory: sdk
         env:
           OPENAGENT_BWRAP_INTEGRATION: "1"
         run: |
-          if ! cargo test --workspace --all-features >"$RUNNER_TEMP/sdk-rust-test.log" 2>&1; then
-            echo "::error::Rust tests failed; private diagnostic output was suppressed."
+          if ! cargo test -p openagent-runtime bubblewrap_writes_inside_workspace_and_hides_outside_files >"$RUNNER_TEMP/sdk-bubblewrap-test.log" 2>&1; then
+            echo "::error::Linux process sandbox test failed; private diagnostic output was suppressed."
             exit 1
           fi
 
   macos-process-sandbox:
     name: macOS process sandbox
+    if: inputs.macos_sandbox
     needs: pending
     runs-on: macos-latest
     timeout-minutes: 30
@@ -127,23 +224,13 @@ jobs:
       - name: Create SDK reporter token
         id: app-token
         uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
-          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
-          owner: BANG404
-          repositories: openagent-sdk
-
+        with: *reporter
       - name: Check out private SDK
         uses: actions/checkout@v7
-        with:
-          repository: BANG404/openagent-sdk
-          ref: ${{ inputs.sdk_sha }}
-          path: sdk
-          token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: false
-
+        with: *sdk-checkout
       - uses: dtolnay/rust-toolchain@stable
-
+      - uses: Swatinem/rust-cache@v2
+        with: *rust-cache
       - name: Exercise the Seatbelt filesystem boundary
         working-directory: sdk
         env:
@@ -154,8 +241,54 @@ jobs:
             exit 1
           fi
 
+  typescript:
+    name: TypeScript SDK
+    if: inputs.typescript
+    needs: pending
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with: *reporter
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with: *sdk-checkout
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+      - name: Cache public Bun packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: public-sdk-bun-${{ runner.os }}-typescript-${{ hashFiles('sdk/typescript/bun.lock') }}
+          restore-keys: public-sdk-bun-${{ runner.os }}-typescript-
+      - name: Install TypeScript SDK dependencies
+        working-directory: sdk/typescript
+        run: |
+          if ! bun install --frozen-lockfile >"$RUNNER_TEMP/sdk-typescript-install.log" 2>&1; then
+            echo "::error::TypeScript SDK dependency installation failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+      - name: Check TypeScript SDK
+        working-directory: sdk/typescript
+        run: |
+          if ! bun run check >"$RUNNER_TEMP/sdk-typescript-check.log" 2>&1; then
+            echo "::error::TypeScript SDK checking failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+      - name: Test TypeScript SDK
+        working-directory: sdk/typescript
+        run: |
+          if ! bun test >"$RUNNER_TEMP/sdk-typescript-test.log" 2>&1; then
+            echo "::error::TypeScript SDK tests failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
   harness-client:
     name: Harness client (${{ matrix.name }})
+    if: inputs.harness
     needs: pending
     strategy:
       fail-fast: false
@@ -171,27 +304,22 @@ jobs:
       - name: Create SDK reporter token
         id: app-token
         uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
-          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
-          owner: BANG404
-          repositories: openagent-sdk
-
+        with: *reporter
       - name: Check out private SDK
         uses: actions/checkout@v7
-        with:
-          repository: BANG404/openagent-sdk
-          ref: ${{ inputs.sdk_sha }}
-          path: sdk
-          token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: false
-
+        with: *sdk-checkout
       - uses: dtolnay/rust-toolchain@stable
-
+      - uses: Swatinem/rust-cache@v2
+        with: *rust-cache
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.21
-
+      - name: Cache public Bun packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: public-sdk-bun-${{ runner.os }}-harness-${{ hashFiles('sdk/harness-typescript/bun.lock') }}
+          restore-keys: public-sdk-bun-${{ runner.os }}-harness-
       - name: Build harness server
         shell: bash
         working-directory: sdk
@@ -200,7 +328,6 @@ jobs:
             echo "::error::Harness server build failed; private diagnostic output was suppressed."
             exit 1
           fi
-
       - name: Install harness dependencies
         shell: bash
         working-directory: sdk/harness-typescript
@@ -209,7 +336,6 @@ jobs:
             echo "::error::Harness dependency installation failed; private diagnostic output was suppressed."
             exit 1
           fi
-
       - name: Check harness types
         shell: bash
         working-directory: sdk/harness-typescript
@@ -218,7 +344,6 @@ jobs:
             echo "::error::Harness type checking failed; private diagnostic output was suppressed."
             exit 1
           fi
-
       - name: Verify harness OpenAPI
         shell: bash
         working-directory: sdk/harness-typescript
@@ -227,7 +352,6 @@ jobs:
             echo "::error::Harness OpenAPI verification failed; private diagnostic output was suppressed."
             exit 1
           fi
-
       - name: Test harness client
         shell: bash
         working-directory: sdk/harness-typescript
@@ -238,7 +362,6 @@ jobs:
             echo "::error::Harness client tests failed; private diagnostic output was suppressed."
             exit 1
           fi
-
       - name: Build harness package
         shell: bash
         working-directory: sdk/harness-typescript
@@ -247,7 +370,6 @@ jobs:
             echo "::error::Harness package build failed; private diagnostic output was suppressed."
             exit 1
           fi
-
       - name: Verify harness package contents
         shell: bash
         working-directory: sdk/harness-typescript
@@ -259,6 +381,7 @@ jobs:
 
   host-compatibility:
     name: Public host compatibility
+    if: inputs.host
     needs: pending
     runs-on: ubuntu-22.04
     timeout-minutes: 45
@@ -268,16 +391,10 @@ jobs:
         with:
           path: host
           submodules: false
-
       - name: Create SDK reporter token
         id: app-token
         uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
-          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
-          owner: BANG404
-          repositories: openagent-sdk
-
+        with: *reporter
       - name: Check out private SDK
         uses: actions/checkout@v7
         with:
@@ -286,7 +403,6 @@ jobs:
           path: host/sdk
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
-
       - name: Install Linux dependencies
         run: |
           sudo apt-get update >/dev/null
@@ -297,13 +413,21 @@ jobs:
             patchelf \
             libssl-dev \
             pkg-config >/dev/null
-
       - uses: dtolnay/rust-toolchain@stable
-
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ./host/src-tauri -> target
+          shared-key: public-sdk-host-dependencies
+          cache-targets: false
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.21
-
+      - name: Cache public Bun packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: public-sdk-bun-${{ runner.os }}-host-${{ hashFiles('host/bun.lock') }}
+          restore-keys: public-sdk-bun-${{ runner.os }}-host-
       - name: Install host dependencies
         working-directory: host
         run: |
@@ -311,7 +435,6 @@ jobs:
             echo "::error::Host dependency installation failed; private diagnostic output was suppressed."
             exit 1
           fi
-
       - name: Check public frontend compatibility
         working-directory: host
         run: |
@@ -319,7 +442,6 @@ jobs:
             echo "::error::Public frontend compatibility failed; private diagnostic output was suppressed."
             exit 1
           fi
-
       - name: Check public native compatibility
         working-directory: host
         run: |
@@ -333,40 +455,55 @@ jobs:
     if: always()
     needs:
       - pending
-      - rust
+      - rust-format
+      - rust-clippy
+      - rust-tests
+      - linux-process-sandbox
       - macos-process-sandbox
+      - typescript
       - harness-client
       - host-compatibility
     runs-on: ubuntu-22.04
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v7
+      - name: Require every selected SDK capability to pass
+        id: verify
+        continue-on-error: true
+        env:
+          CHANGES_RESULT: ${{ needs.pending.result }}
+          CI_RESULT_MODULES: rust-format,rust-clippy,rust-tests,linux-process-sandbox,macos-process-sandbox,typescript,harness-client,host-compatibility
+          RUST_FORMAT_SELECTED: ${{ inputs.rust }}
+          RUST_FORMAT_RESULT: ${{ needs.rust-format.result }}
+          RUST_CLIPPY_SELECTED: ${{ inputs.rust }}
+          RUST_CLIPPY_RESULT: ${{ needs.rust-clippy.result }}
+          RUST_TESTS_SELECTED: ${{ inputs.rust }}
+          RUST_TESTS_RESULT: ${{ needs.rust-tests.result }}
+          LINUX_PROCESS_SANDBOX_SELECTED: ${{ inputs.linux_sandbox }}
+          LINUX_PROCESS_SANDBOX_RESULT: ${{ needs.linux-process-sandbox.result }}
+          MACOS_PROCESS_SANDBOX_SELECTED: ${{ inputs.macos_sandbox }}
+          MACOS_PROCESS_SANDBOX_RESULT: ${{ needs.macos-process-sandbox.result }}
+          TYPESCRIPT_SELECTED: ${{ inputs.typescript }}
+          TYPESCRIPT_RESULT: ${{ needs.typescript.result }}
+          HARNESS_CLIENT_SELECTED: ${{ inputs.harness }}
+          HARNESS_CLIENT_RESULT: ${{ needs.harness-client.result }}
+          HOST_COMPATIBILITY_SELECTED: ${{ inputs.host }}
+          HOST_COMPATIBILITY_RESULT: ${{ needs.host-compatibility.result }}
+        run: node scripts/verify-ci-results.mjs
       - name: Create SDK reporter token
         id: app-token
         uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
-          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
-          owner: BANG404
-          repositories: openagent-sdk
-
+        with: *reporter
       - name: Report final SDK status
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           SDK_SHA: ${{ inputs.sdk_sha }}
-          PENDING_RESULT: ${{ needs.pending.result }}
-          RUST_RESULT: ${{ needs.rust.result }}
-          MACOS_SANDBOX_RESULT: ${{ needs.macos-process-sandbox.result }}
-          HARNESS_RESULT: ${{ needs.harness-client.result }}
-          HOST_RESULT: ${{ needs.host-compatibility.result }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
           TARGET_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           state=failure
           description="Public SDK validation failed"
-          if [[ "$PENDING_RESULT" == success \
-            && "$RUST_RESULT" == success \
-            && "$MACOS_SANDBOX_RESULT" == success \
-            && "$HARNESS_RESULT" == success \
-            && "$HOST_RESULT" == success ]]; then
+          if [[ "$VERIFY_OUTCOME" == success ]]; then
             state=success
             description="Public SDK validation passed"
           fi
