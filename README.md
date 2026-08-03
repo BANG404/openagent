@@ -192,7 +192,7 @@ Open **Settings → General → Approval Mode** to control how agent tool calls 
 | **Manual** | Ask you to approve every tool call. |
 | **Automatic** | A Flash task assesses the impact; important or uncertain calls still come to you for review. |
 | **Off** | Run all tool calls without the approval flow. |
-| **Sandbox** (default) | Apply the workspace policy only to file-management and terminal tools: workspace-local work proceeds, while attempts to escape the workspace are denied. Other built-in and MCP tools keep their normal behavior. |
+| **Sandbox** (default) | Apply the workspace policy only to file-management and terminal tools: workspace-local work proceeds, while attempts to escape the workspace are denied. Approving a paused file-tool call permits that exact call to run but does not grant access outside the workspace. Other built-in and MCP tools keep their normal behavior. |
 
 ---
 
