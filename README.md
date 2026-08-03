@@ -112,7 +112,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 
 ### Install a release build
 
-Download the latest installer or app bundle from [GitHub Releases](https://github.com/BANG404/openagent/releases). OpenAgent publishes separate **beta** and **stable** update channels; you can also check for updates manually from Settings.
+Download the latest installer or app bundle from [GitHub Releases](https://github.com/BANG404/openagent/releases). OpenAgent publishes separate **beta** and **stable** update channels; you can also check for updates manually from Settings. Manual checks show progress, time out if the updater endpoint does not respond, and leave the action retryable with visible success or failure feedback.
 
 To build from source instead, continue below.
 

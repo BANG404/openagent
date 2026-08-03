@@ -113,7 +113,7 @@
 
 ### 安装发行版
 
-从 [GitHub Releases](https://github.com/BANG404/openagent/releases) 下载最新安装包或应用包。OpenAgent 分别提供 **beta** 与 **stable** 更新渠道，也可在设置中手动检查更新。
+从 [GitHub Releases](https://github.com/BANG404/openagent/releases) 下载最新安装包或应用包。OpenAgent 分别提供 **beta** 与 **stable** 更新渠道，也可在设置中手动检查更新。手动检查会显示进度；更新源无响应时会超时，并以可见的成功或失败提示恢复为可重试状态。
 
 如需从源码构建，请继续执行以下步骤。
 

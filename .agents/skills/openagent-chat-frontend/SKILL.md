@@ -292,6 +292,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 ## IPC and events
 
+- Application update checks expose one shared `idle`/`checking`/`installing`
+  state to every desktop surface. Manual checks must disable duplicate input,
+  show visible progress, apply a finite timeout, surface localized success or
+  failure feedback, and always return to a retryable state after errors.
 - Keep Rust event payloads aligned with `src/lib/types.ts`.
 - Global frontend diagnostics may cross the local Tauri boundary only as
   allowlisted event, component, and error-type labels. Never forward exception
