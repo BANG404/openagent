@@ -2,49 +2,65 @@
 import { describe, expect, test } from "bun:test";
 import { classifyChangedModules } from "../scripts/ci-changes.mjs";
 
+const nothing = {
+  automation: false,
+  frontend: false,
+  nativeQuality: false,
+  nativePlatform: false,
+  embedding: false,
+  harness: false,
+};
+
 describe("CI module classification", () => {
   test("runs only frontend checks for UI and frontend test changes", () => {
     expect(classifyChangedModules(["src/lib/chatStream.ts", "tests/chatStream.test.ts"])).toEqual({
-      automation: false,
+      ...nothing,
       frontend: true,
-      native: false,
     });
   });
 
-  test("runs only native checks for Rust changes", () => {
-    expect(classifyChangedModules(["src-tauri/src/mcp.rs"])).toEqual({
-      automation: false,
-      frontend: false,
-      native: true,
+  test("runs Rust quality and platform checks for ordinary native changes", () => {
+    expect(classifyChangedModules(["src-tauri/src/lib.rs"])).toEqual({
+      ...nothing,
+      nativeQuality: true,
+      nativePlatform: true,
     });
   });
 
-  test("runs every module when the CI router changes", () => {
-    expect(classifyChangedModules([".github/workflows/ci.yml"])).toEqual({
+  test("runs every capability when the CI router or result verifier changes", () => {
+    const all = {
       automation: true,
       frontend: true,
-      native: true,
-    });
+      nativeQuality: true,
+      nativePlatform: true,
+      embedding: true,
+      harness: true,
+    };
+    expect(classifyChangedModules([".github/workflows/ci.yml"])).toEqual(all);
+    expect(classifyChangedModules(["scripts/ci-changes.mjs"])).toEqual(all);
+    expect(classifyChangedModules(["scripts/verify-ci-results.mjs"])).toEqual(all);
   });
 
   test("runs only automation for release workflow changes", () => {
     expect(classifyChangedModules([".github/workflows/release.yml"])).toEqual({
+      ...nothing,
       automation: true,
-      frontend: false,
-      native: false,
     });
   });
 
   test("runs the module owned by a reusable check workflow", () => {
     expect(classifyChangedModules([".github/workflows/check-frontend.yml"])).toEqual({
+      ...nothing,
       automation: true,
       frontend: true,
-      native: false,
     });
     expect(classifyChangedModules([".github/workflows/check-native.yml"])).toEqual({
       automation: true,
       frontend: false,
-      native: true,
+      nativeQuality: true,
+      nativePlatform: true,
+      embedding: true,
+      harness: true,
     });
   });
 
@@ -52,7 +68,10 @@ describe("CI module classification", () => {
     expect(classifyChangedModules(["package.json", "bun.lock"])).toEqual({
       automation: true,
       frontend: true,
-      native: true,
+      nativeQuality: true,
+      nativePlatform: true,
+      embedding: true,
+      harness: true,
     });
   });
 
@@ -60,7 +79,45 @@ describe("CI module classification", () => {
     expect(classifyChangedModules(["sdk"])).toEqual({
       automation: false,
       frontend: true,
-      native: true,
+      nativeQuality: true,
+      nativePlatform: true,
+      embedding: true,
+      harness: true,
+    });
+  });
+
+  test("isolates embedding resource and harness contract checks", () => {
+    expect(
+      classifyChangedModules(["src-tauri/resources/models/all-MiniLM-L6-v2-q/config.json"]),
+    ).toEqual({
+      ...nothing,
+      embedding: true,
+    });
+    expect(classifyChangedModules(["scripts/fetch-embedding-model.mjs"])).toEqual({
+      ...nothing,
+      automation: true,
+      embedding: true,
+    });
+    expect(classifyChangedModules(["scripts/test-harness-integration.mjs"])).toEqual({
+      ...nothing,
+      automation: true,
+      harness: true,
+    });
+  });
+
+  test("reruns embedding coverage when native dependencies change", () => {
+    expect(classifyChangedModules(["src-tauri/Cargo.toml"])).toEqual({
+      ...nothing,
+      nativeQuality: true,
+      nativePlatform: true,
+      embedding: true,
+    });
+  });
+
+  test("keeps automation-only tests out of the frontend suite", () => {
+    expect(classifyChangedModules(["tests/ciResults.test.js"])).toEqual({
+      ...nothing,
+      automation: true,
     });
   });
 
@@ -77,23 +134,25 @@ describe("CI module classification", () => {
     ).toEqual({
       automation: true,
       frontend: false,
-      native: false,
+      nativeQuality: false,
+      nativePlatform: false,
+      embedding: false,
+      harness: false,
     });
   });
 
   test("skips expensive modules for documentation-only changes", () => {
-    expect(classifyChangedModules(["README.md", "docs/design.md"])).toEqual({
-      automation: false,
-      frontend: false,
-      native: false,
-    });
+    expect(classifyChangedModules(["README.md", "docs/design.md"])).toEqual(nothing);
   });
 
   test("can force a complete run when no reliable base commit exists", () => {
     expect(classifyChangedModules([], true)).toEqual({
       automation: true,
       frontend: true,
-      native: true,
+      nativeQuality: true,
+      nativePlatform: true,
+      embedding: true,
+      harness: true,
     });
   });
 });

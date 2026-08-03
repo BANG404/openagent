@@ -24,24 +24,34 @@ export function verifyCiResults({ changes, modules }) {
   }
 }
 
+/**
+ * @param {NodeJS.ProcessEnv} env
+ */
+export function readCiResultState(env = process.env) {
+  const moduleNames = (env.CI_RESULT_MODULES ?? "automation,frontend,native")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+
+  return {
+    changes: env.CHANGES_RESULT ?? "",
+    modules: Object.fromEntries(
+      moduleNames.map((name) => {
+        const envPrefix = name.replaceAll(/[^a-zA-Z0-9]/g, "_").toUpperCase();
+        return [
+          name,
+          {
+            selected: env[`${envPrefix}_SELECTED`] === "true",
+            result: env[`${envPrefix}_RESULT`] ?? "",
+          },
+        ];
+      }),
+    ),
+  };
+}
+
 function main() {
-  verifyCiResults({
-    changes: process.env.CHANGES_RESULT ?? "",
-    modules: {
-      automation: {
-        selected: process.env.AUTOMATION_SELECTED === "true",
-        result: process.env.AUTOMATION_RESULT ?? "",
-      },
-      frontend: {
-        selected: process.env.FRONTEND_SELECTED === "true",
-        result: process.env.FRONTEND_RESULT ?? "",
-      },
-      native: {
-        selected: process.env.NATIVE_SELECTED === "true",
-        result: process.env.NATIVE_RESULT ?? "",
-      },
-    },
-  });
+  verifyCiResults(readCiResultState());
   console.log("Every selected CI module passed.");
 }
 
