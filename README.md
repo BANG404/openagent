@@ -141,8 +141,9 @@ installing or building.
 
 The desktop Cargo workspace also pins the proxy-capable WebSocket forks
 required by the audited Codex Windows sandbox revision used by the SDK. Keep
-those root-level patches aligned when advancing the SDK gitlink; Cargo does not
-inherit patches from a transitive workspace.
+those root-level patches and the compatible `blake3` lock aligned when
+advancing the SDK gitlink; Cargo does not inherit patches from a transitive
+workspace, and the sandbox policy parser requires its exact hashing version.
 
 ### Run in dev mode
 
