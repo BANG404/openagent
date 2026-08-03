@@ -214,8 +214,10 @@ commit is tested against the latest target branch.
 
 Private SDK changes use the public `sdk-ci.yml` workflow so their Rust,
 Harness, host-compatibility, and native process-sandbox jobs run on public
-runners. Linux Rust tests install Bubblewrap and enable the real filesystem
-boundary test; a dedicated macOS job exercises the system Seatbelt boundary.
+runners. Linux sandbox tests run on Ubuntu 24, install Bubblewrap, disable only
+that image's AppArmor restriction on unprivileged user namespaces, and enable
+the real filesystem boundary test; a dedicated macOS job exercises the system
+Seatbelt boundary.
 Both are required by the aggregate rather than being optional smoke checks.
 The private repository dispatches an immutable commit SHA; a GitHub App
 installed only on the SDK repository lets the public workflow read that
