@@ -44,6 +44,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Use the backend-preallocated assistant message ID as the live row key.
   Streaming and durable forms must share the same assistant-turn branch and
   keyed stream-item children.
+- Reduce logical Turn metadata from checkpoints on the selected branch and
+  attach it to the backend-preallocated response message. A tool interrupt and
+  its resume keep that Turn key; only terminal Turn states expose duration,
+  regenerate, copy, and book-mode actions. Ignore typed `memory` user content
+  in every ordinary transcript, index, edit, copy, and book projection.
 - Finalization updates the existing row instead of replacing its DOM subtree,
   preserving open thinking sections. Restored historical thinking starts
   collapsed.

@@ -1026,6 +1026,7 @@
                 ...message,
                 items: restored.items ?? message.items,
                 checkpointId: restored.checkpointId ?? message.checkpointId,
+                turn: restored.turn ?? message.turn,
                 tags: restored.tags ?? message.tags,
                 agentTag: restored.agentTag ?? message.agentTag,
               };

@@ -103,6 +103,35 @@ describe("tool-call grouping", () => {
     expect(isAssistantTurnEntry(completedEntries[0])).toBe(true);
   });
 
+  test("keeps the original turn key when interrupt resume appends assistant records", () => {
+    const entries = groupAssistantTurns(
+      groupMessageToolCalls([
+        {
+          msg: {
+            ...message("assistant-turn", call("ask_user", "answered")),
+            turn: {
+              id: "assistant-turn",
+              input_message_id: "user-1",
+              response_message_id: "assistant-turn",
+              status: "completed",
+              started_at: 10,
+              completed_at: 30,
+              duration_ms: 20,
+            },
+          },
+          index: 1,
+        },
+        {
+          msg: { id: "assistant-after-resume", role: "assistant", content: "done", timestamp: 30 },
+          index: 2,
+        },
+      ]),
+    );
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.key).toBe("assistant-turn");
+  });
+
   test("collapses every durable record in one assistant reply into one turn row", () => {
     const entries = groupAssistantTurns(
       groupMessageToolCalls([

@@ -1,12 +1,14 @@
-// Conversation as a tree of checkpoints. Each tree node represents one turn
-// (user msg + assistant response) and carries its checkpoint_id. Siblings under a
-// common parent are alternate variants; the active path through the tree is what
-// the user sees. Nested branch arrows fall out naturally from rendering this path.
+// Conversation as a tree of recovery checkpoints. One logical Turn may span
+// several nodes while tools, interrupts, and resumes advance the same branch.
+// Turn metadata is reduced along the selected path and attached to its stable
+// response message before the product transcript is rendered.
 
 import { appendChunk } from "./chatStream";
 import type {
   ChatMessage,
+  CheckpointMetadataFields,
   CheckpointMessage,
+  CheckpointTurnMetadata,
   RenderableCheckpoint,
   StreamItem,
   UserInputRequest,
@@ -42,6 +44,7 @@ export interface CkTreeNode {
   systemMessages?: ChatMessage[];
   flowKind?: "goal" | "graph" | "graph-node";
   flowStatus?: string;
+  turn?: CheckpointTurnMetadata;
   /** User-visible messages in this checkpoint's complete self-contained snapshot. */
   timelineMessages: ChatMessage[];
   /** Whether timelineMessages contains the complete parent snapshot as well. */
@@ -53,6 +56,16 @@ export interface ConvTree {
   nodes: Record<string, CkTreeNode>;
   rootIds: string[]; // ckIds whose parentCkId is null
   activeChild: Record<string, number>; // parentCkId (or ROOT_KEY) → index into childIds/rootIds
+}
+
+function checkpointTurnMetadata(metadata: string): CheckpointTurnMetadata | undefined {
+  try {
+    const parsed = JSON.parse(metadata) as Partial<CheckpointMetadataFields>;
+    const turn = parsed.turn;
+    return turn && typeof turn.id === "string" ? turn : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function isCompactionBoundary(message: ChatMessage): boolean {
@@ -307,11 +320,7 @@ function orderCheckpointRecords(records: CheckpointMessage[]): CheckpointMessage
   return records;
 }
 
-// Build the conversation tree from chat messages + checkpoint metadata.
-// Each turn = one user msg + one assistant msg sharing the same checkpoint_id;
-// assistant messages carry the checkpoint_id directly, user messages are paired
-// by their immediately-preceding position in time. Parent-child links come from
-// CheckpointMeta.parent_checkpoint_id.
+// Build the recovery tree from complete checkpoint snapshots and metadata.
 export function buildTreeFromCheckpoints(
   checkpoints: RenderableCheckpoint[],
   previousTree?: ConvTree,
@@ -335,6 +344,7 @@ export function buildTreeFromCheckpoints(
         typeof checkpoint.data.flow?.state.status === "string"
           ? checkpoint.data.flow.state.status
           : undefined,
+      turn: checkpointTurnMetadata(m.metadata),
       timelineMessages: [],
       isSelfContainedSnapshot: false,
       childIds: [],
@@ -434,6 +444,7 @@ export function buildTreeFromCheckpoints(
 // User messages get checkpointId stamped on them so UI can find sibling info.
 export function computeActivePath(tree: ConvTree): ChatMessage[] {
   const path: ChatMessage[] = [];
+  const selectedNodes: CkTreeNode[] = [];
   if (tree.rootIds.length === 0) return path;
   let ckId: string | undefined =
     tree.rootIds[tree.activeChild[ROOT_KEY] ?? tree.rootIds.length - 1];
@@ -441,6 +452,7 @@ export function computeActivePath(tree: ConvTree): ChatMessage[] {
   while (ckId) {
     const node: CkTreeNode | undefined = tree.nodes[ckId];
     if (!node) break;
+    selectedNodes.push(node);
     path.push(
       ...node.timelineMessages.map((message) =>
         message.role === "user" ? { ...message, checkpointId: node.ckId } : message,
@@ -455,11 +467,29 @@ export function computeActivePath(tree: ConvTree): ChatMessage[] {
   // self-contained transcript, render it directly rather than reconstructing
   // the same conversation from its parents.
   if (tip?.isSelfContainedSnapshot) {
-    return tip.timelineMessages.map((message) =>
-      message.role === "user" ? { ...message, checkpointId: tip.ckId } : message,
+    return attachSelectedTurnMetadata(
+      tip.timelineMessages.map((message) =>
+        message.role === "user" ? { ...message, checkpointId: tip.ckId } : message,
+      ),
+      selectedNodes,
     );
   }
-  return path;
+  return attachSelectedTurnMetadata(path, selectedNodes);
+}
+
+function attachSelectedTurnMetadata(
+  messages: ChatMessage[],
+  selectedNodes: CkTreeNode[],
+): ChatMessage[] {
+  const byResponseMessageId = new Map<string, CheckpointTurnMetadata>();
+  for (const node of selectedNodes) {
+    if (node.turn) byResponseMessageId.set(node.turn.response_message_id, node.turn);
+  }
+  if (byResponseMessageId.size === 0) return messages;
+  return messages.map((message) => {
+    const turn = byResponseMessageId.get(message.id);
+    return turn ? { ...message, turn } : message;
+  });
 }
 
 // Select the unique root-to-tip path. The persisted value is a checkpoint id,
