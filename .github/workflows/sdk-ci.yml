@@ -36,9 +36,9 @@ jobs:
 
       - name: Create SDK reporter token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          client-id: ${{ vars.OPENAGENT_CI_REPORTER_CLIENT_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
           repositories: openagent-sdk
@@ -64,9 +64,9 @@ jobs:
     steps:
       - name: Create SDK reporter token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          client-id: ${{ vars.OPENAGENT_CI_REPORTER_CLIENT_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
           repositories: openagent-sdk
@@ -124,9 +124,9 @@ jobs:
     steps:
       - name: Create SDK reporter token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          client-id: ${{ vars.OPENAGENT_CI_REPORTER_CLIENT_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
           repositories: openagent-sdk
@@ -225,9 +225,9 @@ jobs:
 
       - name: Create SDK reporter token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          client-id: ${{ vars.OPENAGENT_CI_REPORTER_CLIENT_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
           repositories: openagent-sdk
@@ -295,9 +295,9 @@ jobs:
     steps:
       - name: Create SDK reporter token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          client-id: ${{ vars.OPENAGENT_CI_REPORTER_CLIENT_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
           repositories: openagent-sdk
