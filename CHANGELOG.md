@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.32.0-beta.1] - 2026-08-03
+
+### Features
+- **telemetry**: Add opt-out diagnostic collection (#23)
+
+### Bug Fixes
+- **sidebar**: Pin history controls beside collapse (#28)
+- **chat**: Keep virtual row measurements stable (#26)
+- **chat**: Stabilize virtual transcript navigation (#24)
+- **quick-chat**: Focus composer on shortcut open (#22)
+- **chat**: Defer reply actions until completion (#21)
+
+### Miscellaneous
+- **deps**: Lock telemetry dependencies (#25)
+
 ## [0.31.0-beta.1] - 2026-08-02
 
 ### Features
