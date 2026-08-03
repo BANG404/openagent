@@ -334,6 +334,9 @@ jobs:
           Copy-Item "src-tauri\resources\models\all-MiniLM-L6-v2-q" `
             (Join-Path $stage "models\all-MiniLM-L6-v2-q") `
             -Recurse
+          Copy-Item "src-tauri\resources\codex-resources" `
+            (Join-Path $stage "codex-resources") `
+            -Recurse
 
           $tauriConfig = Get-Content -Raw "src-tauri\tauri.conf.json" | ConvertFrom-Json
           if ($tauriConfig.version -notmatch '^(\d+)\.(\d+)\.(\d+)$') {
@@ -397,6 +400,12 @@ jobs:
           $modelPath = Join-Path $stage "models\all-MiniLM-L6-v2-q\model_quantized.onnx"
           if (-not (Test-Path -LiteralPath $modelPath)) {
             throw "Microsoft Store package staging is missing the bundled embedding model."
+          }
+          foreach ($helper in @("codex-windows-sandbox-setup.exe", "codex-command-runner.exe")) {
+            $helperPath = Join-Path $stage "codex-resources\$helper"
+            if (-not (Test-Path -LiteralPath $helperPath)) {
+              throw "Microsoft Store package staging is missing Windows sandbox helper $helper."
+            }
           }
 
           winapp pack $stage `

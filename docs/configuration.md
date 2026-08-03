@@ -77,21 +77,26 @@ nearest existing ancestor of new targets are canonicalized before matching, so
 An `external` profile delegates confinement to the embedding host, while
 `disabled` explicitly selects ambient host filesystem access. These are
 different security contracts and are not inferred from the approval mode. The
-profile also records whether network access is `enabled` or `restricted`; the
+profile also records whether network access is `enabled` or `restricted`; new
+and legacy configurations default to `restricted`. The
 runtime SDK now provides one shared process-sandbox contract for foreground,
 background, resumed-approval, and delegated terminal launches. The desktop
-product registers the native backend on Linux and macOS. Linux uses Bubblewrap
-for mount and network namespace isolation. `bwrap` must be available on `PATH`,
-and its resolved executable and ancestor directories must be root-owned and not
-group- or world-writable. macOS uses the fixed system `sandbox-exec` executable
+product registers the native backend on every supported platform. Linux uses
+Bubblewrap for mount and network namespace isolation. `bwrap` must be available
+on `PATH`, and its resolved executable and ancestor directories must be
+root-owned and not group- or world-writable. macOS uses the fixed system
+`sandbox-exec` executable
 and a deny-by-default Seatbelt policy. A managed terminal launch fails before
 spawning when the selected backend or its trusted executable cannot enforce the
-requested filesystem or restricted-network capability. Windows uses the Codex
-restricted-token wrapper with capability SIDs, ACL overlays, inherited standard
-I/O, and a kill-on-close Job Object. Its non-elevated backend enforces the
-filesystem policy but does not claim restricted-network support; an explicitly
-restricted network profile therefore fails before spawn until the elevated WFP
-setup lifecycle is packaged.
+requested filesystem or restricted-network capability. Windows uses the pinned
+Codex wrapper with capability SIDs, ACL overlays, inherited standard I/O, and a
+kill-on-close Job Object. Network-enabled profiles use its non-elevated
+restricted-token backend. Restricted profiles run under its elevated offline
+account with persistent WFP filters. OpenAgent builds and bundles the matching
+setup and command-runner helpers from the same immutable Codex revision; the
+first restricted launch may request UAC consent for provisioning. Missing
+helpers, declined elevation, or failed setup aborts the command without falling
+back to a weaker process boundary.
 
 Built-in read, list, search, create, and edit tools do not depend on the
 terminal backend. They run in process and route every model-facing path through

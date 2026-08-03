@@ -31,7 +31,7 @@ describe("permission profile config", () => {
           { path: { kind: "workspace" }, access: "write" },
         ],
       },
-      network: "enabled",
+      network: "restricted",
     });
   });
 
