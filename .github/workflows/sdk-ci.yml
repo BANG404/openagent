@@ -100,11 +100,57 @@ jobs:
             exit 1
           fi
 
+      - name: Install Linux process sandbox dependency
+        run: |
+          sudo apt-get update >/dev/null
+          sudo apt-get install -y bubblewrap >/dev/null
+          if sysctl -N kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 >/dev/null
+          fi
+
       - name: Test Rust workspace
         working-directory: sdk
+        env:
+          OPENAGENT_BWRAP_INTEGRATION: "1"
         run: |
           if ! cargo test --workspace --all-features >"$RUNNER_TEMP/sdk-rust-test.log" 2>&1; then
             echo "::error::Rust tests failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
+  macos-process-sandbox:
+    name: macOS process sandbox
+    needs: pending
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ inputs.sdk_sha }}
+          path: sdk
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Exercise the Seatbelt filesystem boundary
+        working-directory: sdk
+        env:
+          OPENAGENT_SEATBELT_INTEGRATION: "1"
+        run: |
+          if ! cargo test -p openagent-runtime seatbelt_writes_inside_workspace_and_hides_outside_files >"$RUNNER_TEMP/sdk-seatbelt-test.log" 2>&1; then
+            echo "::error::macOS process sandbox test failed; private diagnostic output was suppressed."
             exit 1
           fi
 
@@ -288,6 +334,7 @@ jobs:
     needs:
       - pending
       - rust
+      - macos-process-sandbox
       - harness-client
       - host-compatibility
     runs-on: ubuntu-22.04
@@ -308,6 +355,7 @@ jobs:
           SDK_SHA: ${{ inputs.sdk_sha }}
           PENDING_RESULT: ${{ needs.pending.result }}
           RUST_RESULT: ${{ needs.rust.result }}
+          MACOS_SANDBOX_RESULT: ${{ needs.macos-process-sandbox.result }}
           HARNESS_RESULT: ${{ needs.harness-client.result }}
           HOST_RESULT: ${{ needs.host-compatibility.result }}
           TARGET_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -316,6 +364,7 @@ jobs:
           description="Public SDK validation failed"
           if [[ "$PENDING_RESULT" == success \
             && "$RUST_RESULT" == success \
+            && "$MACOS_SANDBOX_RESULT" == success \
             && "$HARNESS_RESULT" == success \
             && "$HOST_RESULT" == success ]]; then
             state=success
