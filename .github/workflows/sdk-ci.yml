@@ -243,7 +243,12 @@ jobs:
         run: |
           if ! cargo test -p openagent-runtime bubblewrap_writes_inside_workspace_and_hides_outside_files >"$RUNNER_TEMP/sdk-bubblewrap-test.log" 2>&1; then
             echo "sdk-bubblewrap-test.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
-            echo "::error::Linux process sandbox test failed; private diagnostic output was suppressed."
+            diagnostic="$(grep -oE 'OPENAGENT_LINUX_SANDBOX_DIAGNOSTIC=[a-z-]+' "$RUNNER_TEMP/sdk-bubblewrap-test.log" | tail -n 1 || true)"
+            if [[ -n "$diagnostic" ]]; then
+              echo "::error::Linux process sandbox test failed: $diagnostic. Private diagnostic output was suppressed."
+            else
+              echo "::error::Linux process sandbox test failed; private diagnostic output was suppressed."
+            fi
             exit 1
           fi
       - *checkout-private-diagnostic-reporter
