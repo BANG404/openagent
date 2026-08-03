@@ -2,6 +2,27 @@ name: Native desktop checks
 
 on:
   workflow_call:
+    inputs:
+      quality:
+        description: Run Linux Rust formatting, lint, tests, and boundary checks
+        required: false
+        default: false
+        type: boolean
+      platform:
+        description: Compile every Rust target on Windows and macOS
+        required: false
+        default: false
+        type: boolean
+      embedding:
+        description: Verify and exercise the bundled embedding model
+        required: false
+        default: false
+        type: boolean
+      harness:
+        description: Verify the Harness OpenAPI and server integration contract
+        required: false
+        default: false
+        type: boolean
     secrets:
       OPENAGENT_SDK_DEPLOY_KEY:
         required: true
@@ -12,6 +33,7 @@ permissions:
 jobs:
   quality:
     name: Rust quality
+    if: inputs.quality
     runs-on: ubuntu-22.04
     timeout-minutes: 45
     steps:
@@ -46,10 +68,6 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.2.21
-
       - name: Verify private SDK boundary
         run: node scripts/verify-private-sdk-boundary.mjs
 
@@ -68,19 +86,9 @@ jobs:
       - name: Run Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
 
-      - name: Verify bundled embedding resources
-        run: bun run check:embedding-model
-
-      - name: Verify harness OpenAPI contract
-        run: bun run check:harness-openapi
-
-      - name: Exercise the harness server contract
-        run: bun run test:harness-integration
-
-  # Release builds the complete application on every supported platform. CI
-  # keeps platform coverage lightweight by checking conditional Rust targets.
   platform:
     name: Check ${{ matrix.name }}
+    if: inputs.platform
     strategy:
       fail-fast: false
       matrix:
@@ -136,7 +144,76 @@ jobs:
         if: runner.os != 'Windows'
         run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
 
+      - name: Report sccache statistics
+        if: always() && runner.os == 'Windows'
+        env:
+          SCCACHE_GHA_ENABLED: "true"
+        run: sccache --show-stats
+
+  embedding-resources:
+    name: Verify embedding resources
+    if: inputs.embedding
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+
+      - name: Verify bundled embedding resources
+        run: bun run check:embedding-model
+
+  embedding-platform:
+    name: Exercise embedding model on ${{ matrix.name }}
+    if: inputs.embedding
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+          - name: macOS arm64
+            os: macos-15
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve pinned SDK revision
+        id: sdk
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ steps.sdk.outputs.sha }}
+          path: sdk
+          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+          shared-key: embedding-${{ matrix.os }}
+          cache-targets: ${{ runner.os != 'Windows' }}
+          key: ${{ runner.os == 'Windows' && 'registry-only-v1' || '' }}
+
+      - name: Set up sccache
+        if: runner.os == 'Windows'
+        uses: mozilla-actions/sccache-action@v0.0.11
+        with:
+          version: v0.16.0
+
       - name: Exercise bundled embedding model
+        env:
+          SCCACHE_GHA_ENABLED: ${{ runner.os == 'Windows' && 'true' || '' }}
+          RUSTC_WRAPPER: ${{ runner.os == 'Windows' && 'sccache' || '' }}
         run: cargo test --manifest-path src-tauri/Cargo.toml bundled_embedding_model_runs_offline
 
       - name: Report sccache statistics
@@ -144,3 +221,71 @@ jobs:
         env:
           SCCACHE_GHA_ENABLED: "true"
         run: sccache --show-stats
+
+  harness:
+    name: Harness contract
+    if: inputs.harness
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve pinned SDK revision
+        id: sdk
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ steps.sdk.outputs.sha }}
+          path: sdk
+          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ./sdk -> target
+          shared-key: harness
+
+      - name: Verify harness OpenAPI contract
+        run: bun run check:harness-openapi
+
+      - name: Exercise the harness server contract
+        run: bun run test:harness-integration
+
+  required:
+    name: Required native capabilities
+    if: always()
+    needs:
+      - quality
+      - platform
+      - embedding-resources
+      - embedding-platform
+      - harness
+    runs-on: ubuntu-22.04
+    env:
+      CHANGES_RESULT: success
+      CI_RESULT_MODULES: quality,platform,embedding-resources,embedding-platform,harness
+      QUALITY_SELECTED: ${{ inputs.quality }}
+      QUALITY_RESULT: ${{ needs.quality.result }}
+      PLATFORM_SELECTED: ${{ inputs.platform }}
+      PLATFORM_RESULT: ${{ needs.platform.result }}
+      EMBEDDING_RESOURCES_SELECTED: ${{ inputs.embedding }}
+      EMBEDDING_RESOURCES_RESULT: ${{ needs.embedding-resources.result }}
+      EMBEDDING_PLATFORM_SELECTED: ${{ inputs.embedding }}
+      EMBEDDING_PLATFORM_RESULT: ${{ needs.embedding-platform.result }}
+      HARNESS_SELECTED: ${{ inputs.harness }}
+      HARNESS_RESULT: ${{ needs.harness.result }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Require every selected native capability to pass
+        run: node scripts/verify-ci-results.mjs

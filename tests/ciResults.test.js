@@ -1,6 +1,6 @@
 // @ts-nocheck -- Bun provides the test module at runtime.
 import { describe, expect, test } from "bun:test";
-import { verifyCiResults } from "../scripts/verify-ci-results.mjs";
+import { readCiResultState, verifyCiResults } from "../scripts/verify-ci-results.mjs";
 
 function state(overrides = {}) {
   return {
@@ -39,5 +39,24 @@ describe("required CI result verification", () => {
     expect(() => verifyCiResults(input)).toThrow(
       "native was not selected but finished with: cancelled",
     );
+  });
+
+  test("reads a custom capability list for nested workflow aggregation", () => {
+    expect(
+      readCiResultState({
+        CHANGES_RESULT: "success",
+        CI_RESULT_MODULES: "quality,embedding-platform",
+        QUALITY_SELECTED: "true",
+        QUALITY_RESULT: "success",
+        EMBEDDING_PLATFORM_SELECTED: "false",
+        EMBEDDING_PLATFORM_RESULT: "skipped",
+      }),
+    ).toEqual({
+      changes: "success",
+      modules: {
+        quality: { selected: true, result: "success" },
+        "embedding-platform": { selected: false, result: "skipped" },
+      },
+    });
   });
 });

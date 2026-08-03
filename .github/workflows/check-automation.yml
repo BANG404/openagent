@@ -32,8 +32,14 @@ jobs:
       - name: Check repository formatting
         run: bun run format:check
 
-      - name: Test CI module classification
-        run: bun test tests/ciChanges.test.js tests/docsSync.test.js
+      - name: Test automation policy and release logic
+        run: >-
+          bun test
+          tests/ciChanges.test.js
+          tests/ciResults.test.js
+          tests/docsSync.test.js
+          tests/releaseCi.test.js
+          tests/releaseVersion.test.js
 
       - name: Verify generated release metadata
         shell: bash

@@ -28,7 +28,10 @@ jobs:
     outputs:
       automation: ${{ steps.modules.outputs.automation }}
       frontend: ${{ steps.modules.outputs.frontend }}
-      native: ${{ steps.modules.outputs.native }}
+      native_quality: ${{ steps.modules.outputs.nativeQuality }}
+      native_platform: ${{ steps.modules.outputs.nativePlatform }}
+      embedding: ${{ steps.modules.outputs.embedding }}
+      harness: ${{ steps.modules.outputs.harness }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -76,10 +79,18 @@ jobs:
     name: Native desktop
     needs: changes
     if: >-
-      needs.changes.outputs.native == 'true'
+      (needs.changes.outputs.native_quality == 'true'
+      || needs.changes.outputs.native_platform == 'true'
+      || needs.changes.outputs.embedding == 'true'
+      || needs.changes.outputs.harness == 'true')
       && (github.event_name != 'pull_request'
       || github.event.pull_request.head.repo.full_name == github.repository)
     uses: ./.github/workflows/check-native.yml
+    with:
+      quality: ${{ needs.changes.outputs.native_quality == 'true' }}
+      platform: ${{ needs.changes.outputs.native_platform == 'true' }}
+      embedding: ${{ needs.changes.outputs.embedding == 'true' }}
+      harness: ${{ needs.changes.outputs.harness == 'true' }}
     permissions:
       contents: read
     secrets:
@@ -100,7 +111,11 @@ jobs:
       AUTOMATION_RESULT: ${{ needs.automation.result }}
       FRONTEND_SELECTED: ${{ needs.changes.outputs.frontend }}
       FRONTEND_RESULT: ${{ needs.frontend.result }}
-      NATIVE_SELECTED: ${{ needs.changes.outputs.native }}
+      NATIVE_SELECTED: >-
+        ${{ needs.changes.outputs.native_quality == 'true'
+        || needs.changes.outputs.native_platform == 'true'
+        || needs.changes.outputs.embedding == 'true'
+        || needs.changes.outputs.harness == 'true' }}
       NATIVE_RESULT: ${{ needs.native.result }}
     steps:
       - uses: actions/checkout@v7

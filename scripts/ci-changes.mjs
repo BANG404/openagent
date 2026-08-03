@@ -18,7 +18,12 @@ function matchesPath(file, entries) {
  */
 export function classifyChangedModules(files, forceAll = false) {
   const normalized = files.map((file) => file.replaceAll("\\", "/"));
-  const all = forceAll || normalized.includes(".github/workflows/ci.yml");
+  const routerFiles = new Set([
+    ".github/workflows/ci.yml",
+    "scripts/ci-changes.mjs",
+    "scripts/verify-ci-results.mjs",
+  ]);
+  const all = forceAll || normalized.some((file) => routerFiles.has(file));
   const releaseFiles = new Set([
     ".github/release.json",
     "package.json",
@@ -36,15 +41,40 @@ export function classifyChangedModules(files, forceAll = false) {
     return {
       automation: true,
       frontend: false,
-      native: false,
+      nativeQuality: false,
+      nativePlatform: false,
+      embedding: false,
+      harness: false,
     };
   }
+
+  const sharedDependencyFiles = ["package.json", "bun.lock"];
+  const nativeWorkflow = ".github/workflows/check-native.yml";
+  const sdkChanged = normalized.includes("sdk");
+  const sharedDependenciesChanged = normalized.some((file) =>
+    sharedDependencyFiles.includes(file),
+  );
+  const nativeWorkflowChanged = normalized.includes(nativeWorkflow);
+  const nativeSourceChanged = normalized.some(
+    (file) => file.startsWith("src-tauri/") && !file.startsWith("src-tauri/resources/models/"),
+  );
+  const nativeManifestChanged = normalized.some((file) =>
+    ["src-tauri/Cargo.toml", "src-tauri/Cargo.lock", "src-tauri/build.rs"].includes(file),
+  );
+  const automationTests = new Set([
+    "tests/ciChanges.test.js",
+    "tests/ciResults.test.js",
+    "tests/docsSync.test.js",
+    "tests/releaseCi.test.js",
+    "tests/releaseVersion.test.js",
+  ]);
 
   const automation =
     all ||
     normalized.some((file) =>
       matchesPath(file, [".github/", "scripts/", "docs/release.md", "package.json", "bun.lock"]),
-    );
+    ) ||
+    normalized.some((file) => automationTests.has(file));
 
   const frontend =
     all ||
@@ -53,7 +83,6 @@ export function classifyChangedModules(files, forceAll = false) {
         ".github/workflows/check-frontend.yml",
         "src/",
         "static/",
-        "tests/",
         "package.json",
         "bun.lock",
         "svelte.config.js",
@@ -61,21 +90,41 @@ export function classifyChangedModules(files, forceAll = false) {
         "vite.config.js",
         "sdk",
       ]),
-    );
+    ) ||
+    normalized.some((file) => file.startsWith("tests/") && !automationTests.has(file));
 
-  const native =
+  const nativeQuality =
     all ||
-    normalized.some((file) =>
-      matchesPath(file, [
-        ".github/workflows/check-native.yml",
-        "src-tauri/",
-        "package.json",
-        "bun.lock",
-        "sdk",
-      ]),
-    );
+    nativeWorkflowChanged ||
+    nativeSourceChanged ||
+    sharedDependenciesChanged ||
+    sdkChanged ||
+    normalized.includes("scripts/verify-private-sdk-boundary.mjs");
 
-  return { automation, frontend, native };
+  const nativePlatform =
+    all ||
+    nativeWorkflowChanged ||
+    nativeSourceChanged ||
+    sharedDependenciesChanged ||
+    sdkChanged;
+
+  const embedding =
+    all ||
+    nativeWorkflowChanged ||
+    sharedDependenciesChanged ||
+    sdkChanged ||
+    nativeManifestChanged ||
+    normalized.includes("scripts/fetch-embedding-model.mjs") ||
+    normalized.some((file) => file.startsWith("src-tauri/resources/models/"));
+
+  const harness =
+    all ||
+    nativeWorkflowChanged ||
+    sharedDependenciesChanged ||
+    sdkChanged ||
+    normalized.includes("scripts/test-harness-integration.mjs");
+
+  return { automation, frontend, nativeQuality, nativePlatform, embedding, harness };
 }
 
 /**
