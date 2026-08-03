@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.33.0-beta.1] - 2026-08-03
+
+### Features
+- **sandbox**: Enable native Unix process isolation (#46)
+- **sandbox**: Expose process isolation boundary (#37)
+- **sandbox**: Add explicit permission profiles (#34)
+- **chat**: Add stream pause control (#33)
+
+### Bug Fixes
+- **telemetry**: Update SDK OTLP exporter (#39)
+- **ui**: Improve update notification details (#38)
+- **config**: Unify app home and update feedback (#35)
+- **ui**: Keep notifications in tooltip context (#36)
+- **sandbox**: Constrain approved file tools (#32)
+
+### Miscellaneous
+- **ci**: Pin SDK capability routing (#48)
+- **ci**: Pin public SDK dispatch integration (#44)
+
 ## [0.32.0-beta.1] - 2026-08-03
 
 ### Features
