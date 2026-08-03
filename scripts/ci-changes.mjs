@@ -65,6 +65,7 @@ export function classifyChangedModules(files, forceAll = false) {
     "tests/ciResults.test.js",
     "tests/docsSync.test.js",
     "tests/preflight.test.js",
+    "tests/privateSdkDiagnostic.test.js",
     "tests/releaseCi.test.js",
     "tests/releaseVersion.test.js",
   ]);

@@ -223,10 +223,23 @@ revision and report the aggregate `Public SDK CI` commit status. Because
 workflow logs are public, SDK command output is suppressed, build outputs are
 never uploaded, and Rust target or compiler-output caches are disabled for jobs
 that compile private source. Only generic pass/fail diagnostics may appear in
-the public run. The public repository stores the reporter App ID in
+the public run. When a capability command fails, it records the name of that
+command's `sdk-*.log` file; the runner reads only that file from its temporary
+directory, redacts values held in sensitive environment variables, limits the
+retained output, and creates a failed
+`Public SDK diagnostics / <capability>` Check Run on the private SDK commit.
+That Check Run contains the captured command output and is visible only through
+the private repository. Delivery failures remain generic warnings in the public
+run; diagnostics must never be placed in public logs, step summaries, artifacts,
+or caches.
+
+The public repository stores the reporter App ID in
 `OPENAGENT_CI_REPORTER_APP_ID` and its private key in
 `OPENAGENT_CI_REPORTER_PRIVATE_KEY`; the App installation is limited to the
-private SDK repository.
+private SDK repository. Its repository permissions are limited to read-only
+contents plus write access to commit statuses and checks. The status permission
+owns the aggregate `Public SDK CI` gate, while the checks permission owns the
+private failure diagnostics.
 
 The private dispatcher also sends capability booleans derived from its own
 base-to-head path delta. Rust formatting, lint, tests, Linux/macOS sandbox

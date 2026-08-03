@@ -92,6 +92,8 @@ jobs:
     needs: pending
     runs-on: ubuntu-22.04
     timeout-minutes: 10
+    env:
+      SDK_DIAGNOSTIC_NAME: Rust formatting
     steps:
       - name: Create SDK reporter token
         id: app-token
@@ -116,9 +118,27 @@ jobs:
         working-directory: sdk
         run: |
           if ! cargo fmt --all -- --check >"$RUNNER_TEMP/sdk-rust-format.log" 2>&1; then
+            echo "sdk-rust-format.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Rust formatting failed; private diagnostic output was suppressed."
             exit 1
           fi
+      - &checkout-private-diagnostic-reporter
+        name: Check out private diagnostic reporter
+        if: failure()
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .public-ci
+          persist-credentials: false
+          sparse-checkout: scripts/report-private-sdk-diagnostic.mjs
+          sparse-checkout-cone-mode: false
+      - &report-private-diagnostic
+        name: Report diagnostic to private SDK
+        if: failure()
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SDK_SHA: ${{ inputs.sdk_sha }}
+        run: node .public-ci/scripts/report-private-sdk-diagnostic.mjs
 
   rust-clippy:
     name: Rust lint
@@ -126,6 +146,8 @@ jobs:
     needs: pending
     runs-on: ubuntu-22.04
     timeout-minutes: 45
+    env:
+      SDK_DIAGNOSTIC_NAME: Rust lint
     steps:
       - name: Create SDK reporter token
         id: app-token
@@ -151,9 +173,12 @@ jobs:
         working-directory: sdk
         run: |
           if ! cargo clippy --workspace --all-targets --all-features >"$RUNNER_TEMP/sdk-rust-clippy.log" 2>&1; then
+            echo "sdk-rust-clippy.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Rust lint failed; private diagnostic output was suppressed."
             exit 1
           fi
+      - *checkout-private-diagnostic-reporter
+      - *report-private-diagnostic
 
   rust-tests:
     name: Rust tests
@@ -161,6 +186,8 @@ jobs:
     needs: pending
     runs-on: ubuntu-22.04
     timeout-minutes: 45
+    env:
+      SDK_DIAGNOSTIC_NAME: Rust tests
     steps:
       - name: Create SDK reporter token
         id: app-token
@@ -176,9 +203,12 @@ jobs:
         working-directory: sdk
         run: |
           if ! cargo test --workspace --all-features >"$RUNNER_TEMP/sdk-rust-test.log" 2>&1; then
+            echo "sdk-rust-test.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Rust tests failed; private diagnostic output was suppressed."
             exit 1
           fi
+      - *checkout-private-diagnostic-reporter
+      - *report-private-diagnostic
 
   linux-process-sandbox:
     name: Linux process sandbox
@@ -186,6 +216,8 @@ jobs:
     needs: pending
     runs-on: ubuntu-22.04
     timeout-minutes: 30
+    env:
+      SDK_DIAGNOSTIC_NAME: Linux process sandbox
     steps:
       - name: Create SDK reporter token
         id: app-token
@@ -210,9 +242,12 @@ jobs:
           OPENAGENT_BWRAP_INTEGRATION: "1"
         run: |
           if ! cargo test -p openagent-runtime bubblewrap_writes_inside_workspace_and_hides_outside_files >"$RUNNER_TEMP/sdk-bubblewrap-test.log" 2>&1; then
+            echo "sdk-bubblewrap-test.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Linux process sandbox test failed; private diagnostic output was suppressed."
             exit 1
           fi
+      - *checkout-private-diagnostic-reporter
+      - *report-private-diagnostic
 
   macos-process-sandbox:
     name: macOS process sandbox
@@ -220,6 +255,8 @@ jobs:
     needs: pending
     runs-on: macos-latest
     timeout-minutes: 30
+    env:
+      SDK_DIAGNOSTIC_NAME: macOS process sandbox
     steps:
       - name: Create SDK reporter token
         id: app-token
@@ -237,9 +274,12 @@ jobs:
           OPENAGENT_SEATBELT_INTEGRATION: "1"
         run: |
           if ! cargo test -p openagent-runtime seatbelt_writes_inside_workspace_and_hides_outside_files >"$RUNNER_TEMP/sdk-seatbelt-test.log" 2>&1; then
+            echo "sdk-seatbelt-test.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::macOS process sandbox test failed; private diagnostic output was suppressed."
             exit 1
           fi
+      - *checkout-private-diagnostic-reporter
+      - *report-private-diagnostic
 
   typescript:
     name: TypeScript SDK
@@ -247,6 +287,8 @@ jobs:
     needs: pending
     runs-on: ubuntu-22.04
     timeout-minutes: 15
+    env:
+      SDK_DIAGNOSTIC_NAME: TypeScript SDK
     steps:
       - name: Create SDK reporter token
         id: app-token
@@ -268,6 +310,7 @@ jobs:
         working-directory: sdk/typescript
         run: |
           if ! bun install --frozen-lockfile >"$RUNNER_TEMP/sdk-typescript-install.log" 2>&1; then
+            echo "sdk-typescript-install.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::TypeScript SDK dependency installation failed; private diagnostic output was suppressed."
             exit 1
           fi
@@ -275,6 +318,7 @@ jobs:
         working-directory: sdk/typescript
         run: |
           if ! bun run check >"$RUNNER_TEMP/sdk-typescript-check.log" 2>&1; then
+            echo "sdk-typescript-check.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::TypeScript SDK checking failed; private diagnostic output was suppressed."
             exit 1
           fi
@@ -282,9 +326,12 @@ jobs:
         working-directory: sdk/typescript
         run: |
           if ! bun test >"$RUNNER_TEMP/sdk-typescript-test.log" 2>&1; then
+            echo "sdk-typescript-test.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::TypeScript SDK tests failed; private diagnostic output was suppressed."
             exit 1
           fi
+      - *checkout-private-diagnostic-reporter
+      - *report-private-diagnostic
 
   harness-client:
     name: Harness client (${{ matrix.name }})
@@ -300,6 +347,8 @@ jobs:
             os: windows-latest
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
+    env:
+      SDK_DIAGNOSTIC_NAME: Harness client (${{ matrix.name }})
     steps:
       - name: Create SDK reporter token
         id: app-token
@@ -325,6 +374,7 @@ jobs:
         working-directory: sdk
         run: |
           if ! cargo build -p openagent-server >"$RUNNER_TEMP/sdk-harness-server.log" 2>&1; then
+            echo "sdk-harness-server.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Harness server build failed; private diagnostic output was suppressed."
             exit 1
           fi
@@ -333,6 +383,7 @@ jobs:
         working-directory: sdk/harness-typescript
         run: |
           if ! bun install --frozen-lockfile >"$RUNNER_TEMP/sdk-harness-install.log" 2>&1; then
+            echo "sdk-harness-install.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Harness dependency installation failed; private diagnostic output was suppressed."
             exit 1
           fi
@@ -341,6 +392,7 @@ jobs:
         working-directory: sdk/harness-typescript
         run: |
           if ! bun run check >"$RUNNER_TEMP/sdk-harness-check.log" 2>&1; then
+            echo "sdk-harness-check.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Harness type checking failed; private diagnostic output was suppressed."
             exit 1
           fi
@@ -349,6 +401,7 @@ jobs:
         working-directory: sdk/harness-typescript
         run: |
           if ! bun run check:openapi >"$RUNNER_TEMP/sdk-harness-openapi.log" 2>&1; then
+            echo "sdk-harness-openapi.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Harness OpenAPI verification failed; private diagnostic output was suppressed."
             exit 1
           fi
@@ -359,6 +412,7 @@ jobs:
           OPENAGENT_SERVER_BINARY: ${{ github.workspace }}/sdk/target/debug/openagent-server${{ runner.os == 'Windows' && '.exe' || '' }}
         run: |
           if ! bun test >"$RUNNER_TEMP/sdk-harness-test.log" 2>&1; then
+            echo "sdk-harness-test.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Harness client tests failed; private diagnostic output was suppressed."
             exit 1
           fi
@@ -367,6 +421,7 @@ jobs:
         working-directory: sdk/harness-typescript
         run: |
           if ! bun run build >"$RUNNER_TEMP/sdk-harness-build.log" 2>&1; then
+            echo "sdk-harness-build.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Harness package build failed; private diagnostic output was suppressed."
             exit 1
           fi
@@ -375,9 +430,12 @@ jobs:
         working-directory: sdk/harness-typescript
         run: |
           if ! npm pack --dry-run >"$RUNNER_TEMP/sdk-harness-pack.log" 2>&1; then
+            echo "sdk-harness-pack.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Harness package verification failed; private diagnostic output was suppressed."
             exit 1
           fi
+      - *checkout-private-diagnostic-reporter
+      - *report-private-diagnostic
 
   host-compatibility:
     name: Public host compatibility
@@ -385,6 +443,8 @@ jobs:
     needs: pending
     runs-on: ubuntu-22.04
     timeout-minutes: 45
+    env:
+      SDK_DIAGNOSTIC_NAME: Public host compatibility
     steps:
       - name: Check out public host
         uses: actions/checkout@v7
@@ -432,6 +492,7 @@ jobs:
         working-directory: host
         run: |
           if ! bun install --frozen-lockfile >"$RUNNER_TEMP/sdk-host-install.log" 2>&1; then
+            echo "sdk-host-install.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Host dependency installation failed; private diagnostic output was suppressed."
             exit 1
           fi
@@ -439,6 +500,7 @@ jobs:
         working-directory: host
         run: |
           if ! bun run check >"$RUNNER_TEMP/sdk-host-frontend.log" 2>&1; then
+            echo "sdk-host-frontend.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Public frontend compatibility failed; private diagnostic output was suppressed."
             exit 1
           fi
@@ -446,9 +508,12 @@ jobs:
         working-directory: host
         run: |
           if ! cargo check --manifest-path src-tauri/Cargo.toml --all-targets >"$RUNNER_TEMP/sdk-host-native.log" 2>&1; then
+            echo "sdk-host-native.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Public native compatibility failed; private diagnostic output was suppressed."
             exit 1
           fi
+      - *checkout-private-diagnostic-reporter
+      - *report-private-diagnostic
 
   required:
     name: Required SDK

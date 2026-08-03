@@ -120,6 +120,10 @@ describe("CI module classification", () => {
       ...nothing,
       automation: true,
     });
+    expect(classifyChangedModules(["tests/privateSdkDiagnostic.test.js"])).toEqual({
+      ...nothing,
+      automation: true,
+    });
   });
 
   test("only verifies automation for generated release metadata", () => {
