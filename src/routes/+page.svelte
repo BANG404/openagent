@@ -5045,6 +5045,8 @@
       {/if}
     </div>
   {/if}
+
+  <Toast />
 </TooltipPrimitive.Provider>
 
 <Dialog.Root
@@ -5167,8 +5169,6 @@
     </Dialog.Content>
   </Dialog.Portal>
 </Dialog.Root>
-
-<Toast />
 
 <style>
   @property --input-aurora-x-shift {
