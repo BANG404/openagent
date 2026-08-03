@@ -76,6 +76,7 @@ jobs:
           workspaces: |
             ./src-tauri -> target
             ./sdk -> target
+          cache-targets: false
 
       - name: Check Rust formatting
         run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
@@ -122,33 +123,15 @@ jobs:
         with:
           workspaces: ./src-tauri -> target
           shared-key: platform-${{ matrix.os }}
-          # Restored Windows native artifacts can retain incompatible DLL state
-          # and fail before the Rust test harness starts (0xc0000139).
-          cache-targets: ${{ runner.os != 'Windows' }}
-          key: ${{ runner.os == 'Windows' && 'registry-only-v1' || '' }}
-
-      - name: Set up sccache
-        if: runner.os == 'Windows'
-        uses: mozilla-actions/sccache-action@v0.0.11
-        with:
-          version: v0.16.0
+          cache-targets: false
 
       - name: Check all Rust targets on Windows
         if: runner.os == 'Windows'
-        env:
-          SCCACHE_GHA_ENABLED: "true"
-          RUSTC_WRAPPER: sccache
         run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
 
       - name: Check all Rust targets on macOS
         if: runner.os != 'Windows'
         run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
-
-      - name: Report sccache statistics
-        if: always() && runner.os == 'Windows'
-        env:
-          SCCACHE_GHA_ENABLED: "true"
-        run: sccache --show-stats
 
   embedding-resources:
     name: Verify embedding resources
@@ -201,26 +184,10 @@ jobs:
         with:
           workspaces: ./src-tauri -> target
           shared-key: embedding-${{ matrix.os }}
-          cache-targets: ${{ runner.os != 'Windows' }}
-          key: ${{ runner.os == 'Windows' && 'registry-only-v1' || '' }}
-
-      - name: Set up sccache
-        if: runner.os == 'Windows'
-        uses: mozilla-actions/sccache-action@v0.0.11
-        with:
-          version: v0.16.0
+          cache-targets: false
 
       - name: Exercise bundled embedding model
-        env:
-          SCCACHE_GHA_ENABLED: ${{ runner.os == 'Windows' && 'true' || '' }}
-          RUSTC_WRAPPER: ${{ runner.os == 'Windows' && 'sccache' || '' }}
         run: cargo test --manifest-path src-tauri/Cargo.toml bundled_embedding_model_runs_offline
-
-      - name: Report sccache statistics
-        if: always() && runner.os == 'Windows'
-        env:
-          SCCACHE_GHA_ENABLED: "true"
-        run: sccache --show-stats
 
   harness:
     name: Harness contract
@@ -254,6 +221,7 @@ jobs:
         with:
           workspaces: ./sdk -> target
           shared-key: harness
+          cache-targets: false
 
       - name: Verify harness OpenAPI contract
         run: bun run check:harness-openapi

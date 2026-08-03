@@ -200,6 +200,15 @@ promotes those artifacts without rebuilding them.
 
 The always-present `CI / Required` job is the single branch-protection status.
 
+Private SDK changes use the public `sdk-ci.yml` workflow so their Rust,
+Harness, and host-compatibility jobs run on public runners. The private
+repository dispatches an immutable commit SHA; a GitHub App installed only on
+the SDK repository lets the public workflow read that revision and report the
+aggregate `Public SDK CI` commit status. Because workflow logs are public, SDK
+command output is suppressed, build outputs are never uploaded, and Rust target
+or compiler-output caches are disabled for jobs that compile private source.
+Only generic pass/fail diagnostics may appear in the public run.
+
 ## Local Commands
 
 Release automation changes must pass both `bun run lint:frontend` and
