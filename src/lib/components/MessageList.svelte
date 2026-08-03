@@ -252,7 +252,18 @@
     return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
   }
 
-  function runTiming(msg: ChatMessage, msgIdx: number) {
+  function runTiming(msg: ChatMessage, msgIdx: number, turnMessages: ChatMessage[]) {
+    const turn = turnMessages.find((message) => message.turn)?.turn;
+    if (turn) {
+      if (turn.duration_ms == null) return null;
+      return {
+        firstToken:
+          turn.first_token_at != null
+            ? formatDuration(turn.first_token_at - turn.started_at)
+            : null,
+        total: formatDuration(turn.duration_ms),
+      };
+    }
     if (!msg.completedAt) return null;
     const userMessage = [...messages.slice(0, msgIdx)]
       .reverse()
@@ -436,6 +447,10 @@
               ? entry.index
               : -1}
         {@const renderedAssistantItems = assistantItems(entry)}
+        {@const turnMetadata = turnMessages.find((message) => message.turn)?.turn}
+        {@const turnIsTerminal = turnMetadata
+          ? ["completed", "cancelled", "failed"].includes(turnMetadata.status)
+          : !isStreaming}
         {@const assistantSegments = groupStreamItems(renderedAssistantItems)}
         {@const assistantIsStreaming = entry.kind === "live_stream"}
         {@const finalOutputStart = finalAssistantOutputStartIndex(renderedAssistantItems)}
@@ -449,13 +464,17 @@
           assistantMsg !== null &&
           assistantMsgIdx >= 0 &&
           !isStreaming &&
+          turnIsTerminal &&
           Boolean(assistantMsg.checkpointId) &&
           Boolean(activeTree?.nodes[assistantMsg.checkpointId!])}
         {@const copyableOutput = finalAssistantOutput(turnMessages)}
         {@const showAssistantActions =
           !isStreaming &&
+          turnIsTerminal &&
           (isRerunnable || Boolean(copyableOutput) || renderedAssistantItems.length > 0)}
-        {@const timing = assistantMsg ? runTiming(assistantMsg, assistantMsgIdx) : null}
+        {@const timing = assistantMsg
+          ? runTiming(assistantMsg, assistantMsgIdx, turnMessages)
+          : null}
         {#snippet renderAssistantSegments(segments: StreamItemSegment[])}
           {#each segments as segment (`${entry.key}-${segment.startIndex}`)}
             {#if segment.kind === "tool_group"}

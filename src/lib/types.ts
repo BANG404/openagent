@@ -69,6 +69,8 @@ export interface ChatMessage {
   /** Client-side timings for a completed streamed response. */
   firstTokenAt?: number;
   completedAt?: number;
+  /** Durable logical-turn metadata reduced from checkpoints on the selected branch. */
+  turn?: CheckpointTurnMetadata;
   /** Durable checkpoint semantics such as hidden flow prompts or compaction boundaries. */
   tags?: string[];
   /** OpenAgent metadata read from the provider-compatible checkpoint message. */
@@ -231,6 +233,25 @@ export interface CheckpointMeta {
   parent_checkpoint_id: string | null;
   metadata: string;
   created_at: number;
+}
+
+export type CheckpointTurnStatus = "running" | "interrupted" | "completed" | "cancelled" | "failed";
+
+export interface CheckpointTurnMetadata {
+  id: string;
+  input_message_id: string;
+  response_message_id: string;
+  status: CheckpointTurnStatus;
+  started_at: number;
+  first_token_at?: number | null;
+  completed_at?: number | null;
+  duration_ms?: number | null;
+}
+
+export interface CheckpointMetadataFields {
+  step: number;
+  tools_used: string[];
+  turn?: CheckpointTurnMetadata | null;
 }
 
 export interface CheckpointMessage {

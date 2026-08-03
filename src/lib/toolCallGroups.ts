@@ -193,11 +193,12 @@ export function groupAssistantTurns(entries: StoredMessageRenderEntry[]): Messag
     }
 
     const finalAssistantMessage = messages.findLast((message) => message.role === "assistant")!;
+    const turn = messages.find((message) => message.turn)?.turn;
     grouped.push({
       kind: "assistant_turn",
       messages,
       finalIndex,
-      key: finalAssistantMessage.id,
+      key: turn?.id ?? finalAssistantMessage.id,
     });
     position = end;
   }
