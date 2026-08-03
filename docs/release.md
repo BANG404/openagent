@@ -201,16 +201,20 @@ promotes those artifacts without rebuilding them.
 The always-present `CI / Required` job is the single branch-protection status.
 
 Private SDK changes use the public `sdk-ci.yml` workflow so their Rust,
-Harness, and host-compatibility jobs run on public runners. The private
-repository dispatches an immutable commit SHA; a GitHub App installed only on
-the SDK repository lets the public workflow read that revision and report the
-aggregate `Public SDK CI` commit status. Because workflow logs are public, SDK
-command output is suppressed, build outputs are never uploaded, and Rust target
-or compiler-output caches are disabled for jobs that compile private source.
-Only generic pass/fail diagnostics may appear in the public run. The public
-repository stores the reporter App ID in `OPENAGENT_CI_REPORTER_APP_ID` and its
-private key in `OPENAGENT_CI_REPORTER_PRIVATE_KEY`; the App installation is
-limited to the private SDK repository.
+Harness, host-compatibility, and native process-sandbox jobs run on public
+runners. Linux Rust tests install Bubblewrap and enable the real filesystem
+boundary test; a dedicated macOS job exercises the system Seatbelt boundary.
+Both are required by the aggregate rather than being optional smoke checks.
+The private repository dispatches an immutable commit SHA; a GitHub App
+installed only on the SDK repository lets the public workflow read that
+revision and report the aggregate `Public SDK CI` commit status. Because
+workflow logs are public, SDK command output is suppressed, build outputs are
+never uploaded, and Rust target or compiler-output caches are disabled for jobs
+that compile private source. Only generic pass/fail diagnostics may appear in
+the public run. The public repository stores the reporter App ID in
+`OPENAGENT_CI_REPORTER_APP_ID` and its private key in
+`OPENAGENT_CI_REPORTER_PRIVATE_KEY`; the App installation is limited to the
+private SDK repository.
 
 ## Local Commands
 
