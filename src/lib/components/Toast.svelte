@@ -12,6 +12,12 @@
       if (toast.action.dismissOnClick !== false) dismissToast(toast.id);
     }
   }
+
+  async function runLink(event: MouseEvent, toast: Toast) {
+    if (!toast.link?.onClick) return;
+    event.preventDefault();
+    await toast.link.onClick();
+  }
 </script>
 
 <div class="toast-stack" role="region" aria-live="polite">
@@ -19,12 +25,33 @@
     <div class="toast" transition:fly={{ y: -16, duration: 180 }}>
       <div class="toast-body">
         <div class="toast-title">{toast.title}</div>
-        {#if toast.description}
-          <Tooltip text={toast.description}>
-            {#snippet trigger(props)}
-              <div {...props} class="toast-desc">{toast.description}</div>
-            {/snippet}
-          </Tooltip>
+        {#if toast.description || toast.link}
+          <div class="toast-description-row">
+            {#if toast.description}
+              <Tooltip text={toast.description}>
+                {#snippet trigger(props)}
+                  <div
+                    {...props}
+                    class="toast-desc"
+                    class:toast-desc-from-end={toast.descriptionFromEnd}
+                  >
+                    {toast.description}
+                  </div>
+                {/snippet}
+              </Tooltip>
+            {/if}
+            {#if toast.link}
+              <a
+                class="toast-link"
+                href={toast.link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onclick={(event) => runLink(event, toast)}
+              >
+                {toast.link.label}
+              </a>
+            {/if}
+          </div>
         {/if}
       </div>
       <div class="toast-actions">
@@ -98,6 +125,8 @@
     line-height: 1.29;
   }
   .toast-desc {
+    flex: 1;
+    min-width: 0;
     color: var(--text-muted);
     font-size: 13px;
     font-weight: 400;
@@ -106,8 +135,33 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    direction: rtl;
+    direction: ltr;
     text-align: left;
+  }
+  .toast-desc-from-end {
+    direction: rtl;
+  }
+  .toast-description-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+  .toast-link {
+    flex-shrink: 0;
+    color: var(--primary);
+    font-size: 12px;
+    line-height: 1.43;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .toast-link:hover {
+    text-decoration: underline;
+  }
+  .toast-link:focus-visible {
+    border-radius: 3px;
+    outline: 2px solid color-mix(in srgb, var(--primary) 45%, transparent);
+    outline-offset: 2px;
   }
   .toast-actions {
     display: flex;

@@ -63,6 +63,7 @@
     showToast({
       title: tr("toastDownloadSuccess"),
       description: saved.location,
+      descriptionFromEnd: true,
       variant: "success",
       action: saved.open ? { label: tr("toastOpenFile"), onClick: saved.open } : undefined,
     });

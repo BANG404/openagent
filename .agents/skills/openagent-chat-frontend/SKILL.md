@@ -310,7 +310,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the global toast renderer inside the shared tooltip provider. Toast
   descriptions use the tooltip primitive for truncated detail, so rendering a
   described OAuth, updater, download, or error notice without that context
-  raises a frontend exception instead of showing the notification.
+  raises a frontend exception instead of showing the notification. Render
+  ordinary descriptions in their natural left-to-right paragraph direction so
+  trailing Chinese punctuation stays at the end; opt into right-to-left
+  overflow only for path-like values whose filename tail must remain visible.
+  Update-available notices keep release notes in the description and expose a
+  localized, real link to the matching GitHub release alongside the install
+  action.
 - Global frontend diagnostics may cross the local Tauri boundary only as
   allowlisted event, component, and error-type labels. Never forward exception
   messages, stack traces, transcript content, model output, tool data,

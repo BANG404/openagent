@@ -8,20 +8,30 @@ export interface ToastAction {
   dismissOnClick?: boolean;
 }
 
+export interface ToastLink {
+  label: string;
+  href: string;
+  onClick?: () => void | Promise<void>;
+}
+
 export interface Toast {
   id: number;
   title: string;
   description?: string;
+  descriptionFromEnd?: boolean;
   variant: ToastVariant;
   action?: ToastAction;
+  link?: ToastLink;
   durationMs: number;
 }
 
 export interface ShowToastOptions {
   title: string;
   description?: string;
+  descriptionFromEnd?: boolean;
   variant?: ToastVariant;
   action?: ToastAction;
+  link?: ToastLink;
   durationMs?: number;
 }
 
@@ -36,8 +46,10 @@ export function showToast(opts: ShowToastOptions): number {
     id,
     title: opts.title,
     description: opts.description,
+    descriptionFromEnd: opts.descriptionFromEnd,
     variant: opts.variant ?? "info",
     action: opts.action,
+    link: opts.link,
     durationMs: opts.durationMs ?? 6000,
   };
   toasts.update((list) => [...list, toast]);
