@@ -1,0 +1,53 @@
+name: Report PR head CI
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  report:
+    name: Required PR Head
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Publish the latest authoritative CI result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          CI_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
+          CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
+          CI_WORKFLOW_ID: ${{ github.event.workflow_run.workflow_id }}
+        shell: bash
+        run: |
+          latest_run_id="$(
+            gh api \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/$CI_WORKFLOW_ID/runs?event=pull_request&per_page=100" \
+              --jq '[.workflow_runs[] | select(.head_sha == env.CI_HEAD_SHA)] | max_by(.id) | .id'
+          )"
+          if [[ "$latest_run_id" != "$CI_RUN_ID" ]]; then
+            echo "Skipping superseded CI run $CI_RUN_ID; latest run for $CI_HEAD_SHA is $latest_run_id."
+            exit 0
+          fi
+
+          state=failure
+          description="Authoritative CI failed for this PR head."
+          if [[ "$CI_CONCLUSION" == "success" ]]; then
+            state=success
+            description="Authoritative CI passed for this PR head."
+          fi
+
+          gh api \
+            --method POST \
+            "repos/$GITHUB_REPOSITORY/statuses/$CI_HEAD_SHA" \
+            -f state="$state" \
+            -f context="Required PR Head" \
+            -f description="$description" \
+            -f target_url="$CI_RUN_URL"

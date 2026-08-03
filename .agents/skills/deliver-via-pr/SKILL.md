@@ -63,13 +63,18 @@ retain the task worktree until the merge is confirmed.
 - Describe user-visible behavior, affected boundaries, documentation, the local
   preflight result, and the exhaustive or platform-specific checks deferred to
   PR CI.
-- Never include unrelated commits or files. If the base moved and strict CI
-  requires an update, update the branch without rewriting user-owned history.
+- Never include unrelated commits or files. Do not update a branch solely
+  because `master` moved after CI started. The stable PR-head status is designed
+  to survive that movement without creating another commit or CI run.
 
 ## 5. Let CI verify
 
-- Watch the PR checks until `Required` completes. Do not treat module jobs or a
-  locally successful command as substitutes for the aggregate.
+- Watch PR checks with `gh pr checks <PR> --watch --fail-fast` so the first
+  failing module can be handled without waiting for unrelated long-running
+  jobs. A successful module is not a substitute for the `Required` aggregate.
+- After `Required` succeeds, wait for the trusted `Required PR Head` status.
+  It mirrors the latest completed authoritative PR CI run onto the immutable PR
+  head SHA and is the branch-ruleset status used for merging.
 - On failure, use the GitHub Actions run and job logs to identify the root cause,
   fix it in the same worktree, commit, and push. Repeat until `Required` passes.
 - If CI is unavailable or externally blocked, keep the PR and worktree intact
@@ -77,11 +82,12 @@ retain the task worktree until the merge is confirmed.
 
 ## 6. Apply the review policy and merge
 
-- For a PR authored under the repository-owner account, wait for `Required`,
-  then merge with the review-only admin bypass using
-  `gh pr merge <PR> --admin --squash --delete-branch`.
+- For a PR authored under the repository-owner account, wait for both
+  `Required` and `Required PR Head`, then merge with the review-only admin bypass
+  using `gh pr merge <PR> --admin --squash --delete-branch`.
 - For a third-party PR, approve it as the owner, do not select bypass, wait for
-  `Required`, and merge normally with `gh pr review <PR> --approve` followed by
+  both required statuses, and merge normally with
+  `gh pr review <PR> --approve` followed by
   `gh pr merge <PR> --squash --delete-branch`.
 - Do not attempt to approve an owner-authored PR; GitHub does not count self
   approval.
