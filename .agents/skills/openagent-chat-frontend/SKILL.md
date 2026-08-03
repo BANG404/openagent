@@ -307,6 +307,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   show visible progress, apply a finite timeout, surface localized success or
   failure feedback, and always return to a retryable state after errors.
 - Keep Rust event payloads aligned with `src/lib/types.ts`.
+- Keep the global toast renderer inside the shared tooltip provider. Toast
+  descriptions use the tooltip primitive for truncated detail, so rendering a
+  described OAuth, updater, download, or error notice without that context
+  raises a frontend exception instead of showing the notification.
 - Global frontend diagnostics may cross the local Tauri boundary only as
   allowlisted event, component, and error-type labels. Never forward exception
   messages, stack traces, transcript content, model output, tool data,
@@ -319,6 +323,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   reload it through the local settings command. Settings autosave must retain
   the exact base snapshot, merge independent external changes, reject
   overlapping changes, and rebase edits made while a save is in flight.
+- Keep additive configuration fields in `src/lib/types.ts` optional at the
+  transport boundary so an older bootstrap or fallback snapshot remains
+  readable. Materialize their canonical defaults only in
+  `normalizeConfigShape`; page shells and settings components must not copy
+  those defaults into independent fallback objects.
 - `chat-response-started` means the stream connected, not that content arrived.
   Clear transient waiting state on the first text/thinking chunk and every
   terminal path.

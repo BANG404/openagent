@@ -2,6 +2,7 @@ import type {
   AppConfig,
   FetchConfig,
   HtmlPreviewConfig,
+  PermissionProfile,
   ReasoningEffort,
   WebSearchConfig,
 } from "./types";
@@ -26,6 +27,37 @@ function defaultFetch(): FetchConfig {
   return {
     page_size: 12_000,
   };
+}
+
+export function defaultPermissionProfile(): PermissionProfile {
+  return {
+    enforcement: "managed",
+    file_system: {
+      entries: [{ path: { kind: "workspace" }, access: "write" }],
+    },
+    network: "enabled",
+  };
+}
+
+function normalizePermissionProfile(profile: PermissionProfile | undefined): PermissionProfile {
+  if (!profile) return defaultPermissionProfile();
+  if (profile.enforcement === "disabled") return { enforcement: "disabled" };
+  if (profile.enforcement === "external") {
+    return {
+      enforcement: "external",
+      network: profile.network ?? "enabled",
+    };
+  }
+  if (profile.enforcement === "managed") {
+    return {
+      enforcement: "managed",
+      file_system: {
+        entries: profile.file_system?.entries ?? [],
+      },
+      network: profile.network ?? "enabled",
+    };
+  }
+  return defaultPermissionProfile();
 }
 
 const reasoningEfforts = new Set<ReasoningEffort>(["low", "medium", "high", "xhigh", "max"]);
@@ -111,6 +143,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
       : 12_000,
   };
   const approval_mode = input.approval_mode;
+  const permission_profile = normalizePermissionProfile(input.permission_profile);
   const requestedDoubleColumnMinWidth = Number(input.message_double_column_min_width);
   const messageDoubleColumnMinWidth = Number.isFinite(requestedDoubleColumnMinWidth)
     ? Math.min(2400, Math.max(960, Math.floor(requestedDoubleColumnMinWidth)))
@@ -149,6 +182,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
   return {
     ...input,
     approval_mode,
+    permission_profile,
     language: input.language ?? "zh",
     launch_on_startup: input.launch_on_startup ?? false,
     diagnostic_log_collection_enabled: input.diagnostic_log_collection_enabled ?? true,

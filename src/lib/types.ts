@@ -452,6 +452,30 @@ export interface FlashAgentsConfig {
 
 export type ApprovalMode = "manual" | "auto" | "off" | "sandbox";
 
+export type FileSystemAccess = "read" | "write" | "deny";
+export type NetworkAccess = "restricted" | "enabled";
+
+export type FileSystemPermissionPath =
+  { kind: "workspace"; subpath?: string } | { kind: "absolute"; path: string };
+
+export interface FileSystemPermissionEntry {
+  path: FileSystemPermissionPath;
+  access: FileSystemAccess;
+}
+
+export interface ManagedFileSystemPermissions {
+  entries: FileSystemPermissionEntry[];
+}
+
+export type PermissionProfile =
+  | {
+      enforcement: "managed";
+      file_system: ManagedFileSystemPermissions;
+      network: NetworkAccess;
+    }
+  | { enforcement: "external"; network: NetworkAccess }
+  | { enforcement: "disabled" };
+
 export type McpTransport = "http" | "stdio";
 
 export interface McpServerConfig {
@@ -517,6 +541,7 @@ export interface AppConfig {
   model_retry: ModelRetryConfig;
   flash_agents: FlashAgentsConfig;
   approval_mode: ApprovalMode;
+  permission_profile?: PermissionProfile;
   mcp: McpSettings;
   theme: "system" | "light" | "dark";
   language: "zh" | "en";

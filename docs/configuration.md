@@ -56,6 +56,29 @@ Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
 permissions and do not commit it to source control.
 
+## Tool permissions
+
+Tool approval controls whether an individual call pauses for review;
+`permission_profile` independently controls the capabilities available after a
+call is allowed. Approval never widens the active permission profile.
+
+The default `managed` profile grants `write` access to the active workspace;
+write access includes reading. Managed profiles may contain multiple
+filesystem entries using `read`, `write`, or `deny`. The most specific matching
+path wins, and `deny` wins when equally specific entries conflict. A path with
+no matching entry is rejected. Workspace entries may name a relative subpath;
+absolute entries name an additional host path. Existing targets and the nearest
+existing ancestor of new targets are canonicalized before matching, so `..`
+and existing symbolic-link ancestors cannot escape a managed root.
+
+An `external` profile delegates confinement to the embedding host, while
+`disabled` explicitly selects ambient host filesystem access. These are
+different security contracts and are not inferred from the approval mode. The
+profile also records whether network access is `enabled` or `restricted`; the
+native terminal process-sandbox layer owns enforcement of that field. The
+current product default remains `enabled`, and a restricted value is
+declarative until such a backend consumes it.
+
 ## Software error collection
 
 `diagnostic_log_collection_enabled` defaults to `true` and is exposed in
