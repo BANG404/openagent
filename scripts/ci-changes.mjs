@@ -51,9 +51,7 @@ export function classifyChangedModules(files, forceAll = false) {
   const sharedDependencyFiles = ["package.json", "bun.lock"];
   const nativeWorkflow = ".github/workflows/check-native.yml";
   const sdkChanged = normalized.includes("sdk");
-  const sharedDependenciesChanged = normalized.some((file) =>
-    sharedDependencyFiles.includes(file),
-  );
+  const sharedDependenciesChanged = normalized.some((file) => sharedDependencyFiles.includes(file));
   const nativeWorkflowChanged = normalized.includes(nativeWorkflow);
   const nativeSourceChanged = normalized.some(
     (file) => file.startsWith("src-tauri/") && !file.startsWith("src-tauri/resources/models/"),
@@ -102,11 +100,7 @@ export function classifyChangedModules(files, forceAll = false) {
     normalized.includes("scripts/verify-private-sdk-boundary.mjs");
 
   const nativePlatform =
-    all ||
-    nativeWorkflowChanged ||
-    nativeSourceChanged ||
-    sharedDependenciesChanged ||
-    sdkChanged;
+    all || nativeWorkflowChanged || nativeSourceChanged || sharedDependenciesChanged || sdkChanged;
 
   const embedding =
     all ||

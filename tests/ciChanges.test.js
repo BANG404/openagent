@@ -13,12 +13,10 @@ const nothing = {
 
 describe("CI module classification", () => {
   test("runs only frontend checks for UI and frontend test changes", () => {
-    expect(classifyChangedModules(["src/lib/chatStream.ts", "tests/chatStream.test.ts"])).toEqual(
-      {
-        ...nothing,
-        frontend: true,
-      },
-    );
+    expect(classifyChangedModules(["src/lib/chatStream.ts", "tests/chatStream.test.ts"])).toEqual({
+      ...nothing,
+      frontend: true,
+    });
   });
 
   test("runs Rust quality and platform checks for ordinary native changes", () => {
