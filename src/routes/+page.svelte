@@ -25,7 +25,7 @@
   import { installDownloadHook } from "$lib/downloadHook";
   import { checkForAppUpdate } from "$lib/appUpdater";
   import { Dialog, Tooltip as TooltipPrimitive } from "bits-ui";
-  import { defaultPermissionProfile, normalizeConfigShape } from "$lib/config";
+  import { normalizeConfigShape } from "$lib/config";
   import { initializeTray } from "$lib/tray";
   import { t, tr, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import { showToast } from "$lib/toast";
@@ -530,7 +530,6 @@
       tool_approval: { enabled: true, prompt: "" },
     },
     approval_mode: "sandbox",
-    permission_profile: defaultPermissionProfile(),
     mcp: { servers: [] },
     theme: "system",
     language: "zh",

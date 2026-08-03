@@ -542,7 +542,7 @@ export interface AppConfig {
   model_retry: ModelRetryConfig;
   flash_agents: FlashAgentsConfig;
   approval_mode: ApprovalMode;
-  permission_profile: PermissionProfile;
+  permission_profile?: PermissionProfile;
   mcp: McpSettings;
   theme: "system" | "light" | "dark";
   language: "zh" | "en";
