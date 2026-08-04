@@ -7,6 +7,15 @@ const releaseWorkflow = readFileSync(
   new URL("../.github/workflows/release.yml", import.meta.url),
   "utf8",
 );
+const ciWorkflow = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+const frontendWorkflow = readFileSync(
+  new URL("../.github/workflows/check-frontend.yml", import.meta.url),
+  "utf8",
+);
+const nativeWorkflow = readFileSync(
+  new URL("../.github/workflows/check-native.yml", import.meta.url),
+  "utf8",
+);
 const prHeadWorkflow = readFileSync(
   new URL("../.github/workflows/report-pr-head-ci.yml", import.meta.url),
   "utf8",
@@ -17,6 +26,22 @@ function successfulJobs() {
 }
 
 describe("release CI verification", () => {
+  test("keeps pull requests fast and reserves complete qualification for integration tiers", () => {
+    expect(ciWorkflow).toContain("schedule:");
+    expect(ciWorkflow).toContain("CI_RELEASE_BRANCH:");
+    expect(ciWorkflow).toContain('CI_REF" == "refs/heads/master"');
+    expect(ciWorkflow).toContain("steps.tier.outputs.integration == 'true'");
+    expect(ciWorkflow).toContain("full: ${{ needs.changes.outputs.full == 'true' }}");
+
+    expect(frontendWorkflow).toContain("if: inputs.full\n        run: bun run build");
+    expect(frontendWorkflow).toContain("if: inputs.full\n        run: bun run check:bundle-size");
+    expect(nativeWorkflow).toContain("if: inputs.full && inputs.platform");
+    expect(nativeWorkflow).toContain("if: inputs.full && inputs.embedding");
+    expect(nativeWorkflow).toContain(
+      "if: inputs.full\n        run: bun run test:harness-integration",
+    );
+  });
+
   test("reports only the latest completed PR CI run to the stable head SHA", () => {
     expect(prHeadWorkflow).toContain("workflow_run:");
     expect(prHeadWorkflow).toContain("statuses: write");

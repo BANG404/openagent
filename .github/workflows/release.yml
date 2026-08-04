@@ -295,8 +295,8 @@ jobs:
             libssl-dev \
             pkg-config
 
-      # Build the release application exactly once per target. CI already
-      # validated the source and platform-specific test modules for this SHA.
+      # This is the authoritative full product compilation for the immutable
+      # release SHA. Pull-request and master CI validate source-level modules.
       - name: Build and upload to GitHub Release
         uses: tauri-apps/tauri-action@v0
         env:

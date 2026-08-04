@@ -3,6 +3,11 @@ name: Native desktop checks
 on:
   workflow_call:
     inputs:
+      full:
+        description: Run cross-platform compilation and integration capabilities
+        required: false
+        default: false
+        type: boolean
       quality:
         description: Run Linux Rust formatting, lint, tests, and boundary checks
         required: false
@@ -89,7 +94,7 @@ jobs:
 
   platform:
     name: Check ${{ matrix.name }}
-    if: inputs.platform
+    if: inputs.full && inputs.platform
     strategy:
       fail-fast: false
       matrix:
@@ -216,7 +221,7 @@ jobs:
 
   embedding-platform:
     name: Exercise embedding model on ${{ matrix.name }}
-    if: inputs.embedding
+    if: inputs.full && inputs.embedding
     strategy:
       fail-fast: false
       matrix:
@@ -293,6 +298,7 @@ jobs:
         run: bun run check:harness-openapi
 
       - name: Exercise the harness server contract
+        if: inputs.full
         run: bun run test:harness-integration
 
   required:
@@ -310,11 +316,11 @@ jobs:
       CI_RESULT_MODULES: quality,platform,embedding-resources,embedding-platform,harness
       QUALITY_SELECTED: ${{ inputs.quality }}
       QUALITY_RESULT: ${{ needs.quality.result }}
-      PLATFORM_SELECTED: ${{ inputs.platform }}
+      PLATFORM_SELECTED: ${{ inputs.full && inputs.platform }}
       PLATFORM_RESULT: ${{ needs.platform.result }}
       EMBEDDING_RESOURCES_SELECTED: ${{ inputs.embedding }}
       EMBEDDING_RESOURCES_RESULT: ${{ needs.embedding-resources.result }}
-      EMBEDDING_PLATFORM_SELECTED: ${{ inputs.embedding }}
+      EMBEDDING_PLATFORM_SELECTED: ${{ inputs.full && inputs.embedding }}
       EMBEDDING_PLATFORM_RESULT: ${{ needs.embedding-platform.result }}
       HARNESS_SELECTED: ${{ inputs.harness }}
       HARNESS_RESULT: ${{ needs.harness.result }}
