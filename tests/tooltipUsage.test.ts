@@ -49,4 +49,13 @@ describe("tooltip usage", () => {
     expect(titleSnippet?.[1]).toBeDefined();
     expect(titleSnippet?.[1]).not.toContain("<Tooltip");
   });
+
+  test("uses one tooltip surface for the user-message index", async () => {
+    const source = await readFile(new URL("lib/components/MessageList.svelte", srcRoot), "utf8");
+    const indexSnippet = source.match(/<nav class="user-message-index"[\s\S]*?<\/nav>/)?.[0];
+
+    expect(indexSnippet).toBeDefined();
+    expect(indexSnippet?.match(/<Tooltip\b/g)).toHaveLength(1);
+    expect(indexSnippet).not.toContain("index-preview");
+  });
 });
