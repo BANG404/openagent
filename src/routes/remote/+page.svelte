@@ -11,6 +11,7 @@
   import RoleSelector from "$lib/components/RoleSelector.svelte";
   import SidebarCollapseButton from "$lib/components/SidebarCollapseButton.svelte";
   import SidebarPrimaryActions from "$lib/components/SidebarPrimaryActions.svelte";
+  import SidebarResizeHandle from "$lib/components/SidebarResizeHandle.svelte";
   import Tooltip from "$lib/components/Tooltip.svelte";
   import Toast from "$lib/components/Toast.svelte";
   import ToolApprovalActions from "$lib/components/ToolApprovalActions.svelte";
@@ -64,6 +65,7 @@
   } from "$lib/openagent";
   import { HttpTransport } from "$lib/openagent/httpTransport";
   import { randomUuid } from "$lib/uuid";
+  import { clampSidebarWidth, loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
 
   type Screen = "loading" | "pair" | "chat";
   const openAgentIconUrl = "/app-icon.png";
@@ -98,6 +100,8 @@
   let isDarkTheme = $state(false);
   let preferredTheme = $state<"system" | "light" | "dark">("system");
   let sidebarCollapsed = $state(false);
+  let sidebarWidth = $state(loadSidebarWidth());
+  let sidebarResizing = $state(false);
   let optimisticUser = $state<ChatMessage | null>(null);
   let pendingAssistantMessageId = $state<string | null>(null);
   let streamPaused = $state(false);
@@ -110,6 +114,10 @@
   } | null>(null);
   const previewUrls = new Set<string>();
   const handledMermaidInterrupts = new Set<string>();
+
+  function resizeSidebar(width: number): void {
+    sidebarWidth = clampSidebarWidth(width);
+  }
 
   const remoteUiCapabilities: OpenAgentUiCapabilities = {
     async openUrl(url) {
@@ -976,8 +984,12 @@
       </section>
     </main>
   {:else}
-    <div class="app" class:sidebar-collapsed={sidebarCollapsed}>
-      <aside class="sidebar" class:collapsed={sidebarCollapsed}>
+    <div
+      class="app"
+      class:sidebar-collapsed={sidebarCollapsed}
+      style:--sidebar-width={`${sidebarWidth}px`}
+    >
+      <aside class="sidebar" class:collapsed={sidebarCollapsed} class:resizing={sidebarResizing}>
         <div class="sidebar-top">
           {#if !sidebarCollapsed}
             <RoleSelector
@@ -1015,6 +1027,13 @@
             />
           {/if}
           <div class="remote-security">{$t("remotePairedScope")}</div>
+          <SidebarResizeHandle
+            width={sidebarWidth}
+            ariaLabel={$t("resizeSidebar")}
+            onResize={resizeSidebar}
+            onResizeStateChange={(resizing) => (sidebarResizing = resizing)}
+            onResizeEnd={saveSidebarWidth}
+          />
         {/if}
       </aside>
 
@@ -1424,6 +1443,7 @@
     color: var(--text);
   }
   .sidebar {
+    position: relative;
     width: var(--sidebar-width);
     flex-shrink: 0;
     display: flex;
@@ -1439,6 +1459,9 @@
     overflow: visible;
     border-right: 0;
     background: transparent;
+  }
+  .sidebar.resizing {
+    transition: none;
   }
   .sidebar-top {
     display: flex;
