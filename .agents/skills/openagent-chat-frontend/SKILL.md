@@ -308,11 +308,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   state.
 - Keep the development-only `permission-settings-preview` query as the direct,
   interactive surface for execution permissions. Its `-theme` and `-locale`
-  parameters must keep managed, external, disabled, preset, custom-rule,
-  network, warning, light/dark, and Chinese/English states addressable without
-  native configuration. Approval and `permission_profile` remain separate
-  settings; editing one must never rewrite the other or flatten existing custom
-  filesystem entries.
+  parameters must keep managed, disabled, preset, custom-rule, network, warning,
+  light/dark, and Chinese/English states addressable without native
+  configuration. Approval and `permission_profile` remain separate settings;
+  editing one must never rewrite the other or flatten existing custom filesystem
+  entries.
 
 ## IPC and events
 
@@ -352,6 +352,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   followed by workspace write. The frontend transport type and normalization
   must preserve `host_root`; collapsing an older payload to workspace-only
   access makes restored configuration diverge from the runtime sandbox policy.
+  Keep its enforcement union aligned with the SDK and normalize any unsupported
+  enforcement value to that managed fallback so a removed profile cannot retain
+  ambient file-tool access in frontend state.
 - `chat-response-started` means the stream connected, not that content arrived.
   Clear transient waiting state on the first text/thinking chunk and every
   terminal path.

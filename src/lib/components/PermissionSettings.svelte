@@ -48,7 +48,6 @@
         }))
       : null,
   );
-  let rememberedNetwork = $state<NetworkAccess>(permissionProfileNetwork(initialProfile));
   let lastProfileSignature = $state(JSON.stringify(initialProfile));
   let lastEmittedSignature = $state<string | null>(null);
   let newRuleAccess = $state<FileSystemAccess>("read");
@@ -76,15 +75,12 @@
     if (profile.enforcement === "managed") {
       lastManagedProfile = cloneManagedPermissionProfile(profile);
       fileSystemPreset = managedPermissionPreset(profile);
-      rememberedNetwork = profile.network;
       if (fileSystemPreset === "custom") {
         lastCustomEntries = profile.file_system.entries.map((entry) => ({
           access: entry.access,
           path: { ...entry.path },
         }));
       }
-    } else if (profile.enforcement === "external") {
-      rememberedNetwork = profile.network;
     }
   });
 
@@ -95,7 +91,6 @@
 
   function commitManaged(nextProfile: ManagedPermissionProfile) {
     lastManagedProfile = cloneManagedPermissionProfile(nextProfile);
-    rememberedNetwork = nextProfile.network;
     if (fileSystemPreset === "custom") {
       lastCustomEntries = nextProfile.file_system.entries.map((entry) => ({
         access: entry.access,
@@ -110,10 +105,6 @@
     if (enforcement === profile.enforcement) return;
     if (enforcement === "managed") {
       emitProfile(cloneManagedPermissionProfile(lastManagedProfile));
-      return;
-    }
-    if (enforcement === "external") {
-      emitProfile({ enforcement: "external", network: rememberedNetwork });
       return;
     }
     emitProfile({ enforcement: "disabled" });
@@ -146,11 +137,8 @@
 
   function changeNetwork(value: string) {
     const network = value as NetworkAccess;
-    rememberedNetwork = network;
     if (profile.enforcement === "managed") {
       commitManaged({ ...managedProfile, network });
-    } else if (profile.enforcement === "external") {
-      emitProfile({ enforcement: "external", network });
     }
   }
 
@@ -225,11 +213,6 @@
             value: "managed",
             label: $t("permissionManaged"),
             description: $t("permissionManagedDescription"),
-          },
-          {
-            value: "external",
-            label: $t("permissionExternal"),
-            description: $t("permissionExternalDescription"),
           },
           {
             value: "disabled",
@@ -408,32 +391,6 @@
         </div>
       </div>
     {/if}
-  {:else if profile.enforcement === "external"}
-    <div class="permission-divider"></div>
-    <div class="permission-control">
-      <div class="permission-control-copy">
-        <span class="permission-label">{$t("permissionNetwork")}</span>
-        <span class="permission-description">{$t("permissionExternalNetworkDescription")}</span>
-      </div>
-      <div class="permission-select">
-        <Select
-          value={profile.network}
-          items={[
-            { value: "restricted", label: $t("permissionNetworkRestricted") },
-            { value: "enabled", label: $t("permissionNetworkEnabled") },
-          ]}
-          ariaLabel={$t("permissionNetwork")}
-          onValueChange={changeNetwork}
-        />
-      </div>
-    </div>
-    <div class="permission-warning external">
-      <svg viewBox="0 0 20 20" aria-hidden="true">
-        <path d="M10 2.5 18 17H2L10 2.5Z" />
-        <path d="M10 7v4.5M10 14.5v.1" />
-      </svg>
-      <p>{$t("permissionExternalWarning")}</p>
-    </div>
   {:else}
     <div class="permission-warning disabled">
       <svg viewBox="0 0 20 20" aria-hidden="true">

@@ -371,11 +371,9 @@ const zh = {
   executionPermissionsDescription:
     "这些权限在工具通过审批后继续生效，并决定进程与内置文件工具实际可以访问的范围。",
   permissionEnforcement: "隔离方式",
-  permissionEnforcementDescription: "选择由 OpenAgent、外部宿主或当前系统环境负责隔离。",
+  permissionEnforcementDescription: "选择由 OpenAgent 原生沙盒负责隔离，或显式关闭隔离。",
   permissionManaged: "OpenAgent 管理（推荐）",
   permissionManagedDescription: "使用原生进程沙盒和同一套文件访问规则。",
-  permissionExternal: "外部宿主管理",
-  permissionExternalDescription: "由容器、虚拟机或其它嵌入宿主提供隔离。",
   permissionDisabled: "不启用隔离",
   permissionDisabledDescription: "允许工具使用当前进程拥有的系统权限。",
   permissionFileSystem: "文件系统",
@@ -388,7 +386,6 @@ const zh = {
   permissionPresetCustomDescription: "使用按路径匹配的读取、写入与拒绝规则。",
   permissionNetwork: "网络",
   permissionNetworkDescription: "控制受管进程是否可以建立网络连接。",
-  permissionExternalNetworkDescription: "声明外部宿主应提供的网络能力。",
   permissionNetworkRestricted: "受限",
   permissionNetworkRestrictedDescription: "禁止受管进程访问网络。",
   permissionNetworkEnabled: "已启用",
@@ -410,8 +407,6 @@ const zh = {
   permissionAbsolutePathPlaceholder: "输入绝对路径",
   permissionAddRule: "添加规则",
   permissionRemoveRule: "删除规则",
-  permissionExternalWarning:
-    "OpenAgent 不会创建沙盒。请确认外部宿主已经同时约束文件系统、进程与网络访问。",
   permissionDisabledWarning:
     "隔离已关闭。工具可使用 OpenAgent 进程拥有的全部文件系统与网络权限。仅在可信环境中使用。",
   compactionTask: "压缩任务",
@@ -1125,11 +1120,9 @@ const en: Translations = {
     "These permissions remain active after approval and define what processes and built-in file tools can actually access.",
   permissionEnforcement: "Isolation",
   permissionEnforcementDescription:
-    "Choose whether OpenAgent, an external host, or the current system environment owns isolation.",
+    "Choose native OpenAgent isolation or explicitly turn isolation off.",
   permissionManaged: "Managed by OpenAgent (Recommended)",
   permissionManagedDescription: "Use the native process sandbox and shared file-access rules.",
-  permissionExternal: "Managed by external host",
-  permissionExternalDescription: "Delegate isolation to a container, VM, or embedding host.",
   permissionDisabled: "No isolation",
   permissionDisabledDescription: "Let tools use the current process's ambient system access.",
   permissionFileSystem: "Filesystem",
@@ -1144,8 +1137,6 @@ const en: Translations = {
   permissionNetwork: "Network",
   permissionNetworkDescription:
     "Control whether managed processes can establish network connections.",
-  permissionExternalNetworkDescription:
-    "Declare the network capability the external host must provide.",
   permissionNetworkRestricted: "Restricted",
   permissionNetworkRestrictedDescription: "Block network access for managed processes.",
   permissionNetworkEnabled: "Enabled",
@@ -1168,8 +1159,6 @@ const en: Translations = {
   permissionAbsolutePathPlaceholder: "Enter an absolute path",
   permissionAddRule: "Add rule",
   permissionRemoveRule: "Remove rule",
-  permissionExternalWarning:
-    "OpenAgent will not create a sandbox. Confirm that the external host constrains filesystem, process, and network access.",
   permissionDisabledWarning:
     "Isolation is off. Tools can use every filesystem and network permission available to the OpenAgent process. Use only in a trusted environment.",
   compactionTask: "Compaction Task",

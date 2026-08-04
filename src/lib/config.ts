@@ -46,12 +46,6 @@ export function defaultPermissionProfile(): PermissionProfile {
 function normalizePermissionProfile(profile: PermissionProfile | undefined): PermissionProfile {
   if (!profile) return defaultPermissionProfile();
   if (profile.enforcement === "disabled") return { enforcement: "disabled" };
-  if (profile.enforcement === "external") {
-    return {
-      enforcement: "external",
-      network: profile.network ?? "restricted",
-    };
-  }
   if (profile.enforcement === "managed") {
     return {
       enforcement: "managed",
