@@ -64,12 +64,12 @@ call is allowed. Approval never widens the active permission profile.
 
 The General settings page exposes these as two separate controls. Approval has
 `manual`, `auto`, and `off` modes and defaults to `off`; it never selects a
-sandbox policy. **Execution Permissions & Sandbox** selects `managed`,
-`external`, or `disabled` enforcement. Managed enforcement offers canonical
+sandbox policy. **Execution Permissions & Sandbox** selects `managed` or
+`disabled` enforcement. Managed enforcement offers canonical
 workspace-writable and read-only presets, plus an advanced editor for ordered
 `read`, `write`, and `deny` path rules. Network access is configured separately
-as `restricted` or `enabled`. The UI warns whenever OpenAgent is not the owner
-of the isolation boundary.
+as `restricted` or `enabled`. Disabling isolation is an explicit unsafe choice;
+the UI warns that tools retain the ambient access of the OpenAgent process.
 
 The default `managed` profile grants `read` access to the host filesystem and
 `write` access to the active workspace; write access includes reading. Broad
@@ -83,11 +83,10 @@ absolute entries name an additional host path. Existing targets and the
 nearest existing ancestor of new targets are canonicalized before matching, so
 `..` and existing symbolic-link ancestors cannot escape a managed root.
 
-An `external` profile delegates confinement to the embedding host, while
-`disabled` explicitly selects ambient host filesystem access. These are
-different security contracts and are not inferred from the approval mode. The
-profile also records whether network access is `enabled` or `restricted`; new
-and legacy configurations default to `restricted`. The
+The `disabled` profile explicitly selects ambient host filesystem and network
+access; it is not inferred from the approval mode. Managed profiles record
+whether network access is `enabled` or `restricted`, defaulting to
+`restricted`. The
 runtime SDK now provides one shared process-sandbox contract for foreground,
 background, resumed-approval, and delegated terminal launches. The desktop
 product registers the native backend on every supported platform. Linux uses
@@ -109,12 +108,12 @@ first restricted launch may request UAC consent for provisioning. Missing
 helpers, declined elevation, or failed setup aborts the command without falling
 back to a weaker process boundary.
 
-Built-in read, list, search, create, and edit tools do not depend on the
-terminal backend. They run in process and route every model-facing path through
-the same canonical workspace authorization gateway, including symlink and new
-path handling. This preserves the managed filesystem policy for system tools
-outside the terminal while keeping trusted application-owned file access a
-separate boundary.
+Built-in read, list, search, create, edit, and file-presentation tools run in
+process, but they compile and enforce the same canonical managed filesystem
+rules as terminal launches, including symlink and new-path handling. The
+authorization match is exhaustive: only an explicit `disabled` profile grants
+ambient access, and there is no separate host-delegated profile that can bypass
+the file-tool boundary.
 
 ## Software error collection
 

@@ -60,6 +60,26 @@ describe("permission profile config", () => {
       network: "restricted",
     });
   });
+
+  test("does not preserve the removed external isolation profile", () => {
+    const normalized = normalizeConfigShape({
+      permission_profile: {
+        enforcement: "external",
+        network: "enabled",
+      },
+    } as unknown as AppConfig);
+
+    expect(normalized.permission_profile).toEqual({
+      enforcement: "managed",
+      file_system: {
+        entries: [
+          { path: { kind: "host_root" }, access: "read" },
+          { path: { kind: "workspace" }, access: "write" },
+        ],
+      },
+      network: "restricted",
+    });
+  });
 });
 
 describe("approval mode config", () => {

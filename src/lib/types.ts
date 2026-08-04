@@ -496,7 +496,6 @@ export type PermissionProfile =
       file_system: ManagedFileSystemPermissions;
       network: NetworkAccess;
     }
-  | { enforcement: "external"; network: NetworkAccess }
   | { enforcement: "disabled" };
 
 export type McpTransport = "http" | "stdio";
