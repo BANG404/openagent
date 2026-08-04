@@ -36,10 +36,13 @@ downstream status appears.
 
 Use `--wait-for-merge` when a trusted workflow is expected to merge the PR.
 After selected CI succeeds, the script allows trusted auto-merge 120 seconds by
-default. If the PR remains open, it returns `merge-pending` so the caller can
-inspect review or token blockers and apply the repository's documented merge
-fallback. Set `--merge-wait-seconds 0` only when indefinite merge waiting is
-intentional.
+default. If GitHub reports the PR as blocked for a complete poll interval, the
+script returns `merge-pending reason=blocked` immediately instead of spending
+the full grace period waiting for an auto-merge that cannot currently land. If
+an otherwise mergeable PR remains open, it returns `merge-pending` when the
+grace period expires. Re-read the PR and apply the repository's documented
+merge fallback. Set `--merge-wait-seconds 0` only when indefinite merge waiting
+is intentional.
 Use `--timeout-seconds` only for an explicit caller time budget; `0` waits
 indefinitely.
 
@@ -50,6 +53,12 @@ unrelated tool until it finishes. If the command returns a background cell ID,
 call the execution tool's wait operation on that same cell. Use waits no longer
 than 50 seconds so progress commentary remains possible, and repeat on the same
 cell while it reports that the script is still running.
+
+The execution layer may buffer the script's flushed stdout until the cell exits.
+An empty cell wait therefore means only that the waiter is still running; it
+does not prove GitHub CI is still pending. Describe it as an active waiter, not
+as an observed CI state. The structured result returned when the cell exits is
+authoritative.
 
 Do not end the agent turn while the cell is active. This execution environment
 does not guarantee an automatic model continuation when a detached cell exits,

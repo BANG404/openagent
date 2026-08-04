@@ -44,6 +44,7 @@ class WaitForPrCiTests(unittest.TestCase):
             merged=False,
             head_sha="abc123",
             base_ref="main",
+            mergeable_state="clean",
         )
         checks = [wait_for_pr_ci.Check("Required PR Head", "success", "", "status")]
 
@@ -53,6 +54,38 @@ class WaitForPrCiTests(unittest.TestCase):
             wait_for_pr_ci, "get_pr", return_value=pull_request
         ), patch.object(wait_for_pr_ci, "get_checks", return_value=checks), patch.object(
             wait_for_pr_ci.time, "monotonic", side_effect=[100.0, 100.0, 220.0]
+        ), patch.object(wait_for_pr_ci.time, "sleep"):
+            self.assertEqual(wait_for_pr_ci.main(), 5)
+
+    def test_main_returns_merge_pending_after_ci_is_blocked_for_one_poll(self) -> None:
+        args = SimpleNamespace(
+            repo="acme/app",
+            pr="68",
+            check=["Required PR Head"],
+            all_actions=False,
+            poll_seconds=15.0,
+            settle_seconds=30.0,
+            timeout_seconds=0.0,
+            wait_for_merge=True,
+            merge_wait_seconds=120.0,
+        )
+        pull_request = wait_for_pr_ci.PullRequest(
+            number=68,
+            url="https://github.com/acme/app/pull/68",
+            state="OPEN",
+            merged=False,
+            head_sha="def456",
+            base_ref="main",
+            mergeable_state="blocked",
+        )
+        checks = [wait_for_pr_ci.Check("Required PR Head", "success", "", "status")]
+
+        with patch.object(wait_for_pr_ci, "parse_args", return_value=args), patch.object(
+            wait_for_pr_ci, "resolve_repo", return_value="acme/app"
+        ), patch.object(wait_for_pr_ci, "resolve_pr_number", return_value=68), patch.object(
+            wait_for_pr_ci, "get_pr", return_value=pull_request
+        ), patch.object(wait_for_pr_ci, "get_checks", return_value=checks), patch.object(
+            wait_for_pr_ci.time, "monotonic", side_effect=[100.0, 100.0, 115.0]
         ), patch.object(wait_for_pr_ci.time, "sleep"):
             self.assertEqual(wait_for_pr_ci.main(), 5)
 
