@@ -255,6 +255,10 @@ def selection_marker(head_sha: str, checks: list[Check]) -> tuple[str, tuple[tup
     return head_sha, tuple((check.name, check.state) for check in checks)
 
 
+def merge_wait_expired(started: float | None, now: float, limit: float) -> bool:
+    return started is not None and limit > 0 and now - started >= limit
+
+
 def parse_args() -> argparse.Namespace:
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -290,6 +294,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="continue after CI success until the PR is merged",
     )
+    parser.add_argument(
+        "--merge-wait-seconds",
+        type=float,
+        default=120.0,
+        help="time to allow trusted auto-merge after CI succeeds; 0 waits indefinitely (default: 120)",
+    )
     args = parser.parse_args()
     if args.check and args.all_actions:
         parser.error("--check and --all-actions are mutually exclusive")
@@ -299,6 +309,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("--settle-seconds cannot be negative")
     if args.timeout_seconds < 0:
         parser.error("--timeout-seconds cannot be negative")
+    if args.merge_wait_seconds < 0:
+        parser.error("--merge-wait-seconds cannot be negative")
     return args
 
 
@@ -322,6 +334,7 @@ def main() -> int:
     started = time.monotonic()
     observed: tuple[str, tuple[tuple[str, str], ...]] | tuple[str, str] | None = None
     success_since: float | None = None
+    merge_wait_started: float | None = None
 
     while True:
         now = time.monotonic()
@@ -354,6 +367,7 @@ def main() -> int:
             print(f"PR #{number} head={current.head_sha} checks=[{summary}]", flush=True)
             observed = marker
             success_since = None
+            merge_wait_started = None
 
         state = selection_state(checks)
         if state == "failure":
@@ -367,11 +381,31 @@ def main() -> int:
         if state == "success":
             success_since = success_since or now
             settled = bool(contexts) or now - success_since >= args.settle_seconds
-            if settled and not args.wait_for_merge:
-                print(f"WAIT_FOR_PR_CI result=success pr={number} head={current.head_sha} merged=false")
-                return 0
+            if settled:
+                if not args.wait_for_merge:
+                    print(
+                        f"WAIT_FOR_PR_CI result=success pr={number} "
+                        f"head={current.head_sha} merged=false"
+                    )
+                    return 0
+                if merge_wait_started is None:
+                    merge_wait_started = now
+                    limit = (
+                        "indefinitely"
+                        if args.merge_wait_seconds == 0
+                        else f"up to {args.merge_wait_seconds:g}s"
+                    )
+                    print(f"CI succeeded; waiting {limit} for PR #{number} to merge.", flush=True)
+                if merge_wait_expired(merge_wait_started, now, args.merge_wait_seconds):
+                    print(
+                        f"WAIT_FOR_PR_CI result=merge-pending pr={number} "
+                        f"head={current.head_sha} url={current.url}",
+                        file=sys.stderr,
+                    )
+                    return 5
         else:
             success_since = None
+            merge_wait_started = None
 
         time.sleep(args.poll_seconds)
 

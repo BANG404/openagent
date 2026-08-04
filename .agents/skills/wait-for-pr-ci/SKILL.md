@@ -35,6 +35,11 @@ before generic all-actions success so a dispatcher cannot finish just before a
 downstream status appears.
 
 Use `--wait-for-merge` when a trusted workflow is expected to merge the PR.
+After selected CI succeeds, the script allows trusted auto-merge 120 seconds by
+default. If the PR remains open, it returns `merge-pending` so the caller can
+inspect review or token blockers and apply the repository's documented merge
+fallback. Set `--merge-wait-seconds 0` only when indefinite merge waiting is
+intentional.
 Use `--timeout-seconds` only for an explicit caller time budget; `0` waits
 indefinitely.
 
@@ -64,6 +69,10 @@ its completion, interpret the existing `WAIT_FOR_PR_CI` result normally.
 - Exit `2`: the PR closed without merging.
 - Exit `3`: the requested timeout expired.
 - Exit `4`: arguments, authentication, repository lookup, or API access failed.
+- Exit `5`: selected CI succeeded, but the PR did not merge within the allowed
+  auto-merge window. Re-read the PR state and use the repository's approved
+  review or admin-merge fallback; do not rerun CI merely because merging is
+  blocked.
 
 Do not bypass failed, pending, or timed-out checks. Inspect the linked run, fix
 the same task branch, push, and invoke the script again. A changed PR head
