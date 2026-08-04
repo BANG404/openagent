@@ -41,6 +41,10 @@ cd src-tauri && cargo check
 cd src-tauri && cargo build
 ```
 
+Debug Tauri runs default to `~/.openagent-dev`; set `OPENAGENT_HOME` explicitly
+only when a task requires another fixture root. Do not point routine development
+runs at the installed release's `~/.openagent` state.
+
 Before committing in any delivery mode, inspect the complete diff and run
 `bun run preflight`; it compares
 the branch, index, and worktree plus untracked filenames with `origin/master`,

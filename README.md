@@ -154,6 +154,10 @@ bun tauri dev
 bun run dev
 ```
 
+Debug desktop builds use `~/.openagent-dev` by default, keeping development
+configuration and data separate from an installed release. Set
+`OPENAGENT_HOME` explicitly to use another development root.
+
 ### Build a distributable
 
 ```bash

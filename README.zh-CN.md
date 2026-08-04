@@ -149,6 +149,9 @@ bun tauri dev
 bun run dev
 ```
 
+调试版桌面应用默认使用 `~/.openagent-dev`，与安装版的数据和配置隔离。需要使用
+其他开发数据目录时，请显式设置 `OPENAGENT_HOME`。
+
 ### 构建发行版
 
 ```bash
