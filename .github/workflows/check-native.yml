@@ -170,9 +170,21 @@ jobs:
             exit 1
           }
           $env:CARGO_TARGET_DIR = (Resolve-Path "src-tauri\target").Path
-          cargo test --manifest-path sdk/Cargo.toml -p openagent-server elevated_offline_account_blocks_firewall_and_wfp_loopback_paths *> "$env:RUNNER_TEMP/sdk-windows-wfp-test.log"
-          if ($LASTEXITCODE -ne 0) {
-            $diagnostic = Select-String -Path "$env:RUNNER_TEMP/sdk-windows-wfp-test.log" -Pattern 'OPENAGENT_WFP_DIAGNOSTIC=[a-z-]+' -AllMatches |
+          $log = "$env:RUNNER_TEMP/sdk-windows-wfp-test.log"
+          $tests = @(
+            "elevated_offline_account_firewall_blocks_non_loopback_network_access",
+            "elevated_offline_account_wfp_blocks_dns_network_access"
+          )
+          $failed = $false
+          foreach ($test in $tests) {
+            cargo test --manifest-path sdk/Cargo.toml -p openagent-server $test *>> $log
+            if ($LASTEXITCODE -ne 0) {
+              $failed = $true
+              break
+            }
+          }
+          if ($failed) {
+            $diagnostic = Select-String -Path $log -Pattern 'OPENAGENT_WFP_DIAGNOSTIC=[a-z-]+' -AllMatches |
               ForEach-Object { $_.Matches.Value } |
               Select-Object -Last 1
             if ($diagnostic) {

@@ -22,6 +22,11 @@ on:
         required: true
         default: true
         type: boolean
+      windows_sandbox:
+        description: Exercise the Windows offline-account process sandbox
+        required: true
+        default: true
+        type: boolean
       typescript:
         description: Check and test the TypeScript SDK
         required: true
@@ -286,6 +291,82 @@ jobs:
       - *checkout-private-diagnostic-reporter
       - *report-private-diagnostic
 
+  windows-process-sandbox:
+    name: Windows process sandbox
+    if: inputs.windows_sandbox
+    needs: pending
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      SDK_DIAGNOSTIC_NAME: Windows process sandbox
+    steps:
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with: *reporter
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with: *sdk-checkout
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: *rust-cache
+      - name: Enable Windows Firewall profiles
+        shell: pwsh
+        run: |
+          Set-NetFirewallProfile -Profile Domain,Private,Public -Enabled True
+          if (Get-NetFirewallProfile | Where-Object { -not $_.Enabled }) {
+            Write-Error "Windows Firewall profiles could not be enabled for the sandbox boundary test."
+            exit 1
+          }
+      - name: Build pinned Windows sandbox helpers
+        shell: pwsh
+        run: |
+          $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
+          $metadata = cargo metadata --locked --format-version 1 --manifest-path sdk/Cargo.toml | ConvertFrom-Json
+          $package = $metadata.packages | Where-Object {
+            $_.name -eq "codex-windows-sandbox" -and $_.source -like "git+*"
+          } | Select-Object -First 1
+          if (-not $package) {
+            "Pinned codex-windows-sandbox package was not found." *> $log
+            "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
+            exit 1
+          }
+          cargo build --locked --manifest-path $package.manifest_path --package codex-windows-sandbox --bin codex-windows-sandbox-setup --bin codex-command-runner --target-dir sdk/target *>> $log
+          if ($LASTEXITCODE -ne 0) {
+            "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
+            Write-Error "Windows sandbox helper build failed; private diagnostic output was suppressed."
+            exit 1
+          }
+      - name: Exercise Windows Firewall and WFP boundaries
+        shell: pwsh
+        env:
+          OPENAGENT_WINDOWS_WFP_INTEGRATION: "1"
+          OPENAGENT_WINDOWS_NETWORK_PRIVATE_DIAGNOSTIC: "1"
+          SBX_DEBUG: "1"
+        run: |
+          $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
+          $tests = @(
+            "elevated_offline_account_firewall_blocks_non_loopback_network_access",
+            "elevated_offline_account_wfp_blocks_dns_network_access"
+          )
+          foreach ($test in $tests) {
+            cargo test --manifest-path sdk/Cargo.toml -p openagent-server $test -- --test-threads=1 *>> $log
+            if ($LASTEXITCODE -ne 0) {
+              "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
+              $diagnostic = Select-String -Path $log -Pattern 'OPENAGENT_WFP_DIAGNOSTIC=[a-z-]+' -AllMatches |
+                ForEach-Object { $_.Matches.Value } |
+                Select-Object -Last 1
+              if ($diagnostic) {
+                Write-Error "Windows process sandbox test failed: $diagnostic. Private diagnostic output was suppressed."
+              } else {
+                Write-Error "Windows process sandbox test failed; private diagnostic output was suppressed."
+              }
+              exit 1
+            }
+          }
+      - *checkout-private-diagnostic-reporter
+      - *report-private-diagnostic
+
   typescript:
     name: TypeScript SDK
     if: inputs.typescript
@@ -530,6 +611,7 @@ jobs:
       - rust-tests
       - linux-process-sandbox
       - macos-process-sandbox
+      - windows-process-sandbox
       - typescript
       - harness-client
       - host-compatibility
@@ -542,7 +624,7 @@ jobs:
         continue-on-error: true
         env:
           CHANGES_RESULT: ${{ needs.pending.result }}
-          CI_RESULT_MODULES: rust-format,rust-clippy,rust-tests,linux-process-sandbox,macos-process-sandbox,typescript,harness-client,host-compatibility
+          CI_RESULT_MODULES: rust-format,rust-clippy,rust-tests,linux-process-sandbox,macos-process-sandbox,windows-process-sandbox,typescript,harness-client,host-compatibility
           RUST_FORMAT_SELECTED: ${{ inputs.rust }}
           RUST_FORMAT_RESULT: ${{ needs.rust-format.result }}
           RUST_CLIPPY_SELECTED: ${{ inputs.rust }}
@@ -553,6 +635,8 @@ jobs:
           LINUX_PROCESS_SANDBOX_RESULT: ${{ needs.linux-process-sandbox.result }}
           MACOS_PROCESS_SANDBOX_SELECTED: ${{ inputs.macos_sandbox }}
           MACOS_PROCESS_SANDBOX_RESULT: ${{ needs.macos-process-sandbox.result }}
+          WINDOWS_PROCESS_SANDBOX_SELECTED: ${{ inputs.windows_sandbox }}
+          WINDOWS_PROCESS_SANDBOX_RESULT: ${{ needs.windows-process-sandbox.result }}
           TYPESCRIPT_SELECTED: ${{ inputs.typescript }}
           TYPESCRIPT_RESULT: ${{ needs.typescript.result }}
           HARNESS_CLIENT_SELECTED: ${{ inputs.harness }}

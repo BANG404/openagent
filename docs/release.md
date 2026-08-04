@@ -220,9 +220,13 @@ the real filesystem boundary test; a dedicated macOS job exercises the system
 Seatbelt boundary.
 Both are required by the aggregate rather than being optional smoke checks.
 The Windows job enables every Windows Firewall profile before exercising the
-offline account. It verifies Codex's two network layers separately: the
-user-scoped Firewall rules block arbitrary loopback traffic, and the persistent
-WFP filters still block DNS port 53 when ordinary local binding is allowed.
+offline account. It verifies Codex's two network layers separately: after a
+parent reachability preflight, the user-scoped Firewall rules block the same
+numeric external HTTPS address, and the persistent WFP filters still block DNS
+port 53 when ordinary local binding is allowed. The public SDK workflow runs
+the same two exact tests sequentially with detailed setup/wrapper logging
+enabled only in its private Check Run; public logs retain only the fixed
+`firewall-*` or `wfp-dns-*` diagnostic category.
 The private repository dispatches an immutable commit SHA; a GitHub App
 installed only on the SDK repository lets the public workflow read that
 revision and report the aggregate `Public SDK CI` commit status. Because
