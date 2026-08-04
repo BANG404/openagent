@@ -292,8 +292,19 @@ jobs:
             libappindicator3-dev \
             librsvg2-dev \
             patchelf \
+            binutils \
+            libcap-dev \
             libssl-dev \
             pkg-config
+
+      - name: Prepare pinned Linux sandbox helper
+        if: matrix.platform == 'ubuntu-22.04'
+        shell: bash
+        run: |
+          if ! node scripts/prepare-linux-sandbox-helper.mjs --profile release --github-env >"$RUNNER_TEMP/linux-sandbox-helper-build.log" 2>&1; then
+            echo "::error::Linux sandbox helper build failed; diagnostic output was suppressed."
+            exit 1
+          fi
 
       # This is the authoritative full product compilation for the immutable
       # release SHA. Pull-request and master CI validate source-level modules.

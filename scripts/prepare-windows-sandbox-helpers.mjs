@@ -58,7 +58,15 @@ const sandboxPackage = metadata.packages.find(
   (candidate) => candidate.name === "codex-windows-sandbox" && candidate.source?.startsWith("git+"),
 );
 if (!sandboxPackage) {
-  throw new Error("The pinned Codex Windows sandbox package was not found in SDK metadata.");
+  const pinnedSdkRevision = run("git", ["rev-parse", "HEAD:sdk"]).trim();
+  const checkedOutSdkRevision = run("git", ["-C", "sdk", "rev-parse", "HEAD"]).trim();
+  const checkoutHint =
+    pinnedSdkRevision !== checkedOutSdkRevision
+      ? ` The parent repository pins SDK ${pinnedSdkRevision}, but sdk/ is checked out at ${checkedOutSdkRevision}. Preserve any SDK work, then run git submodule update --init --checkout sdk.`
+      : "";
+  throw new Error(
+    `The pinned Codex Windows sandbox package was not found in SDK metadata.${checkoutHint}`,
+  );
 }
 const revision = sandboxPackage.source.split("#").at(-1);
 if (!revision || !/^[0-9a-f]{40}$/.test(revision)) {

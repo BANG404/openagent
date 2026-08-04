@@ -66,6 +66,8 @@ jobs:
             libappindicator3-dev \
             librsvg2-dev \
             patchelf \
+            binutils \
+            libcap-dev \
             libssl-dev \
             pkg-config
 
@@ -83,6 +85,20 @@ jobs:
             ./sdk -> target
           cache-targets: false
 
+      - name: Prepare pinned Linux sandbox helper
+        shell: bash
+        run: |
+          profile=dev
+          github_env=()
+          if [[ "${{ inputs.full }}" == "true" ]]; then
+            profile=release
+            github_env=(--github-env)
+          fi
+          if ! node scripts/prepare-linux-sandbox-helper.mjs --profile "$profile" "${github_env[@]}" >"$RUNNER_TEMP/linux-sandbox-helper-build.log" 2>&1; then
+            echo "::error::Linux sandbox helper build failed; diagnostic output was suppressed."
+            exit 1
+          fi
+
       - name: Check Rust formatting
         run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 
@@ -91,6 +107,10 @@ jobs:
 
       - name: Run Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Verify Linux release sandbox digest guard
+        if: inputs.full
+        run: cargo check --release --manifest-path sdk/Cargo.toml -p openagent-app
 
   platform:
     name: Check ${{ matrix.name }}

@@ -152,8 +152,12 @@ bun run dev
 ### 构建发行版
 
 ```bash
-bun tauri build
+bun run tauri:build
 ```
+
+Linux 构建会从 SDK 固定的 Codex 提交编译并打包 Bubblewrap sidecar；发布构建会先
+剥离二进制，再把同一文件的 SHA-256 嵌入应用。Linux 源码构建还需要 `libcap`
+开发头文件、`pkg-config` 和 GNU `strip`（通常由 `binutils` 提供）。
 
 构建产物位于 `src-tauri/target/release/bundle/`。
 
