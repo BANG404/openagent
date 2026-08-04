@@ -9,6 +9,7 @@ const SENSITIVE_ENVIRONMENT_NAME = /(credential|key|password|secret|token)/i;
 
 class PrivateDiagnosticDeliveryError extends Error {}
 
+/** @param {unknown} value */
 function sanitizeApiMessage(value) {
   if (typeof value !== "string") {
     return "";
@@ -16,6 +17,7 @@ function sanitizeApiMessage(value) {
   return value.replaceAll("::", ": :").replace(/\s+/g, " ").trim().slice(0, 240);
 }
 
+/** @param {Response} response */
 async function buildDeliveryError(response) {
   let message = "";
   try {
