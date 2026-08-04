@@ -25,7 +25,7 @@
   import { installDownloadHook } from "$lib/downloadHook";
   import { checkForAppUpdate } from "$lib/appUpdater";
   import { Dialog, Tooltip as TooltipPrimitive } from "bits-ui";
-  import { normalizeConfigShape } from "$lib/config";
+  import { defaultPermissionProfile, normalizeConfigShape } from "$lib/config";
   import { initializeTray } from "$lib/tray";
   import { t, tr, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import { showToast } from "$lib/toast";
@@ -71,6 +71,7 @@
   import OnboardingFlow from "$lib/components/OnboardingFlow.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
   import ReasoningEffortSelect from "$lib/components/ReasoningEffortSelect.svelte";
+  import PermissionSettings from "$lib/components/PermissionSettings.svelte";
   import ChatQueue from "$lib/components/ChatQueue.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
@@ -144,6 +145,7 @@
     WslDistribution,
     WslWorkspaceTarget,
     ProviderAuthDeviceCodeEvent,
+    PermissionProfile,
     ReasoningEffort,
   } from "$lib/types";
 
@@ -193,6 +195,7 @@
   const isCommandPalettePreview = devQuery?.has("command-palette-preview") === true;
   const isPauseControlPreview = devQuery?.has("pause-control-preview") === true;
   const isBookModePreview = devQuery?.has("book-mode-preview") === true;
+  const isPermissionSettingsPreview = devQuery?.has("permission-settings-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
   const quickChatPreviewTheme =
@@ -257,6 +260,18 @@
     devQuery?.get("book-mode-preview-locale") === "en"
       ? "en"
       : devQuery?.get("book-mode-preview-locale") === "zh"
+        ? "zh"
+        : null;
+  const permissionSettingsPreviewTheme =
+    devQuery?.get("permission-settings-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("permission-settings-preview-theme") === "light"
+        ? "light"
+        : null;
+  const permissionSettingsPreviewLocale: Locale | null =
+    devQuery?.get("permission-settings-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("permission-settings-preview-locale") === "zh"
         ? "zh"
         : null;
   const bookModePreviewTable = [
@@ -527,9 +542,9 @@
       skill_category: { enabled: true, prompt: "" },
       new_conversation_summary: { enabled: true, prompt: "" },
       hook: { enabled: true, prompt: "" },
-      tool_approval: { enabled: true, prompt: "" },
+      tool_approval: { enabled: false, prompt: "" },
     },
-    approval_mode: "sandbox",
+    approval_mode: "off",
     mcp: { servers: [] },
     theme: "system",
     language: "zh",
@@ -578,6 +593,7 @@
   let pauseControlPreviewPaused = $state(false);
   let selectedModel = $state("");
   let reasoningEffortPreviewValue = $state<ReasoningEffort>("high");
+  let permissionSettingsPreviewProfile = $state<PermissionProfile>(defaultPermissionProfile());
   let quickChatModel = $state("");
   let quickChatRole = $state(defaultRoleKey);
   let quickChatWorkspace = $state("");
@@ -713,6 +729,7 @@
       isCommandPalettePreview ||
       isPauseControlPreview ||
       isReasoningEffortPreview ||
+      isPermissionSettingsPreview ||
       initialLoading ||
       workspaceLoading ||
       navigationTransitioning ||
@@ -2949,6 +2966,7 @@
       config = normalizeConfigShape(fallbackConfig);
       applyTheme(
         bookModePreviewTheme ??
+          permissionSettingsPreviewTheme ??
           pauseControlPreviewTheme ??
           commandPalettePreviewTheme ??
           workspaceSwitcherPreviewTheme ??
@@ -2959,6 +2977,7 @@
       );
       await initI18n(
         bookModePreviewLocale ??
+          permissionSettingsPreviewLocale ??
           pauseControlPreviewLocale ??
           commandPalettePreviewLocale ??
           workspaceSwitcherPreviewLocale ??
@@ -4589,6 +4608,19 @@
       onSubmitUserInput={() => {}}
       onCancelUserInput={() => {}}
     />
+  {:else if isPermissionSettingsPreview}
+    <main class="permission-settings-preview-stage">
+      <section class="permission-settings-preview-card">
+        <header>
+          <h1>{$t("executionPermissions")}</h1>
+          <p>{$t("executionPermissionsDescription")}</p>
+        </header>
+        <PermissionSettings
+          profile={permissionSettingsPreviewProfile}
+          onProfileChange={(profile) => (permissionSettingsPreviewProfile = profile)}
+        />
+      </section>
+    </main>
   {:else if isWorkspaceSwitcherPreview}
     <main class="workspace-switcher-preview-stage">
       <WorkspaceSwitcher
@@ -6179,6 +6211,42 @@
     padding: 32px;
     box-sizing: border-box;
     background: var(--bg);
+  }
+
+  .permission-settings-preview-stage {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 48px 24px;
+    box-sizing: border-box;
+    background: var(--bg);
+  }
+
+  .permission-settings-preview-card {
+    width: min(680px, 100%);
+  }
+
+  .permission-settings-preview-card header {
+    margin: 0 4px 18px;
+  }
+
+  .permission-settings-preview-card h1,
+  .permission-settings-preview-card p {
+    margin: 0;
+  }
+
+  .permission-settings-preview-card h1 {
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 650;
+    letter-spacing: -0.4px;
+  }
+
+  .permission-settings-preview-card p {
+    margin-top: 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
   }
 
   .workspace-switcher-preview-stage {

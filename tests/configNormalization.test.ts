@@ -61,3 +61,20 @@ describe("permission profile config", () => {
     });
   });
 });
+
+describe("approval mode config", () => {
+  test("defaults missing or unsupported values to off", () => {
+    expect(normalizeConfigShape({} as AppConfig).approval_mode).toBe("off");
+    expect(
+      normalizeConfigShape({ approval_mode: "sandbox" } as unknown as AppConfig).approval_mode,
+    ).toBe("off");
+  });
+
+  test("enables the approval Flash task only for automatic approval", () => {
+    const automatic = normalizeConfigShape({ approval_mode: "auto" } as AppConfig);
+    const manual = normalizeConfigShape({ approval_mode: "manual" } as AppConfig);
+
+    expect(automatic.flash_agents.tool_approval.enabled).toBe(true);
+    expect(manual.flash_agents.tool_approval.enabled).toBe(false);
+  });
+});

@@ -1,5 +1,6 @@
 import type {
   AppConfig,
+  ApprovalMode,
   FetchConfig,
   HtmlPreviewConfig,
   PermissionProfile,
@@ -145,7 +146,9 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
       ? Math.min(50_000, Math.max(1_000, Math.floor(requestedFetchPageSize)))
       : 12_000,
   };
-  const approval_mode = input.approval_mode;
+  const approval_mode: ApprovalMode = ["manual", "auto", "off"].includes(input.approval_mode)
+    ? input.approval_mode
+    : "off";
   const permission_profile = normalizePermissionProfile(input.permission_profile);
   const requestedDoubleColumnMinWidth = Number(input.message_double_column_min_width);
   const messageDoubleColumnMinWidth = Number.isFinite(requestedDoubleColumnMinWidth)
@@ -177,7 +180,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
       prompt: input.flash_agents?.hook?.prompt ?? "",
     },
     tool_approval: {
-      enabled: approval_mode === "auto" || approval_mode === "sandbox",
+      enabled: approval_mode === "auto",
       prompt: input.flash_agents?.tool_approval?.prompt ?? "",
     },
   };

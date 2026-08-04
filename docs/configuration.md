@@ -15,16 +15,16 @@ OpenAgent never merges two populated roots automatically.
 
 The root contains these user-maintained or durable files:
 
-| Path | Purpose |
-| --- | --- |
-| `config.toml` | Providers, model bindings, tool policy, UI preferences, MCP, web search, and remote-gateway settings |
-| `config.toml.bak` | Previous valid configuration used for startup recovery |
-| `memory.md` | Global user memory |
-| `messages.db` | Conversation and checkpoint storage |
-| `messages.db.pre-schema-v<N>.bak` | SQLite-consistent snapshot retained before an automatic database schema upgrade |
-| `scheduled_chat_hooks.json` | Durable scheduled-chat definitions |
-| `logs/openagent.<date>.jsonl` | Local structured application diagnostics; daily rotation with the latest 15 files retained |
-| `drafts/`, `DESIGN.md` | Global drafts and design context |
+| Path                              | Purpose                                                                                              |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `config.toml`                     | Providers, model bindings, tool policy, UI preferences, MCP, web search, and remote-gateway settings |
+| `config.toml.bak`                 | Previous valid configuration used for startup recovery                                               |
+| `memory.md`                       | Global user memory                                                                                   |
+| `messages.db`                     | Conversation and checkpoint storage                                                                  |
+| `messages.db.pre-schema-v<N>.bak` | SQLite-consistent snapshot retained before an automatic database schema upgrade                      |
+| `scheduled_chat_hooks.json`       | Durable scheduled-chat definitions                                                                   |
+| `logs/openagent.<date>.jsonl`     | Local structured application diagnostics; daily rotation with the latest 15 files retained           |
+| `drafts/`, `DESIGN.md`            | Global drafts and design context                                                                     |
 
 Workspace-scoped memory, skills, drafts, and design files remain under that
 workspace's `.agents/` directory rather than the user-scoped root.
@@ -61,6 +61,15 @@ permissions and do not commit it to source control.
 Tool approval controls whether an individual call pauses for review;
 `permission_profile` independently controls the capabilities available after a
 call is allowed. Approval never widens the active permission profile.
+
+The General settings page exposes these as two separate controls. Approval has
+`manual`, `auto`, and `off` modes and defaults to `off`; it never selects a
+sandbox policy. **Execution Permissions & Sandbox** selects `managed`,
+`external`, or `disabled` enforcement. Managed enforcement offers canonical
+workspace-writable and read-only presets, plus an advanced editor for ordered
+`read`, `write`, and `deny` path rules. Network access is configured separately
+as `restricted` or `enabled`. The UI warns whenever OpenAgent is not the owner
+of the isolation boundary.
 
 The default `managed` profile grants `read` access to the host filesystem and
 `write` access to the active workspace; write access includes reading. Broad
@@ -151,12 +160,12 @@ until the upgraded application and conversation history have been verified.
 
 The current compatibility window is explicit:
 
-| Stored schema | Source releases | Startup behavior |
-| --- | --- | --- |
-| No database | Any clean installation | Create schema v1 |
+| Stored schema             | Source releases                           | Startup behavior                                                       |
+| ------------------------- | ----------------------------------------- | ---------------------------------------------------------------------- |
+| No database               | Any clean installation                    | Create schema v1                                                       |
 | Unversioned legacy schema | `v0.25.0-beta.1` through `v0.29.1-beta.1` | Back up, recognize known legacy table shapes, migrate atomically to v1 |
-| Schema v1 | Current release line | Validate and open |
-| Higher than schema v1 | A newer OpenAgent build | Refuse to open without modifying the database |
+| Schema v1                 | Current release line                      | Validate and open                                                      |
+| Higher than schema v1     | A newer OpenAgent build                   | Refuse to open without modifying the database                          |
 
 Unreleased databases older than `v0.25.0-beta.1` are not implicitly declared
 compatible. They are migrated only when their tables match a known legacy
