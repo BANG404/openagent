@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Block until OpenAgent's stable PR-head CI status reaches a final state."""
+"""Block until a pull request's required or selected GitHub Actions checks finish."""
 
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
 import subprocess
 import sys
@@ -12,7 +13,16 @@ from dataclasses import dataclass
 from typing import Any
 
 
-STATUS_CONTEXT = "Required PR Head"
+SUCCESS_STATES = {"success", "neutral", "skipped"}
+FAILURE_STATES = {
+    "action_required",
+    "cancelled",
+    "error",
+    "failure",
+    "stale",
+    "startup_failure",
+    "timed_out",
+}
 
 
 class GhError(RuntimeError):
@@ -53,6 +63,15 @@ def gh_json(*args: str) -> Any:
         raise GhError("gh returned invalid JSON") from error
 
 
+def optional_api(path: str) -> Any | None:
+    try:
+        return gh_json("api", path)
+    except GhError as error:
+        if "HTTP 404" in str(error) or "Not Found" in str(error):
+            return None
+        raise
+
+
 @dataclass(frozen=True)
 class PullRequest:
     number: int
@@ -60,6 +79,15 @@ class PullRequest:
     state: str
     merged: bool
     head_sha: str
+    base_ref: str
+
+
+@dataclass(frozen=True)
+class Check:
+    name: str
+    state: str
+    target_url: str
+    source: str
 
 
 def resolve_repo(explicit: str | None) -> str:
@@ -86,18 +114,145 @@ def get_pr(repo: str, number: int) -> PullRequest:
         state=str(data["state"]).upper(),
         merged=bool(data.get("merged_at")),
         head_sha=str(data["head"]["sha"]),
+        base_ref=str(data["base"]["ref"]),
     )
 
 
-def get_required_status(repo: str, head_sha: str) -> tuple[str, str]:
-    data = gh_json("api", f"repos/{repo}/commits/{head_sha}/status")
-    statuses = [
-        status for status in data.get("statuses", []) if status.get("context") == STATUS_CONTEXT
+def rule_pattern_matches(pattern: str, ref: str, default_branch: str) -> bool:
+    if pattern == "~ALL":
+        return True
+    if pattern == "~DEFAULT_BRANCH":
+        return ref == default_branch
+    full_ref = f"refs/heads/{ref}"
+    return fnmatch.fnmatchcase(ref, pattern) or fnmatch.fnmatchcase(full_ref, pattern)
+
+
+def ruleset_applies(ruleset: dict[str, Any], ref: str, default_branch: str) -> bool:
+    ref_condition = ruleset.get("conditions", {}).get("ref_name", {})
+    includes = ref_condition.get("include", ["~ALL"])
+    excludes = ref_condition.get("exclude", [])
+    included = any(rule_pattern_matches(str(pattern), ref, default_branch) for pattern in includes)
+    excluded = any(rule_pattern_matches(str(pattern), ref, default_branch) for pattern in excludes)
+    return included and not excluded
+
+
+def contexts_from_ruleset(ruleset: dict[str, Any]) -> set[str]:
+    contexts: set[str] = set()
+    for rule in ruleset.get("rules", []):
+        if rule.get("type") != "required_status_checks":
+            continue
+        for required in rule.get("parameters", {}).get("required_status_checks", []):
+            context = str(required.get("context", "")).strip()
+            if context:
+                contexts.add(context)
+    return contexts
+
+
+def discover_required_contexts(repo: str, base_ref: str) -> set[str]:
+    contexts: set[str] = set()
+    protection = optional_api(f"repos/{repo}/branches/{base_ref}/protection/required_status_checks")
+    if protection:
+        contexts.update(str(context) for context in protection.get("contexts", []) if context)
+        contexts.update(
+            str(check.get("context"))
+            for check in protection.get("checks", [])
+            if check.get("context")
+        )
+
+    repository = gh_json("api", f"repos/{repo}")
+    default_branch = str(repository["default_branch"])
+    summaries = optional_api(f"repos/{repo}/rulesets") or []
+    for summary in summaries:
+        if summary.get("enforcement") != "active" or summary.get("target") != "branch":
+            continue
+        details = optional_api(f"repos/{repo}/rulesets/{summary['id']}")
+        if details and ruleset_applies(details, base_ref, default_branch):
+            contexts.update(contexts_from_ruleset(details))
+    return contexts
+
+
+def normalize_check_state(status: str, conclusion: str | None) -> str:
+    if status != "completed":
+        return "pending"
+    normalized = (conclusion or "").lower()
+    if normalized in SUCCESS_STATES:
+        return "success"
+    if normalized in FAILURE_STATES:
+        return "failure"
+    return "pending"
+
+
+def get_checks(repo: str, head_sha: str) -> list[Check]:
+    combined = gh_json("api", f"repos/{repo}/commits/{head_sha}/status")
+    checks: list[Check] = [
+        Check(
+            name=str(status.get("context", "")),
+            state=str(status.get("state", "pending")).lower(),
+            target_url=str(status.get("target_url", "")),
+            source="status",
+        )
+        for status in combined.get("statuses", [])
+        if status.get("context")
     ]
-    if not statuses:
-        return "pending", ""
-    latest = max(statuses, key=lambda status: status.get("created_at", ""))
-    return str(latest.get("state", "pending")), str(latest.get("target_url", ""))
+
+    check_pages = gh_json(
+        "api",
+        "--paginate",
+        "--slurp",
+        "-H",
+        "X-GitHub-Api-Version: 2022-11-28",
+        f"repos/{repo}/commits/{head_sha}/check-runs?per_page=100",
+    )
+    if isinstance(check_pages, dict):
+        check_pages = [check_pages]
+    checks.extend(
+        Check(
+            name=str(run.get("name", "")),
+            state=normalize_check_state(str(run.get("status", "")), run.get("conclusion")),
+            target_url=str(run.get("details_url", "")),
+            source=str(run.get("app", {}).get("slug", "check-run")),
+        )
+        for page in check_pages
+        for run in page.get("check_runs", [])
+        if run.get("name")
+    )
+    return checks
+
+
+def latest_checks_by_name(checks: list[Check]) -> dict[str, Check]:
+    result: dict[str, Check] = {}
+    # Both commit statuses and check runs are returned newest-first by GitHub.
+    for check in checks:
+        result.setdefault(check.name, check)
+    return result
+
+
+def selected_checks(checks: list[Check], contexts: set[str], all_actions: bool) -> list[Check]:
+    latest = latest_checks_by_name(checks)
+    if contexts:
+        return [latest.get(name, Check(name, "pending", "", "missing")) for name in sorted(contexts)]
+    if all_actions:
+        return sorted(
+            (
+                check
+                for check in latest.values()
+                if check.source == "github-actions" or "/actions/runs/" in check.target_url
+            ),
+            key=lambda check: check.name,
+        )
+    return []
+
+
+def selection_state(checks: list[Check]) -> str:
+    if not checks or any(check.state == "pending" for check in checks):
+        return "pending"
+    if any(check.state in FAILURE_STATES or check.state == "failure" for check in checks):
+        return "failure"
+    return "success"
+
+
+def selection_marker(head_sha: str, checks: list[Check]) -> tuple[str, tuple[tuple[str, str], ...]]:
+    return head_sha, tuple((check.name, check.state) for check in checks)
 
 
 def parse_args() -> argparse.Namespace:
@@ -106,7 +261,24 @@ def parse_args() -> argparse.Namespace:
         "pr", nargs="?", help="pull request number or URL; defaults to the current branch"
     )
     parser.add_argument("--repo", help="GitHub repository in OWNER/REPO form")
+    parser.add_argument(
+        "--check",
+        action="append",
+        default=[],
+        help="wait for this status context or check-run name; repeat for multiple checks",
+    )
+    parser.add_argument(
+        "--all-actions",
+        action="store_true",
+        help="wait for every GitHub Actions check/status observed on the current PR head",
+    )
     parser.add_argument("--poll-seconds", type=float, default=15.0, help="poll interval (default: 15)")
+    parser.add_argument(
+        "--settle-seconds",
+        type=float,
+        default=30.0,
+        help="quiet period before all-actions success (default: 30)",
+    )
     parser.add_argument(
         "--timeout-seconds",
         type=float,
@@ -119,8 +291,12 @@ def parse_args() -> argparse.Namespace:
         help="continue after CI success until the PR is merged",
     )
     args = parser.parse_args()
+    if args.check and args.all_actions:
+        parser.error("--check and --all-actions are mutually exclusive")
     if args.poll_seconds < 1:
         parser.error("--poll-seconds must be at least 1")
+    if args.settle_seconds < 0:
+        parser.error("--settle-seconds cannot be negative")
     if args.timeout_seconds < 0:
         parser.error("--timeout-seconds cannot be negative")
     return args
@@ -132,16 +308,24 @@ def main() -> int:
         repo = resolve_repo(args.repo)
         number = resolve_pr_number(args.pr, repo)
         current = get_pr(repo, number)
+        contexts = set(args.check)
+        all_actions = args.all_actions
+        if not contexts and not all_actions:
+            contexts = discover_required_contexts(repo, current.base_ref)
+            all_actions = not contexts
     except (CliArgumentError, GhError, KeyError, TypeError, ValueError) as error:
         print(f"WAIT_FOR_PR_CI result=error message={json.dumps(str(error))}", file=sys.stderr)
         return 4
 
-    print(f"Waiting for {current.url} ({STATUS_CONTEXT}); head={current.head_sha}", flush=True)
+    selection = ", ".join(sorted(contexts)) if contexts else "all GitHub Actions"
+    print(f"Waiting for {current.url}; head={current.head_sha}; selection={selection}", flush=True)
     started = time.monotonic()
-    observed: tuple[str, str] | None = None
+    observed: tuple[str, tuple[tuple[str, str], ...]] | tuple[str, str] | None = None
+    success_since: float | None = None
 
     while True:
-        if args.timeout_seconds and time.monotonic() - started >= args.timeout_seconds:
+        now = time.monotonic()
+        if args.timeout_seconds and now - started >= args.timeout_seconds:
             print(f"WAIT_FOR_PR_CI result=timeout pr={number} head={current.head_sha}", file=sys.stderr)
             return 3
 
@@ -154,31 +338,40 @@ def main() -> int:
                 print(f"WAIT_FOR_PR_CI result=closed pr={number} head={current.head_sha}", file=sys.stderr)
                 return 2
 
-            state, target_url = get_required_status(repo, current.head_sha)
+            checks = selected_checks(get_checks(repo, current.head_sha), contexts, all_actions)
         except (GhError, KeyError, TypeError, ValueError) as error:
-            marker = ("api-error", str(error))
+            marker: tuple[str, str] = ("api-error", str(error))
             if marker != observed:
                 print(f"GitHub API unavailable; retrying: {error}", file=sys.stderr, flush=True)
                 observed = marker
+            success_since = None
             time.sleep(args.poll_seconds)
             continue
 
-        marker = (current.head_sha, state)
+        marker = selection_marker(current.head_sha, checks)
         if marker != observed:
-            suffix = f" run={target_url}" if target_url else ""
-            print(f"PR #{number} head={current.head_sha} status={state}{suffix}", flush=True)
+            summary = ", ".join(f"{check.name}={check.state}" for check in checks) or "none observed"
+            print(f"PR #{number} head={current.head_sha} checks=[{summary}]", flush=True)
             observed = marker
+            success_since = None
 
-        if state == "success":
-            if not args.wait_for_merge:
-                print(f"WAIT_FOR_PR_CI result=success pr={number} head={current.head_sha} merged=false")
-                return 0
-        elif state in {"failure", "error"}:
+        state = selection_state(checks)
+        if state == "failure":
+            failed = [check for check in checks if check.state == "failure"]
+            urls = ",".join(check.target_url for check in failed if check.target_url)
             print(
-                f"WAIT_FOR_PR_CI result=failure pr={number} head={current.head_sha} run={target_url}",
+                f"WAIT_FOR_PR_CI result=failure pr={number} head={current.head_sha} runs={urls}",
                 file=sys.stderr,
             )
             return 1
+        if state == "success":
+            success_since = success_since or now
+            settled = bool(contexts) or now - success_since >= args.settle_seconds
+            if settled and not args.wait_for_merge:
+                print(f"WAIT_FOR_PR_CI result=success pr={number} head={current.head_sha} merged=false")
+                return 0
+        else:
+            success_since = None
 
         time.sleep(args.poll_seconds)
 

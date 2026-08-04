@@ -1,4 +1,4 @@
 interface:
-  display_name: "Wait for PR CI"
-  short_description: "Block until authoritative pull request CI finishes"
-  default_prompt: "Use $wait-for-pr-ci to wait for this pull request's authoritative CI and report the final result."
+  display_name: "Wait for GitHub Actions"
+  short_description: "Wait for any pull request Actions flow to finish"
+  default_prompt: "Use $wait-for-pr-ci to wait for this pull request's selected GitHub Actions checks and resume when they finish."

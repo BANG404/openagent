@@ -1,15 +1,16 @@
 ---
 name: wait-for-pr-ci
-description: Block until a GitHub pull request's authoritative OpenAgent CI reaches a final result, and optionally continue until the PR is merged. Use when an agent has opened or updated an OpenAgent PR and must wait for Required PR Head instead of polling checks manually or returning while CI is pending.
+description: Block on any GitHub Actions pull-request workflow until required or selected checks reach a final result, optionally continuing until merge. Use after opening or updating a PR when Codex must wait for branch-protection or ruleset checks, a named status/check, every Actions check on the current head, or an authoritative cross-repository status such as Public SDK CI, and resume through the background-terminal completion hook instead of polling.
 ---
 
 # Wait for PR CI
 
-Run the bundled script from the repository worktree. It follows the PR's current
-head SHA and treats the stable `Required PR Head` commit status as the final
-authoritative CI result.
+Run the bundled script from the task worktree. By default it discovers required
+status/check names from both branch protection and active repository rulesets.
+If the branch has no required checks, it waits for every GitHub Actions check or
+Actions-backed commit status observed on the current PR head.
 
-## Wait for CI
+## Start the blocking wait
 
 Resolve the script relative to this skill and invoke it through `rtk`:
 
@@ -17,32 +18,48 @@ Resolve the script relative to this skill and invoke it through `rtk`:
 rtk python .agents/skills/wait-for-pr-ci/scripts/wait_for_pr_ci.py <PR>
 ```
 
-Omit `<PR>` to resolve the pull request for the current branch. Pass a PR
-number or URL when the current worktree is not on its head branch. The command
-blocks without a timeout by default.
+Omit `<PR>` to resolve the PR for the current branch. Use `--repo OWNER/REPO`
+outside its checkout. The default discovery supports both OpenAgent's
+`Required PR Head` ruleset and the SDK's branch-protected `Public SDK CI`
+without repository-specific hardcoding.
 
-Use `--wait-for-merge` when the owner auto-merge workflow is expected to merge
-the PR after CI:
+Use explicit names when the desired flow is not required by the base branch:
 
 ```powershell
-rtk python .agents/skills/wait-for-pr-ci/scripts/wait_for_pr_ci.py <PR> --wait-for-merge
+rtk python .agents/skills/wait-for-pr-ci/scripts/wait_for_pr_ci.py <PR> --check "Build" --check "E2E"
 ```
 
-Use `--timeout-seconds <seconds>` only when the caller has an explicit time
-budget. A value of `0` means no timeout. Use `--repo OWNER/REPO` outside a
-checked-out repository.
+Use `--all-actions` to ignore required-check discovery and wait for all Actions
+checks/statuses on the immutable head. The script requires a quiet settle period
+before generic all-actions success so a dispatcher cannot finish just before a
+downstream status appears.
+
+Use `--wait-for-merge` when a trusted workflow is expected to merge the PR.
+Use `--timeout-seconds` only for an explicit caller time budget; `0` waits
+indefinitely.
+
+## Yield to the completion hook
+
+Make the blocking script invocation the final tool call of the current turn.
+If it reports that the command is still running or returns a background cell ID:
+
+- do not call a wait tool;
+- do not poll with `gh` or invoke any other tool;
+- end the turn immediately with a concise waiting status.
+
+The background-terminal completion hook requests the next model turn when the
+script exits and supplies its final output. On that resumed turn, interpret the
+existing `WAIT_FOR_PR_CI` result; do not launch a second waiter. If the command
+finishes synchronously, interpret it normally in the same turn.
 
 ## Interpret the result
 
-- Exit `0`: authoritative CI succeeded; with `--wait-for-merge`, the PR also
-  reports `MERGED`.
-- Exit `1`: authoritative CI failed or errored.
+- Exit `0`: selected CI succeeded; with `--wait-for-merge`, the PR is merged.
+- Exit `1`: at least one selected check failed or errored.
 - Exit `2`: the PR closed without merging.
 - Exit `3`: the requested timeout expired.
-- Exit `4`: arguments, authentication, repository lookup, or GitHub API access
-  failed.
+- Exit `4`: arguments, authentication, repository lookup, or API access failed.
 
-Do not replace a failed or timed-out result with an admin bypass. Inspect the
-linked Actions run, fix the same task branch, push, and invoke the script again.
-If the PR head changes while waiting, the script discards the old result and
-waits for the new head.
+Do not bypass failed, pending, or timed-out checks. Inspect the linked run, fix
+the same task branch, push, and invoke the script again. A changed PR head
+automatically resets the observed check set.
