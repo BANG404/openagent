@@ -74,6 +74,9 @@ retain the task worktree until the merge is confirmed.
   `--wait-for-merge` for an owner-authored PR when automatic merge is configured.
   This stable status mirrors the latest completed authoritative PR CI run; a
   successful individual module is not a substitute for it.
+- If the waiter returns `merge-pending`, CI is already authoritative and must
+  not be rerun. Re-read the PR, then apply the review-policy fallback below for
+  the exact validated head.
 - On failure, use the GitHub Actions run and job logs to identify the root cause,
   fix it in the same worktree, commit, and push. Repeat until `Required` passes.
 - If CI is unavailable or externally blocked, keep the PR and worktree intact
