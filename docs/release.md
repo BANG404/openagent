@@ -219,6 +219,10 @@ that image's AppArmor restriction on unprivileged user namespaces, and enable
 the real filesystem boundary test; a dedicated macOS job exercises the system
 Seatbelt boundary.
 Both are required by the aggregate rather than being optional smoke checks.
+The Windows job enables every Windows Firewall profile before exercising the
+offline account. It verifies Codex's two network layers separately: the
+user-scoped Firewall rules block arbitrary loopback traffic, and the persistent
+WFP filters still block DNS port 53 when ordinary local binding is allowed.
 The private repository dispatches an immutable commit SHA; a GitHub App
 installed only on the SDK repository lets the public workflow read that
 revision and report the aggregate `Public SDK CI` commit status. Because

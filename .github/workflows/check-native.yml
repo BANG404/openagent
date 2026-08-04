@@ -157,22 +157,28 @@ jobs:
             exit 1
           }
 
-      - name: Exercise the Windows WFP network boundary
+      - name: Exercise the Windows offline-account network boundary
         if: runner.os == 'Windows'
         shell: pwsh
         env:
           OPENAGENT_WINDOWS_WFP_INTEGRATION: "1"
         run: |
+          Set-NetFirewallProfile -Profile Domain,Private,Public -Enabled True
+          $disabledProfiles = Get-NetFirewallProfile | Where-Object { -not $_.Enabled }
+          if ($disabledProfiles) {
+            Write-Error "Windows Firewall profiles could not be enabled for the sandbox boundary test."
+            exit 1
+          }
           $env:CARGO_TARGET_DIR = (Resolve-Path "src-tauri\target").Path
-          cargo test --manifest-path sdk/Cargo.toml -p openagent-server elevated_offline_account_blocks_loopback_network_access *> "$env:RUNNER_TEMP/sdk-windows-wfp-test.log"
+          cargo test --manifest-path sdk/Cargo.toml -p openagent-server elevated_offline_account_blocks_firewall_and_wfp_loopback_paths *> "$env:RUNNER_TEMP/sdk-windows-wfp-test.log"
           if ($LASTEXITCODE -ne 0) {
             $diagnostic = Select-String -Path "$env:RUNNER_TEMP/sdk-windows-wfp-test.log" -Pattern 'OPENAGENT_WFP_DIAGNOSTIC=[a-z-]+' -AllMatches |
               ForEach-Object { $_.Matches.Value } |
               Select-Object -Last 1
             if ($diagnostic) {
-              Write-Error "Windows WFP sandbox test failed: $diagnostic. Private diagnostic output was suppressed."
+              Write-Error "Windows offline-network sandbox test failed: $diagnostic. Private diagnostic output was suppressed."
             } else {
-              Write-Error "Windows WFP sandbox test failed; private diagnostic output was suppressed."
+              Write-Error "Windows offline-network sandbox test failed; private diagnostic output was suppressed."
             }
             exit 1
           }
