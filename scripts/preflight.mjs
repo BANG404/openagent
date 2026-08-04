@@ -85,7 +85,6 @@ export function buildPreflightCommands(modules) {
       "check",
       "--manifest-path",
       "src-tauri/Cargo.toml",
-      "--all-targets",
     ]);
   }
   if (modules.embedding) {

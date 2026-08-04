@@ -174,25 +174,39 @@ The target repository must define `OPENAGENT_SDK_DEPLOY_KEY` and
 starting platform builds; secret values are never printed.
 
 The Release workflow does not repeat frontend tests, Rust tests, linting, or an
-isolated smoke binary. It builds the exact source SHA that already passed CI and
-promotes those artifacts without rebuilding them.
+isolated smoke binary. It performs the authoritative full product compilation
+for the exact release SHA on every supported target and promotes those same
+artifacts without rebuilding them.
 
 ## Modular CI
 
-`ci.yml` classifies changed paths before calling reusable workflows:
+`ci.yml` classifies changed paths before calling reusable workflows and then
+applies one of three verification tiers:
 
-- Pull requests and pushes to `master` or `release/stable/*` run every module
-  selected by the exact base-to-head path delta. The always-present aggregate
-  proves that every selected module passed; release preparation validates both
+- Ordinary pull requests and merge candidates run fast checks only for modules
+  selected by the exact base-to-head path delta. Frontend checks stop after
+  type, lint, format, and tests; native checks run host Rust quality and quick
+  resource or contract validation without Windows/macOS matrices, embedding
+  runtime execution, or Harness server integration.
+- Every push to `master` selects every fast module, making the branch the
+  forward integration line without turning each feature merge into a release
+  build. The scheduled nightly run repeats all modules with complete
+  qualification so cross-platform drift is discovered before release work.
+- Pushes to `release/stable/*` and workflow dispatches with `full` enabled run
+  complete qualification: frontend production build and bundle budgets,
+  Windows/macOS native compilation, embedding runtime tests, and Harness
+  integration. Stable source therefore remains on its versioned release branch
+  and must pass the strongest CI tier before publishing.
+- Workflow-router and shared dependency changes still conservatively select
+  every affected module; the verification tier controls whether those modules
+  use their quick or complete checks.
+- The always-present aggregate proves that every check selected by both the
+  path router and verification tier passed. Release preparation validates both
   change detection and that aggregate instead of requiring unrelated modules.
-- Frontend source and browser-independent tests run once on Linux.
-- Rust and Tauri changes run Rust quality checks, Rust tests, and a complete
-  desktop build on Linux, Windows, and macOS.
-- Workflow changes select every module.
 - Generated release metadata runs only its strict integrity check before and
-  after merge. Its manifest binds the release commit to an already-verified
-  source SHA, avoiding a second frontend/native matrix for metadata-only Beta
-  increments.
+  after merge unless the integration tier deliberately forces all fast modules.
+  Its manifest binds the release commit to an already-verified source SHA;
+  complete product compilation remains owned by the Release workflow.
 - Creation of a Stable archive branch reports an all-zero GitHub `before` SHA;
   change detection falls back to the branch head's parent instead of treating
   the existing Beta snapshot as an entirely new repository.

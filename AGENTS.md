@@ -51,19 +51,24 @@ target branch is not `master`.
 Do not manually run additional lint, test, check, or build commands that
 duplicate CI. Tool-specific validation required to create an artifact,
 interactive checks needed to implement a change, and checks explicitly
-requested by the user remain allowed. Cross-platform builds, complete native
-quality suites, frontend production builds, bundle budgets, embedding runtime
-tests, and Harness integration tests remain PR-CI responsibilities.
+requested by the user remain allowed. Pull-request CI owns fast checks for the
+affected modules. Cross-platform builds, frontend production builds, bundle
+budgets, embedding runtime tests, and Harness integration tests belong to
+nightly or release qualification, not ordinary pull requests.
 
-The `Required` pull-request check runs `check:docs` and aggregates every check
-selected from the base-to-head file diff. Frontend and automation are top-level
-modules; native verification is selected independently for Rust quality,
-Windows/macOS compilation, bundled embedding behavior, and the Harness
-contract. Changes to the CI router or result verifier force every capability,
-as do dependency or private SDK changes for all of their consumers. Keep the
-path classifier, its tests, reusable-workflow inputs, and both aggregate checks
-aligned whenever a module boundary changes. Fix failures on the same task
-branch and let CI rerun; do not merge a red or pending `Required` check.
+The `Required` pull-request check runs `check:docs` and aggregates every fast
+check selected from the base-to-head file diff. Frontend and automation are
+top-level modules; native verification is selected independently for Rust
+quality, platform compilation, bundled embedding behavior, and the Harness
+contract. Ordinary pull requests exercise only each selected capability's
+fast contract. Pushes to `master` run every fast module as an integration
+check, while nightly, explicit full dispatches, and `release/stable/**` pushes
+run the complete cross-platform qualification suite. Changes to the CI router
+or result verifier still select every capability, as do dependency or private
+SDK changes for all consumers. Keep the path classifier, its tests,
+reusable-workflow inputs, tier selection, and both aggregate checks aligned
+whenever a module boundary changes. Fix failures on the same task branch and
+let CI rerun; do not merge a red or pending `Required` check.
 
 Private SDK pull requests dispatch `sdk-ci.yml` on this public repository at an
 immutable SDK commit. That workflow must keep private command output and build

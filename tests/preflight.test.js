@@ -44,6 +44,12 @@ describe("local preflight plan", () => {
       "rust-format",
       "rust-check",
     ]);
+    const rustCheck = buildPreflightCommands({
+      ...nothing,
+      nativeQuality: true,
+      nativePlatform: true,
+    }).find(({ id }) => id === "rust-check");
+    expect(rustCheck?.args).toEqual(["check", "--manifest-path", "src-tauri/Cargo.toml"]);
   });
 
   test("uses the quick resource and contract validators", () => {

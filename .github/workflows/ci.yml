@@ -7,15 +7,22 @@ on:
         description: Optional base commit used for module change detection
         required: false
         type: string
+      full:
+        description: Run the complete cross-platform qualification suite
+        required: false
+        default: false
+        type: boolean
   pull_request:
   push:
     branches:
       - master
       - release/stable/**
   merge_group:
+  schedule:
+    - cron: "17 18 * * *"
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -32,10 +39,37 @@ jobs:
       native_platform: ${{ steps.modules.outputs.nativePlatform }}
       embedding: ${{ steps.modules.outputs.embedding }}
       harness: ${{ steps.modules.outputs.harness }}
+      full: ${{ steps.tier.outputs.full }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      - name: Resolve verification tier
+        id: tier
+        env:
+          CI_EVENT: ${{ github.event_name }}
+          CI_REF: ${{ github.ref }}
+          CI_RELEASE_BRANCH: ${{ startsWith(github.ref, 'refs/heads/release/stable/') }}
+          CI_REQUEST_FULL: ${{ inputs.full || false }}
+        shell: bash
+        run: |
+          full=false
+          integration=false
+
+          if [[ "$CI_EVENT" == "schedule" \
+            || "$CI_RELEASE_BRANCH" == "true" \
+            || "$CI_REQUEST_FULL" == "true" ]]; then
+            full=true
+          fi
+
+          if [[ "$full" == "true" \
+            || ("$CI_EVENT" == "push" && "$CI_REF" == "refs/heads/master") ]]; then
+            integration=true
+          fi
+
+          echo "full=$full" >> "$GITHUB_OUTPUT"
+          echo "integration=$integration" >> "$GITHUB_OUTPUT"
 
       - name: Classify changed files
         id: modules
@@ -44,7 +78,8 @@ jobs:
           CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
           CI_FORCE_ALL: >-
             ${{
-              github.event_name == 'workflow_dispatch' && inputs.base_sha == ''
+              steps.tier.outputs.integration == 'true'
+              || (github.event_name == 'workflow_dispatch' && inputs.base_sha == '')
             }}
         run: node scripts/ci-changes.mjs >> "$GITHUB_OUTPUT"
 
@@ -70,6 +105,8 @@ jobs:
       && (github.event_name != 'pull_request'
       || github.event.pull_request.head.repo.full_name == github.repository)
     uses: ./.github/workflows/check-frontend.yml
+    with:
+      full: ${{ needs.changes.outputs.full == 'true' }}
     permissions:
       contents: read
     secrets:
@@ -87,6 +124,7 @@ jobs:
       || github.event.pull_request.head.repo.full_name == github.repository)
     uses: ./.github/workflows/check-native.yml
     with:
+      full: ${{ needs.changes.outputs.full == 'true' }}
       quality: ${{ needs.changes.outputs.native_quality == 'true' }}
       platform: ${{ needs.changes.outputs.native_platform == 'true' }}
       embedding: ${{ needs.changes.outputs.embedding == 'true' }}
