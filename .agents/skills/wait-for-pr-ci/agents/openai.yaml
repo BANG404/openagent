@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wait for PR CI"
+  short_description: "Block until authoritative pull request CI finishes"
+  default_prompt: "Use $wait-for-pr-ci to wait for this pull request's authoritative CI and report the final result."
