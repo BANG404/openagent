@@ -595,6 +595,8 @@ jobs:
             libappindicator3-dev \
             librsvg2-dev \
             patchelf \
+            binutils \
+            libcap-dev \
             libssl-dev \
             pkg-config >/dev/null
       - uses: dtolnay/rust-toolchain@stable
@@ -627,6 +629,22 @@ jobs:
             echo "sdk-host-frontend.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Public frontend compatibility failed; private diagnostic output was suppressed."
             exit 1
+          fi
+      - name: Prepare public host Linux sidecar
+        working-directory: host
+        env:
+          SDK_CI_FULL: ${{ inputs.full }}
+        run: |
+          if [[ "$SDK_CI_FULL" == "true" ]]; then
+            if ! node scripts/prepare-linux-sandbox-helper.mjs --profile release --github-env >"$RUNNER_TEMP/sdk-host-sidecar.log" 2>&1; then
+              echo "sdk-host-sidecar.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
+              echo "::error::Host Linux sidecar preparation failed; private diagnostic output was suppressed."
+              exit 1
+            fi
+          else
+            target_triple="$(rustc -vV | sed -n 's/^host: //p')"
+            mkdir -p src-tauri/binaries
+            touch "src-tauri/binaries/bwrap-$target_triple"
           fi
       - name: Check public native compatibility
         working-directory: host
