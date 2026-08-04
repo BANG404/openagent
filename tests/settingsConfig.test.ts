@@ -5,6 +5,7 @@ import {
   mcpConnectionFingerprint,
   repairModelBindings,
   replaceProviderModels,
+  settingsConfigChanged,
 } from "../src/lib/settingsConfig";
 import type { AppConfig, McpServerConfig, ProviderConfig } from "../src/lib/types";
 
@@ -100,5 +101,14 @@ describe("settings config helpers", () => {
         env: { ALPHA: "a", ZED: "z" },
       }),
     );
+  });
+
+  test("does not mark an unchanged settings snapshot for persistence", () => {
+    const snapshot = config([provider("enabled", true, ["chat"])]);
+    const acceptedFingerprint = JSON.stringify(snapshot);
+
+    expect(settingsConfigChanged(structuredClone(snapshot), acceptedFingerprint)).toBe(false);
+    snapshot.providers = [];
+    expect(settingsConfigChanged(snapshot, acceptedFingerprint)).toBe(true);
   });
 });

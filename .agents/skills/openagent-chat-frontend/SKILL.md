@@ -345,7 +345,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   provider secrets and the bus can feed non-Tauri transports; desktop surfaces
   reload it through the local settings command. Settings autosave must retain
   the exact base snapshot, merge independent external changes, reject
-  overlapping changes, and rebase edits made while a save is in flight.
+  overlapping changes, and rebase edits made while a save is in flight. Never
+  persist an uninitialized, fallback, or unchanged settings draft; configuration
+  load failure must remain read-only so it cannot replace durable providers.
 - Keep additive configuration fields in `src/lib/types.ts` optional at the
   transport boundary so an older bootstrap or fallback snapshot remains
   readable. Materialize their canonical defaults only in

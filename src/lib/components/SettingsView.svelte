@@ -31,6 +31,7 @@
     providerConnectionFingerprint,
     repairModelBindings,
     replaceProviderModels,
+    settingsConfigChanged,
     type RetryQueueKind,
   } from "$lib/settingsConfig";
   import { t, tr, setLocale, type Locale } from "$lib/i18n";
@@ -336,6 +337,7 @@
     }
     if (!initializedFromConfig) return Promise.resolve();
     const snapshot = snapshotDraftConfig();
+    if (!settingsConfigChanged(snapshot, acceptedConfigFingerprint)) return Promise.resolve();
     const baseConfig = JSON.parse(acceptedConfigFingerprint) as AppConfig;
     pendingSave = pendingSave
       .catch(() => {})

@@ -6,6 +6,11 @@ Without an override, every platform uses `~/.openagent`, including Windows and
 macOS. This keeps the complete OpenAgent home relocatable and gives command-line,
 desktop, and test environments the same path contract.
 
+The Tauri debug build defaults to the separate `~/.openagent-dev` root so a
+development configuration schema cannot rewrite state used by an installed
+release. Set `OPENAGENT_HOME` explicitly when a development run should use a
+specific fixture or deliberately share another root.
+
 An existing platform configuration directory—such as
 `%APPDATA%\openagent` on Windows, `~/.config/openagent` on Linux, or the former
 Application Support location on macOS—is moved to `~/.openagent` once when the
@@ -55,6 +60,12 @@ canonical file instead of resetting unspecified fields to defaults.
 Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
 permissions and do not commit it to source control.
+
+At startup, OpenAgent loads `config.toml` and then its last-known-good backup.
+If neither file can be deserialized, startup stops without writing either file.
+An unreadable or forward-incompatible configuration is never converted into a
+writable default settings snapshot. Closing an unchanged settings view also
+performs no configuration write.
 
 ## Tool permissions
 

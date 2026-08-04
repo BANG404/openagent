@@ -1,4 +1,7 @@
-use openagent_app::bootstrap_runtime;
+#[cfg(debug_assertions)]
+use openagent_app::bootstrap_development_runtime as bootstrap_product_runtime;
+#[cfg(not(debug_assertions))]
+use openagent_app::bootstrap_runtime as bootstrap_product_runtime;
 use openagent_runtime::checkpoint::{
     BranchMeta, CheckpointMeta, ConvPatch, ConversationMeta, FileChange, RenderableCheckpoint,
     TaskTrace,
@@ -1203,7 +1206,7 @@ fn run_with_mode(agent_server: bool) {
         initial_locale,
         runtime,
         html_preview_roots,
-    } = bootstrap_runtime(agent_server)
+    } = bootstrap_product_runtime(agent_server)
         .unwrap_or_else(|error| panic!("Failed to initialize OpenAgent runtime: {error:#}"));
 
     let protocol_roots = html_preview_roots;

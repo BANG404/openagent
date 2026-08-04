@@ -3,6 +3,10 @@ import { providerCatalogEntry } from "$lib/providerCatalog";
 
 export type RetryQueueKind = "chat_queue" | "flash_queue";
 
+export function settingsConfigChanged(config: AppConfig, acceptedFingerprint: string): boolean {
+  return JSON.stringify(config) !== acceptedFingerprint;
+}
+
 export function createProviderConfig(
   provider: ProviderConfig["provider"] = "openai",
   id: string = crypto.randomUUID(),

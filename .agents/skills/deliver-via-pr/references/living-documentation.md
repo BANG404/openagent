@@ -52,6 +52,10 @@ private SDK gitlink.
 - `AGENTS.md` and skills contain durable guidance rather than task history.
 - Skill metadata still describes the situations that should trigger it.
 - Public documentation contains no private SDK implementation detail.
-- The pull request's `Required` check passed and the PR is confirmed merged.
-- The remote task branch, registered worktree, and merged local branch were
-  cleaned up without touching unrelated work.
+- The selected delivery mode reached its terminal state: local mode has verified
+  commits on the current remote-tracking default branch and no push; `OPR` has a
+  ready PR whose remote-only task branch contains every unpublished local
+  commit; `ORPR` has a passing `Required` check and a confirmed merge.
+- Only `ORPR` requires remote-branch, task-worktree, and merged local-branch
+  cleanup; local mode does not create a task branch, and `OPR` leaves the local
+  default branch and upstream unchanged without touching unrelated work.
