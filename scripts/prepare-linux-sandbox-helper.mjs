@@ -62,15 +62,40 @@ export async function prepareLinuxSandboxHelper({
       path.join("sdk", "Cargo.toml"),
     ]),
   );
-  const sandboxPackage = metadata.packages.find(
-    (candidate) => candidate.name === "codex-bwrap" && candidate.source?.startsWith("git+"),
+  const linuxSandboxPackage = metadata.packages.find(
+    (candidate) => candidate.name === "codex-linux-sandbox" && candidate.source?.startsWith("git+"),
   );
-  if (!sandboxPackage) {
-    throw new Error("The pinned Codex Bubblewrap package was not found in SDK metadata.");
+  if (!linuxSandboxPackage) {
+    throw new Error("The pinned Codex Linux sandbox package was not found in SDK metadata.");
   }
-  const revision = sandboxPackage.source.split("#").at(-1);
+  const revision = linuxSandboxPackage.source.split("#").at(-1);
   if (!revision || !/^[0-9a-f]{40}$/.test(revision)) {
-    throw new Error(`The Codex Bubblewrap source is not pinned: ${sandboxPackage.source}`);
+    throw new Error(`The Codex Linux sandbox source is not pinned: ${linuxSandboxPackage.source}`);
+  }
+  const bwrapManifest = path.resolve(
+    path.dirname(linuxSandboxPackage.manifest_path),
+    "..",
+    "bwrap",
+    "Cargo.toml",
+  );
+  const bwrapMetadata = JSON.parse(
+    run(cargo, [
+      "metadata",
+      "--locked",
+      "--no-deps",
+      "--format-version",
+      "1",
+      "--manifest-path",
+      bwrapManifest,
+    ]),
+  );
+  const bwrapPackage = bwrapMetadata.packages.find(
+    (candidate) =>
+      candidate.name === "codex-bwrap" &&
+      candidate.targets.some((target) => target.name === "bwrap" && target.kind.includes("bin")),
+  );
+  if (!bwrapPackage || path.resolve(bwrapPackage.manifest_path) !== bwrapManifest) {
+    throw new Error("The pinned Codex checkout does not contain the expected Bubblewrap package.");
   }
 
   const targetTriple = requestedTargetTriple ?? /^host:\s+(\S+)$/m.exec(run(rustc, ["-vV"]))?.[1];
@@ -86,7 +111,7 @@ export async function prepareLinuxSandboxHelper({
       "build",
       "--locked",
       "--manifest-path",
-      sandboxPackage.manifest_path,
+      bwrapManifest,
       "--package",
       "codex-bwrap",
       "--bin",
