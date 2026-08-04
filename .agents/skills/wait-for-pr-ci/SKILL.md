@@ -1,6 +1,6 @@
 ---
 name: wait-for-pr-ci
-description: Block on any GitHub Actions pull-request workflow until required or selected checks reach a final result, optionally continuing until merge. Use after opening or updating a PR when Codex must wait for branch-protection or ruleset checks, a named status/check, every Actions check on the current head, or an authoritative cross-repository status such as Public SDK CI, and resume through the background-terminal completion hook instead of polling.
+description: Block on any GitHub Actions pull-request workflow until required or selected checks reach a final result, optionally continuing until merge. Use after opening or updating a PR when Codex must wait for branch-protection or ruleset checks, a named status/check, every Actions check on the current head, or an authoritative cross-repository status such as Public SDK CI, while keeping continuation attached to the same background cell instead of polling GitHub separately.
 ---
 
 # Wait for PR CI
@@ -38,19 +38,24 @@ Use `--wait-for-merge` when a trusted workflow is expected to merge the PR.
 Use `--timeout-seconds` only for an explicit caller time budget; `0` waits
 indefinitely.
 
-## Yield to the completion hook
+## Keep the background wait attached
 
-Make the blocking script invocation the final tool call of the current turn.
-If it reports that the command is still running or returns a background cell ID:
+After invoking the script, do not use `gh`, start a second waiter, or call an
+unrelated tool until it finishes. If the command returns a background cell ID,
+call the execution tool's wait operation on that same cell. Use waits no longer
+than 50 seconds so progress commentary remains possible, and repeat on the same
+cell while it reports that the script is still running.
 
-- do not call a wait tool;
-- do not poll with `gh` or invoke any other tool;
-- end the turn immediately with a concise waiting status.
+Do not end the agent turn while the cell is active. This execution environment
+does not guarantee an automatic model continuation when a detached cell exits,
+and the completed cell may be reclaimed before the next user turn. The wait
+operation is the continuation hook that returns the script's final output to the
+model.
 
-The background-terminal completion hook requests the next model turn when the
-script exits and supplies its final output. On that resumed turn, interpret the
-existing `WAIT_FOR_PR_CI` result; do not launch a second waiter. If the command
-finishes synchronously, interpret it normally in the same turn.
+If the user interrupts an active wait, try the same cell once on the resumed
+turn. If it no longer exists, rerun this read-only script for the PR instead of
+guessing the result. When the script finishes synchronously or a wait returns
+its completion, interpret the existing `WAIT_FOR_PR_CI` result normally.
 
 ## Interpret the result
 
