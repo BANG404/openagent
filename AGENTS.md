@@ -74,8 +74,14 @@ Private SDK pull requests dispatch `sdk-ci.yml` on this public repository at an
 immutable SDK commit. That workflow must keep private command output and build
 artifacts out of public logs, artifacts, and target caches, and must report the
 aggregate `Public SDK CI` commit status back through the least-privileged
-reporter GitHub App. The private repository owns only the dispatcher workflow
-and requires that reported status before merge.
+reporter GitHub App. Ordinary SDK pull requests validate only the affected Rust
+package or SDK capability and use the Linux Harness path; SDK `main` pushes run
+every capability's fast integration contract. SDK release branches and explicit
+full dispatches run workspace-wide, all-feature, cross-platform qualification.
+The private repository owns only classification and dispatch and requires the
+reported status before merge. Keep `cache-targets: false`: routing and job
+granularity, rather than publishing private compiler output to a public cache,
+are the SDK CI optimization boundary.
 
 ## Browser-backed frontend workflow
 

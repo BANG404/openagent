@@ -7,6 +7,16 @@ on:
         description: Immutable commit from BANG404/openagent-sdk
         required: true
         type: string
+      full:
+        description: Run release-grade workspace and cross-platform qualification
+        required: true
+        default: true
+        type: boolean
+      rust_packages:
+        description: Comma-separated Rust packages for fast validation, or workspace
+        required: true
+        default: workspace
+        type: string
       rust:
         description: Run Rust formatting, lint, and workspace tests
         required: true
@@ -180,8 +190,22 @@ jobs:
           cache-targets: false
       - name: Lint Rust workspace
         working-directory: sdk
+        env:
+          SDK_CI_FULL: ${{ inputs.full }}
+          SDK_RUST_PACKAGES: ${{ inputs.rust_packages }}
         run: |
-          if ! cargo clippy --workspace --all-targets --all-features >"$RUNNER_TEMP/sdk-rust-clippy.log" 2>&1; then
+          args=()
+          if [[ "$SDK_RUST_PACKAGES" == "workspace" ]]; then
+            args+=(--workspace)
+          elif [[ "$SDK_RUST_PACKAGES" =~ ^(openagent-protocol|openagent-runtime|openagent-app|openagent-server)(,(openagent-protocol|openagent-runtime|openagent-app|openagent-server))*$ ]]; then
+            IFS=',' read -ra packages <<< "$SDK_RUST_PACKAGES"
+            for package in "${packages[@]}"; do args+=(-p "$package"); done
+          else
+            echo "::error::Invalid private SDK Rust package selection."
+            exit 1
+          fi
+          if [[ "$SDK_CI_FULL" == "true" ]]; then args+=(--all-targets --all-features); fi
+          if ! cargo clippy "${args[@]}" >"$RUNNER_TEMP/sdk-rust-clippy.log" 2>&1; then
             echo "sdk-rust-clippy.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Rust lint failed; private diagnostic output was suppressed."
             exit 1
@@ -210,8 +234,22 @@ jobs:
         with: *rust-cache
       - name: Test Rust workspace
         working-directory: sdk
+        env:
+          SDK_CI_FULL: ${{ inputs.full }}
+          SDK_RUST_PACKAGES: ${{ inputs.rust_packages }}
         run: |
-          if ! cargo test --workspace --all-features >"$RUNNER_TEMP/sdk-rust-test.log" 2>&1; then
+          args=()
+          if [[ "$SDK_RUST_PACKAGES" == "workspace" ]]; then
+            args+=(--workspace)
+          elif [[ "$SDK_RUST_PACKAGES" =~ ^(openagent-protocol|openagent-runtime|openagent-app|openagent-server)(,(openagent-protocol|openagent-runtime|openagent-app|openagent-server))*$ ]]; then
+            IFS=',' read -ra packages <<< "$SDK_RUST_PACKAGES"
+            for package in "${packages[@]}"; do args+=(-p "$package"); done
+          else
+            echo "::error::Invalid private SDK Rust package selection."
+            exit 1
+          fi
+          if [[ "$SDK_CI_FULL" == "true" ]]; then args+=(--all-features); fi
+          if ! cargo test "${args[@]}" >"$RUNNER_TEMP/sdk-rust-test.log" 2>&1; then
             echo "sdk-rust-test.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Rust tests failed; private diagnostic output was suppressed."
             exit 1
@@ -430,11 +468,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: Linux
-            os: ubuntu-22.04
-          - name: Windows
-            os: windows-latest
+        include: ${{ fromJSON(inputs.full && '[{"name":"Linux","os":"ubuntu-22.04"},{"name":"Windows","os":"windows-latest"}]' || '[{"name":"Linux","os":"ubuntu-22.04"}]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     env:
@@ -596,8 +630,12 @@ jobs:
           fi
       - name: Check public native compatibility
         working-directory: host
+        env:
+          SDK_CI_FULL: ${{ inputs.full }}
         run: |
-          if ! cargo check --manifest-path src-tauri/Cargo.toml --all-targets >"$RUNNER_TEMP/sdk-host-native.log" 2>&1; then
+          args=(--manifest-path src-tauri/Cargo.toml)
+          if [[ "$SDK_CI_FULL" == "true" ]]; then args+=(--all-targets); fi
+          if ! cargo check "${args[@]}" >"$RUNNER_TEMP/sdk-host-native.log" 2>&1; then
             echo "sdk-host-native.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Public native compatibility failed; private diagnostic output was suppressed."
             exit 1
