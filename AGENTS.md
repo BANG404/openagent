@@ -157,6 +157,9 @@ legacy top-level category values.
 - File/database-backed views need explicit loading state and layout-stable
   skeletons.
 - Keep provider secrets out of source control.
+- Automation JavaScript is checked through the repository TypeScript configuration;
+  keep public and internal helper boundaries explicitly typed with JSDoc when
+  inference cannot establish a safe type.
 - Treat the private submodule revision as release-relevant source input.
 - Build both Windows sandbox helper executables from the Codex revision pinned
   by the SDK, keep them out of source control, and bundle them under
