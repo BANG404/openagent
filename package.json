@@ -13,6 +13,8 @@
     "check:docs": "bun scripts/check-docs-sync.mjs",
     "preflight": "bun scripts/preflight.mjs",
     "fetch:embedding-model": "bun scripts/fetch-embedding-model.mjs",
+    "prepare:windows-sandbox:dev": "bun scripts/prepare-windows-sandbox-helpers.mjs --profile dev",
+    "prepare:windows-sandbox:release": "bun scripts/prepare-windows-sandbox-helpers.mjs --profile release",
     "build:pages": "bun scripts/build-pages.mjs",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

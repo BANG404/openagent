@@ -119,6 +119,11 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - uses: oven-sh/setup-bun@v2
+        if: runner.os == 'Windows'
+        with:
+          bun-version: 1.2.21
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
@@ -126,6 +131,16 @@ jobs:
             ./sdk -> target
           shared-key: platform-${{ matrix.os }}
           cache-targets: false
+
+      - name: Build pinned Windows sandbox helpers
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          bun run prepare:windows-sandbox:dev *> "$env:RUNNER_TEMP/windows-sandbox-helper-build.log"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Windows sandbox helper build failed; diagnostic output was suppressed."
+            exit 1
+          }
 
       - name: Check all Rust targets on Windows
         if: runner.os == 'Windows'
@@ -135,9 +150,48 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          $env:CARGO_TARGET_DIR = (Resolve-Path "src-tauri\target").Path
           cargo test --manifest-path sdk/Cargo.toml -p openagent-server restricted_token_writes_workspace_and_blocks_outside_and_metadata *> "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
           if ($LASTEXITCODE -ne 0) {
             Write-Error "Windows process sandbox test failed; private diagnostic output was suppressed."
+            exit 1
+          }
+
+      - name: Exercise the Windows offline-account network boundary
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          OPENAGENT_WINDOWS_WFP_INTEGRATION: "1"
+        run: |
+          Set-NetFirewallProfile -Profile Domain,Private,Public -Enabled True
+          $disabledProfiles = Get-NetFirewallProfile | Where-Object { -not $_.Enabled }
+          if ($disabledProfiles) {
+            Write-Error "Windows Firewall profiles could not be enabled for the sandbox boundary test."
+            exit 1
+          }
+          $env:CARGO_TARGET_DIR = (Resolve-Path "src-tauri\target").Path
+          $log = "$env:RUNNER_TEMP/sdk-windows-wfp-test.log"
+          $tests = @(
+            "elevated_offline_account_firewall_blocks_non_loopback_network_access",
+            "elevated_offline_account_wfp_blocks_dns_network_access"
+          )
+          $failed = $false
+          foreach ($test in $tests) {
+            cargo test --manifest-path sdk/Cargo.toml -p openagent-server $test *>> $log
+            if ($LASTEXITCODE -ne 0) {
+              $failed = $true
+              break
+            }
+          }
+          if ($failed) {
+            $diagnostic = Select-String -Path $log -Pattern 'OPENAGENT_WFP_DIAGNOSTIC=[a-z-]+' -AllMatches |
+              ForEach-Object { $_.Matches.Value } |
+              Select-Object -Last 1
+            if ($diagnostic) {
+              Write-Error "Windows offline-network sandbox test failed: $diagnostic. Private diagnostic output was suppressed."
+            } else {
+              Write-Error "Windows offline-network sandbox test failed; private diagnostic output was suppressed."
+            }
             exit 1
           }
 

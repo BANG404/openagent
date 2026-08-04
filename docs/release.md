@@ -219,24 +219,33 @@ that image's AppArmor restriction on unprivileged user namespaces, and enable
 the real filesystem boundary test; a dedicated macOS job exercises the system
 Seatbelt boundary.
 Both are required by the aggregate rather than being optional smoke checks.
+The Windows job enables every Windows Firewall profile before exercising the
+offline account. It verifies Codex's two network layers separately: after a
+parent reachability preflight, the user-scoped Firewall rules block the same
+numeric external HTTPS address, and the persistent WFP filters still block DNS
+port 53 when ordinary local binding is allowed. The public SDK workflow runs
+the same two exact tests sequentially with detailed setup/wrapper logging
+enabled only in its private Check Run; public logs retain only the fixed
+`firewall-*` or `wfp-dns-*` diagnostic category.
 The private repository dispatches an immutable commit SHA; a GitHub App
 installed only on the SDK repository lets the public workflow read that
 revision and report the aggregate `Public SDK CI` commit status. Because
 workflow logs are public, SDK command output is suppressed, build outputs are
 never uploaded, and Rust target or compiler-output caches are disabled for jobs
-that compile private source. Only generic pass/fail diagnostics may appear in
-the public run. The Linux sandbox test may additionally expose one fixed
-`OPENAGENT_LINUX_SANDBOX_DIAGNOSTIC=[a-z-]+` category so a failed boundary stage
-can be identified without revealing commands, paths, environment values, or
-private source. When a capability command fails, it records the name of that
-command's `sdk-*.log` file; the runner reads only that file from its temporary
-directory, redacts values held in sensitive environment variables, limits the
-retained output, and creates a failed
-`Public SDK diagnostics / <capability>` Check Run on the private SDK commit.
-That Check Run contains the captured command output and is visible only through
-the private repository. Delivery failures remain generic warnings in the public
-run; diagnostics must never be placed in public logs, step summaries, artifacts,
-or caches.
+that compile private source. Only generic pass/fail diagnostics or explicitly
+allowlisted fixed-category test codes may appear in the public run. Linux and
+Windows sandbox tests may expose fixed
+`OPENAGENT_LINUX_SANDBOX_DIAGNOSTIC=[a-z-]+` and
+`OPENAGENT_WFP_DIAGNOSTIC=[a-z-]+` categories so failed boundary stages can be
+identified without revealing commands, paths, environment values, or private
+source. When a capability command fails, it records the name of that command's
+`sdk-*.log` file; the runner reads only that file from its temporary directory,
+redacts values held in sensitive environment variables, limits the retained
+output, and creates a failed `Public SDK diagnostics / <capability>` Check Run
+on the private SDK commit. That Check Run contains the captured command output
+and is visible only through the private repository. Delivery failures remain
+generic warnings in the public run; arbitrary captured output must never be
+placed in public logs, step summaries, artifacts, or caches.
 
 The public repository stores the reporter App ID in
 `OPENAGENT_CI_REPORTER_APP_ID` and its private key in

@@ -33,6 +33,7 @@ bun run dev                 # Vite, port 14221
 bun run build
 bun run check               # Svelte + TypeScript
 bun run preflight           # Fast checks selected from the diff against origin/master
+bun run prepare:windows-sandbox:dev # Build pinned Codex helpers on Windows
 bun tauri dev
 bun tauri build
 cd src-tauri && cargo check
@@ -157,6 +158,10 @@ legacy top-level category values.
   skeletons.
 - Keep provider secrets out of source control.
 - Treat the private submodule revision as release-relevant source input.
+- Build both Windows sandbox helper executables from the Codex revision pinned
+  by the SDK, keep them out of source control, and bundle them under
+  `codex-resources/`. The library, setup helper, and command runner must never
+  come from different revisions.
 - For visible UI changes, verify light/dark themes and Chinese/English copy.
 - Do not edit generated `build/`, `.svelte-kit/`, or `target/` output.
 

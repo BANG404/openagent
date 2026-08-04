@@ -38,7 +38,7 @@ export function defaultPermissionProfile(): PermissionProfile {
         { path: { kind: "workspace" }, access: "write" },
       ],
     },
-    network: "enabled",
+    network: "restricted",
   };
 }
 
@@ -48,7 +48,7 @@ function normalizePermissionProfile(profile: PermissionProfile | undefined): Per
   if (profile.enforcement === "external") {
     return {
       enforcement: "external",
-      network: profile.network ?? "enabled",
+      network: profile.network ?? "restricted",
     };
   }
   if (profile.enforcement === "managed") {
@@ -57,7 +57,7 @@ function normalizePermissionProfile(profile: PermissionProfile | undefined): Per
       file_system: {
         entries: profile.file_system?.entries ?? [],
       },
-      network: profile.network ?? "enabled",
+      network: profile.network ?? "restricted",
     };
   }
   return defaultPermissionProfile();
