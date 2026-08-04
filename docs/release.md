@@ -267,7 +267,9 @@ The public repository stores the reporter App ID in
 private SDK repository. Its repository permissions are limited to read-only
 contents plus write access to commit statuses and checks. The status permission
 owns the aggregate `Public SDK CI` gate, while the checks permission owns the
-private failure diagnostics.
+private failure diagnostics. The public workflow requests those three token
+permissions explicitly so an App configuration drift fails at token creation
+instead of silently producing a token that cannot deliver private diagnostics.
 
 The private dispatcher also sends capability booleans derived from its own
 base-to-head path delta. Rust formatting, lint, tests, Linux/macOS sandbox

@@ -108,6 +108,9 @@ jobs:
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
           repositories: openagent-sdk
+          permission-checks: write
+          permission-contents: read
+          permission-statuses: write
       - name: Check out private SDK
         uses: actions/checkout@v7
         with:
