@@ -142,6 +142,14 @@ Only then does it:
 6. fast-forward `release/beta/X.Y` to the published Beta SHA when applicable;
 7. deploy the release landing page with the published tag.
 
+The Linux target first builds `codex-bwrap` from the immutable Codex revision
+pinned by the SDK, strips the helper, and exports its SHA-256 before Tauri
+compiles the application. The release binary embeds that digest and verifies
+the bundled helper before execution; `tauri.linux.conf.json` packages the same
+file as the `bwrap` sidecar. A missing digest, helper, executable bit, or byte
+mismatch must fail the build or sandbox launch rather than fall back to an
+unverified bundled binary.
+
 ### Microsoft Store package
 
 Stable releases also stage and submit one unsigned x64 MSIX through Partner

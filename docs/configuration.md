@@ -82,10 +82,12 @@ and legacy configurations default to `restricted`. The
 runtime SDK now provides one shared process-sandbox contract for foreground,
 background, resumed-approval, and delegated terminal launches. The desktop
 product registers the native backend on every supported platform. Linux uses
-Bubblewrap for mount and network namespace isolation. `bwrap` must be available
-on `PATH`, and its resolved executable and ancestor directories must be
-root-owned and not group- or world-writable. macOS uses the fixed system
-`sandbox-exec` executable
+Bubblewrap for mount and network namespace isolation. It prefers a compatible
+system `bwrap` from `PATH`; that executable and its ancestor directories must
+be root-owned and not group- or world-writable. Product bundles also carry the
+`codex-bwrap` binary built from the SDK's pinned Codex revision as an offline
+fallback. Release builds embed and verify the SHA-256 of the exact stripped
+sidecar packaged by Tauri. macOS uses the fixed system `sandbox-exec` executable
 and a deny-by-default Seatbelt policy. A managed terminal launch fails before
 spawning when the selected backend or its trusted executable cannot enforce the
 requested filesystem or restricted-network capability. Windows uses the pinned

@@ -158,10 +158,14 @@ bun run dev
 ### Build a distributable
 
 ```bash
-bun tauri build
+bun run tauri:build
 ```
 
 The built installers / app bundle land in `src-tauri/target/release/bundle/`.
+On Linux this command builds the pinned Codex Bubblewrap sidecar, strips it,
+embeds its SHA-256 in the release binary, and packages the same bytes. Linux
+source builds therefore also require `libcap` development headers, `pkg-config`,
+and GNU `strip` (usually provided by `binutils`).
 
 ---
 

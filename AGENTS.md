@@ -35,7 +35,7 @@ bun run check               # Svelte + TypeScript
 bun run preflight           # Fast checks selected from the diff against origin/master
 bun run prepare:windows-sandbox:dev # Build pinned Codex helpers on Windows
 bun tauri dev
-bun tauri build
+bun run tauri:build
 cd src-tauri && cargo check
 cd src-tauri && cargo build
 ```
@@ -169,7 +169,13 @@ legacy top-level category values.
 - Build both Windows sandbox helper executables from the Codex revision pinned
   by the SDK, keep them out of source control, and bundle them under
   `codex-resources/`. The library, setup helper, and command runner must never
-  come from different revisions.
+  come from different revisions. Helper preparation must diagnose an SDK
+  checkout that differs from the parent gitlink before suggesting a submodule
+  update; never reset or overwrite SDK work automatically.
+- Build the Linux `codex-bwrap` sidecar from the same pinned Codex revision,
+  strip it before hashing, embed the SHA-256 in release Rust compilation, and
+  package those exact bytes through Tauri `externalBin`. Release builds must
+  use `bun run tauri:build` so the digest reaches Cargo.
 - For visible UI changes, verify light/dark themes and Chinese/English copy.
 - Do not edit generated `build/`, `.svelte-kit/`, or `target/` output.
 
