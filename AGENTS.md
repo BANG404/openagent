@@ -81,7 +81,10 @@ full dispatches run workspace-wide, all-feature, cross-platform qualification.
 The private repository owns only classification and dispatch and requires the
 reported status before merge. Keep `cache-targets: false`: routing and job
 granularity, rather than publishing private compiler output to a public cache,
-are the SDK CI optimization boundary.
+are the SDK CI optimization boundary. A fast public-host compatibility check
+may use an empty, untracked Linux sidecar placeholder because Cargo only needs
+to resolve Tauri's `externalBin` declaration; full qualification must build the
+real pinned helper and export its digest before checking the host.
 
 ## Browser-backed frontend workflow
 
