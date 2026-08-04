@@ -95,6 +95,7 @@ describe("private SDK diagnostic reporting", () => {
         SDK_DIAGNOSTIC_NAME: "Rust lint",
         SDK_REPOSITORY: "BANG404/openagent-sdk",
         SDK_SHA: "a".repeat(40),
+        CI_RUN_URL: "https://github.com/BANG404/openagent/actions/runs/123",
       },
       fetchImpl: async (url, options) => {
         request = { url, options };
@@ -108,11 +109,35 @@ describe("private SDK diagnostic reporting", () => {
       name: "Public SDK diagnostics / Rust lint",
       head_sha: "a".repeat(40),
       conclusion: "failure",
+      details_url: "https://github.com/BANG404/openagent/actions/runs/123",
       output: {
         title: "Rust lint failed",
         text: expect.stringContaining("clippy detail"),
       },
     });
+  });
+
+  test("reports a safe GitHub API reason when private delivery fails", async () => {
+    const directory = await makeTemporaryDirectory();
+
+    await expect(
+      reportPrivateSdkDiagnostic({
+        env: {
+          GH_TOKEN: "private-token",
+          RUNNER_TEMP: directory,
+          SDK_DIAGNOSTIC_NAME: "Rust tests",
+          SDK_REPOSITORY: "BANG404/openagent-sdk",
+          SDK_SHA: "a".repeat(40),
+        },
+        fetchImpl: async () => ({
+          ok: false,
+          status: 403,
+          json: async () => ({ message: "Resource not accessible by integration\n::error::" }),
+        }),
+      }),
+    ).rejects.toThrow(
+      "GitHub Checks API returned HTTP 403: Resource not accessible by integration : :error: :.",
+    );
   });
 
   test("does not include sensitive values in the private payload", () => {

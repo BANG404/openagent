@@ -7,6 +7,29 @@ const PRIVATE_CHECK_PREFIX = "Public SDK diagnostics";
 const PRIVATE_DIAGNOSTIC_POINTER = "sdk-private-diagnostic-name";
 const SENSITIVE_ENVIRONMENT_NAME = /(credential|key|password|secret|token)/i;
 
+class PrivateDiagnosticDeliveryError extends Error {}
+
+function sanitizeApiMessage(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+  return value.replaceAll("::", ": :").replace(/\s+/g, " ").trim().slice(0, 240);
+}
+
+async function buildDeliveryError(response) {
+  let message = "";
+  try {
+    const payload = await response.json();
+    message = sanitizeApiMessage(payload?.message);
+  } catch {
+    // The HTTP status is still safe and useful when GitHub returns no JSON body.
+  }
+  const suffix = message ? `: ${message}` : "";
+  return new PrivateDiagnosticDeliveryError(
+    `GitHub Checks API returned HTTP ${response.status}${suffix}.`,
+  );
+}
+
 /**
  * @param {string} text
  * @param {NodeJS.ProcessEnv} env
@@ -94,6 +117,7 @@ export async function reportPrivateSdkDiagnostic({ env = process.env, fetchImpl 
   const repository = env.SDK_REPOSITORY ?? "";
   const diagnosticName = env.SDK_DIAGNOSTIC_NAME ?? "SDK validation";
   const runnerTemp = env.RUNNER_TEMP ?? "";
+  const detailsUrl = env.CI_RUN_URL ?? "";
 
   if (!token || !/^[0-9a-f]{40}$/.test(sha) || !repository || !runnerTemp) {
     throw new Error("Private diagnostic reporter configuration is incomplete.");
@@ -113,6 +137,7 @@ export async function reportPrivateSdkDiagnostic({ env = process.env, fetchImpl 
       head_sha: sha,
       status: "completed",
       conclusion: "failure",
+      ...(detailsUrl ? { details_url: detailsUrl } : {}),
       output: buildPrivateCheckOutput({
         diagnosticName,
         diagnostic,
@@ -122,15 +147,16 @@ export async function reportPrivateSdkDiagnostic({ env = process.env, fetchImpl 
   });
 
   if (!response.ok) {
-    throw new Error(`Private diagnostic delivery returned HTTP ${response.status}.`);
+    throw await buildDeliveryError(response);
   }
 }
 
 async function main() {
   try {
     await reportPrivateSdkDiagnostic();
-  } catch {
-    console.error("::warning::Private SDK diagnostic delivery failed.");
+  } catch (error) {
+    const reason = error instanceof PrivateDiagnosticDeliveryError ? ` ${error.message}` : "";
+    console.error(`::warning::Private SDK diagnostic delivery failed.${reason}`);
     process.exitCode = 1;
   }
 }

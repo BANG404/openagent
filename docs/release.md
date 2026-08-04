@@ -253,10 +253,13 @@ source. When a capability command fails, it records the name of that command's
 `sdk-*.log` file; the runner reads only that file from its temporary directory,
 redacts values held in sensitive environment variables, limits the retained
 output, and creates a failed `Public SDK diagnostics / <capability>` Check Run
-on the private SDK commit. That Check Run contains the captured command output
-and is visible only through the private repository. Delivery failures remain
-generic warnings in the public run; arbitrary captured output must never be
-placed in public logs, step summaries, artifacts, or caches.
+on the private SDK commit. That Check Run contains the captured command output,
+links back to its public runner invocation, and is visible only through the
+private repository. If GitHub rejects the Check Run request, the public runner
+may expose only the sanitized HTTP status and GitHub API message needed to
+diagnose the delivery path; it must never expose the captured command output.
+Arbitrary captured output must never be placed in public logs, step summaries,
+artifacts, or caches.
 
 The public repository stores the reporter App ID in
 `OPENAGENT_CI_REPORTER_APP_ID` and its private key in
@@ -264,7 +267,9 @@ The public repository stores the reporter App ID in
 private SDK repository. Its repository permissions are limited to read-only
 contents plus write access to commit statuses and checks. The status permission
 owns the aggregate `Public SDK CI` gate, while the checks permission owns the
-private failure diagnostics.
+private failure diagnostics. The public workflow requests those three token
+permissions explicitly so an App configuration drift fails at token creation
+instead of silently producing a token that cannot deliver private diagnostics.
 
 The private dispatcher also sends capability booleans derived from its own
 base-to-head path delta. Rust formatting, lint, tests, Linux/macOS sandbox
