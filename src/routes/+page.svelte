@@ -66,6 +66,7 @@
   import SidebarCollapseButton from "$lib/components/SidebarCollapseButton.svelte";
   import SidebarHistoryControls from "$lib/components/SidebarHistoryControls.svelte";
   import SidebarPrimaryActions from "$lib/components/SidebarPrimaryActions.svelte";
+  import SidebarResizeHandle from "$lib/components/SidebarResizeHandle.svelte";
   import RoleSelector from "$lib/components/RoleSelector.svelte";
   import SidebarNav from "$lib/components/SidebarNav.svelte";
   import OnboardingFlow from "$lib/components/OnboardingFlow.svelte";
@@ -78,6 +79,7 @@
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import QuickChat from "$lib/components/QuickChat.svelte";
+  import { clampSidebarWidth, loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
@@ -407,6 +409,8 @@
     typeof window !== "undefined" &&
       window.localStorage.getItem(sidebarCollapsedStorageKey) === "true",
   );
+  let sidebarWidth = $state(loadSidebarWidth());
+  let sidebarResizing = $state(false);
   // Per-conversation streaming state — keyed by conv_id
   let streamingConvIds = $state<Record<string, boolean>>({});
   let streamPausedConvIds = $state<Record<string, boolean>>({});
@@ -4560,6 +4564,10 @@
     window.localStorage.setItem(sidebarCollapsedStorageKey, String(sidebarCollapsed));
   }
 
+  function resizeSidebar(width: number): void {
+    sidebarWidth = clampSidebarWidth(width);
+  }
+
   // Keep the webview's built-in context menu available while developing, but
   // do not expose browser actions (such as inspect/copy navigation) in builds.
   function handleContextMenu(event: MouseEvent) {
@@ -4748,9 +4756,13 @@
       </QuickChat>
     </div>
   {:else}
-    <div class="app" class:sidebar-collapsed={sidebarCollapsed}>
+    <div
+      class="app"
+      class:sidebar-collapsed={sidebarCollapsed}
+      style:--sidebar-width={`${sidebarWidth}px`}
+    >
       <!-- ─── Sidebar ─────────────────────────────────────────────────────────────── -->
-      <aside class="sidebar" class:collapsed={sidebarCollapsed}>
+      <aside class="sidebar" class:collapsed={sidebarCollapsed} class:resizing={sidebarResizing}>
         <div class="sidebar-top" data-tauri-drag-region>
           {#if !sidebarCollapsed}
             <div class="sidebar-navigation-start" data-tauri-drag-region>
@@ -4819,6 +4831,13 @@
             onToggleRoles={rolesOpen ? closeRoles : openRoles}
             onToggleSkills={skillsOpen ? closeSkills : openSkills}
             onToggleSettings={settingsOpen ? closeSettings : openSettings}
+          />
+          <SidebarResizeHandle
+            width={sidebarWidth}
+            ariaLabel={$t("resizeSidebar")}
+            onResize={resizeSidebar}
+            onResizeStateChange={(resizing) => (sidebarResizing = resizing)}
+            onResizeEnd={saveSidebarWidth}
           />
         {/if}
       </aside>
@@ -5246,6 +5265,7 @@
   /* ─── Sidebar ─────────────────────────────────────────────────────────────── */
 
   .sidebar {
+    position: relative;
     width: var(--sidebar-width);
     flex-shrink: 0;
     display: flex;
@@ -5262,6 +5282,10 @@
     background: transparent;
     border-right: 0;
     overflow: visible;
+  }
+
+  .sidebar.resizing {
+    transition: none;
   }
 
   .sidebar-top {
