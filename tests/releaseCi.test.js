@@ -26,6 +26,19 @@ describe("release CI verification", () => {
     expect(prHeadWorkflow).toContain('context="Required PR Head"');
   });
 
+  test("auto-merges only an eligible owner-authored PR at the validated head", () => {
+    expect(prHeadWorkflow).toContain("secrets.ADMIN_MERGE_TOKEN");
+    expect(prHeadWorkflow).toContain("steps.publish.outputs.authoritative == 'true'");
+    expect(prHeadWorkflow).toContain("github.event.workflow_run.conclusion == 'success'");
+    expect(prHeadWorkflow).toContain('"$author" != "$REPOSITORY_OWNER"');
+    expect(prHeadWorkflow).toContain('"$base" != "$DEFAULT_BRANCH"');
+    expect(prHeadWorkflow).toContain('"$draft" != "false"');
+    expect(prHeadWorkflow).toContain('"$head" != "$CI_HEAD_SHA"');
+    expect(prHeadWorkflow).toContain('"$state" != "open"');
+    expect(prHeadWorkflow).toContain("-f merge_method=squash");
+    expect(prHeadWorkflow).toContain('-f sha="$CI_HEAD_SHA"');
+  });
+
   test("fetches tags before validating release metadata", () => {
     const detectJob = releaseWorkflow.match(/ {2}detect:\n(?<job>[\s\S]*?)\n {2}tag:/)?.groups?.job;
 

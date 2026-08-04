@@ -207,6 +207,17 @@ cannot overwrite a newer conclusion. The branch ruleset requires this stable
 head status with strict up-to-date checking disabled, so unrelated merges do
 not erase a completed PR's validation and force the entire matrix to repeat.
 
+After publishing a successful authoritative head status, the trusted reporter
+may automatically squash-merge a ready PR authored by the repository owner.
+It re-reads the PR and requires the expected owner, default base branch, open
+non-draft state, and exact validated head SHA before merging. The optional
+`ADMIN_MERGE_TOKEN` Actions secret must identify the repository owner with
+contents and pull-request write access so the existing review-only ruleset
+bypass applies; without that secret, reporting still succeeds and the PR stays
+open. The CI ruleset has no bypass actor, so the token cannot merge a head that
+lacks the successful `Required PR Head` status. Third-party PRs continue to
+require an approving review and a normal merge.
+
 The repository is owned by a personal account, for which GitHub does not offer
 native merge queues. If ownership moves to an organization, prefer a native
 merge queue and keep the existing `merge_group` CI trigger so the queued merge

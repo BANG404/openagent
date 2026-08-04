@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Publish the latest authoritative CI result
+        id: publish
         env:
           GH_TOKEN: ${{ github.token }}
           CI_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
@@ -27,6 +28,7 @@ jobs:
           CI_WORKFLOW_ID: ${{ github.event.workflow_run.workflow_id }}
         shell: bash
         run: |
+          echo "authoritative=false" >> "$GITHUB_OUTPUT"
           latest_run_id="$(
             gh api \
               "repos/$GITHUB_REPOSITORY/actions/workflows/$CI_WORKFLOW_ID/runs?event=pull_request&per_page=100" \
@@ -51,3 +53,42 @@ jobs:
             -f context="Required PR Head" \
             -f description="$description" \
             -f target_url="$CI_RUN_URL"
+
+          echo "authoritative=true" >> "$GITHUB_OUTPUT"
+
+      - name: Automatically merge an owner-authored PR
+        if: steps.publish.outputs.authoritative == 'true' && github.event.workflow_run.conclusion == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_MERGE_TOKEN }}
+          CI_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        shell: bash
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::notice::ADMIN_MERGE_TOKEN is not configured; leaving the validated PR open."
+            exit 0
+          fi
+          if [[ -z "$PR_NUMBER" ]]; then
+            echo "::warning::The authoritative run did not identify a pull request; automatic merge was skipped."
+            exit 0
+          fi
+
+          pr="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")"
+          author="$(jq -r '.user.login' <<<"$pr")"
+          base="$(jq -r '.base.ref' <<<"$pr")"
+          draft="$(jq -r '.draft' <<<"$pr")"
+          head="$(jq -r '.head.sha' <<<"$pr")"
+          state="$(jq -r '.state' <<<"$pr")"
+
+          if [[ "$author" != "$REPOSITORY_OWNER" || "$base" != "$DEFAULT_BRANCH" || "$draft" != "false" || "$head" != "$CI_HEAD_SHA" || "$state" != "open" ]]; then
+            echo "::notice::PR #$PR_NUMBER is not an eligible owner-authored PR at the validated head; automatic merge was skipped."
+            exit 0
+          fi
+
+          gh api \
+            --method PUT \
+            "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/merge" \
+            -f merge_method=squash \
+            -f sha="$CI_HEAD_SHA"

@@ -69,12 +69,11 @@ retain the task worktree until the merge is confirmed.
 
 ## 5. Let CI verify
 
-- Watch PR checks with `gh pr checks <PR> --watch --fail-fast` so the first
-  failing module can be handled without waiting for unrelated long-running
-  jobs. A successful module is not a substitute for the `Required` aggregate.
-- After `Required` succeeds, wait for the trusted `Required PR Head` status.
-  It mirrors the latest completed authoritative PR CI run onto the immutable PR
-  head SHA and is the branch-ruleset status used for merging.
+- Use the workspace `wait-for-pr-ci` skill and its blocking script to wait for
+  the trusted `Required PR Head` result on the immutable PR head SHA. Pass
+  `--wait-for-merge` for an owner-authored PR when automatic merge is configured.
+  This stable status mirrors the latest completed authoritative PR CI run; a
+  successful individual module is not a substitute for it.
 - On failure, use the GitHub Actions run and job logs to identify the root cause,
   fix it in the same worktree, commit, and push. Repeat until `Required` passes.
 - If CI is unavailable or externally blocked, keep the PR and worktree intact
@@ -82,9 +81,11 @@ retain the task worktree until the merge is confirmed.
 
 ## 6. Apply the review policy and merge
 
-- For a PR authored under the repository-owner account, wait for both
-  `Required` and `Required PR Head`, then merge with the review-only admin bypass
-  using `gh pr merge <PR> --admin --squash --delete-branch`.
+- For a PR authored under the repository-owner account, let the trusted
+  reporter automatically squash-merge it after `Required PR Head` succeeds.
+  If `ADMIN_MERGE_TOKEN` is intentionally unavailable, wait for the stable
+  success and use `gh pr merge <PR> --admin --squash --delete-branch` as the
+  explicit review-only bypass fallback.
 - For a third-party PR, approve it as the owner, do not select bypass, wait for
   both required statuses, and merge normally with
   `gh pr review <PR> --approve` followed by
