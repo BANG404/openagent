@@ -152,7 +152,6 @@
   let userMessageIndex = $derived(
     visibleMessages.filter(({ msg }) => msg.role === "user" && !isCompactionReplayUser(msg)),
   );
-  const USER_INDEX_PREVIEW_LIMIT = 4;
   const USER_MESSAGE_COLLAPSE_LENGTH = 800;
   const USER_MESSAGE_COLLAPSE_LINES = 8;
 
@@ -286,11 +285,6 @@
     return text ? `${index + 1}. ${text.slice(0, 80)}` : `${index + 1}`;
   }
 
-  function userIndexSnippet(content: string) {
-    const text = content.trim().replace(/\s+/g, " ");
-    return text ? text.slice(0, 72) : "User message";
-  }
-
   function scrollToMessage(id: string) {
     virtualMessageList?.scrollToKey(id);
   }
@@ -401,15 +395,9 @@
             <button
               {...props}
               type="button"
-              class:with-preview={index < USER_INDEX_PREVIEW_LIMIT}
               aria-label={userIndexTitle(item.msg.content, index)}
               onclick={() => scrollToMessage(item.msg.id)}
             >
-              {#if index < USER_INDEX_PREVIEW_LIMIT}
-                <span class="index-preview">
-                  <span class="index-preview-text">{userIndexSnippet(item.msg.content)}</span>
-                </span>
-              {/if}
               <span class="index-mark" aria-hidden="true"></span>
             </button>
           {/snippet}
@@ -1015,10 +1003,6 @@
     box-shadow: var(--focus-ring);
   }
 
-  .user-message-index button.with-preview {
-    min-height: 24px;
-  }
-
   .index-mark {
     width: 16px;
     height: 1px;
@@ -1038,56 +1022,10 @@
     transform: scaleY(1.6);
   }
 
-  .index-preview {
-    position: absolute;
-    right: 34px;
-    display: flex;
-    width: 206px;
-    min-height: 40px;
-    box-sizing: border-box;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
-    padding: 9px 14px;
-    border: 0;
-    border-radius: 14px;
-    background: color-mix(in srgb, var(--surface) 94%, transparent);
-    box-shadow: var(--raised-shadow);
-    opacity: 0;
-    transform: translateX(8px) scale(0.98);
-    pointer-events: none;
-    transition:
-      opacity 0.12s ease,
-      transform 0.12s ease;
-  }
-
-  .with-preview:hover .index-preview,
-  .with-preview:focus-visible .index-preview {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-  }
-
-  .index-preview-text {
-    display: -webkit-box;
-    overflow: hidden;
-    color: var(--text);
-    font-size: 12px;
-    line-height: 1.35;
-    text-align: left;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow-wrap: anywhere;
-  }
-
   @media (max-width: 720px) {
     .user-message-index {
       right: 8px;
       width: 38px;
-    }
-
-    .index-preview {
-      display: none;
     }
   }
 

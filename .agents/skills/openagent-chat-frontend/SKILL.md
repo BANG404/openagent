@@ -208,6 +208,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Treat the new-conversation action as idempotent while that surface is already
   visible. Do not reload its memory greeting, rewrite its durable active marker,
   or toggle its loading skeleton on a repeated click.
+- Keep the right-side user-message index on one shared tooltip surface. Do not
+  render a second inline message preview for the same index marker.
 - Do not render approval controls for a switched branch until its active tip is
   durable.
 
