@@ -1,113 +1,145 @@
 ---
 name: deliver-via-pr
-description: Deliver repository-changing OpenAgent tasks through an isolated git worktree, an agent/* branch, a ready GitHub pull request, authoritative PR CI, policy-correct merge, and safe cleanup. Use for every task that edits this repository unless the user explicitly requests local-only work, uncommitted changes, no push, or no merge.
+description: "Implement and deliver OpenAgent repository changes using prefix-selected Git modes. Use for every repository-changing task: default to commits on the current remote-tracking default branch without switching branches, use an OPR message prefix to push all unpublished local commits to a remote PR branch without changing the local branch or its upstream, and use an ORPR prefix for the isolated worktree, authoritative CI, merge, and cleanup workflow."
 ---
 
-# Deliver via PR
+# Repository delivery
 
-## Overview
+## Select the mode first
 
-Treat the pull request as the unit of delivery. Keep the default worktree and
-unrelated work untouched, rely on GitHub Actions for delivery verification, and
-retain the task worktree until the merge is confirmed.
+Inspect the first token of the user's task before changing repository state.
+Match `ORPR` before `OPR`; a prefix is an uppercase standalone token at the
+start of the message, optionally followed by whitespace or a colon. Remove the
+token from the task description after selecting the mode.
 
-## 1. Establish scope
+| Input | Mode | Terminal state |
+| --- | --- | --- |
+| No delivery prefix | Local | Current worktree and remote-tracking default branch, verified local commits; no push or PR |
+| `OPR [task]` | PR sync | Local mode plus push every unpublished local commit to a remote PR branch and create or update a ready PR; do not switch the local branch |
+| `ORPR ...` | Full PR | Fresh isolated worktree and branch, ready PR, authoritative CI, merge, and safe cleanup |
+
+An explicit user instruction such as uncommitted changes, no push, draft PR,
+no merge, or a named target branch overrides the corresponding default. A
+prefix selects delivery mechanics only; it does not broaden task scope or
+authorize unrelated changes.
+
+## Establish scope
 
 - Read the nearest `AGENTS.md` and the mapped source-of-truth documentation.
 - Before changing product or automation logic, agent instructions, or
-  documentation, read [references/living-documentation.md](references/living-documentation.md)
-  and select exactly one primary documentation owner for each changed behavior.
-- Run `git status --short --branch`, `git worktree list`, `gh auth status`, and
-  resolve the remote default branch.
-- If the user requests diagnosis or review only, do not create a branch or make
-  changes.
-- If the user excludes a delivery stage, stop the workflow before that stage.
-- Follow `sdk/AGENTS.md` for SDK work. Deliver the SDK repository first, then
-  update the parent gitlink through this workflow.
+  documentation, read
+  [references/living-documentation.md](references/living-documentation.md) and
+  select one primary documentation owner for each changed behavior.
+- Run `git status --short --branch`, inspect existing worktrees, and resolve the
+  remote default branch. Check GitHub authentication only for `OPR` or `ORPR`.
+- For diagnosis or review only, do not create a branch or make changes.
+- Preserve unrelated branches, worktrees, staged files, and working changes.
+  If the current worktree or branch has ambiguous ownership, stop for direction
+  instead of absorbing those changes into the task.
+- Follow `sdk/AGENTS.md` for SDK work. Apply the selected mode independently to
+  the SDK repository first; update the parent gitlink only after the SDK commit
+  intended for integration is final for that mode.
 
-## 2. Create the task worktree
+## Local mode: commit on the current default branch
 
-- Fetch `origin/master`.
+1. Stay in the current worktree and on its remote-tracking default branch
+   (`master` in OpenAgent and `main` in the SDK). Do not create or switch a
+   local branch and do not create another worktree. Fetch the upstream first;
+   fast-forward only when there are no unpublished local commits. If local and
+   remote history diverge, preserve both and stop for direction instead of
+   rebasing, resetting, or merging automatically.
+2. Implement code, focused coverage, and agent-facing documentation together.
+   Keep public behavior in `docs/`, repeatable procedures in the triggering
+   skill, and private SDK internals in the SDK repository.
+3. Do not manually run lint, test, check, build, or documentation commands that
+   duplicate repository CI. Run implementation-time interactive checks,
+   explicitly requested checks, and validators required by another skill.
+4. Inspect status and the complete diff, stage only explicit intended paths,
+   then run `bun run preflight`. Stage new files first so the whitespace guard
+   can inspect them. Use `--base <ref>` only for a non-default target branch.
+5. Inspect the staged diff and create focused Conventional Commits. Never amend,
+   squash, or rewrite user-owned commits unless explicitly requested.
+6. Stop after the local commits. Report the default branch, commit hashes,
+   verification, and that nothing was pushed.
+
+## OPR mode: synchronize local commits through a PR
+
+When task text follows the prefix, complete local mode first and then publish
+it. When the message is only `OPR`, publish the current unpublished local
+commits as-is after verifying them; do not invent another implementation change
+or empty commit.
+
+1. Fetch the remote default, then inspect every unpublished commit and changed
+   path in `origin/<default>..HEAD`. Confirm they are intended and the worktree
+   has no task changes left uncommitted. Include every unpublished local commit;
+   do not silently squash it.
+2. Resolve the existing open PR branch for this same local commit series, or
+   choose a unique remote-only `agent/<task-slug>` branch. Push with an explicit
+   refspec such as `git push origin HEAD:refs/heads/agent/<task-slug>` so the
+   local default branch and its upstream remain unchanged. Never push directly
+   to the remote default, force-push, or rewrite published history unless the
+   user explicitly requests it.
+3. Create a ready PR from that remote branch to the remote default, or update
+   its existing open PR. Describe behavior, boundaries, documentation, local
+   preflight, and checks deferred to CI.
+4. Stop after the remote branch and PR reflect the local commits. Do not wait
+   for CI, merge the PR, delete branches, remove worktrees, or fast-forward the
+   default branch unless separately requested.
+5. Report the PR URL, remote PR branch, pushed head SHA, included commits, and
+   current check state without presenting pending CI as successful delivery.
+
+## ORPR mode: isolated PR through merge
+
+### Create the isolated task worktree
+
+- Fetch the remote default branch.
 - Choose a unique `agent/<task-slug>` branch and a non-existing sibling path
   named `openagent-wt-<task-slug>`.
-- Create the worktree from `origin/master`, not from a stale local `master`.
+- Create the worktree from the remote default branch, never a stale local base.
 - Never relocate, reset, clean, or reuse unrelated worktrees. If intended task
-  changes already exist elsewhere, stop and preserve them rather than copying
-  or deleting ambiguously.
+  changes already exist elsewhere, preserve them and stop rather than copying
+  or deleting them ambiguously.
 
-## 3. Implement and commit
+### Implement, commit, and open the PR
 
-- Make implementation, focused test coverage, and agent-facing documentation
-  changes together.
-- Keep public behavior and architecture in `docs/`; keep repeatable procedures
-  and fragile agent-facing invariants in the triggering skill. Do not duplicate
-  the same rule across both surfaces.
-- Do not manually run local lint, test, check, build, or documentation-sync
-  commands that duplicate CI. Run only implementation-time interactive checks,
-  explicitly requested checks, and artifact validators mandated by another
-  selected skill.
-- Before committing, inspect `git status` and the complete diff, then stage
-  explicit paths only and run `bun run preflight`. Staging first lets the Git
-  whitespace guard inspect new file contents. The preflight owns the diff and
-  documentation guardrails and selects fast module checks through the same
-  classifier as PR CI. Use `--base <ref>` only when the PR does not target
-  `master`.
-- Inspect the staged diff and create focused Conventional Commits using the
-  repository's allowed types.
+- Follow local mode steps 2-5 for implementation, documentation, staging,
+  preflight, diff inspection, and commits inside the isolated worktree; its
+  default-branch placement rule does not apply to `ORPR`.
+- Push with upstream tracking and open a ready PR. Include user-visible
+  behavior, affected boundaries, documentation, preflight, and deferred checks.
+- Never add unrelated commits or update the branch solely because the target
+  branch moved after CI started.
 
-## 4. Push and open the PR
+### Wait for authoritative CI
 
-- Push the task branch with upstream tracking.
-- Open a ready PR against `master`; do not use a draft because CI and merge are
-  part of the requested delivery.
-- Describe user-visible behavior, affected boundaries, documentation, the local
-  preflight result, and the exhaustive or platform-specific checks deferred to
-  PR CI.
-- Never include unrelated commits or files. Do not update a branch solely
-  because `master` moved after CI started. The stable PR-head status is designed
-  to survive that movement without creating another commit or CI run.
+- Use the `wait-for-pr-ci` skill to wait for `Required PR Head` on the immutable
+  PR head. Pass `--wait-for-merge` when trusted auto-merge is configured.
+- If it returns `merge-pending`, re-read the PR and apply the review fallback
+  below without rerunning successful CI.
+- On failure, inspect the failing Actions job, fix the same task branch, commit,
+  push, and wait again. Never bypass pending or failed checks.
+- If CI is externally blocked, retain the PR and worktree and report incomplete
+  delivery.
 
-## 5. Let CI verify
+### Merge under repository policy
 
-- Use the workspace `wait-for-pr-ci` skill and its blocking script to wait for
-  the trusted `Required PR Head` result on the immutable PR head SHA. Pass
-  `--wait-for-merge` for an owner-authored PR when automatic merge is configured.
-  This stable status mirrors the latest completed authoritative PR CI run; a
-  successful individual module is not a substitute for it.
-- If the waiter returns `merge-pending`, CI is already authoritative and must
-  not be rerun. Re-read the PR, then apply the review-policy fallback below for
-  the exact validated head.
-- On failure, use the GitHub Actions run and job logs to identify the root cause,
-  fix it in the same worktree, commit, and push. Repeat until `Required` passes.
-- If CI is unavailable or externally blocked, keep the PR and worktree intact
-  and report the incomplete delivery. Never bypass a pending or failed check.
+- For an owner-authored PR, let the trusted reporter squash-merge after
+  `Required PR Head` succeeds. If the configured merge credential is
+  unavailable, use `gh pr merge <PR> --admin --squash --delete-branch` only as
+  the documented review-only fallback for the exact validated head.
+- For a third-party PR, approve as the owner, do not bypass protection, wait for
+  both required statuses, and merge normally.
+- Never self-approve an owner-authored PR. Confirm `MERGED`; closed or queued is
+  not complete.
 
-## 6. Apply the review policy and merge
+### Clean up safely
 
-- For a PR authored under the repository-owner account, let the trusted
-  reporter automatically squash-merge it after `Required PR Head` succeeds.
-  If `ADMIN_MERGE_TOKEN` is intentionally unavailable, wait for the stable
-  success and use `gh pr merge <PR> --admin --squash --delete-branch` as the
-  explicit review-only bypass fallback.
-- For a third-party PR, approve it as the owner, do not select bypass, wait for
-  both required statuses, and merge normally with
-  `gh pr review <PR> --approve` followed by
-  `gh pr merge <PR> --squash --delete-branch`.
-- Do not attempt to approve an owner-authored PR; GitHub does not count self
-  approval.
-- Confirm the PR reports `MERGED` before cleanup. A closed or queued PR is not a
-  completed delivery.
-
-## 7. Clean up safely
-
-- Resolve the exact absolute task-worktree path and verify it is registered,
-  clean, not the default worktree, and dedicated to the merged branch.
-- Confirm the PR is merged and its remote branch is gone, record the exact local
-  branch name, then remove that worktree without force.
-- A squash merge does not make the task commit an ancestor of `master`, so
-  `git branch -d` normally refuses the final cleanup. After all preceding checks
-  pass, delete only the recorded task branch with `git branch -D`. Never use
-  forced deletion for an open, unmerged, dirty, or ambiguously owned task.
-- Fetch and fast-forward the default worktree when it is clean. Never overwrite
-  user changes to synchronize it.
-- Report the PR URL, merge commit, CI result, and cleanup result.
+- Resolve the exact task-worktree path and verify it is registered, clean, not
+  the default worktree, and dedicated to the merged branch.
+- Confirm the PR is merged and its remote branch is gone before removing that
+  worktree without force.
+- Record the exact local branch. Because squash merge breaks ancestry, delete
+  only that verified merged task branch with `git branch -D`; never force-delete
+  an open, dirty, unmerged, or ambiguously owned branch.
+- Fetch and fast-forward the default worktree only when it is clean. Report the
+  PR URL, merge commit, CI result, and cleanup result.

@@ -20,8 +20,9 @@ requires them.
   requires for the affected SDK area. SDK implementation rules belong there,
   not in this public repository's guides.
 - For every task that changes repository files, read and follow the
-  `deliver-via-pr` workspace skill before editing. It owns branch, worktree,
-  pull request, CI, merge, and cleanup procedure.
+  `deliver-via-pr` workspace skill before editing. It owns prefix selection,
+  default-branch commits, remote PR branches, worktrees, pull requests, CI,
+  merge, and cleanup.
 
 ## Commands
 
@@ -40,8 +41,8 @@ cd src-tauri && cargo check
 cd src-tauri && cargo build
 ```
 
-GitHub pull-request CI is the authoritative delivery verification. Before
-committing, inspect the complete diff and run `bun run preflight`; it compares
+Before committing in any delivery mode, inspect the complete diff and run
+`bun run preflight`; it compares
 the branch, index, and worktree plus untracked filenames with `origin/master`,
 enforces the documentation and diff guardrails, and uses the CI path classifier
 to run only fast checks for affected modules. Stage intended new files first so
@@ -51,7 +52,8 @@ target branch is not `master`.
 Do not manually run additional lint, test, check, or build commands that
 duplicate CI. Tool-specific validation required to create an artifact,
 interactive checks needed to implement a change, and checks explicitly
-requested by the user remain allowed. Pull-request CI owns fast checks for the
+requested by the user remain allowed. When a pull request is created, its CI is
+the authoritative remote delivery verification and owns fast checks for the
 affected modules. Cross-platform builds, frontend production builds, bundle
 budgets, embedding runtime tests, and Harness integration tests belong to
 nightly or release qualification, not ordinary pull requests.
@@ -191,10 +193,17 @@ legacy top-level category values.
 
 ## Git workflow
 
-Repository-changing tasks use the complete `deliver-via-pr` workflow by
-default. A request to implement or modify the repository authorizes creating an
-isolated task branch and worktree, committing the intended changes, pushing the
-task branch, opening a ready pull request, waiting for GitHub Actions, merging
-after `Required` succeeds, and cleaning up the task worktree and branch. Stop
-before an explicitly excluded stage when the user asks for local-only work,
-uncommitted changes, no push, or no merge.
+Repository-changing tasks use the prefix-selected `deliver-via-pr` workflow.
+Without a delivery prefix, work directly in the current worktree on its
+remote-tracking default branch (`master` here and `main` in the SDK), run
+preflight, create local commits, and stop without pushing or switching branches.
+An uppercase standalone `OPR` prefix adds pushing every unpublished local commit
+to a remote-only task branch with an explicit refspec and creating or updating a
+ready pull request. It must not change the local default branch or its upstream,
+and stops without waiting for CI, merging, or cleanup. A message containing only
+`OPR` publishes the current unpublished local commits without creating another
+change or empty commit. An uppercase standalone `ORPR` prefix selects the full
+isolated-worktree workflow: create the task worktree from the remote default
+branch, commit and push, open a ready PR, wait for authoritative CI, merge under
+repository policy, and clean up. Match `ORPR` before `OPR`. Explicit user
+instructions that exclude or alter a delivery stage take precedence.

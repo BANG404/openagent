@@ -1,4 +1,4 @@
 interface:
-  display_name: "Deliver via PR"
-  short_description: "Ship OpenAgent changes through PR CI"
-  default_prompt: "Use $deliver-via-pr to implement and deliver this OpenAgent task through its protected PR workflow."
+  display_name: "Deliver repository changes"
+  short_description: "Choose local, PR sync, or full PR delivery"
+  default_prompt: "Use $deliver-via-pr to keep local default branches in place and apply the selected local, OPR, or ORPR delivery workflow."
