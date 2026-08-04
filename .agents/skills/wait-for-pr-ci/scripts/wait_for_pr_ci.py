@@ -80,6 +80,7 @@ class PullRequest:
     merged: bool
     head_sha: str
     base_ref: str
+    mergeable_state: str
 
 
 @dataclass(frozen=True)
@@ -115,6 +116,7 @@ def get_pr(repo: str, number: int) -> PullRequest:
         merged=bool(data.get("merged_at")),
         head_sha=str(data["head"]["sha"]),
         base_ref=str(data["base"]["ref"]),
+        mergeable_state=str(data.get("mergeable_state", "unknown")).lower(),
     )
 
 
@@ -259,6 +261,10 @@ def merge_wait_expired(started: float | None, now: float, limit: float) -> bool:
     return started is not None and limit > 0 and now - started >= limit
 
 
+def merge_blocked_expired(started: float | None, now: float, poll_seconds: float) -> bool:
+    return started is not None and now - started >= poll_seconds
+
+
 def parse_args() -> argparse.Namespace:
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -335,6 +341,7 @@ def main() -> int:
     observed: tuple[str, tuple[tuple[str, str], ...]] | tuple[str, str] | None = None
     success_since: float | None = None
     merge_wait_started: float | None = None
+    merge_blocked_since: float | None = None
 
     while True:
         now = time.monotonic()
@@ -368,6 +375,7 @@ def main() -> int:
             observed = marker
             success_since = None
             merge_wait_started = None
+            merge_blocked_since = None
 
         state = selection_state(checks)
         if state == "failure":
@@ -396,6 +404,19 @@ def main() -> int:
                         else f"up to {args.merge_wait_seconds:g}s"
                     )
                     print(f"CI succeeded; waiting {limit} for PR #{number} to merge.", flush=True)
+                if current.mergeable_state == "blocked":
+                    merge_blocked_since = merge_blocked_since or now
+                    if merge_blocked_expired(
+                        merge_blocked_since, now, args.poll_seconds
+                    ):
+                        print(
+                            f"WAIT_FOR_PR_CI result=merge-pending reason=blocked pr={number} "
+                            f"head={current.head_sha} url={current.url}",
+                            file=sys.stderr,
+                        )
+                        return 5
+                else:
+                    merge_blocked_since = None
                 if merge_wait_expired(merge_wait_started, now, args.merge_wait_seconds):
                     print(
                         f"WAIT_FOR_PR_CI result=merge-pending pr={number} "
@@ -406,6 +427,7 @@ def main() -> int:
         else:
             success_since = None
             merge_wait_started = None
+            merge_blocked_since = None
 
         time.sleep(args.poll_seconds)
 

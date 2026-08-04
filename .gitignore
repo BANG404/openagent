@@ -41,6 +41,7 @@ logs/
 # Temporary
 *.tmp
 .cache/
+__pycache__/
 
 todo
 
