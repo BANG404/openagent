@@ -64,6 +64,10 @@ its completion, interpret the existing `WAIT_FOR_PR_CI` result normally.
 
 ## Interpret the result
 
+Treat the structured `WAIT_FOR_PR_CI result=...` line as authoritative. The
+required `rtk` wrapper may normalize any nonzero child exit to `1`, while the
+direct Python process uses the distinct exit codes below.
+
 - Exit `0`: selected CI succeeded; with `--wait-for-merge`, the PR is merged.
 - Exit `1`: at least one selected check failed or errored.
 - Exit `2`: the PR closed without merging.
