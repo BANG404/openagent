@@ -143,6 +143,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           SDK_SHA: ${{ inputs.sdk_sha }}
+          CI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: node .public-ci/scripts/report-private-sdk-diagnostic.mjs
 
   rust-clippy:
