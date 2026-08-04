@@ -225,6 +225,7 @@ When asked to review Python code:
 
 That's it — OpenAgent picks it up on the next message and lists it in the agent's system prompt. The agent reads the full body on demand via `read_file`.
 OpenAgent also installs the bundled `find-skills` Skill into this global directory when it is missing.
+When that Skill is available, the agent receives an explicit reminder to use it proactively for material capability gaps in specialized, complex, or deep work. It reuses installed Skills first, reviews third-party candidates before installation, defaults repository-specific additions to `<workspace>/.agents/skills/`, and reserves `~/.agents/skills/` for capabilities intended to work across unrelated projects.
 
 ---
 
