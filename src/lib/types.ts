@@ -471,7 +471,7 @@ export interface FlashAgentsConfig {
   tool_approval: FlashAgentConfig;
 }
 
-export type ApprovalMode = "manual" | "auto" | "off" | "sandbox";
+export type ApprovalMode = "manual" | "auto" | "off";
 
 export type FileSystemAccess = "read" | "write" | "deny";
 export type NetworkAccess = "restricted" | "enabled";

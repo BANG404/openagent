@@ -3,9 +3,8 @@
 </p>
 
 <div align="center">
-  
 
-  **A modern desktop AI agent client — built with Tauri, SvelteKit, and Rust.**
+**A modern desktop AI agent client — built with Tauri, SvelteKit, and Rust.**
 
   <p>
     <img alt="Tauri" src="https://img.shields.io/badge/Tauri-2.0-FFC131?style=flat-square&logo=tauri&logoColor=white">
@@ -90,7 +89,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 
 - **MCP-Native** — Connect external MCP servers over HTTP or stdio; tools are injected into the agent at call time.
 - **First-class Dev Tools** — Built-in file, search, fetch, and terminal tools. Managed terminal sessions support interactive or long-running background processes; `fetch` retrieves pages locally with Spider, extracts readable text, and supports pagination.
-- **Tool Approval & Workspace Sandbox** — Choose per-call review, model-assisted approval, no approval, or a workspace-oriented sandbox for file and terminal tools.
+- **Independent Approval & Runtime Permissions** — Choose when tool calls pause for review separately from the managed filesystem and network sandbox.
 - **Skills System** — Drop a `SKILL.md` into `~/.agents/skills/` or `<workspace>/.agents/skills/`. Category-based progressive discovery keeps large global and project catalogs compact, with optional Flash classification for uncategorized Skills.
 - **Checkpoints & File-Change Rollback** — Every turn is a checkpoint with reverse diffs; undo a single file or rewind the whole agent.
 - **Pluggable LLMs & Multimodal** — Support multi-model selection and durable image, PDF, and text attachments with drag/paste, rich previews, checkpoint restoration, and branch editing across Anthropic, OpenAI, and compatible providers.
@@ -118,11 +117,11 @@ To build from source instead, continue below.
 
 ### Prerequisites
 
-| Tool   | Version | Notes                                          |
-| ------ | ------- | ---------------------------------------------- |
-| Bun    | latest  | Package manager — used instead of npm / yarn   |
-| Rust   | 1.70+   | Required for the Tauri backend                 |
-| Node   | 18+     | Used by the SvelteKit toolchain                |
+| Tool | Version | Notes                                        |
+| ---- | ------- | -------------------------------------------- |
+| Bun  | latest  | Package manager — used instead of npm / yarn |
+| Rust | 1.70+   | Required for the Tauri backend               |
+| Node | 18+     | Used by the SvelteKit toolchain              |
 
 > On Windows the Tauri prerequisites also include WebView2 and the MSVC build tools. See the [official Tauri prerequisites](https://tauri.app/start/prerequisites/) for platform-specific setup.
 
@@ -195,14 +194,15 @@ Open **Settings → Web Search** and configure the provider you want to use. The
 
 ### Choose a tool approval mode
 
-Open **Settings → General → Approval Mode** to control when agent tool calls pause for review. Approval and runtime permissions are independent: approving a call never expands its filesystem or network capabilities. The default managed permission profile grants host-wide reads and workspace-scoped writes, keeps `.git`, `.agents`, and `.codex` read-only beneath broad writable roots, and restricts network access. Managed terminal processes are isolated with Bubblewrap on Linux, Seatbelt on macOS, and the pinned Codex sandbox on Windows. Restricted Windows profiles run under Codex's offline account with persistent WFP filters; the first such launch may request UAC consent to provision the account. Missing helpers, declined elevation, or failed setup aborts the command without falling back to ambient access. Built-in file-reading, search, creation, and editing tools enforce the same canonical filesystem policy independently of the terminal backend.
+Open **Settings → General → Approval Mode** to control when agent tool calls pause for review. Approval defaults to **Off** and is independent from runtime permissions: approving a call never expands its filesystem or network capabilities.
 
-| Mode | Behavior |
-| --- | --- |
-| **Manual** | Ask you to approve every tool call. |
+| Mode          | Behavior                                                                                     |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| **Manual**    | Ask you to approve every tool call.                                                          |
 | **Automatic** | A Flash task assesses the impact; important or uncertain calls still come to you for review. |
-| **Off** | Run all tool calls without the approval flow. |
-| **Sandbox** (default) | Use model-assisted approval for file-management and terminal tools while the independent permission profile remains authoritative. Other built-in and MCP tools skip this approval flow. |
+| **Off**       | Run all tool calls without the approval flow.                                                |
+
+Use **Settings → General → Execution Permissions & Sandbox** for the actual confinement policy. The recommended managed profile offers workspace-writable, read-only, and advanced path-rule presets plus restricted or enabled networking. The default grants host-wide reads and workspace-scoped writes, keeps `.git`, `.agents`, and `.codex` read-only beneath broad writable roots, and restricts network access. External mode delegates isolation to the embedding host; disabled mode explicitly uses ambient process access and displays a warning. Managed terminal processes are isolated with Bubblewrap on Linux, Seatbelt on macOS, and the pinned Codex sandbox on Windows. Missing helpers or failed setup abort the command without falling back to ambient access, and built-in file tools enforce the same canonical filesystem policy independently of the terminal backend.
 
 ---
 
@@ -217,6 +217,7 @@ description: Review Python diffs for type-hint coverage, error handling, and PEP
 ---
 
 When asked to review Python code:
+
 1. Check that public functions have type hints.
 2. Flag bare `except:` clauses and silent failures.
 3. Suggest more idiomatic stdlib alternatives where appropriate.
@@ -262,15 +263,15 @@ When the agent needs a decision before continuing — ambiguous instruction, tec
 
 Supported field types:
 
-| Type | Use case |
-| --- | --- |
-| `text` | Short free-form input |
-| `textarea` | Multi-line text |
-| `select` | Single choice from a list |
-| `checkbox` | Single on/off toggle |
+| Type             | Use case                     |
+| ---------------- | ---------------------------- |
+| `text`           | Short free-form input        |
+| `textarea`       | Multi-line text              |
+| `select`         | Single choice from a list    |
+| `checkbox`       | Single on/off toggle         |
 | `checkbox_group` | Multiple choices from a list |
-| `date` | Date picker |
-| `confirm` | Yes / No decision |
+| `date`           | Date picker                  |
+| `confirm`        | Yes / No decision            |
 
 The agent is guided to ask once, ask clearly, and prefer structured fields over open text boxes.
 
@@ -284,13 +285,13 @@ Beyond markdown, the agent can embed interactive components directly in its resp
 
 Syntax: `ComponentName(prop: value, prop2: "string")`
 
-| Component | Example | Renders as |
-| --- | --- | --- |
-| `File` | `File(path: "src/tools.rs", lines: "120-140")` | Clickable chip that opens the file at the given lines |
-| `Url` | `Url(href: "https://docs.rs/rig", title: "rig docs")` | Capsule that opens the link in the browser |
-| `Chart` | `Chart(type: "bar", labels: ["A","B"], data: [10,20])` | ECharts bar / line / pie chart |
-| `Image` | `Image(src: "assets/result.png", caption: "Result")` | Workspace-local or HTTP(S) image with an optional caption |
-| `Video` | `Video(src: "assets/demo.mp4", controls: true)` | Workspace-local or HTTP(S) video with playback controls |
+| Component | Example                                                | Renders as                                                |
+| --------- | ------------------------------------------------------ | --------------------------------------------------------- |
+| `File`    | `File(path: "src/tools.rs", lines: "120-140")`         | Clickable chip that opens the file at the given lines     |
+| `Url`     | `Url(href: "https://docs.rs/rig", title: "rig docs")`  | Capsule that opens the link in the browser                |
+| `Chart`   | `Chart(type: "bar", labels: ["A","B"], data: [10,20])` | ECharts bar / line / pie chart                            |
+| `Image`   | `Image(src: "assets/result.png", caption: "Result")`   | Workspace-local or HTTP(S) image with an optional caption |
+| `Video`   | `Video(src: "assets/demo.mp4", controls: true)`        | Workspace-local or HTTP(S) video with playback controls   |
 
 Multi-series charts use `series: [{name, data}, ...]`.
 
@@ -310,14 +311,16 @@ Memory files have **two zones**. The Memory Agent only writes below the marker c
 
 ```markdown
 ## [User] Personal habits
+
 <!-- You edit freely here; the agent never touches this section -->
 
 ## [Agent] Recent context summary
+
 <!-- Memory Agent only operates below this comment -->
 ```
 
 - Global memory → `~/.openagent/memory.md` (every conversation)
-- Local memory  → `<workspace>/.agents/memory.md` (workspace-scoped)
+- Local memory → `<workspace>/.agents/memory.md` (workspace-scoped)
 
 ## Agent memory controls
 

@@ -306,6 +306,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   must keep two-column flow, multi-page navigation, process collapse, and
   light/dark Chinese/English checks addressable without onboarding or native
   state.
+- Keep the development-only `permission-settings-preview` query as the direct,
+  interactive surface for execution permissions. Its `-theme` and `-locale`
+  parameters must keep managed, external, disabled, preset, custom-rule,
+  network, warning, light/dark, and Chinese/English states addressable without
+  native configuration. Approval and `permission_profile` remain separate
+  settings; editing one must never rewrite the other or flatten existing custom
+  filesystem entries.
 
 ## IPC and events
 

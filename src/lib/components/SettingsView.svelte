@@ -4,7 +4,13 @@
   import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
   import { onMount, tick, untrack } from "svelte";
   import { ContextMenu, Dialog, Tabs } from "bits-ui";
-  import type { AgentRole, AppConfig, McpServerConfig, ProviderConfig } from "$lib/types";
+  import type {
+    AgentRole,
+    AppConfig,
+    McpServerConfig,
+    PermissionProfile,
+    ProviderConfig,
+  } from "$lib/types";
   import {
     captureQuickChatShortcut,
     DEFAULT_QUICK_CHAT_SHORTCUT,
@@ -33,6 +39,7 @@
   import Select from "./ui/Select.svelte";
   import Switch from "./ui/Switch.svelte";
   import Combobox from "./ui/Combobox.svelte";
+  import PermissionSettings from "./PermissionSettings.svelte";
 
   type SettingsNav =
     | "general"
@@ -67,7 +74,6 @@
     manual: "approvalModeManualDescription",
     auto: "approvalModeAutoDescription",
     off: "approvalModeOffDescription",
-    sandbox: "approvalModeSandboxDescription",
   } as const;
   type ScheduledChatHook = {
     id: string;
@@ -137,9 +143,9 @@
       skill_category: { enabled: true, prompt: "" },
       new_conversation_summary: { enabled: true, prompt: "" },
       hook: { enabled: true, prompt: "" },
-      tool_approval: { enabled: true, prompt: "" },
+      tool_approval: { enabled: false, prompt: "" },
     },
-    approval_mode: "sandbox",
+    approval_mode: "off",
     mcp: { servers: [] },
     theme: "system",
     language: "zh",
@@ -241,6 +247,7 @@
   let draftConfig = $state<AppConfig>(
     normalizeConfigShape(untrack(() => config) ?? fallbackConfig),
   );
+  let permissionProfile = $derived(draftConfig.permission_profile as PermissionProfile);
   let quickShortcutRecording = $state(false);
   let quickShortcutStatus = $state<{
     tone: "idle" | "saving" | "success" | "error";
@@ -1691,16 +1698,20 @@
                   label: $t("approvalModeOff"),
                   description: $t("approvalModeOffDescription"),
                 },
-                {
-                  value: "sandbox",
-                  label: $t("approvalModeSandbox"),
-                  description: $t("approvalModeSandboxDescription"),
-                },
               ]}
               ariaLabel={$t("approvalMode")}
             />
           </div>
           <p class="detail-hint">{$t(approvalModeDescriptionKey[draftConfig.approval_mode])}</p>
+          <p class="detail-hint">{$t("approvalPermissionIndependent")}</p>
+        </section>
+        <section class="detail-section">
+          <h4 class="detail-section-title">{$t("executionPermissions")}</h4>
+          <p class="detail-section-intro">{$t("executionPermissionsDescription")}</p>
+          <PermissionSettings
+            profile={permissionProfile}
+            onProfileChange={(profile) => (draftConfig.permission_profile = profile)}
+          />
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("privacyDiagnostics")}</h4>
@@ -3877,6 +3888,13 @@
     font-size: 17px;
     font-weight: 600;
     letter-spacing: -0.37px;
+  }
+
+  .detail-section-intro {
+    margin: -8px 4px 14px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
   }
 
   .detail-section-header,
