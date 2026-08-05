@@ -1366,10 +1366,12 @@ fn run_with_mode(agent_server: bool) {
                 }
             });
             if !is_workspace_window {
-                openagent_runtime::channels::start_channel_supervisor(
-                    runtime.inner().clone(),
-                    openagent_runtime::config::config_dir(),
-                );
+                tauri::async_runtime::block_on(async {
+                    openagent_runtime::channels::start_channel_supervisor(
+                        runtime.inner().clone(),
+                        openagent_runtime::config::config_dir(),
+                    );
+                });
                 let gateway_runtime = runtime.inner().clone();
                 let result = tauri::async_runtime::block_on(async {
                     start_remote_gateway(gateway_runtime)

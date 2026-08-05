@@ -145,6 +145,9 @@ to a deliberate tracked location.
 
 - Frontends submit ordinary chat and slash-command input through the shared SDK
   client; do not add flow selection or command parsing to the host/frontend.
+- Tauri's synchronous `setup` callback does not run inside a Tokio worker.
+  Enter `tauri::async_runtime` before calling SDK lifecycle functions that
+  internally spawn Tokio tasks.
 - The frontend communicates with native code through typed Tauri calls and
   events. An IPC change must update the SDK contract/adapter and all public
   frontend types and call sites together.
