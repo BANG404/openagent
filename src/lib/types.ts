@@ -556,8 +556,47 @@ export interface WechatChannelConfig {
   allowed_user_ids: string[];
 }
 
+export interface FeishuChannelConfig {
+  enabled: boolean;
+  app_id: string;
+  app_secret: string;
+  domain: "feishu" | "lark";
+  allowed_chat_ids: string[];
+}
+
+export interface TelegramChannelConfig {
+  enabled: boolean;
+  bot_token: string;
+  allowed_chat_ids: string[];
+}
+
+export interface QqChannelConfig {
+  enabled: boolean;
+  app_id: string;
+  client_secret: string;
+  allowed_user_ids: string[];
+}
+
+export interface DiscordChannelConfig {
+  enabled: boolean;
+  bot_token: string;
+  allowed_channel_ids: string[];
+}
+
+export interface SlackChannelConfig {
+  enabled: boolean;
+  bot_token: string;
+  app_token: string;
+  allowed_channel_ids: string[];
+}
+
 export interface ChannelConfig {
   wechat: WechatChannelConfig;
+  feishu?: FeishuChannelConfig;
+  telegram?: TelegramChannelConfig;
+  qq?: QqChannelConfig;
+  discord?: DiscordChannelConfig;
+  slack?: SlackChannelConfig;
 }
 
 export interface AppConfig {

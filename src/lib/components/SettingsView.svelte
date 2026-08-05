@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invoke, listen } from "$lib/openagent/tauriClient";
+  import { isTauri } from "@tauri-apps/api/core";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
   import { onMount, tick, untrack } from "svelte";
@@ -44,6 +45,7 @@
 
   type SettingsNav =
     | "general"
+    | "channels"
     | "providers"
     | "defaults"
     | "agents"
@@ -52,6 +54,8 @@
     | "hooks"
     | "extensions"
     | "about";
+  type StandardChannelKind = "feishu" | "telegram" | "qq" | "discord" | "slack";
+  type ChannelSettingsNav = StandardChannelKind | "wechat" | "gateway";
   type ProviderStatus = {
     tone: "idle" | "loading" | "success" | "error";
     message: string;
@@ -75,6 +79,13 @@
     enabled: boolean;
     state: "disabled" | "starting" | "awaiting_scan" | "connected" | "error";
     qr_image_data_url: string | null;
+    account_id: string | null;
+    error: string | null;
+  };
+  type ChannelStatus = {
+    channel: StandardChannelKind;
+    enabled: boolean;
+    state: "disabled" | "starting" | "connected" | "error";
     account_id: string | null;
     error: string | null;
   };
@@ -191,6 +202,7 @@
   };
 
   let settingsNav = $state<SettingsNav>(untrack(() => initialNav) ?? "providers");
+  let channelSettingsNav = $state<ChannelSettingsNav>("feishu");
   // Allow actions outside the settings view (such as New Conversation) to
   // direct an already-open settings panel to the relevant section.
   $effect(() => {
@@ -247,6 +259,7 @@
   let wechatChannelStatus = $state<WechatChannelStatus | null>(null);
   let wechatChannelBusy = $state(false);
   let wechatChannelMessage = $state("");
+  let channelStatuses = $state<Partial<Record<StandardChannelKind, ChannelStatus>>>({});
   let wechatStatusTimer: ReturnType<typeof setInterval> | null = null;
   let draggedRetryQueue = $state<{ kind: RetryQueueKind; index: number } | null>(null);
   let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -466,11 +479,19 @@
   });
 
   onMount(() => {
+    if (!isTauri()) {
+      autostartReady = true;
+      return;
+    }
     refreshHooks().catch(() => {});
     refreshHookRoles().catch(() => {});
     refreshRemoteGateway().catch(() => {});
+    refreshChannelStatuses().catch(() => {});
     refreshWechatChannel().catch(() => {});
-    wechatStatusTimer = setInterval(() => refreshWechatChannel().catch(() => {}), 1500);
+    wechatStatusTimer = setInterval(() => {
+      refreshChannelStatuses().catch(() => {});
+      refreshWechatChannel().catch(() => {});
+    }, 1500);
     refreshChatgptAuthStatus().catch(() => {});
     const unlistenRemotePairingCode = listen("remote-gateway-pairing-code-rotated", () => {
       refreshRemoteGateway().catch(() => {});
@@ -500,6 +521,31 @@
 
   async function refreshWechatChannel() {
     wechatChannelStatus = await invoke<WechatChannelStatus>("get_wechat_channel_status");
+  }
+
+  async function refreshChannelStatuses() {
+    const statuses = await invoke<ChannelStatus[]>("get_channel_statuses");
+    channelStatuses = Object.fromEntries(statuses.map((status) => [status.channel, status]));
+  }
+
+  function channelStatusKey(state: ChannelStatus["state"] | undefined) {
+    switch (state) {
+      case "starting":
+        return "channelStarting";
+      case "connected":
+        return "channelConnected";
+      case "error":
+        return "channelError";
+      default:
+        return "channelDisabled";
+    }
+  }
+
+  function parseChannelIds(value: string) {
+    return value
+      .split(/[\s,，]+/)
+      .map((id) => id.trim())
+      .filter(Boolean);
   }
 
   async function reconnectWechatChannel() {
@@ -1333,6 +1379,23 @@
           </svg>
           {$t("general")}
         </Tabs.Trigger>
+        <Tabs.Trigger value="channels" class="settings-nav-item">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 4.2h10v7.6H3z" />
+            <path d="m5.2 6.4 2.1 1.7a1.1 1.1 0 0 0 1.4 0l2.1-1.7" />
+            <path d="M5 2.2v2M11 2.2v2M5 11.8v2M11 11.8v2" />
+          </svg>
+          {$t("channels")}
+        </Tabs.Trigger>
         <Tabs.Trigger value="providers" class="settings-nav-item">
           <svg
             class="nav-icon"
@@ -1599,214 +1662,6 @@
           <p class="detail-hint">{$t("workspaceSelectionBehaviorHint")}</p>
         </section>
         <section class="detail-section">
-          <div class="detail-section-header remote-gateway-heading">
-            <div>
-              <h4 class="detail-section-title">{$t("remoteGateway")}</h4>
-              <p class="remote-gateway-subtitle">{$t("remoteGatewaySubtitle")}</p>
-            </div>
-            <span class:active={draftConfig.remote_gateway.enabled} class="remote-gateway-status">
-              <span></span>{draftConfig.remote_gateway.enabled
-                ? $t("remoteGatewayRunning")
-                : $t("remoteGatewayStopped")}
-            </span>
-          </div>
-          <div class="remote-gateway-card">
-            <div class="remote-gateway-toggle-row">
-              <div class="remote-gateway-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
-                  ><rect x="3" y="4" width="18" height="13" rx="2" /><path
-                    d="M8 21h8M12 17v4"
-                  /></svg
-                >
-              </div>
-              <div class="startup-copy">
-                <span class="label-text">{$t("remoteGatewayEnabled")}</span>
-                <p class="detail-hint">{$t("remoteGatewayHint")}</p>
-              </div>
-              <Switch
-                bind:checked={draftConfig.remote_gateway.enabled}
-                ariaLabel={$t("remoteGatewayEnabled")}
-              />
-            </div>
-            <div class="remote-gateway-toggle-row remote-gateway-workspace-row">
-              <div class="remote-gateway-icon workspace" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
-                  ><path d="M4 17a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4" /><circle
-                    cx="12"
-                    cy="7"
-                    r="3"
-                  /><path d="M2 11a10 10 0 0 1 20 0" /></svg
-                >
-              </div>
-              <div class="startup-copy">
-                <span class="label-text">{$t("remoteGatewayLanAccess")}</span>
-                <p class="detail-hint">{$t("remoteGatewayLanAccessHint")}</p>
-              </div>
-              <Switch
-                bind:checked={draftConfig.remote_gateway.allow_lan_access}
-                ariaLabel={$t("remoteGatewayLanAccess")}
-              />
-            </div>
-            <div class="remote-gateway-toggle-row remote-gateway-workspace-row">
-              <div class="remote-gateway-icon workspace" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
-                  ><path d="M3.5 6.5h6l2 2h9v9.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" /></svg
-                >
-              </div>
-              <div class="startup-copy">
-                <span class="label-text">{$t("remoteGatewayCurrentWorkspace")}</span>
-                <p class="detail-hint remote-workspace-path">
-                  {workspacePath || $t("noWorkspace")}
-                </p>
-              </div>
-              <Switch
-                checked={Boolean(workspacePath) &&
-                  draftConfig.remote_gateway.allowed_workspaces.includes(workspacePath)}
-                disabled={!workspacePath}
-                onCheckedChange={toggleCurrentWorkspaceAccess}
-                ariaLabel={$t("remoteGatewayCurrentWorkspace")}
-              />
-            </div>
-          </div>
-          {#if draftConfig.remote_gateway.enabled && remoteGatewayStatus}
-            <div class="remote-gateway-credentials">
-              <div class="remote-credential-row">
-                <div class="remote-credential-copy">
-                  <span class="remote-credential-label">{$t("remoteGatewayLocalUrl")}</span>
-                  <code>{remoteGatewayStatus.url}</code>
-                </div>
-                <button
-                  class="remote-credential-action"
-                  onclick={() => copyRemoteGatewayValue(remoteGatewayStatus?.url ?? "", "url")}
-                >
-                  {copiedRemoteValue === "url" ? $t("remoteGatewayCopied") : $t("copy")}
-                </button>
-              </div>
-              {#if draftConfig.remote_gateway.allow_lan_access && remoteGatewayStatus.lan_url}
-                <div class="remote-credential-row">
-                  <div class="remote-credential-copy">
-                    <span class="remote-credential-label">{$t("remoteGatewayLanUrl")}</span>
-                    <code>{remoteGatewayStatus.lan_url}</code>
-                  </div>
-                  <button
-                    class="remote-credential-action"
-                    onclick={() =>
-                      copyRemoteGatewayValue(remoteGatewayStatus?.lan_url ?? "", "lan")}
-                    >{copiedRemoteValue === "lan" ? $t("remoteGatewayCopied") : $t("copy")}</button
-                  >
-                </div>
-              {/if}
-              <div class="remote-credential-row pairing">
-                <div class="remote-credential-copy">
-                  <span class="remote-credential-label">{$t("remoteGatewayPairingCode")}</span>
-                  <code>{remoteGatewayStatus.pairing_code}</code>
-                </div>
-                <div class="remote-credential-actions">
-                  <button
-                    class="remote-credential-action"
-                    onclick={() =>
-                      copyRemoteGatewayValue(remoteGatewayStatus?.pairing_code ?? "", "code")}
-                    >{copiedRemoteValue === "code" ? $t("remoteGatewayCopied") : $t("copy")}</button
-                  >
-                  <button
-                    class="remote-credential-action primary"
-                    disabled={remoteGatewayBusy}
-                    onclick={rotateRemotePairingCode}>{$t("remoteGatewayRotate")}</button
-                  >
-                </div>
-              </div>
-              <div class="remote-security-note">
-                <span aria-hidden="true">⌁</span>
-                <p>{$t("remoteGatewayProxyHint")}</p>
-              </div>
-            </div>
-          {/if}
-          {#if remoteGatewayMessage}
-            <div class="provider-status" style="margin-top:8px">{remoteGatewayMessage}</div>
-          {/if}
-        </section>
-        <section class="detail-section">
-          <div class="detail-section-header remote-gateway-heading">
-            <div>
-              <h4 class="detail-section-title">{$t("wechatChannel")}</h4>
-              <p class="remote-gateway-subtitle">{$t("wechatChannelSubtitle")}</p>
-            </div>
-            <span
-              class:active={wechatChannelStatus?.state === "connected"}
-              class="remote-gateway-status"
-            >
-              <span></span>{$t(wechatStatusKey(wechatChannelStatus?.state))}
-            </span>
-          </div>
-          <div class="remote-gateway-card">
-            <div class="remote-gateway-toggle-row">
-              <div class="remote-gateway-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path
-                    d="M7.5 5.5c-3 0-5.5 2-5.5 4.6 0 1.5.8 2.8 2.1 3.7L3.5 16l2.4-1.2c.5.1 1 .2 1.6.2 3 0 5.5-2 5.5-4.5S10.5 5.5 7.5 5.5Z"
-                  />
-                  <path
-                    d="M14.8 9c3.9 0 7.2 2.5 7.2 5.7 0 1.7-.9 3.3-2.5 4.4l.7 2.1-2.8-1.4c-.8.3-1.7.4-2.6.4-3.9 0-7.1-2.5-7.1-5.5"
-                  />
-                  <path d="M5.8 9.8h.01M9.2 9.8h.01M12.5 14.1h.01M17.1 14.1h.01" />
-                </svg>
-              </div>
-              <div class="startup-copy">
-                <span class="label-text">{$t("wechatChannelEnabled")}</span>
-                <p class="detail-hint">{$t("wechatChannelHint")}</p>
-              </div>
-              <Switch
-                checked={draftConfig.channels!.wechat.enabled}
-                onCheckedChange={(checked) => (draftConfig.channels!.wechat.enabled = checked)}
-                ariaLabel={$t("wechatChannelEnabled")}
-              />
-            </div>
-            <div class="wechat-channel-access">
-              <label class="label-text" for="wechat-allowed-users"
-                >{$t("wechatChannelAllowedUsers")}</label
-              >
-              <p class="detail-hint">{$t("wechatChannelAllowedUsersHint")}</p>
-              <textarea
-                id="wechat-allowed-users"
-                class="detail-input hook-textarea wechat-user-ids"
-                value={draftConfig.channels!.wechat.allowed_user_ids.join("\n")}
-                placeholder={$t("wechatChannelAllowedUsersPlaceholder")}
-                oninput={(event) => {
-                  draftConfig.channels!.wechat.allowed_user_ids = event.currentTarget.value
-                    .split(/[\s,，]+/)
-                    .map((userId) => userId.trim())
-                    .filter(Boolean);
-                }}></textarea>
-            </div>
-          </div>
-          {#if draftConfig.channels!.wechat.enabled && wechatChannelStatus?.state === "awaiting_scan" && wechatChannelStatus.qr_image_data_url}
-            <div class="wechat-qr-card">
-              <img src={wechatChannelStatus.qr_image_data_url} alt={$t("wechatChannelQrAlt")} />
-              <div>
-                <strong>{$t("wechatChannelScanTitle")}</strong>
-                <p class="detail-hint">{$t("wechatChannelScanHint")}</p>
-              </div>
-            </div>
-          {:else if draftConfig.channels!.wechat.enabled && wechatChannelStatus?.state === "connected"}
-            <div class="wechat-connected-card">
-              <div>
-                <span class="remote-credential-label">{$t("wechatChannelAccount")}</span>
-                <code>{wechatChannelStatus.account_id}</code>
-              </div>
-              <button
-                class="remote-credential-action"
-                disabled={wechatChannelBusy}
-                onclick={reconnectWechatChannel}>{$t("wechatChannelReconnect")}</button
-              >
-            </div>
-          {/if}
-          {#if wechatChannelStatus?.error || wechatChannelMessage}
-            <div class="provider-status" style="margin-top:8px">
-              {wechatChannelMessage || wechatChannelStatus?.error}
-            </div>
-          {/if}
-        </section>
-        <section class="detail-section">
           <h4 class="detail-section-title">{$t("approvalMode")}</h4>
           <div class="detail-label">
             <Select
@@ -1932,6 +1787,556 @@
             </div>
           </div>
         </section>
+      </div>
+    </Tabs.Content>
+
+    <Tabs.Content value="channels" class="settings-tab-panel">
+      <div class="channel-settings-layout">
+        <nav class="channel-settings-list" aria-label={$t("channels")}>
+          <div class="channel-settings-list-header"><h3>{$t("channels")}</h3></div>
+          <div class="channel-settings-list-items">
+            <button
+              type="button"
+              class:active={channelSettingsNav === "feishu"}
+              class="channel-settings-item"
+              onclick={() => (channelSettingsNav = "feishu")}
+            >
+              <span class="channel-settings-icon feishu" aria-hidden="true">飞</span>
+              <span class="channel-settings-item-copy"
+                ><strong>{$t("feishuChannel")}</strong><span>{$t("feishuChannelSubtitle")}</span
+                ></span
+              >
+            </button>
+            <button
+              type="button"
+              class:active={channelSettingsNav === "telegram"}
+              class="channel-settings-item"
+              onclick={() => (channelSettingsNav = "telegram")}
+            >
+              <span class="channel-settings-icon telegram" aria-hidden="true">T</span>
+              <span class="channel-settings-item-copy"
+                ><strong>{$t("telegramChannel")}</strong><span>{$t("telegramChannelSubtitle")}</span
+                ></span
+              >
+            </button>
+            <button
+              type="button"
+              class:active={channelSettingsNav === "qq"}
+              class="channel-settings-item"
+              onclick={() => (channelSettingsNav = "qq")}
+            >
+              <span class="channel-settings-icon qq" aria-hidden="true">Q</span>
+              <span class="channel-settings-item-copy"
+                ><strong>{$t("qqChannel")}</strong><span>{$t("qqChannelSubtitle")}</span></span
+              >
+            </button>
+            <button
+              type="button"
+              class:active={channelSettingsNav === "wechat"}
+              class="channel-settings-item"
+              onclick={() => (channelSettingsNav = "wechat")}
+            >
+              <span class="channel-settings-icon wechat" aria-hidden="true">微</span>
+              <span class="channel-settings-item-copy"
+                ><strong>{$t("wechatChannel")}</strong><span>{$t("wechatChannelSubtitle")}</span
+                ></span
+              >
+            </button>
+            <button
+              type="button"
+              class:active={channelSettingsNav === "discord"}
+              class="channel-settings-item"
+              onclick={() => (channelSettingsNav = "discord")}
+            >
+              <span class="channel-settings-icon discord" aria-hidden="true">D</span>
+              <span class="channel-settings-item-copy"
+                ><strong>{$t("discordChannel")}</strong><span>{$t("discordChannelSubtitle")}</span
+                ></span
+              >
+            </button>
+            <button
+              type="button"
+              class:active={channelSettingsNav === "slack"}
+              class="channel-settings-item"
+              onclick={() => (channelSettingsNav = "slack")}
+            >
+              <span class="channel-settings-icon slack" aria-hidden="true">S</span>
+              <span class="channel-settings-item-copy"
+                ><strong>{$t("slackChannel")}</strong><span>{$t("slackChannelSubtitle")}</span
+                ></span
+              >
+            </button>
+            <button
+              type="button"
+              class:active={channelSettingsNav === "gateway"}
+              class="channel-settings-item"
+              onclick={() => (channelSettingsNav = "gateway")}
+            >
+              <span class="channel-settings-icon gateway" aria-hidden="true">G</span>
+              <span class="channel-settings-item-copy"
+                ><strong>{$t("remoteGateway")}</strong><span>{$t("remoteGatewaySubtitle")}</span
+                ></span
+              >
+            </button>
+          </div>
+        </nav>
+        <div class="settings-content-col channel-settings-detail">
+          {#if channelSettingsNav === "feishu"}
+            <section class="detail-section">
+              <div class="detail-section-header remote-gateway-heading">
+                <div>
+                  <h4 class="detail-section-title">{$t("feishuChannel")}</h4>
+                  <p class="remote-gateway-subtitle">{$t("feishuChannelSubtitle")}</p>
+                </div>
+                <span
+                  class:active={channelStatuses.feishu?.state === "connected"}
+                  class="remote-gateway-status"
+                >
+                  <span></span>{$t(channelStatusKey(channelStatuses.feishu?.state))}
+                </span>
+              </div>
+              <div class="channel-config-card">
+                <label class="detail-label">
+                  <span class="label-text">{$t("channelAppId")}</span>
+                  <input class="detail-input" bind:value={draftConfig.channels!.feishu!.app_id} />
+                </label>
+                <label class="detail-label">
+                  <span class="label-text">{$t("channelAppSecret")}</span>
+                  <input
+                    type="password"
+                    class="detail-input"
+                    bind:value={draftConfig.channels!.feishu!.app_secret}
+                  />
+                </label>
+                <div class="detail-label">
+                  <span class="label-text">{$t("feishuDomain")}</span>
+                  <Select
+                    bind:value={draftConfig.channels!.feishu!.domain}
+                    items={[
+                      { value: "feishu", label: $t("feishuDomainChina") },
+                      { value: "lark", label: $t("feishuDomainInternational") },
+                    ]}
+                    ariaLabel={$t("feishuDomain")}
+                  />
+                </div>
+                <label class="detail-label">
+                  <span class="label-text">{$t("channelAllowedChatIds")}</span>
+                  <textarea
+                    class="detail-input hook-textarea channel-allowlist"
+                    value={draftConfig.channels!.feishu!.allowed_chat_ids.join("\n")}
+                    placeholder={$t("channelAllowlistPlaceholder")}
+                    oninput={(event) =>
+                      (draftConfig.channels!.feishu!.allowed_chat_ids = parseChannelIds(
+                        event.currentTarget.value,
+                      ))}></textarea>
+                </label>
+                <div class="startup-row channel-enabled-row">
+                  <div class="startup-copy">
+                    <span class="label-text">{$t("channelEnabled")}</span>
+                    <p class="detail-hint">{$t("channelEnableAfterCredentials")}</p>
+                  </div>
+                  <Switch
+                    bind:checked={draftConfig.channels!.feishu!.enabled}
+                    ariaLabel={$t("channelEnabled")}
+                  />
+                </div>
+              </div>
+              {#if channelStatuses.feishu?.error}
+                <div class="provider-status error">{channelStatuses.feishu.error}</div>
+              {/if}
+            </section>
+          {:else if channelSettingsNav === "telegram"}
+            <section class="detail-section">
+              <div class="detail-section-header remote-gateway-heading">
+                <div>
+                  <h4 class="detail-section-title">{$t("telegramChannel")}</h4>
+                  <p class="remote-gateway-subtitle">{$t("telegramChannelSubtitle")}</p>
+                </div>
+                <span
+                  class:active={channelStatuses.telegram?.state === "connected"}
+                  class="remote-gateway-status"
+                >
+                  <span></span>{$t(channelStatusKey(channelStatuses.telegram?.state))}
+                </span>
+              </div>
+              <div class="channel-config-card">
+                <label class="detail-label">
+                  <span class="label-text">{$t("channelBotToken")}</span>
+                  <input
+                    type="password"
+                    class="detail-input"
+                    bind:value={draftConfig.channels!.telegram!.bot_token}
+                  />
+                </label>
+                <label class="detail-label">
+                  <span class="label-text">{$t("channelAllowedChatIds")}</span>
+                  <textarea
+                    class="detail-input hook-textarea channel-allowlist"
+                    value={draftConfig.channels!.telegram!.allowed_chat_ids.join("\n")}
+                    placeholder={$t("channelAllowlistPlaceholder")}
+                    oninput={(event) =>
+                      (draftConfig.channels!.telegram!.allowed_chat_ids = parseChannelIds(
+                        event.currentTarget.value,
+                      ))}></textarea>
+                </label>
+                <div class="startup-row channel-enabled-row">
+                  <div class="startup-copy">
+                    <span class="label-text">{$t("channelEnabled")}</span>
+                    <p class="detail-hint">{$t("channelEnableAfterCredentials")}</p>
+                  </div>
+                  <Switch
+                    bind:checked={draftConfig.channels!.telegram!.enabled}
+                    ariaLabel={$t("channelEnabled")}
+                  />
+                </div>
+              </div>
+              {#if channelStatuses.telegram?.error}<div class="provider-status error">
+                  {channelStatuses.telegram.error}
+                </div>{/if}
+            </section>
+          {:else if channelSettingsNav === "qq"}
+            <section class="detail-section">
+              <div class="detail-section-header remote-gateway-heading">
+                <div>
+                  <h4 class="detail-section-title">{$t("qqChannel")}</h4>
+                  <p class="remote-gateway-subtitle">{$t("qqChannelSubtitle")}</p>
+                </div>
+                <span
+                  class:active={channelStatuses.qq?.state === "connected"}
+                  class="remote-gateway-status"
+                  ><span></span>{$t(channelStatusKey(channelStatuses.qq?.state))}</span
+                >
+              </div>
+              <div class="channel-config-card">
+                <label class="detail-label"
+                  ><span class="label-text">{$t("channelAppId")}</span><input
+                    class="detail-input"
+                    bind:value={draftConfig.channels!.qq!.app_id}
+                  /></label
+                >
+                <label class="detail-label"
+                  ><span class="label-text">{$t("channelClientSecret")}</span><input
+                    type="password"
+                    class="detail-input"
+                    bind:value={draftConfig.channels!.qq!.client_secret}
+                  /></label
+                >
+                <label class="detail-label">
+                  <span class="label-text">{$t("channelAllowedUserIds")}</span>
+                  <textarea
+                    class="detail-input hook-textarea channel-allowlist"
+                    value={draftConfig.channels!.qq!.allowed_user_ids.join("\n")}
+                    placeholder={$t("channelAllowlistPlaceholder")}
+                    oninput={(event) =>
+                      (draftConfig.channels!.qq!.allowed_user_ids = parseChannelIds(
+                        event.currentTarget.value,
+                      ))}></textarea>
+                </label>
+                <div class="startup-row channel-enabled-row">
+                  <div class="startup-copy">
+                    <span class="label-text">{$t("channelEnabled")}</span>
+                    <p class="detail-hint">{$t("channelEnableAfterCredentials")}</p>
+                  </div>
+                  <Switch
+                    bind:checked={draftConfig.channels!.qq!.enabled}
+                    ariaLabel={$t("channelEnabled")}
+                  />
+                </div>
+              </div>
+              {#if channelStatuses.qq?.error}<div class="provider-status error">
+                  {channelStatuses.qq.error}
+                </div>{/if}
+            </section>
+          {:else if channelSettingsNav === "discord"}
+            <section class="detail-section">
+              <div class="detail-section-header remote-gateway-heading">
+                <div>
+                  <h4 class="detail-section-title">{$t("discordChannel")}</h4>
+                  <p class="remote-gateway-subtitle">{$t("discordChannelSubtitle")}</p>
+                </div>
+                <span
+                  class:active={channelStatuses.discord?.state === "connected"}
+                  class="remote-gateway-status"
+                  ><span></span>{$t(channelStatusKey(channelStatuses.discord?.state))}</span
+                >
+              </div>
+              <div class="channel-config-card">
+                <label class="detail-label"
+                  ><span class="label-text">{$t("channelBotToken")}</span><input
+                    type="password"
+                    class="detail-input"
+                    bind:value={draftConfig.channels!.discord!.bot_token}
+                  /></label
+                >
+                <label class="detail-label">
+                  <span class="label-text">{$t("channelAllowedChannelIds")}</span>
+                  <textarea
+                    class="detail-input hook-textarea channel-allowlist"
+                    value={draftConfig.channels!.discord!.allowed_channel_ids.join("\n")}
+                    placeholder={$t("channelAllowlistPlaceholder")}
+                    oninput={(event) =>
+                      (draftConfig.channels!.discord!.allowed_channel_ids = parseChannelIds(
+                        event.currentTarget.value,
+                      ))}></textarea>
+                </label>
+                <div class="startup-row channel-enabled-row">
+                  <div class="startup-copy">
+                    <span class="label-text">{$t("channelEnabled")}</span>
+                    <p class="detail-hint">{$t("channelEnableAfterCredentials")}</p>
+                  </div>
+                  <Switch
+                    bind:checked={draftConfig.channels!.discord!.enabled}
+                    ariaLabel={$t("channelEnabled")}
+                  />
+                </div>
+              </div>
+              {#if channelStatuses.discord?.error}<div class="provider-status error">
+                  {channelStatuses.discord.error}
+                </div>{/if}
+            </section>
+          {:else if channelSettingsNav === "slack"}
+            <section class="detail-section">
+              <div class="detail-section-header remote-gateway-heading">
+                <div>
+                  <h4 class="detail-section-title">{$t("slackChannel")}</h4>
+                  <p class="remote-gateway-subtitle">{$t("slackChannelSubtitle")}</p>
+                </div>
+                <span
+                  class:active={channelStatuses.slack?.state === "connected"}
+                  class="remote-gateway-status"
+                  ><span></span>{$t(channelStatusKey(channelStatuses.slack?.state))}</span
+                >
+              </div>
+              <div class="channel-config-card">
+                <label class="detail-label"
+                  ><span class="label-text">{$t("slackBotToken")}</span><input
+                    type="password"
+                    class="detail-input"
+                    bind:value={draftConfig.channels!.slack!.bot_token}
+                  /></label
+                >
+                <label class="detail-label"
+                  ><span class="label-text">{$t("slackAppToken")}</span><input
+                    type="password"
+                    class="detail-input"
+                    bind:value={draftConfig.channels!.slack!.app_token}
+                  /></label
+                >
+                <label class="detail-label">
+                  <span class="label-text">{$t("channelAllowedChannelIds")}</span>
+                  <textarea
+                    class="detail-input hook-textarea channel-allowlist"
+                    value={draftConfig.channels!.slack!.allowed_channel_ids.join("\n")}
+                    placeholder={$t("channelAllowlistPlaceholder")}
+                    oninput={(event) =>
+                      (draftConfig.channels!.slack!.allowed_channel_ids = parseChannelIds(
+                        event.currentTarget.value,
+                      ))}></textarea>
+                </label>
+                <div class="startup-row channel-enabled-row">
+                  <div class="startup-copy">
+                    <span class="label-text">{$t("channelEnabled")}</span>
+                    <p class="detail-hint">{$t("channelEnableAfterCredentials")}</p>
+                  </div>
+                  <Switch
+                    bind:checked={draftConfig.channels!.slack!.enabled}
+                    ariaLabel={$t("channelEnabled")}
+                  />
+                </div>
+              </div>
+              {#if channelStatuses.slack?.error}<div class="provider-status error">
+                  {channelStatuses.slack.error}
+                </div>{/if}
+            </section>
+          {:else if channelSettingsNav === "wechat"}
+            <section class="detail-section">
+              <div class="detail-section-header remote-gateway-heading">
+                <div>
+                  <h4 class="detail-section-title">{$t("wechatChannel")}</h4>
+                  <p class="remote-gateway-subtitle">{$t("wechatChannelSubtitle")}</p>
+                </div>
+                <span
+                  class:active={wechatChannelStatus?.state === "connected"}
+                  class="remote-gateway-status"
+                  ><span></span>{$t(wechatStatusKey(wechatChannelStatus?.state))}</span
+                >
+              </div>
+              <div class="remote-gateway-card">
+                <div class="remote-gateway-toggle-row">
+                  <div class="remote-gateway-icon" aria-hidden="true">微</div>
+                  <div class="startup-copy">
+                    <span class="label-text">{$t("wechatChannelEnabled")}</span>
+                    <p class="detail-hint">{$t("wechatChannelHint")}</p>
+                  </div>
+                  <Switch
+                    checked={draftConfig.channels!.wechat.enabled}
+                    onCheckedChange={(checked) => (draftConfig.channels!.wechat.enabled = checked)}
+                    ariaLabel={$t("wechatChannelEnabled")}
+                  />
+                </div>
+                <div class="wechat-channel-access">
+                  <label class="label-text" for="wechat-allowed-users"
+                    >{$t("wechatChannelAllowedUsers")}</label
+                  >
+                  <p class="detail-hint">{$t("wechatChannelAllowedUsersHint")}</p>
+                  <textarea
+                    id="wechat-allowed-users"
+                    class="detail-input hook-textarea wechat-user-ids"
+                    value={draftConfig.channels!.wechat.allowed_user_ids.join("\n")}
+                    placeholder={$t("wechatChannelAllowedUsersPlaceholder")}
+                    oninput={(event) =>
+                      (draftConfig.channels!.wechat.allowed_user_ids = parseChannelIds(
+                        event.currentTarget.value,
+                      ))}></textarea>
+                </div>
+              </div>
+              {#if draftConfig.channels!.wechat.enabled && wechatChannelStatus?.state === "awaiting_scan" && wechatChannelStatus.qr_image_data_url}
+                <div class="wechat-qr-card">
+                  <img src={wechatChannelStatus.qr_image_data_url} alt={$t("wechatChannelQrAlt")} />
+                  <div>
+                    <strong>{$t("wechatChannelScanTitle")}</strong>
+                    <p class="detail-hint">{$t("wechatChannelScanHint")}</p>
+                  </div>
+                </div>
+              {:else if draftConfig.channels!.wechat.enabled && wechatChannelStatus?.state === "connected"}
+                <div class="wechat-connected-card">
+                  <div>
+                    <span class="remote-credential-label">{$t("wechatChannelAccount")}</span><code
+                      >{wechatChannelStatus.account_id}</code
+                    >
+                  </div>
+                  <button
+                    class="remote-credential-action"
+                    disabled={wechatChannelBusy}
+                    onclick={reconnectWechatChannel}>{$t("wechatChannelReconnect")}</button
+                  >
+                </div>
+              {/if}
+              {#if wechatChannelStatus?.error || wechatChannelMessage}<div
+                  class="provider-status"
+                  style="margin-top:8px"
+                >
+                  {wechatChannelMessage || wechatChannelStatus?.error}
+                </div>{/if}
+            </section>
+          {:else}
+            <section class="detail-section">
+              <div class="detail-section-header remote-gateway-heading">
+                <div>
+                  <h4 class="detail-section-title">{$t("remoteGateway")}</h4>
+                  <p class="remote-gateway-subtitle">{$t("remoteGatewaySubtitle")}</p>
+                </div>
+                <span
+                  class:active={draftConfig.remote_gateway.enabled}
+                  class="remote-gateway-status"
+                  ><span></span>{draftConfig.remote_gateway.enabled
+                    ? $t("remoteGatewayRunning")
+                    : $t("remoteGatewayStopped")}</span
+                >
+              </div>
+              <div class="remote-gateway-card">
+                <div class="remote-gateway-toggle-row">
+                  <div class="remote-gateway-icon" aria-hidden="true">G</div>
+                  <div class="startup-copy">
+                    <span class="label-text">{$t("remoteGatewayEnabled")}</span>
+                    <p class="detail-hint">{$t("remoteGatewayHint")}</p>
+                  </div>
+                  <Switch
+                    bind:checked={draftConfig.remote_gateway.enabled}
+                    ariaLabel={$t("remoteGatewayEnabled")}
+                  />
+                </div>
+                <div class="remote-gateway-toggle-row remote-gateway-workspace-row">
+                  <div class="remote-gateway-icon workspace" aria-hidden="true">LAN</div>
+                  <div class="startup-copy">
+                    <span class="label-text">{$t("remoteGatewayLanAccess")}</span>
+                    <p class="detail-hint">{$t("remoteGatewayLanAccessHint")}</p>
+                  </div>
+                  <Switch
+                    bind:checked={draftConfig.remote_gateway.allow_lan_access}
+                    ariaLabel={$t("remoteGatewayLanAccess")}
+                  />
+                </div>
+                <div class="remote-gateway-toggle-row remote-gateway-workspace-row">
+                  <div class="remote-gateway-icon workspace" aria-hidden="true">⌂</div>
+                  <div class="startup-copy">
+                    <span class="label-text">{$t("remoteGatewayCurrentWorkspace")}</span>
+                    <p class="detail-hint remote-workspace-path">
+                      {workspacePath || $t("noWorkspace")}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={Boolean(workspacePath) &&
+                      draftConfig.remote_gateway.allowed_workspaces.includes(workspacePath)}
+                    disabled={!workspacePath}
+                    onCheckedChange={toggleCurrentWorkspaceAccess}
+                    ariaLabel={$t("remoteGatewayCurrentWorkspace")}
+                  />
+                </div>
+              </div>
+              {#if draftConfig.remote_gateway.enabled && remoteGatewayStatus}
+                <div class="remote-gateway-credentials">
+                  <div class="remote-credential-row">
+                    <div class="remote-credential-copy">
+                      <span class="remote-credential-label">{$t("remoteGatewayLocalUrl")}</span
+                      ><code>{remoteGatewayStatus.url}</code>
+                    </div>
+                    <button
+                      class="remote-credential-action"
+                      onclick={() => copyRemoteGatewayValue(remoteGatewayStatus?.url ?? "", "url")}
+                      >{copiedRemoteValue === "url"
+                        ? $t("remoteGatewayCopied")
+                        : $t("copy")}</button
+                    >
+                  </div>
+                  {#if draftConfig.remote_gateway.allow_lan_access && remoteGatewayStatus.lan_url}<div
+                      class="remote-credential-row"
+                    >
+                      <div class="remote-credential-copy">
+                        <span class="remote-credential-label">{$t("remoteGatewayLanUrl")}</span
+                        ><code>{remoteGatewayStatus.lan_url}</code>
+                      </div>
+                      <button
+                        class="remote-credential-action"
+                        onclick={() =>
+                          copyRemoteGatewayValue(remoteGatewayStatus?.lan_url ?? "", "lan")}
+                        >{copiedRemoteValue === "lan"
+                          ? $t("remoteGatewayCopied")
+                          : $t("copy")}</button
+                      >
+                    </div>{/if}
+                  <div class="remote-credential-row pairing">
+                    <div class="remote-credential-copy">
+                      <span class="remote-credential-label">{$t("remoteGatewayPairingCode")}</span
+                      ><code>{remoteGatewayStatus.pairing_code}</code>
+                    </div>
+                    <div class="remote-credential-actions">
+                      <button
+                        class="remote-credential-action"
+                        onclick={() =>
+                          copyRemoteGatewayValue(remoteGatewayStatus?.pairing_code ?? "", "code")}
+                        >{copiedRemoteValue === "code"
+                          ? $t("remoteGatewayCopied")
+                          : $t("copy")}</button
+                      ><button
+                        class="remote-credential-action primary"
+                        disabled={remoteGatewayBusy}
+                        onclick={rotateRemotePairingCode}>{$t("remoteGatewayRotate")}</button
+                      >
+                    </div>
+                  </div>
+                  <div class="remote-security-note">
+                    <span aria-hidden="true">⌁</span>
+                    <p>{$t("remoteGatewayProxyHint")}</p>
+                  </div>
+                </div>
+              {/if}
+              {#if remoteGatewayMessage}<div class="provider-status" style="margin-top:8px">
+                  {remoteGatewayMessage}
+                </div>{/if}
+            </section>
+          {/if}
+        </div>
       </div>
     </Tabs.Content>
 
@@ -3874,11 +4279,6 @@
     color: var(--primary);
   }
 
-  .remote-gateway-icon svg {
-    width: 19px;
-    height: 19px;
-  }
-
   .remote-workspace-path {
     max-width: 520px;
     overflow: hidden;
@@ -3988,7 +4388,171 @@
     margin: 0;
   }
 
+  .channel-settings-layout {
+    display: grid;
+    grid-template-columns: 230px minmax(0, 1fr);
+    gap: 24px;
+    width: 100%;
+  }
+
+  .channel-settings-list {
+    min-width: 0;
+    border-right: 1px solid var(--border);
+    padding-right: 16px;
+  }
+
+  .channel-settings-list-header h3 {
+    margin: 0 8px 12px;
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .channel-settings-list-items {
+    display: grid;
+    gap: 3px;
+  }
+
+  .channel-settings-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .channel-settings-item:hover,
+  .channel-settings-item.active {
+    background: var(--surface2);
+  }
+
+  .channel-settings-item.active::before {
+    position: absolute;
+    inset: 9px auto 9px -9px;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--primary);
+    content: "";
+  }
+
+  .channel-settings-icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: var(--surface);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: var(--control-shadow);
+  }
+
+  .channel-settings-icon.feishu {
+    background: #3370ff;
+  }
+  .channel-settings-icon.telegram {
+    background: #229ed9;
+  }
+  .channel-settings-icon.qq {
+    background: #1686e5;
+  }
+  .channel-settings-icon.wechat {
+    background: #07c160;
+  }
+  .channel-settings-icon.discord {
+    background: #5865f2;
+  }
+  .channel-settings-icon.slack {
+    background: #611f69;
+  }
+  .channel-settings-icon.gateway {
+    background: var(--primary);
+  }
+
+  .channel-settings-item-copy {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .channel-settings-item-copy strong,
+  .channel-settings-item-copy span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .channel-settings-item-copy strong {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .channel-settings-item-copy span {
+    color: var(--text-muted);
+    font-size: 10px;
+  }
+
+  .channel-settings-detail {
+    min-width: 0;
+  }
+
+  .channel-config-card {
+    display: grid;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: var(--control-shadow);
+  }
+
+  .channel-config-card .detail-label {
+    margin: 0;
+  }
+  .channel-allowlist {
+    min-height: 76px;
+    resize: vertical;
+  }
+  .channel-enabled-row {
+    margin: 0;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--border);
+  }
+
   @media (max-width: 640px) {
+    .channel-settings-layout {
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+    .channel-settings-list {
+      overflow-x: auto;
+      border-right: 0;
+      border-bottom: 1px solid var(--border);
+      padding: 0 0 12px;
+    }
+    .channel-settings-list-header {
+      display: none;
+    }
+    .channel-settings-list-items {
+      display: flex;
+      min-width: max-content;
+    }
+    .channel-settings-item {
+      width: 128px;
+    }
+    .channel-settings-item.active::before {
+      inset: auto 8px -9px;
+      width: auto;
+      height: 3px;
+    }
+
     .remote-gateway-toggle-row {
       grid-template-columns: 32px minmax(0, 1fr) auto;
       padding-inline: 12px;

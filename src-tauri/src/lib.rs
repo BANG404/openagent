@@ -171,6 +171,13 @@ async fn get_wechat_channel_status(
 }
 
 #[tauri::command]
+async fn get_channel_statuses(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+) -> Result<Vec<openagent_runtime::channels::ChannelStatus>, String> {
+    Ok(openagent_runtime::channels::get_channel_statuses(runtime.state()).await)
+}
+
+#[tauri::command]
 async fn reset_wechat_channel(runtime: State<'_, Arc<OpenAgentRuntime>>) -> Result<(), String> {
     openagent_runtime::channels::reset_wechat_channel(runtime.state()).await
 }
@@ -1463,6 +1470,7 @@ fn run_with_mode(agent_server: bool) {
         .invoke_handler(tauri::generate_handler![
             get_settings,
             save_settings,
+            get_channel_statuses,
             get_wechat_channel_status,
             reset_wechat_channel,
             report_frontend_diagnostic,

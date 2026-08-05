@@ -316,6 +316,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   configuration. Approval and `permission_profile` remain separate settings;
   editing one must never rewrite the other or flatten existing custom filesystem
   entries.
+- Keep the development-only `channels-settings-preview` query as the direct
+  browser surface for Settings → Channels. Its `-theme` and `-locale` query
+  parameters must keep the channel list, credential forms, responsive layout,
+  light/dark themes, and Chinese/English copy addressable without native state.
 
 ## IPC and events
 
@@ -348,10 +352,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   overlapping changes, and rebase edits made while a save is in flight. Never
   persist an uninitialized, fallback, or unchanged settings draft; configuration
   load failure must remain read-only so it cannot replace durable providers.
-- Channel login state is desktop-local capability data. Read WeChat status and
-  QR images through named Tauri commands only; never publish login material or
-  credentials on the shared runtime event bus. Settings may poll the local
-  status while mounted and must stop that poll when unmounted.
+- Channel connection and login state is desktop-local capability data. Read
+  adapter status and WeChat QR images through named Tauri commands only; never
+  publish login material or credentials on the shared runtime event bus.
+  Settings may poll local status while mounted and must stop that poll when
+  unmounted.
 - Keep additive configuration fields in `src/lib/types.ts` optional at the
   transport boundary so an older bootstrap or fallback snapshot remains
   readable. Materialize their canonical defaults only in

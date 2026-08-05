@@ -198,6 +198,7 @@
   const isPauseControlPreview = devQuery?.has("pause-control-preview") === true;
   const isBookModePreview = devQuery?.has("book-mode-preview") === true;
   const isPermissionSettingsPreview = devQuery?.has("permission-settings-preview") === true;
+  const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
   const quickChatPreviewTheme =
@@ -274,6 +275,18 @@
     devQuery?.get("permission-settings-preview-locale") === "en"
       ? "en"
       : devQuery?.get("permission-settings-preview-locale") === "zh"
+        ? "zh"
+        : null;
+  const channelsSettingsPreviewTheme =
+    devQuery?.get("channels-settings-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("channels-settings-preview-theme") === "light"
+        ? "light"
+        : null;
+  const channelsSettingsPreviewLocale: Locale | null =
+    devQuery?.get("channels-settings-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("channels-settings-preview-locale") === "zh"
         ? "zh"
         : null;
   const bookModePreviewTable = [
@@ -447,6 +460,7 @@
   let onboardingOpen = $state(false);
   let settingsInitialNav = $state<
     | "general"
+    | "channels"
     | "providers"
     | "defaults"
     | "agents"
@@ -734,6 +748,7 @@
       isPauseControlPreview ||
       isReasoningEffortPreview ||
       isPermissionSettingsPreview ||
+      isChannelsSettingsPreview ||
       initialLoading ||
       workspaceLoading ||
       navigationTransitioning ||
@@ -1969,6 +1984,11 @@
       } else {
         await loadSettings();
         await loadWorkspace();
+        if (isChannelsSettingsPreview) {
+          SettingsView = (await import("$lib/components/SettingsView.svelte")).default;
+          settingsInitialNav = "channels";
+          settingsOpen = true;
+        }
         restoringSurface = "new-conversation";
         activeConvId = null;
       }
@@ -1996,7 +2016,7 @@
         await restoreWorkspaceConversation(workspacePath);
       }
     } finally {
-      if (config && !hasCompletedOnboarding()) onboardingOpen = true;
+      if (config && !isChannelsSettingsPreview && !hasCompletedOnboarding()) onboardingOpen = true;
       const uiReadyAt = performance.now();
       initialLoading = false;
       await tick();
@@ -2968,8 +2988,16 @@
   async function loadSettings() {
     if (!tauriAvailable) {
       config = normalizeConfigShape(fallbackConfig);
+      if (isChannelsSettingsPreview) {
+        config = {
+          ...config,
+          theme: channelsSettingsPreviewTheme ?? config.theme,
+          language: channelsSettingsPreviewLocale ?? config.language,
+        };
+      }
       applyTheme(
         bookModePreviewTheme ??
+          channelsSettingsPreviewTheme ??
           permissionSettingsPreviewTheme ??
           pauseControlPreviewTheme ??
           commandPalettePreviewTheme ??
@@ -2981,6 +3009,7 @@
       );
       await initI18n(
         bookModePreviewLocale ??
+          channelsSettingsPreviewLocale ??
           permissionSettingsPreviewLocale ??
           pauseControlPreviewLocale ??
           commandPalettePreviewLocale ??

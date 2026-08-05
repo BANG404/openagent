@@ -221,9 +221,38 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
       allowed_workspaces: input.remote_gateway?.allowed_workspaces ?? [],
     },
     channels: {
+      feishu: {
+        enabled: input.channels?.feishu?.enabled ?? false,
+        app_id: input.channels?.feishu?.app_id ?? "",
+        app_secret: input.channels?.feishu?.app_secret ?? "",
+        domain: input.channels?.feishu?.domain === "lark" ? "lark" : "feishu",
+        allowed_chat_ids: input.channels?.feishu?.allowed_chat_ids ?? [],
+      },
+      telegram: {
+        enabled: input.channels?.telegram?.enabled ?? false,
+        bot_token: input.channels?.telegram?.bot_token ?? "",
+        allowed_chat_ids: input.channels?.telegram?.allowed_chat_ids ?? [],
+      },
+      qq: {
+        enabled: input.channels?.qq?.enabled ?? false,
+        app_id: input.channels?.qq?.app_id ?? "",
+        client_secret: input.channels?.qq?.client_secret ?? "",
+        allowed_user_ids: input.channels?.qq?.allowed_user_ids ?? [],
+      },
       wechat: {
         enabled: input.channels?.wechat?.enabled ?? false,
         allowed_user_ids: input.channels?.wechat?.allowed_user_ids ?? [],
+      },
+      discord: {
+        enabled: input.channels?.discord?.enabled ?? false,
+        bot_token: input.channels?.discord?.bot_token ?? "",
+        allowed_channel_ids: input.channels?.discord?.allowed_channel_ids ?? [],
+      },
+      slack: {
+        enabled: input.channels?.slack?.enabled ?? false,
+        bot_token: input.channels?.slack?.bot_token ?? "",
+        app_token: input.channels?.slack?.app_token ?? "",
+        allowed_channel_ids: input.channels?.slack?.allowed_channel_ids ?? [],
       },
     },
     flash_agents,
