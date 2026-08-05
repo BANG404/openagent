@@ -35,17 +35,51 @@ jobs:
       prerelease: ${{ steps.release.outputs.prerelease }}
       sha: ${{ github.event.workflow_run.head_sha }}
     steps:
+      - name: Detect release marker change
+        id: marker
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+          parent_sha="$(
+            gh api "repos/$GH_REPO/commits/$RELEASE_SHA" \
+              --jq '.parents | if length == 1 then .[0].sha else empty end'
+          )"
+          if [[ -z "$parent_sha" ]]; then
+            echo "::notice::Release routing requires a single-parent commit."
+            exit 0
+          fi
+
+          marker_path=".github/release.json"
+          current_marker="$(
+            gh api "repos/$GH_REPO/contents/$marker_path?ref=$RELEASE_SHA" --jq '.sha' \
+              2>/dev/null || true
+          )"
+          previous_marker="$(
+            gh api "repos/$GH_REPO/contents/$marker_path?ref=$parent_sha" --jq '.sha' \
+              2>/dev/null || true
+          )"
+          if [[ -n "$current_marker" && "$current_marker" != "$previous_marker" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v7
+        if: steps.marker.outputs.changed == 'true'
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
       - uses: oven-sh/setup-bun@v2
+        if: steps.marker.outputs.changed == 'true'
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Validate release marker and metadata
         id: release
+        if: steps.marker.outputs.changed == 'true'
         env:
           RELEASE_BRANCH: ${{ github.event.workflow_run.head_branch }}
         shell: bash

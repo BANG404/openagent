@@ -46,6 +46,16 @@ describe("release CI verification", () => {
     );
   });
 
+  test("subtracts only authoritative tree-equivalent capability coverage", () => {
+    expect(ciWorkflow).toContain("actions: read");
+    expect(ciWorkflow).toContain("statuses: read");
+    expect(ciWorkflow).toContain("Resolve authoritative tree-equivalent CI");
+    expect(ciWorkflow).toContain("node scripts/ci-reuse.mjs resolve");
+    expect(ciWorkflow).toContain("node scripts/ci-reuse.mjs select");
+    expect(ciWorkflow).toContain("CI_REUSE_WAIT_SECONDS:");
+    expect(ciWorkflow).toContain("startsWith(github.head_ref, 'prepare/v')");
+  });
+
   test("reports only the latest authoritative PR or release CI run to the stable head SHA", () => {
     expect(prHeadWorkflow).toContain("workflow_run:");
     expect(prHeadWorkflow).toContain("statuses: write");
@@ -55,9 +65,21 @@ describe("release CI verification", () => {
       "startsWith(github.event.workflow_run.head_branch, 'prepare/v')",
     );
     expect(prHeadWorkflow).toContain("github.event.workflow_run.head_sha");
+    expect(prHeadWorkflow).toContain("git/ref/pull/$CI_PR_NUMBER/merge");
+    expect(prHeadWorkflow).toContain("github.event.workflow_run.pull_requests[0].base.sha");
+    expect(prHeadWorkflow).toContain('"$merge_base" == "$CI_BASE_SHA"');
+    expect(prHeadWorkflow).toContain('"$merge_head" == "$CI_HEAD_SHA"');
+    expect(prHeadWorkflow).toContain('description="tree=$verified_tree $description"');
     expect(prHeadWorkflow).toContain("event=$CI_EVENT");
     expect(prHeadWorkflow).toContain("latest_run_id");
     expect(prHeadWorkflow).toContain('context="Required PR Head"');
+    expect(prHeadWorkflow).toContain("Publish verified capability coverage");
+    expect(prHeadWorkflow).toContain('contexts+=("Verified CI / frontend-fast")');
+    expect(prHeadWorkflow).toContain('contexts+=("Verified CI / frontend-full")');
+    expect(prHeadWorkflow).toContain('contexts+=("Verified CI / native-platform-full")');
+    expect(prHeadWorkflow).toContain(
+      "tree=$CI_VERIFIED_TREE Capability passed for this exact source tree.",
+    );
   });
 
   test("auto-merges only an eligible owner or generated release PR at the validated head", () => {
@@ -82,6 +104,19 @@ describe("release CI verification", () => {
     const detectJob = releaseWorkflow.match(/ {2}detect:\n(?<job>[\s\S]*?)\n {2}tag:/)?.groups?.job;
 
     expect(detectJob).toContain("fetch-depth: 0");
+  });
+
+  test("routes ordinary successful CI runs before release checkout and setup", () => {
+    const markerIndex = releaseWorkflow.indexOf("Detect release marker change");
+    const checkoutIndex = releaseWorkflow.indexOf("uses: actions/checkout@v7");
+    const bunIndex = releaseWorkflow.indexOf("uses: oven-sh/setup-bun@v2");
+
+    expect(markerIndex).toBeGreaterThan(-1);
+    expect(markerIndex).toBeLessThan(checkoutIndex);
+    expect(markerIndex).toBeLessThan(bunIndex);
+    expect(releaseWorkflow).toContain("steps.marker.outputs.changed == 'true'");
+    expect(releaseWorkflow).toContain("contents/$marker_path?ref=$RELEASE_SHA");
+    expect(releaseWorkflow).toContain("contents/$marker_path?ref=$parent_sha");
   });
 
   test("accepts a complete successful CI run", () => {

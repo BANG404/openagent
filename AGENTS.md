@@ -67,12 +67,20 @@ check selected from the base-to-head file diff. Frontend and automation are
 top-level modules; native verification is selected independently for Rust
 quality, platform compilation, bundled embedding behavior, and the Harness
 contract. Ordinary pull requests exercise only each selected capability's
-fast contract. Pushes to `master` run every fast module as an integration
+fast contract. Pushes to `master` require every fast module as an integration
 check, while nightly, explicit full dispatches, and `release/stable/**` pushes
-run the complete cross-platform qualification suite. Changes to the CI router
+require the complete cross-platform qualification suite. A later PR or branch
+push may reuse an already-successful capability only when the trusted
+`workflow_run` reporter published that exact fast or full coverage, every
+source run is an authoritative CI run from this repository, and the complete
+Git tree matches the target commit. Squash commits may reuse their
+tree-equivalent same-repository PR head; fast coverage never satisfies a full
+tier. Missing, stale, malformed, or unverifiable status data must fall back to
+executing the capability. Changes to the CI router
 or result verifier still select every capability, as do dependency or private
 SDK changes for all consumers. Keep the path classifier, its tests,
-reusable-workflow inputs, tier selection, and both aggregate checks aligned
+tree-reuse resolver, reporter contexts, reusable-workflow inputs, tier
+selection, and both aggregate checks aligned
 whenever a module boundary changes. Fix failures on the same task branch and
 let CI rerun; do not merge a red or pending `Required` check.
 

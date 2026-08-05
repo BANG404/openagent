@@ -20,7 +20,9 @@ export function classifyChangedModules(files, forceAll = false) {
   const normalized = files.map((file) => file.replaceAll("\\", "/"));
   const routerFiles = new Set([
     ".github/workflows/ci.yml",
+    ".github/workflows/report-pr-head-ci.yml",
     "scripts/ci-changes.mjs",
+    "scripts/ci-reuse.mjs",
     "scripts/preflight.mjs",
     "scripts/verify-ci-results.mjs",
   ]);
@@ -62,6 +64,7 @@ export function classifyChangedModules(files, forceAll = false) {
   );
   const automationTests = new Set([
     "tests/ciChanges.test.js",
+    "tests/ciReuse.test.js",
     "tests/ciResults.test.js",
     "tests/docsSync.test.js",
     "tests/oprReconcile.test.js",

@@ -37,7 +37,9 @@ describe("CI module classification", () => {
       harness: true,
     };
     expect(classifyChangedModules([".github/workflows/ci.yml"])).toEqual(all);
+    expect(classifyChangedModules([".github/workflows/report-pr-head-ci.yml"])).toEqual(all);
     expect(classifyChangedModules(["scripts/ci-changes.mjs"])).toEqual(all);
+    expect(classifyChangedModules(["scripts/ci-reuse.mjs"])).toEqual(all);
     expect(classifyChangedModules(["scripts/preflight.mjs"])).toEqual(all);
     expect(classifyChangedModules(["scripts/verify-ci-results.mjs"])).toEqual(all);
   });
@@ -117,6 +119,10 @@ describe("CI module classification", () => {
 
   test("keeps automation-only tests out of the frontend suite", () => {
     expect(classifyChangedModules(["tests/ciResults.test.js"])).toEqual({
+      ...nothing,
+      automation: true,
+    });
+    expect(classifyChangedModules(["tests/ciReuse.test.js"])).toEqual({
       ...nothing,
       automation: true,
     });

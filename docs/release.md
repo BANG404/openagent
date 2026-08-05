@@ -100,7 +100,10 @@ If a retry finds the same `prepare/vX.Y.Z...` branch, it verifies that branch's
 metadata, channel, selected source, exact one-commit shape, and current base
 before reusing it; it also reuses an already-open release PR. An existing
 immutable release tag stops preparation. The workflow explicitly dispatches CI
-for the preparation head SHA.
+for the preparation head SHA. If the normal pull-request event observes that
+same immutable head while the dispatch is still running, change detection waits
+for the trusted result and reuses its per-capability coverage instead of
+starting the same checks twice.
 GitHub requires approval for a normal `pull_request` workflow created with
 `GITHUB_TOKEN`, so the explicit dispatch provides the release check immediately.
 The trusted PR-head reporter accepts that dispatched CI only for a same-repository
@@ -138,6 +141,10 @@ source-integrity validation, and creates an annotated tag pointing to that same
 SHA. The detection checkout includes complete tag history because release
 metadata validation resolves `previousTag` against local immutable tag refs.
 Pushes to ephemeral `prepare/*` or Beta archive branches cannot publish.
+For ordinary successful `master` or Stable-branch CI runs, the Release workflow
+compares the current and parent `.github/release.json` blob IDs through the
+GitHub API before checkout. Unchanged commits stop at that lightweight routing
+step and do not repeat checkout or Bun setup actions.
 
 Only then does it:
 
@@ -204,10 +211,13 @@ applies one of three verification tiers:
   type, lint, format, and tests; native checks run host Rust quality and quick
   resource or contract validation without Windows/macOS matrices, embedding
   runtime execution, or Harness server integration.
-- Every push to `master` selects every fast module, making the branch the
+- Every push to `master` requires every fast module, making the branch the
   forward integration line without turning each feature merge into a release
-  build. The scheduled nightly run repeats all modules with complete
-  qualification so cross-platform drift is discovered before release work.
+  build. Capabilities already proven on a same-repository PR head whose complete
+  Git tree equals the squash commit are reused; capabilities absent from that
+  PR still execute. The scheduled nightly run does not reuse prior coverage and
+  repeats all modules with complete qualification so cross-platform drift is
+  discovered before release work.
 - Pushes to `release/stable/*` and workflow dispatches with `full` enabled run
   complete qualification: frontend production build and bundle budgets,
   Windows/macOS native compilation, embedding runtime tests, and Harness
@@ -216,6 +226,12 @@ applies one of three verification tiers:
 - Workflow-router and shared dependency changes still conservatively select
   every affected module; the verification tier controls whether those modules
   use their quick or complete checks.
+- The default-branch `workflow_run` reporter publishes separate fast and full
+  status contexts only for jobs and full-only steps that actually succeeded.
+  Reuse accepts only successful `Required PR Head` status, canonical CI run
+  URLs, matching repository and source SHA, and an exact tree match. Manual or
+  scheduled qualification never consumes earlier results, API uncertainty
+  fails closed, and fast statuses cannot satisfy Stable/full checks.
 - The always-present aggregate proves that every check selected by both the
   path router and verification tier passed. Release preparation validates both
   change detection and that aggregate instead of requiring unrelated modules.
