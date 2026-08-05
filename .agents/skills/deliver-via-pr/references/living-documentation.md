@@ -54,8 +54,11 @@ private SDK gitlink.
 - Public documentation contains no private SDK implementation detail.
 - The selected delivery mode reached its terminal state: local mode has verified
   commits on the current remote-tracking default branch and no push; `OPR` has a
-  ready PR whose remote-only task branch contains every unpublished local
-  commit; `ORPR` has a passing `Required` check and a confirmed merge.
-- Only `ORPR` requires remote-branch, task-worktree, and merged local-branch
-  cleanup; local mode does not create a task branch, and `OPR` leaves the local
-  default branch and upstream unchanged without touching unrelated work.
+  ready PR on a preserved task branch while the default worktree equals its
+  remote; `ORPR` has a passing `Required` check and a confirmed merge.
+- `OPR` retains its dedicated task branch or worktree for later review follow-up
+  and stops before cleanup. Its reconciler may rewrite only a verified linear
+  unpublished tail onto the remote default after preserving the original head,
+  and may align the default branch only after the remote branch and ready PR
+  match exactly. Local mode does not create a task branch. `ORPR` completes
+  remote-branch, task-worktree, and merged local-branch cleanup.

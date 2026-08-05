@@ -237,7 +237,7 @@ jobs:
                 --base "$RELEASE_BASE_BRANCH" \
                 --head "$RELEASE_BRANCH" \
                 --title "chore: release $RELEASE_TAG" \
-                --body "Generated release metadata for \`$RELEASE_TAG\`.$source_note The source passed [verification]($BASE_CI_URL). Merge only after \`CI / Required\` passes."
+                --body "Generated release metadata for \`$RELEASE_TAG\`.$source_note The source passed [verification]($BASE_CI_URL). The trusted release workflow will squash-merge this PR after the authoritative CI result passes."
             )"
           else
             echo "Reusing existing release pull request: $pr_url"
@@ -270,4 +270,5 @@ jobs:
               echo "- Promoted Beta: \`$SOURCE_TAG\`"
             fi
             echo "- Pull request: $PR_URL"
+            echo "- Merge: automatic after authoritative CI succeeds"
           } >> "$GITHUB_STEP_SUMMARY"

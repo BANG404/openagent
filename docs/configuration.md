@@ -81,6 +81,10 @@ workspace-writable and read-only presets, plus an advanced editor for ordered
 `read`, `write`, and `deny` path rules. Network access is configured separately
 as `restricted` or `enabled`. Disabling isolation is an explicit unsafe choice;
 the UI warns that tools retain the ambient access of the OpenAgent process.
+Opening the advanced editor from a canonical preset does not save an unchanged
+profile; the configuration changes only after a path rule is edited, added, or
+removed. This keeps the editor open across the settings save cycle while
+preserving the original preset until the user makes a substantive change.
 
 The default `managed` profile grants `read` access to the host filesystem and
 `write` access to the active workspace; write access includes reading. Broad

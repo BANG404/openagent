@@ -124,6 +124,16 @@ describe("CI module classification", () => {
       ...nothing,
       automation: true,
     });
+    expect(classifyChangedModules(["tests/oprReconcile.test.js"])).toEqual({
+      ...nothing,
+      automation: true,
+    });
+    expect(
+      classifyChangedModules([".agents/skills/deliver-via-pr/scripts/reconcile-opr.mjs"]),
+    ).toEqual({
+      ...nothing,
+      automation: true,
+    });
   });
 
   test("only verifies automation for generated release metadata", () => {

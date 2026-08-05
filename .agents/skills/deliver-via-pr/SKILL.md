@@ -1,6 +1,6 @@
 ---
 name: deliver-via-pr
-description: "Implement and deliver OpenAgent repository changes using prefix-selected Git modes. Use for every repository-changing task: default to commits on the current remote-tracking default branch without switching branches, use an OPR message prefix to push all unpublished local commits to a remote PR branch without changing the local branch or its upstream, and use an ORPR prefix for the isolated worktree, authoritative CI, merge, and cleanup workflow."
+description: "Implement and deliver OpenAgent repository changes using prefix-selected Git modes. Use for every repository-changing task: default to verified local commits, use an OPR prefix to publish a ready PR while keeping the default worktree aligned with its remote, and use an ORPR prefix for authoritative CI, merge, and cleanup."
 ---
 
 # Repository delivery
@@ -15,7 +15,7 @@ token from the task description after selecting the mode.
 | Input | Mode | Terminal state |
 | --- | --- | --- |
 | No delivery prefix | Local | Current worktree and remote-tracking default branch, verified local commits; no push or PR |
-| `OPR [task]` | PR sync | Local mode plus push every unpublished local commit to a remote PR branch and create or update a ready PR; do not switch the local branch |
+| `OPR [task]` | PR sync | Ready PR on a dedicated task branch/worktree; default worktree aligned with its remote; no CI wait or merge |
 | `ORPR ...` | Full PR | Fresh isolated worktree and branch, ready PR, authoritative CI, merge, and safe cleanup |
 
 An explicit user instruction such as uncommitted changes, no push, draft PR,
@@ -64,29 +64,88 @@ authorize unrelated changes.
 
 ## OPR mode: synchronize local commits through a PR
 
-When task text follows the prefix, complete local mode first and then publish
-it. When the message is only `OPR`, publish the current unpublished local
-commits as-is after verifying them; do not invent another implementation change
-or empty commit.
+OPR owns publication but stops before CI, merge, and cleanup. Keep task history
+off the default branch so a later squash merge cannot leave that branch both
+ahead of and behind its remote.
 
-1. Fetch the remote default, then inspect every unpublished commit and changed
-   path in `origin/<default>..HEAD`. Confirm they are intended and the worktree
-   has no task changes left uncommitted. Include every unpublished local commit;
-   do not silently squash it.
-2. Resolve the existing open PR branch for this same local commit series, or
-   choose a unique remote-only `agent/<task-slug>` branch. Push with an explicit
-   refspec such as `git push origin HEAD:refs/heads/agent/<task-slug>` so the
-   local default branch and its upstream remain unchanged. Never push directly
-   to the remote default, force-push, or rewrite published history unless the
-   user explicitly requests it.
-3. Create a ready PR from that remote branch to the remote default, or update
-   its existing open PR. Describe behavior, boundaries, documentation, local
+### Select the OPR source
+
+- For a new `OPR <task>` with a clean, synchronized default worktree, create a
+  unique sibling worktree and `agent/<task-slug>` branch from
+  `origin/<default>`. Implement, verify, and commit there by following local
+  mode steps 2-5. Do not switch or change the upstream of the default branch.
+- If the matching ready PR already exists, resume its dedicated task worktree
+  or recreate one from its local or remote task branch. Never merge the PR
+  branch back into the default worktree merely to update it.
+- When the message is only `OPR`, or the intended commits already exist on the
+  default branch, use the parking procedure below. Do not create another
+  implementation change or empty commit.
+- If the default branch and its remote have already diverged because an earlier
+  OPR was squash-merged, use the deterministic reconciler below. Never run pull,
+  merge, or an ad hoc rebase, and never resolve a content conflict by silently
+  preferring the remote version.
+
+### Park committed default-branch work
+
+1. Run the read-only plan and inspect its boundary, unpublished commits, and
+   changed paths:
+
+   ```bash
+   bun .agents/skills/deliver-via-pr/scripts/reconcile-opr.mjs plan --repo .
+   ```
+
+   The reconciler finds the newest local first-parent commit whose complete tree
+   already exists in the remote-default history. It discards only the history
+   through that content-equivalent boundary and requires every later commit to
+   be linear.
+2. Prepare a recovery branch and dedicated task worktree from the current remote
+   default, then replay only the unpublished semantic tail:
+
+   ```bash
+   bun .agents/skills/deliver-via-pr/scripts/reconcile-opr.mjs prepare \
+     --repo . \
+     --task agent/<task-slug> \
+     --worktree ../openagent-wt-<task-slug>
+   ```
+
+   The script verifies stable patch IDs after replay. On a cherry-pick conflict,
+   stop and inspect only the task worktree; the default worktree and recovery
+   branch remain untouched. Run preflight again in the prepared worktree because
+   its base or commit SHAs may have changed.
+3. Push the prepared task branch without force and create or update its ready
+   PR. Do not delete or overwrite an unrelated remote branch.
+4. After confirming the intended paths and preflight, finalize with the exact PR
+   number:
+
+   ```bash
+   bun .agents/skills/deliver-via-pr/scripts/reconcile-opr.mjs finalize \
+     --repo . \
+     --task agent/<task-slug> \
+     --pr <number>
+   ```
+
+   Finalization fetches again and requires a clean default worktree, unchanged
+   original head, intact recovery branch, exact local and remote task heads, and
+   an open ready PR to the expected base. Only then does it align the default
+   branch to the latest remote SHA. Explicit OPR mode authorizes this verified,
+   recoverable reset; no other reset is allowed.
+5. Verify the default branch equals `origin/<default>` and retain both the task
+   worktree and recovery branch until the PR is merged or deliberately closed.
+
+### Publish and stop
+
+1. Push the dedicated task branch without force and create or update a ready PR
+   to the remote default. Describe behavior, boundaries, documentation, local
    preflight, and checks deferred to CI.
-4. Stop after the remote branch and PR reflect the local commits. Do not wait
-   for CI, merge the PR, delete branches, remove worktrees, or fast-forward the
-   default branch unless separately requested.
-5. Report the PR URL, remote PR branch, pushed head SHA, included commits, and
-   current check state without presenting pending CI as successful delivery.
+2. Leave the task worktree and local branch available for review follow-up.
+   Stop without waiting for CI, merging, or cleanup.
+3. Report the PR URL, local and remote task branch, pushed head SHA, included
+   commits, default-worktree synchronization, and current check state. Never
+   present pending CI as successful delivery.
+4. After the PR is later confirmed merged, a separate cleanup may remove its
+   clean dedicated worktree and local task branch. Fetch and fast-forward the
+   already-clean default worktree; never merge the squash result into preserved
+   pre-squash commits.
 
 ## ORPR mode: isolated PR through merge
 
