@@ -220,6 +220,12 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
       allow_lan_access: input.remote_gateway?.allow_lan_access ?? false,
       allowed_workspaces: input.remote_gateway?.allowed_workspaces ?? [],
     },
+    channels: {
+      wechat: {
+        enabled: input.channels?.wechat?.enabled ?? false,
+        allowed_user_ids: input.channels?.wechat?.allowed_user_ids ?? [],
+      },
+    },
     flash_agents,
     providers,
     mcp,

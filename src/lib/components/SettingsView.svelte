@@ -71,6 +71,13 @@
     lan_url: string | null;
     pairing_code: string;
   };
+  type WechatChannelStatus = {
+    enabled: boolean;
+    state: "disabled" | "starting" | "awaiting_scan" | "connected" | "error";
+    qr_image_data_url: string | null;
+    account_id: string | null;
+    error: string | null;
+  };
   const approvalModeDescriptionKey = {
     manual: "approvalModeManualDescription",
     auto: "approvalModeAutoDescription",
@@ -237,6 +244,10 @@
   let remoteGatewayBusy = $state(false);
   let copiedRemoteValue = $state<"url" | "lan" | "code" | null>(null);
   let remoteCopyTimer: ReturnType<typeof setTimeout> | null = null;
+  let wechatChannelStatus = $state<WechatChannelStatus | null>(null);
+  let wechatChannelBusy = $state(false);
+  let wechatChannelMessage = $state("");
+  let wechatStatusTimer: ReturnType<typeof setInterval> | null = null;
   let draggedRetryQueue = $state<{ kind: RetryQueueKind; index: number } | null>(null);
   let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
   let autoSaveInitialized = false;
@@ -458,6 +469,8 @@
     refreshHooks().catch(() => {});
     refreshHookRoles().catch(() => {});
     refreshRemoteGateway().catch(() => {});
+    refreshWechatChannel().catch(() => {});
+    wechatStatusTimer = setInterval(() => refreshWechatChannel().catch(() => {}), 1500);
     refreshChatgptAuthStatus().catch(() => {});
     const unlistenRemotePairingCode = listen("remote-gateway-pairing-code-rotated", () => {
       refreshRemoteGateway().catch(() => {});
@@ -476,12 +489,45 @@
     return () => {
       void unlistenRemotePairingCode.then((dispose) => dispose());
       if (remoteCopyTimer) clearTimeout(remoteCopyTimer);
+      if (wechatStatusTimer) clearInterval(wechatStatusTimer);
       saveDraftConfig().catch(console.error);
     };
   });
 
   async function refreshRemoteGateway() {
     remoteGatewayStatus = await invoke<RemoteGatewayStatus>("get_remote_gateway_status");
+  }
+
+  async function refreshWechatChannel() {
+    wechatChannelStatus = await invoke<WechatChannelStatus>("get_wechat_channel_status");
+  }
+
+  async function reconnectWechatChannel() {
+    wechatChannelBusy = true;
+    wechatChannelMessage = "";
+    try {
+      await invoke("reset_wechat_channel");
+      await refreshWechatChannel();
+    } catch (error) {
+      wechatChannelMessage = `${error}`;
+    } finally {
+      wechatChannelBusy = false;
+    }
+  }
+
+  function wechatStatusKey(state: WechatChannelStatus["state"] | undefined) {
+    switch (state) {
+      case "starting":
+        return "wechatChannelStarting";
+      case "awaiting_scan":
+        return "wechatChannelAwaitingScan";
+      case "connected":
+        return "wechatChannelConnected";
+      case "error":
+        return "wechatChannelError";
+      default:
+        return "wechatChannelDisabled";
+    }
   }
 
   function toggleCurrentWorkspaceAccess() {
@@ -1677,6 +1723,87 @@
           {/if}
           {#if remoteGatewayMessage}
             <div class="provider-status" style="margin-top:8px">{remoteGatewayMessage}</div>
+          {/if}
+        </section>
+        <section class="detail-section">
+          <div class="detail-section-header remote-gateway-heading">
+            <div>
+              <h4 class="detail-section-title">{$t("wechatChannel")}</h4>
+              <p class="remote-gateway-subtitle">{$t("wechatChannelSubtitle")}</p>
+            </div>
+            <span
+              class:active={wechatChannelStatus?.state === "connected"}
+              class="remote-gateway-status"
+            >
+              <span></span>{$t(wechatStatusKey(wechatChannelStatus?.state))}
+            </span>
+          </div>
+          <div class="remote-gateway-card">
+            <div class="remote-gateway-toggle-row">
+              <div class="remote-gateway-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path
+                    d="M7.5 5.5c-3 0-5.5 2-5.5 4.6 0 1.5.8 2.8 2.1 3.7L3.5 16l2.4-1.2c.5.1 1 .2 1.6.2 3 0 5.5-2 5.5-4.5S10.5 5.5 7.5 5.5Z"
+                  />
+                  <path
+                    d="M14.8 9c3.9 0 7.2 2.5 7.2 5.7 0 1.7-.9 3.3-2.5 4.4l.7 2.1-2.8-1.4c-.8.3-1.7.4-2.6.4-3.9 0-7.1-2.5-7.1-5.5"
+                  />
+                  <path d="M5.8 9.8h.01M9.2 9.8h.01M12.5 14.1h.01M17.1 14.1h.01" />
+                </svg>
+              </div>
+              <div class="startup-copy">
+                <span class="label-text">{$t("wechatChannelEnabled")}</span>
+                <p class="detail-hint">{$t("wechatChannelHint")}</p>
+              </div>
+              <Switch
+                checked={draftConfig.channels!.wechat.enabled}
+                onCheckedChange={(checked) => (draftConfig.channels!.wechat.enabled = checked)}
+                ariaLabel={$t("wechatChannelEnabled")}
+              />
+            </div>
+            <div class="wechat-channel-access">
+              <label class="label-text" for="wechat-allowed-users"
+                >{$t("wechatChannelAllowedUsers")}</label
+              >
+              <p class="detail-hint">{$t("wechatChannelAllowedUsersHint")}</p>
+              <textarea
+                id="wechat-allowed-users"
+                class="detail-input hook-textarea wechat-user-ids"
+                value={draftConfig.channels!.wechat.allowed_user_ids.join("\n")}
+                placeholder={$t("wechatChannelAllowedUsersPlaceholder")}
+                oninput={(event) => {
+                  draftConfig.channels!.wechat.allowed_user_ids = event.currentTarget.value
+                    .split(/[\s,，]+/)
+                    .map((userId) => userId.trim())
+                    .filter(Boolean);
+                }}></textarea>
+            </div>
+          </div>
+          {#if draftConfig.channels!.wechat.enabled && wechatChannelStatus?.state === "awaiting_scan" && wechatChannelStatus.qr_image_data_url}
+            <div class="wechat-qr-card">
+              <img src={wechatChannelStatus.qr_image_data_url} alt={$t("wechatChannelQrAlt")} />
+              <div>
+                <strong>{$t("wechatChannelScanTitle")}</strong>
+                <p class="detail-hint">{$t("wechatChannelScanHint")}</p>
+              </div>
+            </div>
+          {:else if draftConfig.channels!.wechat.enabled && wechatChannelStatus?.state === "connected"}
+            <div class="wechat-connected-card">
+              <div>
+                <span class="remote-credential-label">{$t("wechatChannelAccount")}</span>
+                <code>{wechatChannelStatus.account_id}</code>
+              </div>
+              <button
+                class="remote-credential-action"
+                disabled={wechatChannelBusy}
+                onclick={reconnectWechatChannel}>{$t("wechatChannelReconnect")}</button
+              >
+            </div>
+          {/if}
+          {#if wechatChannelStatus?.error || wechatChannelMessage}
+            <div class="provider-status" style="margin-top:8px">
+              {wechatChannelMessage || wechatChannelStatus?.error}
+            </div>
           {/if}
         </section>
         <section class="detail-section">
@@ -3660,6 +3787,63 @@
     border-radius: 8px;
     background: var(--surface);
     box-shadow: var(--control-shadow);
+  }
+
+  .wechat-channel-access {
+    display: grid;
+    gap: 6px;
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .wechat-user-ids {
+    min-height: 76px;
+    margin-top: 4px;
+    resize: vertical;
+  }
+
+  .wechat-qr-card,
+  .wechat-connected-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+    padding: 16px;
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: var(--control-shadow);
+  }
+
+  .wechat-qr-card img {
+    width: 152px;
+    height: 152px;
+    padding: 8px;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  .wechat-qr-card strong {
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .wechat-connected-card > div {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+  }
+
+  .wechat-connected-card code {
+    overflow: hidden;
+    color: var(--text);
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .wechat-connected-card .remote-credential-action {
+    margin-left: auto;
   }
 
   .remote-gateway-toggle-row {

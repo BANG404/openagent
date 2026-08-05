@@ -551,6 +551,15 @@ export interface RemoteGatewayConfig {
   allowed_workspaces: string[];
 }
 
+export interface WechatChannelConfig {
+  enabled: boolean;
+  allowed_user_ids: string[];
+}
+
+export interface ChannelConfig {
+  wechat: WechatChannelConfig;
+}
+
 export interface AppConfig {
   agent_turn_limit_enabled: boolean;
   agent_max_turns: number;
@@ -581,4 +590,5 @@ export interface AppConfig {
   workspace?: string;
   recent_workspaces?: RecentWorkspace[];
   remote_gateway: RemoteGatewayConfig;
+  channels?: ChannelConfig;
 }

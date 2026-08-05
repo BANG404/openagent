@@ -348,6 +348,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   overlapping changes, and rebase edits made while a save is in flight. Never
   persist an uninitialized, fallback, or unchanged settings draft; configuration
   load failure must remain read-only so it cannot replace durable providers.
+- Channel login state is desktop-local capability data. Read WeChat status and
+  QR images through named Tauri commands only; never publish login material or
+  credentials on the shared runtime event bus. Settings may poll the local
+  status while mounted and must stop that poll when unmounted.
 - Keep additive configuration fields in `src/lib/types.ts` optional at the
   transport boundary so an older bootstrap or fallback snapshot remains
   readable. Materialize their canonical defaults only in
