@@ -206,9 +206,12 @@ a dedicated task branch and stops without waiting for CI, merging, or cleanup.
 New OPR tasks use an isolated worktree so the default worktree remains aligned
 with its remote. A message containing only `OPR` publishes existing committed
 work without creating another change: it first preserves the exact head on a
-local task branch, confirms that branch and the PR remotely, and only then
-restores the clean default worktree to its remote-tracking branch. Never merge a
-later squash result back into the preserved pre-squash commits. An uppercase
+recovery branch, uses the skill's deterministic reconciler to rebuild only the
+unpublished semantic tail on the remote default, confirms that task branch and
+the PR remotely, and only then restores the clean default worktree to its
+remote-tracking branch. Never merge a later squash result back into the
+preserved pre-squash commits or resolve a real content conflict by silently
+preferring the remote version. An uppercase
 standalone `ORPR` prefix selects the full
 isolated-worktree workflow: create the task worktree from the remote default
 branch, commit and push, open a ready PR, wait for authoritative CI, merge under

@@ -64,6 +64,7 @@ export function classifyChangedModules(files, forceAll = false) {
     "tests/ciChanges.test.js",
     "tests/ciResults.test.js",
     "tests/docsSync.test.js",
+    "tests/oprReconcile.test.js",
     "tests/preflight.test.js",
     "tests/privateSdkDiagnostic.test.js",
     "tests/releaseCi.test.js",
@@ -73,7 +74,14 @@ export function classifyChangedModules(files, forceAll = false) {
   const automation =
     all ||
     normalized.some((file) =>
-      matchesPath(file, [".github/", "scripts/", "docs/release.md", "package.json", "bun.lock"]),
+      matchesPath(file, [
+        ".agents/skills/deliver-via-pr/",
+        ".github/",
+        "scripts/",
+        "docs/release.md",
+        "package.json",
+        "bun.lock",
+      ]),
     ) ||
     normalized.some((file) => automationTests.has(file));
 

@@ -81,31 +81,56 @@ ahead of and behind its remote.
   default branch, use the parking procedure below. Do not create another
   implementation change or empty commit.
 - If the default branch and its remote have already diverged because an earlier
-  OPR was squash-merged, do not run pull, merge, rebase, or reset implicitly.
-  Identify the merged PR, its published head, and every genuinely unpublished
-  tail commit, then request explicit history-reconciliation approval. A clean
-  tree that happens to match the remote does not by itself authorize rewriting
-  user-owned commits.
+  OPR was squash-merged, use the deterministic reconciler below. Never run pull,
+  merge, or an ad hoc rebase, and never resolve a content conflict by silently
+  preferring the remote version.
 
 ### Park committed default-branch work
 
-1. Fetch the remote default. Require a clean worktree, require
-   `origin/<default>` to be an ancestor of `HEAD`, and inspect every commit and
-   changed path in `origin/<default>..HEAD`. Stop if the range contains an
-   unintended commit, a merge commit, or evidence of an earlier squash-merged
-   PR; those cases need explicit reconciliation rather than another merge.
-2. Create a unique local `agent/<task-slug>` branch at the exact original
-   `HEAD`. This is the recovery ref and must exist before the default branch is
-   moved.
-3. Push that task branch with an explicit refspec and create or update its ready
-   PR. Confirm both the remote branch head and the PR head equal the saved SHA.
-4. Only after those confirmations, re-check that the default worktree is clean,
-   is still on the expected default branch, and that the recovery branch still
-   points to the saved SHA. Then restore the default branch to
-   `origin/<default>`. This narrowly scoped reset is part of explicit OPR mode;
-   never perform it when any check fails or when uncommitted work exists.
-5. Verify the default branch now equals `origin/<default>` and the task branch
-   still preserves the published commits. Do not delete the recovery branch.
+1. Run the read-only plan and inspect its boundary, unpublished commits, and
+   changed paths:
+
+   ```bash
+   bun .agents/skills/deliver-via-pr/scripts/reconcile-opr.mjs plan --repo .
+   ```
+
+   The reconciler finds the newest local first-parent commit whose complete tree
+   already exists in the remote-default history. It discards only the history
+   through that content-equivalent boundary and requires every later commit to
+   be linear.
+2. Prepare a recovery branch and dedicated task worktree from the current remote
+   default, then replay only the unpublished semantic tail:
+
+   ```bash
+   bun .agents/skills/deliver-via-pr/scripts/reconcile-opr.mjs prepare \
+     --repo . \
+     --task agent/<task-slug> \
+     --worktree ../openagent-wt-<task-slug>
+   ```
+
+   The script verifies stable patch IDs after replay. On a cherry-pick conflict,
+   stop and inspect only the task worktree; the default worktree and recovery
+   branch remain untouched. Run preflight again in the prepared worktree because
+   its base or commit SHAs may have changed.
+3. Push the prepared task branch without force and create or update its ready
+   PR. Do not delete or overwrite an unrelated remote branch.
+4. After confirming the intended paths and preflight, finalize with the exact PR
+   number:
+
+   ```bash
+   bun .agents/skills/deliver-via-pr/scripts/reconcile-opr.mjs finalize \
+     --repo . \
+     --task agent/<task-slug> \
+     --pr <number>
+   ```
+
+   Finalization fetches again and requires a clean default worktree, unchanged
+   original head, intact recovery branch, exact local and remote task heads, and
+   an open ready PR to the expected base. Only then does it align the default
+   branch to the latest remote SHA. Explicit OPR mode authorizes this verified,
+   recoverable reset; no other reset is allowed.
+5. Verify the default branch equals `origin/<default>` and retain both the task
+   worktree and recovery branch until the PR is merged or deliberately closed.
 
 ### Publish and stop
 
