@@ -82,7 +82,7 @@ jobs:
       - name: Resolve checked-out Git tree
         id: tree
         shell: bash
-        run: echo "sha=$(git rev-parse HEAD^{tree})" >> "$GITHUB_OUTPUT"
+        run: echo "sha=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
 
       - name: Resolve authoritative tree-equivalent CI
         id: reuse
