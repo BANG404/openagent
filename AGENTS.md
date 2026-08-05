@@ -56,52 +56,38 @@ target branch is not `master`.
 Do not manually run additional lint, test, check, or build commands that
 duplicate CI. Tool-specific validation required to create an artifact,
 interactive checks needed to implement a change, and checks explicitly
-requested by the user remain allowed. When a pull request is created, its CI is
-the authoritative remote delivery verification and owns fast checks for the
-affected modules. Cross-platform builds, frontend production builds, bundle
+requested by the user remain allowed. Contributor pull-request CI owns fast
+checks for affected modules; administrator-authored PRs bypass it after local
+preflight. Cross-platform builds, frontend production builds, bundle
 budgets, embedding runtime tests, and Harness integration tests belong to
 nightly or release qualification, not ordinary pull requests.
 
-The `Required` pull-request check runs `check:docs` and aggregates every fast
-check selected from the base-to-head file diff. Frontend and automation are
-top-level modules; native verification is selected independently for Rust
-quality, platform compilation, bundled embedding behavior, and the Harness
-contract. Ordinary pull requests exercise only each selected capability's
-fast contract. Same-repository `prepare/v*` release PRs bypass module checks
-because preparation already requires verified source CI; their post-merge push
-and Release workflow own integration verification and complete builds.
-Pushes to `master` require every fast module as an integration
-check, while nightly, explicit full dispatches, and `release/stable/**` pushes
-require the complete cross-platform qualification suite. A later PR or branch
-push may reuse an already-successful capability only when the trusted
-`workflow_run` reporter published that exact fast or full coverage, every
-source run is an authoritative CI run from this repository, and the complete
-Git tree matches the target commit. Squash commits may reuse their
-tree-equivalent same-repository PR head; fast coverage never satisfies a full
-tier. Missing, stale, malformed, or unverifiable status data must fall back to
-executing the capability. Changes to the CI router
-or result verifier still select every capability, as do dependency or private
-SDK changes for all consumers. Keep the path classifier, its tests,
-tree-reuse resolver, reporter contexts, reusable-workflow inputs, tier
-selection, and both aggregate checks aligned
-whenever a module boundary changes. Fix failures on the same task branch and
-let CI rerun; do not merge a red or pending `Required` check.
+The `Required` pull-request check runs fast checks selected from the exact
+base-to-head diff only for contributors without repository administrator
+permission. Administrator-authored PRs are trusted local-delivery artifacts:
+CI confirms that permission and immediately reports success without module
+checks or review. The administrator bypass in the default-branch rulesets must
+use `always` mode so the same trusted actors may also push directly.
 
-Private SDK pull requests dispatch `sdk-ci.yml` on this public repository at an
-immutable SDK commit. That workflow must keep private command output and build
-artifacts out of public logs, artifacts, and target caches, and must report the
-aggregate `Public SDK CI` commit status back through the least-privileged
-reporter GitHub App. Ordinary SDK pull requests validate only the affected Rust
-package or SDK capability and use the Linux Harness path; SDK `main` pushes run
-every capability's fast integration contract. SDK release branches and explicit
-full dispatches run workspace-wide, all-feature, cross-platform qualification.
-The private repository owns only classification and dispatch and requires the
-reported status before merge. Keep `cache-targets: false`: routing and job
-granularity, rather than publishing private compiler output to a public cache,
-are the SDK CI optimization boundary. A fast public-host compatibility check
-may use an empty, untracked Linux sidecar placeholder because Cargo only needs
-to resolve Tauri's `externalBin` declaration; full qualification must build the
-real pinned helper and export its digest before checking the host.
+Ordinary pushes to `master` do not run CI. Complete qualification belongs to
+the Release workflow before tagging or building, and to nightly or explicit
+manual CI runs. Release qualification forces every frontend, automation,
+native, embedding, and Harness capability and never reuses fast PR coverage.
+Keep the path classifier, result verifier, reusable workflow inputs, release
+gate, and their tests aligned whenever a module boundary changes. A failed
+release qualification must stop tagging, builds, and publication.
+
+The private SDK uses focused direct pushes to `main` and does not run PR or
+per-push CI. SDK release tags, nightly runs, and explicit manual dispatches send
+the immutable SDK commit to `sdk-ci.yml` with complete qualification selected.
+That workflow must keep private command output and build artifacts out of public
+logs, artifacts, and target caches, and report `Public SDK full validation
+passed` through the least-privileged reporter GitHub App. The SDK Release
+workflow waits for that exact status before any build or publication. Keep
+`cache-targets: false`; routing and job granularity, rather than publishing
+private compiler output to a public cache, are the SDK CI optimization boundary.
+Full public-host qualification must build the real pinned helper and export its
+digest before checking the host.
 
 ## Browser-backed frontend workflow
 
@@ -228,6 +214,6 @@ preserved pre-squash commits or resolve a real content conflict by silently
 preferring the remote version. An uppercase
 standalone `ORPR` prefix selects the full
 isolated-worktree workflow: create the task worktree from the remote default
-branch, commit and push, open a ready PR, wait for authoritative CI, merge under
-repository policy, and clean up. Match `ORPR` before `OPR`. Explicit user
+branch, commit and push, open a ready PR, use the administrator bypass to merge
+the exact head without CI or review, and clean up. Match `ORPR` before `OPR`. Explicit user
 instructions that exclude or alter a delivery stage take precedence.

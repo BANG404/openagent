@@ -1,22 +1,22 @@
 name: CI
 
 on:
+  workflow_call:
+    inputs:
+      base_sha:
+        required: false
+        type: string
+      full:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       base_sha:
         description: Optional base commit used for module change detection
         required: false
         type: string
-      full:
-        description: Run the complete cross-platform qualification suite
-        required: false
-        default: false
-        type: boolean
   pull_request:
-  push:
-    branches:
-      - master
-      - release/stable/**
   merge_group:
   schedule:
     - cron: "17 18 * * *"
@@ -52,27 +52,33 @@ jobs:
       - name: Resolve CI route
         id: route
         env:
-          CI_BYPASS_PREPARE_RELEASE: >-
-            ${{ (github.event_name == 'pull_request'
-            && github.event.pull_request.head.repo.full_name == github.repository
-            && startsWith(github.head_ref, 'prepare/v'))
-            || (github.event_name == 'workflow_dispatch'
-            && startsWith(github.ref, 'refs/heads/prepare/v')) }}
+          GH_TOKEN: ${{ github.token }}
+          CI_EVENT_NAME: ${{ github.event_name }}
+          CI_PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         shell: bash
-        run: echo "bypassPrepareRelease=$CI_BYPASS_PREPARE_RELEASE" >> "$GITHUB_OUTPUT"
+        run: |
+          bypass_trusted_pull_request=false
+          if [[ "$CI_EVENT_NAME" == "pull_request" && -n "$CI_PR_AUTHOR" ]]; then
+            is_admin="$(
+              gh api "repos/$GITHUB_REPOSITORY/collaborators/$CI_PR_AUTHOR/permission" \
+                --jq '.user.permissions.admin // false' 2>/dev/null || echo false
+            )"
+            if [[ "$is_admin" == "true" ]]; then
+              bypass_trusted_pull_request=true
+            fi
+          fi
+          echo "bypassTrustedPullRequest=$bypass_trusted_pull_request" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v7
-        if: steps.route.outputs.bypassPrepareRelease != 'true'
+        if: steps.route.outputs.bypassTrustedPullRequest != 'true'
         with:
           fetch-depth: 0
 
       - name: Resolve verification tier
         id: tier
-        if: steps.route.outputs.bypassPrepareRelease != 'true'
+        if: steps.route.outputs.bypassTrustedPullRequest != 'true'
         env:
           CI_EVENT: ${{ github.event_name }}
-          CI_REF: ${{ github.ref }}
-          CI_RELEASE_BRANCH: ${{ startsWith(github.ref, 'refs/heads/release/stable/') }}
           CI_REQUEST_FULL: ${{ inputs.full || false }}
         shell: bash
         run: |
@@ -80,13 +86,13 @@ jobs:
           integration=false
 
           if [[ "$CI_EVENT" == "schedule" \
-            || "$CI_RELEASE_BRANCH" == "true" \
+            || "$CI_EVENT" == "workflow_dispatch" \
+            || "$CI_EVENT" == "workflow_call" \
             || "$CI_REQUEST_FULL" == "true" ]]; then
             full=true
           fi
 
-          if [[ "$full" == "true" \
-            || ("$CI_EVENT" == "push" && "$CI_REF" == "refs/heads/master") ]]; then
+          if [[ "$full" == "true" ]]; then
             integration=true
           fi
 
@@ -95,13 +101,13 @@ jobs:
 
       - name: Resolve checked-out Git tree
         id: tree
-        if: steps.route.outputs.bypassPrepareRelease != 'true'
+        if: steps.route.outputs.bypassTrustedPullRequest != 'true'
         shell: bash
         run: echo "sha=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
 
       - name: Resolve authoritative tree-equivalent CI
         id: reuse
-        if: steps.route.outputs.bypassPrepareRelease != 'true'
+        if: steps.route.outputs.bypassTrustedPullRequest != 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
           CI_EVENT_NAME: ${{ github.event_name }}
@@ -113,7 +119,7 @@ jobs:
 
       - name: Classify changed files
         id: modules
-        if: steps.route.outputs.bypassPrepareRelease != 'true'
+        if: steps.route.outputs.bypassTrustedPullRequest != 'true'
         env:
           CI_BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
@@ -126,7 +132,7 @@ jobs:
 
       - name: Select capabilities not already verified
         id: selection
-        if: steps.route.outputs.bypassPrepareRelease != 'true'
+        if: steps.route.outputs.bypassTrustedPullRequest != 'true'
         env:
           CI_FULL: ${{ steps.tier.outputs.full }}
           CI_REQUEST_AUTOMATION: ${{ steps.modules.outputs.automation }}
@@ -162,7 +168,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Require agent-facing documentation for logic changes
-        if: steps.route.outputs.bypassPrepareRelease != 'true'
+        if: steps.route.outputs.bypassTrustedPullRequest != 'true'
         env:
           DOCS_BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           DOCS_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}

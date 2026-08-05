@@ -1,6 +1,6 @@
 ---
 name: deliver-via-pr
-description: "Implement and deliver OpenAgent repository changes using prefix-selected Git modes. Use for every repository-changing task: default to verified local commits, use an OPR prefix to publish a ready PR while keeping the default worktree aligned with its remote, and use an ORPR prefix for authoritative CI, merge, and cleanup."
+description: "Implement and deliver OpenAgent repository changes using prefix-selected Git modes. Use for every repository-changing task: default to verified local host commits, push private SDK commits directly, use OPR for a ready public-host PR, and use ORPR for administrator-bypassed merge and cleanup."
 ---
 
 # Repository delivery
@@ -16,7 +16,7 @@ token from the task description after selecting the mode.
 | --- | --- | --- |
 | No delivery prefix | Local | Current worktree and remote-tracking default branch, verified local commits; no push or PR |
 | `OPR [task]` | PR sync | Ready PR on a dedicated task branch/worktree; default worktree aligned with its remote; no CI wait or merge |
-| `ORPR ...` | Full PR | Fresh isolated worktree and branch, ready PR, authoritative CI, merge, and safe cleanup |
+| `ORPR ...` | Full PR | Fresh isolated worktree and branch, ready PR, administrator merge without PR CI/review, and safe cleanup |
 
 An explicit user instruction such as uncommitted changes, no push, draft PR,
 no merge, or a named target branch overrides the corresponding default. A
@@ -36,9 +36,10 @@ authorize unrelated changes.
 - Preserve unrelated branches, worktrees, staged files, and working changes.
   If the current worktree or branch has ambiguous ownership, stop for direction
   instead of absorbing those changes into the task.
-- Follow `sdk/AGENTS.md` for SDK work. Apply the selected mode independently to
-  the SDK repository first; update the parent gitlink only after the SDK commit
-  intended for integration is final for that mode.
+- Follow `sdk/AGENTS.md` for SDK work. The private SDK does not use pull
+  requests: verify and push focused commits directly to `main` first, regardless
+  of the public host's delivery prefix. Update the parent gitlink only after the
+  SDK push is confirmed.
 
 ## Local mode: commit on the current default branch
 
@@ -169,27 +170,16 @@ ahead of and behind its remote.
 - Never add unrelated commits or update the branch solely because the target
   branch moved after CI started.
 
-### Wait for authoritative CI
-
-- Use the `wait-for-pr-ci` skill to wait for `Required PR Head` on the immutable
-  PR head. Pass `--wait-for-merge` when trusted auto-merge is configured.
-- If it returns `merge-pending`, re-read the PR and apply the review fallback
-  below without rerunning successful CI.
-- On failure, inspect the failing Actions job, fix the same task branch, commit,
-  push, and wait again. Never bypass pending or failed checks.
-- If CI is externally blocked, retain the PR and worktree and report incomplete
-  delivery.
-
 ### Merge under repository policy
 
-- For an owner-authored PR, let the trusted reporter squash-merge after
-  `Required PR Head` succeeds. If the configured merge credential is
-  unavailable, use `gh pr merge <PR> --admin --squash --delete-branch` only as
-  the documented review-only fallback for the exact validated head.
-- For a third-party PR, approve as the owner, do not bypass protection, wait for
-  both required statuses, and merge normally.
-- Never self-approve an owner-authored PR. Confirm `MERGED`; closed or queued is
-  not complete.
+- Re-read the ready PR and require the exact pushed head, expected base, open
+  non-draft state, and administrator-authored source.
+- Merge that exact head with `gh pr merge <PR> --admin --squash
+  --delete-branch`. Administrator delivery intentionally bypasses PR CI and
+  review; local `bun run preflight` is the implementation gate.
+- Third-party PRs are outside the administrator bypass. Leave them to their
+  fast PR CI and review policy unless the user explicitly asks to handle one.
+- Confirm `MERGED`; closed or queued is not complete.
 
 ### Clean up safely
 

@@ -19,9 +19,10 @@ rtk python .agents/skills/wait-for-pr-ci/scripts/wait_for_pr_ci.py <PR>
 ```
 
 Omit `<PR>` to resolve the PR for the current branch. Use `--repo OWNER/REPO`
-outside its checkout. The default discovery supports both OpenAgent's
-`Required PR Head` ruleset and the SDK's branch-protected `Public SDK CI`
-without repository-specific hardcoding.
+outside its checkout. The default discovery supports OpenAgent's contributor
+`Required PR Head` ruleset and similarly configured cross-repository statuses
+without repository-specific hardcoding. Administrator OpenAgent delivery and
+private SDK delivery do not use this PR wait path.
 
 Use explicit names when the desired flow is not required by the base branch:
 

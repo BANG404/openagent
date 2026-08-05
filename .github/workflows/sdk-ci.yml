@@ -92,13 +92,16 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           SDK_SHA: ${{ inputs.sdk_sha }}
+          SDK_CI_FULL: ${{ inputs.full }}
           TARGET_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          tier=fast
+          if [[ "$SDK_CI_FULL" == "true" ]]; then tier=full; fi
           gh api "repos/$SDK_REPOSITORY/commits/$SDK_SHA" --silent
           gh api --method POST "repos/$SDK_REPOSITORY/statuses/$SDK_SHA" \
             -f state=pending \
             -f context="$SDK_STATUS_CONTEXT" \
-            -f description="Public runners are validating this private SDK revision" \
+            -f description="Public SDK $tier validation is running" \
             -f target_url="$TARGET_URL" --silent
 
   rust-format:
@@ -712,14 +715,17 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           SDK_SHA: ${{ inputs.sdk_sha }}
+          SDK_CI_FULL: ${{ inputs.full }}
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
           TARGET_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           state=failure
-          description="Public SDK validation failed"
+          tier=fast
+          if [[ "$SDK_CI_FULL" == "true" ]]; then tier=full; fi
+          description="Public SDK $tier validation failed"
           if [[ "$VERIFY_OUTCOME" == success ]]; then
             state=success
-            description="Public SDK validation passed"
+            description="Public SDK $tier validation passed"
           fi
           gh api --method POST "repos/$SDK_REPOSITORY/statuses/$SDK_SHA" \
             -f state="$state" \

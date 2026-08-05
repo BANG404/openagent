@@ -53,9 +53,10 @@ private SDK gitlink.
 - Skill metadata still describes the situations that should trigger it.
 - Public documentation contains no private SDK implementation detail.
 - The selected delivery mode reached its terminal state: local mode has verified
-  commits on the current remote-tracking default branch and no push; `OPR` has a
-  ready PR on a preserved task branch while the default worktree equals its
-  remote; `ORPR` has a passing `Required` check and a confirmed merge.
+  public-host commits on the current remote-tracking default branch and no host
+  push; private SDK commits were pushed directly to `main`; `OPR` has a ready PR
+  on a preserved task branch while the default worktree equals its remote;
+  `ORPR` has an administrator-bypassed confirmed merge.
 - `OPR` retains its dedicated task branch or worktree for later review follow-up
   and stops before cleanup. Its reconciler may rewrite only a verified linear
   unpublished tail onto the remote default after preserving the original head,

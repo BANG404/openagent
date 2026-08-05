@@ -1,21 +1,22 @@
 name: Release
 
 on:
-  workflow_run:
-    workflows:
-      - CI
-    types:
-      - completed
+  push:
     branches:
       - master
       - release/stable/**
+    paths:
+      - .github/release.json
 
 concurrency:
-  group: release-${{ github.event.workflow_run.head_branch }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
+  actions: read
   contents: write
+  pull-requests: read
+  statuses: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -23,24 +24,21 @@ env:
 
 jobs:
   detect:
-    name: Detect verified release commit
-    if: >-
-      github.event.workflow_run.conclusion == 'success'
-      && github.event.workflow_run.event == 'push'
+    name: Detect release commit
     runs-on: ubuntu-22.04
     outputs:
       active: ${{ steps.release.outputs.active }}
       tag: ${{ steps.release.outputs.tag }}
       channel: ${{ steps.release.outputs.channel }}
       prerelease: ${{ steps.release.outputs.prerelease }}
-      sha: ${{ github.event.workflow_run.head_sha }}
+      sha: ${{ github.sha }}
     steps:
       - name: Detect release marker change
         id: marker
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+          RELEASE_SHA: ${{ github.sha }}
         shell: bash
         run: |
           echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -69,7 +67,7 @@ jobs:
       - uses: actions/checkout@v7
         if: steps.marker.outputs.changed == 'true'
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - uses: oven-sh/setup-bun@v2
@@ -81,7 +79,7 @@ jobs:
         id: release
         if: steps.marker.outputs.changed == 'true'
         env:
-          RELEASE_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          RELEASE_BRANCH: ${{ github.ref_name }}
         shell: bash
         run: |
           echo "active=false" >> "$GITHUB_OUTPUT"
@@ -178,10 +176,24 @@ jobs:
             done
           fi
 
-  tag:
-    name: Tag verified commit
+  qualify:
+    name: Complete release qualification
     needs: detect
     if: needs.detect.outputs.active == 'true'
+    uses: ./.github/workflows/ci.yml
+    with:
+      base_sha: ${{ github.event.before }}
+      full: true
+    secrets: inherit
+
+  tag:
+    name: Tag verified commit
+    needs:
+      - detect
+      - qualify
+    if: >-
+      needs.detect.outputs.active == 'true'
+      && needs.qualify.result == 'success'
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
