@@ -201,12 +201,15 @@ Repository-changing tasks use the prefix-selected `deliver-via-pr` workflow.
 Without a delivery prefix, work directly in the current worktree on its
 remote-tracking default branch (`master` here and `main` in the SDK), run
 preflight, create local commits, and stop without pushing or switching branches.
-An uppercase standalone `OPR` prefix adds pushing every unpublished local commit
-to a remote-only task branch with an explicit refspec and creating or updating a
-ready pull request. It must not change the local default branch or its upstream,
-and stops without waiting for CI, merging, or cleanup. A message containing only
-`OPR` publishes the current unpublished local commits without creating another
-change or empty commit. An uppercase standalone `ORPR` prefix selects the full
+An uppercase standalone `OPR` prefix creates or updates a ready pull request on
+a dedicated task branch and stops without waiting for CI, merging, or cleanup.
+New OPR tasks use an isolated worktree so the default worktree remains aligned
+with its remote. A message containing only `OPR` publishes existing committed
+work without creating another change: it first preserves the exact head on a
+local task branch, confirms that branch and the PR remotely, and only then
+restores the clean default worktree to its remote-tracking branch. Never merge a
+later squash result back into the preserved pre-squash commits. An uppercase
+standalone `ORPR` prefix selects the full
 isolated-worktree workflow: create the task worktree from the remote default
 branch, commit and push, open a ready PR, wait for authoritative CI, merge under
 repository policy, and clean up. Match `ORPR` before `OPR`. Explicit user
