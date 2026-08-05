@@ -8,7 +8,9 @@ on:
       - completed
 
 permissions:
+  actions: read
   contents: read
+  pull-requests: read
   statuses: write
 
 jobs:
@@ -30,6 +32,8 @@ jobs:
           CI_RUN_ID: ${{ github.event.workflow_run.id }}
           CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
           CI_WORKFLOW_ID: ${{ github.event.workflow_run.workflow_id }}
+          CI_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          CI_BASE_SHA: ${{ github.event.workflow_run.pull_requests[0].base.sha }}
         shell: bash
         run: |
           echo "authoritative=false" >> "$GITHUB_OUTPUT"
@@ -43,11 +47,56 @@ jobs:
             exit 0
           fi
 
+          verified_commit="$CI_HEAD_SHA"
+          if [[ "$CI_EVENT" == "pull_request" ]]; then
+            verified_commit=""
+            if [[ -z "$CI_PR_NUMBER" ]]; then
+              CI_PR_NUMBER="$(
+                gh api "repos/$GITHUB_REPOSITORY/commits/$CI_HEAD_SHA/pulls" \
+                  --jq '[.[] | select(.head.sha == env.CI_HEAD_SHA)] | if length == 1 then .[0].number else empty end' \
+                  2>/dev/null || true
+              )"
+            fi
+            if [[ -n "$CI_PR_NUMBER" && "$CI_BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              pr_state="$(
+                gh api "repos/$GITHUB_REPOSITORY/pulls/$CI_PR_NUMBER" \
+                  --jq '[.head.sha, .base.sha] | @tsv' 2>/dev/null || true
+              )"
+              IFS=$'\t' read -r pr_head pr_base <<<"$pr_state"
+              if [[ "$pr_head" == "$CI_HEAD_SHA" && "$pr_base" == "$CI_BASE_SHA" ]]; then
+                merge_commit="$(
+                  gh api "repos/$GITHUB_REPOSITORY/git/ref/pull/$CI_PR_NUMBER/merge" \
+                    --jq '.object.sha' 2>/dev/null || true
+                )"
+                merge_state="$(
+                  gh api "repos/$GITHUB_REPOSITORY/git/commits/$merge_commit" \
+                    --jq '[.parents[0].sha, .parents[1].sha] | @tsv' 2>/dev/null || true
+                )"
+                IFS=$'\t' read -r merge_base merge_head <<<"$merge_state"
+                if [[ "$merge_base" == "$CI_BASE_SHA" && "$merge_head" == "$CI_HEAD_SHA" ]]; then
+                  verified_commit="$merge_commit"
+                fi
+              fi
+            fi
+          fi
+
+          verified_tree=""
+          if [[ "$verified_commit" =~ ^[0-9a-f]{40}$ ]]; then
+            verified_tree="$(
+              gh api "repos/$GITHUB_REPOSITORY/git/commits/$verified_commit" --jq '.tree.sha' \
+                2>/dev/null || true
+            )"
+          fi
+          echo "verified_tree=$verified_tree" >> "$GITHUB_OUTPUT"
+
           state=failure
           description="Authoritative CI failed for this PR head."
           if [[ "$CI_CONCLUSION" == "success" ]]; then
             state=success
             description="Authoritative CI passed for this PR head."
+          fi
+          if [[ -n "$verified_tree" ]]; then
+            description="tree=$verified_tree $description"
           fi
 
           gh api \
@@ -59,6 +108,86 @@ jobs:
             -f target_url="$CI_RUN_URL"
 
           echo "authoritative=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publish verified capability coverage
+        continue-on-error: true
+        if: >-
+          steps.publish.outputs.authoritative == 'true'
+          && github.event.workflow_run.conclusion == 'success'
+          && steps.publish.outputs.verified_tree != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
+          CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
+          CI_VERIFIED_TREE: ${{ steps.publish.outputs.verified_tree }}
+        shell: bash
+        run: |
+          jobs_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID/jobs?per_page=100")"
+          job_count="$(jq '.jobs | length' <<<"$jobs_json")"
+          total_count="$(jq '.total_count' <<<"$jobs_json")"
+          if [[ "$job_count" != "$total_count" ]]; then
+            echo "::error::CI capability publication requires the complete job list."
+            exit 1
+          fi
+
+          job_succeeded() {
+            jq -e --arg name "$1" \
+              '[.jobs[] | select(.name == $name && .conclusion == "success")] | length == 1' \
+              <<<"$jobs_json" >/dev/null
+          }
+          step_succeeded() {
+            jq -e --arg job "$1" --arg step "$2" \
+              '[.jobs[] | select(.name == $job and .conclusion == "success")
+                | .steps[] | select(.name == $step and .conclusion == "success")] | length == 1' \
+              <<<"$jobs_json" >/dev/null
+          }
+
+          contexts=()
+          if job_succeeded "Automation / GitHub Actions"; then
+            contexts+=("Verified CI / automation")
+          fi
+          if job_succeeded "Frontend / Type and test"; then
+            contexts+=("Verified CI / frontend-fast")
+            if step_succeeded "Frontend / Type and test" "Build frontend" \
+              && step_succeeded "Frontend / Type and test" "Check frontend bundle budgets"; then
+              contexts+=("Verified CI / frontend-full")
+            fi
+          fi
+          if job_succeeded "Native desktop / Rust quality"; then
+            contexts+=("Verified CI / native-quality-fast")
+            if step_succeeded "Native desktop / Rust quality" "Verify Linux release sandbox digest guard"; then
+              contexts+=("Verified CI / native-quality-full")
+            fi
+          fi
+          if job_succeeded "Native desktop / Check Windows x64" \
+            && job_succeeded "Native desktop / Check macOS arm64"; then
+            contexts+=("Verified CI / native-platform-full")
+          fi
+          if job_succeeded "Native desktop / Verify embedding resources"; then
+            contexts+=("Verified CI / embedding-fast")
+            if job_succeeded "Native desktop / Exercise embedding model on Windows x64" \
+              && job_succeeded "Native desktop / Exercise embedding model on macOS arm64"; then
+              contexts+=("Verified CI / embedding-full")
+            fi
+          fi
+          if job_succeeded "Native desktop / Harness contract"; then
+            contexts+=("Verified CI / harness-fast")
+            if step_succeeded "Native desktop / Harness contract" "Exercise the harness server contract"; then
+              contexts+=("Verified CI / harness-full")
+            fi
+          fi
+
+          for context in "${contexts[@]}"; do
+            gh api \
+              --method POST \
+              "repos/$GITHUB_REPOSITORY/statuses/$CI_HEAD_SHA" \
+              -f state=success \
+              -f context="$context" \
+              -f description="tree=$CI_VERIFIED_TREE Capability passed for this exact source tree." \
+              -f target_url="$CI_RUN_URL" \
+              --silent
+          done
 
       - name: Automatically merge an eligible PR
         if: steps.publish.outputs.authoritative == 'true' && github.event.workflow_run.conclusion == 'success'

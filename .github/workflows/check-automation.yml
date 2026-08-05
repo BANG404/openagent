@@ -36,6 +36,7 @@ jobs:
         run: >-
           bun test
           tests/ciChanges.test.js
+          tests/ciReuse.test.js
           tests/ciResults.test.js
           tests/docsSync.test.js
           tests/oprReconcile.test.js

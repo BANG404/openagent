@@ -26,20 +26,28 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: read
   contents: read
+  pull-requests: read
+  statuses: read
 
 jobs:
   changes:
     name: Detect changed modules
     runs-on: ubuntu-22.04
+    timeout-minutes: 50
     outputs:
-      automation: ${{ steps.modules.outputs.automation }}
-      frontend: ${{ steps.modules.outputs.frontend }}
-      native_quality: ${{ steps.modules.outputs.nativeQuality }}
-      native_platform: ${{ steps.modules.outputs.nativePlatform }}
-      embedding: ${{ steps.modules.outputs.embedding }}
-      harness: ${{ steps.modules.outputs.harness }}
+      automation: ${{ steps.selection.outputs.automation }}
+      frontend: ${{ steps.selection.outputs.frontend }}
+      native_quality: ${{ steps.selection.outputs.nativeQuality }}
+      native_platform: ${{ steps.selection.outputs.nativePlatform }}
+      embedding: ${{ steps.selection.outputs.embedding }}
+      harness: ${{ steps.selection.outputs.harness }}
       full: ${{ steps.tier.outputs.full }}
+      reused: ${{ steps.selection.outputs.reused }}
+      reuse_source_sha: ${{ steps.reuse.outputs.sourceSha }}
+      reuse_source_tree: ${{ steps.reuse.outputs.sourceTree }}
+      reuse_source_runs: ${{ steps.reuse.outputs.sourceRuns }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -71,6 +79,26 @@ jobs:
           echo "full=$full" >> "$GITHUB_OUTPUT"
           echo "integration=$integration" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve checked-out Git tree
+        id: tree
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD^{tree})" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve authoritative tree-equivalent CI
+        id: reuse
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CI_EVENT_NAME: ${{ github.event_name }}
+          CI_TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CI_TARGET_TREE: ${{ steps.tree.outputs.sha }}
+          CI_TARGET_BRANCH: ${{ github.event.pull_request.base.ref || github.ref_name }}
+          CI_FULL: ${{ steps.tier.outputs.full }}
+          CI_REUSE_WAIT_SECONDS: >-
+            ${{ github.event_name == 'pull_request'
+            && startsWith(github.head_ref, 'prepare/v')
+            && '2700' || '0' }}
+        run: node scripts/ci-reuse.mjs resolve
+
       - name: Classify changed files
         id: modules
         env:
@@ -82,6 +110,42 @@ jobs:
               || (github.event_name == 'workflow_dispatch' && inputs.base_sha == '')
             }}
         run: node scripts/ci-changes.mjs >> "$GITHUB_OUTPUT"
+
+      - name: Select capabilities not already verified
+        id: selection
+        env:
+          CI_FULL: ${{ steps.tier.outputs.full }}
+          CI_REQUEST_AUTOMATION: ${{ steps.modules.outputs.automation }}
+          CI_REQUEST_FRONTEND: ${{ steps.modules.outputs.frontend }}
+          CI_REQUEST_NATIVE_QUALITY: ${{ steps.modules.outputs.nativeQuality }}
+          CI_REQUEST_NATIVE_PLATFORM: ${{ steps.modules.outputs.nativePlatform }}
+          CI_REQUEST_EMBEDDING: ${{ steps.modules.outputs.embedding }}
+          CI_REQUEST_HARNESS: ${{ steps.modules.outputs.harness }}
+          CI_REUSE_AUTOMATION: ${{ steps.reuse.outputs.automation }}
+          CI_REUSE_FRONTEND: ${{ steps.reuse.outputs.frontend }}
+          CI_REUSE_NATIVE_QUALITY: ${{ steps.reuse.outputs.nativeQuality }}
+          CI_REUSE_NATIVE_PLATFORM: ${{ steps.reuse.outputs.nativePlatform }}
+          CI_REUSE_EMBEDDING: ${{ steps.reuse.outputs.embedding }}
+          CI_REUSE_HARNESS: ${{ steps.reuse.outputs.harness }}
+        run: node scripts/ci-reuse.mjs select
+
+      - name: Summarize reused verification
+        if: steps.selection.outputs.reused != ''
+        env:
+          REUSED_CAPABILITIES: ${{ steps.selection.outputs.reused }}
+          REUSE_SOURCE_SHA: ${{ steps.reuse.outputs.sourceSha }}
+          REUSE_SOURCE_TREE: ${{ steps.reuse.outputs.sourceTree }}
+          REUSE_SOURCE_RUNS: ${{ steps.reuse.outputs.sourceRuns }}
+        shell: bash
+        run: |
+          {
+            echo "### Reused authoritative CI"
+            echo
+            echo "- Capabilities: \`$REUSED_CAPABILITIES\`"
+            echo "- Source commit: \`$REUSE_SOURCE_SHA\`"
+            echo "- Exact tree: \`$REUSE_SOURCE_TREE\`"
+            echo "- Source runs: $REUSE_SOURCE_RUNS"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Require agent-facing documentation for logic changes
         env:
