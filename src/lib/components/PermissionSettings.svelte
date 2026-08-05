@@ -121,10 +121,15 @@
     }
     fileSystemPreset = nextPreset;
     if (nextPreset === "custom") {
+      // Entering the editor does not change a canonical preset by itself. Avoid
+      // an equal-value profile emission: the settings save cycle may remount
+      // this component and infer the canonical preset again before any rule is
+      // actually edited.
+      if (lastCustomEntries === null) return;
       commitManaged({
         ...managedProfile,
         file_system: {
-          entries: (lastCustomEntries ?? managedProfile.file_system.entries).map((entry) => ({
+          entries: lastCustomEntries.map((entry) => ({
             access: entry.access,
             path: { ...entry.path },
           })),
