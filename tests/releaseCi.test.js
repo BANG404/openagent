@@ -46,14 +46,20 @@ describe("release CI verification", () => {
     );
   });
 
-  test("subtracts only authoritative tree-equivalent capability coverage", () => {
+  test("bypasses generated release PRs and otherwise reuses authoritative coverage", () => {
     expect(ciWorkflow).toContain("actions: read");
     expect(ciWorkflow).toContain("statuses: read");
+    expect(ciWorkflow).toContain("CI_BYPASS_PREPARE_RELEASE:");
+    expect(ciWorkflow).toContain(
+      "github.event.pull_request.head.repo.full_name == github.repository",
+    );
+    expect(ciWorkflow).toContain("startsWith(github.head_ref, 'prepare/v')");
+    expect(ciWorkflow).toContain("startsWith(github.ref, 'refs/heads/prepare/v')");
+    expect(ciWorkflow).toContain("if: steps.route.outputs.bypassPrepareRelease != 'true'");
     expect(ciWorkflow).toContain("Resolve authoritative tree-equivalent CI");
     expect(ciWorkflow).toContain("node scripts/ci-reuse.mjs resolve");
     expect(ciWorkflow).toContain("node scripts/ci-reuse.mjs select");
-    expect(ciWorkflow).toContain("CI_REUSE_WAIT_SECONDS:");
-    expect(ciWorkflow).toContain("startsWith(github.head_ref, 'prepare/v')");
+    expect(ciWorkflow).not.toContain("CI_REUSE_WAIT_SECONDS:");
   });
 
   test("reports only the latest authoritative PR or release CI run to the stable head SHA", () => {

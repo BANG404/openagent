@@ -67,7 +67,10 @@ check selected from the base-to-head file diff. Frontend and automation are
 top-level modules; native verification is selected independently for Rust
 quality, platform compilation, bundled embedding behavior, and the Harness
 contract. Ordinary pull requests exercise only each selected capability's
-fast contract. Pushes to `master` require every fast module as an integration
+fast contract. Same-repository `prepare/v*` release PRs bypass module checks
+because preparation already requires verified source CI; their post-merge push
+and Release workflow own integration verification and complete builds.
+Pushes to `master` require every fast module as an integration
 check, while nightly, explicit full dispatches, and `release/stable/**` pushes
 require the complete cross-platform qualification suite. A later PR or branch
 push may reuse an already-successful capability only when the trusted
