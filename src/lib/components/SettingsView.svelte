@@ -24,6 +24,7 @@
     PROVIDER_CATALOG,
     providerCatalogEntry,
     providerDefaultBaseUrl,
+    providerIconPath,
     providerRequiresApiKey,
   } from "$lib/providerCatalog";
   import {
@@ -962,7 +963,12 @@
   function enabledProviderOptions() {
     return draftConfig.providers
       .filter((provider) => provider.enabled && provider.models.length > 0)
-      .map((provider) => ({ value: provider.id, label: provider.name }));
+      .map((provider) => ({
+        value: provider.id,
+        label: provider.name,
+        icon: providerIconPath(provider.provider),
+        iconFallback: providerCatalogEntry(provider.provider).badge,
+      }));
   }
 
   function repairDefaultModelBindings() {
@@ -2537,6 +2543,7 @@
         <div class="provider-list">
           {#if filteredProviders.length > 0}
             {#each filteredProviders as provider (provider.id)}
+              {@const providerIcon = providerIconPath(provider.provider)}
               <ContextMenu.Root>
                 <ContextMenu.Trigger>
                   <button
@@ -2547,8 +2554,8 @@
                       manualModelName = "";
                     }}
                   >
-                    <div class="provider-item-icon provider-type-{provider.provider}">
-                      {providerCatalogEntry(provider.provider).badge}
+                    <div class="provider-item-icon">
+                      <img src={providerIcon} alt="" aria-hidden="true" />
                     </div>
                     <div class="provider-item-info">
                       <span class="provider-item-name">{provider.name}</span>
@@ -3921,22 +3928,23 @@
     border-radius: 8px;
     display: grid;
     place-items: center;
-    color: white;
+    color: #475569;
     font-weight: 700;
     flex-shrink: 0;
-    background: #6366f1;
+    background: #fff;
+    box-shadow: 0 0 0 1px rgb(15 23 42 / 8%);
   }
 
-  .provider-type-anthropic {
-    background: #cc785c;
-  }
-
-  .provider-type-openai {
-    background: #10a37f;
+  .provider-item-icon img {
+    display: block;
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
   }
 
   .mcp-icon {
     background: #6366f1;
+    color: #fff;
   }
 
   .env-row {

@@ -151,6 +151,15 @@ environment variable and may override the default
 `https://openagentlogs.odn.cc/v1/logs` destination with
 `OPENAGENT_LOGS_ENDPOINT`.
 
+The model-service list and default-model provider selectors show the configured
+service name together with the icon mapped from its provider type, independent
+of the configured display name or base URL. Default-model selectors include the
+icon in both the selected value and the option list. Every catalog provider type
+must have a bundled icon; the exhaustive mapping makes a newly added type fail
+type-checking until its asset is assigned. Artwork comes from Cherry Studio at
+commit `16e2905fd30fbfe21d1c58651574dcc939b6fb30` where available, with missing
+brands sourced from the provider's official site or project repository.
+
 Provider model catalogs are editable configuration rather than an authority on
 account entitlements. In particular, the ChatGPT OAuth service exposes Rig's
 built-in catalog, which may lag the models available to an account. Its settings

@@ -198,6 +198,32 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
   },
 ] as const;
 
+const PROVIDER_ICON_FILES: Record<ProviderType, string> = {
+  anthropic: "anthropic.svg",
+  openai: "openai.svg",
+  azure: "azureai.svg",
+  gemini: "google.svg",
+  mistral: "mistral.svg",
+  cohere: "cohere.svg",
+  xai: "grok.svg",
+  perplexity: "perplexity.svg",
+  deepseek: "deepseek.svg",
+  groq: "groq.svg",
+  together: "together.svg",
+  openrouter: "openrouter.svg",
+  hyperbolic: "hyperbolic.svg",
+  moonshot: "moonshot.svg",
+  minimax: "minimax.svg",
+  zai: "z-ai.svg",
+  xiaomimimo: "xiaomimimo.svg",
+  mira: "mira.png",
+  doubleword: "doubleword.png",
+  ollama: "ollama.svg",
+  llamafile: "llamafile.png",
+  huggingface: "huggingface.svg",
+  chatgpt: "openai.svg",
+};
+
 export function providerCatalogEntry(provider: ProviderType): ProviderCatalogEntry {
   return PROVIDER_CATALOG.find((entry) => entry.value === provider) ?? PROVIDER_CATALOG[1];
 }
@@ -208,4 +234,8 @@ export function providerDefaultBaseUrl(provider: ProviderType): string {
 
 export function providerRequiresApiKey(provider: ProviderType): boolean {
   return providerCatalogEntry(provider).requiresApiKey;
+}
+
+export function providerIconPath(provider: ProviderType): string {
+  return `/assets/providers/${PROVIDER_ICON_FILES[provider]}`;
 }
