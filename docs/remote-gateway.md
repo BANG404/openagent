@@ -14,7 +14,7 @@ and workspace allowlisting remain HTTP-adapter policy rather than runtime state.
 
 ## Enable and connect
 
-1. Open **Settings → General → Remote Gateway**.
+1. Open **Settings → Channels → Gateway**.
 2. Enable remote web control and explicitly allow the current workspace.
 3. For a trusted local network, enable **Allow direct LAN access** and open the
    LAN URL shown in Settings. For access outside that network, put a trusted HTTPS

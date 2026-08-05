@@ -6,6 +6,8 @@
     label: string;
     description?: string;
     selectedLabel?: string;
+    icon?: string;
+    iconFallback?: string;
     disabled?: boolean;
   };
 
@@ -51,10 +53,8 @@
 
   let searchQuery = $state("");
 
-  const selectedLabel = $derived.by(() => {
-    const selected = items.find((it) => it.value === value);
-    return selected?.selectedLabel ?? selected?.label ?? "";
-  });
+  const selectedItem = $derived(items.find((item) => item.value === value));
+  const selectedLabel = $derived(selectedItem?.selectedLabel ?? selectedItem?.label ?? "");
 
   const filteredItems = $derived.by(() => {
     const query = searchQuery.trim().toLocaleLowerCase();
@@ -80,7 +80,16 @@
 >
   <Select.Trigger {id} class="ui-select-trigger {triggerClass}" aria-label={ariaLabel}>
     <span class="ui-select-value" class:placeholder={!selectedLabel}>
-      {selectedLabel || placeholder}
+      {#if selectedItem?.icon || selectedItem?.iconFallback}
+        <span class="ui-select-item-icon" aria-hidden="true">
+          {#if selectedItem.icon}
+            <img src={selectedItem.icon} alt="" />
+          {:else}
+            <span>{selectedItem.iconFallback}</span>
+          {/if}
+        </span>
+      {/if}
+      <span class="ui-select-value-label">{selectedLabel || placeholder}</span>
     </span>
     <svg class="ui-select-caret" viewBox="0 0 16 16" aria-hidden="true">
       <path
@@ -135,6 +144,15 @@
               disabled={item.disabled}
               class="ui-select-item"
             >
+              {#if item.icon || item.iconFallback}
+                <span class="ui-select-item-icon" aria-hidden="true">
+                  {#if item.icon}
+                    <img src={item.icon} alt="" />
+                  {:else}
+                    <span>{item.iconFallback}</span>
+                  {/if}
+                </span>
+              {/if}
               <span class="ui-select-item-copy">
                 <span class="ui-select-item-label">{item.label}</span>
                 {#if item.description}
@@ -180,6 +198,38 @@
   }
   :global(.ui-select-value.placeholder) {
     color: var(--text-muted, #888);
+  }
+  :global(.ui-select-value) {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 8px;
+  }
+  :global(.ui-select-value-label) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  :global(.ui-select-item-icon) {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    border-radius: 6px;
+    background: #fff;
+    color: #475569;
+    box-shadow: 0 0 0 1px rgb(15 23 42 / 8%);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  :global(.ui-select-item-icon img) {
+    display: block;
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
   }
   :global(.ui-select-caret) {
     width: 14px;

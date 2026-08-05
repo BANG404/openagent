@@ -163,6 +163,25 @@ async fn save_settings(
     openagent_runtime::commands::save_settings(runtime.state(), config, base_config).await
 }
 
+#[tauri::command]
+async fn get_wechat_channel_status(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+) -> Result<openagent_runtime::channels::WechatChannelStatus, String> {
+    Ok(openagent_runtime::channels::get_wechat_channel_status(runtime.state()).await)
+}
+
+#[tauri::command]
+async fn get_channel_statuses(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+) -> Result<Vec<openagent_runtime::channels::ChannelStatus>, String> {
+    Ok(openagent_runtime::channels::get_channel_statuses(runtime.state()).await)
+}
+
+#[tauri::command]
+async fn reset_wechat_channel(runtime: State<'_, Arc<OpenAgentRuntime>>) -> Result<(), String> {
+    openagent_runtime::channels::reset_wechat_channel(runtime.state()).await
+}
+
 fn diagnostic_event_name(value: &str) -> &'static str {
     match value {
         "frontend_uncaught_error" => "frontend_uncaught_error",
@@ -1354,6 +1373,12 @@ fn run_with_mode(agent_server: bool) {
                 }
             });
             if !is_workspace_window {
+                tauri::async_runtime::block_on(async {
+                    openagent_runtime::channels::start_channel_supervisor(
+                        runtime.inner().clone(),
+                        openagent_runtime::config::config_dir(),
+                    );
+                });
                 let gateway_runtime = runtime.inner().clone();
                 let result = tauri::async_runtime::block_on(async {
                     start_remote_gateway(gateway_runtime)
@@ -1445,6 +1470,9 @@ fn run_with_mode(agent_server: bool) {
         .invoke_handler(tauri::generate_handler![
             get_settings,
             save_settings,
+            get_channel_statuses,
+            get_wechat_channel_status,
+            reset_wechat_channel,
             report_frontend_diagnostic,
             set_default_chat_model,
             set_model_reasoning_effort,

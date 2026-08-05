@@ -452,6 +452,8 @@ For Anthropic, set `OPENAGENT_STRUCTURED_OUTPUT_PROVIDER=anthropic` and provide 
 
 ## Further reading
 
+- [`docs/channels.md`](docs/channels.md) — WeChat access, commands, persistence, and security
+
 - [`AGENTS.md`](AGENTS.md) — Public host and frontend contributor guide
 - [`CHANGELOG.md`](CHANGELOG.md) — Full release history
 - [`docs/release.md`](docs/release.md) — Versioning, beta/stable channels, and publishing workflow

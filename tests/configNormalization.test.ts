@@ -19,6 +19,53 @@ describe("diagnostic log collection config", () => {
   });
 });
 
+describe("messaging channel config", () => {
+  test("materializes every channel for older configuration payloads", () => {
+    const normalized = normalizeConfigShape({} as AppConfig);
+
+    expect(normalized.channels).toEqual({
+      feishu: {
+        enabled: false,
+        app_id: "",
+        app_secret: "",
+        domain: "feishu",
+        allowed_chat_ids: [],
+      },
+      telegram: { enabled: false, bot_token: "", allowed_chat_ids: [] },
+      qq: { enabled: false, app_id: "", client_secret: "", allowed_user_ids: [] },
+      wechat: { enabled: false, allowed_user_ids: [] },
+      discord: { enabled: false, bot_token: "", allowed_channel_ids: [] },
+      slack: { enabled: false, bot_token: "", app_token: "", allowed_channel_ids: [] },
+    });
+  });
+
+  test("preserves configured credentials and allowlists", () => {
+    const normalized = normalizeConfigShape({
+      channels: {
+        telegram: { enabled: true, bot_token: "token", allowed_chat_ids: ["42"] },
+        slack: {
+          enabled: true,
+          bot_token: "xoxb-token",
+          app_token: "xapp-token",
+          allowed_channel_ids: ["C123"],
+        },
+      },
+    } as AppConfig);
+
+    expect(normalized.channels.telegram).toEqual({
+      enabled: true,
+      bot_token: "token",
+      allowed_chat_ids: ["42"],
+    });
+    expect(normalized.channels.slack).toEqual({
+      enabled: true,
+      bot_token: "xoxb-token",
+      app_token: "xapp-token",
+      allowed_channel_ids: ["C123"],
+    });
+  });
+});
+
 describe("permission profile config", () => {
   test("defaults older payloads to host read and workspace write access", () => {
     const normalized = normalizeConfigShape({} as AppConfig);
