@@ -14,7 +14,10 @@ permissions:
 jobs:
   report:
     name: Required PR Head
-    if: github.event.workflow_run.event == 'pull_request'
+    if: >-
+      github.event.workflow_run.event == 'pull_request'
+      || (github.event.workflow_run.event == 'workflow_dispatch'
+      && startsWith(github.event.workflow_run.head_branch, 'prepare/v'))
     runs-on: ubuntu-22.04
     steps:
       - name: Publish the latest authoritative CI result
@@ -22,6 +25,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           CI_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          CI_EVENT: ${{ github.event.workflow_run.event }}
           CI_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           CI_RUN_ID: ${{ github.event.workflow_run.id }}
           CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
@@ -31,7 +35,7 @@ jobs:
           echo "authoritative=false" >> "$GITHUB_OUTPUT"
           latest_run_id="$(
             gh api \
-              "repos/$GITHUB_REPOSITORY/actions/workflows/$CI_WORKFLOW_ID/runs?event=pull_request&per_page=100" \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/$CI_WORKFLOW_ID/runs?event=$CI_EVENT&per_page=100" \
               --jq '[.workflow_runs[] | select(.head_sha == env.CI_HEAD_SHA)] | max_by(.id) | .id'
           )"
           if [[ "$latest_run_id" != "$CI_RUN_ID" ]]; then
@@ -56,11 +60,13 @@ jobs:
 
           echo "authoritative=true" >> "$GITHUB_OUTPUT"
 
-      - name: Automatically merge an owner-authored PR
+      - name: Automatically merge an eligible PR
         if: steps.publish.outputs.authoritative == 'true' && github.event.workflow_run.conclusion == 'success'
         env:
           GH_TOKEN: ${{ secrets.ADMIN_MERGE_TOKEN }}
           CI_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          CI_EVENT: ${{ github.event.workflow_run.event }}
+          CI_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
@@ -70,8 +76,18 @@ jobs:
             echo "::notice::ADMIN_MERGE_TOKEN is not configured; leaving the validated PR open."
             exit 0
           fi
+          if [[ -z "$PR_NUMBER" && "$CI_EVENT" == "workflow_dispatch" ]]; then
+            PR_NUMBER="$(
+              gh api \
+                --method GET \
+                "repos/$GITHUB_REPOSITORY/pulls" \
+                -f state=open \
+                -f head="$REPOSITORY_OWNER:$CI_HEAD_BRANCH" \
+                --jq '[.[] | select(.head.sha == env.CI_HEAD_SHA)] | if length == 1 then .[0].number else empty end'
+            )"
+          fi
           if [[ -z "$PR_NUMBER" ]]; then
-            echo "::warning::The authoritative run did not identify a pull request; automatic merge was skipped."
+            echo "::warning::The authoritative run did not identify exactly one open pull request; automatic merge was skipped."
             exit 0
           fi
 
@@ -80,10 +96,36 @@ jobs:
           base="$(jq -r '.base.ref' <<<"$pr")"
           draft="$(jq -r '.draft' <<<"$pr")"
           head="$(jq -r '.head.sha' <<<"$pr")"
+          head_ref="$(jq -r '.head.ref' <<<"$pr")"
+          head_repo="$(jq -r '.head.repo.full_name' <<<"$pr")"
           state="$(jq -r '.state' <<<"$pr")"
 
-          if [[ "$author" != "$REPOSITORY_OWNER" || "$base" != "$DEFAULT_BRANCH" || "$draft" != "false" || "$head" != "$CI_HEAD_SHA" || "$state" != "open" ]]; then
-            echo "::notice::PR #$PR_NUMBER is not an eligible owner-authored PR at the validated head; automatic merge was skipped."
+          eligible=false
+          if [[ "$CI_EVENT" == "pull_request" \
+            && "$author" == "$REPOSITORY_OWNER" \
+            && "$base" == "$DEFAULT_BRANCH" ]]; then
+            eligible=true
+          elif [[ "$CI_EVENT" == "workflow_dispatch" \
+            && "$author" == "github-actions[bot]" \
+            && "$head_repo" == "$GITHUB_REPOSITORY" \
+            && "$head_ref" == "$CI_HEAD_BRANCH" ]]; then
+            release_tag="${head_ref#prepare/}"
+            if [[ "$release_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ \
+              && "$base" == "$DEFAULT_BRANCH" ]]; then
+              eligible=true
+            elif [[ "$release_tag" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+              stable_version="${BASH_REMATCH[1]}"
+              if [[ "$base" == "release/stable/$stable_version" ]]; then
+                eligible=true
+              fi
+            fi
+          fi
+
+          if [[ "$eligible" != "true" \
+            || "$draft" != "false" \
+            || "$head" != "$CI_HEAD_SHA" \
+            || "$state" != "open" ]]; then
+            echo "::notice::PR #$PR_NUMBER is not eligible for automatic merge at the validated head; automatic merge was skipped."
             exit 0
           fi
 

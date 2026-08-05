@@ -20,6 +20,10 @@ const prHeadWorkflow = readFileSync(
   new URL("../.github/workflows/report-pr-head-ci.yml", import.meta.url),
   "utf8",
 );
+const prepareReleaseWorkflow = readFileSync(
+  new URL("../.github/workflows/prepare-release.yml", import.meta.url),
+  "utf8",
+);
 
 function successfulJobs() {
   return REQUIRED_RELEASE_CI_JOBS.map((name) => ({ name, conclusion: "success" }));
@@ -42,26 +46,36 @@ describe("release CI verification", () => {
     );
   });
 
-  test("reports only the latest completed PR CI run to the stable head SHA", () => {
+  test("reports only the latest authoritative PR or release CI run to the stable head SHA", () => {
     expect(prHeadWorkflow).toContain("workflow_run:");
     expect(prHeadWorkflow).toContain("statuses: write");
     expect(prHeadWorkflow).toContain("github.event.workflow_run.event == 'pull_request'");
+    expect(prHeadWorkflow).toContain("github.event.workflow_run.event == 'workflow_dispatch'");
+    expect(prHeadWorkflow).toContain(
+      "startsWith(github.event.workflow_run.head_branch, 'prepare/v')",
+    );
     expect(prHeadWorkflow).toContain("github.event.workflow_run.head_sha");
+    expect(prHeadWorkflow).toContain("event=$CI_EVENT");
     expect(prHeadWorkflow).toContain("latest_run_id");
     expect(prHeadWorkflow).toContain('context="Required PR Head"');
   });
 
-  test("auto-merges only an eligible owner-authored PR at the validated head", () => {
+  test("auto-merges only an eligible owner or generated release PR at the validated head", () => {
     expect(prHeadWorkflow).toContain("secrets.ADMIN_MERGE_TOKEN");
     expect(prHeadWorkflow).toContain("steps.publish.outputs.authoritative == 'true'");
     expect(prHeadWorkflow).toContain("github.event.workflow_run.conclusion == 'success'");
-    expect(prHeadWorkflow).toContain('"$author" != "$REPOSITORY_OWNER"');
-    expect(prHeadWorkflow).toContain('"$base" != "$DEFAULT_BRANCH"');
+    expect(prHeadWorkflow).toContain('"$author" == "$REPOSITORY_OWNER"');
+    expect(prHeadWorkflow).toContain('"$author" == "github-actions[bot]"');
+    expect(prHeadWorkflow).toContain('"$head_repo" == "$GITHUB_REPOSITORY"');
+    expect(prHeadWorkflow).toContain('"$base" == "release/stable/$stable_version"');
     expect(prHeadWorkflow).toContain('"$draft" != "false"');
     expect(prHeadWorkflow).toContain('"$head" != "$CI_HEAD_SHA"');
     expect(prHeadWorkflow).toContain('"$state" != "open"');
     expect(prHeadWorkflow).toContain("-f merge_method=squash");
     expect(prHeadWorkflow).toContain('-f sha="$CI_HEAD_SHA"');
+    expect(prepareReleaseWorkflow).toContain(
+      "The trusted release workflow will squash-merge this PR",
+    );
   });
 
   test("fetches tags before validating release metadata", () => {
