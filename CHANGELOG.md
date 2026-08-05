@@ -2,31 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.34.0-beta.1] - 2026-08-05
-
-### Features
-- **channels**: Add messaging integrations (#83)
-- **workflow**: Harden OPR and release delivery (#81)
-- **skills**: Discover capabilities proactively (#76)
-- **frontend**: Make sidebars resizable (#77)
-- **settings**: Separate approvals and permissions (#74)
-- **sandbox**: Package pinned Linux helper (#66)
-- **chat**: Restore durable turn metadata (#54)
-- **sandbox**: Integrate Codex filesystem isolation (#52)
-
-### Bug Fixes
-- **config**: Isolate development application state (#79)
-- **sandbox**: Remove external host isolation (#75)
-- **frontend**: Remove duplicate message index preview (#70)
-- **runtime**: Update provider-portable SDK (#60)
-
-### CI/CD
-- Add diff-aware local preflight (#55)
-
-### Miscellaneous
-- **sdk**: Update auto-merge workflow (#78)
-- Update private SDK revision (#73)
-
 ## [0.33.0-beta.1] - 2026-08-03
 
 ### Features
