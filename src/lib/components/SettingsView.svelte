@@ -1793,7 +1793,6 @@
     <Tabs.Content value="channels" class="settings-tab-panel">
       <div class="channel-settings-layout">
         <nav class="channel-settings-list" aria-label={$t("channels")}>
-          <div class="channel-settings-list-header"><h3>{$t("channels")}</h3></div>
           <div class="channel-settings-list-items">
             <button
               type="button"
@@ -1801,7 +1800,9 @@
               class="channel-settings-item"
               onclick={() => (channelSettingsNav = "feishu")}
             >
-              <span class="channel-settings-icon feishu" aria-hidden="true">飞</span>
+              <span class="channel-settings-icon feishu" aria-hidden="true">
+                <img src="/assets/channels/feishu.jpeg" alt="" />
+              </span>
               <span class="channel-settings-item-copy"
                 ><strong>{$t("feishuChannel")}</strong><span>{$t("feishuChannelSubtitle")}</span
                 ></span
@@ -1813,7 +1814,9 @@
               class="channel-settings-item"
               onclick={() => (channelSettingsNav = "telegram")}
             >
-              <span class="channel-settings-icon telegram" aria-hidden="true">T</span>
+              <span class="channel-settings-icon telegram" aria-hidden="true">
+                <img src="/assets/channels/telegram.png" alt="" />
+              </span>
               <span class="channel-settings-item-copy"
                 ><strong>{$t("telegramChannel")}</strong><span>{$t("telegramChannelSubtitle")}</span
                 ></span
@@ -1825,7 +1828,9 @@
               class="channel-settings-item"
               onclick={() => (channelSettingsNav = "qq")}
             >
-              <span class="channel-settings-icon qq" aria-hidden="true">Q</span>
+              <span class="channel-settings-icon qq" aria-hidden="true">
+                <img src="/assets/channels/qq.svg" alt="" />
+              </span>
               <span class="channel-settings-item-copy"
                 ><strong>{$t("qqChannel")}</strong><span>{$t("qqChannelSubtitle")}</span></span
               >
@@ -1836,7 +1841,9 @@
               class="channel-settings-item"
               onclick={() => (channelSettingsNav = "wechat")}
             >
-              <span class="channel-settings-icon wechat" aria-hidden="true">微</span>
+              <span class="channel-settings-icon wechat" aria-hidden="true">
+                <img src="/assets/channels/wechat.png" alt="" />
+              </span>
               <span class="channel-settings-item-copy"
                 ><strong>{$t("wechatChannel")}</strong><span>{$t("wechatChannelSubtitle")}</span
                 ></span
@@ -1848,7 +1855,9 @@
               class="channel-settings-item"
               onclick={() => (channelSettingsNav = "discord")}
             >
-              <span class="channel-settings-icon discord" aria-hidden="true">D</span>
+              <span class="channel-settings-icon discord" aria-hidden="true">
+                <img src="/assets/channels/discord.svg" alt="" />
+              </span>
               <span class="channel-settings-item-copy"
                 ><strong>{$t("discordChannel")}</strong><span>{$t("discordChannelSubtitle")}</span
                 ></span
@@ -1860,7 +1869,9 @@
               class="channel-settings-item"
               onclick={() => (channelSettingsNav = "slack")}
             >
-              <span class="channel-settings-icon slack" aria-hidden="true">S</span>
+              <span class="channel-settings-icon slack" aria-hidden="true">
+                <img src="/assets/channels/slack.svg" alt="" />
+              </span>
               <span class="channel-settings-item-copy"
                 ><strong>{$t("slackChannel")}</strong><span>{$t("slackChannelSubtitle")}</span
                 ></span
@@ -1872,7 +1883,9 @@
               class="channel-settings-item"
               onclick={() => (channelSettingsNav = "gateway")}
             >
-              <span class="channel-settings-icon gateway" aria-hidden="true">G</span>
+              <span class="channel-settings-icon gateway" aria-hidden="true">
+                <img src="/assets/channels/gateway.svg" alt="" />
+              </span>
               <span class="channel-settings-item-copy"
                 ><strong>{$t("remoteGateway")}</strong><span>{$t("remoteGatewaySubtitle")}</span
                 ></span
@@ -4401,12 +4414,6 @@
     padding-right: 16px;
   }
 
-  .channel-settings-list-header h3 {
-    margin: 0 8px 12px;
-    color: var(--text);
-    font-size: 14px;
-  }
-
   .channel-settings-list-items {
     display: grid;
     gap: 3px;
@@ -4436,7 +4443,7 @@
 
   .channel-settings-item.active::before {
     position: absolute;
-    inset: 9px auto 9px -9px;
+    inset: 9px auto 9px 0;
     width: 3px;
     border-radius: 2px;
     background: var(--primary);
@@ -4450,32 +4457,31 @@
     height: 34px;
     border-radius: 9px;
     background: var(--surface);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 700;
     box-shadow: var(--control-shadow);
   }
 
-  .channel-settings-icon.feishu {
-    background: #3370ff;
+  .channel-settings-icon img {
+    display: block;
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
   }
-  .channel-settings-icon.telegram {
-    background: #229ed9;
+
+  .channel-settings-icon.feishu img,
+  .channel-settings-icon.telegram img,
+  .channel-settings-icon.wechat img {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
   }
-  .channel-settings-icon.qq {
-    background: #1686e5;
-  }
-  .channel-settings-icon.wechat {
-    background: #07c160;
-  }
-  .channel-settings-icon.discord {
-    background: #5865f2;
-  }
-  .channel-settings-icon.slack {
-    background: #611f69;
-  }
+
   .channel-settings-icon.gateway {
     background: var(--primary);
+  }
+
+  .channel-settings-icon.gateway img {
+    width: 22px;
+    height: 22px;
   }
 
   .channel-settings-item-copy {
@@ -4537,9 +4543,6 @@
       border-bottom: 1px solid var(--border);
       padding: 0 0 12px;
     }
-    .channel-settings-list-header {
-      display: none;
-    }
     .channel-settings-list-items {
       display: flex;
       min-width: max-content;
@@ -4548,7 +4551,7 @@
       width: 128px;
     }
     .channel-settings-item.active::before {
-      inset: auto 8px -9px;
+      inset: auto 8px 0;
       width: auto;
       height: 3px;
     }

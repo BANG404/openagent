@@ -10,6 +10,11 @@ while a channel is running. Each external peer receives an independent durable
 conversation in that workspace. Credentials stay in the local configuration and
 connection status is exposed only to the desktop settings surface.
 
+The channel navigation identifies each messaging platform with its recognizable icon
+and starts directly with the platform list, without repeating the Channels title
+inside the panel. The bundled platform artwork is sourced from Cherry Studio at
+commit `16e2905fd30fbfe21d1c58651574dcc939b6fb30`.
+
 ## Platform setup
 
 | Platform | Required configuration | Receive transport | Allowlist identity |
