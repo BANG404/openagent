@@ -21,31 +21,24 @@ export function findAvailableLoopbackPort() {
 }
 
 /**
- * Adds a runtime dev URL to the Tauri config merge object.
+ * Adds the selected development URL as the final Tauri CLI configuration layer.
+ * The option must precede the runner argument delimiter so the CLI can use it
+ * while deciding whether to serve frontendDist or wait for Vite.
  *
- * @param {string | undefined} existingConfig
+ * @param {string[]} arguments_
  * @param {number} port
- * @returns {string}
+ * @returns {string[]}
  */
-export function mergeDevUrlConfig(existingConfig, port) {
-  /** @type {Record<string, unknown>} */
-  let config = {};
-  if (existingConfig) {
-    try {
-      config = JSON.parse(existingConfig);
-    } catch {
-      throw new Error("TAURI_CONFIG must be valid JSON when starting Tauri development.");
-    }
-  }
-
-  if (!config || typeof config !== "object" || Array.isArray(config)) {
-    throw new Error("TAURI_CONFIG must be a JSON object when starting Tauri development.");
-  }
-
-  /** @type {Record<string, unknown>} */
-  const build =
-    config.build && typeof config.build === "object" && !Array.isArray(config.build)
-      ? /** @type {Record<string, unknown>} */ (config.build)
-      : {};
-  return JSON.stringify({ ...config, build: { ...build, devUrl: `http://localhost:${port}` } });
+export function addDevUrlConfigArgument(arguments_, port) {
+  const configArguments = [
+    "--config",
+    JSON.stringify({ build: { devUrl: `http://localhost:${port}` } }),
+  ];
+  const delimiterIndex = arguments_.indexOf("--");
+  if (delimiterIndex === -1) return [...arguments_, ...configArguments];
+  return [
+    ...arguments_.slice(0, delimiterIndex),
+    ...configArguments,
+    ...arguments_.slice(delimiterIndex),
+  ];
 }

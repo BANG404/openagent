@@ -1,8 +1,10 @@
-import { copyFile, mkdir } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+
+import { copyFileIfChanged } from "./copy-if-changed.mjs";
 
 const helperNames = ["codex-windows-sandbox-setup.exe", "codex-command-runner.exe"];
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -99,7 +101,7 @@ run(
 const resourceDirectory = path.join(root, "src-tauri", "resources", "codex-resources");
 await mkdir(resourceDirectory, { recursive: true });
 for (const helperName of helperNames) {
-  await copyFile(
+  await copyFileIfChanged(
     path.join(targetDirectory, profileDirectory, helperName),
     path.join(resourceDirectory, helperName),
   );

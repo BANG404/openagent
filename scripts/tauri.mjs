@@ -4,18 +4,18 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-import { findAvailableLoopbackPort, mergeDevUrlConfig } from "./tauri-dev-port.mjs";
+import { addDevUrlConfigArgument, findAvailableLoopbackPort } from "./tauri-dev-port.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const tauriCli = path.join(root, "node_modules", "@tauri-apps", "cli", "tauri.js");
 await access(tauriCli);
 
-const arguments_ = process.argv.slice(2);
+let arguments_ = process.argv.slice(2);
 const environment = { ...process.env };
 if (arguments_[0] === "dev") {
   const port = await findAvailableLoopbackPort();
   environment.OPENAGENT_DEV_PORT = String(port);
-  environment.TAURI_CONFIG = mergeDevUrlConfig(environment.TAURI_CONFIG, port);
+  arguments_ = addDevUrlConfigArgument(arguments_, port);
   console.log(`Starting development server on http://localhost:${port}`);
 }
 

@@ -186,7 +186,11 @@ legacy top-level category values.
   `codex-resources/`. The library, setup helper, and command runner must never
   come from different revisions. Helper preparation must diagnose an SDK
   checkout that differs from the parent gitlink before suggesting a submodule
-  update; never reset or overwrite SDK work automatically.
+  update; never reset or overwrite SDK work automatically. During development,
+  pass the selected Vite URL as a Tauri CLI configuration layer before launch
+  so the webview cannot fall back to stale `frontendDist` output. Stage rebuilt
+  helper resources only when their bytes change so Tauri's watcher does not
+  restart an otherwise unchanged development application.
 - Build the Linux `codex-bwrap` sidecar from the same pinned Codex revision,
   strip it before hashing, embed the SHA-256 in release Rust compilation, and
   package those exact bytes through Tauri `externalBin`. Release builds must

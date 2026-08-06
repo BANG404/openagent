@@ -1,6 +1,6 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
-import { findAvailableLoopbackPort, mergeDevUrlConfig } from "../scripts/tauri-dev-port.mjs";
+import { addDevUrlConfigArgument, findAvailableLoopbackPort } from "../scripts/tauri-dev-port.mjs";
 
 describe("Tauri development port selection", () => {
   test("selects an ephemeral TCP port", async () => {
@@ -9,11 +9,23 @@ describe("Tauri development port selection", () => {
     expect(port).toBeLessThanOrEqual(65535);
   });
 
-  test("merges the selected URL without discarding Tauri configuration", () => {
-    expect(
-      mergeDevUrlConfig('{"app":{"windows":[]},"build":{"beforeDevCommand":"bun run dev"}}', 54321),
-    ).toEqual(
-      '{"app":{"windows":[]},"build":{"beforeDevCommand":"bun run dev","devUrl":"http://localhost:54321"}}',
-    );
+  test("passes the selected URL to the Tauri CLI", () => {
+    expect(addDevUrlConfigArgument(["dev", "--verbose"], 54321)).toEqual([
+      "dev",
+      "--verbose",
+      "--config",
+      '{"build":{"devUrl":"http://localhost:54321"}}',
+    ]);
+  });
+
+  test("places configuration before runner arguments", () => {
+    expect(addDevUrlConfigArgument(["dev", "--", "--features", "fixture"], 54321)).toEqual([
+      "dev",
+      "--config",
+      '{"build":{"devUrl":"http://localhost:54321"}}',
+      "--",
+      "--features",
+      "fixture",
+    ]);
   });
 });
