@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.34.1-beta.1] - 2026-08-06
+
+### Bug Fixes
+- **onboarding**: Hide runtime framework name
+- **sdk**: Support Anthropic compatible model limits
+
 ## [0.34.0-beta.1] - 2026-08-05
 
 ### Features
