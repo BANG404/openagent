@@ -550,7 +550,7 @@
     },
     model_retry: {
       retry_count: 3,
-      retry_delay_ms: 1000,
+      retry_delay_ms: 30000,
       chat_queue: [],
       flash_queue: [],
     },

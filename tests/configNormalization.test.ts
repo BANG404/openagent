@@ -26,6 +26,29 @@ describe("diagnostic log collection config", () => {
   });
 });
 
+describe("model retry config", () => {
+  test("defaults each model to three retries with a thirty second interval", () => {
+    const normalized = normalizeConfigShape({} as AppConfig);
+
+    expect(normalized.model_retry.retry_count).toBe(3);
+    expect(normalized.model_retry.retry_delay_ms).toBe(30_000);
+  });
+
+  test("preserves an explicitly configured retry interval", () => {
+    const normalized = normalizeConfigShape({
+      model_retry: {
+        retry_count: 2,
+        retry_delay_ms: 12_000,
+        chat_queue: [],
+        flash_queue: [],
+      },
+    } as AppConfig);
+
+    expect(normalized.model_retry.retry_count).toBe(2);
+    expect(normalized.model_retry.retry_delay_ms).toBe(12_000);
+  });
+});
+
 describe("messaging channel config", () => {
   test("materializes every channel for older configuration payloads", () => {
     const normalized = normalizeConfigShape({} as AppConfig);

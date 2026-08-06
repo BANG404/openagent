@@ -52,6 +52,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Finalization updates the existing row instead of replacing its DOM subtree,
   preserving open thinking sections. Restored historical thinking starts
   collapsed.
+- Keep every failed model attempt as its own ordered retry record and divider
+  inside the same logical assistant turn. The turn-level process disclosure may
+  contain several retries because automatic recovery must still produce one
+  final Agent reply; never merge one attempt's nested stream items into another.
 - Treat assistant records separated only by a tagged context-compaction replay
   as one complete Agent reply. Keep the compaction boundary at its real
   position inside that reply, with one action footer after the final record.
@@ -368,6 +372,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   normalized to the current version before a settings snapshot can be saved;
   persisted unversioned configuration is handled by the pre-runtime transition,
   never by settings autosave.
+- General model settings expose the retry interval in seconds while preserving
+  milliseconds at the transport boundary. Missing configuration defaults to
+  three retries per model with 30 seconds between attempts; explicit stored
+  values remain authoritative.
 - Keep the canonical managed permission fallback layered as `host_root` read
   followed by workspace write. The frontend transport type and normalization
   must preserve `host_root`; collapsing an older payload to workspace-only

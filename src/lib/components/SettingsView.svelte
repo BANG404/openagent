@@ -154,7 +154,7 @@
     },
     model_retry: {
       retry_count: 3,
-      retry_delay_ms: 1000,
+      retry_delay_ms: 30000,
       chat_queue: [],
       flash_queue: [],
     },
@@ -988,6 +988,15 @@
         model: provider?.models[0] ?? "",
       },
     ];
+  }
+
+  function updateRetryDelaySeconds(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    if (!Number.isFinite(input.valueAsNumber)) return;
+    draftConfig.model_retry.retry_delay_ms = Math.min(
+      60_000,
+      Math.max(0, Math.round(input.valueAsNumber * 1000)),
+    );
   }
 
   function removeRetryQueueModel(kind: RetryQueueKind, index: number) {
@@ -2966,14 +2975,15 @@
             />
           </label>
           <label class="detail-label">
-            <span class="label-text">{$t("retryDelayMs")}</span>
+            <span class="label-text">{$t("retryDelaySeconds")}</span>
             <input
               class="detail-input"
               type="number"
               min="0"
-              max="60000"
-              step="100"
-              bind:value={draftConfig.model_retry.retry_delay_ms}
+              max="60"
+              step="1"
+              value={draftConfig.model_retry.retry_delay_ms / 1000}
+              oninput={updateRetryDelaySeconds}
             />
           </label>
           <div class="model-list-box retry-queue-list">

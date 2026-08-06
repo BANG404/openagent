@@ -76,7 +76,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
   const requestedRetryDelayMs = Number(input.model_retry?.retry_delay_ms);
   const retryDelayMs = Number.isFinite(requestedRetryDelayMs)
     ? Math.min(60_000, Math.max(0, Math.floor(requestedRetryDelayMs)))
-    : 1_000;
+    : 30_000;
   const providers = (input.providers ?? []).map((provider) => {
     const configuredModels = new Set(provider.models ?? []);
     const model_context_compaction_thresholds = Object.fromEntries(
