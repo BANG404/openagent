@@ -218,9 +218,13 @@ Repository-changing tasks use the prefix-selected `deliver-via-pr` workflow.
 Without a delivery prefix, create a temporary local task branch and sibling
 worktree from the committed `HEAD` of the local remote-tracking default branch
 (`master` here). Implement, run preflight, and commit in that worktree; then
-fast-forward the unchanged local default branch to those commits and clean up
-the temporary worktree and branch. Preserve unrelated default-worktree changes,
-and stop without pushing. SDK changes retain their separate direct-push workflow.
+fast-forward the local default branch to those commits and clean up the temporary
+worktree and branch. If concurrent tasks commit descendants to the local default
+branch first, merge that latest default branch into the task branch, rerun
+preflight, and retry the fast-forward; repeat if it advances again. Preserve
+unrelated default-worktree changes, stop only for real conflicts, non-linear
+ancestry, or working-tree overwrites, and do not push. SDK changes retain their
+separate direct-push workflow.
 An uppercase standalone `OPR` prefix creates or updates a ready pull request on
 a dedicated task branch and stops without waiting for CI, merging, or cleanup.
 New OPR tasks use an isolated worktree so the default worktree remains aligned
