@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import {
   getMsiVersion,
+  isBetaReleaseRefresh,
   getNextBetaNumber,
   getNextReleaseVersion,
   getLatestReleaseTag,
@@ -284,6 +285,10 @@ function readJson(file) {
   return JSON.parse(readFileSync(file, "utf8"));
 }
 
+function readReferenceJson(reference, file) {
+  return refHasPath(reference, file) ? JSON.parse(readReferenceFile(reference, file)) : null;
+}
+
 function readReferenceFile(reference, file) {
   return execFileSync("git", ["show", `${reference}:${file}`], {
     encoding: "utf8",
@@ -337,9 +342,12 @@ function assertOnlyVersionChanged(file, versionPattern, normalizeVersion, baseli
   }
 }
 
-function verifyChangelog(version) {
+function verifyChangelog(version, releaseRefresh = false) {
   const previous = readReferenceFile("HEAD^", "CHANGELOG.md");
   const current = readFileSync("CHANGELOG.md", "utf8");
+  if (releaseRefresh && current === previous) {
+    return;
+  }
   const previousRelease = previous.search(/^## \[/m);
   if (previousRelease < 0) {
     if (!current.includes(`## [${version}]`)) {
@@ -402,8 +410,28 @@ function verifyPendingRelease() {
   }
 
   const changed = git(["diff", "--name-only", "HEAD^", "HEAD"]).split(/\r?\n/).filter(Boolean);
-  const unexpected = sourceTag ? [] : changed.filter((file) => !releaseFiles.includes(file));
-  const missing = releaseFiles.filter((file) => !changed.includes(file));
+  const previousManifest = readReferenceJson("HEAD^", releaseManifestFile);
+  const releaseRefresh = isBetaReleaseRefresh(
+    previousManifest,
+    manifest,
+    changed,
+    releaseManifestFile,
+  );
+  if (releaseRefresh) {
+    try {
+      git(["merge-base", "--is-ancestor", previousManifest.sourceSha, sourceSha]);
+    } catch {
+      throw new Error(
+        `Release source ${sourceSha} must advance from ${previousManifest.sourceSha}.`,
+      );
+    }
+  }
+  const unexpected = sourceTag
+    ? []
+    : changed.filter((file) =>
+        releaseRefresh ? file !== releaseManifestFile : !releaseFiles.includes(file),
+      );
+  const missing = releaseRefresh ? [] : releaseFiles.filter((file) => !changed.includes(file));
   if (unexpected.length || missing.length) {
     throw new Error(
       [
@@ -453,7 +481,7 @@ function verifyPendingRelease() {
       ),
     baselineRef,
   );
-  verifyChangelog(manifest.version);
+  verifyChangelog(manifest.version, releaseRefresh);
 
   const packageVersion = readJson("package.json").version;
   const tauriConfig = readJson("src-tauri/tauri.conf.json");

@@ -95,6 +95,15 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("needs.qualify.result == 'success'");
   });
 
+  test("refreshes an unpublished Beta marker onto the latest master source", () => {
+    expect(prepareReleaseWorkflow).toContain("ref: master");
+    expect(prepareReleaseWorkflow).toContain(
+      "git fetch origin refs/heads/master:refs/remotes/origin/master",
+    );
+    expect(prepareReleaseWorkflow).toContain('automation_sha="$(git rev-parse origin/master)"');
+    expect(prepareReleaseWorkflow).toContain('base_sha="$automation_sha"');
+  });
+
   test("fetches tags before validating release metadata", () => {
     const detectJob = releaseWorkflow.match(/ {2}detect:\n(?<job>[\s\S]*?)\n {2}qualify:/)?.groups
       ?.job;

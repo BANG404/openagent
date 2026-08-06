@@ -22,7 +22,18 @@ feat!: remove deprecated config field
 Development commits and Beta release metadata land on `master`. Ordinary
 pushes never create a version or tag by themselves. Start `Prepare Release` and
 choose `beta` or `stable`. Beta is the default, uses the current `master` head,
-and pushes its generated metadata commit directly back to `master`.
+and pushes its generated metadata commit directly back to `master`. The job
+fetches `origin/master` again immediately before resolving that immutable base;
+if `master` advances after resolution, the direct push fails instead of
+publishing stale source.
+
+If the current Beta metadata has not produced its immutable tag yet and later
+automation-only commits advance `master`, another preparation run keeps that
+unpublished version and writes a marker-only refresh whose `sourceSha` is the
+latest `master` commit. Verification permits this narrow retry only when the
+prior release identity is unchanged, the old source is an ancestor of the new
+source, and `.github/release.json` is the only changed file. New releases still
+have to update every generated release file together.
 
 Stable requires an explicit published `vX.Y.Z-beta.N` tag and never silently
 selects the latest Beta. The workflow creates `release/stable/X.Y.Z` from that

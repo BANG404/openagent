@@ -1,6 +1,41 @@
 const releaseVersionPattern = /^(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?$/;
 
 /**
+ * Recognize the narrow retry shape that moves an unpublished Beta marker to a
+ * newer source commit without pretending unchanged generated files were
+ * rewritten.
+ *
+ * @param {Record<string, unknown> | null} previousManifest
+ * @param {Record<string, unknown>} manifest
+ * @param {string[]} changedFiles
+ * @param {string} releaseManifestFile
+ * @returns {boolean}
+ */
+export function isBetaReleaseRefresh(
+  previousManifest,
+  manifest,
+  changedFiles,
+  releaseManifestFile,
+) {
+  if (
+    !previousManifest ||
+    manifest.channel !== "beta" ||
+    manifest.sourceTag ||
+    previousManifest.ready !== true ||
+    previousManifest.sourceTag ||
+    previousManifest.sourceSha === manifest.sourceSha ||
+    changedFiles.length !== 1 ||
+    changedFiles[0] !== releaseManifestFile
+  ) {
+    return false;
+  }
+
+  const previousIdentity = { ...previousManifest, sourceSha: "" };
+  const currentIdentity = { ...manifest, sourceSha: "" };
+  return JSON.stringify(previousIdentity) === JSON.stringify(currentIdentity);
+}
+
+/**
  * Select the highest immutable release tag by SemVer precedence. Stable tags
  * sort after Beta tags for the same X.Y.Z base, regardless of tag creation
  * time or reachability from the current branch.

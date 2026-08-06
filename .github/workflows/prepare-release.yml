@@ -58,6 +58,8 @@ jobs:
           BETA_TAG: ${{ inputs.beta_tag }}
         shell: bash
         run: |
+          git fetch origin refs/heads/master:refs/remotes/origin/master
+          automation_sha="$(git rev-parse origin/master)"
           source_tag=""
           promotion_arg=""
           if [[ "$RELEASE_CHANNEL" == "beta" ]]; then
@@ -66,7 +68,8 @@ jobs:
               exit 1
             fi
             base_branch="master"
-            base_sha="$(git rev-parse HEAD)"
+            base_sha="$automation_sha"
+            git switch --detach "$base_sha"
           else
             if [[ ! "$BETA_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
               echo "Stable preparation requires a Beta tag, got: $BETA_TAG" >&2
@@ -100,7 +103,6 @@ jobs:
                 exit 1
               fi
             else
-              automation_sha="$(git rev-parse master)"
               git switch -c "$base_branch" "$BETA_TAG"
               git restore --source "$automation_sha" -- \
                 .github/workflows \

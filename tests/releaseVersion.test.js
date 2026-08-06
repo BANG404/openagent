@@ -2,12 +2,61 @@
 import { describe, expect, test } from "bun:test";
 import {
   getMsiVersion,
+  isBetaReleaseRefresh,
   getLatestReleaseTag,
   getNextBetaNumber,
   getNextReleaseVersion,
   getReleaseLine,
   getStablePromotion,
 } from "../scripts/release-version.mjs";
+
+describe("unpublished Beta refreshes", () => {
+  const previous = {
+    ready: true,
+    version: "1.2.3-beta.1",
+    tag: "v1.2.3-beta.1",
+    channel: "beta",
+    sourceSha: "1111111111111111111111111111111111111111",
+    previousTag: "v1.2.2-beta.1",
+  };
+  const current = {
+    ...previous,
+    sourceSha: "2222222222222222222222222222222222222222",
+  };
+
+  test("accepts only a marker-only move of the same unpublished identity", () => {
+    expect(
+      isBetaReleaseRefresh(previous, current, [".github/release.json"], ".github/release.json"),
+    ).toBe(true);
+    expect(
+      isBetaReleaseRefresh(
+        previous,
+        { ...current, version: "1.2.3-beta.2", tag: "v1.2.3-beta.2" },
+        [".github/release.json"],
+        ".github/release.json",
+      ),
+    ).toBe(false);
+  });
+
+  test("rejects stable promotions and refreshes mixed with other file changes", () => {
+    expect(
+      isBetaReleaseRefresh(
+        previous,
+        { ...current, channel: "stable" },
+        [".github/release.json"],
+        ".github/release.json",
+      ),
+    ).toBe(false);
+    expect(
+      isBetaReleaseRefresh(
+        previous,
+        current,
+        [".github/release.json", "package.json"],
+        ".github/release.json",
+      ),
+    ).toBe(false);
+  });
+});
 
 describe("release tag precedence", () => {
   test("selects the highest SemVer across divergent release branches", () => {
