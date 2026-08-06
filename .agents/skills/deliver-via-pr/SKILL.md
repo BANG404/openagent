@@ -71,16 +71,25 @@ authorize unrelated changes.
    can inspect them. Use `--base <ref>` only for a non-default target branch.
 6. Inspect the staged diff and create focused Conventional Commits. Never amend,
    squash, or rewrite user-owned commits unless explicitly requested.
-7. Require a clean task worktree, then return to the default worktree. Verify it
-   is still on the recorded default branch at the recorded starting `HEAD`.
-   Fast-forward it to the task branch with `git merge --ff-only`; do not stash
-   or include unrelated default-worktree changes. If the branch advanced or
-   Git would overwrite a working change, preserve both sides and stop rather
-   than rebasing, cherry-picking, or resolving automatically.
+7. Require a clean task worktree, then return to the default worktree and verify
+   it is still on the recorded default branch. If that branch gained committed
+   descendants of the recorded starting `HEAD` while the task was in progress,
+   treat them as concurrent local delivery: merge the current default branch
+   into the task branch with `git merge --no-edit <default>`, never rebase,
+   cherry-pick, or rewrite either side. A clean merge is the default and may
+   automatically combine overlapping files; a real merge conflict, non-linear
+   ancestry from the recorded starting `HEAD`, or an overwrite of an unrelated
+   working change still requires preserving both sides and stopping for
+   direction. After every concurrent merge, rerun `bun run preflight` in the
+   task worktree. Then retry `git merge --ff-only <task>` in the default
+   worktree. If another committed advance makes that fast-forward fail, repeat
+   this merge, preflight, and fast-forward loop until the handoff succeeds. Do
+   not stash or include unrelated default-worktree changes.
 8. Confirm the intended commits and paths are now on the local default branch.
    Remove only the clean registered task worktree and its fully merged local
-   task branch. Report the default branch, commit hashes, verification, cleanup,
-   preserved pre-existing changes, and that nothing was pushed.
+   task branch. Report the default branch, commit and integration hashes,
+   verification, cleanup, preserved pre-existing changes, and that nothing was
+   pushed.
 
 ## OPR mode: synchronize local commits through a PR
 

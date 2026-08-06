@@ -63,6 +63,8 @@ private SDK gitlink.
   unpublished tail onto the remote default after preserving the original head,
   and may align the default branch only after the remote branch and ready PR
   match exactly. Local mode bases its temporary task branch on the committed
-  local default `HEAD`, never absorbs unrelated working changes, and cleans up
-  only after a verified fast-forward. `ORPR` completes remote-branch,
-  task-worktree, and merged local-branch cleanup.
+  local default `HEAD`, merges later committed default-branch descendants into
+  the task branch, reruns preflight after every such integration, and retries
+  until the default branch can fast-forward. It never absorbs unrelated working
+  changes and stops on real conflicts or non-linear ancestry. `ORPR` completes
+  remote-branch, task-worktree, and merged local-branch cleanup.

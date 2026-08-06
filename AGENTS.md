@@ -168,6 +168,19 @@ legacy top-level category values.
   durable constraints, not a chronological edit log. If the existing
   documentation remains correct, improve it with the newly confirmed invariant,
   boundary, failure mode, or verification procedure.
+- Treat structured configuration and conversation-database changes as versioned
+  compatibility boundaries. Every newly supported shape must ship with explicit
+  compatibility handling for all versions inside its declared support window,
+  including the required migration or normalization path and failure coverage;
+  never make supported persisted settings or conversations unreadable through a
+  shape-only change.
+- Do not grow indefinite compatibility paths for releases older than the declared
+  support window. Their default upgrade path is a freshly generated configuration.
+  Before replacing configuration or clearing any related settings or conversation
+  data, the product must warn the user that data may be removed and give them a
+  concrete opportunity and instructions to save or back it up. Deliver that
+  transition UX, version-boundary documentation, and destructive-path coverage in
+  the same change that ends compatibility.
 - Keep instructions close to their owner: repository-wide rules belong here;
   subsystem architecture belongs in `docs/`; repeatable agent procedures and
   fragile invariants belong in the triggering skill; SDK internals belong in
@@ -205,9 +218,13 @@ Repository-changing tasks use the prefix-selected `deliver-via-pr` workflow.
 Without a delivery prefix, create a temporary local task branch and sibling
 worktree from the committed `HEAD` of the local remote-tracking default branch
 (`master` here). Implement, run preflight, and commit in that worktree; then
-fast-forward the unchanged local default branch to those commits and clean up
-the temporary worktree and branch. Preserve unrelated default-worktree changes,
-and stop without pushing. SDK changes retain their separate direct-push workflow.
+fast-forward the local default branch to those commits and clean up the temporary
+worktree and branch. If concurrent tasks commit descendants to the local default
+branch first, merge that latest default branch into the task branch, rerun
+preflight, and retry the fast-forward; repeat if it advances again. Preserve
+unrelated default-worktree changes, stop only for real conflicts, non-linear
+ancestry, or working-tree overwrites, and do not push. SDK changes retain their
+separate direct-push workflow.
 An uppercase standalone `OPR` prefix creates or updates a ready pull request on
 a dedicated task branch and stops without waiting for CI, merging, or cleanup.
 New OPR tasks use an isolated worktree so the default worktree remains aligned
