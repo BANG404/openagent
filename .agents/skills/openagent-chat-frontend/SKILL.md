@@ -320,6 +320,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   browser surface for Settings → Channels. Its `-theme` and `-locale` query
   parameters must keep the channel list, credential forms, responsive layout,
   light/dark themes, and Chinese/English copy addressable without native state.
+  Keep each credential form and its enablement footer on one continuous card;
+  the footer uses a divider rather than a nested surface or shadow.
 
 ## IPC and events
 

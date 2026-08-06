@@ -4541,6 +4541,9 @@
     margin: 0;
     padding: 12px 0 0;
     border-top: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   @media (max-width: 640px) {
