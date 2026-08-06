@@ -569,7 +569,7 @@
     agent_turn_limit_enabled: false,
     agent_max_turns: 10,
     context_compaction_enabled: true,
-    context_compaction_threshold: 24000,
+    context_compaction_threshold: 200000,
     context_compaction_prompt: "",
     web_search: {
       provider: "brave",

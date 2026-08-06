@@ -68,7 +68,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
   const requestedCompactionThreshold = Number(input.context_compaction_threshold);
   const contextCompactionThreshold = Number.isFinite(requestedCompactionThreshold)
     ? Math.min(1_000_000, Math.max(1_000, Math.floor(requestedCompactionThreshold)))
-    : 24_000;
+    : 200_000;
   const requestedRetryCount = Number(input.model_retry?.retry_count);
   const retryCount = Number.isFinite(requestedRetryCount)
     ? Math.min(10, Math.max(0, Math.floor(requestedRetryCount)))

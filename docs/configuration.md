@@ -79,6 +79,13 @@ startup. Standalone/non-interactive startup never chooses on the user's behalf;
 it returns an actionable transition-required error. Closing an unchanged
 settings view also performs no configuration write.
 
+## Context compaction
+
+Automatic context compaction is enabled by default. A fresh or missing
+`context_compaction_threshold` defaults to 200,000 approximate tokens. An
+explicitly saved global threshold remains unchanged, and an optional per-model
+threshold takes precedence for that model.
+
 ## Tool permissions
 
 Tool approval controls whether an individual call pauses for review;

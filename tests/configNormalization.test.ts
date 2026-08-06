@@ -49,6 +49,22 @@ describe("model retry config", () => {
   });
 });
 
+describe("context compaction config", () => {
+  test("defaults a missing summary threshold to two hundred thousand tokens", () => {
+    const normalized = normalizeConfigShape({} as AppConfig);
+
+    expect(normalized.context_compaction_threshold).toBe(200_000);
+  });
+
+  test("preserves an explicitly configured summary threshold", () => {
+    const normalized = normalizeConfigShape({
+      context_compaction_threshold: 48_000,
+    } as AppConfig);
+
+    expect(normalized.context_compaction_threshold).toBe(48_000);
+  });
+});
+
 describe("messaging channel config", () => {
   test("materializes every channel for older configuration payloads", () => {
     const normalized = normalizeConfigShape({} as AppConfig);
