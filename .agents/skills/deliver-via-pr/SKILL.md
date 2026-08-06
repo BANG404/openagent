@@ -14,7 +14,7 @@ token from the task description after selecting the mode.
 
 | Input | Mode | Terminal state |
 | --- | --- | --- |
-| No delivery prefix | Local | Current worktree and remote-tracking default branch, verified local commits; no push or PR |
+| No delivery prefix | Local | Isolated local task worktree, then verified commits fast-forwarded into the local default branch; no push or PR |
 | `OPR [task]` | PR sync | Ready PR on a dedicated task branch/worktree; default worktree aligned with its remote; no CI wait or merge |
 | `ORPR ...` | Full PR | Fresh isolated worktree and branch, ready PR, administrator merge without PR CI/review, and safe cleanup |
 
@@ -34,34 +34,53 @@ authorize unrelated changes.
   remote default branch. Check GitHub authentication only for `OPR` or `ORPR`.
 - For diagnosis or review only, do not create a branch or make changes.
 - Preserve unrelated branches, worktrees, staged files, and working changes.
-  If the current worktree or branch has ambiguous ownership, stop for direction
-  instead of absorbing those changes into the task.
+  Local mode may leave unrelated changes untouched in the default worktree
+  while it works from that branch's committed `HEAD`; never copy those changes
+  into the task worktree. If the task overlaps them or the branch/base has
+  ambiguous ownership, stop for direction instead of absorbing them.
 - Follow `sdk/AGENTS.md` for SDK work. The private SDK does not use pull
   requests: verify and push focused commits directly to `main` first, regardless
   of the public host's delivery prefix. Update the parent gitlink only after the
   SDK push is confirmed.
 
-## Local mode: commit on the current default branch
+## Local mode: isolate work, then fast-forward the local default branch
 
-1. Stay in the current worktree and on its remote-tracking default branch
-   (`master` in OpenAgent and `main` in the SDK). Do not create or switch a
-   local branch and do not create another worktree. Fetch the upstream first;
-   fast-forward only when there are no unpublished local commits. If local and
-   remote history diverge, preserve both and stop for direction instead of
-   rebasing, resetting, or merging automatically.
-2. Implement code, focused coverage, and agent-facing documentation together.
+1. Keep the public host's default worktree on its remote-tracking default branch
+   (`master` in OpenAgent); do not switch it. Fetch the upstream first and
+   compare histories. Unpublished local commits are a valid base, but if local
+   and remote history diverge, preserve both and stop for direction instead of
+   rebasing, resetting, or merging automatically. Record the local default
+   branch and its exact starting `HEAD`. SDK changes follow the separate direct-
+   push rule above.
+2. Choose a unique `agent/<task-slug>` branch and non-existing sibling
+   worktree path. Create both from the recorded local default `HEAD`, not from
+   the remote default and not from the default worktree's index or working
+   tree. Never relocate, reset, clean, or reuse an unrelated worktree. Initialize
+   required pinned submodules and task-worktree dependencies before validation;
+   use frozen dependency metadata and do not change manifests or lockfiles as
+   incidental setup.
+3. Implement code, focused coverage, and agent-facing documentation together
+   in the task worktree.
    Keep public behavior in `docs/`, repeatable procedures in the triggering
    skill, and private SDK internals in the SDK repository.
-3. Do not manually run lint, test, check, build, or documentation commands that
+4. Do not manually run lint, test, check, build, or documentation commands that
    duplicate repository CI. Run implementation-time interactive checks,
    explicitly requested checks, and validators required by another skill.
-4. Inspect status and the complete diff, stage only explicit intended paths,
+5. Inspect status and the complete diff, stage only explicit intended paths,
    then run `bun run preflight`. Stage new files first so the whitespace guard
    can inspect them. Use `--base <ref>` only for a non-default target branch.
-5. Inspect the staged diff and create focused Conventional Commits. Never amend,
+6. Inspect the staged diff and create focused Conventional Commits. Never amend,
    squash, or rewrite user-owned commits unless explicitly requested.
-6. Stop after the local commits. Report the default branch, commit hashes,
-   verification, and that nothing was pushed.
+7. Require a clean task worktree, then return to the default worktree. Verify it
+   is still on the recorded default branch at the recorded starting `HEAD`.
+   Fast-forward it to the task branch with `git merge --ff-only`; do not stash
+   or include unrelated default-worktree changes. If the branch advanced or
+   Git would overwrite a working change, preserve both sides and stop rather
+   than rebasing, cherry-picking, or resolving automatically.
+8. Confirm the intended commits and paths are now on the local default branch.
+   Remove only the clean registered task worktree and its fully merged local
+   task branch. Report the default branch, commit hashes, verification, cleanup,
+   preserved pre-existing changes, and that nothing was pushed.
 
 ## OPR mode: synchronize local commits through a PR
 
@@ -74,7 +93,8 @@ ahead of and behind its remote.
 - For a new `OPR <task>` with a clean, synchronized default worktree, create a
   unique sibling worktree and `agent/<task-slug>` branch from
   `origin/<default>`. Implement, verify, and commit there by following local
-  mode steps 2-5. Do not switch or change the upstream of the default branch.
+  mode's task-worktree steps, but do not fast-forward it into the local default
+  branch. Do not switch or change the upstream of the default branch.
 - If the matching ready PR already exists, resume its dedicated task worktree
   or recreate one from its local or remote task branch. Never merge the PR
   branch back into the default worktree merely to update it.
@@ -162,9 +182,10 @@ ahead of and behind its remote.
 
 ### Implement, commit, and open the PR
 
-- Follow local mode steps 2-5 for implementation, documentation, staging,
-  preflight, diff inspection, and commits inside the isolated worktree; its
-  default-branch placement rule does not apply to `ORPR`.
+- Follow local mode's task-worktree steps for implementation, documentation,
+  staging, preflight, diff inspection, and commits inside the isolated
+  worktree; its local-default fast-forward and cleanup rules do not apply to
+  `ORPR`.
 - Push with upstream tracking and open a ready PR. Include user-visible
   behavior, affected boundaries, documentation, preflight, and deferred checks.
 - Never add unrelated commits or update the branch solely because the target

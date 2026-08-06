@@ -198,9 +198,12 @@ legacy top-level category values.
 ## Git workflow
 
 Repository-changing tasks use the prefix-selected `deliver-via-pr` workflow.
-Without a delivery prefix, work directly in the current worktree on its
-remote-tracking default branch (`master` here and `main` in the SDK), run
-preflight, create local commits, and stop without pushing or switching branches.
+Without a delivery prefix, create a temporary local task branch and sibling
+worktree from the committed `HEAD` of the local remote-tracking default branch
+(`master` here). Implement, run preflight, and commit in that worktree; then
+fast-forward the unchanged local default branch to those commits and clean up
+the temporary worktree and branch. Preserve unrelated default-worktree changes,
+and stop without pushing. SDK changes retain their separate direct-push workflow.
 An uppercase standalone `OPR` prefix creates or updates a ready pull request on
 a dedicated task branch and stops without waiting for CI, merging, or cleanup.
 New OPR tasks use an isolated worktree so the default worktree remains aligned
