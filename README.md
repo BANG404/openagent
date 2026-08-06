@@ -150,9 +150,11 @@ workspace, and the sandbox policy parser requires its exact hashing version.
 # Full Tauri desktop app (frontend + Rust backend)
 bun tauri dev
 
-# OR — frontend only (port 14221, no Rust)
+# OR — frontend only (selects an available port, no Rust)
 bun run dev
 ```
+
+Development commands select an available loopback port. `bun tauri dev` passes that port to Vite so the desktop host and frontend always agree.
 
 Debug desktop builds use `~/.openagent-dev` by default, keeping development
 configuration and data separate from an installed release. Set

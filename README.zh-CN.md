@@ -145,9 +145,11 @@ bun install
 # 完整 Tauri 桌面应用（前端 + Rust 后端）
 bun tauri dev
 
-# 或仅启动前端（端口 14221，不含 Rust）
+# 或仅启动前端（自动选择可用端口，不含 Rust）
 bun run dev
 ```
+
+开发命令会自动选择可用的回环网卡端口。`bun tauri dev` 会将此端口传给 Vite，使桌面宿主与前端始终使用同一端口。
 
 调试版桌面应用默认使用 `~/.openagent-dev`，与安装版的数据和配置隔离。需要使用
 其他开发数据目录时，请显式设置 `OPENAGENT_HOME`。

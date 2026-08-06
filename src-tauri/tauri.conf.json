@@ -5,7 +5,6 @@
   "identifier": "com.iumm.openagent",
   "build": {
     "beforeDevCommand": "bun run prepare:linux-sandbox:dev && bun run prepare:windows-sandbox:dev && bun run dev",
-    "devUrl": "http://localhost:14221",
     "beforeBuildCommand": "bun run prepare:linux-sandbox:release && bun run prepare:windows-sandbox:release && bun run build",
     "frontendDist": "../build",
     "additionalWatchFolders": [

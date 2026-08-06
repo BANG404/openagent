@@ -3,6 +3,7 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
 
 const host = process.env.TAURI_DEV_HOST;
+const devPort = Number.parseInt(process.env.OPENAGENT_DEV_PORT ?? "0", 10) || 0;
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
@@ -12,10 +13,10 @@ export default defineConfig(async () => ({
   //
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
-  // 2. tauri expects a fixed port, fail if that port is not available
+  // 2. Tauri supplies an available port for desktop development; standalone Vite selects one.
   server: {
-    port: 14221,
-    strictPort: true,
+    port: devPort,
+    strictPort: devPort !== 0,
     host: host || false,
     hmr: host
       ? {

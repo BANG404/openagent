@@ -34,7 +34,7 @@
     "lint:rust": "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint:actions": "github-actionlint",
-    "tauri": "tauri",
+    "tauri": "bun scripts/tauri.mjs",
     "tauri:build": "bun scripts/tauri-build.mjs",
     "commit:lint": "bun scripts/validate-commit-msg.mjs",
     "release": "bun scripts/release.mjs",

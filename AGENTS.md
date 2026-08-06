@@ -30,12 +30,12 @@ Use Bun for JavaScript dependencies and scripts. Prefix shell commands with
 `rtk` as required by the global instructions.
 
 ```bash
-bun run dev                 # Vite, port 14221
+bun run dev                 # Vite, selects an available port
 bun run build
 bun run check               # Svelte + TypeScript
 bun run preflight           # Fast checks selected from the diff against origin/master
 bun run prepare:windows-sandbox:dev # Build pinned Codex helpers on Windows
-bun tauri dev
+bun tauri dev               # Selects an available port and passes it to Vite
 bun run tauri:build
 cd src-tauri && cargo check
 cd src-tauri && cargo build
