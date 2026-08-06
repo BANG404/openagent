@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.35.0-beta.1] - 2026-08-06
+
+### Features
+- **persistence**: Confirm incompatible data reset
+
+### Bug Fixes
+- **config**: Raise default compaction threshold
+- **chat**: Configure model retry interval
+- **ui**: Remove role list initials
+- **settings**: Enable provider after model fetch
+- **settings**: Flatten channel enablement footer
+- Select an available Tauri dev port
+
 ## [0.34.1-beta.1] - 2026-08-06
 
 ### Bug Fixes
