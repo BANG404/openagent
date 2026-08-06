@@ -205,9 +205,6 @@
               class:active={selectedRole?.id === role.id}
               onclick={() => selectRole(role)}
             >
-              <span class="role-avatar" aria-hidden="true"
-                >{role.name.slice(0, 1).toLocaleUpperCase()}</span
-              >
               <span class="role-item-copy">
                 <strong>{role.name}</strong>
                 <small>{role.description}</small>
@@ -404,7 +401,6 @@
     width: 100%;
     display: flex;
     align-items: flex-start;
-    gap: 9px;
     padding: 9px;
     position: relative;
     border: 0;
@@ -432,19 +428,6 @@
     width: 2px;
     background: var(--primary);
     pointer-events: none;
-  }
-
-  .role-avatar {
-    width: 28px;
-    height: 28px;
-    display: grid;
-    place-items: center;
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--primary) 11%, var(--surface));
-    color: var(--primary);
-    font-size: 12px;
-    font-weight: 600;
-    flex-shrink: 0;
   }
 
   .role-item-copy {
