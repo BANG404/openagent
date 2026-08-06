@@ -221,16 +221,16 @@ legacy top-level category values.
 ## Git workflow
 
 Repository-changing tasks use the prefix-selected `deliver-via-pr` workflow.
-Without a delivery prefix, create a temporary local task branch and sibling
-worktree from the committed `HEAD` of the local remote-tracking default branch
-(`master` here). Implement, run preflight, and commit in that worktree; then
-fast-forward the local default branch to those commits and clean up the temporary
-worktree and branch. If concurrent tasks commit descendants to the local default
-branch first, merge that latest default branch into the task branch, rerun
-preflight, and retry the fast-forward; repeat if it advances again. Preserve
-unrelated default-worktree changes, stop only for real conflicts, non-linear
-ancestry, or working-tree overwrites, and do not push. SDK changes retain their
-separate direct-push workflow.
+Without a delivery prefix, modify the existing local `master` worktree directly,
+run preflight, and create focused commits on `master`. Do not create a task
+branch or worktree and do not push. Preserve unrelated staged and working changes
+and commit only explicit intended paths. An uppercase standalone `OWF` prefix
+selects the former isolated local workflow: create a temporary task branch and
+sibling worktree from the committed local `master` `HEAD`, implement and commit
+there, then fast-forward local `master` and clean up. If concurrent commits
+advance `master`, merge that latest branch into the task branch, rerun preflight,
+and retry the fast-forward. Stop for real conflicts, non-linear ancestry, or
+working-tree overwrites. SDK changes retain their separate direct-push workflow.
 An uppercase standalone `OPR` prefix creates or updates a ready pull request on
 a dedicated task branch and stops without waiting for CI, merging, or cleanup.
 New OPR tasks use an isolated worktree so the default worktree remains aligned
@@ -245,5 +245,6 @@ preferring the remote version. An uppercase
 standalone `ORPR` prefix selects the full
 isolated-worktree workflow: create the task worktree from the remote default
 branch, commit and push, open a ready PR, use the administrator bypass to merge
-the exact head without CI or review, and clean up. Match `ORPR` before `OPR`. Explicit user
-instructions that exclude or alter a delivery stage take precedence.
+the exact head without CI or review, and clean up. Match `ORPR` before `OPR`;
+`OWF` is a separate prefix. Explicit user instructions that exclude or alter a
+delivery stage take precedence.

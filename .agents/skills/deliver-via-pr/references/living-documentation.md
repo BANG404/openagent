@@ -52,19 +52,23 @@ private SDK gitlink.
 - `AGENTS.md` and skills contain durable guidance rather than task history.
 - Skill metadata still describes the situations that should trigger it.
 - Public documentation contains no private SDK implementation detail.
-- The selected delivery mode reached its terminal state: local mode created and
-  verified commits in an isolated worktree, fast-forwarded them into the local
-  remote-tracking default branch, cleaned up its task worktree and branch, and
-  did not push; private SDK commits were pushed directly to `main`; `OPR` has a
-  ready PR on a preserved task branch while the default worktree equals its
-  remote; `ORPR` has an administrator-bypassed confirmed merge.
+- The selected delivery mode reached its terminal state: direct local mode
+  created verified commits on the local default branch without creating a task
+  branch or worktree and did not push; `OWF` created verified commits in an
+  isolated worktree, fast-forwarded them into the local default branch, cleaned
+  up its task worktree and branch, and did not push; private SDK commits were
+  pushed directly to `main`; `OPR` has a ready PR on a preserved task branch
+  while the default worktree equals its remote; `ORPR` has an
+  administrator-bypassed confirmed merge.
 - `OPR` retains its dedicated task branch or worktree for later review follow-up
   and stops before cleanup. Its reconciler may rewrite only a verified linear
   unpublished tail onto the remote default after preserving the original head,
   and may align the default branch only after the remote branch and ready PR
-  match exactly. Local mode bases its temporary task branch on the committed
-  local default `HEAD`, merges later committed default-branch descendants into
-  the task branch, reruns preflight after every such integration, and retries
-  until the default branch can fast-forward. It never absorbs unrelated working
-  changes and stops on real conflicts or non-linear ancestry. `ORPR` completes
-  remote-branch, task-worktree, and merged local-branch cleanup.
+  match exactly. Direct local mode commits only intended paths and preserves
+  unrelated staged and working changes in place. `OWF` bases its temporary task
+  branch on the committed local default `HEAD`, merges later committed
+  default-branch descendants into the task branch, reruns preflight after every
+  such integration, and retries until the default branch can fast-forward. It
+  never absorbs unrelated working changes and stops on real conflicts or
+  non-linear ancestry. `ORPR` completes remote-branch, task-worktree, and merged
+  local-branch cleanup.

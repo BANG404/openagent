@@ -1,4 +1,4 @@
 interface:
   display_name: "Deliver repository changes"
-  short_description: "Deliver local, PR-sync, or merged repository changes"
-  default_prompt: "Use $deliver-via-pr to apply the selected local, OPR, or ORPR workflow while keeping the default worktree safe and synchronized."
+  short_description: "Deliver direct, worktree, or PR repository changes"
+  default_prompt: "Use $deliver-via-pr to apply the selected direct local, OWF, OPR, or ORPR workflow while preserving unrelated repository state."
