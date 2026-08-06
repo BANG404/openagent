@@ -168,7 +168,9 @@ account entitlements. In particular, the ChatGPT OAuth service exposes a
 built-in catalog, which may lag the models available to an account. Its settings
 and onboarding views therefore call out manual model entry; fetching that
 catalog again replaces the configured model list, including manually added
-names. For ChatGPT OAuth models, the composer exposes Light, Medium, High,
+names. Fetching a non-empty model catalog also enables that model service and
+repairs unavailable default-model bindings; an empty catalog leaves the service
+disabled. For ChatGPT OAuth models, the composer exposes Light, Medium, High,
 Extra High, and Ultra reasoning effort. The selection is stored per model and
 projected to the Responses API as `reasoning.effort = low | medium | high |
 xhigh | max`; chat retries, interrupt resumes, and flash-agent work use the

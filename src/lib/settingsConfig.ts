@@ -56,6 +56,12 @@ export function replaceProviderModels(provider: ProviderConfig, models: string[]
   );
 }
 
+export function applyFetchedProviderModels(provider: ProviderConfig, models: string[]): boolean {
+  replaceProviderModels(provider, models);
+  provider.enabled = models.length > 0;
+  return provider.enabled;
+}
+
 export function repairModelBindings(config: AppConfig): void {
   const fallback = config.providers
     .filter((provider) => provider.enabled)

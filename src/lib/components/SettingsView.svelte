@@ -28,6 +28,7 @@
     providerRequiresApiKey,
   } from "$lib/providerCatalog";
   import {
+    applyFetchedProviderModels,
     createProviderConfig,
     mcpConnectionFingerprint,
     providerConnectionFingerprint,
@@ -786,18 +787,21 @@
       const models = await invoke<string[]>("fetch_provider_models", {
         request: { provider: $state.snapshot(provider) },
       });
-      replaceProviderModels(
+      const enabled = applyFetchedProviderModels(
         provider,
         Array.from(new Set(models.map((model) => model.trim()).filter(Boolean))).sort(),
       );
-      if (provider.models.length === 0) {
-        provider.enabled = false;
+      if (!enabled) {
         repairDefaultModelBindings();
         throw new Error($t("providerNoModelsReturned"));
       }
+      repairDefaultModelBindings();
       providerStatus = {
         ...providerStatus,
-        [id]: { tone: "success", message: `Loaded ${provider.models.length} models` },
+        [id]: {
+          tone: "success",
+          message: `${$t("providerEnabledWithModels")} ${provider.models.length}`,
+        },
       };
     } catch (err: unknown) {
       providerStatus = { ...providerStatus, [id]: { tone: "error", message: `${err}` } };
@@ -833,8 +837,7 @@
       if (normalizedModels.length === 0) {
         throw new Error($t("providerNoModelsReturned"));
       }
-      replaceProviderModels(provider, normalizedModels);
-      provider.enabled = true;
+      applyFetchedProviderModels(provider, normalizedModels);
       repairDefaultModelBindings();
       providerStatus = {
         ...providerStatus,
