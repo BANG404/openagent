@@ -2,6 +2,11 @@
 use openagent_app::bootstrap_development_runtime as bootstrap_product_runtime;
 #[cfg(not(debug_assertions))]
 use openagent_app::bootstrap_runtime as bootstrap_product_runtime;
+#[cfg(debug_assertions)]
+use openagent_app::pending_development_persistence_transition as pending_product_persistence_transition;
+#[cfg(not(debug_assertions))]
+use openagent_app::pending_persistence_transition as pending_product_persistence_transition;
+use openagent_app::{apply_persistence_transition, PersistenceTransitionPlan};
 use openagent_runtime::checkpoint::{
     BranchMeta, CheckpointMeta, ConvPatch, ConversationMeta, FileChange, RenderableCheckpoint,
     TaskTrace,
@@ -1218,7 +1223,79 @@ pub fn run_agent_server() {
     run_with_mode(true);
 }
 
+const CONTINUE_TRANSITION_LABEL: &str = "备份并继续 / Back up and continue";
+const EXIT_TRANSITION_LABEL: &str = "退出 / Exit";
+
+fn persistence_transition_description(plan: &PersistenceTransitionPlan) -> String {
+    let (scope_zh, scope_en) = match (plan.reset_config, plan.reset_conversations) {
+        (true, true) => ("设置和对话记录", "settings and conversation history"),
+        (true, false) => ("设置", "settings"),
+        (false, true) => ("对话记录", "conversation history"),
+        (false, false) => ("数据", "data"),
+    };
+    format!(
+        "OpenAgent 检测到旧版或不兼容的{scope_zh}。继续升级会先把原文件完整备份到：\n{}\n\n随后会为受影响的范围创建全新数据。请先关闭其他 OpenAgent 窗口。选择“退出”可在继续前手动复制整个数据目录：\n{}\n\nOpenAgent found {scope_en} from an older or incompatible format. Continuing will preserve the original files at:\n{}\n\nFresh data will then be created only for the affected scope. Close every other OpenAgent window first. Choose “Exit” to make your own copy of the full data directory before continuing:\n{}",
+        plan.backup_dir.display(),
+        plan.data_dir.display(),
+        plan.backup_dir.display(),
+        plan.data_dir.display(),
+    )
+}
+
+fn confirm_persistence_transition(plan: &PersistenceTransitionPlan) -> bool {
+    matches!(
+        rfd::MessageDialog::new()
+            .set_level(rfd::MessageLevel::Warning)
+            .set_title("OpenAgent 数据升级 / Data upgrade")
+            .set_description(persistence_transition_description(plan))
+            .set_buttons(rfd::MessageButtons::OkCancelCustom(
+                CONTINUE_TRANSITION_LABEL.to_string(),
+                EXIT_TRANSITION_LABEL.to_string(),
+            ))
+            .show(),
+        rfd::MessageDialogResult::Custom(label) if label == CONTINUE_TRANSITION_LABEL
+    )
+}
+
+fn prepare_interactive_persistence() -> anyhow::Result<bool> {
+    let Some(plan) = pending_product_persistence_transition()? else {
+        return Ok(true);
+    };
+    if !confirm_persistence_transition(&plan) {
+        return Ok(false);
+    }
+    let backup_dir = apply_persistence_transition(&plan)?;
+    rfd::MessageDialog::new()
+        .set_level(rfd::MessageLevel::Info)
+        .set_title("OpenAgent 备份完成 / Backup complete")
+        .set_description(format!(
+            "旧数据已保存到：\n{}\n\nOpenAgent 将使用新的兼容配置继续启动。\n\nThe previous data was saved to:\n{}\n\nOpenAgent will now continue with fresh compatible data.",
+            backup_dir.display(),
+            backup_dir.display()
+        ))
+        .set_buttons(rfd::MessageButtons::Ok)
+        .show();
+    Ok(true)
+}
+
 fn run_with_mode(agent_server: bool) {
+    if !agent_server {
+        match prepare_interactive_persistence() {
+            Ok(true) => {}
+            Ok(false) => return,
+            Err(error) => {
+                rfd::MessageDialog::new()
+                    .set_level(rfd::MessageLevel::Error)
+                    .set_title("OpenAgent 升级失败 / Upgrade failed")
+                    .set_description(format!(
+                        "未修改无法安全备份的数据。请手动备份应用数据目录后重试。\n\nNo data that could not be safely backed up was replaced. Back up the application data directory manually, then try again.\n\n{error:#}"
+                    ))
+                    .set_buttons(rfd::MessageButtons::Ok)
+                    .show();
+                panic!("Failed to prepare OpenAgent persistence transition: {error:#}");
+            }
+        }
+    }
     let startup_started_at = std::time::Instant::now();
     let is_workspace_window = is_workspace_window_process();
     let RuntimeBootstrap {
@@ -1597,6 +1674,22 @@ fn run_with_mode(agent_server: bool) {
 mod tests {
     use super::*;
     use std::path::Path;
+
+    #[test]
+    fn persistence_transition_warning_names_scope_and_backup_paths() {
+        let plan = PersistenceTransitionPlan {
+            data_dir: Path::new("C:/OpenAgent/data").to_path_buf(),
+            backup_dir: Path::new("C:/OpenAgent/data/backups/before-data-v1").to_path_buf(),
+            reset_config: true,
+            reset_conversations: false,
+        };
+        let warning = persistence_transition_description(&plan);
+        assert!(warning.contains("设置"));
+        assert!(warning.contains("settings"));
+        assert!(warning.contains("C:/OpenAgent/data/backups/before-data-v1"));
+        assert!(warning.contains("C:/OpenAgent/data"));
+        assert!(!warning.contains("conversation history from"));
+    }
 
     #[test]
     fn diagnostic_fields_are_allowlisted() {

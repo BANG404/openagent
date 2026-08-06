@@ -600,6 +600,7 @@ export interface ChannelConfig {
 }
 
 export interface AppConfig {
+  config_version?: number;
   agent_turn_limit_enabled: boolean;
   agent_max_turns: number;
   context_compaction_enabled: boolean;

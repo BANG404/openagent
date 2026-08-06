@@ -27,6 +27,7 @@ The root contains these user-maintained or durable files:
 | `memory.md`                       | Global user memory                                                                                   |
 | `messages.db`                     | Conversation and checkpoint storage                                                                  |
 | `messages.db.pre-schema-v<N>.bak` | SQLite-consistent snapshot retained before an automatic database schema upgrade                      |
+| `backups/before-data-v1-*/`       | User-confirmed transition backup of settings and/or conversations replaced outside the support window |
 | `scheduled_chat_hooks.json`       | Durable scheduled-chat definitions                                                                   |
 | `logs/openagent.<date>.jsonl`     | Local structured application diagnostics; daily rotation with the latest 15 files retained           |
 | `drafts/`, `DESIGN.md`            | Global drafts and design context                                                                     |
@@ -61,11 +62,22 @@ Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
 permissions and do not commit it to source control.
 
-At startup, OpenAgent loads `config.toml` and then its last-known-good backup.
-If neither file can be deserialized, startup stops without writing either file.
-An unreadable or forward-incompatible configuration is never converted into a
-writable default settings snapshot. Closing an unchanged settings view also
-performs no configuration write.
+`config.toml` carries an explicit top-level `config_version`; the current
+version is 1. At startup, OpenAgent loads the primary file and then a current,
+last-known-good `config.toml.bak`. A valid current backup remains the recovery
+source when the primary file is damaged or incompatible.
+
+An interactive desktop that finds no current configuration in either location
+stops before runtime or WebView construction and explains which settings and/or
+conversation data is incompatible. The user may exit without changing data and
+copy the reported application-data root, or choose **Back up and continue**.
+Continuing first writes the complete affected files to a unique
+`backups/before-data-v1-*/` directory and synchronizes them; only then does it
+replace the affected scope with a fresh configuration or conversation store.
+Failure to create a complete backup leaves the source data in place and stops
+startup. Standalone/non-interactive startup never chooses on the user's behalf;
+it returns an actionable transition-required error. Closing an unchanged
+settings view also performs no configuration write.
 
 ## Tool permissions
 
@@ -179,23 +191,24 @@ default (shown as Medium in the composer). OpenAgent does not currently expose
 ChatGPT speed/service-tier controls, so request scheduling uses the provider
 path's default.
 
-OpenAgent upgrades an older `messages.db` automatically at startup. A populated
-database is backed up before migration, and the migration either commits in
-full or leaves the original schema unchanged. If the database was created by a
-newer OpenAgent version, or validation/migration fails, startup stops rather
-than continuing without conversation persistence. Keep the reported backup
-until the upgraded application and conversation history have been verified.
+OpenAgent validates `messages.db` before constructing the runtime. Schema v1 is
+the current compatibility baseline. A database inside a future declared support
+window must be upgraded through an explicit atomic migration with a consistent
+pre-migration backup. A populated unversioned database, a database outside the
+support window, or a structurally invalid current database instead enters the
+interactive backup-and-fresh-store transition described above. The backup uses
+SQLite itself so committed WAL data is included. Keep the reported backup until
+the upgraded application and conversation behavior have been verified.
 
 The current compatibility window is explicit:
 
-| Stored schema             | Source releases                           | Startup behavior                                                       |
-| ------------------------- | ----------------------------------------- | ---------------------------------------------------------------------- |
-| No database               | Any clean installation                    | Create schema v1                                                       |
-| Unversioned legacy schema | `v0.25.0-beta.1` through `v0.29.1-beta.1` | Back up, recognize known legacy table shapes, migrate atomically to v1 |
-| Schema v1                 | Current release line                      | Validate and open                                                      |
-| Higher than schema v1     | A newer OpenAgent build                   | Refuse to open without modifying the database                          |
+| Stored schema                         | Startup behavior                                                                |
+| ------------------------------------- | ------------------------------------------------------------------------------- |
+| No database or empty SQLite file      | Create schema v1                                                                |
+| Populated unversioned legacy schema   | Ask; on consent back up consistently, then create a fresh schema v1 database    |
+| Valid schema v1                       | Validate and open                                                               |
+| Invalid schema v1 or higher schema    | Ask in desktop mode; back up and replace only on consent; non-interactive stops |
 
-Unreleased databases older than `v0.25.0-beta.1` are not implicitly declared
-compatible. They are migrated only when their tables match a known legacy
-shape; otherwise startup stops with the original database and migration backup
-preserved.
+Configuration and database scopes are evaluated independently. For example, an
+unversioned configuration paired with a valid schema v1 database resets only
+settings; its conversation history remains active.

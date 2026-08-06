@@ -363,7 +363,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   transport boundary so an older bootstrap or fallback snapshot remains
   readable. Materialize their canonical defaults only in
   `normalizeConfigShape`; page shells and settings components must not copy
-  those defaults into independent fallback objects.
+  those defaults into independent fallback objects. The explicit
+  `config_version` is optional only at that transport boundary and must be
+  normalized to the current version before a settings snapshot can be saved;
+  persisted unversioned configuration is handled by the pre-runtime transition,
+  never by settings autosave.
 - Keep the canonical managed permission fallback layered as `host_root` read
   followed by workspace write. The frontend transport type and normalization
   must preserve `host_root`; collapsing an older payload to workspace-only

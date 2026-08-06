@@ -137,6 +137,12 @@ to a deliberate tracked location.
 - Tauri's synchronous `setup` callback does not run inside a Tokio worker.
   Enter `tauri::async_runtime` before calling SDK lifecycle functions that
   internally spawn Tokio tasks.
+- Run persisted configuration/database compatibility inspection before runtime
+  and WebView construction. Desktop startup may use a native confirmation
+  dialog to let the user exit or approve the SDK-owned durable backup and fresh
+  affected store; standalone startup must fail instead of assuming consent.
+  Never duplicate version inspection, backup, or reset file operations in the
+  host.
 - The frontend communicates with native code through typed Tauri calls and
   events. An IPC change must update the SDK contract/adapter and all public
   frontend types and call sites together.

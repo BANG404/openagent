@@ -179,6 +179,8 @@ and GNU `strip` (usually provided by `binutils`).
 On first launch OpenAgent creates `config.toml` in its cross-platform user data root (`~/.openagent` on Linux, macOS, and Windows). Set `OPENAGENT_HOME` to override the complete root. Open **Settings → Providers** and add a provider, or edit the file directly; valid external edits hot-reload. See [Configuration and application data](docs/configuration.md) for atomic-save, backup, migration, and conflict behavior. Until an available model is configured, the composer keeps sending disabled and provides a **Configure models** shortcut to Settings.
 
 ```toml
+config_version = 1
+
 [[providers]]
 id = "anthropic-main"
 name = "Anthropic"

@@ -181,6 +181,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
 
   return {
     ...input,
+    config_version: 1,
     approval_mode,
     permission_profile,
     language: input.language ?? "zh",

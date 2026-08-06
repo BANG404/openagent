@@ -3,6 +3,13 @@ import { describe, expect, test } from "bun:test";
 import { normalizeConfigShape } from "../src/lib/config";
 import type { AppConfig } from "../src/lib/types";
 
+describe("configuration version", () => {
+  test("materializes the current version at the transport boundary", () => {
+    expect(normalizeConfigShape({} as AppConfig).config_version).toBe(1);
+    expect(normalizeConfigShape({ config_version: 99 } as AppConfig).config_version).toBe(1);
+  });
+});
+
 describe("diagnostic log collection config", () => {
   test("defaults to enabled for older configuration payloads", () => {
     const normalized = normalizeConfigShape({} as AppConfig);
