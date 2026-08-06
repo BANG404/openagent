@@ -15,6 +15,10 @@ const nativeWorkflow = readFileSync(
   new URL("../.github/workflows/check-native.yml", import.meta.url),
   "utf8",
 );
+const nativeCargoManifest = readFileSync(
+  new URL("../src-tauri/Cargo.toml", import.meta.url),
+  "utf8",
+);
 const prHeadWorkflow = readFileSync(
   new URL("../.github/workflows/report-pr-head-ci.yml", import.meta.url),
   "utf8",
@@ -40,6 +44,13 @@ describe("release CI verification", () => {
     expect(nativeWorkflow).toContain("if: inputs.full && inputs.embedding");
     expect(nativeWorkflow).toContain(
       "if: inputs.full\n        run: bun run test:harness-integration",
+    );
+  });
+
+  test("keeps native-only compilation independent from a frontend production build", () => {
+    expect(nativeWorkflow.match(/Materialize frontendDist for Tauri macros/g)).toHaveLength(3);
+    expect(nativeCargoManifest).toContain(
+      'rfd = { version = "0.16", default-features = false, features = ["common-controls-v6"] }',
     );
   });
 

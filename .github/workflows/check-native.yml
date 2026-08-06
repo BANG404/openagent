@@ -58,6 +58,10 @@ jobs:
           ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
           persist-credentials: false
 
+      - name: Materialize frontendDist for Tauri macros
+        run: |
+          node -e "require('fs').mkdirSync('build', { recursive: true })"
+
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
@@ -141,6 +145,10 @@ jobs:
           path: sdk
           ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
           persist-credentials: false
+
+      - name: Materialize frontendDist for Tauri macros
+        run: |
+          node -e "require('fs').mkdirSync('build', { recursive: true })"
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -268,6 +276,10 @@ jobs:
           path: sdk
           ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
           persist-credentials: false
+
+      - name: Materialize frontendDist for Tauri macros
+        run: |
+          node -e "require('fs').mkdirSync('build', { recursive: true })"
 
       - uses: dtolnay/rust-toolchain@stable
 

@@ -200,6 +200,11 @@ legacy top-level category values.
   keep public and internal helper boundaries explicitly typed with JSDoc when
   inference cannot establish a safe type.
 - Treat the private submodule revision as release-relevant source input.
+- Native CI jobs that compile the Tauri host without building the frontend must
+  materialize the configured `frontendDist` directory before Rust compilation;
+  the frontend qualification job remains the owner of the production build.
+  Keep direct native-dialog dependencies from enabling a Linux backend that
+  conflicts with the backend selected by `tauri-plugin-dialog`.
 - Build both Windows sandbox helper executables from the Codex revision pinned
   by the SDK, keep them out of source control, and bundle them under
   `codex-resources/`. The library, setup helper, and command runner must never
