@@ -160,8 +160,11 @@ type-checking until its asset is assigned. Artwork comes from Cherry Studio at
 commit `16e2905fd30fbfe21d1c58651574dcc939b6fb30` where available, with missing
 brands sourced from the provider's official site or project repository.
 
+User-facing settings and onboarding describe provider choices as model services;
+they do not expose the runtime framework that implements those integrations.
+
 Provider model catalogs are editable configuration rather than an authority on
-account entitlements. In particular, the ChatGPT OAuth service exposes Rig's
+account entitlements. In particular, the ChatGPT OAuth service exposes a
 built-in catalog, which may lag the models available to an account. Its settings
 and onboarding views therefore call out manual model entry; fetching that
 catalog again replaces the configured model list, including manually added

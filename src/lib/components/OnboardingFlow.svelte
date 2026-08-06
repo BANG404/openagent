@@ -71,8 +71,7 @@
           light: "Light",
           dark: "Dark",
           providerTitle: "Connect a model service",
-          providerBody:
-            "Choose a Rig built-in model service, then verify the connection and load its models.",
+          providerBody: "Choose a model service, then verify the connection and load its models.",
           addProvider: "Add service",
           providerName: "Service name",
           providerType: "Service type",
@@ -114,7 +113,7 @@
           light: "浅色",
           dark: "深色",
           providerTitle: "连接模型服务",
-          providerBody: "选择 Rig 内置模型服务，验证连接并获取可用模型。",
+          providerBody: "选择模型服务，验证连接并获取可用模型。",
           addProvider: "添加服务",
           providerName: "服务名称",
           providerType: "服务类型",
