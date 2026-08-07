@@ -6,12 +6,6 @@
   import type { AgentPluginSummary } from "$lib/types";
   import { t, tr } from "$lib/i18n";
 
-  let {
-    previewPlugins,
-  }: {
-    previewPlugins?: AgentPluginSummary[];
-  } = $props();
-
   const routePreview =
     import.meta.env.DEV &&
     typeof window !== "undefined" &&
@@ -37,14 +31,14 @@
         },
       ]
     : [];
-  let plugins = $state<AgentPluginSummary[]>(previewPlugins ?? previewFixture);
-  let loading = $state(previewPlugins === undefined && !routePreview);
+  let plugins = $state<AgentPluginSummary[]>(previewFixture);
+  let loading = $state(!routePreview);
   let busy = $state<string | null>(null);
   let message = $state("");
   let messageTone = $state<"success" | "error">("success");
 
   onMount(() => {
-    if (previewPlugins === undefined && !routePreview) void loadPlugins();
+    if (!routePreview) void loadPlugins();
   });
 
   async function loadPlugins() {
@@ -150,7 +144,9 @@
       {#each plugins as plugin (plugin.id)}
         <article class:error-card={plugin.error} class="plugin-card">
           <div class="plugin-card-heading">
-            <div class="plugin-mark" aria-hidden="true">{plugin.name.slice(0, 1).toUpperCase()}</div>
+            <div class="plugin-mark" aria-hidden="true">
+              {plugin.name.slice(0, 1).toUpperCase()}
+            </div>
             <div class="plugin-identity">
               <div class="plugin-name-line">
                 <h4>{plugin.name}</h4>
@@ -188,10 +184,10 @@
             </div>
             {#if plugin.skills.length > 0 || plugin.mcp_servers.length > 0}
               <div class="component-tags">
-                {#each plugin.skills as skill}
+                {#each plugin.skills as skill (skill.name)}
                   <span class="component-tag">Skill: {skill.name}</span>
                 {/each}
-                {#each plugin.mcp_servers as server}
+                {#each plugin.mcp_servers as server (server.name)}
                   <span class="component-tag">MCP: {server.name} ({server.transport})</span>
                 {/each}
               </div>
@@ -202,7 +198,9 @@
             <details class="warnings">
               <summary>{plugin.warnings.length} {$t("agentPluginDiagnostics")}</summary>
               <ul>
-                {#each plugin.warnings as warning}<li>{warning}</li>{/each}
+                {#each plugin.warnings as warning, index (`${index}:${warning}`)}<li>
+                    {warning}
+                  </li>{/each}
               </ul>
             </details>
           {/if}

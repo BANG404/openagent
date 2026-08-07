@@ -1311,8 +1311,7 @@ const en: Translations = {
   delete: "Delete",
   agentPlugins: "Agent Plugins",
   agentPluginsTitle: "Agent Plugins",
-  agentPluginsDescription:
-    "Install and manage local packages that conform to Agent Plugins 1.0.0.",
+  agentPluginsDescription: "Install and manage local packages that conform to Agent Plugins 1.0.0.",
   agentPluginsCompatibility:
     "Packages are checked against built-in rules without fetching schemas. Agent Skills, stdio, and Streamable HTTP MCP are supported; invalid components are isolated.",
   agentPluginsLoadFailed: "Failed to load plugins",

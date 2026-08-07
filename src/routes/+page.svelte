@@ -199,8 +199,7 @@
   const isBookModePreview = devQuery?.has("book-mode-preview") === true;
   const isPermissionSettingsPreview = devQuery?.has("permission-settings-preview") === true;
   const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
-  const isAgentPluginsSettingsPreview =
-    devQuery?.has("agent-plugins-settings-preview") === true;
+  const isAgentPluginsSettingsPreview = devQuery?.has("agent-plugins-settings-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
   const quickChatPreviewTheme =
@@ -3019,8 +3018,7 @@
       if (isChannelsSettingsPreview || isAgentPluginsSettingsPreview) {
         config = {
           ...config,
-          theme:
-            agentPluginsSettingsPreviewTheme ?? channelsSettingsPreviewTheme ?? config.theme,
+          theme: agentPluginsSettingsPreviewTheme ?? channelsSettingsPreviewTheme ?? config.theme,
           language:
             agentPluginsSettingsPreviewLocale ?? channelsSettingsPreviewLocale ?? config.language,
         };

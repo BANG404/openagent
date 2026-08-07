@@ -7673,6 +7673,7 @@ dependencies = [
  "qrcode",
  "regex",
  "reqwest 0.12.28",
+ "reqwest 0.13.3",
  "rig",
  "rmcp",
  "rusqlite",
