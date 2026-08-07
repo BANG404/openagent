@@ -1,6 +1,6 @@
 ---
 name: deliver-via-pr
-description: "Implement and deliver OpenAgent repository changes using prefix-selected Git modes. Use for every repository-changing task: default to verified commits directly on the local host default branch, use OWF for an isolated local worktree, push private SDK commits directly, use OPR for a ready public-host PR, and use ORPR for administrator-bypassed merge and cleanup."
+description: "Implement and deliver OpenAgent repository changes using prefix-selected Git modes. Use for every repository-changing task: default to verified commits directly on the local host default branch, use OWT for an isolated local worktree, push private SDK commits directly, use OPR for a ready public-host PR, and use ORPR for administrator-bypassed merge and cleanup."
 ---
 
 # Repository delivery
@@ -8,14 +8,14 @@ description: "Implement and deliver OpenAgent repository changes using prefix-se
 ## Select the mode first
 
 Inspect the first token of the user's task before changing repository state.
-Match `ORPR` before `OPR`; `OWF` is a separate prefix. A prefix is an uppercase
+Match `ORPR` before `OPR`; `OWT` is a separate prefix. A prefix is an uppercase
 standalone token at the start of the message, optionally followed by whitespace
 or a colon. Remove the token from the task description after selecting the mode.
 
 | Input | Mode | Terminal state |
 | --- | --- | --- |
 | No delivery prefix | Direct local | Verified commits created directly on the local default branch; no task branch, worktree, push, or PR |
-| `OWF [task]` | Worktree local | Isolated local task worktree, then verified commits fast-forwarded into the local default branch; no push or PR |
+| `OWT [task]` | Worktree local | Isolated local task worktree, then verified commits fast-forwarded into the local default branch; no push or PR |
 | `OPR [task]` | PR sync | Ready PR on a dedicated task branch/worktree; default worktree aligned with its remote; no CI wait or merge |
 | `ORPR ...` | Full PR | Fresh isolated worktree and branch, ready PR, administrator merge without PR CI/review, and safe cleanup |
 
@@ -36,7 +36,7 @@ authorize unrelated changes.
 - For diagnosis or review only, do not create a branch or make changes.
 - Preserve unrelated branches, worktrees, staged files, and working changes.
   Direct local mode leaves unrelated changes untouched and commits only
-  explicit intended paths. `OWF` leaves them in the default worktree while it
+  explicit intended paths. `OWT` leaves them in the default worktree while it
   works from that branch's committed `HEAD`; never copy those changes into the
   task worktree. If the task overlaps them or ownership is ambiguous, stop for
   direction instead of absorbing them.
@@ -74,7 +74,7 @@ authorize unrelated changes.
    commit hashes, verification, preserved changes, and that no branch,
    worktree, push, or PR was created.
 
-## OWF mode: isolate work, then fast-forward the local default branch
+## OWT mode: isolate work, then fast-forward the local default branch
 
 1. Keep the public host's default worktree on its remote-tracking default branch
    (`master` in OpenAgent); do not switch it. Fetch the upstream first and
@@ -132,7 +132,7 @@ ahead of and behind its remote.
 
 - For a new `OPR <task>` with a clean, synchronized default worktree, create a
   unique sibling worktree and `agent/<task-slug>` branch from
-  `origin/<default>`. Implement, verify, and commit there by following `OWF`
+  `origin/<default>`. Implement, verify, and commit there by following `OWT`
   mode's task-worktree steps, but do not fast-forward it into the local default
   branch. Do not switch or change the upstream of the default branch.
 - If the matching ready PR already exists, resume its dedicated task worktree
@@ -222,7 +222,7 @@ ahead of and behind its remote.
 
 ### Implement, commit, and open the PR
 
-- Follow `OWF` mode's task-worktree steps for implementation, documentation,
+- Follow `OWT` mode's task-worktree steps for implementation, documentation,
   staging, preflight, diff inspection, and commits inside the isolated
   worktree; its local-default fast-forward and cleanup rules do not apply to
   `ORPR`.
