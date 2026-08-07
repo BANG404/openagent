@@ -66,6 +66,23 @@ describe("release CI verification", () => {
     );
   });
 
+  test("delivers public-host Windows sandbox failures only to the private SDK commit", () => {
+    expect(ciWorkflow).toContain(
+      "OPENAGENT_CI_REPORTER_PRIVATE_KEY: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}",
+    );
+    expect(nativeWorkflow).toContain('OPENAGENT_WINDOWS_NETWORK_PRIVATE_DIAGNOSTIC: "1"');
+    expect(nativeWorkflow).toContain('SBX_DEBUG: "1"');
+    expect(nativeWorkflow).toContain(
+      '"sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name"',
+    );
+    expect(nativeWorkflow).toContain("name: Report Windows diagnostic to private SDK");
+    expect(nativeWorkflow).toContain("permission-checks: write");
+    expect(nativeWorkflow).toContain("permission-contents: read");
+    expect(nativeWorkflow).toContain("SDK_SHA: ${{ steps.sdk.outputs.sha }}");
+    expect(nativeWorkflow).toContain("run: node scripts/report-private-sdk-diagnostic.mjs");
+    expect(nativeWorkflow).not.toContain("Get-Content $log");
+  });
+
   test("bypasses module checks for administrator-authored pull requests", () => {
     expect(ciWorkflow).toContain("CI_PR_AUTHOR:");
     expect(ciWorkflow).toContain("collaborators/$CI_PR_AUTHOR/permission");

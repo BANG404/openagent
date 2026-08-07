@@ -31,6 +31,8 @@ on:
     secrets:
       OPENAGENT_SDK_DEPLOY_KEY:
         required: true
+      OPENAGENT_CI_REPORTER_PRIVATE_KEY:
+        required: true
 
 permissions:
   contents: read
@@ -169,9 +171,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          bun run prepare:windows-sandbox:dev *> "$env:RUNNER_TEMP/windows-sandbox-helper-build.log"
+          $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
+          bun run prepare:windows-sandbox:dev *> $log
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "Windows sandbox helper build failed; diagnostic output was suppressed."
+            "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
+            Write-Error "Windows sandbox helper build failed; private diagnostic output was suppressed."
             exit 1
           }
 
@@ -184,8 +188,10 @@ jobs:
         shell: pwsh
         run: |
           $env:CARGO_TARGET_DIR = (Resolve-Path "src-tauri\target").Path
-          cargo test --manifest-path sdk/Cargo.toml -p openagent-server restricted_token_writes_workspace_and_blocks_outside_and_metadata *> "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
+          $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
+          cargo test --manifest-path sdk/Cargo.toml -p openagent-server restricted_token_writes_workspace_and_blocks_outside_and_metadata *>> $log
           if ($LASTEXITCODE -ne 0) {
+            "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
             Write-Error "Windows process sandbox test failed; private diagnostic output was suppressed."
             exit 1
           }
@@ -195,6 +201,8 @@ jobs:
         shell: pwsh
         env:
           OPENAGENT_WINDOWS_WFP_INTEGRATION: "1"
+          OPENAGENT_WINDOWS_NETWORK_PRIVATE_DIAGNOSTIC: "1"
+          SBX_DEBUG: "1"
         run: |
           Set-NetFirewallProfile -Profile Domain,Private,Public -Enabled True
           $disabledProfiles = Get-NetFirewallProfile | Where-Object { -not $_.Enabled }
@@ -203,20 +211,21 @@ jobs:
             exit 1
           }
           $env:CARGO_TARGET_DIR = (Resolve-Path "src-tauri\target").Path
-          $log = "$env:RUNNER_TEMP/sdk-windows-wfp-test.log"
+          $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
           $tests = @(
             "elevated_offline_account_firewall_blocks_non_loopback_network_access",
             "elevated_offline_account_wfp_blocks_dns_network_access"
           )
           $failed = $false
           foreach ($test in $tests) {
-            cargo test --manifest-path sdk/Cargo.toml -p openagent-server $test *>> $log
+            cargo test --manifest-path sdk/Cargo.toml -p openagent-server $test -- --test-threads=1 *>> $log
             if ($LASTEXITCODE -ne 0) {
               $failed = $true
               break
             }
           }
           if ($failed) {
+            "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
             $diagnostic = Select-String -Path $log -Pattern 'OPENAGENT_WFP_DIAGNOSTIC=[a-z-]+' -AllMatches |
               ForEach-Object { $_.Matches.Value } |
               Select-Object -Last 1
@@ -227,6 +236,28 @@ jobs:
             }
             exit 1
           }
+
+      - name: Create private SDK diagnostic token
+        id: sdk-diagnostic-token
+        if: failure() && runner.os == 'Windows'
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-checks: write
+          permission-contents: read
+
+      - name: Report Windows diagnostic to private SDK
+        if: failure() && runner.os == 'Windows'
+        env:
+          GH_TOKEN: ${{ steps.sdk-diagnostic-token.outputs.token }}
+          SDK_REPOSITORY: BANG404/openagent-sdk
+          SDK_SHA: ${{ steps.sdk.outputs.sha }}
+          SDK_DIAGNOSTIC_NAME: Public host Windows process sandbox
+          CI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/report-private-sdk-diagnostic.mjs
 
       - name: Check all Rust targets on macOS
         if: runner.os != 'Windows'

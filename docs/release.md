@@ -253,10 +253,15 @@ The Windows job enables every Windows Firewall profile before exercising the
 offline account. It verifies Codex's two network layers separately: after a
 parent reachability preflight, the user-scoped Firewall rules block the same
 numeric external HTTPS address, and the persistent WFP filters still block DNS
-port 53 when ordinary local binding is allowed. The public SDK workflow runs
-the same two exact tests sequentially with detailed setup/wrapper logging
-enabled only in its private Check Run; public logs retain only the fixed
-`firewall-*` or `wfp-dns-*` diagnostic category.
+port 53 when ordinary local binding is allowed. Both the public SDK workflow
+and the public host's complete native qualification run the same two exact
+tests sequentially with detailed setup/wrapper logging enabled only in a Check
+Run on the pinned private SDK commit. The host qualification accumulates its
+helper build and Windows sandbox test output in the same runner-temporary SDK
+log, records that allowlisted log only after a failure, and uses the same
+least-privileged reporter App. Public logs retain only the fixed `firewall-*`
+or `wfp-dns-*` diagnostic category; they never print, summarize, cache, or
+upload the captured private output.
 The private repository dispatches an immutable commit SHA; a GitHub App
 installed only on the SDK repository lets the public workflow read that
 revision and report the aggregate `Public SDK CI` commit status. Because
