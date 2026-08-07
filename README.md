@@ -91,6 +91,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 - **First-class Dev Tools** — Built-in file, search, fetch, and terminal tools. Managed terminal sessions support interactive or long-running background processes; `fetch` retrieves pages locally with Spider, extracts readable text, and supports pagination.
 - **Independent Approval & Runtime Permissions** — Choose when tool calls pause for review separately from the managed filesystem and network sandbox.
 - **Skills System** — Drop a `SKILL.md` into `~/.agents/skills/` or `<workspace>/.agents/skills/`. Category-based progressive discovery keeps large global and project catalogs compact, with optional Flash classification for uncategorized Skills.
+- **Portable Agent Plugins** — Install Agent Plugins 1.0.0 packages from **Settings → Agent Plugins**, with isolated Agent Skill and stdio/Streamable HTTP MCP discovery. See [Agent Plugins](docs/agent-plugins.md).
 - **Checkpoints & File-Change Rollback** — Every turn is a checkpoint with reverse diffs; undo a single file or rewind the whole agent.
 - **Pluggable LLMs & Multimodal** — Support multi-model selection and durable image, PDF, and text attachments with drag/paste, rich previews, checkpoint restoration, and branch editing across Anthropic, OpenAI, and compatible providers.
 

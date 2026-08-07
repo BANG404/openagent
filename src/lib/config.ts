@@ -118,6 +118,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
         command: "",
         args: [] as string[],
         env: {} as Record<string, string>,
+        cwd: "",
       };
       return { ...defaults, ...s };
     }),

@@ -44,6 +44,7 @@
   import Switch from "./ui/Switch.svelte";
   import Combobox from "./ui/Combobox.svelte";
   import PermissionSettings from "./PermissionSettings.svelte";
+  import AgentPluginsSettings from "./AgentPluginsSettings.svelte";
 
   type SettingsNav =
     | "general"
@@ -54,6 +55,7 @@
     | "memory"
     | "websearch"
     | "hooks"
+    | "plugins"
     | "extensions"
     | "about";
   type StandardChannelKind = "feishu" | "telegram" | "qq" | "discord" | "slack";
@@ -1042,6 +1044,7 @@
       command: "",
       args: [],
       env: {},
+      cwd: "",
     };
     draftConfig.mcp.servers = [...draftConfig.mcp.servers, server];
     selectedMcpId = server.id;
@@ -1512,6 +1515,22 @@
             <path d="M6 2.5v3M10 2.5v3M4.5 5.5h7v2.8a3.5 3.5 0 0 1-7 0V5.5zM8 11.8v1.7" />
           </svg>
           {$t("extensions")}
+        </Tabs.Trigger>
+        <Tabs.Trigger value="plugins" class="settings-nav-item">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6.2 2.5h3.6v2.2h2.2v3.6H9.8v2.2H6.2V8.3H4V4.7h2.2V2.5Z" />
+            <path d="M8 10.5v3" />
+          </svg>
+          {$t("agentPlugins")}
         </Tabs.Trigger>
         <Tabs.Trigger value="hooks" class="settings-nav-item">
           <svg
@@ -3264,6 +3283,10 @@
           </label>
         </section>
       </div>
+    </Tabs.Content>
+
+    <Tabs.Content value="plugins" class="settings-tab-panel">
+      <AgentPluginsSettings />
     </Tabs.Content>
 
     <Tabs.Content value="extensions" class="settings-tab-panel">

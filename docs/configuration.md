@@ -31,6 +31,8 @@ The root contains these user-maintained or durable files:
 | `scheduled_chat_hooks.json`       | Durable scheduled-chat definitions                                                                   |
 | `logs/openagent.<date>.jsonl`     | Local structured application diagnostics; daily rotation with the latest 15 files retained           |
 | `drafts/`, `DESIGN.md`            | Global drafts and design context                                                                     |
+| `plugins/<name>/`                 | Validated installed Agent Plugin packages                                                             |
+| `plugin-data/<name>/`             | Persistent writable `PLUGIN_DATA`, retained when a plugin is uninstalled                              |
 
 Workspace-scoped memory, skills, drafts, and design files remain under that
 workspace's `.agents/` directory rather than the user-scoped root.

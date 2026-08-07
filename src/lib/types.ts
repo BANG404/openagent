@@ -513,6 +513,7 @@ export interface McpServerConfig {
   command: string;
   args: string[];
   env: Record<string, string>;
+  cwd: string;
 }
 
 export interface McpSettings {
@@ -525,7 +526,19 @@ export interface SkillMetadata {
   category?: string | null;
   dir_name: string;
   path: string;
-  scope: "global" | "local";
+  scope: "global" | "local" | `plugin:${string}`;
+}
+
+export interface AgentPluginSummary {
+  id: string;
+  name: string;
+  version: string | null;
+  description: string | null;
+  path: string;
+  skills: { name: string; description: string }[];
+  mcp_servers: { name: string; transport: "stdio" | "streamable-http" }[];
+  warnings: string[];
+  error: string | null;
 }
 
 export type WebSearchProvider = "brave" | "tavily" | "searxng";
