@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.36.1-beta.1] - 2026-08-07
+
+### Bug Fixes
+- **chat**: Keep streaming process header mounted
+- **desktop**: Reuse existing primary instance
+
 ## [0.36.0-beta.1] - 2026-08-07
 
 ### Features
