@@ -104,7 +104,7 @@ jobs:
             fi
 
             release_version="${source_tag#v}"
-            release_version="${release_version%-${expected_suffix}.*}"
+            release_version="${release_version%-"$expected_suffix".*}"
             base_branch="release/$RELEASE_CHANNEL/$release_version"
             if git ls-remote --exit-code --heads origin "refs/heads/$base_branch" >/dev/null; then
               git fetch origin "refs/heads/$base_branch:refs/remotes/origin/$base_branch"

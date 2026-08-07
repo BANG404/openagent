@@ -311,6 +311,8 @@ private path delta from the gitlink alone.
 Release automation changes must pass both `bun run lint:frontend` and
 `bun run lint:actions`. These checks reject warnings as well as errors, including
 unused JavaScript and shell variables in release scripts and workflow steps.
+Dynamic values embedded in Bash parameter-expansion patterns must be quoted
+separately so ShellCheck does not treat their contents as glob syntax.
 
 Dry runs can execute on any branch:
 
