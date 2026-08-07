@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.36.0-beta.1] - 2026-08-07
+
+### Features
+- **release**: Add rc promotion channel
+- **settings**: Add Agent Plugins management
+- **channels**: Add scoped commands and interrupt replies
+
+### Bug Fixes
+- **settings**: Constrain Agent Plugins content width
+- **settings**: Remove MCP empty-state fill
+- **chat**: Restore structured tool results
+- **settings**: Finalize Agent Plugins integration
+
+### Miscellaneous
+- Update sdk self-delegation guard
+
 ## [0.35.0-beta.1] - 2026-08-06
 
 ### Features
