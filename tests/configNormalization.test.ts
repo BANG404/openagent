@@ -10,6 +10,18 @@ describe("configuration version", () => {
   });
 });
 
+describe("onboarding completion config", () => {
+  test("defaults older configuration payloads to incomplete", () => {
+    expect(normalizeConfigShape({} as AppConfig).onboarding_completed).toBe(false);
+  });
+
+  test("preserves completed onboarding", () => {
+    expect(
+      normalizeConfigShape({ onboarding_completed: true } as AppConfig).onboarding_completed,
+    ).toBe(true);
+  });
+});
+
 describe("diagnostic log collection config", () => {
   test("defaults to enabled for older configuration payloads", () => {
     const normalized = normalizeConfigShape({} as AppConfig);

@@ -1,11 +1,21 @@
 export const ONBOARDING_OPEN_EVENT = "openagent-onboarding-open";
 
-const STORAGE_KEY = "openagent.onboarding.completed.v1";
+const LEGACY_STORAGE_KEY = "openagent.onboarding.completed.v1";
 
-export function hasCompletedOnboarding(): boolean {
-  return typeof window !== "undefined" && window.localStorage.getItem(STORAGE_KEY) === "true";
+export function hasLegacyOnboardingCompletion(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(LEGACY_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
 }
 
-export function markOnboardingCompleted(): void {
-  if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, "true");
+export function clearLegacyOnboardingCompletion(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch {
+    // A disabled WebView storage backend should not block durable config state.
+  }
 }

@@ -170,6 +170,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 - Use the synchronous per-workspace restore hint only for first render, then
   reconcile through the unified bootstrap IPC.
+- Derive first-run onboarding visibility from the normalized bootstrap config.
+  Persist completion in the versioned config beneath `OPENAGENT_HOME`; migrate
+  the legacy WebView-local marker once and remove it only after the durable save
+  succeeds.
 - Persist a newly created conversation and active-workspace selection
   atomically before its first turn.
 - Keep the main window hidden until the bootstrap snapshot is applied; retain

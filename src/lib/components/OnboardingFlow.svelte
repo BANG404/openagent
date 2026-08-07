@@ -244,7 +244,10 @@
     saving = true;
     saveError = "";
     try {
-      await onSave($state.snapshot(draft) as AppConfig);
+      await onSave({
+        ...($state.snapshot(draft) as AppConfig),
+        onboarding_completed: true,
+      });
       onComplete();
     } catch (error) {
       saveError = `${copy.saveFailed}: ${error}`;

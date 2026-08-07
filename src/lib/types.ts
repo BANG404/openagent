@@ -620,6 +620,7 @@ export interface AppConfig {
   html_preview: HtmlPreviewConfig;
   fetch: FetchConfig;
   launch_on_startup: boolean;
+  onboarding_completed?: boolean;
   diagnostic_log_collection_enabled: boolean;
   quick_chat_shortcut: string;
   mention_palette_show_global_drafts: boolean;

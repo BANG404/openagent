@@ -171,6 +171,7 @@
     theme: "system",
     language: "zh",
     launch_on_startup: false,
+    onboarding_completed: false,
     diagnostic_log_collection_enabled: true,
     quick_chat_shortcut: DEFAULT_QUICK_CHAT_SHORTCUT,
     mention_palette_show_global_drafts: true,

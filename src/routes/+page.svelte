@@ -50,8 +50,8 @@
   } from "$lib/devDebugVisibility";
   import {
     ONBOARDING_OPEN_EVENT,
-    hasCompletedOnboarding,
-    markOnboardingCompleted,
+    clearLegacyOnboardingCompletion,
+    hasLegacyOnboardingCompletion,
   } from "$lib/onboarding";
   import {
     clearQueuedChatMessages,
@@ -584,6 +584,7 @@
       page_size: 12000,
     },
     launch_on_startup: false,
+    onboarding_completed: false,
     diagnostic_log_collection_enabled: true,
     quick_chat_shortcut: DEFAULT_QUICK_CHAT_SHORTCUT,
     mention_palette_show_global_drafts: true,
@@ -2016,7 +2017,18 @@
         await restoreWorkspaceConversation(workspacePath);
       }
     } finally {
-      if (config && !isChannelsSettingsPreview && !hasCompletedOnboarding()) onboardingOpen = true;
+      if (config && !isChannelsSettingsPreview) {
+        const legacyCompleted = hasLegacyOnboardingCompletion();
+        if (!config.onboarding_completed && legacyCompleted) {
+          try {
+            await saveSettings({ ...config, onboarding_completed: true }, config, false);
+            clearLegacyOnboardingCompletion();
+          } catch (error) {
+            console.warn("Failed to migrate legacy onboarding completion:", error);
+          }
+        }
+        onboardingOpen = !config.onboarding_completed && !legacyCompleted;
+      }
       const uiReadyAt = performance.now();
       initialLoading = false;
       await tick();
@@ -4033,7 +4045,7 @@
     }
   }
 
-  async function saveSettings(nextConfig: AppConfig, baseConfig?: AppConfig) {
+  async function saveSettings(nextConfig: AppConfig, baseConfig?: AppConfig, reportError = true) {
     const previousShortcut = normalizeQuickChatShortcut(
       config?.quick_chat_shortcut ?? DEFAULT_QUICK_CHAT_SHORTCUT,
     );
@@ -4062,13 +4074,15 @@
       }
       const conflict = `${err}`.includes("SETTINGS_CONFLICT:");
       if (conflict) await loadSettings();
-      alert(`${$t(conflict ? "settingsSaveConflict" : "settingsSaveFailed")}: ${err}`);
+      if (reportError) {
+        alert(`${$t(conflict ? "settingsSaveConflict" : "settingsSaveFailed")}: ${err}`);
+      }
       throw err;
     }
   }
 
   function completeOnboarding() {
-    markOnboardingCompleted();
+    clearLegacyOnboardingCompletion();
     onboardingOpen = false;
   }
 

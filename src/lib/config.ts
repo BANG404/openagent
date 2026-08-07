@@ -186,6 +186,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
     permission_profile,
     language: input.language ?? "zh",
     launch_on_startup: input.launch_on_startup ?? false,
+    onboarding_completed: input.onboarding_completed ?? false,
     diagnostic_log_collection_enabled: input.diagnostic_log_collection_enabled ?? true,
     quick_chat_shortcut: normalizeQuickChatShortcut(input.quick_chat_shortcut),
     mention_palette_show_global_drafts: input.mention_palette_show_global_drafts ?? true,

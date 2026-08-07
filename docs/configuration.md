@@ -22,7 +22,7 @@ The root contains these user-maintained or durable files:
 
 | Path                              | Purpose                                                                                              |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `config.toml`                     | Providers, model bindings, tool policy, UI preferences, MCP, web search, and remote-gateway settings |
+| `config.toml`                     | Providers, model bindings, tool policy, UI preferences, onboarding completion, MCP, web search, and remote-gateway settings |
 | `config.toml.bak`                 | Previous valid configuration used for startup recovery                                               |
 | `memory.md`                       | Global user memory                                                                                   |
 | `messages.db`                     | Conversation and checkpoint storage                                                                  |
@@ -61,6 +61,12 @@ canonical file instead of resetting unspecified fields to defaults.
 Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
 permissions and do not commit it to source control.
+
+First-run onboarding completion is stored as `onboarding_completed` in
+`config.toml`, so it follows the selected `OPENAGENT_HOME` across desktop
+WebView resets and workspace changes. Older releases stored this marker in
+WebView local storage; the desktop migrates that legacy value into the durable
+configuration once and removes it after a successful save.
 
 `config.toml` carries an explicit top-level `config_version`; the current
 version is 1. At startup, OpenAgent loads the primary file and then a current,
