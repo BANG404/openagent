@@ -216,7 +216,7 @@
   .plugins-settings {
     width: 100%;
     min-height: 100%;
-    padding: 28px clamp(24px, calc((100% - 680px) / 2), 56px) 40px;
+    padding: 28px max(24px, calc((100% - 680px) / 2)) 40px;
     color: var(--text);
   }
 
