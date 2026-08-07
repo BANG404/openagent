@@ -2,6 +2,8 @@
 import { describe, expect, test } from "bun:test";
 import {
   getMsiVersion,
+  getNextPrereleaseNumber,
+  getRcPromotion,
   isBetaReleaseRefresh,
   getLatestReleaseTag,
   getNextBetaNumber,
@@ -65,8 +67,8 @@ describe("release tag precedence", () => {
     ).toBe("v0.30.0-beta.3");
   });
 
-  test("prefers Stable over Beta for the same base", () => {
-    expect(getLatestReleaseTag(["v1.2.3-beta.9", "v1.2.3"])).toBe("v1.2.3");
+  test("prefers Stable over RC and Beta for the same base", () => {
+    expect(getLatestReleaseTag(["v1.2.3-beta.9", "v1.2.3-rc.2", "v1.2.3"])).toBe("v1.2.3");
   });
 });
 
@@ -80,8 +82,9 @@ describe("MSI release versions", () => {
     expect(getMsiVersion("0.24.1-beta.42")).toBe("0.24.1.42");
   });
 
-  test("rejects unsupported prerelease labels and MSI component overflow", () => {
-    expect(() => getMsiVersion("0.24.1-rc.1")).toThrow();
+  test("maps RC sequences and rejects unsupported prerelease labels", () => {
+    expect(getMsiVersion("0.24.1-rc.1")).toBe("0.24.1.1");
+    expect(() => getMsiVersion("0.24.1-preview.1")).toThrow();
     expect(() => getMsiVersion("0.24.1-beta.65536")).toThrow();
   });
 });
@@ -106,6 +109,12 @@ describe("Beta release numbers", () => {
   });
 });
 
+describe("RC release numbers", () => {
+  test("uses an independent RC counter", () => {
+    expect(getNextPrereleaseNumber("0.24.1", "rc", ["v0.24.1-rc.3"], "0.24.1-beta.9")).toBe(4);
+  });
+});
+
 describe("release lines", () => {
   test("derives X.Y from planned Beta versions and selected Beta tags", () => {
     expect(getReleaseLine("1.2.3-beta.4")).toBe("1.2");
@@ -116,7 +125,7 @@ describe("release lines", () => {
   test("rejects values that cannot identify a release line", () => {
     expect(() => getReleaseLine("1.2")).toThrow();
     expect(() => getReleaseLine("release/1.2")).toThrow();
-    expect(() => getReleaseLine("v1.2.3-rc.1")).toThrow();
+    expect(getReleaseLine("v1.2.3-rc.1")).toBe("1.2");
   });
 });
 
@@ -127,34 +136,44 @@ describe("release channel versions", () => {
   });
 
   test("increments Beta on the same base only without a new bump", () => {
-    expect(getNextReleaseVersion("1.2.3-beta.7", "none", "beta", { betaNumber: 8 }).version).toBe(
-      "1.2.3-beta.8",
-    );
+    expect(
+      getNextReleaseVersion("1.2.3-beta.7", "none", "beta", { prereleaseNumber: 8 }).version,
+    ).toBe("1.2.3-beta.8");
     expect(getNextReleaseVersion("1.2.3-beta.7", "patch", "beta").version).toBe("1.2.4-beta.1");
   });
 
-  test("promotes an unchanged Beta or bumps a changed Beta to Stable", () => {
-    expect(getNextReleaseVersion("1.2.3-beta.7", "none", "stable")).toEqual({
+  test("promotes an unchanged Beta to RC and RC to Stable", () => {
+    expect(getNextReleaseVersion("1.2.3-beta.7", "none", "rc", { prereleaseNumber: 1 })).toEqual({
+      version: "1.2.3-rc.1",
+      baseVersion: "1.2.3",
+      promotion: true,
+    });
+    expect(getNextReleaseVersion("1.2.3-rc.1", "none", "stable")).toEqual({
       version: "1.2.3",
       baseVersion: "1.2.3",
       promotion: true,
     });
-    expect(getNextReleaseVersion("1.2.3-beta.7", "minor", "stable").version).toBe("1.3.0");
+    expect(getNextReleaseVersion("1.2.3-rc.1", "minor", "stable").version).toBe("1.3.0");
   });
 });
 
-describe("Stable promotion sources", () => {
-  test("maps a selected Beta on the release line to its Stable tag", () => {
-    expect(getStablePromotion("v1.2.3-beta.4", "1.2")).toEqual({
+describe("promotion sources", () => {
+  test("maps selected Beta and RC tags to their next channel", () => {
+    expect(getRcPromotion("v1.2.3-beta.4", "1.2")).toEqual({
       sourceVersion: "1.2.3-beta.4",
+      version: "1.2.3",
+      tag: "v1.2.3",
+    });
+    expect(getStablePromotion("v1.2.3-rc.1", "1.2")).toEqual({
+      sourceVersion: "1.2.3-rc.1",
       version: "1.2.3",
       tag: "v1.2.3",
     });
   });
 
   test("rejects malformed tags and tags from another release line", () => {
-    expect(() => getStablePromotion("v1.2.3", "1.2")).toThrow();
-    expect(() => getStablePromotion("v1.3.0-beta.1", "1.2")).toThrow();
-    expect(() => getStablePromotion("v1.2.3-beta.1", "release/1.2")).toThrow();
+    expect(() => getRcPromotion("v1.2.3", "1.2")).toThrow();
+    expect(() => getStablePromotion("v1.3.0-rc.1", "1.2")).toThrow();
+    expect(() => getStablePromotion("v1.2.3-rc.1", "release/1.2")).toThrow();
   });
 });

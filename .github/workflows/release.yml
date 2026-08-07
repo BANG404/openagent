@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - release/rc/**
       - release/stable/**
     paths:
       - .github/release.json
@@ -97,6 +98,10 @@ jobs:
             echo "Beta releases must be merged to master, not $RELEASE_BRANCH." >&2
             exit 1
           fi
+          if [[ "$manifest_channel" == "rc" && "$RELEASE_BRANCH" != release/rc/* ]]; then
+            echo "RC releases must be merged to release/rc/X.Y.Z, not $RELEASE_BRANCH." >&2
+            exit 1
+          fi
           if [[ "$manifest_channel" == "stable" && "$RELEASE_BRANCH" != release/stable/* ]]; then
             echo "Stable releases must be merged to release/stable/X.Y.Z, not $RELEASE_BRANCH." >&2
             exit 1
@@ -119,8 +124,8 @@ jobs:
           const manifest = JSON.parse(require("fs").readFileSync(".github/release.json", "utf8"));
           console.log("active=true");
           console.log(`tag=${manifest.tag}`);
-          console.log(`channel=${manifest.channel === "beta" ? "Beta" : "Stable"}`);
-          console.log(`prerelease=${manifest.channel === "beta"}`);
+          console.log(`channel=${manifest.channel[0].toUpperCase()}${manifest.channel.slice(1)}`);
+          console.log(`prerelease=${manifest.channel !== "stable"}`);
           NODE
 
       - name: Require private release credentials
@@ -558,13 +563,14 @@ jobs:
           PRERELEASE: ${{ needs.detect.outputs.prerelease }}
         run: gh release edit "$RELEASE_TAG" --draft=false --prerelease="$PRERELEASE"
 
-      - name: Update Beta updater channel
+      - name: Update prerelease updater channel
         if: needs.detect.outputs.prerelease == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+          RELEASE_CHANNEL: ${{ needs.detect.outputs.channel }}
         run: |
           metadata_dir="$(mktemp -d)"
           metadata_path="$metadata_dir/latest.json"
@@ -575,28 +581,28 @@ jobs:
           tag_object="$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')"
           release_commit="$(gh api "repos/$GH_REPO/git/tags/$tag_object" --jq '.object.sha')"
 
-          beta_is_draft=true
-          if gh release view beta >/dev/null 2>&1; then
-            beta_is_draft="$(gh release view beta --json isDraft --jq '.isDraft')"
+          channel_is_draft=true
+          if gh release view "$RELEASE_CHANNEL" >/dev/null 2>&1; then
+            channel_is_draft="$(gh release view "$RELEASE_CHANNEL" --json isDraft --jq '.isDraft')"
           else
-            gh release create beta \
+            gh release create "$RELEASE_CHANNEL" \
               --draft \
               --target "$release_commit" \
-              --title "OpenAgent Beta updater channel" \
-              --notes "This release hosts updater metadata for the current Beta build." \
+              --title "OpenAgent $RELEASE_CHANNEL updater channel" \
+              --notes "This release hosts updater metadata for the current $RELEASE_CHANNEL build." \
               --prerelease
           fi
 
-          gh release upload beta "$metadata_path" --clobber
+          gh release upload "$RELEASE_CHANNEL" "$metadata_path" --clobber
 
-          if [[ "$beta_is_draft" == "true" ]]; then
-            gh release edit beta \
+          if [[ "$channel_is_draft" == "true" ]]; then
+            gh release edit "$RELEASE_CHANNEL" \
               --target "$release_commit" \
               --draft=false \
               --prerelease
           fi
 
-          public_metadata_url="https://github.com/$GH_REPO/releases/download/beta/latest.json"
+          public_metadata_url="https://github.com/$GH_REPO/releases/download/$RELEASE_CHANNEL/latest.json"
           for attempt in {1..5}; do
             if curl --fail --location --silent --show-error \
               "$public_metadata_url" \
@@ -604,17 +610,17 @@ jobs:
               && jq -e --arg version "$expected_version" \
                 '.version == $version and (.platforms | type == "object")' \
                 "$public_metadata_path" >/dev/null; then
-              echo "Beta updater metadata is public for $expected_version."
+              echo "$RELEASE_CHANNEL updater metadata is public for $expected_version."
               exit 0
             fi
             sleep $((attempt * 2))
           done
 
-          echo "Beta updater metadata is not publicly available for $expected_version." >&2
+          echo "$RELEASE_CHANNEL updater metadata is not publicly available for $expected_version." >&2
           exit 1
 
-  archive-beta:
-    name: Archive Beta release source
+  archive-prerelease:
+    name: Archive prerelease source
     needs:
       - detect
       - publish
@@ -628,16 +634,17 @@ jobs:
           ref: ${{ needs.detect.outputs.tag }}
           fetch-depth: 0
 
-      - name: Fast-forward the Beta release archive
+      - name: Fast-forward the prerelease archive
         env:
           RELEASE_TAG: ${{ needs.detect.outputs.tag }}
           RELEASE_SHA: ${{ needs.detect.outputs.sha }}
+          RELEASE_CHANNEL: ${{ needs.detect.outputs.channel }}
         shell: bash
         run: |
           release_line="$(node --input-type=module -e \
             "import { getReleaseLine } from './scripts/release-version.mjs'; console.log(getReleaseLine(process.argv[1]));" \
             "$RELEASE_TAG")"
-          archive_branch="release/beta/$release_line"
+          archive_branch="release/$RELEASE_CHANNEL/$release_line"
 
           if git ls-remote --exit-code --heads origin "refs/heads/$archive_branch" >/dev/null; then
             git fetch origin "refs/heads/$archive_branch:refs/remotes/origin/$archive_branch"

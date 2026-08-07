@@ -461,7 +461,7 @@ For Anthropic, set `OPENAGENT_STRUCTURED_OUTPUT_PROVIDER=anthropic` and provide 
 
 - [`AGENTS.md`](AGENTS.md) — Public host and frontend contributor guide
 - [`CHANGELOG.md`](CHANGELOG.md) — Full release history
-- [`docs/release.md`](docs/release.md) — Versioning, beta/stable channels, and publishing workflow
+- [`docs/release.md`](docs/release.md) — Versioning, beta/RC/stable channels, and publishing workflow
 - [`docs/embedding-model.md`](docs/embedding-model.md) — Bundled model provenance, size, and verification
 - [`docs/harness-sdk.md`](docs/harness-sdk.md) — Headless third-party harness integration without publishing the core runtime
 - [`docs/design.md`](docs/design.md) — Apple-style design spec

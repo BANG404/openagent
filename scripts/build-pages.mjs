@@ -3,6 +3,7 @@ import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 const output = "dist-pages";
 const releaseManifestPaths = {
   stable: process.env.OPENAGENT_STABLE_RELEASE_MANIFEST,
+  rc: process.env.OPENAGENT_RC_RELEASE_MANIFEST,
   beta: process.env.OPENAGENT_BETA_RELEASE_MANIFEST,
 };
 const assetSuffixes = {

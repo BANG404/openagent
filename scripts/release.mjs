@@ -2,11 +2,11 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import {
   getMsiVersion,
-  isBetaReleaseRefresh,
-  getNextBetaNumber,
+  isPrereleaseReleaseRefresh,
+  getNextPrereleaseNumber,
   getNextReleaseVersion,
   getLatestReleaseTag,
-  getStablePromotion,
+  getPromotion,
 } from "./release-version.mjs";
 
 const args = new Set(process.argv.slice(2));
@@ -17,6 +17,7 @@ const channelArg = process.argv.find((arg) => arg.startsWith("--channel="))?.spl
 const promoteBetaTag = process.argv
   .find((arg) => arg.startsWith("--promote-beta="))
   ?.split("=", 2)[1];
+const promoteRcTag = process.argv.find((arg) => arg.startsWith("--promote-rc="))?.split("=", 2)[1];
 const releaseManifestFile = ".github/release.json";
 const releaseFiles = [
   releaseManifestFile,
@@ -199,16 +200,17 @@ function parseSemver(version) {
 function determineChannel() {
   const channel = channelArg || process.env.RELEASE_CHANNEL;
   if (channel === "test" || channel === "beta") return "beta";
+  if (channel === "rc") return "rc";
   if (channel === "production" || channel === "stable") return "stable";
-  throw new Error("Select a release type with --channel=beta or --channel=stable.");
+  throw new Error("Select a release type with --channel=beta, --channel=rc, or --channel=stable.");
 }
 
-function getNextPrereleaseNumber(baseVersion, channel, currentVersion) {
+function nextPrereleaseNumber(baseVersion, channel, currentVersion) {
   const tags = git(["tag", "--list", `v${baseVersion}-${channel}.*`])
     .split(/\r?\n/)
     .map((tag) => tag.trim())
     .filter(Boolean);
-  return getNextBetaNumber(baseVersion, tags, currentVersion);
+  return getNextPrereleaseNumber(baseVersion, channel, tags, currentVersion);
 }
 
 function getNextRelease(currentVersion, bump, channel, migrateLegacyBetaVersion = false) {
@@ -216,9 +218,9 @@ function getNextRelease(currentVersion, bump, channel, migrateLegacyBetaVersion 
     migrateLegacyBetaVersion,
   });
   const version =
-    channel === "beta"
+    channel === "beta" || channel === "rc"
       ? getNextReleaseVersion(currentVersion, bump, channel, {
-          betaNumber: getNextPrereleaseNumber(initial.baseVersion, "beta", currentVersion),
+          prereleaseNumber: nextPrereleaseNumber(initial.baseVersion, channel, currentVersion),
           migrateLegacyBetaVersion,
         }).version
       : initial.version;
@@ -252,9 +254,9 @@ function updateTauriConfig(version, channel) {
   data.bundle.windows.wix ??= {};
   data.bundle.windows.wix.version = getMsiVersion(version);
   data.plugins.updater.endpoints = [
-    channel === "beta"
-      ? "https://github.com/BANG404/openagent/releases/download/beta/latest.json"
-      : "https://github.com/BANG404/openagent/releases/latest/download/latest.json",
+    channel === "stable"
+      ? "https://github.com/BANG404/openagent/releases/latest/download/latest.json"
+      : `https://github.com/BANG404/openagent/releases/download/${channel}/latest.json`,
   ];
   writeFileSync(file, `${JSON.stringify(data, null, 2)}\n`);
 }
@@ -371,14 +373,17 @@ function verifyPendingRelease() {
   if (manifest.ready !== true) {
     throw new Error(`${releaseManifestFile} is not marked ready.`);
   }
-  if (!["beta", "stable"].includes(manifest.channel)) {
+  if (!["beta", "rc", "stable"].includes(manifest.channel)) {
     throw new Error(`Unsupported release channel: ${manifest.channel}`);
   }
   if (manifest.tag !== `v${manifest.version}`) {
     throw new Error(`Release tag ${manifest.tag} does not match ${manifest.version}.`);
   }
-  const isBeta = manifest.version.includes("-beta.");
-  if ((manifest.channel === "beta") !== isBeta) {
+  const prereleaseChannel = manifest.version.match(/-(beta|rc)\./)?.[1] ?? "";
+  if (
+    (manifest.channel === "stable" && prereleaseChannel) ||
+    (manifest.channel !== "stable" && prereleaseChannel !== manifest.channel)
+  ) {
     throw new Error(`Release channel ${manifest.channel} does not match ${manifest.version}.`);
   }
   const sourceTag = manifest.sourceTag ?? "";
@@ -396,22 +401,28 @@ function verifyPendingRelease() {
     throw new Error(`Previous release tag ${manifest.previousTag} does not exist.`);
   }
   if (sourceTag) {
-    if (manifest.channel !== "stable") {
-      throw new Error("Only Stable releases may declare a Beta source tag.");
+    const expectedSourceChannel = manifest.channel === "rc" ? "beta" : "rc";
+    if (manifest.channel === "beta") {
+      throw new Error("Beta releases may not declare a promotion source tag.");
     }
     const sourceVersion = versionFromTag(sourceTag);
     const source = parseSemver(sourceVersion);
-    if (source.prereleaseChannel !== "beta" || source.base !== manifest.version) {
-      throw new Error(`Beta source ${sourceTag} cannot be promoted to ${manifest.version}.`);
+    if (
+      source.prereleaseChannel !== expectedSourceChannel ||
+      source.base !== parseSemver(manifest.version).base
+    ) {
+      throw new Error(
+        `${expectedSourceChannel} source ${sourceTag} cannot be promoted to ${manifest.version}.`,
+      );
     }
     if (!tagExists(sourceTag)) {
-      throw new Error(`Beta source tag ${sourceTag} does not exist.`);
+      throw new Error(`${expectedSourceChannel} source tag ${sourceTag} does not exist.`);
     }
   }
 
   const changed = git(["diff", "--name-only", "HEAD^", "HEAD"]).split(/\r?\n/).filter(Boolean);
   const previousManifest = readReferenceJson("HEAD^", releaseManifestFile);
-  const releaseRefresh = isBetaReleaseRefresh(
+  const releaseRefresh = isPrereleaseReleaseRefresh(
     previousManifest,
     manifest,
     changed,
@@ -457,7 +468,7 @@ function verifyPendingRelease() {
       .filter((file) => !releaseFiles.includes(normalizePath(file)));
     if (sourceDifferences.length) {
       throw new Error(
-        `Stable promotion differs from ${sourceTag}: ${sourceDifferences.join(", ")}`,
+        `${manifest.channel} promotion differs from ${sourceTag}: ${sourceDifferences.join(", ")}`,
       );
     }
   }
@@ -507,9 +518,9 @@ function verifyPendingRelease() {
   }
 
   const expectedEndpoint =
-    manifest.channel === "beta"
-      ? "https://github.com/BANG404/openagent/releases/download/beta/latest.json"
-      : "https://github.com/BANG404/openagent/releases/latest/download/latest.json";
+    manifest.channel === "stable"
+      ? "https://github.com/BANG404/openagent/releases/latest/download/latest.json"
+      : `https://github.com/BANG404/openagent/releases/download/${manifest.channel}/latest.json`;
   const endpoints = tauriConfig.plugins?.updater?.endpoints;
   if (JSON.stringify(endpoints) !== JSON.stringify([expectedEndpoint])) {
     throw new Error(`Updater endpoint does not match the ${manifest.channel} channel.`);
@@ -583,14 +594,14 @@ function updateChangelog(version, commits) {
   );
 }
 
-function updatePromotionChangelog(version, prereleaseVersion) {
+function updatePromotionChangelog(version, prereleaseVersion, channel) {
   const file = "CHANGELOG.md";
   const today = new Date().toISOString().slice(0, 10);
   const section = [
     `## [${version}] - ${today}`,
     "",
     "### Release",
-    `- Promote \`${prereleaseVersion}\` to stable.`,
+    `- Promote \`${prereleaseVersion}\` to ${channel}.`,
     "",
   ].join("\n");
 
@@ -636,30 +647,37 @@ function main() {
     );
   }
   const channel = determineChannel();
-  if (promoteBetaTag && channel !== "stable") {
-    throw new Error("--promote-beta requires --channel=stable.");
+  if (promoteBetaTag && promoteRcTag) {
+    throw new Error("Specify exactly one promotion source tag.");
   }
+  if (promoteBetaTag && channel !== "rc") {
+    throw new Error("--promote-beta requires --channel=rc.");
+  }
+  if (promoteRcTag && channel !== "stable") {
+    throw new Error("--promote-rc requires --channel=stable.");
+  }
+  const promotionSourceTag = promoteBetaTag || promoteRcTag || "";
+  const promotionSourceChannel = channel === "rc" ? "beta" : "rc";
 
-  if (promoteBetaTag) {
-    const promotion = getStablePromotion(
-      promoteBetaTag,
-      versionFromTag(promoteBetaTag).split(".").slice(0, 2).join("."),
+  if (promotionSourceTag) {
+    getPromotion(
+      promotionSourceTag,
+      versionFromTag(promotionSourceTag).split(".").slice(0, 2).join("."),
+      promotionSourceChannel,
+      channel,
     );
-    if (!tagExists(promoteBetaTag)) {
-      throw new Error(`Beta source tag ${promoteBetaTag} does not exist.`);
-    }
-    if (tagExists(promotion.tag)) {
-      throw new Error(`Stable tag ${promotion.tag} already exists.`);
+    if (!tagExists(promotionSourceTag)) {
+      throw new Error(`${promotionSourceChannel} source tag ${promotionSourceTag} does not exist.`);
     }
     if (!dryRun) {
-      git(["merge-base", "--is-ancestor", promoteBetaTag, "HEAD"]);
+      git(["merge-base", "--is-ancestor", promotionSourceTag, "HEAD"]);
       const restorablePaths = promotionSourcePaths.filter(
-        (path) => refHasPath("HEAD", path) || refHasPath(promoteBetaTag, path),
+        (path) => refHasPath("HEAD", path) || refHasPath(promotionSourceTag, path),
       );
       git([
         "restore",
         "--source",
-        promoteBetaTag,
+        promotionSourceTag,
         "--staged",
         "--worktree",
         "--",
@@ -668,24 +686,27 @@ function main() {
       try {
         git(["diff", "--cached", "--quiet"]);
       } catch {
-        run("git", ["commit", "-m", `chore(release): restore ${promoteBetaTag} source`]);
+        run("git", ["commit", "-m", `chore(release): restore ${promotionSourceTag} source`]);
       }
     }
   }
 
   const currentVersion = getCurrentVersion();
   const currentTauriVersion = getCurrentTauriVersion();
-  const lastTag = promoteBetaTag || getLatestTag();
+  const lastTag = promotionSourceTag || getLatestTag();
   const latestVersion = lastTag ? versionFromTag(lastTag) : currentVersion;
   const releaseBaseTag = lastTag;
   const releaseBaseVersion = latestVersion;
 
-  const commits = promoteBetaTag
+  const commits = promotionSourceTag
     ? []
     : getReleaseRelevantCommitMessages(releaseBaseTag).map(parseConventionalCommit).filter(Boolean);
   const bump = determineBump(commits);
   const current = parseSemver(releaseBaseVersion);
-  const promotion = channel === "stable" && Boolean(current.prereleaseChannel) && bump === "none";
+  const promotion =
+    ((channel === "rc" && current.prereleaseChannel === "beta") ||
+      (channel === "stable" && current.prereleaseChannel === "rc")) &&
+    bump === "none";
   const betaIncrement =
     channel === "beta" && current.prereleaseChannel === "beta" && bump === "none";
   // Older Beta bundles used the base version in Tauri, so 0.24.0-beta.7
@@ -720,14 +741,17 @@ function main() {
   }
 
   assertReleaseFilesClean();
-  const sourceSha = git(["rev-parse", promoteBetaTag ? `${promoteBetaTag}^{commit}` : "HEAD"]);
+  const sourceSha = git([
+    "rev-parse",
+    promotionSourceTag ? `${promotionSourceTag}^{commit}` : "HEAD",
+  ]);
   updateJsonVersion("package.json", nextVersion);
   updateTauriConfig(nextVersion, channel);
   updateCargoToml(nextVersion);
   updateCargoLock(nextVersion);
-  updateReleaseManifest(nextVersion, nextTag, channel, sourceSha, lastTag, promoteBetaTag);
+  updateReleaseManifest(nextVersion, nextTag, channel, sourceSha, lastTag, promotionSourceTag);
   if (promotion) {
-    updatePromotionChangelog(nextVersion, currentVersion);
+    updatePromotionChangelog(nextVersion, currentVersion, channel);
   } else {
     updateChangelog(nextVersion, commits);
   }

@@ -10,9 +10,14 @@ on:
         type: choice
         options:
           - beta
+          - rc
           - stable
       beta_tag:
         description: Beta tag to promote; required for Stable / Stable 要提升的 Beta 标签
+        required: false
+        type: string
+      rc_tag:
+        description: RC tag to promote; required for Stable
         required: false
         type: string
 
@@ -56,6 +61,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_CHANNEL: ${{ inputs.release_type }}
           BETA_TAG: ${{ inputs.beta_tag }}
+          RC_TAG: ${{ inputs.rc_tag }}
         shell: bash
         run: |
           git fetch origin refs/heads/master:refs/remotes/origin/master
@@ -63,47 +69,58 @@ jobs:
           source_tag=""
           promotion_arg=""
           if [[ "$RELEASE_CHANNEL" == "beta" ]]; then
-            if [[ -n "$BETA_TAG" ]]; then
-              echo "beta_tag is only valid when preparing a Stable release." >&2
+            if [[ -n "$BETA_TAG" || -n "$RC_TAG" ]]; then
+              echo "Promotion tags are only valid for RC or Stable preparation." >&2
               exit 1
             fi
             base_branch="master"
             base_sha="$automation_sha"
             git switch --detach "$base_sha"
           else
-            if [[ ! "$BETA_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
-              echo "Stable preparation requires a Beta tag, got: $BETA_TAG" >&2
+            if [[ "$RELEASE_CHANNEL" == "rc" ]]; then
+              source_tag="$BETA_TAG"
+              source_channel="Beta"
+              expected_suffix="beta"
+              promotion_arg="--promote-beta=$BETA_TAG"
+            else
+              source_tag="$RC_TAG"
+              source_channel="RC"
+              expected_suffix="rc"
+              promotion_arg="--promote-rc=$RC_TAG"
+            fi
+            if [[ -n "$BETA_TAG" && -n "$RC_TAG" ]] || [[ ! "$source_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-$expected_suffix\.[0-9]+$ ]]; then
+              echo "$RELEASE_CHANNEL preparation requires one $source_channel tag, got: $source_tag" >&2
               exit 1
             fi
-            if ! git rev-parse --verify --quiet "refs/tags/$BETA_TAG^{commit}" >/dev/null; then
-              echo "Beta tag $BETA_TAG does not exist." >&2
+            if ! git rev-parse --verify --quiet "refs/tags/$source_tag^{commit}" >/dev/null; then
+              echo "$source_channel tag $source_tag does not exist." >&2
               exit 1
             fi
-            release_state="$(gh release view "$BETA_TAG" --json isDraft,isPrerelease --jq '[.isDraft, .isPrerelease] | @tsv')"
+            release_state="$(gh release view "$source_tag" --json isDraft,isPrerelease --jq '[.isDraft, .isPrerelease] | @tsv')"
             IFS=$'\t' read -r is_draft is_prerelease <<< "$release_state"
             if [[ "$is_draft" != "false" || "$is_prerelease" != "true" ]]; then
-              echo "$BETA_TAG must be a published Beta release before Stable promotion." >&2
+              echo "$source_tag must be a published $source_channel release before promotion." >&2
               exit 1
             fi
 
-            stable_version="${BETA_TAG#v}"
-            stable_version="${stable_version%-beta.*}"
-            base_branch="release/stable/$stable_version"
+            release_version="${source_tag#v}"
+            release_version="${release_version%-${expected_suffix}.*}"
+            base_branch="release/$RELEASE_CHANNEL/$release_version"
             if git ls-remote --exit-code --heads origin "refs/heads/$base_branch" >/dev/null; then
               git fetch origin "refs/heads/$base_branch:refs/remotes/origin/$base_branch"
               base_sha="$(git rev-parse "origin/$base_branch")"
-              if ! git merge-base --is-ancestor "$BETA_TAG" "$base_sha"; then
-                echo "$base_branch is not based on $BETA_TAG." >&2
+              if ! git merge-base --is-ancestor "$source_tag" "$base_sha"; then
+                echo "$base_branch is not based on $source_tag." >&2
                 exit 1
               fi
-              if ! git diff --quiet "$BETA_TAG" "$base_sha" -- \
+              if ! git diff --quiet "$source_tag" "$base_sha" -- \
                 assets patches sdk src src-tauri static bun.lock package.json \
                 svelte.config.js tsconfig.json vite.config.js; then
-                echo "$base_branch no longer matches the product source in $BETA_TAG." >&2
+                echo "$base_branch no longer matches the product source in $source_tag." >&2
                 exit 1
               fi
             else
-              git switch -c "$base_branch" "$BETA_TAG"
+              git switch -c "$base_branch" "$source_tag"
               git restore --source "$automation_sha" -- \
                 .github/workflows \
                 scripts \
@@ -122,15 +139,13 @@ jobs:
                 tests/docsSync.test.js \
                 tests/releaseCi.test.js \
                 tests/releaseVersion.test.js
-              # Always keep the archive head separate from the Beta release
+              # Keep the archive head separate from the promoted release
               # marker so branch creation cannot be mistaken for a new release.
               git commit --allow-empty -m "chore(release): refresh promotion automation"
               base_sha="$(git rev-parse HEAD)"
               git push origin "HEAD:refs/heads/$base_branch"
             fi
             git switch --detach "$base_sha"
-            source_tag="$BETA_TAG"
-            promotion_arg="--promote-beta=$BETA_TAG"
           fi
 
           {

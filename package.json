@@ -39,8 +39,10 @@
     "commit:lint": "bun scripts/validate-commit-msg.mjs",
     "release": "bun scripts/release.mjs",
     "release:beta:dry-run": "bun scripts/release.mjs --dry-run --channel=beta",
+    "release:rc:dry-run": "bun scripts/release.mjs --dry-run --channel=rc",
     "release:stable:dry-run": "bun scripts/release.mjs --dry-run --channel=stable",
     "release:prepare:beta": "bun scripts/release.mjs --channel=beta",
+    "release:prepare:rc": "bun scripts/release.mjs --channel=rc",
     "release:prepare:stable": "bun scripts/release.mjs --channel=stable",
     "changelog": "git-cliff -o CHANGELOG.md",
     "changelog:unreleased": "git-cliff --unreleased"

@@ -36,19 +36,22 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.21
-      - name: Fetch Stable and Beta download manifests
+      - name: Fetch Stable, RC, and Beta download manifests
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           gh api "repos/${{ github.repository }}/releases?per_page=100" > releases.json
           jq 'map(select(.draft == false and .prerelease == false and (.tag_name | test("-beta\\.") | not))) | first // null' releases.json > stable-release.json
+          jq 'map(select(.draft == false and (.tag_name | test("-rc\\.")))) | first // null' releases.json > rc-release.json
           jq 'map(select(.draft == false and (.tag_name | test("-beta\\.")))) | first // null' releases.json > beta-release.json
 
           if [[ -n "$RELEASE_TAG" ]]; then
             gh api "repos/${{ github.repository }}/releases/tags/$RELEASE_TAG" > published-release.json
             if [[ "$RELEASE_TAG" == *"-beta."* ]]; then
               cp published-release.json beta-release.json
+            elif [[ "$RELEASE_TAG" == *"-rc."* ]]; then
+              cp published-release.json rc-release.json
             else
               cp published-release.json stable-release.json
             fi
@@ -56,6 +59,7 @@ jobs:
       - name: Build the landing page
         env:
           OPENAGENT_STABLE_RELEASE_MANIFEST: stable-release.json
+          OPENAGENT_RC_RELEASE_MANIFEST: rc-release.json
           OPENAGENT_BETA_RELEASE_MANIFEST: beta-release.json
         run: bun scripts/build-pages.mjs
       - uses: actions/configure-pages@v5

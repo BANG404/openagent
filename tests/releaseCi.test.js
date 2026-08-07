@@ -105,6 +105,10 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("uses: ./.github/workflows/ci.yml");
     expect(releaseWorkflow).toContain("full: true");
     expect(releaseWorkflow).toContain("needs.qualify.result == 'success'");
+    expect(prepareReleaseWorkflow).toContain("- rc");
+    expect(prepareReleaseWorkflow).toContain("--promote-rc=$RC_TAG");
+    expect(releaseWorkflow).toContain("release/rc/**");
+    expect(releaseWorkflow).toContain("release/$RELEASE_CHANNEL/$release_line");
   });
 
   test("refreshes an unpublished Beta marker onto the latest master source", () => {

@@ -21,7 +21,7 @@ feat!: remove deprecated config field
 
 Development commits and Beta release metadata land on `master`. Ordinary
 pushes never create a version or tag by themselves. Start `Prepare Release` and
-choose `beta` or `stable`. Beta is the default, uses the current `master` head,
+choose `beta`, `rc`, or `stable`. Beta is the default, uses the current `master` head,
 and pushes its generated metadata commit directly back to `master`. The job
 fetches `origin/master` again immediately before resolving that immutable base;
 if `master` advances after resolution, the direct push fails instead of
@@ -35,9 +35,11 @@ prior release identity is unchanged, the old source is an ancestor of the new
 source, and `.github/release.json` is the only changed file. New releases still
 have to update every generated release file together.
 
-Stable requires an explicit published `vX.Y.Z-beta.N` tag and never silently
-selects the latest Beta. The workflow creates `release/stable/X.Y.Z` from that
-immutable Beta commit, adds one commit that refreshes only release automation
+RC requires an explicit published `vX.Y.Z-beta.N` tag and never silently
+selects the latest Beta. The workflow creates `release/rc/X.Y.Z` from that
+immutable Beta commit. Stable in turn requires an explicit published
+`vX.Y.Z-rc.N` tag and creates `release/stable/X.Y.Z` from that immutable RC
+commit. Each promotion adds one commit that refreshes only release automation
 and its tests/docs, and pushes the Stable metadata commit directly to that
 branch. Product source remains byte-for-byte aligned with the selected Beta
 without restoring old application code into a newer `master`. The Stable branch
@@ -68,9 +70,9 @@ release-relevant Conventional Commits control the `X.Y.Z` base version:
 - The next Beta number is calculated from matching immutable tags and the
   baseline version. Checked-in version files may lag during migration from the
   legacy divergent release lines; they are reconciled by the next Beta release.
-- Stable preparation requires an explicit `vX.Y.Z-beta.N` tag. Its release line
-  is derived from the tag, and the target is always the matching immutable
-  `vX.Y.Z`; Stable preparation never silently selects the latest Beta.
+- RC preparation requires an explicit `vX.Y.Z-beta.N` tag and creates the
+  matching `vX.Y.Z-rc.N`; Stable preparation requires an explicit
+  `vX.Y.Z-rc.N` tag and creates the matching immutable `vX.Y.Z`.
 
 If legacy history contains both a stable tag and later beta tags with the same
 `X.Y.Z`, the suffix cannot be removed safely. The script detects that collision
@@ -83,8 +85,9 @@ current `master` head. The administrator credential pushes that commit directly
 to `master`; a concurrent update rejects the push instead of releasing stale
 source.
 
-A Stable preparation requires its selected Beta tag to be a published
-prerelease. `release/stable/X.Y.Z` starts from that tag, contains one
+A promotion requires its selected prerelease tag to be published.
+`release/rc/X.Y.Z` starts from its Beta tag and `release/stable/X.Y.Z` starts
+from its RC tag; each contains one
 automation-refresh commit that cannot touch product paths, and receives one
 Stable metadata commit directly. A pre-existing Stable source branch is
 reusable only while the selected tag remains its ancestor and its product tree
@@ -100,8 +103,8 @@ changes only:
 - `src-tauri/Cargo.lock`
 - `CHANGELOG.md`
 
-Stable preparation accepts any published Beta tag, not only its newest tag.
-Because its target branch starts at that exact tag, the release commit changes
+RC and Stable preparation accept any published source tag, not only the newest.
+Because the target branch starts at that exact tag, the release commit changes
 only the version, updater channel, manifest, and changelog. Verification compares
 the resulting product source with the selected Beta tag and allows differences
 only in generated release files.
@@ -116,7 +119,7 @@ target branch directly.
 The release metadata verifier checks that:
 
 - all four runtime version fields match the requested tag;
-- Beta/Stable updater endpoints match the selected channel;
+- Beta/RC/Stable updater endpoints match the selected channel;
 - JSON manifests contain no unrelated edits;
 - Cargo files change only the OpenAgent package version;
 - the release commit contains every expected file and no unexpected file.
@@ -128,8 +131,8 @@ The release metadata verifier checks that:
 ## Publishing
 
 The direct release commit changes `.github/release.json`, so its push starts the
-Release workflow. It accepts Beta markers only from `master` and Stable markers
-only from `release/stable/*`, validates metadata and source integrity, then calls
+Release workflow. It accepts Beta markers only from `master`, RC markers only
+from `release/rc/*`, and Stable markers only from `release/stable/*`, validates metadata and source integrity, then calls
 the complete reusable CI suite for that exact SHA. Only a successful full result
 allows the workflow to create the annotated tag or begin platform builds. The
 detection checkout includes complete tag history because release metadata
@@ -142,8 +145,8 @@ Only then does it:
    arm64, and macOS Intel;
 3. upload signed updater and installer artifacts;
 4. publish the draft after every target succeeds;
-5. update the fixed Beta updater metadata when applicable;
-6. fast-forward `release/beta/X.Y` to the published Beta SHA when applicable;
+5. update the fixed Beta or RC updater metadata when applicable;
+6. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published prerelease SHA when applicable;
 7. deploy the release landing page with the published tag.
 
 The Linux target first builds `codex-bwrap` from the immutable Codex revision
@@ -313,6 +316,7 @@ Dry runs can execute on any branch:
 
 ```bash
 bun run release:beta:dry-run
+ bun run release:rc:dry-run
 bun run release:stable:dry-run
 ```
 
@@ -324,11 +328,12 @@ git switch -c prepare/v0.31.0-beta.1 master
 bun run release:prepare:beta
 ```
 
-To reproduce Stable preparation locally, create its archive branch at the
-selected Beta and name that source explicitly:
+To reproduce RC preparation locally, create its archive branch at the selected
+Beta and name that source explicitly. Stable follows the same procedure from
+the selected RC tag with `--promote-rc`:
 
 ```bash
-git switch -c release/stable/0.31.0 v0.31.0-beta.2
+git switch -c release/rc/0.31.0 v0.31.0-beta.2
 git restore --source master -- .github/workflows scripts docs/release.md \
   tests/ciChanges.test.js tests/docsSync.test.js \
   tests/releaseCi.test.js tests/releaseVersion.test.js
@@ -336,8 +341,8 @@ git add .github/workflows scripts docs/release.md \
   tests/ciChanges.test.js tests/docsSync.test.js \
   tests/releaseCi.test.js tests/releaseVersion.test.js
 git commit --allow-empty -m "chore(release): refresh promotion automation"
-git switch -c prepare/v0.31.0
-bun scripts/release.mjs --channel=stable --promote-beta=v0.31.0-beta.2
+git switch -c prepare/v0.31.0-rc.1
+bun scripts/release.mjs --channel=rc --promote-beta=v0.31.0-beta.2
 ```
 
 The script refuses to create release commits outside `release/*` or `prepare/*`
