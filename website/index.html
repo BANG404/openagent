@@ -38,7 +38,7 @@
         "isAccessibleForFree": true,
         "license": "https://www.gnu.org/licenses/gpl-3.0.html",
         "codeRepository": "https://github.com/BANG404/openagent",
-        "featureList": "Sub-agents, Goal and Graph workflows, hybrid memory, skills, MCP tools, tool approvals, checkpoints, branches, file rollback, scheduled tasks, multimodal attachments, and interactive output"
+        "featureList": "Sub-agents, Goal and Graph workflows, hybrid memory, skills, Agent Plugins, MCP tools, messaging channels, tool approvals, checkpoints, branches, file rollback, scheduled tasks, multimodal attachments, and interactive output"
       }
     </script>
   </head>
@@ -66,9 +66,10 @@
           </div>
         </div>
         <section id="download" class="downloads" aria-labelledby="downloads-title">
-          <div class="downloads-heading"><div><p class="kicker" data-i18n="downloads.kicker">Stable and Beta releases</p><h2 id="downloads-title" data-i18n="downloads.title">Download for your computer.</h2></div><a class="release-notes" href="https://github.com/BANG404/openagent/releases/latest" data-release-notes data-i18n-html="downloads.notes">Release notes <span aria-hidden="true">↗</span></a></div>
+          <div class="downloads-heading"><div><p class="kicker" data-i18n="downloads.kicker">Stable, RC, and Beta releases</p><h2 id="downloads-title" data-i18n="downloads.title">Download for your computer.</h2></div><a class="release-notes" href="https://github.com/BANG404/openagent/releases/latest" data-release-notes data-i18n-html="downloads.notes">Release notes <span aria-hidden="true">↗</span></a></div>
           <div class="release-channels" role="tablist" aria-label="Release channel" data-i18n-aria-label="downloads.channels.label" data-release-channels hidden>
             <button class="release-channel active" type="button" role="tab" aria-selected="true" data-release-channel="stable"><strong data-i18n="downloads.stable.title">Stable</strong><span data-i18n="downloads.stable.detail">Recommended for most users</span></button>
+            <button class="release-channel" type="button" role="tab" aria-selected="false" data-release-channel="rc"><strong data-i18n="downloads.rc.title">Release candidate</strong><span data-i18n="downloads.rc.detail">Preview the next stable release</span></button>
             <button class="release-channel" type="button" role="tab" aria-selected="false" data-release-channel="beta"><strong data-i18n="downloads.beta.title">Beta</strong><span data-i18n="downloads.beta.detail">Newest features and fixes</span></button>
           </div>
           <div class="download-grid">
@@ -79,7 +80,7 @@
             <a class="download-card" href="https://github.com/BANG404/openagent/releases/latest" data-download-key="linuxRpm"><span class="download-platform">Linux</span><strong data-i18n="downloads.linux_rpm.title">Fedora / RHEL</strong><small data-i18n="downloads.linux_rpm.detail">x64 package · .rpm</small></a>
             <a class="download-card" href="https://github.com/BANG404/openagent/releases/latest" data-download-key="linuxAppImage"><span class="download-platform">Linux</span><strong data-i18n="downloads.linux_appimage.title">Universal Linux</strong><small data-i18n="downloads.linux_appimage.detail">x64 portable app · AppImage</small></a>
           </div>
-          <p class="download-version" data-release-version>Select Stable or Beta to see its latest published build.</p>
+          <p class="download-version" data-release-version>Select Stable, RC, or Beta to see its latest published build.</p>
         </section>
         <dl class="principles">
           <div><dt data-i18n="principles.native.title">Native</dt><dd data-i18n="principles.native.copy">A fast Tauri + Rust desktop app</dd></div>
@@ -98,12 +99,14 @@
           <article class="component-card accent"><span class="component-mark">01</span><h3 data-i18n="cards.runtime.title">Agent runtime</h3><p data-i18n="cards.runtime.copy">Stream primary conversations, delegate nested sub-agents, ask structured follow-up questions, or run autonomous Goal and Graph workflows.</p></article>
           <article class="component-card"><span class="component-mark">02</span><h3 data-i18n="cards.tools.title">Tools & MCP</h3><p data-i18n="cards.tools.copy">Work with files, terminal commands, fetched pages, search, and external MCP servers connected over HTTP or stdio.</p></article>
           <article class="component-card"><span class="component-mark">03</span><h3 data-i18n="cards.memory.title">Memory & skills</h3><p data-i18n="cards.memory.copy">Recall useful knowledge across sessions with hybrid search, and load reusable global or workspace-scoped SKILL.md instructions.</p></article>
-          <article class="component-card"><span class="component-mark">04</span><h3 data-i18n="cards.history.title">Checkpoints & branches</h3><p data-i18n="cards.history.copy">Search conversations, keep a durable checkpoint for every turn, branch from earlier messages, inspect diffs, and roll work back.</p></article>
-          <article class="component-card"><span class="component-mark">05</span><h3 data-i18n="cards.output.title">Rich, interactive output</h3><p data-i18n="cards.output.copy">Render streaming Markdown, code, Mermaid, ECharts, interactive file and URL chips, plus sandboxed HTML previews with PNG export.</p></article>
-          <article class="component-card"><span class="component-mark">06</span><h3 data-i18n="cards.models.title">Models & context</h3><p data-i18n="cards.models.copy">Connect Anthropic, OpenAI, or compatible providers, switch models, attach multimodal files, and compact long conversations.</p></article>
-          <article class="component-card"><span class="component-mark">07</span><h3 data-i18n="cards.hooks.title">Scheduled tasks</h3><p data-i18n="cards.hooks.copy">Run recurring or one-off chat hooks in the background, restore them on startup, and receive desktop notifications.</p></article>
-          <article class="component-card"><span class="component-mark">08</span><h3 data-i18n="cards.workspace.title">Workspace knowledge</h3><p data-i18n="cards.workspace.copy">Keep project drafts, memory, skills, and DESIGN.md guidance separated by workspace or shared globally when needed.</p></article>
-          <article class="component-card"><span class="component-mark">09</span><h3 data-i18n="cards.desktop.title">Desktop experience</h3><p data-i18n="cards.desktop.copy">Use light or dark themes, Chinese or English, system tray controls, launch at startup, and native file-manager actions.</p></article>
+          <article class="component-card"><span class="component-mark">04</span><h3 data-i18n="cards.plugins.title">Agent Plugins</h3><p data-i18n="cards.plugins.copy">Install portable local packages and manage their Agent Skills and stdio or Streamable HTTP MCP servers from Settings.</p></article>
+          <article class="component-card"><span class="component-mark">05</span><h3 data-i18n="cards.channels.title">Messaging channels</h3><p data-i18n="cards.channels.copy">Continue durable, scoped Agent conversations from Feishu/Lark, Telegram, QQ, WeChat, Discord, or Slack.</p></article>
+          <article class="component-card"><span class="component-mark">06</span><h3 data-i18n="cards.history.title">Checkpoints & branches</h3><p data-i18n="cards.history.copy">Search conversations, keep a durable checkpoint for every turn, branch from earlier messages, inspect diffs, and roll work back.</p></article>
+          <article class="component-card"><span class="component-mark">07</span><h3 data-i18n="cards.output.title">Rich, interactive output</h3><p data-i18n="cards.output.copy">Render streaming Markdown, code, Mermaid, ECharts, interactive file and URL chips, plus sandboxed HTML previews with PNG export.</p></article>
+          <article class="component-card"><span class="component-mark">08</span><h3 data-i18n="cards.models.title">Models & context</h3><p data-i18n="cards.models.copy">Connect Anthropic, OpenAI, or compatible providers, switch models, attach multimodal files, and compact long conversations.</p></article>
+          <article class="component-card"><span class="component-mark">09</span><h3 data-i18n="cards.hooks.title">Scheduled tasks</h3><p data-i18n="cards.hooks.copy">Run recurring or one-off chat hooks in the background, restore them on startup, and receive desktop notifications.</p></article>
+          <article class="component-card"><span class="component-mark">10</span><h3 data-i18n="cards.workspace.title">Workspace knowledge</h3><p data-i18n="cards.workspace.copy">Keep project drafts, memory, skills, and DESIGN.md guidance separated by workspace or shared globally when needed.</p></article>
+          <article class="component-card"><span class="component-mark">11</span><h3 data-i18n="cards.desktop.title">Desktop experience</h3><p data-i18n="cards.desktop.copy">Reuse the existing primary window on repeated launches, keep workspaces in dedicated windows, and use native tray and file-manager controls.</p></article>
         </div>
       </section>
 

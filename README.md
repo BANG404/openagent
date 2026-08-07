@@ -92,6 +92,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 - **Independent Approval & Runtime Permissions** — Choose when tool calls pause for review separately from the managed filesystem and network sandbox.
 - **Skills System** — Drop a `SKILL.md` into `~/.agents/skills/` or `<workspace>/.agents/skills/`. Category-based progressive discovery keeps large global and project catalogs compact, with optional Flash classification for uncategorized Skills.
 - **Portable Agent Plugins** — Install Agent Plugins 1.0.0 packages from **Settings → Agent Plugins**, with isolated Agent Skill and stdio/Streamable HTTP MCP discovery. See [Agent Plugins](docs/agent-plugins.md).
+- **Messaging Channels** — Connect Feishu/Lark, Telegram, QQ, WeChat, Discord, or Slack from **Settings → Channels**. Each peer keeps its own workspace, model, role, and durable conversation, with commands for switching scope and replying to questions or approvals. See [Messaging channels](docs/channels.md).
 - **Checkpoints & File-Change Rollback** — Every turn is a checkpoint with reverse diffs; undo a single file or rewind the whole agent.
 - **Pluggable LLMs & Multimodal** — Support multi-model selection and durable image, PDF, and text attachments with drag/paste, rich previews, checkpoint restoration, and branch editing across Anthropic, OpenAI, and compatible providers.
 
@@ -112,7 +113,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 
 ### Install a release build
 
-Download the latest installer or app bundle from [GitHub Releases](https://github.com/BANG404/openagent/releases). OpenAgent publishes separate **beta** and **stable** update channels; you can also check for updates manually from Settings. Manual checks show progress, time out if the updater endpoint does not respond, and leave the action retryable with visible success or failure feedback.
+Download the latest installer or app bundle from [GitHub Releases](https://github.com/BANG404/openagent/releases). OpenAgent publishes separate **beta**, **RC**, and **stable** update channels; you can also check for updates manually from Settings. Manual checks show progress, time out if the updater endpoint does not respond, and leave the action retryable with visible success or failure feedback.
 
 To build from source instead, continue below.
 
@@ -457,10 +458,10 @@ For Anthropic, set `OPENAGENT_STRUCTURED_OUTPUT_PROVIDER=anthropic` and provide 
 
 ## Further reading
 
-- [`docs/channels.md`](docs/channels.md) — WeChat access, commands, persistence, and security
-
 - [`AGENTS.md`](AGENTS.md) — Public host and frontend contributor guide
 - [`CHANGELOG.md`](CHANGELOG.md) — Full release history
+- [`docs/agent-plugins.md`](docs/agent-plugins.md) — Portable Agent Plugin installation, validation, components, and data boundaries
+- [`docs/channels.md`](docs/channels.md) — Messaging platform setup, scoped commands, interrupt replies, persistence, and security
 - [`docs/release.md`](docs/release.md) — Versioning, beta/RC/stable channels, and publishing workflow
 - [`docs/embedding-model.md`](docs/embedding-model.md) — Bundled model provenance, size, and verification
 - [`docs/harness-sdk.md`](docs/harness-sdk.md) — Headless third-party harness integration without publishing the core runtime

@@ -93,6 +93,8 @@
 - **开箱即用的开发工具** — 内置文件、搜索、抓取与终端工具。受管终端会话支持交互式或长时间运行的后台进程；`fetch` 通过 Spider 在本地获取页面、提取可读文本并支持分页。
 - **工具审批与工作区沙盒** — 可选择逐次人工审批、模型辅助审批、关闭审批，或仅针对文件与终端工具的工作区沙盒策略。
 - **技能系统（Skills）** — 将 `SKILL.md` 放入 `~/.agents/skills/` 或 `<workspace>/.agents/skills/`。基于分类的渐进发现让大型全局/项目技能目录保持紧凑，也可用 Flash 任务为未分类技能自动分组。
+- **可移植 Agent Plugins** — 在**设置 → Agent Plugins** 中安装 Agent Plugins 1.0.0 本地包，并独立发现其中的 Agent Skill 与 stdio/Streamable HTTP MCP 服务。详见 [Agent Plugins](docs/agent-plugins.md)。
+- **消息渠道** — 在**设置 → 渠道**中接入飞书/Lark、Telegram、QQ、微信、Discord 或 Slack。每个联系人都保有独立的工作区、模型、角色与持久对话，并可通过命令切换范围、回答问题或处理审批。详见[消息渠道](docs/channels.md)。
 - **检查点与文件回滚** — 每轮对话自动创建检查点并记录反向 diff，支持单文件还原或整轮回滚。
 - **多 LLM 与多模态支持** — 支持多模型选择，以及可持久恢复的图片、PDF 和文本附件；提供拖拽/粘贴、丰富预览、检查点恢复与分支编辑，适配 Anthropic、OpenAI 及各类兼容端点。
 
@@ -103,7 +105,7 @@
 - **定时聊天钩子（Scheduled Hooks）** — 支持配置定时或单次后台触发的聊天任务，支持持久化、开机自动恢复以及系统托盘通知。
 - **项目草稿与全局/本地作用域** — 支持草稿（Drafts）、记忆（Memory）与技能（Skills）的全局作用域（`~/.openagent`）和本地工作区作用域（`.agents/`）隔离。
 - **DESIGN.md 面板与 MDX 编辑器** — 提供工作区 `DESIGN.md` 专属可视化编辑面板，并在记忆和技能管理中集成富文本 Markdown 编辑器（MdxMarkdownEditor）。
-- **多工作区桌面集成** — 每个工作区使用独立窗口，已有工作区窗口会被聚焦而非重复打开；同时支持开机自启、最小化到系统托盘及在文件管理器中定位工作区。
+- **多工作区桌面集成** — 重复启动应用时会恢复并聚焦已有主窗口，而不会再创建一个主实例。每个工作区使用独立窗口，已有工作区窗口会被聚焦而非重复打开；同时支持开机自启、最小化到系统托盘及在文件管理器中定位工作区。
 - **可观测性** — 通过 OpenTelemetry 接入 Langfuse 追踪（含 `gen_ai.*` 属性）。
 - **精致 UI** — Apple 风格设计语言，流式 Markdown 渲染，支持 Mermaid 图表与 ECharts，亮暗主题，中英双语界面。
 
@@ -113,7 +115,7 @@
 
 ### 安装发行版
 
-从 [GitHub Releases](https://github.com/BANG404/openagent/releases) 下载最新安装包或应用包。OpenAgent 分别提供 **beta** 与 **stable** 更新渠道，也可在设置中手动检查更新。手动检查会显示进度；更新源无响应时会超时，并以可见的成功或失败提示恢复为可重试状态。
+从 [GitHub Releases](https://github.com/BANG404/openagent/releases) 下载最新安装包或应用包。OpenAgent 分别提供 **beta**、**RC** 与 **stable** 更新渠道，也可在设置中手动检查更新。手动检查会显示进度；更新源无响应时会超时，并以可见的成功或失败提示恢复为可重试状态。
 
 如需从源码构建，请继续执行以下步骤。
 
@@ -386,7 +388,7 @@ Agent 不再使用行内 AGUI 标签，而是可以通过调用内置的 `render
 ## 路线图
 
 - [ ] 在 README 中补充截图与演示 GIF
-- [x] 通过 GitHub Releases 提供预构建安装包（beta / stable 渠道）
+- [x] 通过 GitHub Releases 提供预构建安装包（beta / RC / stable 渠道）
 - [ ] 应用内技能市场
 - [x] 多工作区独立窗口
 
@@ -434,7 +436,9 @@ LANGFUSE_HOST=https://cloud.langfuse.com
 
 - [`AGENTS.md`](AGENTS.md) — 公开宿主与前端贡献指南
 - [`CHANGELOG.md`](CHANGELOG.md) — 完整版本历史
-- [`docs/release.md`](docs/release.md) — 版本规则、beta/stable 渠道与发布流程
+- [`docs/agent-plugins.md`](docs/agent-plugins.md) — 可移植 Agent Plugin 的安装、校验、组件与数据边界
+- [`docs/channels.md`](docs/channels.md) — 消息平台配置、范围切换命令、中断回复、持久化与安全说明
+- [`docs/release.md`](docs/release.md) — 版本规则、beta/RC/stable 渠道与发布流程
 - [`docs/embedding-model.md`](docs/embedding-model.md) — 随包模型的来源、大小与校验方式
 - [`docs/design.md`](docs/design.md) — Apple 风格 UI 设计规范
 - [Tauri 文档](https://tauri.app/) · [SvelteKit 文档](https://kit.svelte.dev/) · [rig（Rust LLM 框架）](https://github.com/0xPlaygrounds/rig)
