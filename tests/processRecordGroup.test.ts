@@ -6,6 +6,7 @@ const processRecordGroupUrl = new URL(
   "../src/lib/components/ProcessRecordGroup.svelte",
   import.meta.url,
 );
+const messageListUrl = new URL("../src/lib/components/MessageList.svelte", import.meta.url);
 const virtualMessageListUrl = new URL(
   "../src/lib/components/VirtualMessageList.svelte",
   import.meta.url,
@@ -22,6 +23,14 @@ describe("process record group", () => {
     expect(source).toContain('class="process-record-content" hidden={!open}');
     expect(source).not.toContain("<details");
     expect(source).not.toContain("<summary");
+  });
+
+  test("keeps the process disclosure mounted while an assistant turn is streaming", async () => {
+    const source = await readFile(messageListUrl, "utf8");
+
+    expect(source).toContain(
+      "processSegments.length > 0 && (assistantIsStreaming || finalSegments.length > 0)",
+    );
   });
 
   test("keeps the controlled header with the first fragmented process record", async () => {

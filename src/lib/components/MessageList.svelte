@@ -505,7 +505,7 @@
             {/if}
           {/each}
         {/snippet}
-        {#if processSegments.length > 0 && finalSegments.length > 0}
+        {#if processSegments.length > 0 && (assistantIsStreaming || finalSegments.length > 0)}
           <ProcessRecordGroup isStreaming={assistantIsStreaming} duration={timing?.total}>
             {@render renderAssistantSegments(processSegments)}
           </ProcessRecordGroup>

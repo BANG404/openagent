@@ -56,6 +56,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   inside the same logical assistant turn. The turn-level process disclosure may
   contain several retries because automatic recovery must still produce one
   final Agent reply; never merge one attempt's nested stream items into another.
+- Keep the turn-level process disclosure mounted throughout an active stream
+  whenever process records exist, including intervals with no trailing final-text
+  run. A later thinking or tool record must not make the working header disappear.
 - Treat assistant records separated only by a tagged context-compaction replay
   as one complete Agent reply. Keep the compaction boundary at its real
   position inside that reply, with one action footer after the final record.
