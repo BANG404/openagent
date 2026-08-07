@@ -102,7 +102,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 - **Scheduled Chat Hooks** — Define recurring or one-off tasks triggered in the background. Hooks are fully persistent, auto-restored on startup, and supported by system tray notifications.
 - **Project Drafts & Global/Local Scopes** — Keep drafts, memory, and skills scoped globally (in `~/.openagent`) or locally to your active workspace (in `.agents/`).
 - **DESIGN.md & MDX Editor** — Dedicated edit panel for `DESIGN.md` in your workspace, plus a rich markdown editor (MdxMarkdownEditor) integrated into memory and skill management.
-- **Multi-Workspace Desktop Integration** — Open each workspace in a dedicated window, focus existing workspace windows instead of duplicating them, launch on startup, minimize to the system tray, and reveal workspace locations in the native file manager.
+- **Multi-Workspace Desktop Integration** — Repeated app launches restore and focus the existing primary window instead of starting another primary instance. Open each workspace in a dedicated window, focus existing workspace windows instead of duplicating them, launch on startup, minimize to the system tray, and reveal workspace locations in the native file manager.
 - **Observability** — Optional Langfuse tracing via OpenTelemetry (`gen_ai.*` attributes).
 - **Polished UI** — Apple-style design language, streaming markdown, Mermaid & ECharts rendering, light/dark themes, i18n (zh / en).
 

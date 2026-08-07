@@ -132,6 +132,11 @@ to a deliberate tracked location.
 
 ## Host and SDK integration
 
+- Register desktop single-instance enforcement as the first Tauri plugin for
+  ordinary primary-process launches. A repeated launch must restore, show, and
+  focus the existing main window. Do not apply that guard to the headless agent
+  server or SDK-owned `--openagent-workspace-window` processes; dedicated
+  workspace processes remain part of the multi-workspace contract.
 - Frontends submit ordinary chat and slash-command input through the shared SDK
   client; do not add flow selection or command parsing to the host/frontend.
 - Tauri's synchronous `setup` callback does not run inside a Tokio worker.

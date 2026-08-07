@@ -1303,6 +1303,22 @@ fn prepare_interactive_persistence() -> anyhow::Result<bool> {
     Ok(true)
 }
 
+fn should_enforce_single_instance(agent_server: bool, is_workspace_window: bool) -> bool {
+    !agent_server && !is_workspace_window
+}
+
+#[cfg(test)]
+mod single_instance_tests {
+    use super::should_enforce_single_instance;
+
+    #[test]
+    fn only_regular_desktop_launches_share_the_primary_instance() {
+        assert!(should_enforce_single_instance(false, false));
+        assert!(!should_enforce_single_instance(false, true));
+        assert!(!should_enforce_single_instance(true, false));
+    }
+}
+
 fn run_with_mode(agent_server: bool) {
     if !agent_server {
         match prepare_interactive_persistence() {
@@ -1331,7 +1347,25 @@ fn run_with_mode(agent_server: bool) {
         .unwrap_or_else(|error| panic!("Failed to initialize OpenAgent runtime: {error:#}"));
 
     let protocol_roots = html_preview_roots;
-    let builder = tauri::Builder::default()
+    let builder = tauri::Builder::default();
+
+    // This must remain the first registered plugin. Ordinary desktop launches
+    // share one primary process, while the SDK-owned workspace-window processes
+    // and the headless agent server keep their intentionally separate lifecycles.
+    #[cfg(desktop)]
+    let builder = if should_enforce_single_instance(agent_server, is_workspace_window) {
+        builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
+    } else {
+        builder
+    };
+
+    let builder = builder
         .register_asynchronous_uri_scheme_protocol(
             html_preview_protocol::SCHEME,
             move |_context, request, responder| {
