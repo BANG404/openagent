@@ -5005,8 +5005,7 @@
   }
 
   .provider-status,
-  .danger-zone,
-  .extensions-placeholder {
+  .danger-zone {
     border-radius: 8px;
     padding: 12px;
     background: var(--surface2);
