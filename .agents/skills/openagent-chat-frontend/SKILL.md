@@ -99,6 +99,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 - Render durable `ask_user` calls with the dedicated input component, resolved
   by their matching ToolResult after streaming, reload, and branch switches.
+- Project every durable ToolResult content block into the same concise text used
+  by live tool events: preserve text, serialize JSON values, and represent image
+  results without exposing encoded bytes. Structured tool output must not become
+  a successful but blank card after finalization, reload, or branch switching.
 - Group consecutive ordinary ToolCalls into one collapsed summary row with
   independently expandable calls.
 - Keep ordinary and enhanced file/search tool cards on the same neutral

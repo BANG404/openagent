@@ -263,8 +263,19 @@ function toolResultText(content: unknown): string {
       (item): item is Record<string, unknown> =>
         Boolean(item) && typeof item === "object" && !Array.isArray(item),
     )
-    .filter((item) => item.type === "text" && typeof item.text === "string")
-    .map((item) => String(item.text))
+    .map((item) => {
+      if (item.type === "text" && typeof item.text === "string") return item.text;
+      if (item.type === "json" && "value" in item) {
+        try {
+          return JSON.stringify(item.value) ?? String(item.value);
+        } catch {
+          return String(item.value);
+        }
+      }
+      if (item.type === "image") return "[image]";
+      return "";
+    })
+    .filter((item) => item.length > 0)
     .join("\n");
 }
 
