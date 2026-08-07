@@ -590,6 +590,9 @@ jobs:
           path: host/sdk
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
+      - name: Materialize frontendDist for Tauri macros
+        run: |
+          node -e "require('fs').mkdirSync('host/build', { recursive: true })"
       - name: Install Linux dependencies
         run: |
           sudo apt-get update >/dev/null

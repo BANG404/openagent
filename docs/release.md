@@ -290,8 +290,11 @@ instead of silently producing a token that cannot deliver private diagnostics.
 The private dispatcher forces every capability for release, nightly, and manual
 runs. Rust formatting, lint, tests, Linux/macOS sandbox checks, TypeScript SDK
 checks, the Linux/Windows Harness matrix, and public-host compatibility remain
-independent jobs. The SDK Release workflow waits for the exact description
-`Public SDK full validation passed` before any build or publish job. GitHub's
+independent jobs. Public-host compatibility materializes the configured empty
+`frontendDist` before native compilation; frontend type checking remains
+separate and does not need to produce a release build. The SDK Release workflow
+waits for the exact description `Public SDK full validation passed` before any
+build or publish job. GitHub's
 failed-job rerun therefore repeats only failed capabilities and the aggregate
 status. Dependency caches may hold
 Cargo registry/git data and Bun's public package downloads, but every Rust cache

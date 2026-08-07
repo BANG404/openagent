@@ -15,6 +15,10 @@ const nativeWorkflow = readFileSync(
   new URL("../.github/workflows/check-native.yml", import.meta.url),
   "utf8",
 );
+const sdkWorkflow = readFileSync(
+  new URL("../.github/workflows/sdk-ci.yml", import.meta.url),
+  "utf8",
+);
 const nativeCargoManifest = readFileSync(
   new URL("../src-tauri/Cargo.toml", import.meta.url),
   "utf8",
@@ -49,6 +53,14 @@ describe("release CI verification", () => {
 
   test("keeps native-only compilation independent from a frontend production build", () => {
     expect(nativeWorkflow.match(/Materialize frontendDist for Tauri macros/g)).toHaveLength(3);
+    const hostCompatibilityJob = sdkWorkflow.match(
+      / {2}host-compatibility:\n(?<job>[\s\S]*?)\n {2}required:/,
+    )?.groups?.job;
+
+    expect(hostCompatibilityJob).toContain("Materialize frontendDist for Tauri macros");
+    expect(hostCompatibilityJob).toContain(
+      `node -e "require('fs').mkdirSync('host/build', { recursive: true })"`,
+    );
     expect(nativeCargoManifest).toContain(
       'rfd = { version = "0.16", default-features = false, features = ["common-controls-v6"] }',
     );
