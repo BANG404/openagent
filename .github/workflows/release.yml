@@ -124,7 +124,7 @@ jobs:
           const manifest = JSON.parse(require("fs").readFileSync(".github/release.json", "utf8"));
           console.log("active=true");
           console.log(`tag=${manifest.tag}`);
-          console.log(`channel=${manifest.channel[0].toUpperCase()}${manifest.channel.slice(1)}`);
+          console.log(`channel=${manifest.channel}`);
           console.log(`prerelease=${manifest.channel !== "stable"}`);
           NODE
 

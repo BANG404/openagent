@@ -128,6 +128,14 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("release/$RELEASE_CHANNEL/$release_line");
   });
 
+  test("preserves lowercase prerelease updater channel names", () => {
+    expect(releaseWorkflow).toContain("console.log(`channel=${manifest.channel}`)");
+    expect(releaseWorkflow).not.toContain("manifest.channel[0].toUpperCase()");
+    expect(releaseWorkflow).toContain(
+      'public_metadata_url="https://github.com/$GH_REPO/releases/download/$RELEASE_CHANNEL/latest.json"',
+    );
+  });
+
   test("refreshes an unpublished Beta marker onto the latest master source", () => {
     expect(prepareReleaseWorkflow).toContain("ref: master");
     expect(prepareReleaseWorkflow).toContain(

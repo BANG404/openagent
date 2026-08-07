@@ -149,6 +149,12 @@ Only then does it:
 6. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published prerelease SHA when applicable;
 7. deploy the release landing page with the published tag.
 
+Prerelease updater channel tags and download URLs use the lowercase manifest
+values `beta` and `rc`. GitHub release tags and asset URLs are case-sensitive,
+so the release workflow must pass the manifest channel through unchanged when
+creating the channel release, uploading `latest.json`, and verifying its public
+URL. The packaged updater endpoint uses the same lowercase channel name.
+
 The Linux target first builds `codex-bwrap` from the immutable Codex revision
 pinned by the SDK, strips the helper, and exports its SHA-256 before Tauri
 compiles the application. The release binary embeds that digest and verifies
