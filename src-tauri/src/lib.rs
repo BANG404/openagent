@@ -88,6 +88,7 @@ async fn resume_interrupted_chat(
     response: String,
     branch_id: Option<String>,
     assistant_message_id: String,
+    model_binding: Option<ChatModelBinding>,
 ) -> Result<(), String> {
     runtime
         .inner()
@@ -98,6 +99,7 @@ async fn resume_interrupted_chat(
             response,
             branch_id,
             assistant_message_id,
+            model_binding,
         })
         .await
 }

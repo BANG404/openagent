@@ -6,8 +6,10 @@ so messages use normal conversation persistence, workspace permissions, model
 selection, tools, and checkpoints. Adapters do not run a separate Agent loop.
 
 Configure integrations under **Settings → Channels**. A workspace must be active
-while a channel is running. Each external peer receives an independent durable
-conversation in that workspace. Credentials stay in the local configuration and
+when a peer first contacts a channel. Each peer then keeps an independent durable
+conversation plus its selected workspace, model, and role. Requests execute in
+the selected workspace process, so one peer's selection does not change the
+desktop or another peer. Credentials stay in the local configuration and
 connection status is exposed only to the desktop settings surface.
 
 The channel navigation identifies each messaging platform with its recognizable icon
@@ -41,14 +43,31 @@ settings. Credential or enablement changes restart only the affected adapter.
 
 Text messages are supported. Replies are split on Unicode character boundaries
 to respect each platform's message limit. Bot-authored messages are ignored to
-prevent response loops. Attachments, rich cards, reactions, threads as separate
-conversations, and interactive approval forwarding are not currently supported.
+prevent response loops. Attachments, rich cards, reactions, and threads as
+separate conversations are not currently supported.
 
 Users can send:
 
 - `/new` to start another durable conversation.
+- `/model` to list models, `/model <number|provider/model>` to select one, and
+  `/model default` to return to the configured default.
+- `/workspace` to list workspaces and `/workspace <number|name|listed-path>` to switch.
+  Switching workspace starts a new conversation in that workspace process.
+- `/role` to list roles, `/role <number|name>` to switch, and `/role default` to
+  restore the default OpenAgent identity. Switching role starts a new conversation.
+- `/status` to show the peer's current workspace, model, and role.
+- `/answer <value>` to answer `ask_user`; a single-field question also accepts a
+  plain-text reply. Multi-field answers use `field=value; field=value`.
+- `/approve` or `/deny` to resolve a pending manual tool approval, and `/cancel`
+  to dismiss a pending `ask_user` request.
 - `/whoami` to return the allowlist identity.
 - `/help` to list channel commands.
+
+Questions and approvals are reconstructed from the durable interrupted checkpoint
+on the peer's selected conversation branch. Channel state does not maintain a
+second pending-interrupt record, so repeated or stale replies are rejected after
+the checkpoint advances. Approval still applies only to the exact tool call and
+never widens the configured permission profile.
 
 Conversation mappings and transport cursors are stored beneath
 `<OPENAGENT_HOME>/channels/<platform>/`. WeChat additionally stores its local
