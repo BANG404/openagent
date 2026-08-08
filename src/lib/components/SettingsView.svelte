@@ -4900,12 +4900,23 @@
   }
 
   .model-item {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 0;
+  }
+
+  .model-item + .model-item::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 16px;
+    height: 1px;
+    background: var(--mica-divider);
+    content: "";
   }
 
   .hook-item {
@@ -4996,10 +5007,6 @@
   .hook-textarea {
     min-height: 84px;
     resize: vertical;
-  }
-
-  .model-item:last-child {
-    border-bottom: none;
   }
 
   .model-name {
