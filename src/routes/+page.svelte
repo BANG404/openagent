@@ -5844,7 +5844,7 @@
   }
 
   .input-area-new-conversation {
-    top: 50%;
+    top: calc(50% - 10px);
     bottom: auto;
     padding-bottom: 0;
     transform: translateY(-50%);
@@ -5883,6 +5883,14 @@
 
   .input-area-new-conversation .input-inner {
     max-width: 760px;
+  }
+
+  .input-area-new-conversation .input-inner :global(.composer-compact .input) {
+    min-height: 66px;
+  }
+
+  .input-area-new-conversation .input-inner :global(.composer-copy) {
+    min-height: 99px;
   }
 
   @media (prefers-color-scheme: dark) {

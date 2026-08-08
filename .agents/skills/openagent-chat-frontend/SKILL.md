@@ -225,12 +225,14 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   selector at the top of the sidebar remains a distinct selector control.
 - Use the theme canvas for the workspace surface and retain the low-contrast
   ambient aurora behind the composer and new-conversation greeting. On a new
-  conversation, treat the greeting and composer as one centered vertical
-  stack whose measured total height determines its vertical position, and
-  constrain that centered composer to a 760px outer column. Do not position the
-  greeting and composer independently. Ordinary conversations keep the composer
-  anchored to the bottom in the wider 900px outer column. The shared composer
-  and its loading skeleton use the application Mica surface in both positions.
+  conversation, treat the greeting and composer as one vertical stack whose
+  measured total height determines its position slightly above the geometric
+  center, and constrain that composer to a 760px outer column. Give its compact
+  textarea more single-line height than the bottom-anchored composer, and keep
+  the loading skeleton at the same expanded height. Do not position the greeting
+  and composer independently. Ordinary conversations keep the composer anchored
+  to the bottom in the wider 900px outer column. The shared composer and its
+  loading skeleton use the application Mica surface in both positions.
   Keep the model, reasoning-effort, and approval triggers inside that composer
   surface-free at rest; standalone Select material must not leak into the
   toolbar. Focus rings expand outside their control boundary instead of inset.
