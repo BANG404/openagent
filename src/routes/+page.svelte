@@ -709,26 +709,38 @@
           nodes: [
             {
               id: "checkpoint",
-              task: "解析 checkpoint flow",
+              task: "检索并整理 2026-08-09 当日市场收盘数据，核对指数、板块和成交额来源",
               dependsOn: [],
               status: "completed",
             },
             {
               id: "goal-panel",
-              task: "渲染 Goal 待办进度",
+              task: "汇总港股市场恒生指数、恒生科技指数和主要行业表现，标注可靠数据来源",
               dependsOn: ["checkpoint"],
               status: "running",
             },
             {
               id: "graph-panel",
-              task: "渲染 Graph 节点依赖",
+              task: "汇总美股市场主要指数、热门板块与涨跌幅，并交叉核验不同来源的数据",
+              dependsOn: ["checkpoint"],
+              status: "running",
+            },
+            {
+              id: "sector-analysis",
+              task: "分析 A 股领涨板块、个股异动与可能驱动因素，避免把推测写成确定事实",
+              dependsOn: ["checkpoint"],
+              status: "running",
+            },
+            {
+              id: "source-audit",
+              task: "检查所有引用链接、时间与市场口径，确保最终结论可以追溯到明确来源",
               dependsOn: ["checkpoint"],
               status: "running",
             },
             {
               id: "verification",
-              task: "验证完整交互",
-              dependsOn: ["goal-panel", "graph-panel"],
+              task: "合并各市场结果并生成结构化摘要，清楚区分事实、分析与风险提示",
+              dependsOn: ["goal-panel", "graph-panel", "sector-analysis", "source-audit"],
               status: "blocked",
             },
           ],
