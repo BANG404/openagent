@@ -204,6 +204,13 @@
   const isPermissionSettingsPreview = devQuery?.has("permission-settings-preview") === true;
   const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
   const isAgentPluginsSettingsPreview = devQuery?.has("agent-plugins-settings-preview") === true;
+  const isMoreManagementPreview = devQuery?.has("more-management-preview") === true;
+  const moreManagementPreviewKind =
+    devQuery?.get("more-management-preview-kind") === "memory"
+      ? "memory"
+      : devQuery?.get("more-management-preview-kind") === "roles"
+        ? "roles"
+        : "skills";
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
   const quickChatPreviewTheme =
@@ -316,6 +323,18 @@
     devQuery?.get("agent-plugins-settings-preview-locale") === "en"
       ? "en"
       : devQuery?.get("agent-plugins-settings-preview-locale") === "zh"
+        ? "zh"
+        : null;
+  const moreManagementPreviewTheme =
+    devQuery?.get("more-management-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("more-management-preview-theme") === "light"
+        ? "light"
+        : null;
+  const moreManagementPreviewLocale: Locale | null =
+    devQuery?.get("more-management-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("more-management-preview-locale") === "zh"
         ? "zh"
         : null;
   const bookModePreviewTable = [
@@ -2138,6 +2157,17 @@
           SettingsView = (await import("$lib/components/SettingsView.svelte")).default;
           settingsInitialNav = isAgentPluginsSettingsPreview ? "plugins" : "channels";
           settingsOpen = true;
+        } else if (isMoreManagementPreview) {
+          if (moreManagementPreviewKind === "memory") {
+            MemoryView = (await import("$lib/components/MemoryView.svelte")).default;
+            memoryOpen = true;
+          } else if (moreManagementPreviewKind === "roles") {
+            RolesView = (await import("$lib/components/RolesView.svelte")).default;
+            rolesOpen = true;
+          } else {
+            SkillsView = (await import("$lib/components/SkillsView.svelte")).default;
+            skillsOpen = true;
+          }
         }
         restoringSurface = "new-conversation";
         activeConvId = null;
@@ -2166,7 +2196,12 @@
         await restoreWorkspaceConversation(workspacePath);
       }
     } finally {
-      if (config && !isChannelsSettingsPreview && !isAgentPluginsSettingsPreview) {
+      if (
+        config &&
+        !isChannelsSettingsPreview &&
+        !isAgentPluginsSettingsPreview &&
+        !isMoreManagementPreview
+      ) {
         const legacyCompleted = hasLegacyOnboardingCompletion();
         if (!config.onboarding_completed && legacyCompleted) {
           try {
@@ -3159,6 +3194,7 @@
       }
       applyTheme(
         bookModePreviewTheme ??
+          moreManagementPreviewTheme ??
           channelsSettingsPreviewTheme ??
           agentPluginsSettingsPreviewTheme ??
           permissionSettingsPreviewTheme ??
@@ -3173,6 +3209,7 @@
       );
       await initI18n(
         bookModePreviewLocale ??
+          moreManagementPreviewLocale ??
           channelsSettingsPreviewLocale ??
           agentPluginsSettingsPreviewLocale ??
           permissionSettingsPreviewLocale ??
@@ -5029,6 +5066,7 @@
       {:else if memoryOpen && MemoryView}
         <MemoryView
           {workspace}
+          preview={isMoreManagementPreview}
           {isMemorySyncing}
           onOpenSource={openMemorySource}
           {winMinimize}
@@ -5039,6 +5077,7 @@
       {:else if rolesOpen && RolesView}
         <RolesView
           {workspace}
+          preview={isMoreManagementPreview}
           onRolesChanged={() => void handleRolesChanged()}
           {winMinimize}
           {winMaximize}
@@ -5046,7 +5085,13 @@
         />
         <!-- ─── Skills Panel ────────────────────────────────────────────────────── -->
       {:else if skillsOpen && SkillsView}
-        <SkillsView {workspace} {winMinimize} {winMaximize} {winClose} />
+        <SkillsView
+          {workspace}
+          preview={isMoreManagementPreview}
+          {winMinimize}
+          {winMaximize}
+          {winClose}
+        />
         <!-- ─── Settings Panel ──────────────────────────────────────────────────── -->
       {:else if settingsOpen && SettingsView}
         <SettingsView

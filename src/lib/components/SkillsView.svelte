@@ -5,10 +5,18 @@
   import { ContextMenu, Dialog } from "bits-ui";
   import MdxMarkdownEditor from "./MdxMarkdownEditor.svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
+  import PaneResizeHandle from "./PaneResizeHandle.svelte";
   import ScopeToggle from "./ScopeToggle.svelte";
   import WindowControls from "./WindowControls.svelte";
   import Tooltip from "./Tooltip.svelte";
   import { t } from "$lib/i18n";
+  import {
+    MORE_PANE_MAX_WIDTH,
+    MORE_PANE_MIN_WIDTH,
+    clampMorePaneWidth,
+    loadMorePaneWidth,
+    saveMorePaneWidth,
+  } from "$lib/morePaneSizing";
   import type { SkillMetadata, WorkspaceContext } from "$lib/types";
 
   let {
@@ -16,11 +24,13 @@
     winMinimize,
     winMaximize,
     winClose,
+    preview = false,
   }: {
     workspace: WorkspaceContext | null;
     winMinimize: () => void;
     winMaximize: () => void;
     winClose: () => void;
+    preview?: boolean;
   } = $props();
 
   type SkillScope = "global" | "local";
@@ -44,6 +54,7 @@
   let skillLoadVersion = 0;
   let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
   let collapsedCategoryKeys = $state(new Set<string>());
+  let listWidth = $state(loadMorePaneWidth());
 
   // New skill dialog state
   let showNewDialog = $state(false);
@@ -75,6 +86,10 @@
   });
 
   onMount(() => {
+    if (preview) {
+      skillsLoading = false;
+      return;
+    }
     void loadSkills(true);
     const unlisten = listen("skills-updated", () => {
       void loadSkills();
@@ -256,7 +271,7 @@
     <!-- Skill list + editor -->
     <div class="skills-content-col">
       <!-- Skill list sidebar -->
-      <div class="skill-list-col">
+      <div class="skill-list-col" style={`width: ${listWidth}px;`}>
         <div class="skill-list-items">
           {#if skillsLoading}
             <LoadingSkeleton variant="detail-list" rows={5} label={$t("loadingContent")} />
@@ -392,6 +407,14 @@
             </button>
           </Tooltip>
         </div>
+        <PaneResizeHandle
+          width={listWidth}
+          min={MORE_PANE_MIN_WIDTH}
+          max={MORE_PANE_MAX_WIDTH}
+          ariaLabel={$t("resizeMorePane")}
+          onResize={(width) => (listWidth = clampMorePaneWidth(width))}
+          onResizeEnd={saveMorePaneWidth}
+        />
       </div>
 
       <!-- Editor -->
@@ -511,7 +534,6 @@
     justify-content: space-between;
     padding: 0 16px;
     background: var(--bg);
-    border-bottom: 1px solid var(--border);
     height: 48px;
     flex-shrink: 0;
   }
@@ -547,12 +569,12 @@
   /* ─── Skill list ──────────────────────────────────────────────────────────── */
 
   .skill-list-col {
-    width: 220px;
+    position: relative;
     flex-shrink: 0;
-    border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: color-mix(in srgb, var(--surface2) 18%, var(--bg));
   }
 
   .skill-list-items {
@@ -648,8 +670,7 @@
     display: flex;
     gap: 6px;
     padding: 8px;
-    border-top: 1px solid var(--border);
-    background: var(--bg);
+    background: transparent;
   }
 
   .skill-footer-btn {
@@ -802,7 +823,6 @@
     padding: 0 16px;
     height: 36px;
     background: var(--bg);
-    border-bottom: 1px solid var(--border);
     flex-shrink: 0;
   }
 

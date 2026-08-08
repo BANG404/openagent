@@ -2,9 +2,17 @@
   import { invoke } from "$lib/openagent/tauriClient";
   import { onMount } from "svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
+  import PaneResizeHandle from "./PaneResizeHandle.svelte";
   import ScopeToggle from "./ScopeToggle.svelte";
   import WindowControls from "./WindowControls.svelte";
   import { t } from "$lib/i18n";
+  import {
+    MORE_PANE_MAX_WIDTH,
+    MORE_PANE_MIN_WIDTH,
+    clampMorePaneWidth,
+    loadMorePaneWidth,
+    saveMorePaneWidth,
+  } from "$lib/morePaneSizing";
   import type { AgentRole, WorkspaceContext } from "$lib/types";
 
   let {
@@ -13,12 +21,14 @@
     winMaximize,
     winClose,
     onRolesChanged,
+    preview = false,
   }: {
     workspace: WorkspaceContext | null;
     winMinimize: () => void;
     winMaximize: () => void;
     winClose: () => void;
     onRolesChanged?: () => void;
+    preview?: boolean;
   } = $props();
 
   type RoleScope = "global" | "local";
@@ -34,6 +44,7 @@
   let saving = $state(false);
   let error = $state("");
   let saveMessage = $state("");
+  let listWidth = $state(loadMorePaneWidth());
 
   let visibleRoles = $derived.by(() => {
     const normalized = query.trim().toLocaleLowerCase();
@@ -44,6 +55,10 @@
   });
 
   onMount(() => {
+    if (preview) {
+      loading = false;
+      return;
+    }
     void loadRoles();
   });
 
@@ -168,7 +183,7 @@
   </header>
 
   <div class="roles-body">
-    <aside class="role-list-column">
+    <aside class="role-list-column" style={`width: ${listWidth}px;`}>
       <div class="role-search-wrap">
         <label class="search-box">
           <svg
@@ -228,6 +243,14 @@
           {$t("newRole")}
         </button>
       </div>
+      <PaneResizeHandle
+        width={listWidth}
+        min={MORE_PANE_MIN_WIDTH}
+        max={MORE_PANE_MAX_WIDTH}
+        ariaLabel={$t("resizeMorePane")}
+        onResize={(width) => (listWidth = clampMorePaneWidth(width))}
+        onResizeEnd={saveMorePaneWidth}
+      />
     </aside>
 
     <main class="role-editor">
@@ -319,7 +342,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid var(--border);
     background: var(--bg);
     flex-shrink: 0;
   }
@@ -343,11 +365,11 @@
   }
 
   .role-list-column {
-    width: 260px;
+    position: relative;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--border);
     flex-shrink: 0;
+    background: color-mix(in srgb, var(--surface2) 18%, var(--bg));
   }
 
   .role-search-wrap {
@@ -487,8 +509,7 @@
 
   .role-list-footer {
     padding: 8px;
-    border-top: 1px solid var(--border);
-    background: var(--bg);
+    background: transparent;
   }
 
   .new-role-button,
@@ -536,7 +557,6 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    border-bottom: 1px solid var(--border);
     background: var(--bg);
     font-size: 12px;
     font-weight: 600;
@@ -690,10 +710,6 @@
   }
 
   @media (max-width: 700px) {
-    .role-list-column {
-      width: 220px;
-    }
-
     .editor-form {
       width: calc(100% - 28px);
       padding-top: 22px;

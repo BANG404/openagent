@@ -16,6 +16,7 @@
     winMinimize,
     winMaximize,
     winClose,
+    preview = false,
   }: {
     workspace: WorkspaceContext | null;
     isMemorySyncing: boolean;
@@ -23,6 +24,7 @@
     winMinimize: () => void;
     winMaximize: () => void;
     winClose: () => void;
+    preview?: boolean;
   } = $props();
 
   type MemoryScope = "global" | "local";
@@ -42,6 +44,11 @@
   let agentScope = $derived(activeScope === "global" ? "global" : (workspace?.path ?? "global"));
 
   onMount(() => {
+    if (preview) {
+      memoryLoading = false;
+      agentMemoriesLoading = false;
+      return;
+    }
     void loadMemory();
     return () => {
       if (autoSaveTimer) clearTimeout(autoSaveTimer);
@@ -373,7 +380,6 @@
     justify-content: space-between;
     padding: 0 16px;
     background: var(--bg);
-    border-bottom: 1px solid var(--border);
     height: 48px;
     flex-shrink: 0;
   }
@@ -465,7 +471,6 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 20px 8px;
-    border-bottom: 1px solid var(--border);
     background: var(--bg);
     flex-shrink: 0;
   }
@@ -508,8 +513,6 @@
     height: 7px;
     flex: 0 0 7px;
     background: var(--bg);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
     cursor: row-resize;
     display: flex;
     align-items: center;
@@ -525,15 +528,18 @@
 
   .memory-resizer span {
     width: 28px;
-    height: 3px;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    opacity: 0.9;
+    height: 1px;
+    background: color-mix(in srgb, var(--border) 55%, transparent);
   }
 
   .memory-resizer:hover,
   :global(.memory-resizing) .memory-resizer {
-    background: var(--surface);
+    background: color-mix(in srgb, var(--surface2) 45%, transparent);
+  }
+
+  .memory-resizer:hover span,
+  :global(.memory-resizing) .memory-resizer span {
+    background: color-mix(in srgb, var(--primary) 70%, transparent);
   }
 
   .memory-resizer.disabled {
