@@ -446,6 +446,17 @@
     min-width: 0;
   }
 
+  .permission-settings :global(.ui-select-trigger) {
+    border: 1px solid var(--border);
+    box-shadow: none;
+  }
+
+  .permission-settings :global(.ui-select-trigger:focus-visible),
+  .permission-settings :global(.ui-select-trigger[data-state="open"]) {
+    border-color: var(--primary);
+    box-shadow: none;
+  }
+
   .permission-divider {
     height: 1px;
     margin-left: 16px;

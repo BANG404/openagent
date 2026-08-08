@@ -345,7 +345,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   light/dark, and Chinese/English states addressable without native
   configuration. Approval and `permission_profile` remain separate settings;
   editing one must never rewrite the other or flatten existing custom filesystem
-  entries.
+  entries. Keep controls inside the permission card shadowless with a thin
+  border; reserve the card shadow for the outer surface.
 - Keep the development-only `channels-settings-preview` query as the direct
   browser surface for Settings → Channels. Its `-theme` and `-locale` query
   parameters must keep the channel list, credential forms, responsive layout,
