@@ -83,6 +83,12 @@
     messageTimeline.find((item) => item.id === selectedEventId) ?? messageTimeline[0] ?? null,
   );
 
+  $effect(() => {
+    if (!traces.some((trace) => trace.id === selectedTaskTraceId) && traces[0]) {
+      selectTrace(traces[0]);
+    }
+  });
+
   function formatTime(seconds: number): string {
     return new Date(seconds * 1000).toLocaleString([], {
       hour: "2-digit",
@@ -270,7 +276,6 @@
         invoke<ConversationMeta[]>("get_conversations", { workspace: null }),
         invoke<TaskTrace[]>("get_task_traces"),
       ]);
-      if (!selectedTaskTraceId && traces[0]) selectTrace(traces[0]);
     } catch (cause) {
       error = String(cause);
     } finally {

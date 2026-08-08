@@ -528,12 +528,12 @@
     box-sizing: border-box;
     min-height: 87px;
     overflow: hidden;
-    border: 0;
+    border: 1px solid var(--mica-border);
     border-radius: 18px;
-    background: var(--control-surface);
-    -webkit-backdrop-filter: blur(12px) saturate(1.05);
-    backdrop-filter: blur(12px) saturate(1.05);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
   }
 
   .composer-placeholder {

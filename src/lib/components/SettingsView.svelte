@@ -207,12 +207,23 @@
     },
   };
 
-  let settingsNav = $state<SettingsNav>(untrack(() => initialNav) ?? "providers");
   let channelSettingsNav = $state<ChannelSettingsNav>("feishu");
-  // Allow actions outside the settings view (such as New Conversation) to
-  // direct an already-open settings panel to the relevant section.
+  // Contextual entry points can override the ordinary General default after
+  // this dynamically loaded Tabs root has finished registering its triggers.
   $effect(() => {
-    if (initialNav) settingsNav = initialNav;
+    if (!initialNav) return;
+    let innerFrame = 0;
+    const outerFrame = requestAnimationFrame(() => {
+      innerFrame = requestAnimationFrame(() => {
+        document
+          .querySelector<HTMLButtonElement>(`[data-tabs-trigger][data-value="${initialNav}"]`)
+          ?.click();
+      });
+    });
+    return () => {
+      cancelAnimationFrame(outerFrame);
+      cancelAnimationFrame(innerFrame);
+    };
   });
   let selectedProviderId = $state("default");
   let providerSearch = $state("");
@@ -292,6 +303,7 @@
     normalizeConfigShape(untrack(() => config) ?? fallbackConfig),
   );
   ensureSelectedProvider();
+  ensureSelectedMcpServer();
 
   $effect(() => {
     if (!config) return;
@@ -301,6 +313,7 @@
       draftConfig = incoming;
       acceptedConfigFingerprint = incomingFingerprint;
       ensureSelectedProvider();
+      ensureSelectedMcpServer();
       initializedFromConfig = true;
       return;
     }
@@ -319,6 +332,7 @@
     draftConfig = incoming;
     acceptedConfigFingerprint = incomingFingerprint;
     ensureSelectedProvider();
+    ensureSelectedMcpServer();
   });
 
   function snapshotDraftConfig() {
@@ -382,6 +396,7 @@
           draftConfig = rebased;
           acceptedConfigFingerprint = JSON.stringify(saved);
           ensureSelectedProvider();
+          ensureSelectedMcpServer();
         } catch (error) {
           reportFrontendDiagnostic("settings_save_failed", "SettingsView", error);
           await tick();
@@ -391,6 +406,7 @@
             draftConfig = latest;
             acceptedConfigFingerprint = JSON.stringify(latest);
             ensureSelectedProvider();
+            ensureSelectedMcpServer();
           }
           throw error;
         }
@@ -650,6 +666,11 @@
   function ensureSelectedProvider() {
     if (draftConfig.providers.some((provider) => provider.id === selectedProviderId)) return;
     selectedProviderId = draftConfig.providers[0]?.id ?? "";
+  }
+
+  function ensureSelectedMcpServer() {
+    if (draftConfig.mcp.servers.some((server) => server.id === selectedMcpId)) return;
+    selectedMcpId = draftConfig.mcp.servers[0]?.id ?? null;
   }
 
   function addProvider() {
@@ -1375,13 +1396,7 @@
     </div>
   </div>
 
-  <Tabs.Root
-    value={settingsNav}
-    onValueChange={(v) => (settingsNav = v as SettingsNav)}
-    orientation="vertical"
-    activationMode="manual"
-    class="settings-body"
-  >
+  <Tabs.Root value="general" orientation="vertical" activationMode="manual" class="settings-body">
     <Tabs.List class="settings-nav-col">
       <div class="settings-nav-items">
         <Tabs.Trigger value="general" class="settings-nav-item">
@@ -1807,20 +1822,18 @@
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("htmlPreview")}</h4>
-          <div class="execution-settings">
-            <div class="execution-setting">
-              <label class="execution-value-row">
-                <span class="label-text">{$t("htmlPreviewFixedHeight")}</span>
-                <input
-                  type="number"
-                  class="detail-input execution-number-input"
-                  min="160"
-                  max="1200"
-                  step="20"
-                  bind:value={draftConfig.html_preview.fixed_height}
-                />
-              </label>
-            </div>
+          <div class="settings-card">
+            <label class="settings-card-row">
+              <span class="label-text">{$t("htmlPreviewFixedHeight")}</span>
+              <input
+                type="number"
+                class="detail-input execution-number-input"
+                min="160"
+                max="1200"
+                step="20"
+                bind:value={draftConfig.html_preview.fixed_height}
+              />
+            </label>
           </div>
         </section>
         <section class="detail-section">
@@ -2948,28 +2961,6 @@
               >{$t("add")}</button
             >
           </div>
-          <label class="detail-label">
-            <span class="label-text">{$t("retryCountPerModel")}</span>
-            <input
-              class="detail-input"
-              type="number"
-              min="0"
-              max="10"
-              bind:value={draftConfig.model_retry.retry_count}
-            />
-          </label>
-          <label class="detail-label">
-            <span class="label-text">{$t("retryDelaySeconds")}</span>
-            <input
-              class="detail-input"
-              type="number"
-              min="0"
-              max="60"
-              step="1"
-              value={draftConfig.model_retry.retry_delay_ms / 1000}
-              oninput={updateRetryDelaySeconds}
-            />
-          </label>
           <div class="model-list-box retry-queue-list">
             {#if draftConfig.model_retry.chat_queue.length > 0}
               {#each draftConfig.model_retry.chat_queue as binding, index (binding)}
@@ -3020,6 +3011,38 @@
             {:else}
               <div class="model-list-empty">{$t("noQueuedChatFallbackModels")}</div>
             {/if}
+          </div>
+        </section>
+        <section class="detail-section">
+          <h4 class="detail-section-title">{$t("modelRetryPolicy")}</h4>
+          <p class="detail-section-intro">{$t("modelRetryPolicyDescription")}</p>
+          <div class="settings-card">
+            <label class="settings-card-row">
+              <span class="label-text">{$t("retryCountPerModel")}</span>
+              <span class="settings-card-control">
+                <input
+                  class="detail-input"
+                  type="number"
+                  min="0"
+                  max="10"
+                  bind:value={draftConfig.model_retry.retry_count}
+                />
+              </span>
+            </label>
+            <label class="settings-card-row">
+              <span class="label-text">{$t("retryDelaySeconds")}</span>
+              <span class="settings-card-control">
+                <input
+                  class="detail-input"
+                  type="number"
+                  min="0"
+                  max="60"
+                  step="1"
+                  value={draftConfig.model_retry.retry_delay_ms / 1000}
+                  oninput={updateRetryDelaySeconds}
+                />
+              </span>
+            </label>
           </div>
         </section>
         <section class="detail-section">
@@ -3803,15 +3826,17 @@
   .detail-input {
     width: 100%;
     box-sizing: border-box;
-    background: var(--control-surface);
-    border: 0;
+    background: var(--mica-surface);
+    border: 1px solid var(--mica-border);
     border-radius: 6px;
     padding: 6px 12px;
     color: var(--text);
     font-size: 13px;
     outline: none;
     font-family: inherit;
-    box-shadow: var(--control-shadow);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
     transition: box-shadow 0.2s;
   }
 
@@ -3824,7 +3849,7 @@
 
   .list-search-input:focus,
   .detail-input:focus {
-    box-shadow: var(--control-shadow), var(--focus-ring);
+    box-shadow: var(--mica-shadow), var(--focus-ring);
   }
 
   .filter-toggle,
@@ -4061,10 +4086,12 @@
     justify-content: space-between;
     gap: 16px;
     padding: 12px;
-    border: 0;
+    border: 1px solid var(--mica-border);
     border-radius: 10px;
-    background: var(--surface);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
   }
 
   .startup-copy {
@@ -4081,9 +4108,12 @@
     justify-content: space-between;
     gap: 20px;
     padding: 12px;
+    border: 1px solid var(--mica-border);
     border-radius: 10px;
-    background: var(--surface);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
   }
 
   .shortcut-setting-copy {
@@ -4178,9 +4208,12 @@
   .remote-gateway-card,
   .remote-gateway-credentials {
     overflow: hidden;
+    border: 1px solid var(--mica-border);
     border-radius: 10px;
-    background: var(--surface);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
   }
 
   .wechat-channel-access {
@@ -4203,9 +4236,12 @@
     gap: 16px;
     margin-top: 12px;
     padding: 16px;
+    border: 1px solid var(--mica-border);
     border-radius: 8px;
-    background: var(--surface);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
   }
 
   .wechat-qr-card img {
@@ -4508,9 +4544,12 @@
     display: grid;
     gap: 14px;
     padding: 16px;
+    border: 1px solid var(--mica-border);
     border-radius: 10px;
-    background: var(--surface);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
   }
 
   .channel-config-card .detail-label {
@@ -4581,10 +4620,12 @@
 
   .execution-setting {
     overflow: hidden;
-    border: 0;
+    border: 1px solid var(--mica-border);
     border-radius: 10px;
-    background: var(--surface);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
   }
 
   .execution-toggle-row {
@@ -4595,20 +4636,31 @@
   }
 
   .execution-value-row {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 20px;
     min-height: 42px;
     padding: 8px 16px;
-    border-top: 1px solid var(--border);
-    background: var(--surface2);
+    border-top: 0;
+    background: transparent;
+  }
+
+  .execution-value-row::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 16px;
+    height: 1px;
+    background: var(--mica-divider);
+    content: "";
   }
 
   .execution-number-input {
     width: 136px;
     flex: 0 0 136px;
-    background: var(--surface);
+    background: var(--mica-surface);
   }
 
   .compaction-threshold-input {
@@ -4650,12 +4702,16 @@
 
   .settings-card {
     overflow: hidden;
+    border: 1px solid var(--mica-border);
     border-radius: 10px;
-    background: var(--surface);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
   }
 
   .settings-card-row {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(210px, 248px);
     align-items: center;
@@ -4665,7 +4721,17 @@
   }
 
   .settings-card-row + .settings-card-row {
-    border-top: 1px solid var(--border);
+    border-top: 0;
+  }
+
+  .settings-card-row + .settings-card-row::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 16px;
+    height: 1px;
+    background: var(--mica-divider);
+    content: "";
   }
 
   .settings-card-copy {
@@ -4691,15 +4757,15 @@
 
   .settings-card :global(.ui-select-trigger),
   .settings-card .detail-input {
-    border: 1px solid var(--border);
+    border: 1px solid var(--mica-divider);
     box-shadow: none;
   }
 
   .settings-card :global(.ui-select-trigger:focus-visible),
   .settings-card :global(.ui-select-trigger[data-state="open"]),
   .settings-card .detail-input:focus {
-    border-color: var(--primary);
-    box-shadow: none;
+    border-color: var(--mica-divider);
+    box-shadow: var(--focus-ring);
   }
 
   .detail-section-header,
@@ -4721,13 +4787,16 @@
 
   .memory-option-list {
     overflow: hidden;
-    border: 0;
+    border: 1px solid var(--mica-border);
     border-radius: 10px;
-    background: var(--surface);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
+    box-shadow: var(--mica-shadow);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
   }
 
   .memory-option {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -4736,7 +4805,17 @@
   }
 
   .memory-option + .memory-option {
-    border-top: 1px solid var(--border);
+    border-top: 0;
+  }
+
+  .memory-option + .memory-option::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 16px;
+    height: 1px;
+    background: var(--mica-divider);
+    content: "";
   }
 
   .memory-option-copy {
@@ -4775,8 +4854,8 @@
   .model-search-input {
     width: 100%;
     box-sizing: border-box;
-    background: var(--control-surface);
-    border: 0;
+    background: var(--mica-surface);
+    border: 1px solid var(--mica-border);
     border-radius: 6px;
     padding: 6px 12px;
     color: var(--text);
@@ -4784,12 +4863,14 @@
     outline: none;
     font-family: inherit;
     margin-bottom: 8px;
-    box-shadow: var(--control-shadow);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
     transition: box-shadow 0.2s;
   }
 
   .model-search-input:focus {
-    box-shadow: var(--control-shadow), var(--focus-ring);
+    box-shadow: var(--mica-shadow), var(--focus-ring);
   }
 
   .manual-model-row {
@@ -4821,11 +4902,13 @@
   }
 
   .model-list-box {
-    border: 0;
+    border: 1px solid var(--mica-border);
     border-radius: 10px;
     overflow: hidden;
-    background: var(--surface);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
   }
 
   .model-item {
@@ -5090,9 +5173,11 @@
   }
 
   .danger-zone {
-    border: 0;
-    background: color-mix(in srgb, var(--danger) 6%, var(--surface2));
-    box-shadow: var(--control-shadow);
+    border: 1px solid color-mix(in srgb, var(--danger) 10%, var(--mica-border));
+    background: color-mix(in srgb, var(--danger) 6%, var(--mica-surface));
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
   }
 
   .danger-title,
@@ -5164,7 +5249,7 @@
   .channel-config-card :global(.ui-select-trigger),
   .remote-gateway-card :global(.ui-select-trigger),
   .remote-gateway-credentials :global(.ui-select-trigger) {
-    border: 1px solid var(--border);
+    border: 1px solid var(--mica-divider);
     box-shadow: none;
   }
 
@@ -5177,8 +5262,8 @@
   .remote-gateway-card :global(.ui-select-trigger[data-state="open"]),
   .remote-gateway-credentials :global(.ui-select-trigger:focus-visible),
   .remote-gateway-credentials :global(.ui-select-trigger[data-state="open"]) {
-    border-color: var(--primary);
-    box-shadow: none;
+    border-color: var(--mica-divider);
+    box-shadow: var(--focus-ring);
   }
 
   @media (max-width: 640px) {

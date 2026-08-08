@@ -17,6 +17,7 @@
     loadMorePaneWidth,
     saveMorePaneWidth,
   } from "$lib/morePaneSizing";
+  import { resolveListSelection } from "$lib/listSelection";
   import type { SkillMetadata, WorkspaceContext } from "$lib/types";
 
   let {
@@ -64,9 +65,9 @@
   let createError = $state("");
 
   let visibleSkills = $derived(allSkills.filter((s) => s.scope === activeScope));
-  let skillGroups = $derived.by(() => {
+  function groupSkills(skills: SkillMetadata[]): SkillGroup[] {
     const groups = new Map<string, SkillGroup>();
-    for (const skill of visibleSkills) {
+    for (const skill of skills) {
       const category = skill.category?.trim() || null;
       const key = category ?? uncategorizedGroupKey;
       const group = groups.get(key);
@@ -83,7 +84,9 @@
       if (b.category === null) return -1;
       return a.category.localeCompare(b.category);
     });
-  });
+  }
+
+  let skillGroups = $derived(groupSkills(visibleSkills));
 
   onMount(() => {
     if (preview) {
@@ -105,11 +108,30 @@
     if (showSkeleton) skillsLoading = true;
     try {
       allSkills = await invoke<SkillMetadata[]>("list_skills");
+      await ensureSelectedSkill();
     } catch {
       allSkills = [];
     } finally {
       if (showSkeleton) skillsLoading = false;
     }
+  }
+
+  async function ensureSelectedSkill() {
+    const displayedSkills = groupSkills(
+      allSkills.filter((skill) => skill.scope === activeScope),
+    ).flatMap((group) => group.skills);
+    const nextSkill = resolveListSelection(displayedSkills, selectedSkill, (skill) => skill.path);
+    if (!nextSkill) {
+      selectedSkill = null;
+      editorContent = "";
+      selectedContentLoaded = false;
+      return;
+    }
+    if (selectedSkill?.path === nextSkill.path) {
+      selectedSkill = nextSkill;
+      return;
+    }
+    await selectSkill(nextSkill);
   }
 
   async function selectSkill(skill: SkillMetadata) {
@@ -200,6 +222,7 @@
         selectedSkill = null;
         editorContent = "";
         selectedContentLoaded = false;
+        await ensureSelectedSkill();
       }
     } catch (err) {
       alert(`Delete failed: ${err}`);
@@ -215,6 +238,7 @@
     editorContent = "";
     selectedContentLoaded = false;
     saveMsg = "";
+    void ensureSelectedSkill();
   }
 
   function cancelNewDialog() {

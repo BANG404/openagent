@@ -102,15 +102,17 @@
   :global(.ui-combobox-input) {
     width: 100%;
     box-sizing: border-box;
-    background: var(--control-surface);
-    border: 0;
+    background: var(--mica-surface);
+    border: 1px solid var(--mica-border);
     border-radius: 6px;
     padding: 6px 36px 6px 12px;
     color: var(--text);
     font-size: 13px;
     font-family: inherit;
     outline: none;
-    box-shadow: var(--control-shadow);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
     transition: box-shadow 0.2s;
   }
   :global(.ui-combobox-input::placeholder) {
@@ -118,7 +120,7 @@
   }
   :global(.ui-combobox-input:focus),
   :global(.ui-combobox-input[data-state="open"]) {
-    box-shadow: var(--control-shadow), var(--focus-ring);
+    box-shadow: var(--mica-shadow), var(--focus-ring);
   }
   :global(.ui-combobox-trigger) {
     position: absolute;

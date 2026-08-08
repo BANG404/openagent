@@ -410,10 +410,13 @@
 <style>
   .permission-settings {
     overflow: hidden;
+    border: 1px solid var(--mica-border);
     border-radius: 10px;
-    background: var(--surface);
+    background: var(--mica-surface);
     color: var(--text);
-    box-shadow: var(--control-shadow);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
   }
 
   .permission-control {
@@ -447,27 +450,28 @@
   }
 
   .permission-settings :global(.ui-select-trigger) {
-    border: 1px solid var(--border);
+    border: 1px solid var(--mica-divider);
     box-shadow: none;
   }
 
   .permission-settings :global(.ui-select-trigger:focus-visible),
   .permission-settings :global(.ui-select-trigger[data-state="open"]) {
-    border-color: var(--primary);
-    box-shadow: none;
+    border-color: var(--mica-divider);
+    box-shadow: var(--focus-ring);
   }
 
   .permission-divider {
     height: 1px;
     margin-left: 16px;
-    background: var(--border);
+    background: var(--mica-divider);
   }
 
   .custom-rules {
     margin: 0 12px 12px;
     overflow: hidden;
     border-radius: 9px;
-    background: color-mix(in srgb, var(--surface2) 72%, var(--surface));
+    border: 1px solid var(--mica-divider);
+    background: transparent;
   }
 
   .custom-rules-heading {

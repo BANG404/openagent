@@ -837,7 +837,7 @@
     width: 100%;
     max-width: 900px;
     margin: 0 auto;
-    padding: 64px 32px 120px;
+    padding: 16px 32px 120px;
     display: flex;
     flex-direction: column;
     gap: 2px;

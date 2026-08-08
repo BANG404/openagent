@@ -203,6 +203,7 @@
   const isBookModePreview = devQuery?.has("book-mode-preview") === true;
   const isPermissionSettingsPreview = devQuery?.has("permission-settings-preview") === true;
   const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
+  const isAgentsSettingsPreview = devQuery?.has("agents-settings-preview") === true;
   const isAgentPluginsSettingsPreview = devQuery?.has("agent-plugins-settings-preview") === true;
   const isMoreManagementPreview = devQuery?.has("more-management-preview") === true;
   const moreManagementPreviewKind =
@@ -311,6 +312,18 @@
     devQuery?.get("channels-settings-preview-locale") === "en"
       ? "en"
       : devQuery?.get("channels-settings-preview-locale") === "zh"
+        ? "zh"
+        : null;
+  const agentsSettingsPreviewTheme =
+    devQuery?.get("agents-settings-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("agents-settings-preview-theme") === "light"
+        ? "light"
+        : null;
+  const agentsSettingsPreviewLocale: Locale | null =
+    devQuery?.get("agents-settings-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("agents-settings-preview-locale") === "zh"
         ? "zh"
         : null;
   const agentPluginsSettingsPreviewTheme =
@@ -857,6 +870,7 @@
       isReasoningEffortPreview ||
       isPermissionSettingsPreview ||
       isChannelsSettingsPreview ||
+      isAgentsSettingsPreview ||
       isAgentPluginsSettingsPreview ||
       initialLoading ||
       workspaceLoading ||
@@ -2153,9 +2167,13 @@
       } else {
         await loadSettings();
         await loadWorkspace();
-        if (isChannelsSettingsPreview || isAgentPluginsSettingsPreview) {
+        if (isChannelsSettingsPreview || isAgentsSettingsPreview || isAgentPluginsSettingsPreview) {
           SettingsView = (await import("$lib/components/SettingsView.svelte")).default;
-          settingsInitialNav = isAgentPluginsSettingsPreview ? "plugins" : "channels";
+          settingsInitialNav = isAgentPluginsSettingsPreview
+            ? "plugins"
+            : isAgentsSettingsPreview
+              ? "agents"
+              : "channels";
           settingsOpen = true;
         } else if (isMoreManagementPreview) {
           if (moreManagementPreviewKind === "memory") {
@@ -2199,6 +2217,7 @@
       if (
         config &&
         !isChannelsSettingsPreview &&
+        !isAgentsSettingsPreview &&
         !isAgentPluginsSettingsPreview &&
         !isMoreManagementPreview
       ) {
@@ -3184,18 +3203,26 @@
   async function loadSettings() {
     if (!tauriAvailable) {
       config = normalizeConfigShape(fallbackConfig);
-      if (isChannelsSettingsPreview || isAgentPluginsSettingsPreview) {
+      if (isChannelsSettingsPreview || isAgentsSettingsPreview || isAgentPluginsSettingsPreview) {
         config = {
           ...config,
-          theme: agentPluginsSettingsPreviewTheme ?? channelsSettingsPreviewTheme ?? config.theme,
+          theme:
+            agentPluginsSettingsPreviewTheme ??
+            agentsSettingsPreviewTheme ??
+            channelsSettingsPreviewTheme ??
+            config.theme,
           language:
-            agentPluginsSettingsPreviewLocale ?? channelsSettingsPreviewLocale ?? config.language,
+            agentPluginsSettingsPreviewLocale ??
+            agentsSettingsPreviewLocale ??
+            channelsSettingsPreviewLocale ??
+            config.language,
         };
       }
       applyTheme(
         bookModePreviewTheme ??
           moreManagementPreviewTheme ??
           channelsSettingsPreviewTheme ??
+          agentsSettingsPreviewTheme ??
           agentPluginsSettingsPreviewTheme ??
           permissionSettingsPreviewTheme ??
           checkpointFlowPreviewTheme ??
@@ -3211,6 +3238,7 @@
         bookModePreviewLocale ??
           moreManagementPreviewLocale ??
           channelsSettingsPreviewLocale ??
+          agentsSettingsPreviewLocale ??
           agentPluginsSettingsPreviewLocale ??
           permissionSettingsPreviewLocale ??
           checkpointFlowPreviewLocale ??
@@ -5187,9 +5215,11 @@
                 ontouchstart={cancelBottomScrollFromUser}
                 onpointerdown={cancelBottomScrollFromUser}
               >
-                {#if newConversationLayout}
-                  <div class="new-conversation-aurora" aria-hidden="true"></div>
-                {/if}
+                <div
+                  class="new-conversation-aurora"
+                  class:new-conversation-aurora-visible={newConversationLayout}
+                  aria-hidden="true"
+                ></div>
                 {#if mainContentLoading && restoringSurface !== "new-conversation"}
                   <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
                 {:else if !mainContentLoading}
@@ -5804,10 +5834,15 @@
       radial-gradient(ellipse at 84% 60%, rgba(251, 188, 5, 0.08) 0 16%, transparent 56%),
       linear-gradient(180deg, rgba(232, 246, 255, 0.32), rgba(216, 237, 255, 0.18) 60%, transparent);
     filter: blur(72px) saturate(1.1);
-    opacity: 0.9;
+    opacity: 0;
     pointer-events: none;
     transform: translate(-50%, -50%);
+    transition: opacity 420ms ease;
     animation: new-conversation-aurora 8s ease-in-out infinite alternate;
+  }
+
+  .new-conversation-aurora-visible {
+    opacity: 0.9;
   }
 
   :global(html.dark) .new-conversation-aurora {
@@ -5857,7 +5892,7 @@
   }
 
   .input-area-new-conversation {
-    top: 50%;
+    top: calc(50% - 10px);
     bottom: auto;
     padding-bottom: 0;
     transform: translateY(-50%);
@@ -5896,6 +5931,14 @@
 
   .input-area-new-conversation .input-inner {
     max-width: 760px;
+  }
+
+  .input-area-new-conversation .input-inner :global(.composer-compact .input) {
+    min-height: 66px;
+  }
+
+  .input-area-new-conversation .input-inner :global(.composer-copy) {
+    min-height: 99px;
   }
 
   @media (prefers-color-scheme: dark) {

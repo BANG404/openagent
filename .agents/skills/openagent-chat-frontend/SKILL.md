@@ -224,12 +224,26 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   content gap, a 7px radius, and a 3px parent-owned row gap. The workspace role
   selector at the top of the sidebar remains a distinct selector control.
 - Use the theme canvas for the workspace surface and retain the low-contrast
-  ambient aurora behind the composer and new-conversation greeting. On a new
-  conversation, treat the greeting and composer as one centered vertical
-  stack whose measured total height determines its vertical position, and
-  constrain that centered composer to a 760px outer column. Do not position the
-  greeting and composer independently. Ordinary conversations keep the composer
-  anchored to the bottom in the wider 900px outer column.
+  ambient aurora behind the composer and new-conversation greeting. Keep the
+  empty-state aurora mounted across conversation changes
+  and crossfade its visibility against the composer aurora; do not remount a
+  fully opaque animated layer when the active conversation becomes empty. Fade
+  in the generated memory note's ambient layers on the same opacity rhythm so
+  the two empty-state light fields cannot flash on together. On a new
+  conversation, treat the greeting and composer as one vertical stack whose
+  measured total height determines its position slightly above the geometric
+  center, and constrain that composer to a 760px outer column. Give its compact
+  textarea more single-line height than the bottom-anchored composer, and keep
+  the loading skeleton at the same expanded height. Do not position the greeting
+  and composer independently. Ordinary conversations keep the composer anchored
+  to the bottom in the wider 900px outer column. The shared composer and its
+  loading skeleton use the application Mica surface in both positions.
+  Keep the model, reasoning-effort, and approval triggers inside that composer
+  surface-free at rest; standalone Select material must not leak into the
+  toolbar. Focus rings expand outside their control boundary instead of inset.
+- Let the conversation shell own the custom title-bar clearance. Keep the
+  ordinary transcript's own top inset compact so it does not stack a second
+  header-sized gap above the first message or debug context.
 - An explicitly empty durable active-conversation marker restores the centered
   new-conversation surface, even when older conversations exist. Never fall
   back to the newest conversation.
@@ -345,19 +359,25 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   light/dark, and Chinese/English states addressable without native
   configuration. Approval and `permission_profile` remain separate settings;
   editing one must never rewrite the other or flatten existing custom filesystem
-  entries. Keep controls inside the permission card shadowless with a thin
-  border; reserve the card shadow for the outer surface.
+  entries. Keep controls inside the Mica permission card shadowless with a thin
+  divider-colored border; reserve the Mica shadow for the outer surface.
 - Keep the development-only `channels-settings-preview` query as the direct
   browser surface for Settings → Channels. Its `-theme` and `-locale` query
   parameters must keep the channel list, credential forms, responsive layout,
   light/dark themes, and Chinese/English copy addressable without native state.
   Keep each credential form and its enablement footer on one continuous card;
   the footer uses a divider rather than a nested surface or shadow.
+- Keep the development-only `agents-settings-preview` query as the direct
+  browser surface for Settings → Agent tasks. Its `-theme` and `-locale` query
+  parameters must keep Mica cards and inputs, inset row dividers, toggles,
+  light/dark themes, and Chinese/English copy addressable without native
+  configuration. Do not reintroduce gray fills on nested setting rows.
 - Keep the development-only `agent-plugins-settings-preview` query as the direct
   browser surface for Settings → Agent Plugins. Its `-theme` and `-locale`
-  parameters must keep installed components, compatibility diagnostics,
-  responsive layout, light/dark themes, and Chinese/English copy addressable
-  without native plugin state.
+  parameters must keep Mica plugin cards, installed components, compatibility
+  diagnostics, responsive layout, light/dark themes, and Chinese/English copy
+  addressable without native plugin state. Plugin cards and loading or empty
+  states must not use a flat secondary gray fill.
 
 ## IPC and events
 
@@ -404,10 +424,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   normalized to the current version before a settings snapshot can be saved;
   persisted unversioned configuration is handled by the pre-runtime transition,
   never by settings autosave.
-- General model settings expose the retry interval in seconds while preserving
-  milliseconds at the transport boundary. Missing configuration defaults to
-  three retries per model with 30 seconds between attempts; explicit stored
-  values remain authoritative.
+- General model settings keep the retry count and interval in a dedicated retry
+  policy card, separate from either model queue. The interval is displayed in
+  seconds while preserving milliseconds at the transport boundary. Missing
+  configuration defaults to three retries per model with 30 seconds between
+  attempts; explicit stored values remain authoritative.
 - Keep the canonical managed permission fallback layered as `host_root` read
   followed by workspace write. The frontend transport type and normalization
   must preserve `host_root`; collapsing an older payload to workspace-only
