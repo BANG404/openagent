@@ -9,6 +9,7 @@
   import Select from "./ui/Select.svelte";
   import Tooltip from "./Tooltip.svelte";
   import ReasoningEffortSelect from "./ReasoningEffortSelect.svelte";
+  import { applySlashCommandSelection } from "./slashCommandSelection";
   import { t } from "$lib/i18n";
   import { showToast } from "$lib/toast";
 
@@ -18,7 +19,8 @@
     name: string;
     label: string;
     description: string;
-    run: () => void;
+    insertText?: string;
+    run?: () => void;
   }
 
   interface DraftFileEntry {
@@ -698,14 +700,24 @@
   function applySelection(item: PaletteItem) {
     if (paletteMode === "slash") {
       const cmd = slashCommands.find((c) => c.id === item.id);
+      const caret = textareaEl?.selectionStart ?? value.length;
       closePalette();
       if (cmd) {
-        // Drop the slash text from the input so it isn't sent as a message.
-        value = "";
-        if (textareaEl) {
-          textareaEl.style.height = "auto";
+        if (cmd.insertText) {
+          const selection = applySlashCommandSelection(value, triggerStart, caret, cmd.insertText);
+          value = selection.value;
+          void tick().then(() => {
+            if (!textareaEl) return;
+            textareaEl.focus();
+            textareaEl.setSelectionRange(selection.caret, selection.caret);
+            textareaEl.style.height = "auto";
+            textareaEl.style.height = Math.min(textareaEl.scrollHeight, 200) + "px";
+          });
+        } else {
+          value = "";
+          if (textareaEl) textareaEl.style.height = "auto";
+          cmd.run?.();
         }
-        cmd.run();
       }
       return;
     }
