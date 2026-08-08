@@ -5,6 +5,7 @@
   import ScopeToggle from "./ScopeToggle.svelte";
   import WindowControls from "./WindowControls.svelte";
   import { t } from "$lib/i18n";
+  import { resolveListSelection } from "$lib/listSelection";
   import type { AgentRole, WorkspaceContext } from "$lib/types";
 
   let {
@@ -52,10 +53,7 @@
     error = "";
     try {
       roles = await invoke<AgentRole[]>("list_agent_roles", { scope: activeScope });
-      if (selectedRole) {
-        const refreshed = roles.find((role) => role.id === selectedRole?.id) ?? null;
-        selectRole(refreshed);
-      }
+      if (!editingNew) selectRole(resolveListSelection(roles, selectedRole, (role) => role.id));
     } catch (cause) {
       roles = [];
       selectedRole = null;
@@ -129,7 +127,7 @@
       await invoke("delete_agent_role", { id: role.id });
       roles = roles.filter((item) => item.id !== role.id);
       if (selectedRole?.id === role.id) {
-        selectRole(null);
+        selectRole(resolveListSelection(roles, null, (item) => item.id));
       }
       onRolesChanged?.();
     } catch (cause) {

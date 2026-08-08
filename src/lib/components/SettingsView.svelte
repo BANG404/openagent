@@ -207,12 +207,23 @@
     },
   };
 
-  let settingsNav = $state<SettingsNav>(untrack(() => initialNav) ?? "providers");
   let channelSettingsNav = $state<ChannelSettingsNav>("feishu");
-  // Allow actions outside the settings view (such as New Conversation) to
-  // direct an already-open settings panel to the relevant section.
+  // Contextual entry points can override the ordinary General default after
+  // this dynamically loaded Tabs root has finished registering its triggers.
   $effect(() => {
-    if (initialNav) settingsNav = initialNav;
+    if (!initialNav) return;
+    let innerFrame = 0;
+    const outerFrame = requestAnimationFrame(() => {
+      innerFrame = requestAnimationFrame(() => {
+        document
+          .querySelector<HTMLButtonElement>(`[data-tabs-trigger][data-value="${initialNav}"]`)
+          ?.click();
+      });
+    });
+    return () => {
+      cancelAnimationFrame(outerFrame);
+      cancelAnimationFrame(innerFrame);
+    };
   });
   let selectedProviderId = $state("default");
   let providerSearch = $state("");
@@ -292,6 +303,7 @@
     normalizeConfigShape(untrack(() => config) ?? fallbackConfig),
   );
   ensureSelectedProvider();
+  ensureSelectedMcpServer();
 
   $effect(() => {
     if (!config) return;
@@ -301,6 +313,7 @@
       draftConfig = incoming;
       acceptedConfigFingerprint = incomingFingerprint;
       ensureSelectedProvider();
+      ensureSelectedMcpServer();
       initializedFromConfig = true;
       return;
     }
@@ -319,6 +332,7 @@
     draftConfig = incoming;
     acceptedConfigFingerprint = incomingFingerprint;
     ensureSelectedProvider();
+    ensureSelectedMcpServer();
   });
 
   function snapshotDraftConfig() {
@@ -382,6 +396,7 @@
           draftConfig = rebased;
           acceptedConfigFingerprint = JSON.stringify(saved);
           ensureSelectedProvider();
+          ensureSelectedMcpServer();
         } catch (error) {
           reportFrontendDiagnostic("settings_save_failed", "SettingsView", error);
           await tick();
@@ -391,6 +406,7 @@
             draftConfig = latest;
             acceptedConfigFingerprint = JSON.stringify(latest);
             ensureSelectedProvider();
+            ensureSelectedMcpServer();
           }
           throw error;
         }
@@ -650,6 +666,11 @@
   function ensureSelectedProvider() {
     if (draftConfig.providers.some((provider) => provider.id === selectedProviderId)) return;
     selectedProviderId = draftConfig.providers[0]?.id ?? "";
+  }
+
+  function ensureSelectedMcpServer() {
+    if (draftConfig.mcp.servers.some((server) => server.id === selectedMcpId)) return;
+    selectedMcpId = draftConfig.mcp.servers[0]?.id ?? null;
   }
 
   function addProvider() {
@@ -1375,13 +1396,7 @@
     </div>
   </div>
 
-  <Tabs.Root
-    value={settingsNav}
-    onValueChange={(v) => (settingsNav = v as SettingsNav)}
-    orientation="vertical"
-    activationMode="manual"
-    class="settings-body"
-  >
+  <Tabs.Root value="general" orientation="vertical" activationMode="manual" class="settings-body">
     <Tabs.List class="settings-nav-col">
       <div class="settings-nav-items">
         <Tabs.Trigger value="general" class="settings-nav-item">
