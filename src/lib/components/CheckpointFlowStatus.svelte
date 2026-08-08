@@ -27,7 +27,7 @@
 <aside
   class="flow-panel"
   class:collapsed
-  style:width={collapsed ? "42px" : `${width}px`}
+  style:--flow-panel-width={collapsed ? "42px" : `${width}px`}
   aria-label={$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}
 >
   {#if !collapsed}
@@ -145,17 +145,19 @@
     z-index: 12;
     display: flex;
     height: 100%;
-    min-width: 240px;
-    max-width: min(520px, 48vw);
+    width: min(var(--flow-panel-width), 48vw, 100%);
+    min-width: min(260px, 48vw, 100%);
+    max-width: min(520px, 48vw, 100%);
     flex: 0 0 auto;
     flex-direction: column;
     overflow: hidden;
     border-left: 1px solid var(--border);
-    background: color-mix(in srgb, var(--surface) 97%, var(--primary) 3%);
+    background: var(--bg);
     transition: width 160ms ease;
   }
 
   .flow-panel.collapsed {
+    width: 42px;
     min-width: 42px;
     max-width: 42px;
   }
@@ -311,14 +313,17 @@
   }
   .flow-body {
     display: grid;
+    min-width: 0;
     flex: 1;
     align-content: start;
     gap: 6px;
+    overflow-x: hidden;
     overflow-y: auto;
     padding: 10px;
   }
   .flow-item,
   .graph-node {
+    min-width: 0;
     border: 1px solid var(--border);
     border-radius: 9px;
     background: color-mix(in srgb, var(--surface) 88%, transparent);
@@ -326,6 +331,7 @@
   .flow-item,
   .node-main {
     display: flex;
+    min-width: 0;
     min-height: 36px;
     align-items: center;
     gap: 8px;
@@ -361,12 +367,14 @@
     font-weight: 500;
     line-height: 1.35;
     color: var(--text);
+    overflow-wrap: anywhere;
   }
   .item-copy small {
     display: -webkit-box;
     overflow: hidden;
     font-size: 10px;
     color: var(--text-muted);
+    overflow-wrap: anywhere;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;
@@ -376,6 +384,7 @@
   }
   .dependencies {
     display: flex;
+    min-width: 0;
     flex-wrap: wrap;
     align-items: center;
     gap: 4px;
@@ -384,11 +393,13 @@
     color: var(--text-muted);
   }
   .dependencies code {
+    max-width: 100%;
     border-radius: 4px;
     padding: 1px 4px;
     background: var(--surface2);
     color: var(--text);
     font-size: 10px;
+    overflow-wrap: anywhere;
   }
   .flow-empty,
   .flow-summary {
@@ -407,7 +418,9 @@
     .flow-panel:not(.collapsed) {
       position: absolute;
       inset: 0 0 0 auto;
-      max-width: min(88vw, 420px);
+      width: min(var(--flow-panel-width), 100%);
+      min-width: min(260px, 100%);
+      max-width: min(420px, 100%);
       box-shadow: -16px 0 36px rgba(0, 0, 0, 0.12);
     }
   }

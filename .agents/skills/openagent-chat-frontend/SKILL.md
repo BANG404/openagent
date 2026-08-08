@@ -54,7 +54,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   resizable right-side status panel automatically; a user's collapse choice
   survives later checkpoints for that same flow, while switching to a distinct
   flow opens its panel. Keep the collapsed rail available and persist the
-  expanded width locally.
+  expanded width locally. Cap the expanded panel to its live container, keep
+  long task and dependency content wrapping inside it without horizontal
+  scrolling, and use the same canvas background as the conversation.
 - Finalization updates the existing row instead of replacing its DOM subtree,
   preserving open thinking sections. Restored historical thinking starts
   collapsed.
