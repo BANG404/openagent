@@ -56,7 +56,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   flow opens its panel. Keep the collapsed rail available and persist the
   expanded width locally. Cap the expanded panel to its live container, keep
   long task and dependency content wrapping inside it without horizontal
-  scrolling, and use the same canvas background as the conversation.
+  scrolling, and use the same canvas background as the conversation. Match the
+  conversation sidebar's direct manipulation behavior: capture the active
+  pointer, disable width transitions and text selection while dragging, and
+  restore them when the drag ends or is cancelled.
 - Finalization updates the existing row instead of replacing its DOM subtree,
   preserving open thinking sections. Restored historical thinking starts
   collapsed.

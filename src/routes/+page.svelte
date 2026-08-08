@@ -529,6 +529,7 @@
         ),
   );
   let checkpointFlowPanelCollapsed = $state(!isCheckpointFlowPreview);
+  let checkpointFlowPanelResizing = $state(false);
   let lastAutoExpandedFlowKey = "";
   let workspace = $state<WorkspaceContext | null>(null);
   let config = $state<AppConfig | null>(null);
@@ -1035,11 +1036,21 @@
   });
 
   function startCheckpointFlowPanelResize(event: PointerEvent) {
-    if (checkpointFlowPanelCollapsed) return;
+    if (event.button !== 0 || checkpointFlowPanelCollapsed || checkpointFlowPanelResizing) return;
     event.preventDefault();
+    const target = event.currentTarget;
+    if (!(target instanceof HTMLElement)) return;
+    const pointerId = event.pointerId;
     const startX = event.clientX;
     const startWidth = checkpointFlowPanelWidth;
+    const previousCursor = document.documentElement.style.cursor;
+    const previousUserSelect = document.documentElement.style.userSelect;
+    target.setPointerCapture(pointerId);
+    document.documentElement.style.cursor = "col-resize";
+    document.documentElement.style.userSelect = "none";
+    checkpointFlowPanelResizing = true;
     const onMove = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
       const viewportMaximum = Math.max(
         checkpointFlowPanelMinWidth,
         Math.min(checkpointFlowPanelMaxWidth, window.innerWidth * 0.48),
@@ -1049,18 +1060,25 @@
         Math.max(checkpointFlowPanelMinWidth, startWidth + startX - moveEvent.clientX),
       );
     };
-    const onEnd = () => {
+    const onEnd = (endEvent: PointerEvent) => {
+      if (endEvent.pointerId !== pointerId) return;
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onEnd);
       window.removeEventListener("pointercancel", onEnd);
+      target.removeEventListener("lostpointercapture", onEnd);
+      if (target.hasPointerCapture(pointerId)) target.releasePointerCapture(pointerId);
+      document.documentElement.style.cursor = previousCursor;
+      document.documentElement.style.userSelect = previousUserSelect;
+      checkpointFlowPanelResizing = false;
       window.localStorage.setItem(
         checkpointFlowPanelStorageKey,
         String(Math.round(checkpointFlowPanelWidth)),
       );
     };
     window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onEnd, { once: true });
-    window.addEventListener("pointercancel", onEnd, { once: true });
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+    target.addEventListener("lostpointercapture", onEnd);
   }
 
   function startStreamTiming(convId: string, startedAt = Date.now()) {
@@ -4881,6 +4899,7 @@
         flow={checkpointFlowPreview}
         width={checkpointFlowPanelWidth}
         collapsed={checkpointFlowPanelCollapsed}
+        resizing={checkpointFlowPanelResizing}
         onToggle={() => (checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed)}
         onResizeStart={startCheckpointFlowPanelResize}
       />
@@ -5346,6 +5365,7 @@
                 flow={currentCheckpointFlow}
                 width={checkpointFlowPanelWidth}
                 collapsed={checkpointFlowPanelCollapsed}
+                resizing={checkpointFlowPanelResizing}
                 onToggle={() => (checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed)}
                 onResizeStart={startCheckpointFlowPanelResize}
               />

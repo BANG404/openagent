@@ -6,11 +6,12 @@
     flow: CheckpointFlow;
     width: number;
     collapsed: boolean;
+    resizing: boolean;
     onToggle: () => void;
     onResizeStart: (event: PointerEvent) => void;
   }
 
-  let { flow, width, collapsed, onToggle, onResizeStart }: Props = $props();
+  let { flow, width, collapsed, resizing, onToggle, onResizeStart }: Props = $props();
   let progress = $derived(checkpointFlowProgress(flow));
   let percent = $derived(progress.total > 0 ? (progress.completed / progress.total) * 100 : 0);
 
@@ -27,6 +28,7 @@
 <aside
   class="flow-panel"
   class:collapsed
+  class:resizing
   style:--flow-panel-width={collapsed ? "42px" : `${width}px`}
   aria-label={$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}
 >
@@ -160,6 +162,9 @@
     width: 42px;
     min-width: 42px;
     max-width: 42px;
+  }
+  .flow-panel.resizing {
+    transition: none;
   }
   .resize-handle {
     position: absolute;
