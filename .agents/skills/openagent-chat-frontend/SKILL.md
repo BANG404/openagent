@@ -224,7 +224,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   content gap, a 7px radius, and a 3px parent-owned row gap. The workspace role
   selector at the top of the sidebar remains a distinct selector control.
 - Use the theme canvas for the workspace surface and retain the low-contrast
-  ambient aurora behind the composer and new-conversation greeting. On a new
+  ambient aurora behind the composer and new-conversation greeting. Keep the
+  empty-state aurora mounted across conversation changes
+  and crossfade its visibility against the composer aurora; do not remount a
+  fully opaque animated layer when the active conversation becomes empty. Fade
+  in the generated memory note's ambient layers on the same opacity rhythm so
+  the two empty-state light fields cannot flash on together. On a new
   conversation, treat the greeting and composer as one vertical stack whose
   measured total height determines its position slightly above the geometric
   center, and constrain that composer to a 760px outer column. Give its compact

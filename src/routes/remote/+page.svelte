@@ -1086,9 +1086,11 @@
         </header>
 
         <main class="messages" bind:this={messagesEl}>
-          {#if newConversationLayout}
-            <div class="new-conversation-aurora" aria-hidden="true"></div>
-          {/if}
+          <div
+            class="new-conversation-aurora"
+            class:new-conversation-aurora-visible={newConversationLayout}
+            aria-hidden="true"
+          ></div>
           {#if loadingWorkspace}
             <LoadingSkeleton variant="new-conversation" label={$t("remoteLoadingWorkspace")} />
           {:else if loadingConversationId}
@@ -1662,10 +1664,14 @@
       radial-gradient(ellipse at 66% 42%, rgba(161, 66, 244, 0.12) 0 18%, transparent 58%),
       radial-gradient(ellipse at 84% 60%, rgba(251, 188, 5, 0.08) 0 16%, transparent 56%);
     filter: blur(72px) saturate(1.1);
-    opacity: 0.9;
+    opacity: 0;
     transform: translate(-50%, -50%);
+    transition: opacity 420ms ease;
     animation: new-conversation-aurora 8s ease-in-out infinite alternate;
     pointer-events: none;
+  }
+  .new-conversation-aurora-visible {
+    opacity: 0.9;
   }
   :global(html.dark) .new-conversation-aurora {
     display: none;

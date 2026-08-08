@@ -111,7 +111,9 @@
     filter: blur(56px) saturate(1.12);
     opacity: 0.28;
     transform: translate3d(-50%, -50%, 0) scale(1.04);
-    animation: memory-note-aurora 8s ease-in-out infinite alternate;
+    animation:
+      memory-note-aurora 8s ease-in-out infinite alternate,
+      memory-note-aurora-enter 420ms ease both;
     content: "";
     -webkit-mask-image: radial-gradient(
       ellipse at center,
@@ -140,6 +142,7 @@
     background: rgba(245, 250, 255, 0.08);
     filter: blur(76px);
     transform: translate(-50%, -50%);
+    animation: memory-note-haze-enter 420ms ease both;
     content: "";
     -webkit-mask-image: radial-gradient(
       ellipse at center,
@@ -192,8 +195,27 @@
     }
   }
 
+  @keyframes memory-note-aurora-enter {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 0.28;
+    }
+  }
+
+  @keyframes memory-note-haze-enter {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .memory-note::before {
+    .memory-note::before,
+    .memory-note::after {
       animation: none;
     }
   }
