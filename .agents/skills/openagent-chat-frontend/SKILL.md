@@ -353,6 +353,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   light/dark themes, and Chinese/English copy addressable without native state.
   Keep each credential form and its enablement footer on one continuous card;
   the footer uses a divider rather than a nested surface or shadow.
+- Keep the development-only `agents-settings-preview` query as the direct
+  browser surface for Settings → Agent tasks. Its `-theme` and `-locale` query
+  parameters must keep the Agent memory Mica material, toggles, light/dark
+  themes, and Chinese/English copy addressable without native configuration.
 - Keep the development-only `agent-plugins-settings-preview` query as the direct
   browser surface for Settings → Agent Plugins. Its `-theme` and `-locale`
   parameters must keep installed components, compatibility diagnostics,

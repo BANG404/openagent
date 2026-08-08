@@ -203,6 +203,7 @@
   const isBookModePreview = devQuery?.has("book-mode-preview") === true;
   const isPermissionSettingsPreview = devQuery?.has("permission-settings-preview") === true;
   const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
+  const isAgentsSettingsPreview = devQuery?.has("agents-settings-preview") === true;
   const isAgentPluginsSettingsPreview = devQuery?.has("agent-plugins-settings-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
@@ -304,6 +305,18 @@
     devQuery?.get("channels-settings-preview-locale") === "en"
       ? "en"
       : devQuery?.get("channels-settings-preview-locale") === "zh"
+        ? "zh"
+        : null;
+  const agentsSettingsPreviewTheme =
+    devQuery?.get("agents-settings-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("agents-settings-preview-theme") === "light"
+        ? "light"
+        : null;
+  const agentsSettingsPreviewLocale: Locale | null =
+    devQuery?.get("agents-settings-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("agents-settings-preview-locale") === "zh"
         ? "zh"
         : null;
   const agentPluginsSettingsPreviewTheme =
@@ -838,6 +851,7 @@
       isReasoningEffortPreview ||
       isPermissionSettingsPreview ||
       isChannelsSettingsPreview ||
+      isAgentsSettingsPreview ||
       isAgentPluginsSettingsPreview ||
       initialLoading ||
       workspaceLoading ||
@@ -2134,9 +2148,13 @@
       } else {
         await loadSettings();
         await loadWorkspace();
-        if (isChannelsSettingsPreview || isAgentPluginsSettingsPreview) {
+        if (isChannelsSettingsPreview || isAgentsSettingsPreview || isAgentPluginsSettingsPreview) {
           SettingsView = (await import("$lib/components/SettingsView.svelte")).default;
-          settingsInitialNav = isAgentPluginsSettingsPreview ? "plugins" : "channels";
+          settingsInitialNav = isAgentPluginsSettingsPreview
+            ? "plugins"
+            : isAgentsSettingsPreview
+              ? "agents"
+              : "channels";
           settingsOpen = true;
         }
         restoringSurface = "new-conversation";
@@ -2166,7 +2184,12 @@
         await restoreWorkspaceConversation(workspacePath);
       }
     } finally {
-      if (config && !isChannelsSettingsPreview && !isAgentPluginsSettingsPreview) {
+      if (
+        config &&
+        !isChannelsSettingsPreview &&
+        !isAgentsSettingsPreview &&
+        !isAgentPluginsSettingsPreview
+      ) {
         const legacyCompleted = hasLegacyOnboardingCompletion();
         if (!config.onboarding_completed && legacyCompleted) {
           try {
@@ -3149,17 +3172,25 @@
   async function loadSettings() {
     if (!tauriAvailable) {
       config = normalizeConfigShape(fallbackConfig);
-      if (isChannelsSettingsPreview || isAgentPluginsSettingsPreview) {
+      if (isChannelsSettingsPreview || isAgentsSettingsPreview || isAgentPluginsSettingsPreview) {
         config = {
           ...config,
-          theme: agentPluginsSettingsPreviewTheme ?? channelsSettingsPreviewTheme ?? config.theme,
+          theme:
+            agentPluginsSettingsPreviewTheme ??
+            agentsSettingsPreviewTheme ??
+            channelsSettingsPreviewTheme ??
+            config.theme,
           language:
-            agentPluginsSettingsPreviewLocale ?? channelsSettingsPreviewLocale ?? config.language,
+            agentPluginsSettingsPreviewLocale ??
+            agentsSettingsPreviewLocale ??
+            channelsSettingsPreviewLocale ??
+            config.language,
         };
       }
       applyTheme(
         bookModePreviewTheme ??
           channelsSettingsPreviewTheme ??
+          agentsSettingsPreviewTheme ??
           agentPluginsSettingsPreviewTheme ??
           permissionSettingsPreviewTheme ??
           checkpointFlowPreviewTheme ??
@@ -3174,6 +3205,7 @@
       await initI18n(
         bookModePreviewLocale ??
           channelsSettingsPreviewLocale ??
+          agentsSettingsPreviewLocale ??
           agentPluginsSettingsPreviewLocale ??
           permissionSettingsPreviewLocale ??
           checkpointFlowPreviewLocale ??

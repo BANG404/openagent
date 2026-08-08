@@ -4721,10 +4721,12 @@
 
   .memory-option-list {
     overflow: hidden;
-    border: 0;
+    border: 1px solid var(--mica-border);
     border-radius: 10px;
-    background: var(--surface);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
+    box-shadow: var(--mica-shadow);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
   }
 
   .memory-option {
@@ -4736,7 +4738,7 @@
   }
 
   .memory-option + .memory-option {
-    border-top: 1px solid var(--border);
+    border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   }
 
   .memory-option-copy {
