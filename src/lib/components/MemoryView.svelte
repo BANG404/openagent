@@ -529,7 +529,7 @@
   .memory-resizer span {
     width: 28px;
     height: 1px;
-    background: color-mix(in srgb, var(--border) 55%, transparent);
+    background: color-mix(in srgb, var(--text-muted) 55%, transparent);
   }
 
   .memory-resizer:hover,
