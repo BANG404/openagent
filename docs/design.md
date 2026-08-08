@@ -16,6 +16,7 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 - Tight two-row nav: slim `{component.global-nav}` + product-specific `{component.sub-nav-frosted}` with persistent right-aligned primary CTA.
 - Section rhythm across multiple pages: light hero → dark product tile → light utility tile → dark tile → parchment footer — a predictable pulse.
 - **Application-only aurora:** low-contrast, blurred multicolor light is permitted behind the chat composer, empty conversation state, and generated memory note. It is an ambient status layer, never content chrome; the conversation sidebar remains a flat surface.
+- **Settings cards:** align each section title with its supporting copy and align each card row's label with its description. Use one softly elevated surface for the card itself; controls nested inside that card use a 1px hairline border without a second shadow.
 
 ## Colors
 

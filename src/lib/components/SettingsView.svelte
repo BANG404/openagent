@@ -1574,66 +1574,78 @@
       <div class="settings-content-col">
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("appearance")}</h4>
-          <div class="detail-label">
-            <span class="label-text">{$t("theme")}</span>
-            <Select
-              bind:value={draftConfig.theme}
-              items={[
-                { value: "system", label: $t("themeSystem") },
-                { value: "light", label: $t("themeLight") },
-                { value: "dark", label: $t("themeDark") },
-              ]}
-              ariaLabel={$t("theme")}
-            />
-          </div>
-          <div class="detail-label">
-            <span class="label-text">{$t("language")}</span>
-            <Select
-              bind:value={draftConfig.language}
-              items={[
-                { value: "zh", label: "中文" },
-                { value: "en", label: "English" },
-              ]}
-              ariaLabel={$t("language")}
-            />
-          </div>
-          <div class="detail-label">
-            <span class="label-text">{$t("messageLayout")}</span>
-            <Select
-              bind:value={draftConfig.message_layout}
-              items={[
-                { value: "single", label: $t("messageLayoutSingle") },
-                { value: "responsive_double", label: $t("messageLayoutResponsiveDouble") },
-              ]}
-              ariaLabel={$t("messageLayout")}
-            />
-          </div>
-          {#if draftConfig.message_layout === "responsive_double"}
-            <label class="execution-value-row message-layout-threshold">
-              <span class="label-text">{$t("messageDoubleColumnMinWidth")}</span>
+          <div class="settings-card">
+            <div class="settings-card-row">
+              <span class="label-text">{$t("theme")}</span>
+              <div class="settings-card-control">
+                <Select
+                  bind:value={draftConfig.theme}
+                  items={[
+                    { value: "system", label: $t("themeSystem") },
+                    { value: "light", label: $t("themeLight") },
+                    { value: "dark", label: $t("themeDark") },
+                  ]}
+                  ariaLabel={$t("theme")}
+                />
+              </div>
+            </div>
+            <div class="settings-card-row">
+              <span class="label-text">{$t("language")}</span>
+              <div class="settings-card-control">
+                <Select
+                  bind:value={draftConfig.language}
+                  items={[
+                    { value: "zh", label: "中文" },
+                    { value: "en", label: "English" },
+                  ]}
+                  ariaLabel={$t("language")}
+                />
+              </div>
+            </div>
+            <div class="settings-card-row">
+              <span class="label-text">{$t("messageLayout")}</span>
+              <div class="settings-card-control">
+                <Select
+                  bind:value={draftConfig.message_layout}
+                  items={[
+                    { value: "single", label: $t("messageLayoutSingle") },
+                    { value: "responsive_double", label: $t("messageLayoutResponsiveDouble") },
+                  ]}
+                  ariaLabel={$t("messageLayout")}
+                />
+              </div>
+            </div>
+            {#if draftConfig.message_layout === "responsive_double"}
+              <label class="settings-card-row">
+                <span class="settings-card-copy">
+                  <span class="label-text">{$t("messageDoubleColumnMinWidth")}</span>
+                  <span class="detail-hint">{$t("messageDoubleColumnHint")}</span>
+                </span>
+                <input
+                  type="number"
+                  class="detail-input execution-number-input"
+                  min="960"
+                  max="2400"
+                  step="40"
+                  bind:value={draftConfig.message_double_column_min_width}
+                />
+              </label>
+            {/if}
+            <label class="settings-card-row">
+              <span class="settings-card-copy">
+                <span class="label-text">{$t("bookModeFontSize")}</span>
+                <span class="detail-hint">{$t("bookModeFontSizeHint")}</span>
+              </span>
               <input
                 type="number"
                 class="detail-input execution-number-input"
-                min="960"
-                max="2400"
-                step="40"
-                bind:value={draftConfig.message_double_column_min_width}
+                min="14"
+                max="24"
+                step="1"
+                bind:value={draftConfig.book_mode_font_size}
               />
             </label>
-            <p class="detail-hint">{$t("messageDoubleColumnHint")}</p>
-          {/if}
-          <label class="execution-value-row message-layout-threshold">
-            <span class="label-text">{$t("bookModeFontSize")}</span>
-            <input
-              type="number"
-              class="detail-input execution-number-input"
-              min="14"
-              max="24"
-              step="1"
-              bind:value={draftConfig.book_mode_font_size}
-            />
-          </label>
-          <p class="detail-hint">{$t("bookModeFontSizeHint")}</p>
+          </div>
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("quickChat")}</h4>
@@ -1686,47 +1698,61 @@
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("workspaceBehavior")}</h4>
-          <div class="detail-label">
-            <span class="label-text">{$t("workspaceSelectionBehavior")}</span>
-            <Select
-              bind:value={draftConfig.workspace_open_mode}
-              items={[
-                { value: "ask", label: $t("workspaceOpenAsk") },
-                { value: "new_window", label: $t("workspaceOpenNewWindow") },
-                { value: "current_window", label: $t("workspaceOpenCurrentWindow") },
-              ]}
-              ariaLabel={$t("workspaceSelectionBehavior")}
-            />
+          <div class="settings-card">
+            <div class="settings-card-row">
+              <span class="settings-card-copy">
+                <span class="label-text">{$t("workspaceSelectionBehavior")}</span>
+                <span class="detail-hint">{$t("workspaceSelectionBehaviorHint")}</span>
+              </span>
+              <div class="settings-card-control">
+                <Select
+                  bind:value={draftConfig.workspace_open_mode}
+                  items={[
+                    { value: "ask", label: $t("workspaceOpenAsk") },
+                    { value: "new_window", label: $t("workspaceOpenNewWindow") },
+                    { value: "current_window", label: $t("workspaceOpenCurrentWindow") },
+                  ]}
+                  ariaLabel={$t("workspaceSelectionBehavior")}
+                />
+              </div>
+            </div>
           </div>
-          <p class="detail-hint">{$t("workspaceSelectionBehaviorHint")}</p>
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("approvalMode")}</h4>
-          <div class="detail-label">
-            <Select
-              bind:value={draftConfig.approval_mode}
-              items={[
-                {
-                  value: "manual",
-                  label: $t("approvalModeManual"),
-                  description: $t("approvalModeManualDescription"),
-                },
-                {
-                  value: "auto",
-                  label: $t("approvalModeAuto"),
-                  description: $t("approvalModeAutoDescription"),
-                },
-                {
-                  value: "off",
-                  label: $t("approvalModeOff"),
-                  description: $t("approvalModeOffDescription"),
-                },
-              ]}
-              ariaLabel={$t("approvalMode")}
-            />
+          <div class="settings-card">
+            <div class="settings-card-row">
+              <span class="settings-card-copy">
+                <span class="label-text"
+                  >{$t(approvalModeDescriptionKey[draftConfig.approval_mode])}</span
+                >
+                <span class="detail-hint">{$t("approvalPermissionIndependent")}</span>
+              </span>
+              <div class="settings-card-control">
+                <Select
+                  bind:value={draftConfig.approval_mode}
+                  items={[
+                    {
+                      value: "manual",
+                      label: $t("approvalModeManual"),
+                      description: $t("approvalModeManualDescription"),
+                    },
+                    {
+                      value: "auto",
+                      label: $t("approvalModeAuto"),
+                      description: $t("approvalModeAutoDescription"),
+                    },
+                    {
+                      value: "off",
+                      label: $t("approvalModeOff"),
+                      description: $t("approvalModeOffDescription"),
+                    },
+                  ]}
+                  ariaLabel={$t("approvalMode")}
+                />
+              </div>
+            </div>
           </div>
-          <p class="detail-hint">{$t(approvalModeDescriptionKey[draftConfig.approval_mode])}</p>
-          <p class="detail-hint">{$t("approvalPermissionIndependent")}</p>
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("executionPermissions")}</h4>
@@ -4036,7 +4062,7 @@
     gap: 16px;
     padding: 12px;
     border: 0;
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--surface);
     box-shadow: var(--control-shadow);
   }
@@ -4045,13 +4071,17 @@
     min-width: 0;
   }
 
+  .startup-copy .detail-hint {
+    margin-inline: 0;
+  }
+
   .shortcut-setting-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 20px;
     padding: 12px;
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--surface);
     box-shadow: var(--control-shadow);
   }
@@ -4079,7 +4109,7 @@
     justify-content: center;
     gap: 8px;
     padding: 0 12px;
-    border: 0;
+    border: 1px solid var(--border);
     border-radius: 7px;
     background: var(--control-surface);
     color: var(--text);
@@ -4087,13 +4117,14 @@
     font-size: 12px;
     cursor: pointer;
     outline: none;
-    box-shadow: var(--control-shadow);
+    box-shadow: none;
   }
 
   .shortcut-recorder:hover,
   .shortcut-recorder:focus-visible,
   .shortcut-recorder.recording {
-    box-shadow: var(--control-shadow), var(--focus-ring);
+    border-color: var(--primary);
+    box-shadow: none;
   }
 
   .shortcut-recorder.recording {
@@ -4147,7 +4178,7 @@
   .remote-gateway-card,
   .remote-gateway-credentials {
     overflow: hidden;
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--surface);
     box-shadow: var(--control-shadow);
   }
@@ -4477,7 +4508,7 @@
     display: grid;
     gap: 14px;
     padding: 16px;
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--surface);
     box-shadow: var(--control-shadow);
   }
@@ -4551,7 +4582,7 @@
   .execution-setting {
     overflow: hidden;
     border: 0;
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--surface);
     box-shadow: var(--control-shadow);
   }
@@ -4560,6 +4591,7 @@
     border: 0;
     border-radius: 0;
     padding: 14px 16px;
+    box-shadow: none;
   }
 
   .execution-value-row {
@@ -4610,10 +4642,64 @@
   }
 
   .detail-section-intro {
-    margin: -8px 4px 14px;
+    margin: -8px 0 14px;
     color: var(--text-muted);
     font-size: 12px;
     line-height: 1.5;
+  }
+
+  .settings-card {
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--surface);
+    box-shadow: var(--control-shadow);
+  }
+
+  .settings-card-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(210px, 248px);
+    align-items: center;
+    gap: 24px;
+    min-height: 42px;
+    padding: 14px 16px;
+  }
+
+  .settings-card-row + .settings-card-row {
+    border-top: 1px solid var(--border);
+  }
+
+  .settings-card-copy {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+  }
+
+  .settings-card-copy .detail-hint {
+    margin: 0;
+  }
+
+  .settings-card-row > .label-text,
+  .settings-card-copy > .label-text {
+    color: var(--text);
+    font-weight: 550;
+    line-height: 1.35;
+  }
+
+  .settings-card-control {
+    min-width: 0;
+  }
+
+  .settings-card :global(.ui-select-trigger),
+  .settings-card .detail-input {
+    border: 1px solid var(--border);
+    box-shadow: none;
+  }
+
+  .settings-card :global(.ui-select-trigger:focus-visible),
+  .settings-card :global(.ui-select-trigger[data-state="open"]),
+  .settings-card .detail-input:focus {
+    border-color: var(--primary);
+    box-shadow: none;
   }
 
   .detail-section-header,
@@ -4736,7 +4822,7 @@
 
   .model-list-box {
     border: 0;
-    border-radius: 11px;
+    border-radius: 10px;
     overflow: hidden;
     background: var(--surface);
     box-shadow: var(--control-shadow);
@@ -4924,7 +5010,7 @@
 
   .provider-status,
   .danger-zone {
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 12px;
     background: var(--surface2);
   }
@@ -5070,5 +5156,35 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .execution-setting .detail-input,
+  .channel-config-card .detail-input,
+  .remote-gateway-card .detail-input,
+  .channel-config-card :global(.ui-select-trigger),
+  .remote-gateway-card :global(.ui-select-trigger),
+  .remote-gateway-credentials :global(.ui-select-trigger) {
+    border: 1px solid var(--border);
+    box-shadow: none;
+  }
+
+  .execution-setting .detail-input:focus,
+  .channel-config-card .detail-input:focus,
+  .remote-gateway-card .detail-input:focus,
+  .channel-config-card :global(.ui-select-trigger:focus-visible),
+  .channel-config-card :global(.ui-select-trigger[data-state="open"]),
+  .remote-gateway-card :global(.ui-select-trigger:focus-visible),
+  .remote-gateway-card :global(.ui-select-trigger[data-state="open"]),
+  .remote-gateway-credentials :global(.ui-select-trigger:focus-visible),
+  .remote-gateway-credentials :global(.ui-select-trigger[data-state="open"]) {
+    border-color: var(--primary);
+    box-shadow: none;
+  }
+
+  @media (max-width: 640px) {
+    .settings-card-row {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
   }
 </style>
