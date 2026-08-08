@@ -285,6 +285,16 @@ export interface CheckpointData {
   };
 }
 
+export interface GoalRunUpdatedEvent {
+  conv_id: string;
+  kind: string;
+  status: string;
+  flow?: {
+    kind: "goal" | "graph";
+    state: unknown;
+  };
+}
+
 export interface RenderableCheckpoint {
   meta: CheckpointMeta;
   data: CheckpointData;

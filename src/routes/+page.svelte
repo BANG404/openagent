@@ -82,7 +82,11 @@
   import QuickChat from "$lib/components/QuickChat.svelte";
   import { clampSidebarWidth, loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
-  import type { CheckpointFlow } from "$lib/checkpointFlow";
+  import {
+    updateLiveCheckpointFlowProjection,
+    type CheckpointFlow,
+    type LiveCheckpointFlowProjection,
+  } from "$lib/checkpointFlow";
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
     ROOT_KEY,
@@ -154,6 +158,7 @@
     PermissionProfile,
     ReasoningEffort,
     ApprovalMode,
+    GoalRunUpdatedEvent,
   } from "$lib/types";
 
   type AgentCommandSpec = {
@@ -501,6 +506,10 @@
   // A checkpoint event is emitted only after its durable snapshot exists. Keep
   // Goal/Graph projection current without hydrating partial transcript records.
   const liveCheckpointRefreshVersions = new Map<string, number>();
+  // Goal tools and Graph reducers mutate the canonical in-memory checkpoint
+  // before that snapshot becomes durable. Render their complete event projection
+  // until the matching persisted checkpoint has been reconciled.
+  let liveCheckpointFlowProjections = $state<Record<string, LiveCheckpointFlowProjection>>({});
   // Tracks which conv_ids have had their messages loaded from SQLite
   const loadedConvIds = new Set<string>();
   // File changes per conversation (loaded from SQLite)
@@ -1039,7 +1048,11 @@
   let currentCheckpointFlowNode = $derived(
     activeConvId ? getActiveTipNode(convTrees[activeConvId]) : undefined,
   );
-  let currentCheckpointFlow = $derived(currentCheckpointFlowNode?.flow);
+  let currentCheckpointFlow = $derived(
+    activeConvId
+      ? (liveCheckpointFlowProjections[activeConvId]?.flow ?? currentCheckpointFlowNode?.flow)
+      : undefined,
+  );
   const compactionOnlyConvIds = new Set<string>();
   let workspacePrefsSaveQueue: Promise<void> = Promise.resolve();
 
@@ -1228,19 +1241,32 @@
   async function refreshLiveCheckpointTip(convId: string, checkpointId: string): Promise<void> {
     if (!tauriAvailable) return;
     const version = (liveCheckpointRefreshVersions.get(convId) ?? 0) + 1;
+    const flowVersion = liveCheckpointFlowProjections[convId]?.version ?? 0;
     liveCheckpointRefreshVersions.set(convId, version);
     try {
       const checkpoints = await fetchRenderableCheckpoints(convId);
       if (liveCheckpointRefreshVersions.get(convId) !== version) return;
+      if (!checkpoints.some((checkpoint) => checkpoint.meta.checkpoint_id === checkpointId)) return;
       convTrees = {
         ...convTrees,
         [convId]: reconcileLiveCheckpointTip(checkpoints, convTrees[convId], checkpointId),
       };
+      if ((liveCheckpointFlowProjections[convId]?.version ?? 0) === flowVersion) {
+        const { [convId]: _durableFlow, ...rest } = liveCheckpointFlowProjections;
+        liveCheckpointFlowProjections = rest;
+      }
     } catch (error) {
       if (liveCheckpointRefreshVersions.get(convId) === version) {
         console.error(`Failed to refresh live checkpoint ${checkpointId}:`, error);
       }
     }
+  }
+
+  function applyLiveCheckpointFlow(convId: string, update: GoalRunUpdatedEvent): void {
+    const current = liveCheckpointFlowProjections[convId];
+    const next = updateLiveCheckpointFlowProjection(current, update);
+    if (!next || next === current) return;
+    liveCheckpointFlowProjections = { ...liveCheckpointFlowProjections, [convId]: next };
   }
 
   async function hydrateConversation(
@@ -2824,12 +2850,9 @@
       if (conv_id === activeConvId) scrollStreamToBottom();
     });
 
-    register<{
-      conv_id: string;
-      kind: string;
-      status: string;
-    }>("goal-run-updated", (e) => {
+    register<GoalRunUpdatedEvent>("goal-run-updated", (e) => {
       const { conv_id, kind, status } = e.payload;
+      applyLiveCheckpointFlow(conv_id, e.payload);
       const idx = conversations.findIndex((c) => c.id === conv_id);
       if (idx !== -1) {
         conversations[idx] = {

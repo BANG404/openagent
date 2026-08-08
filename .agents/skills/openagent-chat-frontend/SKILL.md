@@ -49,11 +49,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   its resume keep that Turn key; only terminal Turn states expose duration,
   regenerate, copy, and book-mode actions. Ignore typed `memory` user content
   in every ordinary transcript, index, edit, copy, and book projection.
-- Read Goal and Graph progress from the selected branch tip's durable
-  checkpoint, not transient conversation badges. Project every newly persisted
-  `chat-checkpoint` into that tree immediately during streaming, while leaving
-  optimistic transcript records mounted until terminal reconciliation. Ignore
-  stale asynchronous refreshes so an older checkpoint cannot replace a newer
+- Treat the selected branch tip's durable checkpoint as final Goal and Graph
+  authority, not transient conversation badges. During streaming, project the
+  complete checkpoint-owned `FlowState` carried by `goal-run-updated` after
+  every Goal tool mutation and parent Graph node reduction; keep that live
+  overlay until the matching persisted `chat-checkpoint` has been reconciled.
+  Leave optimistic transcript records mounted throughout and ignore stale
+  asynchronous refreshes so an older checkpoint cannot replace a newer live
   Goal or Graph state. A new flow opens the
   resizable right-side status panel automatically; a user's collapse choice
   survives later checkpoints for that same flow, while switching to a distinct

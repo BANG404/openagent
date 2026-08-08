@@ -1,9 +1,11 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
 import {
+  checkpointFlowFromLiveUpdate,
   checkpointFlowProgress,
   checkpointGraphLayers,
   normalizeCheckpointFlow,
+  updateLiveCheckpointFlowProjection,
 } from "../src/lib/checkpointFlow";
 import {
   attachNewTurn,
@@ -149,6 +151,80 @@ describe("checkpoint Goal and Graph state", () => {
       status: "running",
       nodes: [{ id: "work", status: "running" }],
     });
+  });
+
+  test("normalizes the complete transient Goal snapshot emitted by a tool update", () => {
+    const flow = checkpointFlowFromLiveUpdate({
+      conv_id: "conversation",
+      kind: "goal",
+      status: "running",
+      flow: {
+        kind: "goal",
+        state: {
+          objective: "Show progress now",
+          status: "running",
+          iteration: 1,
+          todos: [
+            { id: "inspect", task: "Inspect", status: "completed" },
+            { id: "fix", task: "Fix", status: "in_progress" },
+          ],
+        },
+      },
+    });
+
+    expect(flow).toMatchObject({
+      kind: "goal",
+      objective: "Show progress now",
+      todos: [
+        { id: "inspect", status: "completed" },
+        { id: "fix", status: "in_progress" },
+      ],
+    });
+  });
+
+  test("does not mistake a legacy status-only event for live flow authority", () => {
+    expect(
+      checkpointFlowFromLiveUpdate({
+        conv_id: "conversation",
+        kind: "goal",
+        status: "running",
+      }),
+    ).toBeUndefined();
+  });
+
+  test("versions live projections so an older durable refresh cannot clear a newer update", () => {
+    const first = updateLiveCheckpointFlowProjection(undefined, {
+      conv_id: "conversation",
+      kind: "goal",
+      status: "running",
+      flow: {
+        kind: "goal",
+        state: { objective: "Live", status: "running", todos: [] },
+      },
+    });
+    const second = updateLiveCheckpointFlowProjection(first, {
+      conv_id: "conversation",
+      kind: "goal",
+      status: "running",
+      flow: {
+        kind: "goal",
+        state: {
+          objective: "Live",
+          status: "running",
+          todos: [{ id: "next", task: "Next", status: "in_progress" }],
+        },
+      },
+    });
+
+    expect(second?.version).toBe(2);
+    expect(second?.flow).toMatchObject({ todos: [{ id: "next", status: "in_progress" }] });
+    expect(
+      updateLiveCheckpointFlowProjection(second, {
+        conv_id: "conversation",
+        kind: "goal",
+        status: "running",
+      }),
+    ).toBe(second);
   });
 });
 

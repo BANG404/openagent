@@ -1,3 +1,5 @@
+import type { GoalRunUpdatedEvent } from "./types";
+
 export type CheckpointFlowStatus = "running" | "completed" | "failed" | "blocked";
 
 export interface CheckpointGoalTodo {
@@ -33,6 +35,11 @@ export type CheckpointFlow =
       nodes: CheckpointGraphNode[];
       summary?: string;
     };
+
+export interface LiveCheckpointFlowProjection {
+  flow: CheckpointFlow;
+  version: number;
+}
 
 const flowStatuses = new Set<CheckpointFlowStatus>(["running", "completed", "failed", "blocked"]);
 
@@ -114,6 +121,20 @@ export function normalizeCheckpointFlow(
       })
     : [];
   return { kind, ...common, nodes };
+}
+
+export function checkpointFlowFromLiveUpdate(
+  update: GoalRunUpdatedEvent,
+): CheckpointFlow | undefined {
+  return update.flow ? normalizeCheckpointFlow(update.flow.kind, update.flow.state) : undefined;
+}
+
+export function updateLiveCheckpointFlowProjection(
+  previous: LiveCheckpointFlowProjection | undefined,
+  update: GoalRunUpdatedEvent,
+): LiveCheckpointFlowProjection | undefined {
+  const flow = checkpointFlowFromLiveUpdate(update);
+  return flow ? { flow, version: (previous?.version ?? 0) + 1 } : previous;
 }
 
 export function checkpointFlowProgress(flow: CheckpointFlow): { completed: number; total: number } {
