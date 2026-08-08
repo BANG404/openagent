@@ -1807,20 +1807,18 @@
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("htmlPreview")}</h4>
-          <div class="execution-settings">
-            <div class="execution-setting">
-              <label class="execution-value-row">
-                <span class="label-text">{$t("htmlPreviewFixedHeight")}</span>
-                <input
-                  type="number"
-                  class="detail-input execution-number-input"
-                  min="160"
-                  max="1200"
-                  step="20"
-                  bind:value={draftConfig.html_preview.fixed_height}
-                />
-              </label>
-            </div>
+          <div class="settings-card">
+            <label class="settings-card-row">
+              <span class="label-text">{$t("htmlPreviewFixedHeight")}</span>
+              <input
+                type="number"
+                class="detail-input execution-number-input"
+                min="160"
+                max="1200"
+                step="20"
+                bind:value={draftConfig.html_preview.fixed_height}
+              />
+            </label>
           </div>
         </section>
         <section class="detail-section">
