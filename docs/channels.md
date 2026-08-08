@@ -12,10 +12,13 @@ the selected workspace process, so one peer's selection does not change the
 desktop or another peer. Credentials stay in the local configuration and
 connection status is exposed only to the desktop settings surface.
 
-The channel navigation identifies each messaging platform with its recognizable icon
-and starts directly with the platform list, without repeating the Channels title
-inside the panel. The bundled platform artwork is sourced from Cherry Studio at
-commit `16e2905fd30fbfe21d1c58651574dcc939b6fb30`.
+The channel navigation starts directly with the platform list, without repeating
+the Channels title inside the panel. Navigation artwork is rendered as a quiet,
+monochrome identifier so competing brand palettes do not overpower the settings
+hierarchy; the selected platform keeps its original artwork in the detail heading.
+Connection state and the primary enable control share that heading, so enablement
+does not become a detached form action. The bundled platform artwork is sourced
+from Cherry Studio at commit `16e2905fd30fbfe21d1c58651574dcc939b6fb30`.
 
 ## Platform setup
 

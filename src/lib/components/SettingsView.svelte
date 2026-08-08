@@ -1935,16 +1935,30 @@
           {#if channelSettingsNav === "feishu"}
             <section class="detail-section">
               <div class="detail-section-header remote-gateway-heading">
-                <div>
-                  <h4 class="detail-section-title">{$t("feishuChannel")}</h4>
-                  <p class="remote-gateway-subtitle">{$t("feishuChannelSubtitle")}</p>
+                <div class="channel-detail-heading-copy">
+                  <span class="channel-detail-logo" aria-hidden="true">
+                    <img src="/assets/channels/feishu.jpeg" alt="" />
+                  </span>
+                  <div>
+                    <h4 class="detail-section-title">{$t("feishuChannel")}</h4>
+                    <p class="remote-gateway-subtitle">{$t("feishuChannelSubtitle")}</p>
+                  </div>
                 </div>
-                <span
-                  class:active={channelStatuses.feishu?.state === "connected"}
-                  class="remote-gateway-status"
-                >
-                  <span></span>{$t(channelStatusKey(channelStatuses.feishu?.state))}
-                </span>
+                <div class="channel-header-actions">
+                  <span
+                    class:active={channelStatuses.feishu?.state === "connected"}
+                    class="remote-gateway-status"
+                  >
+                    <span></span>{$t(channelStatusKey(channelStatuses.feishu?.state))}
+                  </span>
+                  <div class="channel-header-toggle">
+                    <span>{$t("channelEnabled")}</span>
+                    <Switch
+                      bind:checked={draftConfig.channels!.feishu!.enabled}
+                      ariaLabel={$t("channelEnabled")}
+                    />
+                  </div>
+                </div>
               </div>
               <div class="channel-config-card">
                 <label class="detail-label">
@@ -1981,16 +1995,6 @@
                         event.currentTarget.value,
                       ))}></textarea>
                 </label>
-                <div class="startup-row channel-enabled-row">
-                  <div class="startup-copy">
-                    <span class="label-text">{$t("channelEnabled")}</span>
-                    <p class="detail-hint">{$t("channelEnableAfterCredentials")}</p>
-                  </div>
-                  <Switch
-                    bind:checked={draftConfig.channels!.feishu!.enabled}
-                    ariaLabel={$t("channelEnabled")}
-                  />
-                </div>
               </div>
               {#if channelStatuses.feishu?.error}
                 <div class="provider-status error">{channelStatuses.feishu.error}</div>
@@ -1999,16 +2003,30 @@
           {:else if channelSettingsNav === "telegram"}
             <section class="detail-section">
               <div class="detail-section-header remote-gateway-heading">
-                <div>
-                  <h4 class="detail-section-title">{$t("telegramChannel")}</h4>
-                  <p class="remote-gateway-subtitle">{$t("telegramChannelSubtitle")}</p>
+                <div class="channel-detail-heading-copy">
+                  <span class="channel-detail-logo" aria-hidden="true">
+                    <img src="/assets/channels/telegram.png" alt="" />
+                  </span>
+                  <div>
+                    <h4 class="detail-section-title">{$t("telegramChannel")}</h4>
+                    <p class="remote-gateway-subtitle">{$t("telegramChannelSubtitle")}</p>
+                  </div>
                 </div>
-                <span
-                  class:active={channelStatuses.telegram?.state === "connected"}
-                  class="remote-gateway-status"
-                >
-                  <span></span>{$t(channelStatusKey(channelStatuses.telegram?.state))}
-                </span>
+                <div class="channel-header-actions">
+                  <span
+                    class:active={channelStatuses.telegram?.state === "connected"}
+                    class="remote-gateway-status"
+                  >
+                    <span></span>{$t(channelStatusKey(channelStatuses.telegram?.state))}
+                  </span>
+                  <div class="channel-header-toggle">
+                    <span>{$t("channelEnabled")}</span>
+                    <Switch
+                      bind:checked={draftConfig.channels!.telegram!.enabled}
+                      ariaLabel={$t("channelEnabled")}
+                    />
+                  </div>
+                </div>
               </div>
               <div class="channel-config-card">
                 <label class="detail-label">
@@ -2030,16 +2048,6 @@
                         event.currentTarget.value,
                       ))}></textarea>
                 </label>
-                <div class="startup-row channel-enabled-row">
-                  <div class="startup-copy">
-                    <span class="label-text">{$t("channelEnabled")}</span>
-                    <p class="detail-hint">{$t("channelEnableAfterCredentials")}</p>
-                  </div>
-                  <Switch
-                    bind:checked={draftConfig.channels!.telegram!.enabled}
-                    ariaLabel={$t("channelEnabled")}
-                  />
-                </div>
               </div>
               {#if channelStatuses.telegram?.error}<div class="provider-status error">
                   {channelStatuses.telegram.error}
@@ -2048,15 +2056,29 @@
           {:else if channelSettingsNav === "qq"}
             <section class="detail-section">
               <div class="detail-section-header remote-gateway-heading">
-                <div>
-                  <h4 class="detail-section-title">{$t("qqChannel")}</h4>
-                  <p class="remote-gateway-subtitle">{$t("qqChannelSubtitle")}</p>
+                <div class="channel-detail-heading-copy">
+                  <span class="channel-detail-logo" aria-hidden="true">
+                    <img src="/assets/channels/qq.svg" alt="" />
+                  </span>
+                  <div>
+                    <h4 class="detail-section-title">{$t("qqChannel")}</h4>
+                    <p class="remote-gateway-subtitle">{$t("qqChannelSubtitle")}</p>
+                  </div>
                 </div>
-                <span
-                  class:active={channelStatuses.qq?.state === "connected"}
-                  class="remote-gateway-status"
-                  ><span></span>{$t(channelStatusKey(channelStatuses.qq?.state))}</span
-                >
+                <div class="channel-header-actions">
+                  <span
+                    class:active={channelStatuses.qq?.state === "connected"}
+                    class="remote-gateway-status"
+                    ><span></span>{$t(channelStatusKey(channelStatuses.qq?.state))}</span
+                  >
+                  <div class="channel-header-toggle">
+                    <span>{$t("channelEnabled")}</span>
+                    <Switch
+                      bind:checked={draftConfig.channels!.qq!.enabled}
+                      ariaLabel={$t("channelEnabled")}
+                    />
+                  </div>
+                </div>
               </div>
               <div class="channel-config-card">
                 <label class="detail-label"
@@ -2083,16 +2105,6 @@
                         event.currentTarget.value,
                       ))}></textarea>
                 </label>
-                <div class="startup-row channel-enabled-row">
-                  <div class="startup-copy">
-                    <span class="label-text">{$t("channelEnabled")}</span>
-                    <p class="detail-hint">{$t("channelEnableAfterCredentials")}</p>
-                  </div>
-                  <Switch
-                    bind:checked={draftConfig.channels!.qq!.enabled}
-                    ariaLabel={$t("channelEnabled")}
-                  />
-                </div>
               </div>
               {#if channelStatuses.qq?.error}<div class="provider-status error">
                   {channelStatuses.qq.error}
@@ -2101,15 +2113,29 @@
           {:else if channelSettingsNav === "discord"}
             <section class="detail-section">
               <div class="detail-section-header remote-gateway-heading">
-                <div>
-                  <h4 class="detail-section-title">{$t("discordChannel")}</h4>
-                  <p class="remote-gateway-subtitle">{$t("discordChannelSubtitle")}</p>
+                <div class="channel-detail-heading-copy">
+                  <span class="channel-detail-logo" aria-hidden="true">
+                    <img src="/assets/channels/discord.svg" alt="" />
+                  </span>
+                  <div>
+                    <h4 class="detail-section-title">{$t("discordChannel")}</h4>
+                    <p class="remote-gateway-subtitle">{$t("discordChannelSubtitle")}</p>
+                  </div>
                 </div>
-                <span
-                  class:active={channelStatuses.discord?.state === "connected"}
-                  class="remote-gateway-status"
-                  ><span></span>{$t(channelStatusKey(channelStatuses.discord?.state))}</span
-                >
+                <div class="channel-header-actions">
+                  <span
+                    class:active={channelStatuses.discord?.state === "connected"}
+                    class="remote-gateway-status"
+                    ><span></span>{$t(channelStatusKey(channelStatuses.discord?.state))}</span
+                  >
+                  <div class="channel-header-toggle">
+                    <span>{$t("channelEnabled")}</span>
+                    <Switch
+                      bind:checked={draftConfig.channels!.discord!.enabled}
+                      ariaLabel={$t("channelEnabled")}
+                    />
+                  </div>
+                </div>
               </div>
               <div class="channel-config-card">
                 <label class="detail-label"
@@ -2130,16 +2156,6 @@
                         event.currentTarget.value,
                       ))}></textarea>
                 </label>
-                <div class="startup-row channel-enabled-row">
-                  <div class="startup-copy">
-                    <span class="label-text">{$t("channelEnabled")}</span>
-                    <p class="detail-hint">{$t("channelEnableAfterCredentials")}</p>
-                  </div>
-                  <Switch
-                    bind:checked={draftConfig.channels!.discord!.enabled}
-                    ariaLabel={$t("channelEnabled")}
-                  />
-                </div>
               </div>
               {#if channelStatuses.discord?.error}<div class="provider-status error">
                   {channelStatuses.discord.error}
@@ -2148,15 +2164,29 @@
           {:else if channelSettingsNav === "slack"}
             <section class="detail-section">
               <div class="detail-section-header remote-gateway-heading">
-                <div>
-                  <h4 class="detail-section-title">{$t("slackChannel")}</h4>
-                  <p class="remote-gateway-subtitle">{$t("slackChannelSubtitle")}</p>
+                <div class="channel-detail-heading-copy">
+                  <span class="channel-detail-logo" aria-hidden="true">
+                    <img src="/assets/channels/slack.svg" alt="" />
+                  </span>
+                  <div>
+                    <h4 class="detail-section-title">{$t("slackChannel")}</h4>
+                    <p class="remote-gateway-subtitle">{$t("slackChannelSubtitle")}</p>
+                  </div>
                 </div>
-                <span
-                  class:active={channelStatuses.slack?.state === "connected"}
-                  class="remote-gateway-status"
-                  ><span></span>{$t(channelStatusKey(channelStatuses.slack?.state))}</span
-                >
+                <div class="channel-header-actions">
+                  <span
+                    class:active={channelStatuses.slack?.state === "connected"}
+                    class="remote-gateway-status"
+                    ><span></span>{$t(channelStatusKey(channelStatuses.slack?.state))}</span
+                  >
+                  <div class="channel-header-toggle">
+                    <span>{$t("channelEnabled")}</span>
+                    <Switch
+                      bind:checked={draftConfig.channels!.slack!.enabled}
+                      ariaLabel={$t("channelEnabled")}
+                    />
+                  </div>
+                </div>
               </div>
               <div class="channel-config-card">
                 <label class="detail-label"
@@ -2184,16 +2214,6 @@
                         event.currentTarget.value,
                       ))}></textarea>
                 </label>
-                <div class="startup-row channel-enabled-row">
-                  <div class="startup-copy">
-                    <span class="label-text">{$t("channelEnabled")}</span>
-                    <p class="detail-hint">{$t("channelEnableAfterCredentials")}</p>
-                  </div>
-                  <Switch
-                    bind:checked={draftConfig.channels!.slack!.enabled}
-                    ariaLabel={$t("channelEnabled")}
-                  />
-                </div>
               </div>
               {#if channelStatuses.slack?.error}<div class="provider-status error">
                   {channelStatuses.slack.error}
@@ -2202,29 +2222,33 @@
           {:else if channelSettingsNav === "wechat"}
             <section class="detail-section">
               <div class="detail-section-header remote-gateway-heading">
-                <div>
-                  <h4 class="detail-section-title">{$t("wechatChannel")}</h4>
-                  <p class="remote-gateway-subtitle">{$t("wechatChannelSubtitle")}</p>
+                <div class="channel-detail-heading-copy">
+                  <span class="channel-detail-logo" aria-hidden="true">
+                    <img src="/assets/channels/wechat.png" alt="" />
+                  </span>
+                  <div>
+                    <h4 class="detail-section-title">{$t("wechatChannel")}</h4>
+                    <p class="remote-gateway-subtitle">{$t("wechatChannelSubtitle")}</p>
+                  </div>
                 </div>
-                <span
-                  class:active={wechatChannelStatus?.state === "connected"}
-                  class="remote-gateway-status"
-                  ><span></span>{$t(wechatStatusKey(wechatChannelStatus?.state))}</span
-                >
+                <div class="channel-header-actions">
+                  <span
+                    class:active={wechatChannelStatus?.state === "connected"}
+                    class="remote-gateway-status"
+                    ><span></span>{$t(wechatStatusKey(wechatChannelStatus?.state))}</span
+                  >
+                  <div class="channel-header-toggle">
+                    <span>{$t("wechatChannelEnabled")}</span>
+                    <Switch
+                      checked={draftConfig.channels!.wechat.enabled}
+                      onCheckedChange={(checked) =>
+                        (draftConfig.channels!.wechat.enabled = checked)}
+                      ariaLabel={$t("wechatChannelEnabled")}
+                    />
+                  </div>
+                </div>
               </div>
               <div class="remote-gateway-card">
-                <div class="remote-gateway-toggle-row">
-                  <div class="remote-gateway-icon" aria-hidden="true">微</div>
-                  <div class="startup-copy">
-                    <span class="label-text">{$t("wechatChannelEnabled")}</span>
-                    <p class="detail-hint">{$t("wechatChannelHint")}</p>
-                  </div>
-                  <Switch
-                    checked={draftConfig.channels!.wechat.enabled}
-                    onCheckedChange={(checked) => (draftConfig.channels!.wechat.enabled = checked)}
-                    ariaLabel={$t("wechatChannelEnabled")}
-                  />
-                </div>
                 <div class="wechat-channel-access">
                   <label class="label-text" for="wechat-allowed-users"
                     >{$t("wechatChannelAllowedUsers")}</label
@@ -2273,30 +2297,33 @@
           {:else}
             <section class="detail-section">
               <div class="detail-section-header remote-gateway-heading">
-                <div>
-                  <h4 class="detail-section-title">{$t("remoteGateway")}</h4>
-                  <p class="remote-gateway-subtitle">{$t("remoteGatewaySubtitle")}</p>
+                <div class="channel-detail-heading-copy">
+                  <span class="channel-detail-logo gateway" aria-hidden="true">
+                    <img src="/assets/channels/gateway.svg" alt="" />
+                  </span>
+                  <div>
+                    <h4 class="detail-section-title">{$t("remoteGateway")}</h4>
+                    <p class="remote-gateway-subtitle">{$t("remoteGatewaySubtitle")}</p>
+                  </div>
                 </div>
-                <span
-                  class:active={draftConfig.remote_gateway.enabled}
-                  class="remote-gateway-status"
-                  ><span></span>{draftConfig.remote_gateway.enabled
-                    ? $t("remoteGatewayRunning")
-                    : $t("remoteGatewayStopped")}</span
-                >
+                <div class="channel-header-actions">
+                  <span
+                    class:active={draftConfig.remote_gateway.enabled}
+                    class="remote-gateway-status"
+                    ><span></span>{draftConfig.remote_gateway.enabled
+                      ? $t("remoteGatewayRunning")
+                      : $t("remoteGatewayStopped")}</span
+                  >
+                  <div class="channel-header-toggle">
+                    <span>{$t("remoteGatewayEnabled")}</span>
+                    <Switch
+                      bind:checked={draftConfig.remote_gateway.enabled}
+                      ariaLabel={$t("remoteGatewayEnabled")}
+                    />
+                  </div>
+                </div>
               </div>
               <div class="remote-gateway-card">
-                <div class="remote-gateway-toggle-row">
-                  <div class="remote-gateway-icon" aria-hidden="true">G</div>
-                  <div class="startup-copy">
-                    <span class="label-text">{$t("remoteGatewayEnabled")}</span>
-                    <p class="detail-hint">{$t("remoteGatewayHint")}</p>
-                  </div>
-                  <Switch
-                    bind:checked={draftConfig.remote_gateway.enabled}
-                    ariaLabel={$t("remoteGatewayEnabled")}
-                  />
-                </div>
                 <div class="remote-gateway-toggle-row remote-gateway-workspace-row">
                   <div class="remote-gateway-icon workspace" aria-hidden="true">LAN</div>
                   <div class="startup-copy">
@@ -3735,7 +3762,7 @@
     display: flex;
     flex-direction: column;
     background: var(--bg);
-    border-right: 1px solid var(--border);
+    border-right: 0;
     padding: 12px 8px;
   }
 
@@ -4247,16 +4274,16 @@
   .remote-gateway-card,
   .remote-gateway-credentials {
     overflow: hidden;
-    border-radius: 8px;
-    background: var(--surface);
+    border-radius: 14px;
+    background: var(--control-surface);
     box-shadow: var(--control-shadow);
   }
 
   .wechat-channel-access {
     display: grid;
     gap: 6px;
-    padding: 14px 16px 16px;
-    border-top: 1px solid var(--border);
+    padding: 20px 22px 22px;
+    border-top: 0;
   }
 
   .wechat-user-ids {
@@ -4320,6 +4347,10 @@
 
   .remote-gateway-workspace-row {
     border-top: 1px solid var(--border);
+  }
+
+  .remote-gateway-card > .remote-gateway-workspace-row:first-child {
+    border-top: 0;
   }
 
   .remote-gateway-icon {
@@ -4448,49 +4479,68 @@
 
   .channel-settings-layout {
     display: grid;
-    grid-template-columns: 230px minmax(0, 1fr);
-    gap: 24px;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 0;
     width: 100%;
+    min-height: 100%;
+    background: var(--surface);
   }
 
   .channel-settings-list {
     min-width: 0;
-    border-right: 1px solid var(--border);
-    padding-right: 16px;
+    padding: 20px 14px;
+    background: color-mix(in srgb, var(--bg) 74%, var(--surface));
   }
 
   .channel-settings-list-items {
     display: grid;
-    gap: 3px;
+    gap: 5px;
   }
 
   .channel-settings-item {
     position: relative;
     display: grid;
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: 36px minmax(0, 1fr);
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     width: 100%;
-    padding: 8px;
+    min-height: 58px;
+    padding: 9px 12px;
     border: 0;
-    border-radius: 8px;
+    border-radius: 11px;
     background: transparent;
     color: var(--text);
     font: inherit;
     text-align: left;
     cursor: pointer;
+    transition:
+      background 160ms ease,
+      color 160ms ease,
+      transform 100ms ease;
   }
 
-  .channel-settings-item:hover,
+  .channel-settings-item:hover {
+    background: color-mix(in srgb, var(--surface2) 72%, transparent);
+  }
+
   .channel-settings-item.active {
-    background: var(--surface2);
+    background: var(--item-selected-bg);
+  }
+
+  .channel-settings-item:active {
+    transform: scale(0.985);
+  }
+
+  .channel-settings-item:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
   }
 
   .channel-settings-item.active::before {
     position: absolute;
-    inset: 9px auto 9px 0;
-    width: 3px;
-    border-radius: 2px;
+    inset: 12px auto 12px 3px;
+    width: 2px;
+    border-radius: 999px;
     background: var(--primary);
     content: "";
   }
@@ -4498,11 +4548,10 @@
   .channel-settings-icon {
     display: grid;
     place-items: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
-    background: var(--surface);
-    box-shadow: var(--control-shadow);
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
   }
 
   .channel-settings-icon img {
@@ -4510,6 +4559,13 @@
     width: 24px;
     height: 24px;
     object-fit: contain;
+    filter: grayscale(1) saturate(0);
+    opacity: 0.58;
+    transition: opacity 160ms ease;
+  }
+
+  .channel-settings-item.active .channel-settings-icon img {
+    opacity: 0.9;
   }
 
   .channel-settings-icon.feishu img,
@@ -4521,6 +4577,10 @@
   }
 
   .channel-settings-icon.gateway {
+    background: var(--text-muted);
+  }
+
+  .channel-settings-item.active .channel-settings-icon.gateway {
     background: var(--primary);
   }
 
@@ -4532,7 +4592,7 @@
   .channel-settings-item-copy {
     display: grid;
     min-width: 0;
-    gap: 2px;
+    gap: 3px;
   }
 
   .channel-settings-item-copy strong,
@@ -4545,22 +4605,103 @@
   .channel-settings-item-copy strong {
     font-size: 13px;
     font-weight: 600;
+    letter-spacing: -0.12px;
   }
   .channel-settings-item-copy span {
     color: var(--text-muted);
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .channel-settings-detail {
     min-width: 0;
+    padding: 30px clamp(28px, 5vw, 72px);
+    background: var(--surface);
+  }
+
+  .channel-settings-detail .detail-section {
+    max-width: 720px;
+    margin-inline: auto;
+  }
+
+  .channel-settings-detail .remote-gateway-heading {
+    margin-bottom: 24px;
+  }
+
+  .channel-detail-heading-copy {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 14px;
+  }
+
+  .channel-detail-logo {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--control-surface);
+    box-shadow: var(--control-shadow);
+  }
+
+  .channel-detail-logo img {
+    display: block;
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+  }
+
+  .channel-detail-logo.gateway {
+    background: var(--primary);
+  }
+
+  .channel-detail-logo.gateway img {
+    width: 26px;
+    height: 26px;
+  }
+
+  .channel-detail-heading-copy .detail-section-title {
+    font-size: 21px;
+    line-height: 1.15;
+    letter-spacing: -0.32px;
+  }
+
+  .channel-detail-heading-copy .remote-gateway-subtitle {
+    margin-top: 5px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .channel-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    gap: 8px;
+  }
+
+  .channel-header-toggle {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 30px;
+    padding: 4px 6px 4px 11px;
+    border-radius: 999px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
   }
 
   .channel-config-card {
     display: grid;
-    gap: 14px;
-    padding: 16px;
-    border-radius: 8px;
-    background: var(--surface);
+    gap: 18px;
+    padding: 22px;
+    border-radius: 14px;
+    background: var(--control-surface);
     box-shadow: var(--control-shadow);
   }
 
@@ -4568,16 +4709,35 @@
     margin: 0;
   }
   .channel-allowlist {
-    min-height: 76px;
+    min-height: 88px;
     resize: vertical;
   }
-  .channel-enabled-row {
-    margin: 0;
-    padding: 12px 0 0;
-    border-top: 1px solid var(--border);
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
+
+  .channel-config-card .detail-input,
+  .wechat-channel-access .detail-input,
+  .channel-config-card :global(.ui-select-trigger) {
+    min-height: 42px;
+    border-radius: 10px;
+    padding-inline: 13px;
+  }
+
+  .channel-config-card textarea.detail-input,
+  .wechat-channel-access textarea.detail-input {
+    padding-block: 10px;
+  }
+
+  .channel-config-card .detail-input::placeholder,
+  .wechat-channel-access .detail-input::placeholder {
+    color: color-mix(in srgb, var(--text-muted) 62%, transparent);
+  }
+
+  .channel-config-card .detail-input:focus,
+  .wechat-channel-access .detail-input:focus,
+  .channel-config-card :global(.ui-select-trigger:focus-visible),
+  .channel-config-card :global(.ui-select-trigger[data-state="open"]) {
+    box-shadow:
+      var(--control-shadow),
+      0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
   }
 
   @media (max-width: 640px) {
@@ -4587,21 +4747,34 @@
     }
     .channel-settings-list {
       overflow-x: auto;
-      border-right: 0;
-      border-bottom: 1px solid var(--border);
-      padding: 0 0 12px;
+      padding: 12px;
     }
     .channel-settings-list-items {
       display: flex;
       min-width: max-content;
     }
     .channel-settings-item {
-      width: 128px;
+      width: 144px;
     }
     .channel-settings-item.active::before {
-      inset: auto 8px 0;
+      inset: auto 12px 3px;
       width: auto;
-      height: 3px;
+      height: 2px;
+    }
+
+    .channel-settings-detail {
+      padding: 24px 18px;
+    }
+
+    .channel-settings-detail .remote-gateway-heading {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .channel-header-actions {
+      justify-content: space-between;
+      width: 100%;
     }
 
     .remote-gateway-toggle-row {
