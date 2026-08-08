@@ -253,7 +253,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   loading skeleton use the application Mica surface in both positions.
   Keep the model, reasoning-effort, and approval triggers inside that composer
   surface-free at rest; standalone Select material must not leak into the
-  toolbar. Focus rings expand outside their control boundary instead of inset.
+  toolbar. Keep the composer shell's neutral Mica perimeter unchanged when its
+  textarea receives focus; embedded toolbar controls retain their own focus
+  rings, which expand outside each control boundary instead of inset.
 - Let the conversation shell own the custom title-bar clearance. Keep the
   ordinary transcript's own top inset compact so it does not stack a second
   header-sized gap above the first message or debug context.
