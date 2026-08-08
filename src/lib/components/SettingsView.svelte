@@ -3916,18 +3916,6 @@
     padding: 6px 10px;
     cursor: pointer;
     text-align: left;
-    transition:
-      background 0.12s,
-      color 0.12s;
-  }
-
-  .provider-item:hover {
-    background: var(--bg);
-  }
-
-  .provider-item.active {
-    background: var(--bg);
-    color: var(--text);
   }
 
   .provider-item.active::before {
