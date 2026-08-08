@@ -234,6 +234,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Keep the model, reasoning-effort, and approval triggers inside that composer
   surface-free at rest; standalone Select material must not leak into the
   toolbar. Focus rings expand outside their control boundary instead of inset.
+- Let the conversation shell own the custom title-bar clearance. Keep the
+  ordinary transcript's own top inset compact so it does not stack a second
+  header-sized gap above the first message or debug context.
 - An explicitly empty durable active-conversation marker restores the centered
   new-conversation surface, even when older conversations exist. Never fall
   back to the newest conversation.
@@ -414,10 +417,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   normalized to the current version before a settings snapshot can be saved;
   persisted unversioned configuration is handled by the pre-runtime transition,
   never by settings autosave.
-- General model settings expose the retry interval in seconds while preserving
-  milliseconds at the transport boundary. Missing configuration defaults to
-  three retries per model with 30 seconds between attempts; explicit stored
-  values remain authoritative.
+- General model settings keep the retry count and interval in a dedicated retry
+  policy card, separate from either model queue. The interval is displayed in
+  seconds while preserving milliseconds at the transport boundary. Missing
+  configuration defaults to three retries per model with 30 seconds between
+  attempts; explicit stored values remain authoritative.
 - Keep the canonical managed permission fallback layered as `host_root` read
   followed by workspace write. The frontend transport type and normalization
   must preserve `host_root`; collapsing an older payload to workspace-only
