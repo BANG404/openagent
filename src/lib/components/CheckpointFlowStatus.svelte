@@ -359,11 +359,22 @@
     background: transparent;
     cursor: col-resize;
     touch-action: none;
+    outline: none;
   }
-  .resize-handle:hover,
-  .resize-handle:focus-visible {
-    background: color-mix(in srgb, var(--primary) 36%, transparent);
-    outline: 0;
+  .resize-handle::after {
+    position: absolute;
+    inset: 0 auto 0 3px;
+    width: 2px;
+    background: var(--primary);
+    content: "";
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease;
+  }
+  .resize-handle:hover::after,
+  .resize-handle:focus-visible::after,
+  .resizing .resize-handle::after {
+    opacity: 0.7;
   }
   .flow-header {
     display: flex;
@@ -730,6 +741,12 @@
       min-width: min(260px, 100%);
       max-width: min(420px, 100%);
       box-shadow: -16px 0 36px rgba(0, 0, 0, 0.12);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .resize-handle::after {
+      transition: none;
     }
   }
 </style>

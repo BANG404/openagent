@@ -234,7 +234,10 @@ Repository-changing tasks use the prefix-selected `deliver-via-pr` workflow.
 Without a delivery prefix, modify the existing local `master` worktree directly,
 run preflight, and create focused commits on `master`. Do not create a task
 branch or worktree and do not push. Preserve unrelated staged and working changes
-and commit only explicit intended paths. An uppercase standalone `OWT` prefix
+and commit only explicit intended paths or hunks. When independent changes share
+a file, preserve the other work and create a separate commit from only the
+clearly owned hunks; stop only when line overlap or semantic coupling makes that
+separation unreliable. An uppercase standalone `OWT` prefix
 selects the former isolated local workflow: create a temporary task branch and
 sibling worktree from the committed local `master` `HEAD`, implement and commit
 there, then fast-forward local `master` and clean up. If concurrent commits

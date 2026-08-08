@@ -64,8 +64,9 @@ private SDK gitlink.
   and stops before cleanup. Its reconciler may rewrite only a verified linear
   unpublished tail onto the remote default after preserving the original head,
   and may align the default branch only after the remote branch and ready PR
-  match exactly. Direct local mode commits only intended paths and preserves
-  unrelated staged and working changes in place. `OWT` bases its temporary task
+  match exactly. Direct local mode commits only intended paths or clearly owned
+  hunks and preserves unrelated staged and working changes, including separable
+  changes in the same file, in place. `OWT` bases its temporary task
   branch on the committed local default `HEAD`, merges later committed
   default-branch descendants into the task branch, reruns preflight after every
   such integration, and retries until the default branch can fast-forward. It

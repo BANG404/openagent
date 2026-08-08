@@ -20,6 +20,7 @@
   let startX = 0;
   let startWidth = 0;
   let resizedWidth = 0;
+  let activeHandle: HTMLInputElement | null = null;
   let previousCursor = "";
   let previousUserSelect = "";
 
@@ -33,7 +34,8 @@
     previousUserSelect = document.documentElement.style.userSelect;
     document.documentElement.style.cursor = "col-resize";
     document.documentElement.style.userSelect = "none";
-    if (event.currentTarget instanceof HTMLElement) {
+    if (event.currentTarget instanceof HTMLInputElement) {
+      activeHandle = event.currentTarget;
       event.currentTarget.focus();
       event.currentTarget.setPointerCapture(event.pointerId);
     }
@@ -52,6 +54,8 @@
     activePointerId = null;
     document.documentElement.style.cursor = previousCursor;
     document.documentElement.style.userSelect = previousUserSelect;
+    activeHandle?.blur();
+    activeHandle = null;
     onResizeStateChange(false);
     onResizeEnd(resizedWidth);
   }

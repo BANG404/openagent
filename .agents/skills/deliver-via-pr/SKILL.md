@@ -36,10 +36,12 @@ authorize unrelated changes.
 - For diagnosis or review only, do not create a branch or make changes.
 - Preserve unrelated branches, worktrees, staged files, and working changes.
   Direct local mode leaves unrelated changes untouched and commits only
-  explicit intended paths. `OWT` leaves them in the default worktree while it
-  works from that branch's committed `HEAD`; never copy those changes into the
-  task worktree. If the task overlaps them or ownership is ambiguous, stop for
-  direction instead of absorbing them.
+  explicit intended paths or hunks. Independent changes may share a file when
+  their lines and semantics remain clearly separable; preserve the other work
+  and stage only the owned hunks. `OWT` leaves unrelated changes in the default
+  worktree while it works from that branch's committed `HEAD`; never copy those
+  changes into the task worktree. Stop for direction when line overlap or
+  semantic coupling prevents reliable ownership separation.
 - Follow `sdk/AGENTS.md` for SDK work. The private SDK does not use pull
   requests: verify and push focused commits directly to `main` first, regardless
   of the public host's delivery prefix. Update the parent gitlink only after the
@@ -52,23 +54,29 @@ authorize unrelated changes.
    reset, rebase, merge, pull, or push. Unpublished local commits are a valid
    base.
 2. Inspect tracked, staged, and untracked changes before editing. Preserve every
-   unrelated change in place. If an intended file already has changes whose
-   ownership is ambiguous, stop for direction instead of absorbing or
-   overwriting them.
+   unrelated change in place. An intended file may already contain independent
+   work: when ownership is clear at both the hunk and semantic level, edit around
+   it and later stage only the owned hunks. Stop for direction instead of
+   absorbing or overwriting changes that overlap or cannot be separated
+   reliably.
 3. Implement code, focused coverage, and agent-facing documentation together in
    the default worktree. Keep public behavior in `docs/`, repeatable procedures
    in the triggering skill, and private SDK internals in the SDK repository.
 4. Do not manually run lint, test, check, build, or documentation commands that
    duplicate repository CI. Run implementation-time interactive checks,
    explicitly requested checks, and validators required by another skill.
-5. Inspect the complete diff, stage only explicit intended paths, then run
-   `bun run preflight`. Stage intended new files first so the whitespace guard
-   can inspect them. Use `--base <ref>` only for a non-default target branch.
-6. Inspect the staged diff and create focused Conventional Commits directly on
-   the local default branch. If unrelated changes were already staged, use a
-   path-limited commit for the intended paths so the existing index entries
-   remain untouched. Never amend, squash, or rewrite user-owned commits unless
-   explicitly requested.
+5. Inspect the complete diff, stage only explicit intended paths or hunks, then
+   run `bun run preflight`. Stage intended new files first so the whitespace
+   guard can inspect them. Use `--base <ref>` only for a non-default target
+   branch.
+6. Inspect the exact commit diff and create focused Conventional Commits directly
+   on the local default branch. If unrelated changes are already staged or share
+   an intended file, build the commit from a temporary index based on the current
+   `HEAD` containing only the owned hunks, then refresh the original index from
+   the unchanged working files so all pre-existing staged work remains staged.
+   Do not use a path-limited commit when it would capture unrelated working-tree
+   content from a shared file. Never amend, squash, or rewrite user-owned commits
+   unless explicitly requested.
 7. Confirm the intended commit and paths are on the local default branch and
    that all pre-existing unrelated changes remain unchanged. Report the branch,
    commit hashes, verification, preserved changes, and that no branch,

@@ -59,7 +59,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   scrolling, and use the same canvas background as the conversation. Match the
   conversation sidebar's direct manipulation behavior: capture the active
   pointer, disable width transitions and text selection while dragging, and
-  restore them when the drag ends or is cancelled.
+  restore them when the drag ends or is cancelled. Use the same resizer visual
+  geometry as that sidebar: an 8px transparent hit target with a centered 2px
+  primary indicator at the same hover, focus, and active opacity. Clear focus
+  acquired by a pointer drag when it finishes so the active affordance cannot
+  stick; preserve visible focus for keyboard resizing.
   Render Graph dependencies as a top-to-bottom directed flow diagram with
   arrowed SVG edges behind compact node cards. Limit parallel layers to
   readable responsive columns, clamp long visible task copy, and scale the
