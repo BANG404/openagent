@@ -205,6 +205,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the expanded conversation sidebar resizable from its trailing edge between
   180px and 360px. Persist the chosen width across collapse and reload, disable
   width animation while dragging, and expose the same bounds to keyboard users.
+- Keep the Memory view's horizontal resize handle quiet at rest, but render its
+  short primary-colored grip at full opacity on hover and while dragging so the
+  active separator remains visible in both themes.
 - Size the expanded sidebar's header role trigger to its visible role name and
   omit the redundant caret. Keep the back and forward controls fixed beside the
   sidebar-collapse button so role-name length cannot move them. Tie those

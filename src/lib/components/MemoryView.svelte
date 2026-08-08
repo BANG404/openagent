@@ -539,7 +539,7 @@
 
   .memory-resizer:hover span,
   :global(.memory-resizing) .memory-resizer span {
-    background: color-mix(in srgb, var(--primary) 70%, transparent);
+    background: var(--primary);
   }
 
   .memory-resizer.disabled {
