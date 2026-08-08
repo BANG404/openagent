@@ -3,7 +3,7 @@
   import { invoke } from "$lib/openagent/tauriClient";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { onMount, tick } from "svelte";
-  import type { AgentRole, ChatAttachment, ReasoningEffort } from "$lib/types";
+  import type { AgentRole, ApprovalMode, ChatAttachment, ReasoningEffort } from "$lib/types";
   import AttachmentPreview from "./AttachmentPreview.svelte";
   import MentionPalette, { type PaletteItem } from "./MentionPalette.svelte";
   import Select from "./ui/Select.svelte";
@@ -62,10 +62,13 @@
     showModelSelector?: boolean;
     showReasoningEffort?: boolean;
     reasoningEffort?: ReasoningEffort;
+    showApprovalMode?: boolean;
+    approvalMode?: ApprovalMode;
     showStopButton?: boolean;
     onConfigureModels?: () => void;
     onModelChange?: (value: string) => void;
     onReasoningEffortChange?: (value: ReasoningEffort) => void;
+    onApprovalModeChange?: (value: ApprovalMode) => void;
     /** Protect native-window focus while the Tauri attachment dialog is open. */
     onAttachmentPickerOpenChange?: (open: boolean) => void | Promise<void>;
     /** Upload browser-selected files through the active non-Tauri transport. */
@@ -103,10 +106,13 @@
     showModelSelector = true,
     showReasoningEffort = false,
     reasoningEffort = "medium",
+    showApprovalMode = false,
+    approvalMode = "off",
     showStopButton = true,
     onConfigureModels = () => {},
     onModelChange = () => {},
     onReasoningEffortChange = () => {},
+    onApprovalModeChange = () => {},
     onAttachmentPickerOpenChange,
     onUploadAttachments,
     focusRequest = 0,
@@ -125,6 +131,26 @@
   const streamingPrimaryTitle = $derived(
     hasComposerContent ? sendTitle : isPaused ? resumeTitle : pauseTitle,
   );
+  const approvalModeOptions = $derived([
+    {
+      value: "manual",
+      label: $t("approvalModeManual"),
+      selectedLabel: $t("approvalModeManualShort"),
+      description: $t("approvalModeManualDescription"),
+    },
+    {
+      value: "auto",
+      label: $t("approvalModeAuto"),
+      selectedLabel: $t("approvalModeAutoShort"),
+      description: $t("approvalModeAutoDescription"),
+    },
+    {
+      value: "off",
+      label: $t("approvalModeOff"),
+      selectedLabel: $t("approvalModeOffShort"),
+      description: $t("approvalModeOffDescription"),
+    },
+  ]);
 
   function runPrimaryAction() {
     if (!isStreaming || hasComposerContent) {
@@ -782,7 +808,10 @@
     bind:this={composerEl}
     class:composer-disabled={disabled}
     class:composer-streaming={isStreaming}
-    class:composer-compact={!showAttachments && !showModelSelector && !showReasoningEffort}
+    class:composer-compact={!showAttachments &&
+      !showModelSelector &&
+      !showReasoningEffort &&
+      !showApprovalMode}
   >
     {#if attachments.length > 0}
       <div class="attachment-list">
@@ -811,7 +840,7 @@
         setTimeout(() => closePalette(), 100);
       }}
       {disabled}></textarea>
-    {#if showAttachments || showModelSelector || showReasoningEffort}
+    {#if showAttachments || showModelSelector || showReasoningEffort || showApprovalMode}
       <div class="composer-toolbar">
         {#if showAttachments}<Tooltip text={$t("attachFiles")}>
             {#snippet trigger(props)}
@@ -872,6 +901,19 @@
             value={reasoningEffort}
             {disabled}
             onValueChange={onReasoningEffortChange}
+          />
+        {/if}
+        {#if showApprovalMode}
+          <Select
+            value={approvalMode}
+            items={approvalModeOptions}
+            {disabled}
+            triggerClass="composer-model-trigger composer-approval-trigger"
+            contentClass="composer-approval-content"
+            contentSide="top"
+            contentAlign="start"
+            ariaLabel={$t("approvalMode")}
+            onValueChange={(value) => onApprovalModeChange(value as ApprovalMode)}
           />
         {/if}
       </div>
@@ -1109,6 +1151,14 @@
     box-shadow: none;
     background: var(--border);
     color: var(--text);
+  }
+
+  :global(.composer-approval-trigger) {
+    max-width: 150px;
+  }
+
+  :global(.composer-approval-content) {
+    width: min(320px, calc(100vw - 24px));
   }
 
   .model-setup-btn {

@@ -100,7 +100,8 @@ Tool approval controls whether an individual call pauses for review;
 `permission_profile` independently controls the capabilities available after a
 call is allowed. Approval never widens the active permission profile.
 
-The General settings page exposes these as two separate controls. Approval has
+The General settings page exposes these as two separate controls, while the
+conversation composer provides a shortcut for approval mode only. Approval has
 `manual`, `auto`, and `off` modes and defaults to `off`; it never selects a
 sandbox policy. **Execution Permissions & Sandbox** selects `managed` or
 `disabled` enforcement. Managed enforcement offers canonical

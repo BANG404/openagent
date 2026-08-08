@@ -75,17 +75,20 @@
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
   import ChatQueue from "$lib/components/ChatQueue.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
+  import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import QuickChat from "$lib/components/QuickChat.svelte";
   import { clampSidebarWidth, loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
+  import type { CheckpointFlow } from "$lib/checkpointFlow";
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
     ROOT_KEY,
     buildTreeFromCheckpoints,
     computeActivePath,
+    getActiveTipNode,
     findForkParentCheckpointId,
     selectActivePathToCheckpoint,
     ckIdsAlongActivePath,
@@ -149,6 +152,7 @@
     ProviderAuthDeviceCodeEvent,
     PermissionProfile,
     ReasoningEffort,
+    ApprovalMode,
   } from "$lib/types";
 
   type AgentCommandSpec = {
@@ -172,7 +176,6 @@
         action:
           | "new_conversation"
           | "open_model_settings"
-          | "open_drafts"
           | "open_memory"
           | "open_skills"
           | "open_settings";
@@ -196,6 +199,7 @@
   const isWorkspaceSwitcherPreview = devQuery?.has("workspace-switcher-preview") === true;
   const isCommandPalettePreview = devQuery?.has("command-palette-preview") === true;
   const isPauseControlPreview = devQuery?.has("pause-control-preview") === true;
+  const isCheckpointFlowPreview = devQuery?.has("checkpoint-flow-preview") === true;
   const isBookModePreview = devQuery?.has("book-mode-preview") === true;
   const isPermissionSettingsPreview = devQuery?.has("permission-settings-preview") === true;
   const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
@@ -252,6 +256,18 @@
     devQuery?.get("pause-control-preview-locale") === "en"
       ? "en"
       : devQuery?.get("pause-control-preview-locale") === "zh"
+        ? "zh"
+        : null;
+  const checkpointFlowPreviewTheme =
+    devQuery?.get("checkpoint-flow-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("checkpoint-flow-preview-theme") === "light"
+        ? "light"
+        : null;
+  const checkpointFlowPreviewLocale: Locale | null =
+    devQuery?.get("checkpoint-flow-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("checkpoint-flow-preview-locale") === "zh"
         ? "zh"
         : null;
   const bookModePreviewTheme =
@@ -466,6 +482,22 @@
   let resolvingUserInputConvIds = $state<Record<string, boolean>>({});
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
+  const checkpointFlowPanelStorageKey = "openagent.checkpoint-flow-panel-width";
+  const checkpointFlowPanelMinWidth = 260;
+  const checkpointFlowPanelMaxWidth = 520;
+  let checkpointFlowPanelWidth = $state(
+    typeof window === "undefined"
+      ? 320
+      : Math.min(
+          checkpointFlowPanelMaxWidth,
+          Math.max(
+            checkpointFlowPanelMinWidth,
+            Number(window.localStorage.getItem(checkpointFlowPanelStorageKey)) || 320,
+          ),
+        ),
+  );
+  let checkpointFlowPanelCollapsed = $state(!isCheckpointFlowPreview);
+  let lastAutoExpandedFlowKey = "";
   let workspace = $state<WorkspaceContext | null>(null);
   let config = $state<AppConfig | null>(null);
   let isMemorySyncing = $state(false);
@@ -485,8 +517,6 @@
     | "about"
     | undefined
   >(undefined);
-  let designOpen = $state(false);
-  let draftsOpen = $state(false);
   let memoryOpen = $state(false);
   let rolesOpen = $state(false);
   let skillsOpen = $state(false);
@@ -494,8 +524,6 @@
   let navigationTransitioning = $state(false);
   let navigationCaptureDepth = $state(0);
   let SettingsView = $state<LazyViewComponent | null>(null);
-  let DesignView = $state<LazyViewComponent | null>(null);
-  let DraftsView = $state<LazyViewComponent | null>(null);
   let MemoryView = $state<LazyViewComponent | null>(null);
   let RolesView = $state<LazyViewComponent | null>(null);
   let SkillsView = $state<LazyViewComponent | null>(null);
@@ -624,6 +652,54 @@
   let pauseControlPreviewValue = $state("");
   let pauseControlPreviewAttachments = $state<ChatAttachment[]>([]);
   let pauseControlPreviewPaused = $state(false);
+  let checkpointFlowPreviewValue = $state("");
+  let checkpointFlowPreviewAttachments = $state<ChatAttachment[]>([]);
+  let checkpointFlowPreviewApproval = $state<ApprovalMode>("auto");
+  const checkpointFlowPreview: CheckpointFlow =
+    devQuery?.get("checkpoint-flow-preview-kind") === "goal"
+      ? {
+          kind: "goal",
+          objective: "完成聊天界面的 Goal 状态面板",
+          status: "running",
+          iteration: 2,
+          todos: [
+            { id: "inspect", task: "读取 checkpoint 状态", status: "completed" },
+            { id: "panel", task: "实现可拖拽、可收缩的右侧面板", status: "in_progress" },
+            { id: "verify", task: "验证主题、语言和交互", status: "pending" },
+          ],
+        }
+      : {
+          kind: "graph",
+          objective: "并行完成 Goal / Graph 状态可视化",
+          status: "running",
+          iteration: 1,
+          nodes: [
+            {
+              id: "checkpoint",
+              task: "解析 checkpoint flow",
+              dependsOn: [],
+              status: "completed",
+            },
+            {
+              id: "goal-panel",
+              task: "渲染 Goal 待办进度",
+              dependsOn: ["checkpoint"],
+              status: "running",
+            },
+            {
+              id: "graph-panel",
+              task: "渲染 Graph 节点依赖",
+              dependsOn: ["checkpoint"],
+              status: "running",
+            },
+            {
+              id: "verification",
+              task: "验证完整交互",
+              dependsOn: ["goal-panel", "graph-panel"],
+              status: "blocked",
+            },
+          ],
+        };
   let selectedModel = $state("");
   let reasoningEffortPreviewValue = $state<ReasoningEffort>("high");
   let permissionSettingsPreviewProfile = $state<PermissionProfile>(defaultPermissionProfile());
@@ -640,6 +716,7 @@
   let quickWindowTransition: Promise<void> = Promise.resolve();
   let defaultChatModelSaveQueue: Promise<void> = Promise.resolve();
   let modelReasoningEffortSaveQueue: Promise<void> = Promise.resolve();
+  let approvalModeSaveQueue: Promise<void> = Promise.resolve();
   // Keep pending submissions scoped to their conversation so switching chats while
   // a response is streaming never sends a message to the wrong conversation.
   let queuedChatMessages = $state<Record<string, QueuedChatMessage[]>>({});
@@ -728,19 +805,15 @@
 
   let currentNavigationLocation = $derived.by<AppNavigationLocation>(() => ({
     workspacePath,
-    surface: designOpen
-      ? "design"
-      : draftsOpen
-        ? "drafts"
-        : memoryOpen
-          ? "memory"
-          : rolesOpen
-            ? "roles"
-            : skillsOpen
-              ? "skills"
-              : settingsOpen
-                ? "settings"
-                : "chat",
+    surface: memoryOpen
+      ? "memory"
+      : rolesOpen
+        ? "roles"
+        : skillsOpen
+          ? "skills"
+          : settingsOpen
+            ? "settings"
+            : "chat",
     conversationId: activeConvId,
     roleKey: selectedRoleKey,
   }));
@@ -761,6 +834,7 @@
       isWorkspaceSwitcherPreview ||
       isCommandPalettePreview ||
       isPauseControlPreview ||
+      isCheckpointFlowPreview ||
       isReasoningEffortPreview ||
       isPermissionSettingsPreview ||
       isChannelsSettingsPreview ||
@@ -877,6 +951,25 @@
     });
   }
 
+  function handleApprovalModeChange(mode: ApprovalMode) {
+    approvalModeSaveQueue = approvalModeSaveQueue.then(async () => {
+      if (!config || config.approval_mode === mode) return;
+      const base = structuredClone(config);
+      const next = { ...base, approval_mode: mode };
+      config = next;
+      try {
+        await saveSettings(next, base, false);
+      } catch (error) {
+        await loadSettings();
+        showToast({
+          title: $t("approvalModeSaveFailed"),
+          description: String(error),
+          variant: "error",
+        });
+      }
+    });
+  }
+
   // Streaming state for the currently visible conversation
   let isCurrentStreaming = $derived(activeConvId ? !!streamingConvIds[activeConvId] : false);
   let isCurrentStreamPaused = $derived(activeConvId ? !!streamPausedConvIds[activeConvId] : false);
@@ -893,8 +986,49 @@
   let currentMemoryRetrievalCanSkip = $derived(
     activeConvId ? !!memoryRetrievalSkippableConvIds[activeConvId] : false,
   );
+  let currentCheckpointFlowNode = $derived(
+    activeConvId ? getActiveTipNode(convTrees[activeConvId]) : undefined,
+  );
+  let currentCheckpointFlow = $derived(currentCheckpointFlowNode?.flow);
   const compactionOnlyConvIds = new Set<string>();
   let workspacePrefsSaveQueue: Promise<void> = Promise.resolve();
+
+  $effect(() => {
+    if (!activeConvId || !currentCheckpointFlow) return;
+    const key = `${activeConvId}\u0000${currentCheckpointFlow.kind}\u0000${currentCheckpointFlow.objective}`;
+    if (key === lastAutoExpandedFlowKey) return;
+    lastAutoExpandedFlowKey = key;
+    checkpointFlowPanelCollapsed = false;
+  });
+
+  function startCheckpointFlowPanelResize(event: PointerEvent) {
+    if (checkpointFlowPanelCollapsed) return;
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = checkpointFlowPanelWidth;
+    const onMove = (moveEvent: PointerEvent) => {
+      const viewportMaximum = Math.max(
+        checkpointFlowPanelMinWidth,
+        Math.min(checkpointFlowPanelMaxWidth, window.innerWidth * 0.48),
+      );
+      checkpointFlowPanelWidth = Math.min(
+        viewportMaximum,
+        Math.max(checkpointFlowPanelMinWidth, startWidth + startX - moveEvent.clientX),
+      );
+    };
+    const onEnd = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+      window.localStorage.setItem(
+        checkpointFlowPanelStorageKey,
+        String(Math.round(checkpointFlowPanelWidth)),
+      );
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd, { once: true });
+    window.addEventListener("pointercancel", onEnd, { once: true });
+  }
 
   function startStreamTiming(convId: string, startedAt = Date.now()) {
     clearAwaitingStreamOutput(convId);
@@ -3028,6 +3162,7 @@
           channelsSettingsPreviewTheme ??
           agentPluginsSettingsPreviewTheme ??
           permissionSettingsPreviewTheme ??
+          checkpointFlowPreviewTheme ??
           pauseControlPreviewTheme ??
           commandPalettePreviewTheme ??
           workspaceSwitcherPreviewTheme ??
@@ -3041,6 +3176,7 @@
           channelsSettingsPreviewLocale ??
           agentPluginsSettingsPreviewLocale ??
           permissionSettingsPreviewLocale ??
+          checkpointFlowPreviewLocale ??
           pauseControlPreviewLocale ??
           commandPalettePreviewLocale ??
           workspaceSwitcherPreviewLocale ??
@@ -3219,15 +3355,11 @@
       newConversationLayout &&
       !onboardingOpen &&
       !settingsOpen &&
-      !designOpen &&
-      !draftsOpen &&
       !memoryOpen &&
       !rolesOpen &&
       !skillsOpen;
     if (newConversationSurfaceVisible) return;
     if (settingsOpen) closeSettings();
-    if (designOpen) designOpen = false;
-    if (draftsOpen) draftsOpen = false;
     if (memoryOpen) memoryOpen = false;
     if (rolesOpen) rolesOpen = false;
     if (skillsOpen) skillsOpen = false;
@@ -4038,8 +4170,6 @@
       if (!config) return;
     }
     SettingsView ??= (await import("$lib/components/SettingsView.svelte")).default;
-    if (designOpen) designOpen = false;
-    if (draftsOpen) draftsOpen = false;
     if (memoryOpen) memoryOpen = false;
     if (rolesOpen) rolesOpen = false;
     if (skillsOpen) skillsOpen = false;
@@ -4104,43 +4234,7 @@
     onboardingOpen = false;
   }
 
-  // ─── Design / Drafts / Memory ────────────────────────────────────────────────
-
-  async function openDesign() {
-    if (!tauriAvailable) {
-      alert(browserModeNotice);
-      return;
-    }
-    DesignView ??= (await import("$lib/components/DesignView.svelte")).default;
-    if (settingsOpen) closeSettings();
-    draftsOpen = false;
-    memoryOpen = false;
-    rolesOpen = false;
-    skillsOpen = false;
-    designOpen = true;
-  }
-
-  function closeDesign() {
-    designOpen = false;
-  }
-
-  async function openDrafts() {
-    if (!tauriAvailable) {
-      alert(browserModeNotice);
-      return;
-    }
-    DraftsView ??= (await import("$lib/components/DraftsView.svelte")).default;
-    if (settingsOpen) closeSettings();
-    designOpen = false;
-    if (memoryOpen) memoryOpen = false;
-    if (rolesOpen) rolesOpen = false;
-    if (skillsOpen) skillsOpen = false;
-    draftsOpen = true;
-  }
-
-  function closeDrafts() {
-    draftsOpen = false;
-  }
+  // ─── Memory / Roles / Skills ─────────────────────────────────────────────────
 
   async function openMemory() {
     if (!tauriAvailable) {
@@ -4149,8 +4243,6 @@
     }
     MemoryView ??= (await import("$lib/components/MemoryView.svelte")).default;
     if (settingsOpen) closeSettings();
-    designOpen = false;
-    if (draftsOpen) draftsOpen = false;
     if (rolesOpen) rolesOpen = false;
     if (skillsOpen) skillsOpen = false;
     memoryOpen = true;
@@ -4167,8 +4259,6 @@
     }
     RolesView ??= (await import("$lib/components/RolesView.svelte")).default;
     if (settingsOpen) closeSettings();
-    designOpen = false;
-    draftsOpen = false;
     memoryOpen = false;
     skillsOpen = false;
     rolesOpen = true;
@@ -4185,8 +4275,6 @@
     }
     SkillsView ??= (await import("$lib/components/SkillsView.svelte")).default;
     if (settingsOpen) closeSettings();
-    designOpen = false;
-    if (draftsOpen) draftsOpen = false;
     if (memoryOpen) memoryOpen = false;
     if (rolesOpen) rolesOpen = false;
     skillsOpen = true;
@@ -4198,8 +4286,6 @@
 
   function closeAuxiliarySurfaces(): void {
     if (settingsOpen) closeSettings();
-    designOpen = false;
-    draftsOpen = false;
     memoryOpen = false;
     rolesOpen = false;
     skillsOpen = false;
@@ -4217,12 +4303,6 @@
     }
 
     switch (location.surface) {
-      case "design":
-        await openDesign();
-        break;
-      case "drafts":
-        await openDrafts();
-        break;
       case "memory":
         await openMemory();
         break;
@@ -4291,8 +4371,6 @@
         return () => newConversation();
       case "model":
         return () => openSettings("defaults");
-      case "drafts":
-        return () => openDrafts();
       case "memory":
         return () => openMemory();
       case "compact":
@@ -4322,8 +4400,6 @@
         return () => newConversation();
       case "open_model_settings":
         return () => openSettings("defaults");
-      case "open_drafts":
-        return () => openDrafts();
       case "open_memory":
         return () => openMemory();
       case "open_skills":
@@ -4354,7 +4430,6 @@
     [
       ["new", "slashCmdNewLabel", "slashCmdNewDesc"],
       ["model", "slashCmdModelLabel", "slashCmdModelDesc"],
-      ["drafts", "slashCmdDraftsLabel", "slashCmdDraftsDesc"],
       ["memory", "slashCmdMemoryLabel", "slashCmdMemoryDesc"],
       ["compact", "slashCmdCompactLabel", "slashCmdCompactDesc"],
       ["goal", "slashCmdGoalLabel", "slashCmdGoalDesc"],
@@ -4703,6 +4778,48 @@
         onSelect={() => {}}
       />
     </main>
+  {:else if isCheckpointFlowPreview}
+    <main class="checkpoint-flow-preview-stage">
+      <section class="checkpoint-flow-preview-chat">
+        <header>
+          {$t(checkpointFlowPreview.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}
+        </header>
+        <div class="checkpoint-flow-preview-messages">
+          <div class="checkpoint-flow-preview-user">
+            Create a Goal / Graph and show its durable checkpoint state.
+          </div>
+          <div class="checkpoint-flow-preview-assistant">
+            The flow is running. Its progress stays attached to the selected durable branch tip.
+          </div>
+        </div>
+        <div class="checkpoint-flow-preview-composer">
+          <MessageInput
+            bind:value={checkpointFlowPreviewValue}
+            bind:attachments={checkpointFlowPreviewAttachments}
+            selectedModel="preview"
+            modelOptions={[{ value: "preview", label: "gpt-5.6" }]}
+            placeholder={$t("inputPlaceholder")}
+            disabled={false}
+            isStreaming={false}
+            sendDisabled={!checkpointFlowPreviewValue.trim()}
+            sendTitle={$t("send")}
+            showAttachments={false}
+            showApprovalMode
+            approvalMode={checkpointFlowPreviewApproval}
+            onApprovalModeChange={(mode) => (checkpointFlowPreviewApproval = mode)}
+            onSend={() => (checkpointFlowPreviewValue = "")}
+            onStop={() => {}}
+          />
+        </div>
+      </section>
+      <CheckpointFlowStatus
+        flow={checkpointFlowPreview}
+        width={checkpointFlowPanelWidth}
+        collapsed={checkpointFlowPanelCollapsed}
+        onToggle={() => (checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed)}
+        onResizeStart={startCheckpointFlowPanelResize}
+      />
+    </main>
   {:else if isPauseControlPreview}
     <main class="command-palette-preview-stage">
       <MessageInput
@@ -4867,8 +4984,6 @@
               onLoadMore={() => void loadNextConversationPage()}
               onSelect={(id) => {
                 if (settingsOpen) closeSettings();
-                if (designOpen) designOpen = false;
-                if (draftsOpen) draftsOpen = false;
                 if (memoryOpen) memoryOpen = false;
                 if (rolesOpen) rolesOpen = false;
                 if (skillsOpen) skillsOpen = false;
@@ -4880,14 +4995,10 @@
           {/if}
 
           <SidebarNav
-            {designOpen}
-            {draftsOpen}
             {memoryOpen}
             {rolesOpen}
             {skillsOpen}
             {settingsOpen}
-            onToggleDesign={designOpen ? closeDesign : openDesign}
-            onToggleDrafts={draftsOpen ? closeDrafts : openDrafts}
             onToggleMemory={memoryOpen ? closeMemory : openMemory}
             onToggleRoles={rolesOpen ? closeRoles : openRoles}
             onToggleSkills={skillsOpen ? closeSkills : openSkills}
@@ -4903,7 +5014,7 @@
         {/if}
       </aside>
 
-      <!-- ─── Design Panel ───────────────────────────────────────────────────── -->
+      <!-- ─── Feature panels ─────────────────────────────────────────────────── -->
       {#if onboardingOpen && config}
         <OnboardingFlow
           {config}
@@ -4915,12 +5026,6 @@
           {winMaximize}
           {winClose}
         />
-      {:else if designOpen && DesignView}
-        <DesignView {workspace} onClose={closeDesign} {winMinimize} {winMaximize} {winClose} />
-        <!-- ─── Drafts Panel ───────────────────────────────────────────────────── -->
-      {:else if draftsOpen && DraftsView}
-        <DraftsView {workspace} onClose={closeDrafts} {winMinimize} {winMaximize} {winClose} />
-        <!-- ─── Memory Panel ───────────────────────────────────────────────────── -->
       {:else if memoryOpen && MemoryView}
         <MemoryView
           {workspace}
@@ -5022,137 +5127,154 @@
             </div>
           </header>
 
-          {#if !tauriAvailable}
-            <div class="runtime-banner">{browserModeNotice}</div>
-          {/if}
-
-          <!-- Messages -->
-          <main
-            class="messages"
-            bind:this={messagesEl}
-            onscroll={handleMessagesScroll}
-            onwheel={cancelBottomScrollFromUser}
-            ontouchstart={cancelBottomScrollFromUser}
-            onpointerdown={cancelBottomScrollFromUser}
-          >
-            {#if newConversationLayout}
-              <div class="new-conversation-aurora" aria-hidden="true"></div>
-            {/if}
-            {#if mainContentLoading && restoringSurface !== "new-conversation"}
-              <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
-            {:else if !mainContentLoading}
-              <MessageList
-                {messages}
-                scrollElement={messagesEl}
-                isStreaming={isCurrentStreaming}
-                isAwaitingStreamOutput={isCurrentAwaitingStreamOutput}
-                memoryRetrievalStage={currentMemoryRetrievalStage}
-                memoryRetrievalCanSkip={currentMemoryRetrievalCanSkip}
-                {currentStreamItems}
-                {currentStreamMessageId}
-                {activeConvId}
-                activeBranchId={activeConvId ? (activeBranchIds[activeConvId] ?? null) : null}
-                debugMode={isDebugMode}
-                activeTree={activeConvId ? convTrees[activeConvId] : undefined}
-                paddingBottom={inputAreaHeight + 24}
-                showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(config)}
-                {shikiTheme}
-                {mermaidConfig}
-                htmlPreviewConfig={config?.html_preview}
-                messageLayout={config?.message_layout ?? "single"}
-                messageDoubleColumnMinWidth={config?.message_double_column_min_width ?? 1200}
-                bookModeFontSize={config?.book_mode_font_size ?? 17}
-                tailAnchorToken={streamCompletionTailAnchor?.convId === activeConvId
-                  ? streamCompletionTailAnchor.token
-                  : null}
-                onTailAnchorSettled={finishStreamCompletionTailAnchor}
-                {newConversationMemoryPrompt}
-                {newConversationMemoryLoading}
-                showNewConversationContext={!newConversationLayout}
-                checkpointLoadError={activeConvId
-                  ? (checkpointLoadErrors[activeConvId] ?? null)
-                  : null}
-                onCommitEdit={commitEdit}
-                onReExecute={reExecuteMsg}
-                onSwitchBranch={switchBranchAt}
-                onSubmitUserInput={submitUserInput}
-                onCancelUserInput={cancelUserInput}
-                onSkipMemoryRetrieval={skipCurrentMemoryRetrieval}
-              />
-            {/if}
-          </main>
-
-          <!-- Input -->
-          <div
-            class="input-area"
-            class:input-area-streaming={isCurrentStreaming}
-            class:input-area-new-conversation={newConversationLayout}
-            bind:clientHeight={inputAreaHeight}
-          >
-            <div
-              class="conversation-aurora"
-              class:conversation-aurora-streaming={isCurrentStreaming}
-              aria-hidden="true"
-            ></div>
-            {#if newConversationLayout}
-              <NewConversationContext
-                prompt={newConversationMemoryPrompt}
-                loading={mainContentLoading || newConversationMemoryLoading}
-                showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(config)}
-                placement="stack"
-              />
-            {/if}
-            <div class="input-inner">
-              {#if mainContentLoading}
-                <LoadingSkeleton variant="composer" label={$t("loadingContent")} />
-              {:else}
-                {#if currentFileChanges.length > 0}
-                  <FileChangeBanner
-                    changes={currentFileChanges}
-                    onRevert={handleRevertFileChange}
-                  />
-                {/if}
-                {#if activeConvId}
-                  <ChatQueue
-                    items={queuedChatMessages[activeConvId] ?? []}
-                    onRemove={(index) => removeQueuedMessage(activeConvId!, index)}
-                    onClear={() => clearQueuedMessages(activeConvId!)}
-                  />
-                {/if}
-                <MessageInput
-                  bind:value={inputText}
-                  bind:attachments={inputAttachments}
-                  bind:selectedModel
-                  {modelOptions}
-                  placeholder={tauriAvailable
-                    ? modelOptions.length
-                      ? $t("inputPlaceholder")
-                      : $t("modelSetupHint")
-                    : browserModeNotice}
-                  disabled={!tauriAvailable}
-                  isStreaming={isCurrentStreaming}
-                  isPaused={isCurrentStreamPaused}
-                  sendDisabled={(!inputText.trim() && inputAttachments.length === 0) ||
-                    !tauriAvailable ||
-                    modelOptions.length === 0}
-                  sendTitle={$t("send")}
-                  pauseTitle={$t("pauseOutput")}
-                  resumeTitle={$t("resumeOutput")}
-                  stopTitle={$t("stopOutput")}
-                  {slashCommands}
-                  showGlobalDraftsInMentions={config?.mention_palette_show_global_drafts ?? true}
-                  onConfigureModels={() => openSettings("providers")}
-                  onModelChange={handleModelChange}
-                  showReasoningEffort={selectedModelSupportsReasoning}
-                  reasoningEffort={selectedReasoningEffort}
-                  onReasoningEffortChange={handleReasoningEffortChange}
-                  onSend={sendMessage}
-                  onStop={stopMessage}
-                  onPause={pauseCurrentStream}
-                  onResume={resumeCurrentStream}
-                />
+          <div class="conversation-workspace">
+            <div class="conversation-stage">
+              {#if !tauriAvailable}
+                <div class="runtime-banner">{browserModeNotice}</div>
               {/if}
+
+              <!-- Messages -->
+              <main
+                class="messages"
+                bind:this={messagesEl}
+                onscroll={handleMessagesScroll}
+                onwheel={cancelBottomScrollFromUser}
+                ontouchstart={cancelBottomScrollFromUser}
+                onpointerdown={cancelBottomScrollFromUser}
+              >
+                {#if newConversationLayout}
+                  <div class="new-conversation-aurora" aria-hidden="true"></div>
+                {/if}
+                {#if mainContentLoading && restoringSurface !== "new-conversation"}
+                  <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
+                {:else if !mainContentLoading}
+                  <MessageList
+                    {messages}
+                    scrollElement={messagesEl}
+                    isStreaming={isCurrentStreaming}
+                    isAwaitingStreamOutput={isCurrentAwaitingStreamOutput}
+                    memoryRetrievalStage={currentMemoryRetrievalStage}
+                    memoryRetrievalCanSkip={currentMemoryRetrievalCanSkip}
+                    {currentStreamItems}
+                    {currentStreamMessageId}
+                    {activeConvId}
+                    activeBranchId={activeConvId ? (activeBranchIds[activeConvId] ?? null) : null}
+                    debugMode={isDebugMode}
+                    activeTree={activeConvId ? convTrees[activeConvId] : undefined}
+                    paddingBottom={inputAreaHeight + 24}
+                    showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(config)}
+                    {shikiTheme}
+                    {mermaidConfig}
+                    htmlPreviewConfig={config?.html_preview}
+                    messageLayout={config?.message_layout ?? "single"}
+                    messageDoubleColumnMinWidth={config?.message_double_column_min_width ?? 1200}
+                    bookModeFontSize={config?.book_mode_font_size ?? 17}
+                    tailAnchorToken={streamCompletionTailAnchor?.convId === activeConvId
+                      ? streamCompletionTailAnchor.token
+                      : null}
+                    onTailAnchorSettled={finishStreamCompletionTailAnchor}
+                    {newConversationMemoryPrompt}
+                    {newConversationMemoryLoading}
+                    showNewConversationContext={!newConversationLayout}
+                    checkpointLoadError={activeConvId
+                      ? (checkpointLoadErrors[activeConvId] ?? null)
+                      : null}
+                    onCommitEdit={commitEdit}
+                    onReExecute={reExecuteMsg}
+                    onSwitchBranch={switchBranchAt}
+                    onSubmitUserInput={submitUserInput}
+                    onCancelUserInput={cancelUserInput}
+                    onSkipMemoryRetrieval={skipCurrentMemoryRetrieval}
+                  />
+                {/if}
+              </main>
+
+              <!-- Input -->
+              <div
+                class="input-area"
+                class:input-area-streaming={isCurrentStreaming}
+                class:input-area-new-conversation={newConversationLayout}
+                bind:clientHeight={inputAreaHeight}
+              >
+                <div
+                  class="conversation-aurora"
+                  class:conversation-aurora-streaming={isCurrentStreaming}
+                  aria-hidden="true"
+                ></div>
+                {#if newConversationLayout}
+                  <NewConversationContext
+                    prompt={newConversationMemoryPrompt}
+                    loading={mainContentLoading || newConversationMemoryLoading}
+                    showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(config)}
+                    placement="stack"
+                  />
+                {/if}
+                <div class="input-inner">
+                  {#if mainContentLoading}
+                    <LoadingSkeleton variant="composer" label={$t("loadingContent")} />
+                  {:else}
+                    {#if currentFileChanges.length > 0}
+                      <FileChangeBanner
+                        changes={currentFileChanges}
+                        onRevert={handleRevertFileChange}
+                      />
+                    {/if}
+                    {#if activeConvId}
+                      <ChatQueue
+                        items={queuedChatMessages[activeConvId] ?? []}
+                        onRemove={(index) => removeQueuedMessage(activeConvId!, index)}
+                        onClear={() => clearQueuedMessages(activeConvId!)}
+                      />
+                    {/if}
+                    <MessageInput
+                      bind:value={inputText}
+                      bind:attachments={inputAttachments}
+                      bind:selectedModel
+                      {modelOptions}
+                      placeholder={tauriAvailable
+                        ? modelOptions.length
+                          ? $t("inputPlaceholder")
+                          : $t("modelSetupHint")
+                        : browserModeNotice}
+                      disabled={!tauriAvailable}
+                      isStreaming={isCurrentStreaming}
+                      isPaused={isCurrentStreamPaused}
+                      sendDisabled={(!inputText.trim() && inputAttachments.length === 0) ||
+                        !tauriAvailable ||
+                        modelOptions.length === 0}
+                      sendTitle={$t("send")}
+                      pauseTitle={$t("pauseOutput")}
+                      resumeTitle={$t("resumeOutput")}
+                      stopTitle={$t("stopOutput")}
+                      {slashCommands}
+                      showGlobalDraftsInMentions={config?.mention_palette_show_global_drafts ??
+                        true}
+                      onConfigureModels={() => openSettings("providers")}
+                      onModelChange={handleModelChange}
+                      showReasoningEffort={selectedModelSupportsReasoning}
+                      reasoningEffort={selectedReasoningEffort}
+                      onReasoningEffortChange={handleReasoningEffortChange}
+                      showApprovalMode
+                      approvalMode={config?.approval_mode ?? "off"}
+                      onApprovalModeChange={handleApprovalModeChange}
+                      onSend={sendMessage}
+                      onStop={stopMessage}
+                      onPause={pauseCurrentStream}
+                      onResume={resumeCurrentStream}
+                    />
+                  {/if}
+                </div>
+              </div>
             </div>
+            {#if currentCheckpointFlow}
+              <CheckpointFlowStatus
+                flow={currentCheckpointFlow}
+                width={checkpointFlowPanelWidth}
+                collapsed={checkpointFlowPanelCollapsed}
+                onToggle={() => (checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed)}
+                onResizeStart={startCheckpointFlowPanelResize}
+              />
+            {/if}
           </div>
         </div>
       {/if}
@@ -5405,6 +5527,25 @@
     flex: 1;
     min-width: 0;
     display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .conversation-workspace {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    padding-top: 48px;
+  }
+
+  .conversation-stage {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
     flex-direction: column;
     overflow: hidden;
   }
@@ -6351,6 +6492,67 @@
     padding: 16px 15px;
     box-sizing: border-box;
     background: var(--bg);
+  }
+
+  .checkpoint-flow-preview-stage {
+    position: relative;
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .checkpoint-flow-preview-chat {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .checkpoint-flow-preview-chat > header {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .checkpoint-flow-preview-messages {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 22px;
+    overflow: auto;
+    padding: 48px clamp(24px, 8vw, 110px) 150px;
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .checkpoint-flow-preview-user {
+    align-self: flex-end;
+    max-width: 70%;
+    padding: 10px 13px;
+    border-radius: 14px 14px 4px 14px;
+    background: var(--surface2);
+  }
+
+  .checkpoint-flow-preview-assistant {
+    max-width: 72%;
+    line-height: 1.6;
+  }
+  .checkpoint-flow-preview-composer {
+    position: absolute;
+    inset: auto 0 16px;
+    padding: 0 18px;
+  }
+  .checkpoint-flow-preview-composer :global(.input-wrapper) {
+    width: min(760px, 100%);
+    margin: 0 auto;
   }
 
   .command-palette-preview-stage :global(.input-wrapper) {

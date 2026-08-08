@@ -2,28 +2,20 @@
   import { t } from "$lib/i18n";
 
   interface Props {
-    designOpen: boolean;
-    draftsOpen: boolean;
     memoryOpen: boolean;
     rolesOpen: boolean;
     skillsOpen: boolean;
     settingsOpen: boolean;
-    onToggleDesign: () => void;
-    onToggleDrafts: () => void;
     onToggleMemory: () => void;
     onToggleRoles: () => void;
     onToggleSkills: () => void;
     onToggleSettings: () => void;
   }
   let {
-    designOpen,
-    draftsOpen,
     memoryOpen,
     rolesOpen,
     skillsOpen,
     settingsOpen,
-    onToggleDesign,
-    onToggleDrafts,
     onToggleMemory,
     onToggleRoles,
     onToggleSkills,
@@ -35,60 +27,6 @@
 
 <div class="sidebar-bottom">
   {#if expanded}
-    <button class="sidebar-btn {designOpen ? 'active' : ''}" onclick={onToggleDesign}>
-      {#if designOpen}
-        <svg
-          class="sidebar-icon"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"><path d="M10 8H3M6 5l-3 3 3 3" /></svg
-        >
-      {:else}
-        <svg
-          class="sidebar-icon"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          ><path d="M3 13h10M4 10.5 10.8 3.7a1.4 1.4 0 0 1 2 2L6 12.5H3.5z" /><path
-            d="m9.8 4.7 1.5 1.5"
-          /></svg
-        >
-      {/if}
-      {designOpen ? $t("backToChat") : $t("design")}
-    </button>
-    <button class="sidebar-btn {draftsOpen ? 'active' : ''}" onclick={onToggleDrafts}>
-      {#if draftsOpen}
-        <svg
-          class="sidebar-icon"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"><path d="M10 8H3M6 5l-3 3 3 3" /></svg
-        >
-      {:else}
-        <svg
-          class="sidebar-icon"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          ><path
-            d="M3 3.5A1.5 1.5 0 0 1 4.5 2h5.8L13 4.7v7.8a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 12.5v-9z"
-          /><path d="M10 2v3h3" /><path d="M5.5 8h5M5.5 10.5h4" /></svg
-        >
-      {/if}
-      {draftsOpen ? $t("backToChat") : $t("drafts")}
-    </button>
     <button class="sidebar-btn {memoryOpen ? 'active' : ''}" onclick={onToggleMemory}>
       {#if memoryOpen}
         <svg

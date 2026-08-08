@@ -49,6 +49,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   its resume keep that Turn key; only terminal Turn states expose duration,
   regenerate, copy, and book-mode actions. Ignore typed `memory` user content
   in every ordinary transcript, index, edit, copy, and book projection.
+- Read Goal and Graph progress from the selected branch tip's durable
+  checkpoint, not transient conversation badges. A new flow opens the
+  resizable right-side status panel automatically; a user's collapse choice
+  survives later checkpoints for that same flow, while switching to a distinct
+  flow opens its panel. Keep the collapsed rail available and persist the
+  expanded width locally.
 - Finalization updates the existing row instead of replacing its DOM subtree,
   preserving open thinking sections. Restored historical thinking starts
   collapsed.
@@ -121,6 +127,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   paused state resumes the current stream so queue dispatch cannot deadlock.
   Keep stop as a separate terminal action and clear transient pause state on
   every terminal path and conversation switch.
+- The main conversation composer exposes the same global approval mode as
+  General settings. Switching `manual`, `auto`, or `off` saves the normalized
+  configuration without changing the independent permission profile; quick
+  chat does not own or mutate this control.
 
 ## Attachments and editing
 
@@ -319,6 +329,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   shared composer's streaming primary action. Its `-theme` and `-locale`
   parameters must keep pause, resume, send, light/dark, and Chinese/English
   checks addressable without a native runtime.
+- Keep the development-only `checkpoint-flow-preview` query available for the
+  right-side Goal/Graph checkpoint panel and composer approval selector. Its
+  `-kind`, `-theme`, and `-locale` query parameters must keep Goal/Graph,
+  resize/collapse, approval selection, light/dark, and Chinese/English checks
+  addressable without a native runtime.
 - Keep the development-only `book-mode-preview` query available with long,
   process-bearing fixture content. Its `-theme` and `-locale` query parameters
   must keep two-column flow, multi-page navigation, process collapse, and

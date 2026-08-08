@@ -75,7 +75,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 - **Multi-Agent & Flash Agents Architecture** — A primary streaming **Chat Agent** for main conversations, and a suite of dedicated async **Flash Agents** (including **Memory Agent** for long-term memory synthesis, **Title Agent** for dynamic conversation renaming, and **Hook Agent** for background scheduled tasks).
 - **Sub-Agent Delegation** — The Chat Agent can call `spawn_agent` to delegate tasks to nested sub-agents; progress streams in real-time into a sub-conversation shown nested under the parent in the sidebar.
 - **Reusable Agent Roles** — Create global or project-scoped role workflows, discover them with hybrid search, and dispatch them as specialized child agents. Roles can be created automatically on first use or managed from the **Roles** panel.
-- **Goal & Graph Loops (Autonomous Execution)** — Type `/goal` in the chat to run a self-correcting loop directly aiming at the objective. Type `/graph` to first plan a structured DAG task graph (`create_goal_graph_config`) and execute nodes asynchronously with parallel processing, feeding live graph status updates to the frontend.
+- **Goal & Graph Loops (Autonomous Execution)** — Type `/goal` in the chat to run a self-correcting loop directly aiming at the objective. Type `/graph` to first plan a structured DAG task graph (`create_goal_graph_config`) and execute nodes asynchronously with parallel processing. The selected branch's durable checkpoint drives an auto-opening, resizable right panel for Goal to-dos and Graph node dependencies.
 - **Hybrid Long-Term Memory** — SQLite + FTS5 + bundled, offline 384-dim embeddings (fastembed `AllMiniLML6V2Q`) blended with time decay for cross-session recall. Before retrieval, an optional Flash task rewrites the latest message into a focused semantic query, so stored memories are matched to intent rather than just wording.
 - **Interactive User Prompts (`ask_user`)** — The agent can pause mid-task and surface a structured form to the user — `text`, `select`, `checkbox_group`, `confirm`, `date`, and more. The agent blocks until the user responds, then continues with the collected values. No more one-shot guessing on ambiguous instructions.
 
@@ -204,7 +204,7 @@ Open **Settings → Web Search** and configure the provider you want to use. The
 
 ### Choose a tool approval mode
 
-Open **Settings → General → Approval Mode** to control when agent tool calls pause for review. Approval defaults to **Off** and is independent from runtime permissions: approving a call never expands its filesystem or network capabilities.
+Use the approval selector in the conversation composer, or open **Settings → General → Approval Mode**, to control when agent tool calls pause for review. Approval defaults to **Off** and is independent from runtime permissions: approving a call never expands its filesystem or network capabilities.
 
 | Mode          | Behavior                                                                                     |
 | ------------- | -------------------------------------------------------------------------------------------- |

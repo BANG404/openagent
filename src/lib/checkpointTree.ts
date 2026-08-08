@@ -4,6 +4,7 @@
 // response message before the product transcript is rendered.
 
 import { appendChunk } from "./chatStream";
+import { normalizeCheckpointFlow, type CheckpointFlow } from "./checkpointFlow";
 import type {
   ChatMessage,
   CheckpointMetadataFields,
@@ -44,6 +45,7 @@ export interface CkTreeNode {
   systemMessages?: ChatMessage[];
   flowKind?: "goal" | "graph" | "graph-node";
   flowStatus?: string;
+  flow?: CheckpointFlow;
   turn?: CheckpointTurnMetadata;
   /** User-visible messages in this checkpoint's complete self-contained snapshot. */
   timelineMessages: ChatMessage[];
@@ -355,6 +357,9 @@ export function buildTreeFromCheckpoints(
         typeof checkpoint.data.flow?.state.status === "string"
           ? checkpoint.data.flow.state.status
           : undefined,
+      flow: checkpoint.data.flow
+        ? normalizeCheckpointFlow(checkpoint.data.flow.kind, checkpoint.data.flow.state)
+        : undefined,
       turn: checkpointTurnMetadata(m.metadata),
       timelineMessages: [],
       isSelfContainedSnapshot: false,
@@ -486,6 +491,22 @@ export function computeActivePath(tree: ConvTree): ChatMessage[] {
     );
   }
   return attachSelectedTurnMetadata(path, selectedNodes);
+}
+
+export function getActiveTipNode(tree: ConvTree | undefined): CkTreeNode | undefined {
+  if (!tree || tree.rootIds.length === 0) return undefined;
+  let ckId: string | undefined =
+    tree.rootIds[tree.activeChild[ROOT_KEY] ?? tree.rootIds.length - 1];
+  let tip: CkTreeNode | undefined;
+  while (ckId) {
+    const node: CkTreeNode | undefined = tree.nodes[ckId];
+    if (!node) break;
+    tip = node;
+    const childIdx: number | undefined = tree.activeChild[node.ckId];
+    if (childIdx === undefined || childIdx < 0 || node.childIds.length === 0) break;
+    ckId = node.childIds[childIdx];
+  }
+  return tip;
 }
 
 function attachSelectedTurnMetadata(
