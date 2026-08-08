@@ -417,10 +417,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   normalized to the current version before a settings snapshot can be saved;
   persisted unversioned configuration is handled by the pre-runtime transition,
   never by settings autosave.
-- General model settings expose the retry interval in seconds while preserving
-  milliseconds at the transport boundary. Missing configuration defaults to
-  three retries per model with 30 seconds between attempts; explicit stored
-  values remain authoritative.
+- General model settings keep the retry count and interval in a dedicated retry
+  policy card, separate from either model queue. The interval is displayed in
+  seconds while preserving milliseconds at the transport boundary. Missing
+  configuration defaults to three retries per model with 30 seconds between
+  attempts; explicit stored values remain authoritative.
 - Keep the canonical managed permission fallback layered as `host_root` read
   followed by workspace write. The frontend transport type and normalization
   must preserve `host_root`; collapsing an older payload to workspace-only

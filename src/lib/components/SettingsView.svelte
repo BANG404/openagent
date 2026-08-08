@@ -2948,28 +2948,6 @@
               >{$t("add")}</button
             >
           </div>
-          <label class="detail-label">
-            <span class="label-text">{$t("retryCountPerModel")}</span>
-            <input
-              class="detail-input"
-              type="number"
-              min="0"
-              max="10"
-              bind:value={draftConfig.model_retry.retry_count}
-            />
-          </label>
-          <label class="detail-label">
-            <span class="label-text">{$t("retryDelaySeconds")}</span>
-            <input
-              class="detail-input"
-              type="number"
-              min="0"
-              max="60"
-              step="1"
-              value={draftConfig.model_retry.retry_delay_ms / 1000}
-              oninput={updateRetryDelaySeconds}
-            />
-          </label>
           <div class="model-list-box retry-queue-list">
             {#if draftConfig.model_retry.chat_queue.length > 0}
               {#each draftConfig.model_retry.chat_queue as binding, index (binding)}
@@ -3020,6 +2998,38 @@
             {:else}
               <div class="model-list-empty">{$t("noQueuedChatFallbackModels")}</div>
             {/if}
+          </div>
+        </section>
+        <section class="detail-section">
+          <h4 class="detail-section-title">{$t("modelRetryPolicy")}</h4>
+          <p class="detail-section-intro">{$t("modelRetryPolicyDescription")}</p>
+          <div class="settings-card">
+            <label class="settings-card-row">
+              <span class="label-text">{$t("retryCountPerModel")}</span>
+              <span class="settings-card-control">
+                <input
+                  class="detail-input"
+                  type="number"
+                  min="0"
+                  max="10"
+                  bind:value={draftConfig.model_retry.retry_count}
+                />
+              </span>
+            </label>
+            <label class="settings-card-row">
+              <span class="label-text">{$t("retryDelaySeconds")}</span>
+              <span class="settings-card-control">
+                <input
+                  class="detail-input"
+                  type="number"
+                  min="0"
+                  max="60"
+                  step="1"
+                  value={draftConfig.model_retry.retry_delay_ms / 1000}
+                  oninput={updateRetryDelaySeconds}
+                />
+              </span>
+            </label>
           </div>
         </section>
         <section class="detail-section">

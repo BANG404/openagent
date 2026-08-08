@@ -358,6 +358,8 @@ const zh = {
   flashModel: "Flash 模型",
   chatModelRetryQueue: "对话模型重试队列",
   flashModelRetryQueue: "Flash 模型重试队列",
+  modelRetryPolicy: "模型重试策略",
+  modelRetryPolicyDescription: "统一控制对话模型和 Flash 模型队列中每个模型的重试行为。",
   retryCountPerModel: "每个模型的重试次数",
   retryDelaySeconds: "重试间隔（秒）",
   retryQueueDragHandle: "拖拽以调整顺序",
@@ -1170,6 +1172,9 @@ const en: Translations = {
   flashModel: "Flash Model",
   chatModelRetryQueue: "Chat Model Retry Queue",
   flashModelRetryQueue: "Flash Model Retry Queue",
+  modelRetryPolicy: "Model Retry Policy",
+  modelRetryPolicyDescription:
+    "Controls retry behavior for each model in both the chat and Flash model queues.",
   retryCountPerModel: "Retry count per model",
   retryDelaySeconds: "Retry interval (seconds)",
   retryQueueDragHandle: "Drag to reorder",
