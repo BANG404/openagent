@@ -542,6 +542,21 @@ export function selectActivePathToCheckpoint(tree: ConvTree, tipCheckpointId: st
   return { ...tree, activeChild };
 }
 
+/**
+ * Merge a newly persisted live checkpoint into the recovery tree and select
+ * that exact durable tip. The transcript owner can keep rendering its
+ * optimistic stream while Goal/Graph state advances from checkpoint data.
+ */
+export function reconcileLiveCheckpointTip(
+  checkpoints: RenderableCheckpoint[],
+  previousTree: ConvTree | undefined,
+  tipCheckpointId: string,
+): ConvTree {
+  const tree = buildTreeFromCheckpoints(checkpoints, previousTree);
+  if (!tree.nodes[tipCheckpointId]) return previousTree ?? tree;
+  return selectActivePathToCheckpoint(tree, tipCheckpointId);
+}
+
 // Sibling info for a checkpoint — used to render ‹n/m› on user messages.
 export function getSiblingInfo(
   tree: ConvTree | undefined,
@@ -631,6 +646,13 @@ export function attachNewTurn(
   pendingParentCk: string | null | undefined,
 ): { tree: ConvTree; parentCkId: string | null } {
   const base = prevTree ?? { nodes: {}, rootIds: [], activeChild: {} };
+  const existing = base.nodes[ckId];
+  if (existing) {
+    return {
+      tree: selectActivePathToCheckpoint(base, ckId),
+      parentCkId: existing.parentCkId,
+    };
+  }
   const nodes: Record<string, CkTreeNode> = { ...base.nodes };
 
   let parentCkId: string | null;

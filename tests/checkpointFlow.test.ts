@@ -5,7 +5,12 @@ import {
   checkpointGraphLayers,
   normalizeCheckpointFlow,
 } from "../src/lib/checkpointFlow";
-import { buildTreeFromCheckpoints, getActiveTipNode } from "../src/lib/checkpointTree";
+import {
+  attachNewTurn,
+  buildTreeFromCheckpoints,
+  getActiveTipNode,
+  reconcileLiveCheckpointTip,
+} from "../src/lib/checkpointTree";
 
 const checkpoint = (id: string, parent: string | null, flow: unknown) => ({
   meta: {
@@ -79,6 +84,71 @@ describe("checkpoint Goal and Graph state", () => {
 
     expect(getActiveTipNode(tree)?.ckId).toBe("second");
     expect(getActiveTipNode(tree)?.flow?.status).toBe("completed");
+  });
+
+  test("advances live Goal state before the streamed turn finalizes", () => {
+    const first = checkpoint("first", null, {
+      kind: "goal",
+      state: {
+        objective: "Ship live state",
+        status: "running",
+        todos: [{ id: "inspect", task: "Inspect", status: "in_progress" }],
+      },
+    });
+    const tree = buildTreeFromCheckpoints([first]);
+    const second = checkpoint("second", "first", {
+      kind: "goal",
+      state: {
+        objective: "Ship live state",
+        status: "running",
+        todos: [
+          { id: "inspect", task: "Inspect", status: "completed" },
+          { id: "fix", task: "Fix", status: "in_progress" },
+        ],
+      },
+    });
+
+    const refreshed = reconcileLiveCheckpointTip([first, second], tree, "second");
+
+    expect(getActiveTipNode(refreshed)?.ckId).toBe("second");
+    expect(getActiveTipNode(refreshed)?.flow).toMatchObject({
+      status: "running",
+      todos: [
+        { id: "inspect", status: "completed" },
+        { id: "fix", status: "in_progress" },
+      ],
+    });
+  });
+
+  test("keeps live checkpoint flow data when stream finalization sees the same tip", () => {
+    const tree = reconcileLiveCheckpointTip(
+      [
+        checkpoint("live", null, {
+          kind: "graph",
+          state: {
+            objective: "Keep the graph",
+            status: "running",
+            nodes: [{ id: "work", task: "Work", status: "running" }],
+          },
+        }),
+      ],
+      undefined,
+      "live",
+    );
+
+    const finalized = attachNewTurn(
+      tree,
+      "live",
+      { id: "user", role: "user", content: "go", timestamp: 1 },
+      { id: "assistant", role: "assistant", content: "done", timestamp: 2 },
+      undefined,
+    ).tree;
+
+    expect(getActiveTipNode(finalized)?.flow).toMatchObject({
+      kind: "graph",
+      status: "running",
+      nodes: [{ id: "work", status: "running" }],
+    });
   });
 });
 

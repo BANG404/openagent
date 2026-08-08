@@ -50,7 +50,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   regenerate, copy, and book-mode actions. Ignore typed `memory` user content
   in every ordinary transcript, index, edit, copy, and book projection.
 - Read Goal and Graph progress from the selected branch tip's durable
-  checkpoint, not transient conversation badges. A new flow opens the
+  checkpoint, not transient conversation badges. Project every newly persisted
+  `chat-checkpoint` into that tree immediately during streaming, while leaving
+  optimistic transcript records mounted until terminal reconciliation. Ignore
+  stale asynchronous refreshes so an older checkpoint cannot replace a newer
+  Goal or Graph state. A new flow opens the
   resizable right-side status panel automatically; a user's collapse choice
   survives later checkpoints for that same flow, while switching to a distinct
   flow opens its panel. Keep the collapsed rail available and persist the

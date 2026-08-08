@@ -91,6 +91,7 @@
     getActiveTipNode,
     findForkParentCheckpointId,
     selectActivePathToCheckpoint,
+    reconcileLiveCheckpointTip,
     ckIdsAlongActivePath,
     attachNewTurn,
     askUserRequestFromToolUse,
@@ -497,6 +498,9 @@
   let memoryRetrievalSkippableConvIds = $state<Record<string, boolean>>({});
   // Checkpoint IDs from chat-checkpoint events, pending assignment to assistant messages
   let pendingCheckpointIds = $state<Record<string, string>>({});
+  // A checkpoint event is emitted only after its durable snapshot exists. Keep
+  // Goal/Graph projection current without hydrating partial transcript records.
+  const liveCheckpointRefreshVersions = new Map<string, number>();
   // Tracks which conv_ids have had their messages loaded from SQLite
   const loadedConvIds = new Set<string>();
   // File changes per conversation (loaded from SQLite)
@@ -1217,6 +1221,24 @@
       if (showLoadingState) {
         const { [convId]: _loading, ...rest } = loadingConversationIds;
         loadingConversationIds = rest;
+      }
+    }
+  }
+
+  async function refreshLiveCheckpointTip(convId: string, checkpointId: string): Promise<void> {
+    if (!tauriAvailable) return;
+    const version = (liveCheckpointRefreshVersions.get(convId) ?? 0) + 1;
+    liveCheckpointRefreshVersions.set(convId, version);
+    try {
+      const checkpoints = await fetchRenderableCheckpoints(convId);
+      if (liveCheckpointRefreshVersions.get(convId) !== version) return;
+      convTrees = {
+        ...convTrees,
+        [convId]: reconcileLiveCheckpointTip(checkpoints, convTrees[convId], checkpointId),
+      };
+    } catch (error) {
+      if (liveCheckpointRefreshVersions.get(convId) === version) {
+        console.error(`Failed to refresh live checkpoint ${checkpointId}:`, error);
       }
     }
   }
@@ -2915,6 +2937,7 @@
       },
       onCheckpoint: (conv_id, checkpoint_id) => {
         pendingCheckpointIds = { ...pendingCheckpointIds, [conv_id]: checkpoint_id };
+        void refreshLiveCheckpointTip(conv_id, checkpoint_id);
       },
       onRetry: (conv_id, attempt, maxAttempts, model, error, restoredCheckpoint) => {
         clearAwaitingStreamOutput(conv_id);
