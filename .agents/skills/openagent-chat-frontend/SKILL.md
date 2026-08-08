@@ -60,6 +60,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   conversation sidebar's direct manipulation behavior: capture the active
   pointer, disable width transitions and text selection while dragging, and
   restore them when the drag ends or is cancelled.
+  Render Graph dependencies as a top-to-bottom directed flow diagram: place
+  parallel nodes in the same layer, draw arrowed dependency edges behind the
+  cards, and retain textual dependency context for assistive technology. Keep
+  malformed or cyclic checkpoint nodes visible even when they cannot be placed
+  into a valid DAG.
 - Finalization updates the existing row instead of replacing its DOM subtree,
   preserving open thinking sections. Restored historical thinking starts
   collapsed.

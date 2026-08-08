@@ -123,3 +123,55 @@ export function checkpointFlowProgress(flow: CheckpointFlow): { completed: numbe
     total: items.length,
   };
 }
+
+export function checkpointGraphLayers(nodes: CheckpointGraphNode[]): CheckpointGraphNode[][] {
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const sourceIndex = new Map(nodes.map((node, index) => [node.id, index]));
+  const indegree = new Map<string, number>();
+  const dependents = new Map<string, string[]>();
+
+  for (const node of nodes) {
+    const dependencies = new Set(
+      node.dependsOn.filter((dependency) => dependency !== node.id && nodeById.has(dependency)),
+    );
+    indegree.set(node.id, dependencies.size);
+    for (const dependency of dependencies) {
+      const children = dependents.get(dependency) ?? [];
+      children.push(node.id);
+      dependents.set(dependency, children);
+    }
+  }
+
+  const ranks = new Map<string, number>();
+  const ready = nodes.filter((node) => indegree.get(node.id) === 0).map((node) => node.id);
+  for (const id of ready) ranks.set(id, 0);
+  let cursor = 0;
+  while (cursor < ready.length) {
+    const id = ready[cursor++];
+    const rank = ranks.get(id) ?? 0;
+    for (const dependent of dependents.get(id) ?? []) {
+      ranks.set(dependent, Math.max(ranks.get(dependent) ?? 0, rank + 1));
+      const remaining = (indegree.get(dependent) ?? 1) - 1;
+      indegree.set(dependent, remaining);
+      if (remaining === 0) ready.push(dependent);
+    }
+  }
+
+  // A valid Graph is acyclic. Keep malformed cyclic checkpoints visible in a
+  // final layer instead of dropping their nodes from the status panel.
+  const fallbackRank = Math.max(-1, ...ranks.values()) + 1;
+  for (const node of nodes) {
+    if (!ranks.has(node.id)) ranks.set(node.id, fallbackRank);
+  }
+
+  const layers: CheckpointGraphNode[][] = [];
+  for (const node of nodes) {
+    const rank = ranks.get(node.id) ?? 0;
+    (layers[rank] ??= []).push(node);
+  }
+  for (const layer of layers) {
+    if (!layer) continue;
+    layer.sort((a, b) => (sourceIndex.get(a.id) ?? 0) - (sourceIndex.get(b.id) ?? 0));
+  }
+  return layers.filter((layer) => layer.length > 0);
+}

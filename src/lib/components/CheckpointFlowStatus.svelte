@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { checkpointFlowProgress, type CheckpointFlow } from "$lib/checkpointFlow";
+  import { onMount, tick } from "svelte";
+  import {
+    checkpointFlowProgress,
+    checkpointGraphLayers,
+    type CheckpointFlow,
+    type CheckpointFlowStatus,
+  } from "$lib/checkpointFlow";
   import { t } from "$lib/i18n";
 
   interface Props {
@@ -14,6 +20,88 @@
   let { flow, width, collapsed, resizing, onToggle, onResizeStart }: Props = $props();
   let progress = $derived(checkpointFlowProgress(flow));
   let percent = $derived(progress.total > 0 ? (progress.completed / progress.total) * 100 : 0);
+  let graphLayers = $derived(flow.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
+  let graphCanvas: HTMLDivElement | null = $state(null);
+  let graphEdges = $state<{ key: string; path: string; status: CheckpointFlowStatus }[]>([]);
+  const graphNodeElements = new Map<string, HTMLElement>();
+  let graphResizeObserver: ResizeObserver | null = null;
+  let graphFrame = 0;
+
+  function updateGraphEdges() {
+    if (!graphCanvas || flow.kind !== "graph") {
+      graphEdges = [];
+      return;
+    }
+    const canvasRect = graphCanvas.getBoundingClientRect();
+    const knownIds = new Set(flow.nodes.map((node) => node.id));
+    graphEdges = flow.nodes.flatMap((node) => {
+      const target = graphNodeElements.get(node.id);
+      if (!target) return [];
+      const targetRect = target.getBoundingClientRect();
+      return [...new Set(node.dependsOn)].flatMap((dependency) => {
+        if (!knownIds.has(dependency) || dependency === node.id) return [];
+        const source = graphNodeElements.get(dependency);
+        if (!source) return [];
+        const sourceRect = source.getBoundingClientRect();
+        const startX = sourceRect.left + sourceRect.width / 2 - canvasRect.left;
+        const startY = sourceRect.bottom - canvasRect.top;
+        const endX = targetRect.left + targetRect.width / 2 - canvasRect.left;
+        const endY = targetRect.top - canvasRect.top;
+        const middleY = startY + (endY - startY) / 2;
+        return [
+          {
+            key: `${dependency}:${node.id}`,
+            path: `M ${startX} ${startY} C ${startX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`,
+            status: node.status,
+          },
+        ];
+      });
+    });
+  }
+
+  function scheduleGraphEdges() {
+    if (typeof requestAnimationFrame === "undefined") return;
+    cancelAnimationFrame(graphFrame);
+    graphFrame = requestAnimationFrame(updateGraphEdges);
+  }
+
+  function registerGraphNode(element: HTMLElement, id: string) {
+    graphNodeElements.set(id, element);
+    graphResizeObserver?.observe(element);
+    scheduleGraphEdges();
+    return {
+      update(nextId: string) {
+        if (nextId === id) return;
+        graphNodeElements.delete(id);
+        id = nextId;
+        graphNodeElements.set(id, element);
+        scheduleGraphEdges();
+      },
+      destroy() {
+        graphResizeObserver?.unobserve(element);
+        graphNodeElements.delete(id);
+        scheduleGraphEdges();
+      },
+    };
+  }
+
+  onMount(() => {
+    graphResizeObserver = new ResizeObserver(scheduleGraphEdges);
+    if (graphCanvas) graphResizeObserver.observe(graphCanvas);
+    for (const element of graphNodeElements.values()) graphResizeObserver.observe(element);
+    scheduleGraphEdges();
+    return () => {
+      cancelAnimationFrame(graphFrame);
+      graphResizeObserver?.disconnect();
+    };
+  });
+
+  $effect(() => {
+    flow;
+    width;
+    collapsed;
+    void tick().then(scheduleGraphEdges);
+  });
 
   function statusLabel(status: string): string {
     if (status === "completed") return $t("checkpointFlowCompleted");
@@ -113,26 +201,81 @@
         {#if flow.nodes.length === 0}
           <p class="flow-empty">{$t("checkpointGraphPlanning")}</p>
         {:else}
-          {#each flow.nodes as node (node.id)}
-            <div class="graph-node {node.status}">
-              <div class="node-main">
-                <span class="status-dot" aria-hidden="true"></span>
-                <span class="item-copy"
-                  ><strong>{node.task}</strong>{#if node.result}<small>{node.result}</small
-                    >{/if}</span
+          <div class="graph-canvas" bind:this={graphCanvas} role="list">
+            <svg class="graph-edges" aria-hidden="true">
+              <defs>
+                <marker
+                  id="graph-arrow-running"
+                  viewBox="0 0 8 8"
+                  refX="7"
+                  refY="4"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="var(--primary)"></path></marker
                 >
-                <span class="item-status">{statusLabel(node.status)}</span>
+                <marker
+                  id="graph-arrow-completed"
+                  viewBox="0 0 8 8"
+                  refX="7"
+                  refY="4"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="#18794e"></path></marker
+                >
+                <marker
+                  id="graph-arrow-failed"
+                  viewBox="0 0 8 8"
+                  refX="7"
+                  refY="4"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="#b42318"></path></marker
+                >
+                <marker
+                  id="graph-arrow-blocked"
+                  viewBox="0 0 8 8"
+                  refX="7"
+                  refY="4"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="#b42318"></path></marker
+                >
+              </defs>
+              {#each graphEdges as edge (edge.key)}
+                <path
+                  class="graph-edge {edge.status}"
+                  d={edge.path}
+                  marker-end={`url(#graph-arrow-${edge.status})`}
+                ></path>
+              {/each}
+            </svg>
+            {#each graphLayers as layer, layerIndex (`layer-${layerIndex}`)}
+              <div class="graph-layer">
+                {#each layer as node (node.id)}
+                  <div
+                    class="graph-node {node.status}"
+                    role="listitem"
+                    use:registerGraphNode={node.id}
+                  >
+                    <div class="node-main">
+                      <span class="status-dot" aria-hidden="true"></span>
+                      <span class="item-copy">
+                        <code class="node-id">{node.id}</code>
+                        <strong>{node.task}</strong>
+                        {#if node.result}<small>{node.result}</small>{/if}
+                        {#if node.dependsOn.length > 0}
+                          <span class="sr-only"
+                            >{$t("checkpointDependsOn")}: {node.dependsOn.join(", ")}</span
+                          >
+                        {/if}
+                      </span>
+                      <span class="item-status">{statusLabel(node.status)}</span>
+                    </div>
+                  </div>
+                {/each}
               </div>
-              {#if node.dependsOn.length > 0}
-                <div class="dependencies">
-                  <span>{$t("checkpointDependsOn")}</span
-                  >{#each node.dependsOn as dependency (`${node.id}:${dependency}`)}<code
-                      >{dependency}</code
-                    >{/each}
-                </div>
-              {/if}
-            </div>
-          {/each}
+            {/each}
+          </div>
         {/if}
       {/if}
 
@@ -333,6 +476,65 @@
     border-radius: 9px;
     background: color-mix(in srgb, var(--surface) 88%, transparent);
   }
+  .graph-canvas {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    gap: 28px;
+    padding: 2px 0 8px;
+  }
+  .graph-edges {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .graph-edge {
+    fill: none;
+    stroke: var(--text-muted);
+    stroke-width: 1.25;
+    opacity: 0.55;
+    vector-effect: non-scaling-stroke;
+  }
+  .graph-edge.running {
+    stroke: var(--primary);
+    opacity: 0.85;
+  }
+  .graph-edge.completed {
+    stroke: #18794e;
+    opacity: 0.7;
+  }
+  .graph-edge.failed,
+  .graph-edge.blocked {
+    stroke: #b42318;
+    opacity: 0.75;
+  }
+  .graph-layer {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+  .graph-node {
+    flex: 1 1 116px;
+    max-width: 220px;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
+  }
+  .graph-node.running {
+    border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  }
+  .graph-node.completed {
+    border-color: color-mix(in srgb, #18794e 32%, var(--border));
+  }
+  .graph-node.failed,
+  .graph-node.blocked {
+    border-color: color-mix(in srgb, #b42318 34%, var(--border));
+  }
   .flow-item,
   .node-main {
     display: flex;
@@ -374,6 +576,16 @@
     color: var(--text);
     overflow-wrap: anywhere;
   }
+  .node-id {
+    width: fit-content;
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: 9px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .item-copy small {
     display: -webkit-box;
     overflow: hidden;
@@ -387,24 +599,16 @@
   .item-status {
     padding: 1px 6px;
   }
-  .dependencies {
-    display: flex;
-    min-width: 0;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px;
-    padding: 0 8px 7px 23px;
-    font-size: 10px;
-    color: var(--text-muted);
-  }
-  .dependencies code {
-    max-width: 100%;
-    border-radius: 4px;
-    padding: 1px 4px;
-    background: var(--surface2);
-    color: var(--text);
-    font-size: 10px;
-    overflow-wrap: anywhere;
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
   .flow-empty,
   .flow-summary {

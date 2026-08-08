@@ -1,6 +1,10 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
-import { checkpointFlowProgress, normalizeCheckpointFlow } from "../src/lib/checkpointFlow";
+import {
+  checkpointFlowProgress,
+  checkpointGraphLayers,
+  normalizeCheckpointFlow,
+} from "../src/lib/checkpointFlow";
 import { buildTreeFromCheckpoints, getActiveTipNode } from "../src/lib/checkpointTree";
 
 const checkpoint = (id: string, parent: string | null, flow: unknown) => ({
@@ -75,5 +79,39 @@ describe("checkpoint Goal and Graph state", () => {
 
     expect(getActiveTipNode(tree)?.ckId).toBe("second");
     expect(getActiveTipNode(tree)?.flow?.status).toBe("completed");
+  });
+});
+
+const graphNode = (id: string, dependsOn: string[] = []) => ({
+  id,
+  task: id,
+  dependsOn,
+  status: "running" as const,
+});
+
+describe("checkpoint graph layout", () => {
+  test("places parallel branches together before their convergence", () => {
+    const layers = checkpointGraphLayers([
+      graphNode("inspect"),
+      graphNode("frontend", ["inspect"]),
+      graphNode("docs", ["inspect"]),
+      graphNode("verify", ["frontend", "docs"]),
+    ]);
+
+    expect(layers.map((layer) => layer.map(({ id }) => id))).toEqual([
+      ["inspect"],
+      ["frontend", "docs"],
+      ["verify"],
+    ]);
+  });
+
+  test("keeps unknown dependencies and malformed cycles visible", () => {
+    const layers = checkpointGraphLayers([
+      graphNode("root", ["missing"]),
+      graphNode("cycle-a", ["cycle-b"]),
+      graphNode("cycle-b", ["cycle-a"]),
+    ]);
+
+    expect(layers.flat().map(({ id }) => id)).toEqual(["root", "cycle-a", "cycle-b"]);
   });
 });
