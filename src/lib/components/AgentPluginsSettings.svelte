@@ -281,9 +281,12 @@
     gap: 10px;
     margin-bottom: 18px;
     padding: 12px 14px;
+    border: 1px solid var(--mica-border);
     border-radius: 10px;
-    background: var(--surface2);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
     color: var(--text-muted);
     font-size: 12px;
     line-height: 1.5;
@@ -300,14 +303,14 @@
     margin-bottom: 14px;
     padding: 9px 12px;
     border-radius: 8px;
-    background: color-mix(in srgb, var(--success, #2d8a55) 10%, var(--surface2));
+    background: color-mix(in srgb, var(--success, #2d8a55) 10%, var(--mica-surface));
     color: var(--success, #2d8a55);
     font-size: 12px;
   }
 
   .operation-message.error,
   .diagnostic.error {
-    background: color-mix(in srgb, var(--danger) 9%, var(--surface2));
+    background: color-mix(in srgb, var(--danger) 9%, var(--mica-surface));
     color: var(--danger);
   }
 
@@ -319,9 +322,12 @@
   .plugin-card,
   .empty-state,
   .plugin-skeleton {
+    border: 1px solid var(--mica-border);
     border-radius: 12px;
-    background: var(--surface2);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
   }
 
   .plugin-card {
@@ -329,7 +335,8 @@
   }
 
   .plugin-card.error-card {
-    background: color-mix(in srgb, var(--danger) 5%, var(--surface2));
+    border-color: color-mix(in srgb, var(--danger) 10%, var(--mica-border));
+    background: color-mix(in srgb, var(--danger) 5%, var(--mica-surface));
   }
 
   .plugin-card-heading {

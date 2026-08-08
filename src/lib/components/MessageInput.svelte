@@ -1007,29 +1007,29 @@
     z-index: 3;
     width: 100%;
     box-sizing: border-box;
-    background: var(--control-surface);
-    border: 0;
+    background: var(--mica-surface);
+    border: 1px solid var(--mica-border);
     border-radius: 18px;
     transition: box-shadow 1.35s cubic-bezier(0.16, 1, 0.3, 1);
-    -webkit-backdrop-filter: blur(12px) saturate(1.05);
-    backdrop-filter: blur(12px) saturate(1.05);
-    box-shadow: var(--control-shadow);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
     overflow: hidden;
   }
 
   .composer:focus-within {
-    box-shadow: var(--control-shadow), var(--focus-ring);
+    box-shadow: var(--mica-shadow), var(--focus-ring);
   }
 
   .composer-streaming {
     box-shadow:
-      var(--control-shadow),
+      var(--mica-shadow),
       0 8px 28px rgba(66, 133, 244, 0.1);
   }
 
   .composer-streaming:focus-within {
     box-shadow:
-      var(--control-shadow),
+      var(--mica-shadow),
       0 8px 28px rgba(66, 133, 244, 0.1),
       var(--focus-ring);
   }

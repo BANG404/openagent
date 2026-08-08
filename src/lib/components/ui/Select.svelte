@@ -175,8 +175,8 @@
     gap: 8px;
     width: 100%;
     box-sizing: border-box;
-    background: var(--control-surface);
-    border: 0;
+    background: var(--mica-surface);
+    border: 1px solid var(--mica-border);
     border-radius: 6px;
     padding: 6px 12px;
     color: var(--text);
@@ -185,12 +185,41 @@
     text-align: left;
     cursor: pointer;
     outline: none;
-    box-shadow: var(--control-shadow);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
     transition: box-shadow 0.2s;
   }
   :global(.ui-select-trigger:focus-visible),
   :global(.ui-select-trigger[data-state="open"]) {
-    box-shadow: var(--control-shadow), var(--focus-ring);
+    box-shadow: var(--mica-shadow), var(--focus-ring);
+  }
+  :global(.ui-select-trigger.composer-model-trigger),
+  :global(.ui-select-trigger.reasoning-effort-trigger),
+  :global(.ui-select-trigger.quick-select-trigger) {
+    border: 0;
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+  :global(.ui-select-trigger.composer-model-trigger:hover:not(:disabled)),
+  :global(.ui-select-trigger.composer-model-trigger[data-state="open"]),
+  :global(.ui-select-trigger.reasoning-effort-trigger:hover:not(:disabled)),
+  :global(.ui-select-trigger.reasoning-effort-trigger[data-state="open"]) {
+    background: var(--border);
+    box-shadow: none;
+  }
+  :global(.ui-select-trigger.quick-select-trigger:hover:not(:disabled)),
+  :global(.ui-select-trigger.quick-select-trigger:focus-visible),
+  :global(.ui-select-trigger.quick-select-trigger[data-state="open"]) {
+    background: color-mix(in srgb, var(--text) 7%, transparent);
+    box-shadow: none;
+  }
+  :global(.ui-select-trigger.composer-model-trigger:focus-visible),
+  :global(.ui-select-trigger.reasoning-effort-trigger:focus-visible) {
+    background: transparent;
+    box-shadow: var(--focus-ring);
   }
   :global(.ui-select-trigger:disabled) {
     opacity: 0.5;
