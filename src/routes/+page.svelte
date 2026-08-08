@@ -4496,13 +4496,8 @@
           void compactCurrentConversation();
         };
       case "goal":
-        return () => {
-          inputText = "/goal ";
-        };
       case "graph":
-        return () => {
-          inputText = "/graph ";
-        };
+        return null;
       case "skills":
         return () => openSkills();
       case "settings":
@@ -4532,14 +4527,17 @@
   let slashCommands = $derived.by<SlashCommand[]>(() =>
     agentCommandSpecs.flatMap((spec) => {
       const run = slashCommandRun(spec.name);
-      if (!run) return [];
+      const insertText =
+        spec.name === "goal" || spec.name === "graph" ? `/${spec.name}` : undefined;
+      if (!run && !insertText) return [];
       return [
         {
           id: spec.name,
           name: spec.name,
           label: $t(spec.label_key as TranslationKeys),
           description: $t(spec.description_key as TranslationKeys),
-          run,
+          insertText,
+          run: run ?? undefined,
         },
       ];
     }),
@@ -4559,6 +4557,7 @@
       name,
       label: $t(labelKey as TranslationKeys),
       description: $t(descriptionKey as TranslationKeys),
+      insertText: name === "goal" || name === "graph" ? `/${name}` : undefined,
       run: () => {},
     })),
   );
