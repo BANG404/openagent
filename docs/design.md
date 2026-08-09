@@ -286,8 +286,10 @@ native size fixed for the whole visible session; the card remains compact and
 the menu opens below and outside it without visible-window resize jitter.
 Shrink the native window only after hiding it. Clicking the unused transparent
 area dismisses the launcher.
-The card uses the shared theme-aware Windows Mica surface with its 24px backdrop
-blur, while selector surfaces remain opaque; transparency belongs only to the
+The card uses a theme-tinted variant of the shared Windows-Mica-inspired
+material composited over an opaque theme base, with a clearly visible perimeter
+and restrained raised shadow. Content behind the launcher must not show through;
+selector surfaces also remain opaque, and transparency belongs only to the
 unused part of the expanded native window. Selectors stay below their trigger,
 align to its start edge, and do not use collision-based side flipping. The
 title row is the native window drag handle, and drag-time focus changes must not
@@ -299,8 +301,9 @@ one ellipsized line. Selector
 triggers include their leading icon in the same hover, focus, open-state, and
 pointer target as the label and caret. Model, role, and
 workspace selectors update only the launcher's remembered tuple for the next
-conversation. Configuration changes refresh the available launcher models
-without replacing a remembered model that remains valid; an unavailable model
+conversation. Configuration changes refresh the available launcher models and
+theme immediately, including while the launcher is hidden, without replacing a
+remembered model that remains valid; an unavailable model
 falls back to the configured default. “Open full window” opens or focuses the
 selected workspace without starting a conversation. Use restrained aurora light behind the
 composer only; controls remain on semantically filled surfaces. The compact

@@ -187,13 +187,11 @@
     min-height: 174px;
     max-height: 265px;
     overflow: hidden;
-    border: 1px solid var(--mica-border);
-    background: var(--mica-surface);
+    border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
+    background: linear-gradient(var(--mica-surface), var(--mica-surface)), var(--surface2);
     color: var(--text);
     border-radius: 14px;
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--shadow) 72%, transparent);
-    -webkit-backdrop-filter: blur(24px) saturate(1.08);
-    backdrop-filter: blur(24px) saturate(1.08);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--shadow) 84%, transparent);
   }
 
   .quick-chat::before {
@@ -203,11 +201,11 @@
     height: 240px;
     z-index: 0;
     background:
-      radial-gradient(circle at 25% 50%, rgba(66, 133, 244, 0.18), transparent 46%),
-      radial-gradient(circle at 55% 38%, rgba(161, 66, 244, 0.13), transparent 42%),
-      radial-gradient(circle at 78% 55%, rgba(52, 168, 83, 0.1), transparent 44%);
+      radial-gradient(circle at 25% 50%, rgba(66, 133, 244, 0.26), transparent 46%),
+      radial-gradient(circle at 55% 38%, rgba(161, 66, 244, 0.18), transparent 42%),
+      radial-gradient(circle at 78% 55%, rgba(52, 168, 83, 0.14), transparent 44%);
     filter: blur(44px);
-    opacity: 0.68;
+    opacity: 0.84;
     pointer-events: none;
   }
 
@@ -337,6 +335,7 @@
   }
 
   .composer-slot :global(.composer) {
+    border: 0;
     border-radius: 0;
     background: transparent;
     box-shadow: none;

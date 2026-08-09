@@ -307,7 +307,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Reload launcher settings when configuration changes so enabled model options
   stay current. Preserve the launcher's model while it remains available; if
   it becomes unavailable, fall back to the configured default and then the
-  first available model.
+  first available model. Every successful in-app settings save must emit the
+  payload-free `settings-changed` notification after persistence, because the
+  file watcher suppresses a reload for configuration already applied in memory;
+  the hidden launcher reloads the local settings and reapplies its theme.
 - Losing native focus closes the launcher except while a submission, native
   picker, or window drag owns focus. Suppress focus-close handling for the full
   native operation rather than only disarming its current state, because focus
@@ -326,8 +329,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the Cargo feature and configuration allowlist disagree, while macOS omits
   the transparent window builder API when both are disabled. Clicking the
   unused transparent area dismisses the launcher.
-  Keep the card and selector surfaces opaque, use the title row as an explicit
-  native drag handle, and open selectors below and visually outside the card,
+  Keep the card on a theme-tinted Windows-Mica-inspired material composited over
+  an opaque theme base, so content behind the launcher never shows through.
+  Give it a clearly visible perimeter and restrained elevation; selector
+  surfaces remain opaque.
+  Use the title row as an explicit native drag handle, and open selectors below
+  and visually outside the card,
   aligned to their trigger start edge, without collision-based side flipping.
   Give the launcher card only a restrained shadow and keep enough transparent
   stage padding around it that the shadow never meets or clips against the
@@ -363,8 +370,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   layout verification. Its composer and browser-backed attachment picker stay
   interactive for overflow stress checks, but submission stays disabled; it
   must not register shortcuts or emulate native window behavior outside Tauri.
-  The launcher card uses the shared theme-aware Windows Mica surface and keeps
-  the surrounding expanded native-window stage transparent. Its `-theme`
+  The launcher card uses the shared theme-aware Windows-Mica-inspired material
+  composited over an opaque theme base and keeps the surrounding native-window
+  stage transparent. Its `-theme`
   parameter must accept both explicit `light` and `dark` values so either theme
   remains verifiable regardless of the operating-system preference.
 - Keep the development-only `reasoning-effort-preview` query available as a

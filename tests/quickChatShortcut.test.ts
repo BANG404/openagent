@@ -36,6 +36,21 @@ describe("quick chat shortcut", () => {
     );
   });
 
+  test("reloads the hidden launcher after an in-app settings save", async () => {
+    const pageSource = await Bun.file(
+      new URL("../src/routes/+page.svelte", import.meta.url),
+    ).text();
+    const saveSettingsSource = pageSource.slice(
+      pageSource.indexOf("async function saveSettings"),
+      pageSource.indexOf("function completeOnboarding"),
+    );
+
+    expect(saveSettingsSource).toContain('await emit("settings-changed").catch');
+    expect(pageSource).toMatch(
+      /unlistenQuickChatSettings = listen\("settings-changed", \(\) => \{\s+void reloadQuickChatSettings\(\);/,
+    );
+  });
+
   test("normalizes missing and unsafe shortcuts to the default", () => {
     expect(normalizeQuickChatShortcut(undefined)).toBe(DEFAULT_QUICK_CHAT_SHORTCUT);
     expect(normalizeQuickChatShortcut("KeyK")).toBe(DEFAULT_QUICK_CHAT_SHORTCUT);

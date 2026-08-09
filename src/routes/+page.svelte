@@ -4360,6 +4360,9 @@
       config = structuredClone(savedSnapshot);
       applyTheme(config.theme ?? "system");
       setLocale((config.language ?? "zh") as Locale);
+      await emit("settings-changed").catch((error) => {
+        console.error("Failed to notify desktop surfaces after settings save:", error);
+      });
       return structuredClone(savedSnapshot);
     } catch (err: unknown) {
       if (shortcutChanged && !launchContext?.workspace) {
