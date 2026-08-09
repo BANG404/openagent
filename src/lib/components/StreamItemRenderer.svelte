@@ -144,6 +144,8 @@
       onToggle={() => (expanded = !expanded)}
     />
   </div>
+{:else if item.type === "compaction_boundary"}
+  <MessageDivider title={$t("compactionCompleted")} streamItemKey={itemKey} {messageId} />
 {:else if item.type === "runtime_notice"}
   <MessageDivider
     title={item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted")}

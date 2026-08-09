@@ -95,9 +95,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   whenever process records exist, including intervals with no trailing final-text
   run. A later thinking or tool record must not make the working header disappear.
 - Treat assistant records separated only by a tagged context-compaction replay
-  as one complete Agent reply. Keep compaction progress and replay boundaries
-  internal instead of rendering transcript notices, with one action footer
-  after the final record.
+  as one complete Agent reply. Keep the compaction boundary at its real
+  position inside that reply, with one action footer after the final record.
+  When manual compaction completes, refresh its checkpoint immediately so the
+  divider appears without waiting for another user turn; do not show a redundant
+  success toast for the same transition.
   Do not show the reply actions—including regenerate, copy, and book mode—while
   the conversation is streaming, even when a durable prefix exists before a
   live context-compaction continuation. Reveal the actions together only after
@@ -131,8 +133,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   unchanged transcript, overwrite backend history, or remove optimistic
   messages from a queued turn.
 - New checkpoints carry compacted context inside the tagged user replay rather
-  than adding a system message. Omit the whole replay from the transcript while
-  continuing to restore legacy system-boundary checkpoints internally.
+  than adding a system message. Represent the whole record only by the divider,
+  while continuing to restore legacy system-boundary checkpoints.
 
 ## Tool and interrupt rendering
 

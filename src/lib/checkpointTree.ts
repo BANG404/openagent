@@ -80,8 +80,8 @@ export function isCompactionBoundary(message: ChatMessage): boolean {
 
 function isHiddenCheckpointRecord(record: CheckpointMessage): boolean {
   // Legacy compaction system messages are restoration-only. Tagged replay
-  // users remain internal continuation markers so transcript grouping can join
-  // the resumed assistant output without exposing the replay as a user turn.
+  // users remain durable UI boundaries so MessageList can place the divider
+  // inside a continued assistant reply without exposing a user-authored turn.
   return (
     record.role === "system" ||
     record.tags.includes("goal_continuation") ||
@@ -379,7 +379,7 @@ export function buildTreeFromCheckpoints(
       }
       // System context remains in the durable checkpoint stream for
       // restoration, but is never a chat UI message. A tagged replayed user
-      // record is intentionally retained as an internal compaction continuation.
+      // record is intentionally retained as the visible compaction boundary.
       if (isHiddenCheckpointRecord(record)) continue;
       const toolResults = record.content.filter((part) => part.type === "tool_result");
       if (

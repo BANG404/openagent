@@ -314,6 +314,7 @@
       const processHeaderHeight = finalOutputStart > 0 && finalOutputStart < items.length ? 44 : 0;
       return Math.min(640, 92 + processHeaderHeight + Math.ceil(contentLength / 100) * 24);
     }
+    if (isCompactionReplayUser(entry.msg)) return 58;
     if (entry.msg.role === "user")
       return Math.min(260, 70 + Math.ceil(entry.msg.content.length / 90) * 22);
     const contentLength =
@@ -331,6 +332,7 @@
     if (entry.kind === "live_stream") return currentStreamItems;
     if (entry.kind === "assistant_turn") {
       return entry.messages.flatMap((message) => {
+        if (isCompactionReplayUser(message)) return [{ type: "compaction_boundary" as const }];
         if (message.role !== "assistant") return [];
         return message.items?.length
           ? message.items
@@ -655,7 +657,16 @@
       {:else if entry.kind === "message"}
         {@const msg = entry.msg}
         {@const msgIdx = entry.index}
-        {#if msg.role === "user"}
+        {#if isCompactionReplayUser(msg)}
+          <div
+            class="compaction-divider message-record"
+            id={`message-${msg.id}`}
+            data-message-id={msg.id}
+            role="separator"
+          >
+            <span>{$t("compactionCompleted")}</span>
+          </div>
+        {:else if msg.role === "user"}
           {@const siblingInfo = activeConvId
             ? getSiblingInfoForUserMessage(activeTree, msg.id)
             : null}
@@ -1308,5 +1319,21 @@
     margin-top: 4px;
     display: block;
     user-select: none;
+  }
+
+  .compaction-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 22px 0;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+  .compaction-divider::before,
+  .compaction-divider::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: color-mix(in srgb, var(--border) 75%, transparent);
   }
 </style>

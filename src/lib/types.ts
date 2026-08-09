@@ -29,6 +29,8 @@ export type StreamItem =
         response?: unknown;
       };
     }
+  /** A completed compaction boundary retained in the transcript at its actual position. */
+  | { type: "compaction_boundary" }
   | {
       type: "retry";
       /** Complete stream state from the failed attempt. */

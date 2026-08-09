@@ -150,7 +150,7 @@ export function groupAssistantTurns(entries: StoredMessageRenderEntry[]): Messag
   for (let position = 0; position < entries.length;) {
     const firstMessages = assistantMessages(entries[position]);
     if (!firstMessages) {
-      if (!isCompactionContinuation(entries[position])) grouped.push(entries[position]);
+      grouped.push(entries[position]);
       position += 1;
       continue;
     }
@@ -180,6 +180,10 @@ export function groupAssistantTurns(entries: StoredMessageRenderEntry[]): Messag
           continuationEnd += 1;
         }
         if (continuationEnd < entries.length && assistantMessages(entries[continuationEnd])) {
+          for (let index = end; index < continuationEnd; index += 1) {
+            const boundary = entries[index];
+            if (boundary.kind === "message") messages.push(boundary.msg);
+          }
           end = continuationEnd;
           continue;
         }

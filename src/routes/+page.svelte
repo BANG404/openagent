@@ -383,6 +383,7 @@
           args: JSON.stringify({ paths: ["MessageList.svelte", "checkpointTree.ts"] }),
           result: "Read the transcript grouping and compaction boundary logic.",
         },
+        { type: "compaction_boundary" },
         {
           type: "text",
           content: `Inline code keeps theme contrast for \`pages/\`, \`components/\`, and \`README.md\`.\n\n\`\`\`text\nDEMO-600519  technical analysis\nSignal: BUY\nScore: 7.5 / 10\n\`\`\`\n\n${bookModePreviewTable}\n\n${Array.from(
@@ -1190,8 +1191,12 @@
     return Array.from(byPath.values());
   });
 
-  async function loadMessagesForConv(convId: string, showLoadingState = true): Promise<void> {
-    if (loadedConvIds.has(convId)) return;
+  async function loadMessagesForConv(
+    convId: string,
+    showLoadingState = true,
+    forceRefresh = false,
+  ): Promise<void> {
+    if (loadedConvIds.has(convId) && !forceRefresh) return;
     loadedConvIds.add(convId);
     if (!tauriAvailable) return;
     const messageIdsAtStart = showLoadingState
@@ -2985,9 +2990,11 @@
         }
         discardPersistedStreamDraft(conv_id);
       },
-      onCompactionProgress: () => {
-        // Compaction stays an internal context-management transition. The
-        // transcript must not create progress rows or delayed completion dividers.
+      onCompactionProgress: (convId, stage) => {
+        if (stage !== "done") return;
+        void loadMessagesForConv(convId, false, true).then(() => {
+          if (convId === activeConvId) scrollStreamToBottom();
+        });
       },
       onDone: (conv_id, asstMsgId, error) => {
         finalizeStreamedMessage(conv_id, false, asstMsgId, error);
@@ -4459,11 +4466,12 @@
         text: "/compact",
         modelBinding: decodeModelBinding(selectedModel),
       });
-      const compacted = outcome.type === "immediate_command" && outcome.changed;
-      showToast({
-        title: compacted ? $t("compactConversationStarted") : $t("compactConversationSkipped"),
-        variant: compacted ? "success" : "info",
-      });
+      if (outcome.type === "immediate_command" && !outcome.changed) {
+        showToast({
+          title: $t("compactConversationSkipped"),
+          variant: "info",
+        });
+      }
     } catch (err) {
       showToast({
         title: $t("compactConversationFailed"),
