@@ -9,4 +9,10 @@ describe("chat Markdown theme", () => {
     expect(chatMarkdownTheme.ul?.base.split(/\s+/)).toContain("list-outside");
     expect(chatMarkdownTheme.ul?.base.split(/\s+/)).not.toContain("list-inside");
   });
+
+  test("exposes stable theme hooks for fenced code surfaces", () => {
+    expect(chatMarkdownTheme.code?.header.split(/\s+/)).toContain("chat-code-header");
+    expect(chatMarkdownTheme.code?.container.split(/\s+/)).toContain("chat-code-container");
+    expect(chatMarkdownTheme.code?.skeleton.split(/\s+/)).toContain("chat-code-skeleton");
+  });
 });

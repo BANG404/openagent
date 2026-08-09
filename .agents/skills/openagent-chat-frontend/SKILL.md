@@ -24,6 +24,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   application theme tokens. Do not depend on the renderer's optional utility
   classes; inline code must retain readable foreground and surface contrast in
   both light and dark themes without affecting fenced code blocks.
+- Keep fenced Markdown code headers, containers, loading skeletons, and controls
+  on application theme surfaces through stable chat theme hooks. Shiki owns
+  highlighted token colors, not the surrounding block background; fixed light
+  renderer utilities must never remain visible in the dark application theme.
 - In responsive double-column mode, expanded process records participate in
   pagination instead of moving as one container. Keep the process header with
   its first record and preserve the same atomic break rules used by ordinary

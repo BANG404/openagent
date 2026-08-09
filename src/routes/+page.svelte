@@ -387,7 +387,7 @@
         { type: "compaction_boundary" },
         {
           type: "text",
-          content: `Inline code keeps theme contrast for \`pages/\`, \`components/\`, and \`README.md\`.\n\n${bookModePreviewTable}\n\n${Array.from(
+          content: `Inline code keeps theme contrast for \`pages/\`, \`components/\`, and \`README.md\`.\n\n\`\`\`text\nDEMO-600519  technical analysis\nSignal: BUY\nScore: 7.5 / 10\n\`\`\`\n\n${bookModePreviewTable}\n\n${Array.from(
             { length: 28 },
             (_, index) =>
               `### ${index + 1}. 连贯阅读\n\n书籍模式会把一次完整的 Agent 输出保持在同一章中。正文从左栏自然流向右栏，超出当前展开页时继续到下一页；压缩续接、工具过程和最终结论都保留原有顺序。`,
@@ -6432,10 +6432,35 @@
   }
 
   :global([data-streamdown-code]) {
+    background: var(--surface2);
     border: none !important;
     margin: 8px 0 12px;
     border-radius: 8px;
     overflow: hidden;
+  }
+
+  :global(.assistant-msg [data-streamdown-code] > .chat-code-header) {
+    background: color-mix(in srgb, var(--surface2) 88%, var(--surface)) !important;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted) !important;
+  }
+
+  :global(.assistant-msg [data-streamdown-code] > .chat-code-container) {
+    background: var(--surface2) !important;
+    padding: 0 !important;
+  }
+
+  :global(.assistant-msg [data-streamdown-code] .chat-code-skeleton) {
+    background: var(--border) !important;
+  }
+
+  :global(.assistant-msg [data-streamdown-code] button) {
+    color: var(--text-muted) !important;
+  }
+
+  :global(.assistant-msg [data-streamdown-code] button:hover) {
+    background: var(--surface) !important;
+    color: var(--text) !important;
   }
 
   :global(.assistant-msg pre) {
@@ -6446,7 +6471,7 @@
     overflow-x: auto;
   }
 
-  /* Let Shiki control the background for highlighted blocks */
+  /* Shiki controls token colors; the application theme owns the block surface. */
   :global(.assistant-msg [data-streamdown-code] pre) {
     background: transparent;
     border-radius: 0;

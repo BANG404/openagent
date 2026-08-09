@@ -7,4 +7,9 @@ import type { StreamdownProps } from "svelte-streamdown";
 export const chatMarkdownTheme: NonNullable<StreamdownProps["theme"]> = {
   ol: { base: "list-outside" },
   ul: { base: "list-outside" },
+  code: {
+    container: "chat-code-container",
+    header: "chat-code-header",
+    skeleton: "chat-code-skeleton",
+  },
 };
