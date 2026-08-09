@@ -243,7 +243,9 @@ sibling worktree from the committed local `master` `HEAD`, implement and commit
 there, then fast-forward local `master` and clean up. If concurrent commits
 advance `master`, merge that latest branch into the task branch, rerun preflight,
 and retry the fast-forward. Stop for real conflicts, non-linear ancestry, or
-working-tree overwrites. SDK changes retain their separate direct-push workflow.
+working-tree overwrites. The recorded local `master` `HEAD` is authoritative
+even when remote history differs; OWT does not reconcile the remote branch.
+SDK changes retain their separate direct-push workflow.
 An uppercase standalone `OPR` prefix creates or updates a ready pull request on
 a dedicated task branch and stops without waiting for CI, merging, or cleanup.
 New OPR tasks use an isolated worktree so the default worktree remains aligned

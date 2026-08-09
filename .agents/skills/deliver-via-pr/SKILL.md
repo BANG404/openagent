@@ -84,13 +84,12 @@ authorize unrelated changes.
 
 ## OWT mode: isolate work, then fast-forward the local default branch
 
-1. Keep the public host's default worktree on its remote-tracking default branch
-   (`master` in OpenAgent); do not switch it. Fetch the upstream first and
-   compare histories. Unpublished local commits are a valid base, but if local
-   and remote history diverge, preserve both and stop for direction instead of
-   rebasing, resetting, or merging automatically. Record the local default
-   branch and its exact starting `HEAD`. SDK changes follow the separate direct-
-   push rule above.
+1. Keep the public host's default worktree on its local default branch (`master`
+   in OpenAgent); do not switch it. Record that branch and its exact starting
+   `HEAD`, which is the authoritative OWT base even when it differs from the
+   remote default. Fetch the upstream for awareness, but never merge, rebase,
+   reset, or otherwise reconcile remote history as part of OWT. SDK changes
+   follow the separate direct-push rule above.
 2. Choose a unique `agent/<task-slug>` branch and non-existing sibling
    worktree path. Create both from the recorded local default `HEAD`, not from
    the remote default and not from the default worktree's index or working

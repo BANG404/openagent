@@ -69,7 +69,8 @@ private SDK gitlink.
   changes in the same file, in place. `OWT` bases its temporary task
   branch on the committed local default `HEAD`, merges later committed
   default-branch descendants into the task branch, reruns preflight after every
-  such integration, and retries until the default branch can fast-forward. It
-  never absorbs unrelated working changes and stops on real conflicts or
-  non-linear ancestry. `ORPR` completes remote-branch, task-worktree, and merged
-  local-branch cleanup.
+  such integration, and retries until the default branch can fast-forward. Its
+  recorded local default `HEAD` remains authoritative regardless of remote
+  divergence; it never reconciles remote history, absorbs unrelated working
+  changes, or continues through real conflicts or non-linear local ancestry.
+  `ORPR` completes remote-branch, task-worktree, and merged local-branch cleanup.
