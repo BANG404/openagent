@@ -54,7 +54,7 @@ const zh = {
   readyHint: "支持代码阅读、编辑、调试等功能",
   configApiKey: "请在设置中配置 API Key 以开始使用",
   // Input
-  inputPlaceholder: "发送消息... (Enter 发送，Shift+Enter 换行)",
+  inputPlaceholder: "发送消息... (Enter 发送，Shift+Enter 换行，/ 指令，@ 提及)",
   send: "发送",
   pauseOutput: "暂停输出",
   resumeOutput: "继续输出",
@@ -861,7 +861,7 @@ const en: Translations = {
   ready: "OpenAgent Ready",
   readyHint: "Supports code reading, editing, debugging and more",
   configApiKey: "Configure API Key in Settings to start",
-  inputPlaceholder: "Message… (Enter to send, Shift+Enter for newline)",
+  inputPlaceholder: "Message… (Enter to send, Shift+Enter for newline, / commands, @ mentions)",
   send: "Send",
   pauseOutput: "Pause output",
   resumeOutput: "Resume output",

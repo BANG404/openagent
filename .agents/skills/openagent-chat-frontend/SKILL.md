@@ -211,6 +211,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   overflow scrolls independently, so short result sets leave no trailing empty
   area, constrained windows never clip the palette, and opening or navigating
   them never moves the composer.
+- Keep the localized shared-composer placeholder concise while advertising the
+  Enter and Shift+Enter keyboard behavior plus the `/` command and `@` mention
+  palette triggers.
 - Selecting `/goal` or `/graph` replaces only the active slash trigger with the
   complete command token. Preserve any draft text after the caret as the command
   argument instead of clearing the composer.
