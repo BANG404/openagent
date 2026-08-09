@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.37.0-beta.1] - 2026-08-08
+
+### Features
+- **chat**: Visualize graph dependencies
+- **ui**: Extend Mica surface system
+- **settings**: Add Mica memory surface
+- **frontend**: Unify more management panes
+- **chat**: Visualize checkpoint flows
+- **settings**: Polish channel configuration UI
+
+### Bug Fixes
+- **chat**: Project live goal graph state
+- **chat**: Refresh goal graph checkpoints live
+- **chat**: Preserve goal and graph drafts
+- **frontend**: Align resize handle feedback
+- **chat**: Fit graph flow to panel
+- **frontend**: Keep composer focus neutral
+- **memory**: Deepen resize handle contrast
+- Smooth checkpoint panel resizing
+- Adapt checkpoint flow panel width
+- **memory**: Strengthen resize handle contrast
+- **settings**: Inset model list dividers
+- **settings**: Remove provider row state backgrounds
+- **chat**: Smooth new conversation aurora transition
+- **chat**: Enlarge new conversation composer
+- **ui**: Select first available item by default
+- **settings**: Align HTML preview card
+- **chat**: Reduce transcript top spacing
+
+### Refactoring
+- **settings**: Separate model retry policy
+- **settings**: Standardize configuration cards
+- **settings**: Unify borderless status controls
+
+### Styling
+- **frontend**: Outline permission controls
+
+### Miscellaneous
+- **sdk**: Recover workspace orphan conversations
+- **sdk**: Recover orphaned startup checkpoints
+
 ## [0.36.1-beta.2] - 2026-08-07
 
 ## [0.36.1-beta.1] - 2026-08-07
