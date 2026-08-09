@@ -29,9 +29,6 @@ export type StreamItem =
         response?: unknown;
       };
     }
-  | { type: "compaction"; stage: ContextCompactionStage; error?: string | null }
-  /** A completed compaction boundary retained in the live stream at its actual position. */
-  | { type: "compaction_boundary" }
   | {
       type: "retry";
       /** Complete stream state from the failed attempt. */
@@ -53,9 +50,6 @@ export type StreamItem =
       state: "pending" | "answered" | "cancelled";
       response?: unknown;
     };
-
-export type ContextCompactionStage =
-  "checking" | "summarizing" | "creating" | "done" | "skipped" | "failed";
 
 export interface ChatMessage {
   id: string;

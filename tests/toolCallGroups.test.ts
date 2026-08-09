@@ -211,11 +211,26 @@ describe("tool-call grouping", () => {
       kind: "assistant_turn",
       key: "assistant-final",
       finalIndex: 3,
-      messages: [
-        { id: "assistant-before" },
-        { id: "compaction-replay" },
-        { id: "assistant-final" },
-      ],
+      messages: [{ id: "assistant-before" }, { id: "assistant-final" }],
     });
+  });
+
+  test("omits a standalone compaction continuation from render entries", () => {
+    const entries = groupAssistantTurns(
+      groupMessageToolCalls([
+        {
+          msg: {
+            id: "compaction-replay",
+            role: "user",
+            content: "compacted context",
+            timestamp: 0,
+            tags: ["context_compaction"],
+          },
+          index: 0,
+        },
+      ]),
+    );
+
+    expect(entries).toEqual([]);
   });
 });

@@ -53,14 +53,6 @@
     } catch {}
     return "";
   }
-
-  function compactionText(value: Extract<StreamItem, { type: "compaction" }>) {
-    if (value.stage === "failed")
-      return value.error ? `${$t("compactionFailed")}: ${value.error}` : $t("compactionFailed");
-    if (value.stage === "creating") return $t("compactionCreating");
-    if (value.stage === "summarizing") return $t("compactionSummarizing");
-    return $t("compactionChecking");
-  }
 </script>
 
 <div class="retry-attempt">
@@ -115,10 +107,6 @@
             {mermaidConfig}
             onToggle={() => toggleToolCall(idx)}
           />
-        {:else if attemptItem.type === "compaction"}
-          <div class="compaction-status" class:failed={attemptItem.stage === "failed"}>
-            {compactionText(attemptItem)}
-          </div>
         {:else if attemptItem.type === "user_input"}
           {#if attemptItem.state === "pending"}
             <UserInputForm
@@ -178,7 +166,6 @@
     line-height: 1.45;
   }
 
-  .compaction-status,
   .attempt-attachment {
     margin: 0 0 8px;
     padding: 6px 8px;
@@ -188,7 +175,6 @@
     box-shadow: var(--control-shadow);
   }
 
-  .compaction-status.failed,
   .retry-error {
     color: var(--text-muted);
   }

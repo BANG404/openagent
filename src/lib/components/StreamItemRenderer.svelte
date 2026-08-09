@@ -66,18 +66,6 @@
   function renderThinkingContent(content: string): string {
     return content.replace(/^\s*(analysis|reasoning)\s*[:：]\s*/i, "");
   }
-
-  function compactionText(streamItem: Extract<StreamItem, { type: "compaction" }>): string {
-    const labels: Record<typeof streamItem.stage, string> = {
-      checking: "Checking context…",
-      summarizing: "Summarizing context…",
-      creating: "Creating compacted context…",
-      done: "Context compacted",
-      skipped: "Compaction skipped",
-      failed: streamItem.error ? `Compaction failed: ${streamItem.error}` : "Compaction failed",
-    };
-    return labels[streamItem.stage];
-  }
 </script>
 
 {#if item.type === "text"}
@@ -156,19 +144,6 @@
       onToggle={() => (expanded = !expanded)}
     />
   </div>
-{:else if item.type === "compaction"}
-  <div
-    class="compaction-status stream-item message-record"
-    id={messageId ? `message-${messageId}` : undefined}
-    data-message-id={messageId}
-    data-stream-item={itemKey}
-    class:failed={item.stage === "failed"}
-  >
-    <span class="compaction-spinner" aria-hidden="true"></span>
-    <span>{compactionText(item)}</span>
-  </div>
-{:else if item.type === "compaction_boundary"}
-  <MessageDivider title={$t("compactionCompleted")} streamItemKey={itemKey} {messageId} />
 {:else if item.type === "runtime_notice"}
   <MessageDivider
     title={item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted")}
@@ -281,40 +256,5 @@
     font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
     font-size: 12px;
     line-height: 1.45;
-  }
-  .compaction-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    max-width: 100%;
-    padding: 7px 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface2);
-    color: var(--text-muted);
-    font-size: 13px;
-  }
-  .compaction-status.failed {
-    color: #b45309;
-    border-color: rgba(245, 158, 11, 0.35);
-    background: rgba(245, 158, 11, 0.1);
-  }
-  .compaction-spinner {
-    width: 10px;
-    height: 10px;
-    flex: none;
-    border: 2px solid currentColor;
-    border-right-color: transparent;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  .failed .compaction-spinner {
-    animation: none;
-    border-right-color: currentColor;
-  }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
   }
 </style>

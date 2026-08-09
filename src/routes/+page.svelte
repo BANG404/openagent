@@ -105,7 +105,6 @@
   } from "$lib/checkpointTree";
   import {
     appendChunk,
-    appendCompactionProgress,
     appendThinkingChunk,
     appendToolCall,
     appendUserInput,
@@ -384,7 +383,6 @@
           args: JSON.stringify({ paths: ["MessageList.svelte", "checkpointTree.ts"] }),
           result: "Read the transcript grouping and compaction boundary logic.",
         },
-        { type: "compaction_boundary" },
         {
           type: "text",
           content: `Inline code keeps theme contrast for \`pages/\`, \`components/\`, and \`README.md\`.\n\n\`\`\`text\nDEMO-600519  technical analysis\nSignal: BUY\nScore: 7.5 / 10\n\`\`\`\n\n${bookModePreviewTable}\n\n${Array.from(
@@ -1057,7 +1055,6 @@
       ? (liveCheckpointFlowProjections[activeConvId]?.flow ?? currentCheckpointFlowNode?.flow)
       : undefined,
   );
-  const compactionOnlyConvIds = new Set<string>();
   let workspacePrefsSaveQueue: Promise<void> = Promise.resolve();
 
   $effect(() => {
@@ -2702,10 +2699,6 @@
         const { [source_conv_id]: old, ...rest } = memoryRetrievalSkippableConvIds;
         memoryRetrievalSkippableConvIds = { ...rest, [conv_id]: old };
       }
-      if (compactionOnlyConvIds.has(source_conv_id)) {
-        compactionOnlyConvIds.delete(source_conv_id);
-        compactionOnlyConvIds.add(conv_id);
-      }
       if (activeConvId === source_conv_id) {
         activeConvId = conv_id;
         cacheRestoreSurface("conversation", conv_id);
@@ -2992,40 +2985,9 @@
         }
         discardPersistedStreamDraft(conv_id);
       },
-      onCompactionProgress: (conv_id, stage, error) => {
-        const wasStreaming = !!streamingConvIds[conv_id];
-        const previousItems = convStreamItems[conv_id] ?? [];
-        const hadProgress = previousItems.some((item) => item.type === "compaction");
-        const items = appendCompactionProgress(previousItems, stage, error);
-        convStreamItems = { ...convStreamItems, [conv_id]: items };
-        if (!wasStreaming && !["done", "skipped", "failed"].includes(stage)) {
-          compactionOnlyConvIds.add(conv_id);
-          streamingConvIds = { ...streamingConvIds, [conv_id]: true };
-          streamAssistantMsgIds = { ...streamAssistantMsgIds, [conv_id]: crypto.randomUUID() };
-        }
-        if (["done", "skipped", "failed"].includes(stage) && compactionOnlyConvIds.has(conv_id)) {
-          setTimeout(
-            () => {
-              compactionOnlyConvIds.delete(conv_id);
-              cleanupStreamState(conv_id);
-            },
-            stage === "failed" ? 1600 : 400,
-          );
-        } else if (stage === "failed") {
-          setTimeout(() => {
-            convStreamItems = {
-              ...convStreamItems,
-              [conv_id]: appendCompactionProgress(convStreamItems[conv_id] ?? [], "done", null),
-            };
-          }, 1600);
-        }
-        if (
-          conv_id === activeConvId &&
-          !hadProgress &&
-          items.some((item) => item.type === "compaction")
-        ) {
-          scrollStreamToBottom();
-        }
+      onCompactionProgress: () => {
+        // Compaction stays an internal context-management transition. The
+        // transcript must not create progress rows or delayed completion dividers.
       },
       onDone: (conv_id, asstMsgId, error) => {
         finalizeStreamedMessage(conv_id, false, asstMsgId, error);

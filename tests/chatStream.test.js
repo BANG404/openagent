@@ -1,6 +1,6 @@
 // @ts-nocheck -- Bun provides the test module at runtime.
 import { describe, expect, test } from "bun:test";
-import { appendCompactionProgress, resolveUserInput } from "../src/lib/chatStream";
+import { resolveUserInput } from "../src/lib/chatStream";
 import {
   ROOT_KEY,
   buildTreeFromCheckpoints,
@@ -43,33 +43,6 @@ describe("background checkpoint reconciliation", () => {
         new Set(["user-1"]),
       ),
     ).toEqual([previousUser, queuedUser]);
-  });
-});
-
-describe("appendCompactionProgress", () => {
-  test("updates progress in place instead of moving it behind later stream items", () => {
-    const initial = [
-      { type: "text", content: "before" },
-      { type: "compaction", stage: "checking" },
-      { type: "text", content: "after" },
-    ];
-
-    expect(appendCompactionProgress(initial, "summarizing")).toEqual([
-      { type: "text", content: "before" },
-      { type: "compaction", stage: "summarizing" },
-      { type: "text", content: "after" },
-    ]);
-  });
-
-  test("removes transient progress as soon as compaction finishes", () => {
-    const initial = [
-      { type: "text", content: "before" },
-      { type: "compaction", stage: "summarizing" },
-    ];
-
-    expect(appendCompactionProgress(initial, "done")).toEqual([
-      { type: "text", content: "before" },
-    ]);
   });
 });
 
