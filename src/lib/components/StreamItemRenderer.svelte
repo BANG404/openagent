@@ -8,6 +8,7 @@
   import UserInputSummary from "./UserInputSummary.svelte";
   import RetryAttempt from "./RetryAttempt.svelte";
   import MessageDivider from "./MessageDivider.svelte";
+  import CompactionStatus from "./CompactionStatus.svelte";
   import { t } from "$lib/i18n";
   import type { HtmlPreviewConfig, StreamItem } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
@@ -143,6 +144,15 @@
       showRunning={isStreaming}
       onToggle={() => (expanded = !expanded)}
     />
+  </div>
+{:else if item.type === "compaction"}
+  <div
+    class="stream-item message-record"
+    id={messageId ? `message-${messageId}` : undefined}
+    data-message-id={messageId}
+    data-stream-item={itemKey}
+  >
+    <CompactionStatus {item} />
   </div>
 {:else if item.type === "compaction_boundary"}
   <MessageDivider title={$t("compactionCompleted")} streamItemKey={itemKey} {messageId} />

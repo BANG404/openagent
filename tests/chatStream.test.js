@@ -1,6 +1,6 @@
 // @ts-nocheck -- Bun provides the test module at runtime.
 import { describe, expect, test } from "bun:test";
-import { resolveUserInput } from "../src/lib/chatStream";
+import { appendCompactionProgress, resolveUserInput } from "../src/lib/chatStream";
 import {
   ROOT_KEY,
   buildTreeFromCheckpoints,
@@ -67,6 +67,27 @@ describe("resolveUserInput", () => {
         response: { values: { name: "Ada" } },
       },
     ]);
+  });
+});
+
+describe("appendCompactionProgress", () => {
+  test("updates one transient progress record in place", () => {
+    const initial = [
+      { type: "text", content: "Before compaction" },
+      { type: "compaction", stage: "checking" },
+    ];
+
+    expect(appendCompactionProgress(initial, "summarizing")).toEqual([
+      { type: "text", content: "Before compaction" },
+      { type: "compaction", stage: "summarizing", error: undefined },
+    ]);
+  });
+
+  test("removes transient progress when compaction completes or is skipped", () => {
+    const initial = [{ type: "compaction", stage: "creating" }];
+
+    expect(appendCompactionProgress(initial, "done")).toEqual([]);
+    expect(appendCompactionProgress(initial, "skipped")).toEqual([]);
   });
 });
 

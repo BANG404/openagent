@@ -105,6 +105,7 @@
   } from "$lib/checkpointTree";
   import {
     appendChunk,
+    appendCompactionProgress,
     appendThinkingChunk,
     appendToolCall,
     appendUserInput,
@@ -383,6 +384,7 @@
           args: JSON.stringify({ paths: ["MessageList.svelte", "checkpointTree.ts"] }),
           result: "Read the transcript grouping and compaction boundary logic.",
         },
+        { type: "compaction", stage: "summarizing" },
         { type: "compaction_boundary" },
         {
           type: "text",
@@ -1056,6 +1058,8 @@
       ? (liveCheckpointFlowProjections[activeConvId]?.flow ?? currentCheckpointFlowNode?.flow)
       : undefined,
   );
+  const compactionOnlyConvIds = new Set<string>();
+  const compactionProgressRevisions = new Map<string, number>();
   let workspacePrefsSaveQueue: Promise<void> = Promise.resolve();
 
   $effect(() => {
@@ -2704,6 +2708,14 @@
         const { [source_conv_id]: old, ...rest } = memoryRetrievalSkippableConvIds;
         memoryRetrievalSkippableConvIds = { ...rest, [conv_id]: old };
       }
+      if (compactionOnlyConvIds.delete(source_conv_id)) {
+        compactionOnlyConvIds.add(conv_id);
+      }
+      const compactionRevision = compactionProgressRevisions.get(source_conv_id);
+      if (compactionRevision !== undefined) {
+        compactionProgressRevisions.delete(source_conv_id);
+        compactionProgressRevisions.set(conv_id, compactionRevision);
+      }
       if (activeConvId === source_conv_id) {
         activeConvId = conv_id;
         cacheRestoreSurface("conversation", conv_id);
@@ -2990,11 +3002,42 @@
         }
         discardPersistedStreamDraft(conv_id);
       },
-      onCompactionProgress: (convId, stage) => {
-        if (stage !== "done") return;
-        void loadMessagesForConv(convId, false, true).then(() => {
-          if (convId === activeConvId) scrollStreamToBottom();
-        });
+      onCompactionProgress: (convId, stage, error) => {
+        const revision = (compactionProgressRevisions.get(convId) ?? 0) + 1;
+        compactionProgressRevisions.set(convId, revision);
+        const wasStreaming = !!streamingConvIds[convId];
+        const previousItems = convStreamItems[convId] ?? [];
+        const hadProgress = previousItems.some((item) => item.type === "compaction");
+
+        if (!wasStreaming && stage !== "done" && stage !== "skipped") {
+          compactionOnlyConvIds.add(convId);
+          streamingConvIds = { ...streamingConvIds, [convId]: true };
+          streamAssistantMsgIds = { ...streamAssistantMsgIds, [convId]: crypto.randomUUID() };
+        }
+
+        if (stage === "done") {
+          // A normal Agent stream must not finalize with transient progress in
+          // its optimistic message. A compaction-only row stays visible until
+          // its durable checkpoint divider is ready.
+          if (!compactionOnlyConvIds.has(convId)) removeCompactionProgress(convId);
+          void reconcileCompletedCompaction(convId, revision);
+          return;
+        }
+
+        convStreamItems = {
+          ...convStreamItems,
+          [convId]: appendCompactionProgress(previousItems, stage, error),
+        };
+
+        if (stage === "skipped") {
+          finishCompactionProgress(convId, revision);
+          return;
+        }
+        if (stage === "failed") {
+          finishCompactionProgress(convId, revision, 1600);
+          return;
+        }
+        if (convId === activeConvId && !hadProgress) scrollStreamToBottom();
       },
       onDone: (conv_id, asstMsgId, error) => {
         finalizeStreamedMessage(conv_id, false, asstMsgId, error);
@@ -3071,6 +3114,46 @@
     void msg;
     void checkpointId;
     return Promise.resolve();
+  }
+
+  function removeCompactionProgress(convId: string) {
+    if (!(convId in convStreamItems)) return;
+    convStreamItems = {
+      ...convStreamItems,
+      [convId]: appendCompactionProgress(convStreamItems[convId] ?? [], "done"),
+    };
+  }
+
+  function finishCompactionProgress(convId: string, revision: number, delay = 0) {
+    window.setTimeout(() => {
+      if (compactionProgressRevisions.get(convId) !== revision) return;
+      compactionProgressRevisions.delete(convId);
+      if (compactionOnlyConvIds.delete(convId)) {
+        cleanupStreamState(convId);
+      } else {
+        removeCompactionProgress(convId);
+      }
+      if (convId === activeConvId) scrollStreamToBottom();
+    }, delay);
+  }
+
+  async function reconcileCompletedCompaction(convId: string, revision: number) {
+    try {
+      await loadMessagesForConv(convId, false, true);
+    } catch (error) {
+      console.error(`Failed to reconcile completed compaction ${convId}:`, error);
+    }
+    if (compactionProgressRevisions.get(convId) !== revision) return;
+    compactionProgressRevisions.delete(convId);
+    if (compactionOnlyConvIds.delete(convId)) {
+      cleanupStreamState(convId);
+    } else {
+      removeCompactionProgress(convId);
+    }
+    if (convId === activeConvId) {
+      await tick();
+      scrollStreamToBottom();
+    }
   }
 
   function cleanupStreamState(conv_id: string) {

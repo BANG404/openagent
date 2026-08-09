@@ -12,6 +12,7 @@
   import { t } from "$lib/i18n";
   import ToolCallCard from "./ToolCallCard.svelte";
   import ToolCallGroup from "./ToolCallGroup.svelte";
+  import CompactionStatus from "./CompactionStatus.svelte";
   import UserInputForm from "./UserInputForm.svelte";
   import UserInputSummary from "./UserInputSummary.svelte";
   import { groupStreamItems } from "$lib/toolCallGroups";
@@ -107,6 +108,8 @@
             {mermaidConfig}
             onToggle={() => toggleToolCall(idx)}
           />
+        {:else if attemptItem.type === "compaction"}
+          <CompactionStatus item={attemptItem} />
         {:else if attemptItem.type === "user_input"}
           {#if attemptItem.state === "pending"}
             <UserInputForm

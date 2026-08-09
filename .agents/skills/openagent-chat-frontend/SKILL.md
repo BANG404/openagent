@@ -98,8 +98,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   as one complete Agent reply. Keep the compaction boundary at its real
   position inside that reply, with one action footer after the final record.
   When manual compaction completes, refresh its checkpoint immediately so the
-  divider appears without waiting for another user turn; do not show a redundant
-  success toast for the same transition.
+  divider appears without waiting for another user turn. While compaction is in
+  flight, keep one localized transient process record mounted and update its
+  checking, summarizing, and persistence stages in place; retain a terminal
+  failure briefly, and replace successful progress with the durable divider only
+  after checkpoint reconciliation. Do not show a redundant success toast for
+  the same transition.
   Do not show the reply actions—including regenerate, copy, and book mode—while
   the conversation is streaming, even when a durable prefix exists before a
   live context-compaction continuation. Reveal the actions together only after

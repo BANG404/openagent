@@ -1,7 +1,7 @@
 // Streaming-side helpers for pure stream-item manipulation. Transport event
 // subscription lives in the OpenAgent client SDK.
 
-import type { StreamItem, UserInputRequest } from "./types";
+import type { ContextCompactionStage, StreamItem, UserInputRequest } from "./types";
 
 export function appendChunk(items: StreamItem[], text: string): StreamItem[] {
   const split = splitThinkingTags(text);
@@ -133,6 +133,20 @@ export function appendUserInput(items: StreamItem[], request: UserInputRequest):
     return items;
   }
   return [...items, { type: "user_input", request, state: "pending" }];
+}
+
+export function appendCompactionProgress(
+  items: StreamItem[],
+  stage: ContextCompactionStage,
+  error?: string | null,
+): StreamItem[] {
+  if (stage === "done" || stage === "skipped") {
+    return items.filter((item) => item.type !== "compaction");
+  }
+  const existingIndex = items.findIndex((item) => item.type === "compaction");
+  const progress: StreamItem = { type: "compaction", stage, error };
+  if (existingIndex === -1) return [...items, progress];
+  return items.map((item, index) => (index === existingIndex ? progress : item));
 }
 
 export function resolveUserInput(

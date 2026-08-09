@@ -13,6 +13,9 @@ export interface ChatAttachment {
   previewUrl?: string;
 }
 
+export type ContextCompactionStage =
+  "checking" | "summarizing" | "creating" | "done" | "skipped" | "failed";
+
 export type StreamItem =
   | { type: "text"; content: string }
   | { type: "thinking"; content: string }
@@ -29,6 +32,8 @@ export type StreamItem =
         response?: unknown;
       };
     }
+  /** Transient progress for an in-flight context compaction. */
+  | { type: "compaction"; stage: ContextCompactionStage; error?: string | null }
   /** A completed compaction boundary retained in the transcript at its actual position. */
   | { type: "compaction_boundary" }
   | {
