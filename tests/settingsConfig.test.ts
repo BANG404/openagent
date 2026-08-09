@@ -6,6 +6,7 @@ import {
   mcpConnectionFingerprint,
   repairModelBindings,
   replaceProviderModels,
+  selectModelBindingProvider,
   settingsConfigChanged,
 } from "../src/lib/settingsConfig";
 import type { AppConfig, McpServerConfig, ProviderConfig } from "../src/lib/types";
@@ -71,6 +72,29 @@ describe("settings config helpers", () => {
     expect(draft.defaults.flash_model).toEqual({ provider_id: "enabled", model: "chat" });
     expect(draft.model_retry.chat_queue).toEqual([{ provider_id: "enabled", model: "chat" }]);
     expect(draft.model_retry.flash_queue).toEqual([]);
+  });
+
+  test("selecting a provider replaces a binding with its first available model", () => {
+    const draft = config([
+      provider("first", true, ["first-a"]),
+      provider("second", true, ["second-a", "second-b"]),
+    ]);
+    const binding = draft.defaults.chat_model;
+    binding.provider_id = "first";
+    binding.model = "first-a";
+
+    selectModelBindingProvider(draft, binding, "second");
+
+    expect(binding).toEqual({ provider_id: "second", model: "second-a" });
+  });
+
+  test("selecting an unavailable provider clears the complete binding", () => {
+    const draft = config([provider("disabled", false, ["stale"])]);
+    const binding = draft.defaults.chat_model;
+
+    selectModelBindingProvider(draft, binding, "disabled");
+
+    expect(binding).toEqual({ provider_id: "", model: "" });
   });
 
   test("prunes per-model settings when provider models are replaced", () => {

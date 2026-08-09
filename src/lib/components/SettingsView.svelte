@@ -34,6 +34,7 @@
     providerConnectionFingerprint,
     repairModelBindings,
     replaceProviderModels,
+    selectModelBindingProvider,
     settingsConfigChanged,
     type RetryQueueKind,
   } from "$lib/settingsConfig";
@@ -43,7 +44,6 @@
   import Select from "./ui/Select.svelte";
   import Switch from "./ui/Switch.svelte";
   import SettingsStatusToggle from "./ui/SettingsStatusToggle.svelte";
-  import Combobox from "./ui/Combobox.svelte";
   import PermissionSettings from "./PermissionSettings.svelte";
   import AgentPluginsSettings from "./AgentPluginsSettings.svelte";
 
@@ -882,6 +882,10 @@
   function setDefaultModel(kind: "chat_model" | "flash_model", providerId: string, model: string) {
     draftConfig.defaults[kind].provider_id = providerId;
     draftConfig.defaults[kind].model = model;
+  }
+
+  function selectBindingProvider(binding: AppConfig["defaults"]["chat_model"], providerId: string) {
+    selectModelBindingProvider(draftConfig, binding, providerId);
   }
 
   function setModelCompactionThreshold(
@@ -2936,20 +2940,25 @@
           <div class="detail-label">
             <span class="label-text">{$t("providerNode")}</span>
             <Select
-              bind:value={draftConfig.defaults.chat_model.provider_id}
+              value={draftConfig.defaults.chat_model.provider_id}
               items={enabledProviderOptions()}
               ariaLabel={$t("providerNode")}
+              onValueChange={(providerId) =>
+                selectBindingProvider(draftConfig.defaults.chat_model, providerId)}
             />
           </div>
           <div class="detail-label">
             <span class="label-text">{$t("model")}</span>
-            <Combobox
+            <Select
               bind:value={draftConfig.defaults.chat_model.model}
               items={providerModels(draftConfig.defaults.chat_model.provider_id).map((m) => ({
                 value: m,
                 label: m,
               }))}
               placeholder={$t("model")}
+              searchable
+              searchPlaceholder={$t("searchModels")}
+              emptyText={$t("noModels")}
               ariaLabel={$t("model")}
             />
           </div>
@@ -2987,17 +2996,21 @@
                   </Tooltip>
                   <div class="retry-queue-fields">
                     <Select
-                      bind:value={binding.provider_id}
+                      value={binding.provider_id}
                       items={enabledProviderOptions()}
                       ariaLabel={$t("providerNode")}
+                      onValueChange={(providerId) => selectBindingProvider(binding, providerId)}
                     />
-                    <Combobox
+                    <Select
                       bind:value={binding.model}
                       items={providerModels(binding.provider_id).map((m) => ({
                         value: m,
                         label: m,
                       }))}
                       placeholder={$t("model")}
+                      searchable
+                      searchPlaceholder={$t("searchModels")}
+                      emptyText={$t("noModels")}
                       ariaLabel={$t("model")}
                     />
                   </div>
@@ -3050,20 +3063,25 @@
           <div class="detail-label">
             <span class="label-text">{$t("providerNode")}</span>
             <Select
-              bind:value={draftConfig.defaults.flash_model.provider_id}
+              value={draftConfig.defaults.flash_model.provider_id}
               items={enabledProviderOptions()}
               ariaLabel={$t("providerNode")}
+              onValueChange={(providerId) =>
+                selectBindingProvider(draftConfig.defaults.flash_model, providerId)}
             />
           </div>
           <div class="detail-label">
             <span class="label-text">{$t("model")}</span>
-            <Combobox
+            <Select
               bind:value={draftConfig.defaults.flash_model.model}
               items={providerModels(draftConfig.defaults.flash_model.provider_id).map((m) => ({
                 value: m,
                 label: m,
               }))}
               placeholder={$t("model")}
+              searchable
+              searchPlaceholder={$t("searchModels")}
+              emptyText={$t("noModels")}
               ariaLabel={$t("model")}
             />
           </div>
@@ -3101,17 +3119,21 @@
                   </Tooltip>
                   <div class="retry-queue-fields">
                     <Select
-                      bind:value={binding.provider_id}
+                      value={binding.provider_id}
                       items={enabledProviderOptions()}
                       ariaLabel={$t("providerNode")}
+                      onValueChange={(providerId) => selectBindingProvider(binding, providerId)}
                     />
-                    <Combobox
+                    <Select
                       bind:value={binding.model}
                       items={providerModels(binding.provider_id).map((m) => ({
                         value: m,
                         label: m,
                       }))}
                       placeholder={$t("model")}
+                      searchable
+                      searchPlaceholder={$t("searchModels")}
+                      emptyText={$t("noModels")}
                       ariaLabel={$t("model")}
                     />
                   </div>

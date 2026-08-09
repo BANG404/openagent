@@ -188,6 +188,13 @@ type-checking until its asset is assigned. Artwork comes from Cherry Studio at
 commit `16e2905fd30fbfe21d1c58651574dcc939b6fb30` where available, with missing
 brands sourced from the provider's official site or project repository.
 
+Default-model and retry-queue bindings treat the provider and model as one
+selection. Changing a provider immediately replaces the model with that
+provider's first available model, so a model name from the previous provider is
+never displayed or persisted against the new provider. Model selection uses a
+catalog menu with a separate, clearable search field; editing the search query
+does not mutate the selected model.
+
 User-facing settings and onboarding describe provider choices as model services;
 they do not expose the runtime framework that implements those integrations.
 

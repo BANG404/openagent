@@ -1,4 +1,4 @@
-import type { AppConfig, McpServerConfig, ProviderConfig } from "$lib/types";
+import type { AppConfig, DefaultModelBinding, McpServerConfig, ProviderConfig } from "$lib/types";
 import { providerCatalogEntry } from "$lib/providerCatalog";
 
 export type RetryQueueKind = "chat_queue" | "flash_queue";
@@ -60,6 +60,18 @@ export function applyFetchedProviderModels(provider: ProviderConfig, models: str
   replaceProviderModels(provider, models);
   provider.enabled = models.length > 0;
   return provider.enabled;
+}
+
+export function selectModelBindingProvider(
+  config: AppConfig,
+  binding: DefaultModelBinding,
+  providerId: string,
+): void {
+  const provider = config.providers.find(
+    (item) => item.id === providerId && item.enabled && item.models.length > 0,
+  );
+  binding.provider_id = provider?.id ?? "";
+  binding.model = provider?.models[0] ?? "";
 }
 
 export function repairModelBindings(config: AppConfig): void {
