@@ -359,6 +359,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   layout verification. Its composer and browser-backed attachment picker stay
   interactive for overflow stress checks, but submission stays disabled; it
   must not register shortcuts or emulate native window behavior outside Tauri.
+  The launcher card uses the shared theme-aware Windows Mica surface and keeps
+  the surrounding expanded native-window stage transparent. Its `-theme`
+  parameter must accept both explicit `light` and `dark` values so either theme
+  remains verifiable regardless of the operating-system preference.
 - Keep the development-only `reasoning-effort-preview` query available as a
   direct, interactive browser surface for the shared ChatGPT OAuth effort
   selector. It must bypass onboarding and native state, and its `-theme` and

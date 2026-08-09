@@ -187,10 +187,13 @@
     min-height: 174px;
     max-height: 265px;
     overflow: hidden;
-    background: var(--surface);
+    border: 1px solid var(--mica-border);
+    background: var(--mica-surface);
     color: var(--text);
     border-radius: 14px;
     box-shadow: 0 4px 12px color-mix(in srgb, var(--shadow) 72%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(1.08);
+    backdrop-filter: blur(24px) saturate(1.08);
   }
 
   .quick-chat::before {
@@ -442,7 +445,7 @@
     gap: 10px;
     padding: 7px 10px 7px 12px;
     border-top: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-    background: color-mix(in srgb, var(--surface) 72%, transparent);
+    background: color-mix(in srgb, var(--mica-surface) 72%, transparent);
   }
 
   .quick-selectors {

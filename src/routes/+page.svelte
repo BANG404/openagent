@@ -221,7 +221,11 @@
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
   const quickChatPreviewTheme =
-    devQuery?.get("quick-chat-preview-theme") === "dark" ? "dark" : null;
+    devQuery?.get("quick-chat-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("quick-chat-preview-theme") === "light"
+        ? "light"
+        : null;
   const quickChatPreviewLocale: Locale | null =
     devQuery?.get("quick-chat-preview-locale") === "en" ? "en" : null;
   const reasoningEffortPreviewTheme =

@@ -286,7 +286,8 @@ native size fixed for the whole visible session; the card remains compact and
 the menu opens below and outside it without visible-window resize jitter.
 Shrink the native window only after hiding it. Clicking the unused transparent
 area dismisses the launcher.
-The card and selector surfaces are opaque; transparency belongs only to the
+The card uses the shared theme-aware Windows Mica surface with its 24px backdrop
+blur, while selector surfaces remain opaque; transparency belongs only to the
 unused part of the expanded native window. Selectors stay below their trigger,
 align to its start edge, and do not use collision-based side flipping. The
 title row is the native window drag handle, and drag-time focus changes must not
