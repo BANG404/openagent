@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.37.1-beta.1] - 2026-08-09
+
+### Bug Fixes
+- **chat**: Restore compaction progress display
+- **chat**: Refresh manual compaction boundary
+- **settings**: Synchronize default model selection
+- **chat**: Remove compaction transcript notices
+- **chat**: Advertise composer commands
+- **quick-chat**: Sync theme and refine Mica surface
+- **chat**: Theme fenced code blocks
+- **quick-chat**: Follow theme with Mica surface
+- **chat**: Restore inline code theme contrast
+
+### Miscellaneous
+- **sdk**: Update AGUI prompt grammar
+
 ## [0.37.0-beta.1] - 2026-08-08
 
 ### Features
