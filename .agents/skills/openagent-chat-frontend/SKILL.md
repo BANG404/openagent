@@ -20,6 +20,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep streamed Markdown list markers outside the list-item content so loose
   lists whose items contain block paragraphs align each marker with the first
   content line.
+- Style inline Markdown code through Streamdown's semantic codespan marker and
+  application theme tokens. Do not depend on the renderer's optional utility
+  classes; inline code must retain readable foreground and surface contrast in
+  both light and dark themes without affecting fenced code blocks.
 - In responsive double-column mode, expanded process records participate in
   pagination instead of moving as one container. Keep the process header with
   its first record and preserve the same atomic break rules used by ordinary

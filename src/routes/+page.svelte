@@ -383,7 +383,7 @@
         { type: "compaction_boundary" },
         {
           type: "text",
-          content: `${bookModePreviewTable}\n\n${Array.from(
+          content: `Inline code keeps theme contrast for \`pages/\`, \`components/\`, and \`README.md\`.\n\n${bookModePreviewTable}\n\n${Array.from(
             { length: 28 },
             (_, index) =>
               `### ${index + 1}. 连贯阅读\n\n书籍模式会把一次完整的 Agent 输出保持在同一章中。正文从左栏自然流向右栏，超出当前展开页时继续到下一页；压缩续接、工具过程和最终结论都保留原有顺序。`,
@@ -6416,10 +6416,11 @@
     color: var(--text-muted);
   }
 
-  :global(.assistant-msg :not(pre) > code:not([class])) {
+  :global(.assistant-msg [data-streamdown-codespan]) {
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 4px;
+    color: var(--text);
     padding: 1px 5px;
     font-size: 13px;
     font-family: "JetBrains Mono", "Fira Code", monospace;
