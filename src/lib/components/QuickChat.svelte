@@ -147,16 +147,18 @@
   .quick-chat {
     position: relative;
     display: grid;
-    grid-template-rows: minmax(87px, auto) 1px 48px;
+    grid-template-rows: minmax(111px, auto) 1px 48px;
     width: 100%;
-    min-height: 136px;
-    max-height: 227px;
+    min-height: 160px;
+    max-height: 251px;
     overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
     background: linear-gradient(var(--mica-surface), var(--mica-surface)), var(--surface2);
     color: var(--text);
     border-radius: 14px;
-    box-shadow: 0 8px 24px color-mix(in srgb, var(--shadow) 84%, transparent);
+    box-shadow:
+      0 14px 38px color-mix(in srgb, var(--shadow) 72%, rgba(0, 0, 0, 0.22)),
+      0 3px 10px color-mix(in srgb, var(--shadow) 82%, transparent);
   }
 
   .quick-chat::before {
@@ -213,21 +215,21 @@
     grid-template-columns: minmax(0, 1fr);
     min-height: 0;
     align-items: start;
-    padding: 6px 18px 8px 14px;
+    padding: 14px 18px 8px 14px;
     overflow: hidden;
   }
 
   .composer-slot {
     min-width: 0;
-    min-height: 73px;
-    max-height: 164px;
+    min-height: 97px;
+    max-height: 188px;
     overflow: hidden;
   }
 
   .composer-slot :global(.input-wrapper),
   .composer-slot :global(.composer) {
-    min-height: 73px;
-    max-height: 164px;
+    min-height: 97px;
+    max-height: 188px;
   }
 
   .composer-slot :global(.composer) {
@@ -256,8 +258,8 @@
   }
 
   .composer-slot :global(.input) {
-    min-height: 54px;
-    max-height: 122px;
+    min-height: 78px;
+    max-height: 146px;
     padding: 9px 88px 7px 2px;
     overflow-y: auto;
     font-size: 18px;

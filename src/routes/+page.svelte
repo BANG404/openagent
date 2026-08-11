@@ -1,9 +1,9 @@
 <script lang="ts">
   import { isTauri } from "@tauri-apps/api/core";
-  import { LogicalSize } from "@tauri-apps/api/dpi";
+  import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
   import { homeDir } from "@tauri-apps/api/path";
   import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
-  import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { availableMonitors, getCurrentWindow } from "@tauri-apps/api/window";
   import {
     disable as disableAutostart,
     enable as enableAutostart,
@@ -41,6 +41,12 @@
     resolveQuickChatModel,
     saveQuickChatPreferences,
   } from "$lib/quickChatPreferences";
+  import {
+    clearQuickChatWindowPosition,
+    isQuickChatWindowPositionVisible,
+    loadQuickChatWindowPosition,
+    saveQuickChatWindowPosition,
+  } from "$lib/quickChatWindowPosition";
   import { desktopOpenAgent as openAgent, emit, invoke, listen } from "$lib/openagent/tauriClient";
   import type { ChatMemoryRetrievalStage, ChatRunStartedEvent } from "$lib/openagent";
   import {
@@ -4708,8 +4714,8 @@
   // ─── Window Controls ─────────────────────────────────────────────────────────
 
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
-  const quickChatCompactSize = { width: 760, height: 190 };
-  const quickChatExpandedSize = { width: 760, height: 500 };
+  const quickChatCompactSize = { width: 760, height: 222 };
+  const quickChatExpandedSize = { width: 760, height: 532 };
   const winMinimize = () => appWindow?.minimize();
   const winMaximize = () => appWindow?.toggleMaximize();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
@@ -4725,10 +4731,39 @@
     await quickWindow.setSize(
       new LogicalSize(quickChatCompactSize.width, quickChatCompactSize.height),
     );
-    await quickWindow.center();
+    const savedPosition = loadQuickChatWindowPosition(window.localStorage);
     await quickWindow.setSize(
       new LogicalSize(quickChatExpandedSize.width, quickChatExpandedSize.height),
     );
+    let restoredPosition = false;
+    if (savedPosition) {
+      try {
+        const [windowSize, monitors] = await Promise.all([
+          quickWindow.outerSize(),
+          availableMonitors(),
+        ]);
+        restoredPosition = isQuickChatWindowPositionVisible(
+          savedPosition,
+          windowSize,
+          monitors.map((monitor) => monitor.workArea),
+        );
+        if (restoredPosition) {
+          await quickWindow.setPosition(new PhysicalPosition(savedPosition.x, savedPosition.y));
+        }
+      } catch {
+        restoredPosition = false;
+      }
+    }
+    if (!restoredPosition) {
+      clearQuickChatWindowPosition(window.localStorage);
+      await quickWindow.setSize(
+        new LogicalSize(quickChatCompactSize.width, quickChatCompactSize.height),
+      );
+      await quickWindow.center();
+      await quickWindow.setSize(
+        new LogicalSize(quickChatExpandedSize.width, quickChatExpandedSize.height),
+      );
+    }
     await quickWindow.unminimize().catch(() => {});
     await quickWindow.show();
     await quickWindow.setFocus();
@@ -4957,9 +4992,16 @@
         void closeQuickChat();
       }
     });
+    const unlistenQuickChatMoved =
+      isQuickChatWindow && appWindow
+        ? appWindow.onMoved(({ payload: position }) => {
+            saveQuickChatWindowPosition(window.localStorage, position);
+          })
+        : null;
     return () => {
       void unlistenQuickChatInputFocus?.then((dispose) => dispose());
       void unlistenQuickChatFocus?.then((dispose) => dispose());
+      void unlistenQuickChatMoved?.then((dispose) => dispose());
       void unlistenQuickChatSettings?.then((dispose) => dispose());
       if (registeredQuickChatShortcut) {
         void unregister(registeredQuickChatShortcut).catch(() => {});

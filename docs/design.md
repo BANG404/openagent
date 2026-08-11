@@ -284,7 +284,7 @@ combination immediately, and provides a quiet reset action. Shortcut recording
 continues after a pointer click even on platforms where buttons do not receive
 keyboard focus. Registration
 conflicts appear inline and leave the previous accelerator active. The primary
-desktop process owns a separate centered 760 × 190px always-on-top launcher;
+desktop process owns a separate centered 760 × 222px always-on-top launcher;
 workspace windows never resize or change visibility when it opens. The launcher
 is one continuous raised surface with a 14px radius: a large borderless composer
 followed by a 48px footer for model, role, and workspace selectors. It has no
@@ -297,19 +297,23 @@ Every submission creates a fresh durable conversation, routes the turn to the
 selected workspace process, opens or focuses that workspace window, and shows the
 new streaming conversation there. Failures keep the launcher and draft visible.
 Because a webview cannot render beyond its native bounds, prepare the
-transparent launcher window at 760 × 500px before showing it and keep that
+transparent launcher window at 760 × 532px before showing it and keep that
 native size fixed for the whole visible session; the card remains compact and
 the menu opens below and outside it without visible-window resize jitter.
 Shrink the native window only after hiding it. Clicking the unused transparent
-area dismisses the launcher.
+area dismisses the launcher. A native drag records the launcher's physical
+screen position. Later reveals restore it only while enough of the expanded
+window intersects a current monitor work area; malformed or off-screen history
+is discarded and the launcher returns to its centered default.
 The card uses a theme-tinted variant of the shared Windows-Mica-inspired
 material composited over an opaque theme base, with a clearly visible perimeter
-and restrained raised shadow. Content behind the launcher must not show through;
+and pronounced but compact raised shadow. Content behind the launcher must not show through;
 selector surfaces also remain opaque, and transparency belongs only to the
 unused part of the expanded native window. Selectors stay below their trigger,
 align to its start edge, and do not use collision-based side flipping. The
-card's non-interactive space remains a native drag handle, and drag-time focus
-changes must not close the launcher. Give the launcher card a restrained shadow,
+card's non-interactive space remains a native drag handle, with generous padding
+above the composer as its primary grab target; drag-time focus changes must not
+close the launcher. Give the launcher card a restrained shadow,
 contained by transparent stage padding so it never meets or clips against the
 native window boundary; selector content uses the shared raised shadow while its
 search field remains shadowless at rest. Separate the composer and selector

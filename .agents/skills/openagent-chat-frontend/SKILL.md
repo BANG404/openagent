@@ -375,14 +375,18 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the Cargo feature and configuration allowlist disagree, while macOS omits
   the transparent window builder API when both are disabled. Clicking the
   unused transparent area dismisses the launcher.
+  Persist physical positions reported by native window moves. Before every
+  reveal, restore a saved position only when the expanded window retains a
+  usable visible area inside a current monitor work area; malformed or
+  off-screen history must be cleared before restoring the centered default.
   Keep the card on a theme-tinted Windows-Mica-inspired material composited over
   an opaque theme base, so content behind the launcher never shows through.
-  Give it a clearly visible perimeter and restrained elevation; selector
+  Give it a clearly visible perimeter and compact, clearly readable elevation; selector
   surfaces remain opaque.
   Do not render a title bar, shortcut hint, or window-action row above the
   composer; the compact card begins directly with input. Preserve native
-  dragging from non-interactive card space, and open selectors below and
-  visually outside the card,
+  dragging from non-interactive card space. Keep a generous top inset above the
+  textarea as the primary grab target, and open selectors below and visually outside the card,
   aligned to their trigger start edge, without collision-based side flipping.
   Give the launcher card only a restrained shadow and keep enough transparent
   stage padding around it that the shadow never meets or clips against the
