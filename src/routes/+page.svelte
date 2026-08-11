@@ -5047,6 +5047,7 @@
     </main>
   {:else if isCheckpointFlowPreview}
     <main class="checkpoint-flow-preview-stage">
+      <div class="conversation-input-fade" aria-hidden="true"></div>
       <div class="conversation-aurora" aria-hidden="true"></div>
       <section class="checkpoint-flow-preview-chat">
         <header>
@@ -5424,7 +5425,13 @@
             </div>
           </header>
 
-          <div class="conversation-workspace">
+          <div class="conversation-workspace" style:--input-area-height={`${inputAreaHeight}px`}>
+            <div
+              class="conversation-input-fade"
+              class:conversation-input-fade-streaming={isCurrentStreaming}
+              class:conversation-input-fade-hidden={newConversationLayout}
+              aria-hidden="true"
+            ></div>
             <div
               class="conversation-aurora"
               class:conversation-aurora-streaming={isCurrentStreaming}
@@ -5847,7 +5854,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    z-index: 1;
+    z-index: 3;
     background: var(--mica-surface);
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
@@ -5856,6 +5863,7 @@
 
   .conversation-stage {
     position: relative;
+    z-index: 4;
     display: flex;
     min-width: 0;
     min-height: 0;
@@ -6009,11 +6017,11 @@
     pointer-events: none;
   }
 
-  .input-area::before {
-    content: "";
+  .conversation-input-fade {
     position: absolute;
-    inset: -48px 0 0;
-    z-index: 0;
+    inset: auto 0 0;
+    z-index: 1;
+    height: calc(var(--input-area-height, 120px) + 48px);
     background: linear-gradient(to top, var(--bg) 0%, var(--bg) 60%, transparent 100%);
     opacity: 1;
     pointer-events: none;
@@ -6088,7 +6096,7 @@
     display: none;
   }
 
-  .input-area::after {
+  .conversation-input-fade::after {
     content: "";
     position: absolute;
     left: 50%;
@@ -6125,8 +6133,7 @@
     filter: blur(28px) saturate(1.45);
   }
 
-  .input-area-new-conversation::before,
-  .input-area-new-conversation::after {
+  .conversation-input-fade-hidden {
     opacity: 0;
   }
 
@@ -6141,7 +6148,7 @@
     opacity: 0;
   }
 
-  .input-area-streaming::after {
+  .conversation-input-fade-streaming::after {
     background: linear-gradient(
       to top,
       rgba(245, 245, 247, 0.62),
@@ -6150,7 +6157,7 @@
     );
   }
 
-  :global(html.dark) .input-area::after {
+  :global(html.dark) .conversation-input-fade::after {
     background: linear-gradient(
       to top,
       rgba(15, 17, 23, 0.76),
@@ -6873,6 +6880,7 @@
 
   .checkpoint-flow-preview-chat {
     position: relative;
+    z-index: 4;
     display: flex;
     min-width: 0;
     flex: 1;
