@@ -146,6 +146,10 @@
   }
 </script>
 
+{#if collapsed}
+  <div class="flow-panel-placeholder" aria-hidden="true"></div>
+{/if}
+
 <aside
   class="flow-panel"
   class:collapsed
@@ -312,6 +316,11 @@
 </aside>
 
 <style>
+  .flow-panel-placeholder {
+    width: var(--flow-panel-collapsed-track-width, 30px);
+    flex: 0 0 var(--flow-panel-collapsed-track-width, 30px);
+  }
+
   .flow-panel {
     --flow-panel-inset: 12px;
     --flow-panel-top-inset: 12px;

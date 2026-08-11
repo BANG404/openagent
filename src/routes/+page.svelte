@@ -5046,7 +5046,10 @@
       />
     </main>
   {:else if isCheckpointFlowPreview}
-    <main class="checkpoint-flow-preview-stage">
+    <main
+      class="checkpoint-flow-preview-stage"
+      class:checkpoint-flow-panel-collapsed={checkpointFlowPanelCollapsed}
+    >
       <div class="conversation-input-fade" aria-hidden="true"></div>
       <div class="conversation-aurora" aria-hidden="true"></div>
       <section class="checkpoint-flow-preview-chat">
@@ -5425,7 +5428,13 @@
             </div>
           </header>
 
-          <div class="conversation-workspace" style:--input-area-height={`${inputAreaHeight}px`}>
+          <div
+            class="conversation-workspace"
+            class:checkpoint-flow-panel-collapsed={Boolean(
+              currentCheckpointFlow && checkpointFlowPanelCollapsed,
+            )}
+            style:--input-area-height={`${inputAreaHeight}px`}
+          >
             <div
               class="conversation-input-fade"
               class:conversation-input-fade-streaming={isCurrentStreaming}
@@ -5840,6 +5849,7 @@
   }
 
   .conversation-workspace {
+    --flow-panel-collapsed-track-width: 30px;
     position: relative;
     isolation: isolate;
     display: flex;
@@ -5847,6 +5857,10 @@
     min-height: 0;
     flex: 1;
     padding-top: 48px;
+  }
+
+  .conversation-workspace.checkpoint-flow-panel-collapsed {
+    --flow-panel-index-offset: var(--flow-panel-collapsed-track-width);
   }
 
   .conversation-workspace::before,
@@ -6869,6 +6883,7 @@
   }
 
   .checkpoint-flow-preview-stage {
+    --flow-panel-collapsed-track-width: 30px;
     position: relative;
     isolation: isolate;
     display: flex;
@@ -6876,6 +6891,13 @@
     height: 100vh;
     overflow: hidden;
     background: var(--bg);
+  }
+
+  @media (max-width: 760px) {
+    .conversation-workspace,
+    .checkpoint-flow-preview-stage {
+      --flow-panel-collapsed-track-width: 26px;
+    }
   }
 
   .checkpoint-flow-preview-chat {

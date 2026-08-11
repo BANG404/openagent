@@ -82,11 +82,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   use the same composition as the composer rather than an independently tinted
   backdrop. The collapsed peek may retain that surface so its exposed edge
   remains discoverable.
-  Collapse it out of that layout and beyond the right edge so only a vertically
-  shortened, clickable strip of the card's left edge remains visible without
-  overlapping native title-bar controls. The peek creates no layout track,
-  full-height divider, glyph, or separate expand button; keep keyboard focus visible
-  on that edge. Keep the expanded header free of decorative Goal or Graph kind
+  Collapse the card beyond the right edge so only a vertically shortened,
+  clickable strip of its left edge remains visible without overlapping native
+  title-bar controls. Keep a narrow collapsed layout track equal to that peek
+  plus its outer inset so the conversation scrollbar and right-side user-message
+  index remain clear of the card. The peek creates no full-height divider, glyph,
+  or separate expand button; keep keyboard focus visible on that edge. Keep the
+  expanded header free of decorative Goal or Graph kind
   glyphs and retain its collapse button, whose arrow points toward the right edge
   where the panel collapses. Center an otherwise empty planning state in the
   available panel body.

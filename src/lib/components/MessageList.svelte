@@ -961,7 +961,7 @@
   .user-message-index {
     position: fixed;
     top: 50%;
-    right: 16px;
+    right: calc(16px + var(--flow-panel-index-offset, 0px));
     z-index: 12;
     display: flex;
     width: 28px;
@@ -1024,7 +1024,7 @@
 
   @media (max-width: 720px) {
     .user-message-index {
-      right: 8px;
+      right: calc(8px + var(--flow-panel-index-offset, 0px));
       width: 38px;
     }
   }
