@@ -5863,7 +5863,6 @@
 
   .conversation-stage {
     position: relative;
-    z-index: 2;
     display: flex;
     min-width: 0;
     min-height: 0;
@@ -6034,7 +6033,7 @@
     top: calc(100% - 122px);
     width: min(calc(100% + 100px), 1064px);
     height: 210px;
-    z-index: 0;
+    z-index: 2;
     background:
       radial-gradient(ellipse at 12% 62%, rgba(66, 133, 244, 0.34) 0 18%, transparent 43%),
       radial-gradient(ellipse at 36% 52%, rgba(161, 66, 244, 0.3) 0 16%, transparent 42%),
@@ -6881,7 +6880,6 @@
 
   .checkpoint-flow-preview-chat {
     position: relative;
-    z-index: 2;
     display: flex;
     min-width: 0;
     flex: 1;
@@ -6930,6 +6928,13 @@
   .checkpoint-flow-preview-composer :global(.input-wrapper) {
     width: min(760px, 100%);
     margin: 0 auto;
+  }
+
+  .conversation-workspace :global(.composer),
+  .checkpoint-flow-preview-stage :global(.composer) {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
   .command-palette-preview-stage :global(.input-wrapper) {

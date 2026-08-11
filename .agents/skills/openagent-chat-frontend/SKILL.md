@@ -72,9 +72,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   visually continuous while its persisted width reduces the conversation track.
   Paint one translucent Mica background on that shared workspace, keep the
   composer aurora there rather than inside the conversation-only track, and
-  leave the expanded panel body transparent. The panel may retain its border,
-  radius, and shadow, but must not create a second backdrop layer that splits
-  the workspace into independently tinted regions.
+  place it above the input fade. Leave both the ordinary composer surface and
+  the expanded panel body transparent so they reveal that same material and
+  aurora. They may retain their borders, radii, and shadows, but must not create
+  second backdrop layers that split the workspace into independently tinted
+  regions.
   Collapse it out of that layout and beyond the right edge so only a vertically
   shortened, clickable strip of the card's left edge remains visible without
   overlapping native title-bar controls. The peek creates no layout track,
