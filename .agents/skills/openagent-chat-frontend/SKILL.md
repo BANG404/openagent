@@ -180,7 +180,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Mermaid and book previews: center the attachment within the framed canvas and
   keep preview controls in the top-right. Image previews expose zoom out, fit,
   zoom in, and close controls; text, PDF, and unavailable states retain the same
-  centered frame and close placement.
+  centered frame and close placement. Reset image scale to fit whenever the
+  preview opens, and keep enlarged image overflow scrollable instead of clipping.
 - In the ordinary composer, render pending attachments as 112px preview cards in
   one horizontally scrollable row: preview image and supported text content,
   keep the filename anchored at the card foot, and keep the remove action at

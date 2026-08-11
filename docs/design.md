@@ -268,7 +268,8 @@ attachment strip. Opening a card or restored attachment uses a full-window
 preview frame consistent with Mermaid fullscreen: the attachment stays centered
 inside the inset canvas and controls remain in the top-right. Images provide
 zoom out, fit, zoom in, and close actions; other preview kinds keep the same
-canvas and close placement.
+canvas and close placement. Every image preview opens fitted to the viewport;
+zoomed content remains scrollable within the inset canvas instead of clipping.
 
 Long secondary collections should not make a primary action menu scroll. The workspace switcher keeps open-folder actions in its root menu and renders its trigger, root items, and older-workspace rows without decorative icons; the current-folder-location row remains text-only, while WSL is communicated with an explicit text badge. Older workspaces appear in a side-opening “Recent workspaces” submenu; its entry retains a right-pointing chevron as the submenu indicator and must support pointer hover, click, and keyboard navigation, keep its scrollbar flush with the right edge, and reuse the shared menu density.
 
