@@ -61,6 +61,7 @@
     loadMentionItems?: (query: string) => Promise<PaletteItem[]>;
     showGlobalDraftsInMentions?: boolean;
     showAttachments?: boolean;
+    attachmentDisplay?: "cards" | "strip";
     showModelSelector?: boolean;
     showReasoningEffort?: boolean;
     reasoningEffort?: ReasoningEffort;
@@ -105,6 +106,7 @@
     loadMentionItems,
     showGlobalDraftsInMentions = true,
     showAttachments = true,
+    attachmentDisplay = "cards",
     showModelSelector = true,
     showReasoningEffort = false,
     reasoningEffort = "medium",
@@ -830,7 +832,7 @@
         {#each attachments as attachment (attachment.path)}
           <AttachmentPreview
             {attachment}
-            size="compact"
+            size={attachmentDisplay === "strip" ? "strip" : "composer"}
             loadPreview={attachmentPreviewLoader}
             onRemove={() => removeAttachment(attachment.path)}
           />
@@ -1096,9 +1098,16 @@
 
   .attachment-list {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 10px 12px 0;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 10px 12px 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .attachment-list::-webkit-scrollbar {
+    display: none;
   }
 
   .composer-toolbar {

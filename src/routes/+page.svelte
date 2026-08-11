@@ -200,6 +200,7 @@
   const devQuery = import.meta.env.DEV ? runtimeQuery : null;
   const isDevInspectorWindow = devQuery?.has("dev-inspector") === true;
   const isQuickChatPreview = devQuery?.has("quick-chat-preview") === true;
+  const isAttachmentComposerPreview = devQuery?.has("attachment-composer-preview") === true;
   const isReasoningEffortPreview = devQuery?.has("reasoning-effort-preview") === true;
   const isWorkspaceSwitcherPreview = devQuery?.has("workspace-switcher-preview") === true;
   const isCommandPalettePreview = devQuery?.has("command-palette-preview") === true;
@@ -227,6 +228,18 @@
         : null;
   const quickChatPreviewLocale: Locale | null =
     devQuery?.get("quick-chat-preview-locale") === "en" ? "en" : null;
+  const attachmentComposerPreviewTheme =
+    devQuery?.get("attachment-composer-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("attachment-composer-preview-theme") === "light"
+        ? "light"
+        : null;
+  const attachmentComposerPreviewLocale: Locale | null =
+    devQuery?.get("attachment-composer-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("attachment-composer-preview-locale") === "zh"
+        ? "zh"
+        : null;
   const reasoningEffortPreviewTheme =
     devQuery?.get("reasoning-effort-preview-theme") === "dark"
       ? "dark"
@@ -697,6 +710,18 @@
 
   let inputText = $state("");
   let inputAttachments = $state<ChatAttachment[]>([]);
+  let attachmentComposerPreviewValue = $state("");
+  let attachmentComposerPreviewAttachments = $state<ChatAttachment[]>([
+    { path: "preview://agentgym.txt", name: "agentgym.txt", kind: "document" },
+    { path: "preview://sdk-docs.ts", name: "4.1 SDK文档.ts", kind: "document" },
+    { path: "preview://interaction.md", name: "交互演示.md", kind: "document" },
+    {
+      path: "preview://openagent.png",
+      name: "image_bae3ff.png",
+      kind: "image",
+      previewUrl: "/app-icon.png",
+    },
+  ]);
   let commandPalettePreviewValue = $state("");
   let commandPalettePreviewAttachments = $state<ChatAttachment[]>([]);
   let pauseControlPreviewValue = $state("");
@@ -705,6 +730,27 @@
   let checkpointFlowPreviewValue = $state("");
   let checkpointFlowPreviewAttachments = $state<ChatAttachment[]>([]);
   let checkpointFlowPreviewApproval = $state<ApprovalMode>("auto");
+
+  async function loadAttachmentComposerPreview(locator: string) {
+    if (locator.endsWith("interaction.md")) {
+      return {
+        kind: "text" as const,
+        text: "接下来要做什么？\n\nOpenAgent attachment preview",
+      };
+    }
+    return { kind: "file" as const };
+  }
+
+  async function uploadAttachmentComposerPreview(files: File[]): Promise<ChatAttachment[]> {
+    return files.map((file) => ({
+      path: `preview://${file.name}-${file.lastModified}`,
+      name: file.name,
+      kind: /\.(png|jpe?g|gif|webp)$/i.test(file.name) ? "image" : "document",
+      previewUrl: /\.(png|jpe?g|gif|webp)$/i.test(file.name)
+        ? URL.createObjectURL(file)
+        : undefined,
+    }));
+  }
   const checkpointFlowPreview: CheckpointFlow =
     devQuery?.get("checkpoint-flow-preview-kind") === "goal"
       ? {
@@ -892,6 +938,7 @@
     if (
       isDevInspectorWindow ||
       isQuickChatSurface ||
+      isAttachmentComposerPreview ||
       isBookModePreview ||
       isWorkspaceSwitcherPreview ||
       isCommandPalettePreview ||
@@ -3361,6 +3408,7 @@
           commandPalettePreviewTheme ??
           workspaceSwitcherPreviewTheme ??
           reasoningEffortPreviewTheme ??
+          attachmentComposerPreviewTheme ??
           quickChatPreviewTheme ??
           config.theme ??
           "system",
@@ -3377,6 +3425,7 @@
           commandPalettePreviewLocale ??
           workspaceSwitcherPreviewLocale ??
           reasoningEffortPreviewLocale ??
+          attachmentComposerPreviewLocale ??
           quickChatPreviewLocale ??
           config.language,
       );
@@ -5050,6 +5099,29 @@
         <code>reasoning.effort = "{reasoningEffortPreviewValue}"</code>
       </section>
     </main>
+  {:else if isAttachmentComposerPreview}
+    <main class="attachment-composer-preview-stage">
+      <MessageInput
+        bind:value={attachmentComposerPreviewValue}
+        bind:attachments={attachmentComposerPreviewAttachments}
+        selectedModel=""
+        modelOptions={[]}
+        placeholder={$t("inputPlaceholder")}
+        disabled={false}
+        isStreaming={false}
+        sendDisabled={false}
+        sendTitle={$t("send")}
+        slashCommands={[]}
+        enableMentions={false}
+        showAttachments
+        showModelSelector={false}
+        showStopButton={false}
+        attachmentPreviewLoader={loadAttachmentComposerPreview}
+        onUploadAttachments={uploadAttachmentComposerPreview}
+        onSend={() => {}}
+        onStop={() => {}}
+      />
+    </main>
   {:else if isQuickChatSurface}
     <div
       class="quick-chat-stage"
@@ -5091,7 +5163,9 @@
             slashCommands={[]}
             enableMentions={false}
             showAttachments
+            attachmentDisplay="strip"
             showModelSelector={false}
+            onUploadAttachments={isQuickChatPreview ? uploadAttachmentComposerPreview : undefined}
             focusRequest={quickChatInputFocusRequest}
             onAttachmentPickerOpenChange={handleQuickAttachmentPickerOpenChange}
             onSend={sendQuickChatMessage}
@@ -6709,6 +6783,20 @@
     padding: 16px 15px;
     box-sizing: border-box;
     background: var(--bg);
+  }
+
+  .attachment-composer-preview-stage {
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-end;
+    padding: 24px;
+    box-sizing: border-box;
+    background: var(--bg);
+  }
+
+  .attachment-composer-preview-stage :global(.input-wrapper) {
+    width: min(760px, 100%);
+    margin: 0 auto;
   }
 
   .checkpoint-flow-preview-stage {

@@ -176,6 +176,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 ## Attachments and editing
 
 - Reuse one attachment preview component in composer and restored transcript.
+- In the ordinary composer, render pending attachments as 112px preview cards in
+  one horizontally scrollable row: preview image and supported text content,
+  keep the filename anchored at the card foot, and keep the remove action at
+  the top-right. Quick chat retains its 28px single-line attachment strip
+  because its native window height is fixed.
 - Keep editable user messages discoverable without adding a second action
   target: the message bubble retains its accessible edit label and reveals a
   non-interactive pencil affordance on pointer hover or keyboard focus.
@@ -412,6 +417,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   shared composer's streaming primary action. Its `-theme` and `-locale`
   parameters must keep pause, resume, send, light/dark, and Chinese/English
   checks addressable without a native runtime.
+- Keep the development-only `attachment-composer-preview` query available for
+  the shared composer's pending-attachment cards. Its `-theme` and `-locale`
+  parameters must keep card preview, removal, upload, horizontal overflow,
+  light/dark, and Chinese/English checks addressable without native state.
 - Keep the development-only `checkpoint-flow-preview` query available for the
   right-side Goal/Graph checkpoint panel and composer approval selector. Its
   `-kind`, `-theme`, and `-locale` query parameters must keep Goal/Graph,

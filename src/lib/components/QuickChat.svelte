@@ -289,42 +289,6 @@
     padding-top: 9px;
   }
 
-  .composer-slot :global(.attachment-preview.compact) {
-    width: min(180px, 100%);
-    height: 28px;
-    flex: 0 0 auto;
-    grid-template-columns: 28px minmax(0, 1fr);
-    box-shadow: none;
-  }
-
-  .composer-slot :global(.attachment-preview.compact .thumbnail) {
-    height: 28px;
-  }
-
-  .composer-slot :global(.attachment-preview.compact .file-fold) {
-    width: 15px;
-    height: 18px;
-  }
-
-  .composer-slot :global(.attachment-preview.compact .file-fold::after) {
-    width: 5px;
-    height: 5px;
-  }
-
-  .composer-slot :global(.attachment-preview.compact .attachment-meta) {
-    padding: 2px 26px 2px 7px;
-  }
-
-  .composer-slot :global(.attachment-preview.compact .attachment-meta small) {
-    display: none;
-  }
-
-  .composer-slot :global(.attachment-preview.compact .remove-button) {
-    right: 3px;
-    width: 22px;
-    height: 22px;
-  }
-
   .composer-slot :global(.send-btn),
   .composer-slot :global(.stop-btn) {
     right: 2px;

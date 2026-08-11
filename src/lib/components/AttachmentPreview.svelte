@@ -15,12 +15,12 @@
 
   interface Props {
     attachment: ChatAttachment;
-    size?: "compact" | "large";
+    size?: "composer" | "message" | "strip";
     onRemove?: () => void;
     loadPreview?: (locator: string, name: string) => Promise<PreviewPayload>;
   }
 
-  let { attachment, size = "large", onRemove, loadPreview }: Props = $props();
+  let { attachment, size = "message", onRemove, loadPreview }: Props = $props();
   let preview = $state<PreviewPayload | null>(null);
   let failed = $state(false);
   let previewOpen = $state(false);
@@ -77,7 +77,8 @@
   }
 
   function openPreview() {
-    if (size === "large") previewOpen = true;
+    if (size === "strip") return;
+    previewOpen = true;
   }
 
   async function repairPreview() {
@@ -97,51 +98,31 @@
 
 <article
   class="attachment-preview"
-  class:compact={size === "compact"}
-  class:message-capsule={size === "large"}
+  class:composer-card={size === "composer"}
+  class:message-capsule={size === "message"}
+  class:strip={size === "strip"}
   class:failed
 >
-  {#if size === "large"}
-    <Tooltip text={attachment.name}>
-      {#snippet trigger(props)}
-        <button {...props} class="capsule-trigger" type="button" onclick={openPreview}>
-          <div class="thumbnail" class:image={preview?.kind === "image"}>
-            {#if preview?.kind === "image" && preview.data_url}
-              <img src={preview.data_url} alt="" />
-            {:else if preview?.kind === "text" && preview.text}
-              <pre aria-hidden="true">{preview.text}</pre>
-            {:else}
-              <span class="file-fold" aria-hidden="true"></span>
-              <strong>{extension}</strong>
-            {/if}
-          </div>
-          <div class="attachment-meta">
-            <span>{attachment.name}</span>
-            <small>{extension}</small>
-          </div>
-        </button>
-      {/snippet}
-    </Tooltip>
-  {:else}
-    <div class="thumbnail" class:image={preview?.kind === "image"}>
-      {#if preview?.kind === "image" && preview.data_url}
-        <img src={preview.data_url} alt="" />
-      {:else if preview?.kind === "text" && preview.text}
-        <pre aria-hidden="true">{preview.text}</pre>
-      {:else}
-        <span class="file-fold" aria-hidden="true"></span>
-        <strong>{extension}</strong>
-      {/if}
-    </div>
-    <Tooltip text={attachment.name}>
-      {#snippet trigger(props)}
-        <div {...props} class="attachment-meta">
+  <Tooltip text={attachment.name}>
+    {#snippet trigger(props)}
+      <button {...props} class="preview-trigger" type="button" onclick={openPreview}>
+        <div class="thumbnail" class:image={preview?.kind === "image"}>
+          {#if preview?.kind === "image" && preview.data_url}
+            <img src={preview.data_url} alt="" />
+          {:else if preview?.kind === "text" && preview.text}
+            <pre aria-hidden="true">{preview.text}</pre>
+          {:else}
+            <span class="file-fold" aria-hidden="true"></span>
+            <strong>{extension}</strong>
+          {/if}
+        </div>
+        <div class="attachment-meta">
           <span>{attachment.name}</span>
           <small>{extension}</small>
         </div>
-      {/snippet}
-    </Tooltip>
-  {/if}
+      </button>
+    {/snippet}
+  </Tooltip>
   {#if onRemove}
     <Tooltip text={$t("removeAttachment")}>
       {#snippet trigger(props)}
@@ -164,7 +145,7 @@
   {/if}
 </article>
 
-{#if size === "large"}
+{#if size !== "strip"}
   <Dialog.Root bind:open={previewOpen}>
     <Dialog.Portal>
       <Dialog.Overlay class="attachment-dialog-overlay" />
@@ -344,7 +325,7 @@
     transform: scale(0.985);
   }
 
-  .capsule-trigger {
+  .preview-trigger {
     display: grid;
     grid-template-columns: 38px minmax(0, 1fr);
     width: auto;
@@ -361,7 +342,195 @@
     cursor: zoom-in;
   }
 
-  .capsule-trigger .thumbnail {
+  .composer-card {
+    display: block;
+    width: 112px;
+    height: 112px;
+    flex: 0 0 112px;
+    border-radius: 18px;
+    background: var(--surface2);
+    box-shadow: none;
+  }
+
+  .composer-card:hover {
+    background: color-mix(in srgb, var(--surface2) 88%, var(--text) 4%);
+  }
+
+  .composer-card:focus-within {
+    box-shadow: var(--focus-ring);
+  }
+
+  .composer-card .preview-trigger {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: inherit;
+    outline: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: zoom-in;
+  }
+
+  .composer-card .thumbnail {
+    height: auto;
+    min-height: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .composer-card .thumbnail:not(.image) {
+    align-content: start;
+    justify-content: start;
+    padding: 13px 12px 4px;
+  }
+
+  .composer-card .thumbnail pre {
+    padding: 12px;
+    color: var(--text-muted);
+    background: transparent;
+    font-size: 7px;
+  }
+
+  .composer-card .file-fold {
+    display: none;
+  }
+
+  .composer-card .thumbnail strong {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  .composer-card .attachment-meta {
+    min-height: 34px;
+    align-content: center;
+    padding: 5px 12px 8px;
+  }
+
+  .composer-card .attachment-meta span {
+    font-size: 12px;
+    font-weight: 450;
+  }
+
+  .composer-card .attachment-meta small {
+    display: none;
+  }
+
+  .composer-card .remove-button {
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--surface) 90%, transparent);
+    color: var(--text);
+    box-shadow: 0 1px 4px color-mix(in srgb, var(--shadow) 72%, transparent);
+    transform: none;
+    opacity: 0;
+  }
+
+  .composer-card:hover .remove-button,
+  .composer-card:focus-within .remove-button {
+    opacity: 1;
+  }
+
+  .composer-card .remove-button:hover {
+    background: var(--surface);
+  }
+
+  .composer-card .remove-button:active {
+    transform: scale(0.94);
+  }
+
+  .attachment-preview.strip {
+    display: block;
+    width: min(180px, 100%);
+    height: 28px;
+    flex: 0 0 auto;
+    border-radius: 8px;
+    box-shadow: none;
+  }
+
+  .strip .preview-trigger {
+    grid-template-columns: 28px minmax(0, 1fr);
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    cursor: default;
+  }
+
+  .strip .thumbnail {
+    height: 28px;
+    min-height: 28px;
+    padding: 0;
+    place-content: center;
+    place-items: center;
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
+  }
+
+  .strip .thumbnail pre {
+    padding: 3px;
+    font-size: 3px;
+  }
+
+  .strip .file-fold {
+    width: 15px;
+    height: 18px;
+    border-radius: 2px;
+  }
+
+  .strip .file-fold::after {
+    width: 5px;
+    height: 5px;
+  }
+
+  .strip .thumbnail strong {
+    font-size: 6px;
+  }
+
+  .strip .attachment-meta {
+    align-content: center;
+    padding: 2px 26px 2px 7px;
+  }
+
+  .strip .attachment-meta small {
+    display: none;
+  }
+
+  .strip .remove-button {
+    top: 3px;
+    right: 3px;
+    width: 22px;
+    height: 22px;
+    transform: none;
+  }
+
+  .message-capsule .preview-trigger {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr);
+    width: auto;
+    max-width: 220px;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: inherit;
+    outline: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: zoom-in;
+  }
+
+  .message-capsule .preview-trigger .thumbnail {
     width: 28px;
     height: 28px;
     margin: 5px;
@@ -452,44 +621,6 @@
 
   .remove-button:active {
     transform: translateY(-50%) scale(0.94);
-  }
-
-  .attachment-preview.compact {
-    grid-template-columns: 42px minmax(0, 1fr);
-    width: min(210px, 100%);
-    height: 42px;
-    border-radius: 8px;
-  }
-
-  .compact .thumbnail {
-    height: 42px;
-    border-right: 1px solid var(--border);
-    border-bottom: 0;
-  }
-
-  .compact .thumbnail pre {
-    padding: 4px;
-    font-size: 4px;
-  }
-
-  .compact .file-fold {
-    width: 22px;
-    height: 27px;
-    border-radius: 3px;
-  }
-
-  .compact .file-fold::after {
-    width: 7px;
-    height: 7px;
-  }
-
-  .compact .thumbnail strong {
-    font-size: 7px;
-  }
-
-  .compact .attachment-meta {
-    align-content: center;
-    padding: 5px 28px 5px 8px;
   }
 
   :global(.attachment-dialog-overlay) {
@@ -640,10 +771,5 @@
     color: var(--danger, #c33);
     font-size: 11px;
     text-align: center;
-  }
-
-  .compact button {
-    top: 10px;
-    right: 5px;
   }
 </style>

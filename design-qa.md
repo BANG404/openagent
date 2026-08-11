@@ -1,51 +1,58 @@
-# Viewport-safe command palette design QA
+**Comparison Target**
 
-- Source visual truth: `C:\Users\wyh13\AppData\Local\Temp\codex-clipboard-a500eab9-36d8-410d-b421-c5060b462de5.png`
-- Normal implementation: `C:\Users\wyh13\Documents\openagent\.cache\design-qa\command-palette-no-overflow-normal.png`
-- Constrained implementation: `C:\Users\wyh13\Documents\openagent\.cache\design-qa\command-palette-no-overflow-constrained.png`
-- Keyboard-scroll implementation: `C:\Users\wyh13\Documents\openagent\.cache\design-qa\command-palette-no-overflow-keyboard.png`
-- Dark/English implementation: `C:\Users\wyh13\Documents\openagent\.cache\design-qa\command-palette-no-overflow-dark-en.png`
-- Focused side-by-side comparison: `C:\Users\wyh13\Documents\openagent\.cache\design-qa\command-palette-no-overflow-comparison.png`
-- Source pixels: 1037 x 387
-- Implementation viewports: 794 x 452 CSS px normally and 794 x 310 CSS px when constrained, device pixel ratio 1
-- State: nine-item slash-command palette open above the focused composer
+- Source visual truth: `C:\Users\wyh13\AppData\Local\Temp\codex-clipboard-R7egcK.png`
+- Browser-rendered implementation: `C:\Users\wyh13\AppData\Local\Temp\codex-playwright\page-2026-08-11T10-14-11-957Z.png`
+- Combined comparison: `C:\Users\wyh13\AppData\Local\Temp\openagent-attachment-comparison.png`
+- Viewport: 687 x 280 CSS pixels, `deviceScaleFactor: 1`
+- Source pixels: 687 x 280; implementation pixels: 687 x 280; no density normalization was required.
+- State: ordinary composer with four pending attachments, light theme, Chinese locale. The source's product-specific model and voice controls are outside the attachment-card scope; the implementation preview isolates the shared OpenAgent composer.
 
-## Full-view comparison evidence
+**Full-view Comparison Evidence**
 
-The source shows the top of the command palette outside the viewport. In the constrained implementation, the live available-height cap reduces the outer palette to 208 CSS px, placing its top at 8.609 px and its bottom 6 px above the composer. The inner list is 196 px tall with 276 px of content, so the remaining commands scroll inside the surface instead of pushing the surface beyond the viewport. At the normal viewport height the same nine commands retain their natural 288 px outer height.
+- Both surfaces use one horizontal row of approximately 112 x 112 attachment cards inside a rounded composer.
+- Cards retain the source's neutral fill, large radius, top preview/type treatment, bottom filename, horizontally clipped overflow, and hover-revealed top-right remove action.
+- OpenAgent intentionally retains its existing Mica composer tokens, attachment filenames including extensions, toolbar icon, and application canvas instead of cloning Gemini product chrome.
 
-## Focused comparison evidence
+**Focused Region Comparison Evidence**
 
-The side-by-side crop normalizes the popup/composer region to 764 x 310 px per side. It compares the same failure condition rather than identical full application chrome: the source is clipped at the top, while the implementation preserves the 8 px safety inset, 6 px composer gap, 14 px radius, 28 px rows, 3 px row gaps, and existing selection treatment.
+- The attachment row was compared at native 1:1 pixels in the combined image. Card width, height, 8px inter-card gap, 18px radius, filename baseline, preview crop, and hover remove placement were legible without a separate enlarged crop.
+- Fonts and typography: existing application family retained; card labels use 11-12px neutral text with single-line ellipsis and match the reference hierarchy.
+- Spacing and layout rhythm: 112px cards, 8px gaps, 10-12px composer inset, and bottom-anchored labels match the reference density.
+- Colors and visual tokens: neutral card surfaces and subdued labels follow the reference while remaining mapped to OpenAgent light/dark tokens.
+- Image quality and asset fidelity: real attachment bytes/URLs continue to drive image previews with `object-fit: cover`; the development fixture uses the existing OpenAgent app image and no placeholder drawing.
+- Copy and content: real filenames remain authoritative; Chinese and English labels, tooltips, and input placeholders were verified.
 
-## Required fidelity surfaces
+**Findings**
 
-- Fonts and typography: passed. Existing 12 px primary labels, 11 px descriptions, weights, truncation, and Chinese/English copy remain unchanged.
-- Spacing and layout rhythm: passed. Normal content remains 288 px tall; constrained content uses the available height with an 8 px viewport inset and 6 px composer gap.
-- Colors and visual tokens: passed. Light and dark selected, hover, surface, focus, and muted-text tokens are unchanged.
-- Image quality and asset fidelity: passed as not applicable. No raster imagery is used; existing goal and graph interface marks remain intact.
-- Copy and content: passed. All nine commands and localized descriptions are preserved.
+- No actionable P0/P1/P2 mismatches remain.
+- P3: the reference canvas is pale blue while OpenAgent uses its existing theme canvas. This is an intentional product-system difference, not attachment-card drift.
 
-## Primary interactions tested
+**Comparison History**
 
-- Typing `/` opens the palette with `/new` selected.
-- Resizing the live window from 794 x 452 to 794 x 310 recalculates the cap without reopening the palette.
-- ArrowDown reaches `/settings`; the list scrolls to 80 px and keeps the selected row fully visible.
-- Window resize, visual viewport resize/scroll, page scroll, and composer resize all trigger the same available-space measurement.
-- Light/Chinese and dark/English constrained states rendered without console errors.
+1. Initial capture: `C:\Users\wyh13\AppData\Local\Temp\codex-playwright\page-2026-08-11T10-08-51-901Z.png`.
+   - [P1] The inherited two-column trigger grid compressed image and text previews into a narrow leading column; remove controls also appeared on every idle card.
+   - Fix: reset composer-card triggers to one full-width column and reveal the remove control only on card hover or keyboard focus.
+2. Post-fix capture: `C:\Users\wyh13\AppData\Local\Temp\codex-playwright\page-2026-08-11T10-09-41-677Z.png`.
+   - Evidence: previews fill the card width, filenames align along the bottom, idle cards are quiet, and the hovered image card reveals the top-right remove control.
 
-## Findings
+**Interactions And Coverage**
 
-No actionable P0, P1, or P2 differences remain for viewport overflow, adaptive height, internal scrolling, or keyboard visibility.
+- Opened an image card and verified the full attachment dialog and localized close control.
+- Removed a pending attachment and verified the row reflowed without wrapping.
+- Uploaded an image through the browser-backed file chooser and verified a new preview card appeared.
+- Uploaded an image in quick-chat preview and verified it retained the 28px strip and did not open the full attachment dialog.
+- Verified light/Chinese at 687 x 280 and dark/English at 420 x 280, including horizontal overflow.
+- Browser console: 0 errors. Development mode emitted existing Svelte `derived_inert` warnings while attachment tooltip instances were destroyed; no interaction failed.
 
-## Comparison history
+**Implementation Checklist**
 
-- Pass 1 reproduced the source failure: the palette exceeded the space above the composer and clipped above the viewport.
-- Fix: cap the palette to the lesser of the configured 320 px maximum and the live space above the composer, while retaining independent list scrolling.
-- Pass 2 measured an 8.609 px top inset, 208 px outer height, 196 px visible list, 276 px list content, and a 6 px composer gap; keyboard navigation kept the last command visible.
+- [x] Match card dimensions, radius, spacing, preview, filename, and remove placement.
+- [x] Preserve click-to-preview and browser-backed upload.
+- [x] Preserve compact quick-chat attachments.
+- [x] Verify light/dark, Chinese/English, removal, preview, upload, and narrow overflow.
 
-## Follow-up polish
+**Follow-up Polish**
 
-No P3 follow-up is required for the requested scope.
+- None required for this scope.
 
 final result: passed
