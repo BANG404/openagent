@@ -163,21 +163,6 @@
   {/if}
 
   <header class="flow-header">
-    <span class="flow-symbol {flow.kind}" aria-hidden="true">
-      {#if flow.kind === "goal"}
-        <svg viewBox="0 0 16 16" fill="none"
-          ><circle cx="8" cy="8" r="5.4" /><circle cx="8" cy="8" r="2" /></svg
-        >
-      {:else}
-        <svg viewBox="0 0 16 16" fill="none"
-          ><circle cx="4" cy="4" r="1.5" /><circle cx="12" cy="5" r="1.5" /><circle
-            cx="7"
-            cy="12"
-            r="1.5"
-          /><path d="m5.4 4.5 5.1.2M4.8 5.3l1.6 5.3m4.5-4.2-2.8 4.4" /></svg
-        >
-      {/if}
-    </span>
     {#if !collapsed}
       <span class="flow-heading">
         <strong>{$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}</strong>
@@ -389,24 +374,6 @@
     gap: 8px;
     padding: 10px 6px;
     border-bottom: 0;
-  }
-  .flow-symbol {
-    display: grid;
-    width: 28px;
-    height: 28px;
-    flex: 0 0 28px;
-    place-items: center;
-    border-radius: 9px;
-    color: var(--primary);
-    background: color-mix(in srgb, var(--primary) 10%, transparent);
-  }
-  .flow-symbol svg {
-    width: 16px;
-    height: 16px;
-    stroke: currentColor;
-    stroke-width: 1.45;
-    stroke-linecap: round;
-    stroke-linejoin: round;
   }
   .flow-heading {
     display: flex;

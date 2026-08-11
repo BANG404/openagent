@@ -115,13 +115,6 @@
     return false;
   }
 
-  function flowMark(kind?: string): "goal" | "graph" | "node" {
-    const normalized = (kind ?? "").toLowerCase();
-    if (normalized.includes("goal")) return "goal";
-    if (normalized.includes("node")) return "node";
-    return "graph";
-  }
-
   function trackTitleOverflow(node: HTMLElement) {
     const copy = node.querySelector<HTMLElement>(".conv-title-text");
     if (!copy) return;
@@ -181,36 +174,11 @@
     <button
       class="sub-conv-item {sub.id === activeConvId ? 'active' : ''} {streamingConvIds[sub.id]
         ? 'streaming'
-        : ''} {sub.flowKind ? 'flow' : ''}"
+        : ''}"
       style:padding-left={`${8 + depth * 12}px`}
       onclick={() => onSelect(sub.id)}
     >
-      {#if sub.flowKind}
-        <span
-          class="flow-badge {flowMark(sub.flowKind)} {sub.flowStatus ?? 'running'}"
-          aria-label={sub.flowKind}
-        >
-          {#if flowMark(sub.flowKind) === "goal"}
-            <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"
-              ><circle cx="8" cy="8" r="5.4" /><circle cx="8" cy="8" r="2" /></svg
-            >
-          {:else if flowMark(sub.flowKind) === "node"}
-            <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"
-              ><rect x="4" y="4" width="8" height="8" rx="2" /><path
-                d="M8 2.5V4M8 12v1.5M2.5 8H4M12 8h1.5"
-              /></svg
-            >
-          {:else}
-            <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"
-              ><circle cx="4" cy="5" r="1.7" /><circle cx="11.5" cy="4" r="1.7" /><circle
-                cx="8.5"
-                cy="11.5"
-                r="1.7"
-              /><path d="M5.6 4.8 9.8 4.2M5 6.2l2.6 4M10.4 5.5 9 9.9" /></svg
-            >
-          {/if}
-        </span>
-      {:else}
+      {#if !sub.flowKind}
         {@render delegatedRoleBadge()}
       {/if}
       {@render conversationTitle(sub.title)}
@@ -307,7 +275,7 @@
             <button
               class="conv-item {conv.id === activeConvId ? 'active' : ''} {streamingConvIds[conv.id]
                 ? 'streaming'
-                : ''} {conv.flowKind ? 'flow' : ''}"
+                : ''}"
               onclick={() => onSelect(conv.id)}
             >
               {#if conv.pinned}
@@ -321,31 +289,6 @@
                     d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"
                   />
                 </svg>
-              {/if}
-              {#if conv.flowKind}
-                <span
-                  class="flow-badge {flowMark(conv.flowKind)} {conv.flowStatus ?? 'running'}"
-                  aria-label={conv.flowKind}
-                >
-                  {#if flowMark(conv.flowKind) === "goal"}
-                    <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <circle cx="8" cy="8" r="5.4" />
-                      <circle cx="8" cy="8" r="2" />
-                    </svg>
-                  {:else if flowMark(conv.flowKind) === "node"}
-                    <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <rect x="4" y="4" width="8" height="8" rx="2" />
-                      <path d="M8 2.5V4M8 12v1.5M2.5 8H4M12 8h1.5" />
-                    </svg>
-                  {:else}
-                    <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <circle cx="4" cy="5" r="1.7" />
-                      <circle cx="11.5" cy="4" r="1.7" />
-                      <circle cx="8.5" cy="11.5" r="1.7" />
-                      <path d="M5.6 4.8 9.8 4.2M5 6.2l2.6 4M10.4 5.5 9 9.9" />
-                    </svg>
-                  {/if}
-                </span>
               {/if}
               {@render conversationTitle(conv.title)}
               {#if streamingConvIds[conv.id]}
@@ -391,35 +334,11 @@
                   sub.id
                 ]
                   ? 'streaming'
-                  : ''} {sub.flowKind ? 'flow' : ''}"
+                  : ''}"
                 style:padding-left="20px"
                 onclick={() => onSelect(sub.id)}
               >
-                {#if sub.flowKind}
-                  <span
-                    class="flow-badge {flowMark(sub.flowKind)} {sub.flowStatus ?? 'running'}"
-                    aria-label={sub.flowKind}
-                  >
-                    {#if flowMark(sub.flowKind) === "goal"}
-                      <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                        <circle cx="8" cy="8" r="5.4" />
-                        <circle cx="8" cy="8" r="2" />
-                      </svg>
-                    {:else if flowMark(sub.flowKind) === "node"}
-                      <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                        <rect x="4" y="4" width="8" height="8" rx="2" />
-                        <path d="M8 2.5V4M8 12v1.5M2.5 8H4M12 8h1.5" />
-                      </svg>
-                    {:else}
-                      <svg class="flow-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                        <circle cx="4" cy="5" r="1.7" />
-                        <circle cx="11.5" cy="4" r="1.7" />
-                        <circle cx="8.5" cy="11.5" r="1.7" />
-                        <path d="M5.6 4.8 9.8 4.2M5 6.2l2.6 4M10.4 5.5 9 9.9" />
-                      </svg>
-                    {/if}
-                  </span>
-                {:else}
+                {#if !sub.flowKind}
                   {@render delegatedRoleBadge()}
                 {/if}
                 {@render conversationTitle(sub.title)}
@@ -675,37 +594,6 @@
     animation: pulse 1.2s ease-in-out infinite;
   }
 
-  .conv-item.flow,
-  .sub-conv-item.flow {
-    padding-left: 8px;
-  }
-
-  .flow-badge {
-    width: 22px;
-    height: 22px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    border-radius: 9999px;
-    color: var(--primary);
-    background: rgba(0, 102, 204, 0.08);
-  }
-
-  .flow-icon {
-    width: 14px;
-    height: 14px;
-    stroke: currentColor;
-    stroke-width: 1.45;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .flow-icon circle,
-  .flow-icon rect {
-    stroke: currentColor;
-  }
-
   .role-badge {
     width: 22px;
     height: 22px;
@@ -725,16 +613,6 @@
     stroke-width: 1.45;
     stroke-linecap: round;
     stroke-linejoin: round;
-  }
-
-  .flow-badge.node {
-    background: transparent;
-  }
-
-  .flow-badge.failed,
-  .flow-badge.blocked {
-    color: #b42318;
-    background: rgba(180, 35, 24, 0.08);
   }
 
   :global(.conv-context-trigger) {

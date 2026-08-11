@@ -68,7 +68,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   resizable right-side status panel automatically; a user's collapse choice
   survives later checkpoints for that same flow, while switching to a distinct
   flow opens its panel. Keep the collapsed rail available and persist the
-  expanded width locally. Cap the expanded panel to its live container, keep
+  expanded width locally. Keep both the expanded header and collapsed rail free
+  of decorative Goal or Graph kind glyphs. Cap the expanded panel to its live
+  container, keep
   long task and dependency content wrapping inside it without horizontal
   scrolling, and use the same canvas background as the conversation. Match the
   conversation sidebar's direct manipulation behavior: capture the active
@@ -263,6 +265,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   add a tooltip to conversation titles. Keep a 3px parent-owned gap between
   adjacent conversation rows so hover and active fills remain visibly separate
   at every nesting depth and in search results.
+  Keep Goal, Graph, and Graph-node conversation titles free of leading flow
+  glyphs; hierarchy, active state, and streaming state already communicate their
+  sidebar structure without a decorative workflow badge.
   Keep the new-conversation and search actions, conversation rows, expanded
   sidebar navigation, and settings navigation on the same single-line scale:
   30px height, 13px type on an 18px line, 10px horizontal padding, an 8px
