@@ -271,9 +271,10 @@ keyboard focus. Registration
 conflicts appear inline and leave the previous accelerator active. The primary
 desktop process owns a separate centered 760 × 190px always-on-top launcher;
 workspace windows never resize or change visibility when it opens. The launcher
-is one continuous raised surface with a 14px radius: a quiet draggable utility
-header, a large borderless composer, and a 48px footer for model, role, and
-workspace selectors. Each shortcut reveal returns keyboard focus to the composer
+is one continuous raised surface with a 14px radius: a large borderless composer
+followed by a 48px footer for model, role, and workspace selectors. It has no
+title bar, shortcut hint, or window-action row; non-interactive card space remains
+draggable. Each shortcut reveal returns keyboard focus to the composer
 so typing can begin immediately even though the hidden launcher window and its
 input remain mounted between sessions. It has no transcript and remembers its own
 model, role, and workspace tuple without changing the primary window's defaults.
@@ -292,10 +293,10 @@ and restrained raised shadow. Content behind the launcher must not show through;
 selector surfaces also remain opaque, and transparency belongs only to the
 unused part of the expanded native window. Selectors stay below their trigger,
 align to its start edge, and do not use collision-based side flipping. The
-title row is the native window drag handle, and drag-time focus changes must not
-close the launcher. Give the launcher card a restrained shadow, contained by
-transparent stage padding so it never meets or clips against the native window
-boundary; selector content remains shadowless. Selector content follows its items
+card's non-interactive space remains a native drag handle, and drag-time focus
+changes must not close the launcher. Give the launcher card a restrained shadow,
+contained by transparent stage padding so it never meets or clips against the
+native window boundary; selector content remains shadowless. Selector content follows its items
 up to a bounded scrollable maximum height, and role descriptions are limited to
 one ellipsized line. Selector
 triggers include their leading icon in the same hover, focus, open-state, and
@@ -304,8 +305,7 @@ workspace selectors update only the launcher's remembered tuple for the next
 conversation. Configuration changes refresh the available launcher models and
 theme immediately, including while the launcher is hidden, without replacing a
 remembered model that remains valid; an unavailable model
-falls back to the configured default. “Open full window” opens or focuses the
-selected workspace without starting a conversation. Use restrained aurora light behind the
+falls back to the configured default. Use restrained aurora light behind the
 composer only; controls remain on semantically filled surfaces. The compact
 composer grows from its base height using the textarea's measured multi-line
 height, and an attachment adds one compact row; content beyond the bounded

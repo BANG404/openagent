@@ -343,8 +343,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   an opaque theme base, so content behind the launcher never shows through.
   Give it a clearly visible perimeter and restrained elevation; selector
   surfaces remain opaque.
-  Use the title row as an explicit native drag handle, and open selectors below
-  and visually outside the card,
+  Do not render a title bar, shortcut hint, or window-action row above the
+  composer; the compact card begins directly with input. Preserve native
+  dragging from non-interactive card space, and open selectors below and
+  visually outside the card,
   aligned to their trigger start edge, without collision-based side flipping.
   Give the launcher card only a restrained shadow and keep enough transparent
   stage padding around it that the shadow never meets or clips against the

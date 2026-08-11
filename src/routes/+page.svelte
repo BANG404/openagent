@@ -33,7 +33,6 @@
   import { providerRequiresApiKey } from "$lib/providerCatalog";
   import {
     DEFAULT_QUICK_CHAT_SHORTCUT,
-    formatQuickChatShortcut,
     normalizeQuickChatShortcut,
     QUICK_CHAT_FOCUS_INPUT_EVENT,
   } from "$lib/quickChatShortcut";
@@ -4709,34 +4708,6 @@
     return queueQuickWindowTransition(hideQuickChatWindow);
   }
 
-  async function openFullAppFromQuickChat() {
-    if (!tauriAvailable) {
-      alert(browserModeNotice);
-      return;
-    }
-    quickChatFocusArmed = false;
-    quickChatFocusSuppressed = true;
-    try {
-      if (quickChatWorkspace) {
-        await invoke("open_workspace_window", {
-          path: quickChatWorkspace,
-          conversationId: null,
-          messageId: null,
-        });
-      } else {
-        const mainWindow = await WebviewWindow.getByLabel("main");
-        await mainWindow?.show();
-        await mainWindow?.setFocus();
-      }
-      await closeQuickChat();
-    } catch (error) {
-      showToast({ title: String(error), variant: "error" });
-      await appWindow?.setFocus().catch(() => {});
-      quickChatFocusSuppressed = false;
-      quickChatFocusArmed = true;
-    }
-  }
-
   async function startQuickChatDrag(event: PointerEvent) {
     if (!isQuickChatWindow || !appWindow || event.button !== 0) return;
     const target = event.target;
@@ -5092,17 +5063,12 @@
         roleOptions={quickRoleOptions}
         selectedWorkspace={quickChatWorkspace}
         workspaceOptions={quickWorkspaceOptions}
-        shortcutLabel={formatQuickChatShortcut(
-          config?.quick_chat_shortcut ?? DEFAULT_QUICK_CHAT_SHORTCUT,
-        )}
         {workspaceLoading}
         onModelChange={handleQuickModelChange}
         onRoleChange={handleQuickRoleChange}
         onWorkspaceChange={handleQuickWorkspaceChange}
         onPickWorkspace={() => void pickQuickChatWorkspace()}
         onDragStart={startQuickChatDrag}
-        onOpenFullApp={() => void openFullAppFromQuickChat()}
-        onClose={() => void closeQuickChat()}
       >
         {#snippet composer()}
           <MessageInput

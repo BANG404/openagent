@@ -19,7 +19,6 @@
     roleOptions,
     selectedWorkspace,
     workspaceOptions,
-    shortcutLabel,
     workspaceLoading = false,
     composer,
     onModelChange,
@@ -27,8 +26,6 @@
     onWorkspaceChange,
     onPickWorkspace,
     onDragStart,
-    onOpenFullApp,
-    onClose,
   }: {
     selectedModel: string;
     modelOptions: SelectItem[];
@@ -36,7 +33,6 @@
     roleOptions: SelectItem[];
     selectedWorkspace: string;
     workspaceOptions: SelectItem[];
-    shortcutLabel: string;
     workspaceLoading?: boolean;
     composer: Snippet;
     onModelChange: (value: string) => void;
@@ -44,46 +40,15 @@
     onWorkspaceChange: (value: string) => void;
     onPickWorkspace: () => void;
     onDragStart: (event: PointerEvent) => void;
-    onOpenFullApp: () => void;
-    onClose: () => void;
   } = $props();
 </script>
 
-<section class="quick-chat" aria-label={$t("quickChat")} data-tauri-drag-region>
-  <header
-    class="quick-header"
-    role="presentation"
-    data-tauri-drag-region
-    onpointerdown={onDragStart}
-  >
-    <div class="quick-brand" data-tauri-drag-region>
-      <span class="quick-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="m7.25 7.25 9.5 9.5M15 5.5l3.5 3.5M5.5 15l3.5 3.5" />
-          <path d="m9.25 5.25 9.5 9.5M5.25 9.25l9.5 9.5" opacity=".45" />
-        </svg>
-      </span>
-      <span>{$t("quickChat")}</span>
-    </div>
-    <div class="quick-window-actions">
-      <kbd>{shortcutLabel}</kbd>
-      <Tooltip text={$t("openFullApp")} side="bottom">
-        <button type="button" aria-label={$t("openFullApp")} onclick={onOpenFullApp}>
-          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M3 5.5V3h2.5M10.5 3H13v2.5M13 10.5V13h-2.5M5.5 13H3v-2.5" />
-          </svg>
-        </button>
-      </Tooltip>
-      <Tooltip text={$t("closeQuickChat")} side="bottom">
-        <button type="button" aria-label={$t("closeQuickChat")} onclick={onClose}>
-          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="m4 4 8 8M12 4l-8 8" />
-          </svg>
-        </button>
-      </Tooltip>
-    </div>
-  </header>
-
+<section
+  class="quick-chat"
+  aria-label={$t("quickChat")}
+  data-tauri-drag-region
+  onpointerdown={onDragStart}
+>
   <div class="quick-composer">
     <div class="composer-slot">
       {@render composer()}
@@ -182,10 +147,10 @@
   .quick-chat {
     position: relative;
     display: grid;
-    grid-template-rows: 38px minmax(87px, auto) 1px 48px;
+    grid-template-rows: minmax(87px, auto) 1px 48px;
     width: 100%;
-    min-height: 174px;
-    max-height: 265px;
+    min-height: 136px;
+    max-height: 227px;
     overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
     background: linear-gradient(var(--mica-surface), var(--mica-surface)), var(--surface2);
@@ -209,7 +174,6 @@
     pointer-events: none;
   }
 
-  .quick-header,
   .quick-composer,
   .quick-selector-space,
   .quick-footer {
@@ -217,63 +181,12 @@
     z-index: 1;
   }
 
-  .quick-header,
   .quick-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
 
-  .quick-header {
-    padding: 0 8px 0 14px;
-    user-select: none;
-  }
-
-  .quick-brand {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    color: var(--text-muted);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-  }
-
-  .quick-mark {
-    display: grid;
-    width: 18px;
-    height: 18px;
-    place-items: center;
-    color: var(--text-muted);
-  }
-
-  .quick-mark svg {
-    width: 16px;
-    height: 16px;
-    stroke: currentColor;
-    stroke-width: 1.4;
-    stroke-linecap: round;
-  }
-
-  .quick-window-actions {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-  }
-
-  kbd {
-    margin-right: 5px;
-    padding: 1px 6px;
-    border: 0;
-    border-radius: 5px;
-    background: color-mix(in srgb, var(--text) 6%, transparent);
-    color: var(--text-muted);
-    font: inherit;
-    font-size: 10px;
-  }
-
-  .quick-window-actions button,
   .pick-workspace {
     display: inline-flex;
     align-items: center;
@@ -285,31 +198,14 @@
     outline: none;
   }
 
-  .quick-window-actions button {
-    width: 27px;
-    height: 27px;
-    border-radius: 6px;
-  }
-
-  .quick-window-actions button:hover,
-  .quick-window-actions button:focus-visible,
   .pick-workspace:hover:not(:disabled),
   .pick-workspace:focus-visible {
     background: color-mix(in srgb, var(--text) 7%, transparent);
     color: var(--text);
   }
 
-  .quick-window-actions button:focus-visible,
   .pick-workspace:focus-visible {
     box-shadow: var(--focus-ring);
-  }
-
-  .quick-window-actions svg {
-    width: 15px;
-    height: 15px;
-    stroke: currentColor;
-    stroke-width: 1.4;
-    stroke-linecap: round;
   }
 
   .quick-composer {
@@ -547,7 +443,6 @@
   }
 
   @media (max-width: 680px) {
-    kbd,
     .quick-select > svg {
       display: none;
     }
