@@ -451,7 +451,6 @@
         id: c.id,
         label: `/${c.name}`,
         hint: c.id === "goal" || c.id === "graph" ? undefined : c.label,
-        mark: c.id === "goal" || c.id === "graph" ? c.id : undefined,
         detail: c.description,
       }));
   });

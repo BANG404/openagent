@@ -24,12 +24,14 @@
   let preview = $state<PreviewPayload | null>(null);
   let failed = $state(false);
   let previewOpen = $state(false);
+  let imageScale = $state(1);
   let repairError = $state("");
   let reloadKey = $state(0);
   const uiCapabilities = useOpenAgentUiCapabilities();
 
   const previewCache = getPreviewCache();
   const extension = $derived(attachment.name.split(".").pop()?.toUpperCase().slice(0, 5) || "FILE");
+  const imageScalePercent = $derived(`${imageScale * 100}%`);
   const canLoadPreview = $derived(
     attachment.kind === "image" ||
       /\.(svg|pdf|txt|md|markdown|json|ya?ml|toml|rtf|html?|css|csv|xml|jsx?|tsx?|py)$/i.test(
@@ -78,7 +80,12 @@
 
   function openPreview() {
     if (size === "strip") return;
+    imageScale = 1;
     previewOpen = true;
+  }
+
+  function zoomImage(delta: number) {
+    imageScale = Math.min(3, Math.max(0.5, imageScale + delta));
   }
 
   async function repairPreview() {
@@ -150,21 +157,82 @@
     <Dialog.Portal>
       <Dialog.Overlay class="attachment-dialog-overlay" />
       <Dialog.Content class="attachment-dialog">
-        <header>
+        <header class="attachment-dialog-toolbar">
+          <div
+            class="attachment-window-edge-drag-region"
+            data-tauri-drag-region
+            aria-hidden="true"
+          ></div>
           <Dialog.Title>{attachment.name}</Dialog.Title>
-          <Tooltip text={$t("closeAttachmentPreview")}>
-            {#snippet trigger(props)}
-              <Dialog.Close {...props} aria-label={$t("closeAttachmentPreview")}>
-                <svg viewBox="0 0 14 14" aria-hidden="true">
-                  <path d="M3 3 L11 11 M11 3 L3 11" />
-                </svg>
-              </Dialog.Close>
-            {/snippet}
-          </Tooltip>
+          <div class="attachment-dialog-controls">
+            {#if preview?.kind === "image" && preview.data_url}
+              <Tooltip text={$t("attachmentZoomOut")}>
+                {#snippet trigger(props)}
+                  <button
+                    {...props}
+                    type="button"
+                    aria-label={$t("attachmentZoomOut")}
+                    disabled={imageScale <= 0.5}
+                    onclick={() => zoomImage(-0.25)}
+                  >
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <circle cx="7" cy="7" r="4.5" />
+                      <path d="M10.5 10.5 14 14M4.5 7h5" />
+                    </svg>
+                  </button>
+                {/snippet}
+              </Tooltip>
+              <Tooltip text={$t("attachmentFitPreview")}>
+                {#snippet trigger(props)}
+                  <button
+                    {...props}
+                    type="button"
+                    aria-label={$t("attachmentFitPreview")}
+                    disabled={imageScale === 1}
+                    onclick={() => (imageScale = 1)}
+                  >
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <path d="M6 3H3v3M10 3h3v3M6 13H3v-3M10 13h3v-3" />
+                    </svg>
+                  </button>
+                {/snippet}
+              </Tooltip>
+              <Tooltip text={$t("attachmentZoomIn")}>
+                {#snippet trigger(props)}
+                  <button
+                    {...props}
+                    type="button"
+                    aria-label={$t("attachmentZoomIn")}
+                    disabled={imageScale >= 3}
+                    onclick={() => zoomImage(0.25)}
+                  >
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <circle cx="7" cy="7" r="4.5" />
+                      <path d="M10.5 10.5 14 14M4.5 7h5M7 4.5v5" />
+                    </svg>
+                  </button>
+                {/snippet}
+              </Tooltip>
+            {/if}
+            <Tooltip text={$t("closeAttachmentPreview")}>
+              {#snippet trigger(props)}
+                <Dialog.Close {...props} aria-label={$t("closeAttachmentPreview")}>
+                  <svg viewBox="0 0 14 14" aria-hidden="true">
+                    <path d="M3 3 L11 11 M11 3 L3 11" />
+                  </svg>
+                </Dialog.Close>
+              {/snippet}
+            </Tooltip>
+          </div>
         </header>
         <div class="attachment-dialog-body">
           {#if preview?.kind === "image" && preview.data_url}
-            <img src={preview.data_url} alt={attachment.name} />
+            <div
+              class="attachment-image-canvas"
+              style={`--attachment-preview-size: ${imageScalePercent}`}
+            >
+              <img src={preview.data_url} alt={attachment.name} />
+            </div>
           {:else if preview?.kind === "pdf" && preview.data_url}
             <iframe src={preview.data_url} title={attachment.name}></iframe>
           {:else if preview?.kind === "text"}
@@ -605,7 +673,7 @@
   }
 
   .remove-button svg,
-  :global(.attachment-dialog > header button svg) {
+  :global(.attachment-dialog-toolbar button svg) {
     width: 12px;
     height: 12px;
     fill: none;
@@ -626,78 +694,129 @@
   :global(.attachment-dialog-overlay) {
     position: fixed;
     inset: 0;
-    z-index: 1200;
-    background: color-mix(in srgb, #000 58%, transparent);
-    backdrop-filter: blur(5px);
+    z-index: 2147483646;
+    background: var(--surface);
   }
 
   :global(.attachment-dialog) {
     position: fixed;
-    top: 50%;
-    left: 50%;
-    z-index: 1201;
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    width: min(900px, calc(100vw - 48px));
-    height: min(720px, calc(100vh - 48px));
-    overflow: hidden;
+    inset: 0;
+    z-index: 2147483647;
+    width: 100vw;
+    height: 100vh;
+    padding: 16px;
+    box-sizing: border-box;
     border: 0;
-    border-radius: 14px;
+    outline: none;
     background: var(--surface);
-    box-shadow: var(--raised-shadow);
     color: var(--text);
-    transform: translate(-50%, -50%);
   }
 
-  :global(.attachment-dialog > header) {
+  :global(.attachment-dialog-toolbar) {
+    position: absolute;
+    z-index: 3;
+    top: 24px;
+    right: 24px;
+    left: 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
     min-width: 0;
-    padding: 10px 12px 10px 16px;
-    border-bottom: 1px solid var(--border);
+    pointer-events: none;
   }
 
-  :global(.attachment-dialog > header h2) {
+  :global(.attachment-dialog-toolbar h2) {
+    z-index: 1;
     min-width: 0;
     overflow: hidden;
-    font-size: 13px;
-    font-weight: 550;
+    padding: 6px 8px;
+    font-size: 14px;
+    font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  :global(.attachment-dialog > header button) {
+  :global(.attachment-window-edge-drag-region) {
+    position: fixed;
+    z-index: 0;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 24px;
+    pointer-events: auto;
+  }
+
+  :global(.attachment-dialog-controls) {
+    z-index: 1;
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 5px;
+    pointer-events: auto;
+  }
+
+  :global(.attachment-dialog-controls button) {
     display: inline-flex;
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     flex: none;
     padding: 0;
     align-items: center;
     justify-content: center;
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--surface) 90%, transparent);
     color: var(--text-muted);
+    box-shadow: var(--control-shadow);
   }
 
-  :global(.attachment-dialog > header button:hover) {
+  :global(.attachment-dialog-controls button:hover:not(:disabled)) {
     background: var(--surface2);
     color: var(--text);
   }
 
+  :global(.attachment-dialog-controls button:focus-visible) {
+    box-shadow: var(--focus-ring);
+  }
+
+  :global(.attachment-dialog-controls button:disabled) {
+    opacity: 0.42;
+  }
+
   :global(.attachment-dialog-body) {
+    display: grid;
+    width: 100%;
+    height: 100%;
     min-width: 0;
     min-height: 0;
     overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
     background: var(--bg);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--surface) 35%, transparent);
   }
 
-  :global(.attachment-dialog-body > img) {
+  :global(.attachment-image-canvas) {
+    display: grid;
+    width: var(--attachment-preview-size);
+    min-width: var(--attachment-preview-size);
+    height: var(--attachment-preview-size);
+    min-height: var(--attachment-preview-size);
+    place-items: center;
+    margin: auto;
+    transition:
+      width 160ms ease,
+      height 160ms ease;
+  }
+
+  :global(.attachment-image-canvas > img) {
     display: block;
-    width: 100%;
-    height: 100%;
+    width: auto;
+    height: auto;
+    max-width: calc(100% - 56px);
+    max-height: calc(100% - 56px);
+    box-sizing: border-box;
     object-fit: contain;
   }
 
@@ -711,11 +830,15 @@
 
   :global(.attachment-dialog-body > pre) {
     box-sizing: border-box;
-    min-height: 100%;
-    margin: 0;
+    width: min(960px, calc(100% - 56px));
+    max-height: calc(100% - 112px);
+    margin: auto;
+    overflow: auto;
     padding: 22px;
     color: var(--text);
     background: var(--surface);
+    border-radius: 9px;
+    box-shadow: var(--control-shadow);
     font:
       12px/1.65 ui-monospace,
       SFMono-Regular,

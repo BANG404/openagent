@@ -179,6 +179,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 ## Attachments and editing
 
 - Reuse one attachment preview component in composer and restored transcript.
+- Open attachment previews in the same full-window visual frame used by rich
+  Mermaid and book previews: center the attachment within the framed canvas and
+  keep preview controls in the top-right. Image previews expose zoom out, fit,
+  zoom in, and close controls; text, PDF, and unavailable states retain the same
+  centered frame and close placement. Reset image scale to fit whenever the
+  preview opens, and keep enlarged image overflow scrollable instead of clipping.
 - In the ordinary composer, render pending attachments as 112px preview cards in
   one horizontally scrollable row: preview image and supported text content,
   keep the filename anchored at the card foot, and keep the remove action at
@@ -230,7 +236,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   for window, visual-viewport, composer-height, and scroll changes. Only
   overflow scrolls independently, so short result sets leave no trailing empty
   area, constrained windows never clip the palette, and opening or navigating
-  them never moves the composer.
+  them never moves the composer. Keep slash-command rows text-only; Goal and
+  Graph commands do not receive decorative trailing glyphs.
 - Keep the localized shared-composer placeholder concise while advertising the
   Enter and Shift+Enter keyboard behavior plus the `/` command and `@` mention
   palette triggers.
@@ -366,9 +373,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   aligned to their trigger start edge, without collision-based side flipping.
   Give the launcher card only a restrained shadow and keep enough transparent
   stage padding around it that the shadow never meets or clips against the
-  native window boundary. Keep selector content shadowless. Let selector content
-  follow its items up to a bounded scrollable maximum height; role descriptions
-  stay on one ellipsized line so one role cannot consume the menu. Each selector trigger owns its leading
+  native window boundary. Give selector content the shared raised shadow, while
+  keeping the search field inside it shadowless at rest. Let selector content follow
+  its items up to a bounded scrollable maximum height; role descriptions stay on
+  one ellipsized line so one role cannot consume the menu. Separate the composer
+  and selector toolbar with only the short inset divider; do not add a second
+  full-width toolbar border. Each selector trigger owns its leading
   icon, label, and caret as one hover, focus, open-state, and pointer target.
 - Keep the compact composer height bounded and content-driven. Let the shared
   textarea's measured height grow the card through a small multi-line range;

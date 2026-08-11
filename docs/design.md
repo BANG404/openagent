@@ -264,7 +264,12 @@ one horizontal row. Image and supported text content fill the preview region,
 the filename remains anchored at the bottom, and the remove action stays in the
 top-right corner. Overflow scrolls horizontally without wrapping or exposing a
 scrollbar. The fixed-height quick-chat launcher keeps its separate 28px compact
-attachment strip.
+attachment strip. Opening a card or restored attachment uses a full-window
+preview frame consistent with Mermaid fullscreen: the attachment stays centered
+inside the inset canvas and controls remain in the top-right. Images provide
+zoom out, fit, zoom in, and close actions; other preview kinds keep the same
+canvas and close placement. Every image preview opens fitted to the viewport;
+zoomed content remains scrollable within the inset canvas instead of clipping.
 
 Long secondary collections should not make a primary action menu scroll. The workspace switcher keeps open-folder actions in its root menu and renders its trigger, root items, and older-workspace rows without decorative icons; the current-folder-location row remains text-only, while WSL is communicated with an explicit text badge. Older workspaces appear in a side-opening “Recent workspaces” submenu; its entry retains a right-pointing chevron as the submenu indicator and must support pointer hover, click, and keyboard navigation, keep its scrollbar flush with the right edge, and reuse the shared menu density.
 
@@ -303,9 +308,11 @@ align to its start edge, and do not use collision-based side flipping. The
 card's non-interactive space remains a native drag handle, and drag-time focus
 changes must not close the launcher. Give the launcher card a restrained shadow,
 contained by transparent stage padding so it never meets or clips against the
-native window boundary; selector content remains shadowless. Selector content follows its items
-up to a bounded scrollable maximum height, and role descriptions are limited to
-one ellipsized line. Selector
+native window boundary; selector content uses the shared raised shadow while its
+search field remains shadowless at rest. Separate the composer and selector
+toolbar with only the short inset divider, without a second full-width toolbar
+border. Selector content follows its items up to a bounded scrollable maximum
+height, and role descriptions are limited to one ellipsized line. Selector
 triggers include their leading icon in the same hover, focus, open-state, and
 pointer target as the label and caret. Model, role, and
 workspace selectors update only the launcher's remembered tuple for the next
