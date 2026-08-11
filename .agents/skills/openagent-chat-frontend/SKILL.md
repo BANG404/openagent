@@ -70,9 +70,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   flow opens its panel. Keep the collapsed rail available and persist the
   expanded width locally. Keep both the expanded header and collapsed rail free
   of decorative Goal or Graph kind glyphs. Cap the expanded panel to its live
-  container, keep
-  long task and dependency content wrapping inside it without horizontal
-  scrolling, and use the same canvas background as the conversation. Match the
+  container, let Goal cards grow to contain their wrapped task and result copy,
+  and keep Goal items, summaries, and Graph dependency content inside the panel
+  without widening its layout track or introducing horizontal scrolling. Use
+  the same canvas background as the conversation. Match the
   conversation sidebar's direct manipulation behavior: capture the active
   pointer, disable width transitions and text selection while dragging, and
   restore them when the drag ends or is cancelled. Use the same resizer visual

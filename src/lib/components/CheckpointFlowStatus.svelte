@@ -481,6 +481,8 @@
     display: grid;
     min-width: 0;
     flex: 1;
+    grid-auto-rows: max-content;
+    grid-template-columns: minmax(0, 1fr);
     align-content: start;
     gap: 6px;
     overflow-x: hidden;
@@ -698,6 +700,7 @@
     margin-top: 4px;
     padding-top: 8px;
     border-top: 1px solid var(--border);
+    overflow-wrap: anywhere;
   }
 
   @media (max-width: 760px) {
