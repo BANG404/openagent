@@ -681,7 +681,7 @@ const zh = {
   slashCmdCompactLabel: "压缩上下文",
   slashCmdCompactDesc: "手动压缩当前对话并切换到压缩会话",
   slashCmdGoalLabel: "Goal Loop",
-  slashCmdGoalDesc: "创建持久 goal 状态并持续执行",
+  slashCmdGoalDesc: "创建持久目标并持续执行",
   slashCmdGraphLabel: "Graph",
   slashCmdGraphDesc: "生成图配置并按节点串并行执行",
   goalCommandNeedsText: "/goal 后面需要补充目标描述",

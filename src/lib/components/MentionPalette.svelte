@@ -9,8 +9,6 @@
     label: string;
     /** Short hint text shown to the right of the label. */
     hint?: string;
-    /** Optional non-text visual mark shown at the end of the row. */
-    mark?: "goal" | "graph";
     /** Optional path/description shown on a second line. */
     detail?: string;
   }
@@ -83,23 +81,6 @@
           {/if}
           {#if item.hint}
             <span class="palette-hint">{item.hint}</span>
-          {/if}
-          {#if item.mark}
-            <span class="palette-mark palette-mark-{item.mark}" aria-hidden="true">
-              {#if item.mark === "goal"}
-                <svg class="palette-mark-icon" viewBox="0 0 16 16" fill="none">
-                  <circle cx="8" cy="8" r="5.5" />
-                  <circle cx="8" cy="8" r="2" />
-                </svg>
-              {:else}
-                <svg class="palette-mark-icon" viewBox="0 0 16 16" fill="none">
-                  <circle cx="4" cy="5" r="1.7" />
-                  <circle cx="11.5" cy="4" r="1.7" />
-                  <circle cx="8.5" cy="11.5" r="1.7" />
-                  <path d="M5.6 4.8 9.8 4.2M5 6.2l2.6 4M10.4 5.5 9 9.9" />
-                </svg>
-              {/if}
-            </span>
           {/if}
         </Command.Item>
       {/each}
@@ -230,37 +211,5 @@
     white-space: nowrap;
     flex-shrink: 0;
     margin-left: auto;
-  }
-
-  :global(.palette-mark) {
-    width: 20px;
-    height: 20px;
-    box-sizing: border-box;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    margin-left: auto;
-    border: 1px solid rgba(0, 102, 204, 0.22);
-    border-radius: 9999px;
-    background: rgba(0, 102, 204, 0.08);
-    color: var(--primary);
-  }
-
-  :global(.palette-mark-icon) {
-    width: 14px;
-    height: 14px;
-    stroke: currentColor;
-    stroke-width: 1.4;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  :global(.palette-mark-icon circle) {
-    stroke: currentColor;
-  }
-
-  :global(.palette-mark-graph) {
-    background: transparent;
   }
 </style>

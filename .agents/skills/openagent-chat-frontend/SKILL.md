@@ -233,7 +233,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   for window, visual-viewport, composer-height, and scroll changes. Only
   overflow scrolls independently, so short result sets leave no trailing empty
   area, constrained windows never clip the palette, and opening or navigating
-  them never moves the composer.
+  them never moves the composer. Keep slash-command rows text-only; Goal and
+  Graph commands do not receive decorative trailing glyphs.
 - Keep the localized shared-composer placeholder concise while advertising the
   Enter and Shift+Enter keyboard behavior plus the `/` command and `@` mention
   palette triggers.
