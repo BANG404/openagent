@@ -92,8 +92,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   glyphs and retain its collapse button, whose arrow points toward the right edge
   where the panel collapses. Center an otherwise empty planning state in the
   available panel body.
-  Cap the expanded panel to its live
-  container, let Goal cards grow to contain their wrapped task and result copy,
+  Cap the expanded panel to 45% of its live conversation container as well as
+  its fixed maximum, so a persisted or dragged width cannot squeeze the main
+  conversation into a deformed narrow track. Let Goal cards grow to contain their wrapped task and result copy,
   and keep Goal items, summaries, and Graph dependency content inside the panel
   without widening its layout track or introducing horizontal scrolling. Match the
   conversation sidebar's direct manipulation behavior: capture the active

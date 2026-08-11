@@ -81,6 +81,11 @@
   import ChatQueue from "$lib/components/ChatQueue.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
+  import {
+    CHECKPOINT_FLOW_PANEL_MAX_WIDTH,
+    CHECKPOINT_FLOW_PANEL_MIN_WIDTH,
+    clampCheckpointFlowPanelWidth,
+  } from "$lib/checkpointFlowPanelSizing";
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
@@ -551,15 +556,13 @@
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
   const checkpointFlowPanelStorageKey = "openagent.checkpoint-flow-panel-width";
-  const checkpointFlowPanelMinWidth = 260;
-  const checkpointFlowPanelMaxWidth = 520;
   let checkpointFlowPanelWidth = $state(
     typeof window === "undefined"
       ? 320
       : Math.min(
-          checkpointFlowPanelMaxWidth,
+          CHECKPOINT_FLOW_PANEL_MAX_WIDTH,
           Math.max(
-            checkpointFlowPanelMinWidth,
+            CHECKPOINT_FLOW_PANEL_MIN_WIDTH,
             Number(window.localStorage.getItem(checkpointFlowPanelStorageKey)) || 320,
           ),
         ),
@@ -1132,9 +1135,13 @@
     event.preventDefault();
     const target = event.currentTarget;
     if (!(target instanceof HTMLElement)) return;
+    const panel = target.closest<HTMLElement>(".flow-panel");
+    const container = panel?.parentElement;
+    if (!panel || !container) return;
     const pointerId = event.pointerId;
     const startX = event.clientX;
-    const startWidth = checkpointFlowPanelWidth;
+    const startWidth = panel.getBoundingClientRect().width;
+    checkpointFlowPanelWidth = startWidth;
     const previousCursor = document.documentElement.style.cursor;
     const previousUserSelect = document.documentElement.style.userSelect;
     target.setPointerCapture(pointerId);
@@ -1143,13 +1150,9 @@
     checkpointFlowPanelResizing = true;
     const onMove = (moveEvent: PointerEvent) => {
       if (moveEvent.pointerId !== pointerId) return;
-      const viewportMaximum = Math.max(
-        checkpointFlowPanelMinWidth,
-        Math.min(checkpointFlowPanelMaxWidth, window.innerWidth * 0.48),
-      );
-      checkpointFlowPanelWidth = Math.min(
-        viewportMaximum,
-        Math.max(checkpointFlowPanelMinWidth, startWidth + startX - moveEvent.clientX),
+      checkpointFlowPanelWidth = clampCheckpointFlowPanelWidth(
+        startWidth + startX - moveEvent.clientX,
+        container.clientWidth,
       );
     };
     const onEnd = (endEvent: PointerEvent) => {

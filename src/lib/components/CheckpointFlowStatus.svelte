@@ -329,9 +329,9 @@
     position: relative;
     z-index: 12;
     display: flex;
-    width: min(var(--flow-panel-width), 48vw, calc(100% - 24px));
-    min-width: min(260px, 48vw, calc(100% - 24px));
-    max-width: min(520px, 48vw, calc(100% - 24px));
+    width: min(var(--flow-panel-width), 45%, calc(100% - 24px));
+    min-width: min(260px, 45%, calc(100% - 24px));
+    max-width: min(520px, 45%, calc(100% - 24px));
     flex: 0 0 auto;
     flex-direction: column;
     margin: var(--flow-panel-top-inset) var(--flow-panel-inset) var(--flow-panel-bottom-inset) 0;
@@ -755,9 +755,9 @@
       --flow-panel-bottom-inset: 8px;
     }
     .flow-panel:not(.collapsed) {
-      width: min(var(--flow-panel-width), calc(100% - 16px));
-      min-width: min(260px, calc(100% - 16px));
-      max-width: min(420px, calc(100% - 16px));
+      width: min(var(--flow-panel-width), 45%, calc(100% - 16px));
+      min-width: min(260px, 45%, calc(100% - 16px));
+      max-width: min(420px, 45%, calc(100% - 16px));
     }
     .flow-panel.collapsed {
       --flow-panel-top-inset: 52px;
