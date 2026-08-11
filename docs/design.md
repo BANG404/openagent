@@ -267,9 +267,11 @@ scrollbar. The fixed-height quick-chat launcher keeps its separate 28px compact
 attachment strip. Opening a card or restored attachment uses a full-window
 preview frame consistent with Mermaid fullscreen: the attachment stays centered
 inside the inset canvas and controls remain in the top-right. Images provide
-zoom out, fit, zoom in, and close actions; other preview kinds keep the same
-canvas and close placement. Every image preview opens fitted to the viewport;
-zoomed content remains scrollable within the inset canvas instead of clipping.
+zoom out, fit, zoom in, and close actions; supported PDF and text formats use the
+same canvas and controls. Each supported preview opens fitted to the viewport,
+and pointer-anchored wheel zoom keeps the content beneath the cursor stable while
+zoomed overflow remains scrollable. Preview opening uses an explicit extension
+whitelist; unsupported formats stay visible as attachments but are not clickable.
 
 Long secondary collections should not make a primary action menu scroll. The workspace switcher keeps open-folder actions in its root menu and renders its trigger, root items, and older-workspace rows without decorative icons; the current-folder-location row remains text-only, while WSL is communicated with an explicit text badge. Older workspaces appear in a side-opening “Recent workspaces” submenu; its entry retains a right-pointing chevron as the submenu indicator and must support pointer hover, click, and keyboard navigation, keep its scrollbar flush with the right edge, and reuse the shared menu density.
 

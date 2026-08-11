@@ -715,6 +715,8 @@
     { path: "preview://agentgym.txt", name: "agentgym.txt", kind: "document" },
     { path: "preview://sdk-docs.ts", name: "4.1 SDK文档.ts", kind: "document" },
     { path: "preview://interaction.md", name: "交互演示.md", kind: "document" },
+    { path: "preview://guide.pdf", name: "preview-guide.pdf", kind: "document" },
+    { path: "preview://archive.zip", name: "archive.zip", kind: "document" },
     {
       path: "preview://openagent.png",
       name: "image_bae3ff.png",
@@ -732,6 +734,13 @@
   let checkpointFlowPreviewApproval = $state<ApprovalMode>("auto");
 
   async function loadAttachmentComposerPreview(locator: string) {
+    if (locator.endsWith("guide.pdf")) {
+      return {
+        kind: "pdf" as const,
+        data_url:
+          "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSA+PgplbmRvYmoKeHJlZgowIDQKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDQgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjE4NgolJUVPRgo=",
+      };
+    }
     if (locator.endsWith("interaction.md")) {
       return {
         kind: "text" as const,

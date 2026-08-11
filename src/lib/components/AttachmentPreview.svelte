@@ -2,6 +2,15 @@
   import { isTauri } from "@tauri-apps/api/core";
   import { invoke } from "$lib/openagent/tauriClient";
   import { Dialog } from "bits-ui";
+  import { tick } from "svelte";
+  import {
+    anchoredAttachmentPreviewScroll,
+    ATTACHMENT_PREVIEW_MAX_SCALE,
+    ATTACHMENT_PREVIEW_MIN_SCALE,
+    clampAttachmentPreviewScale,
+    attachmentPreviewScaleFromWheel,
+    isAttachmentPreviewSupported,
+  } from "$lib/attachmentPreview";
   import { t } from "$lib/i18n";
   import { useOpenAgentUiCapabilities } from "$lib/openagent";
   import type { ChatAttachment } from "$lib/types";
@@ -24,19 +33,25 @@
   let preview = $state<PreviewPayload | null>(null);
   let failed = $state(false);
   let previewOpen = $state(false);
-  let imageScale = $state(1);
+  let previewScale = $state(1);
   let repairError = $state("");
   let reloadKey = $state(0);
+  let previewViewport = $state<HTMLDivElement>();
   const uiCapabilities = useOpenAgentUiCapabilities();
 
   const previewCache = getPreviewCache();
   const extension = $derived(attachment.name.split(".").pop()?.toUpperCase().slice(0, 5) || "FILE");
-  const imageScalePercent = $derived(`${imageScale * 100}%`);
-  const canLoadPreview = $derived(
-    attachment.kind === "image" ||
-      /\.(svg|pdf|txt|md|markdown|json|ya?ml|toml|rtf|html?|css|csv|xml|jsx?|tsx?|py)$/i.test(
-        attachment.name,
-      ),
+  const previewScalePercent = $derived(`${previewScale * 100}%`);
+  const previewTextSize = $derived(`${12 * previewScale}px`);
+  const previewTextLineHeight = $derived(`${19.8 * previewScale}px`);
+  const previewTextPadding = $derived(`${22 * previewScale}px`);
+  const previewTextWidth = $derived(`${960 * previewScale}px`);
+  const previewSupported = $derived(isAttachmentPreviewSupported(attachment.name));
+  const canOpenPreview = $derived(size !== "strip" && previewSupported);
+  const canZoomPreview = $derived(
+    (preview?.kind === "image" || preview?.kind === "pdf") && preview.data_url
+      ? true
+      : preview?.kind === "text",
   );
 
   $effect(() => {
@@ -46,11 +61,12 @@
     preview = null;
     failed = false;
     repairError = "";
+    if (!previewSupported) return;
     if (attachment.previewUrl && attachment.kind === "image") {
       preview = { kind: "image", data_url: attachment.previewUrl };
       return;
     }
-    if ((!isTauri() && !loadPreview) || !locator || !canLoadPreview) return;
+    if ((!isTauri() && !loadPreview) || !locator) return;
 
     const key = `${loadPreview ? "transport" : "tauri"}\0${locator}\0${name}`;
     let request = previewCache.get(key);
@@ -79,13 +95,59 @@
   }
 
   function openPreview() {
-    if (size === "strip") return;
-    imageScale = 1;
+    if (!canOpenPreview) return;
+    previewScale = 1;
     previewOpen = true;
   }
 
-  function zoomImage(delta: number) {
-    imageScale = Math.min(3, Math.max(0.5, imageScale + delta));
+  async function setPreviewScale(nextScale: number, clientX?: number, clientY?: number) {
+    const previousScale = previewScale;
+    const next = clampAttachmentPreviewScale(nextScale);
+    if (next === previousScale) return;
+
+    const viewport = previewViewport;
+    if (!viewport) {
+      previewScale = next;
+      return;
+    }
+    const rect = viewport?.getBoundingClientRect();
+    const pointerX = rect && clientX !== undefined ? clientX - rect.left : viewport.clientWidth / 2;
+    const pointerY = rect && clientY !== undefined ? clientY - rect.top : viewport.clientHeight / 2;
+    const nextScrollLeft = anchoredAttachmentPreviewScroll(
+      viewport.scrollLeft,
+      pointerX,
+      previousScale,
+      next,
+    );
+    const nextScrollTop = anchoredAttachmentPreviewScroll(
+      viewport.scrollTop,
+      pointerY,
+      previousScale,
+      next,
+    );
+
+    previewScale = next;
+    await tick();
+    viewport.scrollLeft = nextScrollLeft;
+    viewport.scrollTop = nextScrollTop;
+  }
+
+  function handlePreviewWheel(event: WheelEvent) {
+    if (!canZoomPreview) return;
+    const viewport = previewViewport;
+    if (!viewport) return;
+    event.preventDefault();
+    const deltaPixels =
+      event.deltaMode === event.DOM_DELTA_LINE
+        ? event.deltaY * 16
+        : event.deltaMode === event.DOM_DELTA_PAGE
+          ? event.deltaY * viewport.clientHeight
+          : event.deltaY;
+    void setPreviewScale(
+      attachmentPreviewScaleFromWheel(previewScale, deltaPixels),
+      event.clientX,
+      event.clientY,
+    );
   }
 
   async function repairPreview() {
@@ -108,11 +170,18 @@
   class:composer-card={size === "composer"}
   class:message-capsule={size === "message"}
   class:strip={size === "strip"}
+  class:preview-disabled={!canOpenPreview}
   class:failed
 >
   <Tooltip text={attachment.name}>
     {#snippet trigger(props)}
-      <button {...props} class="preview-trigger" type="button" onclick={openPreview}>
+      <button
+        {...props}
+        class="preview-trigger"
+        type="button"
+        aria-disabled={!canOpenPreview}
+        onclick={openPreview}
+      >
         <div class="thumbnail" class:image={preview?.kind === "image"}>
           {#if preview?.kind === "image" && preview.data_url}
             <img src={preview.data_url} alt="" />
@@ -165,15 +234,15 @@
           ></div>
           <Dialog.Title>{attachment.name}</Dialog.Title>
           <div class="attachment-dialog-controls">
-            {#if preview?.kind === "image" && preview.data_url}
+            {#if canZoomPreview}
               <Tooltip text={$t("attachmentZoomOut")}>
                 {#snippet trigger(props)}
                   <button
                     {...props}
                     type="button"
                     aria-label={$t("attachmentZoomOut")}
-                    disabled={imageScale <= 0.5}
-                    onclick={() => zoomImage(-0.25)}
+                    disabled={previewScale <= ATTACHMENT_PREVIEW_MIN_SCALE}
+                    onclick={() => void setPreviewScale(previewScale - 0.25)}
                   >
                     <svg viewBox="0 0 16 16" aria-hidden="true">
                       <circle cx="7" cy="7" r="4.5" />
@@ -188,8 +257,8 @@
                     {...props}
                     type="button"
                     aria-label={$t("attachmentFitPreview")}
-                    disabled={imageScale === 1}
-                    onclick={() => (imageScale = 1)}
+                    disabled={previewScale === 1}
+                    onclick={() => void setPreviewScale(1)}
                   >
                     <svg viewBox="0 0 16 16" aria-hidden="true">
                       <path d="M6 3H3v3M10 3h3v3M6 13H3v-3M10 13h3v-3" />
@@ -203,8 +272,8 @@
                     {...props}
                     type="button"
                     aria-label={$t("attachmentZoomIn")}
-                    disabled={imageScale >= 3}
-                    onclick={() => zoomImage(0.25)}
+                    disabled={previewScale >= ATTACHMENT_PREVIEW_MAX_SCALE}
+                    onclick={() => void setPreviewScale(previewScale + 0.25)}
                   >
                     <svg viewBox="0 0 16 16" aria-hidden="true">
                       <circle cx="7" cy="7" r="4.5" />
@@ -225,18 +294,34 @@
             </Tooltip>
           </div>
         </header>
-        <div class="attachment-dialog-body">
+        <div
+          class="attachment-dialog-body"
+          class:zoomable={canZoomPreview}
+          bind:this={previewViewport}
+          data-preview-scale={previewScale}
+          onwheel={handlePreviewWheel}
+        >
           {#if preview?.kind === "image" && preview.data_url}
             <div
-              class="attachment-image-canvas"
-              style={`--attachment-preview-size: ${imageScalePercent}`}
+              class="attachment-content-canvas attachment-image-canvas"
+              style={`--attachment-preview-size: ${previewScalePercent}`}
             >
               <img src={preview.data_url} alt={attachment.name} />
             </div>
           {:else if preview?.kind === "pdf" && preview.data_url}
-            <iframe src={preview.data_url} title={attachment.name}></iframe>
+            <div
+              class="attachment-content-canvas attachment-pdf-canvas"
+              style={`--attachment-preview-size: ${previewScalePercent}`}
+            >
+              <iframe src={preview.data_url} title={attachment.name}></iframe>
+            </div>
           {:else if preview?.kind === "text"}
-            <pre>{preview.text ?? ""}</pre>
+            <div
+              class="attachment-content-canvas attachment-text-canvas"
+              style={`--attachment-preview-size: ${previewScalePercent}; --attachment-preview-text-size: ${previewTextSize}; --attachment-preview-text-line-height: ${previewTextLineHeight}; --attachment-preview-text-padding: ${previewTextPadding}; --attachment-preview-text-width: ${previewTextWidth}`}
+            >
+              <pre>{preview.text ?? ""}</pre>
+            </div>
           {:else}
             <div class="unavailable-preview">
               <span class="file-fold" aria-hidden="true"></span>
@@ -408,6 +493,10 @@
     color: inherit;
     text-align: left;
     cursor: zoom-in;
+  }
+
+  .preview-disabled .preview-trigger {
+    cursor: default;
   }
 
   .composer-card {
@@ -791,13 +880,18 @@
     min-width: 0;
     min-height: 0;
     overflow: auto;
+    overscroll-behavior: contain;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--bg);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--surface) 35%, transparent);
   }
 
-  :global(.attachment-image-canvas) {
+  :global(.attachment-dialog-body.zoomable) {
+    cursor: zoom-in;
+  }
+
+  :global(.attachment-content-canvas) {
     display: grid;
     width: var(--attachment-preview-size);
     min-width: var(--attachment-preview-size);
@@ -805,9 +899,6 @@
     min-height: var(--attachment-preview-size);
     place-items: center;
     margin: auto;
-    transition:
-      width 160ms ease,
-      height 160ms ease;
   }
 
   :global(.attachment-image-canvas > img) {
@@ -820,30 +911,29 @@
     object-fit: contain;
   }
 
-  :global(.attachment-dialog-body > iframe) {
+  :global(.attachment-pdf-canvas > iframe) {
     display: block;
     width: 100%;
     height: 100%;
     border: 0;
     background: white;
+    pointer-events: none;
   }
 
-  :global(.attachment-dialog-body > pre) {
+  :global(.attachment-text-canvas > pre) {
     box-sizing: border-box;
-    width: min(960px, calc(100% - 56px));
+    width: min(var(--attachment-preview-text-width), calc(100% - 56px));
     max-height: calc(100% - 112px);
     margin: auto;
     overflow: auto;
-    padding: 22px;
+    padding: var(--attachment-preview-text-padding);
     color: var(--text);
     background: var(--surface);
     border-radius: 9px;
     box-shadow: var(--control-shadow);
-    font:
-      12px/1.65 ui-monospace,
-      SFMono-Regular,
-      Menlo,
-      monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--attachment-preview-text-size);
+    line-height: var(--attachment-preview-text-line-height);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }

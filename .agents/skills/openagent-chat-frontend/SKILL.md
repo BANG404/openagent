@@ -183,8 +183,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Mermaid and book previews: center the attachment within the framed canvas and
   keep preview controls in the top-right. Image previews expose zoom out, fit,
   zoom in, and close controls; text, PDF, and unavailable states retain the same
-  centered frame and close placement. Reset image scale to fit whenever the
-  preview opens, and keep enlarged image overflow scrollable instead of clipping.
+  centered frame and close placement. Gate opening through an explicit extension
+  whitelist so unsupported formats remain non-previewable. Reset every supported
+  image, PDF, or text preview to fit whenever it opens; toolbar and pointer-
+  anchored wheel zoom share the same bounded scale, and enlarged content scrolls
+  inside the frame instead of clipping.
 - In the ordinary composer, render pending attachments as 112px preview cards in
   one horizontally scrollable row: preview image and supported text content,
   keep the filename anchored at the card foot, and keep the remove action at
@@ -433,6 +436,7 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the development-only `attachment-composer-preview` query available for
   the shared composer's pending-attachment cards. Its `-theme` and `-locale`
   parameters must keep card preview, removal, upload, horizontal overflow,
+  pointer-anchored image/text/PDF zoom, unsupported-extension blocking,
   light/dark, and Chinese/English checks addressable without native state.
 - Keep the development-only `checkpoint-flow-preview` query available for the
   right-side Goal/Graph checkpoint panel and composer approval selector. Its
