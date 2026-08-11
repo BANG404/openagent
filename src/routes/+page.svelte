@@ -5012,6 +5012,7 @@
     </main>
   {:else if isCheckpointFlowPreview}
     <main class="checkpoint-flow-preview-stage">
+      <div class="conversation-aurora" aria-hidden="true"></div>
       <section class="checkpoint-flow-preview-chat">
         <header>
           {$t(checkpointFlowPreview.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}
@@ -5389,6 +5390,12 @@
           </header>
 
           <div class="conversation-workspace">
+            <div
+              class="conversation-aurora"
+              class:conversation-aurora-streaming={isCurrentStreaming}
+              class:conversation-aurora-new-conversation={newConversationLayout}
+              aria-hidden="true"
+            ></div>
             <div class="conversation-stage">
               {#if !tauriAvailable}
                 <div class="runtime-banner">{browserModeNotice}</div>
@@ -5459,11 +5466,6 @@
                 class:input-area-new-conversation={newConversationLayout}
                 bind:clientHeight={inputAreaHeight}
               >
-                <div
-                  class="conversation-aurora"
-                  class:conversation-aurora-streaming={isCurrentStreaming}
-                  aria-hidden="true"
-                ></div>
                 {#if newConversationLayout}
                   <NewConversationContext
                     prompt={newConversationMemoryPrompt}
@@ -5797,6 +5799,7 @@
 
   .conversation-workspace {
     position: relative;
+    isolation: isolate;
     display: flex;
     min-width: 0;
     min-height: 0;
@@ -5804,8 +5807,21 @@
     padding-top: 48px;
   }
 
+  .conversation-workspace::before,
+  .checkpoint-flow-preview-stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    pointer-events: none;
+  }
+
   .conversation-stage {
     position: relative;
+    z-index: 2;
     display: flex;
     min-width: 0;
     min-height: 0;
@@ -6087,7 +6103,7 @@
     transform: translateY(-50%);
   }
 
-  .input-area-new-conversation .conversation-aurora {
+  .conversation-aurora-new-conversation {
     opacity: 0;
   }
 
@@ -6813,6 +6829,7 @@
 
   .checkpoint-flow-preview-stage {
     position: relative;
+    isolation: isolate;
     display: flex;
     width: 100vw;
     height: 100vh;
@@ -6822,6 +6839,7 @@
 
   .checkpoint-flow-preview-chat {
     position: relative;
+    z-index: 2;
     display: flex;
     min-width: 0;
     flex: 1;

@@ -66,20 +66,26 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   asynchronous refreshes so an older checkpoint cannot replace a newer live
   Goal or Graph state. A new or newly selected flow starts with its resizable
   right-side status panel collapsed to the edge peek; a user's expand or collapse
-  choice survives later checkpoints for that same flow. Float the expanded panel
-  as an inset Mica card over the
-  conversation, persist its width locally, and collapse it beyond the right edge
-  so only a clickable strip of the card's left edge remains visible. The peek
-  creates no layout track, full-height divider, glyph, or separate expand button;
-  inset the peek vertically so it clears native title-bar controls, and keep
-  keyboard focus visible on that edge. Keep the expanded header free of decorative
-  Goal or Graph kind glyphs and retain its collapse button. Center an otherwise
-  empty planning state in the available panel body.
+  choice survives later checkpoints for that same flow. Place the expanded panel
+  as a full-height inset card inside the conversation workspace's flex container,
+  using the same translucent Mica material as the conversation surface so it stays
+  visually continuous while its persisted width reduces the conversation track.
+  Paint one translucent Mica background on that shared workspace, keep the
+  composer aurora there rather than inside the conversation-only track, and
+  leave the expanded panel body transparent. The panel may retain its border,
+  radius, and shadow, but must not create a second backdrop layer that splits
+  the workspace into independently tinted regions.
+  Collapse it out of that layout and beyond the right edge so only a vertically
+  shortened, clickable strip of the card's left edge remains visible without
+  overlapping native title-bar controls. The peek creates no layout track,
+  full-height divider, glyph, or separate expand button; keep keyboard focus visible
+  on that edge. Keep the expanded header free of decorative Goal or Graph kind
+  glyphs and retain its collapse button. Center an otherwise empty planning state
+  in the available panel body.
   Cap the expanded panel to its live
   container, let Goal cards grow to contain their wrapped task and result copy,
   and keep Goal items, summaries, and Graph dependency content inside the panel
-  without widening its layout track or introducing horizontal scrolling. Use
-  the same canvas background as the conversation. Match the
+  without widening its layout track or introducing horizontal scrolling. Match the
   conversation sidebar's direct manipulation behavior: capture the active
   pointer, disable width transitions and text selection while dragging, and
   restore them when the drag ends or is cancelled. Use the same resizer visual

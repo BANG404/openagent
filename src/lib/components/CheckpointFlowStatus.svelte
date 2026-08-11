@@ -317,31 +317,31 @@
     --flow-panel-top-inset: 12px;
     --flow-panel-bottom-inset: 12px;
     --flow-panel-peek-width: 18px;
-    position: absolute;
-    inset: var(--flow-panel-top-inset) var(--flow-panel-inset) var(--flow-panel-bottom-inset) auto;
+    position: relative;
     z-index: 12;
     display: flex;
     width: min(var(--flow-panel-width), 48vw, calc(100% - 24px));
     min-width: min(260px, 48vw, calc(100% - 24px));
     max-width: min(520px, 48vw, calc(100% - 24px));
+    flex: 0 0 auto;
     flex-direction: column;
+    margin: var(--flow-panel-top-inset) var(--flow-panel-inset) var(--flow-panel-bottom-inset) 0;
     overflow: hidden;
     border: 1px solid var(--mica-border);
     border-radius: 14px;
-    background: var(--mica-surface);
+    background: transparent;
     box-shadow: var(--mica-shadow);
-    -webkit-backdrop-filter: blur(24px) saturate(1.12);
-    backdrop-filter: blur(24px) saturate(1.12);
     transition:
       width 160ms ease,
-      top 180ms cubic-bezier(0.16, 1, 0.3, 1),
-      bottom 180ms cubic-bezier(0.16, 1, 0.3, 1),
       transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .flow-panel.collapsed {
     --flow-panel-top-inset: 56px;
     --flow-panel-bottom-inset: 24px;
+    position: absolute;
+    inset: var(--flow-panel-top-inset) var(--flow-panel-inset) var(--flow-panel-bottom-inset) auto;
+    margin: 0;
     transform: translateX(calc(100% - var(--flow-panel-peek-width) + var(--flow-panel-inset)));
     cursor: pointer;
   }
@@ -740,16 +740,17 @@
   }
 
   @media (max-width: 760px) {
-    .flow-panel:not(.collapsed) {
+    .flow-panel {
       --flow-panel-inset: 8px;
       --flow-panel-top-inset: 8px;
       --flow-panel-bottom-inset: 8px;
+    }
+    .flow-panel:not(.collapsed) {
       width: min(var(--flow-panel-width), calc(100% - 16px));
       min-width: min(260px, calc(100% - 16px));
       max-width: min(420px, calc(100% - 16px));
     }
     .flow-panel.collapsed {
-      --flow-panel-inset: 8px;
       --flow-panel-top-inset: 52px;
       --flow-panel-bottom-inset: 20px;
     }
