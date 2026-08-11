@@ -67,9 +67,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Goal or Graph state. A new flow opens the
   resizable right-side status panel automatically; a user's collapse choice
   survives later checkpoints for that same flow, while switching to a distinct
-  flow opens its panel. Keep the collapsed rail available and persist the
-  expanded width locally. Keep both the expanded header and collapsed rail free
-  of decorative Goal or Graph kind glyphs. Cap the expanded panel to its live
+  flow opens its panel. Float the expanded panel as an inset Mica card over the
+  conversation, persist its width locally, and collapse it to a compact corner
+  button card that creates no layout track or full-height divider. Keep both the
+  expanded header and collapsed control free of decorative Goal or Graph kind
+  glyphs. Center an otherwise empty planning state in the available panel body.
+  Cap the expanded panel to its live
   container, let Goal cards grow to contain their wrapped task and result copy,
   and keep Goal items, summaries, and Graph dependency content inside the panel
   without widening its layout track or introducing horizontal scrolling. Use
@@ -425,7 +428,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   right-side Goal/Graph checkpoint panel and composer approval selector. Its
   `-kind`, `-theme`, and `-locale` query parameters must keep Goal/Graph,
   resize/collapse, approval selection, light/dark, and Chinese/English checks
-  addressable without a native runtime.
+  addressable without a native runtime. The `-empty` parameter exposes the
+  centered Graph planning state directly.
 - Keep the development-only `book-mode-preview` query available with long,
   process-bearing fixture content. Its `-theme` and `-locale` query parameters
   must keep two-column flow, multi-page navigation, process collapse, and

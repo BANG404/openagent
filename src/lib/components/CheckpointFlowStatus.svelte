@@ -311,25 +311,30 @@
 
 <style>
   .flow-panel {
-    position: relative;
+    position: absolute;
+    inset: 12px 12px 12px auto;
     z-index: 12;
     display: flex;
-    height: 100%;
-    width: min(var(--flow-panel-width), 48vw, 100%);
-    min-width: min(260px, 48vw, 100%);
-    max-width: min(520px, 48vw, 100%);
-    flex: 0 0 auto;
+    width: min(var(--flow-panel-width), 48vw, calc(100% - 24px));
+    min-width: min(260px, 48vw, calc(100% - 24px));
+    max-width: min(520px, 48vw, calc(100% - 24px));
     flex-direction: column;
     overflow: hidden;
-    border-left: 1px solid var(--border);
-    background: var(--bg);
+    border: 1px solid var(--mica-border);
+    border-radius: 14px;
+    background: var(--mica-surface);
+    box-shadow: var(--mica-shadow);
+    -webkit-backdrop-filter: blur(24px) saturate(1.12);
+    backdrop-filter: blur(24px) saturate(1.12);
     transition: width 160ms ease;
   }
 
   .flow-panel.collapsed {
-    width: 42px;
-    min-width: 42px;
-    max-width: 42px;
+    inset: 12px 12px auto auto;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    max-width: 36px;
   }
   .flow-panel.resizing {
     transition: none;
@@ -370,9 +375,10 @@
     border-bottom: 1px solid var(--border);
   }
   .collapsed .flow-header {
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 6px;
+    min-height: 0;
+    height: 100%;
+    justify-content: center;
+    padding: 4px;
     border-bottom: 0;
   }
   .flow-heading {
@@ -443,10 +449,17 @@
   }
   .flow-status,
   .item-status {
+    display: inline-flex;
     flex: 0 0 auto;
+    min-height: 18px;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
     border-radius: 999px;
     padding: 2px 7px;
     font-size: 10px;
+    line-height: 1;
+    text-align: center;
     color: var(--text-muted);
     background: var(--surface2);
   }
@@ -696,6 +709,10 @@
     line-height: 1.5;
     color: var(--text-muted);
   }
+  .flow-empty {
+    margin: auto;
+    text-align: center;
+  }
   .flow-summary {
     margin-top: 4px;
     padding-top: 8px;
@@ -705,12 +722,13 @@
 
   @media (max-width: 760px) {
     .flow-panel:not(.collapsed) {
-      position: absolute;
-      inset: 0 0 0 auto;
-      width: min(var(--flow-panel-width), 100%);
-      min-width: min(260px, 100%);
-      max-width: min(420px, 100%);
-      box-shadow: -16px 0 36px rgba(0, 0, 0, 0.12);
+      inset: 8px 8px 8px auto;
+      width: min(var(--flow-panel-width), calc(100% - 16px));
+      min-width: min(260px, calc(100% - 16px));
+      max-width: min(420px, calc(100% - 16px));
+    }
+    .flow-panel.collapsed {
+      inset: 8px 8px auto auto;
     }
   }
 

@@ -808,6 +808,9 @@
             },
           ],
         };
+  if (devQuery?.has("checkpoint-flow-preview-empty") && checkpointFlowPreview.kind === "graph") {
+    checkpointFlowPreview.nodes = [];
+  }
   let selectedModel = $state("");
   let reasoningEffortPreviewValue = $state<ReasoningEffort>("high");
   let permissionSettingsPreviewProfile = $state<PermissionProfile>(defaultPermissionProfile());
