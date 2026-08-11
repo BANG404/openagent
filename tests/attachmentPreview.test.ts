@@ -8,11 +8,18 @@ import {
 
 describe("attachment preview policy", () => {
   test("allows only explicitly previewable file extensions", () => {
-    for (const name of ["diagram.SVG", "report.pdf", "notes.md", "data.json", "photo.webp"]) {
+    for (const name of ["diagram.SVG", "notes.md", "data.json", "script.ts", "photo.webp"]) {
       expect(isAttachmentPreviewSupported(name)).toBe(true);
     }
 
-    for (const name of ["archive.zip", "installer.exe", "README", "notes.md.exe", "trailing.md "]) {
+    for (const name of [
+      "report.pdf",
+      "archive.zip",
+      "installer.exe",
+      "README",
+      "notes.md.exe",
+      "trailing.md ",
+    ]) {
       expect(isAttachmentPreviewSupported(name)).toBe(false);
     }
   });

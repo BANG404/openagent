@@ -17,7 +17,7 @@
   import Tooltip from "./Tooltip.svelte";
 
   type PreviewPayload = {
-    kind: "image" | "text" | "pdf" | "file";
+    kind: "image" | "text" | "file";
     data_url?: string;
     text?: string;
   };
@@ -300,8 +300,6 @@
             >
               <img src={preview.data_url} alt={attachment.name} />
             </div>
-          {:else if preview?.kind === "pdf" && preview.data_url}
-            <iframe src={preview.data_url} title={attachment.name}></iframe>
           {:else if preview?.kind === "text"}
             <pre>{preview.text ?? ""}</pre>
           {:else}
@@ -891,14 +889,6 @@
     max-height: calc(100% - 56px);
     box-sizing: border-box;
     object-fit: contain;
-  }
-
-  :global(.attachment-dialog-body > iframe) {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border: 0;
-    background: white;
   }
 
   :global(.attachment-dialog-body > pre) {

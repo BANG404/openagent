@@ -13,7 +13,6 @@ const PREVIEWABLE_EXTENSIONS = new Set([
   "jsx",
   "markdown",
   "md",
-  "pdf",
   "png",
   "py",
   "rtf",

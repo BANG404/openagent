@@ -269,10 +269,11 @@ preview frame consistent with Mermaid fullscreen: the attachment stays centered
 inside the inset canvas and controls remain in the top-right. Images open fitted
 to the viewport and provide zoom out, fit, zoom in, and close actions;
 pointer-anchored wheel zoom keeps the image beneath the cursor stable while
-zoomed overflow remains scrollable. Supported PDF and text formats retain their
-normal preview and scrolling behavior without zoom controls or wheel interception.
-Preview opening uses an explicit extension whitelist; unsupported formats stay
-visible as attachments but are not clickable.
+zoomed overflow remains scrollable. Lightweight text formats open as bounded
+plain-text previews with normal scrolling and no zoom controls or wheel
+interception. PDF remains uploadable but has no content preview. Preview opening
+uses an explicit extension whitelist; unsupported formats stay visible as
+attachments but are not clickable.
 
 Long secondary collections should not make a primary action menu scroll. The workspace switcher keeps open-folder actions in its root menu and renders its trigger, root items, and older-workspace rows without decorative icons; the current-folder-location row remains text-only, while WSL is communicated with an explicit text badge. Older workspaces appear in a side-opening “Recent workspaces” submenu; its entry retains a right-pointing chevron as the submenu indicator and must support pointer hover, click, and keyboard navigation, keep its scrollbar flush with the right edge, and reuse the shared menu density.
 

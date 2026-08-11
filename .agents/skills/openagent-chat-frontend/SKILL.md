@@ -193,13 +193,14 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Open attachment previews in the same full-window visual frame used by rich
   Mermaid and book previews: center the attachment within the framed canvas and
   keep preview controls in the top-right. Image previews expose zoom out, fit,
-  zoom in, and close controls; text, PDF, and unavailable states retain the same
+  zoom in, and close controls; text and unavailable states retain the same
   centered frame and close placement. Gate opening through an explicit extension
   whitelist so unsupported formats remain non-previewable. Reset every image
   preview to fit whenever it opens; toolbar and pointer-anchored wheel zoom share
   the same bounded scale, and enlarged image content scrolls inside the frame
-  instead of clipping. Text and PDF previews retain normal scrolling and do not
-  expose zoom controls or intercept the wheel.
+  instead of clipping. Lightweight text previews retain normal scrolling and do
+  not expose zoom controls or intercept the wheel. PDF remains uploadable but is
+  excluded from the preview whitelist and must never be embedded in the WebView.
 - In the ordinary composer, render pending attachments as 112px preview cards in
   one horizontally scrollable row: preview image and supported text content,
   keep the filename anchored at the card foot, and keep the remove action at

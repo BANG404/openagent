@@ -55,7 +55,7 @@
     attachmentPreviewLoader?: (
       locator: string,
       name: string,
-    ) => Promise<{ kind: "image" | "text" | "pdf" | "file"; data_url?: string; text?: string }>;
+    ) => Promise<{ kind: "image" | "text" | "file"; data_url?: string; text?: string }>;
     onCommitEdit: (
       convId: string,
       userMsgIdx: number,
