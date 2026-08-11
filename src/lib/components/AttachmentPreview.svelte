@@ -42,17 +42,9 @@
   const previewCache = getPreviewCache();
   const extension = $derived(attachment.name.split(".").pop()?.toUpperCase().slice(0, 5) || "FILE");
   const previewScalePercent = $derived(`${previewScale * 100}%`);
-  const previewTextSize = $derived(`${12 * previewScale}px`);
-  const previewTextLineHeight = $derived(`${19.8 * previewScale}px`);
-  const previewTextPadding = $derived(`${22 * previewScale}px`);
-  const previewTextWidth = $derived(`${960 * previewScale}px`);
   const previewSupported = $derived(isAttachmentPreviewSupported(attachment.name));
   const canOpenPreview = $derived(size !== "strip" && previewSupported);
-  const canZoomPreview = $derived(
-    (preview?.kind === "image" || preview?.kind === "pdf") && preview.data_url
-      ? true
-      : preview?.kind === "text",
-  );
+  const canZoomImage = $derived(preview?.kind === "image" && Boolean(preview.data_url));
 
   $effect(() => {
     const locator = attachment.path;
@@ -133,7 +125,7 @@
   }
 
   function handlePreviewWheel(event: WheelEvent) {
-    if (!canZoomPreview) return;
+    if (!canZoomImage) return;
     const viewport = previewViewport;
     if (!viewport) return;
     event.preventDefault();
@@ -234,7 +226,7 @@
           ></div>
           <Dialog.Title>{attachment.name}</Dialog.Title>
           <div class="attachment-dialog-controls">
-            {#if canZoomPreview}
+            {#if canZoomImage}
               <Tooltip text={$t("attachmentZoomOut")}>
                 {#snippet trigger(props)}
                   <button
@@ -296,32 +288,22 @@
         </header>
         <div
           class="attachment-dialog-body"
-          class:zoomable={canZoomPreview}
+          class:zoomable={canZoomImage}
           bind:this={previewViewport}
           data-preview-scale={previewScale}
           onwheel={handlePreviewWheel}
         >
           {#if preview?.kind === "image" && preview.data_url}
             <div
-              class="attachment-content-canvas attachment-image-canvas"
+              class="attachment-image-canvas"
               style={`--attachment-preview-size: ${previewScalePercent}`}
             >
               <img src={preview.data_url} alt={attachment.name} />
             </div>
           {:else if preview?.kind === "pdf" && preview.data_url}
-            <div
-              class="attachment-content-canvas attachment-pdf-canvas"
-              style={`--attachment-preview-size: ${previewScalePercent}`}
-            >
-              <iframe src={preview.data_url} title={attachment.name}></iframe>
-            </div>
+            <iframe src={preview.data_url} title={attachment.name}></iframe>
           {:else if preview?.kind === "text"}
-            <div
-              class="attachment-content-canvas attachment-text-canvas"
-              style={`--attachment-preview-size: ${previewScalePercent}; --attachment-preview-text-size: ${previewTextSize}; --attachment-preview-text-line-height: ${previewTextLineHeight}; --attachment-preview-text-padding: ${previewTextPadding}; --attachment-preview-text-width: ${previewTextWidth}`}
-            >
-              <pre>{preview.text ?? ""}</pre>
-            </div>
+            <pre>{preview.text ?? ""}</pre>
           {:else}
             <div class="unavailable-preview">
               <span class="file-fold" aria-hidden="true"></span>
@@ -891,7 +873,7 @@
     cursor: zoom-in;
   }
 
-  :global(.attachment-content-canvas) {
+  :global(.attachment-image-canvas) {
     display: grid;
     width: var(--attachment-preview-size);
     min-width: var(--attachment-preview-size);
@@ -911,29 +893,28 @@
     object-fit: contain;
   }
 
-  :global(.attachment-pdf-canvas > iframe) {
+  :global(.attachment-dialog-body > iframe) {
     display: block;
     width: 100%;
     height: 100%;
     border: 0;
     background: white;
-    pointer-events: none;
   }
 
-  :global(.attachment-text-canvas > pre) {
+  :global(.attachment-dialog-body > pre) {
     box-sizing: border-box;
-    width: min(var(--attachment-preview-text-width), calc(100% - 56px));
+    width: min(960px, calc(100% - 56px));
     max-height: calc(100% - 112px);
     margin: auto;
     overflow: auto;
-    padding: var(--attachment-preview-text-padding);
+    padding: 22px;
     color: var(--text);
     background: var(--surface);
     border-radius: 9px;
     box-shadow: var(--control-shadow);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: var(--attachment-preview-text-size);
-    line-height: var(--attachment-preview-text-line-height);
+    font-size: 12px;
+    line-height: 1.65;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }

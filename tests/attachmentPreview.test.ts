@@ -17,14 +17,14 @@ describe("attachment preview policy", () => {
     }
   });
 
-  test("clamps wheel zoom to the supported range", () => {
+  test("clamps image wheel zoom to the supported range", () => {
     expect(attachmentPreviewScaleFromWheel(1, -100)).toBeGreaterThan(1);
     expect(attachmentPreviewScaleFromWheel(1, 100)).toBeLessThan(1);
     expect(attachmentPreviewScaleFromWheel(3, -10_000)).toBe(3);
     expect(attachmentPreviewScaleFromWheel(0.5, 10_000)).toBe(0.5);
   });
 
-  test("keeps the content beneath the pointer anchored while zooming", () => {
+  test("keeps image content beneath the pointer anchored while zooming", () => {
     expect(anchoredAttachmentPreviewScroll(200, 100, 1, 1.5)).toBe(350);
     expect(anchoredAttachmentPreviewScroll(0, 250, 1, 0.5)).toBe(0);
   });
