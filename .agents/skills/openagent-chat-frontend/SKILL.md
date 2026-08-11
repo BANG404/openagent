@@ -390,9 +390,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   dragging from non-interactive card space. Keep a generous top inset above the
   textarea as the primary grab target, and open selectors below and visually outside the card,
   aligned to their trigger start edge, without collision-based side flipping.
-  Give the launcher card only a restrained shadow and keep enough transparent
-  stage padding around it that the shadow never meets or clips against the
-  native window boundary. Give selector content the shared raised shadow, while
+  Give the launcher card only a restrained shadow. Keep its 760px card width
+  separate from the wider transparent native canvas, with 48px horizontal stage
+  insets so the shadow fades before the WebView boundary instead of forming a
+  clipped edge. Give selector content the shared raised shadow, while
   keeping the search field inside it shadowless at rest. Let selector content follow
   its items up to a bounded scrollable maximum height; role descriptions stay on
   one ellipsized line so one role cannot consume the menu. Separate the composer

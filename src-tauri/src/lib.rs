@@ -1462,8 +1462,8 @@ fn run_with_mode(agent_server: bool) {
                     tauri::WebviewUrl::App("/?quick-chat-window=1".into()),
                 )
                 .title("OpenAgent Quick Chat")
-                .inner_size(760.0, 222.0)
-                .min_inner_size(680.0, 222.0)
+                .inner_size(856.0, 246.0)
+                .min_inner_size(760.0, 246.0)
                 .decorations(false)
                 .transparent(true)
                 .resizable(false)

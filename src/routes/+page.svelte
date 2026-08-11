@@ -4714,8 +4714,8 @@
   // ─── Window Controls ─────────────────────────────────────────────────────────
 
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
-  const quickChatCompactSize = { width: 760, height: 222 };
-  const quickChatExpandedSize = { width: 760, height: 532 };
+  const quickChatCompactSize = { width: 856, height: 246 };
+  const quickChatExpandedSize = { width: 856, height: 580 };
   const winMinimize = () => appWindow?.minimize();
   const winMaximize = () => appWindow?.toggleMaximize();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
@@ -5735,7 +5735,7 @@
   .quick-chat-stage {
     width: 100vw;
     height: 100vh;
-    padding: 16px 16px 20px;
+    padding: 28px 48px 48px;
     overflow: visible;
     background: transparent;
   }
