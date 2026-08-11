@@ -150,36 +150,38 @@
   class="flow-panel"
   class:collapsed
   class:resizing
-  style:--flow-panel-width={collapsed ? "42px" : `${width}px`}
+  style:--flow-panel-width={`${width}px`}
   aria-label={$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}
 >
-  {#if !collapsed}
+  {#if collapsed}
+    <button
+      class="peek-button"
+      type="button"
+      aria-label={$t("checkpointFlowExpand")}
+      onclick={onToggle}
+    ></button>
+  {:else}
     <button
       class="resize-handle"
       type="button"
       aria-label={$t("checkpointFlowResize")}
       onpointerdown={onResizeStart}
     ></button>
-  {/if}
-
-  <header class="flow-header">
-    {#if !collapsed}
+    <header class="flow-header">
       <span class="flow-heading">
         <strong>{$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}</strong>
         <span>{flow.objective}</span>
       </span>
-    {/if}
-    <button
-      class="collapse-button"
-      type="button"
-      aria-label={$t(collapsed ? "checkpointFlowExpand" : "checkpointFlowCollapse")}
-      onclick={onToggle}
-    >
-      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"
-        ><path d={collapsed ? "m6 4 4 4-4 4" : "m10 4-4 4 4 4"} /></svg
+      <button
+        class="collapse-button"
+        type="button"
+        aria-label={$t("checkpointFlowCollapse")}
+        onclick={onToggle}
       >
-    </button>
-  </header>
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m10 4-4 4 4 4" /></svg>
+      </button>
+    </header>
+  {/if}
 
   {#if !collapsed}
     <div class="flow-overview">
@@ -311,8 +313,12 @@
 
 <style>
   .flow-panel {
+    --flow-panel-inset: 12px;
+    --flow-panel-top-inset: 12px;
+    --flow-panel-bottom-inset: 12px;
+    --flow-panel-peek-width: 18px;
     position: absolute;
-    inset: 12px 12px 12px auto;
+    inset: var(--flow-panel-top-inset) var(--flow-panel-inset) var(--flow-panel-bottom-inset) auto;
     z-index: 12;
     display: flex;
     width: min(var(--flow-panel-width), 48vw, calc(100% - 24px));
@@ -326,15 +332,18 @@
     box-shadow: var(--mica-shadow);
     -webkit-backdrop-filter: blur(24px) saturate(1.12);
     backdrop-filter: blur(24px) saturate(1.12);
-    transition: width 160ms ease;
+    transition:
+      width 160ms ease,
+      top 180ms cubic-bezier(0.16, 1, 0.3, 1),
+      bottom 180ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .flow-panel.collapsed {
-    inset: 12px 12px auto auto;
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    max-width: 36px;
+    --flow-panel-top-inset: 56px;
+    --flow-panel-bottom-inset: 24px;
+    transform: translateX(calc(100% - var(--flow-panel-peek-width) + var(--flow-panel-inset)));
+    cursor: pointer;
   }
   .flow-panel.resizing {
     transition: none;
@@ -374,12 +383,22 @@
     padding: 9px 8px 9px 10px;
     border-bottom: 1px solid var(--border);
   }
-  .collapsed .flow-header {
-    min-height: 0;
-    height: 100%;
-    justify-content: center;
-    padding: 4px;
-    border-bottom: 0;
+  .peek-button {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    outline: none;
+  }
+  .flow-panel.collapsed:hover {
+    border-color: color-mix(in srgb, var(--primary) 38%, var(--mica-border));
+    background: color-mix(in srgb, var(--primary) 5%, var(--mica-surface));
+  }
+  .peek-button:focus-visible {
+    box-shadow: inset 3px 0 var(--primary);
   }
   .flow-heading {
     display: flex;
@@ -722,17 +741,22 @@
 
   @media (max-width: 760px) {
     .flow-panel:not(.collapsed) {
-      inset: 8px 8px 8px auto;
+      --flow-panel-inset: 8px;
+      --flow-panel-top-inset: 8px;
+      --flow-panel-bottom-inset: 8px;
       width: min(var(--flow-panel-width), calc(100% - 16px));
       min-width: min(260px, calc(100% - 16px));
       max-width: min(420px, calc(100% - 16px));
     }
     .flow-panel.collapsed {
-      inset: 8px 8px auto auto;
+      --flow-panel-inset: 8px;
+      --flow-panel-top-inset: 52px;
+      --flow-panel-bottom-inset: 20px;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .flow-panel,
     .resize-handle::after {
       transition: none;
     }

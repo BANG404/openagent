@@ -64,14 +64,17 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   overlay until the matching persisted `chat-checkpoint` has been reconciled.
   Leave optimistic transcript records mounted throughout and ignore stale
   asynchronous refreshes so an older checkpoint cannot replace a newer live
-  Goal or Graph state. A new flow opens the
-  resizable right-side status panel automatically; a user's collapse choice
-  survives later checkpoints for that same flow, while switching to a distinct
-  flow opens its panel. Float the expanded panel as an inset Mica card over the
-  conversation, persist its width locally, and collapse it to a compact corner
-  button card that creates no layout track or full-height divider. Keep both the
-  expanded header and collapsed control free of decorative Goal or Graph kind
-  glyphs. Center an otherwise empty planning state in the available panel body.
+  Goal or Graph state. A new or newly selected flow starts with its resizable
+  right-side status panel collapsed to the edge peek; a user's expand or collapse
+  choice survives later checkpoints for that same flow. Float the expanded panel
+  as an inset Mica card over the
+  conversation, persist its width locally, and collapse it beyond the right edge
+  so only a clickable strip of the card's left edge remains visible. The peek
+  creates no layout track, full-height divider, glyph, or separate expand button;
+  inset the peek vertically so it clears native title-bar controls, and keep
+  keyboard focus visible on that edge. Keep the expanded header free of decorative
+  Goal or Graph kind glyphs and retain its collapse button. Center an otherwise
+  empty planning state in the available panel body.
   Cap the expanded panel to its live
   container, let Goal cards grow to contain their wrapped task and result copy,
   and keep Goal items, summaries, and Graph dependency content inside the panel

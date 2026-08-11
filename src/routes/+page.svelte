@@ -560,7 +560,7 @@
   );
   let checkpointFlowPanelCollapsed = $state(!isCheckpointFlowPreview);
   let checkpointFlowPanelResizing = $state(false);
-  let lastAutoExpandedFlowKey = "";
+  let lastCheckpointFlowKey = "";
   let workspace = $state<WorkspaceContext | null>(null);
   let config = $state<AppConfig | null>(null);
   let isMemorySyncing = $state(false);
@@ -1123,9 +1123,9 @@
   $effect(() => {
     if (!activeConvId || !currentCheckpointFlow) return;
     const key = `${activeConvId}\u0000${currentCheckpointFlow.kind}\u0000${currentCheckpointFlow.objective}`;
-    if (key === lastAutoExpandedFlowKey) return;
-    lastAutoExpandedFlowKey = key;
-    checkpointFlowPanelCollapsed = false;
+    if (key === lastCheckpointFlowKey) return;
+    lastCheckpointFlowKey = key;
+    checkpointFlowPanelCollapsed = true;
   });
 
   function startCheckpointFlowPanelResize(event: PointerEvent) {
