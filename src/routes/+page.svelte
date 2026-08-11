@@ -5872,7 +5872,9 @@
     position: absolute;
     inset: 0;
     z-index: 3;
-    background: var(--bg);
+    background: color-mix(in srgb, var(--bg) 62%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
     pointer-events: none;
   }
 

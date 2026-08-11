@@ -338,9 +338,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   rings, which expand outside each control boundary instead of inset.
 - Let the conversation shell own the custom title-bar clearance. Keep the
   ordinary transcript's own top inset compact so it does not stack a second
-  header-sized gap above the first message or debug context. Keep the title bar
-  and conversation canvas on the shared application background in both themes;
-  reserve Mica for raised chat controls such as the composer and flow panel.
+  header-sized gap above the first message or debug context. Tint the translucent
+  conversation-canvas veil from the shared application background in both themes
+  so neutral regions match the title bar while the established aurora remains
+  visible underneath. Reserve Mica for raised chat controls such as the composer
+  and flow panel.
 - An explicitly empty durable active-conversation marker restores the centered
   new-conversation surface, even when older conversations exist. Never fall
   back to the newest conversation.
