@@ -435,9 +435,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the footer uses a divider rather than a nested surface or shadow.
 - Keep the development-only `agents-settings-preview` query as the direct
   browser surface for Settings → Agent tasks. Its `-theme` and `-locale` query
-  parameters must keep Mica cards and inputs, inset row dividers, toggles,
-  light/dark themes, and Chinese/English copy addressable without native
-  configuration. Do not reintroduce gray fills on nested setting rows.
+  parameters must keep the grouped conversation-organization and background-
+  automation task cards, task status/toggle capsules, optional custom-instruction
+  disclosures, inset row dividers, light/dark themes, and Chinese/English copy
+  addressable without native configuration. Keep memory subfeatures and the
+  compaction threshold inside their owning task rows, and identify automatic
+  approval as controlled by the global approval mode instead of adding a second
+  task switch. Do not reintroduce gray fills on nested setting rows.
 - Keep the development-only `agent-plugins-settings-preview` query as the direct
   browser surface for Settings → Agent Plugins. Its `-theme` and `-locale`
   parameters must keep Mica plugin cards, installed components, compatibility

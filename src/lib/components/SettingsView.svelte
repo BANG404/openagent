@@ -3153,143 +3153,252 @@
     </Tabs.Content>
 
     <Tabs.Content value="agents" class="settings-tab-panel">
-      <div class="settings-content-col">
-        <section class="detail-section">
-          <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t("autoApprovalTask")}</h4>
-          </div>
-          <p class="detail-hint">{$t("autoApprovalTaskDescription")}</p>
-          <label class="detail-label">
-            <span class="label-text">{$t("agentExtraPrompt")}</span>
-            <textarea
-              class="detail-input hook-textarea"
-              bind:value={draftConfig.flash_agents.tool_approval.prompt}
-              placeholder={$t("terminalApprovalTaskPromptPlaceholder")}></textarea>
-          </label>
-        </section>
+      <div class="settings-content-col agents-settings-content">
+        <header class="agents-settings-intro">
+          <h3>{$t("flashAgents")}</h3>
+          <p>{$t("flashAgentsDescription")}</p>
+        </header>
 
-        <section class="detail-section">
-          <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t("titleAgent")}</h4>
-            <Switch
-              bind:checked={draftConfig.flash_agents.title.enabled}
-              ariaLabel={$t("titleAgentEnabled")}
-            />
+        <section class="flash-task-group" aria-labelledby="conversation-flash-tasks">
+          <div class="flash-task-group-heading">
+            <h4 id="conversation-flash-tasks">{$t("conversationFlashTasks")}</h4>
+            <p>{$t("conversationFlashTasksDescription")}</p>
           </div>
-          <p class="detail-hint">{$t("titleTaskDescription")}</p>
-          <label class="detail-label">
-            <span class="label-text">{$t("agentExtraPrompt")}</span>
-            <textarea
-              class="detail-input hook-textarea"
-              bind:value={draftConfig.flash_agents.title.prompt}
-              placeholder={$t("titleAgentPromptPlaceholder")}></textarea>
-          </label>
-        </section>
-
-        <section class="detail-section">
-          <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t("skillCategoryAgent")}</h4>
-            <Switch
-              bind:checked={draftConfig.flash_agents.skill_category.enabled}
-              ariaLabel={$t("skillCategoryAgentEnabled")}
-            />
-          </div>
-          <p class="detail-hint">{$t("skillCategoryTaskDescription")}</p>
-          <label class="detail-label">
-            <span class="label-text">{$t("agentExtraPrompt")}</span>
-            <textarea
-              class="detail-input hook-textarea"
-              bind:value={draftConfig.flash_agents.skill_category.prompt}
-              placeholder={$t("skillCategoryAgentPromptPlaceholder")}></textarea>
-          </label>
-        </section>
-
-        <section class="detail-section memory-settings">
-          <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t("memoryAgent")}</h4>
-            <Switch
-              bind:checked={draftConfig.flash_agents.memory.enabled}
-              ariaLabel={$t("memoryAgentEnabled")}
-            />
-          </div>
-          <p class="detail-hint">{$t("memoryTaskDescription")}</p>
-          <div class="memory-option-list">
-            <div class="memory-option">
-              <div class="memory-option-copy">
-                <h5>{$t("newConversationSummary")}</h5>
-                <p>{$t("newConversationSummaryDescription")}</p>
+          <div class="flash-task-card">
+            <article class="flash-task-item">
+              <div class="flash-task-heading">
+                <div class="flash-task-copy">
+                  <h5>{$t("titleAgent")}</h5>
+                  <p>{$t("titleTaskDescription")}</p>
+                </div>
+                <SettingsStatusToggle
+                  statusLabel={$t(
+                    draftConfig.flash_agents.title.enabled ? "filterEnabled" : "filterDisabled",
+                  )}
+                  statusActive={draftConfig.flash_agents.title.enabled}
+                  toggleLabel={$t("taskEnabled")}
+                  bind:checked={draftConfig.flash_agents.title.enabled}
+                  ariaLabel={$t("titleAgentEnabled")}
+                />
               </div>
-              <Switch
-                bind:checked={draftConfig.flash_agents.new_conversation_summary.enabled}
-                ariaLabel={$t("newConversationSummaryEnabled")}
-              />
-            </div>
-            <div class="memory-option">
-              <div class="memory-option-copy">
-                <h5>{$t("memoryRetrieval")}</h5>
-                <p>{$t("memoryRetrievalDescription")}</p>
+              <details
+                class="flash-task-custom"
+                open={draftConfig.flash_agents.title.prompt.trim().length > 0}
+              >
+                <summary>{$t("taskCustomPrompt")}</summary>
+                <label class="detail-label">
+                  <span class="sr-only">{$t("agentExtraPrompt")}</span>
+                  <textarea
+                    class="detail-input flash-task-textarea"
+                    bind:value={draftConfig.flash_agents.title.prompt}
+                    placeholder={$t("titleAgentPromptPlaceholder")}></textarea>
+                </label>
+              </details>
+            </article>
+
+            <article class="flash-task-item">
+              <div class="flash-task-heading">
+                <div class="flash-task-copy">
+                  <h5>{$t("memoryAgent")}</h5>
+                  <p>{$t("memoryTaskDescription")}</p>
+                </div>
+                <SettingsStatusToggle
+                  statusLabel={$t(
+                    draftConfig.flash_agents.memory.enabled ? "filterEnabled" : "filterDisabled",
+                  )}
+                  statusActive={draftConfig.flash_agents.memory.enabled}
+                  toggleLabel={$t("taskEnabled")}
+                  bind:checked={draftConfig.flash_agents.memory.enabled}
+                  ariaLabel={$t("memoryAgentEnabled")}
+                />
               </div>
-              <Switch
-                bind:checked={draftConfig.memory_retrieval_enabled}
-                ariaLabel={$t("memoryRetrievalEnabled")}
-              />
-            </div>
+              <div class="flash-task-suboptions">
+                <div class="flash-task-suboption">
+                  <div>
+                    <h6>{$t("newConversationSummary")}</h6>
+                    <p>{$t("newConversationSummaryDescription")}</p>
+                  </div>
+                  <Switch
+                    bind:checked={draftConfig.flash_agents.new_conversation_summary.enabled}
+                    disabled={!draftConfig.flash_agents.memory.enabled}
+                    ariaLabel={$t("newConversationSummaryEnabled")}
+                  />
+                </div>
+                <div class="flash-task-suboption">
+                  <div>
+                    <h6>{$t("memoryRetrieval")}</h6>
+                    <p>{$t("memoryRetrievalDescription")}</p>
+                  </div>
+                  <Switch
+                    bind:checked={draftConfig.memory_retrieval_enabled}
+                    disabled={!draftConfig.flash_agents.memory.enabled}
+                    ariaLabel={$t("memoryRetrievalEnabled")}
+                  />
+                </div>
+              </div>
+              <details
+                class="flash-task-custom"
+                open={draftConfig.flash_agents.memory.prompt.trim().length > 0}
+              >
+                <summary>{$t("taskCustomPrompt")}</summary>
+                <label class="detail-label">
+                  <span class="sr-only">{$t("agentExtraPrompt")}</span>
+                  <textarea
+                    class="detail-input flash-task-textarea"
+                    bind:value={draftConfig.flash_agents.memory.prompt}
+                    placeholder={$t("memoryAgentPromptPlaceholder")}></textarea>
+                </label>
+              </details>
+            </article>
+
+            <article class="flash-task-item">
+              <div class="flash-task-heading">
+                <div class="flash-task-copy">
+                  <h5>{$t("compactionTask")}</h5>
+                  <p>{$t("compactionTaskDescription")}</p>
+                </div>
+                <SettingsStatusToggle
+                  statusLabel={$t(
+                    draftConfig.context_compaction_enabled ? "filterEnabled" : "filterDisabled",
+                  )}
+                  statusActive={draftConfig.context_compaction_enabled}
+                  toggleLabel={$t("taskEnabled")}
+                  bind:checked={draftConfig.context_compaction_enabled}
+                  ariaLabel={$t("contextCompaction")}
+                />
+              </div>
+              <label class="flash-task-inline-setting">
+                <span>{$t("contextCompactionThreshold")}</span>
+                <input
+                  type="number"
+                  class="detail-input compaction-threshold-input"
+                  min="1000"
+                  max="1000000"
+                  step="1000"
+                  disabled={!draftConfig.context_compaction_enabled}
+                  bind:value={draftConfig.context_compaction_threshold}
+                />
+              </label>
+              <details
+                class="flash-task-custom"
+                open={draftConfig.context_compaction_prompt.trim().length > 0}
+              >
+                <summary>{$t("taskCustomPrompt")}</summary>
+                <label class="detail-label">
+                  <span class="sr-only">{$t("agentExtraPrompt")}</span>
+                  <textarea
+                    class="detail-input flash-task-textarea"
+                    bind:value={draftConfig.context_compaction_prompt}
+                    placeholder={$t("compactionTaskPromptPlaceholder")}></textarea>
+                </label>
+              </details>
+            </article>
           </div>
-          <label class="detail-label memory-prompt">
-            <span class="label-text">{$t("agentExtraPrompt")}</span>
-            <textarea
-              class="detail-input hook-textarea"
-              bind:value={draftConfig.flash_agents.memory.prompt}
-              placeholder={$t("memoryAgentPromptPlaceholder")}></textarea>
-          </label>
         </section>
 
-        <section class="detail-section">
-          <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t("hookAgent")}</h4>
-            <Switch
-              bind:checked={draftConfig.flash_agents.hook.enabled}
-              ariaLabel={$t("hookAgentEnabled")}
-            />
+        <section class="flash-task-group" aria-labelledby="automation-flash-tasks">
+          <div class="flash-task-group-heading">
+            <h4 id="automation-flash-tasks">{$t("automationFlashTasks")}</h4>
+            <p>{$t("automationFlashTasksDescription")}</p>
           </div>
-          <p class="detail-hint">{$t("hookTaskDescription")}</p>
-          <label class="detail-label">
-            <span class="label-text">{$t("agentExtraPrompt")}</span>
-            <textarea
-              class="detail-input hook-textarea"
-              bind:value={draftConfig.flash_agents.hook.prompt}
-              placeholder={$t("hookAgentPromptPlaceholder")}></textarea>
-          </label>
-        </section>
+          <div class="flash-task-card">
+            <article class="flash-task-item">
+              <div class="flash-task-heading">
+                <div class="flash-task-copy">
+                  <h5>{$t("skillCategoryAgent")}</h5>
+                  <p>{$t("skillCategoryTaskDescription")}</p>
+                </div>
+                <SettingsStatusToggle
+                  statusLabel={$t(
+                    draftConfig.flash_agents.skill_category.enabled
+                      ? "filterEnabled"
+                      : "filterDisabled",
+                  )}
+                  statusActive={draftConfig.flash_agents.skill_category.enabled}
+                  toggleLabel={$t("taskEnabled")}
+                  bind:checked={draftConfig.flash_agents.skill_category.enabled}
+                  ariaLabel={$t("skillCategoryAgentEnabled")}
+                />
+              </div>
+              <details
+                class="flash-task-custom"
+                open={draftConfig.flash_agents.skill_category.prompt.trim().length > 0}
+              >
+                <summary>{$t("taskCustomPrompt")}</summary>
+                <label class="detail-label">
+                  <span class="sr-only">{$t("agentExtraPrompt")}</span>
+                  <textarea
+                    class="detail-input flash-task-textarea"
+                    bind:value={draftConfig.flash_agents.skill_category.prompt}
+                    placeholder={$t("skillCategoryAgentPromptPlaceholder")}></textarea>
+                </label>
+              </details>
+            </article>
 
-        <section class="detail-section">
-          <div class="detail-section-header">
-            <h4 class="detail-section-title">{$t("compactionTask")}</h4>
-            <Switch
-              bind:checked={draftConfig.context_compaction_enabled}
-              ariaLabel={$t("contextCompaction")}
-            />
+            <article class="flash-task-item">
+              <div class="flash-task-heading">
+                <div class="flash-task-copy">
+                  <h5>{$t("hookAgent")}</h5>
+                  <p>{$t("hookTaskDescription")}</p>
+                </div>
+                <SettingsStatusToggle
+                  statusLabel={$t(
+                    draftConfig.flash_agents.hook.enabled ? "filterEnabled" : "filterDisabled",
+                  )}
+                  statusActive={draftConfig.flash_agents.hook.enabled}
+                  toggleLabel={$t("taskEnabled")}
+                  bind:checked={draftConfig.flash_agents.hook.enabled}
+                  ariaLabel={$t("hookAgentEnabled")}
+                />
+              </div>
+              <details
+                class="flash-task-custom"
+                open={draftConfig.flash_agents.hook.prompt.trim().length > 0}
+              >
+                <summary>{$t("taskCustomPrompt")}</summary>
+                <label class="detail-label">
+                  <span class="sr-only">{$t("agentExtraPrompt")}</span>
+                  <textarea
+                    class="detail-input flash-task-textarea"
+                    bind:value={draftConfig.flash_agents.hook.prompt}
+                    placeholder={$t("hookAgentPromptPlaceholder")}></textarea>
+                </label>
+              </details>
+            </article>
+
+            <article class="flash-task-item">
+              <div class="flash-task-heading">
+                <div class="flash-task-copy">
+                  <h5>{$t("autoApprovalTask")}</h5>
+                  <p>{$t("autoApprovalTaskDescription")}</p>
+                </div>
+                <span
+                  class:active={draftConfig.approval_mode === "auto"}
+                  class="flash-task-mode-pill"
+                >
+                  <span aria-hidden="true"></span>
+                  {$t(
+                    draftConfig.approval_mode === "auto"
+                      ? "filterEnabled"
+                      : "managedByApprovalMode",
+                  )}
+                </span>
+              </div>
+              <details
+                class="flash-task-custom"
+                open={draftConfig.flash_agents.tool_approval.prompt.trim().length > 0}
+              >
+                <summary>{$t("taskCustomPrompt")}</summary>
+                <label class="detail-label">
+                  <span class="sr-only">{$t("agentExtraPrompt")}</span>
+                  <textarea
+                    class="detail-input flash-task-textarea"
+                    bind:value={draftConfig.flash_agents.tool_approval.prompt}
+                    placeholder={$t("terminalApprovalTaskPromptPlaceholder")}></textarea>
+                </label>
+              </details>
+            </article>
           </div>
-          <p class="detail-hint">{$t("compactionTaskDescription")}</p>
-          <label class="detail-label">
-            <span class="label-text">{$t("contextCompactionThreshold")}</span>
-            <input
-              type="number"
-              class="detail-input compaction-threshold-input"
-              min="1000"
-              max="1000000"
-              step="1000"
-              disabled={!draftConfig.context_compaction_enabled}
-              bind:value={draftConfig.context_compaction_threshold}
-            />
-          </label>
-          <label class="detail-label">
-            <span class="label-text">{$t("agentExtraPrompt")}</span>
-            <textarea
-              class="detail-input hook-textarea"
-              bind:value={draftConfig.context_compaction_prompt}
-              placeholder={$t("compactionTaskPromptPlaceholder")}></textarea>
-          </label>
         </section>
       </div>
     </Tabs.Content>
@@ -4691,6 +4800,31 @@
     padding-inline: max(24px, calc((100% - 680px) / 2));
   }
 
+  .agents-settings-content {
+    padding-inline: max(24px, calc((100% - 820px) / 2));
+  }
+
+  .agents-settings-intro {
+    margin-bottom: 28px;
+  }
+
+  .agents-settings-intro h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.42px;
+    line-height: 1.25;
+  }
+
+  .agents-settings-intro p {
+    max-width: 640px;
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
   .detail-section {
     margin-bottom: 28px;
   }
@@ -4791,11 +4925,31 @@
     margin: 0;
   }
 
-  .memory-settings > .detail-hint {
-    margin: -4px 4px 16px;
+  .flash-task-group {
+    margin-bottom: 30px;
   }
 
-  .memory-option-list {
+  .flash-task-group-heading {
+    margin: 0 4px 12px;
+  }
+
+  .flash-task-group-heading h4 {
+    margin: 0;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.18px;
+    line-height: 1.35;
+  }
+
+  .flash-task-group-heading p {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .flash-task-card {
     overflow: hidden;
     border: 1px solid var(--mica-border);
     border-radius: 10px;
@@ -4805,20 +4959,12 @@
     backdrop-filter: blur(24px) saturate(1.28);
   }
 
-  .memory-option {
+  .flash-task-item {
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 14px 16px;
+    padding: 16px;
   }
 
-  .memory-option + .memory-option {
-    border-top: 0;
-  }
-
-  .memory-option + .memory-option::before {
+  .flash-task-item + .flash-task-item::before {
     position: absolute;
     top: 0;
     right: 0;
@@ -4828,11 +4974,19 @@
     content: "";
   }
 
-  .memory-option-copy {
-    min-width: 0;
+  .flash-task-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
   }
 
-  .memory-option h5 {
+  .flash-task-copy {
+    min-width: 0;
+    padding-top: 2px;
+  }
+
+  .flash-task-copy h5 {
     margin: 0;
     color: var(--text);
     font-size: 14px;
@@ -4840,19 +4994,199 @@
     line-height: 1.4;
   }
 
-  .memory-option p {
+  .flash-task-copy p,
+  .flash-task-suboption p {
     margin: 4px 0 0;
-    color: var(--text-muted, #888);
+    color: var(--text-muted);
     font-size: 12px;
     line-height: 1.55;
   }
 
-  .memory-option :global(button) {
+  .flash-task-suboptions {
+    margin: 16px 0 0;
+    border-top: 1px solid var(--mica-divider);
+  }
+
+  .flash-task-suboption {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 12px 0 0;
+  }
+
+  .flash-task-suboption + .flash-task-suboption {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+
+  .flash-task-suboption + .flash-task-suboption::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 16px;
+    height: 1px;
+    background: var(--mica-divider);
+    content: "";
+  }
+
+  .flash-task-suboption > div {
+    min-width: 0;
+  }
+
+  .flash-task-suboption h6 {
+    margin: 0;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .flash-task-suboption :global(button) {
     flex: 0 0 auto;
   }
 
-  .memory-prompt {
-    margin-top: 18px;
+  .flash-task-inline-setting {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--mica-divider);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 550;
+    line-height: 1.35;
+  }
+
+  .flash-task-inline-setting .detail-input {
+    margin: 0;
+    border-color: var(--mica-divider);
+    box-shadow: none;
+  }
+
+  .flash-task-inline-setting .detail-input:focus {
+    border-color: var(--mica-divider);
+    box-shadow: var(--focus-ring);
+  }
+
+  .flash-task-custom {
+    margin-top: 12px;
+    padding-top: 11px;
+    border-top: 1px solid var(--mica-divider);
+  }
+
+  .flash-task-custom summary {
+    display: flex;
+    align-items: center;
+    width: fit-content;
+    gap: 8px;
+    border-radius: 5px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 550;
+    line-height: 20px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+
+  .flash-task-custom summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .flash-task-custom summary::after {
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    content: "";
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform 120ms ease;
+  }
+
+  .flash-task-custom[open] summary::after {
+    transform: rotate(225deg) translate(-1px, -1px);
+  }
+
+  .flash-task-custom summary:hover {
+    color: var(--text);
+  }
+
+  .flash-task-custom summary:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  .flash-task-custom .detail-label {
+    margin: 12px 0 0;
+  }
+
+  .flash-task-textarea {
+    min-height: 72px;
+    resize: vertical;
+    border-color: var(--mica-divider);
+    box-shadow: none;
+  }
+
+  .flash-task-textarea:focus {
+    border-color: var(--mica-divider);
+    box-shadow: var(--focus-ring);
+  }
+
+  .flash-task-mode-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    flex: 0 0 auto;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .flash-task-mode-pill.active {
+    background: var(--item-selected-bg);
+    color: var(--primary);
+  }
+
+  .flash-task-mode-pill > span {
+    width: 6px;
+    height: 6px;
+    flex: 0 0 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 1000px) {
+    .flash-task-heading {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .flash-task-mode-pill {
+      align-self: flex-start;
+    }
   }
 
   .detail-grid {
@@ -5287,6 +5621,20 @@
     .settings-card-row {
       grid-template-columns: 1fr;
       gap: 10px;
+    }
+
+    .agents-settings-content {
+      padding-inline: 18px;
+    }
+
+    .flash-task-inline-setting {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .flash-task-inline-setting .detail-input {
+      width: 100%;
     }
   }
 </style>

@@ -150,6 +150,15 @@ const zh = {
   providers: "模型服务",
   defaultModels: "默认模型",
   flashAgents: "Flash 任务",
+  flashAgentsDescription:
+    "管理由 Flash 模型执行的轻量任务。任务开关决定是否运行，自定义指令仅在需要时补充。",
+  conversationFlashTasks: "对话整理",
+  conversationFlashTasksDescription: "生成标题、维护记忆，并在上下文过长时自动压缩。",
+  automationFlashTasks: "后台自动化",
+  automationFlashTasksDescription: "处理技能归类、计划任务与自动审批判断。",
+  taskEnabled: "启用此任务",
+  taskCustomPrompt: "自定义指令",
+  managedByApprovalMode: "由审批模式控制",
   flashTaskFailed: "Flash 任务失败",
   flashTaskTitle: "标题生成",
   flashTaskMemory: "记忆提取",
@@ -955,6 +964,17 @@ const en: Translations = {
   providers: "Providers",
   defaultModels: "Default Models",
   flashAgents: "Flash Tasks",
+  flashAgentsDescription:
+    "Manage lightweight work performed by the Flash model. Task switches control execution; custom instructions are optional.",
+  conversationFlashTasks: "Conversation organization",
+  conversationFlashTasksDescription:
+    "Generate titles, maintain memory, and compact conversations when context grows long.",
+  automationFlashTasks: "Background automation",
+  automationFlashTasksDescription:
+    "Classify skills, create scheduled work, and support automatic approval decisions.",
+  taskEnabled: "Enable task",
+  taskCustomPrompt: "Custom instructions",
+  managedByApprovalMode: "Controlled by approval mode",
   flashTaskFailed: "Flash task failed",
   flashTaskTitle: "Title generation",
   flashTaskMemory: "Memory extraction",
