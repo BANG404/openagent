@@ -157,8 +157,8 @@
     color: var(--text);
     border-radius: 14px;
     box-shadow:
-      0 16px 36px color-mix(in srgb, var(--shadow) 66%, rgba(0, 0, 0, 0.16)),
-      0 4px 12px color-mix(in srgb, var(--shadow) 76%, transparent);
+      0 14px 38px color-mix(in srgb, var(--shadow) 72%, rgba(0, 0, 0, 0.22)),
+      0 3px 10px color-mix(in srgb, var(--shadow) 82%, transparent);
   }
 
   .quick-chat::before {

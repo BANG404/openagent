@@ -54,29 +54,20 @@ pwcli screenshot
 
 ## Sessions
 
-Use a collision-resistant named session for every task, including work in the
-same repository. The implicit `default` session is shared process state and is
-not safe when agents or terminal workflows run in parallel.
+Use sessions to isolate work across projects:
 
 ```bash
-export PLAYWRIGHT_CLI_SESSION="checkout-$$"
-pwcli open https://example.com/checkout
-pwcli snapshot
-pwcli close
+pwcli --session marketing open https://example.com
+pwcli --session marketing snapshot
+pwcli --session checkout open https://example.com/checkout
 ```
 
-In PowerShell, include the process ID for the same isolation:
+Or set the session once:
 
-```powershell
-$env:PLAYWRIGHT_CLI_SESSION = "checkout-$PID"
+```bash
+export PLAYWRIGHT_CLI_SESSION=checkout
 pwcli open https://example.com/checkout
-pwcli snapshot
-pwcli close
 ```
-
-Keep the same session name for the complete workflow so its page and element
-references stay coherent. Close only the current task's session; never reuse or
-terminate another task's session or browser process.
 
 ## Configuration file
 

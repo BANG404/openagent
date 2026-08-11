@@ -43,17 +43,17 @@ describe("quick chat window position", () => {
       { position: { x: 0, y: 0 }, size: { width: 2560, height: 1400 } },
     ];
     expect(
-      isQuickChatWindowPositionVisible({ x: -600, y: 80 }, { width: 856, height: 580 }, monitors),
+      isQuickChatWindowPositionVisible({ x: -600, y: 80 }, { width: 760, height: 532 }, monitors),
     ).toBe(true);
     expect(
-      isQuickChatWindowPositionVisible({ x: 2500, y: 120 }, { width: 856, height: 580 }, monitors),
+      isQuickChatWindowPositionVisible({ x: 2500, y: 120 }, { width: 760, height: 532 }, monitors),
     ).toBe(false);
   });
 
   test("rejects a position from a disconnected monitor", () => {
     const monitors = [{ position: { x: 0, y: 0 }, size: { width: 1920, height: 1040 } }];
     expect(
-      isQuickChatWindowPositionVisible({ x: 2400, y: 100 }, { width: 856, height: 580 }, monitors),
+      isQuickChatWindowPositionVisible({ x: 2400, y: 100 }, { width: 760, height: 532 }, monitors),
     ).toBe(false);
   });
 });
