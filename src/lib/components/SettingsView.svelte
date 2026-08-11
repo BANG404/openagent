@@ -5074,8 +5074,6 @@
 
   .flash-task-custom {
     margin-top: 12px;
-    padding-top: 11px;
-    border-top: 1px solid var(--mica-divider);
   }
 
   .flash-task-custom summary {
