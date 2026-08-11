@@ -5869,9 +5869,7 @@
     position: absolute;
     inset: 0;
     z-index: 3;
-    background: var(--mica-surface);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
+    background: var(--bg);
     pointer-events: none;
   }
 
