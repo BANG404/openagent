@@ -303,7 +303,6 @@
   .quick-footer {
     gap: 10px;
     padding: 7px 10px 7px 12px;
-    border-top: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
     background: color-mix(in srgb, var(--mica-surface) 72%, transparent);
   }
 
@@ -375,7 +374,7 @@
     background: var(--surface);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    box-shadow: none;
+    box-shadow: var(--raised-shadow);
   }
 
   :global(.quick-role-select-content .ui-select-item-description) {
