@@ -450,7 +450,6 @@
       .map((c) => ({
         id: c.id,
         label: `/${c.name}`,
-        hint: c.id === "goal" || c.id === "graph" ? undefined : c.label,
         detail: c.description,
       }));
   });
