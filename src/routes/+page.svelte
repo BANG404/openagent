@@ -6932,10 +6932,12 @@
   }
 
   .conversation-workspace :global(.composer),
-  .checkpoint-flow-preview-stage :global(.composer) {
-    background: transparent;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+  .checkpoint-flow-preview-stage :global(.composer),
+  .conversation-workspace :global(.flow-panel),
+  .checkpoint-flow-preview-stage :global(.flow-panel) {
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
   }
 
   .command-palette-preview-stage :global(.input-wrapper) {

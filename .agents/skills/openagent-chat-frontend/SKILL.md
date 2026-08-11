@@ -74,12 +74,14 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the composer aurora and its bottom fades there rather than inside the
   conversation-only track. Stack the shared fades below the aurora, the shared
   Mica veil above it, and interactive conversation content above that veil so
-  the color remains visible without making the surface overly transparent. Leave both
-  the ordinary composer surface and
-  the expanded panel body transparent so they reveal that same material and
-  aurora. Retain the expanded panel's card border, radius, and shadow, but do not
-  add a second backdrop layer that independently tints its body. The collapsed
-  peek may add a Mica surface so its exposed edge remains discoverable.
+  the color remains visible without making the surface overly transparent. Give
+  both the ordinary composer and expanded panel the same standard Mica card
+  surface and blur so transcript content is softened without hiding the shared
+  color treatment.
+  Retain the expanded panel's card border, radius, and shadow; its surface must
+  use the same composition as the composer rather than an independently tinted
+  backdrop. The collapsed peek may retain that surface so its exposed edge
+  remains discoverable.
   Collapse it out of that layout and beyond the right edge so only a vertically
   shortened, clickable strip of the card's left edge remains visible without
   overlapping native title-bar controls. The peek creates no layout track,
