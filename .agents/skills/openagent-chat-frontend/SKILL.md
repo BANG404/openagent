@@ -87,8 +87,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   overlapping native title-bar controls. The peek creates no layout track,
   full-height divider, glyph, or separate expand button; keep keyboard focus visible
   on that edge. Keep the expanded header free of decorative Goal or Graph kind
-  glyphs and retain its collapse button. Center an otherwise empty planning state
-  in the available panel body.
+  glyphs and retain its collapse button, whose arrow points toward the right edge
+  where the panel collapses. Center an otherwise empty planning state in the
+  available panel body.
   Cap the expanded panel to its live
   container, let Goal cards grow to contain their wrapped task and result copy,
   and keep Goal items, summaries, and Graph dependency content inside the panel

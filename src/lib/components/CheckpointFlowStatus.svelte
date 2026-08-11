@@ -178,7 +178,7 @@
         aria-label={$t("checkpointFlowCollapse")}
         onclick={onToggle}
       >
-        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m10 4-4 4 4 4" /></svg>
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m6 4 4 4-4 4" /></svg>
       </button>
     </header>
   {/if}
