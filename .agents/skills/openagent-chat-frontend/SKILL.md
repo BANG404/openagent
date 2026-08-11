@@ -158,7 +158,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep `ask_user`, approvals, HTML previews, and other dedicated tools outside
   ordinary grouping.
 - Render `render_mermaid` as a standalone virtual row from ToolCall source and
-  restore it from the matching durable ToolResult.
+  restore it from the matching durable ToolResult. Do not display failed
+  `render_html` or `render_mermaid` previews; running and successful render
+  calls remain visible, and failures from ordinary tools retain their cards.
 - During an active stream, the empty composer's primary action pauses output;
   once paused it resumes output, unless a draft or attachment is present, in
   which case it remains the send action. Sending a queued follow-up from the

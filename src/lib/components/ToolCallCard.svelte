@@ -5,7 +5,7 @@
   import type { HtmlPreviewConfig, UserInputRequest } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t } from "$lib/i18n";
-  import { toolCallStatus, type ToolCallItem } from "$lib/toolCallGroups";
+  import { shouldDisplayToolCall, toolCallStatus, type ToolCallItem } from "$lib/toolCallGroups";
   import Tooltip from "./Tooltip.svelte";
   import ToolApprovalActions from "./ToolApprovalActions.svelte";
 
@@ -84,6 +84,12 @@
   const resultText = $derived(result ?? "");
   const status = $derived(
     toolCallStatus({ type: "tool_call", name, args, result } satisfies ToolCallItem, showRunning),
+  );
+  const shouldDisplay = $derived(
+    shouldDisplayToolCall(
+      { type: "tool_call", name, args, result } satisfies ToolCallItem,
+      showRunning,
+    ),
   );
   const statusText = $derived(
     $t(
@@ -255,222 +261,229 @@
   }
 </script>
 
-{#if htmlArgs}
-  <div class="tool-html-preview">
-    <HtmlPreview args={htmlArgs} {htmlPreviewConfig} />
-  </div>
-{:else if mermaidArgs}
-  <MermaidToolPreview args={mermaidArgs} {result} {mermaidConfig} />
-{:else}
-  <div class="tool-call-card">
-    <div class="tool-call-header">
-      <button
-        class="tool-toggle"
-        aria-expanded={expanded}
-        aria-label={`${displayName}: ${statusText}. ${expanded ? $t("toolCallCollapse") : $t("toolCallExpand")}`}
-        onclick={onToggle}
-      >
-        <span class="tool-name">{displayName}</span>
-        {#if isFocusedTool}
-          {#if filePath}
-            <span class="tool-arg-hint">{shortPath(filePath)}</span>
-          {:else if pattern}
-            <span class="tool-arg-hint">{pattern}</span>
+{#if shouldDisplay}
+  {#if htmlArgs}
+    <div class="tool-html-preview">
+      <HtmlPreview args={htmlArgs} {htmlPreviewConfig} />
+    </div>
+  {:else if mermaidArgs}
+    <MermaidToolPreview args={mermaidArgs} {result} {mermaidConfig} />
+  {:else}
+    <div class="tool-call-card">
+      <div class="tool-call-header">
+        <button
+          class="tool-toggle"
+          aria-expanded={expanded}
+          aria-label={`${displayName}: ${statusText}. ${expanded ? $t("toolCallCollapse") : $t("toolCallExpand")}`}
+          onclick={onToggle}
+        >
+          <span class="tool-name">{displayName}</span>
+          {#if isFocusedTool}
+            {#if filePath}
+              <span class="tool-arg-hint">{shortPath(filePath)}</span>
+            {:else if pattern}
+              <span class="tool-arg-hint">{pattern}</span>
+            {/if}
+            {#if resultSummary}
+              <span class="tool-result-pill">{resultSummary}</span>
+            {/if}
+          {:else if !expanded && argHint}
+            <span class="tool-arg-hint">{argHint}</span>
           {/if}
-          {#if resultSummary}
-            <span class="tool-result-pill">{resultSummary}</span>
-          {/if}
-        {:else if !expanded && argHint}
-          <span class="tool-arg-hint">{argHint}</span>
-        {/if}
-        <Tooltip text={statusText}>
-          <span
-            class="tool-status"
-            class:tool-done={status === "success"}
-            class:tool-failed={status === "failed"}
-            class:tool-running={status === "running"}
-            class:tool-pending={status === "pending"}
-          >
-            <span aria-hidden="true"
-              >{status === "success"
-                ? "✓"
-                : status === "failed"
-                  ? "×"
-                  : status === "running"
-                    ? "…"
-                    : "○"}</span
+          <Tooltip text={statusText}>
+            <span
+              class="tool-status"
+              class:tool-done={status === "success"}
+              class:tool-failed={status === "failed"}
+              class:tool-running={status === "running"}
+              class:tool-pending={status === "pending"}
             >
-            <span class="sr-only">{statusText}</span>
-          </span>
-        </Tooltip>
-        <span class="tool-chevron" class:expanded aria-hidden="true">
-          <svg
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M6 4l4 4-4 4" />
-          </svg>
-        </span>
-      </button>
-      {#if isFocusedTool && filePath}
-        <Tooltip text={$t("openContainingFolder")}>
-          {#snippet trigger(props)}
-            <button
-              {...props}
-              class="tool-icon-btn"
-              aria-label={$t("openContainingFolder")}
-              onclick={(event) => openContainingFolder(filePath, event)}
-            >
-              <svg
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
+              <span aria-hidden="true"
+                >{status === "success"
+                  ? "✓"
+                  : status === "failed"
+                    ? "×"
+                    : status === "running"
+                      ? "…"
+                      : "○"}</span
               >
-                <path d="M1.8 4.5h4.4l1.2 1.4h6.8v6.6a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1z" />
-                <path d="M1.8 6h12.4" />
-              </svg>
-            </button>
-          {/snippet}
-        </Tooltip>
+              <span class="sr-only">{statusText}</span>
+            </span>
+          </Tooltip>
+          <span class="tool-chevron" class:expanded aria-hidden="true">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M6 4l4 4-4 4" />
+            </svg>
+          </span>
+        </button>
+        {#if isFocusedTool && filePath}
+          <Tooltip text={$t("openContainingFolder")}>
+            {#snippet trigger(props)}
+              <button
+                {...props}
+                class="tool-icon-btn"
+                aria-label={$t("openContainingFolder")}
+                onclick={(event) => openContainingFolder(filePath, event)}
+              >
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M1.8 4.5h4.4l1.2 1.4h6.8v6.6a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1z" />
+                  <path d="M1.8 6h12.4" />
+                </svg>
+              </button>
+            {/snippet}
+          </Tooltip>
+        {/if}
+      </div>
+
+      {#if approval?.state === "pending"}
+        <ToolApprovalActions
+          request={approval.request}
+          onApprove={(requestId) => onApprove?.(requestId)}
+          onDeny={(requestId) => onDeny?.(requestId)}
+        />
+      {/if}
+
+      {#if expanded}
+        {#if isFocusedTool}
+          <div class="tool-detail">
+            {#if filePath}
+              <Tooltip text={filePath}>
+                {#snippet trigger(props)}
+                  <button
+                    {...props}
+                    class="path-chip"
+                    onclick={(event) => openPath(filePath, event)}
+                  >
+                    <svg
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M3 2.5h6l4 4V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V3a.5.5 0 0 1 .5-.5z"
+                      />
+                      <path d="M9 2.5V6.5h4" />
+                    </svg>
+                    <span>{filePath}</span>
+                  </button>
+                {/snippet}
+              </Tooltip>
+            {/if}
+
+            {#if name === "read_file"}
+              <div class="meta-row">
+                <span>offset {getNumber(parsedArgs, "offset") ?? 0}</span>
+                <span>limit {getNumber(parsedArgs, "limit") ?? 2000}</span>
+              </div>
+              {#if result !== undefined}
+                <div class="code-table">
+                  {#each readPreviewLines as row (row.line)}
+                    <div class="code-row">
+                      <span class="line-no">{row.line}</span>
+                      <span class="line-content">{row.content}</span>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            {:else if name === "write_file"}
+              <div class="meta-row">
+                <span>new file</span>
+                <span>{lineCount(writeContent)} line{lineCount(writeContent) === 1 ? "" : "s"}</span
+                >
+              </div>
+              <pre class="code-block">{trimPreview(writeContent)}</pre>
+            {:else if name === "edit_file"}
+              <div class="meta-row">
+                <span>{getBool(parsedArgs, "replace_all") ? "replace all" : "replace one"}</span>
+                <span>{lineCount(oldString)} -> {lineCount(newString)} lines</span>
+              </div>
+              <div class="diff-view">
+                {#each editDiff as line, index (`${line.type}-${index}`)}
+                  <div class="diff-line diff-{line.type}">{line.text}</div>
+                {/each}
+              </div>
+            {:else if name === "glob"}
+              <div class="meta-row">
+                <span>pattern {pattern}</span>
+                {#if filePath}<span>root {filePath}</span>{/if}
+              </div>
+              {#if globResults}
+                <div class="result-list">
+                  {#each globResults.slice(0, 100) as path, index (`${path}-${index}`)}
+                    <Tooltip text={path}>
+                      {#snippet trigger(props)}
+                        <button
+                          {...props}
+                          class="result-row"
+                          onclick={(event) => openPath(path, event)}
+                        >
+                          <span class="result-path">{path}</span>
+                        </button>
+                      {/snippet}
+                    </Tooltip>
+                  {/each}
+                </div>
+              {:else if result !== undefined}
+                <pre class="code-block">{trimPreview(result)}</pre>
+              {/if}
+            {:else if name === "grep"}
+              <div class="meta-row">
+                <span>pattern {pattern}</span>
+                {#if globFilter}<span>glob {globFilter}</span>{/if}
+              </div>
+              {#if grepResults}
+                <div class="grep-list">
+                  {#each grepResults.slice(0, 100) as match, index (`${match.file}:${match.line}:${index}`)}
+                    <Tooltip text={`${match.file}:${match.line}`}>
+                      {#snippet trigger(props)}
+                        <button
+                          {...props}
+                          class="grep-row"
+                          onclick={(event) => openPath(match.file, event)}
+                        >
+                          <span class="grep-file">{shortPath(match.file)}</span>
+                          <span class="grep-line">{match.line}</span>
+                          <span class="grep-content">{match.content}</span>
+                        </button>
+                      {/snippet}
+                    </Tooltip>
+                  {/each}
+                </div>
+              {:else if result !== undefined}
+                <pre class="code-block">{trimPreview(result)}</pre>
+              {/if}
+            {/if}
+          </div>
+        {:else}
+          {#if args}
+            <div class="tool-args">{args}</div>
+          {/if}
+          {#if result !== undefined}
+            <div class="tool-result">{result.slice(0, 500)}{result.length > 500 ? "..." : ""}</div>
+          {/if}
+        {/if}
       {/if}
     </div>
-
-    {#if approval?.state === "pending"}
-      <ToolApprovalActions
-        request={approval.request}
-        onApprove={(requestId) => onApprove?.(requestId)}
-        onDeny={(requestId) => onDeny?.(requestId)}
-      />
-    {/if}
-
-    {#if expanded}
-      {#if isFocusedTool}
-        <div class="tool-detail">
-          {#if filePath}
-            <Tooltip text={filePath}>
-              {#snippet trigger(props)}
-                <button {...props} class="path-chip" onclick={(event) => openPath(filePath, event)}>
-                  <svg
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M3 2.5h6l4 4V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V3a.5.5 0 0 1 .5-.5z"
-                    />
-                    <path d="M9 2.5V6.5h4" />
-                  </svg>
-                  <span>{filePath}</span>
-                </button>
-              {/snippet}
-            </Tooltip>
-          {/if}
-
-          {#if name === "read_file"}
-            <div class="meta-row">
-              <span>offset {getNumber(parsedArgs, "offset") ?? 0}</span>
-              <span>limit {getNumber(parsedArgs, "limit") ?? 2000}</span>
-            </div>
-            {#if result !== undefined}
-              <div class="code-table">
-                {#each readPreviewLines as row (row.line)}
-                  <div class="code-row">
-                    <span class="line-no">{row.line}</span>
-                    <span class="line-content">{row.content}</span>
-                  </div>
-                {/each}
-              </div>
-            {/if}
-          {:else if name === "write_file"}
-            <div class="meta-row">
-              <span>new file</span>
-              <span>{lineCount(writeContent)} line{lineCount(writeContent) === 1 ? "" : "s"}</span>
-            </div>
-            <pre class="code-block">{trimPreview(writeContent)}</pre>
-          {:else if name === "edit_file"}
-            <div class="meta-row">
-              <span>{getBool(parsedArgs, "replace_all") ? "replace all" : "replace one"}</span>
-              <span>{lineCount(oldString)} -> {lineCount(newString)} lines</span>
-            </div>
-            <div class="diff-view">
-              {#each editDiff as line, index (`${line.type}-${index}`)}
-                <div class="diff-line diff-{line.type}">{line.text}</div>
-              {/each}
-            </div>
-          {:else if name === "glob"}
-            <div class="meta-row">
-              <span>pattern {pattern}</span>
-              {#if filePath}<span>root {filePath}</span>{/if}
-            </div>
-            {#if globResults}
-              <div class="result-list">
-                {#each globResults.slice(0, 100) as path, index (`${path}-${index}`)}
-                  <Tooltip text={path}>
-                    {#snippet trigger(props)}
-                      <button
-                        {...props}
-                        class="result-row"
-                        onclick={(event) => openPath(path, event)}
-                      >
-                        <span class="result-path">{path}</span>
-                      </button>
-                    {/snippet}
-                  </Tooltip>
-                {/each}
-              </div>
-            {:else if result !== undefined}
-              <pre class="code-block">{trimPreview(result)}</pre>
-            {/if}
-          {:else if name === "grep"}
-            <div class="meta-row">
-              <span>pattern {pattern}</span>
-              {#if globFilter}<span>glob {globFilter}</span>{/if}
-            </div>
-            {#if grepResults}
-              <div class="grep-list">
-                {#each grepResults.slice(0, 100) as match, index (`${match.file}:${match.line}:${index}`)}
-                  <Tooltip text={`${match.file}:${match.line}`}>
-                    {#snippet trigger(props)}
-                      <button
-                        {...props}
-                        class="grep-row"
-                        onclick={(event) => openPath(match.file, event)}
-                      >
-                        <span class="grep-file">{shortPath(match.file)}</span>
-                        <span class="grep-line">{match.line}</span>
-                        <span class="grep-content">{match.content}</span>
-                      </button>
-                    {/snippet}
-                  </Tooltip>
-                {/each}
-              </div>
-            {:else if result !== undefined}
-              <pre class="code-block">{trimPreview(result)}</pre>
-            {/if}
-          {/if}
-        </div>
-      {:else}
-        {#if args}
-          <div class="tool-args">{args}</div>
-        {/if}
-        {#if result !== undefined}
-          <div class="tool-result">{result.slice(0, 500)}{result.length > 500 ? "..." : ""}</div>
-        {/if}
-      {/if}
-    {/if}
-  </div>
+  {/if}
 {/if}
 
 <style>

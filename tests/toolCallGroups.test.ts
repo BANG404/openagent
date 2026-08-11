@@ -6,6 +6,7 @@ import {
   groupMessageToolCalls,
   groupStreamItems,
   isAssistantTurnEntry,
+  shouldDisplayToolCall,
   toolCallStatus,
   type ToolCallItem,
 } from "../src/lib/toolCallGroups";
@@ -78,6 +79,16 @@ describe("tool-call grouping", () => {
     expect(toolCallStatus(call("read_file", "2 lines"), false)).toBe("success");
     expect(toolCallStatus(call("read_file", "Error: unavailable"), false)).toBe("failed");
     expect(toolCallStatus(call("read_file", '{"ok":false}'), false)).toBe("failed");
+  });
+
+  test("hides only failed render previews", () => {
+    expect(shouldDisplayToolCall(call("render_html", "Error: invalid document"), false)).toBe(
+      false,
+    );
+    expect(shouldDisplayToolCall(call("render_mermaid", '{"ok":false}'), false)).toBe(false);
+    expect(shouldDisplayToolCall(call("render_html"), true)).toBe(true);
+    expect(shouldDisplayToolCall(call("render_mermaid", '{"ok":true}'), false)).toBe(true);
+    expect(shouldDisplayToolCall(call("read_file", "Error: unavailable"), false)).toBe(true);
   });
 
   test("retains the virtual row key when a live stream becomes a completed message", () => {

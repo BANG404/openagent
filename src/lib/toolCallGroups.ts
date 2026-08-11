@@ -230,3 +230,8 @@ export function toolCallStatus(item: ToolCallItem, showRunning: boolean): ToolCa
   }
   return "success";
 }
+
+export function shouldDisplayToolCall(item: ToolCallItem, showRunning: boolean): boolean {
+  const isRenderPreview = item.name === "render_html" || item.name === "render_mermaid";
+  return !isRenderPreview || toolCallStatus(item, showRunning) !== "failed";
+}
