@@ -454,7 +454,7 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the development-only `attachment-composer-preview` query available for
   the shared composer's pending-attachment cards. Its `-theme` and `-locale`
   parameters must keep card preview, removal, upload, horizontal overflow,
-  pointer-anchored image zoom, normal text/PDF scrolling, unsupported-extension blocking,
+  pointer-anchored image zoom, normal text scrolling, PDF and unsupported-extension blocking,
   light/dark, and Chinese/English checks addressable without native state.
 - Keep the development-only `checkpoint-flow-preview` query available for the
   right-side Goal/Graph checkpoint panel and composer approval selector. Its
