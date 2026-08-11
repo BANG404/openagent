@@ -49,6 +49,26 @@ $PWCLI = Join-Path (Get-Location) ".agents\skills\playwright\scripts\playwright_
 
 Use the wrapper native to the current shell; do not invoke the Bash wrapper through WSL from Windows.
 
+## Session isolation (required)
+
+Every repository task must use its own named browser session. Never use the
+implicit `default` session: parallel agents share the same Playwright daemon,
+so one task can otherwise navigate, close, or invalidate another task's page
+and element references. Choose a task-specific name with a collision-resistant
+suffix such as the shell PID, set `PLAYWRIGHT_CLI_SESSION` once, and use that
+session for every command in the workflow.
+
+```bash
+export PLAYWRIGHT_CLI_SESSION="attachment-preview-$$"
+```
+
+```powershell
+$env:PLAYWRIGHT_CLI_SESSION = "attachment-preview-$PID"
+```
+
+Close only the session created by the current task. Never close, reuse, or
+terminate a session or browser process whose ownership is unclear.
+
 ## Quick start
 
 Use the wrapper script:
@@ -66,7 +86,7 @@ In PowerShell, invoke the same commands with the call operator, for example `& $
 
 ## Core workflow
 
-1. Open the page.
+1. Create a unique named session and open the page in it.
 2. Snapshot to get stable element refs.
 3. Interact using refs from the latest snapshot.
 4. Re-snapshot after navigation or significant DOM changes.
@@ -154,6 +174,9 @@ Open only what you need:
 
 ## Guardrails
 
+- Never run repository browser work in the implicit `default` session. Keep one
+  collision-resistant named session for the complete task and close only that
+  session during cleanup.
 - Always snapshot before referencing element ids like `e12`.
 - Re-snapshot when refs seem stale.
 - Prefer explicit commands over `eval` and `run-code` unless needed.
