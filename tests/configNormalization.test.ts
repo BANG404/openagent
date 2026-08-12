@@ -77,6 +77,19 @@ describe("context compaction config", () => {
   });
 });
 
+describe("automatic memory retrieval config", () => {
+  test("defaults older configuration payloads to agent-directed retrieval", () => {
+    expect(normalizeConfigShape({} as AppConfig).memory_retrieval_enabled).toBe(false);
+  });
+
+  test("preserves an explicit per-turn retrieval opt-in", () => {
+    expect(
+      normalizeConfigShape({ memory_retrieval_enabled: true } as AppConfig)
+        .memory_retrieval_enabled,
+    ).toBe(true);
+  });
+});
+
 describe("messaging channel config", () => {
   test("materializes every channel for older configuration payloads", () => {
     const normalized = normalizeConfigShape({} as AppConfig);

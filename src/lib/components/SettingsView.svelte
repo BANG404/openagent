@@ -188,7 +188,7 @@
     context_compaction_enabled: true,
     context_compaction_threshold: 200000,
     context_compaction_prompt: "",
-    memory_retrieval_enabled: true,
+    memory_retrieval_enabled: false,
     web_search: {
       provider: "brave",
       brave_api_key: "",

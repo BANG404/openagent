@@ -465,7 +465,7 @@
     message_double_column_min_width: 1200,
     book_mode_font_size: 17,
     workspace_open_mode: "ask",
-    memory_retrieval_enabled: true,
+    memory_retrieval_enabled: false,
     remote_gateway: {
       enabled: false,
       allow_lan_access: false,

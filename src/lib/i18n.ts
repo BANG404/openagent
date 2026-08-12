@@ -382,10 +382,10 @@ const zh = {
   noQueuedFlashFallbackModels: "暂无排队的 Flash 备用模型",
   add: "添加",
   memoryAgent: "记忆任务",
-  memoryRetrieval: "Agent 记忆检索",
-  memoryRetrievalEnabled: "启用 Agent 记忆检索",
+  memoryRetrieval: "自动 Agent 记忆检索",
+  memoryRetrievalEnabled: "每次对话前自动检索 Agent 记忆",
   memoryRetrievalDescription:
-    "使用 Flash 模型改写当前消息以检索相关 Agent 记忆，并将结果加入系统提示词。",
+    "默认关闭，由 Agent 判断何时需要检索相关记忆。开启后，每次对话都会使用 Flash 模型改写当前消息、检索记忆并加入系统提示词。",
   newConversationSummary: "新对话个性化开场白",
   newConversationSummaryEnabled: "启用新对话个性化开场白",
   newConversationSummaryDescription:
@@ -1218,10 +1218,10 @@ const en: Translations = {
   noQueuedFlashFallbackModels: "No queued flash fallback models",
   add: "Add",
   memoryAgent: "Memory Task",
-  memoryRetrieval: "Agent memory retrieval",
-  memoryRetrievalEnabled: "Enable agent memory retrieval",
+  memoryRetrieval: "Automatic agent memory retrieval",
+  memoryRetrievalEnabled: "Search agent memory before every turn",
   memoryRetrievalDescription:
-    "Use the Flash model to rewrite the current message for relevant agent-memory retrieval and add the results to the system prompt.",
+    "Off by default so the agent decides when relevant memory should be searched. When enabled, every turn rewrites the current message with the Flash model, retrieves memory, and adds it to the system prompt.",
   newConversationSummary: "Personalized new-conversation greeting",
   newConversationSummaryEnabled: "Enable personalized new-conversation greeting",
   newConversationSummaryDescription:

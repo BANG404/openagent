@@ -204,7 +204,7 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
     context_compaction_enabled: input.context_compaction_enabled ?? true,
     context_compaction_threshold: contextCompactionThreshold,
     context_compaction_prompt: input.context_compaction_prompt ?? "",
-    memory_retrieval_enabled: input.memory_retrieval_enabled ?? true,
+    memory_retrieval_enabled: input.memory_retrieval_enabled ?? false,
     model_retry: {
       retry_count: retryCount,
       retry_delay_ms: retryDelayMs,
