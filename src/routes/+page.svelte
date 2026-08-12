@@ -16,8 +16,6 @@
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type LazyViewComponent = Component<any>;
 
-  import WindowControls from "$lib/components/WindowControls.svelte";
-  import Tooltip from "$lib/components/Tooltip.svelte";
   import Toast from "$lib/components/Toast.svelte";
   import { installDownloadHook } from "$lib/downloadHook";
   import { checkForAppUpdate } from "$lib/appUpdater";
@@ -31,7 +29,6 @@
   import { t, tr, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import { showToast } from "$lib/toast";
   import { decodeModelBinding } from "$lib/modelBinding";
-  import { providerRequiresApiKey } from "$lib/providerCatalog";
   import { DEFAULT_QUICK_CHAT_SHORTCUT, normalizeQuickChatShortcut } from "$lib/quickChatShortcut";
   import {
     disposeQuickChatShortcut,
@@ -56,26 +53,14 @@
     removeQueuedChatMessage,
     type QueuedChatMessage,
   } from "$lib/chatQueue";
-  import FileChangeBanner from "$lib/components/FileChangeBanner.svelte";
-  import WorkspaceSwitcher from "$lib/components/WorkspaceSwitcher.svelte";
-  import ConversationList from "$lib/components/ConversationList.svelte";
-  import SidebarCollapseButton from "$lib/components/SidebarCollapseButton.svelte";
-  import SidebarHistoryControls from "$lib/components/SidebarHistoryControls.svelte";
-  import SidebarPrimaryActions from "$lib/components/SidebarPrimaryActions.svelte";
-  import SidebarResizeHandle from "$lib/components/SidebarResizeHandle.svelte";
-  import RoleSelector from "$lib/components/RoleSelector.svelte";
-  import SidebarNav from "$lib/components/SidebarNav.svelte";
   import OnboardingFlow from "$lib/components/OnboardingFlow.svelte";
-  import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
-  import ChatQueue from "$lib/components/ChatQueue.svelte";
-  import MessageList from "$lib/components/MessageList.svelte";
-  import CheckpointFlowPanelHost from "$lib/components/CheckpointFlowPanelHost.svelte";
-  import NewConversationContext from "$lib/components/NewConversationContext.svelte";
-  import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
+  import type { SlashCommand } from "$lib/components/MessageInput.svelte";
   import QuickChatSurface from "$lib/components/QuickChatSurface.svelte";
   import StandaloneDevPreview from "$lib/components/StandaloneDevPreview.svelte";
   import WorkspaceDialogs from "$lib/components/WorkspaceDialogs.svelte";
-  import { clampSidebarWidth, loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
+  import DesktopSidebar from "$lib/components/DesktopSidebar.svelte";
+  import DesktopTitleBar from "$lib/components/DesktopTitleBar.svelte";
+  import ConversationSurface from "$lib/components/ConversationSurface.svelte";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import {
     updateLiveCheckpointFlowProjection,
@@ -177,14 +162,6 @@
           | "open_settings";
         original_text: string;
       };
-
-  function shouldShowDefaultProviderCredentialWarning(appConfig: AppConfig | null): boolean {
-    if (!appConfig) return false;
-    const provider = appConfig.providers.find(
-      (item) => item.id === appConfig.defaults.chat_model.provider_id,
-    );
-    return !provider || (providerRequiresApiKey(provider.provider) && !provider.api_key.trim());
-  }
 
   const runtimeQuery =
     typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
@@ -319,13 +296,10 @@
   let sidebarLoadingMoreConversations = $derived(
     conversationSearchQuery.trim() ? loadingMoreSearchConversations : loadingMoreConversations,
   );
-  const sidebarCollapsedStorageKey = "openagent.sidebar.collapsed";
   let sidebarCollapsed = $state(
     typeof window !== "undefined" &&
-      window.localStorage.getItem(sidebarCollapsedStorageKey) === "true",
+      window.localStorage.getItem("openagent.sidebar.collapsed") === "true",
   );
-  let sidebarWidth = $state(loadSidebarWidth());
-  let sidebarResizing = $state(false);
   // Per-conversation transient stream state is owned independently from the
   // durable conversation/checkpoint projection.
   const chatStreams = new ChatStreamState();
@@ -355,7 +329,6 @@
   let resolvingUserInputConvIds = $state<Record<string, boolean>>({});
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
-  let checkpointFlowPanelCollapsed = $state(true);
   let workspace = $state<WorkspaceContext | null>(null);
   let config = $state<AppConfig | null>(null);
   let isMemorySyncing = $state(false);
@@ -4052,21 +4025,65 @@
       ];
     }),
   );
+
+  let conversationSurfaceView = $derived({
+    activeBranchId: activeConvId ? (activeBranchIds[activeConvId] ?? null) : null,
+    activeConvId,
+    activeTree: activeConvId ? convTrees[activeConvId] : undefined,
+    browserModeNotice,
+    checkpointFlow: currentCheckpointFlow ?? null,
+    checkpointLoadError: activeConvId ? (checkpointLoadErrors[activeConvId] ?? null) : null,
+    config,
+    currentStreamItems,
+    currentStreamMessageId,
+    debugMode: isDebugMode,
+    fileChanges: currentFileChanges,
+    isAwaitingStreamOutput: isCurrentAwaitingStreamOutput,
+    isPaused: isCurrentStreamPaused,
+    isStreaming: isCurrentStreaming,
+    mainContentLoading,
+    memoryRetrievalCanSkip: currentMemoryRetrievalCanSkip,
+    memoryRetrievalStage: currentMemoryRetrievalStage,
+    mermaidConfig,
+    messages,
+    newConversationLayout,
+    newConversationMemoryLoading,
+    newConversationMemoryPrompt,
+    queuedMessages: activeConvId ? (queuedChatMessages[activeConvId] ?? []) : [],
+    restoringSurface,
+    shikiTheme,
+    slashCommands,
+    tailAnchorToken:
+      streamCompletionTailAnchor?.convId === activeConvId ? streamCompletionTailAnchor.token : null,
+    tauriAvailable,
+  });
+
+  const conversationSurfaceActions = {
+    cancelBottomScrollFromUser,
+    cancelUserInput,
+    clearQueuedMessages,
+    commitEdit,
+    configureModels: () => openSettings("providers"),
+    finishStreamCompletionTailAnchor,
+    handleMessagesScroll,
+    pauseCurrentStream,
+    removeQueuedMessage,
+    resumeCurrentStream,
+    revertFileChange: handleRevertFileChange,
+    reExecuteMessage: reExecuteMsg,
+    sendMessage,
+    skipMemoryRetrieval: skipCurrentMemoryRetrieval,
+    stopMessage,
+    submitUserInput,
+    switchBranch: switchBranchAt,
+  };
+
   // ─── Window Controls ─────────────────────────────────────────────────────────
 
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
   const winMinimize = () => appWindow?.minimize();
   const winMaximize = () => appWindow?.toggleMaximize();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
-
-  function toggleSidebar() {
-    sidebarCollapsed = !sidebarCollapsed;
-    window.localStorage.setItem(sidebarCollapsedStorageKey, String(sidebarCollapsed));
-  }
-
-  function resizeSidebar(width: number): void {
-    sidebarWidth = clampSidebarWidth(width);
-  }
 
   // Keep the webview's built-in context menu available while developing, but
   // do not expose browser actions (such as inspect/copy navigation) in builds.
@@ -4091,85 +4108,45 @@
   {:else if isQuickChatSurface}
     <QuickChatSurface preview={isQuickChatPreview} />
   {:else}
-    <div
-      class="app"
-      class:sidebar-collapsed={sidebarCollapsed}
-      style:--sidebar-width={`${sidebarWidth}px`}
-    >
+    <div class="app" class:sidebar-collapsed={sidebarCollapsed}>
       <!-- ─── Sidebar ─────────────────────────────────────────────────────────────── -->
-      <aside class="sidebar" class:collapsed={sidebarCollapsed} class:resizing={sidebarResizing}>
-        <div class="sidebar-top" data-tauri-drag-region>
-          {#if !sidebarCollapsed}
-            <div class="sidebar-navigation-start" data-tauri-drag-region>
-              <RoleSelector
-                value={selectedRoleKey}
-                roles={agentRoles}
-                header
-                onChange={(role) => void changeConversationRole(role)}
-              />
-            </div>
-            <div class="sidebar-navigation-end" data-tauri-drag-region>
-              <SidebarHistoryControls
-                {canGoBack}
-                {canGoForward}
-                onBack={() => void navigateHistory(-1)}
-                onForward={() => void navigateHistory(1)}
-              />
-              <SidebarCollapseButton collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
-            </div>
-          {:else}
-            <SidebarCollapseButton collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
-          {/if}
-        </div>
-        {#if !sidebarCollapsed}
-          <SidebarPrimaryActions
-            searchQuery={conversationSearchQuery}
-            onNew={newConversation}
-            onSearch={handleConversationSearch}
-          />
-
-          {#if initialLoading || workspaceLoading}
-            <LoadingSkeleton variant="sidebar" rows={8} label={$t("loadingContent")} />
-          {:else}
-            <ConversationList
-              conversations={sidebarConversations}
-              searchQuery={conversationSearchQuery}
-              {activeConvId}
-              streamingConvIds={chatStreams.streamingConversationIds}
-              hasMore={sidebarHasMoreConversations}
-              loadingMore={sidebarLoadingMoreConversations}
-              onLoadMore={() => void loadNextConversationPage()}
-              onSelect={(id) => {
-                if (settingsOpen) closeSettings();
-                if (memoryOpen) memoryOpen = false;
-                if (rolesOpen) rolesOpen = false;
-                if (skillsOpen) skillsOpen = false;
-                void selectSidebarConversation(id);
-              }}
-              onTogglePin={togglePin}
-              onDelete={deleteConversation}
-            />
-          {/if}
-
-          <SidebarNav
-            {memoryOpen}
-            {rolesOpen}
-            {skillsOpen}
-            {settingsOpen}
-            onToggleMemory={memoryOpen ? closeMemory : openMemory}
-            onToggleRoles={rolesOpen ? closeRoles : openRoles}
-            onToggleSkills={skillsOpen ? closeSkills : openSkills}
-            onToggleSettings={settingsOpen ? closeSettings : openSettings}
-          />
-          <SidebarResizeHandle
-            width={sidebarWidth}
-            ariaLabel={$t("resizeSidebar")}
-            onResize={resizeSidebar}
-            onResizeStateChange={(resizing) => (sidebarResizing = resizing)}
-            onResizeEnd={saveSidebarWidth}
-          />
-        {/if}
-      </aside>
+      <DesktopSidebar
+        bind:collapsed={sidebarCollapsed}
+        roles={agentRoles}
+        {selectedRoleKey}
+        {canGoBack}
+        {canGoForward}
+        searchQuery={conversationSearchQuery}
+        conversations={sidebarConversations}
+        activeConversationId={activeConvId}
+        streamingConversationIds={chatStreams.streamingConversationIds}
+        hasMore={sidebarHasMoreConversations}
+        loadingMore={sidebarLoadingMoreConversations}
+        loading={initialLoading || workspaceLoading}
+        {memoryOpen}
+        {rolesOpen}
+        {skillsOpen}
+        {settingsOpen}
+        onRoleChange={changeConversationRole}
+        onBack={() => navigateHistory(-1)}
+        onForward={() => navigateHistory(1)}
+        onNew={newConversation}
+        onSearch={handleConversationSearch}
+        onLoadMore={loadNextConversationPage}
+        onSelect={(id) => {
+          if (settingsOpen) closeSettings();
+          if (memoryOpen) memoryOpen = false;
+          if (rolesOpen) rolesOpen = false;
+          if (skillsOpen) skillsOpen = false;
+          return selectSidebarConversation(id);
+        }}
+        onTogglePin={togglePin}
+        onDelete={deleteConversation}
+        onToggleMemory={memoryOpen ? closeMemory : openMemory}
+        onToggleRoles={rolesOpen ? closeRoles : openRoles}
+        onToggleSkills={skillsOpen ? closeSkills : openSkills}
+        onToggleSettings={settingsOpen ? closeSettings : openSettings}
+      />
 
       <!-- ─── Feature panels ─────────────────────────────────────────────────── -->
       {#if onboardingOpen && config}
@@ -4227,233 +4204,35 @@
         />
       {:else}
         <div class="main" class:sidebar-collapsed={sidebarCollapsed}>
-          <!-- Title Bar -->
-          <header class="title-bar" data-tauri-drag-region>
-            <div class="title-bar-left">
-              <WorkspaceSwitcher
-                {workspace}
-                {workspacePath}
-                {recentWorkspaces}
-                {tauriAvailable}
-                {browserModeNotice}
-                onPick={pickWorkspace}
-                onPickWsl={pickWslWorkspace}
-                onSelect={requestWorkspace}
-              />
-              {#if sidebarCollapsed}
-                <Tooltip text={$t("newChat")} side="bottom">
-                  <button
-                    class="title-new-conversation"
-                    type="button"
-                    aria-label={$t("newChat")}
-                    onclick={newConversation}
-                  >
-                    <svg
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M11.75 4.25H5.5A1.75 1.75 0 0 0 3.75 6v8.5a1.75 1.75 0 0 0 1.75 1.75H14a1.75 1.75 0 0 0 1.75-1.75V8.25"
-                      />
-                      <path d="m9 11 6.35-6.35M12.75 4.25h3v3" />
-                    </svg>
-                  </button>
-                </Tooltip>
-                <RoleSelector
-                  value={selectedRoleKey}
-                  roles={agentRoles}
-                  compact
-                  onChange={(role) => void changeConversationRole(role)}
-                />
-              {/if}
-              {#if workspace?.git_branch}
-                <Tooltip text={`${$t("gitBranch")}: ${workspace.git_branch}`}>
-                  <span class="branch-pill">⎇ {workspace.git_branch}</span>
-                </Tooltip>
-              {/if}
-            </div>
-            <div class="title-bar-drag-handle" data-tauri-drag-region aria-hidden="true"></div>
-            <div class="title-actions">
-              {#if isMemorySyncing}
-                <Tooltip text="Memory syncing">
-                  <span class="sync-dot">●</span>
-                </Tooltip>
-              {/if}
-              <WindowControls
-                onMinimize={winMinimize}
-                onMaximize={winMaximize}
-                onClose={winClose}
-              />
-            </div>
-          </header>
+          <DesktopTitleBar
+            {sidebarCollapsed}
+            {workspace}
+            {workspacePath}
+            {recentWorkspaces}
+            {tauriAvailable}
+            {browserModeNotice}
+            {selectedRoleKey}
+            roles={agentRoles}
+            memorySyncing={isMemorySyncing}
+            onPickWorkspace={pickWorkspace}
+            onPickWsl={pickWslWorkspace}
+            onSelectWorkspace={requestWorkspace}
+            onNewConversation={newConversation}
+            onRoleChange={changeConversationRole}
+            onMinimize={winMinimize}
+            onMaximize={winMaximize}
+            onClose={winClose}
+          />
 
-          <div
-            class="conversation-workspace"
-            class:checkpoint-flow-panel-collapsed={Boolean(
-              currentCheckpointFlow && checkpointFlowPanelCollapsed,
-            )}
-            style:--input-area-height={`${inputAreaHeight}px`}
-          >
-            <div
-              class="conversation-input-fade"
-              class:conversation-input-fade-streaming={isCurrentStreaming}
-              class:conversation-input-fade-hidden={newConversationLayout}
-              aria-hidden="true"
-            ></div>
-            <div
-              class="conversation-aurora"
-              class:conversation-aurora-streaming={isCurrentStreaming}
-              class:conversation-aurora-new-conversation={newConversationLayout}
-              aria-hidden="true"
-            ></div>
-            <div class="conversation-stage">
-              {#if !tauriAvailable}
-                <div class="runtime-banner">{browserModeNotice}</div>
-              {/if}
-
-              <!-- Messages -->
-              <main
-                class="messages"
-                bind:this={messagesEl}
-                onscroll={handleMessagesScroll}
-                onwheel={cancelBottomScrollFromUser}
-                ontouchstart={cancelBottomScrollFromUser}
-                onpointerdown={cancelBottomScrollFromUser}
-              >
-                <div
-                  class="new-conversation-aurora"
-                  class:new-conversation-aurora-visible={newConversationLayout}
-                  aria-hidden="true"
-                ></div>
-                {#if mainContentLoading && restoringSurface !== "new-conversation"}
-                  <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
-                {:else if !mainContentLoading}
-                  <MessageList
-                    {messages}
-                    scrollElement={messagesEl}
-                    isStreaming={isCurrentStreaming}
-                    isAwaitingStreamOutput={isCurrentAwaitingStreamOutput}
-                    memoryRetrievalStage={currentMemoryRetrievalStage}
-                    memoryRetrievalCanSkip={currentMemoryRetrievalCanSkip}
-                    {currentStreamItems}
-                    {currentStreamMessageId}
-                    {activeConvId}
-                    activeBranchId={activeConvId ? (activeBranchIds[activeConvId] ?? null) : null}
-                    debugMode={isDebugMode}
-                    activeTree={activeConvId ? convTrees[activeConvId] : undefined}
-                    paddingBottom={inputAreaHeight + 24}
-                    showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(config)}
-                    {shikiTheme}
-                    {mermaidConfig}
-                    htmlPreviewConfig={config?.html_preview}
-                    messageLayout={config?.message_layout ?? "single"}
-                    messageDoubleColumnMinWidth={config?.message_double_column_min_width ?? 1200}
-                    bookModeFontSize={config?.book_mode_font_size ?? 17}
-                    tailAnchorToken={streamCompletionTailAnchor?.convId === activeConvId
-                      ? streamCompletionTailAnchor.token
-                      : null}
-                    onTailAnchorSettled={finishStreamCompletionTailAnchor}
-                    {newConversationMemoryPrompt}
-                    {newConversationMemoryLoading}
-                    showNewConversationContext={!newConversationLayout}
-                    checkpointLoadError={activeConvId
-                      ? (checkpointLoadErrors[activeConvId] ?? null)
-                      : null}
-                    onCommitEdit={commitEdit}
-                    onReExecute={reExecuteMsg}
-                    onSwitchBranch={switchBranchAt}
-                    onSubmitUserInput={submitUserInput}
-                    onCancelUserInput={cancelUserInput}
-                    onSkipMemoryRetrieval={skipCurrentMemoryRetrieval}
-                  />
-                {/if}
-              </main>
-
-              <!-- Input -->
-              <div
-                class="input-area"
-                class:input-area-streaming={isCurrentStreaming}
-                class:input-area-new-conversation={newConversationLayout}
-                bind:clientHeight={inputAreaHeight}
-              >
-                {#if newConversationLayout}
-                  <NewConversationContext
-                    prompt={newConversationMemoryPrompt}
-                    loading={mainContentLoading || newConversationMemoryLoading}
-                    showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(config)}
-                    placement="stack"
-                  />
-                {/if}
-                <div class="input-inner">
-                  {#if mainContentLoading}
-                    <LoadingSkeleton variant="composer" label={$t("loadingContent")} />
-                  {:else}
-                    {#if currentFileChanges.length > 0}
-                      <FileChangeBanner
-                        changes={currentFileChanges}
-                        onRevert={handleRevertFileChange}
-                      />
-                    {/if}
-                    {#if activeConvId}
-                      <ChatQueue
-                        items={queuedChatMessages[activeConvId] ?? []}
-                        onRemove={(index) => removeQueuedMessage(activeConvId!, index)}
-                        onClear={() => clearQueuedMessages(activeConvId!)}
-                      />
-                    {/if}
-                    <MessageInput
-                      bind:value={inputText}
-                      bind:attachments={inputAttachments}
-                      bind:selectedModel={composerPreferences.selectedModel}
-                      modelOptions={composerPreferences.modelOptions}
-                      placeholder={tauriAvailable
-                        ? composerPreferences.modelOptions.length
-                          ? $t("inputPlaceholder")
-                          : $t("modelSetupHint")
-                        : browserModeNotice}
-                      disabled={!tauriAvailable}
-                      isStreaming={isCurrentStreaming}
-                      isPaused={isCurrentStreamPaused}
-                      sendDisabled={(!inputText.trim() && inputAttachments.length === 0) ||
-                        !tauriAvailable ||
-                        composerPreferences.modelOptions.length === 0}
-                      sendTitle={$t("send")}
-                      pauseTitle={$t("pauseOutput")}
-                      resumeTitle={$t("resumeOutput")}
-                      stopTitle={$t("stopOutput")}
-                      {slashCommands}
-                      showGlobalDraftsInMentions={config?.mention_palette_show_global_drafts ??
-                        true}
-                      onConfigureModels={() => openSettings("providers")}
-                      onModelChange={composerPreferences.handleModelChange}
-                      showReasoningEffort={composerPreferences.selectedModelSupportsReasoning}
-                      reasoningEffort={composerPreferences.selectedReasoningEffort}
-                      onReasoningEffortChange={composerPreferences.handleReasoningEffortChange}
-                      showApprovalMode
-                      approvalMode={config?.approval_mode ?? "off"}
-                      onApprovalModeChange={composerPreferences.handleApprovalModeChange}
-                      onSend={sendMessage}
-                      onStop={stopMessage}
-                      onPause={pauseCurrentStream}
-                      onResume={resumeCurrentStream}
-                    />
-                  {/if}
-                </div>
-              </div>
-            </div>
-            {#if currentCheckpointFlow}
-              <CheckpointFlowPanelHost
-                flow={currentCheckpointFlow}
-                conversationId={activeConvId ?? ""}
-                bind:collapsed={checkpointFlowPanelCollapsed}
-              />
-            {/if}
-          </div>
+          <ConversationSurface
+            view={conversationSurfaceView}
+            actions={conversationSurfaceActions}
+            {composerPreferences}
+            bind:messagesElement={messagesEl}
+            bind:inputAreaHeight
+            bind:inputText
+            bind:inputAttachments
+          />
         </div>
       {/if}
     </div>
@@ -4477,26 +4256,7 @@
 />
 
 <style>
-  @property --input-aurora-x-shift {
-    syntax: "<percentage>";
-    inherits: false;
-    initial-value: 0%;
-  }
-
-  @property --input-aurora-y-shift {
-    syntax: "<percentage>";
-    inherits: false;
-    initial-value: 0%;
-  }
-
-  @property --input-aurora-scale-shift {
-    syntax: "<number>";
-    inherits: false;
-    initial-value: 0;
-  }
-
   .app {
-    --sidebar-width: 220px;
     display: flex;
     height: 100vh;
     overflow: hidden;
@@ -4504,63 +4264,6 @@
   }
 
   /* ─── Sidebar ─────────────────────────────────────────────────────────────── */
-
-  .sidebar {
-    position: relative;
-    width: var(--sidebar-width);
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    background: var(--sidebar-bg);
-    border-right: 1px solid var(--border);
-    overflow: visible;
-    user-select: none;
-    transition: width 180ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .sidebar.collapsed {
-    width: 0;
-    background: transparent;
-    border-right: 0;
-    overflow: visible;
-  }
-
-  .sidebar.resizing {
-    transition: none;
-  }
-
-  .sidebar-top {
-    min-height: 50px;
-    box-sizing: border-box;
-    padding: 5px 4px 5px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 2px;
-  }
-
-  .sidebar-navigation-start {
-    min-width: 0;
-    flex: 1 1 auto;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-  }
-
-  .sidebar-navigation-end {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    flex: 0 0 auto;
-  }
-
-  .sidebar.collapsed .sidebar-top {
-    position: relative;
-    z-index: 11;
-    width: 48px;
-    justify-content: center;
-    padding-left: 4px;
-  }
 
   .app.sidebar-collapsed :global(.design-header),
   .app.sidebar-collapsed :global(.drafts-header),
@@ -4572,12 +4275,6 @@
     padding-left: 56px;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .sidebar {
-      transition: none;
-    }
-  }
-
   /* ─── Main ─────────────────────────────────────────────────────────────────── */
 
   .main {
@@ -4587,976 +4284,5 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-  }
-
-  .conversation-workspace {
-    --flow-panel-collapsed-track-width: 30px;
-    position: relative;
-    isolation: isolate;
-    display: flex;
-    min-width: 0;
-    min-height: 0;
-    flex: 1;
-    padding-top: 48px;
-  }
-
-  @media (max-width: 760px) {
-    .conversation-workspace {
-      --flow-panel-collapsed-track-width: 26px;
-    }
-  }
-
-  .conversation-workspace.checkpoint-flow-panel-collapsed {
-    --flow-panel-index-offset: var(--flow-panel-collapsed-track-width);
-  }
-
-  .conversation-workspace::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 3;
-    background: color-mix(in srgb, var(--bg) 62%, transparent);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    pointer-events: none;
-  }
-
-  .conversation-stage {
-    position: relative;
-    z-index: 4;
-    display: flex;
-    min-width: 0;
-    min-height: 0;
-    flex: 1;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  /* Title Bar */
-  .title-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    height: 48px;
-    background: linear-gradient(to bottom, var(--bg) 0%, var(--bg) 80%, transparent 100%);
-    user-select: none;
-  }
-
-  .main.sidebar-collapsed .title-bar {
-    padding-left: 56px;
-  }
-
-  .runtime-banner {
-    padding: 10px 16px;
-    background: rgba(245, 158, 11, 0.12);
-    border-bottom: 1px solid rgba(245, 158, 11, 0.24);
-    color: #b45309;
-    font-size: 12px;
-    line-height: 1.5;
-  }
-
-  .title-bar-left {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex: 0 1 auto;
-    min-width: 0;
-    overflow: hidden;
-  }
-
-  .title-bar-drag-handle {
-    align-self: stretch;
-    flex: 1 1 96px;
-    min-width: 64px;
-    margin: 0 8px;
-  }
-
-  .title-new-conversation {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    flex: 0 0 28px;
-    padding: 0;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition:
-      background 120ms ease,
-      color 120ms ease;
-  }
-
-  .title-new-conversation:hover,
-  .title-new-conversation:focus-visible {
-    background: var(--surface2);
-    color: var(--text);
-    outline: none;
-  }
-
-  .title-new-conversation:focus-visible {
-    box-shadow: var(--focus-ring);
-  }
-
-  .title-new-conversation:active {
-    background: color-mix(in srgb, var(--surface2) 78%, var(--text) 6%);
-  }
-
-  .title-new-conversation svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .branch-pill {
-    font-size: 11px;
-    font-family: "JetBrains Mono", "Fira Code", monospace;
-    color: var(--text-muted);
-    background: var(--surface2);
-    border: 0;
-    border-radius: 12px;
-    padding: 2px 8px;
-    white-space: nowrap;
-    letter-spacing: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: min(220px, 32vw);
-    flex-shrink: 1;
-  }
-
-  .title-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
-  }
-
-  .sync-dot {
-    color: var(--primary);
-    font-size: 10px;
-    margin-right: 2px;
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.3;
-    }
-  }
-
-  /* Messages */
-  .messages {
-    position: relative;
-    z-index: 1;
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: clip;
-    display: flex;
-    flex-direction: column;
-    overflow-anchor: none;
-  }
-
-  /* Input */
-  .input-area {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 10;
-    padding-bottom: 16px;
-    background: transparent;
-    pointer-events: none;
-  }
-
-  .conversation-input-fade {
-    position: absolute;
-    inset: auto 0 0;
-    z-index: 1;
-    height: calc(var(--input-area-height, 120px) + 48px);
-    background: linear-gradient(to top, var(--bg) 0%, var(--bg) 60%, transparent 100%);
-    opacity: 1;
-    pointer-events: none;
-    transition: opacity 420ms ease;
-  }
-
-  .conversation-aurora {
-    position: absolute;
-    left: 50%;
-    top: calc(100% - 122px);
-    width: min(calc(100% + 100px), 1064px);
-    height: 210px;
-    z-index: 2;
-    background:
-      radial-gradient(ellipse at 12% 62%, rgba(66, 133, 244, 0.34) 0 18%, transparent 43%),
-      radial-gradient(ellipse at 36% 52%, rgba(161, 66, 244, 0.3) 0 16%, transparent 42%),
-      radial-gradient(ellipse at 61% 64%, rgba(234, 67, 53, 0.32) 0 17%, transparent 44%),
-      radial-gradient(ellipse at 84% 54%, rgba(251, 188, 5, 0.32) 0 18%, transparent 44%),
-      radial-gradient(ellipse at 50% 78%, rgba(52, 168, 83, 0.3) 0 22%, transparent 50%);
-    filter: blur(26px) saturate(1.35);
-    opacity: 0.56;
-    -webkit-mask-image:
-      linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%),
-      linear-gradient(to bottom, transparent 0%, #000 18%, #000 100%);
-    -webkit-mask-composite: source-in;
-    mask-image:
-      linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%),
-      linear-gradient(to bottom, transparent 0%, #000 18%, #000 100%);
-    mask-composite: intersect;
-    pointer-events: none;
-    --input-aurora-x-shift: 0%;
-    --input-aurora-y-shift: 0%;
-    --input-aurora-scale-shift: 0;
-    transition:
-      top 760ms cubic-bezier(0.16, 1, 0.3, 1),
-      width 760ms cubic-bezier(0.16, 1, 0.3, 1),
-      height 760ms cubic-bezier(0.16, 1, 0.3, 1),
-      --input-aurora-x-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
-      --input-aurora-y-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
-      --input-aurora-scale-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
-      opacity 420ms ease,
-      filter 560ms cubic-bezier(0.16, 1, 0.3, 1);
-    animation: input-area-aurora 7.5s ease-in-out infinite alternate;
-  }
-
-  .new-conversation-aurora {
-    position: absolute;
-    left: 50%;
-    top: calc(50% - clamp(24px, 3vh, 40px));
-    width: min(calc(100% - 96px), 1120px);
-    height: clamp(260px, 34vh, 420px);
-    z-index: 0;
-    background:
-      radial-gradient(ellipse at 18% 46%, rgba(66, 133, 244, 0.2) 0 18%, transparent 56%),
-      radial-gradient(ellipse at 43% 58%, rgba(52, 168, 83, 0.1) 0 18%, transparent 58%),
-      radial-gradient(ellipse at 66% 42%, rgba(161, 66, 244, 0.12) 0 18%, transparent 58%),
-      radial-gradient(ellipse at 84% 60%, rgba(251, 188, 5, 0.08) 0 16%, transparent 56%),
-      linear-gradient(180deg, rgba(232, 246, 255, 0.32), rgba(216, 237, 255, 0.18) 60%, transparent);
-    filter: blur(72px) saturate(1.1);
-    opacity: 0;
-    pointer-events: none;
-    transform: translate(-50%, -50%);
-    transition: opacity 420ms ease;
-    animation: new-conversation-aurora 8s ease-in-out infinite alternate;
-  }
-
-  .new-conversation-aurora-visible {
-    opacity: 0.9;
-  }
-
-  :global(html.dark) .new-conversation-aurora {
-    display: none;
-  }
-
-  .conversation-input-fade::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    bottom: -26px;
-    width: min(calc(100% + 24px), 988px);
-    height: 90px;
-    z-index: 1;
-    background: linear-gradient(
-      to top,
-      rgba(245, 245, 247, 0.82),
-      rgba(245, 245, 247, 0.08) 72%,
-      transparent
-    );
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent 0%,
-      #000 10%,
-      #000 90%,
-      transparent 100%
-    );
-    mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
-    pointer-events: none;
-    transform: translateX(-50%);
-    transition:
-      background 1.2s cubic-bezier(0.16, 1, 0.3, 1),
-      opacity 420ms ease;
-  }
-
-  .conversation-aurora-streaming {
-    --input-aurora-x-shift: 9%;
-    --input-aurora-y-shift: 3%;
-    --input-aurora-scale-shift: 0.2;
-    opacity: 0.72;
-    filter: blur(28px) saturate(1.45);
-  }
-
-  .conversation-input-fade-hidden {
-    opacity: 0;
-  }
-
-  .input-area-new-conversation {
-    top: calc(50% - 10px);
-    bottom: auto;
-    padding-bottom: 0;
-    transform: translateY(-50%);
-  }
-
-  .conversation-aurora-new-conversation {
-    opacity: 0;
-  }
-
-  .conversation-input-fade-streaming::after {
-    background: linear-gradient(
-      to top,
-      rgba(245, 245, 247, 0.62),
-      rgba(245, 245, 247, 0.04) 72%,
-      transparent
-    );
-  }
-
-  :global(html.dark) .conversation-input-fade::after {
-    background: linear-gradient(
-      to top,
-      rgba(15, 17, 23, 0.76),
-      rgba(15, 17, 23, 0.08) 72%,
-      transparent
-    );
-  }
-
-  .input-inner {
-    position: relative;
-    z-index: 2;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 0 32px;
-    pointer-events: auto;
-  }
-
-  .input-area-new-conversation .input-inner {
-    max-width: 760px;
-  }
-
-  .input-area-new-conversation .input-inner :global(.composer-compact .input) {
-    min-height: 66px;
-  }
-
-  .input-area-new-conversation .input-inner :global(.composer-copy) {
-    min-height: 99px;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .input-area::after {
-      background: linear-gradient(
-        to top,
-        rgba(15, 17, 23, 0.76),
-        rgba(15, 17, 23, 0.08) 72%,
-        transparent
-      );
-    }
-
-    :global(html.light) .input-area::after {
-      background: linear-gradient(
-        to top,
-        rgba(245, 245, 247, 0.82),
-        rgba(245, 245, 247, 0.08) 72%,
-        transparent
-      );
-    }
-  }
-
-  @keyframes input-area-aurora {
-    0% {
-      transform: translate3d(
-          calc(-50% - 5% - var(--input-aurora-x-shift)),
-          calc(8% + var(--input-aurora-y-shift)),
-          0
-        )
-        scale(calc(1.05 + var(--input-aurora-scale-shift)));
-      background-position: 0% 50%;
-    }
-    50% {
-      transform: translate3d(
-          calc(-50% + 4% + var(--input-aurora-x-shift)),
-          calc(3% - var(--input-aurora-y-shift)),
-          0
-        )
-        scale(calc(1.12 + var(--input-aurora-scale-shift)));
-      background-position: 100% 50%;
-    }
-    100% {
-      transform: translate3d(
-          calc(-50% - 2% - var(--input-aurora-x-shift)),
-          calc(6% + var(--input-aurora-y-shift)),
-          0
-        )
-        scale(calc(1.09 + var(--input-aurora-scale-shift)));
-      background-position: 40% 100%;
-    }
-  }
-
-  @keyframes new-conversation-aurora {
-    0% {
-      transform: translate3d(calc(-50% - 4%), calc(-50% + 4%), 0) scale(1.04);
-    }
-    50% {
-      transform: translate3d(calc(-50% + 4%), calc(-50% - 2%), 0) scale(1.1);
-    }
-    100% {
-      transform: translate3d(calc(-50% - 1%), calc(-50% + 2%), 0) scale(1.07);
-    }
-  }
-
-  @media (max-width: 700px) {
-    .new-conversation-aurora {
-      width: calc(100% - 40px);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .conversation-aurora,
-    .new-conversation-aurora {
-      animation: none;
-      transition: none;
-    }
-  }
-
-  /* ─── Dialogs ─────────────────────────────────────────────────────────────── */
-
-  :global(.dialog-overlay) {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(3px);
-    z-index: 100;
-  }
-
-  :global(.dialog) {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--control-surface);
-    border: 0;
-    border-radius: 14px;
-    padding: 24px;
-    width: 480px;
-    max-width: 95vw;
-    max-height: 90vh;
-    overflow-y: auto;
-    z-index: 101;
-    -webkit-backdrop-filter: blur(16px) saturate(1.08);
-    backdrop-filter: blur(16px) saturate(1.08);
-    box-shadow: var(--raised-shadow);
-  }
-
-  :global(.dialog-wide) {
-    width: 700px;
-  }
-
-  :global(.workspace-choice-dialog) {
-    width: 430px;
-  }
-
-  :global(.wsl-workspace-dialog) {
-    width: 520px;
-  }
-
-  :global(.wsl-workspace-form) {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  :global(.wsl-field) {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-    color: var(--text-secondary);
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  :global(.wsl-field select),
-  :global(.wsl-field input) {
-    min-width: 0;
-    height: 36px;
-    border: 0;
-    border-radius: 7px;
-    outline: none;
-    background: var(--bg);
-    color: var(--text);
-    font: inherit;
-    font-size: 13px;
-    font-weight: 400;
-    box-shadow: var(--control-shadow);
-  }
-
-  :global(.wsl-field select) {
-    padding: 0 10px;
-  }
-
-  :global(.wsl-field input) {
-    flex: 1;
-    padding: 0 11px;
-    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
-  }
-
-  :global(.wsl-field select:focus),
-  :global(.wsl-field input:focus) {
-    box-shadow: var(--control-shadow), var(--focus-ring);
-  }
-
-  :global(.wsl-field select:disabled),
-  :global(.wsl-field input:disabled) {
-    cursor: not-allowed;
-    opacity: 0.55;
-  }
-
-  :global(.wsl-path-row) {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  :global(.wsl-browse-button) {
-    flex-shrink: 0;
-  }
-
-  :global(.wsl-status) {
-    color: var(--text-muted);
-    font-size: 12px;
-  }
-
-  :global(.wsl-error) {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    border-radius: 7px;
-    padding: 9px 11px;
-    background: color-mix(in srgb, #b42318 10%, var(--surface));
-    color: #b42318;
-    font-size: 12px;
-    line-height: 1.45;
-    overflow-wrap: anywhere;
-  }
-
-  :global(.workspace-choice-description) {
-    margin: -8px 0 14px;
-    color: var(--text-muted);
-    font-size: 13px;
-    line-height: 1.55;
-  }
-
-  :global(.workspace-choice-path) {
-    padding: 9px 11px;
-    border-radius: 7px;
-    background: var(--bg);
-    color: var(--text-secondary);
-    font-size: 12px;
-    overflow-wrap: anywhere;
-  }
-
-  :global(.dialog-title) {
-    font-size: 17px;
-    font-weight: 600;
-    margin: 0 0 20px;
-    color: var(--text);
-    letter-spacing: -0.2px;
-  }
-
-  :global(.dialog-actions) {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 24px;
-  }
-
-  :global(.dialog-action-quiet) {
-    padding: 6px 0;
-    border: 0;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 13px;
-    cursor: pointer;
-    transition: color 0.15s;
-  }
-
-  :global(.dialog-action-quiet:hover) {
-    color: var(--text);
-  }
-
-  :global(.dialog-action-quiet:focus-visible) {
-    border-radius: 3px;
-    box-shadow: var(--focus-ring);
-    outline: none;
-  }
-
-  :global(.btn-primary) {
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 9999px;
-    padding: 6px 16px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background 0.15s,
-      transform 0.1s;
-  }
-
-  :global(.btn-primary:hover) {
-    background: var(--primary-hover);
-  }
-
-  :global(.btn-primary:active) {
-    transform: scale(0.95);
-  }
-
-  :global(.btn-secondary) {
-    background: var(--surface2);
-    color: var(--text);
-    border: 0;
-    border-radius: 6px;
-    padding: 6px 14px;
-    font-size: 13px;
-    cursor: pointer;
-    box-shadow: var(--control-shadow);
-    transition:
-      background 0.15s,
-      transform 0.1s;
-  }
-
-  :global(.btn-secondary:hover) {
-    background: var(--border);
-  }
-
-  :global(.btn-secondary:active) {
-    transform: scale(0.95);
-  }
-
-  :global(.btn-secondary.btn-sm) {
-    padding: 6px 12px;
-    font-size: 13px;
-  }
-
-  /* ─── Streamdown table overrides ─────────────────────────────────────────── */
-
-  :global([data-streamdown-table]) {
-    overflow-x: auto;
-    margin: 10px 0 16px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-  }
-
-  :global([data-streamdown-table] table) {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 0;
-  }
-
-  :global([data-streamdown-thead]) {
-    background: var(--surface2);
-  }
-
-  :global([data-streamdown-th]) {
-    padding: 7px 12px;
-    text-align: left;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
-  }
-
-  :global([data-streamdown-td]) {
-    padding: 7px 12px;
-    font-size: 13px;
-    color: var(--text);
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
-    min-width: 0;
-    max-width: none;
-    line-height: 1.5;
-  }
-
-  :global([data-streamdown-tbody] [data-streamdown-tr]:last-child [data-streamdown-td]) {
-    border-bottom: none;
-  }
-
-  :global([data-streamdown-tbody] [data-streamdown-tr]:hover) {
-    background: var(--surface2);
-  }
-
-  /* ─── Streamdown general prose overrides ─────────────────────────────────── */
-
-  :global(.assistant-msg p) {
-    margin: 0 0 10px;
-    line-height: 1.47;
-  }
-
-  :global(.assistant-msg h1, .assistant-msg h2, .assistant-msg h3) {
-    margin: 20px 0 6px;
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  :global(.assistant-msg h1) {
-    font-size: 21px;
-    letter-spacing: -0.28px;
-  }
-  :global(.assistant-msg h2) {
-    font-size: 17px;
-    letter-spacing: -0.374px;
-  }
-  :global(.assistant-msg h3) {
-    font-size: 15px;
-    letter-spacing: -0.374px;
-  }
-
-  :global(.assistant-msg ul, .assistant-msg ol) {
-    margin: 4px 0 10px;
-    padding-left: 22px;
-  }
-
-  :global(.assistant-msg li) {
-    margin: 3px 0;
-    line-height: 1.47;
-  }
-
-  :global(.assistant-msg a) {
-    color: var(--primary);
-    text-decoration: none;
-  }
-
-  :global(.assistant-msg a:hover) {
-    text-decoration: underline;
-  }
-
-  :global(.assistant-msg blockquote) {
-    margin: 8px 0 10px;
-    padding: 4px 14px;
-    border-left: 3px solid var(--border);
-    color: var(--text-muted);
-  }
-
-  :global(.assistant-msg [data-streamdown-codespan]) {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
-    padding: 1px 5px;
-    font-size: 13px;
-    font-family: "JetBrains Mono", "Fira Code", monospace;
-    letter-spacing: 0;
-  }
-
-  :global([data-streamdown-code]) {
-    background: var(--surface2);
-    border: none !important;
-    margin: 8px 0 12px;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] > .chat-code-header) {
-    background: color-mix(in srgb, var(--surface2) 88%, var(--surface)) !important;
-    border-bottom: 1px solid var(--border);
-    color: var(--text-muted) !important;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] > .chat-code-container) {
-    background: var(--surface2) !important;
-    padding: 0 !important;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] .chat-code-skeleton) {
-    background: var(--border) !important;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] button) {
-    color: var(--text-muted) !important;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] button[title="Download code"]) {
-    display: none;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] button:hover) {
-    background: var(--surface) !important;
-    color: var(--text) !important;
-  }
-
-  :global(.assistant-msg pre) {
-    background: var(--surface2);
-    border-radius: 8px;
-    padding: 14px 16px;
-    margin: 8px 0 12px;
-    overflow-x: auto;
-  }
-
-  /* Shiki controls token colors; the application theme owns the block surface. */
-  :global(.assistant-msg [data-streamdown-code] pre) {
-    background: transparent;
-    border-radius: 0;
-    padding: 12px 16px;
-    margin: 0;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] pre code) {
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: 13px;
-    font-family: "JetBrains Mono", "Fira Code", monospace;
-    letter-spacing: 0;
-    line-height: 1.6;
-  }
-
-  :global(.assistant-msg pre code) {
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: 13px;
-    font-family: "JetBrains Mono", "Fira Code", monospace;
-    letter-spacing: 0;
-    line-height: 1.6;
-  }
-
-  /* ─── Streamdown Mermaid overrides ───────────────────────────────────────── */
-
-  /* Replace hardcoded Tailwind bg-white / border-gray-200 with theme vars */
-  :global([data-streamdown-mermaid] > div) {
-    background: var(--surface) !important;
-    border-color: var(--border) !important;
-    overflow: hidden !important;
-  }
-
-  /* Keep the panzoom target out of normal flow so zooming cannot stretch the
-     Mermaid block. The parent is already position:relative in Streamdown. */
-  :global([data-streamdown-mermaid] [data-mermaid-svg]) {
-    position: absolute !important;
-    inset: 0 !important;
-    display: block !important;
-    width: 100% !important;
-    height: 100% !important;
-    max-width: none !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  /* Keep Mermaid's generated SVG at its natural layout size; panzoom handles
-     fitting it into the fixed viewport. Forcing 100% width compresses wide
-     diagrams such as sequence diagrams and Gantt charts. */
-  :global([data-streamdown-mermaid] [data-mermaid-svg] > svg) {
-    display: block;
-    margin: 0;
-    max-width: none !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  :global([data-streamdown-mermaid] [data-mermaid-svg] .grid .tick line) {
-    opacity: 0.38 !important;
-    stroke-width: 1 !important;
-  }
-
-  :global([data-streamdown-mermaid] [data-mermaid-svg] .grid .tick text) {
-    fill: var(--text-muted) !important;
-    font-size: 11px !important;
-    font-weight: 500 !important;
-  }
-
-  :global([data-streamdown-mermaid] [data-mermaid-svg] .sectionTitle) {
-    fill: var(--text-muted) !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-  }
-
-  :global([data-streamdown-mermaid] [data-mermaid-svg] .taskText),
-  :global([data-streamdown-mermaid] [data-mermaid-svg] .taskTextOutsideLeft),
-  :global([data-streamdown-mermaid] [data-mermaid-svg] .taskTextOutsideRight) {
-    fill: var(--text) !important;
-    font-size: 12px !important;
-    font-weight: 500 !important;
-  }
-
-  :global([data-streamdown-mermaid] [data-mermaid-svg] .today) {
-    stroke-width: 1.5px !important;
-    opacity: 0.7 !important;
-  }
-
-  /* Toolbar buttons (zoom/fit/download) — translucent icon-button per design.md button-icon style */
-  :global([data-streamdown-mermaid] .mermaid-controls) {
-    z-index: 2 !important;
-  }
-
-  :global([data-streamdown-mermaid] button) {
-    background: transparent !important;
-    color: var(--text-muted) !important;
-    border-radius: 6px !important;
-    transition:
-      background 0.12s,
-      color 0.12s !important;
-  }
-  :global([data-streamdown-mermaid] button:hover) {
-    background: var(--surface2) !important;
-    color: var(--text) !important;
-  }
-  :global([data-streamdown-mermaid] button:active) {
-    transform: scale(0.95) !important;
-  }
-
-  /* Download popover — mirrors .ctx-menu-content from app.css. */
-  :global([data-streamdown-mermaid] .download-menu) {
-    position: absolute !important;
-    top: calc(100% + 6px) !important;
-    right: 0 !important;
-    z-index: 3 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    min-width: 88px !important;
-    margin: 0 !important;
-    padding: var(--menu-content-padding) !important;
-    background: var(--control-surface) !important;
-    border: 0 !important;
-    border-radius: var(--menu-content-radius) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(1.08) !important;
-    backdrop-filter: blur(12px) saturate(1.08) !important;
-    box-shadow: var(--raised-shadow) !important;
-  }
-  :global([data-streamdown-mermaid] .download-menu button) {
-    display: flex !important;
-    align-items: center !important;
-    width: 100% !important;
-    min-height: var(--menu-item-min-height) !important;
-    height: auto !important;
-    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline) !important;
-    margin: 0 !important;
-    font-size: var(--menu-item-font-size) !important;
-    line-height: var(--menu-item-line-height) !important;
-    text-align: left !important;
-    justify-content: flex-start !important;
-    color: var(--text) !important;
-    border-radius: var(--menu-item-radius) !important;
-  }
-  :global([data-streamdown-mermaid] .download-menu button + button) {
-    margin-top: var(--menu-item-stack-gap) !important;
-  }
-  :global([data-streamdown-mermaid] .download-menu button:hover) {
-    background: var(--surface2) !important;
-    color: var(--text) !important;
-  }
-
-  .conversation-workspace :global(.composer),
-  .conversation-workspace :global(.flow-panel) {
-    background: var(--mica-surface);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
   }
 </style>

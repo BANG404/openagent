@@ -12,6 +12,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 ## Transcript and streaming
 
+- Keep the route as the desktop composition and runtime-coordination boundary.
+  The desktop sidebar owns its width, resize gesture, collapse persistence, and
+  conversation navigation chrome; the title bar owns workspace, branch, role,
+  sync, and window chrome; the conversation surface owns transcript/composer
+  composition, Goal/Graph panel presentation, and chat renderer theme overrides.
+  Pass each surface a deliberate view model and action contract instead of
+  returning leaf component markup or surface-local layout state to the route.
 - Keep transient per-conversation stream maps in the dedicated stream-state
   controller. The page shell coordinates durable conversation/checkpoint data
   with that controller, but must not recreate parallel maps for streaming,

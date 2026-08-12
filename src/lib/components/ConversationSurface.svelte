@@ -1,0 +1,912 @@
+<script lang="ts">
+  import type { ChatMemoryRetrievalStage } from "$lib/openagent";
+  import type { CheckpointFlow } from "$lib/checkpointFlow";
+  import type { ConvTree } from "$lib/checkpointTree";
+  import type { ComposerPreferences } from "$lib/composerPreferences.svelte";
+  import type { MermaidConfig } from "$lib/mermaidTheme";
+  import { providerRequiresApiKey } from "$lib/providerCatalog";
+  import type { QueuedChatMessage } from "$lib/chatQueue";
+  import type { CachedRestoreSurface } from "$lib/startupRestoreCache";
+  import type { AppConfig, ChatAttachment, ChatMessage, FileChange, StreamItem } from "$lib/types";
+  import { t } from "$lib/i18n";
+  import ChatQueue from "./ChatQueue.svelte";
+  import CheckpointFlowPanelHost from "./CheckpointFlowPanelHost.svelte";
+  import FileChangeBanner from "./FileChangeBanner.svelte";
+  import LoadingSkeleton from "./LoadingSkeleton.svelte";
+  import MessageInput, { type SlashCommand } from "./MessageInput.svelte";
+  import MessageList from "./MessageList.svelte";
+  import NewConversationContext from "./NewConversationContext.svelte";
+
+  interface ConversationSurfaceView {
+    activeBranchId: string | null;
+    activeConvId: string | null;
+    activeTree: ConvTree | undefined;
+    browserModeNotice: string;
+    checkpointFlow: CheckpointFlow | null;
+    checkpointLoadError: string | null;
+    config: AppConfig | null;
+    currentStreamItems: StreamItem[];
+    currentStreamMessageId: string | null;
+    debugMode: boolean;
+    fileChanges: FileChange[];
+    isAwaitingStreamOutput: boolean;
+    isPaused: boolean;
+    isStreaming: boolean;
+    mainContentLoading: boolean;
+    memoryRetrievalCanSkip: boolean;
+    memoryRetrievalStage: ChatMemoryRetrievalStage | null;
+    mermaidConfig: MermaidConfig;
+    messages: ChatMessage[];
+    newConversationLayout: boolean;
+    newConversationMemoryLoading: boolean;
+    newConversationMemoryPrompt: string | null;
+    queuedMessages: QueuedChatMessage[];
+    restoringSurface: CachedRestoreSurface;
+    shikiTheme: string;
+    slashCommands: SlashCommand[];
+    tailAnchorToken: number | null;
+    tauriAvailable: boolean;
+  }
+
+  interface ConversationSurfaceActions {
+    cancelBottomScrollFromUser: () => void;
+    cancelUserInput: (requestId: string) => void | Promise<void>;
+    clearQueuedMessages: (convId: string) => void;
+    commitEdit: (
+      convId: string,
+      userMsgIdx: number,
+      newText: string,
+      attachments: ChatAttachment[],
+    ) => void | Promise<void>;
+    configureModels: () => void | Promise<void>;
+    finishStreamCompletionTailAnchor: (token: number) => void;
+    handleMessagesScroll: () => void;
+    pauseCurrentStream: () => void | Promise<void>;
+    removeQueuedMessage: (convId: string, index: number) => void;
+    resumeCurrentStream: () => void | Promise<void>;
+    revertFileChange: (changeId: string) => Promise<void>;
+    reExecuteMessage: (convId: string, assistantMsgIdx: number) => void | Promise<void>;
+    sendMessage: () => void | Promise<void>;
+    skipMemoryRetrieval: () => void | Promise<void>;
+    stopMessage: () => void | Promise<void>;
+    submitUserInput: (requestId: string, values: Record<string, unknown>) => void | Promise<void>;
+    switchBranch: (convId: string, parentKey: string, targetIdx: number) => void | Promise<void>;
+  }
+
+  let {
+    view,
+    actions,
+    composerPreferences,
+    messagesElement = $bindable(null),
+    inputAreaHeight = $bindable(120),
+    inputText = $bindable(),
+    inputAttachments = $bindable(),
+  }: {
+    view: ConversationSurfaceView;
+    actions: ConversationSurfaceActions;
+    composerPreferences: ComposerPreferences;
+    messagesElement: HTMLElement | null;
+    inputAreaHeight: number;
+    inputText: string;
+    inputAttachments: ChatAttachment[];
+  } = $props();
+
+  let checkpointFlowPanelCollapsed = $state(true);
+
+  function shouldShowDefaultProviderCredentialWarning(appConfig: AppConfig | null): boolean {
+    if (!appConfig) return false;
+    const provider = appConfig.providers.find(
+      (item) => item.id === appConfig.defaults.chat_model.provider_id,
+    );
+    return !provider || (providerRequiresApiKey(provider.provider) && !provider.api_key.trim());
+  }
+</script>
+
+<div
+  class="conversation-workspace"
+  class:checkpoint-flow-panel-collapsed={Boolean(
+    view.checkpointFlow && checkpointFlowPanelCollapsed,
+  )}
+  style:--input-area-height={`${inputAreaHeight}px`}
+>
+  <div
+    class="conversation-input-fade"
+    class:conversation-input-fade-streaming={view.isStreaming}
+    class:conversation-input-fade-hidden={view.newConversationLayout}
+    aria-hidden="true"
+  ></div>
+  <div
+    class="conversation-aurora"
+    class:conversation-aurora-streaming={view.isStreaming}
+    class:conversation-aurora-new-conversation={view.newConversationLayout}
+    aria-hidden="true"
+  ></div>
+  <div class="conversation-stage">
+    {#if !view.tauriAvailable}
+      <div class="runtime-banner">{view.browserModeNotice}</div>
+    {/if}
+
+    <main
+      class="messages"
+      bind:this={messagesElement}
+      onscroll={actions.handleMessagesScroll}
+      onwheel={actions.cancelBottomScrollFromUser}
+      ontouchstart={actions.cancelBottomScrollFromUser}
+      onpointerdown={actions.cancelBottomScrollFromUser}
+    >
+      <div
+        class="new-conversation-aurora"
+        class:new-conversation-aurora-visible={view.newConversationLayout}
+        aria-hidden="true"
+      ></div>
+      {#if view.mainContentLoading && view.restoringSurface !== "new-conversation"}
+        <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
+      {:else if !view.mainContentLoading}
+        <MessageList
+          messages={view.messages}
+          scrollElement={messagesElement}
+          isStreaming={view.isStreaming}
+          isAwaitingStreamOutput={view.isAwaitingStreamOutput}
+          memoryRetrievalStage={view.memoryRetrievalStage}
+          memoryRetrievalCanSkip={view.memoryRetrievalCanSkip}
+          currentStreamItems={view.currentStreamItems}
+          currentStreamMessageId={view.currentStreamMessageId}
+          activeConvId={view.activeConvId}
+          activeBranchId={view.activeBranchId}
+          debugMode={view.debugMode}
+          activeTree={view.activeTree}
+          paddingBottom={inputAreaHeight + 24}
+          showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(view.config)}
+          shikiTheme={view.shikiTheme}
+          mermaidConfig={view.mermaidConfig}
+          htmlPreviewConfig={view.config?.html_preview}
+          messageLayout={view.config?.message_layout ?? "single"}
+          messageDoubleColumnMinWidth={view.config?.message_double_column_min_width ?? 1200}
+          bookModeFontSize={view.config?.book_mode_font_size ?? 17}
+          tailAnchorToken={view.tailAnchorToken}
+          onTailAnchorSettled={actions.finishStreamCompletionTailAnchor}
+          newConversationMemoryPrompt={view.newConversationMemoryPrompt}
+          newConversationMemoryLoading={view.newConversationMemoryLoading}
+          showNewConversationContext={!view.newConversationLayout}
+          checkpointLoadError={view.checkpointLoadError}
+          onCommitEdit={actions.commitEdit}
+          onReExecute={actions.reExecuteMessage}
+          onSwitchBranch={actions.switchBranch}
+          onSubmitUserInput={actions.submitUserInput}
+          onCancelUserInput={actions.cancelUserInput}
+          onSkipMemoryRetrieval={actions.skipMemoryRetrieval}
+        />
+      {/if}
+    </main>
+
+    <div
+      class="input-area"
+      class:input-area-streaming={view.isStreaming}
+      class:input-area-new-conversation={view.newConversationLayout}
+      bind:clientHeight={inputAreaHeight}
+    >
+      {#if view.newConversationLayout}
+        <NewConversationContext
+          prompt={view.newConversationMemoryPrompt}
+          loading={view.mainContentLoading || view.newConversationMemoryLoading}
+          showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(view.config)}
+          placement="stack"
+        />
+      {/if}
+      <div class="input-inner">
+        {#if view.mainContentLoading}
+          <LoadingSkeleton variant="composer" label={$t("loadingContent")} />
+        {:else}
+          {#if view.fileChanges.length > 0}
+            <FileChangeBanner changes={view.fileChanges} onRevert={actions.revertFileChange} />
+          {/if}
+          {#if view.activeConvId}
+            <ChatQueue
+              items={view.queuedMessages}
+              onRemove={(index) => actions.removeQueuedMessage(view.activeConvId!, index)}
+              onClear={() => actions.clearQueuedMessages(view.activeConvId!)}
+            />
+          {/if}
+          <MessageInput
+            bind:value={inputText}
+            bind:attachments={inputAttachments}
+            bind:selectedModel={composerPreferences.selectedModel}
+            modelOptions={composerPreferences.modelOptions}
+            placeholder={view.tauriAvailable
+              ? composerPreferences.modelOptions.length
+                ? $t("inputPlaceholder")
+                : $t("modelSetupHint")
+              : view.browserModeNotice}
+            disabled={!view.tauriAvailable}
+            isStreaming={view.isStreaming}
+            isPaused={view.isPaused}
+            sendDisabled={(!inputText.trim() && inputAttachments.length === 0) ||
+              !view.tauriAvailable ||
+              composerPreferences.modelOptions.length === 0}
+            sendTitle={$t("send")}
+            pauseTitle={$t("pauseOutput")}
+            resumeTitle={$t("resumeOutput")}
+            stopTitle={$t("stopOutput")}
+            slashCommands={view.slashCommands}
+            showGlobalDraftsInMentions={view.config?.mention_palette_show_global_drafts ?? true}
+            onConfigureModels={actions.configureModels}
+            onModelChange={composerPreferences.handleModelChange}
+            showReasoningEffort={composerPreferences.selectedModelSupportsReasoning}
+            reasoningEffort={composerPreferences.selectedReasoningEffort}
+            onReasoningEffortChange={composerPreferences.handleReasoningEffortChange}
+            showApprovalMode
+            approvalMode={view.config?.approval_mode ?? "off"}
+            onApprovalModeChange={composerPreferences.handleApprovalModeChange}
+            onSend={actions.sendMessage}
+            onStop={actions.stopMessage}
+            onPause={actions.pauseCurrentStream}
+            onResume={actions.resumeCurrentStream}
+          />
+        {/if}
+      </div>
+    </div>
+  </div>
+  {#if view.checkpointFlow}
+    <CheckpointFlowPanelHost
+      flow={view.checkpointFlow}
+      conversationId={view.activeConvId ?? ""}
+      bind:collapsed={checkpointFlowPanelCollapsed}
+    />
+  {/if}
+</div>
+
+<style>
+  @property --input-aurora-x-shift {
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: 0%;
+  }
+
+  @property --input-aurora-y-shift {
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: 0%;
+  }
+
+  @property --input-aurora-scale-shift {
+    syntax: "<number>";
+    inherits: false;
+    initial-value: 0;
+  }
+
+  .conversation-workspace {
+    --flow-panel-collapsed-track-width: 30px;
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    padding-top: 48px;
+  }
+
+  @media (max-width: 760px) {
+    .conversation-workspace {
+      --flow-panel-collapsed-track-width: 26px;
+    }
+  }
+
+  .conversation-workspace.checkpoint-flow-panel-collapsed {
+    --flow-panel-index-offset: var(--flow-panel-collapsed-track-width);
+  }
+
+  .conversation-workspace::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: color-mix(in srgb, var(--bg) 62%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    pointer-events: none;
+  }
+
+  .conversation-stage {
+    position: relative;
+    z-index: 4;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .runtime-banner {
+    padding: 10px 16px;
+    background: rgba(245, 158, 11, 0.12);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.24);
+    color: #b45309;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .messages {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: clip;
+    display: flex;
+    flex-direction: column;
+    overflow-anchor: none;
+  }
+
+  .input-area {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    padding-bottom: 16px;
+    background: transparent;
+    pointer-events: none;
+  }
+
+  .conversation-input-fade {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 1;
+    height: calc(var(--input-area-height, 120px) + 48px);
+    background: linear-gradient(to top, var(--bg) 0%, var(--bg) 60%, transparent 100%);
+    opacity: 1;
+    pointer-events: none;
+    transition: opacity 420ms ease;
+  }
+
+  .conversation-aurora {
+    position: absolute;
+    left: 50%;
+    top: calc(100% - 122px);
+    width: min(calc(100% + 100px), 1064px);
+    height: 210px;
+    z-index: 2;
+    background:
+      radial-gradient(ellipse at 12% 62%, rgba(66, 133, 244, 0.34) 0 18%, transparent 43%),
+      radial-gradient(ellipse at 36% 52%, rgba(161, 66, 244, 0.3) 0 16%, transparent 42%),
+      radial-gradient(ellipse at 61% 64%, rgba(234, 67, 53, 0.32) 0 17%, transparent 44%),
+      radial-gradient(ellipse at 84% 54%, rgba(251, 188, 5, 0.32) 0 18%, transparent 44%),
+      radial-gradient(ellipse at 50% 78%, rgba(52, 168, 83, 0.3) 0 22%, transparent 50%);
+    filter: blur(26px) saturate(1.35);
+    opacity: 0.56;
+    -webkit-mask-image:
+      linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%),
+      linear-gradient(to bottom, transparent 0%, #000 18%, #000 100%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%),
+      linear-gradient(to bottom, transparent 0%, #000 18%, #000 100%);
+    mask-composite: intersect;
+    pointer-events: none;
+    --input-aurora-x-shift: 0%;
+    --input-aurora-y-shift: 0%;
+    --input-aurora-scale-shift: 0;
+    transition:
+      top 760ms cubic-bezier(0.16, 1, 0.3, 1),
+      width 760ms cubic-bezier(0.16, 1, 0.3, 1),
+      height 760ms cubic-bezier(0.16, 1, 0.3, 1),
+      --input-aurora-x-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
+      --input-aurora-y-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
+      --input-aurora-scale-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 420ms ease,
+      filter 560ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: input-area-aurora 7.5s ease-in-out infinite alternate;
+  }
+
+  .new-conversation-aurora {
+    position: absolute;
+    left: 50%;
+    top: calc(50% - clamp(24px, 3vh, 40px));
+    width: min(calc(100% - 96px), 1120px);
+    height: clamp(260px, 34vh, 420px);
+    z-index: 0;
+    background:
+      radial-gradient(ellipse at 18% 46%, rgba(66, 133, 244, 0.2) 0 18%, transparent 56%),
+      radial-gradient(ellipse at 43% 58%, rgba(52, 168, 83, 0.1) 0 18%, transparent 58%),
+      radial-gradient(ellipse at 66% 42%, rgba(161, 66, 244, 0.12) 0 18%, transparent 58%),
+      radial-gradient(ellipse at 84% 60%, rgba(251, 188, 5, 0.08) 0 16%, transparent 56%),
+      linear-gradient(180deg, rgba(232, 246, 255, 0.32), rgba(216, 237, 255, 0.18) 60%, transparent);
+    filter: blur(72px) saturate(1.1);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: opacity 420ms ease;
+    animation: new-conversation-aurora 8s ease-in-out infinite alternate;
+  }
+
+  .new-conversation-aurora-visible {
+    opacity: 0.9;
+  }
+
+  :global(html.dark) .new-conversation-aurora {
+    display: none;
+  }
+
+  .conversation-input-fade::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -26px;
+    width: min(calc(100% + 24px), 988px);
+    height: 90px;
+    z-index: 1;
+    background: linear-gradient(
+      to top,
+      rgba(245, 245, 247, 0.82),
+      rgba(245, 245, 247, 0.08) 72%,
+      transparent
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      #000 10%,
+      #000 90%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
+    pointer-events: none;
+    transform: translateX(-50%);
+    transition:
+      background 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 420ms ease;
+  }
+
+  .conversation-aurora-streaming {
+    --input-aurora-x-shift: 9%;
+    --input-aurora-y-shift: 3%;
+    --input-aurora-scale-shift: 0.2;
+    opacity: 0.72;
+    filter: blur(28px) saturate(1.45);
+  }
+
+  .conversation-input-fade-hidden {
+    opacity: 0;
+  }
+
+  .input-area-new-conversation {
+    top: calc(50% - 10px);
+    bottom: auto;
+    padding-bottom: 0;
+    transform: translateY(-50%);
+  }
+
+  .conversation-aurora-new-conversation {
+    opacity: 0;
+  }
+
+  .conversation-input-fade-streaming::after {
+    background: linear-gradient(
+      to top,
+      rgba(245, 245, 247, 0.62),
+      rgba(245, 245, 247, 0.04) 72%,
+      transparent
+    );
+  }
+
+  :global(html.dark) .conversation-input-fade::after {
+    background: linear-gradient(
+      to top,
+      rgba(15, 17, 23, 0.76),
+      rgba(15, 17, 23, 0.08) 72%,
+      transparent
+    );
+  }
+
+  .input-inner {
+    position: relative;
+    z-index: 2;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 32px;
+    pointer-events: auto;
+  }
+
+  .input-area-new-conversation .input-inner {
+    max-width: 760px;
+  }
+
+  .input-area-new-conversation .input-inner :global(.composer-compact .input) {
+    min-height: 66px;
+  }
+
+  .input-area-new-conversation .input-inner :global(.composer-copy) {
+    min-height: 99px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .input-area::after {
+      background: linear-gradient(
+        to top,
+        rgba(15, 17, 23, 0.76),
+        rgba(15, 17, 23, 0.08) 72%,
+        transparent
+      );
+    }
+
+    :global(html.light) .input-area::after {
+      background: linear-gradient(
+        to top,
+        rgba(245, 245, 247, 0.82),
+        rgba(245, 245, 247, 0.08) 72%,
+        transparent
+      );
+    }
+  }
+
+  @keyframes input-area-aurora {
+    0% {
+      transform: translate3d(
+          calc(-50% - 5% - var(--input-aurora-x-shift)),
+          calc(8% + var(--input-aurora-y-shift)),
+          0
+        )
+        scale(calc(1.05 + var(--input-aurora-scale-shift)));
+      background-position: 0% 50%;
+    }
+    50% {
+      transform: translate3d(
+          calc(-50% + 4% + var(--input-aurora-x-shift)),
+          calc(3% - var(--input-aurora-y-shift)),
+          0
+        )
+        scale(calc(1.12 + var(--input-aurora-scale-shift)));
+      background-position: 100% 50%;
+    }
+    100% {
+      transform: translate3d(
+          calc(-50% - 2% - var(--input-aurora-x-shift)),
+          calc(6% + var(--input-aurora-y-shift)),
+          0
+        )
+        scale(calc(1.09 + var(--input-aurora-scale-shift)));
+      background-position: 40% 100%;
+    }
+  }
+
+  @keyframes new-conversation-aurora {
+    0% {
+      transform: translate3d(calc(-50% - 4%), calc(-50% + 4%), 0) scale(1.04);
+    }
+    50% {
+      transform: translate3d(calc(-50% + 4%), calc(-50% - 2%), 0) scale(1.1);
+    }
+    100% {
+      transform: translate3d(calc(-50% - 1%), calc(-50% + 2%), 0) scale(1.07);
+    }
+  }
+
+  @media (max-width: 700px) {
+    .new-conversation-aurora {
+      width: calc(100% - 40px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .conversation-aurora,
+    .new-conversation-aurora {
+      animation: none;
+      transition: none;
+    }
+  }
+
+  .conversation-workspace :global(.composer),
+  .conversation-workspace :global(.flow-panel) {
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+  }
+  /* ─── Streamdown table overrides ─────────────────────────────────────────── */
+
+  :global([data-streamdown-table]) {
+    overflow-x: auto;
+    margin: 10px 0 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  :global([data-streamdown-table] table) {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 0;
+  }
+
+  :global([data-streamdown-thead]) {
+    background: var(--surface2);
+  }
+
+  :global([data-streamdown-th]) {
+    padding: 7px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  :global([data-streamdown-td]) {
+    padding: 7px 12px;
+    font-size: 13px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    min-width: 0;
+    max-width: none;
+    line-height: 1.5;
+  }
+
+  :global([data-streamdown-tbody] [data-streamdown-tr]:last-child [data-streamdown-td]) {
+    border-bottom: none;
+  }
+
+  :global([data-streamdown-tbody] [data-streamdown-tr]:hover) {
+    background: var(--surface2);
+  }
+
+  /* ─── Streamdown general prose overrides ─────────────────────────────────── */
+
+  :global(.assistant-msg p) {
+    margin: 0 0 10px;
+    line-height: 1.47;
+  }
+
+  :global(.assistant-msg h1, .assistant-msg h2, .assistant-msg h3) {
+    margin: 20px 0 6px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  :global(.assistant-msg h1) {
+    font-size: 21px;
+    letter-spacing: -0.28px;
+  }
+  :global(.assistant-msg h2) {
+    font-size: 17px;
+    letter-spacing: -0.374px;
+  }
+  :global(.assistant-msg h3) {
+    font-size: 15px;
+    letter-spacing: -0.374px;
+  }
+
+  :global(.assistant-msg ul, .assistant-msg ol) {
+    margin: 4px 0 10px;
+    padding-left: 22px;
+  }
+
+  :global(.assistant-msg li) {
+    margin: 3px 0;
+    line-height: 1.47;
+  }
+
+  :global(.assistant-msg a) {
+    color: var(--primary);
+    text-decoration: none;
+  }
+
+  :global(.assistant-msg a:hover) {
+    text-decoration: underline;
+  }
+
+  :global(.assistant-msg blockquote) {
+    margin: 8px 0 10px;
+    padding: 4px 14px;
+    border-left: 3px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  :global(.assistant-msg [data-streamdown-codespan]) {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    padding: 1px 5px;
+    font-size: 13px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    letter-spacing: 0;
+  }
+
+  :global([data-streamdown-code]) {
+    background: var(--surface2);
+    border: none !important;
+    margin: 8px 0 12px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  :global(.assistant-msg [data-streamdown-code] > .chat-code-header) {
+    background: color-mix(in srgb, var(--surface2) 88%, var(--surface)) !important;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted) !important;
+  }
+
+  :global(.assistant-msg [data-streamdown-code] > .chat-code-container) {
+    background: var(--surface2) !important;
+    padding: 0 !important;
+  }
+
+  :global(.assistant-msg [data-streamdown-code] .chat-code-skeleton) {
+    background: var(--border) !important;
+  }
+
+  :global(.assistant-msg [data-streamdown-code] button) {
+    color: var(--text-muted) !important;
+  }
+
+  :global(.assistant-msg [data-streamdown-code] button[title="Download code"]) {
+    display: none;
+  }
+
+  :global(.assistant-msg [data-streamdown-code] button:hover) {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+  }
+
+  :global(.assistant-msg pre) {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 8px 0 12px;
+    overflow-x: auto;
+  }
+
+  /* Shiki controls token colors; the application theme owns the block surface. */
+  :global(.assistant-msg [data-streamdown-code] pre) {
+    background: transparent;
+    border-radius: 0;
+    padding: 12px 16px;
+    margin: 0;
+  }
+
+  :global(.assistant-msg [data-streamdown-code] pre code) {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    letter-spacing: 0;
+    line-height: 1.6;
+  }
+
+  :global(.assistant-msg pre code) {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    letter-spacing: 0;
+    line-height: 1.6;
+  }
+
+  /* ─── Streamdown Mermaid overrides ───────────────────────────────────────── */
+
+  /* Replace hardcoded Tailwind bg-white / border-gray-200 with theme vars */
+  :global([data-streamdown-mermaid] > div) {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    overflow: hidden !important;
+  }
+
+  /* Keep the panzoom target out of normal flow so zooming cannot stretch the
+     Mermaid block. The parent is already position:relative in Streamdown. */
+  :global([data-streamdown-mermaid] [data-mermaid-svg]) {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Keep Mermaid's generated SVG at its natural layout size; panzoom handles
+     fitting it into the fixed viewport. Forcing 100% width compresses wide
+     diagrams such as sequence diagrams and Gantt charts. */
+  :global([data-streamdown-mermaid] [data-mermaid-svg] > svg) {
+    display: block;
+    margin: 0;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  :global([data-streamdown-mermaid] [data-mermaid-svg] .grid .tick line) {
+    opacity: 0.38 !important;
+    stroke-width: 1 !important;
+  }
+
+  :global([data-streamdown-mermaid] [data-mermaid-svg] .grid .tick text) {
+    fill: var(--text-muted) !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+  }
+
+  :global([data-streamdown-mermaid] [data-mermaid-svg] .sectionTitle) {
+    fill: var(--text-muted) !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+  }
+
+  :global([data-streamdown-mermaid] [data-mermaid-svg] .taskText),
+  :global([data-streamdown-mermaid] [data-mermaid-svg] .taskTextOutsideLeft),
+  :global([data-streamdown-mermaid] [data-mermaid-svg] .taskTextOutsideRight) {
+    fill: var(--text) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+  }
+
+  :global([data-streamdown-mermaid] [data-mermaid-svg] .today) {
+    stroke-width: 1.5px !important;
+    opacity: 0.7 !important;
+  }
+
+  /* Toolbar buttons (zoom/fit/download) — translucent icon-button per design.md button-icon style */
+  :global([data-streamdown-mermaid] .mermaid-controls) {
+    z-index: 2 !important;
+  }
+
+  :global([data-streamdown-mermaid] button) {
+    background: transparent !important;
+    color: var(--text-muted) !important;
+    border-radius: 6px !important;
+    transition:
+      background 0.12s,
+      color 0.12s !important;
+  }
+  :global([data-streamdown-mermaid] button:hover) {
+    background: var(--surface2) !important;
+    color: var(--text) !important;
+  }
+  :global([data-streamdown-mermaid] button:active) {
+    transform: scale(0.95) !important;
+  }
+
+  /* Download popover — mirrors .ctx-menu-content from app.css. */
+  :global([data-streamdown-mermaid] .download-menu) {
+    position: absolute !important;
+    top: calc(100% + 6px) !important;
+    right: 0 !important;
+    z-index: 3 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 88px !important;
+    margin: 0 !important;
+    padding: var(--menu-content-padding) !important;
+    background: var(--control-surface) !important;
+    border: 0 !important;
+    border-radius: var(--menu-content-radius) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(1.08) !important;
+    backdrop-filter: blur(12px) saturate(1.08) !important;
+    box-shadow: var(--raised-shadow) !important;
+  }
+  :global([data-streamdown-mermaid] .download-menu button) {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-height: var(--menu-item-min-height) !important;
+    height: auto !important;
+    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline) !important;
+    margin: 0 !important;
+    font-size: var(--menu-item-font-size) !important;
+    line-height: var(--menu-item-line-height) !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    color: var(--text) !important;
+    border-radius: var(--menu-item-radius) !important;
+  }
+  :global([data-streamdown-mermaid] .download-menu button + button) {
+    margin-top: var(--menu-item-stack-gap) !important;
+  }
+  :global([data-streamdown-mermaid] .download-menu button:hover) {
+    background: var(--surface2) !important;
+    color: var(--text) !important;
+  }
+</style>
