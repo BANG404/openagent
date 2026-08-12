@@ -6640,6 +6640,10 @@
     color: var(--text-muted) !important;
   }
 
+  :global(.assistant-msg [data-streamdown-code] button[title="Download code"]) {
+    display: none;
+  }
+
   :global(.assistant-msg [data-streamdown-code] button:hover) {
     background: var(--surface) !important;
     color: var(--text) !important;

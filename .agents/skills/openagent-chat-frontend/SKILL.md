@@ -28,6 +28,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   on application theme surfaces through stable chat theme hooks. Shiki owns
   highlighted token colors, not the surrounding block background; fixed light
   renderer utilities must never remain visible in the dark application theme.
+  Expose copy as the only fenced-code action; do not show the renderer's code
+  download control.
 - In responsive double-column mode, expanded process records participate in
   pagination instead of moving as one container. Keep the process header with
   its first record and preserve the same atomic break rules used by ordinary
