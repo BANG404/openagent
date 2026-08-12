@@ -57,8 +57,16 @@ export function replaceProviderModels(provider: ProviderConfig, models: string[]
 }
 
 export function applyFetchedProviderModels(provider: ProviderConfig, models: string[]): boolean {
+  return applyDetectedProviderModels(provider, models, true);
+}
+
+export function applyDetectedProviderModels(
+  provider: ProviderConfig,
+  models: string[],
+  succeeded: boolean,
+): boolean {
   replaceProviderModels(provider, models);
-  provider.enabled = models.length > 0;
+  provider.enabled = succeeded && models.length > 0;
   return provider.enabled;
 }
 

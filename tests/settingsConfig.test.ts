@@ -1,6 +1,7 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
 import {
+  applyDetectedProviderModels,
   applyFetchedProviderModels,
   createProviderConfig,
   mcpConnectionFingerprint,
@@ -121,6 +122,22 @@ describe("settings config helpers", () => {
     expect(applyFetchedProviderModels(item, [])).toBe(false);
     expect(item.enabled).toBe(false);
     expect(item.models).toEqual([]);
+  });
+
+  test("enables a provider when model detection succeeds with a non-empty catalog", () => {
+    const item = provider("disabled", false, ["old"]);
+
+    expect(applyDetectedProviderModels(item, ["new"], true)).toBe(true);
+    expect(item.enabled).toBe(true);
+    expect(item.models).toEqual(["new"]);
+  });
+
+  test("keeps a provider disabled when model detection fails", () => {
+    const item = provider("enabled", true, ["old"]);
+
+    expect(applyDetectedProviderModels(item, ["new"], false)).toBe(false);
+    expect(item.enabled).toBe(false);
+    expect(item.models).toEqual(["new"]);
   });
 
   test("fingerprints equivalent MCP maps independently of insertion order", () => {

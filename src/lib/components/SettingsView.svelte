@@ -28,6 +28,7 @@
     providerRequiresApiKey,
   } from "$lib/providerCatalog";
   import {
+    applyDetectedProviderModels,
     applyFetchedProviderModels,
     createProviderConfig,
     mcpConnectionFingerprint,
@@ -784,11 +785,11 @@
       const result = await invoke<ProviderProbeResult>("test_provider_connection", {
         request: { provider: $state.snapshot(provider) },
       });
-      replaceProviderModels(provider, Array.from(new Set(result.models)).sort());
-      if (provider.models.length === 0 && provider.enabled) {
-        provider.enabled = false;
-        repairDefaultModelBindings();
-      }
+      const normalizedModels = Array.from(
+        new Set(result.models.map((model) => model.trim()).filter(Boolean)),
+      ).sort();
+      applyDetectedProviderModels(provider, normalizedModels, result.ok);
+      repairDefaultModelBindings();
       if (result.ok && provider.provider === "chatgpt" && !provider.api_key.trim()) {
         chatgptOAuthAuthenticated = true;
       }
