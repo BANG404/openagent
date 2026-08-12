@@ -188,7 +188,7 @@
     context_compaction_enabled: true,
     context_compaction_threshold: 200000,
     context_compaction_prompt: "",
-    memory_retrieval_enabled: true,
+    memory_retrieval_enabled: false,
     web_search: {
       provider: "brave",
       brave_api_key: "",
@@ -1596,7 +1596,10 @@
           <h4 class="detail-section-title">{$t("appearance")}</h4>
           <div class="settings-card">
             <div class="settings-card-row">
-              <span class="label-text">{$t("theme")}</span>
+              <span class="settings-card-copy">
+                <span class="label-text">{$t("theme")}</span>
+                <span class="detail-hint">{$t("themeHint")}</span>
+              </span>
               <div class="settings-card-control">
                 <Select
                   bind:value={draftConfig.theme}
@@ -1610,7 +1613,10 @@
               </div>
             </div>
             <div class="settings-card-row">
-              <span class="label-text">{$t("language")}</span>
+              <span class="settings-card-copy">
+                <span class="label-text">{$t("language")}</span>
+                <span class="detail-hint">{$t("languageHint")}</span>
+              </span>
               <div class="settings-card-control">
                 <Select
                   bind:value={draftConfig.language}
@@ -1623,7 +1629,10 @@
               </div>
             </div>
             <div class="settings-card-row">
-              <span class="label-text">{$t("messageLayout")}</span>
+              <span class="settings-card-copy">
+                <span class="label-text">{$t("messageLayout")}</span>
+                <span class="detail-hint">{$t("messageLayoutHint")}</span>
+              </span>
               <div class="settings-card-control">
                 <Select
                   bind:value={draftConfig.message_layout}
@@ -1829,7 +1838,10 @@
           <h4 class="detail-section-title">{$t("htmlPreview")}</h4>
           <div class="settings-card">
             <label class="settings-card-row">
-              <span class="label-text">{$t("htmlPreviewFixedHeight")}</span>
+              <span class="settings-card-copy">
+                <span class="label-text">{$t("htmlPreviewFixedHeight")}</span>
+                <span class="detail-hint">{$t("htmlPreviewFixedHeightHint")}</span>
+              </span>
               <input
                 type="number"
                 class="detail-input execution-number-input"
@@ -1856,7 +1868,10 @@
                 />
               </div>
               <label class="execution-value-row">
-                <span class="label-text">{$t("agentMaxTurns")}</span>
+                <span class="settings-card-copy">
+                  <span class="label-text">{$t("agentMaxTurns")}</span>
+                  <span class="detail-hint">{$t("agentMaxTurnsHint")}</span>
+                </span>
                 <input
                   type="number"
                   class="detail-input execution-number-input"
@@ -3032,7 +3047,10 @@
           <p class="detail-section-intro">{$t("modelRetryPolicyDescription")}</p>
           <div class="settings-card">
             <label class="settings-card-row">
-              <span class="label-text">{$t("retryCountPerModel")}</span>
+              <span class="settings-card-copy">
+                <span class="label-text">{$t("retryCountPerModel")}</span>
+                <span class="detail-hint">{$t("retryCountPerModelHint")}</span>
+              </span>
               <span class="settings-card-control">
                 <input
                   class="detail-input"
@@ -3044,7 +3062,10 @@
               </span>
             </label>
             <label class="settings-card-row">
-              <span class="label-text">{$t("retryDelaySeconds")}</span>
+              <span class="settings-card-copy">
+                <span class="label-text">{$t("retryDelaySeconds")}</span>
+                <span class="detail-hint">{$t("retryDelaySecondsHint")}</span>
+              </span>
               <span class="settings-card-control">
                 <input
                   class="detail-input"
@@ -4889,7 +4910,6 @@
     margin: 0;
   }
 
-  .settings-card-row > .label-text,
   .settings-card-copy > .label-text {
     color: var(--text);
     font-weight: 550;

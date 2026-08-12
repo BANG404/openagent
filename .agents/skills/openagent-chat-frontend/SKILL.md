@@ -156,6 +156,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   toolbar controls; keep only the two
   dedicated page-turn controls at the vertical center of the reading surface.
   The persisted body font size belongs to General settings.
+  The remote gateway preference projection must carry the persisted message
+  layout, responsive two-column threshold, and book-mode font size so the
+  desktop and paired browser render the same transcript reading preferences;
+  older remote servers may omit these additive values and the browser must use
+  the canonical defaults in that case.
   Fragment Markdown tables between rows instead of treating the whole table as
   one page-sized atom. Keep rich atomic embeds such as images, video, charts,
   Mermaid, code, and HTML previews within the usable page height; preserve
@@ -464,6 +469,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   accelerator, register the new one, and restore the old registration plus
   saved value when the operating system rejects or already owns the new
   accelerator.
+- Every editable field in General settings keeps a visible localized
+  description next to its label, including nested numeric controls. A section
+  heading or neighboring field description does not replace field-level help.
+  Apply the same label-and-description structure to every row that uses the
+  shared settings-card pattern in other settings tabs.
 - Role and workspace changes affect only the next quick-chat conversation.
   Never restore or render conversation history in the launcher.
 - Keep the search field inside every searchable selector menu transparent and
