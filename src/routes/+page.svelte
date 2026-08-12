@@ -1,14 +1,11 @@
 <script lang="ts">
   import { isTauri } from "@tauri-apps/api/core";
-  import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
   import { homeDir } from "@tauri-apps/api/path";
-  import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
-  import { availableMonitors, getCurrentWindow } from "@tauri-apps/api/window";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import {
     disable as disableAutostart,
     enable as enableAutostart,
   } from "@tauri-apps/plugin-autostart";
-  import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
   import { onMount, tick } from "svelte";
@@ -24,31 +21,25 @@
   import Toast from "$lib/components/Toast.svelte";
   import { installDownloadHook } from "$lib/downloadHook";
   import { checkForAppUpdate } from "$lib/appUpdater";
-  import { Dialog, Tooltip as TooltipPrimitive } from "bits-ui";
-  import { defaultPermissionProfile, normalizeConfigShape } from "$lib/config";
+  import { Tooltip as TooltipPrimitive } from "bits-ui";
+  import { normalizeConfigShape } from "$lib/config";
+  import { applyDocumentTheme } from "$lib/appTheme";
+  import { ComposerPreferences } from "$lib/composerPreferences.svelte";
+  import { ChatStreamState } from "$lib/chatStreamState.svelte";
+  import { resolveStandaloneDevPreview } from "$lib/devPreview";
   import { initializeTray } from "$lib/tray";
   import { t, tr, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import { showToast } from "$lib/toast";
-  import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
+  import { decodeModelBinding } from "$lib/modelBinding";
   import { providerRequiresApiKey } from "$lib/providerCatalog";
+  import { DEFAULT_QUICK_CHAT_SHORTCUT, normalizeQuickChatShortcut } from "$lib/quickChatShortcut";
   import {
-    DEFAULT_QUICK_CHAT_SHORTCUT,
-    normalizeQuickChatShortcut,
-    QUICK_CHAT_FOCUS_INPUT_EVENT,
-  } from "$lib/quickChatShortcut";
-  import {
-    loadQuickChatPreferences,
-    resolveQuickChatModel,
-    saveQuickChatPreferences,
-  } from "$lib/quickChatPreferences";
-  import {
-    clearQuickChatWindowPosition,
-    isQuickChatWindowPositionVisible,
-    loadQuickChatWindowPosition,
-    saveQuickChatWindowPosition,
-  } from "$lib/quickChatWindowPosition";
+    disposeQuickChatShortcut,
+    initializeQuickChatShortcut,
+    replaceQuickChatShortcut,
+  } from "$lib/quickChatWindow";
   import { desktopOpenAgent as openAgent, emit, invoke, listen } from "$lib/openagent/tauriClient";
-  import type { ChatMemoryRetrievalStage, ChatRunStartedEvent } from "$lib/openagent";
+  import type { ChatRunStartedEvent } from "$lib/openagent";
   import {
     DEV_MAIN_DEBUG_VISIBILITY_EVENT,
     readMainDebugComponentsVisible,
@@ -76,25 +67,18 @@
   import SidebarNav from "$lib/components/SidebarNav.svelte";
   import OnboardingFlow from "$lib/components/OnboardingFlow.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
-  import ReasoningEffortSelect from "$lib/components/ReasoningEffortSelect.svelte";
-  import PermissionSettings from "$lib/components/PermissionSettings.svelte";
   import ChatQueue from "$lib/components/ChatQueue.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
-  import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
-  import {
-    CHECKPOINT_FLOW_PANEL_MAX_WIDTH,
-    CHECKPOINT_FLOW_PANEL_MIN_WIDTH,
-    clampCheckpointFlowPanelWidth,
-  } from "$lib/checkpointFlowPanelSizing";
-  import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
+  import CheckpointFlowPanelHost from "$lib/components/CheckpointFlowPanelHost.svelte";
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
-  import QuickChat from "$lib/components/QuickChat.svelte";
+  import QuickChatSurface from "$lib/components/QuickChatSurface.svelte";
+  import StandaloneDevPreview from "$lib/components/StandaloneDevPreview.svelte";
+  import WorkspaceDialogs from "$lib/components/WorkspaceDialogs.svelte";
   import { clampSidebarWidth, loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import {
     updateLiveCheckpointFlowProjection,
-    type CheckpointFlow,
     type LiveCheckpointFlowProjection,
   } from "$lib/checkpointFlow";
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
@@ -161,13 +145,9 @@
     AgentRole,
     StartupBootstrap,
     StartupConversationBundle,
-    DefaultModelBinding,
     WslDistribution,
     WslWorkspaceTarget,
     ProviderAuthDeviceCodeEvent,
-    PermissionProfile,
-    ReasoningEffort,
-    ApprovalMode,
     GoalRunUpdatedEvent,
   } from "$lib/types";
 
@@ -211,14 +191,7 @@
   const devQuery = import.meta.env.DEV ? runtimeQuery : null;
   const isDevInspectorWindow = devQuery?.has("dev-inspector") === true;
   const isQuickChatPreview = devQuery?.has("quick-chat-preview") === true;
-  const isAttachmentComposerPreview = devQuery?.has("attachment-composer-preview") === true;
-  const isReasoningEffortPreview = devQuery?.has("reasoning-effort-preview") === true;
-  const isWorkspaceSwitcherPreview = devQuery?.has("workspace-switcher-preview") === true;
-  const isCommandPalettePreview = devQuery?.has("command-palette-preview") === true;
-  const isPauseControlPreview = devQuery?.has("pause-control-preview") === true;
-  const isCheckpointFlowPreview = devQuery?.has("checkpoint-flow-preview") === true;
-  const isBookModePreview = devQuery?.has("book-mode-preview") === true;
-  const isPermissionSettingsPreview = devQuery?.has("permission-settings-preview") === true;
+  const standaloneDevPreview = resolveStandaloneDevPreview(runtimeQuery, import.meta.env.DEV);
   const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
   const isAgentsSettingsPreview = devQuery?.has("agents-settings-preview") === true;
   const isAgentPluginsSettingsPreview = devQuery?.has("agent-plugins-settings-preview") === true;
@@ -231,110 +204,6 @@
         : "skills";
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
-  const quickChatPreviewTheme =
-    devQuery?.get("quick-chat-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("quick-chat-preview-theme") === "light"
-        ? "light"
-        : null;
-  const quickChatPreviewLocale: Locale | null =
-    devQuery?.get("quick-chat-preview-locale") === "en" ? "en" : null;
-  const attachmentComposerPreviewTheme =
-    devQuery?.get("attachment-composer-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("attachment-composer-preview-theme") === "light"
-        ? "light"
-        : null;
-  const attachmentComposerPreviewLocale: Locale | null =
-    devQuery?.get("attachment-composer-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("attachment-composer-preview-locale") === "zh"
-        ? "zh"
-        : null;
-  const reasoningEffortPreviewTheme =
-    devQuery?.get("reasoning-effort-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("reasoning-effort-preview-theme") === "light"
-        ? "light"
-        : null;
-  const reasoningEffortPreviewLocale: Locale | null =
-    devQuery?.get("reasoning-effort-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("reasoning-effort-preview-locale") === "zh"
-        ? "zh"
-        : null;
-  const workspaceSwitcherPreviewTheme =
-    devQuery?.get("workspace-switcher-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("workspace-switcher-preview-theme") === "light"
-        ? "light"
-        : null;
-  const workspaceSwitcherPreviewLocale: Locale | null =
-    devQuery?.get("workspace-switcher-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("workspace-switcher-preview-locale") === "zh"
-        ? "zh"
-        : null;
-  const commandPalettePreviewTheme =
-    devQuery?.get("command-palette-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("command-palette-preview-theme") === "light"
-        ? "light"
-        : null;
-  const commandPalettePreviewLocale: Locale | null =
-    devQuery?.get("command-palette-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("command-palette-preview-locale") === "zh"
-        ? "zh"
-        : null;
-  const pauseControlPreviewTheme =
-    devQuery?.get("pause-control-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("pause-control-preview-theme") === "light"
-        ? "light"
-        : null;
-  const pauseControlPreviewLocale: Locale | null =
-    devQuery?.get("pause-control-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("pause-control-preview-locale") === "zh"
-        ? "zh"
-        : null;
-  const checkpointFlowPreviewTheme =
-    devQuery?.get("checkpoint-flow-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("checkpoint-flow-preview-theme") === "light"
-        ? "light"
-        : null;
-  const checkpointFlowPreviewLocale: Locale | null =
-    devQuery?.get("checkpoint-flow-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("checkpoint-flow-preview-locale") === "zh"
-        ? "zh"
-        : null;
-  const bookModePreviewTheme =
-    devQuery?.get("book-mode-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("book-mode-preview-theme") === "light"
-        ? "light"
-        : null;
-  const bookModePreviewLocale: Locale | null =
-    devQuery?.get("book-mode-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("book-mode-preview-locale") === "zh"
-        ? "zh"
-        : null;
-  const permissionSettingsPreviewTheme =
-    devQuery?.get("permission-settings-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("permission-settings-preview-theme") === "light"
-        ? "light"
-        : null;
-  const permissionSettingsPreviewLocale: Locale | null =
-    devQuery?.get("permission-settings-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("permission-settings-preview-locale") === "zh"
-        ? "zh"
-        : null;
   const channelsSettingsPreviewTheme =
     devQuery?.get("channels-settings-preview-theme") === "dark"
       ? "dark"
@@ -383,68 +252,6 @@
       : devQuery?.get("more-management-preview-locale") === "zh"
         ? "zh"
         : null;
-  const bookModePreviewTable = [
-    "| Section | Status | Notes |",
-    "| --- | --- | --- |",
-    ...Array.from(
-      { length: 18 },
-      (_, index) =>
-        `| Row ${index + 1} | Complete | Row-level book pagination fixture ${index + 1} |`,
-    ),
-  ].join("\n");
-  const bookModePreviewTurns: AgentBookTurn[] = [
-    {
-      key: "book-preview-one",
-      items: [
-        {
-          type: "thinking",
-          content:
-            "Check the request, inspect the relevant files, and preserve the reply boundary.",
-        },
-        {
-          type: "tool_call",
-          name: "read_files",
-          args: JSON.stringify({ paths: ["MessageList.svelte", "checkpointTree.ts"] }),
-          result: "Read the transcript grouping and compaction boundary logic.",
-        },
-        { type: "compaction", stage: "summarizing" },
-        { type: "compaction_boundary" },
-        {
-          type: "text",
-          content: `Inline code keeps theme contrast for \`pages/\`, \`components/\`, and \`README.md\`.\n\n\`\`\`text\nDEMO-600519  technical analysis\nSignal: BUY\nScore: 7.5 / 10\n\`\`\`\n\n${bookModePreviewTable}\n\n${Array.from(
-            { length: 28 },
-            (_, index) =>
-              `### ${index + 1}. 连贯阅读\n\n书籍模式会把一次完整的 Agent 输出保持在同一章中。正文从左栏自然流向右栏，超出当前展开页时继续到下一页；压缩续接、工具过程和最终结论都保留原有顺序。`,
-          ).join("\n\n")}`,
-        },
-      ],
-    },
-    {
-      key: "book-preview-two",
-      items: [{ type: "text", content: "第二条 Agent 消息用于验证章节切换。" }],
-    },
-  ];
-  const workspaceSwitcherPreviewWorkspace: WorkspaceContext = {
-    path: "C:\\Projects\\Temp",
-    git_branch: null,
-    has_agent_dir: false,
-    environment: { kind: "local" },
-  };
-  const workspaceSwitcherPreviewRecents: RecentWorkspace[] = [
-    { name: "Temp", path: "C:\\Projects\\Temp" },
-    { name: "openagent", path: "C:\\Projects\\openagent" },
-    {
-      name: "openagent-wsl",
-      path: "\\\\wsl.localhost\\Ubuntu-24.04\\home\\developer\\Projects\\openagent",
-    },
-    { name: "documents", path: "C:\\Projects\\documents" },
-    { name: "design-system", path: "C:\\Projects\\design-system" },
-    { name: "agent-runtime", path: "C:\\Projects\\agent-runtime" },
-    { name: "playground", path: "C:\\Projects\\playground" },
-    { name: "research", path: "C:\\Projects\\research" },
-    { name: "experiments", path: "C:\\Projects\\experiments" },
-    { name: "archive", path: "D:\\Workspace Archive\\2026\\archive" },
-  ];
   const isDebugBuild = import.meta.env.DEV;
   let showMainDebugComponents = $state(readMainDebugComponentsVisible());
   let isDebugMode = $derived(isDebugBuild && showMainDebugComponents);
@@ -519,16 +326,9 @@
   );
   let sidebarWidth = $state(loadSidebarWidth());
   let sidebarResizing = $state(false);
-  // Per-conversation streaming state — keyed by conv_id
-  let streamingConvIds = $state<Record<string, boolean>>({});
-  let streamPausedConvIds = $state<Record<string, boolean>>({});
-  let convStreamItems = $state<Record<string, StreamItem[]>>({});
-  let streamAssistantMsgIds = $state<Record<string, string>>({});
-  let streamStartedAt = $state<Record<string, number>>({});
-  let streamFirstTokenAt = $state<Record<string, number>>({});
-  let awaitingStreamOutputConvIds = $state<Record<string, boolean>>({});
-  let memoryRetrievalStages = $state<Record<string, ChatMemoryRetrievalStage>>({});
-  let memoryRetrievalSkippableConvIds = $state<Record<string, boolean>>({});
+  // Per-conversation transient stream state is owned independently from the
+  // durable conversation/checkpoint projection.
+  const chatStreams = new ChatStreamState();
   // Checkpoint IDs from chat-checkpoint events, pending assignment to assistant messages
   let pendingCheckpointIds = $state<Record<string, string>>({});
   // A checkpoint event is emitted only after its durable snapshot exists. Keep
@@ -555,21 +355,7 @@
   let resolvingUserInputConvIds = $state<Record<string, boolean>>({});
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
-  const checkpointFlowPanelStorageKey = "openagent.checkpoint-flow-panel-width";
-  let checkpointFlowPanelWidth = $state(
-    typeof window === "undefined"
-      ? 320
-      : Math.min(
-          CHECKPOINT_FLOW_PANEL_MAX_WIDTH,
-          Math.max(
-            CHECKPOINT_FLOW_PANEL_MIN_WIDTH,
-            Number(window.localStorage.getItem(checkpointFlowPanelStorageKey)) || 320,
-          ),
-        ),
-  );
-  let checkpointFlowPanelCollapsed = $state(!isCheckpointFlowPreview);
-  let checkpointFlowPanelResizing = $state(false);
-  let lastCheckpointFlowKey = "";
+  let checkpointFlowPanelCollapsed = $state(true);
   let workspace = $state<WorkspaceContext | null>(null);
   let config = $state<AppConfig | null>(null);
   let isMemorySyncing = $state(false);
@@ -719,126 +505,13 @@
 
   let inputText = $state("");
   let inputAttachments = $state<ChatAttachment[]>([]);
-  let attachmentComposerPreviewValue = $state("");
-  let attachmentComposerPreviewAttachments = $state<ChatAttachment[]>([
-    { path: "preview://agentgym.txt", name: "agentgym.txt", kind: "document" },
-    { path: "preview://sdk-docs.ts", name: "4.1 SDK文档.ts", kind: "document" },
-    { path: "preview://interaction.md", name: "交互演示.md", kind: "document" },
-    { path: "preview://guide.pdf", name: "preview-guide.pdf", kind: "document" },
-    { path: "preview://archive.zip", name: "archive.zip", kind: "document" },
-    {
-      path: "preview://openagent.png",
-      name: "image_bae3ff.png",
-      kind: "image",
-      previewUrl: "/app-icon.png",
-    },
-  ]);
-  let commandPalettePreviewValue = $state("");
-  let commandPalettePreviewAttachments = $state<ChatAttachment[]>([]);
-  let pauseControlPreviewValue = $state("");
-  let pauseControlPreviewAttachments = $state<ChatAttachment[]>([]);
-  let pauseControlPreviewPaused = $state(false);
-  let checkpointFlowPreviewValue = $state("");
-  let checkpointFlowPreviewAttachments = $state<ChatAttachment[]>([]);
-  let checkpointFlowPreviewApproval = $state<ApprovalMode>("auto");
-
-  async function loadAttachmentComposerPreview(locator: string) {
-    if (/\.(?:txt|md|ts)$/i.test(locator)) {
-      return {
-        kind: "text" as const,
-        text: "接下来要做什么？\n\nOpenAgent attachment preview",
-      };
-    }
-    return { kind: "file" as const };
-  }
-
-  async function uploadAttachmentComposerPreview(files: File[]): Promise<ChatAttachment[]> {
-    return files.map((file) => ({
-      path: `preview://${file.name}-${file.lastModified}`,
-      name: file.name,
-      kind: /\.(png|jpe?g|gif|webp)$/i.test(file.name) ? "image" : "document",
-      previewUrl: /\.(png|jpe?g|gif|webp)$/i.test(file.name)
-        ? URL.createObjectURL(file)
-        : undefined,
-    }));
-  }
-  const checkpointFlowPreview: CheckpointFlow =
-    devQuery?.get("checkpoint-flow-preview-kind") === "goal"
-      ? {
-          kind: "goal",
-          objective: "完成聊天界面的 Goal 状态面板",
-          status: "running",
-          iteration: 2,
-          todos: [
-            { id: "inspect", task: "读取 checkpoint 状态", status: "completed" },
-            { id: "panel", task: "实现可拖拽、可收缩的右侧面板", status: "in_progress" },
-            { id: "verify", task: "验证主题、语言和交互", status: "pending" },
-          ],
-        }
-      : {
-          kind: "graph",
-          objective: "并行完成 Goal / Graph 状态可视化",
-          status: "running",
-          iteration: 1,
-          nodes: [
-            {
-              id: "checkpoint",
-              task: "检索并整理 2026-08-09 当日市场收盘数据，核对指数、板块和成交额来源",
-              dependsOn: [],
-              status: "completed",
-            },
-            {
-              id: "goal-panel",
-              task: "汇总港股市场恒生指数、恒生科技指数和主要行业表现，标注可靠数据来源",
-              dependsOn: ["checkpoint"],
-              status: "running",
-            },
-            {
-              id: "graph-panel",
-              task: "汇总美股市场主要指数、热门板块与涨跌幅，并交叉核验不同来源的数据",
-              dependsOn: ["checkpoint"],
-              status: "running",
-            },
-            {
-              id: "sector-analysis",
-              task: "分析 A 股领涨板块、个股异动与可能驱动因素，避免把推测写成确定事实",
-              dependsOn: ["checkpoint"],
-              status: "running",
-            },
-            {
-              id: "source-audit",
-              task: "检查所有引用链接、时间与市场口径，确保最终结论可以追溯到明确来源",
-              dependsOn: ["checkpoint"],
-              status: "running",
-            },
-            {
-              id: "verification",
-              task: "合并各市场结果并生成结构化摘要，清楚区分事实、分析与风险提示",
-              dependsOn: ["goal-panel", "graph-panel", "sector-analysis", "source-audit"],
-              status: "blocked",
-            },
-          ],
-        };
-  if (devQuery?.has("checkpoint-flow-preview-empty") && checkpointFlowPreview.kind === "graph") {
-    checkpointFlowPreview.nodes = [];
-  }
-  let selectedModel = $state("");
-  let reasoningEffortPreviewValue = $state<ReasoningEffort>("high");
-  let permissionSettingsPreviewProfile = $state<PermissionProfile>(defaultPermissionProfile());
-  let quickChatModel = $state("");
-  let quickChatRole = $state(defaultRoleKey);
-  let quickChatWorkspace = $state("");
-  let quickChatRoles = $state<AgentRole[]>([]);
-  let quickChatSubmitting = $state(false);
-  let quickChatInputFocusRequest = $state(0);
-  let quickChatFocusArmed = false;
-  let quickChatFocusSuppressed = false;
-  let unlistenQuickChatSettings: Promise<() => void> | null = null;
-  let registeredQuickChatShortcut: string | null = null;
-  let quickWindowTransition: Promise<void> = Promise.resolve();
-  let defaultChatModelSaveQueue: Promise<void> = Promise.resolve();
-  let modelReasoningEffortSaveQueue: Promise<void> = Promise.resolve();
-  let approvalModeSaveQueue: Promise<void> = Promise.resolve();
+  const composerPreferences = new ComposerPreferences({
+    getConfig: () => config,
+    setConfig: (next) => (config = next),
+    loadSettings,
+    saveSettings,
+    tauriAvailable,
+  });
   // Keep pending submissions scoped to their conversation so switching chats while
   // a response is streaming never sends a message to the wrong conversation.
   let queuedChatMessages = $state<Record<string, QueuedChatMessage[]>>({});
@@ -860,70 +533,6 @@
     queuedChatMessages = clearQueuedChatMessages(queuedChatMessages, convId);
     void syncChatQueuePending(convId);
   }
-
-  let modelOptions = $derived.by(() =>
-    (config?.providers ?? [])
-      .filter((provider) => provider.enabled)
-      .flatMap((provider) =>
-        provider.models.map((model) => ({
-          value: encodeModelBinding(provider.id, model),
-          label: `${model} · ${provider.name}`,
-          selectedLabel: model,
-        })),
-      ),
-  );
-
-  let selectedModelProvider = $derived.by(() => {
-    const binding = decodeModelBinding(selectedModel);
-    if (!binding) return null;
-    return config?.providers.find((provider) => provider.id === binding.providerId) ?? null;
-  });
-  let selectedReasoningEffort = $derived.by(() => {
-    const binding = decodeModelBinding(selectedModel);
-    if (!binding || !selectedModelProvider) return "medium" as ReasoningEffort;
-    return (selectedModelProvider.model_reasoning_efforts?.[binding.model] ??
-      "medium") as ReasoningEffort;
-  });
-  let selectedModelSupportsReasoning = $derived(selectedModelProvider?.provider === "chatgpt");
-
-  let quickRoleOptions = $derived([
-    {
-      value: defaultRoleKey,
-      label: $t("defaultRoleName"),
-      description: $t("defaultRoleDescription"),
-    },
-    ...quickChatRoles.map((role) => ({
-      value: role.id,
-      label: role.name,
-      description: role.description,
-    })),
-  ]);
-
-  let quickWorkspaceOptions = $derived.by(() => {
-    const options = [
-      ...(quickChatWorkspace
-        ? [
-            {
-              value: quickChatWorkspace,
-              label:
-                recentWorkspaces.find((recent) => recent.path === quickChatWorkspace)?.name ??
-                quickChatWorkspace.split(/[/\\]/).filter(Boolean).pop() ??
-                quickChatWorkspace,
-              description: quickChatWorkspace,
-            },
-          ]
-        : []),
-      ...recentWorkspaces.map((recent) => ({
-        value: recent.path,
-        label: recent.name,
-        description: recent.path,
-      })),
-    ];
-    return options.filter(
-      (option, index) =>
-        options.findIndex((candidate) => candidate.value === option.value) === index,
-    );
-  });
 
   let currentNavigationLocation = $derived.by<AppNavigationLocation>(() => ({
     workspacePath,
@@ -952,14 +561,7 @@
     if (
       isDevInspectorWindow ||
       isQuickChatSurface ||
-      isAttachmentComposerPreview ||
-      isBookModePreview ||
-      isWorkspaceSwitcherPreview ||
-      isCommandPalettePreview ||
-      isPauseControlPreview ||
-      isCheckpointFlowPreview ||
-      isReasoningEffortPreview ||
-      isPermissionSettingsPreview ||
+      standaloneDevPreview !== null ||
       isChannelsSettingsPreview ||
       isAgentsSettingsPreview ||
       isAgentPluginsSettingsPreview ||
@@ -975,140 +577,30 @@
   });
 
   $effect(() => {
-    if (!config) return;
-    const fallback = encodeModelBinding(
-      config.defaults.chat_model.provider_id,
-      config.defaults.chat_model.model,
-    );
-    const nextSelectedModel = modelOptions.some((option) => option.value === fallback)
-      ? fallback
-      : (modelOptions[0]?.value ?? "");
-    if (selectedModel !== nextSelectedModel) selectedModel = nextSelectedModel;
+    composerPreferences.syncFromConfig();
   });
 
-  function updateDefaultChatModel(binding: DefaultModelBinding) {
-    if (!config) return;
-    config = {
-      ...config,
-      defaults: {
-        ...config.defaults,
-        chat_model: binding,
-      },
-    };
-  }
-
-  function handleModelChange(value: string) {
-    const binding = decodeModelBinding(value);
-    if (!binding || !config) return;
-    if (
-      config.defaults.chat_model.provider_id === binding.providerId &&
-      config.defaults.chat_model.model === binding.model
-    ) {
-      return;
-    }
-
-    const requestedBinding: DefaultModelBinding = {
-      provider_id: binding.providerId,
-      model: binding.model,
-    };
-    updateDefaultChatModel(requestedBinding);
-    if (!tauriAvailable) return;
-
-    defaultChatModelSaveQueue = defaultChatModelSaveQueue.then(async () => {
-      try {
-        const savedBinding = await invoke<DefaultModelBinding>("set_default_chat_model", {
-          binding: requestedBinding,
-        });
-        if (selectedModel === value) updateDefaultChatModel(savedBinding);
-      } catch (error) {
-        console.error("Failed to save default chat model:", error);
-        if (selectedModel === value) {
-          await loadSettings();
-          alert(`Save failed: ${error}`);
-        }
-      }
-    });
-  }
-
-  function updateModelReasoningEffort(providerId: string, model: string, effort: ReasoningEffort) {
-    if (!config) return;
-    config = {
-      ...config,
-      providers: config.providers.map((provider) =>
-        provider.id === providerId
-          ? {
-              ...provider,
-              model_reasoning_efforts: {
-                ...(provider.model_reasoning_efforts ?? {}),
-                [model]: effort,
-              },
-            }
-          : provider,
-      ),
-    };
-  }
-
-  function handleReasoningEffortChange(effort: ReasoningEffort) {
-    const binding = decodeModelBinding(selectedModel);
-    if (!binding || selectedModelProvider?.provider !== "chatgpt") return;
-    updateModelReasoningEffort(binding.providerId, binding.model, effort);
-    if (!tauriAvailable) return;
-
-    const requestedModel = selectedModel;
-    modelReasoningEffortSaveQueue = modelReasoningEffortSaveQueue.then(async () => {
-      try {
-        const savedEffort = await invoke<ReasoningEffort>("set_model_reasoning_effort", {
-          providerId: binding.providerId,
-          model: binding.model,
-          effort,
-        });
-        if (selectedModel === requestedModel) {
-          updateModelReasoningEffort(binding.providerId, binding.model, savedEffort);
-        }
-      } catch (error) {
-        console.error("Failed to save model reasoning effort:", error);
-        if (selectedModel === requestedModel) {
-          await loadSettings();
-          showToast({ title: String(error), variant: "error" });
-        }
-      }
-    });
-  }
-
-  function handleApprovalModeChange(mode: ApprovalMode) {
-    approvalModeSaveQueue = approvalModeSaveQueue.then(async () => {
-      if (!config || config.approval_mode === mode) return;
-      const base = structuredClone(config);
-      const next = { ...base, approval_mode: mode };
-      config = next;
-      try {
-        await saveSettings(next, base, false);
-      } catch (error) {
-        await loadSettings();
-        showToast({
-          title: $t("approvalModeSaveFailed"),
-          description: String(error),
-          variant: "error",
-        });
-      }
-    });
-  }
-
   // Streaming state for the currently visible conversation
-  let isCurrentStreaming = $derived(activeConvId ? !!streamingConvIds[activeConvId] : false);
-  let isCurrentStreamPaused = $derived(activeConvId ? !!streamPausedConvIds[activeConvId] : false);
-  let currentStreamItems = $derived(activeConvId ? (convStreamItems[activeConvId] ?? []) : []);
+  let isCurrentStreaming = $derived(
+    activeConvId ? !!chatStreams.streamingConversationIds[activeConvId] : false,
+  );
+  let isCurrentStreamPaused = $derived(
+    activeConvId ? !!chatStreams.pausedConversationIds[activeConvId] : false,
+  );
+  let currentStreamItems = $derived(
+    activeConvId ? (chatStreams.itemsByConversation[activeConvId] ?? []) : [],
+  );
   let currentStreamMessageId = $derived(
-    activeConvId ? (streamAssistantMsgIds[activeConvId] ?? null) : null,
+    activeConvId ? (chatStreams.assistantMessageIds[activeConvId] ?? null) : null,
   );
   let isCurrentAwaitingStreamOutput = $derived(
-    activeConvId ? !!awaitingStreamOutputConvIds[activeConvId] : false,
+    activeConvId ? !!chatStreams.awaitingOutput[activeConvId] : false,
   );
   let currentMemoryRetrievalStage = $derived(
-    activeConvId ? (memoryRetrievalStages[activeConvId] ?? null) : null,
+    activeConvId ? (chatStreams.memoryRetrievalStages[activeConvId] ?? null) : null,
   );
   let currentMemoryRetrievalCanSkip = $derived(
-    activeConvId ? !!memoryRetrievalSkippableConvIds[activeConvId] : false,
+    activeConvId ? !!chatStreams.memoryRetrievalSkippable[activeConvId] : false,
   );
   let currentCheckpointFlowNode = $derived(
     activeConvId ? getActiveTipNode(convTrees[activeConvId]) : undefined,
@@ -1122,89 +614,9 @@
   const compactionProgressRevisions = new Map<string, number>();
   let workspacePrefsSaveQueue: Promise<void> = Promise.resolve();
 
-  $effect(() => {
-    if (!activeConvId || !currentCheckpointFlow) return;
-    const key = `${activeConvId}\u0000${currentCheckpointFlow.kind}\u0000${currentCheckpointFlow.objective}`;
-    if (key === lastCheckpointFlowKey) return;
-    lastCheckpointFlowKey = key;
-    checkpointFlowPanelCollapsed = true;
-  });
-
-  function startCheckpointFlowPanelResize(event: PointerEvent) {
-    if (event.button !== 0 || checkpointFlowPanelCollapsed || checkpointFlowPanelResizing) return;
-    event.preventDefault();
-    const target = event.currentTarget;
-    if (!(target instanceof HTMLElement)) return;
-    const panel = target.closest<HTMLElement>(".flow-panel");
-    const container = panel?.parentElement;
-    if (!panel || !container) return;
-    const pointerId = event.pointerId;
-    const startX = event.clientX;
-    const startWidth = panel.getBoundingClientRect().width;
-    checkpointFlowPanelWidth = startWidth;
-    const previousCursor = document.documentElement.style.cursor;
-    const previousUserSelect = document.documentElement.style.userSelect;
-    target.setPointerCapture(pointerId);
-    document.documentElement.style.cursor = "col-resize";
-    document.documentElement.style.userSelect = "none";
-    checkpointFlowPanelResizing = true;
-    const onMove = (moveEvent: PointerEvent) => {
-      if (moveEvent.pointerId !== pointerId) return;
-      checkpointFlowPanelWidth = clampCheckpointFlowPanelWidth(
-        startWidth + startX - moveEvent.clientX,
-        container.clientWidth,
-      );
-    };
-    const onEnd = (endEvent: PointerEvent) => {
-      if (endEvent.pointerId !== pointerId) return;
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onEnd);
-      window.removeEventListener("pointercancel", onEnd);
-      target.removeEventListener("lostpointercapture", onEnd);
-      if (target.hasPointerCapture(pointerId)) target.releasePointerCapture(pointerId);
-      document.documentElement.style.cursor = previousCursor;
-      document.documentElement.style.userSelect = previousUserSelect;
-      checkpointFlowPanelResizing = false;
-      window.localStorage.setItem(
-        checkpointFlowPanelStorageKey,
-        String(Math.round(checkpointFlowPanelWidth)),
-      );
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onEnd);
-    window.addEventListener("pointercancel", onEnd);
-    target.addEventListener("lostpointercapture", onEnd);
-  }
-
-  function startStreamTiming(convId: string, startedAt = Date.now()) {
-    clearAwaitingStreamOutput(convId);
-    clearMemoryRetrievalStage(convId);
-    streamStartedAt = { ...streamStartedAt, [convId]: startedAt };
-    const { [convId]: _firstTokenAt, ...rest } = streamFirstTokenAt;
-    streamFirstTokenAt = rest;
-  }
-
-  function recordFirstToken(convId: string, text: string) {
-    if (!text || streamFirstTokenAt[convId]) return;
-    streamFirstTokenAt = { ...streamFirstTokenAt, [convId]: Date.now() };
-  }
-
-  function clearAwaitingStreamOutput(convId: string) {
-    if (!awaitingStreamOutputConvIds[convId]) return;
-    const { [convId]: _awaiting, ...rest } = awaitingStreamOutputConvIds;
-    awaitingStreamOutputConvIds = rest;
-  }
-
-  function clearMemoryRetrievalStage(convId: string) {
-    const { [convId]: _stage, ...rest } = memoryRetrievalStages;
-    const { [convId]: _skippable, ...restSkippable } = memoryRetrievalSkippableConvIds;
-    memoryRetrievalStages = rest;
-    memoryRetrievalSkippableConvIds = restSkippable;
-  }
-
   function applyStreamMutation(convId: string, mutate: (items: StreamItem[]) => StreamItem[]) {
-    const items = mutate(convStreamItems[convId] ?? []);
-    convStreamItems = { ...convStreamItems, [convId]: items };
+    const items = mutate(chatStreams.itemsByConversation[convId] ?? []);
+    chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: items };
     persistStreamDraft(convId).catch(() => {});
     if (convId === activeConvId) void scrollStreamToBottom();
   }
@@ -1515,7 +927,7 @@
 
   /** Attach a follow-up approval to the already-finalized interrupted turn.
    * Intermediate approvals do not re-emit their ToolCall, so restricting the
-   * event to `convStreamItems` loses the next form until a full refresh. */
+   * event to `chatStreams.itemsByConversation` loses the next form until a full refresh. */
   function attachPendingUserInputToMessages(convId: string, request: UserInputRequest): boolean {
     const convIdx = conversations.findIndex((conversation) => conversation.id === convId);
     if (convIdx === -1) return false;
@@ -1631,12 +1043,18 @@
     try {
       if (convId) {
         const assistantMessageId = crypto.randomUUID();
-        startStreamTiming(convId);
-        streamingConvIds = { ...streamingConvIds, [convId]: true };
+        chatStreams.startTiming(convId);
+        chatStreams.streamingConversationIds = {
+          ...chatStreams.streamingConversationIds,
+          [convId]: true,
+        };
         // The approved card stays in the durable message list. Only output
         // produced after the resume belongs to this new stream message.
-        convStreamItems = { ...convStreamItems, [convId]: [] };
-        streamAssistantMsgIds = { ...streamAssistantMsgIds, [convId]: assistantMessageId };
+        chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: [] };
+        chatStreams.assistantMessageIds = {
+          ...chatStreams.assistantMessageIds,
+          [convId]: assistantMessageId,
+        };
         // The resume command spans the entire follow-up provider stream. Show
         // the answer immediately instead of leaving the editable form mounted.
         markUserInputResolved(convId, requestId, "answered", { values });
@@ -1653,7 +1071,7 @@
       console.warn("resume_interrupted_chat failed", err);
       if (convId) {
         markUserInputResolved(convId, requestId, "pending", undefined);
-        cleanupStreamState(convId);
+        chatStreams.cleanup(convId);
       }
     } finally {
       const { [requestId]: _resolved, ...rest } = resolvingUserInputIds;
@@ -1672,10 +1090,16 @@
     try {
       if (convId) {
         const assistantMessageId = crypto.randomUUID();
-        startStreamTiming(convId);
-        streamingConvIds = { ...streamingConvIds, [convId]: true };
-        convStreamItems = { ...convStreamItems, [convId]: [] };
-        streamAssistantMsgIds = { ...streamAssistantMsgIds, [convId]: assistantMessageId };
+        chatStreams.startTiming(convId);
+        chatStreams.streamingConversationIds = {
+          ...chatStreams.streamingConversationIds,
+          [convId]: true,
+        };
+        chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: [] };
+        chatStreams.assistantMessageIds = {
+          ...chatStreams.assistantMessageIds,
+          [convId]: assistantMessageId,
+        };
         markUserInputResolved(convId, requestId, "cancelled", response);
         await openAgent.resumeInterrupt({
           convId,
@@ -1690,7 +1114,7 @@
       console.warn("cancel user input failed", err);
       if (convId) {
         markUserInputResolved(convId, requestId, "pending", undefined);
-        cleanupStreamState(convId);
+        chatStreams.cleanup(convId);
       }
     } finally {
       const { [requestId]: _resolved, ...rest } = resolvingUserInputIds;
@@ -1791,7 +1215,7 @@
     newText?: string,
     newAttachments?: ChatAttachment[],
   ) {
-    if (streamingConvIds[convId] || !tauriAvailable) return;
+    if (chatStreams.streamingConversationIds[convId] || !tauriAvailable) return;
     const convIdx = conversations.findIndex((c) => c.id === convId);
     if (convIdx === -1) return;
     const conv = conversations[convIdx];
@@ -1892,7 +1316,7 @@
   // Switch the active child at a given parent (parentKey = ROOT_KEY for top-level forks).
   // Replays file changes so the disk matches the new path and restores agent history.
   async function switchBranchAt(convId: string, parentKey: string, targetIdx: number) {
-    if (streamingConvIds[convId]) return;
+    if (chatStreams.streamingConversationIds[convId]) return;
     const tree = convTrees[convId];
     if (!tree) return;
     const siblings =
@@ -2039,66 +1463,6 @@
     if (selectedRoleKey !== defaultRoleKey && !seen.has(selectedRoleKey)) {
       selectedRoleKey = defaultRoleKey;
     }
-  }
-
-  function persistQuickChatPreferences(): void {
-    if (typeof window === "undefined") return;
-    saveQuickChatPreferences(window.localStorage, {
-      model: quickChatModel,
-      role: quickChatRole,
-      workspace: quickChatWorkspace,
-    });
-  }
-
-  async function loadQuickChatRoles(workspace: string): Promise<void> {
-    if (!tauriAvailable) {
-      quickChatRoles = [];
-      quickChatRole = defaultRoleKey;
-      return;
-    }
-    quickChatRoles = await invoke<AgentRole[]>("list_agent_roles_for_workspace", {
-      workspace,
-    }).catch(() => []);
-    if (
-      quickChatRole !== defaultRoleKey &&
-      !quickChatRoles.some((role) => role.id === quickChatRole)
-    ) {
-      quickChatRole = defaultRoleKey;
-    }
-  }
-
-  async function initializeQuickChatSurface(): Promise<void> {
-    await loadSettings();
-    const preferences = loadQuickChatPreferences(window.localStorage);
-    const fallbackModel = config
-      ? encodeModelBinding(config.defaults.chat_model.provider_id, config.defaults.chat_model.model)
-      : "";
-    quickChatModel = resolveQuickChatModel(
-      preferences.model,
-      fallbackModel,
-      modelOptions.map((option) => option.value),
-    );
-    quickChatWorkspace =
-      preferences.workspace || config?.workspace || recentWorkspaces[0]?.path || "";
-    if (!quickChatWorkspace && tauriAvailable) quickChatWorkspace = await homeDir();
-    quickChatRole = preferences.role || defaultRoleKey;
-    await loadQuickChatRoles(quickChatWorkspace);
-    persistQuickChatPreferences();
-    initialLoading = false;
-  }
-
-  async function reloadQuickChatSettings(): Promise<void> {
-    const preferredModel = quickChatModel;
-    await loadSettings();
-    const fallbackModel = config
-      ? encodeModelBinding(config.defaults.chat_model.provider_id, config.defaults.chat_model.model)
-      : "";
-    quickChatModel = resolveQuickChatModel(
-      preferredModel,
-      fallbackModel,
-      modelOptions.map((option) => option.value),
-    );
-    persistQuickChatPreferences();
   }
 
   async function reloadRoleConversations(preserveConversationId?: string | null): Promise<void> {
@@ -2271,7 +1635,7 @@
   }
 
   onMount(() => {
-    if (isDevInspectorWindow) return;
+    if (isDevInspectorWindow || standaloneDevPreview) return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const syncSystemTheme = () => {
       if ((config?.theme ?? "system") === "system") applyTheme("system");
@@ -2281,15 +1645,8 @@
   });
 
   onMount(async () => {
-    if (isDevInspectorWindow) return;
+    if (isDevInspectorWindow || standaloneDevPreview) return;
     if (isQuickChatSurface) {
-      if (isQuickChatWindow) document.documentElement.classList.add("quick-chat-window");
-      await initializeQuickChatSurface();
-      if (isQuickChatWindow && tauriAvailable) {
-        unlistenQuickChatSettings = listen("settings-changed", () => {
-          void reloadQuickChatSettings();
-        });
-      }
       return;
     }
     const mountedAt = performance.now();
@@ -2409,7 +1766,7 @@
       pollMemoryStatus();
       if (!launchContext?.workspace) {
         void initializeTray();
-        void initializeQuickChatShortcut().catch((error) => {
+        void initializeQuickChatShortcut(config?.quick_chat_shortcut).catch((error) => {
           console.warn("Failed to register quick chat shortcut", error);
         });
         void checkForAppUpdate();
@@ -2488,17 +1845,24 @@
     startedAt: number,
   ): void {
     const isSameRun =
-      streamingConvIds[convId] && streamAssistantMsgIds[convId] === assistantMessageId;
+      chatStreams.streamingConversationIds[convId] &&
+      chatStreams.assistantMessageIds[convId] === assistantMessageId;
     if (!isSameRun) {
-      convStreamItems = { ...convStreamItems, [convId]: [] };
-      streamAssistantMsgIds = { ...streamAssistantMsgIds, [convId]: assistantMessageId };
-      startStreamTiming(convId, startedAt);
+      chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: [] };
+      chatStreams.assistantMessageIds = {
+        ...chatStreams.assistantMessageIds,
+        [convId]: assistantMessageId,
+      };
+      chatStreams.startTiming(convId, startedAt);
     }
-    streamingConvIds = { ...streamingConvIds, [convId]: true };
-    awaitingStreamOutputConvIds = { ...awaitingStreamOutputConvIds, [convId]: true };
+    chatStreams.streamingConversationIds = {
+      ...chatStreams.streamingConversationIds,
+      [convId]: true,
+    };
+    chatStreams.awaitingOutput = { ...chatStreams.awaitingOutput, [convId]: true };
     if (config?.memory_retrieval_enabled) {
-      memoryRetrievalStages = {
-        ...memoryRetrievalStages,
+      chatStreams.memoryRetrievalStages = {
+        ...chatStreams.memoryRetrievalStages,
         [convId]: "query_rewrite",
       };
     }
@@ -2744,29 +2108,29 @@
       conversations = [derived, ...conversations];
       loadedConvIds.add(conv_id);
 
-      if (streamingConvIds[source_conv_id]) {
-        const { [source_conv_id]: _old, ...rest } = streamingConvIds;
-        streamingConvIds = { ...rest, [conv_id]: true };
+      if (chatStreams.streamingConversationIds[source_conv_id]) {
+        const { [source_conv_id]: _old, ...rest } = chatStreams.streamingConversationIds;
+        chatStreams.streamingConversationIds = { ...rest, [conv_id]: true };
       }
-      if (source_conv_id in convStreamItems) {
-        const { [source_conv_id]: old, ...rest } = convStreamItems;
-        convStreamItems = { ...rest, [conv_id]: old };
+      if (source_conv_id in chatStreams.itemsByConversation) {
+        const { [source_conv_id]: old, ...rest } = chatStreams.itemsByConversation;
+        chatStreams.itemsByConversation = { ...rest, [conv_id]: old };
       }
-      if (source_conv_id in streamAssistantMsgIds) {
-        const { [source_conv_id]: old, ...rest } = streamAssistantMsgIds;
-        streamAssistantMsgIds = { ...rest, [conv_id]: old };
+      if (source_conv_id in chatStreams.assistantMessageIds) {
+        const { [source_conv_id]: old, ...rest } = chatStreams.assistantMessageIds;
+        chatStreams.assistantMessageIds = { ...rest, [conv_id]: old };
       }
-      if (source_conv_id in awaitingStreamOutputConvIds) {
-        const { [source_conv_id]: old, ...rest } = awaitingStreamOutputConvIds;
-        awaitingStreamOutputConvIds = { ...rest, [conv_id]: old };
+      if (source_conv_id in chatStreams.awaitingOutput) {
+        const { [source_conv_id]: old, ...rest } = chatStreams.awaitingOutput;
+        chatStreams.awaitingOutput = { ...rest, [conv_id]: old };
       }
-      if (source_conv_id in memoryRetrievalStages) {
-        const { [source_conv_id]: old, ...rest } = memoryRetrievalStages;
-        memoryRetrievalStages = { ...rest, [conv_id]: old };
+      if (source_conv_id in chatStreams.memoryRetrievalStages) {
+        const { [source_conv_id]: old, ...rest } = chatStreams.memoryRetrievalStages;
+        chatStreams.memoryRetrievalStages = { ...rest, [conv_id]: old };
       }
-      if (source_conv_id in memoryRetrievalSkippableConvIds) {
-        const { [source_conv_id]: old, ...rest } = memoryRetrievalSkippableConvIds;
-        memoryRetrievalSkippableConvIds = { ...rest, [conv_id]: old };
+      if (source_conv_id in chatStreams.memoryRetrievalSkippable) {
+        const { [source_conv_id]: old, ...rest } = chatStreams.memoryRetrievalSkippable;
+        chatStreams.memoryRetrievalSkippable = { ...rest, [conv_id]: old };
       }
       if (compactionOnlyConvIds.delete(source_conv_id)) {
         compactionOnlyConvIds.add(conv_id);
@@ -2837,16 +2201,19 @@
       };
       conversations = [subConv, ...conversations];
       loadedConvIds.add(sub_conv_id);
-      streamingConvIds = { ...streamingConvIds, [sub_conv_id]: true };
-      convStreamItems = { ...convStreamItems, [sub_conv_id]: [] };
-      streamAssistantMsgIds = {
-        ...streamAssistantMsgIds,
+      chatStreams.streamingConversationIds = {
+        ...chatStreams.streamingConversationIds,
+        [sub_conv_id]: true,
+      };
+      chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [sub_conv_id]: [] };
+      chatStreams.assistantMessageIds = {
+        ...chatStreams.assistantMessageIds,
         [sub_conv_id]: asst_msg_id ?? crypto.randomUUID(),
       };
       if (branch_id) {
         activeBranchIds = { ...activeBranchIds, [sub_conv_id]: branch_id };
       }
-      startStreamTiming(sub_conv_id, taskMsg.timestamp);
+      chatStreams.startTiming(sub_conv_id, taskMsg.timestamp);
     });
 
     // ask_user tool: backend emits with conv_id + form schema; we stash it per-conv
@@ -2857,9 +2224,9 @@
       if (!key) return;
       pendingUserInputs = { ...pendingUserInputs, [key]: req };
       if (!attachPendingUserInputToMessages(key, req)) {
-        convStreamItems = {
-          ...convStreamItems,
-          [key]: appendUserInput(convStreamItems[key] ?? [], req),
+        chatStreams.itemsByConversation = {
+          ...chatStreams.itemsByConversation,
+          [key]: appendUserInput(chatStreams.itemsByConversation[key] ?? [], req),
         };
       }
       persistStreamDraft(key).catch(() => {});
@@ -2914,13 +2281,16 @@
           updatedAt: Date.now(),
         };
       }
-      streamingConvIds = { ...streamingConvIds, [conv_id]: true };
-      convStreamItems = { ...convStreamItems, [conv_id]: [] };
-      streamAssistantMsgIds = {
-        ...streamAssistantMsgIds,
+      chatStreams.streamingConversationIds = {
+        ...chatStreams.streamingConversationIds,
+        [conv_id]: true,
+      };
+      chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [conv_id]: [] };
+      chatStreams.assistantMessageIds = {
+        ...chatStreams.assistantMessageIds,
         [conv_id]: asst_msg_id ?? crypto.randomUUID(),
       };
-      startStreamTiming(conv_id, Date.now());
+      chatStreams.startTiming(conv_id, Date.now());
       if (conv_id === activeConvId) scrollStreamToBottom();
     });
 
@@ -2943,11 +2313,11 @@
         applyExternalChatRunStarted(event);
       },
       onResponseStarted: (conv_id) => {
-        if (!streamingConvIds[conv_id]) {
+        if (!chatStreams.streamingConversationIds[conv_id]) {
           recoverUnannouncedChatStream(conv_id);
         }
-        clearMemoryRetrievalStage(conv_id);
-        const items = convStreamItems[conv_id] ?? [];
+        chatStreams.clearMemoryRetrieval(conv_id);
+        const items = chatStreams.itemsByConversation[conv_id] ?? [];
         const hasStreamOutput = items.some(
           (item) =>
             item.type === "text" ||
@@ -2955,45 +2325,53 @@
             (item.type === "retry" &&
               item.items.some((nested) => nested.type === "text" || nested.type === "thinking")),
         );
-        if (!hasStreamOutput && streamingConvIds[conv_id]) {
-          awaitingStreamOutputConvIds = {
-            ...awaitingStreamOutputConvIds,
+        if (!hasStreamOutput && chatStreams.streamingConversationIds[conv_id]) {
+          chatStreams.awaitingOutput = {
+            ...chatStreams.awaitingOutput,
             [conv_id]: true,
           };
           if (conv_id === activeConvId) scrollStreamToBottom();
         }
       },
       onMemoryRetrieval: (conv_id, stage) => {
-        if (!streamingConvIds[conv_id]) {
+        if (!chatStreams.streamingConversationIds[conv_id]) {
           recoverUnannouncedChatStream(conv_id);
         }
-        clearAwaitingStreamOutput(conv_id);
-        memoryRetrievalStages = { ...memoryRetrievalStages, [conv_id]: stage };
-        memoryRetrievalSkippableConvIds = {
-          ...memoryRetrievalSkippableConvIds,
+        chatStreams.clearAwaitingOutput(conv_id);
+        chatStreams.memoryRetrievalStages = {
+          ...chatStreams.memoryRetrievalStages,
+          [conv_id]: stage,
+        };
+        chatStreams.memoryRetrievalSkippable = {
+          ...chatStreams.memoryRetrievalSkippable,
           [conv_id]: stage !== "completed" && stage !== "skipped",
         };
         if (conv_id === activeConvId) scrollStreamToBottom();
       },
       onChunk: (conv_id, text) => {
-        if (text) clearAwaitingStreamOutput(conv_id);
-        if (text) clearMemoryRetrievalStage(conv_id);
-        recordFirstToken(conv_id, text);
+        if (text) chatStreams.clearAwaitingOutput(conv_id);
+        if (text) chatStreams.clearMemoryRetrieval(conv_id);
+        chatStreams.recordFirstToken(conv_id, text);
         applyStreamMutation(conv_id, (items) => appendChunk(items, text));
       },
       onThinkingChunk: (conv_id, text) => {
-        if (text) clearAwaitingStreamOutput(conv_id);
-        if (text) clearMemoryRetrievalStage(conv_id);
+        if (text) chatStreams.clearAwaitingOutput(conv_id);
+        if (text) chatStreams.clearMemoryRetrieval(conv_id);
         applyStreamMutation(conv_id, (items) => appendThinkingChunk(items, text));
       },
       onToolCall: (conv_id, name, args, toolUseId) => {
-        let items = appendToolCall(convStreamItems[conv_id] ?? [], name, args, toolUseId);
+        let items = appendToolCall(
+          chatStreams.itemsByConversation[conv_id] ?? [],
+          name,
+          args,
+          toolUseId,
+        );
         const pendingInput = pendingUserInputs[conv_id];
         if (pendingInput?.kind === "tool_approval") {
           items = appendUserInput(items, pendingInput);
         }
-        convStreamItems = {
-          ...convStreamItems,
+        chatStreams.itemsByConversation = {
+          ...chatStreams.itemsByConversation,
           [conv_id]: items,
         };
         persistStreamDraft(conv_id).catch(() => {});
@@ -3001,13 +2379,13 @@
       },
       onToolResult: (conv_id, result, toolUseId) => {
         const pendingToolCall = toolUseId
-          ? (convStreamItems[conv_id] ?? []).find(
+          ? (chatStreams.itemsByConversation[conv_id] ?? []).find(
               (item) =>
                 item.type === "tool_call" &&
                 item.toolUseId === toolUseId &&
                 item.result === undefined,
             )
-          : [...(convStreamItems[conv_id] ?? [])]
+          : [...(chatStreams.itemsByConversation[conv_id] ?? [])]
               .reverse()
               .find((item) => item.type === "tool_call" && item.result === undefined);
         const rolesMayHaveChanged =
@@ -3016,9 +2394,13 @@
           if (rolesMayHaveChanged) void loadAvailableRoles();
           return;
         }
-        convStreamItems = {
-          ...convStreamItems,
-          [conv_id]: attachToolResult(convStreamItems[conv_id] ?? [], result, toolUseId),
+        chatStreams.itemsByConversation = {
+          ...chatStreams.itemsByConversation,
+          [conv_id]: attachToolResult(
+            chatStreams.itemsByConversation[conv_id] ?? [],
+            result,
+            toolUseId,
+          ),
         };
         if (rolesMayHaveChanged) void loadAvailableRoles();
         persistStreamDraft(conv_id).catch(() => {});
@@ -3037,12 +2419,12 @@
         void refreshLiveCheckpointTip(conv_id, checkpoint_id);
       },
       onRetry: (conv_id, attempt, maxAttempts, model, error, restoredCheckpoint) => {
-        clearAwaitingStreamOutput(conv_id);
-        const items = convStreamItems[conv_id] ?? [];
+        chatStreams.clearAwaitingOutput(conv_id);
+        const items = chatStreams.itemsByConversation[conv_id] ?? [];
         const previousAttempts = items.filter((item) => item.type === "retry");
         const failedAttemptItems = items.filter((item) => item.type !== "retry");
-        convStreamItems = {
-          ...convStreamItems,
+        chatStreams.itemsByConversation = {
+          ...chatStreams.itemsByConversation,
           [conv_id]: [
             ...previousAttempts,
             {
@@ -3065,14 +2447,20 @@
       onCompactionProgress: (convId, stage, error) => {
         const revision = (compactionProgressRevisions.get(convId) ?? 0) + 1;
         compactionProgressRevisions.set(convId, revision);
-        const wasStreaming = !!streamingConvIds[convId];
-        const previousItems = convStreamItems[convId] ?? [];
+        const wasStreaming = !!chatStreams.streamingConversationIds[convId];
+        const previousItems = chatStreams.itemsByConversation[convId] ?? [];
         const hadProgress = previousItems.some((item) => item.type === "compaction");
 
         if (!wasStreaming && stage !== "done" && stage !== "skipped") {
           compactionOnlyConvIds.add(convId);
-          streamingConvIds = { ...streamingConvIds, [convId]: true };
-          streamAssistantMsgIds = { ...streamAssistantMsgIds, [convId]: crypto.randomUUID() };
+          chatStreams.streamingConversationIds = {
+            ...chatStreams.streamingConversationIds,
+            [convId]: true,
+          };
+          chatStreams.assistantMessageIds = {
+            ...chatStreams.assistantMessageIds,
+            [convId]: crypto.randomUUID(),
+          };
         }
 
         if (stage === "done") {
@@ -3084,8 +2472,8 @@
           return;
         }
 
-        convStreamItems = {
-          ...convStreamItems,
+        chatStreams.itemsByConversation = {
+          ...chatStreams.itemsByConversation,
           [convId]: appendCompactionProgress(previousItems, stage, error),
         };
 
@@ -3177,10 +2565,10 @@
   }
 
   function removeCompactionProgress(convId: string) {
-    if (!(convId in convStreamItems)) return;
-    convStreamItems = {
-      ...convStreamItems,
-      [convId]: appendCompactionProgress(convStreamItems[convId] ?? [], "done"),
+    if (!(convId in chatStreams.itemsByConversation)) return;
+    chatStreams.itemsByConversation = {
+      ...chatStreams.itemsByConversation,
+      [convId]: appendCompactionProgress(chatStreams.itemsByConversation[convId] ?? [], "done"),
     };
   }
 
@@ -3189,7 +2577,7 @@
       if (compactionProgressRevisions.get(convId) !== revision) return;
       compactionProgressRevisions.delete(convId);
       if (compactionOnlyConvIds.delete(convId)) {
-        cleanupStreamState(convId);
+        chatStreams.cleanup(convId);
       } else {
         removeCompactionProgress(convId);
       }
@@ -3206,7 +2594,7 @@
     if (compactionProgressRevisions.get(convId) !== revision) return;
     compactionProgressRevisions.delete(convId);
     if (compactionOnlyConvIds.delete(convId)) {
-      cleanupStreamState(convId);
+      chatStreams.cleanup(convId);
     } else {
       removeCompactionProgress(convId);
     }
@@ -3214,27 +2602,6 @@
       await tick();
       scrollStreamToBottom();
     }
-  }
-
-  function cleanupStreamState(conv_id: string) {
-    const { [conv_id]: _items, ...restItems } = convStreamItems;
-    const { [conv_id]: _streaming, ...restStreaming } = streamingConvIds;
-    const { [conv_id]: _paused, ...restPaused } = streamPausedConvIds;
-    const { [conv_id]: _asstId, ...restAsstIds } = streamAssistantMsgIds;
-    const { [conv_id]: _startedAt, ...restStartedAt } = streamStartedAt;
-    const { [conv_id]: _firstTokenAt, ...restFirstTokenAt } = streamFirstTokenAt;
-    const { [conv_id]: _awaiting, ...restAwaiting } = awaitingStreamOutputConvIds;
-    const { [conv_id]: _memoryStage, ...restMemoryStages } = memoryRetrievalStages;
-    const { [conv_id]: _memorySkippable, ...restMemorySkippable } = memoryRetrievalSkippableConvIds;
-    convStreamItems = restItems;
-    streamingConvIds = restStreaming;
-    streamPausedConvIds = restPaused;
-    streamAssistantMsgIds = restAsstIds;
-    streamStartedAt = restStartedAt;
-    streamFirstTokenAt = restFirstTokenAt;
-    awaitingStreamOutputConvIds = restAwaiting;
-    memoryRetrievalStages = restMemoryStages;
-    memoryRetrievalSkippableConvIds = restMemorySkippable;
   }
 
   function saveAssistantMessage(conv_id: string, msg: ChatMessage, checkpointId: string | null) {
@@ -3252,7 +2619,7 @@
     error?: string | null,
   ) {
     beginStreamCompletionTailAnchor(conv_id);
-    let items = convStreamItems[conv_id] ?? [];
+    let items = chatStreams.itemsByConversation[conv_id] ?? [];
     if (error) {
       items = [...items, { type: "runtime_notice", kind: "error", reason: error }];
     } else if (aborted) {
@@ -3274,7 +2641,7 @@
       void loadFileChangesForConv(conv_id).then((loaded) => {
         if (loaded) clearLiveFileChanges(conv_id, finalizedLiveChangeIds);
       });
-      cleanupStreamState(conv_id);
+      chatStreams.cleanup(conv_id);
       void dispatchNextQueuedMessage(conv_id);
       return;
     }
@@ -3283,32 +2650,32 @@
 
     const completedAt = Date.now();
     const assistantMsg: ChatMessage = {
-      id: asstMsgId ?? streamAssistantMsgIds[conv_id] ?? crypto.randomUUID(),
+      id: asstMsgId ?? chatStreams.assistantMessageIds[conv_id] ?? crypto.randomUUID(),
       role: "assistant",
       content: fullText,
       timestamp: completedAt,
       items: items.length > 0 ? [...items] : undefined,
       aborted: aborted || undefined,
       checkpointId: checkpointId ?? undefined,
-      firstTokenAt: streamFirstTokenAt[conv_id],
+      firstTokenAt: chatStreams.firstTokenAt[conv_id],
       completedAt,
     };
 
     const convIdx = conversations.findIndex((c) => c.id === conv_id);
     if (convIdx === -1) {
       // Conv was deleted while streaming — drop the in-flight message instead of saving an orphan row.
-      const { [conv_id]: _items, ...restItems } = convStreamItems;
-      const { [conv_id]: _streaming, ...restStreaming } = streamingConvIds;
+      const { [conv_id]: _items, ...restItems } = chatStreams.itemsByConversation;
+      const { [conv_id]: _streaming, ...restStreaming } = chatStreams.streamingConversationIds;
       const { [conv_id]: _ck, ...restCk } = pendingCheckpointIds;
       const { [conv_id]: _pp, ...restPp } = pendingParentCk;
       const { [conv_id]: _pf, ...restPf } = pendingForkMessageId;
-      const { [conv_id]: _asstId, ...restAsstIds } = streamAssistantMsgIds;
-      convStreamItems = restItems;
-      streamingConvIds = restStreaming;
+      const { [conv_id]: _asstId, ...restAsstIds } = chatStreams.assistantMessageIds;
+      chatStreams.itemsByConversation = restItems;
+      chatStreams.streamingConversationIds = restStreaming;
       pendingCheckpointIds = restCk;
       pendingParentCk = restPp;
       pendingForkMessageId = restPf;
-      streamAssistantMsgIds = restAsstIds;
+      chatStreams.assistantMessageIds = restAsstIds;
       return;
     }
 
@@ -3350,24 +2717,12 @@
       pendingForkMessageId = restPf;
     }
 
-    cleanupStreamState(conv_id);
+    chatStreams.cleanup(conv_id);
     void dispatchNextQueuedMessage(conv_id);
   }
 
   function applyTheme(theme: string) {
-    document.documentElement.classList.remove("dark", "light");
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-      isDarkTheme = true;
-    } else if (theme === "light") {
-      document.documentElement.classList.add("light");
-      isDarkTheme = false;
-    } else {
-      // "system" — apply the OS preference as a class so Streamdown's useDarkMode detects it
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      isDarkTheme = prefersDark;
-      document.documentElement.classList.add(prefersDark ? "dark" : "light");
-    }
+    isDarkTheme = applyDocumentTheme(theme);
   }
 
   async function loadWorkspace() {
@@ -3411,36 +2766,18 @@
         };
       }
       applyTheme(
-        bookModePreviewTheme ??
-          moreManagementPreviewTheme ??
+        moreManagementPreviewTheme ??
           channelsSettingsPreviewTheme ??
           agentsSettingsPreviewTheme ??
           agentPluginsSettingsPreviewTheme ??
-          permissionSettingsPreviewTheme ??
-          checkpointFlowPreviewTheme ??
-          pauseControlPreviewTheme ??
-          commandPalettePreviewTheme ??
-          workspaceSwitcherPreviewTheme ??
-          reasoningEffortPreviewTheme ??
-          attachmentComposerPreviewTheme ??
-          quickChatPreviewTheme ??
           config.theme ??
           "system",
       );
       await initI18n(
-        bookModePreviewLocale ??
-          moreManagementPreviewLocale ??
+        moreManagementPreviewLocale ??
           channelsSettingsPreviewLocale ??
           agentsSettingsPreviewLocale ??
           agentPluginsSettingsPreviewLocale ??
-          permissionSettingsPreviewLocale ??
-          checkpointFlowPreviewLocale ??
-          pauseControlPreviewLocale ??
-          commandPalettePreviewLocale ??
-          workspaceSwitcherPreviewLocale ??
-          reasoningEffortPreviewLocale ??
-          attachmentComposerPreviewLocale ??
-          quickChatPreviewLocale ??
           config.language,
       );
       return;
@@ -3604,7 +2941,7 @@
   }
 
   async function newConversation() {
-    if (modelOptions.length === 0) {
+    if (composerPreferences.modelOptions.length === 0) {
       showToast({ title: $t("modelSetupRequired"), variant: "error" });
       openSettings("providers");
       return;
@@ -3717,28 +3054,29 @@
   async function deleteConversation(id: string) {
     // If the conv is mid-stream, signal the backend to abort before we tear down local state.
     // This prevents a terminal checkpoint from being created after local state is removed.
-    if (streamingConvIds[id]) {
+    if (chatStreams.streamingConversationIds[id]) {
       if (tauriAvailable) {
         await invoke("cancel_chat_message", { convId: id }).catch(() => {});
       }
-      const { [id]: _s, ...rs } = streamingConvIds;
-      const { [id]: _i, ...ri } = convStreamItems;
+      const { [id]: _s, ...rs } = chatStreams.streamingConversationIds;
+      const { [id]: _i, ...ri } = chatStreams.itemsByConversation;
       const { [id]: _c, ...rc } = pendingCheckpointIds;
       const { [id]: _p, ...rp } = pendingParentCk;
       const { [id]: _pf, ...rpf } = pendingForkMessageId;
-      const { [id]: _a, ...ra } = streamAssistantMsgIds;
-      const { [id]: _awaiting, ...restAwaiting } = awaitingStreamOutputConvIds;
-      const { [id]: _memoryStage, ...restMemoryStages } = memoryRetrievalStages;
-      const { [id]: _memorySkippable, ...restMemorySkippable } = memoryRetrievalSkippableConvIds;
-      streamingConvIds = rs;
-      convStreamItems = ri;
+      const { [id]: _a, ...ra } = chatStreams.assistantMessageIds;
+      const { [id]: _awaiting, ...restAwaiting } = chatStreams.awaitingOutput;
+      const { [id]: _memoryStage, ...restMemoryStages } = chatStreams.memoryRetrievalStages;
+      const { [id]: _memorySkippable, ...restMemorySkippable } =
+        chatStreams.memoryRetrievalSkippable;
+      chatStreams.streamingConversationIds = rs;
+      chatStreams.itemsByConversation = ri;
       pendingCheckpointIds = rc;
       pendingParentCk = rp;
       pendingForkMessageId = rpf;
-      streamAssistantMsgIds = ra;
-      awaitingStreamOutputConvIds = restAwaiting;
-      memoryRetrievalStages = restMemoryStages;
-      memoryRetrievalSkippableConvIds = restMemorySkippable;
+      chatStreams.assistantMessageIds = ra;
+      chatStreams.awaitingOutput = restAwaiting;
+      chatStreams.memoryRetrievalStages = restMemoryStages;
+      chatStreams.memoryRetrievalSkippable = restMemorySkippable;
     }
     clearPendingInput(id);
     // Drop conv-scoped state so it doesn't outlive the conv
@@ -3792,13 +3130,13 @@
     targetConvId: string | null = activeConvId,
     clearInput = false,
     attachments: ChatAttachment[] = inputAttachments,
-    model = selectedModel,
+    model = composerPreferences.selectedModel,
   ) {
     if (!tauriAvailable) {
       alert(browserModeNotice);
       return;
     }
-    if (!model || !modelOptions.some((option) => option.value === model)) {
+    if (!model || !composerPreferences.modelOptions.some((option) => option.value === model)) {
       showToast({ title: $t("modelSetupRequired"), variant: "error" });
       openSettings("providers");
       return;
@@ -3806,7 +3144,7 @@
 
     const text = rawText.trim() || (attachments.length > 0 ? $t("attachmentOnlyPrompt") : "");
     if (!text && attachments.length === 0) return;
-    if (targetConvId && streamingConvIds[targetConvId]) return;
+    if (targetConvId && chatStreams.streamingConversationIds[targetConvId]) return;
     if (!targetConvId && isCurrentStreaming) return;
 
     let convId = targetConvId;
@@ -3886,20 +3224,26 @@
     }
 
     const assistantMsgId = crypto.randomUUID();
-    startStreamTiming(convId, userMsg.timestamp);
-    streamingConvIds = { ...streamingConvIds, [convId]: true };
-    awaitingStreamOutputConvIds = {
-      ...awaitingStreamOutputConvIds,
+    chatStreams.startTiming(convId, userMsg.timestamp);
+    chatStreams.streamingConversationIds = {
+      ...chatStreams.streamingConversationIds,
+      [convId]: true,
+    };
+    chatStreams.awaitingOutput = {
+      ...chatStreams.awaitingOutput,
       [convId]: true,
     };
     if (config?.memory_retrieval_enabled) {
-      memoryRetrievalStages = {
-        ...memoryRetrievalStages,
+      chatStreams.memoryRetrievalStages = {
+        ...chatStreams.memoryRetrievalStages,
         [convId]: "query_rewrite",
       };
     }
-    convStreamItems = { ...convStreamItems, [convId]: [] };
-    streamAssistantMsgIds = { ...streamAssistantMsgIds, [convId]: assistantMsgId };
+    chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: [] };
+    chatStreams.assistantMessageIds = {
+      ...chatStreams.assistantMessageIds,
+      [convId]: assistantMsgId,
+    };
 
     // Decide where this turn attaches in the checkpoint tree.
     // Re-execution stamped pendingParentCk; otherwise it's the tip of the active path.
@@ -3939,11 +3283,11 @@
         // Events are the live path, but the completed checkpoint is authoritative.
         // If a terminal event was lost, reconcile instead of leaving a permanent
         // streaming row and sidebar dot.
-        if (!streamingConvIds[convId]) return;
+        if (!chatStreams.streamingConversationIds[convId]) return;
         loadedConvIds.delete(convId);
         void loadMessagesForConv(convId, false).finally(() => {
-          if (!streamingConvIds[convId]) return;
-          cleanupStreamState(convId);
+          if (!chatStreams.streamingConversationIds[convId]) return;
+          chatStreams.cleanup(convId);
           void dispatchNextQueuedMessage(convId);
         });
       })
@@ -3962,7 +3306,7 @@
             updatedAt: Date.now(),
           };
         }
-        cleanupStreamState(convId!);
+        chatStreams.cleanup(convId!);
       });
   }
 
@@ -3975,12 +3319,12 @@
       return;
     }
 
-    if (activeConvId && streamingConvIds[activeConvId]) {
-      const paused = !!streamPausedConvIds[activeConvId];
+    if (activeConvId && chatStreams.streamingConversationIds[activeConvId]) {
+      const paused = !!chatStreams.pausedConversationIds[activeConvId];
       queuedChatMessages = enqueueChatMessage(queuedChatMessages, activeConvId, {
         text,
         attachments,
-        model: selectedModel,
+        model: composerPreferences.selectedModel,
       });
       await syncChatQueuePending(activeConvId);
       inputText = "";
@@ -3989,7 +3333,13 @@
       return;
     }
 
-    await dispatchQueuedOrImmediateMessage(text, activeConvId, attachments, selectedModel, true);
+    await dispatchQueuedOrImmediateMessage(
+      text,
+      activeConvId,
+      attachments,
+      composerPreferences.selectedModel,
+      true,
+    );
   }
 
   async function handleClientSlashInput(text: string): Promise<boolean> {
@@ -4027,7 +3377,7 @@
   }
 
   async function dispatchNextQueuedMessage(convId: string) {
-    if (streamingConvIds[convId]) return;
+    if (chatStreams.streamingConversationIds[convId]) return;
     const { next, queue } = dequeueChatMessage(queuedChatMessages, convId);
     if (!next) return;
     queuedChatMessages = queue;
@@ -4045,13 +3395,19 @@
   }
 
   async function setStreamPaused(convId: string, paused: boolean) {
-    const previous = !!streamPausedConvIds[convId];
-    streamPausedConvIds = { ...streamPausedConvIds, [convId]: paused };
+    const previous = !!chatStreams.pausedConversationIds[convId];
+    chatStreams.pausedConversationIds = { ...chatStreams.pausedConversationIds, [convId]: paused };
     try {
       await openAgent.setConversationStreamPaused(convId, paused);
     } catch (error) {
-      if (streamingConvIds[convId] && streamPausedConvIds[convId] === paused) {
-        streamPausedConvIds = { ...streamPausedConvIds, [convId]: previous };
+      if (
+        chatStreams.streamingConversationIds[convId] &&
+        chatStreams.pausedConversationIds[convId] === paused
+      ) {
+        chatStreams.pausedConversationIds = {
+          ...chatStreams.pausedConversationIds,
+          [convId]: previous,
+        };
       }
       showToast({ title: String(error), variant: "error" });
     }
@@ -4071,18 +3427,27 @@
     if (!activeConvId || !currentMemoryRetrievalStage || !currentMemoryRetrievalCanSkip) return;
     const convId = activeConvId;
     const previousStage = currentMemoryRetrievalStage;
-    memoryRetrievalStages = { ...memoryRetrievalStages, [convId]: "skipped" };
-    memoryRetrievalSkippableConvIds = {
-      ...memoryRetrievalSkippableConvIds,
+    chatStreams.memoryRetrievalStages = {
+      ...chatStreams.memoryRetrievalStages,
+      [convId]: "skipped",
+    };
+    chatStreams.memoryRetrievalSkippable = {
+      ...chatStreams.memoryRetrievalSkippable,
       [convId]: false,
     };
     try {
       await openAgent.skipMemoryRetrieval(convId);
     } catch (error) {
-      if (streamingConvIds[convId] && memoryRetrievalStages[convId] === "skipped") {
-        memoryRetrievalStages = { ...memoryRetrievalStages, [convId]: previousStage };
-        memoryRetrievalSkippableConvIds = {
-          ...memoryRetrievalSkippableConvIds,
+      if (
+        chatStreams.streamingConversationIds[convId] &&
+        chatStreams.memoryRetrievalStages[convId] === "skipped"
+      ) {
+        chatStreams.memoryRetrievalStages = {
+          ...chatStreams.memoryRetrievalStages,
+          [convId]: previousStage,
+        };
+        chatStreams.memoryRetrievalSkippable = {
+          ...chatStreams.memoryRetrievalSkippable,
           [convId]: true,
         };
       }
@@ -4609,7 +3974,7 @@
       const outcome = await openAgent.submitInput({
         convId: activeConvId,
         text: "/compact",
-        modelBinding: decodeModelBinding(selectedModel),
+        modelBinding: decodeModelBinding(composerPreferences.selectedModel),
       });
       if (outcome.type === "immediate_command" && !outcome.changed) {
         showToast({
@@ -4687,276 +4052,12 @@
       ];
     }),
   );
-  let commandPalettePreviewCommands = $derived.by<SlashCommand[]>(() =>
-    [
-      ["new", "slashCmdNewLabel", "slashCmdNewDesc"],
-      ["model", "slashCmdModelLabel", "slashCmdModelDesc"],
-      ["memory", "slashCmdMemoryLabel", "slashCmdMemoryDesc"],
-      ["compact", "slashCmdCompactLabel", "slashCmdCompactDesc"],
-      ["goal", "slashCmdGoalLabel", "slashCmdGoalDesc"],
-      ["graph", "slashCmdGraphLabel", "slashCmdGraphDesc"],
-      ["skills", "slashCmdSkillsLabel", "slashCmdSkillsDesc"],
-      ["settings", "slashCmdSettingsLabel", "slashCmdSettingsDesc"],
-    ].map(([name, labelKey, descriptionKey]) => ({
-      id: name,
-      name,
-      label: $t(labelKey as TranslationKeys),
-      description: $t(descriptionKey as TranslationKeys),
-      insertText: name === "goal" || name === "graph" ? `/${name}` : undefined,
-      run: () => {},
-    })),
-  );
-
   // ─── Window Controls ─────────────────────────────────────────────────────────
 
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
-  const quickChatCompactSize = { width: 856, height: 246 };
-  const quickChatExpandedSize = { width: 856, height: 580 };
   const winMinimize = () => appWindow?.minimize();
   const winMaximize = () => appWindow?.toggleMaximize();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
-
-  async function getQuickChatWindow() {
-    if (!tauriAvailable) return null;
-    return isQuickChatWindow ? appWindow : await WebviewWindow.getByLabel("quick-chat");
-  }
-
-  async function showQuickChatWindow() {
-    const quickWindow = await getQuickChatWindow();
-    if (!quickWindow) return;
-    await quickWindow.setSize(
-      new LogicalSize(quickChatCompactSize.width, quickChatCompactSize.height),
-    );
-    const savedPosition = loadQuickChatWindowPosition(window.localStorage);
-    await quickWindow.setSize(
-      new LogicalSize(quickChatExpandedSize.width, quickChatExpandedSize.height),
-    );
-    let restoredPosition = false;
-    if (savedPosition) {
-      try {
-        const [windowSize, monitors] = await Promise.all([
-          quickWindow.outerSize(),
-          availableMonitors(),
-        ]);
-        restoredPosition = isQuickChatWindowPositionVisible(
-          savedPosition,
-          windowSize,
-          monitors.map((monitor) => monitor.workArea),
-        );
-        if (restoredPosition) {
-          await quickWindow.setPosition(new PhysicalPosition(savedPosition.x, savedPosition.y));
-        }
-      } catch {
-        restoredPosition = false;
-      }
-    }
-    if (!restoredPosition) {
-      clearQuickChatWindowPosition(window.localStorage);
-      await quickWindow.setSize(
-        new LogicalSize(quickChatCompactSize.width, quickChatCompactSize.height),
-      );
-      await quickWindow.center();
-      await quickWindow.setSize(
-        new LogicalSize(quickChatExpandedSize.width, quickChatExpandedSize.height),
-      );
-    }
-    await quickWindow.unminimize().catch(() => {});
-    await quickWindow.show();
-    await quickWindow.setFocus();
-    await emit(QUICK_CHAT_FOCUS_INPUT_EVENT);
-  }
-
-  async function hideQuickChatWindow() {
-    const quickWindow = await getQuickChatWindow();
-    if (!quickWindow) return;
-    quickChatFocusArmed = false;
-    quickChatFocusSuppressed = false;
-    await quickWindow.hide();
-    await quickWindow
-      .setSize(new LogicalSize(quickChatCompactSize.width, quickChatCompactSize.height))
-      .catch(() => {});
-  }
-
-  function queueQuickWindowTransition(operation: () => Promise<void>) {
-    quickWindowTransition = quickWindowTransition
-      .catch(() => {})
-      .then(operation)
-      .catch((error) => {
-        console.warn("Quick chat window transition failed", error);
-      });
-    return quickWindowTransition;
-  }
-
-  async function toggleQuickChat() {
-    const quickWindow = await getQuickChatWindow();
-    if (!quickWindow) return;
-    const visible = await quickWindow.isVisible();
-    return queueQuickWindowTransition(() =>
-      visible ? hideQuickChatWindow() : showQuickChatWindow(),
-    );
-  }
-
-  function closeQuickChat() {
-    return queueQuickWindowTransition(hideQuickChatWindow);
-  }
-
-  async function startQuickChatDrag(event: PointerEvent) {
-    if (!isQuickChatWindow || !appWindow || event.button !== 0) return;
-    const target = event.target;
-    if (target instanceof Element && target.closest("button, input, textarea, select, a")) return;
-    event.preventDefault();
-    quickChatFocusArmed = false;
-    quickChatFocusSuppressed = true;
-    try {
-      await appWindow.startDragging();
-      await appWindow.setFocus().catch(() => {});
-    } finally {
-      quickChatFocusSuppressed = false;
-      quickChatFocusArmed = true;
-    }
-  }
-
-  function dismissQuickChatFromTransparentArea(event: PointerEvent) {
-    if (!isQuickChatWindow || event.target !== event.currentTarget) return;
-    void closeQuickChat();
-  }
-
-  async function replaceQuickChatShortcut(shortcut: string) {
-    if (!tauriAvailable) return;
-    const nextShortcut = normalizeQuickChatShortcut(shortcut);
-    const previousShortcut = registeredQuickChatShortcut;
-    if (previousShortcut === nextShortcut) return;
-    if (previousShortcut) await unregister(previousShortcut);
-    try {
-      await register(nextShortcut, (event) => {
-        if (event.state === "Pressed") void toggleQuickChat();
-      });
-      registeredQuickChatShortcut = nextShortcut;
-    } catch (error) {
-      if (previousShortcut) {
-        try {
-          await register(previousShortcut, (event) => {
-            if (event.state === "Pressed") void toggleQuickChat();
-          });
-          registeredQuickChatShortcut = previousShortcut;
-        } catch {
-          registeredQuickChatShortcut = null;
-        }
-      }
-      throw error;
-    }
-  }
-
-  async function initializeQuickChatShortcut() {
-    if (!tauriAvailable || registeredQuickChatShortcut) return;
-    const shortcut = normalizeQuickChatShortcut(
-      config?.quick_chat_shortcut ?? DEFAULT_QUICK_CHAT_SHORTCUT,
-    );
-    await unregister(shortcut).catch(() => {});
-    await replaceQuickChatShortcut(shortcut);
-  }
-
-  function handleQuickChatKeydown(event: KeyboardEvent) {
-    if (!isQuickChatSurface || event.key !== "Escape") return;
-    event.preventDefault();
-    void closeQuickChat();
-  }
-
-  async function sendQuickChatMessage() {
-    if (quickChatSubmitting) return;
-    const text = inputText;
-    const attachments = [...inputAttachments];
-    if (!text.trim() && attachments.length === 0) return;
-    if (!tauriAvailable) {
-      alert(browserModeNotice);
-      return;
-    }
-    if (!quickChatModel || !modelOptions.some((option) => option.value === quickChatModel)) {
-      showToast({ title: $t("modelSetupRequired"), variant: "error" });
-      return;
-    }
-
-    if (!quickChatWorkspace) {
-      showToast({ title: $t("switchWorkspace"), variant: "error" });
-      return;
-    }
-    const model = quickChatModel;
-    quickChatSubmitting = true;
-    quickChatFocusArmed = false;
-    quickChatFocusSuppressed = true;
-    try {
-      await invoke<string>("submit_quick_chat", {
-        workspace: quickChatWorkspace,
-        text: text.trim() || $t("attachmentOnlyPrompt"),
-        attachments: attachments.map((attachment) => attachment.path),
-        modelBinding: decodeModelBinding(model),
-        roleId: quickChatRole === defaultRoleKey ? null : quickChatRole,
-      });
-      inputText = "";
-      inputAttachments = [];
-      await closeQuickChat();
-    } catch (error) {
-      showToast({ title: String(error), variant: "error" });
-      await appWindow?.setFocus().catch(() => {});
-      quickChatFocusSuppressed = false;
-      quickChatFocusArmed = true;
-    } finally {
-      quickChatSubmitting = false;
-    }
-  }
-
-  function handleQuickModelChange(value: string) {
-    quickChatModel = value;
-    persistQuickChatPreferences();
-  }
-
-  function handleQuickRoleChange(value: string) {
-    quickChatRole = value;
-    persistQuickChatPreferences();
-  }
-
-  async function handleQuickWorkspaceChange(value: string) {
-    if (!value || value === quickChatWorkspace) return;
-    quickChatWorkspace = value;
-    quickChatRole = defaultRoleKey;
-    await loadQuickChatRoles(value);
-    persistQuickChatPreferences();
-  }
-
-  async function pickQuickChatWorkspace() {
-    if (!tauriAvailable) return;
-    quickChatFocusArmed = false;
-    quickChatFocusSuppressed = true;
-    try {
-      const selected = await openDialog({
-        directory: true,
-        multiple: false,
-        defaultPath: quickChatWorkspace || (await homeDir()),
-      });
-      if (typeof selected === "string" && selected) {
-        quickChatWorkspace = selected;
-        quickChatRole = defaultRoleKey;
-        await loadQuickChatRoles(selected);
-        persistQuickChatPreferences();
-      }
-      await appWindow?.setFocus().catch(() => {});
-    } finally {
-      quickChatFocusSuppressed = false;
-      quickChatFocusArmed = true;
-    }
-  }
-
-  async function handleQuickAttachmentPickerOpenChange(open: boolean) {
-    if (!isQuickChatWindow || !appWindow) return;
-    if (open) {
-      quickChatFocusArmed = false;
-      quickChatFocusSuppressed = true;
-      return;
-    }
-    await appWindow.setFocus().catch(() => {});
-    quickChatFocusSuppressed = false;
-    quickChatFocusArmed = true;
-  }
 
   function toggleSidebar() {
     sidebarCollapsed = !sidebarCollapsed;
@@ -4974,261 +4075,21 @@
   }
 
   onMount(() => {
-    const unlistenQuickChatInputFocus = isQuickChatWindow
-      ? listen(QUICK_CHAT_FOCUS_INPUT_EVENT, () => {
-          quickChatInputFocusRequest += 1;
-        })
-      : null;
-    const unlistenQuickChatFocus = appWindow?.onFocusChanged(({ payload: focused }) => {
-      if (!isQuickChatWindow) return;
-      if (quickChatFocusSuppressed) return;
-      if (focused) {
-        quickChatFocusArmed = true;
-      } else if (quickChatFocusArmed) {
-        void closeQuickChat();
-      }
-    });
-    const unlistenQuickChatMoved =
-      isQuickChatWindow && appWindow
-        ? appWindow.onMoved(({ payload: position }) => {
-            saveQuickChatWindowPosition(window.localStorage, position);
-          })
-        : null;
     return () => {
-      void unlistenQuickChatInputFocus?.then((dispose) => dispose());
-      void unlistenQuickChatFocus?.then((dispose) => dispose());
-      void unlistenQuickChatMoved?.then((dispose) => dispose());
-      void unlistenQuickChatSettings?.then((dispose) => dispose());
-      if (registeredQuickChatShortcut) {
-        void unregister(registeredQuickChatShortcut).catch(() => {});
-      }
+      void disposeQuickChatShortcut();
     };
   });
 </script>
 
-<svelte:window oncontextmenu={handleContextMenu} onkeydown={handleQuickChatKeydown} />
+<svelte:window oncontextmenu={handleContextMenu} />
 
 <TooltipPrimitive.Provider delayDuration={500} skipDelayDuration={300}>
   {#if isDevInspectorWindow && DevInspector}
     <DevInspector />
-  {:else if isBookModePreview}
-    <AgentBookReader
-      turns={bookModePreviewTurns}
-      activeKey="book-preview-one"
-      shikiTheme={bookModePreviewTheme === "dark" ? "github-dark" : "github-light"}
-      mermaidConfig={mermaidConfigFor(bookModePreviewTheme === "dark")}
-      fontSize={17}
-      onClose={() => {}}
-      onSubmitUserInput={() => {}}
-      onCancelUserInput={() => {}}
-    />
-  {:else if isPermissionSettingsPreview}
-    <main class="permission-settings-preview-stage">
-      <section class="permission-settings-preview-card">
-        <header>
-          <h1>{$t("executionPermissions")}</h1>
-          <p>{$t("executionPermissionsDescription")}</p>
-        </header>
-        <PermissionSettings
-          profile={permissionSettingsPreviewProfile}
-          onProfileChange={(profile) => (permissionSettingsPreviewProfile = profile)}
-        />
-      </section>
-    </main>
-  {:else if isWorkspaceSwitcherPreview}
-    <main class="workspace-switcher-preview-stage">
-      <WorkspaceSwitcher
-        workspace={workspaceSwitcherPreviewWorkspace}
-        workspacePath={workspaceSwitcherPreviewWorkspace.path ?? ""}
-        recentWorkspaces={workspaceSwitcherPreviewRecents}
-        tauriAvailable={true}
-        browserModeNotice=""
-        onPick={() => {}}
-        onPickWsl={() => {}}
-        onSelect={() => {}}
-      />
-    </main>
-  {:else if isCheckpointFlowPreview}
-    <main
-      class="checkpoint-flow-preview-stage"
-      class:checkpoint-flow-panel-collapsed={checkpointFlowPanelCollapsed}
-    >
-      <div class="conversation-input-fade" aria-hidden="true"></div>
-      <div class="conversation-aurora" aria-hidden="true"></div>
-      <section class="checkpoint-flow-preview-chat">
-        <header>
-          {$t(checkpointFlowPreview.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}
-        </header>
-        <div class="checkpoint-flow-preview-messages">
-          <div class="checkpoint-flow-preview-user">
-            Create a Goal / Graph and show its durable checkpoint state.
-          </div>
-          <div class="checkpoint-flow-preview-assistant">
-            The flow is running. Its progress stays attached to the selected durable branch tip.
-          </div>
-        </div>
-        <div class="checkpoint-flow-preview-composer">
-          <MessageInput
-            bind:value={checkpointFlowPreviewValue}
-            bind:attachments={checkpointFlowPreviewAttachments}
-            selectedModel="preview"
-            modelOptions={[{ value: "preview", label: "gpt-5.6" }]}
-            placeholder={$t("inputPlaceholder")}
-            disabled={false}
-            isStreaming={false}
-            sendDisabled={!checkpointFlowPreviewValue.trim()}
-            sendTitle={$t("send")}
-            showAttachments={false}
-            showApprovalMode
-            approvalMode={checkpointFlowPreviewApproval}
-            onApprovalModeChange={(mode) => (checkpointFlowPreviewApproval = mode)}
-            onSend={() => (checkpointFlowPreviewValue = "")}
-            onStop={() => {}}
-          />
-        </div>
-      </section>
-      <CheckpointFlowStatus
-        flow={checkpointFlowPreview}
-        width={checkpointFlowPanelWidth}
-        collapsed={checkpointFlowPanelCollapsed}
-        resizing={checkpointFlowPanelResizing}
-        onToggle={() => (checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed)}
-        onResizeStart={startCheckpointFlowPanelResize}
-      />
-    </main>
-  {:else if isPauseControlPreview}
-    <main class="command-palette-preview-stage">
-      <MessageInput
-        bind:value={pauseControlPreviewValue}
-        bind:attachments={pauseControlPreviewAttachments}
-        selectedModel=""
-        modelOptions={[]}
-        placeholder={$t("inputPlaceholder")}
-        disabled={false}
-        isStreaming
-        isPaused={pauseControlPreviewPaused}
-        sendDisabled={!pauseControlPreviewValue.trim()}
-        sendTitle={$t("send")}
-        pauseTitle={$t("pauseOutput")}
-        resumeTitle={$t("resumeOutput")}
-        stopTitle={$t("stopOutput")}
-        enableMentions={false}
-        showAttachments={false}
-        showModelSelector={false}
-        onSend={() => (pauseControlPreviewValue = "")}
-        onStop={() => {}}
-        onPause={() => (pauseControlPreviewPaused = true)}
-        onResume={() => (pauseControlPreviewPaused = false)}
-      />
-    </main>
-  {:else if isCommandPalettePreview}
-    <main class="command-palette-preview-stage">
-      <MessageInput
-        bind:value={commandPalettePreviewValue}
-        bind:attachments={commandPalettePreviewAttachments}
-        selectedModel=""
-        modelOptions={[]}
-        placeholder={$t("inputPlaceholder")}
-        disabled={false}
-        isStreaming={false}
-        sendDisabled={true}
-        sendTitle={$t("send")}
-        slashCommands={commandPalettePreviewCommands}
-        enableMentions={false}
-        showAttachments={false}
-        showModelSelector={false}
-        showStopButton={false}
-        onSend={() => {}}
-        onStop={() => {}}
-      />
-    </main>
-  {:else if isReasoningEffortPreview}
-    <main class="reasoning-effort-preview-stage">
-      <section class="reasoning-effort-preview-card">
-        <div class="reasoning-effort-preview-model">ChatGPT OAuth · gpt-5.6</div>
-        <ReasoningEffortSelect
-          value={reasoningEffortPreviewValue}
-          contentSide="bottom"
-          onValueChange={(value) => (reasoningEffortPreviewValue = value)}
-        />
-        <code>reasoning.effort = "{reasoningEffortPreviewValue}"</code>
-      </section>
-    </main>
-  {:else if isAttachmentComposerPreview}
-    <main class="attachment-composer-preview-stage">
-      <MessageInput
-        bind:value={attachmentComposerPreviewValue}
-        bind:attachments={attachmentComposerPreviewAttachments}
-        selectedModel=""
-        modelOptions={[]}
-        placeholder={$t("inputPlaceholder")}
-        disabled={false}
-        isStreaming={false}
-        sendDisabled={false}
-        sendTitle={$t("send")}
-        slashCommands={[]}
-        enableMentions={false}
-        showAttachments
-        showModelSelector={false}
-        showStopButton={false}
-        attachmentPreviewLoader={loadAttachmentComposerPreview}
-        onUploadAttachments={uploadAttachmentComposerPreview}
-        onSend={() => {}}
-        onStop={() => {}}
-      />
-    </main>
+  {:else if standaloneDevPreview}
+    <StandaloneDevPreview preview={standaloneDevPreview} />
   {:else if isQuickChatSurface}
-    <div
-      class="quick-chat-stage"
-      role="presentation"
-      onpointerdown={dismissQuickChatFromTransparentArea}
-    >
-      <QuickChat
-        selectedModel={quickChatModel}
-        {modelOptions}
-        selectedRole={quickChatRole}
-        roleOptions={quickRoleOptions}
-        selectedWorkspace={quickChatWorkspace}
-        workspaceOptions={quickWorkspaceOptions}
-        {workspaceLoading}
-        onModelChange={handleQuickModelChange}
-        onRoleChange={handleQuickRoleChange}
-        onWorkspaceChange={handleQuickWorkspaceChange}
-        onPickWorkspace={() => void pickQuickChatWorkspace()}
-        onDragStart={startQuickChatDrag}
-      >
-        {#snippet composer()}
-          <MessageInput
-            bind:value={inputText}
-            bind:attachments={inputAttachments}
-            selectedModel={quickChatModel}
-            {modelOptions}
-            placeholder={tauriAvailable
-              ? modelOptions.length
-                ? $t("quickChatPlaceholder")
-                : $t("modelSetupHint")
-              : browserModeNotice}
-            disabled={(!tauriAvailable && !isQuickChatPreview) || quickChatSubmitting}
-            isStreaming={false}
-            sendDisabled={(!inputText.trim() && inputAttachments.length === 0) ||
-              !tauriAvailable ||
-              quickChatSubmitting ||
-              modelOptions.length === 0}
-            sendTitle={$t("send")}
-            slashCommands={[]}
-            enableMentions={false}
-            showAttachments
-            attachmentDisplay="strip"
-            showModelSelector={false}
-            onUploadAttachments={isQuickChatPreview ? uploadAttachmentComposerPreview : undefined}
-            focusRequest={quickChatInputFocusRequest}
-            onAttachmentPickerOpenChange={handleQuickAttachmentPickerOpenChange}
-            onSend={sendQuickChatMessage}
-            onStop={stopMessage}
-          />
-        {/snippet}
-      </QuickChat>
-    </div>
+    <QuickChatSurface preview={isQuickChatPreview} />
   {:else}
     <div
       class="app"
@@ -5274,7 +4135,7 @@
               conversations={sidebarConversations}
               searchQuery={conversationSearchQuery}
               {activeConvId}
-              {streamingConvIds}
+              streamingConvIds={chatStreams.streamingConversationIds}
               hasMore={sidebarHasMoreConversations}
               loadingMore={sidebarLoadingMoreConversations}
               onLoadMore={() => void loadNextConversationPage()}
@@ -5548,10 +4409,10 @@
                     <MessageInput
                       bind:value={inputText}
                       bind:attachments={inputAttachments}
-                      bind:selectedModel
-                      {modelOptions}
+                      bind:selectedModel={composerPreferences.selectedModel}
+                      modelOptions={composerPreferences.modelOptions}
                       placeholder={tauriAvailable
-                        ? modelOptions.length
+                        ? composerPreferences.modelOptions.length
                           ? $t("inputPlaceholder")
                           : $t("modelSetupHint")
                         : browserModeNotice}
@@ -5560,7 +4421,7 @@
                       isPaused={isCurrentStreamPaused}
                       sendDisabled={(!inputText.trim() && inputAttachments.length === 0) ||
                         !tauriAvailable ||
-                        modelOptions.length === 0}
+                        composerPreferences.modelOptions.length === 0}
                       sendTitle={$t("send")}
                       pauseTitle={$t("pauseOutput")}
                       resumeTitle={$t("resumeOutput")}
@@ -5569,13 +4430,13 @@
                       showGlobalDraftsInMentions={config?.mention_palette_show_global_drafts ??
                         true}
                       onConfigureModels={() => openSettings("providers")}
-                      onModelChange={handleModelChange}
-                      showReasoningEffort={selectedModelSupportsReasoning}
-                      reasoningEffort={selectedReasoningEffort}
-                      onReasoningEffortChange={handleReasoningEffortChange}
+                      onModelChange={composerPreferences.handleModelChange}
+                      showReasoningEffort={composerPreferences.selectedModelSupportsReasoning}
+                      reasoningEffort={composerPreferences.selectedReasoningEffort}
+                      onReasoningEffortChange={composerPreferences.handleReasoningEffortChange}
                       showApprovalMode
                       approvalMode={config?.approval_mode ?? "off"}
-                      onApprovalModeChange={handleApprovalModeChange}
+                      onApprovalModeChange={composerPreferences.handleApprovalModeChange}
                       onSend={sendMessage}
                       onStop={stopMessage}
                       onPause={pauseCurrentStream}
@@ -5586,13 +4447,10 @@
               </div>
             </div>
             {#if currentCheckpointFlow}
-              <CheckpointFlowStatus
+              <CheckpointFlowPanelHost
                 flow={currentCheckpointFlow}
-                width={checkpointFlowPanelWidth}
-                collapsed={checkpointFlowPanelCollapsed}
-                resizing={checkpointFlowPanelResizing}
-                onToggle={() => (checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed)}
-                onResizeStart={startCheckpointFlowPanelResize}
+                conversationId={activeConvId ?? ""}
+                bind:collapsed={checkpointFlowPanelCollapsed}
               />
             {/if}
           </div>
@@ -5604,126 +4462,19 @@
   <Toast />
 </TooltipPrimitive.Provider>
 
-<Dialog.Root
-  open={wslPickerOpen}
-  onOpenChange={(open) => {
-    wslPickerOpen = open;
-    if (!open) wslPickerError = "";
-  }}
->
-  <Dialog.Portal>
-    <Dialog.Overlay class="dialog-overlay" />
-    <Dialog.Content class="dialog wsl-workspace-dialog" aria-busy={wslPickerBusy}>
-      <Dialog.Title class="dialog-title">{$t("wslWorkspaceTitle")}</Dialog.Title>
-      <Dialog.Description class="workspace-choice-description">
-        {$t("wslWorkspaceDescription")}
-      </Dialog.Description>
-      <form
-        class="wsl-workspace-form"
-        onsubmit={(event) => {
-          event.preventDefault();
-          void openSelectedWslWorkspace();
-        }}
-      >
-        <label class="wsl-field">
-          <span>{$t("wslDistribution")}</span>
-          <select
-            value={wslDistribution}
-            disabled={wslPickerBusy || wslDistributions.length === 0}
-            onchange={(event) => void selectWslDistribution(event.currentTarget.value)}
-          >
-            {#each wslDistributions as distribution (distribution.name)}
-              <option value={distribution.name}>{distribution.name}</option>
-            {/each}
-          </select>
-        </label>
-        <label class="wsl-field">
-          <span>{$t("wslLinuxPath")}</span>
-          <div class="wsl-path-row">
-            <input
-              value={wslLinuxPath}
-              disabled={wslPickerBusy || !wslDistribution}
-              placeholder={$t("wslPathPlaceholder")}
-              spellcheck="false"
-              oninput={(event) => {
-                wslLinuxPath = event.currentTarget.value;
-                wslPickerError = "";
-              }}
-            />
-            <button
-              class="dialog-action-quiet wsl-browse-button"
-              type="button"
-              disabled={wslPickerBusy || !wslDistribution || !wslLinuxPath.trim()}
-              onclick={() => void browseWslWorkspace()}
-            >
-              {$t("wslBrowse")}
-            </button>
-          </div>
-        </label>
-        {#if wslPickerBusy}
-          <div class="wsl-status">{$t("wslLoading")}</div>
-        {:else if wslPickerError}
-          <div class="wsl-error" role="alert">
-            <strong>{$t("wslLoadFailed")}</strong>
-            <span>{wslPickerError}</span>
-          </div>
-        {/if}
-        <div class="dialog-actions">
-          <button
-            class="dialog-action-quiet"
-            type="button"
-            onclick={() => {
-              wslPickerOpen = false;
-            }}
-          >
-            {$t("cancel")}
-          </button>
-          <button
-            class="btn-primary"
-            type="submit"
-            disabled={wslPickerBusy || !wslDistribution || !wslLinuxPath.trim()}
-          >
-            {$t("wslOpen")}
-          </button>
-        </div>
-      </form>
-    </Dialog.Content>
-  </Dialog.Portal>
-</Dialog.Root>
-
-<Dialog.Root
-  open={pendingWorkspacePath !== null}
-  onOpenChange={(open) => {
-    if (!open) pendingWorkspacePath = null;
-  }}
->
-  <Dialog.Portal>
-    <Dialog.Overlay class="dialog-overlay" />
-    <Dialog.Content class="dialog workspace-choice-dialog">
-      <Dialog.Title class="dialog-title">{$t("workspaceOpenDialogTitle")}</Dialog.Title>
-      <Dialog.Description class="workspace-choice-description">
-        {$t("workspaceOpenDialogDescription")}
-      </Dialog.Description>
-      <div class="workspace-choice-path">{pendingWorkspacePath}</div>
-      <div class="dialog-actions">
-        <button
-          class="dialog-action-quiet"
-          type="button"
-          onclick={() => resolveWorkspaceChoice("current_window")}
-        >
-          {$t("workspaceSwitchCurrent")}
-        </button>
-        <button
-          class="btn-primary"
-          type="button"
-          onclick={() => resolveWorkspaceChoice("new_window")}
-        >
-          {$t("workspaceCreateWindow")}
-        </button>
-      </div>
-    </Dialog.Content>
-  </Dialog.Portal>
-</Dialog.Root>
+<WorkspaceDialogs
+  bind:wslPickerOpen
+  {wslPickerBusy}
+  bind:wslPickerError
+  {wslDistributions}
+  bind:wslDistribution
+  bind:wslLinuxPath
+  bind:pendingWorkspacePath
+  onSelectDistribution={selectWslDistribution}
+  onBrowseWsl={browseWslWorkspace}
+  onOpenWsl={openSelectedWslWorkspace}
+  onResolveWorkspace={resolveWorkspaceChoice}
+/>
 
 <style>
   @property --input-aurora-x-shift {
@@ -5742,19 +4493,6 @@
     syntax: "<number>";
     inherits: false;
     initial-value: 0;
-  }
-
-  .quick-chat-stage {
-    width: 100vw;
-    height: 100vh;
-    padding: 28px 48px 48px;
-    overflow: visible;
-    background: transparent;
-  }
-
-  :global(html.quick-chat-window),
-  :global(html.quick-chat-window body) {
-    background: transparent;
   }
 
   .app {
@@ -5862,12 +4600,17 @@
     padding-top: 48px;
   }
 
+  @media (max-width: 760px) {
+    .conversation-workspace {
+      --flow-panel-collapsed-track-width: 26px;
+    }
+  }
+
   .conversation-workspace.checkpoint-flow-panel-collapsed {
     --flow-panel-index-offset: var(--flow-panel-collapsed-track-width);
   }
 
-  .conversation-workspace::before,
-  .checkpoint-flow-preview-stage::before {
+  .conversation-workspace::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -6810,193 +5553,10 @@
     color: var(--text) !important;
   }
 
-  /* ─── Settings Panel ─────────────────────────────────────────────────────── */
-  .reasoning-effort-preview-stage {
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    padding: 32px;
-    box-sizing: border-box;
-    background: var(--bg);
-  }
-
-  .permission-settings-preview-stage {
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    padding: 48px 24px;
-    box-sizing: border-box;
-    background: var(--bg);
-  }
-
-  .permission-settings-preview-card {
-    width: min(680px, 100%);
-  }
-
-  .permission-settings-preview-card header {
-    margin: 0 4px 18px;
-  }
-
-  .permission-settings-preview-card h1,
-  .permission-settings-preview-card p {
-    margin: 0;
-  }
-
-  .permission-settings-preview-card h1 {
-    color: var(--text);
-    font-size: 20px;
-    font-weight: 650;
-    letter-spacing: -0.4px;
-  }
-
-  .permission-settings-preview-card p {
-    margin-top: 6px;
-    color: var(--text-muted);
-    font-size: 12px;
-    line-height: 1.5;
-  }
-
-  .workspace-switcher-preview-stage {
-    min-height: 100vh;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 96px 32px 32px;
-    box-sizing: border-box;
-    background: var(--bg);
-  }
-
-  .command-palette-preview-stage {
-    min-height: 100vh;
-    display: flex;
-    align-items: flex-end;
-    padding: 16px 15px;
-    box-sizing: border-box;
-    background: var(--bg);
-  }
-
-  .attachment-composer-preview-stage {
-    min-height: 100vh;
-    display: flex;
-    align-items: flex-end;
-    padding: 24px;
-    box-sizing: border-box;
-    background: var(--bg);
-  }
-
-  .attachment-composer-preview-stage :global(.input-wrapper) {
-    width: min(760px, 100%);
-    margin: 0 auto;
-  }
-
-  .checkpoint-flow-preview-stage {
-    --flow-panel-collapsed-track-width: 30px;
-    position: relative;
-    isolation: isolate;
-    display: flex;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    background: var(--bg);
-  }
-
-  @media (max-width: 760px) {
-    .conversation-workspace,
-    .checkpoint-flow-preview-stage {
-      --flow-panel-collapsed-track-width: 26px;
-    }
-  }
-
-  .checkpoint-flow-preview-chat {
-    position: relative;
-    z-index: 4;
-    display: flex;
-    min-width: 0;
-    flex: 1;
-    flex-direction: column;
-  }
-
-  .checkpoint-flow-preview-chat > header {
-    height: 48px;
-    display: flex;
-    align-items: center;
-    padding: 0 18px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  .checkpoint-flow-preview-messages {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 22px;
-    overflow: auto;
-    padding: 48px clamp(24px, 8vw, 110px) 150px;
-    color: var(--text);
-    font-size: 14px;
-  }
-
-  .checkpoint-flow-preview-user {
-    align-self: flex-end;
-    max-width: 70%;
-    padding: 10px 13px;
-    border-radius: 14px 14px 4px 14px;
-    background: var(--surface2);
-  }
-
-  .checkpoint-flow-preview-assistant {
-    max-width: 72%;
-    line-height: 1.6;
-  }
-  .checkpoint-flow-preview-composer {
-    position: absolute;
-    inset: auto 0 16px;
-    padding: 0 18px;
-  }
-  .checkpoint-flow-preview-composer :global(.input-wrapper) {
-    width: min(760px, 100%);
-    margin: 0 auto;
-  }
-
   .conversation-workspace :global(.composer),
-  .checkpoint-flow-preview-stage :global(.composer),
-  .conversation-workspace :global(.flow-panel),
-  .checkpoint-flow-preview-stage :global(.flow-panel) {
+  .conversation-workspace :global(.flow-panel) {
     background: var(--mica-surface);
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
-  }
-
-  .command-palette-preview-stage :global(.input-wrapper) {
-    width: 100%;
-  }
-
-  .workspace-switcher-preview-stage :global(.workspace-btn) {
-    background: var(--control-surface);
-    box-shadow: var(--control-shadow);
-  }
-
-  .reasoning-effort-preview-card {
-    width: min(420px, calc(100vw - 48px));
-    display: grid;
-    gap: 18px;
-    padding: 24px;
-    box-sizing: border-box;
-    border-radius: 14px;
-    background: var(--surface);
-    box-shadow: var(--raised-shadow);
-  }
-
-  .reasoning-effort-preview-model {
-    color: var(--text);
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .reasoning-effort-preview-card code {
-    color: var(--text-muted);
-    font-size: 12px;
   }
 </style>

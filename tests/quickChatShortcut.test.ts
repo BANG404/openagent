@@ -11,17 +11,18 @@ import {
 
 describe("quick chat shortcut", () => {
   test("returns focus to the composer whenever the shortcut reveals the launcher", async () => {
-    const [pageSource, inputSource] = await Promise.all([
-      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+    const [windowSource, surfaceSource, inputSource] = await Promise.all([
+      Bun.file(new URL("../src/lib/quickChatWindow.ts", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/components/QuickChatSurface.svelte", import.meta.url)).text(),
       Bun.file(new URL("../src/lib/components/MessageInput.svelte", import.meta.url)).text(),
     ]);
 
     expect(QUICK_CHAT_FOCUS_INPUT_EVENT).toBe("quick-chat-focus-input");
-    expect(pageSource).toMatch(
+    expect(windowSource).toMatch(
       /await quickWindow\.setFocus\(\);\s+await emit\(QUICK_CHAT_FOCUS_INPUT_EVENT\);/,
     );
-    expect(pageSource).toContain("quickChatInputFocusRequest += 1;");
-    expect(pageSource).toContain("focusRequest={quickChatInputFocusRequest}");
+    expect(surfaceSource).toContain("inputFocusRequest += 1;");
+    expect(surfaceSource).toContain("focusRequest={inputFocusRequest}");
     expect(inputSource).toMatch(/if \(focusRequest > 0\) void focusInput\(\);/);
   });
 
@@ -37,18 +38,18 @@ describe("quick chat shortcut", () => {
   });
 
   test("reloads the hidden launcher after an in-app settings save", async () => {
-    const pageSource = await Bun.file(
-      new URL("../src/routes/+page.svelte", import.meta.url),
-    ).text();
+    const [pageSource, surfaceSource] = await Promise.all([
+      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/components/QuickChatSurface.svelte", import.meta.url)).text(),
+    ]);
     const saveSettingsSource = pageSource.slice(
       pageSource.indexOf("async function saveSettings"),
       pageSource.indexOf("function completeOnboarding"),
     );
 
     expect(saveSettingsSource).toContain('await emit("settings-changed").catch');
-    expect(pageSource).toMatch(
-      /unlistenQuickChatSettings = listen\("settings-changed", \(\) => \{\s+void reloadQuickChatSettings\(\);/,
-    );
+    expect(surfaceSource).toContain('listen("settings-changed"');
+    expect(surfaceSource).toContain("loadSettings(selectedModel).then(persistPreferences)");
   });
 
   test("normalizes missing and unsafe shortcuts to the default", () => {

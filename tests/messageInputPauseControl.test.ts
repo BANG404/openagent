@@ -16,13 +16,14 @@ describe("stream pause control", () => {
   });
 
   test("resumes a paused stream after queuing a follow-up", async () => {
-    const [desktop, remote] = await Promise.all([
+    const [desktop, remote, previews] = await Promise.all([
       Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
       Bun.file(new URL("../src/routes/remote/+page.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/devPreview.ts", import.meta.url)).text(),
     ]);
 
     expect(desktop).toMatch(/if \(paused\) await setStreamPaused\(activeConvId, false\);/);
-    expect(desktop).toContain('devQuery?.has("pause-control-preview") === true');
+    expect(previews).toContain('["pause-control-preview", "pause-control"]');
     expect(remote).toMatch(/if \(streamPaused\) await setStreamPaused\(false\);/);
   });
 });

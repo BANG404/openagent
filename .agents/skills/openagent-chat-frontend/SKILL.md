@@ -12,6 +12,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 ## Transcript and streaming
 
+- Keep transient per-conversation stream maps in the dedicated stream-state
+  controller. The page shell coordinates durable conversation/checkpoint data
+  with that controller, but must not recreate parallel maps for streaming,
+  pause, timing, awaiting-output, or memory-retrieval state.
 - Completed messages and the active response share the dynamic-height virtual
   list.
 - Keep ordinary transcript copy and the shared composer textarea on the same
@@ -197,6 +201,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   General settings. Switching `manual`, `auto`, or `off` saves the normalized
   configuration without changing the independent permission profile; quick
   chat does not own or mutate this control.
+- Keep main-composer model selection, ChatGPT reasoning effort, and approval
+  persistence in the composer-preferences controller so queued saves and
+  rollback-to-settings behavior remain one boundary rather than page-level
+  state spread across render branches.
 
 ## Attachments and editing
 
@@ -358,6 +366,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 ## Quick chat
 
+- Keep top-level surface dispatch in the route composition root. The dedicated
+  Quick Chat surface owns launcher configuration, focus, attachment, submission,
+  and settings-reload state; its window service owns sizing, positioning, and
+  shortcut registration. Development preview surfaces own their fixtures and
+  query-specific theme/locale initialization so preview-only state never joins
+  the durable conversation runtime.
 - The Raycast-style quick chat is a dedicated, workspace-neutral Tauri window,
   not a presentation mode of `main` and not a second chat client. It owns no
   transcript. The primary process owns its shortcut and launcher lifecycle,
