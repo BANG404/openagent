@@ -99,6 +99,9 @@
   let messagesEl = $state<HTMLElement | null>(null);
   let isDarkTheme = $state(false);
   let preferredTheme = $state<"system" | "light" | "dark">("system");
+  let messageLayout = $state<"single" | "responsive_double">("single");
+  let messageDoubleColumnMinWidth = $state(1200);
+  let bookModeFontSize = $state(17);
   let sidebarCollapsed = $state(false);
   let sidebarWidth = $state(loadSidebarWidth());
   let sidebarResizing = $state(false);
@@ -399,6 +402,9 @@
     agentCommandSpecs = nextCommands;
     applyRemoteTheme(preferences.theme);
     setLocale(preferences.language as Locale);
+    messageLayout = preferences.message_layout ?? "single";
+    messageDoubleColumnMinWidth = preferences.message_double_column_min_width ?? 1200;
+    bookModeFontSize = preferences.book_mode_font_size ?? 17;
     const defaultModel = remoteModels.find((model) => model.is_default) ?? remoteModels[0];
     selectedModel = defaultModel
       ? encodeModelBinding(defaultModel.provider_id, defaultModel.model)
@@ -1115,6 +1121,9 @@
               showApiKeyWarn={remoteModels.length === 0}
               {shikiTheme}
               {mermaidConfig}
+              {messageLayout}
+              {messageDoubleColumnMinWidth}
+              {bookModeFontSize}
               newConversationMemoryPrompt={$t("remoteNewConversationGreeting")}
               newConversationMemoryLoading={false}
               showNewConversationContext={!newConversationLayout}

@@ -12,6 +12,11 @@ installs `TauriTransport`; the remote page installs `HttpTransport`, which maps
 the shared SDK operations to this authenticated REST and SSE gateway. Pairing
 and workspace allowlisting remain HTTP-adapter policy rather than runtime state.
 
+The paired browser follows the desktop configuration's theme, language, message
+layout, responsive two-column threshold, and book-mode font size. These are
+read-only presentation preferences on the remote surface; change them from the
+desktop General settings page.
+
 ## Enable and connect
 
 1. Open **Settings → Channels → Gateway**.
