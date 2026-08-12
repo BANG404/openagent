@@ -11,7 +11,7 @@ const assistantMessage = (overrides = {}) => ({
 });
 
 describe("final assistant output", () => {
-  test("starts at the trailing uninterrupted text run", () => {
+  test("starts at the trailing final-output run", () => {
     const items = [
       { type: "text", content: "I will inspect it." },
       { type: "tool_call", name: "read_file", args: "{}", result: "contents" },
@@ -30,6 +30,18 @@ describe("final assistant output", () => {
     ).toBe(2);
   });
 
+  test("includes trailing render and Goal update tools in the final-output boundary", () => {
+    expect(
+      finalAssistantOutputStartIndex([
+        { type: "thinking", content: "private reasoning" },
+        { type: "tool_call", name: "render_html", args: "{}", result: '{"ok":true}' },
+        { type: "text", content: "Final answer" },
+        { type: "tool_call", name: "render_mermaid", args: "{}", result: '{"ok":true}' },
+        { type: "tool_call", name: "update_goal", args: "{}", result: "updated" },
+      ]),
+    ).toBe(1);
+  });
+
   test("uses plain message content when no structured items are present", () => {
     expect(finalAssistantOutput(assistantMessage({ content: "  Final answer  " }))).toBe(
       "Final answer",
@@ -46,6 +58,21 @@ describe("final assistant output", () => {
             { type: "thinking", content: "private reasoning" },
             { type: "text", content: "Final " },
             { type: "text", content: "answer" },
+          ],
+        }),
+      ),
+    ).toBe("Final answer");
+  });
+
+  test("copies final text when a render or Goal update follows it", () => {
+    expect(
+      finalAssistantOutput(
+        assistantMessage({
+          items: [
+            { type: "thinking", content: "private reasoning" },
+            { type: "text", content: "Final answer" },
+            { type: "tool_call", name: "render_mermaid", args: "{}", result: '{"ok":true}' },
+            { type: "tool_call", name: "update_goal", args: "{}", result: "updated" },
           ],
         }),
       ),

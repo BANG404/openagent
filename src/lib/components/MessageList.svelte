@@ -27,6 +27,7 @@
     groupMessageToolCalls,
     groupStreamItems,
     isAssistantTurnEntry,
+    partitionAssistantSegments,
     type MessageRenderEntry,
     type StreamItemSegment,
   } from "$lib/toolCallGroups";
@@ -564,13 +565,7 @@
           : !isStreaming}
         {@const assistantSegments = groupStreamItems(renderedAssistantItems)}
         {@const assistantIsStreaming = entry.kind === "live_stream"}
-        {@const finalOutputStart = finalAssistantOutputStartIndex(renderedAssistantItems)}
-        {@const processSegments = assistantSegments.filter(
-          (segment) => segment.startIndex < finalOutputStart,
-        )}
-        {@const finalSegments = assistantSegments.filter(
-          (segment) => segment.startIndex >= finalOutputStart,
-        )}
+        {@const { processSegments, finalSegments } = partitionAssistantSegments(assistantSegments)}
         {@const isRerunnable =
           assistantMsg !== null &&
           assistantMsgIdx >= 0 &&

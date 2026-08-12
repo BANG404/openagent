@@ -1,4 +1,5 @@
 import type { ChatMessage, StreamItem } from "./types";
+import { isFinalOutputTool } from "./assistantOutput";
 
 export type ToolCallItem = Extract<StreamItem, { type: "tool_call" }>;
 
@@ -35,12 +36,7 @@ export function isAssistantTurnEntry(entry: MessageRenderEntry): boolean {
 }
 
 export function isGroupableToolCall(item: StreamItem): item is ToolCallItem {
-  return (
-    item.type === "tool_call" &&
-    item.name !== "render_html" &&
-    item.name !== "render_mermaid" &&
-    item.approval === undefined
-  );
+  return item.type === "tool_call" && !isFinalOutputTool(item) && item.approval === undefined;
 }
 
 export function groupStreamItems(items: StreamItem[]): StreamItemSegment[] {
@@ -69,6 +65,35 @@ export function groupStreamItems(items: StreamItem[]): StreamItemSegment[] {
     index = end;
   }
   return segments;
+}
+
+export function partitionAssistantSegments(segments: StreamItemSegment[]): {
+  processSegments: StreamItemSegment[];
+  finalSegments: StreamItemSegment[];
+} {
+  const lastOrdinaryToolIndex = segments.findLast(
+    (segment) =>
+      segment.kind === "tool_group" ||
+      (segment.kind === "item" &&
+        segment.item.type === "tool_call" &&
+        !isFinalOutputTool(segment.item)),
+  )?.startIndex;
+  const processSegments: StreamItemSegment[] = [];
+  const finalSegments: StreamItemSegment[] = [];
+  for (const segment of segments) {
+    if (segment.kind === "item" && isFinalOutputTool(segment.item)) {
+      finalSegments.push(segment);
+    } else if (
+      segment.kind === "item" &&
+      segment.item.type === "text" &&
+      (lastOrdinaryToolIndex === undefined || segment.startIndex > lastOrdinaryToolIndex)
+    ) {
+      finalSegments.push(segment);
+    } else {
+      processSegments.push(segment);
+    }
+  }
+  return { processSegments, finalSegments };
 }
 
 function standaloneGroupableToolCall(message: ChatMessage): ToolCallItem | null {

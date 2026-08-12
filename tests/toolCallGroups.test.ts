@@ -6,6 +6,7 @@ import {
   groupMessageToolCalls,
   groupStreamItems,
   isAssistantTurnEntry,
+  partitionAssistantSegments,
   shouldDisplayToolCall,
   toolCallStatus,
   type ToolCallItem,
@@ -54,9 +55,40 @@ describe("tool-call grouping", () => {
       call("grep"),
       call("render_html"),
       call("render_mermaid"),
+      call("update_goal"),
     ]);
 
     expect(segments.every((segment) => segment.kind === "item")).toBe(true);
+  });
+
+  test("does not let reasoning fold text adjacent to render and Goal update calls", () => {
+    const segments = groupStreamItems([
+      { type: "thinking", content: "inspect" },
+      { type: "text", content: "answer before render" },
+      call("render_mermaid", '{"ok":true}'),
+      { type: "thinking", content: "summarize" },
+      call("update_goal", "updated"),
+      { type: "text", content: "final answer" },
+    ]);
+
+    const partitioned = partitionAssistantSegments(segments);
+    expect(partitioned.processSegments.map((segment) => segment.startIndex)).toEqual([0, 3]);
+    expect(partitioned.finalSegments.map((segment) => segment.startIndex)).toEqual([1, 2, 4, 5]);
+  });
+
+  test("folds ordinary tools and every text message before the last one", () => {
+    const segments = groupStreamItems([
+      { type: "text", content: "before read" },
+      call("read_file", "contents"),
+      { type: "text", content: "before write" },
+      call("write_file", "saved"),
+      call("render_mermaid", '{"ok":true}'),
+      { type: "text", content: "final answer" },
+    ]);
+
+    const partitioned = partitionAssistantSegments(segments);
+    expect(partitioned.processSegments.map((segment) => segment.startIndex)).toEqual([0, 1, 2, 3]);
+    expect(partitioned.finalSegments.map((segment) => segment.startIndex)).toEqual([4, 5]);
   });
 
   test("groups consecutive standalone calls restored from checkpoints", () => {

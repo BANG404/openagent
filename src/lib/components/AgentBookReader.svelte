@@ -2,8 +2,11 @@
   import { Dialog } from "bits-ui";
   import { tick } from "svelte";
   import { t } from "$lib/i18n";
-  import { finalAssistantOutputStartIndex } from "$lib/assistantOutput";
-  import { groupStreamItems, type StreamItemSegment } from "$lib/toolCallGroups";
+  import {
+    groupStreamItems,
+    partitionAssistantSegments,
+    type StreamItemSegment,
+  } from "$lib/toolCallGroups";
   import type { HtmlPreviewConfig, StreamItem } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import ProcessRecordGroup from "./ProcessRecordGroup.svelte";
@@ -53,15 +56,9 @@
   );
   let selectedTurn = $derived(turns[selectedIndex] ?? null);
   let selectedSegments = $derived(selectedTurn ? groupStreamItems(selectedTurn.items) : []);
-  let finalOutputStart = $derived(
-    selectedTurn ? finalAssistantOutputStartIndex(selectedTurn.items) : 0,
-  );
-  let processSegments = $derived(
-    selectedSegments.filter((segment) => segment.startIndex < finalOutputStart),
-  );
-  let finalSegments = $derived(
-    selectedSegments.filter((segment) => segment.startIndex >= finalOutputStart),
-  );
+  let partitionedSegments = $derived(partitionAssistantSegments(selectedSegments));
+  let processSegments = $derived(partitionedSegments.processSegments);
+  let finalSegments = $derived(partitionedSegments.finalSegments);
 
   $effect(() => {
     if (!dialogOpen) onClose();

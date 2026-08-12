@@ -228,6 +228,17 @@
         },
         { type: "compaction", stage: "summarizing" },
         { type: "compaction_boundary" },
+        { type: "text", content: "Answer context immediately before the rendered artifact." },
+        {
+          type: "tool_call",
+          name: "render_mermaid",
+          args: JSON.stringify({
+            title: "Visible render preview",
+            source: "flowchart LR\n  Inspect --> Render --> Reply",
+          }),
+          result: '{"ok":true,"status":"rendered"}',
+        },
+        { type: "thinking", content: "Confirm the rendered artifact before summarizing." },
         {
           type: "text",
           content: `Inline code keeps theme contrast for \`pages/\`, \`components/\`, and \`README.md\`.\n\n${bookTable}\n\n${Array.from({ length: 28 }, (_, index) => `### ${index + 1}. 连贯阅读\n\n书籍模式会把一次完整的 Agent 输出保持在同一章中。正文从左栏自然流向右栏，超出当前展开页时继续到下一页。`).join("\n\n")}`,
