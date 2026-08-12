@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.38.0-beta.1] - 2026-08-12
+
+### Features
+- **chat**: Add assistant quote context
+- **chat**: Remember quick chat window position
+- **chat**: Add anchored attachment preview zoom
+- **chat**: Redesign attachment preview overlay
+- **chat**: Redesign composer attachment previews
+- **frontend**: Organize Flash task settings
+
+### Bug Fixes
+- **chat**: Keep render output outside process details
+- **chat**: Let quoted context grow with text
+- **memory**: Default automatic retrieval off
+- **settings**: Describe every settings card field
+- **settings**: Enable successfully detected model services
+- **frontend**: Restore editor theme and selection
+- **sandbox**: Support global Playwright skills
+- Update runtime chat handoff
+- **chat**: Keep code block copy only
+- **chat**: Preserve conversation aurora
+- **chat**: Cap checkpoint flow panel width
+- **chat**: Align conversation canvas background
+- **chat**: Reserve space for collapsed flow panel
+- **chat**: Reverse flow panel collapse arrow
+- **chat**: Tune checkpoint mica opacity
+- **chat**: Balance shared checkpoint mica
+- **chat**: Share checkpoint input fades
+- **chat**: Normalize quick chat stage spacing
+- **chat**: Remove PDF attachment previews
+- **chat**: Let quick chat shadow fade naturally
+- **chat**: Reveal shared composer aurora
+- **chat**: Share checkpoint workspace backdrop
+- **chat**: Limit attachment zoom to images
+- **chat**: Reveal checkpoint panel edge
+- **chat**: Remove slash command hints
+- **chat**: Float checkpoint status card
+- **chat**: Simplify flow command rows
+- **chat**: Clarify quick chat surface layers
+- **chat**: Contain Goal status text
+- **chat**: Hide failed render previews
+- **frontend**: Remove Flash instruction divider
+- **chat**: Remove flow glyphs from status UI
+
+### Refactoring
+- **frontend**: Extract desktop chat surfaces
+- **frontend**: Split page surface controllers
+- **frontend**: Simplify quick chat chrome
+
+### Miscellaneous
+- **sdk**: Point master to non-WinUI runtime
+
 ## [0.37.1-beta.1] - 2026-08-09
 
 ### Bug Fixes
