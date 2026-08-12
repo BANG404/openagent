@@ -53,8 +53,7 @@
     align-items: flex-start;
     gap: 8px;
     padding: 8px 10px;
-    border-left: 2px solid color-mix(in srgb, var(--primary) 64%, var(--border));
-    border-radius: 5px 9px 9px 5px;
+    border-radius: 9px;
     background: color-mix(in srgb, var(--control-surface) 76%, transparent);
     color: var(--text-muted);
     font-size: 12px;
@@ -65,7 +64,7 @@
   .user-quote-composer {
     width: 100%;
     max-width: none;
-    border-radius: 5px 8px 8px 5px;
+    border-radius: 8px;
     background: color-mix(in srgb, var(--mica-divider) 48%, transparent);
   }
 
@@ -77,15 +76,10 @@
   }
 
   .quote-text {
-    display: -webkit-box;
     min-width: 0;
     flex: 1;
-    overflow: hidden;
     overflow-wrap: anywhere;
     white-space: pre-wrap;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
   }
 
   .quote-remove {

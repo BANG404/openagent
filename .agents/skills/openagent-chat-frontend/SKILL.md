@@ -513,7 +513,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the development-only `quote-context-preview` query available for
   selecting assistant text, opening the localized Add-to-chat action, adding
   and removing composer quote rows, and checking light/dark Chinese/English
-  rendering without native state.
+  rendering without native state. Quote rows use a borderless surface and grow
+  with wrapped text instead of truncating the selected context to a fixed line
+  count.
 - Keep the development-only `checkpoint-flow-preview` query available for the
   right-side Goal/Graph checkpoint panel and composer approval selector. Its
   `-kind`, `-theme`, and `-locale` query parameters must keep Goal/Graph,
