@@ -149,7 +149,11 @@ account with persistent WFP filters. OpenAgent builds and bundles the matching
 setup and command-runner helpers from the same immutable Codex revision; the
 first restricted launch may request UAC consent for provisioning. Missing
 helpers, declined elevation, or failed setup aborts the command without falling
-back to a weaker process boundary.
+back to a weaker process boundary. Global skill source remains read-only and
+executable under managed isolation. Playwright CLI daemon files are redirected
+to the sandbox-writable temporary directory by default, rather than widening
+write access to the global skill tree or the user's cache; an explicit daemon
+directory selected by the caller is preserved.
 
 Built-in read, list, search, create, edit, and file-presentation tools run in
 process, but they compile and enforce the same canonical managed filesystem
