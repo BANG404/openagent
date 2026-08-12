@@ -303,31 +303,35 @@
     color: var(--text);
     border: 0;
     border-radius: 0;
-    --accentBase: var(--surface);
-    --accentBgSubtle: var(--surface2);
-    --accentBg: var(--surface2);
-    --accentBgHover: var(--border);
-    --accentBgActive: var(--border);
-    --accentLine: var(--border);
-    --accentBorder: var(--border);
-    --accentBorderHover: var(--text-muted);
-    --accentSolid: var(--primary);
-    --accentSolidHover: var(--primary-hover);
-    --accentText: var(--primary);
-    --accentTextContrast: var(--text);
-    --basePageBg: var(--bg);
-    --baseBase: var(--surface);
-    --baseBgSubtle: var(--surface2);
-    --baseBg: var(--surface2);
-    --baseBgHover: var(--border);
-    --baseBgActive: var(--border);
-    --baseLine: var(--border);
-    --baseBorder: var(--border);
-    --baseBorderHover: var(--text-muted);
-    --baseSolid: var(--text-muted);
-    --baseSolidHover: var(--text);
-    --baseText: var(--text-muted);
-    --baseTextContrast: var(--text);
+    /* MDXEditor ships unlayered light defaults, so these theme bridges must win explicitly. */
+    --accentBase: var(--surface) !important;
+    --accentBgSubtle: var(--surface2) !important;
+    --accentBg: var(--surface2) !important;
+    --accentBgHover: var(--border) !important;
+    --accentBgActive: var(--border) !important;
+    --accentLine: var(--border) !important;
+    --accentBorder: var(--border) !important;
+    --accentBorderHover: var(--text-muted) !important;
+    --accentSolid: var(--primary) !important;
+    --accentSolidHover: var(--primary-hover) !important;
+    --accentText: var(--primary) !important;
+    --accentTextContrast: var(--text) !important;
+    --basePageBg: var(--bg) !important;
+    --baseBase: var(--surface) !important;
+    --baseBgSubtle: var(--surface2) !important;
+    --baseBg: var(--surface2) !important;
+    --baseBgHover: var(--border) !important;
+    --baseBgActive: var(--border) !important;
+    --baseLine: var(--border) !important;
+    --baseBorder: var(--border) !important;
+    --baseBorderHover: var(--text-muted) !important;
+    --baseSolid: var(--text-muted) !important;
+    --baseSolidHover: var(--text) !important;
+    --baseText: var(--text-muted) !important;
+    --baseTextContrast: var(--text) !important;
+    --editor-code-bg: color-mix(in srgb, var(--surface) 72%, var(--bg));
+    --editor-code-toolbar-bg: color-mix(in srgb, var(--surface2) 72%, var(--surface));
+    --editor-selection-bg: color-mix(in srgb, var(--primary) 28%, transparent);
   }
 
   .mdx-editor-root.mdxeditor {
@@ -407,6 +411,12 @@
 
   .mdx-editor-content:focus {
     outline: none;
+  }
+
+  .mdx-editor-content::selection,
+  .mdx-editor-content *::selection {
+    background: var(--editor-selection-bg);
+    color: var(--text);
   }
 
   .mdx-editor-content p {
@@ -495,8 +505,66 @@
 
   .mdx-editor-root .cm-editor {
     height: 100%;
-    background: var(--bg);
+    background: transparent !important;
+    color: var(--text) !important;
+  }
+
+  .mdx-editor-root [class*="codeMirrorWrapper"] {
+    padding: 0 !important;
+    border-color: var(--border) !important;
+    background: var(--editor-code-bg) !important;
+  }
+
+  .mdx-editor-root [class*="codeMirrorToolbar"] {
+    position: relative !important;
+    inset: auto !important;
+    justify-content: flex-end;
+    min-height: 34px;
+    padding: 3px 5px;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: var(--editor-code-toolbar-bg) !important;
+  }
+
+  .mdx-editor-root [class*="codeMirrorToolbar"] button,
+  .mdx-editor-root [class*="codeMirrorToolbar"] [role="combobox"] {
+    min-height: 26px;
+    color: var(--text-muted);
+  }
+
+  .mdx-editor-root [class*="codeMirrorToolbar"] button:hover,
+  .mdx-editor-root [class*="codeMirrorToolbar"] [role="combobox"]:hover {
+    background: var(--surface2);
     color: var(--text);
+  }
+
+  .mdx-editor-root [class*="codeMirrorWrapper"] .cm-editor {
+    padding: 10px 12px !important;
+  }
+
+  .mdx-editor-root .cm-content {
+    caret-color: var(--primary);
+  }
+
+  .mdx-editor-root .cm-gutters {
+    border-right-color: var(--border) !important;
+    background: transparent !important;
+    color: var(--text-muted) !important;
+  }
+
+  .mdx-editor-root .cm-activeLine,
+  .mdx-editor-root .cm-activeLineGutter {
+    background: color-mix(in srgb, var(--primary) 7%, transparent) !important;
+  }
+
+  .mdx-editor-root .cm-cursor,
+  .mdx-editor-root .cm-dropCursor {
+    border-left-color: var(--primary) !important;
+  }
+
+  .mdx-editor-root .cm-selectionBackground,
+  .mdx-editor-root .cm-content ::selection {
+    background: var(--editor-selection-bg) !important;
   }
 
   .mdx-editor-root .cm-sourceView,

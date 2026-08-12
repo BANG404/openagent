@@ -42,6 +42,24 @@
   };
 
   const uncategorizedGroupKey = "\u0000uncategorized";
+  const previewSkill: SkillMetadata = {
+    name: "Playwright",
+    description: "Render and verify browser-visible frontend behavior.",
+    category: "Development",
+    dir_name: "playwright",
+    path: "/preview/.agents/skills/playwright/SKILL.md",
+    scope: "global",
+  };
+  const previewSkillContent = `# Browser verification
+
+## Prerequisite check (required)
+
+Before proposing commands, check that at least one supported launcher is available:
+
+\`\`\`bash
+command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || command -v npx >/dev/null 2>&1
+\`\`\`
+`;
 
   let activeScope = $state<SkillScope>("global");
   let allSkills = $state<SkillMetadata[]>([]);
@@ -90,6 +108,10 @@
 
   onMount(() => {
     if (preview) {
+      allSkills = [previewSkill];
+      selectedSkill = previewSkill;
+      editorContent = previewSkillContent;
+      selectedContentLoaded = true;
       skillsLoading = false;
       return;
     }
@@ -156,6 +178,7 @@
 
   function handleEditorInput(value: string) {
     editorContent = value;
+    if (preview) return;
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
     autoSaveTimer = setTimeout(() => saveCurrentSkill(), 700);
     saveMsg = "";
