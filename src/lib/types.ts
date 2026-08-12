@@ -13,6 +13,12 @@ export interface ChatAttachment {
   previewUrl?: string;
 }
 
+export type UserMessageContext = {
+  type: "quote";
+  text: string;
+  sourceMessageId?: string | null;
+};
+
 export type ContextCompactionStage =
   "checking" | "summarizing" | "creating" | "done" | "skipped" | "failed";
 
@@ -46,6 +52,7 @@ export type StreamItem =
       error?: string | null;
     }
   | { type: "attachment"; attachment: ChatAttachment }
+  | { type: "quote"; context: UserMessageContext }
   | {
       type: "runtime_notice";
       kind: "error" | "interrupted";

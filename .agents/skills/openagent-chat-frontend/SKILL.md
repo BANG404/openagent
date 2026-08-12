@@ -215,6 +215,14 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 ## Attachments and editing
 
+- Text selected inside an assistant answer exposes one compact, localized
+  `Add to chat` floating action. Adding it creates a structured `quote` context
+  tied to the source assistant message, moves focus to the shared composer, and
+  leaves the editable draft text unchanged. Render pending quotes above the
+  textarea with an explicit remove action; queue, submit, restore, branch edit,
+  and remote-gateway flows must preserve the same typed context. Render durable
+  quotes above the user-authored message text and keep their provider wrapper
+  out of the visible transcript.
 - Reuse one attachment preview component in composer and restored transcript.
 - Open attachment previews in the same full-window visual frame used by rich
   Mermaid and book previews: center the attachment within the framed canvas and
@@ -492,6 +500,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   parameters must keep card preview, removal, upload, horizontal overflow,
   pointer-anchored image zoom, normal text scrolling, PDF and unsupported-extension blocking,
   light/dark, and Chinese/English checks addressable without native state.
+- Keep the development-only `quote-context-preview` query available for
+  selecting assistant text, opening the localized Add-to-chat action, adding
+  and removing composer quote rows, and checking light/dark Chinese/English
+  rendering without native state.
 - Keep the development-only `checkpoint-flow-preview` query available for the
   right-side Goal/Graph checkpoint panel and composer approval selector. Its
   `-kind`, `-theme`, and `-locale` query parameters must keep Goal/Graph,

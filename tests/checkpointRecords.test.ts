@@ -114,4 +114,33 @@ describe("checkpoint record projection", () => {
       request: { request_id: "question-1", conv_id: "conversation-1" },
     });
   });
+
+  test("restores quoted context separately from user-authored text", () => {
+    const [message] = checkpointRecordsToMessages(
+      [
+        record({
+          id: "user-1",
+          role: "user",
+          content: [
+            { type: "quote", text: "Earlier assistant excerpt", source_message_id: "assistant-0" },
+            { type: "text", text: "Explain this claim" },
+          ],
+        }),
+      ],
+      "checkpoint-1",
+    );
+
+    expect(message.content).toBe("Explain this claim");
+    expect(message.items).toEqual([
+      {
+        type: "quote",
+        context: {
+          type: "quote",
+          text: "Earlier assistant excerpt",
+          sourceMessageId: "assistant-0",
+        },
+      },
+      { type: "text", content: "Explain this claim" },
+    ]);
+  });
 });

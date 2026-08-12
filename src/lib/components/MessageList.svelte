@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick } from "svelte";
+  import { onMount, tick } from "svelte";
   import StreamItemRenderer from "./StreamItemRenderer.svelte";
   import ToolCallGroup from "./ToolCallGroup.svelte";
   import ProcessRecordGroup from "./ProcessRecordGroup.svelte";
@@ -11,8 +11,15 @@
   import { finalAssistantOutput, finalAssistantOutputStartIndex } from "$lib/assistantOutput";
   import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
-  import type { ChatAttachment, ChatMessage, HtmlPreviewConfig, StreamItem } from "$lib/types";
+  import type {
+    ChatAttachment,
+    ChatMessage,
+    HtmlPreviewConfig,
+    StreamItem,
+    UserMessageContext,
+  } from "$lib/types";
   import AttachmentPreview from "./AttachmentPreview.svelte";
+  import UserQuote from "./UserQuote.svelte";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import {
     appendLiveStreamEntry,
@@ -61,7 +68,9 @@
       userMsgIdx: number,
       newText: string,
       attachments: ChatAttachment[],
+      contexts: UserMessageContext[],
     ) => void;
+    onAddQuote: (context: UserMessageContext) => void;
     onReExecute: (convId: string, assistantMsgIdx: number) => void;
     onSwitchBranch: (convId: string, parentKey: string, targetIdx: number) => void;
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
@@ -98,6 +107,7 @@
     editable = true,
     attachmentPreviewLoader,
     onCommitEdit,
+    onAddQuote,
     onReExecute,
     onSwitchBranch,
     onSubmitUserInput,
@@ -123,6 +133,7 @@
   let editingMsgId = $state<string | null>(null);
   let editingText = $state("");
   let removedAttachmentPaths = $state(new Set<string>());
+  let removedContextKeys = $state(new Set<string>());
   let editingTextarea = $state<HTMLTextAreaElement | null>(null);
   let expandedUserMessageIds = $state(new Set<string>());
   let streamedOpenThinkingItemKeys = $state(new Set<string>());
@@ -130,6 +141,13 @@
   let readingTurnKey = $state<string | null>(null);
   let copyFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
   let virtualMessageList = $state<VirtualMessageList | null>(null);
+  let messagesRoot = $state<HTMLElement | null>(null);
+  let selectionPopover = $state<{
+    text: string;
+    sourceMessageId: string;
+    left: number;
+    top: number;
+  } | null>(null);
   function isHiddenMessage(msg: ChatMessage) {
     return msg.role === "system";
   }
@@ -159,6 +177,7 @@
     editingMsgId = null;
     editingText = "";
     removedAttachmentPaths = new Set();
+    removedContextKeys = new Set();
   }
 
   // Editing is local to this message list. Do not carry it into another
@@ -169,13 +188,25 @@
     readingTurnKey = null;
   });
 
-  function commitEdit(convId: string, userMsgIdx: number, attachments: ChatAttachment[]) {
+  function contextKey(context: UserMessageContext): string {
+    return `${context.sourceMessageId ?? ""}\u0000${context.text}`;
+  }
+
+  function commitEdit(
+    convId: string,
+    userMsgIdx: number,
+    attachments: ChatAttachment[],
+    contexts: UserMessageContext[],
+  ) {
     const text = editingText;
     const retainedAttachments = attachments.filter(
       (attachment) => !removedAttachmentPaths.has(attachment.path),
     );
+    const retainedContexts = contexts.filter(
+      (context) => !removedContextKeys.has(contextKey(context)),
+    );
     cancelEdit();
-    onCommitEdit(convId, userMsgIdx, text, retainedAttachments);
+    onCommitEdit(convId, userMsgIdx, text, retainedAttachments, retainedContexts);
   }
 
   function switchBranch(parentKey: string, targetIdx: number) {
@@ -190,6 +221,7 @@
     editingMsgId = msg.id;
     editingText = msg.content;
     removedAttachmentPaths = new Set();
+    removedContextKeys = new Set();
     await tick();
     editingTextarea?.focus();
   }
@@ -200,11 +232,99 @@
       editingMsgId = msg.id;
       editingText = msg.content;
       removedAttachmentPaths = new Set();
+      removedContextKeys = new Set();
     }
     removedAttachmentPaths = new Set([...removedAttachmentPaths, attachmentPath]);
     await tick();
     editingTextarea?.focus();
   }
+
+  async function stageContextRemoval(msg: ChatMessage, context: UserMessageContext) {
+    if (isStreaming) return;
+    if (editingMsgId !== msg.id) {
+      editingMsgId = msg.id;
+      editingText = msg.content;
+      removedAttachmentPaths = new Set();
+      removedContextKeys = new Set();
+    }
+    removedContextKeys = new Set([...removedContextKeys, contextKey(context)]);
+    await tick();
+    editingTextarea?.focus();
+  }
+
+  function selectionOwner(node: Node | null): HTMLElement | null {
+    const element = node instanceof Element ? node : node?.parentElement;
+    return element?.closest<HTMLElement>("[data-selection-source-message-id]") ?? null;
+  }
+
+  function captureAssistantSelection() {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0 || !messagesRoot) {
+      selectionPopover = null;
+      return;
+    }
+    const anchorOwner = selectionOwner(selection.anchorNode);
+    const focusOwner = selectionOwner(selection.focusNode);
+    const sourceMessageId = anchorOwner?.dataset.selectionSourceMessageId;
+    if (
+      !anchorOwner ||
+      !focusOwner ||
+      !sourceMessageId ||
+      focusOwner.dataset.selectionSourceMessageId !== sourceMessageId ||
+      !messagesRoot.contains(anchorOwner) ||
+      !messagesRoot.contains(focusOwner)
+    ) {
+      selectionPopover = null;
+      return;
+    }
+    const text = selection.toString().trim();
+    if (!text) {
+      selectionPopover = null;
+      return;
+    }
+    const rect = selection.getRangeAt(0).getBoundingClientRect();
+    if (!rect.width && !rect.height) {
+      selectionPopover = null;
+      return;
+    }
+    selectionPopover = {
+      text,
+      sourceMessageId,
+      left: Math.min(window.innerWidth - 72, Math.max(72, rect.left + rect.width / 2)),
+      top: Math.max(8, rect.top - 8),
+    };
+  }
+
+  function addSelectedQuote() {
+    if (!selectionPopover) return;
+    onAddQuote({
+      type: "quote",
+      text: selectionPopover.text,
+      sourceMessageId: selectionPopover.sourceMessageId,
+    });
+    selectionPopover = null;
+    window.getSelection()?.removeAllRanges();
+  }
+
+  onMount(() => {
+    const closeOnViewportChange = () => (selectionPopover = null);
+    const closeOnCollapsedSelection = () => {
+      if (window.getSelection()?.isCollapsed) selectionPopover = null;
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") selectionPopover = null;
+    };
+    window.addEventListener("resize", closeOnViewportChange);
+    window.addEventListener("scroll", closeOnViewportChange, true);
+    window.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("selectionchange", closeOnCollapsedSelection);
+    return () => {
+      window.removeEventListener("resize", closeOnViewportChange);
+      window.removeEventListener("scroll", closeOnViewportChange, true);
+      window.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("selectionchange", closeOnCollapsedSelection);
+    };
+  });
 
   function isLongUserMessage(content: string) {
     return (
@@ -368,6 +488,9 @@
 
 <div
   class="messages-inner"
+  bind:this={messagesRoot}
+  onpointerup={captureAssistantSelection}
+  role="presentation"
   class:messages-inner-empty={visibleMessages.length === 0 && !isStreaming}
   class:messages-inner-responsive-double={messageLayout === "responsive_double"}
   style="padding-bottom: {paddingBottom}px; --user-message-collapse-lines: {USER_MESSAGE_COLLAPSE_LINES}"
@@ -483,6 +606,7 @@
                 item={segment.item}
                 itemKey={`${entry.key}-${segment.startIndex}`}
                 messageId={segment.startIndex === 0 && assistantMsg ? assistantMsg.id : undefined}
+                selectionSourceMessageId={assistantMsg?.id}
                 isLastText={segment.item.type === "text" &&
                   (assistantIsStreaming
                     ? segment.startIndex === renderedAssistantItems.length - 1
@@ -672,16 +796,38 @@
             : null}
           {@const attachmentItems = msg.items?.filter((item) => item.type === "attachment") ?? []}
           {@const attachments = attachmentItems.map((item) => item.attachment)}
+          {@const quoteItems = msg.items?.filter((item) => item.type === "quote") ?? []}
+          {@const contexts = quoteItems.map((item) => item.context)}
           {@const isEditingThisMessage = editingMsgId === msg.id}
           {@const retainedAttachmentCount = attachments.filter(
             (attachment) => !removedAttachmentPaths.has(attachment.path),
           ).length}
+          {@const retainedContextCount = contexts.filter(
+            (context) => !removedContextKeys.has(contextKey(context)),
+          ).length}
           {@const isDirty =
             isEditingThisMessage &&
-            (editingText !== msg.content || removedAttachmentPaths.size > 0)}
+            (editingText !== msg.content ||
+              removedAttachmentPaths.size > 0 ||
+              removedContextKeys.size > 0)}
           {@const canSubmitEdit =
-            isDirty && (editingText.trim().length > 0 || retainedAttachmentCount > 0)}
+            isDirty &&
+            (editingText.trim().length > 0 ||
+              retainedAttachmentCount > 0 ||
+              retainedContextCount > 0)}
           <div class="user-msg message-record" id={`message-${msg.id}`} data-message-id={msg.id}>
+            {#if contexts.length > 0}
+              <div class="user-contexts">
+                {#each contexts.filter((context) => !isEditingThisMessage || !removedContextKeys.has(contextKey(context))) as context (contextKey(context))}
+                  <UserQuote
+                    {context}
+                    onRemove={!editable || isStreaming || !isEditingThisMessage
+                      ? undefined
+                      : () => stageContextRemoval(msg, context)}
+                  />
+                {/each}
+              </div>
+            {/if}
             {#if editingMsgId === msg.id}
               <textarea
                 bind:this={editingTextarea}
@@ -694,7 +840,7 @@
                 onkeydown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey && canSubmitEdit) {
                     e.preventDefault();
-                    commitEdit(activeConvId!, msgIdx, attachments);
+                    commitEdit(activeConvId!, msgIdx, attachments, contexts);
                   } else if (e.key === "Escape") {
                     cancelEdit();
                     (e.currentTarget as HTMLTextAreaElement).blur();
@@ -775,7 +921,8 @@
                 class="edit-confirm-btn"
                 type="button"
                 disabled={!canSubmitEdit}
-                onclick={() => commitEdit(activeConvId!, msgIdx, attachments)}>{$t("send")}</button
+                onclick={() => commitEdit(activeConvId!, msgIdx, attachments, contexts)}
+                >{$t("send")}</button
               >
             </div>
             <div class="msg-meta-row">
@@ -816,6 +963,19 @@
     {/snippet}
   </VirtualMessageList>
 </div>
+
+{#if selectionPopover}
+  <button
+    class="selection-add-button"
+    type="button"
+    style={`left: ${selectionPopover.left}px; top: ${selectionPopover.top}px`}
+    onpointerdown={(event) => event.preventDefault()}
+    onclick={addSelectedQuote}
+  >
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M3 8h7M3 11.5h5" /></svg>
+    <span>{$t("addSelectionToChat")}</span>
+  </button>
+{/if}
 
 {#if readingTurnKey}
   <AgentBookReader
@@ -1043,6 +1203,55 @@
     justify-content: flex-end;
     gap: 6px;
     margin-top: 6px;
+  }
+
+  .user-contexts {
+    display: flex;
+    width: min(100%, 680px);
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    margin-bottom: 6px;
+  }
+
+  .selection-add-button {
+    position: fixed;
+    z-index: 80;
+    display: inline-flex;
+    min-height: 30px;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border: 0;
+    border-radius: 9px;
+    background: var(--control-surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    line-height: 18px;
+    box-shadow: var(--raised-shadow);
+    cursor: pointer;
+    transform: translate(-50%, -100%);
+    -webkit-backdrop-filter: blur(18px) saturate(1.18);
+    backdrop-filter: blur(18px) saturate(1.18);
+  }
+
+  .selection-add-button:hover {
+    background: color-mix(in srgb, var(--control-surface) 86%, var(--primary) 14%);
+  }
+
+  .selection-add-button:focus-visible {
+    outline: none;
+    box-shadow: var(--raised-shadow), var(--focus-ring);
+  }
+
+  .selection-add-button svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linecap: round;
   }
 
   .user-content-edit {

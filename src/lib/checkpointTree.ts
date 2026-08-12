@@ -174,6 +174,16 @@ function recordToMessage(
           mimeType: typeof part.mime_type === "string" ? part.mime_type : undefined,
         },
       });
+    } else if (part.type === "quote" && typeof part.text === "string") {
+      derivedItems.push({
+        type: "quote",
+        context: {
+          type: "quote",
+          text: part.text,
+          sourceMessageId:
+            typeof part.source_message_id === "string" ? part.source_message_id : undefined,
+        },
+      });
     } else if (part.type === "reasoning" && typeof part.text === "string") {
       derivedItems.push({ type: "thinking", content: part.text });
     } else if (part.type === "tool_use") {

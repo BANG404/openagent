@@ -7,8 +7,16 @@
   import { providerRequiresApiKey } from "$lib/providerCatalog";
   import type { QueuedChatMessage } from "$lib/chatQueue";
   import type { CachedRestoreSurface } from "$lib/startupRestoreCache";
-  import type { AppConfig, ChatAttachment, ChatMessage, FileChange, StreamItem } from "$lib/types";
+  import type {
+    AppConfig,
+    ChatAttachment,
+    ChatMessage,
+    FileChange,
+    StreamItem,
+    UserMessageContext,
+  } from "$lib/types";
   import { t } from "$lib/i18n";
+  import { showToast } from "$lib/toast";
   import ChatQueue from "./ChatQueue.svelte";
   import CheckpointFlowPanelHost from "./CheckpointFlowPanelHost.svelte";
   import FileChangeBanner from "./FileChangeBanner.svelte";
@@ -57,6 +65,7 @@
       userMsgIdx: number,
       newText: string,
       attachments: ChatAttachment[],
+      contexts: UserMessageContext[],
     ) => void | Promise<void>;
     configureModels: () => void | Promise<void>;
     finishStreamCompletionTailAnchor: (token: number) => void;
@@ -81,6 +90,7 @@
     inputAreaHeight = $bindable(120),
     inputText = $bindable(),
     inputAttachments = $bindable(),
+    inputContexts = $bindable(),
   }: {
     view: ConversationSurfaceView;
     actions: ConversationSurfaceActions;
@@ -89,9 +99,31 @@
     inputAreaHeight: number;
     inputText: string;
     inputAttachments: ChatAttachment[];
+    inputContexts: UserMessageContext[];
   } = $props();
 
   let checkpointFlowPanelCollapsed = $state(true);
+  let composerFocusRequest = $state(0);
+
+  function addQuote(context: UserMessageContext) {
+    if (
+      inputContexts.some(
+        (item) =>
+          item.type === context.type &&
+          item.text === context.text &&
+          item.sourceMessageId === context.sourceMessageId,
+      )
+    ) {
+      composerFocusRequest += 1;
+      return;
+    }
+    if (inputContexts.length >= 8) {
+      showToast({ title: $t("quotedContextLimit"), variant: "error" });
+      return;
+    }
+    inputContexts = [...inputContexts, context];
+    composerFocusRequest += 1;
+  }
 
   function shouldShowDefaultProviderCredentialWarning(appConfig: AppConfig | null): boolean {
     if (!appConfig) return false;
@@ -170,6 +202,7 @@
           showNewConversationContext={!view.newConversationLayout}
           checkpointLoadError={view.checkpointLoadError}
           onCommitEdit={actions.commitEdit}
+          onAddQuote={addQuote}
           onReExecute={actions.reExecuteMessage}
           onSwitchBranch={actions.switchBranch}
           onSubmitUserInput={actions.submitUserInput}
@@ -210,6 +243,7 @@
           <MessageInput
             bind:value={inputText}
             bind:attachments={inputAttachments}
+            bind:contexts={inputContexts}
             bind:selectedModel={composerPreferences.selectedModel}
             modelOptions={composerPreferences.modelOptions}
             placeholder={view.tauriAvailable
@@ -220,7 +254,9 @@
             disabled={!view.tauriAvailable}
             isStreaming={view.isStreaming}
             isPaused={view.isPaused}
-            sendDisabled={(!inputText.trim() && inputAttachments.length === 0) ||
+            sendDisabled={(!inputText.trim() &&
+              inputAttachments.length === 0 &&
+              inputContexts.length === 0) ||
               !view.tauriAvailable ||
               composerPreferences.modelOptions.length === 0}
             sendTitle={$t("send")}
@@ -237,6 +273,7 @@
             showApprovalMode
             approvalMode={view.config?.approval_mode ?? "off"}
             onApprovalModeChange={composerPreferences.handleApprovalModeChange}
+            focusRequest={composerFocusRequest}
             onSend={actions.sendMessage}
             onStop={actions.stopMessage}
             onPause={actions.pauseCurrentStream}

@@ -15,15 +15,18 @@
   import type {
     ApprovalMode,
     ChatAttachment,
+    ChatMessage,
     PermissionProfile,
     ReasoningEffort,
     RecentWorkspace,
     WorkspaceContext,
+    UserMessageContext,
   } from "$lib/types";
 
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
+  import MessageList from "$lib/components/MessageList.svelte";
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
   import ReasoningEffortSelect from "$lib/components/ReasoningEffortSelect.svelte";
   import WorkspaceSwitcher from "$lib/components/WorkspaceSwitcher.svelte";
@@ -56,6 +59,10 @@
   let commandAttachments = $state<ChatAttachment[]>([]);
   let pauseValue = $state("");
   let pauseAttachments = $state<ChatAttachment[]>([]);
+  let quoteValue = $state("");
+  let quoteContexts = $state<UserMessageContext[]>([]);
+  let quoteFocusRequest = $state(0);
+  let quoteMessagesElement = $state<HTMLElement | null>(null);
   let paused = $state(false);
   let checkpointValue = $state("");
   let checkpointAttachments = $state<ChatAttachment[]>([]);
@@ -65,6 +72,32 @@
   let panelWidth = $state(320);
   let panelCollapsed = $state(false);
   let panelResizing = $state(false);
+  let quoteMessages = $derived<ChatMessage[]>([
+    {
+      id: "preview-user",
+      role: "user",
+      content: locale === "zh" ? "总结一下这个设计。" : "Summarize this design.",
+      timestamp: Date.now() - 2000,
+    },
+    {
+      id: "preview-assistant",
+      role: "assistant",
+      content:
+        locale === "zh"
+          ? "选择这段回答中的任意文字，然后使用浮动操作把它添加到下一条消息。引用会作为结构化上下文保留。"
+          : "Select any text in this answer, then use the floating action to add it to the next message. The excerpt remains structured context.",
+      items: [
+        {
+          type: "text",
+          content:
+            locale === "zh"
+              ? "选择这段回答中的任意文字，然后使用浮动操作把它添加到下一条消息。引用会作为结构化上下文保留。"
+              : "Select any text in this answer, then use the floating action to add it to the next message. The excerpt remains structured context.",
+        },
+      ],
+      timestamp: Date.now() - 1000,
+    },
+  ]);
 
   const slashCommands: SlashCommand[] = [
     {
@@ -375,6 +408,59 @@
       onResume={() => (paused = false)}
     />
   </main>
+{:else if preview === "quote-context"}
+  <main class="quote-context-preview-stage">
+    <section class="quote-context-preview-messages" bind:this={quoteMessagesElement}>
+      <MessageList
+        messages={quoteMessages}
+        scrollElement={quoteMessagesElement}
+        isStreaming={false}
+        isAwaitingStreamOutput={false}
+        currentStreamItems={[]}
+        currentStreamMessageId={null}
+        activeConvId="quote-preview"
+        activeBranchId={null}
+        debugMode={false}
+        activeTree={undefined}
+        paddingBottom={120}
+        showApiKeyWarn={false}
+        shikiTheme={theme === "dark" ? "github-dark" : "github-light"}
+        mermaidConfig={mermaidConfigFor(theme === "dark")}
+        newConversationMemoryPrompt={null}
+        newConversationMemoryLoading={false}
+        editable={false}
+        onCommitEdit={() => {}}
+        onAddQuote={(context) => {
+          if (!quoteContexts.some((item) => item.text === context.text)) {
+            quoteContexts = [...quoteContexts, context];
+          }
+          quoteFocusRequest += 1;
+        }}
+        onReExecute={() => {}}
+        onSwitchBranch={() => {}}
+        onSubmitUserInput={() => {}}
+        onCancelUserInput={() => {}}
+      />
+    </section>
+    <div class="quote-context-preview-composer">
+      <MessageInput
+        bind:value={quoteValue}
+        attachments={[]}
+        bind:contexts={quoteContexts}
+        selectedModel="preview"
+        modelOptions={[{ value: "preview", label: "gpt-5.6" }]}
+        placeholder={$t("inputPlaceholder")}
+        disabled={false}
+        isStreaming={false}
+        sendDisabled={!quoteValue.trim() && quoteContexts.length === 0}
+        sendTitle={$t("send")}
+        showAttachments={false}
+        focusRequest={quoteFocusRequest}
+        onSend={() => {}}
+        onStop={() => {}}
+      />
+    </div>
+  </main>
 {:else if preview === "command-palette"}
   <main class="command-palette-preview-stage">
     <MessageInput
@@ -441,6 +527,27 @@
     min-height: 100vh;
     box-sizing: border-box;
     background: var(--bg);
+  }
+  .quote-context-preview-stage {
+    position: relative;
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+    background: var(--bg);
+  }
+  .quote-context-preview-messages {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+  }
+  .quote-context-preview-composer {
+    position: fixed;
+    right: 32px;
+    bottom: 24px;
+    left: 32px;
+    z-index: 20;
+    width: min(900px, calc(100% - 64px));
+    margin: 0 auto;
   }
   .reasoning-effort-preview-stage {
     display: grid;

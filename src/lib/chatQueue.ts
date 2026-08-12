@@ -1,8 +1,9 @@
-import type { ChatAttachment } from "./types";
+import type { ChatAttachment, UserMessageContext } from "./types";
 
 export interface QueuedChatMessage {
   text: string;
   attachments: ChatAttachment[];
+  contexts: UserMessageContext[];
   model: string;
 }
 

@@ -20,6 +20,7 @@
     item: StreamItem;
     itemKey: string;
     messageId?: string;
+    selectionSourceMessageId?: string;
     isLastText?: boolean;
     debugCheckpointId?: string;
     isStreaming?: boolean;
@@ -35,6 +36,7 @@
     item,
     itemKey,
     messageId,
+    selectionSourceMessageId,
     isLastText = false,
     debugCheckpointId,
     isStreaming = false,
@@ -74,6 +76,7 @@
     class="assistant-msg stream-item message-record"
     id={messageId ? `message-${messageId}` : undefined}
     data-message-id={messageId}
+    data-selection-source-message-id={selectionSourceMessageId}
     data-stream-item={itemKey}
   >
     <Streamdown

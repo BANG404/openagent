@@ -1,11 +1,12 @@
 <script lang="ts">
-  import type { ChatAttachment } from "$lib/types";
+  import type { ChatAttachment, UserMessageContext } from "$lib/types";
   import { t } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
 
   interface QueueItem {
     text: string;
     attachments: ChatAttachment[];
+    contexts: UserMessageContext[];
   }
 
   interface Props {
@@ -19,6 +20,7 @@
   function itemSummary(item: QueueItem): string {
     const text = item.text.trim();
     if (text) return text;
+    if (item.contexts.length > 0) return item.contexts[0].text;
     return item.attachments.map((attachment) => attachment.name).join(", ");
   }
 </script>
@@ -46,6 +48,9 @@
                 <span {...props} class="attachment-count">📎 {item.attachments.length}</span>
               {/snippet}
             </Tooltip>
+          {/if}
+          {#if item.contexts.length > 0}
+            <span class="context-count">{$t("quotedContext")} {item.contexts.length}</span>
           {/if}
           <Tooltip text={$t("removeQueuedMessage")}>
             {#snippet trigger(props)}
@@ -161,7 +166,8 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .attachment-count {
+  .attachment-count,
+  .context-count {
     flex: none;
     color: var(--text-muted);
     font-size: 11px;

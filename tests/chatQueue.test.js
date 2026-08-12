@@ -7,7 +7,7 @@ import {
   removeQueuedChatMessage,
 } from "../src/lib/chatQueue";
 
-const message = (text) => ({ text, attachments: [], model: "provider/model" });
+const message = (text) => ({ text, attachments: [], contexts: [], model: "provider/model" });
 
 describe("chat queue", () => {
   test("keeps queued messages scoped to their conversation", () => {
@@ -23,5 +23,14 @@ describe("chat queue", () => {
     const queue = { a: [message("only")] };
     expect(removeQueuedChatMessage(queue, "a", 0)).toEqual({});
     expect(clearQueuedChatMessages(queue, "a")).toEqual({});
+  });
+
+  test("keeps quoted context attached to a queued turn", () => {
+    const queued = {
+      ...message("Explain this"),
+      contexts: [{ type: "quote", text: "Earlier answer", sourceMessageId: "assistant-1" }],
+    };
+    const queue = enqueueChatMessage({}, "a", queued);
+    expect(dequeueChatMessage(queue, "a").next).toEqual(queued);
   });
 });

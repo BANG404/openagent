@@ -3,8 +3,15 @@
   import { invoke } from "$lib/openagent/tauriClient";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { onMount, tick } from "svelte";
-  import type { AgentRole, ApprovalMode, ChatAttachment, ReasoningEffort } from "$lib/types";
+  import type {
+    AgentRole,
+    ApprovalMode,
+    ChatAttachment,
+    ReasoningEffort,
+    UserMessageContext,
+  } from "$lib/types";
   import AttachmentPreview from "./AttachmentPreview.svelte";
+  import UserQuote from "./UserQuote.svelte";
   import MentionPalette, { type PaletteItem } from "./MentionPalette.svelte";
   import Select from "./ui/Select.svelte";
   import Tooltip from "./Tooltip.svelte";
@@ -45,6 +52,7 @@
   interface Props {
     value: string;
     attachments: ChatAttachment[];
+    contexts?: UserMessageContext[];
     selectedModel: string;
     modelOptions: { value: string; label: string; selectedLabel?: string }[];
     placeholder: string;
@@ -90,6 +98,7 @@
   let {
     value = $bindable(),
     attachments = $bindable(),
+    contexts = $bindable([]),
     selectedModel = $bindable(),
     modelOptions = [],
     placeholder,
@@ -131,7 +140,9 @@
   let composerEl = $state<HTMLElement | null>(null);
   let browserFileInput = $state<HTMLInputElement | null>(null);
   let wasDisabled = $state(false);
-  const hasComposerContent = $derived(Boolean(value.trim() || attachments.length));
+  const hasComposerContent = $derived(
+    Boolean(value.trim() || attachments.length || contexts.length),
+  );
   const streamingPrimaryTitle = $derived(
     hasComposerContent ? sendTitle : isPaused ? resumeTitle : pauseTitle,
   );
@@ -164,6 +175,10 @@
     } else {
       onPause();
     }
+  }
+
+  function removeContext(index: number) {
+    contexts = contexts.filter((_, itemIndex) => itemIndex !== index);
   }
 
   // ─── Palette state ─────────────────────────────────────────────────────────
@@ -526,6 +541,7 @@
 
   async function focusInput() {
     await tick();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
     if (!textareaEl || disabled) return;
     textareaEl.focus({ preventScroll: true });
   }
@@ -825,6 +841,13 @@
       !showReasoningEffort &&
       !showApprovalMode}
   >
+    {#if contexts.length > 0}
+      <div class="context-list">
+        {#each contexts as context, index (`${context.sourceMessageId ?? "quote"}-${index}`)}
+          <UserQuote {context} variant="composer" onRemove={() => removeContext(index)} />
+        {/each}
+      </div>
+    {/if}
     {#if attachments.length > 0}
       <div class="attachment-list">
         {#each attachments as attachment (attachment.path)}
@@ -1102,6 +1125,13 @@
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
+  }
+
+  .context-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px 12px 2px;
   }
 
   .attachment-list::-webkit-scrollbar {

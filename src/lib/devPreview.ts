@@ -4,6 +4,7 @@ export type StandaloneDevPreview =
   | "checkpoint-flow"
   | "command-palette"
   | "pause-control"
+  | "quote-context"
   | "permission-settings"
   | "reasoning-effort"
   | "workspace-switcher";
@@ -14,6 +15,7 @@ const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
   ["workspace-switcher-preview", "workspace-switcher"],
   ["checkpoint-flow-preview", "checkpoint-flow"],
   ["pause-control-preview", "pause-control"],
+  ["quote-context-preview", "quote-context"],
   ["command-palette-preview", "command-palette"],
   ["reasoning-effort-preview", "reasoning-effort"],
   ["attachment-composer-preview", "attachment-composer"],

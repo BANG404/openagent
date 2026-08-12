@@ -26,7 +26,7 @@ use openagent_runtime::tools::ScheduleChatHookArgs;
 use openagent_runtime::{
     html_preview_protocol, mcp, tools, tracing_setup, AgentInputRequest, ChatModelBinding,
     CommandSpec, CreateConversationRequest, InputError, ResolvedInput, ResumeInterruptRequest,
-    RuntimeBootstrap, SubmissionOutcome, SubmitInterruptResponseRequest,
+    RuntimeBootstrap, SubmissionOutcome, SubmitInterruptResponseRequest, UserMessageContext,
 };
 use std::sync::Arc;
 use tauri::{path::BaseDirectory, Emitter, Manager, State};
@@ -43,6 +43,7 @@ async fn submit_agent_input(
     parent_checkpoint_id: Option<String>,
     branch_id: Option<String>,
     attachments: Option<Vec<String>>,
+    contexts: Option<Vec<UserMessageContext>>,
     model_binding: Option<ChatModelBinding>,
     user_message_id: Option<String>,
     assistant_message_id: Option<String>,
@@ -56,6 +57,7 @@ async fn submit_agent_input(
             parent_checkpoint_id,
             branch_id,
             attachments: attachments.unwrap_or_default(),
+            contexts: contexts.unwrap_or_default(),
             model_binding,
             user_message_id,
             assistant_message_id,

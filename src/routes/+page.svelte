@@ -134,6 +134,7 @@
     WslWorkspaceTarget,
     ProviderAuthDeviceCodeEvent,
     GoalRunUpdatedEvent,
+    UserMessageContext,
   } from "$lib/types";
 
   type AgentCommandSpec = {
@@ -478,6 +479,7 @@
 
   let inputText = $state("");
   let inputAttachments = $state<ChatAttachment[]>([]);
+  let inputContexts = $state<UserMessageContext[]>([]);
   const composerPreferences = new ComposerPreferences({
     getConfig: () => config,
     setConfig: (next) => (config = next),
@@ -1187,6 +1189,7 @@
     assistantMsgIdx: number,
     newText?: string,
     newAttachments?: ChatAttachment[],
+    newContexts?: UserMessageContext[],
   ) {
     if (chatStreams.streamingConversationIds[convId] || !tauriAvailable) return;
     const convIdx = conversations.findIndex((c) => c.id === convId);
@@ -1215,8 +1218,13 @@
           (item): item is Extract<StreamItem, { type: "attachment" }> => item.type === "attachment",
         )
         .map((item) => item.attachment);
+    const sourceContexts =
+      newContexts ??
+      (userMsg.items ?? [])
+        .filter((item): item is Extract<StreamItem, { type: "quote" }> => item.type === "quote")
+        .map((item) => item.context);
     const text = (newText ?? userMsg.content).trim();
-    if (!text && sourceAttachments.length === 0) return;
+    if (!text && sourceAttachments.length === 0 && sourceContexts.length === 0) return;
     let resendAttachments: ChatAttachment[];
     try {
       resendAttachments = await Promise.all(
@@ -1274,6 +1282,7 @@
     pendingForkMessageId = { ...pendingForkMessageId, [convId]: userMsg.id };
     inputText = text;
     inputAttachments = resendAttachments;
+    inputContexts = sourceContexts;
     if (activeConvId !== convId) {
       restoringSurface = "conversation";
       activeConvId = convId;
@@ -1380,16 +1389,17 @@
     userMsgIdx: number,
     newText: string,
     attachments: ChatAttachment[],
+    contexts: UserMessageContext[],
   ) {
     const text = newText.trim();
-    if (!text && attachments.length === 0) return;
+    if (!text && attachments.length === 0 && contexts.length === 0) return;
     const conv = conversations.find((c) => c.id === convId);
     if (!conv) return;
     const userMsg = conv.messages[userMsgIdx];
     if (!userMsg || userMsg.role !== "user") return;
     const assistantMsg = conv.messages[userMsgIdx + 1];
     if (!assistantMsg?.checkpointId) return;
-    await reExecuteMsg(convId, userMsgIdx + 1, text, attachments);
+    await reExecuteMsg(convId, userMsgIdx + 1, text, attachments, contexts);
   }
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────────
@@ -3103,6 +3113,7 @@
     targetConvId: string | null = activeConvId,
     clearInput = false,
     attachments: ChatAttachment[] = inputAttachments,
+    contexts: UserMessageContext[] = inputContexts,
     model = composerPreferences.selectedModel,
   ) {
     if (!tauriAvailable) {
@@ -3115,8 +3126,14 @@
       return;
     }
 
-    const text = rawText.trim() || (attachments.length > 0 ? $t("attachmentOnlyPrompt") : "");
-    if (!text && attachments.length === 0) return;
+    const text =
+      rawText.trim() ||
+      (attachments.length > 0
+        ? $t("attachmentOnlyPrompt")
+        : contexts.length > 0
+          ? $t("quoteOnlyPrompt")
+          : "");
+    if (!text && attachments.length === 0 && contexts.length === 0) return;
     if (targetConvId && chatStreams.streamingConversationIds[targetConvId]) return;
     if (!targetConvId && isCurrentStreaming) return;
 
@@ -3153,6 +3170,7 @@
     if (clearInput) {
       inputText = "";
       inputAttachments = [];
+      inputContexts = [];
     }
 
     const abandonedInput = pendingUserInputs[convId];
@@ -3169,7 +3187,10 @@
       role: "user",
       content: text,
       timestamp: Date.now(),
-      items: attachments.map((attachment) => ({ type: "attachment", attachment })),
+      items: [
+        ...contexts.map((context) => ({ type: "quote" as const, context })),
+        ...attachments.map((attachment) => ({ type: "attachment" as const, attachment })),
+      ],
     };
     const convIdx = conversations.findIndex((c) => c.id === convId);
     const priorMessages = conversations[convIdx]?.messages ?? [];
@@ -3248,6 +3269,7 @@
         parentCheckpointId,
         branchId,
         attachments: attachments.map((attachment) => attachment.path),
+        contexts,
         modelBinding: decodeModelBinding(model),
         userMessageId: userMsg.id,
         assistantMessageId: assistantMsgId,
@@ -3286,7 +3308,8 @@
   async function sendMessage() {
     const text = inputText;
     const attachments = [...inputAttachments];
-    if (!text.trim() && attachments.length === 0) return;
+    const contexts = [...inputContexts];
+    if (!text.trim() && attachments.length === 0 && contexts.length === 0) return;
 
     if (text.trimStart().startsWith("/") && (await handleClientSlashInput(text))) {
       return;
@@ -3297,11 +3320,13 @@
       queuedChatMessages = enqueueChatMessage(queuedChatMessages, activeConvId, {
         text,
         attachments,
+        contexts,
         model: composerPreferences.selectedModel,
       });
       await syncChatQueuePending(activeConvId);
       inputText = "";
       inputAttachments = [];
+      inputContexts = [];
       if (paused) await setStreamPaused(activeConvId, false);
       return;
     }
@@ -3310,6 +3335,7 @@
       text,
       activeConvId,
       attachments,
+      contexts,
       composerPreferences.selectedModel,
       true,
     );
@@ -3343,10 +3369,11 @@
     text: string,
     convId: string | null,
     attachments: ChatAttachment[],
+    contexts: UserMessageContext[],
     model: string,
     clearInput: boolean,
   ) {
-    await dispatchChatMessage(text, convId, clearInput, attachments, model);
+    await dispatchChatMessage(text, convId, clearInput, attachments, contexts, model);
   }
 
   async function dispatchNextQueuedMessage(convId: string) {
@@ -3355,7 +3382,14 @@
     if (!next) return;
     queuedChatMessages = queue;
     await syncChatQueuePending(convId);
-    await dispatchQueuedOrImmediateMessage(next.text, convId, next.attachments, next.model, false);
+    await dispatchQueuedOrImmediateMessage(
+      next.text,
+      convId,
+      next.attachments,
+      next.contexts,
+      next.model,
+      false,
+    );
   }
 
   async function stopMessage() {
@@ -4232,6 +4266,7 @@
             bind:inputAreaHeight
             bind:inputText
             bind:inputAttachments
+            bind:inputContexts
           />
         </div>
       {/if}

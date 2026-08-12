@@ -50,6 +50,7 @@
     FileChange,
     StreamItem,
     UserInputRequest,
+    UserMessageContext,
   } from "$lib/types";
   import {
     OpenAgentClient,
@@ -89,6 +90,8 @@
   let fileChanges = $state<FileChange[]>([]);
   let instruction = $state("");
   let attachments = $state<ChatAttachment[]>([]);
+  let contexts = $state<UserMessageContext[]>([]);
+  let composerFocusRequest = $state(0);
   let busy = $state(false);
   let loadingWorkspace = $state(false);
   let loadingConversationId = $state<string | null>(null);
@@ -114,6 +117,23 @@
   } | null>(null);
   const previewUrls = new Set<string>();
   const handledMermaidInterrupts = new Set<string>();
+
+  function addQuote(context: UserMessageContext) {
+    if (
+      contexts.some(
+        (item) => item.text === context.text && item.sourceMessageId === context.sourceMessageId,
+      )
+    ) {
+      composerFocusRequest += 1;
+      return;
+    }
+    if (contexts.length >= 8) {
+      error = tr("quotedContextLimit");
+      return;
+    }
+    contexts = [...contexts, context];
+    composerFocusRequest += 1;
+  }
 
   function resizeSidebar(width: number): void {
     sidebarWidth = clampSidebarWidth(width);
@@ -631,17 +651,26 @@
   }
 
   async function sendInstruction() {
-    const text = instruction.trim();
-    if ((!text && attachments.length === 0) || activeInterrupt || busy) return;
+    const text =
+      instruction.trim() ||
+      (attachments.length > 0
+        ? tr("attachmentOnlyPrompt")
+        : contexts.length > 0
+          ? tr("quoteOnlyPrompt")
+          : "");
+    if ((!text && attachments.length === 0 && contexts.length === 0) || activeInterrupt || busy)
+      return;
     if (running) {
       if (!conversation) return;
       queuedChatMessages = enqueueChatMessage(queuedChatMessages, conversation.conv_id, {
         text,
         attachments,
+        contexts,
         model: selectedModel,
       });
       instruction = "";
       attachments = [];
+      contexts = [];
       if (streamPaused) await setStreamPaused(false);
       return;
     }
@@ -649,6 +678,7 @@
     error = "";
     commandNotice = "";
     const submittedAttachments = attachments;
+    const submittedContexts = contexts;
     const submittedText = text;
     try {
       const convId = conversation?.conv_id ?? (await createConversation());
@@ -661,6 +691,7 @@
         timestamp: Date.now(),
         items: [
           ...(text ? [{ type: "text" as const, content: text }] : []),
+          ...submittedContexts.map((context) => ({ type: "quote" as const, context })),
           ...submittedAttachments.map((attachment) => ({
             type: "attachment" as const,
             attachment,
@@ -670,10 +701,12 @@
       pendingAssistantMessageId = assistantMessageId;
       instruction = "";
       attachments = [];
+      contexts = [];
       const outcome = await client.submitInput({
         convId,
         text,
         attachments: submittedAttachments.map((attachment) => attachment.path),
+        contexts: submittedContexts,
         modelBinding: selectedModelBinding(),
         userMessageId,
         assistantMessageId,
@@ -692,6 +725,7 @@
       pendingAssistantMessageId = null;
       instruction = submittedText;
       attachments = submittedAttachments;
+      contexts = submittedContexts;
       error = cause instanceof Error ? cause.message : String(cause);
     } finally {
       busy = false;
@@ -705,6 +739,7 @@
     if (!dequeued.next) return;
     instruction = dequeued.next.text;
     attachments = dequeued.next.attachments;
+    contexts = dequeued.next.contexts;
     selectedModel = dequeued.next.model;
     await sendInstruction();
   }
@@ -721,6 +756,7 @@
     userMessageIndex: number,
     text: string,
     sourceAttachments: ChatAttachment[],
+    sourceContexts: UserMessageContext[],
   ) {
     if (!conversation || !activeTree || running) return;
     const userMessage = projectedMessages[userMessageIndex];
@@ -728,7 +764,7 @@
     const parentCheckpointId = findForkParentCheckpointId(activeTree, userMessage.id);
     if (parentCheckpointId === undefined) return;
     const normalizedText = text.trim();
-    if (!normalizedText && sourceAttachments.length === 0) return;
+    if (!normalizedText && sourceAttachments.length === 0 && sourceContexts.length === 0) return;
 
     busy = true;
     error = "";
@@ -742,6 +778,7 @@
       timestamp: Date.now(),
       items: [
         ...(normalizedText ? [{ type: "text" as const, content: normalizedText }] : []),
+        ...sourceContexts.map((context) => ({ type: "quote" as const, context })),
         ...sourceAttachments.map((attachment) => ({ type: "attachment" as const, attachment })),
       ],
     };
@@ -756,6 +793,7 @@
           locator: attachment.path,
           name: attachment.name,
         })),
+        contexts: sourceContexts,
         modelBinding: selectedModelBinding(),
         userMessageId,
         assistantMessageId,
@@ -775,9 +813,10 @@
     userMessageIndex: number,
     text: string,
     editedAttachments: ChatAttachment[],
+    editedContexts: UserMessageContext[],
   ) {
     if (conversation?.conv_id !== convId) return;
-    await forkConversationRun(userMessageIndex, text, editedAttachments);
+    await forkConversationRun(userMessageIndex, text, editedAttachments, editedContexts);
   }
 
   async function reExecute(convId: string, assistantMessageIndex: number) {
@@ -795,7 +834,15 @@
         (item): item is Extract<StreamItem, { type: "attachment" }> => item.type === "attachment",
       )
       .map((item) => item.attachment);
-    await forkConversationRun(userMessageIndex, userMessage.content, sourceAttachments);
+    const sourceContexts = (userMessage.items ?? [])
+      .filter((item): item is Extract<StreamItem, { type: "quote" }> => item.type === "quote")
+      .map((item) => item.context);
+    await forkConversationRun(
+      userMessageIndex,
+      userMessage.content,
+      sourceAttachments,
+      sourceContexts,
+    );
   }
 
   function fileToBase64(file: File): Promise<string> {
@@ -1121,8 +1168,9 @@
               editable={!running}
               attachmentPreviewLoader={(locator, name) =>
                 client.getRemoteAttachmentPreview(locator, name)}
-              onCommitEdit={(convId, userMessageIndex, text, editedAttachments) =>
-                void commitEdit(convId, userMessageIndex, text, editedAttachments)}
+              onCommitEdit={(convId, userMessageIndex, text, editedAttachments, editedContexts) =>
+                void commitEdit(convId, userMessageIndex, text, editedAttachments, editedContexts)}
+              onAddQuote={addQuote}
               onReExecute={(convId, assistantMessageIndex) =>
                 void reExecute(convId, assistantMessageIndex)}
               onSwitchBranch={(convId, parentKey, targetIdx) =>
@@ -1197,6 +1245,7 @@
                 <MessageInput
                   bind:value={instruction}
                   bind:attachments
+                  bind:contexts
                   bind:selectedModel
                   {modelOptions}
                   {slashCommands}
@@ -1207,7 +1256,9 @@
                   disabled={!workspaceId || loadingWorkspace}
                   isStreaming={running}
                   isPaused={streamPaused}
-                  sendDisabled={(!instruction.trim() && attachments.length === 0) ||
+                  sendDisabled={(!instruction.trim() &&
+                    attachments.length === 0 &&
+                    contexts.length === 0) ||
                     !workspaceId ||
                     remoteModels.length === 0 ||
                     busy}
@@ -1221,6 +1272,7 @@
                   onUploadAttachments={uploadAttachments}
                   attachmentPreviewLoader={(locator, name) =>
                     client.getRemoteAttachmentPreview(locator, name)}
+                  focusRequest={composerFocusRequest}
                   onSend={sendInstruction}
                   onStop={stopMessage}
                   onPause={() => setStreamPaused(true)}
