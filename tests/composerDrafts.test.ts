@@ -11,15 +11,18 @@ describe("ComposerDraftStore", () => {
     const store = new ComposerDraftStore();
     const firstKey = conversationComposerDraftKey("first");
     const secondKey = conversationComposerDraftKey("second");
-    const first = store.activate(firstKey);
-    first.text = "first draft";
-    first.attachments = [{ path: "C:/first.txt", name: "first.txt", kind: "document" }];
-    first.contexts = [{ type: "quote", text: "selected answer", sourceMessageId: "assistant-1" }];
+    // Svelte wraps an object assigned into deep state. Mutations then land on
+    // that reactive object, not necessarily on the raw object returned here.
+    const activeFirst = { ...store.activate(firstKey) };
+    activeFirst.text = "first draft";
+    activeFirst.attachments = [{ path: "C:/first.txt", name: "first.txt", kind: "document" }];
+    activeFirst.contexts = [
+      { type: "quote", text: "selected answer", sourceMessageId: "assistant-1" },
+    ];
+    const activeSecond = { ...store.switchDraft(firstKey, activeFirst, secondKey) };
+    activeSecond.text = "second draft";
 
-    const second = store.activate(secondKey);
-    second.text = "second draft";
-
-    expect(store.activate(firstKey)).toEqual({
+    expect(store.switchDraft(secondKey, activeSecond, firstKey)).toEqual({
       text: "first draft",
       attachments: [{ path: "C:/first.txt", name: "first.txt", kind: "document" }],
       contexts: [{ type: "quote", text: "selected answer", sourceMessageId: "assistant-1" }],

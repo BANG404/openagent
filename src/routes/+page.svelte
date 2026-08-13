@@ -498,8 +498,12 @@
 
   function selectComposerDraft(key = composerDraftKey()): void {
     if (key === selectedComposerDraftKey) return;
+    activeComposerDraft = composerDrafts.switchDraft(
+      selectedComposerDraftKey,
+      activeComposerDraft,
+      key,
+    );
     selectedComposerDraftKey = key;
-    activeComposerDraft = composerDrafts.activate(key);
   }
 
   function clearComposerDraft(key = selectedComposerDraftKey): void {
@@ -2155,6 +2159,9 @@
         compactionProgressRevisions.set(conv_id, compactionRevision);
       }
       if (activeConvId === source_conv_id) {
+        if (selectedComposerDraftKey === conversationComposerDraftKey(source_conv_id)) {
+          composerDrafts.save(selectedComposerDraftKey, activeComposerDraft);
+        }
         const remappedDraft = composerDrafts.remap(
           conversationComposerDraftKey(source_conv_id),
           conversationComposerDraftKey(conv_id),

@@ -30,6 +30,21 @@ export class ComposerDraftStore {
     return draft;
   }
 
+  save(key: string, draft: ComposerDraft): ComposerDraft {
+    const saved = {
+      text: draft.text,
+      attachments: [...draft.attachments],
+      contexts: [...draft.contexts],
+    };
+    this.#drafts.set(key, saved);
+    return saved;
+  }
+
+  switchDraft(fromKey: string, activeDraft: ComposerDraft, toKey: string): ComposerDraft {
+    this.save(fromKey, activeDraft);
+    return this.activate(toKey);
+  }
+
   clear(key: string): ComposerDraft {
     const draft = createComposerDraft();
     this.#drafts.set(key, draft);

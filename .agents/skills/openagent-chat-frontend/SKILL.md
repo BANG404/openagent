@@ -241,7 +241,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep pending composer text, attachments, and quoted context isolated by
   conversation while navigating. The new-conversation surface owns a separate
   draft per workspace and role; sending or deleting one conversation must not
-  clear another conversation's pending composer state.
+  clear another conversation's pending composer state. Write the active reactive
+  draft back to its keyed store before swapping the composer to another draft;
+  retaining only the pre-proxy source object loses edits made through bindings.
 - Reuse one attachment preview component in composer and restored transcript.
 - Open attachment previews in the same full-window visual frame used by rich
   Mermaid and book previews: center the attachment within the framed canvas and
