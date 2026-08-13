@@ -133,13 +133,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the turn-level process disclosure mounted throughout an active stream
   whenever process records exist, including intervals with no trailing final-text
   run. A later thinking or tool record must not make the working header disappear.
-- Keep `render_html`, `render_mermaid`, and `update_goal` outside the collapsed
-  process disclosure regardless of where they occur before the final reply.
-  Ordinary tools establish the collapse boundary and absorb preceding text;
-  reasoning and other process records collapse themselves without absorbing
-  later text backward across one of these visible effects. Render presentation
-  and Goal-state effects after the grouped work details, retain their adjacent
-  reply text, and never group them with ordinary tools.
+- Treat the first `render_html` or `render_mermaid` call as the process-disclosure
+  boundary: keep that render and every later record outside the collapsed work
+  details, including later tools and reasoning. Before that boundary,
+  `update_goal` behaves like an ordinary tool and remains eligible for grouping
+  and process folding. Without a render call, use the ordinary trailing-text
+  boundary.
 - Treat assistant records separated only by a tagged context-compaction replay
   as one complete Agent reply. Keep the compaction boundary at its real
   position inside that reply, with one action footer after the final record.

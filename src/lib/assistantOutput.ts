@@ -1,26 +1,24 @@
 import type { ChatMessage, StreamItem } from "./types";
 
-const FINAL_OUTPUT_TOOL_NAMES = new Set(["render_html", "render_mermaid", "update_goal"]);
+const RENDER_TOOL_NAMES = new Set(["render_html", "render_mermaid"]);
 
-export function isFinalOutputTool(item: StreamItem): boolean {
-  return item.type === "tool_call" && FINAL_OUTPUT_TOOL_NAMES.has(item.name);
-}
-
-function belongsToFinalOutput(item: StreamItem): boolean {
-  return item.type === "text" || isFinalOutputTool(item);
+export function isRenderTool(item: StreamItem): boolean {
+  return item.type === "tool_call" && RENDER_TOOL_NAMES.has(item.name);
 }
 
 /**
- * Return the first item in the trailing final-output run.
+ * Return the first item in the final-output run.
  *
- * Render previews and Goal state updates are presentation effects, so they stay
- * with adjacent final text instead of making the process disclosure absorb it.
- * Everything before this boundary is process output: reasoning, ordinary tool
- * interactions, notices, and any narration that preceded those records.
+ * A render preview is a presentation boundary: it and every later record stay
+ * visible outside the process disclosure. Without a render, only the trailing
+ * uninterrupted text run is final output.
  */
 export function finalAssistantOutputStartIndex(items: StreamItem[]): number {
+  const renderIndex = items.findIndex(isRenderTool);
+  if (renderIndex >= 0) return renderIndex;
+
   let index = items.length;
-  while (index > 0 && belongsToFinalOutput(items[index - 1])) index -= 1;
+  while (index > 0 && items[index - 1].type === "text") index -= 1;
   return index;
 }
 

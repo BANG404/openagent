@@ -30,12 +30,13 @@ describe("final assistant output", () => {
     ).toBe(2);
   });
 
-  test("includes trailing render and Goal update tools in the final-output boundary", () => {
+  test("starts final output at the first render and includes every later record", () => {
     expect(
       finalAssistantOutputStartIndex([
         { type: "thinking", content: "private reasoning" },
         { type: "tool_call", name: "render_html", args: "{}", result: '{"ok":true}' },
         { type: "text", content: "Final answer" },
+        { type: "thinking", content: "presentation follow-up" },
         { type: "tool_call", name: "render_mermaid", args: "{}", result: '{"ok":true}' },
         { type: "tool_call", name: "update_goal", args: "{}", result: "updated" },
       ]),
@@ -64,14 +65,15 @@ describe("final assistant output", () => {
     ).toBe("Final answer");
   });
 
-  test("copies final text when a render or Goal update follows it", () => {
+  test("copies text emitted after a render even when later process records follow", () => {
     expect(
       finalAssistantOutput(
         assistantMessage({
           items: [
             { type: "thinking", content: "private reasoning" },
-            { type: "text", content: "Final answer" },
             { type: "tool_call", name: "render_mermaid", args: "{}", result: '{"ok":true}' },
+            { type: "text", content: "Final answer" },
+            { type: "thinking", content: "presentation follow-up" },
             { type: "tool_call", name: "update_goal", args: "{}", result: "updated" },
           ],
         }),

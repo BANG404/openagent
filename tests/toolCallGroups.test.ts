@@ -40,7 +40,7 @@ describe("tool-call grouping", () => {
     expect(segments.map((segment) => segment.kind)).toEqual(["tool_group", "item", "item"]);
   });
 
-  test("keeps specialized and approval tool calls outside groups", () => {
+  test("keeps render and approval tool calls outside groups but groups Goal updates", () => {
     const approval = {
       request: {
         request_id: "approval-1",
@@ -53,15 +53,25 @@ describe("tool-call grouping", () => {
       call("read_file"),
       { ...call("write_file"), approval },
       call("grep"),
+      call("update_goal"),
       call("render_html"),
       call("render_mermaid"),
-      call("update_goal"),
     ]);
 
-    expect(segments.every((segment) => segment.kind === "item")).toBe(true);
+    expect(segments.map((segment) => segment.kind)).toEqual([
+      "item",
+      "item",
+      "tool_group",
+      "item",
+      "item",
+    ]);
+    expect(segments[2]).toMatchObject({
+      kind: "tool_group",
+      items: [{ name: "grep" }, { name: "update_goal" }],
+    });
   });
 
-  test("does not let reasoning fold text adjacent to render and Goal update calls", () => {
+  test("keeps every record from the first render outside the process fold", () => {
     const segments = groupStreamItems([
       { type: "thinking", content: "inspect" },
       { type: "text", content: "answer before render" },
@@ -72,8 +82,24 @@ describe("tool-call grouping", () => {
     ]);
 
     const partitioned = partitionAssistantSegments(segments);
-    expect(partitioned.processSegments.map((segment) => segment.startIndex)).toEqual([0, 3]);
-    expect(partitioned.finalSegments.map((segment) => segment.startIndex)).toEqual([1, 2, 4, 5]);
+    expect(partitioned.processSegments.map((segment) => segment.startIndex)).toEqual([0]);
+    expect(partitioned.finalSegments.map((segment) => segment.startIndex)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  test("folds Goal updates that occur before the first render", () => {
+    const segments = groupStreamItems([
+      { type: "text", content: "updating goal" },
+      call("update_goal", "updated"),
+      { type: "thinking", content: "prepare preview" },
+      call("render_html", '{"ok":true}'),
+      call("read_file", "contents"),
+      { type: "thinking", content: "inspect preview" },
+      { type: "text", content: "final answer" },
+    ]);
+
+    const partitioned = partitionAssistantSegments(segments);
+    expect(partitioned.processSegments.map((segment) => segment.startIndex)).toEqual([0, 1, 2]);
+    expect(partitioned.finalSegments.map((segment) => segment.startIndex)).toEqual([3, 4, 5, 6]);
   });
 
   test("folds ordinary tools and every text message before the last one", () => {
