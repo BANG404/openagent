@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.38.1-beta.1] - 2026-08-13
+
+### Bug Fixes
+- **chat**: Treat render as process fold boundary
+- **settings**: Place retry policy last
+- **chat**: Avoid duplicate interruption detail
+- **settings**: Move retry policy below flash model
+
 ## [0.38.0-beta.1] - 2026-08-12
 
 ### Features
