@@ -47,7 +47,8 @@
 <style>
   .user-quote {
     display: flex;
-    width: min(100%, 680px);
+    width: fit-content;
+    max-width: min(100%, 680px);
     min-width: 0;
     box-sizing: border-box;
     align-items: flex-start;

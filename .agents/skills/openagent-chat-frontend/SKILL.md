@@ -236,8 +236,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   leaves the editable draft text unchanged. Render pending quotes above the
   textarea with an explicit remove action; queue, submit, restore, branch edit,
   and remote-gateway flows must preserve the same typed context. Render durable
-  quotes above the user-authored message text and keep their provider wrapper
-  out of the visible transcript.
+  quotes above the user-authored message text, shrink their cards to the visible
+  excerpt up to the available message width, and keep their provider wrapper out
+  of the visible transcript. Pending composer quote rows continue to fill the
+  composer width.
 - Keep pending composer text, attachments, and quoted context isolated by
   conversation while navigating. The new-conversation surface owns a separate
   draft per workspace and role; sending or deleting one conversation must not

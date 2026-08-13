@@ -78,6 +78,16 @@
       id: "preview-user",
       role: "user",
       content: locale === "zh" ? "总结一下这个设计。" : "Summarize this design.",
+      items: [
+        {
+          type: "quote",
+          context: {
+            type: "quote",
+            text: locale === "zh" ? "合外力" : "Net force",
+            sourceMessageId: "preview-source",
+          },
+        },
+      ],
       timestamp: Date.now() - 2000,
     },
     {
