@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.38.2-beta.1] - 2026-08-13
+
+### Bug Fixes
+- **chat**: Shrink durable quote cards to content
+- **chat**: Retain reactive composer drafts
+- **runtime**: Pin flash completion handoff fix
+- **chat**: Defer render previews until success
+- **chat**: Isolate composer drafts by conversation
+
 ## [0.38.1-beta.1] - 2026-08-13
 
 ### Bug Fixes
