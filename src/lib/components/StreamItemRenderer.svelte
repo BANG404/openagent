@@ -14,6 +14,7 @@
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { customExtensions, type ComponentToken } from "$lib/streamdown/extensions";
   import { chatMarkdownTheme } from "$lib/streamdown/chatMarkdownTheme";
+  import { runtimeNoticeDetail } from "$lib/runtimeNotice";
   import CustomToken from "$lib/streamdown/CustomToken.svelte";
 
   interface Props {
@@ -162,7 +163,10 @@
 {:else if item.type === "runtime_notice"}
   <MessageDivider
     title={item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted")}
-    detail={item.reason}
+    detail={runtimeNoticeDetail(
+      item,
+      item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted"),
+    )}
     tone={item.kind === "error" ? "danger" : "neutral"}
     streamItemKey={itemKey}
     {messageId}

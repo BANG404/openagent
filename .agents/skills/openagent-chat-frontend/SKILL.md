@@ -193,6 +193,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 ## Tool and interrupt rendering
 
+- Render the standard runtime-interrupted marker as one localized divider title.
+  Suppress a persisted or transient reason that only repeats that title, while
+  retaining nonstandard interruption details and all runtime-error details.
 - Render durable `ask_user` calls with the dedicated input component, resolved
   by their matching ToolResult after streaming, reload, and branch switches.
 - Project every durable ToolResult content block into the same concise text used
@@ -512,6 +515,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   shared composer's streaming primary action. Its `-theme` and `-locale`
   parameters must keep pause, resume, send, light/dark, and Chinese/English
   checks addressable without a native runtime.
+- Keep the development-only `runtime-notice-preview` query available for the
+  standard persisted interruption divider. Its `-theme` and `-locale` parameters
+  must verify that the localized title is not followed by the redundant durable
+  English reason in light or dark mode.
 - Keep the development-only `attachment-composer-preview` query available for
   the shared composer's pending-attachment cards. Its `-theme` and `-locale`
   parameters must keep card preview, removal, upload, horizontal overflow,

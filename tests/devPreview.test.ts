@@ -13,5 +13,8 @@ describe("standalone development previews", () => {
   test("keeps theme and locale parameter prefixes aligned with preview URLs", () => {
     expect(previewParameterPrefix("attachment-composer")).toBe("attachment-composer-preview");
     expect(previewParameterPrefix("book-mode")).toBe("book-mode-preview");
+    expect(resolveStandaloneDevPreview(new URLSearchParams("runtime-notice-preview"), true)).toBe(
+      "runtime-notice",
+    );
   });
 });

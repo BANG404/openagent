@@ -29,6 +29,7 @@
   import MessageList from "$lib/components/MessageList.svelte";
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
   import ReasoningEffortSelect from "$lib/components/ReasoningEffortSelect.svelte";
+  import StreamItemRenderer from "$lib/components/StreamItemRenderer.svelte";
   import WorkspaceSwitcher from "$lib/components/WorkspaceSwitcher.svelte";
 
   let { preview }: { preview: StandaloneDevPreview } = $props();
@@ -504,6 +505,21 @@
       /><code>reasoning.effort = "{reasoningEffort}"</code>
     </section>
   </main>
+{:else if preview === "runtime-notice"}
+  <main class="runtime-notice-preview-stage">
+    <StreamItemRenderer
+      item={{
+        type: "runtime_notice",
+        kind: "interrupted",
+        reason: "The agent run was interrupted.",
+      }}
+      itemKey="runtime-notice-preview"
+      shikiTheme={theme === "dark" ? "github-dark" : "github-light"}
+      mermaidConfig={mermaidConfigFor(theme === "dark")}
+      onSubmitUserInput={() => {}}
+      onCancelUserInput={() => {}}
+    />
+  </main>
 {:else}
   <main class="attachment-composer-preview-stage">
     <MessageInput
@@ -534,6 +550,7 @@
   .permission-settings-preview-stage,
   .workspace-switcher-preview-stage,
   .command-palette-preview-stage,
+  .runtime-notice-preview-stage,
   .attachment-composer-preview-stage {
     min-height: 100vh;
     box-sizing: border-box;
@@ -564,6 +581,15 @@
     display: grid;
     place-items: center;
     padding: 32px;
+  }
+  .runtime-notice-preview-stage {
+    display: flex;
+    align-items: center;
+    padding: 24px;
+  }
+  .runtime-notice-preview-stage :global(.message-divider) {
+    width: min(900px, 100%);
+    margin: 0 auto;
   }
   .permission-settings-preview-stage {
     display: flex;

@@ -7,6 +7,7 @@ export type StandaloneDevPreview =
   | "quote-context"
   | "permission-settings"
   | "reasoning-effort"
+  | "runtime-notice"
   | "workspace-switcher";
 
 const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
@@ -18,6 +19,7 @@ const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
   ["quote-context-preview", "quote-context"],
   ["command-palette-preview", "command-palette"],
   ["reasoning-effort-preview", "reasoning-effort"],
+  ["runtime-notice-preview", "runtime-notice"],
   ["attachment-composer-preview", "attachment-composer"],
 ];
 
