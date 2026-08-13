@@ -3071,44 +3071,6 @@
           </div>
         </section>
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t("modelRetryPolicy")}</h4>
-          <p class="detail-section-intro">{$t("modelRetryPolicyDescription")}</p>
-          <div class="settings-card">
-            <label class="settings-card-row">
-              <span class="settings-card-copy">
-                <span class="label-text">{$t("retryCountPerModel")}</span>
-                <span class="detail-hint">{$t("retryCountPerModelHint")}</span>
-              </span>
-              <span class="settings-card-control">
-                <input
-                  class="detail-input"
-                  type="number"
-                  min="0"
-                  max="10"
-                  bind:value={draftConfig.model_retry.retry_count}
-                />
-              </span>
-            </label>
-            <label class="settings-card-row">
-              <span class="settings-card-copy">
-                <span class="label-text">{$t("retryDelaySeconds")}</span>
-                <span class="detail-hint">{$t("retryDelaySecondsHint")}</span>
-              </span>
-              <span class="settings-card-control">
-                <input
-                  class="detail-input"
-                  type="number"
-                  min="0"
-                  max="60"
-                  step="1"
-                  value={draftConfig.model_retry.retry_delay_ms / 1000}
-                  oninput={updateRetryDelaySeconds}
-                />
-              </span>
-            </label>
-          </div>
-        </section>
-        <section class="detail-section">
           <div class="detail-section-header">
             <h4 class="detail-section-title">{$t("flashModelRetryQueue")}</h4>
             <button class="btn-secondary btn-sm" onclick={() => addRetryQueueModel("flash_queue")}
@@ -3169,6 +3131,44 @@
             {:else}
               <div class="model-list-empty">{$t("noQueuedFlashFallbackModels")}</div>
             {/if}
+          </div>
+        </section>
+        <section class="detail-section">
+          <h4 class="detail-section-title">{$t("modelRetryPolicy")}</h4>
+          <p class="detail-section-intro">{$t("modelRetryPolicyDescription")}</p>
+          <div class="settings-card">
+            <label class="settings-card-row">
+              <span class="settings-card-copy">
+                <span class="label-text">{$t("retryCountPerModel")}</span>
+                <span class="detail-hint">{$t("retryCountPerModelHint")}</span>
+              </span>
+              <span class="settings-card-control">
+                <input
+                  class="detail-input"
+                  type="number"
+                  min="0"
+                  max="10"
+                  bind:value={draftConfig.model_retry.retry_count}
+                />
+              </span>
+            </label>
+            <label class="settings-card-row">
+              <span class="settings-card-copy">
+                <span class="label-text">{$t("retryDelaySeconds")}</span>
+                <span class="detail-hint">{$t("retryDelaySecondsHint")}</span>
+              </span>
+              <span class="settings-card-control">
+                <input
+                  class="detail-input"
+                  type="number"
+                  min="0"
+                  max="60"
+                  step="1"
+                  value={draftConfig.model_retry.retry_delay_ms / 1000}
+                  oninput={updateRetryDelaySeconds}
+                />
+              </span>
+            </label>
           </div>
         </section>
       </div>
