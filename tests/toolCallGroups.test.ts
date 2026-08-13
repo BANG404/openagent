@@ -139,12 +139,14 @@ describe("tool-call grouping", () => {
     expect(toolCallStatus(call("read_file", '{"ok":false}'), false)).toBe("failed");
   });
 
-  test("hides only failed render previews", () => {
+  test("shows render previews only after a successful result", () => {
     expect(shouldDisplayToolCall(call("render_html", "Error: invalid document"), false)).toBe(
       false,
     );
     expect(shouldDisplayToolCall(call("render_mermaid", '{"ok":false}'), false)).toBe(false);
-    expect(shouldDisplayToolCall(call("render_html"), true)).toBe(true);
+    expect(shouldDisplayToolCall(call("render_html"), true)).toBe(false);
+    expect(shouldDisplayToolCall(call("render_mermaid"), false)).toBe(false);
+    expect(shouldDisplayToolCall(call("render_html", '{"ok":true}'), false)).toBe(true);
     expect(shouldDisplayToolCall(call("render_mermaid", '{"ok":true}'), false)).toBe(true);
     expect(shouldDisplayToolCall(call("read_file", "Error: unavailable"), false)).toBe(true);
   });
