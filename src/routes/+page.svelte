@@ -8,7 +8,7 @@
   } from "@tauri-apps/plugin-autostart";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import type { Component } from "svelte";
 
   // Lazy-loaded feature views expose different prop contracts; each render site
@@ -23,6 +23,11 @@
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
   import { ComposerPreferences } from "$lib/composerPreferences.svelte";
+  import {
+    ComposerDraftStore,
+    conversationComposerDraftKey,
+    newConversationComposerDraftKey,
+  } from "$lib/composerDrafts";
   import { ChatStreamState } from "$lib/chatStreamState.svelte";
   import { resolveStandaloneDevPreview } from "$lib/devPreview";
   import { initializeTray } from "$lib/tray";
@@ -477,9 +482,34 @@
   // Single source of truth: messages are derived from conversations[]
   let messages = $derived(conversations.find((c) => c.id === activeConvId)?.messages ?? []);
 
-  let inputText = $state("");
-  let inputAttachments = $state<ChatAttachment[]>([]);
-  let inputContexts = $state<UserMessageContext[]>([]);
+  const composerDrafts = new ComposerDraftStore();
+  let selectedComposerDraftKey = untrack(() =>
+    activeConvId
+      ? conversationComposerDraftKey(activeConvId)
+      : newConversationComposerDraftKey(workspacePath, selectedRoleKey),
+  );
+  let activeComposerDraft = $state(composerDrafts.activate(selectedComposerDraftKey));
+
+  function composerDraftKey(conversationId = activeConvId): string {
+    return conversationId
+      ? conversationComposerDraftKey(conversationId)
+      : newConversationComposerDraftKey(workspacePath, selectedRoleKey);
+  }
+
+  function selectComposerDraft(key = composerDraftKey()): void {
+    if (key === selectedComposerDraftKey) return;
+    selectedComposerDraftKey = key;
+    activeComposerDraft = composerDrafts.activate(key);
+  }
+
+  function clearComposerDraft(key = selectedComposerDraftKey): void {
+    const cleared = composerDrafts.clear(key);
+    if (key === selectedComposerDraftKey) activeComposerDraft = cleared;
+  }
+
+  $effect(() => {
+    selectComposerDraft(composerDraftKey());
+  });
   const composerPreferences = new ComposerPreferences({
     getConfig: () => config,
     setConfig: (next) => (config = next),
@@ -1280,9 +1310,10 @@
     // Tell finalize: attach the new turn as a sibling under newSiblingParentCk.
     pendingParentCk = { ...pendingParentCk, [convId]: newSiblingParentCk };
     pendingForkMessageId = { ...pendingForkMessageId, [convId]: userMsg.id };
-    inputText = text;
-    inputAttachments = resendAttachments;
-    inputContexts = sourceContexts;
+    selectComposerDraft(conversationComposerDraftKey(convId));
+    activeComposerDraft.text = text;
+    activeComposerDraft.attachments = resendAttachments;
+    activeComposerDraft.contexts = sourceContexts;
     if (activeConvId !== convId) {
       restoringSurface = "conversation";
       activeConvId = convId;
@@ -2124,6 +2155,14 @@
         compactionProgressRevisions.set(conv_id, compactionRevision);
       }
       if (activeConvId === source_conv_id) {
+        const remappedDraft = composerDrafts.remap(
+          conversationComposerDraftKey(source_conv_id),
+          conversationComposerDraftKey(conv_id),
+        );
+        if (selectedComposerDraftKey === conversationComposerDraftKey(source_conv_id)) {
+          selectedComposerDraftKey = conversationComposerDraftKey(conv_id);
+          activeComposerDraft = remappedDraft;
+        }
         activeConvId = conv_id;
         cacheRestoreSurface("conversation", conv_id);
         invoke("set_active_conversation", {
@@ -3095,6 +3134,7 @@
       const { [id]: _, ...rest } = queuedChatMessages;
       queuedChatMessages = rest;
     }
+    composerDrafts.delete(conversationComposerDraftKey(id));
   }
 
   function togglePin(id: string) {
@@ -3112,8 +3152,8 @@
     rawText: string,
     targetConvId: string | null = activeConvId,
     clearInput = false,
-    attachments: ChatAttachment[] = inputAttachments,
-    contexts: UserMessageContext[] = inputContexts,
+    attachments: ChatAttachment[] = activeComposerDraft.attachments,
+    contexts: UserMessageContext[] = activeComposerDraft.contexts,
     model = composerPreferences.selectedModel,
   ) {
     if (!tauriAvailable) {
@@ -3138,6 +3178,7 @@
     if (!targetConvId && isCurrentStreaming) return;
 
     let convId = targetConvId;
+    const composerDraftKeyToClear = selectedComposerDraftKey;
 
     if (!convId) {
       const newId = crypto.randomUUID();
@@ -3167,11 +3208,7 @@
       }).catch(() => {});
     }
 
-    if (clearInput) {
-      inputText = "";
-      inputAttachments = [];
-      inputContexts = [];
-    }
+    if (clearInput) clearComposerDraft(composerDraftKeyToClear);
 
     const abandonedInput = pendingUserInputs[convId];
     if (abandonedInput) {
@@ -3306,9 +3343,9 @@
   }
 
   async function sendMessage() {
-    const text = inputText;
-    const attachments = [...inputAttachments];
-    const contexts = [...inputContexts];
+    const text = activeComposerDraft.text;
+    const attachments = [...activeComposerDraft.attachments];
+    const contexts = [...activeComposerDraft.contexts];
     if (!text.trim() && attachments.length === 0 && contexts.length === 0) return;
 
     if (text.trimStart().startsWith("/") && (await handleClientSlashInput(text))) {
@@ -3324,9 +3361,7 @@
         model: composerPreferences.selectedModel,
       });
       await syncChatQueuePending(activeConvId);
-      inputText = "";
-      inputAttachments = [];
-      inputContexts = [];
+      clearComposerDraft();
       if (paused) await setStreamPaused(activeConvId, false);
       return;
     }
@@ -3345,14 +3380,14 @@
     try {
       const resolved = await invoke<ResolvedAgentInput>("resolve_agent_input", { text });
       if (resolved.type === "agent_command" && resolved.command === "compact") {
-        inputText = "";
+        clearComposerDraft();
         await compactCurrentConversation();
         return true;
       }
       if (resolved.type !== "client_action") return false;
       const run = clientActionRun(resolved.action);
       if (!run) return false;
-      inputText = "";
+      clearComposerDraft();
       run();
       return true;
     } catch (error) {
@@ -4264,9 +4299,7 @@
             {composerPreferences}
             bind:messagesElement={messagesEl}
             bind:inputAreaHeight
-            bind:inputText
-            bind:inputAttachments
-            bind:inputContexts
+            composerDraft={activeComposerDraft}
           />
         </div>
       {/if}

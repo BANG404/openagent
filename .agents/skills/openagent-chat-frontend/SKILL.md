@@ -237,6 +237,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   and remote-gateway flows must preserve the same typed context. Render durable
   quotes above the user-authored message text and keep their provider wrapper
   out of the visible transcript.
+- Keep pending composer text, attachments, and quoted context isolated by
+  conversation while navigating. The new-conversation surface owns a separate
+  draft per workspace and role; sending or deleting one conversation must not
+  clear another conversation's pending composer state.
 - Reuse one attachment preview component in composer and restored transcript.
 - Open attachment previews in the same full-window visual frame used by rich
   Mermaid and book previews: center the attachment within the framed canvas and

@@ -3,6 +3,7 @@
   import type { CheckpointFlow } from "$lib/checkpointFlow";
   import type { ConvTree } from "$lib/checkpointTree";
   import type { ComposerPreferences } from "$lib/composerPreferences.svelte";
+  import type { ComposerDraft } from "$lib/composerDrafts";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { providerRequiresApiKey } from "$lib/providerCatalog";
   import type { QueuedChatMessage } from "$lib/chatQueue";
@@ -88,18 +89,14 @@
     composerPreferences,
     messagesElement = $bindable(null),
     inputAreaHeight = $bindable(120),
-    inputText = $bindable(),
-    inputAttachments = $bindable(),
-    inputContexts = $bindable(),
+    composerDraft,
   }: {
     view: ConversationSurfaceView;
     actions: ConversationSurfaceActions;
     composerPreferences: ComposerPreferences;
     messagesElement: HTMLElement | null;
     inputAreaHeight: number;
-    inputText: string;
-    inputAttachments: ChatAttachment[];
-    inputContexts: UserMessageContext[];
+    composerDraft: ComposerDraft;
   } = $props();
 
   let checkpointFlowPanelCollapsed = $state(true);
@@ -107,7 +104,7 @@
 
   function addQuote(context: UserMessageContext) {
     if (
-      inputContexts.some(
+      composerDraft.contexts.some(
         (item) =>
           item.type === context.type &&
           item.text === context.text &&
@@ -117,11 +114,11 @@
       composerFocusRequest += 1;
       return;
     }
-    if (inputContexts.length >= 8) {
+    if (composerDraft.contexts.length >= 8) {
       showToast({ title: $t("quotedContextLimit"), variant: "error" });
       return;
     }
-    inputContexts = [...inputContexts, context];
+    composerDraft.contexts = [...composerDraft.contexts, context];
     composerFocusRequest += 1;
   }
 
@@ -241,9 +238,9 @@
             />
           {/if}
           <MessageInput
-            bind:value={inputText}
-            bind:attachments={inputAttachments}
-            bind:contexts={inputContexts}
+            bind:value={composerDraft.text}
+            bind:attachments={composerDraft.attachments}
+            bind:contexts={composerDraft.contexts}
             bind:selectedModel={composerPreferences.selectedModel}
             modelOptions={composerPreferences.modelOptions}
             placeholder={view.tauriAvailable
@@ -254,9 +251,9 @@
             disabled={!view.tauriAvailable}
             isStreaming={view.isStreaming}
             isPaused={view.isPaused}
-            sendDisabled={(!inputText.trim() &&
-              inputAttachments.length === 0 &&
-              inputContexts.length === 0) ||
+            sendDisabled={(!composerDraft.text.trim() &&
+              composerDraft.attachments.length === 0 &&
+              composerDraft.contexts.length === 0) ||
               !view.tauriAvailable ||
               composerPreferences.modelOptions.length === 0}
             sendTitle={$t("send")}
