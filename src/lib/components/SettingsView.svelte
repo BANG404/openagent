@@ -3043,6 +3043,34 @@
           </div>
         </section>
         <section class="detail-section">
+          <h4 class="detail-section-title">{$t("flashModel")}</h4>
+          <div class="detail-label">
+            <span class="label-text">{$t("providerNode")}</span>
+            <Select
+              value={draftConfig.defaults.flash_model.provider_id}
+              items={enabledProviderOptions()}
+              ariaLabel={$t("providerNode")}
+              onValueChange={(providerId) =>
+                selectBindingProvider(draftConfig.defaults.flash_model, providerId)}
+            />
+          </div>
+          <div class="detail-label">
+            <span class="label-text">{$t("model")}</span>
+            <Select
+              bind:value={draftConfig.defaults.flash_model.model}
+              items={providerModels(draftConfig.defaults.flash_model.provider_id).map((m) => ({
+                value: m,
+                label: m,
+              }))}
+              placeholder={$t("model")}
+              searchable
+              searchPlaceholder={$t("searchModels")}
+              emptyText={$t("noModels")}
+              ariaLabel={$t("model")}
+            />
+          </div>
+        </section>
+        <section class="detail-section">
           <h4 class="detail-section-title">{$t("modelRetryPolicy")}</h4>
           <p class="detail-section-intro">{$t("modelRetryPolicyDescription")}</p>
           <div class="settings-card">
@@ -3078,34 +3106,6 @@
                 />
               </span>
             </label>
-          </div>
-        </section>
-        <section class="detail-section">
-          <h4 class="detail-section-title">{$t("flashModel")}</h4>
-          <div class="detail-label">
-            <span class="label-text">{$t("providerNode")}</span>
-            <Select
-              value={draftConfig.defaults.flash_model.provider_id}
-              items={enabledProviderOptions()}
-              ariaLabel={$t("providerNode")}
-              onValueChange={(providerId) =>
-                selectBindingProvider(draftConfig.defaults.flash_model, providerId)}
-            />
-          </div>
-          <div class="detail-label">
-            <span class="label-text">{$t("model")}</span>
-            <Select
-              bind:value={draftConfig.defaults.flash_model.model}
-              items={providerModels(draftConfig.defaults.flash_model.provider_id).map((m) => ({
-                value: m,
-                label: m,
-              }))}
-              placeholder={$t("model")}
-              searchable
-              searchPlaceholder={$t("searchModels")}
-              emptyText={$t("noModels")}
-              ariaLabel={$t("model")}
-            />
           </div>
         </section>
         <section class="detail-section">
