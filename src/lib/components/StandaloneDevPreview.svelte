@@ -574,7 +574,7 @@
   </main>
 {:else if preview === "streaming-transcript"}
   <main
-    class="streaming-transcript-preview-stage transcript-scroller"
+    class="streaming-transcript-preview-stage"
     class:following-tail={streamingFollowTail}
     bind:this={streamingMessagesElement}
     onscroll={updateStreamingFollowTail}
@@ -682,6 +682,7 @@
     height: 100vh;
     overflow-x: clip;
     overflow-y: auto;
+    overscroll-behavior-y: contain;
     background: var(--bg);
     scrollbar-gutter: stable;
   }

@@ -149,6 +149,8 @@
     height: 100%;
     margin: 0;
     padding: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
     background: var(--bg);
     color: var(--text);
     font-family:
@@ -176,16 +178,6 @@
 
   ::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
-  }
-
-  .transcript-scroller {
-    scrollbar-color: transparent transparent;
-  }
-
-  .transcript-scroller::-webkit-scrollbar-track,
-  .transcript-scroller::-webkit-scrollbar-thumb,
-  .transcript-scroller::-webkit-scrollbar-thumb:hover {
-    background: transparent;
   }
 
   /* Context Menu (bits-ui) — global so it works regardless of which component is mounted */

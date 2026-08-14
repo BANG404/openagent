@@ -98,7 +98,7 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Collapse the card beyond the right edge so only a vertically shortened,
   clickable strip of its left edge remains visible without overlapping native
   title-bar controls. Keep a narrow collapsed layout track equal to that peek
-  plus its outer inset so the conversation scroll edge and right-side user-message
+  plus its outer inset so the conversation scrollbar and right-side user-message
   index remain clear of the card. The peek creates no full-height divider, glyph,
   or separate expand button; keep keyboard focus visible on that edge. Keep the
   expanded header free of decorative Goal or Graph kind
@@ -183,11 +183,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   bottom; after the reader leaves the tail, preserve the first rendered row
   crossing the viewport start by its real DOM coordinate instead. Reserve a
   stable scrollbar gutter so overflow changes cannot alter transcript wrapping
-  or sidebar row width, but keep the native transcript track and thumb visually
-  transparent at rest, during scrolling, and on hover. Wheel, touch, keyboard,
-  and programmatic scrolling must remain available; the user-message index is
-  the visible navigation affordance. Keep an index destination mounted until
-  its real row position remains aligned across consecutive layout frames.
+  or sidebar row width, and keep the native transcript scrollbar visible. The
+  application viewport must not become a second scroll container: keep
+  `html`/`body` overflow locked and contain transcript overscroll so wheel or
+  touch input at either boundary cannot chain into an outer scrollbar. Keep an
+  index destination mounted until its real row position remains aligned across
+  consecutive layout frames.
 - After completion, reconcile the optimistic turn with its durable checkpoint
   in the background. Do not show the conversation-loading skeleton, remount an
   unchanged transcript, overwrite backend history, or remove optimistic
@@ -537,9 +538,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   English reason in light or dark mode.
 - Keep the development-only `streaming-transcript-preview` query available for
   dynamic-height virtual Turn verification. It must continuously grow one live
-  Turn so tail following, reader-controlled upward scrolling, the visually
-  hidden native scrollbar with stable geometry, and light/dark rendering remain
-  directly testable without a native runtime.
+  Turn so tail following, reader-controlled upward scrolling, the visible native
+  transcript scrollbar with stable geometry, contained boundary scrolling, and
+  light/dark rendering remain directly testable without a native runtime.
 - Keep the development-only `attachment-composer-preview` query available for
   the shared composer's pending-attachment cards. Its `-theme` and `-locale`
   parameters must keep card preview, removal, upload, horizontal overflow,

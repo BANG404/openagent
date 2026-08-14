@@ -157,7 +157,7 @@
     {/if}
 
     <main
-      class="messages transcript-scroller"
+      class="messages"
       bind:this={messagesElement}
       onscroll={actions.handleMessagesScroll}
       onwheel={actions.cancelBottomScrollFromUser}
@@ -371,6 +371,7 @@
     display: flex;
     flex-direction: column;
     overflow-anchor: none;
+    overscroll-behavior-y: contain;
     scrollbar-gutter: stable;
   }
 
