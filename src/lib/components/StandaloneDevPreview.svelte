@@ -19,6 +19,7 @@
     PermissionProfile,
     ReasoningEffort,
     RecentWorkspace,
+    StreamItem,
     WorkspaceContext,
     UserMessageContext,
   } from "$lib/types";
@@ -64,6 +65,9 @@
   let quoteContexts = $state<UserMessageContext[]>([]);
   let quoteFocusRequest = $state(0);
   let quoteMessagesElement = $state<HTMLElement | null>(null);
+  let streamingMessagesElement = $state<HTMLElement | null>(null);
+  let streamingFollowTail = $state(true);
+  let streamingText = $state("Preparing the live response…");
   let paused = $state(false);
   let checkpointValue = $state("");
   let checkpointAttachments = $state<ChatAttachment[]>([]);
@@ -109,6 +113,26 @@
       timestamp: Date.now() - 1000,
     },
   ]);
+  const streamingMessages: ChatMessage[] = [];
+  for (let index = 0; index < 18; index += 1) {
+    const content = `Completed answer ${index + 1}. ${"Measured virtual turn content. ".repeat(8)}`;
+    streamingMessages.push(
+      {
+        id: `streaming-preview-user-${index}`,
+        role: "user",
+        content: `Turn ${index + 1}: keep this transcript long enough to exercise windowing.`,
+        timestamp: Date.now() - (36 - index * 2) * 1000,
+      },
+      {
+        id: `streaming-preview-assistant-${index}`,
+        role: "assistant",
+        content,
+        items: [{ type: "text", content }],
+        timestamp: Date.now() - (35 - index * 2) * 1000,
+      },
+    );
+  }
+  let streamingItems = $derived<StreamItem[]>([{ type: "text", content: streamingText }]);
 
   const slashCommands: SlashCommand[] = [
     {
@@ -319,7 +343,25 @@
       CHECKPOINT_FLOW_PANEL_MAX_WIDTH,
       Math.max(CHECKPOINT_FLOW_PANEL_MIN_WIDTH, 320),
     );
+    if (preview !== "streaming-transcript") return;
+    let chunk = 0;
+    const timer = window.setInterval(() => {
+      chunk += 1;
+      const separator = chunk % 12 === 0 ? "\n\n" : " ";
+      streamingText += `${separator}streamed chunk ${chunk}`;
+      if (chunk >= 480) window.clearInterval(timer);
+    }, 55);
+    return () => window.clearInterval(timer);
   });
+
+  function updateStreamingFollowTail() {
+    if (!streamingMessagesElement) return;
+    streamingFollowTail =
+      streamingMessagesElement.scrollHeight -
+        streamingMessagesElement.scrollTop -
+        streamingMessagesElement.clientHeight <=
+      24;
+  }
 </script>
 
 {#if preview === "book-mode"}
@@ -530,6 +572,41 @@
       onCancelUserInput={() => {}}
     />
   </main>
+{:else if preview === "streaming-transcript"}
+  <main
+    class="streaming-transcript-preview-stage"
+    class:following-tail={streamingFollowTail}
+    bind:this={streamingMessagesElement}
+    onscroll={updateStreamingFollowTail}
+    aria-label="Streaming transcript preview"
+  >
+    <MessageList
+      messages={streamingMessages}
+      scrollElement={streamingMessagesElement}
+      isStreaming={true}
+      isAwaitingStreamOutput={false}
+      currentStreamItems={streamingItems}
+      currentStreamMessageId="streaming-preview-live-turn"
+      activeConvId="streaming-preview"
+      activeBranchId={null}
+      debugMode={false}
+      activeTree={undefined}
+      paddingBottom={48}
+      showApiKeyWarn={false}
+      shikiTheme={theme === "dark" ? "github-dark" : "github-light"}
+      mermaidConfig={mermaidConfigFor(theme === "dark")}
+      followTail={streamingFollowTail}
+      newConversationMemoryPrompt={null}
+      newConversationMemoryLoading={false}
+      editable={false}
+      onCommitEdit={() => {}}
+      onAddQuote={() => {}}
+      onReExecute={() => {}}
+      onSwitchBranch={() => {}}
+      onSubmitUserInput={() => {}}
+      onCancelUserInput={() => {}}
+    />
+  </main>
 {:else}
   <main class="attachment-composer-preview-stage">
     <MessageInput
@@ -600,6 +677,13 @@
   .runtime-notice-preview-stage :global(.message-divider) {
     width: min(900px, 100%);
     margin: 0 auto;
+  }
+  .streaming-transcript-preview-stage {
+    height: 100vh;
+    overflow-x: clip;
+    overflow-y: auto;
+    background: var(--bg);
+    scrollbar-gutter: stable;
   }
   .permission-settings-preview-stage {
     display: flex;

@@ -38,6 +38,7 @@
     currentStreamMessageId: string | null;
     debugMode: boolean;
     fileChanges: FileChange[];
+    followTail: boolean;
     isAwaitingStreamOutput: boolean;
     isPaused: boolean;
     isStreaming: boolean;
@@ -192,6 +193,7 @@
           messageLayout={view.config?.message_layout ?? "single"}
           messageDoubleColumnMinWidth={view.config?.message_double_column_min_width ?? 1200}
           bookModeFontSize={view.config?.book_mode_font_size ?? 17}
+          followTail={view.followTail}
           tailAnchorToken={view.tailAnchorToken}
           onTailAnchorSettled={actions.finishStreamCompletionTailAnchor}
           newConversationMemoryPrompt={view.newConversationMemoryPrompt}
@@ -369,6 +371,7 @@
     display: flex;
     flex-direction: column;
     overflow-anchor: none;
+    scrollbar-gutter: stable;
   }
 
   .input-area {

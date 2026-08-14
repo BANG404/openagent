@@ -1,6 +1,10 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
-import { anchoredScrollTop, selectVirtualScrollAnchor } from "../src/lib/virtualScrollAnchor";
+import {
+  anchoredScrollTop,
+  selectVirtualScrollAnchor,
+  virtualMeasurementScrollTop,
+} from "../src/lib/virtualScrollAnchor";
 
 describe("virtual transcript scroll anchoring", () => {
   test("anchors the rendered row that crosses the viewport start", () => {
@@ -32,5 +36,36 @@ describe("virtual transcript scroll anchoring", () => {
     expect(anchoredScrollTop(700, 20, -180)).toBe(500);
     expect(anchoredScrollTop(120, 40, 340)).toBe(420);
     expect(anchoredScrollTop(40, 40, -80)).toBe(0);
+  });
+
+  test("pins a growing turn to the tail instead of applying a competing viewport anchor", () => {
+    expect(
+      virtualMeasurementScrollTop({
+        followingTail: true,
+        scrollTop: 700,
+        scrollHeight: 1200,
+        anchorBeforeTop: 20,
+        anchorAfterTop: -180,
+      }),
+    ).toBe(1200);
+  });
+
+  test("preserves the reader anchor after tail following has been cancelled", () => {
+    expect(
+      virtualMeasurementScrollTop({
+        followingTail: false,
+        scrollTop: 700,
+        scrollHeight: 1200,
+        anchorBeforeTop: 20,
+        anchorAfterTop: -180,
+      }),
+    ).toBe(500);
+    expect(
+      virtualMeasurementScrollTop({
+        followingTail: false,
+        scrollTop: 700,
+        scrollHeight: 1200,
+      }),
+    ).toBeNull();
   });
 });

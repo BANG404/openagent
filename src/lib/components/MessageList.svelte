@@ -54,6 +54,7 @@
     messageLayout?: "single" | "responsive_double";
     messageDoubleColumnMinWidth?: number;
     bookModeFontSize?: number;
+    followTail?: boolean;
     tailAnchorToken?: number | null;
     onTailAnchorSettled?: (token: number) => void;
     newConversationMemoryPrompt: string | null;
@@ -100,6 +101,7 @@
     messageLayout = "single",
     messageDoubleColumnMinWidth = 1200,
     bookModeFontSize = 17,
+    followTail = true,
     tailAnchorToken = null,
     onTailAnchorSettled,
     newConversationMemoryPrompt,
@@ -546,6 +548,7 @@
     estimateSize={estimateEntrySize}
     responsiveColumns={messageLayout === "responsive_double"}
     doubleColumnMinWidth={messageDoubleColumnMinWidth}
+    {followTail}
     {tailAnchorToken}
     {onTailAnchorSettled}
   >

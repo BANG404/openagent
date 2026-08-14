@@ -401,6 +401,7 @@
     gap: var(--list-item-stack-gap);
     overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-gutter: stable;
     padding: 4px 6px;
   }
 

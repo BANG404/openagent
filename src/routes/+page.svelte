@@ -627,7 +627,6 @@
     const items = mutate(chatStreams.itemsByConversation[convId] ?? []);
     chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: items };
     persistStreamDraft(convId).catch(() => {});
-    if (convId === activeConvId) void scrollStreamToBottom();
   }
 
   let currentFileChanges = $derived.by(() => {
@@ -2259,7 +2258,6 @@
         };
       }
       persistStreamDraft(key).catch(() => {});
-      if (key === activeConvId) scrollStreamToBottom();
     });
     if (!isDevInspectorWindow) {
       register<{
@@ -2320,7 +2318,6 @@
         [conv_id]: asst_msg_id ?? crypto.randomUUID(),
       };
       chatStreams.startTiming(conv_id, Date.now());
-      if (conv_id === activeConvId) scrollStreamToBottom();
     });
 
     register<GoalRunUpdatedEvent>("goal-run-updated", (e) => {
@@ -2359,7 +2356,6 @@
             ...chatStreams.awaitingOutput,
             [conv_id]: true,
           };
-          if (conv_id === activeConvId) scrollStreamToBottom();
         }
       },
       onMemoryRetrieval: (conv_id, stage) => {
@@ -2375,7 +2371,6 @@
           ...chatStreams.memoryRetrievalSkippable,
           [conv_id]: stage !== "completed" && stage !== "skipped",
         };
-        if (conv_id === activeConvId) scrollStreamToBottom();
       },
       onChunk: (conv_id, text) => {
         if (text) chatStreams.clearAwaitingOutput(conv_id);
@@ -2404,7 +2399,6 @@
           [conv_id]: items,
         };
         persistStreamDraft(conv_id).catch(() => {});
-        if (conv_id === activeConvId) scrollStreamToBottom();
       },
       onToolResult: (conv_id, result, toolUseId) => {
         const pendingToolCall = toolUseId
@@ -2433,7 +2427,6 @@
         };
         if (rolesMayHaveChanged) void loadAvailableRoles();
         persistStreamDraft(conv_id).catch(() => {});
-        if (conv_id === activeConvId) scrollStreamToBottom();
       },
       onFileChange: (conv_id, change) => {
         const existing = liveFileChangesPerConv[conv_id] ?? [];
@@ -2478,8 +2471,6 @@
         compactionProgressRevisions.set(convId, revision);
         const wasStreaming = !!chatStreams.streamingConversationIds[convId];
         const previousItems = chatStreams.itemsByConversation[convId] ?? [];
-        const hadProgress = previousItems.some((item) => item.type === "compaction");
-
         if (!wasStreaming && stage !== "done" && stage !== "skipped") {
           compactionOnlyConvIds.add(convId);
           chatStreams.streamingConversationIds = {
@@ -2514,7 +2505,6 @@
           finishCompactionProgress(convId, revision, 1600);
           return;
         }
-        if (convId === activeConvId && !hadProgress) scrollStreamToBottom();
       },
       onDone: (conv_id, asstMsgId, error) => {
         finalizeStreamedMessage(conv_id, false, asstMsgId, error);
@@ -2610,7 +2600,6 @@
       } else {
         removeCompactionProgress(convId);
       }
-      if (convId === activeConvId) scrollStreamToBottom();
     }, delay);
   }
 
@@ -2626,10 +2615,6 @@
       chatStreams.cleanup(convId);
     } else {
       removeCompactionProgress(convId);
-    }
-    if (convId === activeConvId) {
-      await tick();
-      scrollStreamToBottom();
     }
   }
 
@@ -3568,18 +3553,6 @@
     bottomScrollRaf = requestAnimationFrame(keepNavigating);
   }
 
-  async function scrollStreamToBottom() {
-    if (!followStreamToBottom && Date.now() >= programmaticBottomScrollUntil) return;
-    await tick();
-    if ((!followStreamToBottom && Date.now() >= programmaticBottomScrollUntil) || !messagesEl)
-      return;
-    messagesEl.scrollTo({
-      top: messagesEl.scrollHeight,
-      behavior: "auto",
-    });
-    followStreamToBottom = true;
-  }
-
   function beginStreamCompletionTailAnchor(convId: string) {
     if (
       convId !== activeConvId ||
@@ -3602,27 +3575,6 @@
     programmaticBottomScrollUntil = 0;
     followStreamToBottom = true;
   }
-
-  let messagesResizeObs: ResizeObserver | null = null;
-
-  $effect(() => {
-    if (!messagesEl || !("ResizeObserver" in window)) return;
-    messagesResizeObs?.disconnect();
-    messagesResizeObs = new ResizeObserver(() => {
-      if (followStreamToBottom || Date.now() < programmaticBottomScrollUntil) {
-        scrollStreamToBottom();
-      }
-    });
-    messagesResizeObs.observe(messagesEl);
-    if (messagesEl.firstElementChild) {
-      messagesResizeObs.observe(messagesEl.firstElementChild);
-    }
-
-    return () => {
-      messagesResizeObs?.disconnect();
-      messagesResizeObs = null;
-    };
-  });
 
   onMount(() => {
     return () => {
@@ -4114,6 +4066,7 @@
     currentStreamMessageId,
     debugMode: isDebugMode,
     fileChanges: currentFileChanges,
+    followTail: followStreamToBottom,
     isAwaitingStreamOutput: isCurrentAwaitingStreamOutput,
     isPaused: isCurrentStreamPaused,
     isStreaming: isCurrentStreaming,

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { flushSync, onMount, tick, type Snippet } from "svelte";
   import { isAssistantTurnEntry, type MessageRenderEntry } from "$lib/toolCallGroups";
-  import { anchoredScrollTop, selectVirtualScrollAnchor } from "$lib/virtualScrollAnchor";
+  import { selectVirtualScrollAnchor, virtualMeasurementScrollTop } from "$lib/virtualScrollAnchor";
 
   interface Props {
     items: MessageRenderEntry[];
@@ -11,6 +11,7 @@
     overscan?: number;
     responsiveColumns?: boolean;
     doubleColumnMinWidth?: number;
+    followTail?: boolean;
     tailAnchorToken?: number | null;
     onTailAnchorSettled?: (token: number) => void;
   }
@@ -23,6 +24,7 @@
     overscan = 800,
     responsiveColumns = false,
     doubleColumnMinWidth = 1200,
+    followTail = true,
     tailAnchorToken = null,
     onTailAnchorSettled,
   }: Props = $props();
@@ -180,13 +182,21 @@
       measurementRevision += 1;
     });
 
-    if (scroller && anchor?.node.isConnected) {
-      scroller.scrollTop = anchoredScrollTop(
-        scroller.scrollTop,
-        anchor.top,
-        anchor.node.getBoundingClientRect().top,
-      );
-      syncViewport();
+    if (scroller) {
+      const anchorAfterTop = anchor?.node.isConnected
+        ? anchor.node.getBoundingClientRect().top
+        : undefined;
+      const nextScrollTop = virtualMeasurementScrollTop({
+        followingTail: followTail,
+        scrollTop: scroller.scrollTop,
+        scrollHeight: scroller.scrollHeight,
+        anchorBeforeTop: anchor?.top,
+        anchorAfterTop,
+      });
+      if (nextScrollTop !== null) {
+        scroller.scrollTop = nextScrollTop;
+        syncViewport();
+      }
     }
     flushSync(() => {
       measurementAnchorKey = null;

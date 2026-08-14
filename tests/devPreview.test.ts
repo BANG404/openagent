@@ -17,4 +17,11 @@ describe("standalone development previews", () => {
       "runtime-notice",
     );
   });
+
+  test("exposes the streaming transcript preview", () => {
+    expect(
+      resolveStandaloneDevPreview(new URLSearchParams("streaming-transcript-preview"), true),
+    ).toBe("streaming-transcript");
+    expect(previewParameterPrefix("streaming-transcript")).toBe("streaming-transcript-preview");
+  });
 });

@@ -177,11 +177,14 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   ordinary flex stack to a fragmentable block inside the book's multi-column
   owner, and keep only atomic records from splitting across columns.
 - The application virtualizer owns tail following and height correction; keep
-  native browser anchoring disabled. Batch dynamic row measurements per frame
-  and preserve the first rendered row crossing the viewport start by its real
-  DOM coordinate, so resolving estimates cannot move the reader. Keep an index
-  destination mounted until its real row position remains aligned across
-  consecutive layout frames.
+  native browser anchoring disabled and do not issue per-chunk scroll commands
+  from the route. Batch dynamic row measurements per frame. While following the
+  live tail, resolve that measurement batch by pinning the scroller to the new
+  bottom; after the reader leaves the tail, preserve the first rendered row
+  crossing the viewport start by its real DOM coordinate instead. Reserve a
+  stable scrollbar gutter so overflow changes cannot alter transcript wrapping
+  or sidebar row width. Keep an index destination mounted until its real row
+  position remains aligned across consecutive layout frames.
 - After completion, reconcile the optimistic turn with its durable checkpoint
   in the background. Do not show the conversation-loading skeleton, remount an
   unchanged transcript, overwrite backend history, or remove optimistic
@@ -529,6 +532,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   standard persisted interruption divider. Its `-theme` and `-locale` parameters
   must verify that the localized title is not followed by the redundant durable
   English reason in light or dark mode.
+- Keep the development-only `streaming-transcript-preview` query available for
+  dynamic-height virtual Turn verification. It must continuously grow one live
+  Turn so tail following, reader-controlled upward scrolling, stable scrollbar
+  geometry, and light/dark rendering remain directly testable without a native
+  runtime.
 - Keep the development-only `attachment-composer-preview` query available for
   the shared composer's pending-attachment cards. Its `-theme` and `-locale`
   parameters must keep card preview, removal, upload, horizontal overflow,
