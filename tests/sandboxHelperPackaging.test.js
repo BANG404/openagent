@@ -14,6 +14,12 @@ const linuxHelper = readFileSync(
   new URL("../scripts/prepare-linux-sandbox-helper.mjs", import.meta.url),
   "utf8",
 );
+const baseTauriConfig = JSON.parse(
+  readFileSync(new URL("../src-tauri/tauri.conf.json", import.meta.url), "utf8"),
+);
+const windowsTauriConfig = JSON.parse(
+  readFileSync(new URL("../src-tauri/tauri.windows.conf.json", import.meta.url), "utf8"),
+);
 
 describe("sandbox helper packaging", () => {
   test("prepares the Linux sidecar before Rust compilation and gates the release digest", () => {
@@ -40,5 +46,13 @@ describe("sandbox helper packaging", () => {
     expect(linuxHelper).toContain('"bwrap",\n    "Cargo.toml"');
     expect(linuxHelper).toContain('candidate.name === "codex-bwrap"');
     expect(linuxHelper).toContain('target.name === "bwrap"');
+  });
+
+  test("packages Windows helpers only in the NSIS Windows bundle", () => {
+    expect(baseTauriConfig.bundle.resources).not.toHaveProperty("resources/codex-resources/");
+    expect(windowsTauriConfig.bundle.targets).toEqual(["nsis"]);
+    expect(windowsTauriConfig.bundle.resources).toEqual({
+      "resources/codex-resources/": "codex-resources/",
+    });
   });
 });

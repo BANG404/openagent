@@ -23,6 +23,9 @@ const nativeCargoManifest = readFileSync(
   new URL("../src-tauri/Cargo.toml", import.meta.url),
   "utf8",
 );
+const tauriConfig = JSON.parse(
+  readFileSync(new URL("../src-tauri/tauri.conf.json", import.meta.url), "utf8"),
+);
 const prHeadWorkflow = readFileSync(
   new URL("../.github/workflows/report-pr-head-ci.yml", import.meta.url),
   "utf8",
@@ -64,6 +67,16 @@ describe("release CI verification", () => {
     expect(nativeCargoManifest).toContain(
       'rfd = { version = "0.16", default-features = false, features = ["common-controls-v6"] }',
     );
+  });
+
+  test("keeps release binaries and generated Tauri commands size-oriented", () => {
+    expect(nativeCargoManifest).toContain("[profile.release]");
+    expect(nativeCargoManifest).toContain("codegen-units = 1");
+    expect(nativeCargoManifest).toContain("lto = true");
+    expect(nativeCargoManifest).toContain('opt-level = "s"');
+    expect(nativeCargoManifest).toContain('panic = "abort"');
+    expect(nativeCargoManifest).toContain("strip = true");
+    expect(tauriConfig.build.removeUnusedCommands).toBe(true);
   });
 
   test("delivers public-host Windows sandbox failures only to the private SDK commit", () => {

@@ -169,6 +169,8 @@ bun run tauri:build
 ```
 
 The built installers / app bundle land in `src-tauri/target/release/bundle/`.
+Windows builds produce the NSIS installer only; Linux and macOS retain their
+native bundle targets.
 On Linux this command builds the pinned Codex Bubblewrap sidecar, strips it,
 embeds its SHA-256 in the release binary, and packages the same bytes. Linux
 source builds therefore also require `libcap` development headers, `pkg-config`,

@@ -5,9 +5,8 @@
   "windows": ["main", "debug", "quick-chat"],
   "permissions": [
     "core:default",
-    "opener:default",
+    "opener:allow-open-url",
     "dialog:allow-open",
-    "updater:default",
     "updater:allow-check",
     "updater:allow-download-and-install",
     "autostart:allow-enable",

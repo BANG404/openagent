@@ -12,6 +12,13 @@ members = ["."]
 default-members = ["."]
 resolver = "2"
 
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
+
 # The pinned Codex Windows sandbox SDK revision requires proxy support from
 # these upstream forks. Cargo patches are owned by the embedding workspace, so
 # keep them here before advancing the private SDK gitlink.
@@ -41,7 +48,7 @@ tauri = { version = "2", features = ["protocol-asset", "tray-icon", "image-png",
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
 serde_json = "1"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["rt", "sync", "time"] }
 tauri-plugin-i18n = "2"
 tracing = "0.1"
 rfd = { version = "0.16", default-features = false, features = ["common-controls-v6"] }

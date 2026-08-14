@@ -149,6 +149,15 @@ Only then does it:
 6. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published prerelease SHA when applicable;
 7. deploy the release landing page with the published tag.
 
+Release binaries use the repository's size-oriented Cargo profile: full link-time
+optimization, one codegen unit, size optimization, abort-on-panic, stripped
+symbols. Windows desktop releases produce only the signed NSIS installer and its
+updater artifact; WiX/MSI is not part of the release surface. The Windows
+platform Tauri configuration is also the sole owner of the `codex-resources/`
+mapping, so Windows sandbox helpers cannot leak into a Linux or macOS application
+bundle. The embedding model remains a bundled base resource on every supported
+desktop platform.
+
 Prerelease updater channel tags and download URLs use the lowercase manifest
 values `beta` and `rc`. GitHub release tags and asset URLs are case-sensitive,
 so the release workflow must pass the manifest channel through unchanged when

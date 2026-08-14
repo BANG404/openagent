@@ -1,7 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import {
-  getMsiVersion,
   isPrereleaseReleaseRefresh,
   getNextPrereleaseNumber,
   getNextReleaseVersion,
@@ -250,9 +249,6 @@ function updateTauriConfig(version, channel) {
   const file = "src-tauri/tauri.conf.json";
   const data = JSON.parse(readFileSync(file, "utf8"));
   data.version = version;
-  data.bundle.windows ??= {};
-  data.bundle.windows.wix ??= {};
-  data.bundle.windows.wix.version = getMsiVersion(version);
   data.plugins.updater.endpoints = [
     channel === "stable"
       ? "https://github.com/BANG404/openagent/releases/latest/download/latest.json"
@@ -314,12 +310,9 @@ function assertTauriConfigChange(baselineRef) {
   const previous = JSON.parse(readReferenceFile(baselineRef, file));
   const current = readJson(file);
   current.version = previous.version;
-  current.bundle.windows.wix.version = previous.bundle.windows.wix.version;
   current.plugins.updater.endpoints = previous.plugins.updater.endpoints;
   if (JSON.stringify(current) !== JSON.stringify(previous)) {
-    throw new Error(
-      `${file} contains changes outside version, MSI version, and updater endpoints.`,
-    );
+    throw new Error(`${file} contains changes outside version and updater endpoints.`);
   }
 }
 
@@ -507,14 +500,6 @@ function verifyPendingRelease() {
     if (version !== manifest.version) {
       throw new Error(`${file} version ${version} does not match ${manifest.version}.`);
     }
-  }
-
-  const msiVersion = tauriConfig.bundle?.windows?.wix?.version;
-  const expectedMsiVersion = getMsiVersion(manifest.version);
-  if (msiVersion !== expectedMsiVersion) {
-    throw new Error(
-      `MSI version ${msiVersion ?? "(missing)"} does not match ${expectedMsiVersion}.`,
-    );
   }
 
   const expectedEndpoint =

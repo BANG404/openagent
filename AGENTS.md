@@ -212,7 +212,10 @@ legacy top-level category values.
   conflicts with the backend selected by `tauri-plugin-dialog`.
 - Build both Windows sandbox helper executables from the Codex revision pinned
   by the SDK, keep them out of source control, and bundle them under
-  `codex-resources/`. The library, setup helper, and command runner must never
+  `codex-resources/` through the Windows-only Tauri configuration. Windows
+  desktop releases produce NSIS and updater artifacts only; do not restore WiX
+  metadata or allow Windows helper resources into other platform bundles. The
+  library, setup helper, and command runner must never
   come from different revisions. Helper preparation must diagnose an SDK
   checkout that differs from the parent gitlink before suggesting a submodule
   update; never reset or overwrite SDK work automatically. During development,
@@ -224,6 +227,10 @@ legacy top-level category values.
   strip it before hashing, embed the SHA-256 in release Rust compilation, and
   package those exact bytes through Tauri `externalBin`. Release builds must
   use `bun run tauri:build` so the digest reaches Cargo.
+- Keep the release Cargo profile size-oriented: full LTO, one codegen unit,
+  `opt-level = "s"`, abort-on-panic, and symbol stripping. Audit installer size
+  regressions against the platform bundle rather than generated `target/`
+  contents.
 - For visible UI changes, verify light/dark themes and Chinese/English copy.
 - Do not edit generated `build/`, `.svelte-kit/`, or `target/` output.
 

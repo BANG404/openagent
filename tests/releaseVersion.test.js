@@ -1,7 +1,6 @@
 // @ts-nocheck -- Bun provides the test module at runtime.
 import { describe, expect, test } from "bun:test";
 import {
-  getMsiVersion,
   getNextPrereleaseNumber,
   getRcPromotion,
   isBetaReleaseRefresh,
@@ -69,23 +68,6 @@ describe("release tag precedence", () => {
 
   test("prefers Stable over RC and Beta for the same base", () => {
     expect(getLatestReleaseTag(["v1.2.3-beta.9", "v1.2.3-rc.2", "v1.2.3"])).toBe("v1.2.3");
-  });
-});
-
-describe("MSI release versions", () => {
-  test("keeps stable releases as three numeric components", () => {
-    expect(getMsiVersion("0.24.1")).toBe("0.24.1");
-  });
-
-  test("maps a Beta sequence to the MSI build component", () => {
-    expect(getMsiVersion("0.24.1-beta.1")).toBe("0.24.1.1");
-    expect(getMsiVersion("0.24.1-beta.42")).toBe("0.24.1.42");
-  });
-
-  test("maps RC sequences and rejects unsupported prerelease labels", () => {
-    expect(getMsiVersion("0.24.1-rc.1")).toBe("0.24.1.1");
-    expect(() => getMsiVersion("0.24.1-preview.1")).toThrow();
-    expect(() => getMsiVersion("0.24.1-beta.65536")).toThrow();
   });
 });
 

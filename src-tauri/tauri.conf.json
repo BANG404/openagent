@@ -7,6 +7,7 @@
     "beforeDevCommand": "bun run prepare:linux-sandbox:dev && bun run prepare:windows-sandbox:dev && bun run dev",
     "beforeBuildCommand": "bun run prepare:linux-sandbox:release && bun run prepare:windows-sandbox:release && bun run build",
     "frontendDist": "../build",
+    "removeUnusedCommands": true,
     "additionalWatchFolders": [
       "../sdk/rust"
     ]
@@ -39,8 +40,7 @@
     "targets": "all",
     "createUpdaterArtifacts": true,
     "resources": {
-      "resources/models/all-MiniLM-L6-v2-q/": "models/all-MiniLM-L6-v2-q/",
-      "resources/codex-resources/": "codex-resources/"
+      "resources/models/all-MiniLM-L6-v2-q/": "models/all-MiniLM-L6-v2-q/"
     },
     "icon": [
       "icons/32x32.png",
@@ -48,12 +48,7 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ],
-    "windows": {
-      "wix": {
-        "version": "0.38.3.1"
-      }
-    }
+    ]
   },
   "plugins": {
     "updater": {
