@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.38.3-beta.1] - 2026-08-14
+
+### Bug Fixes
+- **chat**: Preserve math in quoted selections
+
+### Miscellaneous
+- **sdk**: Advance formatting fix
+
 ## [0.38.2-beta.1] - 2026-08-13
 
 ### Bug Fixes
