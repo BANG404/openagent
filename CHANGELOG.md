@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.38.4-beta.1] - 2026-08-14
+
+### Bug Fixes
+- **chat**: Stabilize streaming turn scrolling
+
 ## [0.38.3-beta.1] - 2026-08-14
 
 ### Bug Fixes
