@@ -574,7 +574,7 @@
   </main>
 {:else if preview === "streaming-transcript"}
   <main
-    class="streaming-transcript-preview-stage"
+    class="streaming-transcript-preview-stage transcript-scroller"
     class:following-tail={streamingFollowTail}
     bind:this={streamingMessagesElement}
     onscroll={updateStreamingFollowTail}

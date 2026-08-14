@@ -178,6 +178,16 @@
     background: var(--text-muted);
   }
 
+  .transcript-scroller {
+    scrollbar-color: transparent transparent;
+  }
+
+  .transcript-scroller::-webkit-scrollbar-track,
+  .transcript-scroller::-webkit-scrollbar-thumb,
+  .transcript-scroller::-webkit-scrollbar-thumb:hover {
+    background: transparent;
+  }
+
   /* Context Menu (bits-ui) — global so it works regardless of which component is mounted */
   .ctx-menu-content {
     background: var(--control-surface);

@@ -157,7 +157,7 @@
     {/if}
 
     <main
-      class="messages"
+      class="messages transcript-scroller"
       bind:this={messagesElement}
       onscroll={actions.handleMessagesScroll}
       onwheel={actions.cancelBottomScrollFromUser}
