@@ -21,6 +21,7 @@
   import AttachmentPreview from "./AttachmentPreview.svelte";
   import UserQuote from "./UserQuote.svelte";
   import type { MermaidConfig } from "$lib/mermaidTheme";
+  import { selectionTextWithMath } from "$lib/streamdown/selectionText";
   import {
     appendLiveStreamEntry,
     groupAssistantTurns,
@@ -278,7 +279,7 @@
       selectionPopover = null;
       return;
     }
-    const text = selection.toString().trim();
+    const text = selectionTextWithMath(selection);
     if (!text) {
       selectionPopover = null;
       return;

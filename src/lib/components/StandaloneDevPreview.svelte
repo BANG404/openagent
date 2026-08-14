@@ -95,15 +95,15 @@
       role: "assistant",
       content:
         locale === "zh"
-          ? "选择这段回答中的任意文字，然后使用浮动操作把它添加到下一条消息。引用会作为结构化上下文保留。"
-          : "Select any text in this answer, then use the floating action to add it to the next message. The excerpt remains structured context.",
+          ? "选择这段回答中的文字或公式，然后使用浮动操作把它添加到下一条消息。麦克斯韦方程为 $\\nabla \\cdot E = \\frac{\\rho}{\\varepsilon_0}$。引用会作为结构化上下文保留。"
+          : "Select text or math in this answer, then use the floating action to add it to the next message. Maxwell's equation is $\\nabla \\cdot E = \\frac{\\rho}{\\varepsilon_0}$. The excerpt remains structured context.",
       items: [
         {
           type: "text",
           content:
             locale === "zh"
-              ? "选择这段回答中的任意文字，然后使用浮动操作把它添加到下一条消息。引用会作为结构化上下文保留。"
-              : "Select any text in this answer, then use the floating action to add it to the next message. The excerpt remains structured context.",
+              ? "选择这段回答中的文字或公式，然后使用浮动操作把它添加到下一条消息。麦克斯韦方程为 $\\nabla \\cdot E = \\frac{\\rho}{\\varepsilon_0}$。引用会作为结构化上下文保留。"
+              : "Select text or math in this answer, then use the floating action to add it to the next message. Maxwell's equation is $\\nabla \\cdot E = \\frac{\\rho}{\\varepsilon_0}$. The excerpt remains structured context.",
         },
       ],
       timestamp: Date.now() - 1000,

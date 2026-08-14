@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Streamdown } from "svelte-streamdown";
   import Code from "svelte-streamdown/code";
-  import MathBlock from "svelte-streamdown/math";
+  import ChatMath from "$lib/streamdown/ChatMath.svelte";
   import Mermaid from "$lib/streamdown/Mermaid.svelte";
   import ToolCallCard from "./ToolCallCard.svelte";
   import UserInputForm from "./UserInputForm.svelte";
@@ -87,7 +87,7 @@
           ? item.content
           : item.content.trimEnd()}
       controls={{ table: false }}
-      components={{ code: Code, mermaid: Mermaid, math: MathBlock }}
+      components={{ code: Code, mermaid: Mermaid, math: ChatMath }}
       extensions={customExtensions}
       theme={chatMarkdownTheme}
       {shikiTheme}

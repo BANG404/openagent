@@ -239,7 +239,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   quotes above the user-authored message text, shrink their cards to the visible
   excerpt up to the available message width, and keep their provider wrapper out
   of the visible transcript. Pending composer quote rows continue to fill the
-  composer width.
+  composer width. Preserve selected KaTeX expressions as Markdown math from the
+  renderer-owned source wrapper instead of copying its visual layout spans, and
+  render that math in pending and durable quote cards.
 - Keep pending composer text, attachments, and quoted context isolated by
   conversation while navigating. The new-conversation surface owns a separate
   draft per workspace and role; sending or deleting one conversation must not
@@ -535,9 +537,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the development-only `quote-context-preview` query available for
   selecting assistant text, opening the localized Add-to-chat action, adding
   and removing composer quote rows, and checking light/dark Chinese/English
-  rendering without native state. Quote rows use a borderless surface and grow
-  with wrapped text instead of truncating the selected context to a fixed line
-  count.
+  rendering without native state. Keep a rendered math expression in its fixture
+  so KaTeX selection and quote rendering remain directly verifiable. Quote rows
+  use a borderless surface and grow with wrapped text instead of truncating the
+  selected context to a fixed line count.
 - Keep the development-only `checkpoint-flow-preview` query available for the
   right-side Goal/Graph checkpoint panel and composer approval selector. Its
   `-kind`, `-theme`, and `-locale` query parameters must keep Goal/Graph,

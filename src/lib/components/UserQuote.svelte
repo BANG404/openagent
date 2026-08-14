@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { UserMessageContext } from "$lib/types";
   import { t } from "$lib/i18n";
+  import QuoteContent from "$lib/streamdown/QuoteContent.svelte";
   import Tooltip from "./Tooltip.svelte";
 
   interface Props {
@@ -24,7 +25,7 @@
   >
     <path d="M3 4.5h10M3 8h7M3 11.5h5" />
   </svg>
-  <span class="quote-text">{context.text}</span>
+  <div class="quote-text"><QuoteContent content={context.text} /></div>
   {#if onRemove}
     <Tooltip text={$t("removeQuotedContext")}>
       {#snippet trigger(props)}
