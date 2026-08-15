@@ -37,11 +37,12 @@
       last_used_at: 2,
     },
   ];
-  const recentWorkspaces: RecentWorkspace[] = [
+  let recentWorkspaces = $state<RecentWorkspace[]>([
     { path: "C:\\Projects\\openagent", name: "openagent" },
     { path: "C:\\Projects\\agent-runtime", name: "agent-runtime" },
     { path: "\\\\wsl.localhost\\Ubuntu-24.04\\home\\dev\\math", name: "math" },
-  ];
+  ]);
+  let pinnedProjectPaths = $state<string[]>([]);
   const recentConversations: Conversation[] = [
     {
       id: "openagent-1",
@@ -103,6 +104,7 @@
     canGoForward={false}
     {workspacePath}
     {recentWorkspaces}
+    {pinnedProjectPaths}
     searchQuery=""
     {conversations}
     {recentConversations}
@@ -120,7 +122,8 @@
     }}
     onBack={() => {}}
     onForward={() => {}}
-    onNew={() => {
+    onNewProjectConversation={(path) => {
+      selectWorkspace(path);
       activeConversationId = null;
     }}
     onSearch={() => {}}
@@ -134,9 +137,17 @@
     }}
     onTogglePin={() => {}}
     onDelete={() => {}}
-    onPickWorkspace={() => selectWorkspace("C:\\Projects\\new-project")}
-    onPickWsl={() => selectWorkspace(recentWorkspaces[2].path)}
     onSelectWorkspace={selectWorkspace}
+    onToggleProjectPin={(path) => {
+      pinnedProjectPaths = pinnedProjectPaths.includes(path)
+        ? pinnedProjectPaths.filter((item) => item !== path)
+        : [path, ...pinnedProjectPaths];
+    }}
+    onOpenProjectFolder={() => {}}
+    onRemoveProject={(path) => {
+      recentWorkspaces = recentWorkspaces.filter((item) => item.path !== path);
+      pinnedProjectPaths = pinnedProjectPaths.filter((item) => item !== path);
+    }}
     onToggleMemory={() => {}}
     onToggleRoles={() => {}}
     onToggleSkills={() => {}}

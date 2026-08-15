@@ -12,41 +12,45 @@
     recentWorkspaces,
     conversations,
     recentConversations,
+    pinnedProjectPaths,
     searchQuery,
     activeConversationId,
     streamingConversationIds,
     hasMore,
     loadingMore,
-    onNew,
+    onNewProjectConversation,
     onSearch,
     onLoadMore,
     onSelect,
     onOpenConversation,
     onTogglePin,
     onDelete,
-    onPickWorkspace,
-    onPickWsl,
     onSelectWorkspace,
+    onToggleProjectPin,
+    onOpenProjectFolder,
+    onRemoveProject,
   }: {
     workspacePath: string;
     recentWorkspaces: RecentWorkspace[];
     conversations: Conversation[];
     recentConversations: Conversation[];
+    pinnedProjectPaths: string[];
     searchQuery: string;
     activeConversationId: string | null;
     streamingConversationIds: Record<string, boolean>;
     hasMore: boolean;
     loadingMore: boolean;
-    onNew: () => void;
+    onNewProjectConversation: (path: string) => void;
     onSearch: (query: string) => void;
     onLoadMore: () => void;
     onSelect: (id: string) => void;
     onOpenConversation: (conversation: Conversation) => void;
     onTogglePin: (id: string) => void;
     onDelete: (id: string) => void;
-    onPickWorkspace: () => void;
-    onPickWsl: () => void;
     onSelectWorkspace: (path: string) => void;
+    onToggleProjectPin: (path: string) => void;
+    onOpenProjectFolder: (path: string) => void;
+    onRemoveProject: (path: string) => void;
   } = $props();
 
   let searchOpen = $state(false);
@@ -71,15 +75,12 @@
     for (const item of recentWorkspaces) {
       if (!byPath.has(item.path)) byPath.set(item.path, item);
     }
-    for (const conversation of allRecentConversations) {
-      if (conversation.workspace && !byPath.has(conversation.workspace)) {
-        byPath.set(conversation.workspace, {
-          path: conversation.workspace,
-          name: workspaceFolderName(conversation.workspace),
-        });
-      }
-    }
-    return [...byPath.values()].slice(0, 6);
+    const pinnedPaths = new Set(pinnedProjectPaths);
+    return [...byPath.values()]
+      .sort(
+        (left, right) => Number(pinnedPaths.has(right.path)) - Number(pinnedPaths.has(left.path)),
+      )
+      .slice(0, 6);
   });
 
   function conversationsForProject(path: string): Conversation[] {
@@ -108,42 +109,17 @@
     <div class="section-heading">
       <span>{$t("projects")}</span>
       <div class="section-actions">
-        <DropdownMenu.Root>
-          <Tooltip text={$t("projectActions")} side="bottom">
-            <DropdownMenu.Trigger class="section-action" aria-label={$t("projectActions")}>
-              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"
-                ><circle cx="3" cy="8" r="1" /><circle cx="8" cy="8" r="1" /><circle
-                  cx="13"
-                  cy="8"
-                  r="1"
-                /></svg
-              >
-            </DropdownMenu.Trigger>
-          </Tooltip>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content class="project-menu" sideOffset={4} align="end">
-              <DropdownMenu.Item class="project-menu-item" onSelect={onNew}
-                >{$t("newChat")}</DropdownMenu.Item
-              >
-              <DropdownMenu.Item class="project-menu-item" onSelect={() => void openSearch()}
-                >{$t("searchConversations")}</DropdownMenu.Item
-              >
-              <DropdownMenu.Separator class="project-menu-separator" />
-              <DropdownMenu.Item class="project-menu-item" onSelect={onPickWsl}
-                >{$t("openWslFolder")}</DropdownMenu.Item
-              >
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
-        <Tooltip text={$t("newProject")} side="bottom">
+        <Tooltip text={$t("searchConversations")} side="bottom">
           <button
             class="section-action"
             type="button"
-            aria-label={$t("newProject")}
-            onclick={onPickWorkspace}
+            aria-label={$t("searchConversations")}
+            onclick={() => void openSearch()}
           >
-            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 3v10M3 8h10" /></svg
-            >
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="7" cy="7" r="4" />
+              <path d="m10 10 3 3" />
+            </svg>
           </button>
         </Tooltip>
       </div>
@@ -181,21 +157,103 @@
       <div class="project-list">
         {#each projectEntries as project (project.path)}
           <section class="project-group" aria-label={project.name}>
-            <button
-              class="project-row"
-              class:active={project.path === workspacePath}
-              type="button"
-              onclick={() => onSelectWorkspace(project.path)}
-            >
-              <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"
-                ><path
-                  d="M2.75 5.75h4l1.2 1.5h7.3v6.25a1.5 1.5 0 0 1-1.5 1.5h-9.5a1.5 1.5 0 0 1-1.5-1.5z"
-                /><path
-                  d="M2.75 6V4.75a1.5 1.5 0 0 1 1.5-1.5h3l1.2 1.5h5.3a1.5 1.5 0 0 1 1.5 1.5v1"
-                /></svg
+            <div class="project-row-shell" class:active={project.path === workspacePath}>
+              <button
+                class="project-row"
+                type="button"
+                onclick={() => onSelectWorkspace(project.path)}
               >
-              <span>{project.name || workspaceFolderName(project.path)}</span>
-            </button>
+                <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"
+                  ><path
+                    d="M2.75 5.75h4l1.2 1.5h7.3v6.25a1.5 1.5 0 0 1-1.5 1.5h-9.5a1.5 1.5 0 0 1-1.5-1.5z"
+                  /><path
+                    d="M2.75 6V4.75a1.5 1.5 0 0 1 1.5-1.5h3l1.2 1.5h5.3a1.5 1.5 0 0 1 1.5 1.5v1"
+                  /></svg
+                >
+                <span>{project.name || workspaceFolderName(project.path)}</span>
+                {#if pinnedProjectPaths.includes(project.path)}
+                  <svg class="project-pin" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="m5.25 3.25 5.5 5.5M9.5 2l4.5 4.5-2.25 1.25-2.5 2.5L8 12.5 3.5 8l2.25-1.25 2.5-2.5zM6.5 9.5 3 13"
+                    />
+                  </svg>
+                {/if}
+              </button>
+              <div class="project-row-actions">
+                <Tooltip text={$t("newChat")} side="bottom">
+                  <button
+                    class="project-row-action"
+                    type="button"
+                    aria-label={`${$t("newChat")}: ${project.name}`}
+                    onclick={() => onNewProjectConversation(project.path)}
+                  >
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path
+                        d="M9.25 3.25h-4A1.75 1.75 0 0 0 3.5 5v6A1.75 1.75 0 0 0 5.25 12.75h5.5A1.75 1.75 0 0 0 12.5 11V7"
+                      />
+                      <path d="m8 8 4.75-4.75M10.25 3.25h2.5v2.5" />
+                    </svg>
+                  </button>
+                </Tooltip>
+                <DropdownMenu.Root>
+                  <Tooltip text={$t("projectActions")} side="bottom">
+                    <DropdownMenu.Trigger
+                      class="project-row-action"
+                      aria-label={`${$t("projectActions")}: ${project.name}`}
+                    >
+                      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <circle cx="3" cy="8" r="1" />
+                        <circle cx="8" cy="8" r="1" />
+                        <circle cx="13" cy="8" r="1" />
+                      </svg>
+                    </DropdownMenu.Trigger>
+                  </Tooltip>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Content class="project-menu" sideOffset={4} align="end">
+                      <DropdownMenu.Item
+                        class="project-menu-item"
+                        onSelect={() => onToggleProjectPin(project.path)}
+                      >
+                        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <path
+                            d="m5.25 3.25 5.5 5.5M9.5 2l4.5 4.5-2.25 1.25-2.5 2.5L8 12.5 3.5 8l2.25-1.25 2.5-2.5zM6.5 9.5 3 13"
+                          />
+                        </svg>
+                        <span
+                          >{$t(
+                            pinnedProjectPaths.includes(project.path)
+                              ? "unpinProject"
+                              : "pinProject",
+                          )}</span
+                        >
+                      </DropdownMenu.Item>
+                      <DropdownMenu.Item
+                        class="project-menu-item"
+                        onSelect={() => onOpenProjectFolder(project.path)}
+                      >
+                        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <path
+                            d="M2.25 5.5h4l1.2 1.4h6.3v5.35a1.5 1.5 0 0 1-1.5 1.5h-8.5a1.5 1.5 0 0 1-1.5-1.5z"
+                          />
+                          <path d="M2.25 5.75v-1a1.5 1.5 0 0 1 1.5-1.5H6.5l1.2 1.4h4.55" />
+                        </svg>
+                        <span>{$t("openProjectFolder")}</span>
+                      </DropdownMenu.Item>
+                      <DropdownMenu.Separator class="project-menu-separator" />
+                      <DropdownMenu.Item
+                        class="project-menu-item danger"
+                        onSelect={() => onRemoveProject(project.path)}
+                      >
+                        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <path d="M3.25 4.5h9.5M6 4.5V3.25h4V4.5M5 6.5l.5 6.25h5L11 6.5" />
+                        </svg>
+                        <span>{$t("removeProject")}</span>
+                      </DropdownMenu.Item>
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Root>
+              </div>
+            </div>
 
             {#if project.path === workspacePath}
               <ConversationList
@@ -316,7 +374,8 @@
     height: 14px;
   }
 
-  :global(.section-action path) {
+  :global(.section-action path),
+  :global(.section-action circle) {
     stroke: currentColor;
     stroke-width: 1.4;
     stroke-linecap: round;
@@ -418,6 +477,8 @@
   }
 
   .project-row {
+    min-width: 0;
+    flex: 1;
     height: 30px;
     gap: 7px;
     padding: 4px 8px;
@@ -427,11 +488,81 @@
     cursor: pointer;
   }
 
+  .project-row-shell:hover,
+  .project-row-shell:focus-within,
+  .project-row-shell.active,
   .project-row:hover,
   .project-row:focus-visible,
-  .project-row.active {
+  .project-row-shell.active .project-row {
     background: var(--surface2);
     outline: none;
+  }
+
+  .project-row-shell {
+    position: relative;
+    display: flex;
+    height: 30px;
+    border-radius: 7px;
+  }
+
+  .project-row-shell:hover .project-row,
+  .project-row-shell:focus-within .project-row,
+  .project-row-shell.active .project-row {
+    padding-right: 62px;
+  }
+
+  .project-row-actions {
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    display: flex;
+    gap: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .project-row-shell:hover .project-row-actions,
+  .project-row-shell:focus-within .project-row-actions,
+  .project-row-shell.active .project-row-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  :global(.project-row-action) {
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    outline: none;
+  }
+
+  :global(.project-row-action:hover),
+  :global(.project-row-action:focus-visible),
+  :global(.project-row-action[data-state="open"]) {
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  :global(.project-row-action:focus-visible) {
+    box-shadow: var(--focus-ring);
+  }
+
+  :global(.project-row-action svg) {
+    width: 14px;
+    height: 14px;
+  }
+
+  :global(.project-row-action path) {
+    stroke: currentColor;
+    stroke-width: 1.3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   .project-row:focus-visible {
@@ -446,6 +577,33 @@
     stroke-width: 1.3;
     stroke-linecap: round;
     stroke-linejoin: round;
+  }
+
+  .project-row .project-pin {
+    width: 12px;
+    height: 12px;
+    margin-left: auto;
+    flex: 0 0 12px;
+  }
+
+  :global(.project-menu-item) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  :global(.project-menu-item > svg) {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    stroke: currentColor;
+    stroke-width: 1.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  :global(.project-menu-item.danger) {
+    color: var(--danger);
   }
 
   .project-row span,

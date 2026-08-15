@@ -20,6 +20,7 @@
     canGoForward,
     workspacePath,
     recentWorkspaces,
+    pinnedProjectPaths,
     searchQuery,
     conversations,
     recentConversations,
@@ -35,16 +36,17 @@
     onRoleChange,
     onBack,
     onForward,
-    onNew,
+    onNewProjectConversation,
     onSearch,
     onLoadMore,
     onSelect,
     onOpenConversation,
     onTogglePin,
     onDelete,
-    onPickWorkspace,
-    onPickWsl,
     onSelectWorkspace,
+    onToggleProjectPin,
+    onOpenProjectFolder,
+    onRemoveProject,
     onToggleMemory,
     onToggleRoles,
     onToggleSkills,
@@ -58,6 +60,7 @@
     canGoForward: boolean;
     workspacePath: string;
     recentWorkspaces: RecentWorkspace[];
+    pinnedProjectPaths: string[];
     searchQuery: string;
     conversations: Conversation[];
     recentConversations: Conversation[];
@@ -73,16 +76,17 @@
     onRoleChange: (role: string) => void | Promise<void>;
     onBack: () => void | Promise<void>;
     onForward: () => void | Promise<void>;
-    onNew: () => void | Promise<void>;
+    onNewProjectConversation: (path: string) => void | Promise<void>;
     onSearch: (query: string) => void;
     onLoadMore: () => void | Promise<void>;
     onSelect: (id: string) => void | Promise<void>;
     onOpenConversation: (conversation: Conversation) => void | Promise<void>;
     onTogglePin: (id: string) => void | Promise<void>;
     onDelete: (id: string) => void | Promise<void>;
-    onPickWorkspace: () => void | Promise<void>;
-    onPickWsl: () => void | Promise<void>;
     onSelectWorkspace: (path: string) => void | Promise<void>;
+    onToggleProjectPin: (path: string) => void;
+    onOpenProjectFolder: (path: string) => void | Promise<void>;
+    onRemoveProject: (path: string) => void | Promise<void>;
     onToggleMemory: () => void | Promise<void>;
     onToggleRoles: () => void | Promise<void>;
     onToggleSkills: () => void | Promise<void>;
@@ -125,6 +129,7 @@
         <SidebarWorkspaceBrowser
           {workspacePath}
           {recentWorkspaces}
+          {pinnedProjectPaths}
           {searchQuery}
           {conversations}
           {recentConversations}
@@ -132,16 +137,17 @@
           {streamingConversationIds}
           {hasMore}
           {loadingMore}
-          onNew={() => void onNew()}
+          onNewProjectConversation={(path) => void onNewProjectConversation(path)}
           {onSearch}
           onLoadMore={() => void onLoadMore()}
           onSelect={(id) => void onSelect(id)}
           onOpenConversation={(conversation) => void onOpenConversation(conversation)}
           {onTogglePin}
           {onDelete}
-          onPickWorkspace={() => void onPickWorkspace()}
-          onPickWsl={() => void onPickWsl()}
           onSelectWorkspace={(path) => void onSelectWorkspace(path)}
+          {onToggleProjectPin}
+          onOpenProjectFolder={(path) => void onOpenProjectFolder(path)}
+          onRemoveProject={(path) => void onRemoveProject(path)}
         />
       {/if}
       <div class="sidebar-role">

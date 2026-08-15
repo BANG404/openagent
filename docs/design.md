@@ -25,7 +25,11 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   The sidebar groups workspace-owned conversations under Projects and shows one
   cross-workspace, newest-first Recents list. New-conversation composers expose
   the workspace switcher beside approval mode; existing workspace conversations
-  hide it because their workspace is durable context.
+  hide it because their workspace is durable context. Each project row exposes
+  its own new-conversation action and menu for pinning, opening the project
+  folder, or removing the project from Projects without deleting its files or
+  conversation history. The Projects heading retains only global conversation
+  search.
 
 ## Colors
 

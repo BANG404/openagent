@@ -360,6 +360,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   newest-first projection across workspace metadata. Preserve the owning
   workspace on every global conversation so selecting a conversation from a
   different workspace opens that exact conversation in its workspace process.
+  Keep project-specific actions on each project row instead of the Projects
+  heading: expose a direct new-conversation action plus a compact menu for
+  pinning, opening the folder, and removing the project from the project list.
+  Project pins are durable sidebar presentation preferences. Removing a project
+  must not delete its folder or conversations; its conversations remain
+  reachable from Recents. Keep global conversation search on the section
+  heading after removing the former catch-all project actions.
 - Keep the expanded conversation sidebar resizable from its trailing edge between
   180px and 360px. Persist the chosen width across collapse and reload, disable
   width animation while dragging, and expose the same bounds to keyboard users.
