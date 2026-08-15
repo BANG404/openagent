@@ -2599,7 +2599,7 @@
                   </button>
                 </ContextMenu.Trigger>
                 <ContextMenu.Portal>
-                  <ContextMenu.Content class="ctx-menu-content">
+                  <ContextMenu.Content class="desktop-menu-panel ctx-menu-content">
                     <ContextMenu.Item
                       class="ctx-menu-item ctx-menu-item-danger"
                       onclick={() => removeProvider(provider.id)}
@@ -3480,7 +3480,7 @@
                   </button>
                 </ContextMenu.Trigger>
                 <ContextMenu.Portal>
-                  <ContextMenu.Content class="ctx-menu-content">
+                  <ContextMenu.Content class="desktop-menu-panel ctx-menu-content">
                     <ContextMenu.Item
                       class="ctx-menu-item ctx-menu-item-danger"
                       onclick={() => removeMcpServer(server.id)}

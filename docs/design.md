@@ -30,6 +30,11 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   folder, or removing the project from Projects without deleting its files or
   conversation history. The Projects heading retains only global conversation
   search.
+- **Desktop menu panels:** dropdown menus, searchable selects, comboboxes, and
+  context menus share the same borderless control surface, compact inset and
+  row scale, neutral hover fill, and raised shadow established by Projects >
+  More. Individual panels may change only their size, scrolling, and content
+  layout; they do not introduce separate translucent or blurred materials.
 
 ## Colors
 

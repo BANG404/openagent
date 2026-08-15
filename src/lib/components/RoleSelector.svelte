@@ -81,7 +81,9 @@
   </Tooltip>
   <Select.Portal>
     <Select.Content
-      class="role-selector-content {compact ? 'compact' : ''} {header ? 'header' : ''}"
+      class="desktop-menu-panel role-selector-content {compact ? 'compact' : ''} {header
+        ? 'header'
+        : ''}"
       side="bottom"
       sideOffset={6}
     >
@@ -225,13 +227,6 @@
     max-width: calc(100vw - 24px);
     box-sizing: border-box;
     max-height: min(420px, var(--bits-select-content-available-height, 420px));
-    padding: var(--menu-content-padding);
-    border-radius: var(--menu-content-radius);
-    background: color-mix(in srgb, var(--surface) 76%, transparent);
-    box-shadow: var(--raised-shadow);
-    -webkit-backdrop-filter: blur(12px) saturate(1.08);
-    backdrop-filter: blur(12px) saturate(1.08);
-    outline: none;
     overflow: hidden;
   }
   :global(.role-selector-content.compact) {
@@ -296,10 +291,10 @@
   }
   :global(.role-selector-item[data-highlighted]:not([data-selected])),
   :global(.role-selector-item:hover:not([data-selected])) {
-    background: color-mix(in srgb, var(--text) 7%, transparent);
+    background: var(--bg);
   }
   :global(.role-selector-item[data-selected]) {
-    background: color-mix(in srgb, var(--text) 7%, transparent);
+    background: var(--bg);
     color: var(--text);
   }
   :global(.role-selector-item[data-selected]::before) {

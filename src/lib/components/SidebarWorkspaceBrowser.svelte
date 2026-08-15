@@ -209,7 +209,11 @@
                     </DropdownMenu.Trigger>
                   </Tooltip>
                   <DropdownMenu.Portal>
-                    <DropdownMenu.Content class="project-menu" sideOffset={4} align="end">
+                    <DropdownMenu.Content
+                      class="desktop-menu-panel project-menu"
+                      sideOffset={4}
+                      align="end"
+                    >
                       <DropdownMenu.Item
                         class="project-menu-item"
                         onSelect={() => onToggleProjectPin(project.path)}
@@ -384,11 +388,6 @@
   :global(.project-menu) {
     min-width: 180px;
     z-index: 242;
-    padding: var(--menu-content-padding);
-    border-radius: var(--menu-content-radius);
-    background: var(--control-surface);
-    box-shadow: var(--raised-shadow);
-    outline: none;
   }
 
   :global(.project-menu-item) {
