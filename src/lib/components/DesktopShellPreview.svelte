@@ -26,6 +26,8 @@
   let searchQuery = $state("");
   const platformOverride =
     query.get("desktop-shell-preview-platform") === "macos" ? "macos" : undefined;
+  const windowFocusedOverride =
+    query.get("desktop-shell-preview-focused") === "false" ? false : undefined;
 
   const roles: AgentRole[] = [
     {
@@ -207,6 +209,7 @@
       onMaximize={() => {}}
       onClose={() => {}}
       {platformOverride}
+      {windowFocusedOverride}
     />
     <main class="desktop-shell-content">
       {#if activeConversationId}
