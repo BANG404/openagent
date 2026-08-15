@@ -26,6 +26,7 @@
 
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
+  import DesktopShellPreview from "$lib/components/DesktopShellPreview.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
@@ -364,7 +365,9 @@
   }
 </script>
 
-{#if preview === "book-mode"}
+{#if preview === "desktop-shell"}
+  <DesktopShellPreview />
+{:else if preview === "book-mode"}
   <AgentBookReader
     turns={bookTurns}
     activeKey="book-preview-one"

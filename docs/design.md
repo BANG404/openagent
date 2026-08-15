@@ -17,6 +17,15 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 - Section rhythm across multiple pages: light hero → dark product tile → light utility tile → dark tile → parchment footer — a predictable pulse.
 - **Application-only aurora:** low-contrast, blurred multicolor light is permitted behind the chat composer, empty conversation state, and generated memory note. It is an ambient status layer, never content chrome; the conversation sidebar remains a flat surface.
 - **Settings cards:** align each section title with its supporting copy and align each card row's label with its description. Use one softly elevated surface for the card itself; controls nested inside that card use a 1px hairline border without a second shadow.
+- **Desktop application shell:** keep one compact, continuous top chrome across
+  sidebar and conversation surfaces. The leading controls collapse the sidebar
+  and traverse application history; File owns workspace-opening commands while
+  the centered environment label is display-only. Window controls follow macOS
+  traffic-light placement or Windows trailing minimize/maximize/close geometry.
+  The sidebar groups workspace-owned conversations under Projects and shows one
+  cross-workspace, newest-first Recents list. New-conversation composers expose
+  the workspace switcher beside approval mode; existing workspace conversations
+  hide it because their workspace is durable context.
 
 ## Colors
 

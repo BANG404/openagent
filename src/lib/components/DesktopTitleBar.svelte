@@ -1,206 +1,224 @@
 <script lang="ts">
-  import type { AgentRole, RecentWorkspace, WorkspaceContext } from "$lib/types";
+  import { invoke } from "$lib/openagent/tauriClient";
   import { t } from "$lib/i18n";
-  import RoleSelector from "$lib/components/RoleSelector.svelte";
+  import type { RecentWorkspace, WorkspaceContext } from "$lib/types";
+  import { workspaceFolderName } from "$lib/workspacePath";
+  import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
+  import ApplicationMenuBar from "$lib/components/ApplicationMenuBar.svelte";
   import Tooltip from "$lib/components/Tooltip.svelte";
   import WindowControls from "$lib/components/WindowControls.svelte";
-  import WorkspaceSwitcher from "$lib/components/WorkspaceSwitcher.svelte";
 
   let {
-    sidebarCollapsed,
     workspace,
     workspacePath,
     recentWorkspaces,
     tauriAvailable,
-    browserModeNotice,
-    selectedRoleKey,
-    roles,
     memorySyncing,
     onPickWorkspace,
     onPickWsl,
     onSelectWorkspace,
     onNewConversation,
-    onRoleChange,
+    onOpenMemory,
+    onOpenRoles,
+    onOpenSkills,
+    onOpenSettings,
+    onOpenAbout,
     onMinimize,
     onMaximize,
     onClose,
+    platformOverride,
   }: {
-    sidebarCollapsed: boolean;
     workspace: WorkspaceContext | null;
     workspacePath: string;
     recentWorkspaces: RecentWorkspace[];
     tauriAvailable: boolean;
-    browserModeNotice: string;
-    selectedRoleKey: string;
-    roles: AgentRole[];
     memorySyncing: boolean;
     onPickWorkspace: () => void | Promise<void>;
     onPickWsl: () => void | Promise<void>;
     onSelectWorkspace: (path: string) => void | Promise<void>;
     onNewConversation: () => void | Promise<void>;
-    onRoleChange: (role: string) => void | Promise<void>;
+    onOpenMemory: () => void | Promise<void>;
+    onOpenRoles: () => void | Promise<void>;
+    onOpenSkills: () => void | Promise<void>;
+    onOpenSettings: () => void | Promise<void>;
+    onOpenAbout: () => void | Promise<void>;
     onMinimize: () => void;
     onMaximize: () => void | Promise<void>;
     onClose: () => void;
+    platformOverride?: WindowPlatform;
   } = $props();
+
+  let platform = $derived(platformOverride ?? detectWindowPlatform());
+  let folderName = $derived(workspaceFolderName(workspace?.path));
+  let workspaceLabel = $derived(
+    workspace?.environment.kind === "wsl"
+      ? `${folderName} · ${workspace.environment.distribution}`
+      : folderName,
+  );
+
+  async function openWorkspaceLocation(): Promise<void> {
+    if (!tauriAvailable || !workspacePath) return;
+    await invoke("open_path", { path: workspacePath }).catch((error) => {
+      console.warn("Failed to open workspace location", error);
+    });
+  }
 </script>
 
-<header class="title-bar" class:sidebar-collapsed={sidebarCollapsed} data-tauri-drag-region>
-  <div class="title-bar-left">
-    <WorkspaceSwitcher
-      {workspace}
-      {workspacePath}
+<header class="title-bar" class:macos={platform === "macos"} data-tauri-drag-region>
+  {#if platform === "macos"}
+    <div class="mac-window-controls">
+      <WindowControls {platform} {onMinimize} {onMaximize} {onClose} />
+    </div>
+  {/if}
+
+  <div class="title-bar-menu" data-tauri-drag-region>
+    <ApplicationMenuBar
       {recentWorkspaces}
-      {tauriAvailable}
-      {browserModeNotice}
-      onPick={onPickWorkspace}
-      {onPickWsl}
-      onSelect={onSelectWorkspace}
+      {workspacePath}
+      onNewConversation={() => void onNewConversation()}
+      onPickWorkspace={() => void onPickWorkspace()}
+      onPickWsl={() => void onPickWsl()}
+      onSelectWorkspace={(path) => void onSelectWorkspace(path)}
+      onOpenWorkspaceLocation={() => void openWorkspaceLocation()}
+      onOpenMemory={() => void onOpenMemory()}
+      onOpenRoles={() => void onOpenRoles()}
+      onOpenSkills={() => void onOpenSkills()}
+      onOpenSettings={() => void onOpenSettings()}
+      onOpenAbout={() => void onOpenAbout()}
     />
-    {#if sidebarCollapsed}
-      <Tooltip text={$t("newChat")} side="bottom">
-        <button
-          class="title-new-conversation"
-          type="button"
-          aria-label={$t("newChat")}
-          onclick={() => void onNewConversation()}
-        >
-          <svg
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path
-              d="M11.75 4.25H5.5A1.75 1.75 0 0 0 3.75 6v8.5a1.75 1.75 0 0 0 1.75 1.75H14a1.75 1.75 0 0 0 1.75-1.75V8.25"
-            />
-            <path d="m9 11 6.35-6.35M12.75 4.25h3v3" />
-          </svg>
-        </button>
-      </Tooltip>
-      <RoleSelector
-        value={selectedRoleKey}
-        {roles}
-        compact
-        onChange={(role) => void onRoleChange(role)}
-      />
-    {/if}
-    {#if workspace?.git_branch}
-      <Tooltip text={`${$t("gitBranch")}: ${workspace.git_branch}`}>
-        <span class="branch-pill">⎇ {workspace.git_branch}</span>
-      </Tooltip>
-    {/if}
   </div>
+
   <div class="title-bar-drag-handle" data-tauri-drag-region aria-hidden="true"></div>
+
+  <Tooltip text={workspace?.path ?? workspaceLabel} side="bottom">
+    <div class="workspace-environment" aria-label={workspaceLabel}>
+      <span class="workspace-name">{workspaceLabel}</span>
+      {#if workspace?.environment.kind === "wsl"}<span class="wsl-badge">WSL</span>{/if}
+      {#if workspace?.git_branch}<span class="branch-name">{workspace.git_branch}</span>{/if}
+    </div>
+  </Tooltip>
+
   <div class="title-actions">
-    {#if memorySyncing}
-      <Tooltip text="Memory syncing"><span class="sync-dot">●</span></Tooltip>
+    {#if memorySyncing}<span class="sync-dot" aria-label={$t("syncing")}></span>{/if}
+    {#if platform !== "macos"}
+      <WindowControls {platform} {onMinimize} {onMaximize} {onClose} />
     {/if}
-    <WindowControls {onMinimize} {onMaximize} {onClose} />
   </div>
 </header>
 
 <style>
   .title-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: fixed;
+    inset: 0 0 auto;
     z-index: 10;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    height: 48px;
-    background: linear-gradient(to bottom, var(--bg) 0%, var(--bg) 80%, transparent 100%);
+    height: 40px;
+    box-sizing: border-box;
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
     user-select: none;
+    -webkit-backdrop-filter: blur(18px) saturate(1.12);
+    backdrop-filter: blur(18px) saturate(1.12);
   }
-  .title-bar.sidebar-collapsed {
-    padding-left: 56px;
+
+  .title-bar-menu {
+    height: 100%;
+    margin-left: 118px;
+    flex: 0 0 auto;
   }
-  .title-bar-left {
+
+  .title-bar.macos .title-bar-menu {
+    margin-left: 190px;
+  }
+
+  .mac-window-controls {
+    position: absolute;
+    left: 13px;
+    top: 6px;
+    z-index: 2;
+    height: 28px;
+  }
+
+  .title-bar-drag-handle {
+    min-width: 80px;
+    align-self: stretch;
+    flex: 1 1 auto;
+  }
+
+  .workspace-environment {
+    position: absolute;
+    left: 50%;
+    top: 50%;
     display: flex;
     align-items: center;
     gap: 6px;
-    flex: 0 1 auto;
+    max-width: min(380px, 34vw);
+    padding: 3px 8px;
+    border-radius: 5px;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 18px;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+
+  .workspace-name,
+  .branch-name {
     min-width: 0;
     overflow: hidden;
-  }
-  .title-bar-drag-handle {
-    align-self: stretch;
-    flex: 1 1 96px;
-    min-width: 64px;
-    margin: 0 8px;
-  }
-  .title-new-conversation {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    flex: 0 0 28px;
-    padding: 0;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition:
-      background 120ms ease,
-      color 120ms ease;
-  }
-  .title-new-conversation:hover,
-  .title-new-conversation:focus-visible {
-    background: var(--surface2);
-    color: var(--text);
-    outline: none;
-  }
-  .title-new-conversation:focus-visible {
-    box-shadow: var(--focus-ring);
-  }
-  .title-new-conversation:active {
-    background: color-mix(in srgb, var(--surface2) 78%, var(--text) 6%);
-  }
-  .title-new-conversation svg {
-    width: 18px;
-    height: 18px;
-  }
-  .branch-pill {
-    font-size: 11px;
-    font-family: "JetBrains Mono", "Fira Code", monospace;
-    color: var(--text-muted);
-    background: var(--surface2);
-    border: 0;
-    border-radius: 12px;
-    padding: 2px 8px;
-    white-space: nowrap;
-    letter-spacing: 0;
-    overflow: hidden;
     text-overflow: ellipsis;
-    max-width: min(220px, 32vw);
-    flex-shrink: 1;
+    white-space: nowrap;
   }
+
+  .workspace-name {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .branch-name {
+    max-width: 150px;
+    padding-left: 7px;
+    border-left: 1px solid var(--border);
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 10px;
+  }
+
+  .wsl-badge {
+    flex: 0 0 auto;
+    padding: 0 4px;
+    border: 1px solid color-mix(in srgb, var(--primary) 42%, transparent);
+    border-radius: 4px;
+    color: var(--primary);
+    font-size: 8px;
+    font-weight: 700;
+  }
+
   .title-actions {
     display: flex;
+    align-self: stretch;
     align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
+    flex: 0 0 auto;
   }
+
   .sync-dot {
-    color: var(--primary);
-    font-size: 10px;
-    margin-right: 2px;
+    width: 6px;
+    height: 6px;
+    margin: 0 10px;
+    border-radius: 50%;
+    background: var(--primary);
     animation: pulse 1.5s ease-in-out infinite;
   }
+
   @keyframes pulse {
-    0%,
-    100% {
-      opacity: 1;
-    }
     50% {
       opacity: 0.3;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .workspace-environment {
+      display: none;
     }
   }
 </style>

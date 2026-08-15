@@ -249,6 +249,7 @@
   // ─── State ────────────────────────────────────────────────────────────────────
   const startupRestoreHint = readStartupRestoreHint();
   let conversations = $state<Conversation[]>([]);
+  let recentConversations = $state<Conversation[]>([]);
   let conversationNextCursor = $state<ConversationPageCursor | null>(null);
   let loadingMoreConversations = $state(false);
   let searchConversations = $state<Conversation[]>([]);
@@ -370,6 +371,7 @@
   let wslPickerOpen = $state(false);
   let wslPickerBusy = $state(false);
   let wslPickerError = $state("");
+  let wslPickerStartsNewConversation = $state(false);
   let wslDistributions = $state<WslDistribution[]>([]);
   let wslDistribution = $state("");
   let wslLinuxPath = $state("");
@@ -1593,6 +1595,16 @@
     }
   }
 
+  async function refreshRecentConversations(): Promise<void> {
+    if (!tauriAvailable) return;
+    try {
+      const page = await fetchConversationPage(null, null, 60, null, false, null);
+      recentConversations = page.conversations;
+    } catch (error) {
+      console.warn("Failed to load recent conversations across workspaces:", error);
+    }
+  }
+
   function handleConversationSearch(query: string): void {
     conversationSearchQuery = query;
     conversationSearchGeneration += 1;
@@ -1805,6 +1817,7 @@
     launchContext = bootstrap.launch_context;
     recentWorkspaces = config.recent_workspaces ?? [];
     conversations = bootstrap.conversations.map(metaToConversation);
+    void refreshRecentConversations();
     conversationNextCursor = bootstrap.conversation_next_cursor;
     activeConvId = bootstrap.active_conv_id;
     const activeMeta = activeConvId
@@ -3616,6 +3629,7 @@
         );
         conversations = page.conversations;
         conversationNextCursor = page.nextCursor;
+        void refreshRecentConversations();
       }
 
       // Restore the durable active conversation before loading ancillary workspace data.
@@ -3666,6 +3680,15 @@
     else await applyWorkspace(path);
   }
 
+  async function openSidebarConversation(conversation: Conversation): Promise<void> {
+    const conversationWorkspace = conversation.workspace || workspacePath;
+    if (conversationWorkspace && conversationWorkspace !== workspacePath) {
+      await openWorkspaceInNewWindow(conversationWorkspace, conversation.id);
+      return;
+    }
+    await selectSidebarConversation(conversation.id);
+  }
+
   async function resolveWorkspaceChoice(mode: "new_window" | "current_window") {
     const path = pendingWorkspacePath;
     pendingWorkspacePath = null;
@@ -3707,6 +3730,24 @@
     }
   }
 
+  async function switchNewConversationWorkspace(path: string): Promise<void> {
+    if (!path) return;
+    if (path !== workspacePath) await applyWorkspace(path);
+    await newConversation();
+  }
+
+  async function pickNewConversationWorkspace(): Promise<void> {
+    if (!tauriAvailable) {
+      alert(browserModeNotice);
+      return;
+    }
+    const defaultPath = await homeDir();
+    const selected = await openDialog({ directory: true, multiple: false, defaultPath });
+    if (typeof selected === "string" && selected) {
+      await switchNewConversationWorkspace(selected);
+    }
+  }
+
   async function selectWslDistribution(distribution: string) {
     wslDistribution = distribution;
     wslPickerError = "";
@@ -3722,11 +3763,12 @@
     }
   }
 
-  async function pickWslWorkspace() {
+  async function pickWslWorkspace(startNewConversation = false) {
     if (!tauriAvailable) {
       alert(browserModeNotice);
       return;
     }
+    wslPickerStartsNewConversation = startNewConversation;
     wslPickerOpen = true;
     wslPickerBusy = true;
     wslPickerError = "";
@@ -3774,7 +3816,8 @@
     });
     if (typeof selected === "string" && selected) {
       wslPickerOpen = false;
-      await requestWorkspace(selected);
+      if (wslPickerStartsNewConversation) await switchNewConversationWorkspace(selected);
+      else await requestWorkspace(selected);
     }
   }
 
@@ -3782,7 +3825,8 @@
     const target = await resolveSelectedWslWorkspace();
     if (!target) return;
     wslPickerOpen = false;
-    await requestWorkspace(target.path);
+    if (wslPickerStartsNewConversation) await switchNewConversationWorkspace(target.path);
+    else await requestWorkspace(target.path);
   }
 
   // ─── Settings ────────────────────────────────────────────────────────────────
@@ -4085,6 +4129,9 @@
     tailAnchorToken:
       streamCompletionTailAnchor?.convId === activeConvId ? streamCompletionTailAnchor.token : null,
     tauriAvailable,
+    workspace,
+    workspacePath,
+    recentWorkspaces,
   });
 
   const conversationSurfaceActions = {
@@ -4096,6 +4143,8 @@
     finishStreamCompletionTailAnchor,
     handleMessagesScroll,
     pauseCurrentStream,
+    pickWorkspace: pickNewConversationWorkspace,
+    pickWslWorkspace: () => pickWslWorkspace(true),
     removeQueuedMessage,
     resumeCurrentStream,
     revertFileChange: handleRevertFileChange,
@@ -4105,6 +4154,7 @@
     stopMessage,
     submitUserInput,
     switchBranch: switchBranchAt,
+    selectWorkspace: switchNewConversationWorkspace,
   };
 
   // ─── Window Controls ─────────────────────────────────────────────────────────
@@ -4145,8 +4195,11 @@
         {selectedRoleKey}
         {canGoBack}
         {canGoForward}
+        {workspacePath}
+        {recentWorkspaces}
         searchQuery={conversationSearchQuery}
         conversations={sidebarConversations}
+        {recentConversations}
         activeConversationId={activeConvId}
         streamingConversationIds={chatStreams.streamingConversationIds}
         hasMore={sidebarHasMoreConversations}
@@ -4171,6 +4224,10 @@
         }}
         onTogglePin={togglePin}
         onDelete={deleteConversation}
+        onOpenConversation={openSidebarConversation}
+        onPickWorkspace={pickWorkspace}
+        onPickWsl={pickWslWorkspace}
+        onSelectWorkspace={requestWorkspace}
         onToggleMemory={memoryOpen ? closeMemory : openMemory}
         onToggleRoles={rolesOpen ? closeRoles : openRoles}
         onToggleSkills={skillsOpen ? closeSkills : openSkills}
@@ -4234,20 +4291,20 @@
       {:else}
         <div class="main" class:sidebar-collapsed={sidebarCollapsed}>
           <DesktopTitleBar
-            {sidebarCollapsed}
             {workspace}
             {workspacePath}
             {recentWorkspaces}
             {tauriAvailable}
-            {browserModeNotice}
-            {selectedRoleKey}
-            roles={agentRoles}
             memorySyncing={isMemorySyncing}
             onPickWorkspace={pickWorkspace}
             onPickWsl={pickWslWorkspace}
             onSelectWorkspace={requestWorkspace}
             onNewConversation={newConversation}
-            onRoleChange={changeConversationRole}
+            onOpenMemory={openMemory}
+            onOpenRoles={openRoles}
+            onOpenSkills={openSkills}
+            onOpenSettings={() => openSettings()}
+            onOpenAbout={() => openSettings("about")}
             onMinimize={winMinimize}
             onMaximize={winMaximize}
             onClose={winClose}

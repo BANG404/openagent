@@ -303,7 +303,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the selected row and adds a square-ended primary-colored left rail. Do not
   introduce a stronger selected fill, checkmark, selected text color, or rounded
   endpoints on that rail.
-- Keep the workspace switcher's root menu focused on open-folder actions.
+- Keep the new-conversation composer's workspace switcher beside approval mode
+  and focused on open-folder actions. Hide it once an existing workspace-owned
+  conversation is active; the title bar displays the current environment but is
+  not another workspace-switching target. The File menu and Projects section
+  remain the other workspace-opening entry points.
   Keep the current-folder-location action text-only instead of repeating a
   folder glyph beside it.
   Place older workspaces in a side-opening recent-workspaces submenu that
@@ -346,15 +350,25 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   opaque message treatment.
 - Keep the conversation sidebar background flat and free of decorative glow;
   communicate active streaming through the conversation row indicator only.
+- Organize the conversation sidebar as Projects followed by Recents. Projects
+  keeps the current workspace expanded with its paged conversation hierarchy
+  and exposes recent workspaces as project groups; Recents is one global,
+  newest-first projection across workspace metadata. Preserve the owning
+  workspace on every global conversation so selecting a conversation from a
+  different workspace opens that exact conversation in its workspace process.
 - Keep the expanded conversation sidebar resizable from its trailing edge between
   180px and 360px. Persist the chosen width across collapse and reload, disable
   width animation while dragging, and expose the same bounds to keyboard users.
 - Keep the Memory view's horizontal resize handle quiet at rest, but render its
   short primary-colored grip at full opacity on hover and while dragging so the
   active separator remains visible in both themes.
-- Size the expanded sidebar's header role trigger to its visible role name and
-  omit the redundant caret. Keep the back and forward controls fixed beside the
-  sidebar-collapse button so role-name length cannot move them. Tie those
+- Keep the expanded sidebar's role trigger in the footer and size it to its
+  visible role name without a redundant caret. Keep the back and forward
+  controls fixed beside the sidebar-collapse button in the shared top chrome.
+  On macOS, reserve the native traffic-light footprint before those controls;
+  on Windows, keep minimize, maximize/restore, and close at the trailing edge
+  with platform-standard hit targets and close affordance. Tie history controls
+  to
   controls to the window's real destination history: conversations, the
   new-conversation surface, and feature views all participate; visiting a new
   destination after going back discards the abandoned forward branch, and
