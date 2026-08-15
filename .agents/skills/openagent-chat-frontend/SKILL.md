@@ -1,6 +1,6 @@
 ---
 name: openagent-chat-frontend
-description: Preserve OpenAgent chat frontend behavior. Use for changes to MessageList, MessageInput, ToolCallCard, UserInputForm, FileChangeBanner, chatStream.ts, conversationDb.ts, checkpointTree.ts, transcript virtualization, streaming/final reconciliation, restore/bootstrap, attachment previews, chat events, Mermaid tool rendering, or visible chat state.
+description: Preserve OpenAgent chat frontend behavior. Use for changes to MessageList, MessageInput, ToolCallCard, UserInputForm, FileChangeBanner, chatStream.ts, conversationDb.ts, checkpointTree.ts, transcript rendering, streaming/final reconciliation, restore/bootstrap, attachment previews, chat events, Mermaid tool rendering, or visible chat state.
 metadata:
   category: frontend-development
 ---
@@ -23,8 +23,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   controller. The page shell coordinates durable conversation/checkpoint data
   with that controller, but must not recreate parallel maps for streaming,
   pause, timing, awaiting-output, or memory-retrieval state.
-- Completed messages and the active response share the dynamic-height virtual
-  list.
+- Completed messages and the active response share one keyed, fully mounted
+  transcript list. Do not reintroduce viewport virtualization or row-height
+  estimation: restored and live rows stay mounted so loading and scrolling do
+  not repeatedly construct transcript content or discard row-local UI state.
 - Keep ordinary transcript copy and the shared composer textarea on the same
   compact 14px type scale so streaming and editable durable content do not
   change apparent size.
@@ -50,18 +52,17 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   WebView2 can lose toggle hit testing when an interactive element is fragmented
   across CSS columns. Keep collapsed process children mounted so their local UI
   state survives reopening.
-- Position virtual rows without transform-promoted layers. CSS multi-column
-  assistant content must not be nested in a forced compositor layer because it
-  can flicker during WebView2 repaint invalidation.
-- Disable per-record `content-visibility` inside every rendered virtual row in
-  both single- and double-column layouts; the outer virtualizer is the sole
-  transcript culling boundary. A skipped overscan record can otherwise report
-  its intrinsic placeholder height through `ResizeObserver`, collapse the
-  virtual scroll range, and move the reader before its full height returns.
-  Every multi-column owner must apply this override itself; book mode renders
-  through a dialog portal and cannot inherit the virtual list's descendant
-  rules. Keep pagination recalculation positioning immediate so it cannot
-  compete with the smooth animation reserved for an explicit page turn.
+- Keep fully mounted transcript rows out of transform-promoted layers. CSS
+  multi-column assistant content must not be nested in a forced compositor
+  layer because it can flicker during WebView2 repaint invalidation.
+- Disable per-record `content-visibility` inside every transcript row in both
+  single- and double-column layouts. All historical content remains rendered;
+  a skipped record can otherwise replace real content with an intrinsic
+  placeholder and move the reader when its height returns. Every multi-column
+  owner must apply this override itself; book mode renders through a dialog
+  portal and cannot inherit the transcript list's descendant rules. Keep
+  pagination recalculation positioning immediate so it cannot compete with the
+  smooth animation reserved for an explicit page turn.
 - Use the backend-preallocated assistant message ID as the live row key.
   Streaming and durable forms must share the same assistant-turn branch and
   keyed stream-item children.
@@ -176,19 +177,17 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   dropping work details. When expanded, change the process content from its
   ordinary flex stack to a fragmentable block inside the book's multi-column
   owner, and keep only atomic records from splitting across columns.
-- The application virtualizer owns tail following and height correction; keep
-  native browser anchoring disabled and do not issue per-chunk scroll commands
-  from the route. Batch dynamic row measurements per frame. While following the
-  live tail, resolve that measurement batch by pinning the scroller to the new
-  bottom; after the reader leaves the tail, preserve the first rendered row
-  crossing the viewport start by its real DOM coordinate instead. Reserve a
-  stable scrollbar gutter so overflow changes cannot alter transcript wrapping
-  or sidebar row width, and keep the native transcript scrollbar visible. The
+- The fully mounted transcript list owns tail following without measuring
+  individual rows or issuing per-chunk scroll commands from the route. Observe
+  only the list's overall height and pin the scroller to the new bottom while
+  following the live tail; after the reader leaves the tail, rely on native
+  browser scroll anchoring to preserve their position. Reserve a stable
+  scrollbar gutter so overflow changes cannot alter transcript wrapping or
+  sidebar row width, and keep the native transcript scrollbar visible. The
   application viewport must not become a second scroll container: keep
   `html`/`body` overflow locked and contain transcript overscroll so wheel or
-  touch input at either boundary cannot chain into an outer scrollbar. Keep an
-  index destination mounted until its real row position remains aligned across
-  consecutive layout frames.
+  touch input at either boundary cannot chain into an outer scrollbar. User
+  message index navigation targets the already-mounted real row directly.
 - After completion, reconcile the optimistic turn with its durable checkpoint
   in the background. Do not show the conversation-loading skeleton, remount an
   unchanged transcript, overwrite backend history, or remove optimistic
@@ -215,7 +214,7 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   keyboard focus or an actively running tool, not for the tool's type.
 - Keep `ask_user`, approvals, HTML previews, and other dedicated tools outside
   ordinary grouping.
-- Render `render_mermaid` as a standalone virtual row from ToolCall source and
+- Render `render_mermaid` as a standalone transcript row from ToolCall source and
   restore it from the matching durable ToolResult. Defer `render_html` and
   `render_mermaid` previews until their successful ToolResult arrives; never
   mount pending or failed render previews, while failures from ordinary tools
@@ -551,7 +550,7 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   must verify that the localized title is not followed by the redundant durable
   English reason in light or dark mode.
 - Keep the development-only `streaming-transcript-preview` query available for
-  dynamic-height virtual Turn verification. It must continuously grow one live
+  fully mounted dynamic-height Turn verification. It must continuously grow one live
   Turn so tail following, reader-controlled upward scrolling, the visible native
   transcript scrollbar with stable geometry, contained boundary scrolling, and
   light/dark rendering remain directly testable without a native runtime.

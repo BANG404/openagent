@@ -387,7 +387,6 @@
     overflow-x: clip;
     display: flex;
     flex-direction: column;
-    overflow-anchor: none;
     overscroll-behavior-y: contain;
     scrollbar-gutter: stable;
   }
