@@ -24,18 +24,42 @@ describe("desktop navigation chrome", () => {
     }
   });
 
-  test("keeps role selection above Projects and the resize seam below top chrome", async () => {
+  test("keeps primary actions below the role and Settings at the sidebar bottom", async () => {
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
     const resizeHandle = await readFile(
       new URL("SidebarResizeHandle.svelte", componentsUrl),
       "utf8",
     );
 
-    expect(sidebar).not.toContain("SidebarNav");
     expect(sidebar.indexOf("<RoleSelector")).toBeLessThan(
+      sidebar.indexOf("<SidebarPrimaryActions"),
+    );
+    expect(sidebar.indexOf("<SidebarPrimaryActions")).toBeLessThan(
       sidebar.indexOf("<SidebarWorkspaceBrowser"),
     );
+    expect(sidebar.indexOf("<SidebarWorkspaceBrowser")).toBeLessThan(
+      sidebar.indexOf("<SidebarSettingsAction"),
+    );
+    expect(sidebar).toContain("onNew={() => void onNew()}");
     expect(resizeHandle).toMatch(/\.sidebar-resize-shell\s*{[^}]*top: 40px;/s);
+  });
+
+  test("uses one opaque chrome color and keeps the composer workspace trigger surface-free", async () => {
+    const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
+    const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
+    const workspaceSwitcher = await readFile(
+      new URL("WorkspaceSwitcher.svelte", componentsUrl),
+      "utf8",
+    );
+    expect(sidebar).toContain("background: var(--app-chrome-bg)");
+    expect(titleBar).toContain("background: var(--app-chrome-bg)");
+    expect(titleBar).not.toContain("backdrop-filter");
+    expect(workspaceSwitcher).toMatch(
+      /\.composer-workspace-btn\)\s*{[^}]*padding: 5px 8px;[^}]*color: var\(--text-muted\);/s,
+    );
+    expect(workspaceSwitcher).toMatch(
+      /\.workspace-btn\[data-state="open"\]\)\s*{[^}]*background: var\(--border\);/s,
+    );
   });
 
   test("searches every workspace and reserves new processes for File new window", async () => {

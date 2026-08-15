@@ -118,11 +118,9 @@
     align-items: center;
     height: 40px;
     box-sizing: border-box;
-    background: color-mix(in srgb, var(--bg) 94%, transparent);
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+    background: var(--app-chrome-bg);
+    border-bottom: 1px solid var(--border);
     user-select: none;
-    -webkit-backdrop-filter: blur(18px) saturate(1.12);
-    backdrop-filter: blur(18px) saturate(1.12);
   }
 
   .title-bar-menu {

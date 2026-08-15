@@ -22,6 +22,7 @@
   let draft = $state("");
   let attachments = $state<ChatAttachment[]>([]);
   let approvalMode = $state<ApprovalMode>("auto");
+  let settingsOpen = $state(false);
   const platformOverride =
     query.get("desktop-shell-preview-platform") === "macos" ? "macos" : undefined;
 
@@ -113,11 +114,15 @@
     hasMore
     loadingMore={false}
     loading={false}
+    {settingsOpen}
     onRoleChange={(role) => {
       selectedRoleKey = role;
     }}
     onBack={() => {}}
     onForward={() => {}}
+    onNew={() => {
+      activeConversationId = null;
+    }}
     onNewProjectConversation={(path) => {
       selectWorkspace(path);
       activeConversationId = null;
@@ -143,6 +148,9 @@
     onRemoveProject={(path) => {
       recentWorkspaces = recentWorkspaces.filter((item) => item.path !== path);
       pinnedProjectPaths = pinnedProjectPaths.filter((item) => item !== path);
+    }}
+    onToggleSettings={() => {
+      settingsOpen = !settingsOpen;
     }}
     {platformOverride}
   />

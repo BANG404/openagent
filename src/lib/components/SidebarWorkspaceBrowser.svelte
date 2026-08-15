@@ -1,6 +1,5 @@
 <script lang="ts">
   import { DropdownMenu } from "bits-ui";
-  import { tick } from "svelte";
   import { t } from "$lib/i18n";
   import type { Conversation, RecentWorkspace } from "$lib/types";
   import { workspaceFolderName } from "$lib/workspacePath";
@@ -18,8 +17,8 @@
     streamingConversationIds,
     hasMore,
     loadingMore,
+    searchActive,
     onNewProjectConversation,
-    onSearch,
     onLoadMore,
     onSelect,
     onOpenConversation,
@@ -40,8 +39,8 @@
     streamingConversationIds: Record<string, boolean>;
     hasMore: boolean;
     loadingMore: boolean;
+    searchActive: boolean;
     onNewProjectConversation: (path: string) => void;
-    onSearch: (query: string) => void;
     onLoadMore: () => void;
     onSelect: (id: string) => void;
     onOpenConversation: (conversation: Conversation) => void;
@@ -52,9 +51,6 @@
     onOpenProjectFolder: (path: string) => void;
     onRemoveProject: (path: string) => void;
   } = $props();
-
-  let searchOpen = $state(false);
-  let searchInput = $state<HTMLInputElement>();
 
   let allRecentConversations = $derived.by(() => {
     const byId = new Map(recentConversations.map((item) => [item.id, item]));
@@ -87,17 +83,6 @@
     return allRecentConversations.filter((item) => item.workspace === path).slice(0, 4);
   }
 
-  async function openSearch(): Promise<void> {
-    searchOpen = true;
-    await tick();
-    searchInput?.focus();
-  }
-
-  function closeSearch(): void {
-    searchOpen = false;
-    onSearch("");
-  }
-
   function selectSearchResult(id: string): void {
     const conversation = conversations.find((item) => item.id === id);
     if (conversation) onOpenConversation(conversation);
@@ -106,40 +91,7 @@
 
 <div class="workspace-browser">
   <div class="workspace-browser-scroll">
-    <div class="section-heading">
-      <span>{$t("projects")}</span>
-      <div class="section-actions">
-        <Tooltip text={$t("searchConversations")} side="bottom">
-          <button
-            class="section-action"
-            type="button"
-            aria-label={$t("searchConversations")}
-            onclick={() => void openSearch()}
-          >
-            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <circle cx="7" cy="7" r="4" />
-              <path d="m10 10 3 3" />
-            </svg>
-          </button>
-        </Tooltip>
-      </div>
-    </div>
-
-    {#if searchOpen}
-      <div class="sidebar-search-row">
-        <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"
-          ><circle cx="8" cy="8" r="4.75" /><path d="m11.5 11.5 3.5 3.5" /></svg
-        >
-        <input
-          bind:this={searchInput}
-          value={searchQuery}
-          aria-label={$t("searchConversations")}
-          placeholder={$t("searchConversations")}
-          oninput={(event) => onSearch(event.currentTarget.value)}
-          onkeydown={(event) => event.key === "Escape" && closeSearch()}
-        />
-        <button type="button" aria-label={$t("clearSearch")} onclick={closeSearch}>×</button>
-      </div>
+    {#if searchActive}
       <ConversationList
         embedded
         {conversations}
@@ -154,6 +106,9 @@
         {onDelete}
       />
     {:else}
+      <div class="section-heading">
+        <span>{$t("projects")}</span>
+      </div>
       <div class="project-list">
         {#each projectEntries as project (project.path)}
           <section class="project-group" aria-label={project.name}>
@@ -342,49 +297,6 @@
     letter-spacing: 0.01em;
   }
 
-  .section-actions {
-    display: flex;
-    align-items: center;
-    gap: 1px;
-  }
-
-  :global(.section-action) {
-    width: 25px;
-    height: 25px;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    outline: none;
-  }
-
-  :global(.section-action:hover),
-  :global(.section-action:focus-visible),
-  :global(.section-action[data-state="open"]) {
-    background: var(--surface2);
-    color: var(--text);
-  }
-
-  :global(.section-action:focus-visible) {
-    box-shadow: var(--focus-ring);
-  }
-
-  :global(.section-action svg) {
-    width: 14px;
-    height: 14px;
-  }
-
-  :global(.section-action path),
-  :global(.section-action circle) {
-    stroke: currentColor;
-    stroke-width: 1.4;
-    stroke-linecap: round;
-  }
-
   :global(.project-menu) {
     min-width: 180px;
     z-index: 242;
@@ -415,7 +327,6 @@
     background: var(--border);
   }
 
-  .sidebar-search-row,
   .project-row,
   .workspace-conversation-row {
     width: 100%;
@@ -426,42 +337,6 @@
     color: var(--text-muted);
     font: inherit;
     text-align: left;
-  }
-
-  .sidebar-search-row {
-    height: 30px;
-    gap: 7px;
-    margin-bottom: 4px;
-    padding: 0 8px;
-    border-radius: 7px;
-    background: var(--surface2);
-  }
-
-  .sidebar-search-row > svg {
-    width: 15px;
-    height: 15px;
-    stroke: currentColor;
-    stroke-width: 1.4;
-    stroke-linecap: round;
-  }
-
-  .sidebar-search-row input {
-    min-width: 0;
-    flex: 1;
-    padding: 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--text);
-    font: inherit;
-    font-size: 12px;
-  }
-
-  .sidebar-search-row button {
-    border: 0;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
   }
 
   .project-list,

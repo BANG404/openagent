@@ -7,7 +7,9 @@
   import RoleSelector from "$lib/components/RoleSelector.svelte";
   import SidebarCollapseButton from "$lib/components/SidebarCollapseButton.svelte";
   import SidebarHistoryControls from "$lib/components/SidebarHistoryControls.svelte";
+  import SidebarPrimaryActions from "$lib/components/SidebarPrimaryActions.svelte";
   import SidebarResizeHandle from "$lib/components/SidebarResizeHandle.svelte";
+  import SidebarSettingsAction from "$lib/components/SidebarSettingsAction.svelte";
   import SidebarWorkspaceBrowser from "$lib/components/SidebarWorkspaceBrowser.svelte";
   import { t } from "$lib/i18n";
 
@@ -28,9 +30,11 @@
     hasMore,
     loadingMore,
     loading,
+    settingsOpen,
     onRoleChange,
     onBack,
     onForward,
+    onNew,
     onNewProjectConversation,
     onSearch,
     onLoadMore,
@@ -42,6 +46,7 @@
     onToggleProjectPin,
     onOpenProjectFolder,
     onRemoveProject,
+    onToggleSettings,
     platformOverride,
   }: {
     collapsed: boolean;
@@ -60,9 +65,11 @@
     hasMore: boolean;
     loadingMore: boolean;
     loading: boolean;
+    settingsOpen: boolean;
     onRoleChange: (role: string) => void | Promise<void>;
     onBack: () => void | Promise<void>;
     onForward: () => void | Promise<void>;
+    onNew: () => void | Promise<void>;
     onNewProjectConversation: (path: string) => void | Promise<void>;
     onSearch: (query: string) => void;
     onLoadMore: () => void | Promise<void>;
@@ -74,6 +81,7 @@
     onToggleProjectPin: (path: string) => void;
     onOpenProjectFolder: (path: string) => void | Promise<void>;
     onRemoveProject: (path: string) => void | Promise<void>;
+    onToggleSettings: () => void | Promise<void>;
     platformOverride?: WindowPlatform;
   } = $props();
 
@@ -81,6 +89,7 @@
   let platform = $derived(platformOverride ?? detectWindowPlatform());
   let width = $state(loadSidebarWidth());
   let resizing = $state(false);
+  let searchOpen = $state(false);
 
   function toggle(): void {
     collapsed = !collapsed;
@@ -114,6 +123,7 @@
           onChange={(role) => void onRoleChange(role)}
         />
       </div>
+      <SidebarPrimaryActions bind:searchOpen {searchQuery} onNew={() => void onNew()} {onSearch} />
       {#if loading}
         <LoadingSkeleton variant="sidebar" rows={8} label={$t("loadingContent")} />
       {:else}
@@ -128,8 +138,8 @@
           {streamingConversationIds}
           {hasMore}
           {loadingMore}
+          searchActive={searchOpen}
           onNewProjectConversation={(path) => void onNewProjectConversation(path)}
-          {onSearch}
           onLoadMore={() => void onLoadMore()}
           onSelect={(id) => void onSelect(id)}
           onOpenConversation={(conversation) => void onOpenConversation(conversation)}
@@ -141,6 +151,7 @@
           onRemoveProject={(path) => void onRemoveProject(path)}
         />
       {/if}
+      <SidebarSettingsAction active={settingsOpen} onToggle={() => void onToggleSettings()} />
     </div>
     <SidebarResizeHandle
       {width}
@@ -161,7 +172,7 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    background: var(--sidebar-bg);
+    background: var(--app-chrome-bg);
     border-right: 1px solid var(--border);
     overflow: visible;
     user-select: none;

@@ -4196,9 +4196,11 @@
         hasMore={sidebarHasMoreConversations}
         loadingMore={sidebarLoadingMoreConversations}
         loading={initialLoading || workspaceLoading}
+        {settingsOpen}
         onRoleChange={changeConversationRole}
         onBack={() => navigateHistory(-1)}
         onForward={() => navigateHistory(1)}
+        onNew={newConversation}
         onNewProjectConversation={switchNewConversationWorkspace}
         onSearch={handleConversationSearch}
         onLoadMore={loadNextConversationPage}
@@ -4216,6 +4218,7 @@
         onToggleProjectPin={toggleProjectPin}
         onOpenProjectFolder={openProjectFolder}
         onRemoveProject={removeProject}
+        onToggleSettings={() => (settingsOpen ? closeSettings() : openSettings())}
       />
 
       <!-- ─── Feature panels ─────────────────────────────────────────────────── -->

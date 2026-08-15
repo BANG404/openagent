@@ -330,7 +330,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   folder glyph beside it.
   Keep the composer trigger's folder glyph, current folder name, and caret in
   one target; rotate the caret while open and expose the shared focus ring to
-  keyboard users.
+  keyboard users. Its rest, hover, and open treatments must match the adjacent
+  surface-free model and approval triggers instead of introducing a separate
+  filled workspace chip.
   Place older workspaces in a side-opening recent-workspaces submenu that
   supports hover, click, and keyboard navigation. Show each complete workspace
   path without per-row icons, mark WSL shares explicitly, and keep an overflowing
@@ -383,8 +385,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   pinning, opening the folder, and removing the project from the project list.
   Project pins are durable sidebar presentation preferences. Removing a project
   must not delete its folder or conversations; its conversations remain
-  reachable from Recents. Keep global conversation search on the section
-  heading after removing the former catch-all project actions.
+  reachable from Recents. Keep global conversation search with the primary
+  new-conversation action below the role selector, not on a section heading.
 - Keep the expanded conversation sidebar resizable from its trailing edge between
   180px and 360px. Persist the chosen width across collapse and reload, disable
   width animation while dragging, and expose the same bounds to keyboard users.
@@ -394,8 +396,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   short primary-colored grip at full opacity on hover and while dragging so the
   active separator remains visible in both themes.
 - Keep the expanded sidebar's role trigger above Projects and size it to its
-  visible role name without a redundant caret. Do not restore a bottom More or
-  Settings section; those destinations belong to the shared menus. Keep the back and forward
+  visible role name without a redundant caret. Keep the full-width new-conversation
+  and global conversation-search actions immediately below it; the new action
+  uses the window's selected workspace, while project-row actions may explicitly
+  select another workspace first. Retain Settings as the sole bottom navigation
+  action and keep the former expandable More destinations in the shared menus.
+  Keep the back and forward
   controls fixed beside the sidebar-collapse button in the shared top chrome.
   On macOS, reserve the native traffic-light footprint before those controls;
   on Windows, keep minimize, maximize/restore, and close at the trailing edge
@@ -418,6 +424,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   30px height, 13px type on an 18px line, 10px horizontal padding, an 8px
   content gap, a 7px radius, and a 3px parent-owned row gap. The workspace role
   selector at the top of the sidebar remains a distinct selector control.
+- Paint the sidebar and complete shared title bar with one opaque application-
+  chrome background in both themes. Preserve the operating system's native
+  window outline, rounded corners, and shadow around that web content.
 - Use the theme canvas for the workspace surface and retain the low-contrast
   ambient aurora behind the composer and new-conversation greeting. Keep the
   empty-state aurora mounted across conversation changes

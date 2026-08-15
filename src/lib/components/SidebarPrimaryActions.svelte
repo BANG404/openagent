@@ -3,13 +3,13 @@
   import { t } from "$lib/i18n";
 
   interface Props {
+    searchOpen?: boolean;
     searchQuery: string;
     onNew: () => void;
     onSearch: (query: string) => void;
   }
 
-  let { searchQuery, onNew, onSearch }: Props = $props();
-  let searchOpen = $state(false);
+  let { searchOpen = $bindable(false), searchQuery, onNew, onSearch }: Props = $props();
   let searchInput: HTMLInputElement | undefined = $state();
 
   async function openSearch() {

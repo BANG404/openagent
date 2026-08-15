@@ -221,7 +221,8 @@
 
   :global(.workspace-btn:hover),
   :global(.workspace-btn[data-state="open"]) {
-    background: var(--surface2);
+    background: var(--border);
+    color: var(--text);
   }
 
   :global(.workspace-btn:focus-visible) {
