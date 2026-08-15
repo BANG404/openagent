@@ -14,6 +14,8 @@
     onTogglePin: (id: string) => void;
     onDelete: (id: string) => void;
     onLoadMore: () => void;
+    embedded?: boolean;
+    compactProject?: boolean;
   }
   let {
     conversations,
@@ -26,10 +28,13 @@
     onTogglePin,
     onDelete,
     onLoadMore,
+    embedded = false,
+    compactProject = false,
   }: Props = $props();
 
   let listElement = $state<HTMLDivElement>();
   let pageSentinel = $state<HTMLDivElement>();
+  let revealedRoots = $state(5);
 
   let normalizedSearchQuery = $derived(searchQuery.trim().toLowerCase());
   let searchResults = $derived(
@@ -56,6 +61,8 @@
           b.id.localeCompare(a.id),
       );
   });
+  let visibleTopLevel = $derived(compactProject ? topLevel.slice(0, revealedRoots) : topLevel);
+  let hasHiddenRoots = $derived(compactProject && revealedRoots < topLevel.length);
 
   // Map parent_id → sub-conversations (ordered by creation time desc)
   let childMap = $derived.by(() => {
@@ -142,7 +149,7 @@
   }
 
   $effect(() => {
-    if (!listElement || !pageSentinel || !hasMore) return;
+    if (embedded || !listElement || !pageSentinel || !hasMore) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !loadingMore) onLoadMore();
@@ -152,6 +159,15 @@
     observer.observe(pageSentinel);
     return () => observer.disconnect();
   });
+
+  function revealMore(): void {
+    if (hasHiddenRoots) {
+      revealedRoots += 5;
+      return;
+    }
+    onLoadMore();
+    revealedRoots += 5;
+  }
 </script>
 
 {#snippet delegatedRoleBadge()}
@@ -205,8 +221,8 @@
   {/each}
 {/snippet}
 
-<div class="conv-list-shell">
-  <div class="conv-list" bind:this={listElement}>
+<div class="conv-list-shell" class:embedded>
+  <div class="conv-list" class:embedded bind:this={listElement}>
     {#if normalizedSearchQuery}
       {#if searchResults.length === 0}
         <div class="search-empty">
@@ -264,7 +280,7 @@
         <strong>{$t("emptyConversationsTitle")}</strong>
       </div>
     {:else}
-      {#each topLevel as conv, i (conv.id)}
+      {#each visibleTopLevel as conv, i (conv.id)}
         {#if i > 0 && !conv.pinned && topLevel[i - 1].pinned}
           <div class="conv-list-divider"></div>
         {/if}
@@ -367,7 +383,17 @@
         {/if}
       {/each}
     {/if}
-    {#if hasMore}
+    {#if (compactProject && hasHiddenRoots) || (embedded && hasMore)}
+      <button
+        class="show-more-conversations"
+        type="button"
+        disabled={loadingMore}
+        onclick={revealMore}
+      >
+        {#if loadingMore}<span class="conversation-page-spinner" aria-hidden="true"></span>{/if}
+        <span>{$t("showMore")}</span>
+      </button>
+    {:else if hasMore}
       <div
         class="conversation-page-sentinel"
         class:loading={loadingMore}
@@ -391,6 +417,12 @@
     overflow-y: hidden;
   }
 
+  .conv-list-shell.embedded {
+    min-height: auto;
+    flex: none;
+    overflow: visible;
+  }
+
   .conv-list {
     position: relative;
     z-index: 1;
@@ -403,6 +435,49 @@
     overflow-x: hidden;
     scrollbar-gutter: stable;
     padding: 4px 6px;
+  }
+
+  .conv-list.embedded {
+    height: auto;
+    overflow: visible;
+    padding: 3px 0 0;
+  }
+
+  .conv-list.embedded .conv-item,
+  .conv-list.embedded .sub-conv-item {
+    height: 27px;
+    min-height: 27px;
+    font-size: 12px;
+  }
+
+  .conv-list.embedded .conv-item {
+    padding-left: 26px;
+  }
+
+  .show-more-conversations {
+    height: 27px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px 3px 26px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  .show-more-conversations:hover:not(:disabled),
+  .show-more-conversations:focus-visible {
+    background: var(--surface2);
+    color: var(--text);
+    outline: none;
+  }
+
+  .show-more-conversations:focus-visible {
+    box-shadow: var(--focus-ring);
   }
 
   .empty-conversations {

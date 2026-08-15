@@ -1,15 +1,15 @@
 <script lang="ts">
-  import type { AgentRole, Conversation } from "$lib/types";
+  import type { AgentRole, Conversation, RecentWorkspace } from "$lib/types";
   import { loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
+  import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
 
-  import ConversationList from "$lib/components/ConversationList.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import RoleSelector from "$lib/components/RoleSelector.svelte";
   import SidebarCollapseButton from "$lib/components/SidebarCollapseButton.svelte";
   import SidebarHistoryControls from "$lib/components/SidebarHistoryControls.svelte";
   import SidebarNav from "$lib/components/SidebarNav.svelte";
-  import SidebarPrimaryActions from "$lib/components/SidebarPrimaryActions.svelte";
   import SidebarResizeHandle from "$lib/components/SidebarResizeHandle.svelte";
+  import SidebarWorkspaceBrowser from "$lib/components/SidebarWorkspaceBrowser.svelte";
   import { t } from "$lib/i18n";
 
   let {
@@ -18,8 +18,11 @@
     selectedRoleKey,
     canGoBack,
     canGoForward,
+    workspacePath,
+    recentWorkspaces,
     searchQuery,
     conversations,
+    recentConversations,
     activeConversationId,
     streamingConversationIds,
     hasMore,
@@ -36,20 +39,28 @@
     onSearch,
     onLoadMore,
     onSelect,
+    onOpenConversation,
     onTogglePin,
     onDelete,
+    onPickWorkspace,
+    onPickWsl,
+    onSelectWorkspace,
     onToggleMemory,
     onToggleRoles,
     onToggleSkills,
     onToggleSettings,
+    platformOverride,
   }: {
     collapsed: boolean;
     roles: AgentRole[];
     selectedRoleKey: string;
     canGoBack: boolean;
     canGoForward: boolean;
+    workspacePath: string;
+    recentWorkspaces: RecentWorkspace[];
     searchQuery: string;
     conversations: Conversation[];
+    recentConversations: Conversation[];
     activeConversationId: string | null;
     streamingConversationIds: Record<string, boolean>;
     hasMore: boolean;
@@ -66,15 +77,21 @@
     onSearch: (query: string) => void;
     onLoadMore: () => void | Promise<void>;
     onSelect: (id: string) => void | Promise<void>;
+    onOpenConversation: (conversation: Conversation) => void | Promise<void>;
     onTogglePin: (id: string) => void | Promise<void>;
     onDelete: (id: string) => void | Promise<void>;
+    onPickWorkspace: () => void | Promise<void>;
+    onPickWsl: () => void | Promise<void>;
+    onSelectWorkspace: (path: string) => void | Promise<void>;
     onToggleMemory: () => void | Promise<void>;
     onToggleRoles: () => void | Promise<void>;
     onToggleSkills: () => void | Promise<void>;
     onToggleSettings: () => void | Promise<void>;
+    platformOverride?: WindowPlatform;
   } = $props();
 
   const collapsedStorageKey = "openagent.sidebar.collapsed";
+  let platform = $derived(platformOverride ?? detectWindowPlatform());
   let width = $state(loadSidebarWidth());
   let resizing = $state(false);
 
@@ -84,10 +101,50 @@
   }
 </script>
 
-<aside class="sidebar" class:collapsed class:resizing style:--sidebar-width={`${width}px`}>
+<aside
+  class="sidebar"
+  class:collapsed
+  class:resizing
+  class:macos={platform === "macos"}
+  style:--sidebar-width={`${width}px`}
+>
   <div class="sidebar-top" data-tauri-drag-region>
-    {#if !collapsed}
-      <div class="sidebar-navigation-start" data-tauri-drag-region>
+    <SidebarCollapseButton {collapsed} onToggle={toggle} />
+    <SidebarHistoryControls
+      {canGoBack}
+      {canGoForward}
+      onBack={() => void onBack()}
+      onForward={() => void onForward()}
+    />
+  </div>
+  {#if !collapsed}
+    <div class="sidebar-content">
+      {#if loading}
+        <LoadingSkeleton variant="sidebar" rows={8} label={$t("loadingContent")} />
+      {:else}
+        <SidebarWorkspaceBrowser
+          {workspacePath}
+          {recentWorkspaces}
+          {searchQuery}
+          {conversations}
+          {recentConversations}
+          {activeConversationId}
+          {streamingConversationIds}
+          {hasMore}
+          {loadingMore}
+          onNew={() => void onNew()}
+          {onSearch}
+          onLoadMore={() => void onLoadMore()}
+          onSelect={(id) => void onSelect(id)}
+          onOpenConversation={(conversation) => void onOpenConversation(conversation)}
+          {onTogglePin}
+          {onDelete}
+          onPickWorkspace={() => void onPickWorkspace()}
+          onPickWsl={() => void onPickWsl()}
+          onSelectWorkspace={(path) => void onSelectWorkspace(path)}
+        />
+      {/if}
+      <div class="sidebar-role">
         <RoleSelector
           value={selectedRoleKey}
           {roles}
@@ -95,47 +152,17 @@
           onChange={(role) => void onRoleChange(role)}
         />
       </div>
-      <div class="sidebar-navigation-end" data-tauri-drag-region>
-        <SidebarHistoryControls
-          {canGoBack}
-          {canGoForward}
-          onBack={() => void onBack()}
-          onForward={() => void onForward()}
-        />
-        <SidebarCollapseButton {collapsed} onToggle={toggle} />
-      </div>
-    {:else}
-      <SidebarCollapseButton {collapsed} onToggle={toggle} />
-    {/if}
-  </div>
-  {#if !collapsed}
-    <SidebarPrimaryActions {searchQuery} {onNew} {onSearch} />
-    {#if loading}
-      <LoadingSkeleton variant="sidebar" rows={8} label={$t("loadingContent")} />
-    {:else}
-      <ConversationList
-        {conversations}
-        {searchQuery}
-        activeConvId={activeConversationId}
-        streamingConvIds={streamingConversationIds}
-        {hasMore}
-        {loadingMore}
-        onLoadMore={() => void onLoadMore()}
-        onSelect={(id) => void onSelect(id)}
-        {onTogglePin}
-        {onDelete}
+      <SidebarNav
+        {memoryOpen}
+        {rolesOpen}
+        {skillsOpen}
+        {settingsOpen}
+        {onToggleMemory}
+        {onToggleRoles}
+        {onToggleSkills}
+        {onToggleSettings}
       />
-    {/if}
-    <SidebarNav
-      {memoryOpen}
-      {rolesOpen}
-      {skillsOpen}
-      {settingsOpen}
-      {onToggleMemory}
-      {onToggleRoles}
-      {onToggleSkills}
-      {onToggleSettings}
-    />
+    </div>
     <SidebarResizeHandle
       {width}
       ariaLabel={$t("resizeSidebar")}
@@ -150,6 +177,8 @@
   .sidebar {
     position: relative;
     width: var(--sidebar-width);
+    padding-top: 40px;
+    box-sizing: border-box;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -162,9 +191,9 @@
 
   .sidebar.collapsed {
     width: 0;
+    padding-top: 0;
     background: transparent;
     border-right: 0;
-    overflow: visible;
   }
 
   .sidebar.resizing {
@@ -172,36 +201,42 @@
   }
 
   .sidebar-top {
-    min-height: 50px;
-    box-sizing: border-box;
-    padding: 5px 4px 5px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 2px;
-  }
-
-  .sidebar-navigation-start {
-    min-width: 0;
-    flex: 1 1 auto;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-  }
-
-  .sidebar-navigation-end {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    flex: 0 0 auto;
-  }
-
-  .sidebar.collapsed .sidebar-top {
-    position: relative;
+    position: fixed;
+    top: 0;
+    left: 0;
     z-index: 11;
-    width: 48px;
-    justify-content: center;
-    padding-left: 4px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    padding: 0 4px 0 6px;
+    box-sizing: border-box;
+  }
+
+  .sidebar.macos .sidebar-top {
+    left: 76px;
+  }
+
+  .sidebar-top :global(.sidebar-collapse-button) {
+    width: 34px;
+    height: 32px;
+    flex-basis: 34px;
+  }
+
+  .sidebar-content {
+    min-height: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-role {
+    padding: 5px 8px 1px;
+    border-top: 1px solid var(--border);
+  }
+
+  .sidebar-role :global(.role-selector) {
+    max-width: 100%;
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -7,10 +7,7 @@ const processRecordGroupUrl = new URL(
   import.meta.url,
 );
 const messageListUrl = new URL("../src/lib/components/MessageList.svelte", import.meta.url);
-const virtualMessageListUrl = new URL(
-  "../src/lib/components/VirtualMessageList.svelte",
-  import.meta.url,
-);
+const transcriptListUrl = new URL("../src/lib/components/TranscriptList.svelte", import.meta.url);
 const agentBookReaderUrl = new URL("../src/lib/components/AgentBookReader.svelte", import.meta.url);
 
 describe("process record group", () => {
@@ -34,11 +31,11 @@ describe("process record group", () => {
   });
 
   test("keeps the controlled header with the first fragmented process record", async () => {
-    const source = await readFile(virtualMessageListUrl, "utf8");
+    const source = await readFile(transcriptListUrl, "utf8");
     const bookSource = await readFile(agentBookReaderUrl, "utf8");
 
     expect(source).toMatch(
-      /\.virtual-message-row\.content-columns :global\(\.process-record-summary\)\s*\{[^}]*break-inside: avoid-column;[^}]*break-after: avoid-column;/s,
+      /\.transcript-row\.content-columns :global\(\.process-record-summary\)\s*\{[^}]*break-inside: avoid-column;[^}]*break-after: avoid-column;/s,
     );
     expect(bookSource).toContain('attributeFilter: ["open", "hidden"]');
     expect(bookSource).toMatch(
@@ -46,12 +43,17 @@ describe("process record group", () => {
     );
   });
 
-  test("keeps every rendered virtual row fully measurable", async () => {
-    const source = await readFile(virtualMessageListUrl, "utf8");
+  test("keeps every fully mounted transcript row visible", async () => {
+    const [source, messageSource] = await Promise.all([
+      readFile(transcriptListUrl, "utf8"),
+      readFile(messageListUrl, "utf8"),
+    ]);
 
     expect(source).toMatch(
-      /\.virtual-message-row :global\(\.message-record\)\s*\{[^}]*content-visibility: visible;[^}]*contain-intrinsic-size: none;/s,
+      /\.transcript-row :global\(\.message-record\)\s*\{[^}]*content-visibility: visible;[^}]*contain-intrinsic-size: none;/s,
     );
-    expect(source).not.toContain(".virtual-message-row.content-columns :global(.message-record)");
+    expect(source).toContain("{#each items as item, index (item.key)}");
+    expect(messageSource).not.toContain("VirtualMessageList");
+    expect(messageSource).not.toContain("estimateEntrySize");
   });
 });

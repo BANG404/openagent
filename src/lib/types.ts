@@ -106,6 +106,8 @@ export type SerializableAgentMessage =
 export interface Conversation {
   id: string;
   title: string;
+  /** Durable workspace owner, when the conversation came from metadata. */
+  workspace?: string;
   messages: ChatMessage[];
   createdAt: number;
   updatedAt: number;

@@ -151,7 +151,7 @@ describe("tool-call grouping", () => {
     expect(shouldDisplayToolCall(call("read_file", "Error: unavailable"), false)).toBe(true);
   });
 
-  test("retains the virtual row key when a live stream becomes a completed message", () => {
+  test("retains the transcript row key when a live stream becomes a completed message", () => {
     const assistantId = "assistant-1";
     const liveEntries = appendLiveStreamEntry([], assistantId);
     const completedEntries = groupAssistantTurns(

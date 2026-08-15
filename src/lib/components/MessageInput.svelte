@@ -7,8 +7,10 @@
     AgentRole,
     ApprovalMode,
     ChatAttachment,
+    RecentWorkspace,
     ReasoningEffort,
     UserMessageContext,
+    WorkspaceContext,
   } from "$lib/types";
   import AttachmentPreview from "./AttachmentPreview.svelte";
   import UserQuote from "./UserQuote.svelte";
@@ -16,6 +18,7 @@
   import Select from "./ui/Select.svelte";
   import Tooltip from "./Tooltip.svelte";
   import ReasoningEffortSelect from "./ReasoningEffortSelect.svelte";
+  import WorkspaceSwitcher from "./WorkspaceSwitcher.svelte";
   import { applySlashCommandSelection } from "./slashCommandSelection";
   import { t } from "$lib/i18n";
   import { showToast } from "$lib/toast";
@@ -75,11 +78,20 @@
     reasoningEffort?: ReasoningEffort;
     showApprovalMode?: boolean;
     approvalMode?: ApprovalMode;
+    showWorkspaceSwitcher?: boolean;
+    workspace?: WorkspaceContext | null;
+    workspacePath?: string;
+    recentWorkspaces?: RecentWorkspace[];
+    workspaceTauriAvailable?: boolean;
+    workspaceBrowserModeNotice?: string;
     showStopButton?: boolean;
     onConfigureModels?: () => void;
     onModelChange?: (value: string) => void;
     onReasoningEffortChange?: (value: ReasoningEffort) => void;
     onApprovalModeChange?: (value: ApprovalMode) => void;
+    onPickWorkspace?: () => void;
+    onPickWslWorkspace?: () => void;
+    onSelectWorkspace?: (path: string) => void;
     /** Protect native-window focus while the Tauri attachment dialog is open. */
     onAttachmentPickerOpenChange?: (open: boolean) => void | Promise<void>;
     /** Upload browser-selected files through the active non-Tauri transport. */
@@ -121,11 +133,20 @@
     reasoningEffort = "medium",
     showApprovalMode = false,
     approvalMode = "off",
+    showWorkspaceSwitcher = false,
+    workspace = null,
+    workspacePath = "",
+    recentWorkspaces = [],
+    workspaceTauriAvailable = false,
+    workspaceBrowserModeNotice = "",
     showStopButton = true,
     onConfigureModels = () => {},
     onModelChange = () => {},
     onReasoningEffortChange = () => {},
     onApprovalModeChange = () => {},
+    onPickWorkspace = () => {},
+    onPickWslWorkspace = () => {},
+    onSelectWorkspace = () => {},
     onAttachmentPickerOpenChange,
     onUploadAttachments,
     focusRequest = 0,
@@ -839,7 +860,8 @@
     class:composer-compact={!showAttachments &&
       !showModelSelector &&
       !showReasoningEffort &&
-      !showApprovalMode}
+      !showApprovalMode &&
+      !showWorkspaceSwitcher}
   >
     {#if contexts.length > 0}
       <div class="context-list">
@@ -875,7 +897,7 @@
         setTimeout(() => closePalette(), 100);
       }}
       {disabled}></textarea>
-    {#if showAttachments || showModelSelector || showReasoningEffort || showApprovalMode}
+    {#if showAttachments || showModelSelector || showReasoningEffort || showApprovalMode || showWorkspaceSwitcher}
       <div class="composer-toolbar">
         {#if showAttachments}<Tooltip text={$t("attachFiles")}>
             {#snippet trigger(props)}
@@ -949,6 +971,19 @@
             contentAlign="start"
             ariaLabel={$t("approvalMode")}
             onValueChange={(value) => onApprovalModeChange(value as ApprovalMode)}
+          />
+        {/if}
+        {#if showWorkspaceSwitcher}
+          <WorkspaceSwitcher
+            variant="composer"
+            {workspace}
+            {workspacePath}
+            {recentWorkspaces}
+            tauriAvailable={workspaceTauriAvailable}
+            browserModeNotice={workspaceBrowserModeNotice}
+            onPick={onPickWorkspace}
+            onPickWsl={onPickWslWorkspace}
+            onSelect={onSelectWorkspace}
           />
         {/if}
       </div>

@@ -3,6 +3,7 @@ export type StandaloneDevPreview =
   | "book-mode"
   | "checkpoint-flow"
   | "command-palette"
+  | "desktop-shell"
   | "follow-up-suggestions"
   | "pause-control"
   | "quote-context"
@@ -13,6 +14,7 @@ export type StandaloneDevPreview =
   | "workspace-switcher";
 
 const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
+  ["desktop-shell-preview", "desktop-shell"],
   ["book-mode-preview", "book-mode"],
   ["permission-settings-preview", "permission-settings"],
   ["workspace-switcher-preview", "workspace-switcher"],

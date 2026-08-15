@@ -15,6 +15,7 @@
     onPick: () => void;
     onPickWsl: () => void;
     onSelect: (path: string) => void;
+    variant?: "title" | "composer";
   }
   let {
     workspace,
@@ -25,6 +26,7 @@
     onPick,
     onPickWsl,
     onSelect,
+    variant = "title",
   }: Props = $props();
 
   let open = $state(false);
@@ -48,13 +50,26 @@
   }
 </script>
 
-<div class="workspace-switcher">
+<div class="workspace-switcher" class:composer={variant === "composer"}>
   <DropdownMenu.Root bind:open>
-    <Tooltip text={tauriAvailable ? workspaceTooltip : browserModeNotice} side="bottom">
+    <Tooltip
+      text={tauriAvailable ? workspaceTooltip : browserModeNotice}
+      side={variant === "composer" ? "top" : "bottom"}
+    >
       <DropdownMenu.Trigger
-        class="workspace-btn"
+        class="workspace-btn {variant === 'composer' ? 'composer-workspace-btn' : ''}"
         aria-label={`${$t("currentWorkspace")}: ${workspaceTooltip}`}
       >
+        {#if variant === "composer"}
+          <svg class="workspace-folder-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path
+              d="M2.5 5.25h3.6l1.15 1.4h6.25v5.6a1.25 1.25 0 0 1-1.25 1.25h-8.5a1.25 1.25 0 0 1-1.25-1.25z"
+            />
+            <path
+              d="M2.5 5.5V4.25A1.25 1.25 0 0 1 3.75 3h2.8L7.7 4.4h4.55a1.25 1.25 0 0 1 1.25 1.25v1"
+            />
+          </svg>
+        {/if}
         <span class="folder-name">{folderName}</span>
         {#if workspace?.environment.kind === "wsl"}
           <span class="wsl-badge">WSL</span>
@@ -64,7 +79,8 @@
     <DropdownMenu.Portal>
       <DropdownMenu.Content
         class="ws-dropdown"
-        sideOffset={4}
+        side={variant === "composer" ? "top" : "bottom"}
+        sideOffset={variant === "composer" ? 7 : 4}
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
@@ -150,6 +166,30 @@
     border-radius: 6px;
     color: inherit;
     transition: background 0.12s;
+  }
+
+  :global(.composer-workspace-btn) {
+    max-width: 190px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    color: var(--text-muted);
+  }
+
+  :global(.composer-workspace-btn .folder-name) {
+    max-width: 128px;
+    color: inherit;
+    font-size: 12px;
+    font-weight: 400;
+  }
+
+  .workspace-folder-icon {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    stroke: currentColor;
+    stroke-width: 1.3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   :global(.workspace-btn:hover),

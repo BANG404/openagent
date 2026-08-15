@@ -26,6 +26,7 @@
 
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
+  import DesktopShellPreview from "$lib/components/DesktopShellPreview.svelte";
   import FollowUpSuggestions from "$lib/components/FollowUpSuggestions.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
@@ -155,12 +156,12 @@
   ]);
   const streamingMessages: ChatMessage[] = [];
   for (let index = 0; index < 18; index += 1) {
-    const content = `Completed answer ${index + 1}. ${"Measured virtual turn content. ".repeat(8)}`;
+    const content = `Completed answer ${index + 1}. ${"Fully mounted turn content. ".repeat(8)}`;
     streamingMessages.push(
       {
         id: `streaming-preview-user-${index}`,
         role: "user",
-        content: `Turn ${index + 1}: keep this transcript long enough to exercise windowing.`,
+        content: `Turn ${index + 1}: keep this transcript long enough to exercise scrolling.`,
         timestamp: Date.now() - (36 - index * 2) * 1000,
       },
       {
@@ -404,7 +405,9 @@
   }
 </script>
 
-{#if preview === "book-mode"}
+{#if preview === "desktop-shell"}
+  <DesktopShellPreview />
+{:else if preview === "book-mode"}
   <AgentBookReader
     turns={bookTurns}
     activeKey="book-preview-one"

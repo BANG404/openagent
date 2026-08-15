@@ -5,11 +5,11 @@
   import ProcessRecordGroup from "./ProcessRecordGroup.svelte";
   import AgentBookReader, { type AgentBookTurn } from "./AgentBookReader.svelte";
   import Tooltip from "./Tooltip.svelte";
-  import VirtualMessageList from "./VirtualMessageList.svelte";
+  import TranscriptList from "./TranscriptList.svelte";
   import NewConversationContext from "./NewConversationContext.svelte";
   import FollowUpSuggestions from "./FollowUpSuggestions.svelte";
   import { t } from "$lib/i18n";
-  import { finalAssistantOutput, finalAssistantOutputStartIndex } from "$lib/assistantOutput";
+  import { finalAssistantOutput } from "$lib/assistantOutput";
   import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
   import type {
@@ -149,7 +149,7 @@
   let copiedAssistantMessageId = $state<string | null>(null);
   let readingTurnKey = $state<string | null>(null);
   let copyFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
-  let virtualMessageList = $state<VirtualMessageList | null>(null);
+  let transcriptList = $state<TranscriptList | null>(null);
   let messagesRoot = $state<HTMLElement | null>(null);
   let selectionPopover = $state<{
     text: string;
@@ -172,7 +172,7 @@
       isAssistantTurnEntry(entry) ? [{ key: entry.key, items: assistantItems(entry) }] : [],
     ),
   );
-  let virtualEntries = $derived(
+  let transcriptEntries = $derived(
     appendLiveStreamEntry(renderEntries, isStreaming ? currentStreamMessageId : null),
   );
   let currentSegments = $derived(groupStreamItems(currentStreamItems));
@@ -415,7 +415,7 @@
   }
 
   function scrollToMessage(id: string) {
-    virtualMessageList?.scrollToKey(id);
+    transcriptList?.scrollToKey(id);
   }
 
   function entryAssistantMessages(entry: MessageRenderEntry): ChatMessage[] {
@@ -424,37 +424,6 @@
     }
     if (entry.kind === "message" && entry.msg.role === "assistant") return [entry.msg];
     return [];
-  }
-
-  function estimateEntrySize(entry: MessageRenderEntry) {
-    if (entry.kind === "live_stream") return 96;
-    if (entry.kind === "tool_group") return 76;
-    if (entry.kind === "assistant_turn") {
-      const items = assistantItems(entry);
-      const finalOutputStart = finalAssistantOutputStartIndex(items);
-      const contentLength = items
-        .slice(finalOutputStart)
-        .reduce(
-          (total, item) =>
-            total +
-            ("content" in item && typeof item.content === "string" ? item.content.length : 0),
-          0,
-        );
-      const processHeaderHeight = finalOutputStart > 0 && finalOutputStart < items.length ? 44 : 0;
-      return Math.min(640, 92 + processHeaderHeight + Math.ceil(contentLength / 100) * 24);
-    }
-    if (isCompactionReplayUser(entry.msg)) return 58;
-    if (entry.msg.role === "user")
-      return Math.min(260, 70 + Math.ceil(entry.msg.content.length / 90) * 22);
-    const contentLength =
-      entry.msg.content.length +
-      (entry.msg.items?.reduce(
-        (total, item) =>
-          total +
-          ("content" in item && typeof item.content === "string" ? item.content.length : 120),
-        0,
-      ) ?? 0);
-    return Math.min(640, 92 + Math.ceil(contentLength / 100) * 24);
   }
 
   function assistantItems(entry: MessageRenderEntry): StreamItem[] {
@@ -546,11 +515,10 @@
     />
   {/if}
 
-  <VirtualMessageList
-    bind:this={virtualMessageList}
-    items={virtualEntries}
+  <TranscriptList
+    bind:this={transcriptList}
+    items={transcriptEntries}
     {scrollElement}
-    estimateSize={estimateEntrySize}
     responsiveColumns={messageLayout === "responsive_double"}
     doubleColumnMinWidth={messageDoubleColumnMinWidth}
     {followTail}
@@ -973,7 +941,7 @@
         {/if}
       {/if}
     {/snippet}
-  </VirtualMessageList>
+  </TranscriptList>
 </div>
 
 {#if selectionPopover}

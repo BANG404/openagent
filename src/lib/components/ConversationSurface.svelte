@@ -13,8 +13,10 @@
     ChatAttachment,
     ChatMessage,
     FileChange,
+    RecentWorkspace,
     StreamItem,
     UserMessageContext,
+    WorkspaceContext,
   } from "$lib/types";
   import { t } from "$lib/i18n";
   import { showToast } from "$lib/toast";
@@ -58,6 +60,9 @@
     slashCommands: SlashCommand[];
     tailAnchorToken: number | null;
     tauriAvailable: boolean;
+    workspace: WorkspaceContext | null;
+    workspacePath: string;
+    recentWorkspaces: RecentWorkspace[];
   }
 
   interface ConversationSurfaceActions {
@@ -85,6 +90,9 @@
     stopMessage: () => void | Promise<void>;
     submitUserInput: (requestId: string, values: Record<string, unknown>) => void | Promise<void>;
     switchBranch: (convId: string, parentKey: string, targetIdx: number) => void | Promise<void>;
+    pickWorkspace: () => void | Promise<void>;
+    pickWslWorkspace: () => void | Promise<void>;
+    selectWorkspace: (path: string) => void | Promise<void>;
   }
 
   let {
@@ -277,6 +285,15 @@
             showApprovalMode
             approvalMode={view.config?.approval_mode ?? "off"}
             onApprovalModeChange={composerPreferences.handleApprovalModeChange}
+            showWorkspaceSwitcher={view.newConversationLayout && !view.activeConvId}
+            workspace={view.workspace}
+            workspacePath={view.workspacePath}
+            recentWorkspaces={view.recentWorkspaces}
+            workspaceTauriAvailable={view.tauriAvailable}
+            workspaceBrowserModeNotice={view.browserModeNotice}
+            onPickWorkspace={() => void actions.pickWorkspace()}
+            onPickWslWorkspace={() => void actions.pickWslWorkspace()}
+            onSelectWorkspace={(path) => void actions.selectWorkspace(path)}
             focusRequest={composerFocusRequest}
             onSend={actions.sendMessage}
             onStop={actions.stopMessage}
@@ -383,7 +400,6 @@
     overflow-x: clip;
     display: flex;
     flex-direction: column;
-    overflow-anchor: none;
     overscroll-behavior-y: contain;
     scrollbar-gutter: stable;
   }

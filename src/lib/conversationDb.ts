@@ -15,6 +15,7 @@ export function metaToConversation(m: ConversationMeta): Conversation {
   return {
     id: m.id,
     title: m.title,
+    workspace: m.workspace,
     messages: [],
     createdAt: m.created_at * 1000,
     updatedAt: m.updated_at * 1000,
