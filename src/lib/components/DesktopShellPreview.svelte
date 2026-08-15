@@ -19,6 +19,7 @@
     query.has("desktop-shell-preview-existing") ? "openagent-1" : null,
   );
   let workspacePath = $state("C:\\Projects\\openagent");
+  let workspaceSwitchTarget = $state<string | null>(null);
   let draft = $state("");
   let attachments = $state<ChatAttachment[]>([]);
   let approvalMode = $state<ApprovalMode>("auto");
@@ -116,9 +117,13 @@
     return recentConversations.filter((conversation) => conversation.workspace === workspacePath);
   });
 
-  function selectWorkspace(path: string): void {
+  async function selectWorkspace(path: string): Promise<void> {
+    if (path === workspacePath || workspaceSwitchTarget) return;
+    workspaceSwitchTarget = path;
+    await new Promise((resolve) => window.setTimeout(resolve, 120));
     workspacePath = path;
     activeConversationId = null;
+    workspaceSwitchTarget = null;
   }
 </script>
 
@@ -130,6 +135,7 @@
     canGoBack={false}
     canGoForward={false}
     {workspacePath}
+    {workspaceSwitchTarget}
     {recentWorkspaces}
     {pinnedProjectPaths}
     {searchQuery}

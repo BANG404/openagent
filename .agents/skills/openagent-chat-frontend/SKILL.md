@@ -384,15 +384,21 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the current workspace changes so keyed rows retain their DOM position; pinned
   groups may remain ahead without otherwise reordering either group. Keep the same
   keyed `ConversationList` mounted beneath every project with five conversations
-  initially visible and a persistent Show more action; selection may change its
-  data and pagination capability, but never swap in a different row structure or
-  list style. Its focused name search
+  initially visible and a persistent Show more action. Selection may change its
+  pagination capability, but every role keeps one per-workspace conversation
+  snapshot so changing the selected workspace never swaps a project's list data
+  source or discards the previous workspace's keyed rows. Reserve the project
+  row's trailing action space at rest so focus, pending selection, and active
+  styles never change its geometry. Its focused name search
   ranks exact, prefix, name, and path
   matches ahead of the unchanged remainder instead of hiding unmatched projects.
   Recent conversations is one newest-first projection of the 20 most recently
-  updated conversations across workspace metadata for the selected role. Keep it
-  in the sidebar's ordinary scroll flow without its own scroll container or
-  pagination query. Preserve the owning workspace on every global conversation.
+  updated conversations across workspace metadata for the selected role. Keep
+  that projection independent from the selected workspace's conversation page,
+  and retain the loaded role snapshot during a same-role background refresh so
+  workspace switching only updates keyed rows in place. Keep it in the sidebar's
+  ordinary scroll flow without its own scroll container or pagination query.
+  Preserve the owning workspace on every global conversation.
   Sidebar conversation search covers every workspace
   and role only while its input retains focus; focus leaving the search control
   clears the query and restores the ordinary sidebar. Selecting any result or

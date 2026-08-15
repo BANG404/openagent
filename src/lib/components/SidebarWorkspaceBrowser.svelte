@@ -1,8 +1,12 @@
 <script lang="ts">
-  import { tick } from "svelte";
+  import { tick, untrack } from "svelte";
   import { DropdownMenu } from "bits-ui";
   import { t } from "$lib/i18n";
-  import { projectsInPersistedOrder } from "$lib/sidebarProjects";
+  import {
+    projectsInPersistedOrder,
+    updateProjectConversationSnapshots,
+    type ProjectConversationSnapshots,
+  } from "$lib/sidebarProjects";
   import type { Conversation, RecentWorkspace } from "$lib/types";
   import { workspaceFolderName } from "$lib/workspacePath";
   import ConversationList from "./ConversationList.svelte";
@@ -11,6 +15,8 @@
 
   let {
     workspacePath,
+    workspaceSwitchTarget = null,
+    selectedRoleKey,
     recentWorkspaces,
     conversations,
     recentConversations,
@@ -34,6 +40,8 @@
     onRemoveProject,
   }: {
     workspacePath: string;
+    workspaceSwitchTarget?: string | null;
+    selectedRoleKey: string;
     recentWorkspaces: RecentWorkspace[];
     conversations: Conversation[];
     recentConversations: Conversation[];
@@ -62,16 +70,32 @@
   let projectSearchOpen = $state(false);
   let projectSearchQuery = $state("");
   let projectSearchInput = $state<HTMLInputElement>();
+  let conversationSnapshotsByRole = $state<Record<string, ProjectConversationSnapshots>>({});
 
-  let allRecentConversations = $derived.by(() => {
-    const byId = new Map(recentConversations.map((item) => [item.id, item]));
-    for (const item of conversations) {
-      byId.set(item.id, { ...item, workspace: item.workspace ?? workspacePath });
-    }
-    return [...byId.values()]
-      .sort((a, b) => b.updatedAt - a.updatedAt || b.id.localeCompare(a.id))
-      .slice(0, 20);
+  $effect.pre(() => {
+    const roleKey = selectedRoleKey;
+    const currentWorkspacePath = workspacePath;
+    const currentConversations = conversations;
+    const globalRecentConversations = recentConversations;
+    const snapshots = untrack(() => conversationSnapshotsByRole);
+    conversationSnapshotsByRole = {
+      ...snapshots,
+      [roleKey]: updateProjectConversationSnapshots(
+        snapshots[roleKey] ?? {},
+        currentWorkspacePath,
+        currentConversations,
+        globalRecentConversations,
+      ),
+    };
   });
+
+  let projectConversationSnapshots = $derived(conversationSnapshotsByRole[selectedRoleKey] ?? {});
+
+  let allRecentConversations = $derived(
+    [...recentConversations]
+      .sort((a, b) => b.updatedAt - a.updatedAt || b.id.localeCompare(a.id))
+      .slice(0, 20),
+  );
 
   let projectEntries = $derived.by(() => {
     const pinnedPaths = new Set(pinnedProjectPaths);
@@ -101,7 +125,7 @@
   }
 
   function conversationsForProject(path: string): Conversation[] {
-    return allRecentConversations.filter((item) => item.workspace === path);
+    return projectConversationSnapshots[path] ?? [];
   }
 
   function selectProjectConversation(path: string, id: string): void {
@@ -109,7 +133,7 @@
       onSelect(id);
       return;
     }
-    const conversation = allRecentConversations.find((item) => item.id === id);
+    const conversation = conversationsForProject(path).find((item) => item.id === id);
     if (conversation) onOpenConversation(conversation);
   }
 
@@ -230,7 +254,10 @@
         <div class="project-list">
           {#each projectEntries as project (project.path)}
             <section class="project-group" aria-label={project.name}>
-              <div class="project-row-shell" class:active={project.path === workspacePath}>
+              <div
+                class="project-row-shell"
+                class:active={project.path === (workspaceSwitchTarget ?? workspacePath)}
+              >
                 <button
                   class="project-row"
                   type="button"
@@ -336,9 +363,7 @@
                 embedded
                 compactProject
                 alwaysShowMore
-                conversations={project.path === workspacePath
-                  ? conversations
-                  : conversationsForProject(project.path)}
+                conversations={conversationsForProject(project.path)}
                 activeConvId={activeConversationId}
                 streamingConvIds={streamingConversationIds}
                 hasMore={project.path === workspacePath && hasMore}
@@ -575,7 +600,7 @@
     flex: 1;
     height: var(--list-item-compact-height);
     gap: var(--list-item-compact-content-gap);
-    padding: 4px var(--list-item-compact-padding-inline);
+    padding: 4px 62px 4px var(--list-item-compact-padding-inline);
     border-radius: var(--list-item-compact-radius);
     background: transparent;
     color: var(--text);
@@ -597,12 +622,6 @@
     display: flex;
     height: var(--list-item-compact-height);
     border-radius: var(--list-item-compact-radius);
-  }
-
-  .project-row-shell:hover .project-row,
-  .project-row-shell:focus-within .project-row,
-  .project-row-shell.active .project-row {
-    padding-right: 62px;
   }
 
   .project-row-actions {

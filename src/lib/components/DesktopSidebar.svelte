@@ -20,6 +20,7 @@
     canGoBack,
     canGoForward,
     workspacePath,
+    workspaceSwitchTarget = null,
     recentWorkspaces,
     pinnedProjectPaths,
     searchQuery,
@@ -56,6 +57,7 @@
     canGoBack: boolean;
     canGoForward: boolean;
     workspacePath: string;
+    workspaceSwitchTarget?: string | null;
     recentWorkspaces: RecentWorkspace[];
     pinnedProjectPaths: string[];
     searchQuery: string;
@@ -140,6 +142,8 @@
       {:else}
         <SidebarWorkspaceBrowser
           {workspacePath}
+          {workspaceSwitchTarget}
+          {selectedRoleKey}
           {recentWorkspaces}
           {pinnedProjectPaths}
           {searchQuery}

@@ -256,6 +256,7 @@
   let recentConversations = $state<Conversation[]>([]);
   let loadingRecentConversations = $state(false);
   let recentConversationGeneration = 0;
+  let recentConversationRoleKey: string | null = null;
   let conversationNextCursor = $state<ConversationPageCursor | null>(null);
   let loadingMoreConversations = $state(false);
   let searchConversations = $state<Conversation[]>([]);
@@ -270,6 +271,7 @@
   let selectedRoleId = $derived(selectedRoleKey === defaultRoleKey ? null : selectedRoleKey);
   let initialLoading = $state(true);
   let workspaceLoading = $state(false);
+  let workspaceSwitchTarget = $state<string | null>(null);
   let loadingConversationIds = $state<Record<string, boolean>>({});
   let restoringSurface = $state<CachedRestoreSurface>(
     startupRestoreHint?.surface ?? "new-conversation",
@@ -1617,12 +1619,14 @@
     const generation = ++recentConversationGeneration;
     const roleKey = selectedRoleKey;
     const recentRoleId = roleKey === defaultRoleKey ? null : roleKey;
-    recentConversations = [];
-    loadingRecentConversations = true;
+    const replacingRoleSnapshot = recentConversationRoleKey !== roleKey;
+    if (replacingRoleSnapshot) recentConversations = [];
+    loadingRecentConversations = replacingRoleSnapshot || recentConversations.length === 0;
     try {
       const page = await fetchConversationPage(null, null, 20, null, true, recentRoleId);
       if (generation !== recentConversationGeneration || roleKey !== selectedRoleKey) return;
       recentConversations = page.conversations;
+      recentConversationRoleKey = roleKey;
     } catch (error) {
       console.warn("Failed to load recent conversations across workspaces:", error);
     } finally {
@@ -3684,6 +3688,7 @@
   async function applyWorkspace(path: string, preferredConversationId?: string) {
     if (path === workspacePath || workspaceLoading) return;
 
+    workspaceSwitchTarget = path;
     workspaceLoading = true;
     const previousWorkspacePath = workspacePath;
     let runtimeWorkspaceChanged = false;
@@ -3765,6 +3770,7 @@
       throw error;
     } finally {
       workspaceLoading = false;
+      workspaceSwitchTarget = null;
     }
   }
 
@@ -4325,6 +4331,7 @@
         {canGoBack}
         {canGoForward}
         {workspacePath}
+        {workspaceSwitchTarget}
         {recentWorkspaces}
         {pinnedProjectPaths}
         searchQuery={conversationSearchQuery}

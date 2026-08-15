@@ -1,8 +1,55 @@
-import type { RecentWorkspace } from "./types";
+import type { Conversation, RecentWorkspace } from "./types";
 import { workspaceFolderName } from "./workspacePath";
 
 export const pinnedProjectsStorageKey = "openagent.sidebar.pinnedProjects";
 export const projectConversationPageSize = 5;
+
+export type ProjectConversationSnapshots = Record<string, Conversation[]>;
+
+function mergeProjectConversations(
+  previous: Conversation[],
+  incoming: Conversation[],
+  workspacePath: string,
+): Conversation[] {
+  const byId = new Map(previous.map((conversation) => [conversation.id, conversation]));
+  for (const conversation of incoming) {
+    byId.set(
+      conversation.id,
+      conversation.workspace === workspacePath
+        ? conversation
+        : { ...conversation, workspace: workspacePath },
+    );
+  }
+  return [...byId.values()];
+}
+
+export function updateProjectConversationSnapshots(
+  previous: ProjectConversationSnapshots,
+  workspacePath: string,
+  conversations: Conversation[],
+  recentConversations: Conversation[],
+): ProjectConversationSnapshots {
+  const next = { ...previous };
+  const recentsByWorkspace = new Map<string, Conversation[]>();
+
+  for (const conversation of recentConversations) {
+    if (!conversation.workspace) continue;
+    const workspaceConversations = recentsByWorkspace.get(conversation.workspace) ?? [];
+    workspaceConversations.push(conversation);
+    recentsByWorkspace.set(conversation.workspace, workspaceConversations);
+  }
+
+  for (const [path, workspaceConversations] of recentsByWorkspace) {
+    if (path === workspacePath) continue;
+    next[path] = mergeProjectConversations(next[path] ?? [], workspaceConversations, path);
+  }
+
+  if (workspacePath) {
+    next[workspacePath] = mergeProjectConversations([], conversations, workspacePath);
+  }
+
+  return next;
+}
 
 export function addWorkspaceToPersistedOrder(
   workspaces: RecentWorkspace[],
