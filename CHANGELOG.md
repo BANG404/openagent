@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.38.6-beta.1] - 2026-08-14
+
+### Bug Fixes
+- **chat**: Prevent outer viewport scrolling
+- **chat**: Hide transcript scrollbar
+
 ## [0.38.5-beta.1] - 2026-08-14
 
 ### Performance
