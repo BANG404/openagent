@@ -1643,7 +1643,6 @@
     flex-direction: column;
     overflow-x: clip;
     overflow-y: auto;
-    overflow-anchor: none;
   }
   .empty-chat {
     display: grid;

@@ -170,8 +170,8 @@ function isCompactionContinuation(entry: StoredMessageRenderEntry): boolean {
 }
 
 /**
- * Collapse every durable assistant record in one reply into a single virtual
- * turn row. A compaction replay is an internal continuation boundary, not a
+ * Collapse every durable assistant record in one reply into a single
+ * transcript row. A compaction replay is an internal continuation boundary, not a
  * new user turn, so keep it inside the reply that resumes after compaction.
  */
 export function groupAssistantTurns(entries: StoredMessageRenderEntry[]): MessageRenderEntry[] {
