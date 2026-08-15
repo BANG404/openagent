@@ -6,6 +6,7 @@
   import type { Conversation, RecentWorkspace } from "$lib/types";
   import { workspaceFolderName } from "$lib/workspacePath";
   import ConversationList from "./ConversationList.svelte";
+  import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import Tooltip from "./Tooltip.svelte";
 
   let {
@@ -19,12 +20,10 @@
     streamingConversationIds,
     hasMore,
     loadingMore,
-    recentHasMore,
-    loadingMoreRecent,
+    loadingRecentConversations,
     searchActive,
     onNewProjectConversation,
     onLoadMore,
-    onLoadMoreRecent,
     onSelect,
     onOpenConversation,
     onTogglePin,
@@ -44,12 +43,10 @@
     streamingConversationIds: Record<string, boolean>;
     hasMore: boolean;
     loadingMore: boolean;
-    recentHasMore: boolean;
-    loadingMoreRecent: boolean;
+    loadingRecentConversations: boolean;
     searchActive: boolean;
     onNewProjectConversation: (path: string) => void;
     onLoadMore: () => void;
-    onLoadMoreRecent: () => void;
     onSelect: (id: string) => void;
     onOpenConversation: (conversation: Conversation) => void;
     onTogglePin: (id: string) => void;
@@ -65,15 +62,15 @@
   let projectSearchOpen = $state(false);
   let projectSearchQuery = $state("");
   let projectSearchInput = $state<HTMLInputElement>();
-  let recentListElement = $state<HTMLDivElement>();
-  let recentPageSentinel = $state<HTMLDivElement>();
 
   let allRecentConversations = $derived.by(() => {
     const byId = new Map(recentConversations.map((item) => [item.id, item]));
     for (const item of conversations) {
       byId.set(item.id, { ...item, workspace: item.workspace ?? workspacePath });
     }
-    return [...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt || b.id.localeCompare(a.id));
+    return [...byId.values()]
+      .sort((a, b) => b.updatedAt - a.updatedAt || b.id.localeCompare(a.id))
+      .slice(0, 20);
   });
 
   let projectEntries = $derived.by(() => {
@@ -163,26 +160,6 @@
     event.preventDefault();
     closeProjectSearch();
   }
-
-  $effect(() => {
-    if (
-      searchActive ||
-      recentsCollapsed ||
-      !recentListElement ||
-      !recentPageSentinel ||
-      !recentHasMore
-    ) {
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !loadingMoreRecent) onLoadMoreRecent();
-      },
-      { root: recentListElement, rootMargin: "80px 0px" },
-    );
-    observer.observe(recentPageSentinel);
-    return () => observer.disconnect();
-  });
 </script>
 
 {#snippet sectionChevron(expanded: boolean)}
@@ -389,33 +366,25 @@
         </button>
       </div>
       {#if !recentsCollapsed}
-        <div
-          class="recent-conversations"
-          aria-label={$t("recentConversations")}
-          bind:this={recentListElement}
-        >
-          {#if allRecentConversations.length === 0 && !loadingMoreRecent}
+        <div class="recent-conversations" aria-label={$t("recentConversations")}>
+          {#if loadingRecentConversations}
+            <LoadingSkeleton variant="sidebar" rows={5} label={$t("loadingContent")} />
+          {:else if allRecentConversations.length === 0}
             <div class="recent-empty">{$t("noRecentConversations")}</div>
-          {/if}
-          {#each allRecentConversations as conversation (conversation.id)}
-            <button
-              class="workspace-conversation-row recent-row"
-              class:active={conversation.id === activeConversationId}
-              type="button"
-              onclick={() => onOpenConversation(conversation)}
-            >
-              <span>{conversation.title}</span>
-              {#if streamingConversationIds[conversation.id]}
-                <i aria-label="Streaming"></i>
-              {/if}
-            </button>
-          {/each}
-          {#if recentHasMore || loadingMoreRecent}
-            <div class="recent-page-sentinel" bind:this={recentPageSentinel}>
-              {#if loadingMoreRecent}
-                <span class="recent-page-spinner" aria-label={$t("loadingContent")}></span>
-              {/if}
-            </div>
+          {:else}
+            {#each allRecentConversations as conversation (conversation.id)}
+              <button
+                class="workspace-conversation-row recent-row"
+                class:active={conversation.id === activeConversationId}
+                type="button"
+                onclick={() => onOpenConversation(conversation)}
+              >
+                <span>{conversation.title}</span>
+                {#if streamingConversationIds[conversation.id]}
+                  <i aria-label="Streaming"></i>
+                {/if}
+              </button>
+            {/each}
           {/if}
         </div>
       {/if}
@@ -775,35 +744,11 @@
     margin-top: 14px;
   }
 
-  .recent-conversations {
-    max-height: min(38vh, 320px);
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-  }
-
   .recent-empty {
     padding: 5px 10px 7px;
     color: var(--text-muted);
     font-size: 12px;
     line-height: 18px;
-  }
-
-  .recent-page-sentinel {
-    min-height: 18px;
-    display: grid;
-    place-items: center;
-  }
-
-  .recent-page-spinner {
-    width: 11px;
-    height: 11px;
-    box-sizing: border-box;
-    border: 1.5px solid var(--border);
-    border-top-color: var(--primary);
-    border-radius: 50%;
-    animation: recent-page-spin 700ms linear infinite;
   }
 
   .recent-row {
@@ -819,19 +764,9 @@
     background: var(--primary);
   }
 
-  @keyframes recent-page-spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .section-chevron {
       transition: none;
-    }
-
-    .recent-page-spinner {
-      animation: none;
     }
   }
 </style>

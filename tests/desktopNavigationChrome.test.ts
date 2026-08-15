@@ -79,7 +79,7 @@ describe("desktop navigation chrome", () => {
     expect(route).toContain("onNewWindow={pickWorkspaceInNewWindow}");
   });
 
-  test("keeps role-scoped recents paged and restores sections after search focus leaves", async () => {
+  test("keeps the first 20 role-scoped recents in the main sidebar flow", async () => {
     const route = await readFile(routeUrl, "utf8");
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
     const primaryActions = await readFile(
@@ -91,15 +91,18 @@ describe("desktop navigation chrome", () => {
       "utf8",
     );
 
-    expect(route).toContain("fetchConversationPage(null, null, 30, null, true, recentRoleId)");
-    expect(route).toContain("recentConversationNextCursor");
-    expect(route).toContain("onLoadMoreRecent={loadNextRecentConversationPage}");
+    expect(route).toContain("fetchConversationPage(null, null, 20, null, true, recentRoleId)");
+    expect(route).not.toContain("recentConversationNextCursor");
+    expect(route).not.toContain("loadNextRecentConversationPage");
     expect(sidebar).toContain("onChange={changeRole}");
+    expect(sidebar).not.toContain("onLoadMoreRecent");
     expect(primaryActions).toContain("onfocusout={handleSearchFocusout}");
     expect(workspaceBrowser).toContain("projectsCollapsed");
     expect(workspaceBrowser).toContain("recentsCollapsed");
     expect(workspaceBrowser).toContain("projectSearchRank");
-    expect(workspaceBrowser).toContain('root: recentListElement, rootMargin: "80px 0px"');
+    expect(workspaceBrowser).toContain(".slice(0, 20)");
+    expect(workspaceBrowser).not.toContain("IntersectionObserver");
+    expect(workspaceBrowser).not.toMatch(/\.recent-conversations\s*{[^}]*overflow-y:/s);
   });
 
   test("prepares workspace switches without replacing the mounted application shell", async () => {

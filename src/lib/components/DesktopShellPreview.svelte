@@ -81,9 +81,9 @@
       createdAt: 7,
       updatedAt: 35,
     },
-    ...Array.from({ length: 18 }, (_, index): Conversation => ({
+    ...Array.from({ length: 28 }, (_, index): Conversation => ({
       id: `preview-${index + 1}`,
-      title: `侧栏最近对话分页示例 ${index + 1}`,
+      title: `侧栏最近对话示例 ${index + 1}`,
       workspace: index % 2 === 0 ? "C:\\Projects\\openagent" : "C:\\Projects\\agent-runtime",
       messages: [],
       createdAt: 6 - index,
@@ -139,8 +139,7 @@
     streamingConversationIds={{ "openagent-2": true }}
     hasMore={false}
     loadingMore={false}
-    recentHasMore={false}
-    loadingMoreRecent={false}
+    loadingRecentConversations={false}
     loading={false}
     {settingsOpen}
     onRoleChange={(role) => {
@@ -159,7 +158,6 @@
       searchQuery = query;
     }}
     onLoadMore={() => {}}
-    onLoadMoreRecent={() => {}}
     onSelect={(id) => {
       activeConversationId = id;
     }}

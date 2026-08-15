@@ -389,10 +389,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   list style. Its focused name search
   ranks exact, prefix, name, and path
   matches ahead of the unchanged remainder instead of hiding unmatched projects.
-  Recent conversations is one bounded, independently scrolling, newest-first
-  projection across workspace metadata for the selected role; fetch additional
-  database pages as its scroll sentinel approaches. Preserve the owning workspace
-  on every global conversation. Sidebar conversation search covers every workspace
+  Recent conversations is one newest-first projection of the 20 most recently
+  updated conversations across workspace metadata for the selected role. Keep it
+  in the sidebar's ordinary scroll flow without its own scroll container or
+  pagination query. Preserve the owning workspace on every global conversation.
+  Sidebar conversation search covers every workspace
   and role only while its input retains focus; focus leaving the search control
   clears the query and restores the ordinary sidebar. Selecting any result or
   recent conversation switches the current window to its owning workspace before

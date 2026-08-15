@@ -29,8 +29,7 @@
     streamingConversationIds,
     hasMore,
     loadingMore,
-    recentHasMore,
-    loadingMoreRecent,
+    loadingRecentConversations,
     loading,
     settingsOpen,
     onRoleChange,
@@ -40,7 +39,6 @@
     onNewProjectConversation,
     onSearch,
     onLoadMore,
-    onLoadMoreRecent,
     onSelect,
     onOpenConversation,
     onTogglePin,
@@ -67,8 +65,7 @@
     streamingConversationIds: Record<string, boolean>;
     hasMore: boolean;
     loadingMore: boolean;
-    recentHasMore: boolean;
-    loadingMoreRecent: boolean;
+    loadingRecentConversations: boolean;
     loading: boolean;
     settingsOpen: boolean;
     onRoleChange: (role: string) => void | Promise<void>;
@@ -78,7 +75,6 @@
     onNewProjectConversation: (path: string) => void | Promise<void>;
     onSearch: (query: string) => void;
     onLoadMore: () => void | Promise<void>;
-    onLoadMoreRecent: () => void | Promise<void>;
     onSelect: (id: string) => void | Promise<void>;
     onOpenConversation: (conversation: Conversation) => void | Promise<void>;
     onTogglePin: (id: string) => void | Promise<void>;
@@ -153,12 +149,10 @@
           {streamingConversationIds}
           {hasMore}
           {loadingMore}
-          {recentHasMore}
-          {loadingMoreRecent}
+          {loadingRecentConversations}
           searchActive={searchOpen}
           onNewProjectConversation={(path) => void onNewProjectConversation(path)}
           onLoadMore={() => void onLoadMore()}
-          onLoadMoreRecent={() => void onLoadMoreRecent()}
           onSelect={(id) => void onSelect(id)}
           onOpenConversation={openConversation}
           {onTogglePin}

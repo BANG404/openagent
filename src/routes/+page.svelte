@@ -254,8 +254,7 @@
   const startupRestoreHint = readStartupRestoreHint();
   let conversations = $state<Conversation[]>([]);
   let recentConversations = $state<Conversation[]>([]);
-  let recentConversationNextCursor = $state<ConversationPageCursor | null>(null);
-  let loadingMoreRecentConversations = $state(false);
+  let loadingRecentConversations = $state(false);
   let recentConversationGeneration = 0;
   let conversationNextCursor = $state<ConversationPageCursor | null>(null);
   let loadingMoreConversations = $state(false);
@@ -1619,45 +1618,16 @@
     const roleKey = selectedRoleKey;
     const recentRoleId = roleKey === defaultRoleKey ? null : roleKey;
     recentConversations = [];
-    recentConversationNextCursor = null;
-    loadingMoreRecentConversations = true;
+    loadingRecentConversations = true;
     try {
-      const page = await fetchConversationPage(null, null, 30, null, true, recentRoleId);
+      const page = await fetchConversationPage(null, null, 20, null, true, recentRoleId);
       if (generation !== recentConversationGeneration || roleKey !== selectedRoleKey) return;
       recentConversations = page.conversations;
-      recentConversationNextCursor = page.nextCursor;
     } catch (error) {
       console.warn("Failed to load recent conversations across workspaces:", error);
     } finally {
       if (generation === recentConversationGeneration && roleKey === selectedRoleKey) {
-        loadingMoreRecentConversations = false;
-      }
-    }
-  }
-
-  async function loadNextRecentConversationPage(): Promise<void> {
-    if (!tauriAvailable || loadingMoreRecentConversations || !recentConversationNextCursor) return;
-    const generation = recentConversationGeneration;
-    const roleKey = selectedRoleKey;
-    const recentRoleId = roleKey === defaultRoleKey ? null : roleKey;
-    loadingMoreRecentConversations = true;
-    try {
-      const page = await fetchConversationPage(
-        null,
-        recentConversationNextCursor,
-        30,
-        null,
-        true,
-        recentRoleId,
-      );
-      if (generation !== recentConversationGeneration || roleKey !== selectedRoleKey) return;
-      recentConversations = mergeConversationMetadata(recentConversations, page.conversations);
-      recentConversationNextCursor = page.nextCursor;
-    } catch {
-      // Keep the cursor so scrolling back to the sentinel can retry.
-    } finally {
-      if (generation === recentConversationGeneration && roleKey === selectedRoleKey) {
-        loadingMoreRecentConversations = false;
+        loadingRecentConversations = false;
       }
     }
   }
@@ -4364,8 +4334,7 @@
         streamingConversationIds={chatStreams.streamingConversationIds}
         hasMore={sidebarHasMoreConversations}
         loadingMore={sidebarLoadingMoreConversations}
-        recentHasMore={recentConversationNextCursor !== null}
-        loadingMoreRecent={loadingMoreRecentConversations}
+        {loadingRecentConversations}
         loading={initialLoading}
         {settingsOpen}
         onRoleChange={changeConversationRole}
@@ -4375,7 +4344,6 @@
         onNewProjectConversation={switchNewConversationWorkspace}
         onSearch={handleConversationSearch}
         onLoadMore={loadNextConversationPage}
-        onLoadMoreRecent={loadNextRecentConversationPage}
         onSelect={(id) => {
           if (settingsOpen) closeSettings();
           if (memoryOpen) memoryOpen = false;
