@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.39.0-beta.1] - 2026-08-15
+
+### Features
+- **chat**: Move flow panel toggle to title bar
+- **chat**: Refresh new conversation greeting
+- **frontend**: Improve role-aware sidebar browsing
+- **frontend**: Consolidate desktop navigation chrome
+- Add project row actions
+- **chat**: Add Flash follow-up suggestions
+- **frontend**: Reorganize desktop workspace navigation
+
+### Bug Fixes
+- **frontend**: Hide redundant show more action
+- **frontend**: Prevent sidebar workspace flicker
+- **frontend**: Simplify recent conversations
+- **frontend**: Stabilize workspace project lists
+- **frontend**: Dim chrome for inactive windows
+- **frontend**: Prevent sidebar row clipping
+- **frontend**: Blur desktop menu backgrounds
+- **chat**: Align workspace trigger text color
+- **frontend**: Preserve shell during workspace switches
+- **chat**: Keep workspace trigger surface-free
+- **frontend**: Restore sidebar chat actions
+- **frontend**: Unify desktop menu panels
+
+### Performance
+- **chat**: Remove transcript virtualization
+
 ## [0.38.6-beta.1] - 2026-08-14
 
 ### Bug Fixes
