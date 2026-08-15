@@ -360,6 +360,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 - Use the synchronous per-workspace restore hint only for first render, then
   reconcile through the unified bootstrap IPC.
+- Prepare current-window workspace switches in the background while keeping the
+  mounted sidebar, transcript, and composer visible. Make the existing shell
+  inert and busy during that transition, then commit the target workspace
+  context, roles, conversation page, and fully hydrated active conversation as
+  one state change. Never clear the current workspace first or route workspace
+  transition state through the sidebar, transcript, or composer skeletons.
 - Derive first-run onboarding visibility from the normalized bootstrap config.
   Persist completion in the versioned config beneath `OPENAGENT_HOME`; migrate
   the legacy WebView-local marker once and remove it only after the durable save

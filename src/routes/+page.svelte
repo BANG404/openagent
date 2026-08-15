@@ -113,7 +113,6 @@
   } from "$lib/conversationDb";
   import {
     readStartupRestoreHint,
-    readWorkspaceRestoreHint,
     writeStartupRestoreHint,
     type CachedRestoreSurface,
   } from "$lib/startupRestoreCache";
@@ -274,9 +273,7 @@
   );
   let agentCommandSpecs = $state<AgentCommandSpec[]>([]);
   let mainContentLoading = $derived(
-    initialLoading ||
-      workspaceLoading ||
-      Boolean(activeConvId && loadingConversationIds[activeConvId]),
+    initialLoading || Boolean(activeConvId && loadingConversationIds[activeConvId]),
   );
   let newConversationLayout = $derived(
     mainContentLoading ? restoringSurface === "new-conversation" : activeConvId === null,
@@ -1482,6 +1479,22 @@
     if (selectedRoleKey !== defaultRoleKey && !seen.has(selectedRoleKey)) {
       selectedRoleKey = defaultRoleKey;
     }
+  }
+
+  async function loadAvailableRolesForWorkspace(path: string): Promise<AgentRole[]> {
+    if (!tauriAvailable) return [];
+    const roles = await invoke<AgentRole[]>("list_agent_roles_for_workspace", {
+      workspace: path,
+    }).catch(() => []);
+    const seen = new Set<string>();
+    return [
+      ...roles.filter((role) => role.scope !== "global"),
+      ...roles.filter((role) => role.scope === "global"),
+    ].filter((role) => {
+      if (seen.has(role.id)) return false;
+      seen.add(role.id);
+      return true;
+    });
   }
 
   async function reloadRoleConversations(preserveConversationId?: string | null): Promise<void> {
@@ -3016,7 +3029,7 @@
         convId,
       }).catch(() => null);
       if (sourceWorkspace && sourceWorkspace !== workspacePath) {
-        await applyWorkspace(sourceWorkspace);
+        await applyWorkspace(sourceWorkspace, convId);
       }
     }
     await revealMemorySource(convId, messageId);
@@ -3573,58 +3586,165 @@
 
   // ─── Workspace ────────────────────────────────────────────────────────────────
 
-  async function applyWorkspace(path: string) {
-    if (path === workspacePath) return;
+  type PreparedWorkspaceSwitch = {
+    activeConversation: StartupConversationBundle | null;
+    activeConversationId: string | null;
+    conversations: Conversation[];
+    conversationNextCursor: ConversationPageCursor | null;
+    roles: AgentRole[];
+    selectedRoleKey: string;
+  };
+
+  async function prepareWorkspaceSwitch(
+    path: string,
+    preferredConversationId?: string,
+  ): Promise<PreparedWorkspaceSwitch> {
+    const [roles, durableActiveId] = await Promise.all([
+      loadAvailableRolesForWorkspace(path),
+      invoke<string | null>("get_active_conv_id", { workspace: path || "" }).catch(() => null),
+    ]);
+    let activeConversationId = preferredConversationId ?? durableActiveId;
+    let activeMeta = activeConversationId
+      ? await fetchConversationMeta(activeConversationId).catch(() => null)
+      : null;
+    if (activeMeta?.workspace && activeMeta.workspace !== path) activeMeta = null;
+    if (!activeMeta) activeConversationId = null;
+
+    const requestedRoleKey = activeMeta?.roleId ?? storedRoleSelection(path);
+    const selectedRoleKey =
+      requestedRoleKey === defaultRoleKey || roles.some((role) => role.id === requestedRoleKey)
+        ? requestedRoleKey
+        : defaultRoleKey;
+    const page = await fetchConversationPage(
+      path || null,
+      null,
+      30,
+      null,
+      true,
+      selectedRoleKey === defaultRoleKey ? null : selectedRoleKey,
+    );
+
+    const lineage: Conversation[] = [];
+    const visited = new Set<string>();
+    let current = activeMeta;
+    while (current && !visited.has(current.id)) {
+      visited.add(current.id);
+      lineage.push(current);
+      if (!current.parentConvId) break;
+      current = await fetchConversationMeta(current.parentConvId).catch(() => null);
+      if (current?.workspace && current.workspace !== path) current = null;
+    }
+
+    const activeConversation = activeConversationId
+      ? await Promise.all([
+          fetchRenderableCheckpoints(activeConversationId),
+          invoke<string | null>("get_active_branch_tip", { convId: activeConversationId }).catch(
+            () => null,
+          ),
+          invoke<StartupConversationBundle["branches"]>("get_branches", {
+            convId: activeConversationId,
+          }).catch(() => []),
+          fetchFileChanges(activeConversationId),
+        ]).then(([checkpoints, activeBranchTip, branches, fileChanges]) => ({
+          checkpoints,
+          active_branch_tip: activeBranchTip,
+          branches,
+          file_changes: fileChanges,
+        }))
+      : null;
+
+    return {
+      activeConversation,
+      activeConversationId,
+      conversations: mergeConversationMetadata(page.conversations, lineage),
+      conversationNextCursor: page.nextCursor,
+      roles,
+      selectedRoleKey,
+    };
+  }
+
+  async function applyWorkspace(path: string, preferredConversationId?: string) {
+    if (path === workspacePath || workspaceLoading) return;
 
     workspaceLoading = true;
-    const restoreHint = readWorkspaceRestoreHint(path);
-    restoringSurface = restoreHint?.surface ?? "new-conversation";
-    activeConvId = restoreHint?.conversationId ?? null;
+    const previousWorkspacePath = workspacePath;
+    let runtimeWorkspaceChanged = false;
+    let workspaceStateCommitted = false;
     try {
-      workspacePath = path;
-      syncNewConversationSuggestionsFromStorage();
+      const prepared = tauriAvailable
+        ? await prepareWorkspaceSwitch(path, preferredConversationId)
+        : ({
+            activeConversation: null,
+            activeConversationId: null,
+            conversations: [],
+            conversationNextCursor: null,
+            roles: [],
+            selectedRoleKey: defaultRoleKey,
+          } satisfies PreparedWorkspaceSwitch);
 
-      // Reset loaded tracking for old workspace's convs
+      let nextWorkspace: WorkspaceContext = {
+        path,
+        git_branch: null,
+        has_agent_dir: false,
+        environment: { kind: "local" },
+      };
+      if (tauriAvailable) {
+        await invoke("set_workspace", { path: path || null });
+        runtimeWorkspaceChanged = true;
+        nextWorkspace = await invoke<WorkspaceContext>("get_workspace_context");
+      }
+
+      // Commit the prepared workspace as one state transition so the mounted
+      // transcript and composer are never replaced by an app-wide loading pass.
+      workspacePath = path;
+      workspace = nextWorkspace;
+      agentRoles = prepared.roles;
+      selectedRoleKey = prepared.selectedRoleKey;
       loadedConvIds.clear();
-      conversations = [];
-      conversationNextCursor = null;
+      conversations = prepared.conversations;
+      conversationNextCursor = prepared.conversationNextCursor;
       searchConversations = [];
       searchConversationNextCursor = null;
       conversationSearchGeneration += 1;
+      activeConvId = prepared.activeConversationId;
+      restoringSurface = activeConvId ? "conversation" : "new-conversation";
+      syncNewConversationSuggestionsFromStorage();
+      workspaceStateCommitted = true;
 
-      // Load only the first page; the sidebar requests subsequent pages on scroll.
-      if (tauriAvailable) {
-        selectedRoleKey = storedRoleSelection(path);
-        await loadAvailableRoles();
-        const page = await fetchConversationPage(
-          path || null,
-          null,
-          30,
-          null,
-          true,
-          selectedRoleId,
-        );
-        conversations = page.conversations;
-        conversationNextCursor = page.nextCursor;
-        void refreshRecentConversations();
-      }
-
-      // Restore the durable active conversation before loading ancillary workspace data.
-      await restoreWorkspaceConversation(path);
-
-      await addToRecentWorkspaces(path);
-
-      if (!tauriAvailable) {
-        workspace = {
-          path,
-          git_branch: null,
-          has_agent_dir: false,
-          environment: { kind: "local" },
+      if (activeConvId && prepared.activeConversation) {
+        loadedConvIds.add(activeConvId);
+        fileChangesPerConv = {
+          ...fileChangesPerConv,
+          [activeConvId]: prepared.activeConversation.file_changes,
         };
-        return;
+        await hydrateConversation(
+          activeConvId,
+          prepared.activeConversation.checkpoints,
+          prepared.activeConversation.active_branch_tip,
+          prepared.activeConversation.branches,
+          true,
+        );
+        if (activeConvId === preferredConversationId) {
+          window.localStorage.setItem(roleSelectionStorageKey(path), selectedRoleKey);
+          await invoke("set_active_conversation", {
+            convId: activeConvId,
+            workspace: path || "",
+          }).catch(() => {});
+        }
+        await scrollToBottom();
+      } else if (tauriAvailable) {
+        await invoke("set_active_conversation", { convId: null, workspace: path || "" }).catch(
+          () => {},
+        );
       }
-      await invoke("set_workspace", { path: path || null });
-      workspace = await invoke<WorkspaceContext>("get_workspace_context");
+      cacheRestoreSurface(restoringSurface, activeConvId, path);
+      await addToRecentWorkspaces(path);
+      void refreshRecentConversations();
+    } catch (error) {
+      if (runtimeWorkspaceChanged && !workspaceStateCommitted) {
+        await invoke("set_workspace", { path: previousWorkspacePath || null }).catch(() => {});
+      }
+      throw error;
     } finally {
       workspaceLoading = false;
     }
@@ -3653,7 +3773,7 @@
     closeAuxiliarySurfaces();
     const conversationWorkspace = conversation.workspace || workspacePath;
     if (conversationWorkspace && conversationWorkspace !== workspacePath) {
-      await applyWorkspace(conversationWorkspace);
+      await applyWorkspace(conversationWorkspace, conversation.id);
     }
     await selectSidebarConversation(conversation.id);
   }
@@ -3854,7 +3974,7 @@
       const target = await fetchConversationMeta(conversationId).catch(() => null);
       closeAuxiliarySurfaces();
       if (target?.workspace && target.workspace !== workspacePath) {
-        await applyWorkspace(target.workspace);
+        await applyWorkspace(target.workspace, conversationId);
       }
       await selectSidebarConversation(conversationId);
     } finally {
@@ -3954,7 +4074,7 @@
   async function restoreNavigationLocation(location: AppNavigationLocation): Promise<void> {
     closeAuxiliarySurfaces();
     if (location.workspacePath !== workspacePath) {
-      await applyWorkspace(location.workspacePath);
+      await applyWorkspace(location.workspacePath, location.conversationId ?? undefined);
     }
     if (location.conversationId) {
       await switchConversation(location.conversationId);
@@ -4177,7 +4297,12 @@
   {:else if isQuickChatSurface}
     <QuickChatSurface preview={isQuickChatPreview} />
   {:else}
-    <div class="app" class:sidebar-collapsed={sidebarCollapsed}>
+    <div
+      class="app"
+      class:sidebar-collapsed={sidebarCollapsed}
+      aria-busy={workspaceLoading}
+      inert={workspaceLoading}
+    >
       <!-- ─── Sidebar ─────────────────────────────────────────────────────────────── -->
       <DesktopSidebar
         bind:collapsed={sidebarCollapsed}
@@ -4195,7 +4320,7 @@
         streamingConversationIds={chatStreams.streamingConversationIds}
         hasMore={sidebarHasMoreConversations}
         loadingMore={sidebarLoadingMoreConversations}
-        loading={initialLoading || workspaceLoading}
+        loading={initialLoading}
         {settingsOpen}
         onRoleChange={changeConversationRole}
         onBack={() => navigateHistory(-1)}

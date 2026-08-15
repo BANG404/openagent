@@ -32,9 +32,12 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   workspace already selected by the current window. Settings remains fixed at
   the sidebar bottom, while the former More destinations live in the shared
   menus. Search spans all workspaces and roles, and opening a result switches the
-  current window to that conversation's workspace. New-conversation composers expose
-  the workspace switcher beside approval mode; existing workspace conversations
-  hide it because their workspace is durable context. The workspace trigger
+  current window to that conversation's workspace. A current-window project
+  switch keeps the existing shell and chat mounted while the target workspace
+  is prepared, then replaces the workspace state atomically instead of showing
+  an application-wide loading reset. New-conversation composers expose the
+  workspace switcher beside approval mode; existing workspace conversations hide
+  it because their workspace is durable context. The workspace trigger
   follows the same surface-free rest, hover, and open grammar as the adjacent
   composer selectors. Each project row exposes
   its own new-conversation action and menu for pinning, opening the project

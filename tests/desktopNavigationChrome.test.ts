@@ -71,10 +71,32 @@ describe("desktop navigation chrome", () => {
 
     expect(route).toContain("fetchConversationPage(null, null, 30, normalized, false, null)");
     expect(route).toContain("null,\n          searchConversationNextCursor");
-    expect(openConversation).toContain("await applyWorkspace(conversationWorkspace)");
+    expect(openConversation).toContain(
+      "await applyWorkspace(conversationWorkspace, conversation.id)",
+    );
     expect(openConversation).not.toContain("openWorkspaceInNewWindow");
     expect(route.match(/await openWorkspaceInNewWindow\(/g)).toHaveLength(1);
     expect(route).toContain("onNewWindow={pickWorkspaceInNewWindow}");
+  });
+
+  test("prepares workspace switches without replacing the mounted application shell", async () => {
+    const route = await readFile(routeUrl, "utf8");
+    const loadingState = route.slice(
+      route.indexOf("let mainContentLoading"),
+      route.indexOf("let newConversationLayout"),
+    );
+    const applyWorkspace = route.slice(
+      route.indexOf("async function applyWorkspace"),
+      route.indexOf("async function openWorkspaceInNewWindow"),
+    );
+
+    expect(loadingState).not.toContain("workspaceLoading");
+    expect(route).toContain("loading={initialLoading}");
+    expect(route).toContain("inert={workspaceLoading}");
+    expect(applyWorkspace.indexOf("const prepared =")).toBeLessThan(
+      applyWorkspace.indexOf("workspacePath = path"),
+    );
+    expect(applyWorkspace).not.toContain("conversations = []");
   });
 
   test("exposes keyboard edit commands and the shared update check", async () => {
