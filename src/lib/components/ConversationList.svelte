@@ -326,7 +326,7 @@
             </button>
           </ContextMenu.Trigger>
           <ContextMenu.Portal>
-            <ContextMenu.Content class="ctx-menu-content">
+            <ContextMenu.Content class="desktop-menu-panel ctx-menu-content">
               <ContextMenu.Item class="ctx-menu-item" onclick={() => onTogglePin(conv.id)}>
                 {conv.pinned ? $t("unpinConv") : $t("pinConv")}
               </ContextMenu.Item>

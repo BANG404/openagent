@@ -30,6 +30,11 @@
   } from "$lib/composerDrafts";
   import { ChatStreamState } from "$lib/chatStreamState.svelte";
   import { resolveStandaloneDevPreview } from "$lib/devPreview";
+  import {
+    parsePinnedProjectPaths,
+    pinnedProjectsStorageKey,
+    togglePinnedProjectPath,
+  } from "$lib/sidebarProjects";
   import { initializeTray } from "$lib/tray";
   import { t, tr, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import { showToast } from "$lib/toast";
@@ -367,6 +372,11 @@
   let SkillsView = $state<LazyViewComponent | null>(null);
   let workspacePath = $state("");
   let recentWorkspaces = $state<RecentWorkspace[]>([]);
+  let pinnedProjectPaths = $state(
+    typeof window === "undefined"
+      ? []
+      : parsePinnedProjectPaths(window.localStorage.getItem(pinnedProjectsStorageKey)),
+  );
   let wslPickerOpen = $state(false);
   let wslPickerBusy = $state(false);
   let wslPickerError = $state("");
@@ -3648,21 +3658,48 @@
     await selectSidebarConversation(conversation.id);
   }
 
-  async function addToRecentWorkspaces(path: string) {
-    if (!path) return;
-    const name = path.split(/[/\\]/).filter(Boolean).pop() ?? path;
-    recentWorkspaces = [{ path, name }, ...recentWorkspaces.filter((w) => w.path !== path)];
+  async function persistRecentWorkspaces(next: RecentWorkspace[]): Promise<void> {
+    recentWorkspaces = next;
     if (!tauriAvailable) return;
 
     // Serialize writes and await the latest one at workspace-switch boundaries.
     // The old fire-and-forget call could be lost when the window closed immediately.
     const workspace = workspacePath;
-    const recents = [...recentWorkspaces];
+    const recents = [...next];
     workspacePrefsSaveQueue = workspacePrefsSaveQueue
       .catch(() => {})
       .then(() => invoke("save_workspace_prefs", { workspace, recentWorkspaces: recents }))
       .then(() => {});
     await workspacePrefsSaveQueue.catch(() => {});
+  }
+
+  async function addToRecentWorkspaces(path: string) {
+    if (!path) return;
+    const name = path.split(/[/\\]/).filter(Boolean).pop() ?? path;
+    await persistRecentWorkspaces([
+      { path, name },
+      ...recentWorkspaces.filter((workspace) => workspace.path !== path),
+    ]);
+  }
+
+  function toggleProjectPin(path: string): void {
+    pinnedProjectPaths = togglePinnedProjectPath(pinnedProjectPaths, path);
+    window.localStorage.setItem(pinnedProjectsStorageKey, JSON.stringify(pinnedProjectPaths));
+  }
+
+  async function openProjectFolder(path: string): Promise<void> {
+    if (!tauriAvailable) {
+      alert(browserModeNotice);
+      return;
+    }
+    await invoke("open_path", { path }).catch((error) => {
+      console.warn("Failed to open project folder", error);
+    });
+  }
+
+  async function removeProject(path: string): Promise<void> {
+    if (pinnedProjectPaths.includes(path)) toggleProjectPin(path);
+    await persistRecentWorkspaces(recentWorkspaces.filter((workspace) => workspace.path !== path));
   }
 
   async function pickWorkspace() {
@@ -4150,6 +4187,7 @@
         {canGoForward}
         {workspacePath}
         {recentWorkspaces}
+        {pinnedProjectPaths}
         searchQuery={conversationSearchQuery}
         conversations={sidebarConversations}
         {recentConversations}
@@ -4161,7 +4199,7 @@
         onRoleChange={changeConversationRole}
         onBack={() => navigateHistory(-1)}
         onForward={() => navigateHistory(1)}
-        onNew={newConversation}
+        onNewProjectConversation={switchNewConversationWorkspace}
         onSearch={handleConversationSearch}
         onLoadMore={loadNextConversationPage}
         onSelect={(id) => {
@@ -4174,9 +4212,10 @@
         onTogglePin={togglePin}
         onDelete={deleteConversation}
         onOpenConversation={openSidebarConversation}
-        onPickWorkspace={pickWorkspace}
-        onPickWsl={pickWslWorkspace}
         onSelectWorkspace={requestWorkspace}
+        onToggleProjectPin={toggleProjectPin}
+        onOpenProjectFolder={openProjectFolder}
+        onRemoveProject={removeProject}
       />
 
       <!-- ─── Feature panels ─────────────────────────────────────────────────── -->

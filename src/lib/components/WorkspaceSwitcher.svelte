@@ -56,29 +56,37 @@
       text={tauriAvailable ? workspaceTooltip : browserModeNotice}
       side={variant === "composer" ? "top" : "bottom"}
     >
-      <DropdownMenu.Trigger
-        class="workspace-btn {variant === 'composer' ? 'composer-workspace-btn' : ''}"
-        aria-label={`${$t("currentWorkspace")}: ${workspaceTooltip}`}
-      >
-        {#if variant === "composer"}
-          <svg class="workspace-folder-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path
-              d="M2.5 5.25h3.6l1.15 1.4h6.25v5.6a1.25 1.25 0 0 1-1.25 1.25h-8.5a1.25 1.25 0 0 1-1.25-1.25z"
-            />
-            <path
-              d="M2.5 5.5V4.25A1.25 1.25 0 0 1 3.75 3h2.8L7.7 4.4h4.55a1.25 1.25 0 0 1 1.25 1.25v1"
-            />
-          </svg>
-        {/if}
-        <span class="folder-name">{folderName}</span>
-        {#if workspace?.environment.kind === "wsl"}
-          <span class="wsl-badge">WSL</span>
-        {/if}
-      </DropdownMenu.Trigger>
+      {#snippet trigger(props)}
+        <DropdownMenu.Trigger
+          class="workspace-btn {variant === 'composer' ? 'composer-workspace-btn' : ''}"
+          aria-label={`${$t("currentWorkspace")}: ${workspaceTooltip}`}
+          {...props}
+        >
+          {#if variant === "composer"}
+            <svg class="workspace-folder-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M2.5 5.25h3.6l1.15 1.4h6.25v5.6a1.25 1.25 0 0 1-1.25 1.25h-8.5a1.25 1.25 0 0 1-1.25-1.25z"
+              />
+              <path
+                d="M2.5 5.5V4.25A1.25 1.25 0 0 1 3.75 3h2.8L7.7 4.4h4.55a1.25 1.25 0 0 1 1.25 1.25v1"
+              />
+            </svg>
+          {/if}
+          <span class="folder-name">{folderName}</span>
+          {#if workspace?.environment.kind === "wsl"}
+            <span class="wsl-badge">WSL</span>
+          {/if}
+          {#if variant === "composer"}
+            <svg class="workspace-caret" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4 6l4 4 4-4" />
+            </svg>
+          {/if}
+        </DropdownMenu.Trigger>
+      {/snippet}
     </Tooltip>
     <DropdownMenu.Portal>
       <DropdownMenu.Content
-        class="ws-dropdown"
+        class="desktop-menu-panel ws-dropdown"
         side={variant === "composer" ? "top" : "bottom"}
         sideOffset={variant === "composer" ? 7 : 4}
         align="start"
@@ -113,7 +121,7 @@
             </DropdownMenu.SubTrigger>
             <DropdownMenu.Portal>
               <DropdownMenu.SubContent
-                class="ws-dropdown ws-recent-submenu"
+                class="desktop-menu-panel ws-dropdown ws-recent-submenu"
                 sideOffset={6}
                 alignOffset={-6}
               >
@@ -192,9 +200,33 @@
     stroke-linejoin: round;
   }
 
+  .workspace-caret {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 12px;
+    color: var(--text-muted);
+    transition: transform 0.15s;
+  }
+
+  .workspace-caret path {
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  :global(.composer-workspace-btn[data-state="open"] .workspace-caret) {
+    transform: rotate(180deg);
+  }
+
   :global(.workspace-btn:hover),
   :global(.workspace-btn[data-state="open"]) {
     background: var(--surface2);
+  }
+
+  :global(.workspace-btn:focus-visible) {
+    box-shadow: var(--focus-ring);
+    outline: none;
   }
 
   .folder-name {
@@ -222,17 +254,9 @@
   }
 
   :global(.ws-dropdown) {
-    background: var(--control-surface);
-    border: 0;
-    border-radius: var(--menu-content-radius);
-    padding: var(--menu-content-padding);
     min-width: 200px;
     max-width: 340px;
     z-index: 201;
-    -webkit-backdrop-filter: blur(12px) saturate(1.08);
-    backdrop-filter: blur(12px) saturate(1.08);
-    box-shadow: var(--raised-shadow);
-    outline: none;
   }
 
   :global(.ws-dropdown-item) {

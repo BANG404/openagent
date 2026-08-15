@@ -72,7 +72,7 @@
     </Combobox.Trigger>
   </div>
   <Combobox.Portal>
-    <Combobox.Content class="ui-combobox-content" sideOffset={6}>
+    <Combobox.Content class="desktop-menu-panel ui-combobox-content" sideOffset={6}>
       <Combobox.Viewport class="ui-combobox-viewport">
         {#if filteredItems.length === 0}
           <div class="ui-combobox-empty">无匹配项</div>
@@ -157,14 +157,6 @@
     z-index: 1000;
     min-width: var(--bits-combobox-anchor-width);
     max-height: var(--bits-combobox-content-available-height, 320px);
-    background: var(--control-surface);
-    border: 0;
-    border-radius: var(--menu-content-radius);
-    -webkit-backdrop-filter: blur(12px) saturate(1.08);
-    backdrop-filter: blur(12px) saturate(1.08);
-    box-shadow: var(--raised-shadow);
-    padding: var(--menu-content-padding);
-    outline: none;
     overflow: hidden;
   }
   :global(.ui-combobox-viewport) {

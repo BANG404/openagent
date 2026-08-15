@@ -311,6 +311,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   All against the focused editable context; Help owns the shared, state-aware
   application update check. A separate workspace process may be requested only
   through File -> New window.
+- Render those floating panels through the shared desktop menu surface: the
+  control surface, no border or panel-specific backdrop blur, the shared 8px
+  content radius and 6px inset, and the shared raised shadow. Keep
+  component-specific width, height, scrolling, and item content, but do not fork
+  its panel material or neutral hover fill.
 - Keep selection signaling consistent across floating option rows and persistent
   navigation lists: each component keeps its ordinary neutral hover fill for
   the selected row and adds a square-ended primary-colored left rail. Do not
@@ -323,6 +328,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   remain the other workspace-opening entry points.
   Keep the current-folder-location action text-only instead of repeating a
   folder glyph beside it.
+  Keep the composer trigger's folder glyph, current folder name, and caret in
+  one target; rotate the caret while open and expose the shared focus ring to
+  keyboard users.
   Place older workspaces in a side-opening recent-workspaces submenu that
   supports hover, click, and keyboard navigation. Show each complete workspace
   path without per-row icons, mark WSL shares explicitly, and keep an overflowing
@@ -370,6 +378,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   workspace on every global conversation. Sidebar search covers every workspace
   and role, and selecting any result or recent conversation switches the current
   window to its owning workspace before opening that exact conversation.
+  Keep project-specific actions on each project row instead of the Projects
+  heading: expose a direct new-conversation action plus a compact menu for
+  pinning, opening the folder, and removing the project from the project list.
+  Project pins are durable sidebar presentation preferences. Removing a project
+  must not delete its folder or conversations; its conversations remain
+  reachable from Recents. Keep global conversation search on the section
+  heading after removing the former catch-all project actions.
 - Keep the expanded conversation sidebar resizable from its trailing edge between
   180px and 360px. Persist the chosen width across collapse and reload, disable
   width animation while dragging, and expose the same bounds to keyboard users.
@@ -385,8 +400,7 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   On macOS, reserve the native traffic-light footprint before those controls;
   on Windows, keep minimize, maximize/restore, and close at the trailing edge
   with platform-standard hit targets and close affordance. Tie history controls
-  to
-  controls to the window's real destination history: conversations, the
+  to the window's real destination history: conversations, the
   new-conversation surface, and feature views all participate; visiting a new
   destination after going back discards the abandoned forward branch, and
   deleting a conversation removes its stale destinations.

@@ -202,7 +202,11 @@
       >{$t("fileMenu")}</DropdownMenu.Trigger
     >
     <DropdownMenu.Portal>
-      <DropdownMenu.Content class="application-menu-content" sideOffset={2} align="start">
+      <DropdownMenu.Content
+        class="desktop-menu-panel application-menu-content"
+        sideOffset={2}
+        align="start"
+      >
         <DropdownMenu.Item class="application-menu-item" onSelect={onNewConversation}>
           <span>{$t("newChat")}</span><span class="application-menu-shortcut"
             >{primaryModifier}+N</span
@@ -237,7 +241,7 @@
             </DropdownMenu.SubTrigger>
             <DropdownMenu.Portal>
               <DropdownMenu.SubContent
-                class="application-menu-content application-recent-menu"
+                class="desktop-menu-panel application-menu-content application-recent-menu"
                 sideOffset={5}
                 alignOffset={-5}
               >
@@ -272,7 +276,11 @@
       onpointerdown={captureEditContext}>{$t("editMenu")}</DropdownMenu.Trigger
     >
     <DropdownMenu.Portal>
-      <DropdownMenu.Content class="application-menu-content" sideOffset={2} align="start">
+      <DropdownMenu.Content
+        class="desktop-menu-panel application-menu-content"
+        sideOffset={2}
+        align="start"
+      >
         <DropdownMenu.Item
           class="application-menu-item"
           disabled={!editAvailability.undo}
@@ -347,7 +355,11 @@
       >{$t("viewMenu")}</DropdownMenu.Trigger
     >
     <DropdownMenu.Portal>
-      <DropdownMenu.Content class="application-menu-content" sideOffset={2} align="start">
+      <DropdownMenu.Content
+        class="desktop-menu-panel application-menu-content"
+        sideOffset={2}
+        align="start"
+      >
         <DropdownMenu.Item class="application-menu-item" onSelect={onOpenMemory}>
           <span>{$t("memory")}</span><span class="application-menu-shortcut"
             >{primaryModifier}+Shift+1</span
@@ -372,7 +384,11 @@
       >{$t("helpMenu")}</DropdownMenu.Trigger
     >
     <DropdownMenu.Portal>
-      <DropdownMenu.Content class="application-menu-content" sideOffset={2} align="start">
+      <DropdownMenu.Content
+        class="desktop-menu-panel application-menu-content"
+        sideOffset={2}
+        align="start"
+      >
         <DropdownMenu.Item
           class="application-menu-item"
           disabled={$appUpdateState !== "idle"}
@@ -431,12 +447,6 @@
     min-width: 230px;
     max-width: min(460px, calc(100vw - 24px));
     z-index: 240;
-    padding: var(--menu-content-padding);
-    border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
-    border-radius: var(--menu-content-radius);
-    background: var(--control-surface);
-    box-shadow: var(--raised-shadow);
-    outline: none;
   }
 
   :global(.application-menu-item) {

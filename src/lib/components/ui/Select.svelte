@@ -104,7 +104,7 @@
   </Select.Trigger>
   <Select.Portal>
     <Select.Content
-      class="ui-select-content {contentClass}"
+      class="desktop-menu-panel ui-select-content {contentClass}"
       side={contentSide}
       sideOffset={contentSideOffset}
       align={contentAlign}
@@ -278,14 +278,6 @@
     max-width: calc(100vw - 24px);
     box-sizing: border-box;
     max-height: var(--bits-select-content-available-height, 320px);
-    background: color-mix(in srgb, var(--surface) 76%, transparent);
-    border: 0;
-    border-radius: var(--menu-content-radius);
-    -webkit-backdrop-filter: blur(12px) saturate(1.08);
-    backdrop-filter: blur(12px) saturate(1.08);
-    box-shadow: var(--raised-shadow);
-    padding: var(--menu-content-padding);
-    outline: none;
     overflow: hidden;
   }
   :global(.ui-select-viewport) {
@@ -359,10 +351,10 @@
   }
   :global(.ui-select-item[data-highlighted]:not([data-selected])),
   :global(.ui-select-item:hover:not([data-selected])) {
-    background: color-mix(in srgb, var(--text) 7%, transparent);
+    background: var(--bg);
   }
   :global(.ui-select-item[data-selected]) {
-    background: color-mix(in srgb, var(--text) 7%, transparent);
+    background: var(--bg);
     color: var(--text);
   }
   :global(.ui-select-item[data-selected]::before) {
