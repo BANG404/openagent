@@ -404,8 +404,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   new-conversation action below the role selector, not on a section heading.
 - Keep the expanded conversation sidebar resizable from its trailing edge between
   220px and 360px so row labels and trailing actions cannot overlap. Persist the
-  chosen width across collapse and reload, disable
-  width animation while dragging, and expose the same bounds to keyboard users.
+  chosen width across collapse and reload, keep the default at that lower bound,
+  and normalize narrower saved values when they load. Disable width animation
+  while dragging, and expose the same bounds to keyboard users.
   The resize hit target and active indicator begin below the shared title bar so
   a sidebar drag never draws a separator through application chrome.
 - Keep the Memory view's horizontal resize handle quiet at rest, but render its

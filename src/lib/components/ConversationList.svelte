@@ -451,7 +451,9 @@
   }
 
   .conv-list.embedded .conv-item {
-    padding-left: 26px;
+    padding-left: calc(
+      var(--list-item-compact-padding-inline) + 16px + var(--list-item-compact-content-gap)
+    );
   }
 
   .show-more-conversations {
@@ -459,7 +461,8 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 3px 10px 3px 26px;
+    padding: 3px var(--list-item-compact-padding-inline) 3px
+      calc(var(--list-item-compact-padding-inline) + 16px + var(--list-item-compact-content-gap));
     border: 0;
     border-radius: 6px;
     background: transparent;

@@ -9,6 +9,11 @@ import {
 } from "../src/lib/sidebarSizing";
 
 describe("sidebar sizing", () => {
+  test("keeps the minimum width large enough for row labels and actions", () => {
+    expect(SIDEBAR_MIN_WIDTH).toBe(220);
+    expect(SIDEBAR_DEFAULT_WIDTH).toBe(SIDEBAR_MIN_WIDTH);
+  });
+
   test("clamps and rounds widths to the supported range", () => {
     expect(clampSidebarWidth(SIDEBAR_MIN_WIDTH - 1)).toBe(SIDEBAR_MIN_WIDTH);
     expect(clampSidebarWidth(247.6)).toBe(248);

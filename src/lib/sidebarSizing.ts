@@ -1,5 +1,5 @@
 export const SIDEBAR_DEFAULT_WIDTH = 220;
-export const SIDEBAR_MIN_WIDTH = 180;
+export const SIDEBAR_MIN_WIDTH = 220;
 export const SIDEBAR_MAX_WIDTH = 360;
 
 const SIDEBAR_WIDTH_STORAGE_KEY = "openagent.sidebar.width";
