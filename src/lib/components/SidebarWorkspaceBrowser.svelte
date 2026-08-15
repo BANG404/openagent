@@ -362,7 +362,6 @@
               <ConversationList
                 embedded
                 compactProject
-                alwaysShowMore
                 conversations={conversationsForProject(project.path)}
                 activeConvId={activeConversationId}
                 streamingConvIds={streamingConversationIds}

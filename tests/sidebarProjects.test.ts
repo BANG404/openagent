@@ -65,7 +65,7 @@ describe("sidebar project order", () => {
     const projectMarkup = source.slice(eachStart, source.indexOf("</section>", eachStart));
 
     expect(projectMarkup).toContain("<ConversationList");
-    expect(projectMarkup).toContain("alwaysShowMore");
+    expect(projectMarkup).not.toContain("alwaysShowMore");
     expect(projectMarkup).toContain("conversations={conversationsForProject(project.path)}");
     expect(projectMarkup).toContain("workspaceSwitchTarget ?? workspacePath");
     expect(projectMarkup).not.toContain("{#if project.path === workspacePath}");
@@ -75,16 +75,14 @@ describe("sidebar project order", () => {
     expect(source).not.toContain(".project-row-shell:hover .project-row,");
   });
 
-  test("keeps show more available for every project", async () => {
+  test("only offers more project conversations when another row or page exists", async () => {
     const source = await readFile(
       new URL("../src/lib/components/ConversationList.svelte", import.meta.url),
       "utf8",
     );
 
-    expect(source).toContain("alwaysShowMore?: boolean");
-    expect(source).toContain(
-      "{#if (compactProject && (alwaysShowMore || hasHiddenRoots)) || (embedded && hasMore)}",
-    );
+    expect(source).not.toContain("alwaysShowMore");
+    expect(source).toContain("{#if (compactProject && hasHiddenRoots) || (embedded && hasMore)}");
   });
 
   test("keeps recents independent from the selected workspace page", async () => {

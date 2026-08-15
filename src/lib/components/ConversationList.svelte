@@ -17,7 +17,6 @@
     onLoadMore: () => void;
     embedded?: boolean;
     compactProject?: boolean;
-    alwaysShowMore?: boolean;
   }
   let {
     conversations,
@@ -32,7 +31,6 @@
     onLoadMore,
     embedded = false,
     compactProject = false,
-    alwaysShowMore = false,
   }: Props = $props();
 
   let listElement = $state<HTMLDivElement>();
@@ -386,7 +384,7 @@
         {/if}
       {/each}
     {/if}
-    {#if (compactProject && (alwaysShowMore || hasHiddenRoots)) || (embedded && hasMore)}
+    {#if (compactProject && hasHiddenRoots) || (embedded && hasMore)}
       <button
         class="show-more-conversations"
         type="button"

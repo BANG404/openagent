@@ -384,7 +384,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the current workspace changes so keyed rows retain their DOM position; pinned
   groups may remain ahead without otherwise reordering either group. Keep the same
   keyed `ConversationList` mounted beneath every project with five conversations
-  initially visible and a persistent Show more action. Selection may change its
+  initially visible. Show more only when loaded conversations remain hidden or
+  the current workspace reports another page. Selection may change its
   pagination capability, but every role keeps one per-workspace conversation
   snapshot so changing the selected workspace never swaps a project's list data
   source or discards the previous workspace's keyed rows. Reserve the project
