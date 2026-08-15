@@ -8,6 +8,7 @@
   import { workspaceFolderName } from "$lib/workspacePath";
   import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
   import ApplicationMenuBar from "$lib/components/ApplicationMenuBar.svelte";
+  import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
   import Tooltip from "$lib/components/Tooltip.svelte";
   import WindowControls from "$lib/components/WindowControls.svelte";
 
@@ -17,6 +18,8 @@
     recentWorkspaces,
     tauriAvailable,
     memorySyncing,
+    checkpointFlowAvailable,
+    checkpointFlowPanelCollapsed,
     onPickWorkspace,
     onPickWsl,
     onSelectWorkspace,
@@ -27,6 +30,7 @@
     onOpenSkills,
     onOpenSettings,
     onOpenAbout,
+    onToggleCheckpointFlowPanel,
     onMinimize,
     onMaximize,
     onClose,
@@ -38,6 +42,8 @@
     recentWorkspaces: RecentWorkspace[];
     tauriAvailable: boolean;
     memorySyncing: boolean;
+    checkpointFlowAvailable: boolean;
+    checkpointFlowPanelCollapsed: boolean;
     onPickWorkspace: () => void | Promise<void>;
     onPickWsl: () => void | Promise<void>;
     onSelectWorkspace: (path: string) => void | Promise<void>;
@@ -48,6 +54,7 @@
     onOpenSkills: () => void | Promise<void>;
     onOpenSettings: () => void | Promise<void>;
     onOpenAbout: () => void | Promise<void>;
+    onToggleCheckpointFlowPanel: () => void;
     onMinimize: () => void;
     onMaximize: () => void | Promise<void>;
     onClose: () => void;
@@ -152,6 +159,12 @@
 
   <div class="title-actions">
     {#if memorySyncing}<span class="sync-dot" aria-label={$t("syncing")}></span>{/if}
+    {#if checkpointFlowAvailable}
+      <CheckpointFlowToggleButton
+        collapsed={checkpointFlowPanelCollapsed}
+        onToggle={onToggleCheckpointFlowPanel}
+      />
+    {/if}
     {#if platform !== "macos"}
       <WindowControls {platform} {onMinimize} {onMaximize} {onClose} />
     {/if}
@@ -263,6 +276,10 @@
     align-self: stretch;
     align-items: center;
     flex: 0 0 auto;
+  }
+
+  .title-actions :global(.checkpoint-flow-toggle) {
+    margin: 0 6px;
   }
 
   .sync-dot {

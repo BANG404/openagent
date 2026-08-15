@@ -13,11 +13,10 @@
     width: number;
     collapsed: boolean;
     resizing: boolean;
-    onToggle: () => void;
     onResizeStart: (event: PointerEvent) => void;
   }
 
-  let { flow, width, collapsed, resizing, onToggle, onResizeStart }: Props = $props();
+  let { flow, width, collapsed, resizing, onResizeStart }: Props = $props();
   let progress = $derived(checkpointFlowProgress(flow));
   let percent = $derived(progress.total > 0 ? (progress.completed / progress.total) * 100 : 0);
   let graphLayers = $derived(flow.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
@@ -146,25 +145,15 @@
   }
 </script>
 
-{#if collapsed}
-  <div class="flow-panel-placeholder" aria-hidden="true"></div>
-{/if}
-
 <aside
+  id="checkpoint-flow-panel"
   class="flow-panel"
   class:collapsed
   class:resizing
   style:--flow-panel-width={`${width}px`}
   aria-label={$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}
 >
-  {#if collapsed}
-    <button
-      class="peek-button"
-      type="button"
-      aria-label={$t("checkpointFlowExpand")}
-      onclick={onToggle}
-    ></button>
-  {:else}
+  {#if !collapsed}
     <button
       class="resize-handle"
       type="button"
@@ -176,14 +165,6 @@
         <strong>{$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}</strong>
         <span>{flow.objective}</span>
       </span>
-      <button
-        class="collapse-button"
-        type="button"
-        aria-label={$t("checkpointFlowCollapse")}
-        onclick={onToggle}
-      >
-        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m6 4 4 4-4 4" /></svg>
-      </button>
     </header>
   {/if}
 
@@ -316,16 +297,10 @@
 </aside>
 
 <style>
-  .flow-panel-placeholder {
-    width: var(--flow-panel-collapsed-track-width, 30px);
-    flex: 0 0 var(--flow-panel-collapsed-track-width, 30px);
-  }
-
   .flow-panel {
     --flow-panel-inset: 12px;
     --flow-panel-top-inset: 12px;
     --flow-panel-bottom-inset: 12px;
-    --flow-panel-peek-width: 18px;
     position: relative;
     z-index: 12;
     display: flex;
@@ -340,19 +315,10 @@
     border-radius: 14px;
     background: transparent;
     box-shadow: var(--mica-shadow);
-    transition:
-      width 160ms ease,
-      transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: width 160ms ease;
   }
-
   .flow-panel.collapsed {
-    --flow-panel-top-inset: 56px;
-    --flow-panel-bottom-inset: 24px;
-    position: absolute;
-    inset: var(--flow-panel-top-inset) var(--flow-panel-inset) var(--flow-panel-bottom-inset) auto;
-    margin: 0;
-    transform: translateX(calc(100% - var(--flow-panel-peek-width) + var(--flow-panel-inset)));
-    cursor: pointer;
+    display: none;
   }
   .flow-panel.resizing {
     transition: none;
@@ -392,23 +358,6 @@
     padding: 9px 8px 9px 10px;
     border-bottom: 1px solid var(--border);
   }
-  .peek-button {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-    outline: none;
-  }
-  .flow-panel.collapsed:hover {
-    border-color: color-mix(in srgb, var(--primary) 38%, var(--mica-border));
-    background: color-mix(in srgb, var(--primary) 5%, var(--mica-surface));
-  }
-  .peek-button:focus-visible {
-    box-shadow: inset 3px 0 var(--primary);
-  }
   .flow-heading {
     display: flex;
     min-width: 0;
@@ -426,36 +375,6 @@
     color: var(--text-muted);
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .collapse-button {
-    display: grid;
-    width: 28px;
-    height: 28px;
-    flex: 0 0 28px;
-    place-items: center;
-    padding: 0;
-    border: 0;
-    border-radius: 7px;
-    color: var(--text-muted);
-    background: transparent;
-    cursor: pointer;
-  }
-  .collapse-button:hover,
-  .collapse-button:focus-visible {
-    color: var(--text);
-    background: var(--surface2);
-    outline: none;
-  }
-  .collapse-button:focus-visible {
-    box-shadow: var(--focus-ring);
-  }
-  .collapse-button svg {
-    width: 16px;
-    height: 16px;
-    stroke: currentColor;
-    stroke-width: 1.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
   }
   .flow-overview {
     display: grid;
@@ -758,10 +677,6 @@
       width: min(var(--flow-panel-width), 45%, calc(100% - 16px));
       min-width: min(260px, 45%, calc(100% - 16px));
       max-width: min(420px, 45%, calc(100% - 16px));
-    }
-    .flow-panel.collapsed {
-      --flow-panel-top-inset: 52px;
-      --flow-panel-bottom-inset: 20px;
     }
   }
 

@@ -26,6 +26,7 @@
 
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
+  import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
   import DesktopShellPreview from "$lib/components/DesktopShellPreview.svelte";
   import FollowUpSuggestions from "$lib/components/FollowUpSuggestions.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
@@ -80,7 +81,7 @@
   let reasoningEffort = $state<ReasoningEffort>("high");
   let permissionProfile = $state<PermissionProfile>(defaultPermissionProfile());
   let panelWidth = $state(320);
-  let panelCollapsed = $state(false);
+  let panelCollapsed = $state(true);
   let panelResizing = $state(false);
   let quoteMessages = $derived<ChatMessage[]>([
     {
@@ -445,14 +446,17 @@
     />
   </main>
 {:else if preview === "checkpoint-flow"}
-  <main
-    class="checkpoint-flow-preview-stage"
-    class:checkpoint-flow-panel-collapsed={panelCollapsed}
-  >
+  <main class="checkpoint-flow-preview-stage">
     <div class="conversation-input-fade" aria-hidden="true"></div>
     <div class="conversation-aurora" aria-hidden="true"></div>
+    <header class="checkpoint-flow-preview-titlebar">
+      <span>{$t(checkpointFlow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}</span>
+      <CheckpointFlowToggleButton
+        collapsed={panelCollapsed}
+        onToggle={() => (panelCollapsed = !panelCollapsed)}
+      />
+    </header>
     <section class="checkpoint-flow-preview-chat">
-      <header>{$t(checkpointFlow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}</header>
       <div class="checkpoint-flow-preview-messages">
         <div class="checkpoint-flow-preview-user">
           Create a Goal / Graph and show its durable checkpoint state.
@@ -486,7 +490,6 @@
       width={panelWidth}
       collapsed={panelCollapsed}
       resizing={panelResizing}
-      onToggle={() => (panelCollapsed = !panelCollapsed)}
       onResizeStart={startPanelResize}
     />
   </main>
@@ -879,13 +882,14 @@
     margin: 0 auto;
   }
   .checkpoint-flow-preview-stage {
-    --flow-panel-collapsed-track-width: 30px;
     position: relative;
     isolation: isolate;
     display: flex;
     width: 100vw;
     height: 100vh;
+    box-sizing: border-box;
     overflow: hidden;
+    padding-top: 48px;
     background: var(--bg);
   }
   .checkpoint-flow-preview-stage::before {
@@ -905,15 +909,23 @@
     flex: 1;
     flex-direction: column;
   }
-  .checkpoint-flow-preview-chat > header {
+  .checkpoint-flow-preview-titlebar {
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 14;
     height: 48px;
     display: flex;
     align-items: center;
     padding: 0 18px;
+    box-sizing: border-box;
     border-bottom: 1px solid var(--border);
+    background: var(--app-chrome-bg);
     color: var(--text);
     font-size: 13px;
     font-weight: 600;
+  }
+  .checkpoint-flow-preview-titlebar span {
+    flex: 1;
   }
   .checkpoint-flow-preview-messages {
     display: flex;
@@ -1004,9 +1016,6 @@
     .follow-up-suggestions-preview-stage {
       grid-template-columns: 1fr;
       padding: 20px;
-    }
-    .checkpoint-flow-preview-stage {
-      --flow-panel-collapsed-track-width: 26px;
     }
   }
 </style>

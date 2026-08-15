@@ -83,11 +83,4 @@
   }
 </script>
 
-<CheckpointFlowStatus
-  {flow}
-  {width}
-  {collapsed}
-  {resizing}
-  onToggle={() => (collapsed = !collapsed)}
-  onResizeStart={startResize}
-/>
+<CheckpointFlowStatus {flow} {width} {collapsed} {resizing} onResizeStart={startResize} />

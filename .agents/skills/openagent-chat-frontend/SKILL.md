@@ -81,8 +81,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Leave optimistic transcript records mounted throughout and ignore stale
   asynchronous refreshes so an older checkpoint cannot replace a newer live
   Goal or Graph state. A new or newly selected flow starts with its resizable
-  right-side status panel collapsed to the edge peek; a user's expand or collapse
-  choice survives later checkpoints for that same flow. Place the expanded panel
+  right-side status panel fully collapsed; a user's expand or collapse choice
+  survives later checkpoints for that same flow. Keep the single panel toggle at
+  the trailing end of the shared title bar, use it for both expansion and collapse,
+  and remove the panel entirely from the conversation layout while collapsed.
+  Place the expanded panel
   as a full-height inset card inside the conversation workspace's flex container,
   using the same translucent Mica material as the conversation surface so it stays
   visually continuous while its persisted width reduces the conversation track.
@@ -96,18 +99,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   color treatment.
   Retain the expanded panel's card border, radius, and shadow; its surface must
   use the same composition as the composer rather than an independently tinted
-  backdrop. The collapsed peek may retain that surface so its exposed edge
-  remains discoverable.
-  Collapse the card beyond the right edge so only a vertically shortened,
-  clickable strip of its left edge remains visible without overlapping native
-  title-bar controls. Keep a narrow collapsed layout track equal to that peek
-  plus its outer inset so the conversation scrollbar and right-side user-message
-  index remain clear of the card. The peek creates no full-height divider, glyph,
-  or separate expand button; keep keyboard focus visible on that edge. Keep the
-  expanded header free of decorative Goal or Graph kind
-  glyphs and retain its collapse button, whose arrow points toward the right edge
-  where the panel collapses. Center an otherwise empty planning state in the
-  available panel body.
+  backdrop. Do not retain a clickable edge peek, collapsed layout track, or a
+  second collapse control inside the panel. Keep the expanded header free of
+  decorative Goal or Graph kind glyphs. Center an otherwise empty planning state
+  in the available panel body.
   Cap the expanded panel to 45% of its live conversation container as well as
   its fixed maximum, so a persisted or dragged width cannot squeeze the main
   conversation into a deformed narrow track. Let Goal cards grow to contain their wrapped task and result copy,

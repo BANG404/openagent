@@ -341,6 +341,7 @@
   let resolvingUserInputConvIds = $state<Record<string, boolean>>({});
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
+  let checkpointFlowPanelCollapsed = $state(true);
   let workspace = $state<WorkspaceContext | null>(null);
   let config = $state<AppConfig | null>(null);
   let isMemorySyncing = $state(false);
@@ -4414,6 +4415,10 @@
           {recentWorkspaces}
           {tauriAvailable}
           memorySyncing={isMemorySyncing}
+          checkpointFlowAvailable={Boolean(
+            currentCheckpointFlow && !memoryOpen && !rolesOpen && !skillsOpen && !settingsOpen,
+          )}
+          {checkpointFlowPanelCollapsed}
           onPickWorkspace={pickWorkspace}
           onPickWsl={pickWslWorkspace}
           onSelectWorkspace={requestWorkspace}
@@ -4424,6 +4429,8 @@
           onOpenSkills={openSkills}
           onOpenSettings={() => openSettings()}
           onOpenAbout={() => openSettings("about")}
+          onToggleCheckpointFlowPanel={() =>
+            (checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed)}
           onMinimize={winMinimize}
           onMaximize={winMaximize}
           onClose={winClose}
@@ -4467,6 +4474,7 @@
               {composerPreferences}
               bind:messagesElement={messagesEl}
               bind:inputAreaHeight
+              bind:checkpointFlowPanelCollapsed
               composerDraft={activeComposerDraft}
             />
           </div>

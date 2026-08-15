@@ -101,6 +101,7 @@
     composerPreferences,
     messagesElement = $bindable(null),
     inputAreaHeight = $bindable(120),
+    checkpointFlowPanelCollapsed = $bindable(true),
     composerDraft,
   }: {
     view: ConversationSurfaceView;
@@ -108,10 +109,10 @@
     composerPreferences: ComposerPreferences;
     messagesElement: HTMLElement | null;
     inputAreaHeight: number;
+    checkpointFlowPanelCollapsed: boolean;
     composerDraft: ComposerDraft;
   } = $props();
 
-  let checkpointFlowPanelCollapsed = $state(true);
   let composerFocusRequest = $state(0);
 
   function addQuote(context: UserMessageContext) {
@@ -143,13 +144,7 @@
   }
 </script>
 
-<div
-  class="conversation-workspace"
-  class:checkpoint-flow-panel-collapsed={Boolean(
-    view.checkpointFlow && checkpointFlowPanelCollapsed,
-  )}
-  style:--input-area-height={`${inputAreaHeight}px`}
->
+<div class="conversation-workspace" style:--input-area-height={`${inputAreaHeight}px`}>
   <div
     class="conversation-input-fade"
     class:conversation-input-fade-streaming={view.isStreaming}
@@ -341,7 +336,6 @@
   }
 
   .conversation-workspace {
-    --flow-panel-collapsed-track-width: 30px;
     position: relative;
     isolation: isolate;
     display: flex;
@@ -349,16 +343,6 @@
     min-height: 0;
     flex: 1;
     padding-top: 48px;
-  }
-
-  @media (max-width: 760px) {
-    .conversation-workspace {
-      --flow-panel-collapsed-track-width: 26px;
-    }
-  }
-
-  .conversation-workspace.checkpoint-flow-panel-collapsed {
-    --flow-panel-index-offset: var(--flow-panel-collapsed-track-width);
   }
 
   .conversation-workspace::before {

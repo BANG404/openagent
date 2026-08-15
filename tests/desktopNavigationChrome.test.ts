@@ -131,4 +131,19 @@ describe("desktop navigation chrome", () => {
     expect(menu).toContain("checkForAppUpdate(true)");
     expect(menu).toContain("event.altKey && !event.ctrlKey && !event.metaKey");
   });
+
+  test("controls the checkpoint flow panel from the trailing title bar", async () => {
+    const route = await readFile(routeUrl, "utf8");
+    const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
+    const panel = await readFile(new URL("CheckpointFlowStatus.svelte", componentsUrl), "utf8");
+
+    expect(route).toContain("bind:checkpointFlowPanelCollapsed");
+    expect(titleBar).toContain("<CheckpointFlowToggleButton");
+    expect(titleBar.indexOf("<CheckpointFlowToggleButton")).toBeLessThan(
+      titleBar.lastIndexOf("<WindowControls {platform}"),
+    );
+    expect(panel).not.toContain("peek-button");
+    expect(panel).not.toContain("collapse-button");
+    expect(panel).not.toContain("flow-panel-placeholder");
+  });
 });
