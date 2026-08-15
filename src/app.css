@@ -189,6 +189,8 @@
     border-radius: var(--menu-content-radius);
     padding: var(--menu-content-padding);
     box-shadow: var(--raised-shadow);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
     outline: none;
   }
 

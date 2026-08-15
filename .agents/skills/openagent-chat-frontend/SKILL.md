@@ -312,7 +312,7 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   application update check. A separate workspace process may be requested only
   through File -> New window.
 - Render those floating panels through the shared desktop menu surface: the
-  control surface, no border or panel-specific backdrop blur, the shared 8px
+  control surface, no border, a shared 16px backdrop blur, the shared 8px
   content radius and 6px inset, and the shared raised shadow. Keep
   component-specific width, height, scrolling, and item content, but do not fork
   its panel material or neutral hover fill.
