@@ -53,8 +53,15 @@
     right: auto;
     left: auto;
     width: 100%;
-    margin-bottom: 24px;
+    margin-bottom: 32px;
     transform: none;
+  }
+
+  .new-conversation-context.stack .memory-note p {
+    font-size: 28px;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
   }
 
   .memory-note {
@@ -223,6 +230,14 @@
   @media (max-width: 720px) {
     .new-conversation-context {
       padding: 0 20px;
+    }
+
+    .new-conversation-context.stack {
+      margin-bottom: 28px;
+    }
+
+    .new-conversation-context.stack .memory-note p {
+      font-size: 26px;
     }
   }
 </style>

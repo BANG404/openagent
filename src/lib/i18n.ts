@@ -79,7 +79,7 @@ const zh = {
   // Empty state
   ready: "OpenAgent 就绪",
   readyHint: "支持代码阅读、编辑、调试等功能",
-  newConversationGreeting: "回来了，今天想从哪儿接着推？",
+  newConversationGreeting: "我们该从哪里开始呢？",
   followUpSuggestions: "继续建议",
   configApiKey: "请在设置中配置 API Key 以开始使用",
   // Input
@@ -928,7 +928,7 @@ const en: Translations = {
   more: "More",
   ready: "OpenAgent Ready",
   readyHint: "Supports code reading, editing, debugging and more",
-  newConversationGreeting: "Welcome back—what should we pick up today?",
+  newConversationGreeting: "Where should we start?",
   followUpSuggestions: "Follow-up suggestions",
   configApiKey: "Configure API Key in Settings to start",
   inputPlaceholder: "Message… (Enter to send, Shift+Enter for newline, / commands, @ mentions)",
