@@ -29,6 +29,8 @@
     streamingConversationIds,
     hasMore,
     loadingMore,
+    recentHasMore,
+    loadingMoreRecent,
     loading,
     settingsOpen,
     onRoleChange,
@@ -38,6 +40,7 @@
     onNewProjectConversation,
     onSearch,
     onLoadMore,
+    onLoadMoreRecent,
     onSelect,
     onOpenConversation,
     onTogglePin,
@@ -64,6 +67,8 @@
     streamingConversationIds: Record<string, boolean>;
     hasMore: boolean;
     loadingMore: boolean;
+    recentHasMore: boolean;
+    loadingMoreRecent: boolean;
     loading: boolean;
     settingsOpen: boolean;
     onRoleChange: (role: string) => void | Promise<void>;
@@ -73,6 +78,7 @@
     onNewProjectConversation: (path: string) => void | Promise<void>;
     onSearch: (query: string) => void;
     onLoadMore: () => void | Promise<void>;
+    onLoadMoreRecent: () => void | Promise<void>;
     onSelect: (id: string) => void | Promise<void>;
     onOpenConversation: (conversation: Conversation) => void | Promise<void>;
     onTogglePin: (id: string) => void | Promise<void>;
@@ -95,6 +101,20 @@
     collapsed = !collapsed;
     window.localStorage.setItem(collapsedStorageKey, String(collapsed));
   }
+
+  function changeRole(role: string): void {
+    searchOpen = false;
+    onSearch("");
+    void onRoleChange(role);
+  }
+
+  function openConversation(conversation: Conversation): void {
+    if (searchOpen) {
+      searchOpen = false;
+      onSearch("");
+    }
+    void onOpenConversation(conversation);
+  }
 </script>
 
 <aside
@@ -116,12 +136,7 @@
   {#if !collapsed}
     <div class="sidebar-content">
       <div class="sidebar-role">
-        <RoleSelector
-          value={selectedRoleKey}
-          {roles}
-          header
-          onChange={(role) => void onRoleChange(role)}
-        />
+        <RoleSelector value={selectedRoleKey} {roles} header onChange={changeRole} />
       </div>
       <SidebarPrimaryActions bind:searchOpen {searchQuery} onNew={() => void onNew()} {onSearch} />
       {#if loading}
@@ -138,11 +153,14 @@
           {streamingConversationIds}
           {hasMore}
           {loadingMore}
+          {recentHasMore}
+          {loadingMoreRecent}
           searchActive={searchOpen}
           onNewProjectConversation={(path) => void onNewProjectConversation(path)}
           onLoadMore={() => void onLoadMore()}
+          onLoadMoreRecent={() => void onLoadMoreRecent()}
           onSelect={(id) => void onSelect(id)}
-          onOpenConversation={(conversation) => void onOpenConversation(conversation)}
+          onOpenConversation={openConversation}
           {onTogglePin}
           {onDelete}
           onSelectWorkspace={(path) => void onSelectWorkspace(path)}

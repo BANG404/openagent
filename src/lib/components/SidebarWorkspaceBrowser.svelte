@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { DropdownMenu } from "bits-ui";
   import { t } from "$lib/i18n";
   import type { Conversation, RecentWorkspace } from "$lib/types";
@@ -17,9 +18,12 @@
     streamingConversationIds,
     hasMore,
     loadingMore,
+    recentHasMore,
+    loadingMoreRecent,
     searchActive,
     onNewProjectConversation,
     onLoadMore,
+    onLoadMoreRecent,
     onSelect,
     onOpenConversation,
     onTogglePin,
@@ -39,9 +43,12 @@
     streamingConversationIds: Record<string, boolean>;
     hasMore: boolean;
     loadingMore: boolean;
+    recentHasMore: boolean;
+    loadingMoreRecent: boolean;
     searchActive: boolean;
     onNewProjectConversation: (path: string) => void;
     onLoadMore: () => void;
+    onLoadMoreRecent: () => void;
     onSelect: (id: string) => void;
     onOpenConversation: (conversation: Conversation) => void;
     onTogglePin: (id: string) => void;
@@ -51,6 +58,14 @@
     onOpenProjectFolder: (path: string) => void;
     onRemoveProject: (path: string) => void;
   } = $props();
+
+  let projectsCollapsed = $state(false);
+  let recentsCollapsed = $state(false);
+  let projectSearchOpen = $state(false);
+  let projectSearchQuery = $state("");
+  let projectSearchInput = $state<HTMLInputElement>();
+  let recentListElement = $state<HTMLDivElement>();
+  let recentPageSentinel = $state<HTMLDivElement>();
 
   let allRecentConversations = $derived.by(() => {
     const byId = new Map(recentConversations.map((item) => [item.id, item]));
@@ -72,12 +87,28 @@
       if (!byPath.has(item.path)) byPath.set(item.path, item);
     }
     const pinnedPaths = new Set(pinnedProjectPaths);
-    return [...byPath.values()]
-      .sort(
-        (left, right) => Number(pinnedPaths.has(right.path)) - Number(pinnedPaths.has(left.path)),
-      )
-      .slice(0, 6);
+    const query = projectSearchQuery.trim().toLocaleLowerCase();
+    const ordered = [...byPath.values()].sort((left, right) => {
+      const pinDifference =
+        Number(pinnedPaths.has(right.path)) - Number(pinnedPaths.has(left.path));
+      if (query) {
+        const rankDifference = projectSearchRank(left, query) - projectSearchRank(right, query);
+        if (rankDifference !== 0) return rankDifference;
+      }
+      return pinDifference;
+    });
+    return query ? ordered : ordered.slice(0, 6);
   });
+
+  function projectSearchRank(project: RecentWorkspace, query: string): number {
+    const name = (project.name || workspaceFolderName(project.path)).toLocaleLowerCase();
+    const path = project.path.toLocaleLowerCase();
+    if (name === query) return 0;
+    if (name.startsWith(query)) return 1;
+    if (name.includes(query)) return 2;
+    if (path.includes(query)) return 3;
+    return 4;
+  }
 
   function conversationsForProject(path: string): Conversation[] {
     return allRecentConversations.filter((item) => item.workspace === path).slice(0, 4);
@@ -87,7 +118,68 @@
     const conversation = conversations.find((item) => item.id === id);
     if (conversation) onOpenConversation(conversation);
   }
+
+  async function openProjectSearch(): Promise<void> {
+    projectsCollapsed = false;
+    projectSearchOpen = true;
+    await tick();
+    projectSearchInput?.focus();
+  }
+
+  function closeProjectSearch(): void {
+    projectSearchOpen = false;
+    projectSearchQuery = "";
+  }
+
+  function handleProjectSearchFocusout(event: FocusEvent): void {
+    const nextTarget = event.relatedTarget;
+    if (
+      nextTarget instanceof HTMLElement &&
+      ((event.currentTarget instanceof HTMLElement && event.currentTarget.contains(nextTarget)) ||
+        nextTarget.closest(".project-list"))
+    ) {
+      return;
+    }
+    closeProjectSearch();
+  }
+
+  function selectProject(path: string): void {
+    closeProjectSearch();
+    onSelectWorkspace(path);
+  }
+
+  function handleProjectSearchKeydown(event: KeyboardEvent): void {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    closeProjectSearch();
+  }
+
+  $effect(() => {
+    if (
+      searchActive ||
+      recentsCollapsed ||
+      !recentListElement ||
+      !recentPageSentinel ||
+      !recentHasMore
+    ) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !loadingMoreRecent) onLoadMoreRecent();
+      },
+      { root: recentListElement, rootMargin: "80px 0px" },
+    );
+    observer.observe(recentPageSentinel);
+    return () => observer.disconnect();
+  });
 </script>
+
+{#snippet sectionChevron(expanded: boolean)}
+  <svg class="section-chevron" class:expanded viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="m6 4 4 4-4 4" />
+  </svg>
+{/snippet}
 
 <div class="workspace-browser">
   <div class="workspace-browser-scroll">
@@ -107,150 +199,206 @@
       />
     {:else}
       <div class="section-heading">
-        <span>{$t("projects")}</span>
+        <button
+          class="section-toggle"
+          type="button"
+          aria-expanded={!projectsCollapsed}
+          aria-label={`${$t(projectsCollapsed ? "expandSection" : "collapseSection")}: ${$t("projects")}`}
+          onclick={() => (projectsCollapsed = !projectsCollapsed)}
+        >
+          {@render sectionChevron(!projectsCollapsed)}
+          <span>{$t("projects")}</span>
+        </button>
+        {#if projectSearchOpen}
+          <div class="project-search" onfocusout={handleProjectSearchFocusout}>
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="7" cy="7" r="4" />
+              <path d="m10 10 3 3" />
+            </svg>
+            <input
+              bind:this={projectSearchInput}
+              bind:value={projectSearchQuery}
+              aria-label={$t("searchProjects")}
+              placeholder={$t("searchProjects")}
+              onkeydown={handleProjectSearchKeydown}
+            />
+          </div>
+        {:else}
+          <Tooltip text={$t("searchProjects")} side="bottom">
+            <button
+              class="section-action"
+              type="button"
+              aria-label={$t("searchProjects")}
+              onclick={() => void openProjectSearch()}
+            >
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="4" />
+                <path d="m10 10 3 3" />
+              </svg>
+            </button>
+          </Tooltip>
+        {/if}
       </div>
-      <div class="project-list">
-        {#each projectEntries as project (project.path)}
-          <section class="project-group" aria-label={project.name}>
-            <div class="project-row-shell" class:active={project.path === workspacePath}>
-              <button
-                class="project-row"
-                type="button"
-                onclick={() => onSelectWorkspace(project.path)}
-              >
-                <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"
-                  ><path
-                    d="M2.75 5.75h4l1.2 1.5h7.3v6.25a1.5 1.5 0 0 1-1.5 1.5h-9.5a1.5 1.5 0 0 1-1.5-1.5z"
-                  /><path
-                    d="M2.75 6V4.75a1.5 1.5 0 0 1 1.5-1.5h3l1.2 1.5h5.3a1.5 1.5 0 0 1 1.5 1.5v1"
-                  /></svg
+      {#if !projectsCollapsed}
+        <div class="project-list">
+          {#each projectEntries as project (project.path)}
+            <section class="project-group" aria-label={project.name}>
+              <div class="project-row-shell" class:active={project.path === workspacePath}>
+                <button
+                  class="project-row"
+                  type="button"
+                  onclick={() => selectProject(project.path)}
                 >
-                <span>{project.name || workspaceFolderName(project.path)}</span>
-                {#if pinnedProjectPaths.includes(project.path)}
-                  <svg class="project-pin" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path
-                      d="m5.25 3.25 5.5 5.5M9.5 2l4.5 4.5-2.25 1.25-2.5 2.5L8 12.5 3.5 8l2.25-1.25 2.5-2.5zM6.5 9.5 3 13"
-                    />
-                  </svg>
-                {/if}
-              </button>
-              <div class="project-row-actions">
-                <Tooltip text={$t("newChat")} side="bottom">
-                  <button
-                    class="project-row-action"
-                    type="button"
-                    aria-label={`${$t("newChat")}: ${project.name}`}
-                    onclick={() => onNewProjectConversation(project.path)}
+                  <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"
+                    ><path
+                      d="M2.75 5.75h4l1.2 1.5h7.3v6.25a1.5 1.5 0 0 1-1.5 1.5h-9.5a1.5 1.5 0 0 1-1.5-1.5z"
+                    /><path
+                      d="M2.75 6V4.75a1.5 1.5 0 0 1 1.5-1.5h3l1.2 1.5h5.3a1.5 1.5 0 0 1 1.5 1.5v1"
+                    /></svg
                   >
-                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <span>{project.name || workspaceFolderName(project.path)}</span>
+                  {#if pinnedProjectPaths.includes(project.path)}
+                    <svg class="project-pin" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                       <path
-                        d="M9.25 3.25h-4A1.75 1.75 0 0 0 3.5 5v6A1.75 1.75 0 0 0 5.25 12.75h5.5A1.75 1.75 0 0 0 12.5 11V7"
+                        d="m5.25 3.25 5.5 5.5M9.5 2l4.5 4.5-2.25 1.25-2.5 2.5L8 12.5 3.5 8l2.25-1.25 2.5-2.5zM6.5 9.5 3 13"
                       />
-                      <path d="m8 8 4.75-4.75M10.25 3.25h2.5v2.5" />
                     </svg>
-                  </button>
-                </Tooltip>
-                <DropdownMenu.Root>
-                  <Tooltip text={$t("projectActions")} side="bottom">
-                    <DropdownMenu.Trigger
+                  {/if}
+                </button>
+                <div class="project-row-actions">
+                  <Tooltip text={$t("newChat")} side="bottom">
+                    <button
                       class="project-row-action"
-                      aria-label={`${$t("projectActions")}: ${project.name}`}
+                      type="button"
+                      aria-label={`${$t("newChat")}: ${project.name}`}
+                      onclick={() => onNewProjectConversation(project.path)}
                     >
-                      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                        <circle cx="3" cy="8" r="1" />
-                        <circle cx="8" cy="8" r="1" />
-                        <circle cx="13" cy="8" r="1" />
+                      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path
+                          d="M9.25 3.25h-4A1.75 1.75 0 0 0 3.5 5v6A1.75 1.75 0 0 0 5.25 12.75h5.5A1.75 1.75 0 0 0 12.5 11V7"
+                        />
+                        <path d="m8 8 4.75-4.75M10.25 3.25h2.5v2.5" />
                       </svg>
-                    </DropdownMenu.Trigger>
+                    </button>
                   </Tooltip>
-                  <DropdownMenu.Portal>
-                    <DropdownMenu.Content
-                      class="desktop-menu-panel project-menu"
-                      sideOffset={4}
-                      align="end"
-                    >
-                      <DropdownMenu.Item
-                        class="project-menu-item"
-                        onSelect={() => onToggleProjectPin(project.path)}
+                  <DropdownMenu.Root>
+                    <Tooltip text={$t("projectActions")} side="bottom">
+                      <DropdownMenu.Trigger
+                        class="project-row-action"
+                        aria-label={`${$t("projectActions")}: ${project.name}`}
                       >
-                        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                          <path
-                            d="m5.25 3.25 5.5 5.5M9.5 2l4.5 4.5-2.25 1.25-2.5 2.5L8 12.5 3.5 8l2.25-1.25 2.5-2.5zM6.5 9.5 3 13"
-                          />
+                        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                          <circle cx="3" cy="8" r="1" />
+                          <circle cx="8" cy="8" r="1" />
+                          <circle cx="13" cy="8" r="1" />
                         </svg>
-                        <span
-                          >{$t(
-                            pinnedProjectPaths.includes(project.path)
-                              ? "unpinProject"
-                              : "pinProject",
-                          )}</span
+                      </DropdownMenu.Trigger>
+                    </Tooltip>
+                    <DropdownMenu.Portal>
+                      <DropdownMenu.Content
+                        class="desktop-menu-panel project-menu"
+                        sideOffset={4}
+                        align="end"
+                      >
+                        <DropdownMenu.Item
+                          class="project-menu-item"
+                          onSelect={() => onToggleProjectPin(project.path)}
                         >
-                      </DropdownMenu.Item>
-                      <DropdownMenu.Item
-                        class="project-menu-item"
-                        onSelect={() => onOpenProjectFolder(project.path)}
-                      >
-                        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                          <path
-                            d="M2.25 5.5h4l1.2 1.4h6.3v5.35a1.5 1.5 0 0 1-1.5 1.5h-8.5a1.5 1.5 0 0 1-1.5-1.5z"
-                          />
-                          <path d="M2.25 5.75v-1a1.5 1.5 0 0 1 1.5-1.5H6.5l1.2 1.4h4.55" />
-                        </svg>
-                        <span>{$t("openProjectFolder")}</span>
-                      </DropdownMenu.Item>
-                      <DropdownMenu.Separator class="project-menu-separator" />
-                      <DropdownMenu.Item
-                        class="project-menu-item danger"
-                        onSelect={() => onRemoveProject(project.path)}
-                      >
-                        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                          <path d="M3.25 4.5h9.5M6 4.5V3.25h4V4.5M5 6.5l.5 6.25h5L11 6.5" />
-                        </svg>
-                        <span>{$t("removeProject")}</span>
-                      </DropdownMenu.Item>
-                    </DropdownMenu.Content>
-                  </DropdownMenu.Portal>
-                </DropdownMenu.Root>
+                          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path
+                              d="m5.25 3.25 5.5 5.5M9.5 2l4.5 4.5-2.25 1.25-2.5 2.5L8 12.5 3.5 8l2.25-1.25 2.5-2.5zM6.5 9.5 3 13"
+                            />
+                          </svg>
+                          <span
+                            >{$t(
+                              pinnedProjectPaths.includes(project.path)
+                                ? "unpinProject"
+                                : "pinProject",
+                            )}</span
+                          >
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          class="project-menu-item"
+                          onSelect={() => onOpenProjectFolder(project.path)}
+                        >
+                          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path
+                              d="M2.25 5.5h4l1.2 1.4h6.3v5.35a1.5 1.5 0 0 1-1.5 1.5h-8.5a1.5 1.5 0 0 1-1.5-1.5z"
+                            />
+                            <path d="M2.25 5.75v-1a1.5 1.5 0 0 1 1.5-1.5H6.5l1.2 1.4h4.55" />
+                          </svg>
+                          <span>{$t("openProjectFolder")}</span>
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Separator class="project-menu-separator" />
+                        <DropdownMenu.Item
+                          class="project-menu-item danger"
+                          onSelect={() => onRemoveProject(project.path)}
+                        >
+                          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M3.25 4.5h9.5M6 4.5V3.25h4V4.5M5 6.5l.5 6.25h5L11 6.5" />
+                          </svg>
+                          <span>{$t("removeProject")}</span>
+                        </DropdownMenu.Item>
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Portal>
+                  </DropdownMenu.Root>
+                </div>
               </div>
-            </div>
 
-            {#if project.path === workspacePath}
-              <ConversationList
-                embedded
-                compactProject
-                {conversations}
-                activeConvId={activeConversationId}
-                streamingConvIds={streamingConversationIds}
-                {hasMore}
-                {loadingMore}
-                {onLoadMore}
-                {onSelect}
-                {onTogglePin}
-                {onDelete}
-              />
-            {:else}
-              <div class="project-conversations">
-                {#each conversationsForProject(project.path) as conversation (conversation.id)}
-                  <button
-                    class="workspace-conversation-row"
-                    type="button"
-                    onclick={() => onOpenConversation(conversation)}
-                  >
-                    <span>{conversation.title}</span>
-                  </button>
-                {/each}
-              </div>
-            {/if}
-          </section>
-        {/each}
-      </div>
-
-      {#if allRecentConversations.length > 0}
-        <div class="section-heading recents-heading">
-          <span>{$t("recents")}</span>
+              {#if project.path === workspacePath}
+                <ConversationList
+                  embedded
+                  compactProject
+                  {conversations}
+                  activeConvId={activeConversationId}
+                  streamingConvIds={streamingConversationIds}
+                  {hasMore}
+                  {loadingMore}
+                  {onLoadMore}
+                  {onSelect}
+                  {onTogglePin}
+                  {onDelete}
+                />
+              {:else}
+                <div class="project-conversations">
+                  {#each conversationsForProject(project.path) as conversation (conversation.id)}
+                    <button
+                      class="workspace-conversation-row"
+                      type="button"
+                      onclick={() => onOpenConversation(conversation)}
+                    >
+                      <span>{conversation.title}</span>
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+            </section>
+          {/each}
         </div>
-        <div class="recent-conversations" aria-label={$t("recentConversations")}>
-          {#each allRecentConversations.slice(0, 12) as conversation (conversation.id)}
+      {/if}
+
+      <div class="section-heading recents-heading">
+        <button
+          class="section-toggle"
+          type="button"
+          aria-expanded={!recentsCollapsed}
+          aria-label={`${$t(recentsCollapsed ? "expandSection" : "collapseSection")}: ${$t("recentConversations")}`}
+          onclick={() => (recentsCollapsed = !recentsCollapsed)}
+        >
+          {@render sectionChevron(!recentsCollapsed)}
+          <span>{$t("recents")}</span>
+        </button>
+      </div>
+      {#if !recentsCollapsed}
+        <div
+          class="recent-conversations"
+          aria-label={$t("recentConversations")}
+          bind:this={recentListElement}
+        >
+          {#if allRecentConversations.length === 0 && !loadingMoreRecent}
+            <div class="recent-empty">{$t("noRecentConversations")}</div>
+          {/if}
+          {#each allRecentConversations as conversation (conversation.id)}
             <button
               class="workspace-conversation-row recent-row"
               class:active={conversation.id === activeConversationId}
@@ -263,6 +411,13 @@
               {/if}
             </button>
           {/each}
+          {#if recentHasMore || loadingMoreRecent}
+            <div class="recent-page-sentinel" bind:this={recentPageSentinel}>
+              {#if loadingMoreRecent}
+                <span class="recent-page-spinner" aria-label={$t("loadingContent")}></span>
+              {/if}
+            </div>
+          {/if}
         </div>
       {/if}
     {/if}
@@ -295,6 +450,104 @@
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.01em;
+  }
+
+  .section-toggle,
+  .section-action {
+    display: flex;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .section-toggle {
+    min-width: 0;
+    flex: 1;
+    gap: 3px;
+    height: 26px;
+    text-align: left;
+  }
+
+  .section-toggle:focus-visible,
+  .section-action:focus-visible {
+    border-radius: 5px;
+    box-shadow: var(--focus-ring);
+  }
+
+  .section-chevron {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 12px;
+    transition: transform 120ms ease;
+  }
+
+  .section-chevron.expanded {
+    transform: rotate(90deg);
+  }
+
+  .section-chevron path,
+  .section-action svg,
+  .project-search > svg {
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .section-action {
+    width: 24px;
+    height: 24px;
+    justify-content: center;
+    border-radius: 5px;
+  }
+
+  .section-action:hover {
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .section-action svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .project-search {
+    width: min(122px, 55%);
+    height: 24px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-sizing: border-box;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: var(--surface2);
+  }
+
+  .project-search:focus-within {
+    box-shadow: var(--focus-ring);
+  }
+
+  .project-search > svg {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 12px;
+  }
+
+  .project-search input {
+    min-width: 0;
+    flex: 1;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 11px;
   }
 
   :global(.project-menu) {
@@ -353,10 +606,10 @@
   .project-row {
     min-width: 0;
     flex: 1;
-    height: 30px;
-    gap: 7px;
-    padding: 4px 8px;
-    border-radius: 7px;
+    height: var(--list-item-compact-height);
+    gap: var(--list-item-compact-content-gap);
+    padding: 4px var(--list-item-compact-padding-inline);
+    border-radius: var(--list-item-compact-radius);
     background: transparent;
     color: var(--text);
     cursor: pointer;
@@ -375,8 +628,8 @@
   .project-row-shell {
     position: relative;
     display: flex;
-    height: 30px;
-    border-radius: 7px;
+    height: var(--list-item-compact-height);
+    border-radius: var(--list-item-compact-radius);
   }
 
   .project-row-shell:hover .project-row,
@@ -494,12 +747,13 @@
 
   .workspace-conversation-row {
     position: relative;
-    height: 27px;
-    padding: 3px 10px 3px 26px;
-    border-radius: 6px;
+    height: var(--list-item-compact-height);
+    padding: 4px var(--list-item-compact-padding-inline) 4px
+      calc(var(--list-item-compact-padding-inline) + 16px + var(--list-item-compact-content-gap));
+    border-radius: var(--list-item-compact-radius);
     background: transparent;
-    font-size: 12px;
-    line-height: 18px;
+    font-size: var(--list-item-compact-font-size);
+    line-height: var(--list-item-compact-line-height);
     cursor: pointer;
     outline: none;
   }
@@ -527,9 +781,39 @@
     margin-top: 14px;
   }
 
+  .recent-conversations {
+    max-height: min(38vh, 320px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .recent-empty {
+    padding: 5px 10px 7px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  .recent-page-sentinel {
+    min-height: 18px;
+    display: grid;
+    place-items: center;
+  }
+
+  .recent-page-spinner {
+    width: 11px;
+    height: 11px;
+    box-sizing: border-box;
+    border: 1.5px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: recent-page-spin 700ms linear infinite;
+  }
+
   .recent-row {
-    height: 29px;
-    padding-left: 10px;
+    padding-left: var(--list-item-compact-padding-inline);
   }
 
   .recent-row i {
@@ -539,5 +823,21 @@
     flex: 0 0 6px;
     border-radius: 50%;
     background: var(--primary);
+  }
+
+  @keyframes recent-page-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .section-chevron {
+      transition: none;
+    }
+
+    .recent-page-spinner {
+      animation: none;
+    }
   }
 </style>

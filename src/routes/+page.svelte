@@ -253,6 +253,9 @@
   const startupRestoreHint = readStartupRestoreHint();
   let conversations = $state<Conversation[]>([]);
   let recentConversations = $state<Conversation[]>([]);
+  let recentConversationNextCursor = $state<ConversationPageCursor | null>(null);
+  let loadingMoreRecentConversations = $state(false);
+  let recentConversationGeneration = 0;
   let conversationNextCursor = $state<ConversationPageCursor | null>(null);
   let loadingMoreConversations = $state(false);
   let searchConversations = $state<Conversation[]>([]);
@@ -1534,7 +1537,7 @@
     restoringSurface = "new-conversation";
     activeConvId = null;
     cacheRestoreSurface("new-conversation", null);
-    await reloadRoleConversations();
+    await Promise.all([reloadRoleConversations(), refreshRecentConversations()]);
     await invoke("set_active_conversation", {
       convId: null,
       workspace: workspacePath || "",
@@ -1610,11 +1613,50 @@
 
   async function refreshRecentConversations(): Promise<void> {
     if (!tauriAvailable) return;
+    const generation = ++recentConversationGeneration;
+    const roleKey = selectedRoleKey;
+    const recentRoleId = roleKey === defaultRoleKey ? null : roleKey;
+    recentConversations = [];
+    recentConversationNextCursor = null;
+    loadingMoreRecentConversations = true;
     try {
-      const page = await fetchConversationPage(null, null, 60, null, false, null);
+      const page = await fetchConversationPage(null, null, 30, null, true, recentRoleId);
+      if (generation !== recentConversationGeneration || roleKey !== selectedRoleKey) return;
       recentConversations = page.conversations;
+      recentConversationNextCursor = page.nextCursor;
     } catch (error) {
       console.warn("Failed to load recent conversations across workspaces:", error);
+    } finally {
+      if (generation === recentConversationGeneration && roleKey === selectedRoleKey) {
+        loadingMoreRecentConversations = false;
+      }
+    }
+  }
+
+  async function loadNextRecentConversationPage(): Promise<void> {
+    if (!tauriAvailable || loadingMoreRecentConversations || !recentConversationNextCursor) return;
+    const generation = recentConversationGeneration;
+    const roleKey = selectedRoleKey;
+    const recentRoleId = roleKey === defaultRoleKey ? null : roleKey;
+    loadingMoreRecentConversations = true;
+    try {
+      const page = await fetchConversationPage(
+        null,
+        recentConversationNextCursor,
+        30,
+        null,
+        true,
+        recentRoleId,
+      );
+      if (generation !== recentConversationGeneration || roleKey !== selectedRoleKey) return;
+      recentConversations = mergeConversationMetadata(recentConversations, page.conversations);
+      recentConversationNextCursor = page.nextCursor;
+    } catch {
+      // Keep the cursor so scrolling back to the sentinel can retry.
+    } finally {
+      if (generation === recentConversationGeneration && roleKey === selectedRoleKey) {
+        loadingMoreRecentConversations = false;
+      }
     }
   }
 
@@ -1752,6 +1794,7 @@
         conversations = page.conversations;
         conversationNextCursor = page.nextCursor;
         await restoreWorkspaceConversation(workspacePath);
+        void refreshRecentConversations();
       }
     } finally {
       if (
@@ -1824,7 +1867,6 @@
     launchContext = bootstrap.launch_context;
     recentWorkspaces = config.recent_workspaces ?? [];
     conversations = bootstrap.conversations.map(metaToConversation);
-    void refreshRecentConversations();
     conversationNextCursor = bootstrap.conversation_next_cursor;
     activeConvId = bootstrap.active_conv_id;
     const activeMeta = activeConvId
@@ -1833,6 +1875,7 @@
     selectedRoleKey = activeMeta?.roleId ?? storedRoleSelection(bootstrap.workspace_path);
     await loadAvailableRoles();
     await reloadRoleConversations(activeConvId);
+    void refreshRecentConversations();
 
     if (activeConvId && bootstrap.active_conversation) {
       restoringSurface = "conversation";
@@ -1952,6 +1995,7 @@
     if (event.conv_id === activeConvId && eventRoleKey !== selectedRoleKey) {
       selectedRoleKey = eventRoleKey;
       window.localStorage.setItem(roleSelectionStorageKey(), eventRoleKey);
+      void refreshRecentConversations();
     }
     startProjectedChatStream(event.conv_id, event.asst_msg_id, startedAt);
 
@@ -2938,7 +2982,9 @@
     restoringSurface = "new-conversation";
     activeConvId = null;
     cacheRestoreSurface("new-conversation", null);
-    if (roleChanged) await reloadRoleConversations();
+    if (roleChanged) {
+      await Promise.all([reloadRoleConversations(), refreshRecentConversations()]);
+    }
     if (tauriAvailable) {
       await invoke("set_active_conversation", {
         convId: null,
@@ -3009,7 +3055,7 @@
         window.localStorage.setItem(roleSelectionStorageKey(), targetRoleKey);
       }
       handleConversationSearch("");
-      await reloadRoleConversations(id);
+      await Promise.all([reloadRoleConversations(id), refreshRecentConversations()]);
     }
     if (activeConvId === id) return;
     restoringSurface = "conversation";
@@ -4320,6 +4366,8 @@
         streamingConversationIds={chatStreams.streamingConversationIds}
         hasMore={sidebarHasMoreConversations}
         loadingMore={sidebarLoadingMoreConversations}
+        recentHasMore={recentConversationNextCursor !== null}
+        loadingMoreRecent={loadingMoreRecentConversations}
         loading={initialLoading}
         {settingsOpen}
         onRoleChange={changeConversationRole}
@@ -4329,6 +4377,7 @@
         onNewProjectConversation={switchNewConversationWorkspace}
         onSearch={handleConversationSearch}
         onLoadMore={loadNextConversationPage}
+        onLoadMoreRecent={loadNextRecentConversationPage}
         onSelect={(id) => {
           if (settingsOpen) closeSettings();
           if (memoryOpen) memoryOpen = false;

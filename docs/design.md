@@ -27,11 +27,16 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   one opaque application-chrome background while the operating system retains
   the native window outline, rounded corners, and exterior shadow.
   The sidebar groups workspace-owned conversations under Projects and shows one
-  cross-workspace, newest-first Recents list. Its role selector sits above
-  full-width new-conversation and search actions. The new action uses the
-  workspace already selected by the current window. Settings remains fixed at
-  the sidebar bottom, while the former More destinations live in the shared
-  menus. Search spans all workspaces and roles, and opening a result switches the
+  cross-workspace, newest-first Recent conversations list for the selected role.
+  Both sections collapse independently. Project-name search temporarily ranks
+  matching projects ahead of the remaining list, while Recent conversations
+  owns a bounded scroll area that loads additional database pages near its end.
+  Its role selector sits above full-width new-conversation and search actions.
+  The new action uses the workspace already selected by the current window.
+  Settings remains fixed at the sidebar bottom, while the former More
+  destinations live in the shared menus. Conversation search spans all
+  workspaces and roles only while its field retains focus; leaving search
+  restores Projects and Recent conversations. Opening a result switches the
   current window to that conversation's workspace. A current-window project
   switch keeps the existing shell and chat mounted while the target workspace
   is prepared, then replaces the workspace state atomically instead of showing

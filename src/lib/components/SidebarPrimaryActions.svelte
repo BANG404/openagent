@@ -34,6 +34,18 @@
       closeSearch();
     }
   }
+
+  function handleSearchFocusout(event: FocusEvent) {
+    const nextTarget = event.relatedTarget;
+    if (
+      nextTarget instanceof HTMLElement &&
+      ((event.currentTarget instanceof HTMLElement && event.currentTarget.contains(nextTarget)) ||
+        nextTarget.closest(".workspace-browser"))
+    ) {
+      return;
+    }
+    closeSearch();
+  }
 </script>
 
 <div class="sidebar-primary-actions">
@@ -56,7 +68,7 @@
   </button>
 
   {#if searchOpen}
-    <div class="sidebar-search-row">
+    <div class="sidebar-search-row" onfocusout={handleSearchFocusout}>
       <svg
         viewBox="0 0 20 20"
         fill="none"

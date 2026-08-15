@@ -382,13 +382,19 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   opaque message treatment.
 - Keep the conversation sidebar background flat and free of decorative glow;
   communicate active streaming through the conversation row indicator only.
-- Organize the conversation sidebar as Projects followed by Recents. Projects
-  keeps the current workspace expanded with its paged conversation hierarchy
-  and exposes recent workspaces as project groups; Recents is one global,
-  newest-first projection across workspace metadata. Preserve the owning
-  workspace on every global conversation. Sidebar search covers every workspace
-  and role, and selecting any result or recent conversation switches the current
-  window to its owning workspace before opening that exact conversation.
+- Organize the conversation sidebar as Projects followed by Recent conversations,
+  with independently collapsible sections. Projects keeps the current workspace
+  expanded with its paged conversation hierarchy and exposes recent workspaces as
+  project groups. Its focused name search ranks exact, prefix, name, and path
+  matches ahead of the unchanged remainder instead of hiding unmatched projects.
+  Recent conversations is one bounded, independently scrolling, newest-first
+  projection across workspace metadata for the selected role; fetch additional
+  database pages as its scroll sentinel approaches. Preserve the owning workspace
+  on every global conversation. Sidebar conversation search covers every workspace
+  and role only while its input retains focus; focus leaving the search control
+  clears the query and restores the ordinary sidebar. Selecting any result or
+  recent conversation switches the current window to its owning workspace before
+  opening that exact conversation.
   Keep project-specific actions on each project row instead of the Projects
   heading: expose a direct new-conversation action plus a compact menu for
   pinning, opening the folder, and removing the project from the project list.
@@ -397,7 +403,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   reachable from Recents. Keep global conversation search with the primary
   new-conversation action below the role selector, not on a section heading.
 - Keep the expanded conversation sidebar resizable from its trailing edge between
-  180px and 360px. Persist the chosen width across collapse and reload, disable
+  220px and 360px so row labels and trailing actions cannot overlap. Persist the
+  chosen width across collapse and reload, disable
   width animation while dragging, and expose the same bounds to keyboard users.
   The resize hit target and active indicator begin below the shared title bar so
   a sidebar drag never draws a separator through application chrome.
@@ -431,8 +438,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Keep the new-conversation and search actions, conversation rows, expanded
   sidebar navigation, and settings navigation on the same single-line scale:
   30px height, 13px type on an 18px line, 10px horizontal padding, an 8px
-  content gap, a 7px radius, and a 3px parent-owned row gap. The workspace role
-  selector at the top of the sidebar remains a distinct selector control.
+  content gap, a 7px radius, and a 3px parent-owned row gap. Align project-owned
+  conversation labels and their show-more action with the project name after its
+  folder icon. The workspace role selector at the top of the sidebar remains a
+  distinct selector control.
 - Paint the sidebar and complete shared title bar with one opaque application-
   chrome background in both themes. Preserve the operating system's native
   window outline, rounded corners, and shadow around that web content.

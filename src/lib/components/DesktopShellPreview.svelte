@@ -23,6 +23,7 @@
   let attachments = $state<ChatAttachment[]>([]);
   let approvalMode = $state<ApprovalMode>("auto");
   let settingsOpen = $state(false);
+  let searchQuery = $state("");
   const platformOverride =
     query.get("desktop-shell-preview-platform") === "macos" ? "macos" : undefined;
 
@@ -44,7 +45,7 @@
     { path: "\\\\wsl.localhost\\Ubuntu-24.04\\home\\dev\\math", name: "math" },
   ]);
   let pinnedProjectPaths = $state<string[]>([]);
-  const recentConversations: Conversation[] = [
+  const allPreviewConversations: Conversation[] = [
     {
       id: "openagent-1",
       title: "统一悬浮与选中样式",
@@ -68,6 +69,7 @@
       messages: [],
       createdAt: 8,
       updatedAt: 40,
+      roleId: "reviewer",
     },
     {
       id: "math-1",
@@ -77,7 +79,23 @@
       createdAt: 7,
       updatedAt: 35,
     },
+    ...Array.from({ length: 18 }, (_, index): Conversation => ({
+      id: `preview-${index + 1}`,
+      title: `侧栏最近对话分页示例 ${index + 1}`,
+      workspace: index % 2 === 0 ? "C:\\Projects\\openagent" : "C:\\Projects\\agent-runtime",
+      messages: [],
+      createdAt: 6 - index,
+      updatedAt: 34 - index,
+      roleId: index % 4 === 0 ? "reviewer" : undefined,
+    })),
   ];
+  let recentConversations = $derived(
+    allPreviewConversations.filter((conversation) =>
+      selectedRoleKey === "openagent"
+        ? !conversation.roleId
+        : conversation.roleId === selectedRoleKey,
+    ),
+  );
   let workspace = $derived<WorkspaceContext>({
     path: workspacePath,
     git_branch: workspacePath.endsWith("openagent") ? "master" : null,
@@ -86,9 +104,15 @@
       ? { kind: "wsl", distribution: "Ubuntu-24.04", linux_path: "/home/dev/math" }
       : { kind: "local" },
   });
-  let conversations = $derived(
-    recentConversations.filter((conversation) => conversation.workspace === workspacePath),
-  );
+  let conversations = $derived.by(() => {
+    const normalized = searchQuery.trim().toLocaleLowerCase();
+    if (normalized) {
+      return allPreviewConversations.filter((conversation) =>
+        conversation.title.toLocaleLowerCase().includes(normalized),
+      );
+    }
+    return recentConversations.filter((conversation) => conversation.workspace === workspacePath);
+  });
 
   function selectWorkspace(path: string): void {
     workspacePath = path;
@@ -106,13 +130,15 @@
     {workspacePath}
     {recentWorkspaces}
     {pinnedProjectPaths}
-    searchQuery=""
+    {searchQuery}
     {conversations}
     {recentConversations}
     {activeConversationId}
     streamingConversationIds={{ "openagent-2": true }}
-    hasMore
+    hasMore={false}
     loadingMore={false}
+    recentHasMore={false}
+    loadingMoreRecent={false}
     loading={false}
     {settingsOpen}
     onRoleChange={(role) => {
@@ -127,13 +153,17 @@
       selectWorkspace(path);
       activeConversationId = null;
     }}
-    onSearch={() => {}}
+    onSearch={(query) => {
+      searchQuery = query;
+    }}
     onLoadMore={() => {}}
+    onLoadMoreRecent={() => {}}
     onSelect={(id) => {
       activeConversationId = id;
     }}
     onOpenConversation={(conversation) => {
       if (conversation.workspace) workspacePath = conversation.workspace;
+      selectedRoleKey = conversation.roleId ?? "openagent";
       activeConversationId = conversation.id;
     }}
     onTogglePin={() => {}}
@@ -183,7 +213,8 @@
         <div class="existing-conversation">
           <p>Existing conversation</p>
           <strong
-            >{recentConversations.find((item) => item.id === activeConversationId)?.title}</strong
+            >{allPreviewConversations.find((item) => item.id === activeConversationId)
+              ?.title}</strong
           >
         </div>
       {:else}
