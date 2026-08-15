@@ -50,6 +50,7 @@
     onRemoveProject,
     onToggleSettings,
     platformOverride,
+    windowFocused,
   }: {
     collapsed: boolean;
     roles: AgentRole[];
@@ -87,6 +88,7 @@
     onRemoveProject: (path: string) => void | Promise<void>;
     onToggleSettings: () => void | Promise<void>;
     platformOverride?: WindowPlatform;
+    windowFocused: boolean;
   } = $props();
 
   const collapsedStorageKey = "openagent.sidebar.collapsed";
@@ -120,6 +122,7 @@
   class:collapsed
   class:resizing
   class:macos={platform === "macos"}
+  class:window-inactive={!windowFocused}
   style:--sidebar-width={`${width}px`}
 >
   <div class="sidebar-top" data-tauri-drag-region>
@@ -217,6 +220,11 @@
     gap: 1px;
     padding: 0 4px 0 6px;
     box-sizing: border-box;
+    transition: opacity 120ms ease;
+  }
+
+  .sidebar.window-inactive .sidebar-top {
+    opacity: 0.55;
   }
 
   .sidebar.macos .sidebar-top {
@@ -247,6 +255,10 @@
 
   @media (prefers-reduced-motion: reduce) {
     .sidebar {
+      transition: none;
+    }
+
+    .sidebar-top {
       transition: none;
     }
   }

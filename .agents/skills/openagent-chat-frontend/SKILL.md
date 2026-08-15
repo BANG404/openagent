@@ -17,7 +17,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   conversation navigation chrome; the shared title bar owns application menus,
   workspace, branch, sync, and window chrome across chat, Settings, Memory,
   Roles, and Skills, while those feature views must not create a second native
-  title bar; the conversation surface owns transcript/composer
+  title bar. The route owns the native window-focus state and passes that same
+  value to both top-chrome segments, so the sidebar collapse/history controls
+  and title-bar content dim and restore together without changing their shared
+  background or geometry. The conversation surface owns transcript/composer
   composition, Goal/Graph panel presentation, and chat renderer theme overrides.
   Pass each surface a deliberate view model and action contract instead of
   returning leaf component markup or surface-local layout state to the route.

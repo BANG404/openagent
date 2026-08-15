@@ -5,18 +5,23 @@ import { readFile } from "node:fs/promises";
 const componentsUrl = new URL("../src/lib/components/", import.meta.url);
 
 describe("window focus chrome", () => {
-  test("dims title-bar content without changing the chrome surface", async () => {
+  test("dims both top-chrome segments from one window focus state", async () => {
+    const route = await readFile(new URL("../src/routes/+page.svelte", import.meta.url), "utf8");
+    const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
     const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
     const preview = await readFile(new URL("DesktopShellPreview.svelte", componentsUrl), "utf8");
 
-    expect(titleBar).toContain(".onFocusChanged(({ payload: focused }) =>");
-    expect(titleBar).toContain('window.addEventListener("blur", handleBlur)');
-    expect(titleBar).toContain("class:window-inactive={!resolvedWindowFocused}");
+    expect(route).toContain(".onFocusChanged(({ payload: focused }) =>");
+    expect(route).toContain('window.addEventListener("blur", handleBlur)');
+    expect(route.match(/\{windowFocused\}/g)).toHaveLength(2);
+    expect(sidebar).toContain("class:window-inactive={!windowFocused}");
+    expect(sidebar).toMatch(/\.sidebar\.window-inactive \.sidebar-top \{\s*opacity: 0\.55;/);
+    expect(titleBar).toContain("class:window-inactive={!windowFocused}");
     expect(titleBar).toMatch(
       /\.title-bar\.window-inactive \.title-bar-menu,[\s\S]*?opacity: 0\.55;/,
     );
     expect(titleBar).toContain("background: var(--app-chrome-bg)");
-    expect(preview).toContain('query.get("desktop-shell-preview-focused") === "false"');
-    expect(preview).toContain("{windowFocusedOverride}");
+    expect(preview).toContain('query.get("desktop-shell-preview-focused") !== "false"');
+    expect(preview.match(/\{windowFocused\}/g)).toHaveLength(2);
   });
 });

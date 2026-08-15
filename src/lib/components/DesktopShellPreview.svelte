@@ -27,8 +27,7 @@
   let searchQuery = $state("");
   const platformOverride =
     query.get("desktop-shell-preview-platform") === "macos" ? "macos" : undefined;
-  const windowFocusedOverride =
-    query.get("desktop-shell-preview-focused") === "false" ? false : undefined;
+  const windowFocused = query.get("desktop-shell-preview-focused") !== "false";
 
   const roles: AgentRole[] = [
     {
@@ -189,6 +188,7 @@
       settingsOpen = !settingsOpen;
     }}
     {platformOverride}
+    {windowFocused}
   />
   <section class="desktop-shell-main">
     <DesktopTitleBar
@@ -216,7 +216,7 @@
       onMaximize={() => {}}
       onClose={() => {}}
       {platformOverride}
-      {windowFocusedOverride}
+      {windowFocused}
     />
     <main class="desktop-shell-content">
       {#if activeConversationId}

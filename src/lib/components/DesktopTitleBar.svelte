@@ -1,7 +1,4 @@
 <script lang="ts">
-  import { isTauri } from "@tauri-apps/api/core";
-  import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { onMount } from "svelte";
   import { invoke } from "$lib/openagent/tauriClient";
   import { t } from "$lib/i18n";
   import type { RecentWorkspace, WorkspaceContext } from "$lib/types";
@@ -35,7 +32,7 @@
     onMaximize,
     onClose,
     platformOverride,
-    windowFocusedOverride,
+    windowFocused,
   }: {
     workspace: WorkspaceContext | null;
     workspacePath: string;
@@ -59,55 +56,16 @@
     onMaximize: () => void | Promise<void>;
     onClose: () => void;
     platformOverride?: WindowPlatform;
-    windowFocusedOverride?: boolean;
+    windowFocused: boolean;
   } = $props();
 
-  let windowFocused = $state(true);
   let platform = $derived(platformOverride ?? detectWindowPlatform());
-  let resolvedWindowFocused = $derived(windowFocusedOverride ?? windowFocused);
   let folderName = $derived(workspaceFolderName(workspace?.path));
   let workspaceLabel = $derived(
     workspace?.environment.kind === "wsl"
       ? `${folderName} · ${workspace.environment.distribution}`
       : folderName,
   );
-
-  onMount(() => {
-    let disposed = false;
-    let unlistenFocusChanged: (() => void) | undefined;
-    const handleFocus = () => (windowFocused = true);
-    const handleBlur = () => (windowFocused = false);
-
-    windowFocused = document.hasFocus();
-    window.addEventListener("focus", handleFocus);
-    window.addEventListener("blur", handleBlur);
-
-    if (isTauri()) {
-      const appWindow = getCurrentWindow();
-      void appWindow
-        .isFocused()
-        .then((focused) => {
-          if (!disposed) windowFocused = focused;
-        })
-        .catch((error) => console.warn("Failed to read window focus state:", error));
-      void appWindow
-        .onFocusChanged(({ payload: focused }) => {
-          if (!disposed) windowFocused = focused;
-        })
-        .then((unlisten) => {
-          if (disposed) unlisten();
-          else unlistenFocusChanged = unlisten;
-        })
-        .catch((error) => console.warn("Failed to track window focus state:", error));
-    }
-
-    return () => {
-      disposed = true;
-      window.removeEventListener("focus", handleFocus);
-      window.removeEventListener("blur", handleBlur);
-      unlistenFocusChanged?.();
-    };
-  });
 
   async function openWorkspaceLocation(): Promise<void> {
     if (!tauriAvailable || !workspacePath) return;
@@ -120,7 +78,7 @@
 <header
   class="title-bar"
   class:macos={platform === "macos"}
-  class:window-inactive={!resolvedWindowFocused}
+  class:window-inactive={!windowFocused}
   data-tauri-drag-region
 >
   {#if platform === "macos"}

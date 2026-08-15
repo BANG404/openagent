@@ -4290,6 +4290,46 @@
   // ─── Window Controls ─────────────────────────────────────────────────────────
 
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
+  let windowFocused = $state(true);
+
+  onMount(() => {
+    if (isDevInspectorWindow || standaloneDevPreview || isQuickChatSurface) return;
+
+    let disposed = false;
+    let unlistenFocusChanged: (() => void) | undefined;
+    const handleFocus = () => (windowFocused = true);
+    const handleBlur = () => (windowFocused = false);
+
+    windowFocused = document.hasFocus();
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
+
+    if (appWindow) {
+      void appWindow
+        .isFocused()
+        .then((focused) => {
+          if (!disposed) windowFocused = focused;
+        })
+        .catch((error) => console.warn("Failed to read window focus state:", error));
+      void appWindow
+        .onFocusChanged(({ payload: focused }) => {
+          if (!disposed) windowFocused = focused;
+        })
+        .then((unlisten) => {
+          if (disposed) unlisten();
+          else unlistenFocusChanged = unlisten;
+        })
+        .catch((error) => console.warn("Failed to track window focus state:", error));
+    }
+
+    return () => {
+      disposed = true;
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+      unlistenFocusChanged?.();
+    };
+  });
+
   const winMinimize = () => appWindow?.minimize();
   const winMaximize = () => appWindow?.toggleMaximize();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
@@ -4366,6 +4406,7 @@
         onOpenProjectFolder={openProjectFolder}
         onRemoveProject={removeProject}
         onToggleSettings={() => (settingsOpen ? closeSettings() : openSettings())}
+        {windowFocused}
       />
 
       <!-- ─── Feature panels ─────────────────────────────────────────────────── -->
@@ -4406,6 +4447,7 @@
           onMinimize={winMinimize}
           onMaximize={winMaximize}
           onClose={winClose}
+          {windowFocused}
         />
 
         {#if memoryOpen && MemoryView}
