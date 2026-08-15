@@ -332,7 +332,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   one target; rotate the caret while open and expose the shared focus ring to
   keyboard users. Its rest, hover, and open treatments must match the adjacent
   surface-free model and approval triggers instead of introducing a separate
-  filled workspace chip.
+  filled workspace chip. Keep nested composer controls free of the generic
+  `composer` class so conversation-surface Mica styling cannot turn them into
+  independent raised cards.
   Place older workspaces in a side-opening recent-workspaces submenu that
   supports hover, click, and keyboard navigation. Show each complete workspace
   path without per-row icons, mark WSL shares explicitly, and keep an overflowing

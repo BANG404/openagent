@@ -50,7 +50,7 @@
   }
 </script>
 
-<div class="workspace-switcher" class:composer={variant === "composer"}>
+<div class="workspace-switcher">
   <DropdownMenu.Root bind:open>
     <Tooltip
       text={tauriAvailable ? workspaceTooltip : browserModeNotice}
