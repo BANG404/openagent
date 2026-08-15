@@ -24,4 +24,11 @@ describe("standalone development previews", () => {
     ).toBe("streaming-transcript");
     expect(previewParameterPrefix("streaming-transcript")).toBe("streaming-transcript-preview");
   });
+
+  test("exposes the follow-up suggestions preview", () => {
+    expect(
+      resolveStandaloneDevPreview(new URLSearchParams("follow-up-suggestions-preview"), true),
+    ).toBe("follow-up-suggestions");
+    expect(previewParameterPrefix("follow-up-suggestions")).toBe("follow-up-suggestions-preview");
+  });
 });

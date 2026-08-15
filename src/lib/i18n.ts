@@ -52,6 +52,8 @@ const zh = {
   // Empty state
   ready: "OpenAgent 就绪",
   readyHint: "支持代码阅读、编辑、调试等功能",
+  newConversationGreeting: "回来了，今天想从哪儿接着推？",
+  followUpSuggestions: "继续建议",
   configApiKey: "请在设置中配置 API Key 以开始使用",
   // Input
   inputPlaceholder: "发送消息... (Enter 发送，Shift+Enter 换行，/ 指令，@ 提及)",
@@ -162,6 +164,7 @@ const zh = {
   flashTaskFailed: "Flash 任务失败",
   flashTaskTitle: "标题生成",
   flashTaskMemory: "记忆提取",
+  flashTaskSuggestions: "继续建议",
   flashTaskHook: "定时任务",
   awaitingStreamOutput: "正在思考…",
   memoryRetrievalQueryRewrite: "正在理解并改写记忆检索词…",
@@ -386,10 +389,8 @@ const zh = {
   memoryRetrievalEnabled: "每次对话前自动检索 Agent 记忆",
   memoryRetrievalDescription:
     "默认关闭，由 Agent 判断何时需要检索相关记忆。开启后，每次对话都会使用 Flash 模型改写当前消息、检索记忆并加入系统提示词。",
-  newConversationSummary: "新对话个性化开场白",
-  newConversationSummaryEnabled: "启用新对话个性化开场白",
-  newConversationSummaryDescription:
-    "仅在 Agent 记忆变化后生成一句自然、亲切的问候；可含蓄带入一个低敏的习惯、偏好或当前关注点，但不展示用户画像。",
+  suggestionsAgent: "继续建议任务",
+  suggestionsAgentEnabled: "启用继续建议任务",
   hookAgent: "Hook 任务",
   titleAgent: "标题任务",
   skillCategoryAgent: "技能分类任务",
@@ -471,6 +472,7 @@ const zh = {
   memoryAgentEnabled: "启用记忆任务",
   hookAgentEnabled: "启用 Hook 任务",
   titleAgentEnabled: "启用标题任务",
+  suggestionsAgentPromptPlaceholder: "追加给建议任务的规则，例如优先给出可立即执行的下一步",
   skillCategoryAgentEnabled: "启用技能自动分类",
   skillCategoryTaskDescription:
     "应用启动或切换工作区后，在后台使用 Flash 模型为未分类技能补充分组，并持久化到 SKILL.md 的 metadata.category。",
@@ -481,6 +483,8 @@ const zh = {
   skillCategoryAgentPromptPlaceholder: "追加给技能分类任务的规则，例如优先复用团队现有分组",
   compactionTaskPromptPlaceholder: "追加给压缩任务的规则，例如保留关键文件路径和未完成事项",
   titleTaskDescription: "根据新对话内容生成简洁标题，用于对话列表展示。",
+  suggestionsTaskDescription:
+    "每次 Agent 成功结束后生成 3 条可继续发送的建议；标题更新后基于最近 5 个对话标题刷新新对话建议。",
   memoryTaskDescription: "在对话结束后提取可复用信息，写入长期记忆。",
   hookTaskDescription: "识别对话中的明确安排，并创建可触发的计划任务。",
   compactionTaskDescription: "当上下文接近阈值时压缩较早模型消息，降低后续处理成本。",
@@ -881,6 +885,8 @@ const en: Translations = {
   more: "More",
   ready: "OpenAgent Ready",
   readyHint: "Supports code reading, editing, debugging and more",
+  newConversationGreeting: "Welcome back—what should we pick up today?",
+  followUpSuggestions: "Follow-up suggestions",
   configApiKey: "Configure API Key in Settings to start",
   inputPlaceholder: "Message… (Enter to send, Shift+Enter for newline, / commands, @ mentions)",
   send: "Send",
@@ -993,6 +999,7 @@ const en: Translations = {
   flashTaskFailed: "Flash task failed",
   flashTaskTitle: "Title generation",
   flashTaskMemory: "Memory extraction",
+  flashTaskSuggestions: "Follow-up suggestions",
   flashTaskHook: "Scheduled task",
   awaitingStreamOutput: "Thinking…",
   memoryRetrievalQueryRewrite: "Refining the memory search query…",
@@ -1227,10 +1234,8 @@ const en: Translations = {
   memoryRetrievalEnabled: "Search agent memory before every turn",
   memoryRetrievalDescription:
     "Off by default so the agent decides when relevant memory should be searched. When enabled, every turn rewrites the current message with the Flash model, retrieves memory, and adds it to the system prompt.",
-  newConversationSummary: "Personalized new-conversation greeting",
-  newConversationSummaryEnabled: "Enable personalized new-conversation greeting",
-  newConversationSummaryDescription:
-    "After agent memory changes, generate one short, warm greeting. It may subtly reflect one low-sensitivity habit, preference, or current focus, but never presents a user profile.",
+  suggestionsAgent: "Follow-up Suggestions Task",
+  suggestionsAgentEnabled: "Enable Follow-up Suggestions Task",
   hookAgent: "Hook Task",
   titleAgent: "Title Task",
   skillCategoryAgent: "Skill Category Task",
@@ -1318,6 +1323,8 @@ const en: Translations = {
   memoryAgentEnabled: "Enable Memory Task",
   hookAgentEnabled: "Enable Hook Task",
   titleAgentEnabled: "Enable Title Task",
+  suggestionsAgentPromptPlaceholder:
+    "Additional Suggestions Task rules, e.g. prioritize immediately actionable next steps",
   skillCategoryAgentEnabled: "Enable automatic skill categorization",
   skillCategoryTaskDescription:
     "After startup or a workspace switch, use the Flash model in the background to categorize ungrouped skills and persist metadata.category to SKILL.md.",
@@ -1331,6 +1338,8 @@ const en: Translations = {
     "Additional Compaction Task rules, e.g. preserve key file paths and unfinished work",
   titleTaskDescription:
     "Generates a concise title from new conversation content for the conversation list.",
+  suggestionsTaskDescription:
+    "Generates three sendable follow-ups after each successful Agent turn and refreshes new-chat ideas from the five most recent conversation titles.",
   memoryTaskDescription:
     "Extracts reusable information after a conversation and saves it to long-term memory.",
   hookTaskDescription:

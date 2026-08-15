@@ -166,7 +166,7 @@
       title: { enabled: true, prompt: "" },
       memory: { enabled: true, prompt: "" },
       skill_category: { enabled: true, prompt: "" },
-      new_conversation_summary: { enabled: true, prompt: "" },
+      suggestions: { enabled: true, prompt: "" },
       hook: { enabled: true, prompt: "" },
       tool_approval: { enabled: false, prompt: "" },
     },
@@ -3221,6 +3221,39 @@
             <article class="flash-task-item">
               <div class="flash-task-heading">
                 <div class="flash-task-copy">
+                  <h5>{$t("suggestionsAgent")}</h5>
+                  <p>{$t("suggestionsTaskDescription")}</p>
+                </div>
+                <SettingsStatusToggle
+                  statusLabel={$t(
+                    draftConfig.flash_agents.suggestions.enabled
+                      ? "filterEnabled"
+                      : "filterDisabled",
+                  )}
+                  statusActive={draftConfig.flash_agents.suggestions.enabled}
+                  toggleLabel={$t("taskEnabled")}
+                  bind:checked={draftConfig.flash_agents.suggestions.enabled}
+                  ariaLabel={$t("suggestionsAgentEnabled")}
+                />
+              </div>
+              <details
+                class="flash-task-custom"
+                open={draftConfig.flash_agents.suggestions.prompt.trim().length > 0}
+              >
+                <summary>{$t("taskCustomPrompt")}</summary>
+                <label class="detail-label">
+                  <span class="sr-only">{$t("agentExtraPrompt")}</span>
+                  <textarea
+                    class="detail-input flash-task-textarea"
+                    bind:value={draftConfig.flash_agents.suggestions.prompt}
+                    placeholder={$t("suggestionsAgentPromptPlaceholder")}></textarea>
+                </label>
+              </details>
+            </article>
+
+            <article class="flash-task-item">
+              <div class="flash-task-heading">
+                <div class="flash-task-copy">
                   <h5>{$t("memoryAgent")}</h5>
                   <p>{$t("memoryTaskDescription")}</p>
                 </div>
@@ -3235,17 +3268,6 @@
                 />
               </div>
               <div class="flash-task-suboptions">
-                <div class="flash-task-suboption">
-                  <div>
-                    <h6>{$t("newConversationSummary")}</h6>
-                    <p>{$t("newConversationSummaryDescription")}</p>
-                  </div>
-                  <Switch
-                    bind:checked={draftConfig.flash_agents.new_conversation_summary.enabled}
-                    disabled={!draftConfig.flash_agents.memory.enabled}
-                    ariaLabel={$t("newConversationSummaryEnabled")}
-                  />
-                </div>
                 <div class="flash-task-suboption">
                   <div>
                     <h6>{$t("memoryRetrieval")}</h6>

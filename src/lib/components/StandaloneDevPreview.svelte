@@ -26,8 +26,10 @@
 
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
+  import FollowUpSuggestions from "$lib/components/FollowUpSuggestions.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
+  import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
   import ReasoningEffortSelect from "$lib/components/ReasoningEffortSelect.svelte";
   import StreamItemRenderer from "$lib/components/StreamItemRenderer.svelte";
@@ -59,6 +61,8 @@
   ]);
   let commandValue = $state("");
   let commandAttachments = $state<ChatAttachment[]>([]);
+  let suggestionValue = $state("");
+  let selectedSuggestion = $state("");
   let pauseValue = $state("");
   let pauseAttachments = $state<ChatAttachment[]>([]);
   let quoteValue = $state("");
@@ -111,6 +115,42 @@
         },
       ],
       timestamp: Date.now() - 1000,
+    },
+  ]);
+  let suggestionItems = $derived(
+    locale === "zh"
+      ? ["继续完善刚才的实现", "对比另一种方案的取舍", "检查还有哪些潜在风险"]
+      : [
+          "Continue refining the implementation",
+          "Compare the tradeoffs with another approach",
+          "Check for any remaining risks",
+        ],
+  );
+  let suggestionMessages = $derived<ChatMessage[]>([
+    {
+      id: "suggestion-preview-user",
+      role: "user",
+      content:
+        locale === "zh" ? "请给我一个简洁的实现方案。" : "Give me a concise implementation plan.",
+      timestamp: Date.now() - 2_000,
+    },
+    {
+      id: "suggestion-preview-assistant",
+      role: "assistant",
+      content:
+        locale === "zh"
+          ? "可以先收敛状态边界，再补充类型化事件和浏览器验证。"
+          : "Start by narrowing the state boundary, then add typed events and browser verification.",
+      items: [
+        {
+          type: "text",
+          content:
+            locale === "zh"
+              ? "可以先收敛状态边界，再补充类型化事件和浏览器验证。"
+              : "Start by narrowing the state boundary, then add typed events and browser verification.",
+        },
+      ],
+      timestamp: Date.now() - 1_000,
     },
   ]);
   const streamingMessages: ChatMessage[] = [];
@@ -447,6 +487,72 @@
       onResizeStart={startPanelResize}
     />
   </main>
+{:else if preview === "follow-up-suggestions"}
+  <main class="follow-up-suggestions-preview-stage">
+    <section class="suggestions-new-conversation">
+      <NewConversationContext
+        prompt={$t("newConversationGreeting")}
+        loading={false}
+        showApiKeyWarn={false}
+        placement="stack"
+      />
+      <MessageInput
+        bind:value={suggestionValue}
+        attachments={[]}
+        selectedModel="preview"
+        modelOptions={[{ value: "preview", label: "gpt-5.6" }]}
+        placeholder={$t("inputPlaceholder")}
+        disabled={false}
+        isStreaming={false}
+        sendDisabled={!suggestionValue.trim()}
+        sendTitle={$t("send")}
+        showAttachments={false}
+        onSend={() => {}}
+        onStop={() => {}}
+      />
+      <FollowUpSuggestions
+        suggestions={suggestionItems}
+        onSelect={(suggestion) => {
+          selectedSuggestion = suggestion;
+        }}
+        variant="new-conversation"
+      />
+    </section>
+    <section class="suggestions-turn-preview">
+      <MessageList
+        messages={suggestionMessages}
+        scrollElement={null}
+        isStreaming={false}
+        isAwaitingStreamOutput={false}
+        currentStreamItems={[]}
+        currentStreamMessageId={null}
+        activeConvId="suggestion-preview"
+        activeBranchId={null}
+        debugMode={false}
+        activeTree={undefined}
+        paddingBottom={24}
+        showApiKeyWarn={false}
+        shikiTheme={theme === "dark" ? "github-dark" : "github-light"}
+        mermaidConfig={mermaidConfigFor(theme === "dark")}
+        newConversationGreeting={null}
+        newConversationGreetingLoading={false}
+        followUpSuggestionsByMessageId={{
+          "suggestion-preview-assistant": suggestionItems,
+        }}
+        editable={false}
+        onCommitEdit={() => {}}
+        onAddQuote={() => {}}
+        onReExecute={() => {}}
+        onSwitchBranch={() => {}}
+        onSubmitUserInput={() => {}}
+        onCancelUserInput={() => {}}
+        onSelectSuggestion={(suggestion) => {
+          selectedSuggestion = suggestion;
+        }}
+      />
+    </section>
+    <output>{selectedSuggestion || $t("followUpSuggestions")}</output>
+  </main>
 {:else if preview === "pause-control"}
   <main class="command-palette-preview-stage">
     <MessageInput
@@ -490,8 +596,8 @@
         showApiKeyWarn={false}
         shikiTheme={theme === "dark" ? "github-dark" : "github-light"}
         mermaidConfig={mermaidConfigFor(theme === "dark")}
-        newConversationMemoryPrompt={null}
-        newConversationMemoryLoading={false}
+        newConversationGreeting={null}
+        newConversationGreetingLoading={false}
         editable={false}
         onCommitEdit={() => {}}
         onAddQuote={(context) => {
@@ -596,8 +702,8 @@
       shikiTheme={theme === "dark" ? "github-dark" : "github-light"}
       mermaidConfig={mermaidConfigFor(theme === "dark")}
       followTail={streamingFollowTail}
-      newConversationMemoryPrompt={null}
-      newConversationMemoryLoading={false}
+      newConversationGreeting={null}
+      newConversationGreetingLoading={false}
       editable={false}
       onCommitEdit={() => {}}
       onAddQuote={() => {}}
@@ -637,11 +743,47 @@
   .permission-settings-preview-stage,
   .workspace-switcher-preview-stage,
   .command-palette-preview-stage,
+  .follow-up-suggestions-preview-stage,
   .runtime-notice-preview-stage,
   .attachment-composer-preview-stage {
     min-height: 100vh;
     box-sizing: border-box;
     background: var(--bg);
+  }
+  .follow-up-suggestions-preview-stage {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    padding: 36px;
+  }
+  .suggestions-new-conversation,
+  .suggestions-turn-preview {
+    min-width: 0;
+    padding: 28px;
+    border: 1px solid var(--mica-border);
+    border-radius: 18px;
+    background: var(--mica-surface);
+    box-shadow: var(--mica-shadow);
+    backdrop-filter: blur(24px) saturate(1.2);
+  }
+  .suggestions-new-conversation {
+    align-self: start;
+  }
+  .suggestions-turn-preview {
+    min-height: 420px;
+    overflow-y: auto;
+  }
+  .follow-up-suggestions-preview-stage output {
+    position: fixed;
+    right: 20px;
+    bottom: 16px;
+    max-width: calc(100vw - 40px);
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--control-surface);
+    color: var(--text-muted);
+    font-size: 12px;
+    box-shadow: var(--raised-shadow);
   }
   .quote-context-preview-stage {
     position: relative;
@@ -856,6 +998,10 @@
     pointer-events: none;
   }
   @media (max-width: 760px) {
+    .follow-up-suggestions-preview-stage {
+      grid-template-columns: 1fr;
+      padding: 20px;
+    }
     .checkpoint-flow-preview-stage {
       --flow-panel-collapsed-track-width: 26px;
     }

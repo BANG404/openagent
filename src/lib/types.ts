@@ -484,7 +484,7 @@ export interface FlashAgentsConfig {
   title: FlashAgentConfig;
   memory: FlashAgentConfig;
   skill_category: FlashAgentConfig;
-  new_conversation_summary: FlashAgentConfig;
+  suggestions: FlashAgentConfig;
   hook: FlashAgentConfig;
   tool_approval: FlashAgentConfig;
 }

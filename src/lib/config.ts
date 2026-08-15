@@ -166,9 +166,9 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
       enabled: input.flash_agents?.skill_category?.enabled ?? true,
       prompt: input.flash_agents?.skill_category?.prompt ?? "",
     },
-    new_conversation_summary: {
-      enabled: input.flash_agents?.new_conversation_summary?.enabled ?? true,
-      prompt: input.flash_agents?.new_conversation_summary?.prompt ?? "",
+    suggestions: {
+      enabled: input.flash_agents?.suggestions?.enabled ?? true,
+      prompt: input.flash_agents?.suggestions?.prompt ?? "",
     },
     hook: {
       enabled: input.flash_agents?.hook?.enabled ?? true,

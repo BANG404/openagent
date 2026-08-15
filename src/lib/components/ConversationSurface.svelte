@@ -21,6 +21,7 @@
   import ChatQueue from "./ChatQueue.svelte";
   import CheckpointFlowPanelHost from "./CheckpointFlowPanelHost.svelte";
   import FileChangeBanner from "./FileChangeBanner.svelte";
+  import FollowUpSuggestions from "./FollowUpSuggestions.svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import MessageInput, { type SlashCommand } from "./MessageInput.svelte";
   import MessageList from "./MessageList.svelte";
@@ -48,8 +49,9 @@
     mermaidConfig: MermaidConfig;
     messages: ChatMessage[];
     newConversationLayout: boolean;
-    newConversationMemoryLoading: boolean;
-    newConversationMemoryPrompt: string | null;
+    followUpSuggestionsByMessageId: Record<string, string[]>;
+    newConversationGreeting: string;
+    newConversationSuggestions: string[];
     queuedMessages: QueuedChatMessage[];
     restoringSurface: CachedRestoreSurface;
     shikiTheme: string;
@@ -78,6 +80,7 @@
     revertFileChange: (changeId: string) => Promise<void>;
     reExecuteMessage: (convId: string, assistantMsgIdx: number) => void | Promise<void>;
     sendMessage: () => void | Promise<void>;
+    sendSuggestedMessage: (suggestion: string) => void | Promise<void>;
     skipMemoryRetrieval: () => void | Promise<void>;
     stopMessage: () => void | Promise<void>;
     submitUserInput: (requestId: string, values: Record<string, unknown>) => void | Promise<void>;
@@ -196,8 +199,9 @@
           followTail={view.followTail}
           tailAnchorToken={view.tailAnchorToken}
           onTailAnchorSettled={actions.finishStreamCompletionTailAnchor}
-          newConversationMemoryPrompt={view.newConversationMemoryPrompt}
-          newConversationMemoryLoading={view.newConversationMemoryLoading}
+          newConversationGreeting={view.newConversationGreeting}
+          newConversationGreetingLoading={false}
+          followUpSuggestionsByMessageId={view.followUpSuggestionsByMessageId}
           showNewConversationContext={!view.newConversationLayout}
           checkpointLoadError={view.checkpointLoadError}
           onCommitEdit={actions.commitEdit}
@@ -207,6 +211,7 @@
           onSubmitUserInput={actions.submitUserInput}
           onCancelUserInput={actions.cancelUserInput}
           onSkipMemoryRetrieval={actions.skipMemoryRetrieval}
+          onSelectSuggestion={actions.sendSuggestedMessage}
         />
       {/if}
     </main>
@@ -219,8 +224,8 @@
     >
       {#if view.newConversationLayout}
         <NewConversationContext
-          prompt={view.newConversationMemoryPrompt}
-          loading={view.mainContentLoading || view.newConversationMemoryLoading}
+          prompt={view.newConversationGreeting}
+          loading={view.mainContentLoading}
           showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(view.config)}
           placement="stack"
         />
@@ -280,6 +285,14 @@
           />
         {/if}
       </div>
+      {#if view.newConversationLayout && !view.mainContentLoading}
+        <FollowUpSuggestions
+          suggestions={view.newConversationSuggestions}
+          onSelect={actions.sendSuggestedMessage}
+          variant="new-conversation"
+          disabled={!view.tauriAvailable || composerPreferences.modelOptions.length === 0}
+        />
+      {/if}
     </div>
   </div>
   {#if view.checkpointFlow}

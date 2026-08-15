@@ -90,6 +90,25 @@ describe("automatic memory retrieval config", () => {
   });
 });
 
+describe("Flash suggestions config", () => {
+  test("defaults older configuration payloads to enabled suggestions", () => {
+    const normalized = normalizeConfigShape({} as AppConfig);
+
+    expect(normalized.flash_agents.suggestions).toEqual({ enabled: true, prompt: "" });
+  });
+
+  test("drops the removed personalized greeting setting", () => {
+    const normalized = normalizeConfigShape({
+      flash_agents: {
+        new_conversation_summary: { enabled: false, prompt: "legacy" },
+      },
+    } as unknown as AppConfig);
+
+    expect(normalized.flash_agents.suggestions).toEqual({ enabled: true, prompt: "" });
+    expect(normalized.flash_agents).not.toHaveProperty("new_conversation_summary");
+  });
+});
+
 describe("messaging channel config", () => {
   test("materializes every channel for older configuration payloads", () => {
     const normalized = normalizeConfigShape({} as AppConfig);

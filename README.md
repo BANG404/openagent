@@ -340,9 +340,10 @@ Memory files have **two zones**. The Memory Agent only writes below the marker c
 Open **Settings → Flash Tasks → Memory Task** to configure the long-term-memory workflow:
 
 - **Automatic agent memory retrieval** is disabled by default, leaving the chat agent to decide when a turn needs the `search_agent_memory` tool. Enabling it adds a preflight to every turn that uses the Flash model to turn the current message into a focused query, retrieves relevant structured memory, and adds the results to the chat agent's system prompt.
-- **Personalized new-conversation greeting** runs only when the Memory Agent adds or removes memory. It generates and persists one short, natural greeting; memory may shape its tone or lightly suggest one relevant topic, but is never displayed as a user profile.
 
-Disabling the Memory Agent stops its post-conversation extraction task; the two switches above control their respective follow-up behaviors independently.
+Disabling the Memory Agent stops its post-conversation extraction task; automatic retrieval remains independently configurable. New conversations use fixed localized greeting copy and never generate it from memory.
+
+The independent **Follow-up Suggestions** Flash task generates three actionable messages after each completed Agent turn. It also refreshes three new-conversation suggestions from up to the five most recently updated conversation titles after a title task completes. Selecting a suggestion sends it immediately as the next user message.
 
 ---
 

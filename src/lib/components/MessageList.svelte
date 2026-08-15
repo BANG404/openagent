@@ -7,6 +7,7 @@
   import Tooltip from "./Tooltip.svelte";
   import VirtualMessageList from "./VirtualMessageList.svelte";
   import NewConversationContext from "./NewConversationContext.svelte";
+  import FollowUpSuggestions from "./FollowUpSuggestions.svelte";
   import { t } from "$lib/i18n";
   import { finalAssistantOutput, finalAssistantOutputStartIndex } from "$lib/assistantOutput";
   import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
@@ -57,10 +58,11 @@
     followTail?: boolean;
     tailAnchorToken?: number | null;
     onTailAnchorSettled?: (token: number) => void;
-    newConversationMemoryPrompt: string | null;
-    newConversationMemoryLoading: boolean;
+    newConversationGreeting: string | null;
+    newConversationGreetingLoading: boolean;
     showNewConversationContext?: boolean;
     checkpointLoadError?: string | null;
+    followUpSuggestionsByMessageId?: Record<string, string[]>;
     editable?: boolean;
     attachmentPreviewLoader?: (
       locator: string,
@@ -79,6 +81,7 @@
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
     onCancelUserInput: (requestId: string) => void;
     onSkipMemoryRetrieval?: () => void;
+    onSelectSuggestion?: (suggestion: string) => void | Promise<void>;
   }
   let {
     messages,
@@ -104,10 +107,11 @@
     followTail = true,
     tailAnchorToken = null,
     onTailAnchorSettled,
-    newConversationMemoryPrompt,
-    newConversationMemoryLoading,
+    newConversationGreeting,
+    newConversationGreetingLoading,
     showNewConversationContext = true,
     checkpointLoadError = null,
+    followUpSuggestionsByMessageId = {},
     editable = true,
     attachmentPreviewLoader,
     onCommitEdit,
@@ -117,6 +121,7 @@
     onSubmitUserInput,
     onCancelUserInput,
     onSkipMemoryRetrieval = () => {},
+    onSelectSuggestion = () => {},
   }: Props = $props();
 
   function memoryRetrievalLabel(stage: ChatMemoryRetrievalStage): string {
@@ -535,8 +540,8 @@
 
   {#if visibleMessages.length === 0 && !isStreaming && showNewConversationContext}
     <NewConversationContext
-      prompt={newConversationMemoryPrompt}
-      loading={newConversationMemoryLoading}
+      prompt={newConversationGreeting}
+      loading={newConversationGreetingLoading}
       {showApiKeyWarn}
     />
   {/if}
@@ -585,6 +590,9 @@
         {@const timing = assistantMsg
           ? runTiming(assistantMsg, assistantMsgIdx, turnMessages)
           : null}
+        {@const turnSuggestions = assistantMsg
+          ? (followUpSuggestionsByMessageId[assistantMsg.id] ?? [])
+          : []}
         {#snippet renderAssistantSegments(segments: StreamItemSegment[])}
           {#each segments as segment (`${entry.key}-${segment.startIndex}`)}
             {#if segment.kind === "tool_group"}
@@ -760,6 +768,11 @@
               {#if assistantMsg.timestamp > 0}<span class="ts"
                   >{formatTime(assistantMsg.timestamp)}</span
                 >{/if}
+            </div>
+          {/if}
+          {#if !isStreaming && turnIsTerminal && turnSuggestions.length === 3}
+            <div class="message-record pagination-footer">
+              <FollowUpSuggestions suggestions={turnSuggestions} onSelect={onSelectSuggestion} />
             </div>
           {/if}
         {/if}

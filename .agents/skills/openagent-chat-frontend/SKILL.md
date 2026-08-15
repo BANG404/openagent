@@ -193,6 +193,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   in the background. Do not show the conversation-loading skeleton, remount an
   unchanged transcript, overwrite backend history, or remove optimistic
   messages from a queued turn.
+- Attach Flash-generated follow-up suggestions to the stable backend assistant
+  message ID from completion. Render exactly three suggestions below that
+  reply's full-width footer only after streaming has ended, cache them by
+  message ID across navigation, and send a selected suggestion through the
+  shared user-message path without replacing the current composer draft.
 - New checkpoints carry compacted context inside the tagged user replay rather
   than adding a system message. Represent the whole record only by the divider,
   while continuing to restore legacy system-boundary checkpoints.
@@ -378,7 +383,7 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   empty-state aurora mounted across conversation changes
   and crossfade its visibility against the composer aurora; do not remount a
   fully opaque animated layer when the active conversation becomes empty. Fade
-  in the generated memory note's ambient layers on the same opacity rhythm so
+  in the fixed greeting's ambient layers on the same opacity rhythm so
   the two empty-state light fields cannot flash on together. On a new
   conversation, treat the greeting and composer as one vertical stack whose
   measured total height determines its position slightly above the geometric
@@ -404,8 +409,16 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   new-conversation surface, even when older conversations exist. Never fall
   back to the newest conversation.
 - Treat the new-conversation action as idempotent while that surface is already
-  visible. Do not reload its memory greeting, rewrite its durable active marker,
+  visible. Do not reload its greeting or suggestions, rewrite its durable active marker,
   or toggle its loading skeleton on a repeated click.
+- The new-conversation greeting is fixed localized product copy; it must not
+  depend on memory or a Flash task. Show exactly three optional Flash-generated
+  suggestions derived from up to the five most recently updated top-level
+  conversation titles, persisted per workspace and locale below the composer.
+  Selecting one sends it immediately through the shared user-message path.
+- Keep the development-only `follow-up-suggestions-preview` query available
+  with `-theme=light|dark` and `-locale=zh|en` parameters so both suggestion
+  placements and their direct-send interaction remain browser-verifiable.
 - Keep the right-side user-message index on one shared tooltip surface. Do not
   render a second inline message preview for the same index marker.
 - Do not render approval controls for a switched branch until its active tip is

@@ -1171,8 +1171,8 @@
               {messageLayout}
               {messageDoubleColumnMinWidth}
               {bookModeFontSize}
-              newConversationMemoryPrompt={$t("remoteNewConversationGreeting")}
-              newConversationMemoryLoading={false}
+              newConversationGreeting={$t("remoteNewConversationGreeting")}
+              newConversationGreetingLoading={false}
               showNewConversationContext={!newConversationLayout}
               editable={!running}
               attachmentPreviewLoader={(locator, name) =>

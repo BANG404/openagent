@@ -131,7 +131,6 @@
     RecentWorkspace,
     UserInputRequest,
     ChatAttachment,
-    AgentMemoryEntry,
     AgentRole,
     StartupBootstrap,
     StartupConversationBundle,
@@ -379,18 +378,9 @@
     message_id: string | null;
   } | null>(null);
   let isDarkTheme = $state(false);
-  let newConversationMemories = $state<AgentMemoryEntry[]>([]);
-  let newConversationGeneratedReminder = $state<string | null>(null);
-  let newConversationMemoryLoading = $state(true);
-  let newConversationMemoryLoadGeneration = 0;
-  let newConversationMemoryPrompt = $derived(
-    buildNewConversationMemoryPrompt(
-      newConversationMemories,
-      workspacePath,
-      config?.language ?? "zh",
-      newConversationGeneratedReminder,
-    ),
-  );
+  let newConversationSuggestions = $state<string[]>([]);
+  let followUpSuggestionsByMessageId = $state<Record<string, string[]>>(loadFollowUpSuggestions());
+  let newConversationGreeting = $derived($t("newConversationGreeting"));
 
   // ─── Branch / Re-execute state ────────────────────────────────────────────────
   // The conversation is a tree of checkpoints. Each tree node represents one turn
@@ -437,7 +427,7 @@
       title: { enabled: true, prompt: "" },
       memory: { enabled: true, prompt: "" },
       skill_category: { enabled: true, prompt: "" },
-      new_conversation_summary: { enabled: true, prompt: "" },
+      suggestions: { enabled: true, prompt: "" },
       hook: { enabled: true, prompt: "" },
       tool_approval: { enabled: false, prompt: "" },
     },
@@ -1773,7 +1763,7 @@
       }
     }
 
-    void loadNewConversationMemories();
+    syncNewConversationSuggestionsFromStorage();
     if (tauriAvailable) {
       void invoke<AgentCommandSpec[]>("get_agent_commands")
         .then((commandSpecs) => {
@@ -1801,6 +1791,7 @@
     applyTheme(config.theme ?? "system");
     await initI18n(config.language);
     workspacePath = bootstrap.workspace_path;
+    syncNewConversationSuggestionsFromStorage();
     workspace = bootstrap.workspace;
     launchContext = bootstrap.launch_context;
     recentWorkspaces = config.recent_workspaces ?? [];
@@ -2008,6 +1999,7 @@
           config = structuredClone(next);
           applyTheme(config.theme ?? "system");
           setLocale((config.language ?? "zh") as Locale);
+          syncNewConversationSuggestionsFromStorage();
           if (previousShortcut !== nextShortcut && !launchContext?.workspace) {
             void replaceQuickChatShortcut(nextShortcut).catch((error) =>
               console.error("Failed to apply reloaded quick-chat shortcut:", error),
@@ -2045,6 +2037,7 @@
       const taskLabel = {
         title: $t("flashTaskTitle"),
         memory: $t("flashTaskMemory"),
+        suggestions: $t("flashTaskSuggestions"),
         hook: $t("flashTaskHook"),
       }[e.payload.task_kind];
       showToast({
@@ -2076,16 +2069,6 @@
           },
         },
       });
-    });
-
-    register<{ workspace: string; reminder: string }>("memory-homepage-reminder-updated", (e) => {
-      const { workspace: reminderWorkspace, reminder } = e.payload;
-      if ((reminderWorkspace || "") !== (workspacePath || "")) return;
-      const value = reminder.trim();
-      const key = homepageReminderStorageKey(workspacePath, config?.language ?? "zh");
-      newConversationGeneratedReminder = value || null;
-      if (value) window.localStorage.setItem(key, value);
-      else window.localStorage.removeItem(key);
     });
 
     register<{
@@ -2509,6 +2492,22 @@
       onDone: (conv_id, asstMsgId, error) => {
         finalizeStreamedMessage(conv_id, false, asstMsgId, error);
       },
+      onFollowUpSuggestions: (convId, assistantMessageId, suggestions) => {
+        const normalized = normalizeSuggestions(suggestions);
+        if (!convId || !assistantMessageId || normalized.length !== 3) return;
+        storeFollowUpSuggestions(assistantMessageId, normalized);
+      },
+      onNewConversationSuggestions: (suggestionWorkspace, suggestions) => {
+        const normalized = normalizeSuggestions(suggestions);
+        if (normalized.length !== 3) return;
+        window.localStorage.setItem(
+          newConversationSuggestionsStorageKey(suggestionWorkspace || "", config?.language ?? "zh"),
+          JSON.stringify(normalized),
+        );
+        if ((suggestionWorkspace || "") === (workspacePath || "")) {
+          newConversationSuggestions = normalized;
+        }
+      },
       onInterrupted: (conv_id) => {
         finalizeStreamedMessage(conv_id, false);
         // The live `chat-user-input-request` event has already attached the
@@ -2811,115 +2810,81 @@
   function pollMemoryStatus() {
     if (!tauriAvailable) return;
 
-    let wasSyncing = isMemorySyncing;
     setInterval(async () => {
       try {
         const next = await invoke<boolean>("get_memory_status");
-        if (wasSyncing && !next) {
-          await loadNewConversationMemories();
-        }
-        wasSyncing = next;
         isMemorySyncing = next;
       } catch {}
     }, 2000);
   }
 
-  async function loadNewConversationMemories() {
-    const generation = ++newConversationMemoryLoadGeneration;
-    newConversationMemoryLoading = true;
-    if (!tauriAvailable) {
-      newConversationMemories = [];
-      newConversationGeneratedReminder = loadHomepageReminder(
-        workspacePath,
-        config?.language ?? "zh",
+  function normalizeSuggestions(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
+    const suggestions = value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(
+        (item) =>
+          item.length > 0 &&
+          [...item].length <= 120 &&
+          !item.includes("\n") &&
+          !item.includes("\r"),
       );
-      newConversationMemoryLoading = false;
-      return;
-    }
+    const unique = new Set(suggestions.map((item) => item.toLocaleLowerCase()));
+    return suggestions.length === 3 && unique.size === 3 ? suggestions : [];
+  }
 
+  function loadFollowUpSuggestions(): Record<string, string[]> {
+    if (typeof window === "undefined") return {};
     try {
-      const [globalMemories, projectMemories] = await Promise.all([
-        invoke<AgentMemoryEntry[]>("get_agent_memories", { scope: "global", query: null }),
-        workspacePath
-          ? invoke<AgentMemoryEntry[]>("get_agent_memories", { scope: workspacePath, query: null })
-          : Promise.resolve([]),
-      ]);
-
-      if (generation !== newConversationMemoryLoadGeneration) return;
-      const seen = new Set<string>();
-      newConversationMemories = [...projectMemories, ...globalMemories]
-        .filter((memory) => {
-          const key = memory.content.trim().replace(/\s+/g, " ");
-          if (!key || seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        })
-        .sort((a, b) => b.updated_at - a.updated_at)
-        .slice(0, 3);
-      newConversationGeneratedReminder = loadHomepageReminder(
-        workspacePath,
-        config?.language ?? "zh",
+      const parsed = JSON.parse(
+        window.localStorage.getItem("openagent_follow_up_suggestions:v1") ?? "{}",
+      ) as Record<string, unknown>;
+      return Object.fromEntries(
+        Object.entries(parsed)
+          .map(([messageId, value]) => [messageId, normalizeSuggestions(value)] as const)
+          .filter(([, suggestions]) => suggestions.length === 3),
       );
     } catch {
-      if (generation !== newConversationMemoryLoadGeneration) return;
-      newConversationMemories = [];
-      newConversationGeneratedReminder = loadHomepageReminder(
-        workspacePath,
-        config?.language ?? "zh",
+      return {};
+    }
+  }
+
+  function storeFollowUpSuggestions(messageId: string, suggestions: string[]) {
+    const entries = [
+      ...Object.entries(followUpSuggestionsByMessageId).filter(([id]) => id !== messageId),
+      [messageId, suggestions] as const,
+    ].slice(-100);
+    followUpSuggestionsByMessageId = Object.fromEntries(entries);
+    window.localStorage.setItem(
+      "openagent_follow_up_suggestions:v1",
+      JSON.stringify(followUpSuggestionsByMessageId),
+    );
+  }
+
+  function newConversationSuggestionsStorageKey(workspace: string, language: Locale) {
+    return `openagent_new_conversation_suggestions:v1:${language}:${encodeURIComponent(workspace || "global")}`;
+  }
+
+  function loadNewConversationSuggestions(workspace: string, language: Locale): string[] {
+    if (typeof window === "undefined") return [];
+    try {
+      return normalizeSuggestions(
+        JSON.parse(
+          window.localStorage.getItem(newConversationSuggestionsStorageKey(workspace, language)) ??
+            "[]",
+        ),
       );
-    } finally {
-      if (generation === newConversationMemoryLoadGeneration) {
-        newConversationMemoryLoading = false;
-      }
+    } catch {
+      return [];
     }
   }
 
-  function buildNewConversationMemoryPrompt(
-    memories: AgentMemoryEntry[],
-    currentWorkspace: string,
-    language: Locale,
-    generatedReminder: string | null,
-  ) {
-    const reminder = generatedReminder?.trim();
-    if (reminder) return reminder;
-    if (memories.length === 0) return null;
-
-    const hasProjectMemory = currentWorkspace
-      ? memories.some((memory) => memory.scope === currentWorkspace)
-      : false;
-    const hasGlobalMemory = memories.some((memory) => memory.scope === "global");
-
-    if (language === "en") {
-      if (hasProjectMemory && hasGlobalMemory) {
-        return "I remember a bit about this project and how you like to work, so we can pick up naturally.";
-      }
-      if (hasProjectMemory) {
-        return "I remember some context from this project, so you can tell me what to do next.";
-      }
-      return "I remember some of your preferences, so you can just tell me what you want to do.";
-    }
-
-    if (hasProjectMemory && hasGlobalMemory) {
-      return "我还记得这个项目的一些上下文，也记得你的习惯；我们可以直接接着做。";
-    }
-    if (hasProjectMemory) {
-      return "我还记得这个项目的一些上下文，直接说下一步就行。";
-    }
-    return "我还记得你的一些偏好和习惯，直接说想做什么就行。";
-  }
-
-  function homepageReminderStorageKey(currentWorkspace: string, language: Locale) {
-    // Version the generated copy so older profile-style summaries are not shown
-    // after the greeting contract changes.
-    return `openagent_homepage_memory_greeting:v3:${language}:${currentWorkspace || "global"}`;
-  }
-
-  function loadHomepageReminder(currentWorkspace: string, language: Locale) {
-    if (typeof window === "undefined") return null;
-    const value = window.localStorage
-      .getItem(homepageReminderStorageKey(currentWorkspace, language))
-      ?.trim();
-    return value || null;
+  function syncNewConversationSuggestionsFromStorage() {
+    newConversationSuggestions = loadNewConversationSuggestions(
+      workspacePath,
+      config?.language ?? "zh",
+    );
   }
 
   // ─── Conversation Management ──────────────────────────────────────────────────
@@ -2951,7 +2916,7 @@
         workspace: workspacePath || "",
       }).catch(() => {});
     }
-    void loadNewConversationMemories();
+    syncNewConversationSuggestionsFromStorage();
   }
 
   async function newConversation() {
@@ -3368,6 +3333,20 @@
     );
   }
 
+  async function sendSuggestedMessage(suggestion: string) {
+    const text = suggestion.trim();
+    if (!text || composerPreferences.modelOptions.length === 0) return;
+    if (activeConvId && chatStreams.streamingConversationIds[activeConvId]) return;
+    await dispatchQueuedOrImmediateMessage(
+      text,
+      activeConvId,
+      [],
+      [],
+      composerPreferences.selectedModel,
+      false,
+    );
+  }
+
   async function handleClientSlashInput(text: string): Promise<boolean> {
     try {
       const resolved = await invoke<ResolvedAgentInput>("resolve_agent_input", { text });
@@ -3593,6 +3572,7 @@
     activeConvId = restoreHint?.conversationId ?? null;
     try {
       workspacePath = path;
+      syncNewConversationSuggestionsFromStorage();
 
       // Reset loaded tracking for old workspace's convs
       loadedConvIds.clear();
@@ -3630,12 +3610,10 @@
           has_agent_dir: false,
           environment: { kind: "local" },
         };
-        await loadNewConversationMemories();
         return;
       }
       await invoke("set_workspace", { path: path || null });
       workspace = await invoke<WorkspaceContext>("get_workspace_context");
-      await loadNewConversationMemories();
     } finally {
       workspaceLoading = false;
     }
@@ -4066,6 +4044,7 @@
     currentStreamMessageId,
     debugMode: isDebugMode,
     fileChanges: currentFileChanges,
+    followUpSuggestionsByMessageId,
     followTail: followStreamToBottom,
     isAwaitingStreamOutput: isCurrentAwaitingStreamOutput,
     isPaused: isCurrentStreamPaused,
@@ -4076,8 +4055,8 @@
     mermaidConfig,
     messages,
     newConversationLayout,
-    newConversationMemoryLoading,
-    newConversationMemoryPrompt,
+    newConversationGreeting,
+    newConversationSuggestions,
     queuedMessages: activeConvId ? (queuedChatMessages[activeConvId] ?? []) : [],
     restoringSurface,
     shikiTheme,
@@ -4101,6 +4080,7 @@
     revertFileChange: handleRevertFileChange,
     reExecuteMessage: reExecuteMsg,
     sendMessage,
+    sendSuggestedMessage,
     skipMemoryRetrieval: skipCurrentMemoryRetrieval,
     stopMessage,
     submitUserInput,
