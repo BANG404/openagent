@@ -183,13 +183,6 @@
     color: var(--text-muted);
   }
 
-  :global(.composer-workspace-btn .folder-name) {
-    max-width: 128px;
-    color: inherit;
-    font-size: 12px;
-    font-weight: 400;
-  }
-
   .workspace-folder-icon {
     width: 14px;
     height: 14px;
@@ -239,6 +232,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 180px;
+  }
+
+  :global(.composer-workspace-btn .folder-name) {
+    max-width: 128px;
+    color: inherit;
+    font-size: 12px;
+    font-weight: 400;
   }
 
   .wsl-badge {

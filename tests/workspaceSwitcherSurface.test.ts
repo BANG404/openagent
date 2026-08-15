@@ -10,4 +10,11 @@ test("keeps the composer workspace switcher out of the composer surface selector
 
   expect(source).toContain('<div class="workspace-switcher">');
   expect(source).not.toContain("class:composer=");
+
+  const baseFolderNameRule = source.indexOf("\n  .folder-name {");
+  const composerFolderNameRule = source.indexOf(
+    "\n  :global(.composer-workspace-btn .folder-name) {",
+  );
+  expect(baseFolderNameRule).toBeGreaterThan(-1);
+  expect(composerFolderNameRule).toBeGreaterThan(baseFolderNameRule);
 });
