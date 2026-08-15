@@ -2,6 +2,7 @@
   import { tick } from "svelte";
   import { DropdownMenu } from "bits-ui";
   import { t } from "$lib/i18n";
+  import { projectsInPersistedOrder } from "$lib/sidebarProjects";
   import type { Conversation, RecentWorkspace } from "$lib/types";
   import { workspaceFolderName } from "$lib/workspacePath";
   import ConversationList from "./ConversationList.svelte";
@@ -76,27 +77,19 @@
   });
 
   let projectEntries = $derived.by(() => {
-    const byPath = new Map<string, RecentWorkspace>();
-    if (workspacePath) {
-      byPath.set(workspacePath, {
-        path: workspacePath,
-        name: workspaceFolderName(workspacePath),
-      });
-    }
-    for (const item of recentWorkspaces) {
-      if (!byPath.has(item.path)) byPath.set(item.path, item);
-    }
     const pinnedPaths = new Set(pinnedProjectPaths);
     const query = projectSearchQuery.trim().toLocaleLowerCase();
-    const ordered = [...byPath.values()].sort((left, right) => {
-      const pinDifference =
-        Number(pinnedPaths.has(right.path)) - Number(pinnedPaths.has(left.path));
-      if (query) {
-        const rankDifference = projectSearchRank(left, query) - projectSearchRank(right, query);
-        if (rankDifference !== 0) return rankDifference;
-      }
-      return pinDifference;
-    });
+    const ordered = projectsInPersistedOrder(recentWorkspaces, workspacePath).sort(
+      (left, right) => {
+        const pinDifference =
+          Number(pinnedPaths.has(right.path)) - Number(pinnedPaths.has(left.path));
+        if (query) {
+          const rankDifference = projectSearchRank(left, query) - projectSearchRank(right, query);
+          if (rankDifference !== 0) return rankDifference;
+        }
+        return pinDifference;
+      },
+    );
     return query ? ordered : ordered.slice(0, 6);
   });
 
@@ -111,7 +104,24 @@
   }
 
   function conversationsForProject(path: string): Conversation[] {
-    return allRecentConversations.filter((item) => item.workspace === path).slice(0, 4);
+    return allRecentConversations.filter((item) => item.workspace === path);
+  }
+
+  function selectProjectConversation(path: string, id: string): void {
+    if (path === workspacePath) {
+      onSelect(id);
+      return;
+    }
+    const conversation = allRecentConversations.find((item) => item.id === id);
+    if (conversation) onOpenConversation(conversation);
+  }
+
+  function loadMoreProjectConversations(path: string): void {
+    if (path === workspacePath) {
+      onLoadMore();
+      return;
+    }
+    selectProject(path);
   }
 
   function selectSearchResult(id: string): void {
@@ -345,33 +355,22 @@
                 </div>
               </div>
 
-              {#if project.path === workspacePath}
-                <ConversationList
-                  embedded
-                  compactProject
-                  {conversations}
-                  activeConvId={activeConversationId}
-                  streamingConvIds={streamingConversationIds}
-                  {hasMore}
-                  {loadingMore}
-                  {onLoadMore}
-                  {onSelect}
-                  {onTogglePin}
-                  {onDelete}
-                />
-              {:else}
-                <div class="project-conversations">
-                  {#each conversationsForProject(project.path) as conversation (conversation.id)}
-                    <button
-                      class="workspace-conversation-row"
-                      type="button"
-                      onclick={() => onOpenConversation(conversation)}
-                    >
-                      <span>{conversation.title}</span>
-                    </button>
-                  {/each}
-                </div>
-              {/if}
+              <ConversationList
+                embedded
+                compactProject
+                alwaysShowMore
+                conversations={project.path === workspacePath
+                  ? conversations
+                  : conversationsForProject(project.path)}
+                activeConvId={activeConversationId}
+                streamingConvIds={streamingConversationIds}
+                hasMore={project.path === workspacePath && hasMore}
+                loadingMore={project.path === workspacePath && loadingMore}
+                onLoadMore={() => loadMoreProjectConversations(project.path)}
+                onSelect={(id) => selectProjectConversation(project.path, id)}
+                {onTogglePin}
+                {onDelete}
+              />
             </section>
           {/each}
         </div>
@@ -593,7 +592,6 @@
   }
 
   .project-list,
-  .project-conversations,
   .recent-conversations {
     display: grid;
     gap: var(--list-item-stack-gap);
@@ -739,10 +737,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .project-conversations {
-    margin-top: 3px;
   }
 
   .workspace-conversation-row {

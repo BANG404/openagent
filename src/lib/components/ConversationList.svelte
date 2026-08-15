@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ContextMenu } from "bits-ui";
   import { t } from "$lib/i18n";
+  import { projectConversationPageSize } from "$lib/sidebarProjects";
   import type { Conversation } from "$lib/types";
 
   interface Props {
@@ -16,6 +17,7 @@
     onLoadMore: () => void;
     embedded?: boolean;
     compactProject?: boolean;
+    alwaysShowMore?: boolean;
   }
   let {
     conversations,
@@ -30,11 +32,12 @@
     onLoadMore,
     embedded = false,
     compactProject = false,
+    alwaysShowMore = false,
   }: Props = $props();
 
   let listElement = $state<HTMLDivElement>();
   let pageSentinel = $state<HTMLDivElement>();
-  let revealedRoots = $state(5);
+  let revealedRoots = $state(projectConversationPageSize);
 
   let normalizedSearchQuery = $derived(searchQuery.trim().toLowerCase());
   let searchResults = $derived(
@@ -162,11 +165,11 @@
 
   function revealMore(): void {
     if (hasHiddenRoots) {
-      revealedRoots += 5;
+      revealedRoots += projectConversationPageSize;
       return;
     }
     onLoadMore();
-    revealedRoots += 5;
+    revealedRoots += projectConversationPageSize;
   }
 </script>
 
@@ -383,7 +386,7 @@
         {/if}
       {/each}
     {/if}
-    {#if (compactProject && hasHiddenRoots) || (embedded && hasMore)}
+    {#if (compactProject && (alwaysShowMore || hasHiddenRoots)) || (embedded && hasMore)}
       <button
         class="show-more-conversations"
         type="button"

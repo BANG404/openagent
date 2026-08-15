@@ -28,7 +28,12 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   the native window outline, rounded corners, and exterior shadow.
   The sidebar groups workspace-owned conversations under Projects and shows one
   cross-workspace, newest-first Recent conversations list for the selected role.
-  Both sections collapse independently. Project-name search temporarily ranks
+  Project groups retain their persisted first-save order across workspace
+  selection changes, with pinned groups kept ahead without otherwise changing
+  order. Every project keeps the same conversation-list structure mounted, starts
+  with five visible conversations, and retains its Show more action across
+  selection changes so row styling and DOM identity do not flicker. Both sections
+  collapse independently. Project-name search temporarily ranks
   matching projects ahead of the remaining list, while Recent conversations
   owns a bounded scroll area that loads additional database pages near its end.
   Its role selector sits above full-width new-conversation and search actions.

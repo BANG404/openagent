@@ -380,7 +380,14 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Organize the conversation sidebar as Projects followed by Recent conversations,
   with independently collapsible sections. Projects keeps the current workspace
   expanded with its paged conversation hierarchy and exposes recent workspaces as
-  project groups. Its focused name search ranks exact, prefix, name, and path
+  project groups. Keep project groups in their persisted first-save order when
+  the current workspace changes so keyed rows retain their DOM position; pinned
+  groups may remain ahead without otherwise reordering either group. Keep the same
+  keyed `ConversationList` mounted beneath every project with five conversations
+  initially visible and a persistent Show more action; selection may change its
+  data and pagination capability, but never swap in a different row structure or
+  list style. Its focused name search
+  ranks exact, prefix, name, and path
   matches ahead of the unchanged remainder instead of hiding unmatched projects.
   Recent conversations is one bounded, independently scrolling, newest-first
   projection across workspace metadata for the selected role; fetch additional

@@ -31,6 +31,7 @@
   import { ChatStreamState } from "$lib/chatStreamState.svelte";
   import { resolveStandaloneDevPreview } from "$lib/devPreview";
   import {
+    addWorkspaceToPersistedOrder,
     parsePinnedProjectPaths,
     pinnedProjectsStorageKey,
     togglePinnedProjectPath,
@@ -3826,7 +3827,7 @@
   }
 
   async function persistRecentWorkspaces(next: RecentWorkspace[]): Promise<void> {
-    recentWorkspaces = next;
+    if (next !== recentWorkspaces) recentWorkspaces = next;
     if (!tauriAvailable) return;
 
     // Serialize writes and await the latest one at workspace-switch boundaries.
@@ -3841,12 +3842,8 @@
   }
 
   async function addToRecentWorkspaces(path: string) {
-    if (!path) return;
-    const name = path.split(/[/\\]/).filter(Boolean).pop() ?? path;
-    await persistRecentWorkspaces([
-      { path, name },
-      ...recentWorkspaces.filter((workspace) => workspace.path !== path),
-    ]);
+    const next = addWorkspaceToPersistedOrder(recentWorkspaces, path);
+    await persistRecentWorkspaces(next);
   }
 
   function toggleProjectPin(path: string): void {
