@@ -26,6 +26,11 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   cross-workspace, newest-first Recents list. New-conversation composers expose
   the workspace switcher beside approval mode; existing workspace conversations
   hide it because their workspace is durable context.
+- **Desktop menu panels:** dropdown menus, searchable selects, comboboxes, and
+  context menus share the same borderless control surface, compact inset and
+  row scale, neutral hover fill, and raised shadow established by Projects >
+  More. Individual panels may change only their size, scrolling, and content
+  layout; they do not introduce separate translucent or blurred materials.
 
 ## Colors
 

@@ -181,15 +181,18 @@
   }
 
   /* Context Menu (bits-ui) — global so it works regardless of which component is mounted */
-  .ctx-menu-content {
+  /* Shared desktop menu panel, modeled on Projects > More. */
+  .desktop-menu-panel {
     background: var(--control-surface);
     border: 0;
     border-radius: var(--menu-content-radius);
     padding: var(--menu-content-padding);
-    min-width: 148px;
-    -webkit-backdrop-filter: blur(12px) saturate(1.08);
-    backdrop-filter: blur(12px) saturate(1.08);
     box-shadow: var(--raised-shadow);
+    outline: none;
+  }
+
+  .ctx-menu-content {
+    min-width: 148px;
     z-index: 500;
   }
 

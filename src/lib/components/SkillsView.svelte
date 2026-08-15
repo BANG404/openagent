@@ -390,7 +390,7 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
                           </div>
                         </ContextMenu.Trigger>
                         <ContextMenu.Portal>
-                          <ContextMenu.Content class="ctx-menu-content">
+                          <ContextMenu.Content class="desktop-menu-panel ctx-menu-content">
                             <ContextMenu.Item
                               class="ctx-menu-item"
                               onclick={() => handleOpenSkillDir(skill)}

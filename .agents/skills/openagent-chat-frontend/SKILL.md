@@ -302,6 +302,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   neighboring hover and selected fills visibly separate. Options with
   descriptions may grow vertically and use 11px secondary copy; do not
   compress them to the single-line height.
+- Render those floating panels through the shared desktop menu surface modeled
+  on Projects > More: the control surface, no border or panel-specific backdrop
+  blur, the shared 8px content radius and 6px inset, and the shared raised
+  shadow. Keep component-specific width, height, scrolling, and item content,
+  but do not fork its panel material or neutral hover fill.
 - Keep selection signaling consistent across floating option rows and persistent
   navigation lists: each component keeps its ordinary neutral hover fill for
   the selected row and adds a square-ended primary-colored left rail. Do not
@@ -314,6 +319,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   remain the other workspace-opening entry points.
   Keep the current-folder-location action text-only instead of repeating a
   folder glyph beside it.
+  Keep the composer trigger's folder glyph, current folder name, and caret in
+  one target; rotate the caret while open and expose the shared focus ring to
+  keyboard users.
   Place older workspaces in a side-opening recent-workspaces submenu that
   supports hover, click, and keyboard navigation. Show each complete workspace
   path without per-row icons, mark WSL shares explicitly, and keep an overflowing

@@ -39,7 +39,11 @@
   <DropdownMenu.Root>
     <DropdownMenu.Trigger class="application-menu-trigger">{$t("fileMenu")}</DropdownMenu.Trigger>
     <DropdownMenu.Portal>
-      <DropdownMenu.Content class="application-menu-content" sideOffset={2} align="start">
+      <DropdownMenu.Content
+        class="desktop-menu-panel application-menu-content"
+        sideOffset={2}
+        align="start"
+      >
         <DropdownMenu.Item class="application-menu-item" onSelect={onNewConversation}
           >{$t("newChat")}</DropdownMenu.Item
         >
@@ -65,7 +69,7 @@
             </DropdownMenu.SubTrigger>
             <DropdownMenu.Portal>
               <DropdownMenu.SubContent
-                class="application-menu-content application-recent-menu"
+                class="desktop-menu-panel application-menu-content application-recent-menu"
                 sideOffset={5}
                 alignOffset={-5}
               >
@@ -90,7 +94,11 @@
   <DropdownMenu.Root>
     <DropdownMenu.Trigger class="application-menu-trigger">{$t("editMenu")}</DropdownMenu.Trigger>
     <DropdownMenu.Portal>
-      <DropdownMenu.Content class="application-menu-content" sideOffset={2} align="start">
+      <DropdownMenu.Content
+        class="desktop-menu-panel application-menu-content"
+        sideOffset={2}
+        align="start"
+      >
         <DropdownMenu.Item class="application-menu-item" onSelect={onOpenSettings}
           >{$t("settings")}</DropdownMenu.Item
         >
@@ -101,7 +109,11 @@
   <DropdownMenu.Root>
     <DropdownMenu.Trigger class="application-menu-trigger">{$t("viewMenu")}</DropdownMenu.Trigger>
     <DropdownMenu.Portal>
-      <DropdownMenu.Content class="application-menu-content" sideOffset={2} align="start">
+      <DropdownMenu.Content
+        class="desktop-menu-panel application-menu-content"
+        sideOffset={2}
+        align="start"
+      >
         <DropdownMenu.Item class="application-menu-item" onSelect={onOpenMemory}
           >{$t("memory")}</DropdownMenu.Item
         >
@@ -118,7 +130,11 @@
   <DropdownMenu.Root>
     <DropdownMenu.Trigger class="application-menu-trigger">{$t("helpMenu")}</DropdownMenu.Trigger>
     <DropdownMenu.Portal>
-      <DropdownMenu.Content class="application-menu-content" sideOffset={2} align="start">
+      <DropdownMenu.Content
+        class="desktop-menu-panel application-menu-content"
+        sideOffset={2}
+        align="start"
+      >
         <DropdownMenu.Item class="application-menu-item" onSelect={onOpenAbout}
           >{$t("about")}</DropdownMenu.Item
         >
@@ -164,12 +180,6 @@
     min-width: 210px;
     max-width: min(460px, calc(100vw - 24px));
     z-index: 240;
-    padding: var(--menu-content-padding);
-    border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
-    border-radius: var(--menu-content-radius);
-    background: var(--control-surface);
-    box-shadow: var(--raised-shadow);
-    outline: none;
   }
 
   :global(.application-menu-item) {

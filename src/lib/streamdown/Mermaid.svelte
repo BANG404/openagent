@@ -325,7 +325,7 @@
             {@render (streamdown.icons?.download || downloadIcon)()}
           </button>
           {#if downloadOpen}
-            <div class="download-menu" data-panzoom-ignore>
+            <div class="desktop-menu-panel download-menu" data-panzoom-ignore>
               <button class={streamdown.theme.components.button} onclick={downloadPng}>PNG</button>
               <button class={streamdown.theme.components.button} onclick={downloadSvg}>SVG</button>
             </div>
@@ -415,11 +415,6 @@
     display: flex;
     flex-direction: column;
     min-width: 72px;
-    padding: var(--menu-content-padding);
-    border: 1px solid var(--border);
-    border-radius: var(--menu-content-radius);
-    background: var(--surface);
-    box-shadow: 0 8px 24px var(--shadow);
   }
 
   .download-menu button + button {

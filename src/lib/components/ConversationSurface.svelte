@@ -936,7 +936,7 @@
     transform: scale(0.95) !important;
   }
 
-  /* Download popover — mirrors .ctx-menu-content from app.css. */
+  /* Download popover uses the shared desktop menu panel from app.css. */
   :global([data-streamdown-mermaid] .download-menu) {
     position: absolute !important;
     top: calc(100% + 6px) !important;
@@ -946,13 +946,6 @@
     flex-direction: column !important;
     min-width: 88px !important;
     margin: 0 !important;
-    padding: var(--menu-content-padding) !important;
-    background: var(--control-surface) !important;
-    border: 0 !important;
-    border-radius: var(--menu-content-radius) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(1.08) !important;
-    backdrop-filter: blur(12px) saturate(1.08) !important;
-    box-shadow: var(--raised-shadow) !important;
   }
   :global([data-streamdown-mermaid] .download-menu button) {
     display: flex !important;
@@ -973,7 +966,7 @@
     margin-top: var(--menu-item-stack-gap) !important;
   }
   :global([data-streamdown-mermaid] .download-menu button:hover) {
-    background: var(--surface2) !important;
+    background: var(--bg) !important;
     color: var(--text) !important;
   }
 </style>
