@@ -7,7 +7,6 @@
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import PaneResizeHandle from "./PaneResizeHandle.svelte";
   import ScopeToggle from "./ScopeToggle.svelte";
-  import WindowControls from "./WindowControls.svelte";
   import Tooltip from "./Tooltip.svelte";
   import { t } from "$lib/i18n";
   import {
@@ -22,15 +21,9 @@
 
   let {
     workspace,
-    winMinimize,
-    winMaximize,
-    winClose,
     preview = false,
   }: {
     workspace: WorkspaceContext | null;
-    winMinimize: () => void;
-    winMaximize: () => void;
-    winClose: () => void;
     preview?: boolean;
   } = $props();
 
@@ -300,25 +293,19 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
 </script>
 
 <div class="skills-panel">
-  <div class="skills-header" data-tauri-drag-region>
-    <div class="header-leading">
-      <span class="skills-header-title">{$t("skillsTitle")}</span>
-      <ScopeToggle
-        value={activeScope}
-        projectEnabled={Boolean(workspace?.path)}
-        onChange={switchScope}
-      />
-    </div>
-    <div class="title-actions">
-      <WindowControls onMinimize={winMinimize} onMaximize={winMaximize} onClose={winClose} />
-    </div>
-  </div>
-
   <div class="skills-body">
     <!-- Skill list + editor -->
     <div class="skills-content-col">
       <!-- Skill list sidebar -->
       <div class="skill-list-col" style={`width: ${listWidth}px;`}>
+        <div class="collection-toolbar">
+          <span class="skills-header-title">{$t("skillsTitle")}</span>
+          <ScopeToggle
+            value={activeScope}
+            projectEnabled={Boolean(workspace?.path)}
+            onChange={switchScope}
+          />
+        </div>
         <div class="skill-list-items">
           {#if skillsLoading}
             <LoadingSkeleton variant="detail-list" rows={5} label={$t("loadingContent")} />
@@ -575,13 +562,13 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
     background: var(--bg);
   }
 
-  .skills-header {
+  .collection-toolbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    background: var(--bg);
-    height: 48px;
+    gap: 10px;
+    min-height: 44px;
+    padding: 4px 12px 0;
+    box-sizing: border-box;
     flex-shrink: 0;
   }
 
@@ -589,12 +576,6 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
     font-size: 14px;
     font-weight: 600;
     color: var(--text);
-  }
-
-  .title-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
   }
 
   .skills-body {
@@ -908,12 +889,6 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
     flex: 1;
     min-height: 0;
     border: none;
-  }
-
-  .header-leading {
-    display: flex;
-    align-items: center;
-    gap: 12px;
   }
 
   .editor-placeholder {

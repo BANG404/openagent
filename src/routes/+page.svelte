@@ -278,7 +278,8 @@
   );
   let conversationSearchQuery = $state("");
   let sidebarConversations = $derived.by(() => {
-    const source = conversationSearchQuery.trim() ? searchConversations : conversations;
+    if (conversationSearchQuery.trim()) return searchConversations;
+    const source = conversations;
     const byId = new Map(source.map((conversation) => [conversation.id, conversation]));
     return source.filter((conversation) => {
       const visited = new Set<string>();
@@ -366,7 +367,6 @@
   let SkillsView = $state<LazyViewComponent | null>(null);
   let workspacePath = $state("");
   let recentWorkspaces = $state<RecentWorkspace[]>([]);
-  let pendingWorkspacePath = $state<string | null>(null);
   let wslPickerOpen = $state(false);
   let wslPickerBusy = $state(false);
   let wslPickerError = $state("");
@@ -1543,12 +1543,12 @@
       loadingMoreSearchConversations = true;
       try {
         const page = await fetchConversationPage(
-          workspacePath || null,
+          null,
           searchConversationNextCursor,
           30,
           query,
-          true,
-          selectedRoleId,
+          false,
+          null,
         );
         if (generation !== conversationSearchGeneration) return;
         searchConversations = mergeConversationMetadata(searchConversations, page.conversations);
@@ -1608,14 +1608,7 @@
     conversationSearchTimer = setTimeout(async () => {
       loadingMoreSearchConversations = true;
       try {
-        const page = await fetchConversationPage(
-          workspacePath || null,
-          null,
-          30,
-          normalized,
-          true,
-          selectedRoleId,
-        );
+        const page = await fetchConversationPage(null, null, 30, normalized, false, null);
         if (generation !== conversationSearchGeneration) return;
         searchConversations = page.conversations;
         searchConversationNextCursor = page.nextCursor;
@@ -3013,13 +3006,7 @@
         convId,
       }).catch(() => null);
       if (sourceWorkspace && sourceWorkspace !== workspacePath) {
-        await addToRecentWorkspaces(sourceWorkspace);
-        await invoke("open_workspace_window", {
-          path: sourceWorkspace,
-          conversationId: convId,
-          messageId,
-        });
-        return;
+        await applyWorkspace(sourceWorkspace);
       }
     }
     await revealMemorySource(convId, messageId);
@@ -3649,33 +3636,16 @@
 
   async function requestWorkspace(path: string) {
     if (!path || path === workspacePath) return;
-    const mode = config?.workspace_open_mode ?? "ask";
-    if (mode === "ask") {
-      pendingWorkspacePath = path;
-      return;
-    }
-    if (mode === "new_window") await openWorkspaceInNewWindow(path);
-    else await applyWorkspace(path);
+    await applyWorkspace(path);
   }
 
   async function openSidebarConversation(conversation: Conversation): Promise<void> {
+    closeAuxiliarySurfaces();
     const conversationWorkspace = conversation.workspace || workspacePath;
     if (conversationWorkspace && conversationWorkspace !== workspacePath) {
-      await openWorkspaceInNewWindow(conversationWorkspace, conversation.id);
-      return;
+      await applyWorkspace(conversationWorkspace);
     }
     await selectSidebarConversation(conversation.id);
-  }
-
-  async function resolveWorkspaceChoice(mode: "new_window" | "current_window") {
-    const path = pendingWorkspacePath;
-    pendingWorkspacePath = null;
-    if (!path) return;
-    if (config) {
-      await saveSettings({ ...config, workspace_open_mode: mode });
-    }
-    if (mode === "new_window") await openWorkspaceInNewWindow(path);
-    else await applyWorkspace(path);
   }
 
   async function addToRecentWorkspaces(path: string) {
@@ -3695,7 +3665,7 @@
     await workspacePrefsSaveQueue.catch(() => {});
   }
 
-  async function pickWorkspace(applyToCurrentWindow = false) {
+  async function pickWorkspace() {
     if (!tauriAvailable) {
       alert(browserModeNotice);
       return;
@@ -3703,8 +3673,19 @@
     const defaultPath = await homeDir();
     const selected = await openDialog({ directory: true, multiple: false, defaultPath });
     if (typeof selected === "string" && selected) {
-      if (applyToCurrentWindow) await applyWorkspace(selected);
-      else await requestWorkspace(selected);
+      await requestWorkspace(selected);
+    }
+  }
+
+  async function pickWorkspaceInNewWindow() {
+    if (!tauriAvailable) {
+      alert(browserModeNotice);
+      return;
+    }
+    const defaultPath = await homeDir();
+    const selected = await openDialog({ directory: true, multiple: false, defaultPath });
+    if (typeof selected === "string" && selected) {
+      await openWorkspaceInNewWindow(selected);
     }
   }
 
@@ -3833,8 +3814,12 @@
   async function openHookConversation(conversationId: string) {
     navigationCaptureDepth += 1;
     try {
-      closeSettings();
-      await switchConversation(conversationId);
+      const target = await fetchConversationMeta(conversationId).catch(() => null);
+      closeAuxiliarySurfaces();
+      if (target?.workspace && target.workspace !== workspacePath) {
+        await applyWorkspace(target.workspace);
+      }
+      await selectSidebarConversation(conversationId);
     } finally {
       navigationCaptureDepth -= 1;
     }
@@ -3898,10 +3883,6 @@
     memoryOpen = true;
   }
 
-  function closeMemory() {
-    memoryOpen = false;
-  }
-
   async function openRoles() {
     if (!tauriAvailable) {
       alert(browserModeNotice);
@@ -3914,10 +3895,6 @@
     rolesOpen = true;
   }
 
-  function closeRoles() {
-    rolesOpen = false;
-  }
-
   async function openSkills() {
     if (!tauriAvailable) {
       alert(browserModeNotice);
@@ -3928,10 +3905,6 @@
     if (memoryOpen) memoryOpen = false;
     if (rolesOpen) rolesOpen = false;
     skillsOpen = true;
-  }
-
-  function closeSkills() {
-    skillsOpen = false;
   }
 
   function closeAuxiliarySurfaces(): void {
@@ -4185,10 +4158,6 @@
         hasMore={sidebarHasMoreConversations}
         loadingMore={sidebarLoadingMoreConversations}
         loading={initialLoading || workspaceLoading}
-        {memoryOpen}
-        {rolesOpen}
-        {skillsOpen}
-        {settingsOpen}
         onRoleChange={changeConversationRole}
         onBack={() => navigateHistory(-1)}
         onForward={() => navigateHistory(1)}
@@ -4208,10 +4177,6 @@
         onPickWorkspace={pickWorkspace}
         onPickWsl={pickWslWorkspace}
         onSelectWorkspace={requestWorkspace}
-        onToggleMemory={memoryOpen ? closeMemory : openMemory}
-        onToggleRoles={rolesOpen ? closeRoles : openRoles}
-        onToggleSkills={skillsOpen ? closeSkills : openSkills}
-        onToggleSettings={settingsOpen ? closeSettings : openSettings}
       />
 
       <!-- ─── Feature panels ─────────────────────────────────────────────────── -->
@@ -4226,79 +4191,70 @@
           {winMaximize}
           {winClose}
         />
-      {:else if memoryOpen && MemoryView}
-        <MemoryView
-          {workspace}
-          preview={isMoreManagementPreview}
-          {isMemorySyncing}
-          onOpenSource={openMemorySource}
-          {winMinimize}
-          {winMaximize}
-          {winClose}
-        />
-        <!-- ─── Roles Panel ─────────────────────────────────────────────────────── -->
-      {:else if rolesOpen && RolesView}
-        <RolesView
-          {workspace}
-          preview={isMoreManagementPreview}
-          onRolesChanged={() => void handleRolesChanged()}
-          {winMinimize}
-          {winMaximize}
-          {winClose}
-        />
-        <!-- ─── Skills Panel ────────────────────────────────────────────────────── -->
-      {:else if skillsOpen && SkillsView}
-        <SkillsView
-          {workspace}
-          preview={isMoreManagementPreview}
-          {winMinimize}
-          {winMaximize}
-          {winClose}
-        />
-        <!-- ─── Settings Panel ──────────────────────────────────────────────────── -->
-      {:else if settingsOpen && SettingsView}
-        <SettingsView
-          {config}
-          {workspacePath}
-          {isMemorySyncing}
-          initialNav={settingsInitialNav}
-          onSave={saveSettings}
-          onOpenConversation={openHookConversation}
-          {winMinimize}
-          {winMaximize}
-          {winClose}
-        />
       {:else}
-        <div class="main" class:sidebar-collapsed={sidebarCollapsed}>
-          <DesktopTitleBar
-            {workspace}
-            {workspacePath}
-            {recentWorkspaces}
-            {tauriAvailable}
-            memorySyncing={isMemorySyncing}
-            onPickWorkspace={pickWorkspace}
-            onPickWsl={pickWslWorkspace}
-            onSelectWorkspace={requestWorkspace}
-            onNewConversation={newConversation}
-            onOpenMemory={openMemory}
-            onOpenRoles={openRoles}
-            onOpenSkills={openSkills}
-            onOpenSettings={() => openSettings()}
-            onOpenAbout={() => openSettings("about")}
-            onMinimize={winMinimize}
-            onMaximize={winMaximize}
-            onClose={winClose}
-          />
+        <DesktopTitleBar
+          {workspace}
+          {workspacePath}
+          {recentWorkspaces}
+          {tauriAvailable}
+          memorySyncing={isMemorySyncing}
+          onPickWorkspace={pickWorkspace}
+          onPickWsl={pickWslWorkspace}
+          onSelectWorkspace={requestWorkspace}
+          onNewConversation={newConversation}
+          onNewWindow={pickWorkspaceInNewWindow}
+          onOpenMemory={openMemory}
+          onOpenRoles={openRoles}
+          onOpenSkills={openSkills}
+          onOpenSettings={() => openSettings()}
+          onOpenAbout={() => openSettings("about")}
+          onMinimize={winMinimize}
+          onMaximize={winMaximize}
+          onClose={winClose}
+        />
 
-          <ConversationSurface
-            view={conversationSurfaceView}
-            actions={conversationSurfaceActions}
-            {composerPreferences}
-            bind:messagesElement={messagesEl}
-            bind:inputAreaHeight
-            composerDraft={activeComposerDraft}
-          />
-        </div>
+        {#if memoryOpen && MemoryView}
+          <div class="feature-main">
+            <MemoryView
+              {workspace}
+              preview={isMoreManagementPreview}
+              onOpenSource={openMemorySource}
+            />
+          </div>
+        {:else if rolesOpen && RolesView}
+          <div class="feature-main">
+            <RolesView
+              {workspace}
+              preview={isMoreManagementPreview}
+              onRolesChanged={() => void handleRolesChanged()}
+            />
+          </div>
+        {:else if skillsOpen && SkillsView}
+          <div class="feature-main">
+            <SkillsView {workspace} preview={isMoreManagementPreview} />
+          </div>
+        {:else if settingsOpen && SettingsView}
+          <div class="feature-main">
+            <SettingsView
+              {config}
+              {workspacePath}
+              initialNav={settingsInitialNav}
+              onSave={saveSettings}
+              onOpenConversation={openHookConversation}
+            />
+          </div>
+        {:else}
+          <div class="main" class:sidebar-collapsed={sidebarCollapsed}>
+            <ConversationSurface
+              view={conversationSurfaceView}
+              actions={conversationSurfaceActions}
+              {composerPreferences}
+              bind:messagesElement={messagesEl}
+              bind:inputAreaHeight
+              composerDraft={activeComposerDraft}
+            />
+          </div>
+        {/if}
       {/if}
     </div>
   {/if}
@@ -4313,11 +4269,9 @@
   {wslDistributions}
   bind:wslDistribution
   bind:wslLinuxPath
-  bind:pendingWorkspacePath
   onSelectDistribution={selectWslDistribution}
   onBrowseWsl={browseWslWorkspace}
   onOpenWsl={openSelectedWslWorkspace}
-  onResolveWorkspace={resolveWorkspaceChoice}
 />
 
 <style>
@@ -4330,13 +4284,7 @@
 
   /* ─── Sidebar ─────────────────────────────────────────────────────────────── */
 
-  .app.sidebar-collapsed :global(.design-header),
-  .app.sidebar-collapsed :global(.drafts-header),
-  .app.sidebar-collapsed :global(.memory-header),
-  .app.sidebar-collapsed :global(.roles-header),
-  .app.sidebar-collapsed :global(.skills-header),
-  .app.sidebar-collapsed :global(.onboarding-header),
-  .app.sidebar-collapsed :global(.settings-header) {
+  .app.sidebar-collapsed :global(.onboarding-header) {
     padding-left: 56px;
   }
 
@@ -4348,6 +4296,15 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+  }
+
+  .feature-main {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    padding-top: 40px;
+    box-sizing: border-box;
     overflow: hidden;
   }
 </style>

@@ -18,6 +18,7 @@
     onPickWsl,
     onSelectWorkspace,
     onNewConversation,
+    onNewWindow,
     onOpenMemory,
     onOpenRoles,
     onOpenSkills,
@@ -37,6 +38,7 @@
     onPickWsl: () => void | Promise<void>;
     onSelectWorkspace: (path: string) => void | Promise<void>;
     onNewConversation: () => void | Promise<void>;
+    onNewWindow: () => void | Promise<void>;
     onOpenMemory: () => void | Promise<void>;
     onOpenRoles: () => void | Promise<void>;
     onOpenSkills: () => void | Promise<void>;
@@ -76,6 +78,7 @@
       {recentWorkspaces}
       {workspacePath}
       onNewConversation={() => void onNewConversation()}
+      onNewWindow={() => void onNewWindow()}
       onPickWorkspace={() => void onPickWorkspace()}
       onPickWsl={() => void onPickWsl()}
       onSelectWorkspace={(path) => void onSelectWorkspace(path)}

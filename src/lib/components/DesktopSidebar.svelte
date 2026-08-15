@@ -7,7 +7,6 @@
   import RoleSelector from "$lib/components/RoleSelector.svelte";
   import SidebarCollapseButton from "$lib/components/SidebarCollapseButton.svelte";
   import SidebarHistoryControls from "$lib/components/SidebarHistoryControls.svelte";
-  import SidebarNav from "$lib/components/SidebarNav.svelte";
   import SidebarResizeHandle from "$lib/components/SidebarResizeHandle.svelte";
   import SidebarWorkspaceBrowser from "$lib/components/SidebarWorkspaceBrowser.svelte";
   import { t } from "$lib/i18n";
@@ -28,10 +27,6 @@
     hasMore,
     loadingMore,
     loading,
-    memoryOpen,
-    rolesOpen,
-    skillsOpen,
-    settingsOpen,
     onRoleChange,
     onBack,
     onForward,
@@ -45,10 +40,6 @@
     onPickWorkspace,
     onPickWsl,
     onSelectWorkspace,
-    onToggleMemory,
-    onToggleRoles,
-    onToggleSkills,
-    onToggleSettings,
     platformOverride,
   }: {
     collapsed: boolean;
@@ -66,10 +57,6 @@
     hasMore: boolean;
     loadingMore: boolean;
     loading: boolean;
-    memoryOpen: boolean;
-    rolesOpen: boolean;
-    skillsOpen: boolean;
-    settingsOpen: boolean;
     onRoleChange: (role: string) => void | Promise<void>;
     onBack: () => void | Promise<void>;
     onForward: () => void | Promise<void>;
@@ -83,10 +70,6 @@
     onPickWorkspace: () => void | Promise<void>;
     onPickWsl: () => void | Promise<void>;
     onSelectWorkspace: (path: string) => void | Promise<void>;
-    onToggleMemory: () => void | Promise<void>;
-    onToggleRoles: () => void | Promise<void>;
-    onToggleSkills: () => void | Promise<void>;
-    onToggleSettings: () => void | Promise<void>;
     platformOverride?: WindowPlatform;
   } = $props();
 
@@ -119,6 +102,14 @@
   </div>
   {#if !collapsed}
     <div class="sidebar-content">
+      <div class="sidebar-role">
+        <RoleSelector
+          value={selectedRoleKey}
+          {roles}
+          header
+          onChange={(role) => void onRoleChange(role)}
+        />
+      </div>
       {#if loading}
         <LoadingSkeleton variant="sidebar" rows={8} label={$t("loadingContent")} />
       {:else}
@@ -144,24 +135,6 @@
           onSelectWorkspace={(path) => void onSelectWorkspace(path)}
         />
       {/if}
-      <div class="sidebar-role">
-        <RoleSelector
-          value={selectedRoleKey}
-          {roles}
-          header
-          onChange={(role) => void onRoleChange(role)}
-        />
-      </div>
-      <SidebarNav
-        {memoryOpen}
-        {rolesOpen}
-        {skillsOpen}
-        {settingsOpen}
-        {onToggleMemory}
-        {onToggleRoles}
-        {onToggleSkills}
-        {onToggleSettings}
-      />
     </div>
     <SidebarResizeHandle
       {width}
@@ -231,8 +204,8 @@
   }
 
   .sidebar-role {
+    flex: 0 0 auto;
     padding: 5px 8px 1px;
-    border-top: 1px solid var(--border);
   }
 
   .sidebar-role :global(.role-selector) {

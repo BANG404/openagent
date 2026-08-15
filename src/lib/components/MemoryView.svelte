@@ -4,26 +4,17 @@
   import MdxMarkdownEditor from "./MdxMarkdownEditor.svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import ScopeToggle from "./ScopeToggle.svelte";
-  import WindowControls from "./WindowControls.svelte";
   import Tooltip from "./Tooltip.svelte";
   import { t } from "$lib/i18n";
   import type { AgentMemoryEntry, WorkspaceContext } from "$lib/types";
 
   let {
     workspace,
-    isMemorySyncing,
     onOpenSource,
-    winMinimize,
-    winMaximize,
-    winClose,
     preview = false,
   }: {
     workspace: WorkspaceContext | null;
-    isMemorySyncing: boolean;
     onOpenSource: (convId: string, messageId: string) => void;
-    winMinimize: () => void;
-    winMaximize: () => void;
-    winClose: () => void;
     preview?: boolean;
   } = $props();
 
@@ -186,27 +177,16 @@
 </script>
 
 <div class="memory-panel">
-  <div class="memory-header" data-tauri-drag-region>
-    <div class="header-leading">
-      <span class="memory-header-title">{$t("memoryFiles")}</span>
-      <ScopeToggle
-        value={activeScope}
-        projectEnabled={Boolean(workspace?.path)}
-        onChange={switchScope}
-      />
-    </div>
-    <div class="title-actions">
-      {#if isMemorySyncing}
-        <Tooltip text="Memory syncing">
-          <span class="sync-dot">●</span>
-        </Tooltip>
-      {/if}
-      <WindowControls onMinimize={winMinimize} onMaximize={winMaximize} onClose={winClose} />
-    </div>
-  </div>
-
   {#snippet bodyPanel()}
     <div class="memory-content-col" bind:this={memoryContentEl}>
+      <div class="memory-context-row">
+        <span class="memory-header-title">{$t("memoryFiles")}</span>
+        <ScopeToggle
+          value={activeScope}
+          projectEnabled={Boolean(workspace?.path)}
+          onChange={switchScope}
+        />
+      </div>
       <!-- User memory editor -->
       <div class="memory-section user-section" class:collapsed={userCollapsed}>
         <div class="section-header">
@@ -374,13 +354,13 @@
     background: var(--bg);
   }
 
-  .memory-header {
+  .memory-context-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    background: var(--bg);
-    height: 48px;
+    gap: 12px;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 4px 20px 0;
     flex-shrink: 0;
   }
 
@@ -388,29 +368,6 @@
     font-size: 14px;
     font-weight: 600;
     color: var(--text);
-  }
-
-  .title-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .sync-dot {
-    color: var(--primary);
-    font-size: 10px;
-    margin-right: 2px;
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.3;
-    }
   }
 
   :global(.memory-body) {
@@ -444,12 +401,6 @@
   .memory-section.collapsed {
     flex: 0 0 auto;
     min-height: 0;
-  }
-
-  .header-leading {
-    display: flex;
-    align-items: center;
-    gap: 12px;
   }
 
   .agent-section {

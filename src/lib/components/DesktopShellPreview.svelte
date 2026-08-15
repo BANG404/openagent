@@ -111,10 +111,6 @@
     hasMore
     loadingMore={false}
     loading={false}
-    memoryOpen={false}
-    rolesOpen={false}
-    skillsOpen={false}
-    settingsOpen={false}
     onRoleChange={(role) => {
       selectedRoleKey = role;
     }}
@@ -137,10 +133,6 @@
     onPickWorkspace={() => selectWorkspace("C:\\Projects\\new-project")}
     onPickWsl={() => selectWorkspace(recentWorkspaces[2].path)}
     onSelectWorkspace={selectWorkspace}
-    onToggleMemory={() => {}}
-    onToggleRoles={() => {}}
-    onToggleSkills={() => {}}
-    onToggleSettings={() => {}}
     {platformOverride}
   />
   <section class="desktop-shell-main">
@@ -156,6 +148,7 @@
       onNewConversation={() => {
         activeConversationId = null;
       }}
+      onNewWindow={() => {}}
       onOpenMemory={() => {}}
       onOpenRoles={() => {}}
       onOpenSkills={() => {}}

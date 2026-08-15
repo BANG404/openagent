@@ -10,11 +10,9 @@
     wslDistributions,
     wslDistribution = $bindable(),
     wslLinuxPath = $bindable(),
-    pendingWorkspacePath = $bindable(),
     onSelectDistribution,
     onBrowseWsl,
     onOpenWsl,
-    onResolveWorkspace,
   }: {
     wslPickerOpen: boolean;
     wslPickerBusy: boolean;
@@ -22,11 +20,9 @@
     wslDistributions: WslDistribution[];
     wslDistribution: string;
     wslLinuxPath: string;
-    pendingWorkspacePath: string | null;
     onSelectDistribution: (distribution: string) => void | Promise<void>;
     onBrowseWsl: () => void | Promise<void>;
     onOpenWsl: () => void | Promise<void>;
-    onResolveWorkspace: (choice: "current_window" | "new_window") => void | Promise<void>;
   } = $props();
 </script>
 
@@ -105,35 +101,6 @@
   </Dialog.Portal>
 </Dialog.Root>
 
-<Dialog.Root
-  open={pendingWorkspacePath !== null}
-  onOpenChange={(open) => {
-    if (!open) pendingWorkspacePath = null;
-  }}
->
-  <Dialog.Portal>
-    <Dialog.Overlay class="dialog-overlay" />
-    <Dialog.Content class="dialog workspace-choice-dialog">
-      <Dialog.Title class="dialog-title">{$t("workspaceOpenDialogTitle")}</Dialog.Title>
-      <Dialog.Description class="workspace-choice-description"
-        >{$t("workspaceOpenDialogDescription")}</Dialog.Description
-      >
-      <div class="workspace-choice-path">{pendingWorkspacePath}</div>
-      <div class="dialog-actions">
-        <button
-          class="dialog-action-quiet"
-          type="button"
-          onclick={() => onResolveWorkspace("current_window")}
-          >{$t("workspaceSwitchCurrent")}</button
-        >
-        <button class="btn-primary" type="button" onclick={() => onResolveWorkspace("new_window")}
-          >{$t("workspaceCreateWindow")}</button
-        >
-      </div>
-    </Dialog.Content>
-  </Dialog.Portal>
-</Dialog.Root>
-
 <style>
   :global(.dialog-overlay) {
     position: fixed;
@@ -158,9 +125,6 @@
     z-index: 101;
     backdrop-filter: blur(16px) saturate(1.08);
     box-shadow: var(--raised-shadow);
-  }
-  :global(.workspace-choice-dialog) {
-    width: 430px;
   }
   :global(.wsl-workspace-dialog) {
     width: 520px;
@@ -238,14 +202,6 @@
     color: var(--text-muted);
     font-size: 13px;
     line-height: 1.55;
-  }
-  :global(.workspace-choice-path) {
-    padding: 9px 11px;
-    border-radius: 7px;
-    background: var(--bg);
-    color: var(--text-secondary);
-    font-size: 12px;
-    overflow-wrap: anywhere;
   }
   :global(.dialog-title) {
     font-size: 17px;

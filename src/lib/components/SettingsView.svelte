@@ -40,7 +40,6 @@
     type RetryQueueKind,
   } from "$lib/settingsConfig";
   import { t, tr, setLocale, type Locale } from "$lib/i18n";
-  import WindowControls from "./WindowControls.svelte";
   import Tooltip from "./Tooltip.svelte";
   import Select from "./ui/Select.svelte";
   import Switch from "./ui/Switch.svelte";
@@ -131,23 +130,15 @@
   let {
     config,
     workspacePath,
-    isMemorySyncing,
     initialNav,
     onSave,
     onOpenConversation,
-    winMinimize,
-    winMaximize,
-    winClose,
   }: {
     config: AppConfig | null;
     workspacePath: string;
-    isMemorySyncing: boolean;
     initialNav?: SettingsNav;
     onSave: (config: AppConfig, baseConfig?: AppConfig) => Promise<AppConfig>;
     onOpenConversation: (conversationId: string) => Promise<void>;
-    winMinimize: () => void;
-    winMaximize: () => void;
-    winClose: () => void;
   } = $props();
 
   const fallbackConfig: AppConfig = {
@@ -1389,18 +1380,6 @@
 <svelte:window onkeydown={handleQuickShortcutKeydown} />
 
 <div class="settings-panel">
-  <div class="settings-header" data-tauri-drag-region>
-    <span class="settings-header-title">{$t("settingsTitle")}</span>
-    <div class="title-actions">
-      {#if isMemorySyncing}
-        <Tooltip text="Memory syncing">
-          <span class="sync-dot">*</span>
-        </Tooltip>
-      {/if}
-      <WindowControls onMinimize={winMinimize} onMaximize={winMaximize} onClose={winClose} />
-    </div>
-  </div>
-
   <Tabs.Root value="general" orientation="vertical" activationMode="manual" class="settings-body">
     <Tabs.List class="settings-nav-col">
       <div class="settings-nav-items">
@@ -1724,28 +1703,6 @@
               {quickShortcutStatus.message}
             </div>
           {/if}
-        </section>
-        <section class="detail-section">
-          <h4 class="detail-section-title">{$t("workspaceBehavior")}</h4>
-          <div class="settings-card">
-            <div class="settings-card-row">
-              <span class="settings-card-copy">
-                <span class="label-text">{$t("workspaceSelectionBehavior")}</span>
-                <span class="detail-hint">{$t("workspaceSelectionBehaviorHint")}</span>
-              </span>
-              <div class="settings-card-control">
-                <Select
-                  bind:value={draftConfig.workspace_open_mode}
-                  items={[
-                    { value: "ask", label: $t("workspaceOpenAsk") },
-                    { value: "new_window", label: $t("workspaceOpenNewWindow") },
-                    { value: "current_window", label: $t("workspaceOpenCurrentWindow") },
-                  ]}
-                  ariaLabel={$t("workspaceSelectionBehavior")}
-                />
-              </div>
-            </div>
-          </div>
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("approvalMode")}</h4>
@@ -3841,44 +3798,10 @@
     background: var(--bg);
   }
 
-  .settings-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    background: var(--bg);
-    height: 48px;
-    flex-shrink: 0;
-  }
-
-  .settings-header-title,
   .detail-service-name {
     font-size: 14px;
     font-weight: 600;
     color: var(--text);
-  }
-
-  .title-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .sync-dot {
-    color: var(--primary);
-    font-size: 10px;
-    margin-right: 2px;
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.3;
-    }
   }
 
   :global(.settings-body) {

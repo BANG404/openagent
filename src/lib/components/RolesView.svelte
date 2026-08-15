@@ -4,7 +4,6 @@
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import PaneResizeHandle from "./PaneResizeHandle.svelte";
   import ScopeToggle from "./ScopeToggle.svelte";
-  import WindowControls from "./WindowControls.svelte";
   import { t } from "$lib/i18n";
   import {
     MORE_PANE_MAX_WIDTH,
@@ -18,16 +17,10 @@
 
   let {
     workspace,
-    winMinimize,
-    winMaximize,
-    winClose,
     onRolesChanged,
     preview = false,
   }: {
     workspace: WorkspaceContext | null;
-    winMinimize: () => void;
-    winMaximize: () => void;
-    winClose: () => void;
     onRolesChanged?: () => void;
     preview?: boolean;
   } = $props();
@@ -168,20 +161,16 @@
 </script>
 
 <div class="roles-panel">
-  <header class="roles-header" data-tauri-drag-region>
-    <div class="header-leading">
-      <span class="roles-header-title">{$t("rolesTitle")}</span>
-      <ScopeToggle
-        value={activeScope}
-        projectEnabled={Boolean(workspace?.path)}
-        onChange={switchScope}
-      />
-    </div>
-    <WindowControls onMinimize={winMinimize} onMaximize={winMaximize} onClose={winClose} />
-  </header>
-
   <div class="roles-body">
     <aside class="role-list-column" style={`width: ${listWidth}px;`}>
+      <div class="collection-toolbar">
+        <span class="roles-header-title">{$t("rolesTitle")}</span>
+        <ScopeToggle
+          value={activeScope}
+          projectEnabled={Boolean(workspace?.path)}
+          onChange={switchScope}
+        />
+      </div>
       <div class="role-search-wrap">
         <label class="search-box">
           <svg
@@ -334,20 +323,15 @@
     color: var(--text);
   }
 
-  .roles-header {
-    height: 48px;
-    padding: 0 16px;
+  .collection-toolbar {
+    min-height: 44px;
+    padding: 4px 12px 0;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 10px;
     background: var(--bg);
     flex-shrink: 0;
-  }
-
-  .header-leading {
-    display: flex;
-    align-items: center;
-    gap: 12px;
   }
 
   .roles-header-title {

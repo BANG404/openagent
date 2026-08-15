@@ -14,8 +14,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 - Keep the route as the desktop composition and runtime-coordination boundary.
   The desktop sidebar owns its width, resize gesture, collapse persistence, and
-  conversation navigation chrome; the title bar owns workspace, branch, role,
-  sync, and window chrome; the conversation surface owns transcript/composer
+  conversation navigation chrome; the shared title bar owns application menus,
+  workspace, branch, sync, and window chrome across chat, Settings, Memory,
+  Roles, and Skills, while those feature views must not create a second native
+  title bar; the conversation surface owns transcript/composer
   composition, Goal/Graph panel presentation, and chat renderer theme overrides.
   Pass each surface a deliberate view model and action contract instead of
   returning leaf component markup or surface-local layout state to the route.
@@ -302,6 +304,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   neighboring hover and selected fills visibly separate. Options with
   descriptions may grow vertically and use 11px secondary copy; do not
   compress them to the single-line height.
+- Keep the shared application menu fully operable without a pointer. Expose
+  platform-appropriate accelerator labels, preserve access-key and arrow-key
+  navigation, and route global application shortcuts through the same actions
+  as menu selection. Edit owns Undo, Redo, Cut, Copy, Paste, Delete, and Select
+  All against the focused editable context; Help owns the shared, state-aware
+  application update check. A separate workspace process may be requested only
+  through File -> New window.
 - Keep selection signaling consistent across floating option rows and persistent
   navigation lists: each component keeps its ordinary neutral hover fill for
   the selected row and adds a square-ended primary-colored left rail. Do not
@@ -358,16 +367,20 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   keeps the current workspace expanded with its paged conversation hierarchy
   and exposes recent workspaces as project groups; Recents is one global,
   newest-first projection across workspace metadata. Preserve the owning
-  workspace on every global conversation so selecting a conversation from a
-  different workspace opens that exact conversation in its workspace process.
+  workspace on every global conversation. Sidebar search covers every workspace
+  and role, and selecting any result or recent conversation switches the current
+  window to its owning workspace before opening that exact conversation.
 - Keep the expanded conversation sidebar resizable from its trailing edge between
   180px and 360px. Persist the chosen width across collapse and reload, disable
   width animation while dragging, and expose the same bounds to keyboard users.
+  The resize hit target and active indicator begin below the shared title bar so
+  a sidebar drag never draws a separator through application chrome.
 - Keep the Memory view's horizontal resize handle quiet at rest, but render its
   short primary-colored grip at full opacity on hover and while dragging so the
   active separator remains visible in both themes.
-- Keep the expanded sidebar's role trigger in the footer and size it to its
-  visible role name without a redundant caret. Keep the back and forward
+- Keep the expanded sidebar's role trigger above Projects and size it to its
+  visible role name without a redundant caret. Do not restore a bottom More or
+  Settings section; those destinations belong to the shared menus. Keep the back and forward
   controls fixed beside the sidebar-collapse button in the shared top chrome.
   On macOS, reserve the native traffic-light footprint before those controls;
   on Windows, keep minimize, maximize/restore, and close at the trailing edge
