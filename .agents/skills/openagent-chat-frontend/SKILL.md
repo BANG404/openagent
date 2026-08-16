@@ -204,7 +204,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   backend assistant message ID for the triggering user turn. Cache them by
   message ID across navigation. Resolve that host from the selected Turn's
   `response_message_id`, not from its final assistant checkpoint record, because
-  tool rounds can append several assistant records under one Turn. Render
+  tool rounds can append several assistant records under one Turn. An ask_user
+  or approval resume retains that logical Turn response ID while its newly
+  appended assistant records keep distinct message IDs; do not re-key or restart
+  the already-running suggestion task at the interrupt boundary. Render
   exactly three only below the latest complete reply on the currently selected
   branch after streaming has ended; a newer trailing user message must not
   revive an older turn's suggestions. Send a selected suggestion through the
