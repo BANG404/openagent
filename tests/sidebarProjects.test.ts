@@ -70,9 +70,24 @@ describe("sidebar project order", () => {
     expect(projectMarkup).toContain("workspaceSwitchTarget ?? workspacePath");
     expect(projectMarkup).not.toContain("{#if project.path === workspacePath}");
     expect(projectMarkup).not.toContain("? conversations");
-    expect(projectMarkup).not.toContain('class="project-conversations"');
+    expect(projectMarkup).toContain('class="project-conversations"');
+    expect(projectMarkup).toContain("hidden={!projectExpanded(project.path)}");
     expect(source).toContain("padding: 4px 62px 4px var(--list-item-compact-padding-inline)");
     expect(source).not.toContain(".project-row-shell:hover .project-row,");
+  });
+
+  test("toggles the selected project's mounted conversations and expands a selected target", async () => {
+    const source = await readFile(
+      new URL("../src/lib/components/SidebarWorkspaceBrowser.svelte", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("if (path === selectedWorkspacePath)");
+    expect(source).toContain("collapsedProjectPaths.includes(path)");
+    expect(source).toContain(
+      "collapsedProjectPaths = collapsedProjectPaths.filter((item) => item !== path);",
+    );
+    expect(source).toContain("aria-expanded={projectExpanded(project.path)}");
   });
 
   test("only offers more project conversations when another row or page exists", async () => {

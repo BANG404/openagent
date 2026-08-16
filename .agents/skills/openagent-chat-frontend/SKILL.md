@@ -395,10 +395,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the conversation sidebar background flat and free of decorative glow;
   communicate active streaming through the conversation row indicator only.
 - Organize the conversation sidebar as Projects followed by Recent conversations,
-  with independently collapsible sections. Projects keeps the current workspace
-  expanded with its paged conversation hierarchy and exposes recent workspaces as
-  project groups. Keep project groups in their persisted first-save order when
-  the current workspace changes so keyed rows retain their DOM position; pinned
+  with independently collapsible sections. Projects initially expands the current
+  workspace with its paged conversation hierarchy and exposes recent workspaces as
+  project groups. Repeatedly clicking the selected project row toggles its
+  conversation hierarchy without unmounting that project's keyed list; selecting
+  a different workspace expands its hierarchy. Keep project groups in their
+  persisted first-save order when the current workspace changes so keyed rows
+  retain their DOM position; pinned
   groups may remain ahead without otherwise reordering either group. Keep the same
   keyed `ConversationList` mounted beneath every project with five conversations
   initially visible. Show more only when loaded conversations remain hidden or

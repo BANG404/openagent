@@ -70,7 +70,15 @@
   let projectSearchOpen = $state(false);
   let projectSearchQuery = $state("");
   let projectSearchInput = $state<HTMLInputElement>();
+  let collapsedProjectPaths = $state<string[]>([]);
   let conversationSnapshotsByRole = $state<Record<string, ProjectConversationSnapshots>>({});
+
+  $effect(() => {
+    const selectedWorkspacePath = workspacePath;
+    const collapsedPaths = untrack(() => collapsedProjectPaths);
+    if (!selectedWorkspacePath || !collapsedPaths.includes(selectedWorkspacePath)) return;
+    collapsedProjectPaths = collapsedPaths.filter((path) => path !== selectedWorkspacePath);
+  });
 
   $effect.pre(() => {
     const roleKey = selectedRoleKey;
@@ -176,7 +184,19 @@
 
   function selectProject(path: string): void {
     closeProjectSearch();
+    const selectedWorkspacePath = workspaceSwitchTarget ?? workspacePath;
+    if (path === selectedWorkspacePath) {
+      collapsedProjectPaths = collapsedProjectPaths.includes(path)
+        ? collapsedProjectPaths.filter((item) => item !== path)
+        : [...collapsedProjectPaths, path];
+      return;
+    }
+    collapsedProjectPaths = collapsedProjectPaths.filter((item) => item !== path);
     onSelectWorkspace(path);
+  }
+
+  function projectExpanded(path: string): boolean {
+    return !collapsedProjectPaths.includes(path);
   }
 
   function handleProjectSearchKeydown(event: KeyboardEvent): void {
@@ -261,6 +281,7 @@
                 <button
                   class="project-row"
                   type="button"
+                  aria-expanded={projectExpanded(project.path)}
                   onclick={() => selectProject(project.path)}
                 >
                   <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"
@@ -359,19 +380,21 @@
                 </div>
               </div>
 
-              <ConversationList
-                embedded
-                compactProject
-                conversations={conversationsForProject(project.path)}
-                activeConvId={activeConversationId}
-                streamingConvIds={streamingConversationIds}
-                hasMore={project.path === workspacePath && hasMore}
-                loadingMore={project.path === workspacePath && loadingMore}
-                onLoadMore={() => loadMoreProjectConversations(project.path)}
-                onSelect={(id) => selectProjectConversation(project.path, id)}
-                {onTogglePin}
-                {onDelete}
-              />
+              <div class="project-conversations" hidden={!projectExpanded(project.path)}>
+                <ConversationList
+                  embedded
+                  compactProject
+                  conversations={conversationsForProject(project.path)}
+                  activeConvId={activeConversationId}
+                  streamingConvIds={streamingConversationIds}
+                  hasMore={project.path === workspacePath && hasMore}
+                  loadingMore={project.path === workspacePath && loadingMore}
+                  onLoadMore={() => loadMoreProjectConversations(project.path)}
+                  onSelect={(id) => selectProjectConversation(project.path, id)}
+                  {onTogglePin}
+                  {onDelete}
+                />
+              </div>
             </section>
           {/each}
         </div>
