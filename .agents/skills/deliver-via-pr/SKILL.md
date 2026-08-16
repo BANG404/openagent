@@ -131,6 +131,18 @@ authorize unrelated changes.
    verification, cleanup, preserved pre-existing changes, and that nothing was
    pushed.
 
+### Coordinate a sealed batch of OWT tasks
+
+When the caller intentionally launches several OWT tasks as one local delivery,
+use [references/batch-owt.md](references/batch-owt.md) and its deterministic
+coordinator. Register the complete expected task set and seal it before any task
+may trigger integration. Each task still owns a clean, committed, individually
+preflighted branch. The final ready agent atomically acquires the integration
+lease, merges the recorded task SHAs in a dedicated integration worktree, runs
+preflight on the combined tree, and fast-forwards the clean local default branch
+through the coordinator. Do not infer batch membership from the repository's
+worktree count or launch a replacement `codex exec` process.
+
 ## OPR mode: synchronize local commits through a PR
 
 OPR owns publication but stops before CI, merge, and cleanup. Keep task history

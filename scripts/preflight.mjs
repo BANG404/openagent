@@ -10,6 +10,7 @@ const AUTOMATION_TESTS = [
   "tests/ciResults.test.js",
   "tests/docsSync.test.js",
   "tests/oprReconcile.test.js",
+  "tests/owtBatch.test.js",
   "tests/preflight.test.js",
   "tests/privateSdkDiagnostic.test.js",
   "tests/releaseCi.test.js",

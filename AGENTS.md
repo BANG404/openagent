@@ -250,7 +250,11 @@ sibling worktree from the committed local `master` `HEAD`, implement and commit
 there, then fast-forward local `master` and clean up. If concurrent commits
 advance `master`, merge that latest branch into the task branch, rerun preflight,
 and retry the fast-forward. Stop for real conflicts, non-linear ancestry, or
-working-tree overwrites. The recorded local `master` `HEAD` is authoritative
+working-tree overwrites. An explicitly sealed set of parallel OWT tasks may use
+the batch coordinator documented by the `deliver-via-pr` skill; batch membership
+comes only from its manifest, and the final ready agent integrates the fixed task
+heads without launching another Codex process. The recorded local `master`
+`HEAD` is authoritative
 even when remote history differs; OWT does not reconcile the remote branch.
 SDK changes retain their separate direct-push workflow.
 An uppercase standalone `OPR` prefix creates or updates a ready pull request on

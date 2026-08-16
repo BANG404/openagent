@@ -72,5 +72,8 @@ private SDK gitlink.
   such integration, and retries until the default branch can fast-forward. Its
   recorded local default `HEAD` remains authoritative regardless of remote
   divergence; it never reconciles remote history, absorbs unrelated working
-  changes, or continues through real conflicts or non-linear local ancestry.
+  changes, or continues through real conflicts or non-linear local ancestry. A
+  sealed batch of OWT tasks uses only its explicit manifest for membership,
+  elects one final ready agent to validate the combined integration tree, and
+  retains its completion record after safe worktree cleanup.
   `ORPR` completes remote-branch, task-worktree, and merged local-branch cleanup.
