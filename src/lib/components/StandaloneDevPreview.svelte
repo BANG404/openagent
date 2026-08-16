@@ -504,20 +504,22 @@
         showApiKeyWarn={false}
         placement="stack"
       />
-      <MessageInput
-        bind:value={suggestionValue}
-        attachments={[]}
-        selectedModel="preview"
-        modelOptions={[{ value: "preview", label: "gpt-5.6" }]}
-        placeholder={$t("inputPlaceholder")}
-        disabled={false}
-        isStreaming={false}
-        sendDisabled={!suggestionValue.trim()}
-        sendTitle={$t("send")}
-        showAttachments={false}
-        onSend={() => {}}
-        onStop={() => {}}
-      />
+      <div class="suggestions-new-conversation-composer">
+        <MessageInput
+          bind:value={suggestionValue}
+          attachments={[]}
+          selectedModel="preview"
+          modelOptions={[{ value: "preview", label: "gpt-5.6" }]}
+          placeholder={$t("inputPlaceholder")}
+          disabled={false}
+          isStreaming={false}
+          sendDisabled={!suggestionValue.trim()}
+          sendTitle={$t("send")}
+          showAttachments={false}
+          onSend={() => {}}
+          onStop={() => {}}
+        />
+      </div>
       <FollowUpSuggestions
         suggestions={suggestionItems}
         onSelect={(suggestion) => {
@@ -776,6 +778,11 @@
   }
   .suggestions-new-conversation {
     align-self: start;
+  }
+  .suggestions-new-conversation-composer {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0 32px;
   }
   .suggestions-turn-preview {
     min-height: 420px;

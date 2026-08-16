@@ -506,7 +506,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Selecting one sends it immediately through the shared user-message path.
 - Keep the development-only `follow-up-suggestions-preview` query available
   with `-theme=light|dark` and `-locale=zh|en` parameters so both suggestion
-  placements and their direct-send interaction remain browser-verifiable.
+  placements and their direct-send interaction remain browser-verifiable. In
+  the centered new-conversation placement, reserve the leading suggestion-icon
+  track inside the composer gutter: align the icon with the composer shell and
+  the suggestion copy with the textarea copy instead of centering the copy
+  without accounting for the icon.
 - Keep the right-side user-message index on one shared tooltip surface. Do not
   render a second inline message preview for the same index marker.
 - Do not render approval controls for a switched branch until its active tip is
