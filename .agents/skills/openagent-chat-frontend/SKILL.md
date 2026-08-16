@@ -42,6 +42,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   application theme tokens. Do not depend on the renderer's optional utility
   classes; inline code must retain readable foreground and surface contrast in
   both light and dark themes without affecting fenced code blocks.
+- Intercept every Agent-authored Markdown link before WebView navigation. Open
+  absolute HTTP(S) destinations through the surface's UI capability, consume
+  opener failures, and leave relative or non-web destinations inert; native
+  `target=_blank` navigation must never bypass that boundary or create an
+  unhandled rejection.
 - Keep fenced Markdown code headers, containers, loading skeletons, and controls
   on application theme surfaces through stable chat theme hooks. Shiki owns
   highlighted token colors, not the surrounding block background; fixed light
@@ -505,7 +510,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Selecting one sends it immediately through the shared user-message path.
 - Keep the development-only `follow-up-suggestions-preview` query available
   with `-theme=light|dark` and `-locale=zh|en` parameters so both suggestion
-  placements and their direct-send interaction remain browser-verifiable.
+  placements and their direct-send interaction remain browser-verifiable. In
+  the centered new-conversation placement, reserve the leading suggestion-icon
+  track inside the composer gutter: align the icon with the composer shell and
+  the suggestion copy with the textarea copy instead of centering the copy
+  without accounting for the icon.
 - Keep the right-side user-message index on one shared tooltip surface. Do not
   render a second inline message preview for the same index marker.
 - Do not render approval controls for a switched branch until its active tip is
