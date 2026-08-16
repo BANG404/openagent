@@ -163,7 +163,30 @@
       timestamp: Date.now() - 2_000,
     },
     {
-      id: "suggestion-preview-assistant",
+      id: "suggestion-preview-turn",
+      role: "assistant",
+      content: "",
+      items: [
+        {
+          type: "tool_call",
+          name: "read_files",
+          args: JSON.stringify({ paths: ["MessageList.svelte"] }),
+          result: locale === "zh" ? "已检查消息分组。" : "Checked the message grouping.",
+        },
+      ],
+      turn: {
+        id: "suggestion-preview-turn",
+        input_message_id: "suggestion-preview-user",
+        response_message_id: "suggestion-preview-turn",
+        status: "completed",
+        started_at: Date.now() - 2_000,
+        completed_at: Date.now() - 1_000,
+        duration_ms: 1_000,
+      },
+      timestamp: Date.now() - 1_500,
+    },
+    {
+      id: "suggestion-preview-assistant-final",
       role: "assistant",
       content:
         locale === "zh"
@@ -572,7 +595,7 @@
         newConversationGreetingLoading={false}
         followUpSuggestionsByMessageId={{
           "suggestion-preview-previous-assistant": suggestionItems,
-          "suggestion-preview-assistant": suggestionItems,
+          "suggestion-preview-turn": suggestionItems,
         }}
         editable={false}
         onCommitEdit={() => {}}

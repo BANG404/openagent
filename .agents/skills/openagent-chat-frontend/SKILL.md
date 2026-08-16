@@ -199,13 +199,15 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   messages from a queued turn.
 - Attach Flash-generated follow-up suggestions to the stable preallocated
   backend assistant message ID for the triggering user turn. Cache them by
-  message ID across navigation, but render exactly three only below the latest
-  complete reply on the currently selected branch after streaming has ended; a
-  newer trailing user message must not revive an older turn's suggestions. Send
-  a selected suggestion through the shared user-message path without replacing
-  the current composer draft. The runtime starts generation when the user
-  message is submitted and supplies only all user-authored messages from that
-  selected branch, never Agent output.
+  message ID across navigation. Resolve that host from the selected Turn's
+  `response_message_id`, not from its final assistant checkpoint record, because
+  tool rounds can append several assistant records under one Turn. Render
+  exactly three only below the latest complete reply on the currently selected
+  branch after streaming has ended; a newer trailing user message must not
+  revive an older turn's suggestions. Send a selected suggestion through the
+  shared user-message path without replacing the current composer draft. The
+  runtime starts generation when the user message is submitted and supplies
+  only all user-authored messages from that selected branch, never Agent output.
 - New checkpoints carry compacted context inside the tagged user replay rather
   than adding a system message. Represent the whole record only by the divider,
   while continuing to restore legacy system-boundary checkpoints.
@@ -510,7 +512,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Selecting one sends it immediately through the shared user-message path.
 - Keep the development-only `follow-up-suggestions-preview` query available
   with `-theme=light|dark` and `-locale=zh|en` parameters so both suggestion
-  placements and their direct-send interaction remain browser-verifiable. In
+  placements, logical-Turn hosting across multiple assistant records, and their
+  direct-send interaction remain browser-verifiable. In
   the centered new-conversation placement, reserve the leading suggestion-icon
   track inside the composer gutter: align the icon with the composer shell and
   the suggestion copy with the textarea copy instead of centering the copy

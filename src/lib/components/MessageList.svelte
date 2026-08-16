@@ -10,7 +10,7 @@
   import FollowUpSuggestions from "./FollowUpSuggestions.svelte";
   import { t } from "$lib/i18n";
   import { finalAssistantOutput } from "$lib/assistantOutput";
-  import { latestTurnAssistantMessageId } from "$lib/followUpSuggestions";
+  import { latestTurnSuggestionHostMessageId } from "$lib/followUpSuggestions";
   import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
   import type {
@@ -149,7 +149,7 @@
   let streamedOpenThinkingItemKeys = $state(new Set<string>());
   let copiedAssistantMessageId = $state<string | null>(null);
   let readingTurnKey = $state<string | null>(null);
-  let suggestionHostMessageId = $derived(latestTurnAssistantMessageId(messages));
+  let suggestionHostMessageId = $derived(latestTurnSuggestionHostMessageId(messages));
   let copyFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
   let transcriptList = $state<TranscriptList | null>(null);
   let messagesRoot = $state<HTMLElement | null>(null);
@@ -539,6 +539,8 @@
               : -1}
         {@const renderedAssistantItems = assistantItems(entry)}
         {@const turnMetadata = turnMessages.find((message) => message.turn)?.turn}
+        {@const turnSuggestionHostMessageId =
+          turnMetadata?.response_message_id ?? assistantMsg?.id ?? null}
         {@const turnIsTerminal = turnMetadata
           ? ["completed", "cancelled", "failed"].includes(turnMetadata.status)
           : !isStreaming}
@@ -560,8 +562,8 @@
         {@const timing = assistantMsg
           ? runTiming(assistantMsg, assistantMsgIdx, turnMessages)
           : null}
-        {@const turnSuggestions = assistantMsg
-          ? (followUpSuggestionsByMessageId[assistantMsg.id] ?? [])
+        {@const turnSuggestions = turnSuggestionHostMessageId
+          ? (followUpSuggestionsByMessageId[turnSuggestionHostMessageId] ?? [])
           : []}
         {#snippet renderAssistantSegments(segments: StreamItemSegment[])}
           {#each segments as segment (`${entry.key}-${segment.startIndex}`)}
@@ -740,7 +742,7 @@
                 >{/if}
             </div>
           {/if}
-          {#if !isStreaming && turnIsTerminal && assistantMsg.id === suggestionHostMessageId && turnSuggestions.length === 3}
+          {#if !isStreaming && turnIsTerminal && turnSuggestionHostMessageId === suggestionHostMessageId && turnSuggestions.length === 3}
             <div class="message-record pagination-footer">
               <FollowUpSuggestions suggestions={turnSuggestions} onSelect={onSelectSuggestion} />
             </div>

@@ -1,11 +1,11 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
-import { latestTurnAssistantMessageId } from "../src/lib/followUpSuggestions";
+import { latestTurnSuggestionHostMessageId } from "../src/lib/followUpSuggestions";
 
-describe("latestTurnAssistantMessageId", () => {
+describe("latestTurnSuggestionHostMessageId", () => {
   test("selects only the final assistant reply on the active branch", () => {
     expect(
-      latestTurnAssistantMessageId([
+      latestTurnSuggestionHostMessageId([
         { id: "user-1", role: "user" },
         { id: "assistant-1", role: "assistant" },
         { id: "user-2", role: "user" },
@@ -17,7 +17,7 @@ describe("latestTurnAssistantMessageId", () => {
 
   test("does not revive an older suggestion after a newer user message", () => {
     expect(
-      latestTurnAssistantMessageId([
+      latestTurnSuggestionHostMessageId([
         { id: "user-1", role: "user" },
         { id: "assistant-1", role: "assistant" },
         { id: "user-2", role: "user" },
@@ -27,11 +27,26 @@ describe("latestTurnAssistantMessageId", () => {
 
   test("ignores trailing non-turn records", () => {
     expect(
-      latestTurnAssistantMessageId([
+      latestTurnSuggestionHostMessageId([
         { id: "user-1", role: "user" },
         { id: "assistant-1", role: "assistant" },
         { id: "notice", role: "system" },
       ]),
     ).toBe("assistant-1");
+  });
+
+  test("uses the logical Turn response ID across tool rounds", () => {
+    expect(
+      latestTurnSuggestionHostMessageId([
+        { id: "user-1", role: "user", timestamp: 1 },
+        {
+          id: "assistant-turn",
+          role: "assistant",
+          turn: { response_message_id: "assistant-turn" },
+        },
+        { id: "tool-result", role: "user", timestamp: 0 },
+        { id: "assistant-final", role: "assistant" },
+      ]),
+    ).toBe("assistant-turn");
   });
 });
