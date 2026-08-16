@@ -27,6 +27,7 @@
     onOpenSkills,
     onOpenSettings,
     onOpenAbout,
+    onQuit,
     onToggleCheckpointFlowPanel,
     onMinimize,
     onMaximize,
@@ -51,6 +52,7 @@
     onOpenSkills: () => void | Promise<void>;
     onOpenSettings: () => void | Promise<void>;
     onOpenAbout: () => void | Promise<void>;
+    onQuit: () => void;
     onToggleCheckpointFlowPanel: () => void;
     onMinimize: () => void;
     onMaximize: () => void | Promise<void>;
@@ -102,6 +104,8 @@
       onOpenSkills={() => void onOpenSkills()}
       onOpenSettings={() => void onOpenSettings()}
       onOpenAbout={() => void onOpenAbout()}
+      onCloseWindow={onClose}
+      {onQuit}
     />
   </div>
 

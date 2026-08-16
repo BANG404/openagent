@@ -4333,6 +4333,7 @@
   const winMinimize = () => appWindow?.minimize();
   const winMaximize = () => appWindow?.toggleMaximize();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
+  const quitApp = () => void invoke("quit_app");
 
   // Keep the webview's built-in context menu available while developing, but
   // do not expose browser actions (such as inspect/copy navigation) in builds.
@@ -4442,6 +4443,7 @@
           onOpenSkills={openSkills}
           onOpenSettings={() => openSettings()}
           onOpenAbout={() => openSettings("about")}
+          onQuit={quitApp}
           onToggleCheckpointFlowPanel={() =>
             (checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed)}
           onMinimize={winMinimize}

@@ -211,6 +211,7 @@
       onOpenSkills={() => {}}
       onOpenSettings={() => {}}
       onOpenAbout={() => {}}
+      onQuit={() => {}}
       onToggleCheckpointFlowPanel={() => {}}
       onMinimize={() => {}}
       onMaximize={() => {}}

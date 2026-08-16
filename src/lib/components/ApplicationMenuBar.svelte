@@ -30,6 +30,8 @@
     onOpenSkills,
     onOpenSettings,
     onOpenAbout,
+    onCloseWindow,
+    onQuit,
   }: {
     recentWorkspaces: RecentWorkspace[];
     workspacePath: string;
@@ -44,6 +46,8 @@
     onOpenSkills: () => void;
     onOpenSettings: () => void;
     onOpenAbout: () => void;
+    onCloseWindow: () => void;
+    onQuit: () => void;
   } = $props();
 
   let otherRecent = $derived(recentWorkspaces.filter((item) => item.path !== workspacePath));
@@ -184,6 +188,8 @@
     if (!event.shiftKey && key === "n") runShortcut(event, onNewConversation);
     else if (event.shiftKey && key === "n") runShortcut(event, onNewWindow);
     else if (!event.shiftKey && key === "o") runShortcut(event, onPickWorkspace);
+    else if (!event.shiftKey && key === "w") runShortcut(event, onCloseWindow);
+    else if (!event.shiftKey && key === "q") runShortcut(event, onQuit);
     else if (!event.shiftKey && key === ",") runShortcut(event, onOpenSettings);
     else if (event.shiftKey && event.code === "Digit1") runShortcut(event, onOpenMemory);
     else if (event.shiftKey && event.code === "Digit2") runShortcut(event, onOpenRoles);
@@ -259,6 +265,16 @@
             </DropdownMenu.Portal>
           </DropdownMenu.Sub>
         {/if}
+        <DropdownMenu.Separator class="application-menu-separator" />
+        <DropdownMenu.Item class="application-menu-item" onSelect={onCloseWindow}>
+          <span>{$t("closeWindow")}</span><span class="application-menu-shortcut"
+            >{primaryModifier}+W</span
+          >
+        </DropdownMenu.Item>
+        <DropdownMenu.Item class="application-menu-item" onSelect={onQuit}>
+          <span>{$t("quit")}</span><span class="application-menu-shortcut">{primaryModifier}+Q</span
+          >
+        </DropdownMenu.Item>
       </DropdownMenu.Content>
     </DropdownMenu.Portal>
   </DropdownMenu.Root>
