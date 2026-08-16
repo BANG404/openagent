@@ -500,7 +500,7 @@ const zh = {
   compactionTaskPromptPlaceholder: "追加给压缩任务的规则，例如保留关键文件路径和未完成事项",
   titleTaskDescription: "根据新对话内容生成简洁标题，用于对话列表展示。",
   suggestionsTaskDescription:
-    "每次 Agent 成功结束后生成 3 条可继续发送的建议；标题更新后基于最近 5 个对话标题刷新新对话建议。",
+    "每次发送用户消息时，仅根据当前分支的全部用户消息生成 3 条可继续发送的建议，并只显示在该分支最后一轮；标题更新后基于最近 5 个对话标题刷新新对话建议。",
   memoryTaskDescription: "在对话结束后提取可复用信息，写入长期记忆。",
   hookTaskDescription: "识别对话中的明确安排，并创建可触发的计划任务。",
   compactionTaskDescription: "当上下文接近阈值时压缩较早模型消息，降低后续处理成本。",
@@ -1370,7 +1370,7 @@ const en: Translations = {
   titleTaskDescription:
     "Generates a concise title from new conversation content for the conversation list.",
   suggestionsTaskDescription:
-    "Generates three sendable follow-ups after each successful Agent turn and refreshes new-chat ideas from the five most recent conversation titles.",
+    "Generates three sendable follow-ups from all user messages on the current branch when each user message is sent, shows them only on that branch's latest turn, and refreshes new-chat ideas from the five most recent conversation titles.",
   memoryTaskDescription:
     "Extracts reusable information after a conversation and saves it to long-term memory.",
   hookTaskDescription:

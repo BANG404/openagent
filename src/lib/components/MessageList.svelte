@@ -10,6 +10,7 @@
   import FollowUpSuggestions from "./FollowUpSuggestions.svelte";
   import { t } from "$lib/i18n";
   import { finalAssistantOutput } from "$lib/assistantOutput";
+  import { latestTurnAssistantMessageId } from "$lib/followUpSuggestions";
   import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
   import type {
@@ -148,6 +149,7 @@
   let streamedOpenThinkingItemKeys = $state(new Set<string>());
   let copiedAssistantMessageId = $state<string | null>(null);
   let readingTurnKey = $state<string | null>(null);
+  let suggestionHostMessageId = $derived(latestTurnAssistantMessageId(messages));
   let copyFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
   let transcriptList = $state<TranscriptList | null>(null);
   let messagesRoot = $state<HTMLElement | null>(null);
@@ -738,7 +740,7 @@
                 >{/if}
             </div>
           {/if}
-          {#if !isStreaming && turnIsTerminal && turnSuggestions.length === 3}
+          {#if !isStreaming && turnIsTerminal && assistantMsg.id === suggestionHostMessageId && turnSuggestions.length === 3}
             <div class="message-record pagination-footer">
               <FollowUpSuggestions suggestions={turnSuggestions} onSelect={onSelectSuggestion} />
             </div>

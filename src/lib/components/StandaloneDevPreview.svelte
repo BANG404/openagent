@@ -130,6 +130,30 @@
   );
   let suggestionMessages = $derived<ChatMessage[]>([
     {
+      id: "suggestion-preview-previous-user",
+      role: "user",
+      content: locale === "zh" ? "先分析现有方案。" : "First analyze the existing approach.",
+      timestamp: Date.now() - 4_000,
+    },
+    {
+      id: "suggestion-preview-previous-assistant",
+      role: "assistant",
+      content:
+        locale === "zh"
+          ? "现有方案可以继续收敛。"
+          : "The existing approach can be narrowed further.",
+      items: [
+        {
+          type: "text",
+          content:
+            locale === "zh"
+              ? "现有方案可以继续收敛。"
+              : "The existing approach can be narrowed further.",
+        },
+      ],
+      timestamp: Date.now() - 3_000,
+    },
+    {
       id: "suggestion-preview-user",
       role: "user",
       content:
@@ -543,6 +567,7 @@
         newConversationGreeting={null}
         newConversationGreetingLoading={false}
         followUpSuggestionsByMessageId={{
+          "suggestion-preview-previous-assistant": suggestionItems,
           "suggestion-preview-assistant": suggestionItems,
         }}
         editable={false}

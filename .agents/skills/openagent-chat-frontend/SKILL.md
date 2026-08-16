@@ -192,11 +192,15 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   in the background. Do not show the conversation-loading skeleton, remount an
   unchanged transcript, overwrite backend history, or remove optimistic
   messages from a queued turn.
-- Attach Flash-generated follow-up suggestions to the stable backend assistant
-  message ID from completion. Render exactly three suggestions below that
-  reply's full-width footer only after streaming has ended, cache them by
-  message ID across navigation, and send a selected suggestion through the
-  shared user-message path without replacing the current composer draft.
+- Attach Flash-generated follow-up suggestions to the stable preallocated
+  backend assistant message ID for the triggering user turn. Cache them by
+  message ID across navigation, but render exactly three only below the latest
+  complete reply on the currently selected branch after streaming has ended; a
+  newer trailing user message must not revive an older turn's suggestions. Send
+  a selected suggestion through the shared user-message path without replacing
+  the current composer draft. The runtime starts generation when the user
+  message is submitted and supplies only all user-authored messages from that
+  selected branch, never Agent output.
 - New checkpoints carry compacted context inside the tagged user replay rather
   than adding a system message. Represent the whole record only by the divider,
   while continuing to restore legacy system-boundary checkpoints.
