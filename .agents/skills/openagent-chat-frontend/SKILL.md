@@ -142,6 +142,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the turn-level process disclosure mounted throughout an active stream
   whenever process records exist, including intervals with no trailing final-text
   run. A later thinking or tool record must not make the working header disappear.
+- Default the turn-level process disclosure closed only after the logical Turn
+  reaches the normally completed status. Running, interrupted, cancelled, and
+  failed Turns keep their process records open across live finalization, reload,
+  and branch switching so pending input and the incomplete or failed execution
+  context remain visible. A later resume stays open until its durable Turn
+  status becomes completed.
 - Treat the first `render_html` or `render_mermaid` call as the process-disclosure
   boundary: keep that render and every later record outside the collapsed work
   details, including later tools and reasoning. Before that boundary,
@@ -653,7 +659,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the development-only `runtime-notice-preview` query available for the
   standard persisted interruption divider. Its `-theme` and `-locale` parameters
   must verify that the localized title is not followed by the redundant durable
-  English reason in light or dark mode.
+  English reason and that an interrupted Turn keeps its process disclosure and
+  pending input open in light or dark mode.
 - Keep the development-only `streaming-transcript-preview` query available for
   fully mounted dynamic-height Turn verification. It must continuously grow one live
   Turn so tail following, reader-controlled upward scrolling, the visible native

@@ -34,7 +34,6 @@
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
   import ReasoningEffortSelect from "$lib/components/ReasoningEffortSelect.svelte";
-  import StreamItemRenderer from "$lib/components/StreamItemRenderer.svelte";
   import WorkspaceSwitcher from "$lib/components/WorkspaceSwitcher.svelte";
 
   let { preview }: { preview: StandaloneDevPreview } = $props();
@@ -71,6 +70,7 @@
   let quoteContexts = $state<UserMessageContext[]>([]);
   let quoteFocusRequest = $state(0);
   let quoteMessagesElement = $state<HTMLElement | null>(null);
+  let runtimeNoticeMessagesElement = $state<HTMLElement | null>(null);
   let streamingMessagesElement = $state<HTMLElement | null>(null);
   let streamingFollowTail = $state(true);
   let streamingText = $state(
@@ -119,6 +119,72 @@
         },
       ],
       timestamp: Date.now() - 1000,
+    },
+  ]);
+  let runtimeNoticeMessages = $derived<ChatMessage[]>([
+    {
+      id: "runtime-notice-user",
+      role: "user",
+      content:
+        locale === "zh" ? "继续执行前先征求我的确认。" : "Ask for confirmation before continuing.",
+      timestamp: Date.now() - 2_000,
+    },
+    {
+      id: "runtime-notice-assistant",
+      role: "assistant",
+      content:
+        locale === "zh"
+          ? "我需要你的确认才能继续。"
+          : "I need your confirmation before I can continue.",
+      items: [
+        {
+          type: "thinking",
+          content:
+            locale === "zh"
+              ? "已检查请求，并在需要授权的工具调用前暂停。"
+              : "Checked the request and paused before the tool call that needs authorization.",
+        },
+        {
+          type: "text",
+          content:
+            locale === "zh"
+              ? "我需要你的确认才能继续。"
+              : "I need your confirmation before I can continue.",
+        },
+        {
+          type: "user_input",
+          request: {
+            request_id: "runtime-notice-confirmation",
+            conv_id: "runtime-notice-preview",
+            kind: "ask_user",
+            title: locale === "zh" ? "确认下一步" : "Confirm the next step",
+            fields: [
+              {
+                type: "confirm",
+                name: "approved",
+                label: locale === "zh" ? "允许继续执行" : "Allow the run to continue",
+                default: false,
+              },
+            ],
+            submit_label: locale === "zh" ? "确认并继续" : "Confirm and continue",
+            cancel_label: locale === "zh" ? "取消" : "Cancel",
+          },
+          state: "pending",
+        },
+        {
+          type: "runtime_notice",
+          kind: "interrupted",
+          reason: "The agent run was interrupted.",
+        },
+      ],
+      timestamp: Date.now() - 1_000,
+      turn: {
+        id: "runtime-notice-assistant",
+        input_message_id: "runtime-notice-user",
+        response_message_id: "runtime-notice-assistant",
+        status: "interrupted",
+        started_at: Date.now() - 2_000,
+      },
     },
   ]);
   let suggestionItems = $derived(
@@ -340,6 +406,7 @@
   const bookTurns: AgentBookTurn[] = [
     {
       key: "book-preview-one",
+      status: "completed",
       items: [
         {
           type: "thinking",
@@ -373,6 +440,7 @@
     },
     {
       key: "book-preview-two",
+      status: "completed",
       items: [{ type: "text", content: "第二条 Agent 消息用于验证章节切换。" }],
     },
   ];
@@ -722,19 +790,34 @@
     </section>
   </main>
 {:else if preview === "runtime-notice"}
-  <main class="runtime-notice-preview-stage">
-    <StreamItemRenderer
-      item={{
-        type: "runtime_notice",
-        kind: "interrupted",
-        reason: "The agent run was interrupted.",
-      }}
-      itemKey="runtime-notice-preview"
-      shikiTheme={theme === "dark" ? "github-dark" : "github-light"}
-      mermaidConfig={mermaidConfigFor(theme === "dark")}
-      onSubmitUserInput={() => {}}
-      onCancelUserInput={() => {}}
-    />
+  <main class="runtime-notice-preview-stage" bind:this={runtimeNoticeMessagesElement}>
+    <section class="runtime-notice-preview-messages">
+      <MessageList
+        messages={runtimeNoticeMessages}
+        scrollElement={runtimeNoticeMessagesElement}
+        isStreaming={false}
+        isAwaitingStreamOutput={false}
+        currentStreamItems={[]}
+        currentStreamMessageId={null}
+        activeConvId="runtime-notice-preview"
+        activeBranchId={null}
+        debugMode={false}
+        activeTree={undefined}
+        paddingBottom={48}
+        showApiKeyWarn={false}
+        shikiTheme={theme === "dark" ? "github-dark" : "github-light"}
+        mermaidConfig={mermaidConfigFor(theme === "dark")}
+        newConversationGreeting={null}
+        newConversationGreetingLoading={false}
+        editable={false}
+        onCommitEdit={() => {}}
+        onAddQuote={() => {}}
+        onReExecute={() => {}}
+        onSwitchBranch={() => {}}
+        onSubmitUserInput={() => {}}
+        onCancelUserInput={() => {}}
+      />
+    </section>
   </main>
 {:else if preview === "streaming-transcript"}
   <main
@@ -875,11 +958,11 @@
     padding: 32px;
   }
   .runtime-notice-preview-stage {
-    display: flex;
-    align-items: center;
+    height: 100vh;
+    overflow-y: auto;
     padding: 24px;
   }
-  .runtime-notice-preview-stage :global(.message-divider) {
+  .runtime-notice-preview-messages {
     width: min(900px, 100%);
     margin: 0 auto;
   }

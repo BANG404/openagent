@@ -7,7 +7,7 @@
     partitionAssistantSegments,
     type StreamItemSegment,
   } from "$lib/toolCallGroups";
-  import type { HtmlPreviewConfig, StreamItem } from "$lib/types";
+  import type { CheckpointTurnStatus, HtmlPreviewConfig, StreamItem } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import ProcessRecordGroup from "./ProcessRecordGroup.svelte";
   import StreamItemRenderer from "./StreamItemRenderer.svelte";
@@ -17,6 +17,7 @@
   export interface AgentBookTurn {
     key: string;
     items: StreamItem[];
+    status: CheckpointTurnStatus;
   }
 
   interface Props {
@@ -232,7 +233,7 @@
         >
           {#if selectedTurn}
             {#if processSegments.length > 0 && finalSegments.length > 0}
-              <ProcessRecordGroup isStreaming={false}>
+              <ProcessRecordGroup status={selectedTurn.status}>
                 {@render renderSegments(processSegments)}
               </ProcessRecordGroup>
               {@render renderSegments(finalSegments)}

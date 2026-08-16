@@ -9,7 +9,7 @@ describe("assistant reply actions", () => {
     const source = await readFile(messageListUrl, "utf8");
 
     expect(source).toMatch(
-      /turnIsTerminal\s*=\s*turnMetadata\s*\?\s*\["completed", "cancelled", "failed"\]\.includes\(turnMetadata\.status\)\s*:\s*!isStreaming/s,
+      /turnStatus\s*=\s*assistantTurnStatus\(turnMessages, assistantIsStreaming\).*turnIsTerminal\s*=\s*\["completed", "cancelled", "failed"\]\.includes\(turnStatus\)/s,
     );
     expect(source).toMatch(
       /showAssistantActions\s*=\s*!isStreaming\s*&&\s*turnIsTerminal\s*&&\s*\(isRerunnable \|\| Boolean\(copyableOutput\) \|\| renderedAssistantItems\.length > 0\)/s,

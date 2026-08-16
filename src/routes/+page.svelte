@@ -144,6 +144,7 @@
     ProviderAuthDeviceCodeEvent,
     GoalRunUpdatedEvent,
     UserMessageContext,
+    CheckpointTurnStatus,
   } from "$lib/types";
 
   type AgentCommandSpec = {
@@ -2539,7 +2540,7 @@
         }
       },
       onDone: (conv_id, asstMsgId, error) => {
-        finalizeStreamedMessage(conv_id, false, asstMsgId, error);
+        finalizeStreamedMessage(conv_id, error ? "failed" : "completed", asstMsgId, error);
       },
       onFollowUpSuggestions: (convId, assistantMessageId, suggestions) => {
         const normalized = normalizeSuggestions(suggestions);
@@ -2558,7 +2559,7 @@
         }
       },
       onInterrupted: (conv_id) => {
-        finalizeStreamedMessage(conv_id, false);
+        finalizeStreamedMessage(conv_id, "interrupted");
         // The live `chat-user-input-request` event has already attached the
         // next approval to its tool card. Do not re-project the complete
         // checkpoint here: replacing the conversation while the user clicks
@@ -2566,7 +2567,7 @@
         // the recovery path when opening a conversation or restoring a view.
       },
       onCancelled: (conv_id) => {
-        finalizeStreamedMessage(conv_id, true);
+        finalizeStreamedMessage(conv_id, "cancelled");
       },
     });
     await Promise.all([...registrations, chatEventRegistration]);
@@ -2676,7 +2677,7 @@
 
   function finalizeStreamedMessage(
     conv_id: string,
-    aborted: boolean,
+    status: CheckpointTurnStatus,
     asstMsgId?: string,
     error?: string | null,
   ) {
@@ -2684,7 +2685,7 @@
     let items = chatStreams.itemsByConversation[conv_id] ?? [];
     if (error) {
       items = [...items, { type: "runtime_notice", kind: "error", reason: error }];
-    } else if (aborted) {
+    } else if (status === "cancelled") {
       items = [
         ...items,
         {
@@ -2710,17 +2711,18 @@
 
     const checkpointId = pendingCheckpointIds[conv_id] ?? null;
 
-    const completedAt = Date.now();
+    const finalizedAt = Date.now();
     const assistantMsg: ChatMessage = {
       id: asstMsgId ?? chatStreams.assistantMessageIds[conv_id] ?? crypto.randomUUID(),
       role: "assistant",
       content: fullText,
-      timestamp: completedAt,
+      timestamp: finalizedAt,
       items: items.length > 0 ? [...items] : undefined,
-      aborted: aborted || undefined,
+      aborted: status === "cancelled" || undefined,
       checkpointId: checkpointId ?? undefined,
       firstTokenAt: chatStreams.firstTokenAt[conv_id],
-      completedAt,
+      completedAt: status === "interrupted" ? undefined : finalizedAt,
+      transientTurnStatus: status,
     };
 
     const convIdx = conversations.findIndex((c) => c.id === conv_id);
