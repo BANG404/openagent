@@ -42,7 +42,7 @@
   .follow-up-suggestions.new-conversation {
     max-width: 760px;
     margin: 10px auto 0;
-    padding: 0 4px;
+    padding: 0 28px;
     border-top: 0;
   }
 
@@ -87,5 +87,11 @@
   button > span:last-child {
     min-width: 0;
     overflow-wrap: anywhere;
+  }
+
+  .new-conversation button {
+    grid-template-columns: 12px minmax(0, 1fr);
+    gap: 6px;
+    padding-inline: 4px;
   }
 </style>
