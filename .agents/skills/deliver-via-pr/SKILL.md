@@ -1,6 +1,8 @@
 ---
 name: deliver-via-pr
 description: "Implement and deliver OpenAgent repository changes using prefix-selected Git modes. Use for every repository-changing task: default to verified commits directly on the local host default branch, use OWT for an isolated local worktree, push private SDK commits directly, use OPR for a ready public-host PR, and use ORPR for administrator-bypassed merge and cleanup."
+metadata:
+  category: pr-and-ci
 ---
 
 # Repository delivery
