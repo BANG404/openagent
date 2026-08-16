@@ -16,6 +16,8 @@
   import UserInputForm from "./UserInputForm.svelte";
   import UserInputSummary from "./UserInputSummary.svelte";
   import { groupStreamItems } from "$lib/toolCallGroups";
+  import { externalLinks } from "$lib/streamdown/externalLink";
+  import { useOpenAgentUiCapabilities } from "$lib/openagent";
 
   interface Props {
     item: Extract<StreamItem, { type: "retry" }>;
@@ -37,6 +39,7 @@
 
   let expandedToolCalls = $state(new Set<number>());
   const attemptSegments = $derived(groupStreamItems(item.items));
+  const capabilities = useOpenAgentUiCapabilities();
 
   function toggleToolCall(index: number) {
     const next = new Set(expandedToolCalls);
@@ -57,7 +60,7 @@
 </script>
 
 <div class="retry-attempt">
-  <div class="attempt-content">
+  <div class="attempt-content" use:externalLinks={capabilities.openUrl}>
     {#each attemptSegments as segment (segment.startIndex)}
       {#if segment.kind === "tool_group"}
         <ToolCallGroup

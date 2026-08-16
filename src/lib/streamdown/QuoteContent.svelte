@@ -1,11 +1,14 @@
 <script lang="ts">
   import { Streamdown } from "svelte-streamdown";
   import ChatMath from "./ChatMath.svelte";
+  import { useOpenAgentUiCapabilities } from "$lib/openagent";
+  import { externalLinks } from "./externalLink";
 
   let { content }: { content: string } = $props();
+  const capabilities = useOpenAgentUiCapabilities();
 </script>
 
-<div class="quote-content">
+<div class="quote-content" use:externalLinks={capabilities.openUrl}>
   <Streamdown
     {content}
     controls={{ code: false, mermaid: false, table: false }}

@@ -42,6 +42,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   application theme tokens. Do not depend on the renderer's optional utility
   classes; inline code must retain readable foreground and surface contrast in
   both light and dark themes without affecting fenced code blocks.
+- Intercept every Agent-authored Markdown link before WebView navigation. Open
+  absolute HTTP(S) destinations through the surface's UI capability, consume
+  opener failures, and leave relative or non-web destinations inert; native
+  `target=_blank` navigation must never bypass that boundary or create an
+  unhandled rejection.
 - Keep fenced Markdown code headers, containers, loading skeletons, and controls
   on application theme surfaces through stable chat theme hooks. Shiki owns
   highlighted token colors, not the surrounding block background; fixed light

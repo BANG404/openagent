@@ -73,7 +73,9 @@
   let quoteMessagesElement = $state<HTMLElement | null>(null);
   let streamingMessagesElement = $state<HTMLElement | null>(null);
   let streamingFollowTail = $state(true);
-  let streamingText = $state("Preparing the live response…");
+  let streamingText = $state(
+    "Preparing the live response. [OpenAgent](https://github.com/BANG404/openagent)",
+  );
   let paused = $state(false);
   let checkpointValue = $state("");
   let checkpointAttachments = $state<ChatAttachment[]>([]);

@@ -16,6 +16,8 @@
   import { chatMarkdownTheme } from "$lib/streamdown/chatMarkdownTheme";
   import { runtimeNoticeDetail } from "$lib/runtimeNotice";
   import CustomToken from "$lib/streamdown/CustomToken.svelte";
+  import { externalLinks } from "$lib/streamdown/externalLink";
+  import { useOpenAgentUiCapabilities } from "$lib/openagent";
 
   interface Props {
     item: StreamItem;
@@ -51,6 +53,7 @@
 
   let expanded = $state(false);
   let thinkingOpen = $state(false);
+  const capabilities = useOpenAgentUiCapabilities();
 
   $effect.pre(() => {
     if (initialThinkingOpen || isStreaming) thinkingOpen = true;
@@ -79,6 +82,7 @@
     data-message-id={messageId}
     data-selection-source-message-id={selectionSourceMessageId}
     data-stream-item={itemKey}
+    use:externalLinks={capabilities.openUrl}
   >
     <Streamdown
       content={isStreaming && isLastText
