@@ -77,6 +77,8 @@ export interface ChatMessage {
   /** Client-side timings for a completed streamed response. */
   firstTokenAt?: number;
   completedAt?: number;
+  /** UI-only lifecycle status retained until durable Turn metadata reconciles. */
+  transientTurnStatus?: CheckpointTurnStatus;
   /** Durable logical-turn metadata reduced from checkpoints on the selected branch. */
   turn?: CheckpointTurnMetadata;
   /** Durable checkpoint semantics such as hidden flow prompts or compaction boundaries. */

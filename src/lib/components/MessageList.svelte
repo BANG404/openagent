@@ -12,6 +12,7 @@
   import { finalAssistantOutput } from "$lib/assistantOutput";
   import { latestTurnSuggestionHostMessageId } from "$lib/followUpSuggestions";
   import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
+  import { assistantTurnStatus, latestTurnMetadata } from "$lib/processRecordState";
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
   import type {
     ChatAttachment,
@@ -171,7 +172,15 @@
   let renderEntries = $derived(groupAssistantTurns(groupMessageToolCalls(visibleMessages)));
   let bookTurns = $derived(
     renderEntries.flatMap((entry): AgentBookTurn[] =>
-      isAssistantTurnEntry(entry) ? [{ key: entry.key, items: assistantItems(entry) }] : [],
+      isAssistantTurnEntry(entry)
+        ? [
+            {
+              key: entry.key,
+              items: assistantItems(entry),
+              status: assistantTurnStatus(entryAssistantMessages(entry), false),
+            },
+          ]
+        : [],
     ),
   );
   let transcriptEntries = $derived(
@@ -383,7 +392,7 @@
   }
 
   function runTiming(msg: ChatMessage, msgIdx: number, turnMessages: ChatMessage[]) {
-    const turn = turnMessages.find((message) => message.turn)?.turn;
+    const turn = latestTurnMetadata(turnMessages);
     if (turn) {
       if (turn.duration_ms == null) return null;
       return {
@@ -538,14 +547,13 @@
               ? entry.index
               : -1}
         {@const renderedAssistantItems = assistantItems(entry)}
-        {@const turnMetadata = turnMessages.find((message) => message.turn)?.turn}
+        {@const assistantIsStreaming = entry.kind === "live_stream"}
+        {@const turnMetadata = latestTurnMetadata(turnMessages)}
+        {@const turnStatus = assistantTurnStatus(turnMessages, assistantIsStreaming)}
         {@const turnSuggestionHostMessageId =
           turnMetadata?.response_message_id ?? assistantMsg?.id ?? null}
-        {@const turnIsTerminal = turnMetadata
-          ? ["completed", "cancelled", "failed"].includes(turnMetadata.status)
-          : !isStreaming}
+        {@const turnIsTerminal = ["completed", "cancelled", "failed"].includes(turnStatus)}
         {@const assistantSegments = groupStreamItems(renderedAssistantItems)}
-        {@const assistantIsStreaming = entry.kind === "live_stream"}
         {@const { processSegments, finalSegments } = partitionAssistantSegments(assistantSegments)}
         {@const isRerunnable =
           assistantMsg !== null &&
@@ -596,9 +604,8 @@
                 debugCheckpointId={debugMode && isRerunnable
                   ? assistantMsg?.checkpointId
                   : undefined}
-                initialThinkingOpen={streamedOpenThinkingItemKeys.has(
-                  `${entry.key}-${segment.startIndex}`,
-                )}
+                initialThinkingOpen={turnStatus !== "completed" ||
+                  streamedOpenThinkingItemKeys.has(`${entry.key}-${segment.startIndex}`)}
                 {shikiTheme}
                 {mermaidConfig}
                 {htmlPreviewConfig}
@@ -609,7 +616,7 @@
           {/each}
         {/snippet}
         {#if processSegments.length > 0 && (assistantIsStreaming || finalSegments.length > 0)}
-          <ProcessRecordGroup isStreaming={assistantIsStreaming} duration={timing?.total}>
+          <ProcessRecordGroup status={turnStatus} duration={timing?.total}>
             {@render renderAssistantSegments(processSegments)}
           </ProcessRecordGroup>
           {@render renderAssistantSegments(finalSegments)}

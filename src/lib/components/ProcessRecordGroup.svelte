@@ -1,25 +1,31 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { t } from "$lib/i18n";
+  import { processRecordsDefaultOpen } from "$lib/processRecordState";
+  import type { CheckpointTurnStatus } from "$lib/types";
 
   interface Props {
-    isStreaming: boolean;
+    status: CheckpointTurnStatus;
     duration?: string | null;
     children: Snippet;
   }
 
-  let { isStreaming, duration = null, children }: Props = $props();
-  let open = $state(false);
-  let previousStreaming = $state<boolean | null>(null);
+  let { status, duration = null, children }: Props = $props();
+  let open = $state(true);
+  let previousStatus = $state<CheckpointTurnStatus | null>(null);
 
-  $effect(() => {
-    if (isStreaming === previousStreaming) return;
-    open = isStreaming;
-    previousStreaming = isStreaming;
+  $effect.pre(() => {
+    if (status === previousStatus) return;
+    open = processRecordsDefaultOpen(status);
+    previousStatus = status;
   });
 
   let label = $derived(
-    isStreaming ? $t("working") : duration ? `${$t("workedFor")} ${duration}` : $t("workDetails"),
+    status === "running"
+      ? $t("working")
+      : status === "completed" && duration
+        ? `${$t("workedFor")} ${duration}`
+        : $t("workDetails"),
   );
 </script>
 
