@@ -12,7 +12,11 @@
   import { finalAssistantOutput } from "$lib/assistantOutput";
   import { latestTurnSuggestionHostMessageId } from "$lib/followUpSuggestions";
   import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
-  import { assistantTurnStatus, latestTurnMetadata } from "$lib/processRecordState";
+  import {
+    assistantTurnStatus,
+    latestTurnMetadata,
+    shouldShowProcessRecords,
+  } from "$lib/processRecordState";
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
   import type {
     ChatAttachment,
@@ -615,8 +619,8 @@
             {/if}
           {/each}
         {/snippet}
-        {#if processSegments.length > 0 && (assistantIsStreaming || finalSegments.length > 0)}
-          <ProcessRecordGroup status={turnStatus} duration={timing?.total}>
+        {#if shouldShowProcessRecords(turnStatus, processSegments.length)}
+          <ProcessRecordGroup duration={timing?.total}>
             {@render renderAssistantSegments(processSegments)}
           </ProcessRecordGroup>
           {@render renderAssistantSegments(finalSegments)}

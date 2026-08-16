@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   assistantTurnStatus,
   latestTurnMetadata,
-  processRecordsDefaultOpen,
+  shouldShowProcessRecords,
 } from "../src/lib/processRecordState";
 import type { ChatMessage, CheckpointTurnStatus } from "../src/lib/types";
 
@@ -48,11 +48,12 @@ describe("process record state", () => {
     expect(assistantTurnStatus([assistant("prefix", "interrupted")], true)).toBe("running");
   });
 
-  test("opens every non-completed process state", () => {
-    expect(processRecordsDefaultOpen("running")).toBe(true);
-    expect(processRecordsDefaultOpen("interrupted")).toBe(true);
-    expect(processRecordsDefaultOpen("cancelled")).toBe(true);
-    expect(processRecordsDefaultOpen("failed")).toBe(true);
-    expect(processRecordsDefaultOpen("completed")).toBe(false);
+  test("shows process records only for completed turns", () => {
+    expect(shouldShowProcessRecords("completed", 1)).toBe(true);
+    expect(shouldShowProcessRecords("completed", 0)).toBe(false);
+    expect(shouldShowProcessRecords("running", 1)).toBe(false);
+    expect(shouldShowProcessRecords("interrupted", 1)).toBe(false);
+    expect(shouldShowProcessRecords("cancelled", 1)).toBe(false);
+    expect(shouldShowProcessRecords("failed", 1)).toBe(false);
   });
 });

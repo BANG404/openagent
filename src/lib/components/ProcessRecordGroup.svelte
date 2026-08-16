@@ -1,32 +1,16 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { t } from "$lib/i18n";
-  import { processRecordsDefaultOpen } from "$lib/processRecordState";
-  import type { CheckpointTurnStatus } from "$lib/types";
 
   interface Props {
-    status: CheckpointTurnStatus;
     duration?: string | null;
     children: Snippet;
   }
 
-  let { status, duration = null, children }: Props = $props();
-  let open = $state(true);
-  let previousStatus = $state<CheckpointTurnStatus | null>(null);
+  let { duration = null, children }: Props = $props();
+  let open = $state(false);
 
-  $effect.pre(() => {
-    if (status === previousStatus) return;
-    open = processRecordsDefaultOpen(status);
-    previousStatus = status;
-  });
-
-  let label = $derived(
-    status === "running"
-      ? $t("working")
-      : status === "completed" && duration
-        ? `${$t("workedFor")} ${duration}`
-        : $t("workDetails"),
-  );
+  let label = $derived(duration ? `${$t("workedFor")} ${duration}` : $t("workDetails"));
 </script>
 
 <div class="process-records" data-open={open ? "true" : undefined}>

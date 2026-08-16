@@ -16,6 +16,9 @@ export function assistantTurnStatus(
   );
 }
 
-export function processRecordsDefaultOpen(status: CheckpointTurnStatus): boolean {
-  return status !== "completed";
+export function shouldShowProcessRecords(
+  status: CheckpointTurnStatus,
+  processRecordCount: number,
+): boolean {
+  return status === "completed" && processRecordCount > 0;
 }

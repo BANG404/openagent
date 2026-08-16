@@ -9,7 +9,6 @@ const processRecordGroupUrl = new URL(
 const messageListUrl = new URL("../src/lib/components/MessageList.svelte", import.meta.url);
 const transcriptListUrl = new URL("../src/lib/components/TranscriptList.svelte", import.meta.url);
 const agentBookReaderUrl = new URL("../src/lib/components/AgentBookReader.svelte", import.meta.url);
-const pageUrl = new URL("../src/routes/+page.svelte", import.meta.url);
 
 describe("process record group", () => {
   test("uses a controlled button without fragmenting a native details element", async () => {
@@ -23,31 +22,27 @@ describe("process record group", () => {
     expect(source).not.toContain("<summary");
   });
 
-  test("keeps the process disclosure mounted while an assistant turn is streaming", async () => {
-    const source = await readFile(messageListUrl, "utf8");
-
-    expect(source).toContain(
-      "processSegments.length > 0 && (assistantIsStreaming || finalSegments.length > 0)",
-    );
-  });
-
-  test("defaults process records closed only for normally completed turns", async () => {
-    const [groupSource, messageSource, pageSource] = await Promise.all([
-      readFile(processRecordGroupUrl, "utf8"),
+  test("mounts the process disclosure only for completed assistant turns", async () => {
+    const [source, bookSource] = await Promise.all([
       readFile(messageListUrl, "utf8"),
-      readFile(pageUrl, "utf8"),
+      readFile(agentBookReaderUrl, "utf8"),
     ]);
 
-    expect(groupSource).toContain("open = processRecordsDefaultOpen(status)");
-    expect(groupSource).toContain('status === "completed" && duration');
+    expect(source).toContain("shouldShowProcessRecords(turnStatus, processSegments.length)");
+    expect(bookSource).toContain('selectedTurn.status === "completed"');
+  });
+
+  test("keeps completed process records collapsed by default", async () => {
+    const [groupSource, messageSource] = await Promise.all([
+      readFile(processRecordGroupUrl, "utf8"),
+      readFile(messageListUrl, "utf8"),
+    ]);
+
+    expect(groupSource).toContain("let open = $state(false)");
     expect(messageSource).toContain(
       "const turnStatus = assistantTurnStatus(turnMessages, assistantIsStreaming)",
     );
-    expect(messageSource).toContain(
-      "<ProcessRecordGroup status={turnStatus} duration={timing?.total}>",
-    );
-    expect(pageSource).toContain('finalizeStreamedMessage(conv_id, "interrupted")');
-    expect(pageSource).toContain("transientTurnStatus: status");
+    expect(messageSource).toContain("<ProcessRecordGroup duration={timing?.total}>");
   });
 
   test("keeps the controlled header with the first fragmented process record", async () => {

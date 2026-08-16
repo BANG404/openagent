@@ -232,8 +232,8 @@
           style="--book-font-size: {fontSize}px"
         >
           {#if selectedTurn}
-            {#if processSegments.length > 0 && finalSegments.length > 0}
-              <ProcessRecordGroup status={selectedTurn.status}>
+            {#if selectedTurn.status === "completed" && processSegments.length > 0}
+              <ProcessRecordGroup>
                 {@render renderSegments(processSegments)}
               </ProcessRecordGroup>
               {@render renderSegments(finalSegments)}
