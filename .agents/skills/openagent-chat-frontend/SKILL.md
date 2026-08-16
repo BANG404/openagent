@@ -43,10 +43,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   classes; inline code must retain readable foreground and surface contrast in
   both light and dark themes without affecting fenced code blocks.
 - Intercept every Agent-authored Markdown link before WebView navigation. Open
-  absolute HTTP(S) destinations through the surface's UI capability, consume
-  opener failures, and leave relative or non-web destinations inert; native
-  `target=_blank` navigation must never bypass that boundary or create an
-  unhandled rejection.
+  absolute HTTP(S) destinations through the surface's UI capability: Tauri uses
+  the native system opener, while browser-backed previews and remote surfaces
+  synchronously create an isolated browser tab. Consume opener failures and
+  leave relative or non-web destinations inert. Never fall back from a failed
+  native opener to WebView `target=_blank` navigation, which can recreate the
+  crash path. Browser verification must confirm the destination tab opens as
+  well as confirming that the source page remains mounted.
 - Keep fenced Markdown code headers, containers, loading skeletons, and controls
   on application theme surfaces through stable chat theme hooks. Shiki owns
   highlighted token colors, not the surrounding block background; fixed light

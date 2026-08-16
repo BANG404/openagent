@@ -1,8 +1,10 @@
 import { getContext, setContext } from "svelte";
+import { isTauri } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
 import { tr } from "$lib/i18n";
 import type { HtmlPreviewFile, WorkspaceMediaSource, WorkspaceTextSnippet } from "./contracts";
+import { openSurfaceUrl } from "./externalUrl";
 import { desktopOpenAgent, invoke } from "./tauriClient";
 
 export interface SavedDownload {
@@ -27,7 +29,7 @@ export interface OpenAgentUiCapabilities {
 const UI_CAPABILITIES_CONTEXT = Symbol("openagent-ui-capabilities");
 
 const desktopCapabilities: OpenAgentUiCapabilities = {
-  openUrl: (url) => openExternalUrl(url),
+  openUrl: (url) => openSurfaceUrl(url, isTauri(), openExternalUrl),
   openPath: (path) => desktopOpenAgent.openWorkspacePath(path),
   readTextSnippet: (path, startLine, endLine) =>
     desktopOpenAgent.readWorkspaceTextSnippet(path, startLine, endLine),

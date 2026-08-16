@@ -64,6 +64,7 @@
     type RemoteModel,
     type RemoteWorkspace,
   } from "$lib/openagent";
+  import { openBrowserUrl } from "$lib/openagent/externalUrl";
   import { HttpTransport } from "$lib/openagent/httpTransport";
   import { randomUuid } from "$lib/uuid";
   import { clampSidebarWidth, loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
@@ -148,8 +149,7 @@
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
         throw new Error(tr("remoteUnsupportedUrl"));
       }
-      const opened = window.open(parsed.href, "_blank", "noopener,noreferrer");
-      if (opened) opened.opener = null;
+      openBrowserUrl(parsed.href);
     },
     openPath: (path) => client.openWorkspacePath(path, activeConversationId()),
     readTextSnippet: (path, startLine, endLine) =>
