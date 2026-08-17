@@ -64,6 +64,7 @@ export function classifyChangedModules(files, forceAll = false) {
   );
   const automationTests = new Set([
     "tests/ciChanges.test.js",
+    "tests/codexExecBatch.test.js",
     "tests/ciReuse.test.js",
     "tests/ciResults.test.js",
     "tests/docsSync.test.js",

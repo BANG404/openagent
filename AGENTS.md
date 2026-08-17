@@ -256,6 +256,13 @@ comes only from its manifest, and the final ready agent integrates the fixed tas
 heads without launching another Codex process. The recorded local `master`
 `HEAD` is authoritative
 even when remote history differs; OWT does not reconcile the remote branch.
+Independent scopes that do not require atomic batch integration may be launched
+as concurrent ordinary OWT deliveries through the skill-owned `codex exec`
+launcher. Every child must receive a complete `OWT`-prefixed task, own disjoint
+files and acceptance criteria, and finish the normal OWT workflow; the parent
+must wait for all children and verify their combined result. Do not use this
+path for shared-file edits, dependent tasks, private SDK work, or together with
+the sealed-batch coordinator.
 SDK changes retain their separate direct-push workflow.
 An uppercase standalone `OPR` prefix creates or updates a ready pull request on
 a dedicated task branch and stops without waiting for CI, merging, or cleanup.
