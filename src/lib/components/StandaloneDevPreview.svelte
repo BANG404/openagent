@@ -13,9 +13,11 @@
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import { defaultPermissionProfile } from "$lib/config";
   import type {
+    AgentRole,
     ApprovalMode,
     ChatAttachment,
     ChatMessage,
+    FileChange,
     PermissionProfile,
     ReasoningEffort,
     RecentWorkspace,
@@ -28,12 +30,14 @@
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
   import DesktopShellPreview from "$lib/components/DesktopShellPreview.svelte";
+  import FileChangeBanner from "$lib/components/FileChangeBanner.svelte";
   import FollowUpSuggestions from "$lib/components/FollowUpSuggestions.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
   import ReasoningEffortSelect from "$lib/components/ReasoningEffortSelect.svelte";
+  import RoleSelector from "$lib/components/RoleSelector.svelte";
   import WorkspaceSwitcher from "$lib/components/WorkspaceSwitcher.svelte";
 
   let { preview }: { preview: StandaloneDevPreview } = $props();
@@ -47,6 +51,45 @@
   let locale = $derived<Locale>(query.get(`${prefix}-locale`) === "en" ? "en" : "zh");
 
   let attachmentValue = $state("");
+  let inputSurfaceValue = $state("");
+  let inputSurfaceRole = $state("openagent");
+  const inputSurfaceRoles: AgentRole[] = [
+    {
+      id: "reviewer",
+      scope: "local",
+      name: "Reviewer",
+      description: "Review implementation changes",
+      usage_count: 2,
+      created_at: 1,
+      updated_at: 2,
+      last_used_at: 2,
+    },
+    {
+      id: "developer",
+      scope: "local",
+      name: "Developer",
+      description: "Build and debug product features",
+      usage_count: 1,
+      created_at: 1,
+      updated_at: 2,
+      last_used_at: 2,
+    },
+  ];
+  const inputSurfaceChanges: FileChange[] = [
+    {
+      id: "preview-file-change",
+      conv_id: "input-surfaces-preview",
+      checkpoint_id: "preview-checkpoint",
+      path: "src/lib/components/MessageInput.svelte",
+      operation: "write",
+      old_patch: "@@ -1 +1 @@\n-old surface\n+shared surface",
+      old_content_z: null,
+      new_content_z: null,
+      new_hash: null,
+      seq: 1,
+      created_at: 1,
+    },
+  ];
   let attachmentItems = $state<ChatAttachment[]>([
     { path: "preview://agentgym.txt", name: "agentgym.txt", kind: "document" },
     { path: "preview://sdk-docs.ts", name: "4.1 SDK文档.ts", kind: "document" },
@@ -525,6 +568,33 @@
 
 {#if preview === "desktop-shell"}
   <DesktopShellPreview />
+{:else if preview === "input-surfaces"}
+  <main class="input-surfaces-preview-stage">
+    <section class="input-surfaces-preview-stack">
+      <MessageInput
+        bind:value={inputSurfaceValue}
+        attachments={[]}
+        selectedModel="preview"
+        modelOptions={[{ value: "preview", label: "gpt-5.6" }]}
+        placeholder={$t("inputPlaceholder")}
+        disabled={false}
+        isStreaming={false}
+        sendDisabled={!inputSurfaceValue.trim()}
+        sendTitle={$t("send")}
+        showAttachments={false}
+        onSend={() => {}}
+        onStop={() => {}}
+      />
+      <FileChangeBanner changes={inputSurfaceChanges} onRevert={async () => {}} />
+      <div class="input-surfaces-role-anchor">
+        <RoleSelector
+          value={inputSurfaceRole}
+          roles={inputSurfaceRoles}
+          onChange={(value) => (inputSurfaceRole = value)}
+        />
+      </div>
+    </section>
+  </main>
 {:else if preview === "book-mode"}
   <AgentBookReader
     turns={bookTurns}
@@ -881,6 +951,7 @@
 
 <style>
   .reasoning-effort-preview-stage,
+  .input-surfaces-preview-stage,
   .permission-settings-preview-stage,
   .workspace-switcher-preview-stage,
   .command-palette-preview-stage,
@@ -890,6 +961,19 @@
     min-height: 100vh;
     box-sizing: border-box;
     background: var(--bg);
+  }
+  .input-surfaces-preview-stage {
+    display: grid;
+    place-items: start center;
+    padding: 48px 24px;
+  }
+  .input-surfaces-preview-stack {
+    display: grid;
+    width: min(720px, 100%);
+    gap: 24px;
+  }
+  .input-surfaces-role-anchor {
+    width: 240px;
   }
   .follow-up-suggestions-preview-stage {
     display: grid;

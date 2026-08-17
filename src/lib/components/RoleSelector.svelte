@@ -81,9 +81,9 @@
   </Tooltip>
   <Select.Portal>
     <Select.Content
-      class="desktop-menu-panel role-selector-content {compact ? 'compact' : ''} {header
-        ? 'header'
-        : ''}"
+      class="desktop-menu-panel conversation-input-surface role-selector-content {compact
+        ? 'compact'
+        : ''} {header ? 'header' : ''}"
       side="bottom"
       sideOffset={6}
     >

@@ -31,4 +31,11 @@ describe("standalone development previews", () => {
     ).toBe("follow-up-suggestions");
     expect(previewParameterPrefix("follow-up-suggestions")).toBe("follow-up-suggestions-preview");
   });
+
+  test("exposes the shared input surfaces preview", () => {
+    expect(resolveStandaloneDevPreview(new URLSearchParams("input-surfaces-preview"), true)).toBe(
+      "input-surfaces",
+    );
+    expect(previewParameterPrefix("input-surfaces")).toBe("input-surfaces-preview");
+  });
 });

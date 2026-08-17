@@ -194,6 +194,16 @@
     outline: none;
   }
 
+  /* Shared raised surface used by the conversation composer and closely related chat controls. */
+  .conversation-input-surface {
+    background: var(--mica-surface);
+    border: 1px solid var(--mica-border);
+    border-radius: 18px;
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: var(--mica-shadow);
+  }
+
   .ctx-menu-content {
     min-width: 148px;
     z-index: 500;

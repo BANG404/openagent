@@ -5,6 +5,7 @@ export type StandaloneDevPreview =
   | "command-palette"
   | "desktop-shell"
   | "follow-up-suggestions"
+  | "input-surfaces"
   | "pause-control"
   | "quote-context"
   | "permission-settings"
@@ -23,6 +24,7 @@ const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
   ["quote-context-preview", "quote-context"],
   ["command-palette-preview", "command-palette"],
   ["follow-up-suggestions-preview", "follow-up-suggestions"],
+  ["input-surfaces-preview", "input-surfaces"],
   ["reasoning-effort-preview", "reasoning-effort"],
   ["runtime-notice-preview", "runtime-notice"],
   ["streaming-transcript-preview", "streaming-transcript"],

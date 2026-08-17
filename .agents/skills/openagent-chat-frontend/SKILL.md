@@ -323,6 +323,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   neighboring hover and selected fills visibly separate. Options with
   descriptions may grow vertically and use 11px secondary copy; do not
   compress them to the single-line height.
+- Reuse the shared conversation-input surface for the composer, file-change
+  banner, and role-selector panel so their Mica fill, hairline perimeter,
+  18px radius, 24px saturated blur, and elevation stay identical in both
+  themes. Their dimensions, internal spacing, and content behavior remain
+  component-owned.
 - Keep the shared application menu fully operable without a pointer. Expose
   platform-appropriate accelerator labels, preserve access-key and arrow-key
   navigation, and route global application shortcuts through the same actions
@@ -657,6 +662,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   shared composer slash-command palette. Its `-theme` and `-locale` query
   parameters must keep light/dark and Chinese/English keyboard, scrolling, and
   selection checks addressable without onboarding or native state.
+- Keep the development-only `input-surfaces-preview` query available for direct
+  comparison of the composer, file-change banner, and open role-selector panel.
+  Its `-theme` and `-locale` parameters must keep the shared surface treatment
+  verifiable in light/dark themes and Chinese/English copy.
 - Keep the development-only `pause-control-preview` query available for the
   shared composer's streaming primary action. Its `-theme` and `-locale`
   parameters must keep pause, resume, send, light/dark, and Chinese/English

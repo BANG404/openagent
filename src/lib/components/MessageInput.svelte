@@ -853,7 +853,7 @@
     </div>
   {/if}
   <div
-    class="composer"
+    class="composer conversation-input-surface"
     bind:this={composerEl}
     class:composer-disabled={disabled}
     class:composer-streaming={isStreaming}
@@ -1077,13 +1077,7 @@
     z-index: 3;
     width: 100%;
     box-sizing: border-box;
-    background: var(--mica-surface);
-    border: 1px solid var(--mica-border);
-    border-radius: 18px;
     transition: box-shadow 1.35s cubic-bezier(0.16, 1, 0.3, 1);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: var(--mica-shadow);
     overflow: hidden;
   }
 

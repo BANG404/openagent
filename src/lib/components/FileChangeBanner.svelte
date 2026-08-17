@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { FileChange } from "$lib/types";
+  import { t } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
 
   let {
@@ -64,7 +65,7 @@
   });
 </script>
 
-<div class="banner">
+<div class="banner conversation-input-surface">
   <button class="banner-header" onclick={toggleExpand}>
     <svg
       class="banner-icon"
@@ -78,7 +79,10 @@
       <path d="M9 2H3a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V7L9 2z" />
       <path d="M9 2v5h5" />
     </svg>
-    <span class="banner-title">{changes.length} 个文件已修改</span>
+    <span class="banner-title"
+      >{changes.length}
+      {$t(changes.length === 1 ? "fileChangeModified" : "fileChangesModified")}</span
+    >
     <svg
       class="banner-chevron"
       class:open={expanded}
@@ -116,11 +120,11 @@
               class="change-op"
               class:change-op-write={change.old_patch === null}
               class:change-op-edit={change.old_patch !== null}
-              >{change.old_patch === null ? "新建" : "编辑"}</span
+              >{$t(change.old_patch === null ? "fileChangeCreated" : "fileChangeEdited")}</span
             >
             <div class="change-actions">
               {#if change.old_patch !== null}
-                <Tooltip text="查看差异">
+                <Tooltip text={$t("fileChangeViewDiff")}>
                   <button
                     class="diff-btn"
                     class:active={expandedDiffs.has(change.id)}
@@ -129,16 +133,16 @@
                 </Tooltip>
               {/if}
               <Tooltip
-                text={change.old_patch === null
-                  ? "删除此文件（新建文件的撤回）"
-                  : "恢复到修改前的状态"}
+                text={$t(
+                  change.old_patch === null ? "fileChangeDeleteCreated" : "fileChangeRestoreEdited",
+                )}
               >
                 <button
                   class="revert-btn"
                   disabled={revertingIds.has(change.id)}
                   onclick={() => handleRevert(change.id)}
                 >
-                  {revertingIds.has(change.id) ? "…" : "撤回"}
+                  {revertingIds.has(change.id) ? "…" : $t("fileChangeRevert")}
                 </button>
               </Tooltip>
             </div>
@@ -161,12 +165,8 @@
 
 <style>
   .banner {
-    background: var(--surface);
-    border: 0;
-    border-radius: 10px;
     margin-bottom: 8px;
     overflow: hidden;
-    box-shadow: var(--control-shadow);
   }
 
   .banner-header {
