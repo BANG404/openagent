@@ -11,6 +11,7 @@
   import { workspaceFolderName } from "$lib/workspacePath";
   import ConversationList from "./ConversationList.svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
+  import SidebarConversationTitle from "./SidebarConversationTitle.svelte";
   import Tooltip from "./Tooltip.svelte";
 
   let {
@@ -426,7 +427,7 @@
                 type="button"
                 onclick={() => onOpenConversation(conversation)}
               >
-                <span>{conversation.title}</span>
+                <SidebarConversationTitle text={conversation.title} />
                 {#if streamingConversationIds[conversation.id]}
                   <i aria-label="Streaming"></i>
                 {/if}
@@ -447,6 +448,8 @@
   }
 
   .workspace-browser-scroll {
+    width: 100%;
+    min-width: 0;
     height: 100%;
     box-sizing: border-box;
     overflow-x: hidden;
@@ -609,8 +612,17 @@
 
   .project-list,
   .recent-conversations {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--list-item-stack-gap);
+  }
+
+  .project-group,
+  .project-conversations {
+    min-width: 0;
   }
 
   .project-group + .project-group {
@@ -741,8 +753,7 @@
     color: var(--danger);
   }
 
-  .project-row span,
-  .workspace-conversation-row span {
+  .project-row span {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
