@@ -1,4 +1,5 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
+import { readFile } from "node:fs/promises";
 import { describe, expect, test } from "bun:test";
 import { openBrowserUrl, openSurfaceUrl } from "../src/lib/openagent/externalUrl";
 
@@ -54,5 +55,14 @@ describe("external URL surface capabilities", () => {
 
     expect(nativeOpened).toBe(false);
     expect(popup.opener).toBeNull();
+  });
+
+  test("grants the desktop opener both its command and web URL scope", async () => {
+    const capability = JSON.parse(
+      await readFile(new URL("../src-tauri/capabilities/default.json", import.meta.url), "utf8"),
+    );
+
+    expect(capability.permissions).toContain("opener:allow-open-url");
+    expect(capability.permissions).toContain("opener:allow-default-urls");
   });
 });
