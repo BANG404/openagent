@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.40.0-beta.1] - 2026-08-16
+
+### Features
+- **menu**: Add window lifecycle actions
+- **chat**: Scope follow-up suggestions to latest turn
+
+### Bug Fixes
+- **chat**: Show process records only when completed
+- **chat**: Keep interrupted process records open
+- **sidebar**: Toggle project conversations
+- **chat**: Retain suggestions across interrupts
+- **chat**: Open links in browser previews
+- **chat**: Show first-turn follow-up suggestions
+- **chat**: Open agent links through platform opener
+- **chat**: Align new conversation suggestions
+- **frontend**: Sync inactive top chrome
+
 ## [0.39.0-beta.1] - 2026-08-15
 
 ### Features
