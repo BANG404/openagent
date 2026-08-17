@@ -50,7 +50,8 @@
   const allPreviewConversations: Conversation[] = [
     {
       id: "openagent-1",
-      title: "统一悬浮与选中样式",
+      title:
+        "Title 的文本长度应该基于侧边栏宽度自适应，超出部分显示省略号；悬浮在 title 上时滚动展示完整文本",
       workspace: "C:\\Projects\\openagent",
       messages: [],
       createdAt: 10,

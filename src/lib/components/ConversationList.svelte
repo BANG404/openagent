@@ -3,6 +3,7 @@
   import { t } from "$lib/i18n";
   import { projectConversationPageSize } from "$lib/sidebarProjects";
   import type { Conversation } from "$lib/types";
+  import SidebarConversationTitle from "./SidebarConversationTitle.svelte";
 
   interface Props {
     conversations: Conversation[];
@@ -123,32 +124,6 @@
     return false;
   }
 
-  function trackTitleOverflow(node: HTMLElement) {
-    const copy = node.querySelector<HTMLElement>(".conv-title-text");
-    if (!copy) return;
-
-    const update = () => {
-      const overflow = Math.max(0, copy.scrollWidth - node.clientWidth);
-      node.dataset.overflowing = overflow > 2 ? "true" : "false";
-      node.style.setProperty("--title-overflow", `${overflow}px`);
-      node.style.setProperty("--title-scroll-duration", `${Math.max(2.8, overflow / 28)}s`);
-    };
-
-    const resizeObserver = new ResizeObserver(update);
-    const mutationObserver = new MutationObserver(update);
-    resizeObserver.observe(node);
-    mutationObserver.observe(copy, { childList: true, characterData: true, subtree: true });
-    const updateFrame = requestAnimationFrame(update);
-
-    return {
-      destroy() {
-        cancelAnimationFrame(updateFrame);
-        resizeObserver.disconnect();
-        mutationObserver.disconnect();
-      },
-    };
-  }
-
   $effect(() => {
     if (embedded || !listElement || !pageSentinel || !hasMore) return;
     const observer = new IntersectionObserver(
@@ -181,9 +156,7 @@
 {/snippet}
 
 {#snippet conversationTitle(title: string)}
-  <span class="conv-title" use:trackTitleOverflow>
-    <span class="conv-title-text">{title}</span>
-  </span>
+  <SidebarConversationTitle text={title} />
 {/snippet}
 
 {#snippet nestedThreadItems(items: Conversation[], depth: number)}
@@ -412,6 +385,9 @@
 <style>
   .conv-list-shell {
     position: relative;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     flex: 1;
     min-height: 0;
     overflow-x: hidden;
@@ -427,6 +403,8 @@
   .conv-list {
     position: relative;
     z-index: 1;
+    width: 100%;
+    min-width: 0;
     box-sizing: border-box;
     height: 100%;
     display: flex;
@@ -608,41 +586,6 @@
     pointer-events: none;
   }
 
-  .conv-title {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-
-  .conv-title-text {
-    display: block;
-    width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  :global(.conv-item:hover .conv-title[data-overflowing="true"] .conv-title-text),
-  :global(.sub-conv-item:hover .conv-title[data-overflowing="true"] .conv-title-text) {
-    width: max-content;
-    min-width: 100%;
-    overflow: visible;
-    text-overflow: clip;
-    animation: conversation-title-scroll var(--title-scroll-duration) ease-in-out 0.35s forwards;
-  }
-
-  @keyframes conversation-title-scroll {
-    0%,
-    12% {
-      transform: translateX(0);
-    }
-    88%,
-    100% {
-      transform: translateX(calc(-1 * var(--title-overflow)));
-    }
-  }
-
   .conv-delete {
     display: none;
     font-size: 14px;
@@ -769,16 +712,6 @@
   @media (prefers-reduced-motion: reduce) {
     .conv-streaming-dot {
       animation: none;
-    }
-
-    :global(.conv-item:hover .conv-title[data-overflowing="true"] .conv-title-text),
-    :global(.sub-conv-item:hover .conv-title[data-overflowing="true"] .conv-title-text) {
-      animation: none;
-      width: 100%;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      transform: none;
     }
   }
 </style>

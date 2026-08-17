@@ -48,8 +48,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   synchronously create an isolated browser tab. Consume opener failures and
   leave relative or non-web destinations inert. Never fall back from a failed
   native opener to WebView `target=_blank` navigation, which can recreate the
-  crash path. Browser verification must confirm the destination tab opens as
-  well as confirming that the source page remains mounted.
+  crash path. The desktop capability must grant both the opener command and its
+  default HTTP(S) URL scope; command permission alone silently leaves valid web
+  destinations unopened. Browser verification must confirm the destination tab
+  opens as well as confirming that the source page remains mounted.
 - Keep fenced Markdown code headers, containers, loading skeletons, and controls
   on application theme surfaces through stable chat theme hooks. Shiki owns
   highlighted token colors, not the surrounding block background; fixed light
@@ -445,6 +447,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   chosen width across collapse and reload, keep the default at that lower bound,
   and normalize narrower saved values when they load. Disable width animation
   while dragging, and expose the same bounds to keyboard users.
+  Size every project and Recent conversation title from the live space remaining
+  in its row, truncate overflow with an ellipsis, and scroll only overflowing copy
+  when the pointer rests on the title. Recompute that overflow whenever the
+  sidebar or neighboring row controls change width.
   The resize hit target and active indicator begin below the shared title bar so
   a sidebar drag never draws a separator through application chrome.
 - Keep the Memory view's horizontal resize handle quiet at rest, but render its

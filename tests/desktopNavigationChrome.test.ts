@@ -105,6 +105,26 @@ describe("desktop navigation chrome", () => {
     expect(workspaceBrowser).not.toMatch(/\.recent-conversations\s*{[^}]*overflow-y:/s);
   });
 
+  test("adapts every conversation title to the available sidebar width", async () => {
+    const conversations = await readFile(new URL("ConversationList.svelte", componentsUrl), "utf8");
+    const workspaceBrowser = await readFile(
+      new URL("SidebarWorkspaceBrowser.svelte", componentsUrl),
+      "utf8",
+    );
+    const title = await readFile(new URL("SidebarConversationTitle.svelte", componentsUrl), "utf8");
+
+    expect(conversations).toContain("<SidebarConversationTitle text={title} />");
+    expect(workspaceBrowser).toContain("<SidebarConversationTitle text={conversation.title} />");
+    expect(title).toMatch(/\.sidebar-conversation-title\s*{[^}]*min-width: 0;[^}]*flex: 1 1 0;/s);
+    expect(title).toContain("text-overflow: ellipsis");
+    expect(title).toContain("resizeObserver.observe(node)");
+    expect(title).toContain(".sidebar-conversation-title.overflowing:hover");
+    expect(conversations).toMatch(/\.conv-list\s*{[^}]*width: 100%;[^}]*min-width: 0;/s);
+    expect(workspaceBrowser).toMatch(
+      /\.project-list,\s*\.recent-conversations\s*{[^}]*width: 100%;[^}]*min-width: 0;[^}]*grid-template-columns: minmax\(0, 1fr\);/s,
+    );
+  });
+
   test("prepares workspace switches without replacing the mounted application shell", async () => {
     const route = await readFile(routeUrl, "utf8");
     const loadingState = route.slice(
