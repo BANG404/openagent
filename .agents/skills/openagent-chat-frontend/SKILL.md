@@ -444,6 +444,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   chosen width across collapse and reload, keep the default at that lower bound,
   and normalize narrower saved values when they load. Disable width animation
   while dragging, and expose the same bounds to keyboard users.
+  Size every project and Recent conversation title from the live space remaining
+  in its row, truncate overflow with an ellipsis, and scroll only overflowing copy
+  when the pointer rests on the title. Recompute that overflow whenever the
+  sidebar or neighboring row controls change width.
   The resize hit target and active indicator begin below the shared title bar so
   a sidebar drag never draws a separator through application chrome.
 - Keep the Memory view's horizontal resize handle quiet at rest, but render its
