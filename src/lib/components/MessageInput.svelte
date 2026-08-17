@@ -1137,11 +1137,6 @@
     min-height: 42px;
     max-height: 200px;
     overflow-y: auto;
-    scrollbar-width: none;
-  }
-
-  .input::-webkit-scrollbar {
-    display: none;
   }
 
   .input:focus {
@@ -1159,7 +1154,6 @@
     padding: 10px 12px 2px;
     overflow-x: auto;
     overflow-y: hidden;
-    scrollbar-width: none;
   }
 
   .context-list {
@@ -1167,10 +1161,6 @@
     flex-direction: column;
     gap: 5px;
     padding: 10px 12px 2px;
-  }
-
-  .attachment-list::-webkit-scrollbar {
-    display: none;
   }
 
   .composer-toolbar {

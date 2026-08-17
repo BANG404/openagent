@@ -279,11 +279,6 @@
     padding: 2px 88px 0 2px;
     overflow-x: auto;
     overflow-y: hidden;
-    scrollbar-width: none;
-  }
-
-  .composer-slot :global(.attachment-list::-webkit-scrollbar) {
-    display: none;
   }
 
   .composer-slot :global(.composer:has(.attachment-list) .input) {

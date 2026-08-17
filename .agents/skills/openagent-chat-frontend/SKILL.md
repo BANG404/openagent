@@ -193,7 +193,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   following the live tail; after the reader leaves the tail, rely on native
   browser scroll anchoring to preserve their position. Reserve a stable
   scrollbar gutter so overflow changes cannot alter transcript wrapping or
-  sidebar row width, and keep the native transcript scrollbar visible. The
+  sidebar row width. The native transcript scrollbar follows the application-wide
+  activity treatment: reveal it during scrolling or pointer movement in the
+  scroller, then hide its thumb after the shared idle delay without collapsing
+  the reserved gutter. The
   application viewport must not become a second scroll container: keep
   `html`/`body` overflow locked and contain transcript overscroll so wheel or
   touch input at either boundary cannot chain into an outer scrollbar. User
@@ -663,7 +666,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the development-only `streaming-transcript-preview` query available for
   fully mounted dynamic-height Turn verification. It must continuously grow one live
   Turn so tail following, reader-controlled upward scrolling, the visible native
-  transcript scrollbar with stable geometry, contained boundary scrolling, and
+  transcript scrollbar during activity with stable geometry and idle hiding,
+  contained boundary scrolling, and
   light/dark rendering remain directly testable without a native runtime.
 - Keep the development-only `attachment-composer-preview` query available for
   the shared composer's pending-attachment cards. Its `-theme` and `-locale`

@@ -17,6 +17,10 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 - Section rhythm across multiple pages: light hero → dark product tile → light utility tile → dark tile → parchment footer — a predictable pulse.
 - **Application-only aurora:** low-contrast, blurred multicolor light is permitted behind the chat composer and empty-conversation greeting. It is an ambient status layer, never content chrome; the conversation sidebar remains a flat surface.
 - **Settings cards:** align each section title with its supporting copy and align each card row's label with its description. Use one softly elevated surface for the card itself; controls nested inside that card use a 1px hairline border without a second shadow.
+- **Transient scrollbars:** scrollbars across the application keep their
+  layout footprint but hide their thumb while idle. Scrolling or moving the
+  pointer within a scrollable region reveals its scrollbar temporarily; nested,
+  horizontal, textarea, and attachment-strip scrollers follow the same behavior.
 - **Desktop application shell:** keep one compact, continuous top chrome across
   the sidebar, conversation, Settings, Memory, Roles, and Skills surfaces. These
   feature views do not render a second title bar. The leading controls collapse
@@ -307,8 +311,8 @@ The composer slash-command and mention palette uses the same compact row scale. 
 Pending attachments in the ordinary composer use 112px square preview cards in
 one horizontal row. Image and supported text content fill the preview region,
 the filename remains anchored at the bottom, and the remove action stays in the
-top-right corner. Overflow scrolls horizontally without wrapping or exposing a
-scrollbar. The fixed-height quick-chat launcher keeps its separate 28px compact
+top-right corner. Overflow scrolls horizontally without wrapping; its scrollbar
+uses the shared transient activity treatment. The fixed-height quick-chat launcher keeps its separate 28px compact
 attachment strip. Opening a card or restored attachment uses a full-window
 preview frame consistent with Mermaid fullscreen: the attachment stays centered
 inside the inset canvas and controls remain in the top-right. Images open fitted
