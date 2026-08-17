@@ -118,6 +118,10 @@ describe("CI module classification", () => {
   });
 
   test("keeps automation-only tests out of the frontend suite", () => {
+    expect(classifyChangedModules(["tests/codexExecBatch.test.js"])).toEqual({
+      ...nothing,
+      automation: true,
+    });
     expect(classifyChangedModules(["tests/ciResults.test.js"])).toEqual({
       ...nothing,
       automation: true,

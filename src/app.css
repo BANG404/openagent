@@ -164,8 +164,18 @@
     line-height: 1.6;
   }
 
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  [data-scrollbar-active="true"] {
+    scrollbar-color: var(--border) transparent;
+  }
+
   ::-webkit-scrollbar {
     width: 5px;
+    height: 5px;
   }
 
   ::-webkit-scrollbar-track {
@@ -173,11 +183,15 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: var(--border);
+    background: transparent;
     border-radius: 3px;
   }
 
-  ::-webkit-scrollbar-thumb:hover {
+  [data-scrollbar-active="true"]::-webkit-scrollbar-thumb {
+    background: var(--border);
+  }
+
+  [data-scrollbar-active="true"]::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
   }
 

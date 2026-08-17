@@ -13,7 +13,7 @@
   } = $props();
 </script>
 
-<ScrollArea.Root type="hover" class={`ui-scroll-area ${className}`} style={`height: ${height}`}>
+<ScrollArea.Root type="always" class={`ui-scroll-area ${className}`} style={`height: ${height}`}>
   <ScrollArea.Viewport class="ui-scroll-area-viewport">
     {@render children?.()}
   </ScrollArea.Viewport>
@@ -41,8 +41,19 @@
     padding: 1px;
     border-radius: 999px;
     background: color-mix(in srgb, var(--surface2) 72%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
     touch-action: none;
     user-select: none;
+  }
+
+  :global(
+    .ui-scroll-area:has(.ui-scroll-area-viewport[data-scrollbar-active="true"])
+      .ui-scroll-area-scrollbar
+  ) {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   :global(.ui-scroll-area-thumb) {
