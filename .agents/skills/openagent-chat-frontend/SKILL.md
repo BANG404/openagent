@@ -48,8 +48,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   synchronously create an isolated browser tab. Consume opener failures and
   leave relative or non-web destinations inert. Never fall back from a failed
   native opener to WebView `target=_blank` navigation, which can recreate the
-  crash path. Browser verification must confirm the destination tab opens as
-  well as confirming that the source page remains mounted.
+  crash path. The desktop capability must grant both the opener command and its
+  default HTTP(S) URL scope; command permission alone silently leaves valid web
+  destinations unopened. Browser verification must confirm the destination tab
+  opens as well as confirming that the source page remains mounted.
 - Keep fenced Markdown code headers, containers, loading skeletons, and controls
   on application theme surfaces through stable chat theme hooks. Shiki owns
   highlighted token colors, not the surrounding block background; fixed light
