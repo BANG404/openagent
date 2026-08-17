@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.41.0-beta.1] - 2026-08-17
+
+### Features
+- **chat**: Unify conversation input surfaces
+- **ui**: Auto-hide idle scrollbars
+
+### Bug Fixes
+- **frontend**: Hide WSL actions off Windows
+- **quick-chat**: Keep selector panels opaque
+- **ui**: Unify floating panel surfaces
+- **chat**: Allow agent web links in desktop opener
+- **frontend**: Adapt sidebar conversation titles
+
 ## [0.40.0-beta.1] - 2026-08-16
 
 ### Features
