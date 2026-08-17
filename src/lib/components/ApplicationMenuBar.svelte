@@ -3,6 +3,7 @@
   import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
   import { t } from "$lib/i18n";
   import type { RecentWorkspace } from "$lib/types";
+  import type { WindowPlatform } from "$lib/windowPlatform";
   import { isWslWorkspacePath } from "$lib/workspacePath";
 
   type TextControl = HTMLInputElement | HTMLTextAreaElement;
@@ -32,6 +33,7 @@
     onOpenAbout,
     onCloseWindow,
     onQuit,
+    platform,
   }: {
     recentWorkspaces: RecentWorkspace[];
     workspacePath: string;
@@ -48,6 +50,7 @@
     onOpenAbout: () => void;
     onCloseWindow: () => void;
     onQuit: () => void;
+    platform: WindowPlatform;
   } = $props();
 
   let otherRecent = $derived(recentWorkspaces.filter((item) => item.path !== workspacePath));
@@ -229,9 +232,11 @@
             >{primaryModifier}+O</span
           >
         </DropdownMenu.Item>
-        <DropdownMenu.Item class="application-menu-item" onSelect={onPickWsl}
-          >{$t("openWslFolder")}</DropdownMenu.Item
-        >
+        {#if platform === "windows"}
+          <DropdownMenu.Item class="application-menu-item" onSelect={onPickWsl}
+            >{$t("openWslFolder")}</DropdownMenu.Item
+          >
+        {/if}
         {#if workspacePath}
           <DropdownMenu.Item class="application-menu-item" onSelect={onOpenWorkspaceLocation}
             >{$t("openCurrentWorkspaceLocation")}</DropdownMenu.Item

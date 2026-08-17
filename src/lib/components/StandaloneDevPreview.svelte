@@ -12,6 +12,7 @@
   import { initI18n, t, type Locale } from "$lib/i18n";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import { defaultPermissionProfile } from "$lib/config";
+  import type { WindowPlatform } from "$lib/windowPlatform";
   import type {
     AgentRole,
     ApprovalMode,
@@ -49,6 +50,11 @@
     explicitTheme === "dark" ? "dark" : explicitTheme === "light" ? "light" : "system",
   );
   let locale = $derived<Locale>(query.get(`${prefix}-locale`) === "en" ? "en" : "zh");
+  let platformOverride = $derived<WindowPlatform | undefined>(
+    ["linux", "macos", "windows"].includes(query.get(`${prefix}-platform`) ?? "")
+      ? (query.get(`${prefix}-platform`) as WindowPlatform)
+      : undefined,
+  );
 
   let attachmentValue = $state("");
   let inputSurfaceValue = $state("");
@@ -639,6 +645,7 @@
       onPick={() => {}}
       onPickWsl={() => {}}
       onSelect={() => {}}
+      {platformOverride}
     />
   </main>
 {:else if preview === "checkpoint-flow"}

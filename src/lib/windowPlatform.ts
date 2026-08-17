@@ -1,4 +1,10 @@
-export type WindowPlatform = "macos" | "windows";
+export type WindowPlatform = "linux" | "macos" | "windows";
+
+export function resolveWindowPlatform(platform: string): WindowPlatform {
+  if (/mac|iphone|ipad|ipod/i.test(platform)) return "macos";
+  if (/win/i.test(platform)) return "windows";
+  return "linux";
+}
 
 export function detectWindowPlatform(): WindowPlatform {
   if (typeof navigator === "undefined") return "windows";
@@ -6,5 +12,5 @@ export function detectWindowPlatform(): WindowPlatform {
     (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ??
     navigator.platform ??
     "";
-  return /mac|iphone|ipad|ipod/i.test(platform) ? "macos" : "windows";
+  return resolveWindowPlatform(platform);
 }

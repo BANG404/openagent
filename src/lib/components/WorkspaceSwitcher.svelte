@@ -3,6 +3,7 @@
   import { DropdownMenu } from "bits-ui";
   import type { WorkspaceContext, RecentWorkspace } from "$lib/types";
   import { t } from "$lib/i18n";
+  import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
   import { isWslWorkspacePath, workspaceFolderName } from "$lib/workspacePath";
   import Tooltip from "./Tooltip.svelte";
 
@@ -16,6 +17,7 @@
     onPickWsl: () => void;
     onSelect: (path: string) => void;
     variant?: "title" | "composer";
+    platformOverride?: WindowPlatform;
   }
   let {
     workspace,
@@ -27,9 +29,11 @@
     onPickWsl,
     onSelect,
     variant = "title",
+    platformOverride,
   }: Props = $props();
 
   let open = $state(false);
+  let platform = $derived(platformOverride ?? detectWindowPlatform());
 
   let folderName = $derived(workspaceFolderName(workspace?.path));
   let workspaceTooltip = $derived(
@@ -95,9 +99,11 @@
         <DropdownMenu.Item class="ws-dropdown-item ws-open-folder" onSelect={onPick}>
           {$t("openFolder")}
         </DropdownMenu.Item>
-        <DropdownMenu.Item class="ws-dropdown-item ws-open-folder" onSelect={onPickWsl}>
-          {$t("openWslFolder")}
-        </DropdownMenu.Item>
+        {#if platform === "windows"}
+          <DropdownMenu.Item class="ws-dropdown-item ws-open-folder" onSelect={onPickWsl}>
+            {$t("openWslFolder")}
+          </DropdownMenu.Item>
+        {/if}
         {#if workspacePath}
           <DropdownMenu.Item
             class="ws-dropdown-item"

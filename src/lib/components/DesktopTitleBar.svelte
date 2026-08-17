@@ -106,6 +106,7 @@
       onOpenAbout={() => void onOpenAbout()}
       onCloseWindow={onClose}
       {onQuit}
+      {platform}
     />
   </div>
 

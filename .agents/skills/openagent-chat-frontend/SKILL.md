@@ -340,7 +340,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   as menu selection. Edit owns Undo, Redo, Cut, Copy, Paste, Delete, and Select
   All against the focused editable context; Help owns the shared, state-aware
   application update check. A separate workspace process may be requested only
-  through File -> New window.
+  through File -> New window. Show WSL workspace-opening actions in the File
+  menu and composer workspace switcher only on Windows; native folder opening
+  remains available on every desktop platform.
 - Render those floating panels through the shared desktop menu surface, which
   consumes the conversation-input material while retaining the shared 6px menu
   inset. Keep component-specific width, height, scrolling, and item content,
@@ -662,7 +664,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the development-only `workspace-switcher-preview` query available for
   the shared workspace menu and recent-workspaces submenu. Its `-theme` and
   `-locale` query parameters must keep light/dark and Chinese/English pointer
-  and keyboard interaction checks addressable without native state.
+  and keyboard interaction checks addressable without native state. Its
+  `-platform=windows|macos|linux` parameter must keep Windows-only WSL action
+  visibility directly verifiable.
 - Keep the development-only `command-palette-preview` query available for the
   shared composer slash-command palette. Its `-theme` and `-locale` query
   parameters must keep light/dark and Chinese/English keyboard, scrolling, and
