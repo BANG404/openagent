@@ -363,8 +363,11 @@ The card uses a theme-tinted variant of the shared Windows-Mica-inspired
 material composited over an opaque theme base, with a clearly visible perimeter
 and pronounced but compact raised shadow. Content behind the launcher must not show through;
 selector surfaces also remain opaque, and transparency belongs only to the
-unused part of the expanded native window. Selectors stay below their trigger,
-align to its start edge, and do not use collision-based side flipping. The
+unused part of the expanded native window. Quick Chat selectors retain the
+shared menu perimeter, radius, spacing, and elevation, but replace its
+translucent fill and backdrop filter with the opaque theme surface. Selectors
+stay below their trigger, align to its start edge, and do not use collision-based
+side flipping. The
 card's non-interactive space remains a native drag handle, with generous padding
 above the composer as its primary grab target; drag-time focus changes must not
 close the launcher. Give the launcher card a restrained shadow,
