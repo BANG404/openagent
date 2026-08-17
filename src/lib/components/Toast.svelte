@@ -22,7 +22,7 @@
 
 <div class="toast-stack" role="region" aria-live="polite">
   {#each $toasts as toast (toast.id)}
-    <div class="toast" transition:fly={{ y: -16, duration: 180 }}>
+    <div class="toast conversation-input-surface" transition:fly={{ y: -16, duration: 180 }}>
       <div class="toast-body">
         <div class="toast-title">{toast.title}</div>
         {#if toast.description || toast.link}
@@ -103,12 +103,6 @@
     min-height: 64px;
     box-sizing: border-box;
     padding: 12px 16px;
-    background: var(--control-surface);
-    border: 0;
-    border-radius: 18px;
-    -webkit-backdrop-filter: blur(12px) saturate(1.08);
-    backdrop-filter: blur(12px) saturate(1.08);
-    box-shadow: var(--raised-shadow);
   }
   .toast-body {
     flex: 1;

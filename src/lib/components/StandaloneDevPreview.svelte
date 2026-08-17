@@ -582,6 +582,15 @@
         sendDisabled={!inputSurfaceValue.trim()}
         sendTitle={$t("send")}
         showAttachments={false}
+        showWorkspaceSwitcher
+        {workspace}
+        workspacePath={workspace.path ?? ""}
+        {recentWorkspaces}
+        workspaceTauriAvailable
+        workspaceBrowserModeNotice=""
+        onPickWorkspace={() => {}}
+        onPickWslWorkspace={() => {}}
+        onSelectWorkspace={() => {}}
         onSend={() => {}}
         onStop={() => {}}
       />

@@ -61,7 +61,7 @@
   onValueChange={handleValueChange}
   loop
   disableInitialScroll
-  class="palette"
+  class="palette conversation-input-surface"
   label="Suggestions"
 >
   <Command.List bind:ref={listEl} class="palette-list">
@@ -91,16 +91,10 @@
 <style>
   :global(.palette) {
     box-sizing: border-box;
-    background: var(--control-surface);
-    border: 0;
-    border-radius: 14px;
     padding: var(--menu-content-padding);
     max-height: min(320px, var(--palette-available-height, 320px));
     overflow: hidden;
     outline: none;
-    -webkit-backdrop-filter: blur(12px) saturate(1.08);
-    backdrop-filter: blur(12px) saturate(1.08);
-    box-shadow: var(--raised-shadow);
   }
 
   :global(.palette-list) {

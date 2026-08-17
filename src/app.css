@@ -195,20 +195,8 @@
     background: var(--text-muted);
   }
 
-  /* Context Menu (bits-ui) — global so it works regardless of which component is mounted */
-  /* Shared desktop menu panel, modeled on Projects > More. */
-  .desktop-menu-panel {
-    background: var(--control-surface);
-    border: 0;
-    border-radius: var(--menu-content-radius);
-    padding: var(--menu-content-padding);
-    box-shadow: var(--raised-shadow);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
-    outline: none;
-  }
-
-  /* Shared raised surface used by the conversation composer and closely related chat controls. */
+  /* One raised Mica surface for the composer and every floating application panel. */
+  .desktop-menu-panel,
   .conversation-input-surface {
     background: var(--mica-surface);
     border: 1px solid var(--mica-border);
@@ -216,6 +204,12 @@
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
     box-shadow: var(--mica-shadow);
+  }
+
+  /* Context Menu (bits-ui) — global so it works regardless of which component is mounted. */
+  .desktop-menu-panel {
+    padding: var(--menu-content-padding);
+    outline: none;
   }
 
   .ctx-menu-content {

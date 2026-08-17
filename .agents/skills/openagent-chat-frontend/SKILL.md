@@ -327,10 +327,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   descriptions may grow vertically and use 11px secondary copy; do not
   compress them to the single-line height.
 - Reuse the shared conversation-input surface for the composer, file-change
-  banner, and role-selector panel so their Mica fill, hairline perimeter,
-  18px radius, 24px saturated blur, and elevation stay identical in both
-  themes. Their dimensions, internal spacing, and content behavior remain
-  component-owned.
+  banner, every desktop menu panel, command/mention palettes, floating
+  text-selection actions, and notifications so their Mica fill, hairline
+  perimeter, 18px radius, 24px saturated blur, and elevation stay identical in
+  both themes. This includes model, role, workspace, recent-workspace,
+  application, context, combobox, and compact download panels. Their
+  dimensions, internal spacing, and content behavior remain component-owned;
+  explanatory tooltips and modal dialogs retain their distinct semantics.
 - Keep the shared application menu fully operable without a pointer. Expose
   platform-appropriate accelerator labels, preserve access-key and arrow-key
   navigation, and route global application shortcuts through the same actions
@@ -338,11 +341,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   All against the focused editable context; Help owns the shared, state-aware
   application update check. A separate workspace process may be requested only
   through File -> New window.
-- Render those floating panels through the shared desktop menu surface: the
-  control surface, no border, a shared 16px backdrop blur, the shared 8px
-  content radius and 6px inset, and the shared raised shadow. Keep
-  component-specific width, height, scrolling, and item content, but do not fork
-  its panel material or neutral hover fill.
+- Render those floating panels through the shared desktop menu surface, which
+  consumes the conversation-input material while retaining the shared 6px menu
+  inset. Keep component-specific width, height, scrolling, and item content,
+  but do not fork its panel material or neutral hover fill.
 - Keep selection signaling consistent across floating option rows and persistent
   navigation lists: each component keeps its ordinary neutral hover fill for
   the selected row and adds a square-ended primary-colored left rail. Do not
@@ -368,10 +370,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   path without per-row icons, mark WSL shares explicitly, and keep an overflowing
   list's scrollbar flush with the submenu's right edge.
 - Keep the composer slash-command and mention palette on the shared compact
-  menu row scale. Align its width to the composer, use a 14px floating-surface
-  radius with the shared 6px inset, and let both surfaces follow their visible
-  items up to the lesser of the configured 320px maximum and the live space
-  above the composer, retaining an 8px viewport inset. Recalculate that space
+  menu row scale and conversation-input material. Align its width to the
+  composer, use the shared 18px radius and 6px inset, and let both surfaces
+  follow their visible items up to the lesser of the configured 320px maximum
+  and the live space above the composer, retaining an 8px viewport inset. Recalculate that space
   for window, visual-viewport, composer-height, and scroll changes. Only
   overflow scrolls independently, so short result sets leave no trailing empty
   area, constrained windows never clip the palette, and opening or navigating
@@ -666,9 +668,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   parameters must keep light/dark and Chinese/English keyboard, scrolling, and
   selection checks addressable without onboarding or native state.
 - Keep the development-only `input-surfaces-preview` query available for direct
-  comparison of the composer, file-change banner, and open role-selector panel.
-  Its `-theme` and `-locale` parameters must keep the shared surface treatment
-  verifiable in light/dark themes and Chinese/English copy.
+  comparison of the composer, file-change banner, model and workspace menus,
+  and open role-selector panel. Its `-theme` and `-locale` parameters must keep
+  the shared surface treatment verifiable in light/dark themes and
+  Chinese/English copy.
 - Keep the development-only `pause-control-preview` query available for the
   shared composer's streaming primary action. Its `-theme` and `-locale`
   parameters must keep pause, resume, send, light/dark, and Chinese/English

@@ -368,10 +368,6 @@
     max-height: min(286px, var(--bits-select-content-available-height, 286px));
     min-width: 230px;
     max-width: 360px;
-    background: var(--surface);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    box-shadow: var(--raised-shadow);
   }
 
   :global(.quick-role-select-content .ui-select-item-description) {

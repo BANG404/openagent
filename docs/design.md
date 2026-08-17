@@ -57,11 +57,13 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   its own new-conversation action and menu for pinning, opening the project
   folder, or removing the project from Projects without deleting its files or
   conversation history.
-- **Desktop menu panels:** dropdown menus, searchable selects, comboboxes, and
-  context menus share the same borderless control surface, compact inset and
-  row scale, neutral hover fill, and raised shadow. Individual panels may change
-  only their size, scrolling, and content layout; they do not introduce separate
-  translucent or blurred materials.
+- **Floating application panels:** dropdown menus, searchable selects,
+  comboboxes, context and download menus, command/mention palettes, floating
+  text-selection actions, and notifications reuse the conversation input's
+  Mica fill, hairline perimeter, 18px radius, 24px saturated blur, and
+  elevation. Individual panels retain their compact inset, row scale, size,
+  scrolling, and content layout. Small explanatory tooltips and modal dialogs
+  keep their distinct semantic treatments.
 
 ## Colors
 

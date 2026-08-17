@@ -961,7 +961,7 @@
 
 {#if selectionPopover}
   <button
-    class="selection-add-button"
+    class="selection-add-button conversation-input-surface"
     type="button"
     style={`left: ${selectionPopover.left}px; top: ${selectionPopover.top}px`}
     onpointerdown={(event) => event.preventDefault()}
@@ -1217,27 +1217,21 @@
     align-items: center;
     gap: 6px;
     padding: 5px 10px;
-    border: 0;
-    border-radius: 9px;
-    background: var(--control-surface);
     color: var(--text);
     font: inherit;
     font-size: 12px;
     line-height: 18px;
-    box-shadow: var(--raised-shadow);
     cursor: pointer;
     transform: translate(-50%, -100%);
-    -webkit-backdrop-filter: blur(18px) saturate(1.18);
-    backdrop-filter: blur(18px) saturate(1.18);
   }
 
   .selection-add-button:hover {
-    background: color-mix(in srgb, var(--control-surface) 86%, var(--primary) 14%);
+    background: color-mix(in srgb, var(--mica-surface) 86%, var(--primary) 14%);
   }
 
   .selection-add-button:focus-visible {
     outline: none;
-    box-shadow: var(--raised-shadow), var(--focus-ring);
+    box-shadow: var(--mica-shadow), var(--focus-ring);
   }
 
   .selection-add-button svg {
