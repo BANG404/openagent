@@ -25,6 +25,13 @@ describe("standalone development previews", () => {
     expect(previewParameterPrefix("streaming-transcript")).toBe("streaming-transcript-preview");
   });
 
+  test("exposes the Mermaid finalization preview", () => {
+    expect(
+      resolveStandaloneDevPreview(new URLSearchParams("mermaid-finalization-preview"), true),
+    ).toBe("mermaid-finalization");
+    expect(previewParameterPrefix("mermaid-finalization")).toBe("mermaid-finalization-preview");
+  });
+
   test("exposes the follow-up suggestions preview", () => {
     expect(
       resolveStandaloneDevPreview(new URLSearchParams("follow-up-suggestions-preview"), true),

@@ -227,7 +227,7 @@ export function groupAssistantTurns(entries: StoredMessageRenderEntry[]): Messag
       kind: "assistant_turn",
       messages,
       finalIndex,
-      key: turn?.id ?? finalAssistantMessage.id,
+      key: turn?.response_message_id ?? finalAssistantMessage.id,
     });
     position = end;
   }

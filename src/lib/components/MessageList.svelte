@@ -559,6 +559,7 @@
         {@const turnIsTerminal = ["completed", "cancelled", "failed"].includes(turnStatus)}
         {@const assistantSegments = groupStreamItems(renderedAssistantItems)}
         {@const { processSegments, finalSegments } = partitionAssistantSegments(assistantSegments)}
+        {@const showProcessRecords = shouldShowProcessRecords(turnStatus, processSegments.length)}
         {@const isRerunnable =
           assistantMsg !== null &&
           assistantMsgIdx >= 0 &&
@@ -619,14 +620,10 @@
             {/if}
           {/each}
         {/snippet}
-        {#if shouldShowProcessRecords(turnStatus, processSegments.length)}
-          <ProcessRecordGroup duration={timing?.total}>
-            {@render renderAssistantSegments(processSegments)}
-          </ProcessRecordGroup>
-          {@render renderAssistantSegments(finalSegments)}
-        {:else}
-          {@render renderAssistantSegments(assistantSegments)}
-        {/if}
+        <ProcessRecordGroup grouped={showProcessRecords} duration={timing?.total}>
+          {@render renderAssistantSegments(processSegments)}
+        </ProcessRecordGroup>
+        {@render renderAssistantSegments(finalSegments)}
         {#if assistantIsStreaming && memoryRetrievalStage}
           <div class="thinking-status memory-retrieval-status" role="status" aria-live="polite">
             <span class="thinking-dot"></span>

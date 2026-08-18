@@ -145,7 +145,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the normally completed status, and default it closed. Running, interrupted,
   cancelled, and failed Turns render their records directly without a process
   header, so pending input remains visible without presenting unfinished work as
-  a completed process history.
+  a completed process history. Keep the process/final partition mounted at one
+  stable template location across that status transition: revealing the process
+  disclosure may hide its process children, but must not remount final rich
+  output such as Mermaid or HTML previews.
 - Treat the first `render_html` or `render_mermaid` call as the process-disclosure
   boundary: keep that render and every later record outside the collapsed work
   details, including later tools and reasoning. Before that boundary,
@@ -694,6 +697,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   transcript scrollbar during activity with stable geometry and idle hiding,
   contained boundary scrolling, and
   light/dark rendering remain directly testable without a native runtime.
+- Keep the development-only `mermaid-finalization-preview` query available for
+  exercising a live Mermaid render through the completed-Turn process-fold
+  transition. Its `-theme` and `-locale` parameters must keep the transition,
+  collapsed process disclosure, rendered SVG, light/dark themes, and
+  Chinese/English copy directly verifiable without native state.
 - Keep the development-only `attachment-composer-preview` query available for
   the shared composer's pending-attachment cards. Its `-theme` and `-locale`
   parameters must keep card preview, removal, upload, horizontal overflow,

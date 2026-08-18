@@ -4,38 +4,45 @@
 
   interface Props {
     duration?: string | null;
+    grouped?: boolean;
     children: Snippet;
   }
 
-  let { duration = null, children }: Props = $props();
+  let { duration = null, grouped = true, children }: Props = $props();
   let open = $state(false);
 
   let label = $derived(duration ? `${$t("workedFor")} ${duration}` : $t("workDetails"));
 </script>
 
-<div class="process-records" data-open={open ? "true" : undefined}>
-  <button
-    type="button"
-    class="process-record-summary"
-    aria-label={open ? $t("collapseWorkDetails") : $t("expandWorkDetails")}
-    aria-expanded={open}
-    onclick={() => (open = !open)}
-  >
-    <span>{label}</span>
-    <svg
-      class="process-chevron"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
+<div
+  class="process-records"
+  data-grouped={grouped ? "true" : undefined}
+  data-open={grouped && open ? "true" : undefined}
+>
+  {#if grouped}
+    <button
+      type="button"
+      class="process-record-summary"
+      aria-label={open ? $t("collapseWorkDetails") : $t("expandWorkDetails")}
+      aria-expanded={open}
+      onclick={() => (open = !open)}
     >
-      <path d="m6 4 4 4-4 4" />
-    </svg>
-  </button>
-  <div class="process-record-content" hidden={!open}>
+      <span>{label}</span>
+      <svg
+        class="process-chevron"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="m6 4 4 4-4 4" />
+      </svg>
+    </button>
+  {/if}
+  <div class="process-record-content" hidden={grouped && !open}>
     {@render children()}
   </div>
 </div>
@@ -44,6 +51,11 @@
   .process-records {
     width: 100%;
     margin: 0 0 14px;
+  }
+
+  .process-records:not([data-grouped="true"]),
+  .process-records:not([data-grouped="true"]) .process-record-content {
+    display: contents;
   }
 
   .process-record-summary {

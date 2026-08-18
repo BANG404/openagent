@@ -120,6 +120,8 @@
   let quoteFocusRequest = $state(0);
   let quoteMessagesElement = $state<HTMLElement | null>(null);
   let runtimeNoticeMessagesElement = $state<HTMLElement | null>(null);
+  let mermaidFinalizationMessagesElement = $state<HTMLElement | null>(null);
+  let mermaidFinalized = $state(false);
   let streamingMessagesElement = $state<HTMLElement | null>(null);
   let streamingFollowTail = $state(true);
   let streamingText = $state(
@@ -339,6 +341,64 @@
     );
   }
   let streamingItems = $derived<StreamItem[]>([{ type: "text", content: streamingText }]);
+  let mermaidFinalizationItems = $derived<StreamItem[]>([
+    {
+      type: "thinking",
+      content:
+        locale === "zh"
+          ? "先检查依赖关系，再生成图表。"
+          : "Inspect the dependencies before rendering the diagram.",
+    },
+    {
+      type: "text",
+      content: locale === "zh" ? "下面是最终关系图。" : "Here is the final relationship diagram.",
+    },
+    {
+      type: "tool_call",
+      name: "render_mermaid",
+      args: JSON.stringify({
+        title: locale === "zh" ? "流式收敛" : "Streaming finalization",
+        source:
+          "flowchart LR\n  Stream[Live stream] --> Fold[Process fold]\n  Fold --> Diagram[Rendered diagram]",
+      }),
+      result: '{"ok":true,"status":"rendered"}',
+    },
+    {
+      type: "text",
+      content:
+        locale === "zh"
+          ? "完成后，图表必须继续显示在折叠的工作过程之外。"
+          : "After completion, the diagram must remain visible outside the collapsed process.",
+    },
+  ]);
+  let mermaidFinalizationMessages = $derived<ChatMessage[]>([
+    {
+      id: "mermaid-finalization-user",
+      role: "user",
+      content: locale === "zh" ? "渲染一个 Mermaid 流程图。" : "Render a Mermaid flowchart.",
+      timestamp: Date.now() - 2_000,
+    },
+    ...(mermaidFinalized
+      ? [
+          {
+            id: "mermaid-finalization-assistant",
+            role: "assistant" as const,
+            content: "",
+            items: mermaidFinalizationItems,
+            timestamp: Date.now() - 1_000,
+            turn: {
+              id: "mermaid-finalization-turn",
+              input_message_id: "mermaid-finalization-user",
+              response_message_id: "mermaid-finalization-assistant",
+              status: "completed" as const,
+              started_at: Date.now() - 2_000,
+              completed_at: Date.now() - 1_000,
+              duration_ms: 1_000,
+            },
+          },
+        ]
+      : []),
+  ]);
 
   const slashCommands: SlashCommand[] = [
     {
@@ -940,6 +1000,48 @@
       onCancelUserInput={() => {}}
     />
   </main>
+{:else if preview === "mermaid-finalization"}
+  <main class="mermaid-finalization-preview-stage" bind:this={mermaidFinalizationMessagesElement}>
+    <button
+      type="button"
+      class="mermaid-finalization-control"
+      disabled={mermaidFinalized}
+      onclick={() => (mermaidFinalized = true)}
+    >
+      {mermaidFinalized
+        ? locale === "zh"
+          ? "已完成并折叠"
+          : "Completed and folded"
+        : locale === "zh"
+          ? "完成流式响应"
+          : "Finalize stream"}
+    </button>
+    <MessageList
+      messages={mermaidFinalizationMessages}
+      scrollElement={mermaidFinalizationMessagesElement}
+      isStreaming={!mermaidFinalized}
+      isAwaitingStreamOutput={false}
+      currentStreamItems={mermaidFinalizationItems}
+      currentStreamMessageId="mermaid-finalization-assistant"
+      activeConvId="mermaid-finalization-preview"
+      activeBranchId={null}
+      debugMode={false}
+      activeTree={undefined}
+      paddingBottom={48}
+      showApiKeyWarn={false}
+      shikiTheme={theme === "dark" ? "github-dark" : "github-light"}
+      mermaidConfig={mermaidConfigFor(theme === "dark")}
+      newConversationGreeting={null}
+      newConversationGreetingLoading={false}
+      editable={false}
+      onCommitEdit={() => {}}
+      onAddQuote={() => {}}
+      onReExecute={() => {}}
+      onSwitchBranch={() => {}}
+      onSubmitUserInput={() => {}}
+      onCancelUserInput={() => {}}
+    />
+  </main>
 {:else}
   <main class="attachment-composer-preview-stage">
     <MessageInput
@@ -1073,6 +1175,33 @@
     overscroll-behavior-y: contain;
     background: var(--bg);
     scrollbar-gutter: stable;
+  }
+  .mermaid-finalization-preview-stage {
+    position: relative;
+    height: 100vh;
+    overflow-x: clip;
+    overflow-y: auto;
+    padding-top: 52px;
+    background: var(--bg);
+    scrollbar-gutter: stable;
+  }
+  .mermaid-finalization-control {
+    position: fixed;
+    z-index: 30;
+    top: 12px;
+    left: 50%;
+    min-height: 30px;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface);
+    color: var(--text);
+    transform: translateX(-50%);
+    cursor: pointer;
+  }
+  .mermaid-finalization-control:disabled {
+    color: var(--text-muted);
+    cursor: default;
   }
   .permission-settings-preview-stage {
     display: flex;

@@ -6,6 +6,7 @@ export type StandaloneDevPreview =
   | "desktop-shell"
   | "follow-up-suggestions"
   | "input-surfaces"
+  | "mermaid-finalization"
   | "pause-control"
   | "quote-context"
   | "permission-settings"
@@ -25,6 +26,7 @@ const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
   ["command-palette-preview", "command-palette"],
   ["follow-up-suggestions-preview", "follow-up-suggestions"],
   ["input-surfaces-preview", "input-surfaces"],
+  ["mermaid-finalization-preview", "mermaid-finalization"],
   ["reasoning-effort-preview", "reasoning-effort"],
   ["runtime-notice-preview", "runtime-notice"],
   ["streaming-transcript-preview", "streaming-transcript"],

@@ -174,6 +174,35 @@ describe("tool-call grouping", () => {
     expect(isAssistantTurnEntry(completedEntries[0])).toBe(true);
   });
 
+  test("uses the preallocated response message ID when Turn and message IDs differ", () => {
+    const assistantId = "assistant-preallocated";
+    const liveEntries = appendLiveStreamEntry([], assistantId);
+    const completedEntries = groupAssistantTurns(
+      groupMessageToolCalls([
+        {
+          msg: {
+            id: assistantId,
+            role: "assistant",
+            content: "done",
+            timestamp: 0,
+            turn: {
+              id: "logical-turn",
+              input_message_id: "user-1",
+              response_message_id: assistantId,
+              status: "completed",
+              started_at: 10,
+              completed_at: 20,
+              duration_ms: 10,
+            },
+          },
+          index: 0,
+        },
+      ]),
+    );
+
+    expect(completedEntries[0]?.key).toBe(liveEntries[0]?.key);
+  });
+
   test("keeps the original turn key when interrupt resume appends assistant records", () => {
     const entries = groupAssistantTurns(
       groupMessageToolCalls([
