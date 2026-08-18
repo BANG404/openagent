@@ -27,9 +27,11 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   the sidebar and traverse application history; File owns workspace-opening and
   explicit new-window commands while the centered environment label is
   display-only. Window controls follow macOS traffic-light placement or Windows
-  trailing minimize/maximize/close geometry. The title bar and sidebar share
-  one opaque application-chrome background while the operating system retains
-  the native window outline, rounded corners, and exterior shadow.
+  trailing minimize/maximize/close geometry. Windows controls fill the title-bar
+  height; the close hover uses the platform red and follows the outer 7px window
+  corner while restored, then becomes square when maximized. The title bar and
+  sidebar share one opaque application-chrome background while the operating
+  system retains the native window outline, rounded corners, and exterior shadow.
   The sidebar groups workspace-owned conversations under Projects and shows one
   cross-workspace, newest-first Recent conversations list for the selected role.
   Project groups retain their persisted first-save order across workspace

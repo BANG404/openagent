@@ -63,7 +63,12 @@
   }
 </script>
 
-<div class="win-controls" class:macos={resolvedPlatform === "macos"}>
+<div
+  class="win-controls"
+  class:macos={resolvedPlatform === "macos"}
+  class:windows={resolvedPlatform === "windows"}
+  class:maximized={isMaximized}
+>
   {#if resolvedPlatform === "macos"}
     <Tooltip text={$t("closeWindow")} side="bottom">
       <button class="win-btn win-close" aria-label={$t("closeWindow")} onclick={onClose}>
@@ -167,8 +172,16 @@
   }
 
   .win-close:hover {
-    background: #c42b1c;
+    background: #e81123;
     color: #fff;
+  }
+
+  .win-controls:not(.macos) :global(.tt-trigger) {
+    height: 100%;
+  }
+
+  .win-controls.windows:not(.maximized) .win-close {
+    border-top-right-radius: 7px;
   }
 
   .win-btn svg path {
