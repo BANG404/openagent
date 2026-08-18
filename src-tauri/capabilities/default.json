@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the application and debug inspector windows",
-  "windows": ["main", "debug", "quick-chat"],
+  "description": "Capability for the application, setup, and debug inspector windows",
+  "windows": ["main", "debug", "quick-chat", "onboarding"],
   "permissions": [
     "core:default",
     "opener:allow-open-url",

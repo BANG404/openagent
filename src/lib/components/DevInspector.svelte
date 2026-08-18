@@ -12,7 +12,6 @@
     readMainDebugComponentsVisible,
     writeMainDebugComponentsVisible,
   } from "$lib/devDebugVisibility";
-  import { ONBOARDING_OPEN_EVENT } from "$lib/onboarding";
   import type { ConversationMeta, TaskTrace } from "$lib/types";
 
   type TimelineKind = "user" | "assistant" | "thinking" | "tool" | "toolset" | "system";
@@ -403,7 +402,7 @@
   }
 
   async function openOnboardingPreview(): Promise<void> {
-    await emit(ONBOARDING_OPEN_EVENT);
+    await invoke("reveal_onboarding_window");
   }
 
   onMount(async () => {
@@ -668,8 +667,8 @@
           <div>
             <h3>Onboarding flow / 新手引导</h3>
             <p>
-              Open the real onboarding flow in the main window without clearing saved settings. /
-              在主窗口打开真实引导流程，不清除已保存设置。
+              Open the real onboarding flow in its setup window without clearing saved settings. /
+              在独立配置窗口中打开真实引导流程，不清除已保存设置。
             </p>
           </div>
           <button onclick={openOnboardingPreview}>Open onboarding</button>

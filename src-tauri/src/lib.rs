@@ -1069,6 +1069,41 @@ fn quit_app(app: tauri::AppHandle) {
     app.exit(0);
 }
 
+fn show_onboarding_window(app: &tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("onboarding") {
+        window.unminimize().map_err(|error| error.to_string())?;
+        window.show().map_err(|error| error.to_string())?;
+        return window.set_focus().map_err(|error| error.to_string());
+    }
+
+    tauri::WebviewWindowBuilder::new(
+        app,
+        "onboarding",
+        tauri::WebviewUrl::App("/?onboarding-window=1".into()),
+    )
+    .title("OpenAgent Setup")
+    .inner_size(900.0, 640.0)
+    .min_inner_size(800.0, 560.0)
+    .decorations(false)
+    .visible(false)
+    .build()
+    .map(|_| ())
+    .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn reveal_onboarding_window(
+    app: tauri::AppHandle,
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+) -> Result<(), String> {
+    show_onboarding_window(&app)?;
+    runtime
+        .state()
+        .startup_window_revealed
+        .store(true, std::sync::atomic::Ordering::Release);
+    Ok(())
+}
+
 #[tauri::command]
 fn reveal_main_window(
     app: tauri::AppHandle,
@@ -1357,7 +1392,11 @@ fn run_with_mode(agent_server: bool) {
     #[cfg(desktop)]
     let builder = if should_enforce_single_instance(agent_server, is_workspace_window) {
         builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
+            if let Some(window) = app.get_webview_window("onboarding") {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+            } else if let Some(window) = app.get_webview_window("main") {
                 let _ = window.unminimize();
                 let _ = window.show();
                 let _ = window.set_focus();
@@ -1724,6 +1763,7 @@ fn run_with_mode(agent_server: bool) {
             restart_app,
             quit_app,
             reveal_main_window,
+            reveal_onboarding_window,
         ])
         .run(context)
         .expect("error while running tauri application");

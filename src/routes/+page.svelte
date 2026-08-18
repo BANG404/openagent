@@ -53,7 +53,7 @@
     readMainDebugComponentsVisible,
   } from "$lib/devDebugVisibility";
   import {
-    ONBOARDING_OPEN_EVENT,
+    ONBOARDING_COMPLETE_EVENT,
     clearLegacyOnboardingCompletion,
     hasLegacyOnboardingCompletion,
   } from "$lib/onboarding";
@@ -178,6 +178,7 @@
     typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const devQuery = import.meta.env.DEV ? runtimeQuery : null;
   const isDevInspectorWindow = devQuery?.has("dev-inspector") === true;
+  const isOnboardingPreview = devQuery?.has("onboarding-preview") === true;
   const isQuickChatPreview = devQuery?.has("quick-chat-preview") === true;
   const standaloneDevPreview = resolveStandaloneDevPreview(runtimeQuery, import.meta.env.DEV);
   const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
@@ -191,7 +192,21 @@
         ? "roles"
         : "skills";
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
+  const isOnboardingWindow = runtimeQuery?.has("onboarding-window") === true;
+  const isOnboardingSurface = isOnboardingWindow || isOnboardingPreview;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
+  const onboardingPreviewTheme =
+    devQuery?.get("onboarding-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("onboarding-preview-theme") === "light"
+        ? "light"
+        : null;
+  const onboardingPreviewLocale: Locale | null =
+    devQuery?.get("onboarding-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("onboarding-preview-locale") === "zh"
+        ? "zh"
+        : null;
   const channelsSettingsPreviewTheme =
     devQuery?.get("channels-settings-preview-theme") === "dark"
       ? "dark"
@@ -349,7 +364,6 @@
   let config = $state<AppConfig | null>(null);
   let isMemorySyncing = $state(false);
   let settingsOpen = $state(false);
-  let onboardingOpen = $state(false);
   let settingsInitialNav = $state<
     | "general"
     | "channels"
@@ -1689,7 +1703,7 @@
   }
 
   onMount(() => {
-    if (isDevInspectorWindow || standaloneDevPreview) return;
+    if (isDevInspectorWindow || standaloneDevPreview || isOnboardingSurface) return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const syncSystemTheme = () => {
       if ((config?.theme ?? "system") === "system") applyTheme("system");
@@ -1703,9 +1717,29 @@
     if (isQuickChatSurface) {
       return;
     }
+    if (isOnboardingSurface) {
+      try {
+        await loadSettings();
+        await loadWorkspace();
+      } catch (error) {
+        console.error("Failed to load onboarding:", error);
+      } finally {
+        initialLoading = false;
+        if (tauriAvailable) {
+          await getCurrentWindow()
+            .show()
+            .catch(() => {});
+          await getCurrentWindow()
+            .setFocus()
+            .catch(() => {});
+        }
+      }
+      return;
+    }
     const mountedAt = performance.now();
     let bootstrapReadyAt = mountedAt;
     let startupApplied = false;
+    let requiresOnboarding = false;
     try {
       // Seed isDarkTheme before settings load so shikiTheme is correct from first render
       isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -1790,19 +1824,28 @@
             console.warn("Failed to migrate legacy onboarding completion:", error);
           }
         }
-        onboardingOpen = !config.onboarding_completed && !legacyCompleted;
+        requiresOnboarding = !config.onboarding_completed && !legacyCompleted;
       }
       const uiReadyAt = performance.now();
       initialLoading = false;
       await tick();
       if (tauriAvailable) {
-        await invoke("reveal_main_window").catch(async () => {
-          await getCurrentWindow()
-            .show()
-            .catch(() => {});
-        });
+        if (requiresOnboarding) {
+          await invoke("reveal_onboarding_window").catch(async () => {
+            await getCurrentWindow()
+              .show()
+              .catch(() => {});
+          });
+        } else {
+          await invoke("reveal_main_window").catch(async () => {
+            await getCurrentWindow()
+              .show()
+              .catch(() => {});
+          });
+        }
         const revealedAt = performance.now();
-        console.info("[startup] main window revealed", {
+        console.info("[startup] initial window revealed", {
+          surface: requiresOnboarding ? "onboarding" : "main",
           bootstrapMs: Math.round(bootstrapReadyAt - mountedAt),
           applyAndListenersMs: Math.round(uiReadyAt - bootstrapReadyAt),
           revealMs: Math.round(revealedAt - uiReadyAt),
@@ -2034,8 +2077,13 @@
     register<{ visible: boolean }>(DEV_MAIN_DEBUG_VISIBILITY_EVENT, (event) => {
       showMainDebugComponents = event.payload.visible;
     });
-    register(ONBOARDING_OPEN_EVENT, () => {
-      if (config) onboardingOpen = true;
+    register<{ workspace_path: string }>(ONBOARDING_COMPLETE_EVENT, (event) => {
+      void (async () => {
+        if (event.payload.workspace_path && event.payload.workspace_path !== workspacePath) {
+          await requestWorkspace(event.payload.workspace_path);
+        }
+        await invoke("reveal_main_window");
+      })().catch((error) => console.error("Failed to finish onboarding handoff:", error));
     });
     register("settings-changed", () => {
       void invoke<AppConfig>("get_settings")
@@ -2814,6 +2862,13 @@
   async function loadSettings() {
     if (!tauriAvailable) {
       config = normalizeConfigShape(fallbackConfig);
+      if (isOnboardingPreview) {
+        config = {
+          ...config,
+          theme: onboardingPreviewTheme ?? config.theme,
+          language: onboardingPreviewLocale ?? config.language,
+        };
+      }
       if (isChannelsSettingsPreview || isAgentsSettingsPreview || isAgentPluginsSettingsPreview) {
         config = {
           ...config,
@@ -2830,7 +2885,8 @@
         };
       }
       applyTheme(
-        moreManagementPreviewTheme ??
+        onboardingPreviewTheme ??
+          moreManagementPreviewTheme ??
           channelsSettingsPreviewTheme ??
           agentsSettingsPreviewTheme ??
           agentPluginsSettingsPreviewTheme ??
@@ -2838,7 +2894,8 @@
           "system",
       );
       await initI18n(
-        moreManagementPreviewLocale ??
+        onboardingPreviewLocale ??
+          moreManagementPreviewLocale ??
           channelsSettingsPreviewLocale ??
           agentsSettingsPreviewLocale ??
           agentPluginsSettingsPreviewLocale ??
@@ -2981,7 +3038,6 @@
     const newConversationSurfaceVisible =
       !mainContentLoading &&
       newConversationLayout &&
-      !onboardingOpen &&
       !settingsOpen &&
       !memoryOpen &&
       !rolesOpen &&
@@ -3856,6 +3912,16 @@
     }
   }
 
+  async function pickOnboardingWorkspace() {
+    if (!tauriAvailable) return;
+    const defaultPath = workspacePath || (await homeDir());
+    const selected = await openDialog({ directory: true, multiple: false, defaultPath });
+    if (typeof selected !== "string" || !selected) return;
+    workspacePath = selected;
+    await invoke("set_workspace", { path: selected });
+    workspace = await invoke<WorkspaceContext>("get_workspace_context");
+  }
+
   async function pickWorkspaceInNewWindow() {
     if (!tauriAvailable) {
       alert(browserModeNotice);
@@ -4043,9 +4109,11 @@
     }
   }
 
-  function completeOnboarding() {
+  async function completeOnboarding() {
     clearLegacyOnboardingCompletion();
-    onboardingOpen = false;
+    if (!tauriAvailable) return;
+    await emit(ONBOARDING_COMPLETE_EVENT, { workspace_path: workspacePath });
+    await getCurrentWindow().close();
   }
 
   // ─── Memory / Roles / Skills ─────────────────────────────────────────────────
@@ -4295,7 +4363,8 @@
   let windowFocused = $state(true);
 
   onMount(() => {
-    if (isDevInspectorWindow || standaloneDevPreview || isQuickChatSurface) return;
+    if (isDevInspectorWindow || standaloneDevPreview || isQuickChatSurface || isOnboardingSurface)
+      return;
 
     let disposed = false;
     let unlistenFocusChanged: (() => void) | undefined;
@@ -4335,6 +4404,8 @@
   const winMinimize = () => appWindow?.minimize();
   const winMaximize = () => appWindow?.toggleMaximize();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
+  const onboardingWinClose = () =>
+    config?.onboarding_completed ? appWindow?.close() : void invoke("quit_app");
   const quitApp = () => void invoke("quit_app");
 
   // Keep the webview's built-in context menu available while developing, but
@@ -4357,6 +4428,19 @@
     <DevInspector />
   {:else if standaloneDevPreview}
     <StandaloneDevPreview preview={standaloneDevPreview} />
+  {:else if isOnboardingSurface}
+    {#if config}
+      <OnboardingFlow
+        {config}
+        {workspacePath}
+        onSave={saveSettings}
+        onPickWorkspace={pickOnboardingWorkspace}
+        onComplete={completeOnboarding}
+        {winMinimize}
+        {winMaximize}
+        winClose={onboardingWinClose}
+      />
+    {/if}
   {:else if isQuickChatSurface}
     <QuickChatSurface preview={isQuickChatPreview} />
   {:else}
@@ -4413,90 +4497,77 @@
       />
 
       <!-- ─── Feature panels ─────────────────────────────────────────────────── -->
-      {#if onboardingOpen && config}
-        <OnboardingFlow
-          {config}
-          {workspacePath}
-          onSave={saveSettings}
-          onPickWorkspace={pickWorkspace}
-          onComplete={completeOnboarding}
-          {winMinimize}
-          {winMaximize}
-          {winClose}
-        />
-      {:else}
-        <DesktopTitleBar
-          {workspace}
-          {workspacePath}
-          {recentWorkspaces}
-          {tauriAvailable}
-          memorySyncing={isMemorySyncing}
-          checkpointFlowAvailable={Boolean(
-            currentCheckpointFlow && !memoryOpen && !rolesOpen && !skillsOpen && !settingsOpen,
-          )}
-          {checkpointFlowPanelCollapsed}
-          onPickWorkspace={pickWorkspace}
-          onPickWsl={pickWslWorkspace}
-          onSelectWorkspace={requestWorkspace}
-          onNewConversation={newConversation}
-          onNewWindow={pickWorkspaceInNewWindow}
-          onOpenMemory={openMemory}
-          onOpenRoles={openRoles}
-          onOpenSkills={openSkills}
-          onOpenSettings={() => openSettings()}
-          onOpenAbout={() => openSettings("about")}
-          onQuit={quitApp}
-          onToggleCheckpointFlowPanel={() =>
-            (checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed)}
-          onMinimize={winMinimize}
-          onMaximize={winMaximize}
-          onClose={winClose}
-          {windowFocused}
-        />
+      <DesktopTitleBar
+        {workspace}
+        {workspacePath}
+        {recentWorkspaces}
+        {tauriAvailable}
+        memorySyncing={isMemorySyncing}
+        checkpointFlowAvailable={Boolean(
+          currentCheckpointFlow && !memoryOpen && !rolesOpen && !skillsOpen && !settingsOpen,
+        )}
+        {checkpointFlowPanelCollapsed}
+        onPickWorkspace={pickWorkspace}
+        onPickWsl={pickWslWorkspace}
+        onSelectWorkspace={requestWorkspace}
+        onNewConversation={newConversation}
+        onNewWindow={pickWorkspaceInNewWindow}
+        onOpenMemory={openMemory}
+        onOpenRoles={openRoles}
+        onOpenSkills={openSkills}
+        onOpenSettings={() => openSettings()}
+        onOpenAbout={() => openSettings("about")}
+        onQuit={quitApp}
+        onToggleCheckpointFlowPanel={() =>
+          (checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed)}
+        onMinimize={winMinimize}
+        onMaximize={winMaximize}
+        onClose={winClose}
+        {windowFocused}
+      />
 
-        {#if memoryOpen && MemoryView}
-          <div class="feature-main">
-            <MemoryView
-              {workspace}
-              preview={isMoreManagementPreview}
-              onOpenSource={openMemorySource}
-            />
-          </div>
-        {:else if rolesOpen && RolesView}
-          <div class="feature-main">
-            <RolesView
-              {workspace}
-              preview={isMoreManagementPreview}
-              onRolesChanged={() => void handleRolesChanged()}
-            />
-          </div>
-        {:else if skillsOpen && SkillsView}
-          <div class="feature-main">
-            <SkillsView {workspace} preview={isMoreManagementPreview} />
-          </div>
-        {:else if settingsOpen && SettingsView}
-          <div class="feature-main">
-            <SettingsView
-              {config}
-              {workspacePath}
-              initialNav={settingsInitialNav}
-              onSave={saveSettings}
-              onOpenConversation={openHookConversation}
-            />
-          </div>
-        {:else}
-          <div class="main" class:sidebar-collapsed={sidebarCollapsed}>
-            <ConversationSurface
-              view={conversationSurfaceView}
-              actions={conversationSurfaceActions}
-              {composerPreferences}
-              bind:messagesElement={messagesEl}
-              bind:inputAreaHeight
-              bind:checkpointFlowPanelCollapsed
-              composerDraft={activeComposerDraft}
-            />
-          </div>
-        {/if}
+      {#if memoryOpen && MemoryView}
+        <div class="feature-main">
+          <MemoryView
+            {workspace}
+            preview={isMoreManagementPreview}
+            onOpenSource={openMemorySource}
+          />
+        </div>
+      {:else if rolesOpen && RolesView}
+        <div class="feature-main">
+          <RolesView
+            {workspace}
+            preview={isMoreManagementPreview}
+            onRolesChanged={() => void handleRolesChanged()}
+          />
+        </div>
+      {:else if skillsOpen && SkillsView}
+        <div class="feature-main">
+          <SkillsView {workspace} preview={isMoreManagementPreview} />
+        </div>
+      {:else if settingsOpen && SettingsView}
+        <div class="feature-main">
+          <SettingsView
+            {config}
+            {workspacePath}
+            initialNav={settingsInitialNav}
+            onSave={saveSettings}
+            onOpenConversation={openHookConversation}
+          />
+        </div>
+      {:else}
+        <div class="main" class:sidebar-collapsed={sidebarCollapsed}>
+          <ConversationSurface
+            view={conversationSurfaceView}
+            actions={conversationSurfaceActions}
+            {composerPreferences}
+            bind:messagesElement={messagesEl}
+            bind:inputAreaHeight
+            bind:checkpointFlowPanelCollapsed
+            composerDraft={activeComposerDraft}
+          />
+        </div>
       {/if}
     </div>
   {/if}
@@ -4525,10 +4596,6 @@
   }
 
   /* ─── Sidebar ─────────────────────────────────────────────────────────────── */
-
-  .app.sidebar-collapsed :global(.onboarding-header) {
-    padding-left: 56px;
-  }
 
   /* ─── Main ─────────────────────────────────────────────────────────────────── */
 

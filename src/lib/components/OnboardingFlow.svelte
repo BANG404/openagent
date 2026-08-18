@@ -466,6 +466,7 @@
 <style>
   .onboarding-panel {
     display: flex;
+    height: 100vh;
     flex: 1;
     min-width: 0;
     flex-direction: column;

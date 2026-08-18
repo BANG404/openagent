@@ -408,6 +408,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Persist completion in the versioned config beneath `OPENAGENT_HOME`; migrate
   the legacy WebView-local marker once and remove it only after the durable save
   succeeds.
+- Render first-run onboarding in its own undecorated Tauri window while the main
+  window remains hidden. Completing the flow hands the selected workspace back
+  to the already-bootstrapped main window before revealing it. The development
+  inspector reopens that same window without clearing durable completion. Keep
+  the development-only `onboarding-preview` query with
+  `onboarding-preview-theme=light|dark` and `onboarding-preview-locale=zh|en`
+  parameters so the surface remains browser-verifiable without native state.
 - Persist a newly created conversation and active-workspace selection
   atomically before its first turn.
 - Keep the main window hidden until the bootstrap snapshot is applied; retain

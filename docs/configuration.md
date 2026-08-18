@@ -70,6 +70,12 @@ WebView resets and workspace changes. Older releases stored this marker in
 WebView local storage; the desktop migrates that legacy value into the durable
 configuration once and removes it after a successful save.
 
+The first-run welcome and configuration flow opens in a dedicated setup window
+while the bootstrapped main window stays hidden. Finishing setup applies the
+selected workspace, reveals the main window, and closes setup. Development
+builds can reopen the same setup window from the inspector without changing the
+stored completion marker.
+
 `config.toml` carries an explicit top-level `config_version`; the current
 version is 1. At startup, OpenAgent loads the primary file and then a current,
 last-known-good `config.toml.bak`. A valid current backup remains the recovery

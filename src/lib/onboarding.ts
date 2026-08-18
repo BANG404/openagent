@@ -1,4 +1,4 @@
-export const ONBOARDING_OPEN_EVENT = "openagent-onboarding-open";
+export const ONBOARDING_COMPLETE_EVENT = "openagent-onboarding-complete";
 
 const LEGACY_STORAGE_KEY = "openagent.onboarding.completed.v1";
 
