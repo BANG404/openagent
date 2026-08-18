@@ -1725,13 +1725,11 @@
         console.error("Failed to load onboarding:", error);
       } finally {
         initialLoading = false;
+        await tick();
         if (tauriAvailable) {
-          await getCurrentWindow()
-            .show()
-            .catch(() => {});
-          await getCurrentWindow()
-            .setFocus()
-            .catch(() => {});
+          await invoke("reveal_onboarding_window").catch((error) => {
+            console.error("Failed to reveal onboarding window:", error);
+          });
         }
       }
       return;

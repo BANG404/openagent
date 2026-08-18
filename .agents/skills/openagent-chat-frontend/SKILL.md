@@ -412,6 +412,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   window remains hidden. Completing the flow hands the selected workspace back
   to the already-bootstrapped main window before revealing it. The development
   inspector reopens that same window without clearing durable completion. Keep
+  a newly created onboarding window hidden only until the route has applied its
+  configuration and asks the native host to reveal and focus it; do not depend
+  on WebView window APIs for this readiness handoff. The native host must reveal
+  the window after a bounded fallback delay if that handoff never arrives. Keep
   the development-only `onboarding-preview` query with
   `onboarding-preview-theme=light|dark` and `onboarding-preview-locale=zh|en`
   parameters so the surface remains browser-verifiable without native state.

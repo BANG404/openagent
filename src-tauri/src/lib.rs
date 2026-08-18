@@ -1076,7 +1076,7 @@ fn show_onboarding_window(app: &tauri::AppHandle) -> Result<(), String> {
         return window.set_focus().map_err(|error| error.to_string());
     }
 
-    tauri::WebviewWindowBuilder::new(
+    let window = tauri::WebviewWindowBuilder::new(
         app,
         "onboarding",
         tauri::WebviewUrl::App("/?onboarding-window=1".into()),
@@ -1087,8 +1087,22 @@ fn show_onboarding_window(app: &tauri::AppHandle) -> Result<(), String> {
     .decorations(false)
     .visible(false)
     .build()
-    .map(|_| ())
-    .map_err(|error| error.to_string())
+    .map_err(|error| error.to_string())?;
+
+    let fallback_window = window.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+        if matches!(fallback_window.is_visible(), Ok(false)) {
+            tracing::warn!(
+                target: "openagent::app",
+                "onboarding readiness handoff timed out; revealing the window"
+            );
+            let _ = fallback_window.show();
+            let _ = fallback_window.set_focus();
+        }
+    });
+
+    Ok(())
 }
 
 #[tauri::command]
