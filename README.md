@@ -56,7 +56,7 @@
 - [Contributors](#contributors)
 - [Contributing](#contributing)
 - [Observability (optional)](#observability-optional)
-  - [Tool-call structured output integration test](#tool-call-structured-output-integration-test)
+- [Agent runtime real-model tests](#agent-runtime-real-model-tests)
 - [Further reading](#further-reading)
 - [License](#license)
 
@@ -430,15 +430,15 @@ LANGFUSE_HOST=https://cloud.langfuse.com
 
 When keys are present, Chat & Memory agent calls are instrumented with `gen_ai.*` OpenTelemetry attributes and exported via batch processor.
 
-### Tool-call structured output integration test
+### Agent runtime real-model tests
 
-The Rust test suite includes an opt-in integration test that verifies the configured model can produce structured results for title, memory, hook, and context-compaction tasks by calling the task-specific capture tool. Put the test provider settings in the repository root `.env`:
+The SDK software test suite includes ignored real-provider tests for both the canonical Chat agent runtime and Flash structured-output tasks. Put the local test-model settings in the repository root `.env`:
 
 ```env
-OPENAGENT_STRUCTURED_OUTPUT_TESTS=1
-OPENAGENT_STRUCTURED_OUTPUT_MODEL=your-model
-OPENAGENT_STRUCTURED_OUTPUT_API_KEY=your-api-key
-OPENAGENT_STRUCTURED_OUTPUT_BASE_URL=https://your-provider.example/v1
+OPENAGENT_TEST_MODEL=your-model
+OPENAGENT_TEST_API_KEY=your-api-key
+OPENAGENT_TEST_BASE_URL=https://your-provider.example/v1
+# OPENAGENT_TEST_PROVIDER=openai
 
 # Optional Langfuse tracing
 LANGFUSE_PUBLIC_KEY=pk-...
@@ -449,13 +449,13 @@ LANGFUSE_HOST=https://cloud.langfuse.com
 Then run:
 
 ```bash
-cd src-tauri
-cargo test env_configured_provider_supports_all_structured_output_tasks -- --nocapture
+cd sdk
+bun scripts/test-agent-runtime-model.mjs --base origin/main
 ```
 
-See [`.env.example`](.env.example) for a copyable template. The test defaults to the OpenAI-compatible provider, so `OPENAGENT_STRUCTURED_OUTPUT_MODEL`, `OPENAGENT_STRUCTURED_OUTPUT_API_KEY`, and `OPENAGENT_STRUCTURED_OUTPUT_BASE_URL` are enough for third-party OpenAI-compatible chat endpoints.
+See [`.env.example`](.env.example) for a copyable template. The script checks the diff first: when no file under `rust/openagent-runtime/` changed, it prints a skip and makes no model calls. When the runtime changed, it runs the Chat runtime smoke plus Flash structured-output coverage with the same local model. The test defaults to the OpenAI-compatible provider.
 
-For Anthropic, set `OPENAGENT_STRUCTURED_OUTPUT_PROVIDER=anthropic` and provide `ANTHROPIC_API_KEY`.
+For Anthropic, set `OPENAGENT_TEST_PROVIDER=anthropic` and provide `OPENAGENT_TEST_API_KEY` or `ANTHROPIC_API_KEY`.
 
 ---
 
