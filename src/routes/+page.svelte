@@ -4106,7 +4106,7 @@
     clearLegacyOnboardingCompletion();
     if (!tauriAvailable) return;
     await emit(ONBOARDING_COMPLETE_EVENT, { workspace_path: workspacePath });
-    await getCurrentWindow().close();
+    await getCurrentWindow().hide();
   }
 
   // ─── Memory / Roles / Skills ─────────────────────────────────────────────────
@@ -4398,7 +4398,7 @@
   const winMaximize = () => appWindow?.toggleMaximize();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
   const onboardingWinClose = () =>
-    config?.onboarding_completed ? appWindow?.close() : void invoke("quit_app");
+    config?.onboarding_completed ? appWindow?.hide() : void invoke("quit_app");
   const quitApp = () => void invoke("quit_app");
 
   // Keep the webview's built-in context menu available while developing, but

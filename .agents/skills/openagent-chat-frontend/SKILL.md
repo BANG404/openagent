@@ -411,11 +411,15 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Render first-run onboarding in its own undecorated Tauri window while the main
   window remains hidden. Completing the flow hands the selected workspace back
   to the already-bootstrapped main window before revealing it. The development
-  inspector reopens that same window without clearing durable completion. The
-  native host must create the onboarding window visible, center it, and focus it
-  immediately; do not make visibility depend on frontend readiness or WebView
-  window APIs. Render a layout-stable loading skeleton until its configuration
-  is ready. Keep the development-only `onboarding-preview` query with
+  inspector reopens that same window without clearing durable completion. On
+  Windows, pre-create the centered onboarding WebviewWindow during native setup
+  and let it initialize while hidden; revealing it must only unminimize, show,
+  and focus that existing top-level window. Do not dynamically construct it from
+  a command handler or make visibility depend on frontend readiness or WebView
+  window APIs. Completing or dismissing a debug revisit must hide rather than
+  destroy the preloaded window so later inspector invocations reuse the same
+  initialized instance. Render a layout-stable loading skeleton until its
+  configuration is ready. Keep the development-only `onboarding-preview` query with
   `onboarding-preview-theme=light|dark` and `onboarding-preview-locale=zh|en`
   parameters so the surface remains browser-verifiable without native state.
 - Persist a newly created conversation and active-workspace selection

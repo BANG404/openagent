@@ -1070,25 +1070,10 @@ fn quit_app(app: tauri::AppHandle) {
 }
 
 fn show_onboarding_window(app: &tauri::AppHandle) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("onboarding") {
-        window.unminimize().map_err(|error| error.to_string())?;
-        window.show().map_err(|error| error.to_string())?;
-        return window.set_focus().map_err(|error| error.to_string());
-    }
-
-    let window = tauri::WebviewWindowBuilder::new(
-        app,
-        "onboarding",
-        tauri::WebviewUrl::App("/?onboarding-window=1".into()),
-    )
-    .title("OpenAgent Setup")
-    .inner_size(900.0, 640.0)
-    .min_inner_size(800.0, 560.0)
-    .decorations(false)
-    .visible(true)
-    .build()
-    .map_err(|error| error.to_string())?;
-    window.center().map_err(|error| error.to_string())?;
+    let window = app
+        .get_webview_window("onboarding")
+        .ok_or_else(|| "Onboarding window is unavailable".to_string())?;
+    window.unminimize().map_err(|error| error.to_string())?;
     window.show().map_err(|error| error.to_string())?;
     window.set_focus().map_err(|error| error.to_string())
 }
@@ -1499,6 +1484,19 @@ fn run_with_mode(agent_server: bool) {
             }
 
             if !agent_server && !is_workspace_window {
+                tauri::WebviewWindowBuilder::new(
+                    app,
+                    "onboarding",
+                    tauri::WebviewUrl::App("/?onboarding-window=1".into()),
+                )
+                .title("OpenAgent Setup")
+                .inner_size(900.0, 640.0)
+                .min_inner_size(800.0, 560.0)
+                .decorations(false)
+                .center()
+                .visible(false)
+                .build()?;
+
                 tauri::WebviewWindowBuilder::new(
                     app,
                     "quick-chat",
