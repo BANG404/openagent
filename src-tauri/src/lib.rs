@@ -1085,24 +1085,12 @@ fn show_onboarding_window(app: &tauri::AppHandle) -> Result<(), String> {
     .inner_size(900.0, 640.0)
     .min_inner_size(800.0, 560.0)
     .decorations(false)
-    .visible(false)
+    .visible(true)
     .build()
     .map_err(|error| error.to_string())?;
-
-    let fallback_window = window.clone();
-    tauri::async_runtime::spawn(async move {
-        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-        if matches!(fallback_window.is_visible(), Ok(false)) {
-            tracing::warn!(
-                target: "openagent::app",
-                "onboarding readiness handoff timed out; revealing the window"
-            );
-            let _ = fallback_window.show();
-            let _ = fallback_window.set_focus();
-        }
-    });
-
-    Ok(())
+    window.center().map_err(|error| error.to_string())?;
+    window.show().map_err(|error| error.to_string())?;
+    window.set_focus().map_err(|error| error.to_string())
 }
 
 #[tauri::command]

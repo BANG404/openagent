@@ -17,6 +17,7 @@
   type LazyViewComponent = Component<any>;
 
   import Toast from "$lib/components/Toast.svelte";
+  import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import { installDownloadHook } from "$lib/downloadHook";
   import { checkForAppUpdate } from "$lib/appUpdater";
   import { Tooltip as TooltipPrimitive } from "bits-ui";
@@ -1725,12 +1726,6 @@
         console.error("Failed to load onboarding:", error);
       } finally {
         initialLoading = false;
-        await tick();
-        if (tauriAvailable) {
-          await invoke("reveal_onboarding_window").catch((error) => {
-            console.error("Failed to reveal onboarding window:", error);
-          });
-        }
       }
       return;
     }
@@ -4438,6 +4433,10 @@
         {winMaximize}
         winClose={onboardingWinClose}
       />
+    {:else}
+      <div class="onboarding-loading">
+        <LoadingSkeleton variant="new-conversation" label={$t("loadingContent")} />
+      </div>
     {/if}
   {:else if isQuickChatSurface}
     <QuickChatSurface preview={isQuickChatPreview} />
@@ -4586,6 +4585,19 @@
 />
 
 <style>
+  .onboarding-loading {
+    display: grid;
+    height: 100vh;
+    place-items: center;
+    box-sizing: border-box;
+    padding: 48px;
+    background: var(--bg);
+  }
+
+  .onboarding-loading :global(.skeleton) {
+    width: min(560px, 100%);
+  }
+
   .app {
     display: flex;
     height: 100vh;
