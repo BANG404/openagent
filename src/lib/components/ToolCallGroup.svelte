@@ -172,7 +172,7 @@
   }
 
   .tool-call-group-toggle:hover {
-    background: color-mix(in srgb, var(--primary) 7%, var(--surface2));
+    background: var(--interactive-state-bg);
   }
 
   .tool-call-group-toggle:focus-visible {

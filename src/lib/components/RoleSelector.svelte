@@ -140,7 +140,7 @@
   :global(.role-selector-trigger:hover),
   :global(.role-selector-trigger:focus-visible),
   :global(.role-selector-trigger[data-state="open"]) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   :global(.role-selector-trigger:focus-visible) {
@@ -291,10 +291,10 @@
   }
   :global(.role-selector-item[data-highlighted]:not([data-selected])),
   :global(.role-selector-item:hover:not([data-selected])) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
   }
   :global(.role-selector-item[data-selected]) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
   :global(.role-selector-item[data-selected]::before) {

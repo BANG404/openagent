@@ -220,7 +220,7 @@
 
   :global(.workspace-btn:hover),
   :global(.workspace-btn[data-state="open"]) {
-    background: var(--border);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -296,7 +296,7 @@
   }
 
   :global(.ws-recent-trigger[data-state="open"]) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
   }
 
   :global(.ws-submenu-chevron) {
@@ -337,11 +337,11 @@
 
   :global(.ws-dropdown-item[data-highlighted]:not([data-selected])),
   :global(.ws-dropdown-item:hover:not([data-selected])) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
   }
 
   :global(.ws-dropdown-item[data-selected]) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 

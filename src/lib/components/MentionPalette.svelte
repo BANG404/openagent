@@ -161,11 +161,11 @@
   }
 
   :global(.palette-row:hover:not([data-selected])) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
   }
 
   :global(.palette-row[data-selected]) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
   }
 
   :global(.palette-row[data-selected]::before) {

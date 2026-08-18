@@ -72,7 +72,7 @@
 
   button:hover:not(:disabled),
   button:focus-visible {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
     outline: none;
   }

@@ -104,7 +104,7 @@
       border-color 0.12s;
   }
   .url-ref:hover {
-    background: var(--surface);
+    background: var(--interactive-state-bg);
     border-color: var(--primary);
   }
   .site-icon {

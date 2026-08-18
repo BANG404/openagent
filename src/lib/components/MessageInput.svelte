@@ -1179,7 +1179,7 @@
   }
 
   .attach-btn:hover:not(:disabled) {
-    background: var(--border);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -1195,7 +1195,7 @@
   }
 
   :global(.composer-model-trigger:hover:not(:disabled)) {
-    background: var(--border);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -1206,7 +1206,7 @@
 
   :global(.composer-model-trigger[data-state="open"]) {
     box-shadow: none;
-    background: var(--border);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -1291,7 +1291,7 @@
   }
 
   .stop-btn:hover {
-    background: var(--border);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 

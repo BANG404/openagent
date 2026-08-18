@@ -66,7 +66,7 @@
   }
 
   button:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--text) 6%, transparent);
+    background: var(--interactive-state-bg);
   }
 
   button:focus-visible {

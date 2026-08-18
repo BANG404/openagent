@@ -528,11 +528,11 @@
     text-align: left;
   }
   .onboarding-nav-item:hover:not(:disabled) {
-    background: var(--surface);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
   .onboarding-nav-item.active {
-    background: var(--surface);
+    background: var(--interactive-state-bg);
     color: var(--text);
     font-weight: 500;
   }
@@ -668,7 +668,7 @@
     white-space: nowrap;
   }
   .provider-tabs button.active {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
   .provider-tabs .add {
@@ -695,7 +695,7 @@
     font-size: 12px;
   }
   button:hover:not(:disabled) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
   button:disabled {
     cursor: default;

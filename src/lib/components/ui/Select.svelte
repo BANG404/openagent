@@ -194,6 +194,9 @@
   :global(.ui-select-trigger[data-state="open"]) {
     box-shadow: var(--mica-shadow), var(--focus-ring);
   }
+  :global(.ui-select-trigger[data-state="open"]) {
+    background: var(--interactive-state-bg);
+  }
   :global(.ui-select-trigger.composer-model-trigger),
   :global(.ui-select-trigger.reasoning-effort-trigger),
   :global(.ui-select-trigger.quick-select-trigger) {
@@ -207,13 +210,13 @@
   :global(.ui-select-trigger.composer-model-trigger[data-state="open"]),
   :global(.ui-select-trigger.reasoning-effort-trigger:hover:not(:disabled)),
   :global(.ui-select-trigger.reasoning-effort-trigger[data-state="open"]) {
-    background: var(--border);
+    background: var(--interactive-state-bg);
     box-shadow: none;
   }
   :global(.ui-select-trigger.quick-select-trigger:hover:not(:disabled)),
   :global(.ui-select-trigger.quick-select-trigger:focus-visible),
   :global(.ui-select-trigger.quick-select-trigger[data-state="open"]) {
-    background: color-mix(in srgb, var(--text) 7%, transparent);
+    background: var(--interactive-state-bg);
     box-shadow: none;
   }
   :global(.ui-select-trigger.composer-model-trigger:focus-visible),
@@ -351,10 +354,10 @@
   }
   :global(.ui-select-item[data-highlighted]:not([data-selected])),
   :global(.ui-select-item:hover:not([data-selected])) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
   }
   :global(.ui-select-item[data-selected]) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
   :global(.ui-select-item[data-selected]::before) {

@@ -521,7 +521,7 @@
 
   .tool-toggle:hover,
   .tool-icon-btn:hover {
-    background: var(--border);
+    background: var(--interactive-state-bg);
   }
 
   .tool-toggle:focus-visible,
@@ -656,7 +656,7 @@
   .result-row:hover,
   .grep-row:hover {
     border-color: var(--primary);
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   .path-chip svg {

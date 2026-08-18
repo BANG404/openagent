@@ -142,8 +142,11 @@
       color 0.15s;
   }
   :global(.ui-combobox-trigger:hover) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
+  }
+  :global(.ui-combobox-trigger[data-state="open"]) {
+    background: var(--interactive-state-bg);
   }
   :global(.ui-combobox-trigger svg) {
     width: 14px;
@@ -192,10 +195,10 @@
   }
   :global(.ui-combobox-item[data-highlighted]:not([data-selected])),
   :global(.ui-combobox-item:hover:not([data-selected])) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
   }
   :global(.ui-combobox-item[data-selected]) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
   :global(.ui-combobox-item[data-selected]::before) {

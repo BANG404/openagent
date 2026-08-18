@@ -645,7 +645,7 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
   }
 
   .skill-group-toggle:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -721,7 +721,7 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
   }
 
   .skill-footer-btn:hover {
-    background: var(--surface);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -790,11 +790,11 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
   }
 
   .skill-item:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   .skill-item.active {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   .skill-item.active::before {

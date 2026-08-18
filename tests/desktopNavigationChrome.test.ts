@@ -58,7 +58,7 @@ describe("desktop navigation chrome", () => {
       /\.composer-workspace-btn\)\s*{[^}]*padding: 5px 8px;[^}]*color: var\(--text-muted\);/s,
     );
     expect(workspaceSwitcher).toMatch(
-      /\.workspace-btn\[data-state="open"\]\)\s*{[^}]*background: var\(--border\);/s,
+      /\.workspace-btn\[data-state="open"\]\)\s*{[^}]*background: var\(--interactive-state-bg\);/s,
     );
   });
 

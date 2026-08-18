@@ -172,7 +172,7 @@
     font-family: inherit;
   }
   .file-ref:hover:not(:disabled) {
-    background: var(--surface);
+    background: var(--interactive-state-bg);
     border-color: var(--primary);
   }
   .file-ref:disabled {

@@ -226,6 +226,7 @@
     transition: color 0.15s;
   }
   :global(.dialog-action-quiet:hover) {
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
   :global(.dialog-action-quiet:focus-visible) {

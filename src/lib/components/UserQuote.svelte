@@ -102,7 +102,7 @@
 
   .quote-remove:hover,
   .quote-remove:focus-visible {
-    background: var(--border);
+    background: var(--interactive-state-bg);
     color: var(--text);
     outline: none;
   }

@@ -160,7 +160,7 @@
   .sidebar-primary-action:hover,
   .sidebar-primary-action:focus-visible,
   .sidebar-search-row:focus-within {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     outline: none;
   }
 
@@ -212,7 +212,7 @@
   }
 
   .clear-search:hover {
-    background: var(--border);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 

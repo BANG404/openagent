@@ -72,7 +72,7 @@
 
   :global(.reasoning-effort-trigger:hover:not(:disabled)),
   :global(.reasoning-effort-trigger[data-state="open"]) {
-    background: var(--border);
+    background: var(--interactive-state-bg);
     color: var(--text);
     box-shadow: none;
   }

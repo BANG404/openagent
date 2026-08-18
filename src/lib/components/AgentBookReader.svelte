@@ -352,7 +352,7 @@
 
   :global(.book-close:hover),
   :global(.book-close:focus-visible) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -533,7 +533,7 @@
 
   .page-turn:hover:not(:disabled),
   .page-turn:focus-visible {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 

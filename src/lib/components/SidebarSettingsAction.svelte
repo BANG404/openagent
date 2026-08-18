@@ -62,7 +62,7 @@
   button:hover,
   button:focus-visible,
   button.active {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 

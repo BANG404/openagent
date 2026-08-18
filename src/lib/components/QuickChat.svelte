@@ -202,7 +202,7 @@
 
   .pick-workspace:hover:not(:disabled),
   .pick-workspace:focus-visible {
-    background: color-mix(in srgb, var(--text) 7%, transparent);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -360,7 +360,7 @@
   .quick-select :global(.quick-select-trigger:hover:not(:disabled)),
   .quick-select :global(.quick-select-trigger:focus-visible),
   .quick-select :global(.quick-select-trigger[data-state="open"]) {
-    background: color-mix(in srgb, var(--text) 7%, transparent);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 

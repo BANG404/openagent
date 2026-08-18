@@ -177,7 +177,7 @@
     font-family: inherit;
   }
   .toast-action:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
   .toast-action:active {
     transform: scale(0.95);
@@ -200,7 +200,7 @@
     padding: 0;
   }
   .toast-dismiss:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
   .toast-dismiss:active {

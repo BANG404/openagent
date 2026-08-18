@@ -51,7 +51,7 @@
 
   .checkpoint-flow-toggle:hover,
   .checkpoint-flow-toggle:focus-visible {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
     outline: none;
   }

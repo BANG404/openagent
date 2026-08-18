@@ -3858,12 +3858,12 @@
   }
 
   :global(.settings-nav-item:hover:not([data-state="active"])) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
   :global(.settings-nav-item[data-state="active"]) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
     font-weight: 500;
   }
@@ -3981,7 +3981,7 @@
       background 0.1s;
   }
   .model-action-btn:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
   .model-action-btn:active,
   .filter-toggle:active {
@@ -4014,6 +4014,11 @@
     padding: 6px 10px;
     cursor: pointer;
     text-align: left;
+  }
+
+  .provider-item:hover,
+  .provider-item.active {
+    background: var(--interactive-state-bg);
   }
 
   .provider-item.active::before {
@@ -4239,6 +4244,7 @@
   .shortcut-recorder:hover,
   .shortcut-recorder:focus-visible,
   .shortcut-recorder.recording {
+    background: var(--interactive-state-bg);
     border-color: var(--primary);
     box-shadow: none;
   }
@@ -4468,6 +4474,7 @@
   }
 
   .remote-credential-action:hover {
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -4544,11 +4551,11 @@
   }
 
   .channel-settings-item:hover {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
   }
 
   .channel-settings-item.active {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -5304,7 +5311,7 @@
   }
 
   .hook-conversation-link:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   .hook-conversation-link:focus-visible {
@@ -5389,7 +5396,7 @@
 
   .retry-queue-drag-handle:hover,
   .retry-queue-drag-handle:focus-visible {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
     outline: none;
   }

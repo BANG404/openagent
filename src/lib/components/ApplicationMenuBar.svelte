@@ -456,7 +456,7 @@
   :global(.application-menu-trigger:hover),
   :global(.application-menu-trigger:focus-visible),
   :global(.application-menu-trigger[data-state="open"]) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -493,7 +493,7 @@
 
   :global(.application-menu-item[data-highlighted]),
   :global(.application-menu-item:hover) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
   }
 
   :global(.application-menu-item[data-disabled]) {

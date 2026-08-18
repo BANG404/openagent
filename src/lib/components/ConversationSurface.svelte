@@ -796,7 +796,7 @@
   }
 
   :global(.assistant-msg [data-streamdown-code] button:hover) {
-    background: var(--surface) !important;
+    background: var(--interactive-state-bg) !important;
     color: var(--text) !important;
   }
 
@@ -913,7 +913,7 @@
       color 0.12s !important;
   }
   :global([data-streamdown-mermaid] button:hover) {
-    background: var(--surface2) !important;
+    background: var(--interactive-state-bg) !important;
     color: var(--text) !important;
   }
   :global([data-streamdown-mermaid] button:active) {
@@ -950,7 +950,7 @@
     margin-top: var(--menu-item-stack-gap) !important;
   }
   :global([data-streamdown-mermaid] .download-menu button:hover) {
-    background: var(--bg) !important;
+    background: var(--interactive-state-bg) !important;
     color: var(--text) !important;
   }
 </style>

@@ -525,7 +525,7 @@
   }
 
   .section-action:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -647,7 +647,7 @@
   .project-row:hover,
   .project-row:focus-visible,
   .project-row-shell.active .project-row {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     outline: none;
   }
 
@@ -692,7 +692,7 @@
   :global(.project-row-action:hover),
   :global(.project-row-action:focus-visible),
   :global(.project-row-action[data-state="open"]) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -776,7 +776,7 @@
   .workspace-conversation-row:hover,
   .workspace-conversation-row:focus-visible,
   .workspace-conversation-row.active {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 

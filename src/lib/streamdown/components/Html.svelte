@@ -463,7 +463,7 @@
   }
 
   .actions button:hover:not(:disabled) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 

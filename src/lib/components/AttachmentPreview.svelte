@@ -447,7 +447,7 @@
 
   .message-capsule:hover,
   .message-capsule:focus-within {
-    background: color-mix(in srgb, var(--surface2) 52%, var(--surface));
+    background: var(--interactive-state-bg);
   }
 
   .message-capsule:focus-within {
@@ -490,7 +490,7 @@
   }
 
   .composer-card:hover {
-    background: color-mix(in srgb, var(--surface2) 88%, var(--text) 4%);
+    background: var(--interactive-state-bg);
   }
 
   .composer-card:focus-within {
@@ -579,7 +579,7 @@
   }
 
   .composer-card .remove-button:hover {
-    background: var(--surface);
+    background: var(--interactive-state-bg);
   }
 
   .composer-card .remove-button:active {
@@ -753,7 +753,7 @@
 
   .remove-button:hover {
     color: var(--text);
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   .remove-button:active {
@@ -841,7 +841,7 @@
   }
 
   :global(.attachment-dialog-controls button:hover:not(:disabled)) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -947,7 +947,7 @@
   }
 
   :global(.unavailable-preview button:hover) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   :global(.unavailable-preview small) {

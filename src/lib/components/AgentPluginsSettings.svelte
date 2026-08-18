@@ -404,6 +404,7 @@
   }
 
   .quiet-button:hover {
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 

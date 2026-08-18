@@ -31,8 +31,9 @@
       0 10px 28px rgba(31, 35, 48, 0.1);
     --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
     --focus-ring: 0 0 0 1px var(--primary);
-    --item-selected-bg: rgba(0, 102, 204, 0.09);
-    --item-selected-hover-bg: rgba(0, 102, 204, 0.16);
+    --interactive-state-bg: #ebebeb;
+    --item-selected-bg: var(--interactive-state-bg);
+    --item-selected-hover-bg: var(--interactive-state-bg);
     --menu-content-radius: 8px;
     --menu-content-padding: 6px;
     --menu-item-min-height: 28px;
@@ -80,8 +81,9 @@
         0 12px 30px rgba(0, 0, 0, 0.3);
       --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
       --focus-ring: 0 0 0 1px var(--primary);
-      --item-selected-bg: rgba(41, 151, 255, 0.12);
-      --item-selected-hover-bg: rgba(41, 151, 255, 0.21);
+      --interactive-state-bg: #2b2b2b;
+      --item-selected-bg: var(--interactive-state-bg);
+      --item-selected-hover-bg: var(--interactive-state-bg);
     }
   }
 
@@ -109,8 +111,9 @@
       0 12px 30px rgba(0, 0, 0, 0.3);
     --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
     --focus-ring: 0 0 0 1px var(--primary);
-    --item-selected-bg: rgba(41, 151, 255, 0.12);
-    --item-selected-hover-bg: rgba(41, 151, 255, 0.21);
+    --interactive-state-bg: #2b2b2b;
+    --item-selected-bg: var(--interactive-state-bg);
+    --item-selected-hover-bg: var(--interactive-state-bg);
   }
 
   /* Forced light override */
@@ -137,8 +140,9 @@
       0 10px 28px rgba(31, 35, 48, 0.1);
     --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
     --focus-ring: 0 0 0 1px var(--primary);
-    --item-selected-bg: rgba(0, 102, 204, 0.09);
-    --item-selected-hover-bg: rgba(0, 102, 204, 0.16);
+    --interactive-state-bg: #ebebeb;
+    --item-selected-bg: var(--interactive-state-bg);
+    --item-selected-hover-bg: var(--interactive-state-bg);
   }
 
   * {
@@ -244,11 +248,11 @@
 
   .ctx-menu-item:hover:not([data-selected]),
   .ctx-menu-item[data-highlighted]:not([data-selected]) {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
   }
 
   .ctx-menu-item[data-selected] {
-    background: var(--bg);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -560,7 +564,7 @@
 
   .mdx-editor-root [class*="codeMirrorToolbar"] button:hover,
   .mdx-editor-root [class*="codeMirrorToolbar"] [role="combobox"]:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 

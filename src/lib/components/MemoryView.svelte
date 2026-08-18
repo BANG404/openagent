@@ -444,7 +444,7 @@
   }
 
   .section-toggle-btn:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -614,6 +614,7 @@
   }
 
   .agent-source-btn:hover {
+    background: var(--interactive-state-bg);
     text-decoration: underline;
   }
 

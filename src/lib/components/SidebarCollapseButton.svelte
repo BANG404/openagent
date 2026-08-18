@@ -58,7 +58,7 @@
 
   .sidebar-collapse-button:hover,
   .sidebar-collapse-button:focus-visible {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
     outline: none;
   }

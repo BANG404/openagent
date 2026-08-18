@@ -186,7 +186,7 @@
   }
 
   .banner-header:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   .banner-icon {
@@ -295,7 +295,7 @@
 
   .diff-btn:hover,
   .diff-btn.active {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     border-color: var(--primary);
     color: var(--primary);
   }

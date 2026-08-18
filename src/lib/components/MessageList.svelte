@@ -1041,6 +1041,7 @@
   }
 
   .skip-memory-btn:hover:not(:disabled) {
+    background: var(--interactive-state-bg);
     border-color: var(--primary);
     color: var(--text-primary);
   }
@@ -1150,6 +1151,7 @@
 
   .user-message-index button:hover,
   .user-message-index button:focus-visible {
+    background: var(--interactive-state-bg);
     outline: none;
     transform: translateX(-2px);
   }
@@ -1226,7 +1228,7 @@
   }
 
   .selection-add-button:hover {
-    background: color-mix(in srgb, var(--mica-surface) 86%, var(--primary) 14%);
+    background: var(--interactive-state-bg);
   }
 
   .selection-add-button:focus-visible {
@@ -1357,7 +1359,7 @@
     cursor: pointer;
   }
   .user-collapse-btn:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
   .user-content-edit:not(:read-only):focus {
@@ -1407,7 +1409,7 @@
     color: white;
   }
   .edit-cancel-btn:hover {
-    background: var(--border);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
   .edit-confirm-btn:hover:not(:disabled) {
@@ -1456,7 +1458,7 @@
       color 0.1s;
   }
   .branch-nav-btn:hover:not(:disabled) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
   .branch-nav-btn:disabled {
@@ -1507,7 +1509,7 @@
       color 0.12s;
   }
   .msg-action-btn:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 

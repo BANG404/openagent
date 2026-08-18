@@ -125,6 +125,7 @@
   .clear-btn:focus-visible,
   .remove-btn:hover,
   .remove-btn:focus-visible {
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
   .clear-btn:focus-visible,
@@ -149,7 +150,7 @@
     font-size: 12px;
   }
   .queue-item:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
   .queue-index {
     width: 15px;
@@ -181,10 +182,6 @@
     height: 22px;
     flex: none;
     border-radius: 5px;
-  }
-  .remove-btn:hover,
-  .remove-btn:focus-visible {
-    background: color-mix(in srgb, var(--border) 72%, transparent);
   }
   .remove-btn svg {
     width: 13px;

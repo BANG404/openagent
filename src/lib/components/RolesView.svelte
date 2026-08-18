@@ -416,11 +416,11 @@
   }
 
   .role-item:hover {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   .role-item.active {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   .role-item.active::before {

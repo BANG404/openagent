@@ -60,11 +60,12 @@
   }
 
   button:hover:not(:disabled) {
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
   button.active {
-    background: var(--surface);
+    background: var(--interactive-state-bg);
     color: var(--text);
     box-shadow: 0 1px 2px var(--shadow);
   }

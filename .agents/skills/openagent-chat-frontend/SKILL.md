@@ -348,8 +348,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   inset. Keep component-specific width, height, scrolling, and item content,
   but do not fork its panel material or neutral hover fill.
 - Keep selection signaling consistent across floating option rows and persistent
-  navigation lists: each component keeps its ordinary neutral hover fill for
-  the selected row and adds a square-ended primary-colored left rail. Do not
+  navigation lists: neutral buttons, triggers, and option rows use the shared
+  theme-aware `--interactive-state-bg` for hover, open, and selected states;
+  the light value is `#ebebeb`. Each selected row adds a square-ended
+  primary-colored left rail. Primary and destructive actions retain their
+  semantic state colors. Do not
   introduce a stronger selected fill, checkmark, selected text color, or rounded
   endpoints on that rail.
 - Keep the new-conversation composer's workspace switcher beside approval mode

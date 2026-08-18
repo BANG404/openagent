@@ -453,7 +453,7 @@
 
   .show-more-conversations:hover:not(:disabled),
   .show-more-conversations:focus-visible {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     color: var(--text);
     outline: none;
   }
@@ -564,12 +564,12 @@
   }
 
   .conv-item:hover:not(.active) {
-    background: color-mix(in srgb, var(--surface) 42%, transparent);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
   .conv-item.active {
-    background: color-mix(in srgb, var(--surface) 42%, transparent);
+    background: var(--interactive-state-bg);
     color: var(--text);
     font-weight: 500;
   }
@@ -604,7 +604,7 @@
   }
 
   .conv-delete:hover {
-    background: var(--border);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
@@ -689,12 +689,12 @@
   }
 
   .sub-conv-item:hover:not(.active) {
-    background: color-mix(in srgb, var(--surface) 42%, transparent);
+    background: var(--interactive-state-bg);
     color: var(--text);
   }
 
   .sub-conv-item.active {
-    background: color-mix(in srgb, var(--surface) 42%, transparent);
+    background: var(--interactive-state-bg);
     color: var(--text);
     font-weight: 500;
   }
