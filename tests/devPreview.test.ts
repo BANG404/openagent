@@ -46,6 +46,13 @@ describe("standalone development previews", () => {
     expect(previewParameterPrefix("input-surfaces")).toBe("input-surfaces-preview");
   });
 
+  test("exposes the image source preview", () => {
+    expect(resolveStandaloneDevPreview(new URLSearchParams("media-sources-preview"), true)).toBe(
+      "media-sources",
+    );
+    expect(previewParameterPrefix("media-sources")).toBe("media-sources-preview");
+  });
+
   test("exposes the manual compaction status preview", () => {
     expect(
       resolveStandaloneDevPreview(new URLSearchParams("compaction-status-preview"), true),

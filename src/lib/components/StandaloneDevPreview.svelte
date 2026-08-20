@@ -37,6 +37,7 @@
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
   import MessageDivider from "$lib/components/MessageDivider.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
+  import MediaSourcePreview from "$lib/components/MediaSourcePreview.svelte";
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
   import ReasoningEffortSelect from "$lib/components/ReasoningEffortSelect.svelte";
@@ -696,6 +697,8 @@
     onSubmitUserInput={() => {}}
     onCancelUserInput={() => {}}
   />
+{:else if preview === "media-sources"}
+  <MediaSourcePreview {locale} />
 {:else if preview === "permission-settings"}
   <main class="permission-settings-preview-stage">
     <section class="permission-settings-preview-card">

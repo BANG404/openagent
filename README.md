@@ -303,7 +303,7 @@ Syntax: `ComponentName(prop: value, prop2: "string")`
 | `File`    | `File(path: "src/tools.rs", lines: "120-140")`         | Clickable chip that opens the file at the given lines     |
 | `Url`     | `Url(href: "https://docs.rs/rig", title: "rig docs")`  | Capsule that opens the link in the browser                |
 | `Chart`   | `Chart(type: "bar", labels: ["A","B"], data: [10,20])` | ECharts bar / line / pie chart                            |
-| `Image`   | `Image(src: "assets/result.png", caption: "Result")`   | Workspace-local or HTTP(S) image with an optional caption |
+| `Image`   | `Image(src: "assets/result.png", caption: "Result")`   | Workspace path, `file://`, `data:image`, or HTTP(S) image |
 | `Video`   | `Video(src: "assets/demo.mp4", controls: true)`        | Workspace-local or HTTP(S) video with playback controls   |
 
 Multi-series charts use `series: [{name, data}, ...]`.

@@ -42,6 +42,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   application theme tokens. Do not depend on the renderer's optional utility
   classes; inline code must retain readable foreground and surface contrast in
   both light and dark themes without affecting fenced code blocks.
+- AGUI `Image` sources may be HTTP(S), workspace paths, `file://` URLs, or
+  `data:image/...` URLs. Convert file URLs back to filesystem paths and resolve
+  them through the same workspace-confined media capability as ordinary local
+  paths; inline only image-typed data URLs directly. Keep `Video` and every
+  other URI scheme on the existing HTTP(S) or workspace-path boundary, and do
+  not expose encoded image bytes through fallback alt text or error details.
 - Intercept every Agent-authored Markdown link before WebView navigation. Open
   absolute HTTP(S) destinations through the surface's UI capability: Tauri uses
   the native system opener, while browser-backed previews and remote surfaces
@@ -721,6 +727,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   transition. Its `-theme` and `-locale` parameters must keep the transition,
   collapsed process disclosure, rendered SVG, light/dark themes, and
   Chinese/English copy directly verifiable without native state.
+- Keep the development-only `media-sources-preview` query available for AGUI
+  image source verification. Its `-theme` and `-locale` parameters must keep
+  workspace-confined `file://` resolution, inline `data:image` rendering,
+  light/dark themes, and Chinese/English copy directly verifiable without
+  native state.
 - Keep the development-only `attachment-composer-preview` query available for
   the shared composer's pending-attachment cards. Its `-theme` and `-locale`
   parameters must keep card preview, removal, upload, horizontal overflow,
