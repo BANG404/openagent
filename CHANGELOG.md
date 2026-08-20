@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.42.0-beta.1] - 2026-08-20
+
+### Features
+- Move onboarding into dedicated window
+- **ui**: Unify neutral interaction fills
+- **sdk**: Route benchmark models by modality
+- **sdk**: Complete chat benchmark coverage
+- **sdk**: Add model benchmark harness
+
+### Bug Fixes
+- **chat**: Unify manual compaction dividers
+- Preload onboarding window
+- Show onboarding window immediately
+- Reliably reveal onboarding window
+- Align Windows title bar controls
+- **chat**: Preserve Mermaid across finalization
+- **sdk**: Make benchmark runs observable
+
+### Testing
+- Gate agent runtime real model coverage
+
+### Miscellaneous
+- **sdk**: Update structured output recovery
+- **sdk**: Update benchmark diagnostic reports
+- **sdk**: Update model benchmark diagnostics
+
 ## [0.41.0-beta.1] - 2026-08-17
 
 ### Features

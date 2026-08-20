@@ -1,8 +1,8 @@
 {
   "ready": true,
-  "version": "0.41.0-beta.1",
-  "tag": "v0.41.0-beta.1",
+  "version": "0.42.0-beta.1",
+  "tag": "v0.42.0-beta.1",
   "channel": "beta",
-  "sourceSha": "5c74ed8f0cb3aebaf63b8457a67da7f221a3de72",
-  "previousTag": "v0.40.0-beta.1"
+  "sourceSha": "fbe480ddf7f04efa70f5f0b9bf55b8d284b72083",
+  "previousTag": "v0.41.0-beta.1"
 }
