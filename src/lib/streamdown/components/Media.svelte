@@ -14,7 +14,7 @@
     kind: "image" | "video";
   } = $props();
 
-  const source = $derived(classifyMediaSource(args.src));
+  const source = $derived(classifyMediaSource(args.src, kind));
   const caption = $derived(typeof args.caption === "string" ? args.caption.trim() : "");
   const alt = $derived(
     typeof args.alt === "string" && args.alt.trim()
@@ -44,7 +44,7 @@
       errorDetail = "Invalid media source";
       return;
     }
-    if (current.kind === "remote") {
+    if (current.kind === "remote" || current.kind === "inline") {
       resolvedSrc = current.value;
       loading = true;
       return;
