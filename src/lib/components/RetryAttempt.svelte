@@ -112,7 +112,7 @@
             onToggle={() => toggleToolCall(idx)}
           />
         {:else if attemptItem.type === "compaction"}
-          <CompactionStatus item={attemptItem} />
+          <CompactionStatus item={attemptItem} itemKey={`retry-compaction-${idx}`} />
         {:else if attemptItem.type === "user_input"}
           {#if attemptItem.state === "pending"}
             <UserInputForm

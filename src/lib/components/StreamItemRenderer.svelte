@@ -154,14 +154,7 @@
     />
   </div>
 {:else if item.type === "compaction"}
-  <div
-    class="stream-item message-record"
-    id={messageId ? `message-${messageId}` : undefined}
-    data-message-id={messageId}
-    data-stream-item={itemKey}
-  >
-    <CompactionStatus {item} />
-  </div>
+  <CompactionStatus {item} {itemKey} {messageId} />
 {:else if item.type === "compaction_boundary"}
   <MessageDivider title={$t("compactionCompleted")} streamItemKey={itemKey} {messageId} />
 {:else if item.type === "runtime_notice"}

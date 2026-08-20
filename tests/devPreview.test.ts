@@ -45,4 +45,11 @@ describe("standalone development previews", () => {
     );
     expect(previewParameterPrefix("input-surfaces")).toBe("input-surfaces-preview");
   });
+
+  test("exposes the manual compaction status preview", () => {
+    expect(
+      resolveStandaloneDevPreview(new URLSearchParams("compaction-status-preview"), true),
+    ).toBe("compaction-status");
+    expect(previewParameterPrefix("compaction-status")).toBe("compaction-status-preview");
+  });
 });

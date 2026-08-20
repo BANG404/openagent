@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import StreamItemRenderer from "./StreamItemRenderer.svelte";
+  import MessageDivider from "./MessageDivider.svelte";
   import ToolCallGroup from "./ToolCallGroup.svelte";
   import ProcessRecordGroup from "./ProcessRecordGroup.svelte";
   import AgentBookReader, { type AgentBookTurn } from "./AgentBookReader.svelte";
@@ -774,14 +775,11 @@
         {@const msg = entry.msg}
         {@const msgIdx = entry.index}
         {#if isCompactionReplayUser(msg)}
-          <div
-            class="compaction-divider message-record"
-            id={`message-${msg.id}`}
-            data-message-id={msg.id}
-            role="separator"
-          >
-            <span>{$t("compactionCompleted")}</span>
-          </div>
+          <MessageDivider
+            title={$t("compactionCompleted")}
+            streamItemKey={`compaction-boundary-${msg.id}`}
+            messageId={msg.id}
+          />
         {:else if msg.role === "user"}
           {@const siblingInfo = activeConvId
             ? getSiblingInfoForUserMessage(activeTree, msg.id)
@@ -1516,21 +1514,5 @@
     margin-top: 4px;
     display: block;
     user-select: none;
-  }
-
-  .compaction-divider {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 22px 0;
-    color: var(--text-muted);
-    font-size: 11px;
-  }
-  .compaction-divider::before,
-  .compaction-divider::after {
-    content: "";
-    height: 1px;
-    flex: 1;
-    background: color-mix(in srgb, var(--border) 75%, transparent);
   }
 </style>

@@ -30,10 +30,12 @@
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
+  import CompactionStatus from "$lib/components/CompactionStatus.svelte";
   import DesktopShellPreview from "$lib/components/DesktopShellPreview.svelte";
   import FileChangeBanner from "$lib/components/FileChangeBanner.svelte";
   import FollowUpSuggestions from "$lib/components/FollowUpSuggestions.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
+  import MessageDivider from "$lib/components/MessageDivider.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
@@ -136,6 +138,19 @@
   let panelWidth = $state(320);
   let panelCollapsed = $state(true);
   let panelResizing = $state(false);
+  let compactionPreviewItems = $derived<Extract<StreamItem, { type: "compaction" }>[]>([
+    { type: "compaction", stage: "checking" },
+    { type: "compaction", stage: "summarizing" },
+    { type: "compaction", stage: "creating" },
+    {
+      type: "compaction",
+      stage: "failed",
+      error:
+        locale === "zh"
+          ? "无法保存压缩后的上下文，请稍后重试。"
+          : "The compacted context could not be saved. Please try again.",
+    },
+  ]);
   let quoteMessages = $derived<ChatMessage[]>([
     {
       id: "preview-user",
@@ -965,6 +980,18 @@
       />
     </section>
   </main>
+{:else if preview === "compaction-status"}
+  <main class="compaction-status-preview-stage">
+    <section class="compaction-status-preview-list" aria-label={$t("contextCompaction")}>
+      {#each compactionPreviewItems as item (item.stage)}
+        <CompactionStatus {item} itemKey={`compaction-preview-${item.stage}`} />
+      {/each}
+      <MessageDivider
+        title={$t("compactionCompleted")}
+        streamItemKey="compaction-preview-completed"
+      />
+    </section>
+  </main>
 {:else if preview === "streaming-transcript"}
   <main
     class="streaming-transcript-preview-stage"
@@ -1075,6 +1102,7 @@
   .command-palette-preview-stage,
   .follow-up-suggestions-preview-stage,
   .runtime-notice-preview-stage,
+  .compaction-status-preview-stage,
   .attachment-composer-preview-stage {
     min-height: 100vh;
     box-sizing: border-box;
@@ -1167,6 +1195,15 @@
   .runtime-notice-preview-messages {
     width: min(900px, 100%);
     margin: 0 auto;
+  }
+  .compaction-status-preview-stage {
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    padding: 24px;
+  }
+  .compaction-status-preview-list {
+    width: min(900px, 100%);
   }
   .streaming-transcript-preview-stage {
     height: 100vh;
