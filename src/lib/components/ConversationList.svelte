@@ -14,7 +14,7 @@
     loadingMore: boolean;
     onSelect: (id: string) => void;
     onTogglePin: (id: string) => void;
-    onDelete: (id: string) => void;
+    onDelete: (id: string, workspace?: string) => void;
     onLoadMore: () => void;
     embedded?: boolean;
     compactProject?: boolean;
@@ -182,9 +182,10 @@
           aria-label="Delete sub-conversation"
           onclick={(e) => {
             e.stopPropagation();
-            onDelete(sub.id);
+            onDelete(sub.id, sub.workspace);
           }}
-          onkeydown={(e) => e.key === "Enter" && (e.stopPropagation(), onDelete(sub.id))}
+          onkeydown={(e) =>
+            e.key === "Enter" && (e.stopPropagation(), onDelete(sub.id, sub.workspace))}
           >&times;</span
         >
       {/if}
@@ -291,9 +292,10 @@
                   aria-label="Delete conversation"
                   onclick={(e) => {
                     e.stopPropagation();
-                    onDelete(conv.id);
+                    onDelete(conv.id, conv.workspace);
                   }}
-                  onkeydown={(e) => e.key === "Enter" && (e.stopPropagation(), onDelete(conv.id))}
+                  onkeydown={(e) =>
+                    e.key === "Enter" && (e.stopPropagation(), onDelete(conv.id, conv.workspace))}
                   >×</span
                 >
               {/if}
@@ -307,7 +309,7 @@
               <div class="ctx-menu-separator"></div>
               <ContextMenu.Item
                 class="ctx-menu-item ctx-menu-item-danger"
-                onclick={() => onDelete(conv.id)}
+                onclick={() => onDelete(conv.id, conv.workspace)}
               >
                 {$t("deleteConv")}
               </ContextMenu.Item>
@@ -342,9 +344,10 @@
                     aria-label="Delete sub-conversation"
                     onclick={(e) => {
                       e.stopPropagation();
-                      onDelete(sub.id);
+                      onDelete(sub.id, sub.workspace);
                     }}
-                    onkeydown={(e) => e.key === "Enter" && (e.stopPropagation(), onDelete(sub.id))}
+                    onkeydown={(e) =>
+                      e.key === "Enter" && (e.stopPropagation(), onDelete(sub.id, sub.workspace))}
                     >×</span
                   >
                 {/if}

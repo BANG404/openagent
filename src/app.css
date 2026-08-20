@@ -216,6 +216,12 @@
     outline: none;
   }
 
+  .desktop-menu-panel
+    :where([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"]) {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
   .ctx-menu-content {
     min-width: 148px;
     z-index: 500;

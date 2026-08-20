@@ -472,6 +472,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   must not delete its folder or conversations; its conversations remain
   reachable from Recents. Keep global conversation search with the primary
   new-conversation action below the role selector, not on a section heading.
+  Deleting a conversation from any project, Recents-backed snapshot, or global
+  search result must carry its owning workspace through the shared callback and
+  remove it immediately from every cached sidebar projection; never mutate only
+  the currently selected workspace list. Desktop menu action labels are not
+  selectable text, while editable fields inside menu panels retain ordinary
+  text selection.
 - Keep the expanded conversation sidebar resizable from its trailing edge between
   220px and 360px so row labels and trailing actions cannot overlap. Persist the
   chosen width across collapse and reload, keep the default at that lower bound,

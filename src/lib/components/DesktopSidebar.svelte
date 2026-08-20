@@ -81,7 +81,7 @@
     onSelect: (id: string) => void | Promise<void>;
     onOpenConversation: (conversation: Conversation) => void | Promise<void>;
     onTogglePin: (id: string) => void | Promise<void>;
-    onDelete: (id: string) => void | Promise<void>;
+    onDelete: (id: string, workspace?: string) => void | Promise<void>;
     onSelectWorkspace: (path: string) => void | Promise<void>;
     onToggleProjectPin: (path: string) => void;
     onOpenProjectFolder: (path: string) => void | Promise<void>;

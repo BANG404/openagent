@@ -3126,7 +3126,7 @@
     }
   }
 
-  async function deleteConversation(id: string) {
+  async function deleteConversation(id: string, ownerWorkspace = workspacePath) {
     // If the conv is mid-stream, signal the backend to abort before we tear down local state.
     // This prevents a terminal checkpoint from being created after local state is removed.
     if (chatStreams.streamingConversationIds[id]) {
@@ -3167,10 +3167,14 @@
       convTrees = rt;
     }
 
-    conversations = conversations.filter((c) => c.id !== id);
+    if (!ownerWorkspace || ownerWorkspace === workspacePath) {
+      conversations = conversations.filter((c) => c.id !== id);
+    }
+    recentConversations = recentConversations.filter((conversation) => conversation.id !== id);
+    searchConversations = searchConversations.filter((conversation) => conversation.id !== id);
     navigationHistory = removeNavigationLocations(
       navigationHistory,
-      (location) => location.workspacePath === workspacePath && location.conversationId === id,
+      (location) => location.conversationId === id,
     );
     loadedConvIds.delete(id);
     invoke("delete_conversation", { convId: id }).catch(() => {});

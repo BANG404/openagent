@@ -6,6 +6,19 @@ export const projectConversationPageSize = 5;
 
 export type ProjectConversationSnapshots = Record<string, Conversation[]>;
 
+export function removeProjectConversationSnapshot(
+  previous: ProjectConversationSnapshots,
+  workspacePath: string,
+  conversationId: string,
+): ProjectConversationSnapshots {
+  const conversations = previous[workspacePath];
+  if (!conversations?.some((conversation) => conversation.id === conversationId)) return previous;
+  return {
+    ...previous,
+    [workspacePath]: conversations.filter((conversation) => conversation.id !== conversationId),
+  };
+}
+
 function mergeProjectConversations(
   previous: Conversation[],
   incoming: Conversation[],

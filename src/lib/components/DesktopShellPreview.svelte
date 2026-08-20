@@ -47,7 +47,7 @@
     { path: "\\\\wsl.localhost\\Ubuntu-24.04\\home\\dev\\math", name: "math" },
   ]);
   let pinnedProjectPaths = $state<string[]>([]);
-  const allPreviewConversations: Conversation[] = [
+  let allPreviewConversations = $state<Conversation[]>([
     {
       id: "openagent-1",
       title:
@@ -91,7 +91,7 @@
       updatedAt: 34 - index,
       roleId: index % 4 === 0 ? "reviewer" : undefined,
     })),
-  ];
+  ]);
   let recentConversations = $derived(
     allPreviewConversations.filter((conversation) =>
       selectedRoleKey === "openagent"
@@ -173,7 +173,12 @@
       activeConversationId = conversation.id;
     }}
     onTogglePin={() => {}}
-    onDelete={() => {}}
+    onDelete={(id) => {
+      allPreviewConversations = allPreviewConversations.filter(
+        (conversation) => conversation.id !== id,
+      );
+      if (activeConversationId === id) activeConversationId = null;
+    }}
     onSelectWorkspace={selectWorkspace}
     onToggleProjectPin={(path) => {
       pinnedProjectPaths = pinnedProjectPaths.includes(path)

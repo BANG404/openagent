@@ -6,6 +6,7 @@ import {
   parsePinnedProjectPaths,
   projectConversationPageSize,
   projectsInPersistedOrder,
+  removeProjectConversationSnapshot,
   togglePinnedProjectPath,
   updateProjectConversationSnapshots,
 } from "../src/lib/sidebarProjects";
@@ -175,5 +176,47 @@ describe("sidebar project order", () => {
     );
 
     expect(snapshots["C:/one"].map((conversation) => conversation.id)).toEqual(["current"]);
+  });
+
+  test("removes a conversation only from its owning workspace snapshot", () => {
+    const one = {
+      id: "one",
+      title: "one",
+      workspace: "C:/one",
+      messages: [],
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const two = { ...one, id: "two", title: "two", workspace: "C:/two" };
+
+    const snapshots = removeProjectConversationSnapshot(
+      { "C:/one": [one], "C:/two": [two] },
+      "C:/two",
+      "two",
+    );
+
+    expect(snapshots["C:/one"]).toEqual([one]);
+    expect(snapshots["C:/two"]).toEqual([]);
+  });
+
+  test("routes project deletion with its durable workspace owner", async () => {
+    const browser = await readFile(
+      new URL("../src/lib/components/SidebarWorkspaceBrowser.svelte", import.meta.url),
+      "utf8",
+    );
+    const list = await readFile(
+      new URL("../src/lib/components/ConversationList.svelte", import.meta.url),
+      "utf8",
+    );
+    const route = await readFile(new URL("../src/routes/+page.svelte", import.meta.url), "utf8");
+    const appCss = await readFile(new URL("../src/app.css", import.meta.url), "utf8");
+
+    expect(browser).toContain("removeProjectConversationSnapshot(snapshots, ownerWorkspace, id)");
+    expect(browser).toContain("onDelete(id, ownerWorkspace)");
+    expect(list).toContain("onDelete(conv.id, conv.workspace)");
+    expect(route).toContain("recentConversations = recentConversations.filter");
+    expect(route).toContain("searchConversations = searchConversations.filter");
+    expect(appCss).toContain('[role="menuitemcheckbox"]');
+    expect(appCss).toContain("user-select: none");
   });
 });

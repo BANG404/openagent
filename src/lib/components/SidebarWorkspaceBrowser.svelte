@@ -4,6 +4,7 @@
   import { t } from "$lib/i18n";
   import {
     projectsInPersistedOrder,
+    removeProjectConversationSnapshot,
     updateProjectConversationSnapshots,
     type ProjectConversationSnapshots,
   } from "$lib/sidebarProjects";
@@ -59,7 +60,7 @@
     onSelect: (id: string) => void;
     onOpenConversation: (conversation: Conversation) => void;
     onTogglePin: (id: string) => void;
-    onDelete: (id: string) => void;
+    onDelete: (id: string, workspace?: string) => void;
     onSelectWorkspace: (path: string) => void;
     onToggleProjectPin: (path: string) => void;
     onOpenProjectFolder: (path: string) => void;
@@ -154,6 +155,18 @@
     selectProject(path);
   }
 
+  function deleteConversation(id: string, ownerWorkspace = workspacePath): void {
+    if (ownerWorkspace) {
+      conversationSnapshotsByRole = Object.fromEntries(
+        Object.entries(conversationSnapshotsByRole).map(([roleKey, snapshots]) => [
+          roleKey,
+          removeProjectConversationSnapshot(snapshots, ownerWorkspace, id),
+        ]),
+      );
+    }
+    onDelete(id, ownerWorkspace);
+  }
+
   function selectSearchResult(id: string): void {
     const conversation = conversations.find((item) => item.id === id);
     if (conversation) onOpenConversation(conversation);
@@ -227,7 +240,7 @@
         {onLoadMore}
         onSelect={selectSearchResult}
         {onTogglePin}
-        {onDelete}
+        onDelete={deleteConversation}
       />
     {:else}
       <div class="section-heading">
@@ -393,7 +406,7 @@
                   onLoadMore={() => loadMoreProjectConversations(project.path)}
                   onSelect={(id) => selectProjectConversation(project.path, id)}
                   {onTogglePin}
-                  {onDelete}
+                  onDelete={deleteConversation}
                 />
               </div>
             </section>
