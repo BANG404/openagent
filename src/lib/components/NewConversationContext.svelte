@@ -1,6 +1,6 @@
 <script lang="ts">
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
-  import { t } from "$lib/i18n";
+  import { locale, t } from "$lib/i18n";
 
   interface Props {
     prompt: string | null;
@@ -17,7 +17,7 @@
     <LoadingSkeleton variant="memory-note" label={$t("loadingContent")} />
   {:else if prompt}
     <div class="memory-note">
-      <p>{prompt}</p>
+      <p lang={$locale}>{prompt}</p>
     </div>
   {/if}
   {#if showApiKeyWarn}
@@ -61,7 +61,11 @@
     font-size: 28px;
     font-weight: 400;
     line-height: 1.2;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
+  }
+
+  .new-conversation-context.stack .memory-note p:lang(zh) {
+    letter-spacing: 0.06em;
   }
 
   .memory-note {

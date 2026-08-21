@@ -596,8 +596,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   or toggle its loading skeleton on a repeated click.
 - The new-conversation greeting is the fixed localized prompt "Where should we
   start?" / “我们该从哪里开始呢？” and uses a compact, regular-weight display heading
-  treatment above the centered composer; it must not depend on memory or a Flash
-  task. Show exactly three optional Flash-generated
+  treatment above the centered composer. Keep its tracking locale-aware: Latin
+  copy remains subtly compact while Chinese copy uses open, positive character
+  spacing. It must not depend on memory or a Flash task. Show exactly three optional Flash-generated
   suggestions derived from up to the five most recently updated top-level
   conversation titles, persisted per workspace and locale below the composer.
   Selecting one sends it immediately through the shared user-message path.
