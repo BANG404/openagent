@@ -11,11 +11,12 @@
   import { previewParameterPrefix, type StandaloneDevPreview } from "$lib/devPreview";
   import { initI18n, t, type Locale } from "$lib/i18n";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
-  import { defaultPermissionProfile } from "$lib/config";
+  import { defaultPermissionProfile, normalizeConfigShape } from "$lib/config";
+  import { ComposerPreferences } from "$lib/composerPreferences.svelte";
   import type { WindowPlatform } from "$lib/windowPlatform";
   import type {
     AgentRole,
-    ApprovalMode,
+    AppConfig,
     ChatAttachment,
     ChatMessage,
     FileChange,
@@ -133,7 +134,16 @@
   let paused = $state(false);
   let checkpointValue = $state("");
   let checkpointAttachments = $state<ChatAttachment[]>([]);
-  let checkpointApproval = $state<ApprovalMode>("auto");
+  let checkpointConfig = $state<AppConfig>(
+    normalizeConfigShape({ approval_mode: "auto" } as AppConfig),
+  );
+  const checkpointComposerPreferences = new ComposerPreferences({
+    getConfig: () => checkpointConfig,
+    setConfig: (next) => (checkpointConfig = next),
+    loadSettings: async () => {},
+    saveSettings: async (next) => structuredClone(next),
+    tauriAvailable: false,
+  });
   let reasoningEffort = $state<ReasoningEffort>("high");
   let permissionProfile = $state<PermissionProfile>(defaultPermissionProfile());
   let panelWidth = $state(320);
@@ -759,8 +769,8 @@
           sendTitle={$t("send")}
           showAttachments={false}
           showApprovalMode
-          approvalMode={checkpointApproval}
-          onApprovalModeChange={(mode) => (checkpointApproval = mode)}
+          approvalMode={checkpointConfig.approval_mode}
+          onApprovalModeChange={checkpointComposerPreferences.handleApprovalModeChange}
           onSend={() => (checkpointValue = "")}
           onStop={() => {}}
         />

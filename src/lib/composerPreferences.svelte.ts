@@ -153,15 +153,17 @@ export class ComposerPreferences {
 
   handleApprovalModeChange = (mode: ApprovalMode): void => {
     this.#approvalModeSaveQueue = this.#approvalModeSaveQueue.then(async () => {
-      const config = this.dependencies.getConfig();
-      if (!config || config.approval_mode === mode) return;
-      const base = structuredClone(config);
-      const next = { ...base, approval_mode: mode };
-      this.dependencies.setConfig(next);
       try {
+        const config = this.dependencies.getConfig();
+        if (!config || config.approval_mode === mode) return;
+        const base = structuredClone($state.snapshot(config)) as AppConfig;
+        const next = { ...base, approval_mode: mode };
+        this.dependencies.setConfig(next);
         await this.dependencies.saveSettings(next, base, false);
       } catch (error) {
-        await this.dependencies.loadSettings();
+        await this.dependencies.loadSettings().catch((reloadError) => {
+          console.error("Failed to reload settings after approval mode save failure:", reloadError);
+        });
         showToast({
           title: tr("approvalModeSaveFailed"),
           description: String(error),

@@ -271,7 +271,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep main-composer model selection, ChatGPT reasoning effort, and approval
   persistence in the composer-preferences controller so queued saves and
   rollback-to-settings behavior remain one boundary rather than page-level
-  state spread across render branches.
+  state spread across render branches. Snapshot reactive configuration before
+  cloning it for an approval-mode save, and keep snapshot, optimistic update,
+  persistence, and rollback failures inside the queue's handled boundary so a
+  failed selection cannot terminate or permanently poison later saves.
 
 ## Attachments and editing
 
@@ -755,9 +758,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the development-only `checkpoint-flow-preview` query available for the
   right-side Goal/Graph checkpoint panel and composer approval selector. Its
   `-kind`, `-theme`, and `-locale` query parameters must keep Goal/Graph,
-  resize/collapse, approval selection, light/dark, and Chinese/English checks
-  addressable without a native runtime. The `-empty` parameter exposes the
-  centered Graph planning state directly.
+  resize/collapse, approval selection through the real composer-preferences
+  save queue, light/dark, and Chinese/English checks addressable without a
+  native runtime. The `-empty` parameter exposes the centered Graph planning
+  state directly.
 - Keep the development-only `book-mode-preview` query available with long,
   process-bearing fixture content. Its `-theme` and `-locale` query parameters
   must keep two-column flow, multi-page navigation, process collapse, and
