@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.44.0-beta.1] - 2026-08-21
+
+### Features
+- **assets**: Replace application logo
+
+### Bug Fixes
+- **assets**: Round application logo corners
+
 ## [0.43.0-beta.1] - 2026-08-21
 
 ### Features
