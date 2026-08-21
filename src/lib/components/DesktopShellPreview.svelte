@@ -309,7 +309,7 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    margin: 48px 8px 8px;
+    margin: 44px 8px 8px;
     padding: 32px;
     overflow: hidden;
     border-radius: 12px;

@@ -65,7 +65,7 @@ describe("desktop navigation chrome", () => {
     expect(titleBar).not.toContain("border-bottom:");
     expect(settingsAction).not.toContain("border-top:");
     expect(conversationSurface).toMatch(
-      /\.conversation-workspace\s*{[^}]*margin: 48px 8px 8px;[^}]*border-radius: 12px;[^}]*background: var\(--surface\);[^}]*box-shadow:/s,
+      /\.conversation-workspace\s*{[^}]*margin: 44px 8px 8px;[^}]*border-radius: 12px;[^}]*background: var\(--surface\);[^}]*box-shadow:/s,
     );
     expect(titleBar).toMatch(/\.workspace-name\s*{[^}]*color: inherit;[^}]*font-weight: 400;/s);
     expect(titleBar).not.toContain("backdrop-filter");
