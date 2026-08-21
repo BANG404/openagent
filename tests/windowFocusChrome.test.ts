@@ -8,6 +8,10 @@ describe("window focus chrome", () => {
   test("dims both top-chrome segments from one window focus state", async () => {
     const route = await readFile(new URL("../src/routes/+page.svelte", import.meta.url), "utf8");
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
+    const historyControls = await readFile(
+      new URL("SidebarHistoryControls.svelte", componentsUrl),
+      "utf8",
+    );
     const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
     const preview = await readFile(new URL("DesktopShellPreview.svelte", componentsUrl), "utf8");
 
@@ -16,6 +20,9 @@ describe("window focus chrome", () => {
     expect(route.match(/\{windowFocused\}/g)).toHaveLength(2);
     expect(sidebar).toContain("class:window-inactive={!windowFocused}");
     expect(sidebar).toMatch(/\.sidebar\.window-inactive \.sidebar-top \{\s*opacity: 0\.55;/);
+    expect(historyControls).toMatch(
+      /button:disabled \{\s*color: color-mix\(in srgb, var\(--text-muted\) 62%, transparent\);/,
+    );
     expect(titleBar).toContain("class:window-inactive={!windowFocused}");
     expect(titleBar).toMatch(
       /\.title-bar\.window-inactive \.title-bar-menu,[\s\S]*?opacity: 0\.55;/,

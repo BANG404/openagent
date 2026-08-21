@@ -86,7 +86,7 @@
   }
 
   button:disabled {
-    color: color-mix(in srgb, var(--text-muted) 42%, transparent);
+    color: color-mix(in srgb, var(--text-muted) 62%, transparent);
     cursor: default;
   }
 
