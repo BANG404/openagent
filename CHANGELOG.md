@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.43.0-beta.1] - 2026-08-21
+
+### Features
+- **chat**: Support file and data image sources
+
+### Bug Fixes
+- **chat**: Remove index selection background
+- **sidebar**: Delete cross-workspace conversations
+
+### Miscellaneous
+- **sdk**: Advance model benchmark coverage
+
 ## [0.42.0-beta.1] - 2026-08-20
 
 ### Features
