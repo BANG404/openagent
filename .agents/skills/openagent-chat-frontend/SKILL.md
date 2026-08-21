@@ -571,7 +571,7 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   in the fixed greeting's ambient layers on the same opacity rhythm so
   the two empty-state light fields cannot flash on together. On a new
   conversation, treat the greeting and composer as one vertical stack whose
-  measured total height determines its position slightly above the geometric
+  measured total height is centered with a small fixed offset below the geometric
   center, and constrain that composer to a 760px outer column. Give its compact
   textarea more single-line height than the bottom-anchored composer, and keep
   the loading skeleton at the same expanded height. Do not position the greeting

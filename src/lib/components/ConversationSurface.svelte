@@ -526,7 +526,7 @@
   }
 
   .input-area-new-conversation {
-    top: calc(50% - 10px);
+    top: calc(50% + 14px);
     bottom: auto;
     padding-bottom: 0;
     transform: translateY(-50%);
