@@ -25,8 +25,10 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   the sidebar, conversation, Settings, Memory, Roles, and Skills surfaces. These
   feature views do not render a second title bar. The leading controls collapse
   the sidebar and traverse application history; File owns workspace-opening and
-  explicit new-window commands. Keep the center free of workspace names and Git
-  branches so it remains a quiet, unobstructed drag region. Window controls
+  explicit new-window commands. The File menu follows the forward control with
+  the same compact optical rhythm as the other leading controls, without an
+  extra separator gap. Keep the center free of workspace names and Git branches
+  so it remains a quiet, unobstructed drag region. Window controls
   follow macOS traffic-light placement or Windows trailing minimize/maximize/close
   geometry. Windows controls fill the title-bar
   height; the close hover uses the platform red and follows the outer 7px window

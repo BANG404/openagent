@@ -63,6 +63,8 @@ describe("desktop navigation chrome", () => {
     expect(titleBar).toContain("background: var(--app-chrome-bg)");
     expect(sidebar).not.toContain("border-right:");
     expect(titleBar).not.toContain("border-bottom:");
+    expect(titleBar).toMatch(/\.title-bar-menu\s*{[^}]*margin-left: 100px;/s);
+    expect(titleBar).toMatch(/\.title-bar\.macos \.title-bar-menu\s*{[^}]*margin-left: 176px;/s);
     expect(settingsAction).not.toContain("border-top:");
     expect(conversationSurface).toMatch(
       /\.conversation-workspace\s*{[^}]*margin: 40px 8px 8px;[^}]*border-radius: 12px;[^}]*background: var\(--surface\);[^}]*box-shadow:/s,
