@@ -233,10 +233,7 @@
   }
 
   .composer-slot :global(.composer) {
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
+    background: var(--surface);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -244,7 +241,7 @@
   .composer-slot :global(.composer:focus-within),
   .composer-slot :global(.composer-streaming),
   .composer-slot :global(.composer-streaming:focus-within) {
-    box-shadow: none;
+    box-shadow: var(--mica-shadow);
   }
 
   .composer-slot :global(.composer-toolbar) {

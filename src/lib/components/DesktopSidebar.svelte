@@ -192,7 +192,7 @@
     display: flex;
     flex-direction: column;
     background: var(--app-chrome-bg);
-    border-right: 1px solid var(--border);
+    border-right: 1px solid var(--mica-divider);
     overflow: visible;
     user-select: none;
     transition: width 180ms cubic-bezier(0.16, 1, 0.3, 1);

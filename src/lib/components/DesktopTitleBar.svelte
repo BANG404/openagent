@@ -144,7 +144,7 @@
     height: 40px;
     box-sizing: border-box;
     background: var(--app-chrome-bg);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--mica-divider);
     user-select: none;
   }
 
@@ -212,14 +212,14 @@
   }
 
   .workspace-name {
-    color: var(--text);
-    font-weight: 600;
+    color: inherit;
+    font-weight: 400;
   }
 
   .branch-name {
     max-width: 150px;
     padding-left: 7px;
-    border-left: 1px solid var(--border);
+    border-left: 1px solid var(--mica-divider);
     font-family: "JetBrains Mono", "Fira Code", monospace;
     font-size: 10px;
   }

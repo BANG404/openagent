@@ -653,7 +653,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Give it a clearly visible perimeter and compact, clearly readable elevation; selector
   surfaces remain opaque.
   Do not render a title bar, shortcut hint, or window-action row above the
-  composer; the compact card begins directly with input. Preserve native
+  composer; the compact card begins directly with input. Keep that embedded
+  composer on the shared conversation-input perimeter, radius, and elevation,
+  but paint its theme surface opaquely instead of making it transparent over
+  the launcher material. Preserve native
   dragging from non-interactive card space. Keep a generous top inset above the
   textarea as the primary grab target, and open selectors below and visually outside the card,
   aligned to their trigger start edge, without collision-based side flipping.

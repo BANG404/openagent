@@ -53,6 +53,9 @@ describe("desktop navigation chrome", () => {
     );
     expect(sidebar).toContain("background: var(--app-chrome-bg)");
     expect(titleBar).toContain("background: var(--app-chrome-bg)");
+    expect(sidebar).toContain("border-right: 1px solid var(--mica-divider)");
+    expect(titleBar).toContain("border-bottom: 1px solid var(--mica-divider)");
+    expect(titleBar).toMatch(/\.workspace-name\s*{[^}]*color: inherit;[^}]*font-weight: 400;/s);
     expect(titleBar).not.toContain("backdrop-filter");
     expect(workspaceSwitcher).toMatch(
       /\.composer-workspace-btn\)\s*{[^}]*padding: 5px 8px;[^}]*color: var\(--text-muted\);/s,
