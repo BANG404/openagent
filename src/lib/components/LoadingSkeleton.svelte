@@ -429,7 +429,7 @@
     margin-left: auto;
     padding: 11px 14px;
     border-radius: 18px;
-    background: var(--control-surface);
+    background: var(--bg);
     -webkit-backdrop-filter: blur(12px) saturate(1.05);
     backdrop-filter: blur(12px) saturate(1.05);
     box-shadow: none;

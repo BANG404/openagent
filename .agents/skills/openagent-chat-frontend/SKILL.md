@@ -327,6 +327,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep editable user messages discoverable without adding a second action
   target: the message bubble retains its accessible edit label and reveals a
   non-interactive pencil affordance on pointer hover or keyboard focus.
+- Paint durable, editable, and loading-skeleton user-message bubbles with the
+  shared `--bg` canvas token so their fill matches the outer conversation area
+  in both themes.
 - Collapse long user-message text by a fixed number of complete rendered lines
   on an inner content layer. Keep bubble padding outside the clamp so changing
   type metrics cannot expose or crop a partial trailing line. Apply preserved
