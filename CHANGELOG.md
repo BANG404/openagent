@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.44.2-beta.1] - 2026-08-21
+
+### Bug Fixes
+- Collapse expanded inactive projects
+- **frontend**: Add quick chat drag strip
+- **frontend**: Unify quick chat composer
+- **frontend**: Polish desktop and quick chat surfaces
+
 ## [0.44.1-beta.1] - 2026-08-21
 
 ### Bug Fixes
