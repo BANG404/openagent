@@ -1,4 +1,4 @@
-import type { ChatMessage, StreamItem } from "./types";
+import type { ChatMessage, CheckpointTurnStatus, StreamItem } from "./types";
 import { isRenderTool } from "./assistantOutput";
 
 export type ToolCallItem = Extract<StreamItem, { type: "tool_call" }>;
@@ -67,20 +67,29 @@ export function groupStreamItems(items: StreamItem[]): StreamItemSegment[] {
   return segments;
 }
 
-export function partitionAssistantSegments(segments: StreamItemSegment[]): {
+export function partitionAssistantSegments(
+  segments: StreamItemSegment[],
+  turnStatus: CheckpointTurnStatus,
+): {
   processSegments: StreamItemSegment[];
   finalSegments: StreamItemSegment[];
 } {
+  if (turnStatus !== "completed") {
+    // Keep the live/interrupted sequence in one render lane. The completed
+    // transition may move process records into disclosure, while trailing rich
+    // output stays keyed at the same final-render location.
+    return { processSegments: [], finalSegments: segments };
+  }
   const firstRenderIndex = segments.find(
     (segment) => segment.kind === "item" && isRenderTool(segment.item),
   )?.startIndex;
-  const lastOrdinaryToolIndex = segments.findLast(
+  const lastProcessBoundaryIndex = segments.findLast(
     (segment) =>
       (firstRenderIndex === undefined || segment.startIndex < firstRenderIndex) &&
       (segment.kind === "tool_group" ||
         (segment.kind === "item" &&
-          segment.item.type === "tool_call" &&
-          !isRenderTool(segment.item))),
+          ((segment.item.type === "tool_call" && !isRenderTool(segment.item)) ||
+            segment.item.type === "user_input"))),
   )?.startIndex;
   const processSegments: StreamItemSegment[] = [];
   const finalSegments: StreamItemSegment[] = [];
@@ -90,7 +99,7 @@ export function partitionAssistantSegments(segments: StreamItemSegment[]): {
     } else if (
       segment.kind === "item" &&
       segment.item.type === "text" &&
-      (lastOrdinaryToolIndex === undefined || segment.startIndex > lastOrdinaryToolIndex)
+      (lastProcessBoundaryIndex === undefined || segment.startIndex > lastProcessBoundaryIndex)
     ) {
       finalSegments.push(segment);
     } else {

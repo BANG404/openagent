@@ -57,7 +57,9 @@
   );
   let selectedTurn = $derived(turns[selectedIndex] ?? null);
   let selectedSegments = $derived(selectedTurn ? groupStreamItems(selectedTurn.items) : []);
-  let partitionedSegments = $derived(partitionAssistantSegments(selectedSegments));
+  let partitionedSegments = $derived(
+    partitionAssistantSegments(selectedSegments, selectedTurn?.status ?? "completed"),
+  );
   let processSegments = $derived(partitionedSegments.processSegments);
   let finalSegments = $derived(partitionedSegments.finalSegments);
 

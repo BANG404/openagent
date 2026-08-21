@@ -81,7 +81,7 @@ describe("tool-call grouping", () => {
       { type: "text", content: "final answer" },
     ]);
 
-    const partitioned = partitionAssistantSegments(segments);
+    const partitioned = partitionAssistantSegments(segments, "completed");
     expect(partitioned.processSegments.map((segment) => segment.startIndex)).toEqual([0]);
     expect(partitioned.finalSegments.map((segment) => segment.startIndex)).toEqual([1, 2, 3, 4, 5]);
   });
@@ -97,7 +97,7 @@ describe("tool-call grouping", () => {
       { type: "text", content: "final answer" },
     ]);
 
-    const partitioned = partitionAssistantSegments(segments);
+    const partitioned = partitionAssistantSegments(segments, "completed");
     expect(partitioned.processSegments.map((segment) => segment.startIndex)).toEqual([0, 1, 2]);
     expect(partitioned.finalSegments.map((segment) => segment.startIndex)).toEqual([3, 4, 5, 6]);
   });
@@ -112,9 +112,44 @@ describe("tool-call grouping", () => {
       { type: "text", content: "final answer" },
     ]);
 
-    const partitioned = partitionAssistantSegments(segments);
+    const partitioned = partitionAssistantSegments(segments, "completed");
     expect(partitioned.processSegments.map((segment) => segment.startIndex)).toEqual([0, 1, 2, 3]);
     expect(partitioned.finalSegments.map((segment) => segment.startIndex)).toEqual([4, 5]);
+  });
+
+  test("preserves source order for every non-completed turn", () => {
+    const segments = groupStreamItems([
+      { type: "thinking", content: "prepare form" },
+      { type: "text", content: "Please answer these questions." },
+      {
+        type: "user_input",
+        request: { request_id: "question-1", fields: [] },
+        state: "pending",
+      },
+    ]);
+
+    for (const status of ["running", "interrupted", "cancelled", "failed"] as const) {
+      const partitioned = partitionAssistantSegments(segments, status);
+      expect(partitioned.processSegments).toEqual([]);
+      expect(partitioned.finalSegments.map((segment) => segment.startIndex)).toEqual([0, 1, 2]);
+    }
+  });
+
+  test("keeps ask_user narration before the form after a resumed turn completes", () => {
+    const segments = groupStreamItems([
+      { type: "thinking", content: "prepare form" },
+      { type: "text", content: "Please answer these questions." },
+      {
+        type: "user_input",
+        request: { request_id: "question-1", fields: [] },
+        state: "answered",
+      },
+      { type: "text", content: "Thanks for the answers." },
+    ]);
+
+    const partitioned = partitionAssistantSegments(segments, "completed");
+    expect(partitioned.processSegments.map((segment) => segment.startIndex)).toEqual([0, 1, 2]);
+    expect(partitioned.finalSegments.map((segment) => segment.startIndex)).toEqual([3]);
   });
 
   test("groups consecutive standalone calls restored from checkpoints", () => {
