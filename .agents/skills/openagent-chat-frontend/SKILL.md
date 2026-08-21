@@ -557,10 +557,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   chrome background in both themes. Preserve the operating system's native
   window outline, rounded corners, and shadow around that web content. Keep the
   two chrome segments visually continuous without a border between them or
-  beneath the title bar. Present chat as its own clipped, rounded canvas with a
-  compact 4px outer gutter below the title bar and 8px gutters at the sides and
-  bottom, plus quiet elevation; use that spatial layer rather than shell divider
-  lines to separate conversation from navigation.
+  beneath the title bar. Present chat as its own clipped, rounded canvas directly
+  against the title bar's lower edge, with 8px gutters at the sides and bottom
+  plus quiet elevation; use that spatial layer rather than shell divider lines to
+  separate conversation from navigation.
 - Use the theme canvas for the workspace surface and retain the low-contrast
   ambient aurora behind the composer and new-conversation greeting. Keep the
   empty-state aurora mounted across conversation changes

@@ -34,8 +34,8 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   system retains the native window outline, rounded corners, and exterior shadow.
   Do not draw a border between those two chrome segments or beneath the title
   bar. Separate chat from navigation through an inset rounded conversation canvas
-  with a 4px gap below the title bar, 8px side and bottom gutters, and restrained
-  elevation instead of shell divider lines.
+  directly against the title bar's lower edge, with 8px side and bottom gutters
+  and restrained elevation instead of shell divider lines.
   The sidebar groups workspace-owned conversations under Projects and shows one
   cross-workspace, newest-first Recent conversations list for the selected role.
   Project groups retain their persisted first-save order across workspace

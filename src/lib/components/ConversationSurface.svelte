@@ -342,7 +342,7 @@
     min-width: 0;
     min-height: 0;
     flex: 1;
-    margin: 44px 8px 8px;
+    margin: 40px 8px 8px;
     overflow: hidden;
     border-radius: 12px;
     background: var(--surface);
