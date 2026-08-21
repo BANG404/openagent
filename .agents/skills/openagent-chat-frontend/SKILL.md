@@ -220,6 +220,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   in the background. Do not show the conversation-loading skeleton, remount an
   unchanged transcript, overwrite backend history, or remove optimistic
   messages from a queued turn.
+- Treat the cross-workspace Recent conversations list as a live projection, not
+  only a database refresh result. User submission, externally started runs, and
+  terminal stream updates must immediately promote the matching conversation
+  with its current title and activity timestamp. A slower background refresh
+  must not overwrite a newer optimistic entry; keep the list role-filtered,
+  newest-first, workspace-owned, deduplicated, and capped at 20 entries.
 - Attach Flash-generated follow-up suggestions to the stable preallocated
   backend assistant message ID for the triggering user turn. Cache them by
   message ID across navigation. Resolve that host from the selected Turn's

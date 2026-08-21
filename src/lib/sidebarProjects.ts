@@ -3,8 +3,56 @@ import { workspaceFolderName } from "./workspacePath";
 
 export const pinnedProjectsStorageKey = "openagent.sidebar.pinnedProjects";
 export const projectConversationPageSize = 5;
+export const recentConversationLimit = 20;
 
 export type ProjectConversationSnapshots = Record<string, Conversation[]>;
+
+function sortRecentConversations(conversations: Conversation[]): Conversation[] {
+  return conversations.sort(
+    (left, right) => right.updatedAt - left.updatedAt || right.id.localeCompare(left.id),
+  );
+}
+
+export function promoteRecentConversation(
+  previous: Conversation[],
+  conversation: Conversation,
+  workspacePath: string,
+): Conversation[] {
+  const promoted = {
+    ...conversation,
+    workspace: conversation.workspace ?? workspacePath,
+  };
+  return sortRecentConversations([
+    promoted,
+    ...previous.filter((item) => item.id !== conversation.id),
+  ]).slice(0, recentConversationLimit);
+}
+
+export function mergeRecentConversationRefresh(
+  previous: Conversation[],
+  incoming: Conversation[],
+): Conversation[] {
+  const refreshedById = new Map(incoming.map((conversation) => [conversation.id, conversation]));
+  const oldestIncomingUpdatedAt = incoming.at(-1)?.updatedAt ?? Number.NEGATIVE_INFINITY;
+
+  for (const conversation of previous) {
+    const refreshed = refreshedById.get(conversation.id);
+    if (refreshed) {
+      if (conversation.updatedAt > refreshed.updatedAt) {
+        refreshedById.set(conversation.id, conversation);
+      }
+      continue;
+    }
+    if (
+      incoming.length < recentConversationLimit ||
+      conversation.updatedAt >= oldestIncomingUpdatedAt
+    ) {
+      refreshedById.set(conversation.id, conversation);
+    }
+  }
+
+  return sortRecentConversations([...refreshedById.values()]).slice(0, recentConversationLimit);
+}
 
 export function removeProjectConversationSnapshot(
   previous: ProjectConversationSnapshots,

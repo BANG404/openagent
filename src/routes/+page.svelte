@@ -33,8 +33,10 @@
   import { resolveStandaloneDevPreview } from "$lib/devPreview";
   import {
     addWorkspaceToPersistedOrder,
+    mergeRecentConversationRefresh,
     parsePinnedProjectPaths,
     pinnedProjectsStorageKey,
+    promoteRecentConversation,
     togglePinnedProjectPath,
   } from "$lib/sidebarProjects";
   import { initializeTray } from "$lib/tray";
@@ -1473,6 +1475,16 @@
     return [...merged, ...incomingById.values()];
   }
 
+  function promoteConversationInRecents(conversation: Conversation): void {
+    const conversationRoleKey = conversation.roleId ?? defaultRoleKey;
+    if (conversationRoleKey !== selectedRoleKey) return;
+    recentConversations = promoteRecentConversation(
+      recentConversations,
+      conversation,
+      workspacePath,
+    );
+  }
+
   function roleSelectionStorageKey(currentWorkspace = workspacePath): string {
     return `openagent.active-role:${currentWorkspace || "global"}`;
   }
@@ -1641,7 +1653,7 @@
     try {
       const page = await fetchConversationPage(null, null, 20, null, true, recentRoleId);
       if (generation !== recentConversationGeneration || roleKey !== selectedRoleKey) return;
-      recentConversations = page.conversations;
+      recentConversations = mergeRecentConversationRefresh(recentConversations, page.conversations);
       recentConversationRoleKey = roleKey;
     } catch (error) {
       console.warn("Failed to load recent conversations across workspaces:", error);
@@ -2003,6 +2015,10 @@
       };
       insertExternalUserMessage(event.conv_id, userMessage, event.asst_msg_id);
     }
+    const updatedConversation = conversations.find(
+      (conversation) => conversation.id === event.conv_id,
+    );
+    if (updatedConversation) promoteConversationInRecents(updatedConversation);
 
     const eventRoleKey = event.role_id ?? defaultRoleKey;
     if (event.conv_id === activeConvId && eventRoleKey !== selectedRoleKey) {
@@ -2789,6 +2805,7 @@
       messages: [...conversations[convIdx].messages, assistantMsg],
       updatedAt: Date.now(),
     };
+    promoteConversationInRecents(conversations[convIdx]);
 
     // Rust persists completed responses, but the client is the source of the
     // stream timing. Save every final message so firstTokenAt/completedAt are
@@ -3297,6 +3314,7 @@
       title: newTitle ?? $t("newConv"),
       updatedAt: Date.now(),
     };
+    promoteConversationInRecents(conversations[convIdx]);
 
     // The user message is persisted atomically in the resulting checkpoint.
     // Update conversation title in SQLite on first user message

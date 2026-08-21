@@ -3,7 +3,9 @@ import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import {
   addWorkspaceToPersistedOrder,
+  mergeRecentConversationRefresh,
   parsePinnedProjectPaths,
+  promoteRecentConversation,
   projectConversationPageSize,
   projectsInPersistedOrder,
   removeProjectConversationSnapshot,
@@ -55,6 +57,47 @@ describe("sidebar project order", () => {
 
   test("starts every project list with five conversations", () => {
     expect(projectConversationPageSize).toBe(5);
+  });
+
+  test("promotes active conversation changes into the cross-workspace recents snapshot", () => {
+    const older = {
+      id: "older",
+      title: "older",
+      workspace: "C:/other",
+      messages: [],
+      createdAt: 1,
+      updatedAt: 10,
+    };
+    const active = {
+      id: "active",
+      title: "updated title",
+      messages: [],
+      createdAt: 2,
+      updatedAt: 20,
+    };
+
+    expect(promoteRecentConversation([older], active, "C:/active")).toEqual([
+      { ...active, workspace: "C:/active" },
+      older,
+    ]);
+  });
+
+  test("does not let a slower refresh overwrite a newer optimistic recent entry", () => {
+    const optimistic = {
+      id: "active",
+      title: "new title",
+      workspace: "C:/active",
+      messages: [],
+      createdAt: 1,
+      updatedAt: 20,
+    };
+    const stale = { ...optimistic, title: "old title", updatedAt: 10 };
+    const other = { ...optimistic, id: "other", title: "other", updatedAt: 15 };
+
+    expect(mergeRecentConversationRefresh([optimistic], [other, stale])).toEqual([
+      optimistic,
+      other,
+    ]);
   });
 
   test("keeps one conversation-list component mounted for every project", async () => {
