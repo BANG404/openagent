@@ -658,8 +658,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   `MessageInput` perimeter so it does not create a second card, and place the
   attachment, model, role, workspace, and send controls together in the same
   bottom toolbar as the ordinary conversation composer. Preserve native
-  dragging from non-interactive card space. Keep a generous top inset above the
-  textarea as the primary grab target, and open selectors below and visually outside the card,
+  dragging from non-interactive card space and keep a dedicated 12px top-edge
+  drag strip inside the rounded perimeter without covering editable text. Open
+  selectors below and visually outside the card,
   aligned to their trigger start edge, without collision-based side flipping.
   Give the launcher card only a restrained shadow. Keep its 760px card width
   separate from the wider transparent native canvas, with 48px horizontal stage

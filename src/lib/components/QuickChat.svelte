@@ -49,6 +49,8 @@
   data-tauri-drag-region
   onpointerdown={onDragStart}
 >
+  <div class="quick-drag-region" data-tauri-drag-region aria-hidden="true"></div>
+
   <div class="quick-composer">
     <div class="composer-slot">
       {@render composer()}
@@ -142,6 +144,19 @@
     overflow: hidden;
     background: var(--surface);
     color: var(--text);
+  }
+
+  .quick-drag-region {
+    position: absolute;
+    inset: 0 16px auto;
+    z-index: 5;
+    height: 12px;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .quick-drag-region:active {
+    cursor: grabbing;
   }
 
   .quick-composer,

@@ -9,6 +9,12 @@ describe("quick chat appearance", () => {
     const quickChat = await readFile(quickChatUrl, "utf8");
 
     expect(quickChat).toContain('class="quick-chat conversation-input-surface"');
+    expect(quickChat).toContain(
+      'class="quick-drag-region" data-tauri-drag-region aria-hidden="true"',
+    );
+    expect(quickChat).toMatch(
+      /\.quick-drag-region\s*{[^}]*inset: 0 16px auto;[^}]*height: 12px;[^}]*cursor: grab;/s,
+    );
     expect(quickChat).toMatch(/\.quick-chat\s*{[^}]*background: var\(--surface\);/s);
     expect(quickChat).toMatch(
       /\.composer-slot :global\(\.composer\)\s*{[^}]*border: 0;[^}]*background: transparent;[^}]*box-shadow: none;/s,
