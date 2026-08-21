@@ -107,6 +107,40 @@ function mergeProjectConversations(
   return [...byId.values()];
 }
 
+export function refreshProjectConversationSnapshot(
+  previous: Conversation[],
+  incoming: Conversation[],
+  workspacePath: string,
+  refreshStartedAt: number,
+): Conversation[] {
+  const refreshed = mergeProjectConversations([], incoming, workspacePath);
+  const refreshedById = new Map(refreshed.map((conversation) => [conversation.id, conversation]));
+
+  for (const conversation of previous) {
+    const incomingConversation = refreshedById.get(conversation.id);
+    if (incomingConversation) {
+      if (conversation.updatedAt > incomingConversation.updatedAt) {
+        refreshedById.set(conversation.id, {
+          ...conversation,
+          workspace: conversation.workspace ?? workspacePath,
+        });
+      }
+      continue;
+    }
+
+    // A newly submitted optimistic conversation can be newer than the database
+    // page that was already in flight. Retain it until the next refresh catches up.
+    if (conversation.updatedAt >= refreshStartedAt) {
+      refreshedById.set(conversation.id, {
+        ...conversation,
+        workspace: conversation.workspace ?? workspacePath,
+      });
+    }
+  }
+
+  return sortRecentConversations([...refreshedById.values()]);
+}
+
 export function updateProjectConversationSnapshots(
   previous: ProjectConversationSnapshots,
   workspacePath: string,

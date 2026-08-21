@@ -470,7 +470,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the current workspace reports another page. Selection may change its
   pagination capability, but every role keeps one per-workspace conversation
   snapshot so changing the selected workspace never swaps a project's list data
-  source or discards the previous workspace's keyed rows. Reserve the project
+  source or discards the previous workspace's keyed rows. Independently load the
+  first role-filtered page for every visible inactive project instead of treating
+  the bounded global Recent projection as that project's complete history. Keep
+  its cached rows mounted while refreshing, show a compact layout-stable skeleton
+  before the first project load completes, and use a muted, indented `No chats`
+  row without a persistent group background only after an authoritative empty page. Reserve the project
   row's trailing action space at rest so focus, pending selection, and active
   styles never change its geometry. Its focused name search
   ranks exact, prefix, name, and path

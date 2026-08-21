@@ -5,6 +5,7 @@
   import {
     projectRowSelection,
     projectsInPersistedOrder,
+    refreshProjectConversationSnapshot,
     removeProjectConversationSnapshot,
     updateProjectConversationSnapshots,
     type ProjectConversationSnapshots,
@@ -32,6 +33,7 @@
     loadingRecentConversations,
     searchActive,
     onNewProjectConversation,
+    onLoadProjectConversations,
     onLoadMore,
     onSelect,
     onOpenConversation,
@@ -57,6 +59,7 @@
     loadingRecentConversations: boolean;
     searchActive: boolean;
     onNewProjectConversation: (path: string) => void;
+    onLoadProjectConversations: (path: string, roleKey: string) => Promise<Conversation[]>;
     onLoadMore: () => void;
     onSelect: (id: string) => void;
     onOpenConversation: (conversation: Conversation) => void;
@@ -75,6 +78,7 @@
   let projectSearchInput = $state<HTMLInputElement>();
   let collapsedProjectPaths = $state<string[]>([]);
   let conversationSnapshotsByRole = $state<Record<string, ProjectConversationSnapshots>>({});
+  let projectSnapshotLoadStates = $state<Record<string, "loading" | "loaded" | "failed">>({});
 
   $effect(() => {
     const selectedWorkspacePath = workspacePath;
@@ -125,6 +129,16 @@
     return query ? ordered : ordered.slice(0, 6);
   });
 
+  $effect(() => {
+    const roleKey = selectedRoleKey;
+    const currentWorkspacePath = workspacePath;
+    for (const project of projectEntries) {
+      const loadKey = projectSnapshotLoadKey(roleKey, project.path);
+      if (project.path === currentWorkspacePath || projectSnapshotLoadStates[loadKey]) continue;
+      void loadProjectSnapshot(project.path, roleKey);
+    }
+  });
+
   function projectSearchRank(project: RecentWorkspace, query: string): number {
     const name = (project.name || workspaceFolderName(project.path)).toLocaleLowerCase();
     const path = project.path.toLocaleLowerCase();
@@ -137,6 +151,45 @@
 
   function conversationsForProject(path: string): Conversation[] {
     return projectConversationSnapshots[path] ?? [];
+  }
+
+  function projectSnapshotLoadKey(roleKey: string, path: string): string {
+    return JSON.stringify([roleKey, path]);
+  }
+
+  function projectSnapshotLoading(path: string): boolean {
+    if (path === workspacePath) return false;
+    return projectSnapshotLoadStates[projectSnapshotLoadKey(selectedRoleKey, path)] === "loading";
+  }
+
+  async function loadProjectSnapshot(path: string, roleKey: string): Promise<void> {
+    const loadKey = projectSnapshotLoadKey(roleKey, path);
+    const refreshStartedAt = Date.now();
+    projectSnapshotLoadStates = { ...projectSnapshotLoadStates, [loadKey]: "loading" };
+    try {
+      const loaded = await onLoadProjectConversations(path, roleKey);
+      if (roleKey === selectedRoleKey && path === workspacePath) {
+        projectSnapshotLoadStates = { ...projectSnapshotLoadStates, [loadKey]: "loaded" };
+        return;
+      }
+      const roleSnapshots = conversationSnapshotsByRole[roleKey] ?? {};
+      conversationSnapshotsByRole = {
+        ...conversationSnapshotsByRole,
+        [roleKey]: {
+          ...roleSnapshots,
+          [path]: refreshProjectConversationSnapshot(
+            roleSnapshots[path] ?? [],
+            loaded,
+            path,
+            refreshStartedAt,
+          ),
+        },
+      };
+      projectSnapshotLoadStates = { ...projectSnapshotLoadStates, [loadKey]: "loaded" };
+    } catch (error) {
+      console.warn("Failed to load project conversations:", path, error);
+      projectSnapshotLoadStates = { ...projectSnapshotLoadStates, [loadKey]: "failed" };
+    }
   }
 
   function selectProjectConversation(path: string, id: string): void {
@@ -199,6 +252,10 @@
 
   function selectProject(path: string): void {
     closeProjectSearch();
+    const loadKey = projectSnapshotLoadKey(selectedRoleKey, path);
+    if (projectSnapshotLoadStates[loadKey] === "failed") {
+      void loadProjectSnapshot(path, selectedRoleKey);
+    }
     const selectedWorkspacePath = workspaceSwitchTarget ?? workspacePath;
     const selection = projectRowSelection(path, selectedWorkspacePath, collapsedProjectPaths);
     collapsedProjectPaths = selection.collapsedProjectPaths;
@@ -399,6 +456,7 @@
                   streamingConvIds={streamingConversationIds}
                   hasMore={project.path === workspacePath && hasMore}
                   loadingMore={project.path === workspacePath && loadingMore}
+                  loading={projectSnapshotLoading(project.path)}
                   onLoadMore={() => loadMoreProjectConversations(project.path)}
                   onSelect={(id) => selectProjectConversation(project.path, id)}
                   {onTogglePin}

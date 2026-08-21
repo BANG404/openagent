@@ -45,6 +45,8 @@
     { path: "C:\\Projects\\openagent", name: "openagent" },
     { path: "C:\\Projects\\agent-runtime", name: "agent-runtime" },
     { path: "\\\\wsl.localhost\\Ubuntu-24.04\\home\\dev\\math", name: "math" },
+    { path: "C:\\Projects\\openagent\\.agents", name: ".agents" },
+    { path: "C:\\Projects\\archive", name: "archive" },
   ]);
   let pinnedProjectPaths = $state<string[]>([]);
   let allPreviewConversations = $state<Conversation[]>([
@@ -81,6 +83,14 @@
       messages: [],
       createdAt: 7,
       updatedAt: 35,
+    },
+    {
+      id: "archive-1",
+      title: "Older project conversation loaded outside Recents",
+      workspace: "C:\\Projects\\archive",
+      messages: [],
+      createdAt: -200,
+      updatedAt: -200,
     },
     ...Array.from({ length: 28 }, (_, index): Conversation => ({
       id: `preview-${index + 1}`,
@@ -160,6 +170,12 @@
       selectWorkspace(path);
       activeConversationId = null;
     }}
+    onLoadProjectConversations={async (path, roleKey) =>
+      allPreviewConversations.filter(
+        (conversation) =>
+          conversation.workspace === path &&
+          (roleKey === "openagent" ? !conversation.roleId : conversation.roleId === roleKey),
+      )}
     onSearch={(query) => {
       searchQuery = query;
     }}

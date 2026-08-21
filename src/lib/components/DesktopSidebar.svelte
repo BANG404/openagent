@@ -38,6 +38,7 @@
     onForward,
     onNew,
     onNewProjectConversation,
+    onLoadProjectConversations,
     onSearch,
     onLoadMore,
     onSelect,
@@ -76,6 +77,7 @@
     onForward: () => void | Promise<void>;
     onNew: () => void | Promise<void>;
     onNewProjectConversation: (path: string) => void | Promise<void>;
+    onLoadProjectConversations: (path: string, roleKey: string) => Promise<Conversation[]>;
     onSearch: (query: string) => void;
     onLoadMore: () => void | Promise<void>;
     onSelect: (id: string) => void | Promise<void>;
@@ -159,6 +161,7 @@
           {loadingRecentConversations}
           searchActive={searchOpen}
           onNewProjectConversation={(path) => void onNewProjectConversation(path)}
+          {onLoadProjectConversations}
           onLoadMore={() => void onLoadMore()}
           onSelect={(id) => void onSelect(id)}
           onOpenConversation={openConversation}

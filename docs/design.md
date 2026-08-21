@@ -41,13 +41,18 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   Project groups retain their persisted first-save order across workspace
   selection changes, with pinned groups kept ahead without otherwise changing
   order. Every project keeps the same conversation-list structure mounted, starts
-  with five visible conversations, and retains its Show more action across
-  selection changes so row styling and DOM identity do not flicker. Clicking an
+  with five visible conversations, and loads its own role-filtered first page even
+  while inactive; the global Recent projection is not a substitute for project
+  history. An inactive project keeps cached rows during refresh, uses a compact
+  skeleton before its first load, and shows a muted, indented `No chats` row
+  without a persistent group background only after an authoritative empty result. It
+  retains its Show more action across selection changes so row styling and DOM
+  identity do not flicker. Clicking an
   expanded project collapses it without first selecting that workspace; clicking
   a collapsed project expands it and selects its workspace only when needed.
   Both sections collapse independently. Project-name search temporarily ranks
   matching projects ahead of the remaining list, while Recent conversations
-  owns a bounded scroll area that loads additional database pages near its end.
+  remains a bounded newest-first projection in the sidebar's ordinary scroll flow.
   Its role selector sits above full-width new-conversation and search actions.
   The new action uses the workspace already selected by the current window.
   Settings remains fixed at the sidebar bottom, while the former More

@@ -3,6 +3,7 @@
   import { t } from "$lib/i18n";
   import { projectConversationPageSize } from "$lib/sidebarProjects";
   import type { Conversation } from "$lib/types";
+  import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import SidebarConversationTitle from "./SidebarConversationTitle.svelte";
 
   interface Props {
@@ -18,6 +19,7 @@
     onLoadMore: () => void;
     embedded?: boolean;
     compactProject?: boolean;
+    loading?: boolean;
   }
   let {
     conversations,
@@ -32,6 +34,7 @@
     onLoadMore,
     embedded = false,
     compactProject = false,
+    loading = false,
   }: Props = $props();
 
   let listElement = $state<HTMLDivElement>();
@@ -237,23 +240,31 @@
           {/each}
         </div>
       {/if}
-    {:else if topLevel.length === 0}
-      <div class="empty-conversations">
-        <div class="empty-conversations-icon" aria-hidden="true">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.6"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            ><path d="M7 18.5 3.5 21l1.2-4.2A8 8 0 1 1 20 12" /><path
-              d="M8.5 12h.01M12 12h.01M15.5 12h.01"
-            /></svg
-          >
-        </div>
-        <strong>{$t("emptyConversationsTitle")}</strong>
+    {:else if loading && compactProject}
+      <div class="project-conversations-loading">
+        <LoadingSkeleton variant="sidebar" rows={2} label={$t("loadingContent")} />
       </div>
+    {:else if topLevel.length === 0}
+      {#if compactProject}
+        <div class="project-empty-conversations">{$t("projectNoChats")}</div>
+      {:else}
+        <div class="empty-conversations">
+          <div class="empty-conversations-icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><path d="M7 18.5 3.5 21l1.2-4.2A8 8 0 1 1 20 12" /><path
+                d="M8.5 12h.01M12 12h.01M15.5 12h.01"
+              /></svg
+            >
+          </div>
+          <strong>{$t("emptyConversationsTitle")}</strong>
+        </div>
+      {/if}
     {:else}
       {#each visibleTopLevel as conv, i (conv.id)}
         {#if i > 0 && !conv.pinned && topLevel[i - 1].pinned}
@@ -474,6 +485,20 @@
     color: var(--text-muted);
     font-size: 12px;
     line-height: 1.5;
+  }
+
+  .project-conversations-loading {
+    padding-left: calc(
+      var(--list-item-compact-padding-inline) + 16px + var(--list-item-compact-content-gap)
+    );
+  }
+
+  .project-empty-conversations {
+    padding: 3px var(--list-item-compact-padding-inline) 5px
+      calc(var(--list-item-compact-padding-inline) + 16px + var(--list-item-compact-content-gap));
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 18px;
   }
 
   .empty-conversations-icon {

@@ -9,6 +9,7 @@ import {
   promoteRecentConversation,
   projectConversationPageSize,
   projectsInPersistedOrder,
+  refreshProjectConversationSnapshot,
   removeProjectConversationSnapshot,
   togglePinnedProjectPath,
   updateProjectConversationSnapshots,
@@ -117,8 +118,38 @@ describe("sidebar project order", () => {
     expect(projectMarkup).not.toContain("? conversations");
     expect(projectMarkup).toContain('class="project-conversations"');
     expect(projectMarkup).toContain("hidden={!projectExpanded(project.path)}");
+    expect(projectMarkup).toContain("loading={projectSnapshotLoading(project.path)}");
     expect(source).toContain("padding: 4px 62px 4px var(--list-item-compact-padding-inline)");
     expect(source).not.toContain(".project-row-shell:hover .project-row,");
+  });
+
+  test("loads visible inactive projects independently from the global recent projection", async () => {
+    const browser = await readFile(
+      new URL("../src/lib/components/SidebarWorkspaceBrowser.svelte", import.meta.url),
+      "utf8",
+    );
+    const route = await readFile(new URL("../src/routes/+page.svelte", import.meta.url), "utf8");
+
+    expect(browser).toContain("void loadProjectSnapshot(project.path, roleKey)");
+    expect(browser).toContain("await onLoadProjectConversations(path, roleKey)");
+    expect(route).toContain("fetchConversationPage(path, null, 30, null, true, roleId)");
+  });
+
+  test("renders a compact project-owned empty state after loading completes", async () => {
+    const list = await readFile(
+      new URL("../src/lib/components/ConversationList.svelte", import.meta.url),
+      "utf8",
+    );
+    const browser = await readFile(
+      new URL("../src/lib/components/SidebarWorkspaceBrowser.svelte", import.meta.url),
+      "utf8",
+    );
+
+    expect(list).toContain('class="project-empty-conversations"');
+    expect(list).toContain('$t("projectNoChats")');
+    expect(list).toContain('LoadingSkeleton variant="sidebar" rows={2}');
+    expect(browser).not.toContain("class:empty");
+    expect(browser).not.toContain(".project-group.empty");
   });
 
   test("collapses an expanded inactive project without selecting its workspace", () => {
@@ -256,6 +287,55 @@ describe("sidebar project order", () => {
     );
 
     expect(snapshots["C:/one"].map((conversation) => conversation.id)).toEqual(["current"]);
+  });
+
+  test("refreshes an inactive project authoritatively without losing newer optimistic data", () => {
+    const stale = {
+      id: "stale",
+      title: "stale",
+      workspace: "C:/one",
+      messages: [],
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const durable = {
+      id: "durable",
+      title: "durable",
+      messages: [],
+      createdAt: 2,
+      updatedAt: 2,
+    };
+    const optimistic = {
+      id: "optimistic",
+      title: "optimistic",
+      workspace: "C:/one",
+      messages: [],
+      createdAt: 3,
+      updatedAt: 3,
+    };
+
+    const refreshed = refreshProjectConversationSnapshot(
+      [stale, optimistic],
+      [durable],
+      "C:/one",
+      2.5,
+    );
+
+    expect(refreshed.map((conversation) => conversation.id)).toEqual(["optimistic", "durable"]);
+    expect(refreshed.every((conversation) => conversation.workspace === "C:/one")).toBe(true);
+  });
+
+  test("accepts an authoritative empty inactive-project page", () => {
+    const stale = {
+      id: "stale",
+      title: "stale",
+      workspace: "C:/one",
+      messages: [],
+      createdAt: 1,
+      updatedAt: 1,
+    };
+
+    expect(refreshProjectConversationSnapshot([stale], [], "C:/one", 2)).toEqual([]);
   });
 
   test("removes a conversation only from its owning workspace snapshot", () => {

@@ -1687,6 +1687,13 @@
     }
   }
 
+  async function loadProjectConversations(path: string, roleKey: string): Promise<Conversation[]> {
+    if (!tauriAvailable) return [];
+    const roleId = roleKey === defaultRoleKey ? null : roleKey;
+    const page = await fetchConversationPage(path, null, 30, null, true, roleId);
+    return page.conversations;
+  }
+
   function handleConversationSearch(query: string): void {
     conversationSearchQuery = query;
     conversationSearchGeneration += 1;
@@ -4516,6 +4523,7 @@
         onForward={() => navigateHistory(1)}
         onNew={newConversation}
         onNewProjectConversation={switchNewConversationWorkspace}
+        onLoadProjectConversations={loadProjectConversations}
         onSearch={handleConversationSearch}
         onLoadMore={loadNextConversationPage}
         onSelect={(id) => {
