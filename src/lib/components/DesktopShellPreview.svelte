@@ -214,7 +214,6 @@
   />
   <section class="desktop-shell-main">
     <DesktopTitleBar
-      {workspace}
       {workspacePath}
       {recentWorkspaces}
       tauriAvailable

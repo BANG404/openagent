@@ -15,10 +15,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the route as the desktop composition and runtime-coordination boundary.
   The desktop sidebar owns its width, resize gesture, collapse persistence, and
   conversation navigation chrome; the shared title bar owns application menus,
-  workspace, branch, sync, and window chrome across chat, Settings, Memory,
+  sync, and window chrome across chat, Settings, Memory,
   Roles, and Skills, while those feature views must not create a second native
-  title bar. The route owns the native window-focus state and passes that same
-  value to both top-chrome segments, so the sidebar collapse/history controls
+  title bar. Keep its center free of workspace names and Git branches so the
+  remaining drag region stays visually quiet. The route owns the native
+  window-focus state and passes that same value to both top-chrome segments, so
+  the sidebar collapse/history controls
   and title-bar content dim and restore together without changing their shared
   background or geometry. The conversation surface owns transcript/composer
   composition, Goal/Graph panel presentation, and chat renderer theme overrides.
@@ -384,9 +386,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   endpoints on that rail.
 - Keep the new-conversation composer's workspace switcher beside approval mode
   and focused on open-folder actions. Hide it once an existing workspace-owned
-  conversation is active; the title bar displays the current environment but is
-  not another workspace-switching target. The File menu and Projects section
-  remain the other workspace-opening entry points.
+  conversation is active; the Projects section remains the visible workspace
+  context, and the title bar must not duplicate it. The File menu and Projects
+  section remain the other workspace-opening entry points.
   Keep the current-folder-location action text-only instead of repeating a
   folder glyph beside it.
   Keep the composer trigger's folder glyph, current folder name, and caret in

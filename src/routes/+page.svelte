@@ -4546,7 +4546,6 @@
 
       <!-- ─── Feature panels ─────────────────────────────────────────────────── -->
       <DesktopTitleBar
-        {workspace}
         {workspacePath}
         {recentWorkspaces}
         {tauriAvailable}

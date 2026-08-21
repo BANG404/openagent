@@ -44,7 +44,7 @@ describe("desktop navigation chrome", () => {
     expect(resizeHandle).toMatch(/\.sidebar-resize-shell\s*{[^}]*top: 40px;/s);
   });
 
-  test("uses continuous chrome, an inset conversation canvas, and a surface-free workspace trigger", async () => {
+  test("uses continuous chrome, an empty title-bar center, and a surface-free workspace trigger", async () => {
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
     const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
     const conversationSurface = await readFile(
@@ -67,7 +67,10 @@ describe("desktop navigation chrome", () => {
     expect(conversationSurface).toMatch(
       /\.conversation-workspace\s*{[^}]*margin: 40px 8px 8px;[^}]*border-radius: 12px;[^}]*background: var\(--surface\);[^}]*box-shadow:/s,
     );
-    expect(titleBar).toMatch(/\.workspace-name\s*{[^}]*color: inherit;[^}]*font-weight: 400;/s);
+    expect(titleBar).not.toContain("workspace-environment");
+    expect(titleBar).not.toContain("workspace-name");
+    expect(titleBar).not.toContain("branch-name");
+    expect(titleBar).not.toContain("workspace.git_branch");
     expect(titleBar).not.toContain("backdrop-filter");
     expect(workspaceSwitcher).toMatch(
       /\.composer-workspace-btn\)\s*{[^}]*padding: 5px 8px;[^}]*color: var\(--text-muted\);/s,
