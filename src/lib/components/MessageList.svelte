@@ -1248,7 +1248,7 @@
     width: auto;
     max-width: 100%;
     box-sizing: border-box;
-    background: var(--control-surface);
+    background: var(--bg);
     border: 0;
     border-radius: 18px;
     padding: 9px 14px;
@@ -1278,7 +1278,7 @@
     padding: 9px 14px;
     border: 0;
     border-radius: 18px;
-    background: var(--control-surface);
+    background: var(--bg);
     color: var(--text);
     font-size: 14px;
     line-height: 1.47;
@@ -1342,7 +1342,7 @@
     bottom: 9px;
     width: 64px;
     height: 2.2em;
-    background: linear-gradient(90deg, transparent, var(--control-surface) 72%);
+    background: linear-gradient(90deg, transparent, var(--bg) 72%);
     pointer-events: none;
   }
   .user-collapse-btn {
