@@ -32,6 +32,10 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   corner while restored, then becomes square when maximized. The title bar and
   sidebar share one opaque application-chrome background while the operating
   system retains the native window outline, rounded corners, and exterior shadow.
+  Do not draw a border between those two chrome segments or beneath the title
+  bar. Separate chat from navigation through an inset rounded conversation canvas
+  with compact outer spacing and restrained elevation instead of shell divider
+  lines.
   The sidebar groups workspace-owned conversations under Projects and shows one
   cross-workspace, newest-first Recent conversations list for the selected role.
   Project groups retain their persisted first-save order across workspace

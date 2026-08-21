@@ -33,7 +33,6 @@
   .sidebar-settings {
     flex: 0 0 auto;
     padding: 8px 6px;
-    border-top: 1px solid var(--border);
   }
 
   button {

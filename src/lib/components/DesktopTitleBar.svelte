@@ -144,7 +144,6 @@
     height: 40px;
     box-sizing: border-box;
     background: var(--app-chrome-bg);
-    border-bottom: 1px solid var(--mica-divider);
     user-select: none;
   }
 

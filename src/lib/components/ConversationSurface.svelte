@@ -342,7 +342,13 @@
     min-width: 0;
     min-height: 0;
     flex: 1;
-    padding-top: 48px;
+    margin: 48px 8px 8px;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 10px 30px rgba(15, 23, 42, 0.035);
   }
 
   .conversation-workspace::before {
@@ -350,7 +356,7 @@
     position: absolute;
     inset: 0;
     z-index: 3;
-    background: color-mix(in srgb, var(--bg) 62%, transparent);
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
     pointer-events: none;
@@ -404,7 +410,7 @@
     inset: auto 0 0;
     z-index: 1;
     height: calc(var(--input-area-height, 120px) + 48px);
-    background: linear-gradient(to top, var(--bg) 0%, var(--bg) 60%, transparent 100%);
+    background: linear-gradient(to top, var(--surface) 0%, var(--surface) 60%, transparent 100%);
     opacity: 1;
     pointer-events: none;
     transition: opacity 420ms ease;
@@ -546,6 +552,12 @@
       rgba(15, 17, 23, 0.08) 72%,
       transparent
     );
+  }
+
+  :global(html.dark) .conversation-workspace {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.22),
+      0 12px 34px rgba(0, 0, 0, 0.2);
   }
 
   .input-inner {

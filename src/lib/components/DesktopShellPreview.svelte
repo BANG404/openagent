@@ -283,18 +283,24 @@
   .desktop-shell-main {
     min-width: 0;
     flex: 1;
-    padding-top: 40px;
+    height: 100%;
   }
 
   .desktop-shell-content {
     position: relative;
     display: flex;
-    height: calc(100vh - 40px);
+    height: calc(100vh - 56px);
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
+    margin: 48px 8px 8px;
     padding: 32px;
     overflow: hidden;
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 10px 30px rgba(15, 23, 42, 0.035);
   }
 
   .desktop-shell-content::before {
@@ -356,5 +362,11 @@
   .existing-conversation p {
     color: var(--text-muted);
     font-size: 12px;
+  }
+
+  :global(html.dark) .desktop-shell-content {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.22),
+      0 12px 34px rgba(0, 0, 0, 0.2);
   }
 </style>

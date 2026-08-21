@@ -1,58 +1,52 @@
-**Comparison Target**
+# Design QA
 
-- Source visual truth: `C:\Users\wyh13\AppData\Local\Temp\codex-clipboard-R7egcK.png`
-- Browser-rendered implementation: `C:\Users\wyh13\AppData\Local\Temp\codex-playwright\page-2026-08-11T10-14-11-957Z.png`
-- Combined comparison: `C:\Users\wyh13\AppData\Local\Temp\openagent-attachment-comparison.png`
-- Viewport: 687 x 280 CSS pixels, `deviceScaleFactor: 1`
-- Source pixels: 687 x 280; implementation pixels: 687 x 280; no density normalization was required.
-- State: ordinary composer with four pending attachments, light theme, Chinese locale. The source's product-specific model and voice controls are outside the attachment-card scope; the implementation preview isolates the shared OpenAgent composer.
+**Comparison target**
 
-**Full-view Comparison Evidence**
-
-- Both surfaces use one horizontal row of approximately 112 x 112 attachment cards inside a rounded composer.
-- Cards retain the source's neutral fill, large radius, top preview/type treatment, bottom filename, horizontally clipped overflow, and hover-revealed top-right remove action.
-- OpenAgent intentionally retains its existing Mica composer tokens, attachment filenames including extensions, toolbar icon, and application canvas instead of cloning Gemini product chrome.
-
-**Focused Region Comparison Evidence**
-
-- The attachment row was compared at native 1:1 pixels in the combined image. Card width, height, 8px inter-card gap, 18px radius, filename baseline, preview crop, and hover remove placement were legible without a separate enlarged crop.
-- Fonts and typography: existing application family retained; card labels use 11-12px neutral text with single-line ellipsis and match the reference hierarchy.
-- Spacing and layout rhythm: 112px cards, 8px gaps, 10-12px composer inset, and bottom-anchored labels match the reference density.
-- Colors and visual tokens: neutral card surfaces and subdued labels follow the reference while remaining mapped to OpenAgent light/dark tokens.
-- Image quality and asset fidelity: real attachment bytes/URLs continue to drive image previews with `object-fit: cover`; the development fixture uses the existing OpenAgent app image and no placeholder drawing.
-- Copy and content: real filenames remain authoritative; Chinese and English labels, tooltips, and input placeholders were verified.
+- Source visual truth: `C:\Users\wyh13\AppData\Local\Temp\codex-clipboard-fP4p3m.png`
+- Browser-rendered implementation: `C:\Users\wyh13\AppData\Local\Temp\codex-playwright\page-2026-08-21T18-26-04-023Z.png`
+- Full-view comparison evidence: `C:\Users\wyh13\AppData\Local\Temp\codex-playwright\page-2026-08-21T18-27-25-237Z.png`
+- Focused shell comparison evidence: `C:\Users\wyh13\AppData\Local\Temp\codex-playwright\page-2026-08-21T18-28-07-233Z.png`
+- Viewport: 1440 x 1000 CSS px, device scale factor 1.
+- Source pixels: 1488 x 1038. Implementation pixels: 1440 x 1000. The comparison page scales both images to equal display widths; the review compares shell proportions and material hierarchy rather than dashboard-specific content.
+- State: expanded sidebar, existing conversation, light theme. Additional browser checks covered collapsed sidebar/new conversation/light/English and expanded sidebar/existing conversation/dark/English; the initial expanded pass used Chinese chrome.
+- State alignment note: the source is a generic dashboard rather than OpenAgent, so its charts, tables, labels, and navigation taxonomy are intentionally not treated as copy targets. The shared visual target is the desktop shell relationship named by the user: integrated top/sidebar chrome, a separately framed main canvas, and no shell divider lines.
 
 **Findings**
 
-- No actionable P0/P1/P2 mismatches remain.
-- P3: the reference canvas is pale blue while OpenAgent uses its existing theme canvas. This is an intentional product-system difference, not attachment-card drift.
+- No actionable P0, P1, or P2 differences remain for the requested shell treatment.
+- [P3] The reference sidebar occupies a larger proportion of its viewport. OpenAgent keeps its existing 220–360px resizable contract so compact conversation navigation and persisted direct manipulation remain unchanged.
 
-**Comparison History**
+**Required fidelity surfaces**
 
-1. Initial capture: `C:\Users\wyh13\AppData\Local\Temp\codex-playwright\page-2026-08-11T10-08-51-901Z.png`.
-   - [P1] The inherited two-column trigger grid compressed image and text previews into a narrow leading column; remove controls also appeared on every idle card.
-   - Fix: reset composer-card triggers to one full-width column and reveal the remove control only on card hover or keyboard focus.
-2. Post-fix capture: `C:\Users\wyh13\AppData\Local\Temp\codex-playwright\page-2026-08-11T10-09-41-677Z.png`.
-   - Evidence: previews fill the card width, filenames align along the bottom, idle cards are quiet, and the hovered image card reveals the top-right remove control.
+- Fonts and typography: Existing system UI typography, compact menu scale, weights, line height, truncation, and hierarchy remain intact. No new display font was introduced because the reference uses the same neutral system-sans character.
+- Spacing and layout rhythm: The conversation canvas now has an 8px outer gutter below the 40px title bar, 12px corners, clipped content, and restrained elevation. The sidebar and title bar meet without perimeter lines. Expanded, collapsed, 1440 x 1000, and 1440 x 900 layouts remain stable.
+- Colors and visual tokens: The shell continues to use `--app-chrome-bg`; the conversation canvas uses the existing `--surface` token in both themes. The light and dark captures preserve readable separation without a border.
+- Image quality and asset fidelity: The reference contains no app-owned raster asset needed by this shell change. No placeholder, generated image, handcrafted SVG, or CSS illustration was added.
+- Copy and content: English and Chinese application chrome render correctly. OpenAgent product copy and conversation fixtures intentionally replace the reference dashboard copy.
 
-**Interactions And Coverage**
+**Interaction and runtime evidence**
 
-- Opened an image card and verified the full attachment dialog and localized close control.
-- Removed a pending attachment and verified the row reflowed without wrapping.
-- Uploaded an image through the browser-backed file chooser and verified a new preview card appeared.
-- Uploaded an image in quick-chat preview and verified it retained the 28px strip and did not open the full attachment dialog.
-- Verified light/Chinese at 687 x 280 and dark/English at 420 x 280, including horizontal overflow.
-- Browser console: 0 errors. Development mode emitted existing Svelte `derived_inert` warnings while attachment tooltip instances were destroyed; no interaction failed.
+- Tested sidebar collapse and expand through the real preview control.
+- Tested new-conversation and existing-conversation preview states.
+- Checked light/dark themes and Chinese/English localization parameters.
+- Checked the application preview console after rendering: no errors.
+- The comparison-only local HTML emitted a missing-favicon request; it is not part of the application runtime.
 
-**Implementation Checklist**
+**Comparison history**
 
-- [x] Match card dimensions, radius, spacing, preview, filename, and remove placement.
-- [x] Preserve click-to-preview and browser-backed upload.
-- [x] Preserve compact quick-chat attachments.
-- [x] Verify light/dark, Chinese/English, removal, preview, upload, and narrow overflow.
+- Initial review found a residual top border above the fixed Settings action, which weakened the borderless navigation treatment.
+- Removed that border and captured the revised light expanded state.
+- Post-fix full-view and focused comparisons show one continuous chrome region and a clearly separate rounded conversation canvas without shell divider lines.
 
-**Follow-up Polish**
+**Implementation checklist**
 
-- None required for this scope.
+- Keep title bar and sidebar on one uninterrupted chrome background.
+- Keep chat framing owned by `ConversationSurface`.
+- Preserve the 8px gutter, 12px clipping radius, and theme-aware surface/elevation.
+- Preserve existing sidebar resizing, collapse persistence, title-bar controls, and conversation behavior.
+
+**Follow-up polish**
+
+- The accepted P3 sidebar-proportion difference can be revisited only if the product later changes its established 220–360px resizing contract.
 
 final result: passed

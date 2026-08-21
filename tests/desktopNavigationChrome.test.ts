@@ -44,17 +44,29 @@ describe("desktop navigation chrome", () => {
     expect(resizeHandle).toMatch(/\.sidebar-resize-shell\s*{[^}]*top: 40px;/s);
   });
 
-  test("uses one opaque chrome color and keeps the composer workspace trigger surface-free", async () => {
+  test("uses continuous chrome, an inset conversation canvas, and a surface-free workspace trigger", async () => {
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
     const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
+    const conversationSurface = await readFile(
+      new URL("ConversationSurface.svelte", componentsUrl),
+      "utf8",
+    );
+    const settingsAction = await readFile(
+      new URL("SidebarSettingsAction.svelte", componentsUrl),
+      "utf8",
+    );
     const workspaceSwitcher = await readFile(
       new URL("WorkspaceSwitcher.svelte", componentsUrl),
       "utf8",
     );
     expect(sidebar).toContain("background: var(--app-chrome-bg)");
     expect(titleBar).toContain("background: var(--app-chrome-bg)");
-    expect(sidebar).toContain("border-right: 1px solid var(--mica-divider)");
-    expect(titleBar).toContain("border-bottom: 1px solid var(--mica-divider)");
+    expect(sidebar).not.toContain("border-right:");
+    expect(titleBar).not.toContain("border-bottom:");
+    expect(settingsAction).not.toContain("border-top:");
+    expect(conversationSurface).toMatch(
+      /\.conversation-workspace\s*{[^}]*margin: 48px 8px 8px;[^}]*border-radius: 12px;[^}]*background: var\(--surface\);[^}]*box-shadow:/s,
+    );
     expect(titleBar).toMatch(/\.workspace-name\s*{[^}]*color: inherit;[^}]*font-weight: 400;/s);
     expect(titleBar).not.toContain("backdrop-filter");
     expect(workspaceSwitcher).toMatch(
