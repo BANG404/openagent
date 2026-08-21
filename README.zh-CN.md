@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/openagent_banner.png" alt="OpenAgent banner" width="100%" />
+  <img src="assets/openagent_logo.png" alt="OpenAgent logo" width="240" />
 </p>
 
 <div align="center">
