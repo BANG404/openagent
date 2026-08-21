@@ -1146,7 +1146,7 @@
 
   .user-message-index button:hover,
   .user-message-index button:focus-visible {
-    background: var(--interactive-state-bg);
+    background: transparent;
     outline: none;
     transform: translateX(-2px);
   }

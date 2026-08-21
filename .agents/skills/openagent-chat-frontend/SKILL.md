@@ -580,8 +580,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   track inside the composer gutter: align the icon with the composer shell and
   the suggestion copy with the textarea copy instead of centering the copy
   without accounting for the icon.
-- Keep the right-side user-message index on one shared tooltip surface. Do not
-  render a second inline message preview for the same index marker.
+- Keep the right-side user-message index on one shared tooltip surface. Its
+  hover and focus treatment may extend the marker line but must not paint a
+  gray button background. Do not render a second inline message preview for
+  the same index marker.
 - Do not render approval controls for a switched branch until its active tip is
   durable.
 
