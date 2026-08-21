@@ -648,15 +648,16 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   reveal, restore a saved position only when the expanded window retains a
   usable visible area inside a current monitor work area; malformed or
   off-screen history must be cleared before restoring the centered default.
-  Keep the card on a theme-tinted Windows-Mica-inspired material composited over
-  an opaque theme base, so content behind the launcher never shows through.
+  Keep the complete card on one opaque theme surface using the shared
+  conversation-input perimeter, radius, and elevation, so content behind the
+  launcher never shows through.
   Give it a clearly visible perimeter and compact, clearly readable elevation; selector
   surfaces remain opaque.
   Do not render a title bar, shortcut hint, or window-action row above the
-  composer; the compact card begins directly with input. Keep that embedded
-  composer on the shared conversation-input perimeter, radius, and elevation,
-  but paint its theme surface opaquely instead of making it transparent over
-  the launcher material. Preserve native
+  composer; the compact card begins directly with input. Flatten the embedded
+  `MessageInput` perimeter so it does not create a second card, and place the
+  attachment, model, role, workspace, and send controls together in the same
+  bottom toolbar as the ordinary conversation composer. Preserve native
   dragging from non-interactive card space. Keep a generous top inset above the
   textarea as the primary grab target, and open selectors below and visually outside the card,
   aligned to their trigger start edge, without collision-based side flipping.
@@ -667,11 +668,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   keeping the search field inside it shadowless at rest. Let selector content follow
   its items up to a bounded scrollable maximum height; role descriptions stay on
   one ellipsized line so one role cannot consume the menu. Separate the composer
-  and selector toolbar with only the short inset divider; do not add a second
-  full-width toolbar border. Each selector trigger owns its leading
+  and selector menus through layout and elevation rather than a divider inside
+  the unified card. Each selector trigger owns its leading
   icon, label, and caret as one hover, focus, open-state, and pointer target.
 - Keep the compact composer height bounded and content-driven. Let the shared
   textarea's measured height grow the card through a small multi-line range;
+  keep its typography and horizontal inset on the ordinary composer's compact
+  14px scale.
   an attachment adds one compact row, and content beyond the maximum scrolls
   internally. Render attachments as a shadowless, single-line compact strip
   in normal flow above the textarea and scroll it horizontally so scrolled text

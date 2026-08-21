@@ -44,7 +44,7 @@
 </script>
 
 <section
-  class="quick-chat"
+  class="quick-chat conversation-input-surface"
   aria-label={$t("quickChat")}
   data-tauri-drag-region
   onpointerdown={onDragStart}
@@ -55,15 +55,9 @@
     </div>
   </div>
 
-  <div class="quick-selector-space"></div>
-
   <footer class="quick-footer">
     <div class="quick-selectors">
       <div class="quick-select model-select">
-        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M4 4.5h8v7H4zM6.25 2.5v2M9.75 2.5v2M6.25 11.5v2M9.75 11.5v2" />
-          <path d="M2 6.25h2M2 9.75h2M12 6.25h2M12 9.75h2" />
-        </svg>
         <Select
           value={selectedModel}
           items={modelOptions}
@@ -83,10 +77,6 @@
         />
       </div>
       <div class="quick-select role-select">
-        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <circle cx="8" cy="5.25" r="2.25" />
-          <path d="M3.75 13c.35-2.65 1.75-4.05 4.25-4.05s3.9 1.4 4.25 4.05" />
-        </svg>
         <Select
           value={selectedRole}
           items={roleOptions}
@@ -146,38 +136,15 @@
 <style>
   .quick-chat {
     position: relative;
-    display: grid;
-    grid-template-rows: minmax(111px, auto) 1px 48px;
     width: 100%;
-    min-height: 160px;
-    max-height: 251px;
+    min-height: 100px;
+    max-height: 191px;
     overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
-    background: linear-gradient(var(--mica-surface), var(--mica-surface)), var(--surface2);
+    background: var(--surface);
     color: var(--text);
-    border-radius: 14px;
-    box-shadow:
-      0 16px 36px color-mix(in srgb, var(--shadow) 66%, rgba(0, 0, 0, 0.16)),
-      0 4px 12px color-mix(in srgb, var(--shadow) 76%, transparent);
-  }
-
-  .quick-chat::before {
-    content: "";
-    position: absolute;
-    inset: -180px 12% auto;
-    height: 240px;
-    z-index: 0;
-    background:
-      radial-gradient(circle at 25% 50%, rgba(66, 133, 244, 0.26), transparent 46%),
-      radial-gradient(circle at 55% 38%, rgba(161, 66, 244, 0.18), transparent 42%),
-      radial-gradient(circle at 78% 55%, rgba(52, 168, 83, 0.14), transparent 44%);
-    filter: blur(44px);
-    opacity: 0.84;
-    pointer-events: none;
   }
 
   .quick-composer,
-  .quick-selector-space,
   .quick-footer {
     position: relative;
     z-index: 1;
@@ -215,25 +182,27 @@
     grid-template-columns: minmax(0, 1fr);
     min-height: 0;
     align-items: start;
-    padding: 14px 18px 8px 14px;
     overflow: hidden;
   }
 
   .composer-slot {
     min-width: 0;
-    min-height: 97px;
-    max-height: 188px;
+    min-height: 100px;
+    max-height: 191px;
     overflow: hidden;
   }
 
   .composer-slot :global(.input-wrapper),
   .composer-slot :global(.composer) {
-    min-height: 97px;
-    max-height: 188px;
+    min-height: 100px;
+    max-height: 191px;
   }
 
   .composer-slot :global(.composer) {
-    background: var(--surface);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -241,27 +210,16 @@
   .composer-slot :global(.composer:focus-within),
   .composer-slot :global(.composer-streaming),
   .composer-slot :global(.composer-streaming:focus-within) {
-    box-shadow: var(--mica-shadow);
-  }
-
-  .composer-slot :global(.composer-toolbar) {
-    position: absolute;
-    right: 40px;
-    bottom: 4px;
-    left: auto;
-    width: 34px;
-    height: 34px;
-    padding: 0 0 4px;
+    box-shadow: none;
   }
 
   .composer-slot :global(.input) {
-    min-height: 78px;
-    max-height: 146px;
-    padding: 9px 88px 7px 2px;
+    min-height: 56px;
+    max-height: 147px;
+    padding: 12px 54px 4px 18px;
     overflow-y: auto;
-    font-size: 18px;
-    line-height: 1.45;
-    letter-spacing: -0.01em;
+    font-size: 14px;
+    line-height: 1.47;
   }
 
   .composer-slot :global(.input::placeholder) {
@@ -273,31 +231,26 @@
     height: 28px;
     flex-wrap: nowrap;
     gap: 5px;
-    padding: 2px 88px 0 2px;
+    padding: 2px 54px 0 12px;
     overflow-x: auto;
     overflow-y: hidden;
   }
 
   .composer-slot :global(.composer:has(.attachment-list) .input) {
-    min-height: 54px;
-    padding-top: 9px;
-  }
-
-  .composer-slot :global(.send-btn),
-  .composer-slot :global(.stop-btn) {
-    right: 2px;
-    bottom: 8px;
-  }
-
-  .quick-selector-space {
-    margin: 0 14px;
-    border-top: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+    min-height: 42px;
+    padding-top: 8px;
   }
 
   .quick-footer {
+    position: absolute;
+    right: 48px;
+    bottom: 6px;
+    left: 45px;
+    z-index: 4;
     gap: 10px;
-    padding: 7px 10px 7px 12px;
-    background: color-mix(in srgb, var(--mica-surface) 72%, transparent);
+    height: 30px;
+    background: transparent;
+    pointer-events: none;
   }
 
   .quick-selectors {
@@ -305,6 +258,7 @@
     min-width: 0;
     align-items: center;
     gap: 3px;
+    pointer-events: auto;
   }
 
   .quick-select {
@@ -347,11 +301,15 @@
     max-width: 100%;
     height: 30px;
     gap: 3px;
-    padding: 4px 5px 4px 23px;
+    padding: 4px 8px;
     background: transparent;
     box-shadow: none;
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 12px;
+  }
+
+  .workspace-select :global(.quick-select-trigger) {
+    padding-left: 23px;
   }
 
   .quick-select :global(.quick-select-trigger:hover:not(:disabled)),
