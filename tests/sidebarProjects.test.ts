@@ -165,6 +165,18 @@ describe("sidebar project order", () => {
     expect(route).toContain("recentConversationRoleKey = roleKey");
   });
 
+  test("promotes Flash-generated title updates into recent conversations", async () => {
+    const route = await readFile(new URL("../src/routes/+page.svelte", import.meta.url), "utf8");
+    const handlerStart = route.indexOf(
+      'register<{ conv_id: string; title: string }>("conversation-title-updated"',
+    );
+    const handler = route.slice(handlerStart, route.indexOf("register<{", handlerStart + 1));
+
+    expect(handler).toContain("applyConversationTitleUpdate(conv_id, title)");
+    expect(route).toContain("promoteConversationInRecents(updated)");
+    expect(route).toContain("await fetchConversationMeta(convId).catch(() => null)");
+  });
+
   test("retains inactive workspace snapshots when the selected workspace changes", () => {
     const one = {
       id: "one",

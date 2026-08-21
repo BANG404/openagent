@@ -222,10 +222,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   messages from a queued turn.
 - Treat the cross-workspace Recent conversations list as a live projection, not
   only a database refresh result. User submission, externally started runs, and
-  terminal stream updates must immediately promote the matching conversation
-  with its current title and activity timestamp. A slower background refresh
-  must not overwrite a newer optimistic entry; keep the list role-filtered,
-  newest-first, workspace-owned, deduplicated, and capped at 20 entries.
+  terminal stream updates must immediately promote the matching conversation.
+  A successful asynchronous Flash title update must update and promote the same
+  recent entry even when that conversation is outside the selected workspace's
+  loaded page. A slower background refresh must not overwrite a newer optimistic
+  title or activity timestamp; keep the list role-filtered, newest-first,
+  workspace-owned, deduplicated, and capped at 20 entries.
 - Attach Flash-generated follow-up suggestions to the stable preallocated
   backend assistant message ID for the triggering user turn. Cache them by
   message ID across navigation. Resolve that host from the selected Turn's

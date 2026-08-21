@@ -1485,6 +1485,29 @@
     );
   }
 
+  async function applyConversationTitleUpdate(convId: string, title: string): Promise<void> {
+    if (!title.trim()) return;
+    const existing =
+      conversations.find((conversation) => conversation.id === convId) ??
+      recentConversations.find((conversation) => conversation.id === convId) ??
+      searchConversations.find((conversation) => conversation.id === convId) ??
+      (await fetchConversationMeta(convId).catch(() => null));
+    if (!existing) return;
+
+    const updated = { ...existing, title, updatedAt: Date.now() };
+    conversations = conversations.map((conversation) =>
+      conversation.id === convId
+        ? { ...conversation, title: updated.title, updatedAt: updated.updatedAt }
+        : conversation,
+    );
+    searchConversations = searchConversations.map((conversation) =>
+      conversation.id === convId
+        ? { ...conversation, title: updated.title, updatedAt: updated.updatedAt }
+        : conversation,
+    );
+    promoteConversationInRecents(updated);
+  }
+
   function roleSelectionStorageKey(currentWorkspace = workspacePath): string {
     return `openagent.active-role:${currentWorkspace || "global"}`;
   }
@@ -2131,9 +2154,7 @@
 
     register<{ conv_id: string; title: string }>("conversation-title-updated", (e) => {
       const { conv_id, title } = e.payload;
-      const idx = conversations.findIndex((conversation) => conversation.id === conv_id);
-      if (idx === -1 || !title.trim()) return;
-      conversations[idx] = { ...conversations[idx], title, updatedAt: Date.now() };
+      void applyConversationTitleUpdate(conv_id, title);
     });
 
     register<{
