@@ -559,7 +559,10 @@
           turnMetadata?.response_message_id ?? assistantMsg?.id ?? null}
         {@const turnIsTerminal = ["completed", "cancelled", "failed"].includes(turnStatus)}
         {@const assistantSegments = groupStreamItems(renderedAssistantItems)}
-        {@const { processSegments, finalSegments } = partitionAssistantSegments(assistantSegments)}
+        {@const { processSegments, finalSegments } = partitionAssistantSegments(
+          assistantSegments,
+          turnStatus,
+        )}
         {@const showProcessRecords = shouldShowProcessRecords(turnStatus, processSegments.length)}
         {@const isRerunnable =
           assistantMsg !== null &&

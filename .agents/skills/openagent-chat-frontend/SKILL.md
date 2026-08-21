@@ -149,12 +149,15 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   final Agent reply; never merge one attempt's nested stream items into another.
 - Mount the turn-level process disclosure only after the logical Turn reaches
   the normally completed status, and default it closed. Running, interrupted,
-  cancelled, and failed Turns render their records directly without a process
-  header, so pending input remains visible without presenting unfinished work as
-  a completed process history. Keep the process/final partition mounted at one
-  stable template location across that status transition: revealing the process
-  disclosure may hide its process children, but must not remount final rich
-  output such as Mermaid or HTML previews.
+  cancelled, and failed Turns render their records directly in source order,
+  without process/final repartitioning or a process header, so pending input
+  remains visible without presenting unfinished work as a completed process
+  history. When a resumed Turn completes, treat its dedicated `ask_user` input
+  as a process boundary so narration emitted before the form cannot move below
+  it while the post-resume answer remains final output. Keep the process/final
+  partition mounted at one stable template location across that status
+  transition: revealing the process disclosure may hide its process children,
+  but must not remount final rich output such as Mermaid or HTML previews.
 - Treat the first `render_html` or `render_mermaid` call as the process-disclosure
   boundary: keep that render and every later record outside the collapsed work
   details, including later tools and reasoning. Before that boundary,
