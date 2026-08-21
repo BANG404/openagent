@@ -14,7 +14,7 @@ const componentPaths = [
 test("uses one theme-aware neutral fill for hover and selected controls", async () => {
   const appCss = await readFile(new URL("../src/app.css", import.meta.url), "utf8");
 
-  expect(appCss.match(/--interactive-state-bg: #cbd5e1;/g)).toHaveLength(2);
+  expect(appCss.match(/--interactive-state-bg: #e5e7eb;/g)).toHaveLength(2);
   expect(appCss.match(/--interactive-state-bg: #2b2b2b;/g)).toHaveLength(2);
   expect(appCss).toContain("--item-selected-bg: var(--interactive-state-bg);");
   expect(appCss).toContain("--item-selected-hover-bg: var(--interactive-state-bg);");
