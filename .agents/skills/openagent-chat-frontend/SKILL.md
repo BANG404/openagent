@@ -457,9 +457,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Organize the conversation sidebar as Projects followed by Recent conversations,
   with independently collapsible sections. Projects initially expands the current
   workspace with its paged conversation hierarchy and exposes recent workspaces as
-  project groups. Repeatedly clicking the selected project row toggles its
-  conversation hierarchy without unmounting that project's keyed list; selecting
-  a different workspace expands its hierarchy. Keep project groups in their
+  project groups. Clicking any expanded project row collapses its conversation
+  hierarchy without changing the selected workspace or unmounting that project's
+  keyed list. Clicking a collapsed selected project expands it in place; clicking
+  a collapsed project for a different workspace selects that workspace and
+  expands its hierarchy. Keep project groups in their
   persisted first-save order when the current workspace changes so keyed rows
   retain their DOM position; pinned
   groups may remain ahead without otherwise reordering either group. Keep the same

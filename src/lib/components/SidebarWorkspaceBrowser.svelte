@@ -3,6 +3,7 @@
   import { DropdownMenu } from "bits-ui";
   import { t } from "$lib/i18n";
   import {
+    projectRowSelection,
     projectsInPersistedOrder,
     removeProjectConversationSnapshot,
     updateProjectConversationSnapshots,
@@ -199,14 +200,9 @@
   function selectProject(path: string): void {
     closeProjectSearch();
     const selectedWorkspacePath = workspaceSwitchTarget ?? workspacePath;
-    if (path === selectedWorkspacePath) {
-      collapsedProjectPaths = collapsedProjectPaths.includes(path)
-        ? collapsedProjectPaths.filter((item) => item !== path)
-        : [...collapsedProjectPaths, path];
-      return;
-    }
-    collapsedProjectPaths = collapsedProjectPaths.filter((item) => item !== path);
-    onSelectWorkspace(path);
+    const selection = projectRowSelection(path, selectedWorkspacePath, collapsedProjectPaths);
+    collapsedProjectPaths = selection.collapsedProjectPaths;
+    if (selection.selectWorkspace) onSelectWorkspace(path);
   }
 
   function projectExpanded(path: string): boolean {

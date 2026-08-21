@@ -38,8 +38,10 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   selection changes, with pinned groups kept ahead without otherwise changing
   order. Every project keeps the same conversation-list structure mounted, starts
   with five visible conversations, and retains its Show more action across
-  selection changes so row styling and DOM identity do not flicker. Both sections
-  collapse independently. Project-name search temporarily ranks
+  selection changes so row styling and DOM identity do not flicker. Clicking an
+  expanded project collapses it without first selecting that workspace; clicking
+  a collapsed project expands it and selects its workspace only when needed.
+  Both sections collapse independently. Project-name search temporarily ranks
   matching projects ahead of the remaining list, while Recent conversations
   owns a bounded scroll area that loads additional database pages near its end.
   Its role selector sits above full-width new-conversation and search actions.

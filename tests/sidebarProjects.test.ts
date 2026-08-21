@@ -5,6 +5,7 @@ import {
   addWorkspaceToPersistedOrder,
   mergeRecentConversationRefresh,
   parsePinnedProjectPaths,
+  projectRowSelection,
   promoteRecentConversation,
   projectConversationPageSize,
   projectsInPersistedOrder,
@@ -120,17 +121,41 @@ describe("sidebar project order", () => {
     expect(source).not.toContain(".project-row-shell:hover .project-row,");
   });
 
-  test("toggles the selected project's mounted conversations and expands a selected target", async () => {
+  test("collapses an expanded inactive project without selecting its workspace", () => {
+    expect(projectRowSelection("C:/two", "C:/one", [])).toEqual({
+      collapsedProjectPaths: ["C:/two"],
+      selectWorkspace: false,
+    });
+  });
+
+  test("expands a collapsed inactive project and selects its workspace", () => {
+    expect(projectRowSelection("C:/two", "C:/one", ["C:/two"])).toEqual({
+      collapsedProjectPaths: [],
+      selectWorkspace: true,
+    });
+  });
+
+  test("toggles the selected project's mounted conversations without reselecting it", () => {
+    expect(projectRowSelection("C:/one", "C:/one", [])).toEqual({
+      collapsedProjectPaths: ["C:/one"],
+      selectWorkspace: false,
+    });
+    expect(projectRowSelection("C:/one", "C:/one", ["C:/one"])).toEqual({
+      collapsedProjectPaths: [],
+      selectWorkspace: false,
+    });
+  });
+
+  test("keeps project rows wired to their mounted expansion state", async () => {
     const source = await readFile(
       new URL("../src/lib/components/SidebarWorkspaceBrowser.svelte", import.meta.url),
       "utf8",
     );
 
-    expect(source).toContain("if (path === selectedWorkspacePath)");
-    expect(source).toContain("collapsedProjectPaths.includes(path)");
     expect(source).toContain(
-      "collapsedProjectPaths = collapsedProjectPaths.filter((item) => item !== path);",
+      "projectRowSelection(path, selectedWorkspacePath, collapsedProjectPaths)",
     );
+    expect(source).toContain("if (selection.selectWorkspace) onSelectWorkspace(path)");
     expect(source).toContain("aria-expanded={projectExpanded(project.path)}");
   });
 

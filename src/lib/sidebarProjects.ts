@@ -7,6 +7,29 @@ export const recentConversationLimit = 20;
 
 export type ProjectConversationSnapshots = Record<string, Conversation[]>;
 
+export interface ProjectRowSelection {
+  collapsedProjectPaths: string[];
+  selectWorkspace: boolean;
+}
+
+export function projectRowSelection(
+  path: string,
+  selectedWorkspacePath: string,
+  collapsedProjectPaths: string[],
+): ProjectRowSelection {
+  if (!collapsedProjectPaths.includes(path)) {
+    return {
+      collapsedProjectPaths: [...collapsedProjectPaths, path],
+      selectWorkspace: false,
+    };
+  }
+
+  return {
+    collapsedProjectPaths: collapsedProjectPaths.filter((item) => item !== path),
+    selectWorkspace: path !== selectedWorkspacePath,
+  };
+}
+
 function sortRecentConversations(conversations: Conversation[]): Conversation[] {
   return conversations.sort(
     (left, right) => right.updatedAt - left.updatedAt || right.id.localeCompare(left.id),
