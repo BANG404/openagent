@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.44.1-beta.1] - 2026-08-21
+
+### Bug Fixes
+- **sidebar**: Sync generated titles to recents
+- **sidebar**: Update recent conversations immediately
+- **frontend**: Prevent approval mode crash
+- **chat**: Preserve interrupted record order
+
 ## [0.44.0-beta.1] - 2026-08-21
 
 ### Features
