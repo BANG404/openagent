@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.45.0-beta.1] - 2026-08-21
+
+### Features
+- **ui**: Separate chat canvas from desktop chrome
+
+### Bug Fixes
+- **ui**: Normalize title bar menu spacing
+- **chat**: Lower new conversation surface
+- **ui**: Remove workspace details from title bar
+- **chat**: Relax greeting character spacing
+- **ui**: Align conversation with title bar
+- **ui**: Tighten conversation top gutter
+- **sidebar**: Preload inactive workspace conversations
+- **frontend**: Keep disabled history controls visible
+
+### Styling
+- **chat**: Match user messages to canvas
+- Strengthen light interaction fill
+- Use misty blue for light interaction states
+
 ## [0.44.2-beta.1] - 2026-08-21
 
 ### Bug Fixes
