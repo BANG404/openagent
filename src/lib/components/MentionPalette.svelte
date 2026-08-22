@@ -168,17 +168,6 @@
     background: var(--interactive-state-bg);
   }
 
-  :global(.palette-row[data-selected]::before) {
-    content: "";
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    width: 2px;
-    background: var(--primary);
-    pointer-events: none;
-  }
-
   :global(.palette-label) {
     font-size: var(--menu-item-font-size);
     font-weight: 400;

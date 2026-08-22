@@ -602,18 +602,6 @@
     font-weight: 500;
   }
 
-  .conv-item.active::before,
-  .sub-conv-item.active::before {
-    content: "";
-    position: absolute;
-    top: 5px;
-    bottom: 5px;
-    left: 0;
-    width: 2px;
-    background: var(--primary);
-    pointer-events: none;
-  }
-
   .conv-delete {
     display: none;
     font-size: 14px;

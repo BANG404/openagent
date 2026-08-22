@@ -423,17 +423,6 @@
     background: var(--interactive-state-bg);
   }
 
-  .role-item.active::before {
-    content: "";
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    width: 2px;
-    background: var(--primary);
-    pointer-events: none;
-  }
-
   .role-item-copy {
     min-width: 0;
     flex: 1;

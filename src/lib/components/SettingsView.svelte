@@ -3868,17 +3868,6 @@
     font-weight: 500;
   }
 
-  :global(.settings-nav-item[data-state="active"]::before) {
-    content: "";
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    width: 2px;
-    background: var(--primary);
-    pointer-events: none;
-  }
-
   :global(.settings-nav-item:focus-visible) {
     box-shadow: var(--focus-ring);
     outline: none;
@@ -4019,17 +4008,6 @@
   .provider-item:hover,
   .provider-item.active {
     background: var(--interactive-state-bg);
-  }
-
-  .provider-item.active::before {
-    content: "";
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    width: 2px;
-    background: var(--primary);
-    pointer-events: none;
   }
 
   .provider-item-icon {
@@ -4564,14 +4542,6 @@
     box-shadow: var(--focus-ring);
   }
 
-  .channel-settings-item.active::before {
-    position: absolute;
-    inset: 4px auto 4px 0;
-    width: 2px;
-    background: var(--primary);
-    content: "";
-  }
-
   .channel-settings-icon {
     display: grid;
     place-items: center;
@@ -4669,12 +4639,6 @@
     .channel-settings-item {
       width: 128px;
     }
-    .channel-settings-item.active::before {
-      inset: auto 12px 3px;
-      width: auto;
-      height: 2px;
-    }
-
     .channel-settings-detail {
       padding: 24px 18px;
     }

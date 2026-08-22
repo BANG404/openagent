@@ -201,16 +201,6 @@
     background: var(--interactive-state-bg);
     color: var(--text);
   }
-  :global(.ui-combobox-item[data-selected]::before) {
-    content: "";
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    width: 2px;
-    background: var(--primary);
-    pointer-events: none;
-  }
   :global(.ui-combobox-item[data-disabled]) {
     opacity: 0.4;
     cursor: not-allowed;

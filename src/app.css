@@ -262,17 +262,6 @@
     color: var(--text);
   }
 
-  .ctx-menu-item[data-selected]::before {
-    content: "";
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    width: 2px;
-    background: var(--primary);
-    pointer-events: none;
-  }
-
   .ctx-menu-item-danger {
     color: #dc2626;
   }

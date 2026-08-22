@@ -297,16 +297,6 @@
     background: var(--interactive-state-bg);
     color: var(--text);
   }
-  :global(.role-selector-item[data-selected]::before) {
-    content: "";
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    width: 2px;
-    background: var(--primary);
-    pointer-events: none;
-  }
   .role-selector-empty {
     min-height: var(--menu-item-min-height);
     padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);

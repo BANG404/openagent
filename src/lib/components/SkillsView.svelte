@@ -797,17 +797,6 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
     background: var(--interactive-state-bg);
   }
 
-  .skill-item.active::before {
-    content: "";
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    width: 2px;
-    background: var(--primary);
-    pointer-events: none;
-  }
-
   .skill-item-main {
     display: flex;
     align-items: center;

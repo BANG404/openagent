@@ -345,17 +345,6 @@
     color: var(--text);
   }
 
-  :global(.ws-dropdown-item[data-selected]::before) {
-    content: "";
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    width: 2px;
-    background: var(--primary);
-    pointer-events: none;
-  }
-
   .ws-dropdown-name {
     overflow: hidden;
     text-overflow: ellipsis;

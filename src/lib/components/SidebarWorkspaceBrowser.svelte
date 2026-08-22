@@ -851,14 +851,6 @@
     box-shadow: var(--focus-ring);
   }
 
-  .workspace-conversation-row.active::before {
-    content: "";
-    position: absolute;
-    inset: 5px auto 5px 0;
-    width: 2px;
-    background: var(--primary);
-  }
-
   .recents-heading {
     margin-top: 14px;
   }

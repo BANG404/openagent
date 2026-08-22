@@ -10,6 +10,25 @@ metadata:
 Keep streaming and durable turns as two representations of the same logical
 transcript. Avoid remounts and UI state loss during reconciliation.
 
+## Shared product-host contract
+
+- Treat Tauri/Svelte and GPUI as product hosts over the same public SDK facade.
+  GPUI must consume the SDK startup bootstrap, runtime event stream, settings,
+  workspaces, roles/models, conversations, and durable checkpoints; it must not
+  duplicate the runtime state machine, transport definitions, configuration or
+  database ownership, flow selection, or slash-command parsing.
+- Restore the complete durable host snapshot before subscribing to runtime
+  events. Treat events as lossy live projections rather than an authoritative
+  store or replay log. On terminal and checkpoint events, reload and reconcile
+  the relevant durable conversation/checkpoint state; do not infer final state
+  from event delivery or compensate with a host-local runtime state machine.
+- Submit every ordinary chat message and slash command from either host through
+  `submit_agent_input` so runtime routing and command semantics remain shared.
+- Use Tauri/Svelte as GPUI's visual and functional parity source. GPUI
+  intentionally omits the decorative aurora glow while preserving shared
+  geometry, neutral selection fill, semantics, accessibility, and pointer and
+  keyboard interactions.
+
 ## Transcript and streaming
 
 - Keep the route as the desktop composition and runtime-coordination boundary.
@@ -387,11 +406,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep selection signaling consistent across floating option rows and persistent
   navigation lists: neutral buttons, triggers, and option rows use the shared
   theme-aware `--interactive-state-bg` for hover, open, and selected states;
-  the light value is `#ebebeb`. Each selected row adds a square-ended
-  primary-colored left rail. Primary and destructive actions retain their
-  semantic state colors. Do not
-  introduce a stronger selected fill, checkmark, selected text color, or rounded
-  endpoints on that rail.
+  the light value is `#ebebeb`. Selected rows use that neutral fill without a
+  decorative left rail, stronger fill, checkmark, or selected text color. GPUI
+  preserves the same row geometry, selected fill, selection semantics,
+  accessibility state, and interactions. Primary and destructive actions retain
+  their semantic state colors.
 - Keep the new-conversation composer's workspace switcher beside approval mode
   and focused on open-folder actions. Hide it once an existing workspace-owned
   conversation is active; the Projects section remains the visible workspace

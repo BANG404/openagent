@@ -537,16 +537,6 @@
     color: var(--text);
     font-weight: 500;
   }
-  .onboarding-nav-item.active::before {
-    content: "";
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    width: 2px;
-    background: var(--primary);
-    pointer-events: none;
-  }
   .onboarding-nav-item:disabled {
     cursor: default;
     opacity: 0.55;

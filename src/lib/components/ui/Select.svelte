@@ -360,16 +360,6 @@
     background: var(--interactive-state-bg);
     color: var(--text);
   }
-  :global(.ui-select-item[data-selected]::before) {
-    content: "";
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    width: 2px;
-    background: var(--primary);
-    pointer-events: none;
-  }
   :global(.ui-select-item[data-disabled]) {
     opacity: 0.4;
     cursor: not-allowed;

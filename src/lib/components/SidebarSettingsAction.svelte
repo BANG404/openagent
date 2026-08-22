@@ -69,14 +69,6 @@
     box-shadow: var(--focus-ring);
   }
 
-  button.active::before {
-    content: "";
-    position: absolute;
-    inset: 5px auto 5px 0;
-    width: 2px;
-    background: var(--primary);
-  }
-
   svg {
     width: 15px;
     height: 15px;
