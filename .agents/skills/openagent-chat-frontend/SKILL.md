@@ -497,9 +497,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   expands its hierarchy. Keep project groups in their
   persisted first-save order when the current workspace changes so keyed rows
   retain their DOM position; pinned
-  groups may remain ahead without otherwise reordering either group. Keep the same
-  keyed `ConversationList` mounted beneath every project with five conversations
-  initially visible. Show more only when loaded conversations remain hidden or
+  groups may remain ahead without otherwise reordering either group. Do not cap
+  the project group count: startup omits persisted paths whose directories no
+  longer exist, recovers every existing workspace represented by durable
+  conversations, and rejects a path that disappears before a later switch. Keep
+  the same keyed `ConversationList` mounted beneath every project with five
+  conversations initially visible. Show more only when loaded conversations remain hidden or
   the current workspace reports another page. Selection may change its
   pagination capability, but every role keeps one per-workspace conversation
   snapshot so changing the selected workspace never swaps a project's list data

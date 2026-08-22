@@ -126,7 +126,7 @@
         return pinDifference;
       },
     );
-    return query ? ordered : ordered.slice(0, 6);
+    return ordered;
   });
 
   $effect(() => {

@@ -3779,8 +3779,9 @@
     };
   }
 
-  async function applyWorkspace(path: string, preferredConversationId?: string) {
-    if (path === workspacePath || workspaceLoading) return;
+  async function applyWorkspace(path: string, preferredConversationId?: string): Promise<boolean> {
+    if (path === workspacePath) return true;
+    if (workspaceLoading) return false;
 
     workspaceSwitchTarget = path;
     workspaceLoading = true;
@@ -3861,11 +3862,19 @@
       if (runtimeWorkspaceChanged && !workspaceStateCommitted) {
         await invoke("set_workspace", { path: previousWorkspacePath || null }).catch(() => {});
       }
-      throw error;
+      console.warn("Failed to open workspace:", path, error);
+      showToast({
+        title: $t("workspaceUnavailable"),
+        description: path,
+        descriptionFromEnd: true,
+        variant: "error",
+      });
+      return false;
     } finally {
       workspaceLoading = false;
       workspaceSwitchTarget = null;
     }
+    return true;
   }
 
   async function openWorkspaceInNewWindow(
@@ -3891,7 +3900,7 @@
     closeAuxiliarySurfaces();
     const conversationWorkspace = conversation.workspace || workspacePath;
     if (conversationWorkspace && conversationWorkspace !== workspacePath) {
-      await applyWorkspace(conversationWorkspace, conversation.id);
+      if (!(await applyWorkspace(conversationWorkspace, conversation.id))) return;
     }
     await selectSidebarConversation(conversation.id);
   }
@@ -3928,6 +3937,12 @@
     }
     await invoke("open_path", { path }).catch((error) => {
       console.warn("Failed to open project folder", error);
+      showToast({
+        title: $t("workspaceUnavailable"),
+        description: path,
+        descriptionFromEnd: true,
+        variant: "error",
+      });
     });
   }
 
@@ -3972,7 +3987,7 @@
 
   async function switchNewConversationWorkspace(path: string): Promise<void> {
     if (!path) return;
-    if (path !== workspacePath) await applyWorkspace(path);
+    if (path !== workspacePath && !(await applyWorkspace(path))) return;
     await newConversation();
   }
 

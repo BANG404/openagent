@@ -45,7 +45,12 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   cross-workspace, newest-first Recent conversations list for the selected role.
   Project groups retain their persisted first-save order across workspace
   selection changes, with pinned groups kept ahead without otherwise changing
-  order. Every project keeps the same conversation-list structure mounted, starts
+  order. Projects does not impose a fixed item cap: every available persisted or
+  conversation-recovered workspace remains present in the sidebar. Workspaces
+  whose directories were deleted or renamed are omitted during startup, and a
+  directory that disappears while the app is running cannot become the active
+  workspace; opening it reports the unavailable path instead. Every project keeps
+  the same conversation-list structure mounted, starts
   with five visible conversations, and loads its own role-filtered first page even
   while inactive; the global Recent projection is not a substitute for project
   history. An inactive project keeps cached rows during refresh, uses a compact

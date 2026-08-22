@@ -47,6 +47,9 @@
     { path: "\\\\wsl.localhost\\Ubuntu-24.04\\home\\dev\\math", name: "math" },
     { path: "C:\\Projects\\openagent\\.agents", name: ".agents" },
     { path: "C:\\Projects\\archive", name: "archive" },
+    { path: "C:\\Projects\\legacy-ui", name: "legacy-ui" },
+    { path: "C:\\Projects\\legacy-runtime", name: "legacy-runtime" },
+    { path: "C:\\Projects\\legacy-notes", name: "legacy-notes" },
   ]);
   let pinnedProjectPaths = $state<string[]>([]);
   let allPreviewConversations = $state<Conversation[]>([

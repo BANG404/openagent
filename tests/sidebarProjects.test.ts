@@ -57,6 +57,15 @@ describe("sidebar project order", () => {
     ]);
   });
 
+  test("keeps every persisted workspace visible without a fixed project cap", () => {
+    const many = Array.from({ length: 9 }, (_, index) => ({
+      path: `C:/${index}`,
+      name: String(index),
+    }));
+
+    expect(projectsInPersistedOrder(many, "C:/0")).toEqual(many);
+  });
+
   test("starts every project list with five conversations", () => {
     expect(projectConversationPageSize).toBe(5);
   });
@@ -188,6 +197,21 @@ describe("sidebar project order", () => {
     );
     expect(source).toContain("if (selection.selectWorkspace) onSelectWorkspace(path)");
     expect(source).toContain("aria-expanded={projectExpanded(project.path)}");
+    expect(source).not.toContain("ordered.slice(0, 6)");
+  });
+
+  test("does not open a conversation after its workspace switch fails", async () => {
+    const route = await readFile(new URL("../src/routes/+page.svelte", import.meta.url), "utf8");
+    const openStart = route.indexOf("async function openSidebarConversation");
+    const openHandler = route.slice(
+      openStart,
+      route.indexOf("async function persistRecentWorkspaces", openStart),
+    );
+
+    expect(openHandler).toContain(
+      "if (!(await applyWorkspace(conversationWorkspace, conversation.id))) return",
+    );
+    expect(route).toContain('title: $t("workspaceUnavailable")');
   });
 
   test("only offers more project conversations when another row or page exists", async () => {
