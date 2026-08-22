@@ -385,9 +385,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Reuse the shared conversation-input surface for the composer, file-change
   banner, every desktop menu panel, command/mention palettes, floating
   text-selection actions, and notifications so their Mica fill, hairline
-  perimeter, 18px radius, 24px saturated blur, and elevation stay identical in
-  both themes. This includes model, role, workspace, recent-workspace,
-  application, context, combobox, and compact download panels. Their
+  perimeter, 18px radius, 24px saturated blur, and compact, clearly edged
+  elevation stay identical in both themes. This includes model, role,
+  workspace, recent-workspace, application, context, combobox, and compact
+  download panels. Their
   dimensions, internal spacing, and content behavior remain component-owned;
   explanatory tooltips and modal dialogs retain their distinct semantics.
 - Keep the shared application menu fully operable without a pointer. Expose
@@ -588,8 +589,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   two chrome segments visually continuous without a border between them or
   beneath the title bar. Present chat as its own clipped, rounded canvas directly
   against the title bar's lower edge, with 8px gutters at the sides and bottom
-  plus quiet elevation; use that spatial layer rather than shell divider lines to
-  separate conversation from navigation.
+  plus compact, clearly edged elevation; use that spatial layer rather than
+  shell divider lines to separate conversation from navigation.
 - Use the theme canvas for the workspace surface. Keep the new-conversation
   greeting and composer, as well as the bottom-anchored composer, on neutral
   theme surfaces without an ambient color field or animated glow. On a new

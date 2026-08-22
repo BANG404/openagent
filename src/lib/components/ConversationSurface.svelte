@@ -320,8 +320,8 @@
     border-radius: 12px;
     background: var(--surface);
     box-shadow:
-      0 1px 2px rgba(15, 23, 42, 0.04),
-      0 10px 30px rgba(15, 23, 42, 0.035);
+      0 1px 2px rgba(15, 23, 42, 0.08),
+      0 4px 12px rgba(15, 23, 42, 0.1);
   }
 
   .conversation-workspace::before {
@@ -453,8 +453,8 @@
 
   :global(html.dark) .conversation-workspace {
     box-shadow:
-      0 1px 2px rgba(0, 0, 0, 0.22),
-      0 12px 34px rgba(0, 0, 0, 0.2);
+      0 1px 2px rgba(0, 0, 0, 0.26),
+      0 5px 14px rgba(0, 0, 0, 0.26);
   }
 
   .input-inner {

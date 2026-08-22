@@ -27,8 +27,8 @@
     --mica-border: rgba(255, 255, 255, 0.74);
     --mica-divider: rgba(110, 110, 115, 0.2);
     --mica-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.68), 0 1px 2px rgba(0, 0, 0, 0.08),
-      0 10px 28px rgba(31, 35, 48, 0.1);
+      inset 0 1px 0 rgba(255, 255, 255, 0.68), 0 1px 2px rgba(0, 0, 0, 0.1),
+      0 5px 12px rgba(31, 35, 48, 0.14);
     --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
     --focus-ring: 0 0 0 1px var(--primary);
     --interactive-state-bg: #e5e7eb;
@@ -77,8 +77,8 @@
       --mica-border: rgba(255, 255, 255, 0.09);
       --mica-divider: rgba(148, 163, 184, 0.16);
       --mica-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.34),
-        0 12px 30px rgba(0, 0, 0, 0.3);
+        inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.38),
+        0 6px 14px rgba(0, 0, 0, 0.38);
       --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
       --focus-ring: 0 0 0 1px var(--primary);
       --interactive-state-bg: #2b2b2b;
@@ -107,8 +107,8 @@
     --mica-border: rgba(255, 255, 255, 0.09);
     --mica-divider: rgba(148, 163, 184, 0.16);
     --mica-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.34),
-      0 12px 30px rgba(0, 0, 0, 0.3);
+      inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.38),
+      0 6px 14px rgba(0, 0, 0, 0.38);
     --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
     --focus-ring: 0 0 0 1px var(--primary);
     --interactive-state-bg: #2b2b2b;
@@ -136,8 +136,8 @@
     --mica-border: rgba(255, 255, 255, 0.74);
     --mica-divider: rgba(110, 110, 115, 0.2);
     --mica-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.68), 0 1px 2px rgba(0, 0, 0, 0.08),
-      0 10px 28px rgba(31, 35, 48, 0.1);
+      inset 0 1px 0 rgba(255, 255, 255, 0.68), 0 1px 2px rgba(0, 0, 0, 0.1),
+      0 5px 12px rgba(31, 35, 48, 0.14);
     --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
     --focus-ring: 0 0 0 1px var(--primary);
     --interactive-state-bg: #e5e7eb;

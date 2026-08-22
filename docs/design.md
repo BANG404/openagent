@@ -40,7 +40,7 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   Do not draw a border between those two chrome segments or beneath the title
   bar. Separate chat from navigation through an inset rounded conversation canvas
   directly against the title bar's lower edge, with 8px side and bottom gutters
-  and restrained elevation instead of shell divider lines.
+  and compact, clearly edged elevation instead of shell divider lines.
   The sidebar groups workspace-owned conversations under Projects and shows one
   cross-workspace, newest-first Recent conversations list for the selected role.
   Project groups retain their persisted first-save order across workspace
@@ -78,10 +78,11 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 - **Floating application panels:** dropdown menus, searchable selects,
   comboboxes, context and download menus, command/mention palettes, floating
   text-selection actions, and notifications reuse the conversation input's
-  Mica fill, hairline perimeter, 18px radius, 24px saturated blur, and
-  elevation. Individual panels retain their compact inset, row scale, size,
-  scrolling, and content layout. Small explanatory tooltips and modal dialogs
-  keep their distinct semantic treatments.
+  Mica fill, hairline perimeter, 18px radius, 24px saturated blur, and compact
+  shadow whose short falloff keeps the card edge legible. Individual panels
+  retain their compact inset, row scale, size, scrolling, and content layout.
+  Small explanatory tooltips and modal dialogs keep their distinct semantic
+  treatments.
 
 ## Colors
 
