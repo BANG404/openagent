@@ -112,6 +112,12 @@ conversation composer provides a shortcut for approval mode only. Approval has
 sandbox policy. In `auto`, all tool calls proposed in one model turn are
 classified by one Flash request with an independent decision for each exact
 tool-call ID; incomplete or unreliable results fall back to manual review.
+Public read-only `websearch` and `fetch` calls skip automatic classification
+and run without human confirmation. Other calls reach manual review only when
+their exact arguments create a meaningful privacy risk or a dangerous,
+destructive, irreversible, security-sensitive, or consequential external
+effect. Manual mode continues to request confirmation for these web tools like
+other ordinary tool calls.
 **Execution Permissions & Sandbox** selects `managed` or
 `disabled` enforcement. Managed enforcement offers canonical
 workspace-writable and read-only presets, plus an advanced editor for ordered
