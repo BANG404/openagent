@@ -481,7 +481,7 @@
     height: 48px;
     flex: none;
     box-sizing: border-box;
-    padding: 0 16px;
+    padding: 0 0 0 16px;
     border-bottom: 1px solid var(--border);
     background: var(--bg);
   }
