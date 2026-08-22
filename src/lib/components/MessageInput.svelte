@@ -1081,12 +1081,6 @@
     overflow: hidden;
   }
 
-  .composer-streaming {
-    box-shadow:
-      var(--mica-shadow),
-      0 8px 28px rgba(66, 133, 244, 0.1);
-  }
-
   .composer-disabled {
     opacity: 0.6;
   }

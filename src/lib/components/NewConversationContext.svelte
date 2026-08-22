@@ -81,97 +81,6 @@
     user-select: text;
   }
 
-  .memory-note::before {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    z-index: -2;
-    width: calc(100% + clamp(360px, 38vw, 720px));
-    height: calc(100% + clamp(240px, 28vh, 420px));
-    background:
-      radial-gradient(
-        ellipse at 18% 36%,
-        rgba(66, 133, 244, 0.2) 0 14%,
-        rgba(66, 133, 244, 0.1) 34%,
-        transparent 72%
-      ),
-      radial-gradient(
-        ellipse at 42% 54%,
-        rgba(52, 168, 83, 0.1) 0 16%,
-        rgba(52, 168, 83, 0.06) 38%,
-        transparent 76%
-      ),
-      radial-gradient(
-        ellipse at 68% 34%,
-        rgba(161, 66, 244, 0.12) 0 14%,
-        rgba(161, 66, 244, 0.06) 36%,
-        transparent 74%
-      ),
-      radial-gradient(
-        ellipse at 82% 58%,
-        rgba(251, 188, 5, 0.08) 0 12%,
-        rgba(251, 188, 5, 0.04) 34%,
-        transparent 72%
-      ),
-      linear-gradient(
-        180deg,
-        rgba(232, 246, 255, 0.36),
-        rgba(216, 237, 255, 0.22) 58%,
-        transparent 100%
-      );
-    filter: blur(56px) saturate(1.12);
-    opacity: 0.28;
-    transform: translate3d(-50%, -50%, 0) scale(1.04);
-    animation:
-      memory-note-aurora 8s ease-in-out infinite alternate,
-      memory-note-aurora-enter 420ms ease both;
-    content: "";
-    -webkit-mask-image: radial-gradient(
-      ellipse at center,
-      #000 0 34%,
-      rgba(0, 0, 0, 0.7) 52%,
-      rgba(0, 0, 0, 0.22) 76%,
-      transparent 100%
-    );
-    mask-image: radial-gradient(
-      ellipse at center,
-      #000 0 34%,
-      rgba(0, 0, 0, 0.7) 52%,
-      rgba(0, 0, 0, 0.22) 76%,
-      transparent 100%
-    );
-    pointer-events: none;
-  }
-
-  .memory-note::after {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    z-index: -1;
-    width: calc(100% + clamp(300px, 32vw, 600px));
-    height: calc(100% + clamp(200px, 24vh, 360px));
-    background: rgba(245, 250, 255, 0.08);
-    filter: blur(76px);
-    transform: translate(-50%, -50%);
-    animation: memory-note-haze-enter 420ms ease both;
-    content: "";
-    -webkit-mask-image: radial-gradient(
-      ellipse at center,
-      #000 0 36%,
-      rgba(0, 0, 0, 0.58) 58%,
-      rgba(0, 0, 0, 0.18) 78%,
-      transparent 100%
-    );
-    mask-image: radial-gradient(
-      ellipse at center,
-      #000 0 36%,
-      rgba(0, 0, 0, 0.58) 58%,
-      rgba(0, 0, 0, 0.18) 78%,
-      transparent 100%
-    );
-    pointer-events: none;
-  }
-
   .memory-note p {
     position: relative;
     z-index: 1;
@@ -183,52 +92,10 @@
     overflow-wrap: anywhere;
   }
 
-  :global(html.dark) .memory-note::before,
-  :global(html.dark) .memory-note::after {
-    display: none;
-  }
-
   .warn {
     margin-top: 4px;
     color: #f59e0b !important;
     font-size: 13px;
-  }
-
-  @keyframes memory-note-aurora {
-    0% {
-      transform: translate3d(calc(-50% - 5%), calc(-50% + 4%), 0) scale(1.04);
-    }
-    45% {
-      transform: translate3d(calc(-50% + 4%), calc(-50% - 3%), 0) scale(1.12);
-    }
-    100% {
-      transform: translate3d(calc(-50% - 1%), calc(-50% + 2%), 0) scale(1.08);
-    }
-  }
-
-  @keyframes memory-note-aurora-enter {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 0.28;
-    }
-  }
-
-  @keyframes memory-note-haze-enter {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .memory-note::before,
-    .memory-note::after {
-      animation: none;
-    }
   }
 
   @media (max-width: 720px) {

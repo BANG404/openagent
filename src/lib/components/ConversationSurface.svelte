@@ -151,12 +151,6 @@
     class:conversation-input-fade-hidden={view.newConversationLayout}
     aria-hidden="true"
   ></div>
-  <div
-    class="conversation-aurora"
-    class:conversation-aurora-streaming={view.isStreaming}
-    class:conversation-aurora-new-conversation={view.newConversationLayout}
-    aria-hidden="true"
-  ></div>
   <div class="conversation-stage">
     {#if !view.tauriAvailable}
       <div class="runtime-banner">{view.browserModeNotice}</div>
@@ -170,11 +164,6 @@
       ontouchstart={actions.cancelBottomScrollFromUser}
       onpointerdown={actions.cancelBottomScrollFromUser}
     >
-      <div
-        class="new-conversation-aurora"
-        class:new-conversation-aurora-visible={view.newConversationLayout}
-        aria-hidden="true"
-      ></div>
       {#if view.mainContentLoading && view.restoringSurface !== "new-conversation"}
         <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
       {:else if !view.mainContentLoading}
@@ -317,24 +306,6 @@
 </div>
 
 <style>
-  @property --input-aurora-x-shift {
-    syntax: "<percentage>";
-    inherits: false;
-    initial-value: 0%;
-  }
-
-  @property --input-aurora-y-shift {
-    syntax: "<percentage>";
-    inherits: false;
-    initial-value: 0%;
-  }
-
-  @property --input-aurora-scale-shift {
-    syntax: "<number>";
-    inherits: false;
-    initial-value: 0;
-  }
-
   .conversation-workspace {
     position: relative;
     isolation: isolate;
@@ -416,74 +387,6 @@
     transition: opacity 420ms ease;
   }
 
-  .conversation-aurora {
-    position: absolute;
-    left: 50%;
-    top: calc(100% - 122px);
-    width: min(calc(100% + 100px), 1064px);
-    height: 210px;
-    z-index: 2;
-    background:
-      radial-gradient(ellipse at 12% 62%, rgba(66, 133, 244, 0.34) 0 18%, transparent 43%),
-      radial-gradient(ellipse at 36% 52%, rgba(161, 66, 244, 0.3) 0 16%, transparent 42%),
-      radial-gradient(ellipse at 61% 64%, rgba(234, 67, 53, 0.32) 0 17%, transparent 44%),
-      radial-gradient(ellipse at 84% 54%, rgba(251, 188, 5, 0.32) 0 18%, transparent 44%),
-      radial-gradient(ellipse at 50% 78%, rgba(52, 168, 83, 0.3) 0 22%, transparent 50%);
-    filter: blur(26px) saturate(1.35);
-    opacity: 0.56;
-    -webkit-mask-image:
-      linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%),
-      linear-gradient(to bottom, transparent 0%, #000 18%, #000 100%);
-    -webkit-mask-composite: source-in;
-    mask-image:
-      linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%),
-      linear-gradient(to bottom, transparent 0%, #000 18%, #000 100%);
-    mask-composite: intersect;
-    pointer-events: none;
-    --input-aurora-x-shift: 0%;
-    --input-aurora-y-shift: 0%;
-    --input-aurora-scale-shift: 0;
-    transition:
-      top 760ms cubic-bezier(0.16, 1, 0.3, 1),
-      width 760ms cubic-bezier(0.16, 1, 0.3, 1),
-      height 760ms cubic-bezier(0.16, 1, 0.3, 1),
-      --input-aurora-x-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
-      --input-aurora-y-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
-      --input-aurora-scale-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
-      opacity 420ms ease,
-      filter 560ms cubic-bezier(0.16, 1, 0.3, 1);
-    animation: input-area-aurora 7.5s ease-in-out infinite alternate;
-  }
-
-  .new-conversation-aurora {
-    position: absolute;
-    left: 50%;
-    top: calc(50% - clamp(24px, 3vh, 40px));
-    width: min(calc(100% - 96px), 1120px);
-    height: clamp(260px, 34vh, 420px);
-    z-index: 0;
-    background:
-      radial-gradient(ellipse at 18% 46%, rgba(66, 133, 244, 0.2) 0 18%, transparent 56%),
-      radial-gradient(ellipse at 43% 58%, rgba(52, 168, 83, 0.1) 0 18%, transparent 58%),
-      radial-gradient(ellipse at 66% 42%, rgba(161, 66, 244, 0.12) 0 18%, transparent 58%),
-      radial-gradient(ellipse at 84% 60%, rgba(251, 188, 5, 0.08) 0 16%, transparent 56%),
-      linear-gradient(180deg, rgba(232, 246, 255, 0.32), rgba(216, 237, 255, 0.18) 60%, transparent);
-    filter: blur(72px) saturate(1.1);
-    opacity: 0;
-    pointer-events: none;
-    transform: translate(-50%, -50%);
-    transition: opacity 420ms ease;
-    animation: new-conversation-aurora 8s ease-in-out infinite alternate;
-  }
-
-  .new-conversation-aurora-visible {
-    opacity: 0.9;
-  }
-
-  :global(html.dark) .new-conversation-aurora {
-    display: none;
-  }
-
   .conversation-input-fade::after {
     content: "";
     position: absolute;
@@ -513,14 +416,6 @@
       opacity 420ms ease;
   }
 
-  .conversation-aurora-streaming {
-    --input-aurora-x-shift: 9%;
-    --input-aurora-y-shift: 3%;
-    --input-aurora-scale-shift: 0.2;
-    opacity: 0.72;
-    filter: blur(28px) saturate(1.45);
-  }
-
   .conversation-input-fade-hidden {
     opacity: 0;
   }
@@ -530,10 +425,6 @@
     bottom: auto;
     padding-bottom: 0;
     transform: translateY(-50%);
-  }
-
-  .conversation-aurora-new-conversation {
-    opacity: 0;
   }
 
   .conversation-input-fade-streaming::after {
@@ -598,62 +489,6 @@
         rgba(245, 245, 247, 0.08) 72%,
         transparent
       );
-    }
-  }
-
-  @keyframes input-area-aurora {
-    0% {
-      transform: translate3d(
-          calc(-50% - 5% - var(--input-aurora-x-shift)),
-          calc(8% + var(--input-aurora-y-shift)),
-          0
-        )
-        scale(calc(1.05 + var(--input-aurora-scale-shift)));
-      background-position: 0% 50%;
-    }
-    50% {
-      transform: translate3d(
-          calc(-50% + 4% + var(--input-aurora-x-shift)),
-          calc(3% - var(--input-aurora-y-shift)),
-          0
-        )
-        scale(calc(1.12 + var(--input-aurora-scale-shift)));
-      background-position: 100% 50%;
-    }
-    100% {
-      transform: translate3d(
-          calc(-50% - 2% - var(--input-aurora-x-shift)),
-          calc(6% + var(--input-aurora-y-shift)),
-          0
-        )
-        scale(calc(1.09 + var(--input-aurora-scale-shift)));
-      background-position: 40% 100%;
-    }
-  }
-
-  @keyframes new-conversation-aurora {
-    0% {
-      transform: translate3d(calc(-50% - 4%), calc(-50% + 4%), 0) scale(1.04);
-    }
-    50% {
-      transform: translate3d(calc(-50% + 4%), calc(-50% - 2%), 0) scale(1.1);
-    }
-    100% {
-      transform: translate3d(calc(-50% - 1%), calc(-50% + 2%), 0) scale(1.07);
-    }
-  }
-
-  @media (max-width: 700px) {
-    .new-conversation-aurora {
-      width: calc(100% - 40px);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .conversation-aurora,
-    .new-conversation-aurora {
-      animation: none;
-      transition: none;
     }
   }
 

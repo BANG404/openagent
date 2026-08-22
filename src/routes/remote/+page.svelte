@@ -1149,11 +1149,6 @@
         </header>
 
         <main class="messages" bind:this={messagesEl}>
-          <div
-            class="new-conversation-aurora"
-            class:new-conversation-aurora-visible={newConversationLayout}
-            aria-hidden="true"
-          ></div>
           {#if loadingWorkspace}
             <LoadingSkeleton variant="new-conversation" label={$t("remoteLoadingWorkspace")} />
           {:else if loadingConversationId}
@@ -1208,11 +1203,6 @@
           class:input-area-new-conversation={newConversationLayout}
           bind:clientHeight={inputAreaHeight}
         >
-          <div
-            class="conversation-aurora"
-            class:conversation-aurora-streaming={running}
-            aria-hidden="true"
-          ></div>
           {#if newConversationLayout}
             <NewConversationContext
               prompt={$t("remoteNewConversationGreeting")}
@@ -1311,22 +1301,6 @@
 </TooltipPrimitive.Provider>
 
 <style>
-  @property --input-aurora-x-shift {
-    syntax: "<percentage>";
-    inherits: false;
-    initial-value: 0%;
-  }
-  @property --input-aurora-y-shift {
-    syntax: "<percentage>";
-    inherits: false;
-    initial-value: 0%;
-  }
-  @property --input-aurora-scale-shift {
-    syntax: "<number>";
-    inherits: false;
-    initial-value: 0;
-  }
-
   .center-state,
   .gate-layout {
     position: relative;
@@ -1687,67 +1661,7 @@
     content: "";
     pointer-events: none;
   }
-  .conversation-aurora {
-    position: absolute;
-    top: calc(100% - 122px);
-    left: 50%;
-    z-index: 0;
-    width: min(calc(100% + 100px), 1064px);
-    height: 210px;
-    background:
-      radial-gradient(ellipse at 12% 62%, rgba(66, 133, 244, 0.34) 0 18%, transparent 43%),
-      radial-gradient(ellipse at 36% 52%, rgba(161, 66, 244, 0.3) 0 16%, transparent 42%),
-      radial-gradient(ellipse at 61% 64%, rgba(234, 67, 53, 0.32) 0 17%, transparent 44%),
-      radial-gradient(ellipse at 84% 54%, rgba(251, 188, 5, 0.32) 0 18%, transparent 44%),
-      radial-gradient(ellipse at 50% 78%, rgba(52, 168, 83, 0.3) 0 22%, transparent 50%);
-    filter: blur(26px) saturate(1.35);
-    opacity: 0.56;
-    pointer-events: none;
-    --input-aurora-x-shift: 0%;
-    --input-aurora-y-shift: 0%;
-    --input-aurora-scale-shift: 0;
-    transition:
-      --input-aurora-x-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
-      --input-aurora-y-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
-      --input-aurora-scale-shift 560ms cubic-bezier(0.16, 1, 0.3, 1),
-      opacity 420ms ease,
-      filter 560ms cubic-bezier(0.16, 1, 0.3, 1);
-    animation: input-area-aurora 7.5s ease-in-out infinite alternate;
-  }
-  .conversation-aurora-streaming {
-    --input-aurora-x-shift: 9%;
-    --input-aurora-y-shift: 3%;
-    --input-aurora-scale-shift: 0.2;
-    opacity: 0.72;
-    filter: blur(28px) saturate(1.45);
-  }
-  .new-conversation-aurora {
-    position: absolute;
-    left: 50%;
-    top: calc(50% - clamp(24px, 3vh, 40px));
-    z-index: 0;
-    width: min(calc(100% - 96px), 1120px);
-    height: clamp(260px, 34vh, 420px);
-    background:
-      radial-gradient(ellipse at 18% 46%, rgba(66, 133, 244, 0.2) 0 18%, transparent 56%),
-      radial-gradient(ellipse at 43% 58%, rgba(52, 168, 83, 0.1) 0 18%, transparent 58%),
-      radial-gradient(ellipse at 66% 42%, rgba(161, 66, 244, 0.12) 0 18%, transparent 58%),
-      radial-gradient(ellipse at 84% 60%, rgba(251, 188, 5, 0.08) 0 16%, transparent 56%);
-    filter: blur(72px) saturate(1.1);
-    opacity: 0;
-    transform: translate(-50%, -50%);
-    transition: opacity 420ms ease;
-    animation: new-conversation-aurora 8s ease-in-out infinite alternate;
-    pointer-events: none;
-  }
-  .new-conversation-aurora-visible {
-    opacity: 0.9;
-  }
-  :global(html.dark) .new-conversation-aurora {
-    display: none;
-  }
-  .input-area-new-conversation::before,
-  .input-area-new-conversation .conversation-aurora {
+  .input-area-new-conversation::before {
     opacity: 0;
   }
   .input-area-new-conversation {
@@ -1830,44 +1744,8 @@
       transform: translate3d(-47%, -53%, 0) scale(1.1);
     }
   }
-  @keyframes input-area-aurora {
-    0% {
-      transform: translate3d(
-          calc(-50% - 5% - var(--input-aurora-x-shift)),
-          calc(8% + var(--input-aurora-y-shift)),
-          0
-        )
-        scale(calc(1.05 + var(--input-aurora-scale-shift)));
-    }
-    50% {
-      transform: translate3d(
-          calc(-50% + 4% + var(--input-aurora-x-shift)),
-          calc(3% - var(--input-aurora-y-shift)),
-          0
-        )
-        scale(calc(1.12 + var(--input-aurora-scale-shift)));
-    }
-    100% {
-      transform: translate3d(
-          calc(-50% - 2% - var(--input-aurora-x-shift)),
-          calc(6% + var(--input-aurora-y-shift)),
-          0
-        )
-        scale(calc(1.09 + var(--input-aurora-scale-shift)));
-    }
-  }
-  @keyframes new-conversation-aurora {
-    from {
-      transform: translate3d(-54%, -46%, 0) scale(1.04);
-    }
-    to {
-      transform: translate3d(-46%, -52%, 0) scale(1.1);
-    }
-  }
   @media (prefers-reduced-motion: reduce) {
     .sidebar,
-    .conversation-aurora,
-    .new-conversation-aurora,
     .gate-aurora {
       transition: none;
       animation: none;
@@ -1888,9 +1766,6 @@
     }
     .input-inner {
       padding: 0 10px;
-    }
-    .new-conversation-aurora {
-      width: calc(100% - 40px);
     }
     .gate-card {
       padding: 28px 24px;

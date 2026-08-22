@@ -110,14 +110,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   as a full-height inset card inside the conversation workspace's flex container,
   using the same translucent Mica material as the conversation surface so it stays
   visually continuous while its persisted width reduces the conversation track.
-  Paint one translucent Mica background on that shared workspace, and keep both
-  the composer aurora and its bottom fades there rather than inside the
-  conversation-only track. Stack the shared fades below the aurora, the shared
-  Mica veil above it, and interactive conversation content above that veil so
-  the color remains visible without making the surface overly transparent. Give
-  both the ordinary composer and expanded panel the same standard Mica card
-  surface and blur so transcript content is softened without hiding the shared
-  color treatment.
+  Paint one neutral translucent Mica background on that shared workspace. Keep
+  the composer's bottom readability fade there rather than inside the
+  conversation-only track, but do not add an ambient color or streaming glow
+  behind the composer. Give both the ordinary composer and expanded panel the
+  same standard Mica card surface and blur without a colored state shadow.
   Retain the expanded panel's card border, radius, and shadow; its surface must
   use the same composition as the composer rather than an independently tinted
   backdrop. Do not retain a clickable edge peek, collapsed layout track, or a
@@ -574,13 +571,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   against the title bar's lower edge, with 8px gutters at the sides and bottom
   plus quiet elevation; use that spatial layer rather than shell divider lines to
   separate conversation from navigation.
-- Use the theme canvas for the workspace surface and retain the low-contrast
-  ambient aurora behind the composer and new-conversation greeting. Keep the
-  empty-state aurora mounted across conversation changes
-  and crossfade its visibility against the composer aurora; do not remount a
-  fully opaque animated layer when the active conversation becomes empty. Fade
-  in the fixed greeting's ambient layers on the same opacity rhythm so
-  the two empty-state light fields cannot flash on together. On a new
+- Use the theme canvas for the workspace surface. Keep the new-conversation
+  greeting and composer, as well as the bottom-anchored composer, on neutral
+  theme surfaces without an ambient color field or animated glow. On a new
   conversation, treat the greeting and composer as one vertical stack whose
   measured total height is centered with a small fixed offset below the geometric
   center, and constrain that composer to a 760px outer column. Give its compact
@@ -598,17 +591,16 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   ordinary transcript's own top inset compact so it does not stack a second
   header-sized gap above the first message or debug context. Tint the translucent
   conversation-canvas veil from the shared application background in both themes
-  so neutral regions match the title bar while the established aurora remains
-  visible underneath. Reserve Mica for raised chat controls such as the composer
-  and flow panel.
+  so neutral regions match the title bar. Reserve Mica for raised chat controls
+  such as the composer and flow panel.
 - An explicitly empty durable active-conversation marker restores the centered
   new-conversation surface, even when older conversations exist. Never fall
   back to the newest conversation.
 - Treat the new-conversation action as idempotent while that surface is already
   visible. Do not reload its greeting or suggestions, rewrite its durable active marker,
   or toggle its loading skeleton on a repeated click.
-- The new-conversation greeting is the fixed localized prompt "Where should we
-  start?" / “我们该从哪里开始呢？” and uses a compact, regular-weight display heading
+- The new-conversation greeting is the fixed product name `OpenAgent` in every
+  locale and uses a compact, regular-weight display heading
   treatment above the centered composer. Keep its tracking locale-aware: Latin
   copy remains subtly compact while Chinese copy uses open, positive character
   spacing. It must not depend on memory or a Flash task. Show exactly three optional Flash-generated

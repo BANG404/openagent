@@ -790,7 +790,6 @@
 {:else if preview === "checkpoint-flow"}
   <main class="checkpoint-flow-preview-stage">
     <div class="conversation-input-fade" aria-hidden="true"></div>
-    <div class="conversation-aurora" aria-hidden="true"></div>
     <header class="checkpoint-flow-preview-titlebar">
       <span>{$t(checkpointFlow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}</span>
       <CheckpointFlowToggleButton
@@ -1475,22 +1474,6 @@
     z-index: 1;
     height: 168px;
     background: linear-gradient(to top, var(--bg) 0%, var(--bg) 60%, transparent 100%);
-    pointer-events: none;
-  }
-  .conversation-aurora {
-    position: absolute;
-    left: 50%;
-    top: calc(100% - 122px);
-    width: min(calc(100% + 100px), 1064px);
-    height: 210px;
-    z-index: 2;
-    background:
-      radial-gradient(ellipse at 12% 62%, rgba(66, 133, 244, 0.34) 0 18%, transparent 43%),
-      radial-gradient(ellipse at 61% 64%, rgba(234, 67, 53, 0.32) 0 17%, transparent 44%),
-      radial-gradient(ellipse at 84% 54%, rgba(251, 188, 5, 0.32) 0 18%, transparent 44%);
-    filter: blur(26px) saturate(1.35);
-    opacity: 0.56;
-    transform: translateX(-50%);
     pointer-events: none;
   }
   @media (max-width: 760px) {

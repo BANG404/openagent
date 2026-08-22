@@ -318,16 +318,6 @@
       0 10px 30px rgba(15, 23, 42, 0.035);
   }
 
-  .desktop-shell-content::before {
-    content: "";
-    position: absolute;
-    inset: 38% 8% -28%;
-    background:
-      radial-gradient(ellipse at 22% 46%, rgba(66, 133, 244, 0.18), transparent 52%),
-      radial-gradient(ellipse at 72% 52%, rgba(161, 66, 244, 0.13), transparent 54%);
-    filter: blur(46px);
-  }
-
   .new-conversation-heading {
     position: absolute;
     top: calc(50% - 112px);
