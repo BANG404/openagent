@@ -21,10 +21,13 @@ rtk bun .agents/skills/deliver-via-pr/scripts/run-codex-exec-batch.mjs \
   --task "OWT implement the second independent scope and its documentation"
 ```
 
-The launcher invokes `codex exec` without a shell, grants `workspace-write`
-access to the repository and its parent so OWT sibling worktrees can be created,
-prefixes each process's output, waits for all processes, and exits nonzero if
-any child fails. It defaults to at most four simultaneous processes. Use
+The launcher invokes `codex exec` without a shell and uses
+`--approve-for-me`, whose CLI contract supplies the `workspace-write` sandbox.
+It grants the repository parent as an additional writable directory so OWT
+sibling worktrees can be created, prefixes each process's output, waits for all
+processes, and exits nonzero if any child fails. Do not also pass an explicit
+`--sandbox`: current Codex CLI versions reject that combination. It defaults to
+at most four simultaneous processes. Use
 `--dry-run` to inspect resolved commands and paths without launching Codex, and
 `--codex-bin` only when the executable cannot be resolved normally.
 

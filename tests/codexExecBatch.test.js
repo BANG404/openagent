@@ -27,8 +27,6 @@ describe("Codex exec OWT batch launcher", () => {
     expect(plan.tasks.map(({ id }) => id)).toEqual(["task-1", "task-2"]);
     expect(plan.tasks[0].args).toEqual([
       "exec",
-      "--sandbox",
-      "workspace-write",
       "--approve-for-me",
       "--cd",
       plan.repo,

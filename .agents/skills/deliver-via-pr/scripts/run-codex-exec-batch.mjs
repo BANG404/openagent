@@ -116,8 +116,6 @@ export function buildExecPlan(options) {
       prompt,
       args: [
         "exec",
-        "--sandbox",
-        "workspace-write",
         "--approve-for-me",
         "--cd",
         repo,
