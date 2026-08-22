@@ -30,6 +30,7 @@
     newConversationComposerDraftKey,
   } from "$lib/composerDrafts";
   import { ChatStreamState } from "$lib/chatStreamState.svelte";
+  import { InterruptResolutionTracker } from "$lib/interruptResolutionTracker";
   import { resolveStandaloneDevPreview } from "$lib/devPreview";
   import {
     addWorkspaceToPersistedOrder,
@@ -355,11 +356,9 @@
   // Pending ask_user requests per conversation. Backend emits one when the
   // ask_user tool fires; the form clears on submit/cancel.
   let pendingUserInputs = $state<Record<string, UserInputRequest>>({});
-  // Prevent approve/deny double submissions for the same durable tool call.
-  // Different calls may still be clicked quickly; Rust serializes those per
-  // conversation and advances each from the latest checkpoint tip.
-  let resolvingUserInputIds = $state<Record<string, boolean>>({});
-  let resolvingUserInputConvIds = $state<Record<string, boolean>>({});
+  // Prevent duplicate responses for one durable request without blocking
+  // sibling approval cards. Rust serializes their conversation transitions.
+  const userInputResolutions = new InterruptResolutionTracker();
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
   let checkpointFlowPanelCollapsed = $state(true);
@@ -1067,91 +1066,69 @@
   }
 
   async function submitUserInput(requestId: string, values: Record<string, unknown>) {
-    const convId = activeConvId;
-    if (!convId || resolvingUserInputIds[requestId] || resolvingUserInputConvIds[convId]) return;
-    resolvingUserInputIds = { ...resolvingUserInputIds, [requestId]: true };
-    resolvingUserInputConvIds = { ...resolvingUserInputConvIds, [convId]: true };
-    try {
-      if (convId) {
-        const assistantMessageId = crypto.randomUUID();
-        chatStreams.startTiming(convId);
-        chatStreams.streamingConversationIds = {
-          ...chatStreams.streamingConversationIds,
-          [convId]: true,
-        };
-        // The approved card stays in the durable message list. Only output
-        // produced after the resume belongs to this new stream message.
-        chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: [] };
-        chatStreams.assistantMessageIds = {
-          ...chatStreams.assistantMessageIds,
-          [convId]: assistantMessageId,
-        };
-        // The resume command spans the entire follow-up provider stream. Show
-        // the answer immediately instead of leaving the editable form mounted.
-        markUserInputResolved(convId, requestId, "answered", { values });
-        await openAgent.resumeInterrupt({
-          convId,
-          interruptId: requestId,
-          response: JSON.stringify({ values }),
-          branchId: activeBranchIds[convId] ?? null,
-          assistantMessageId,
-        });
-        clearPendingInput(convId, requestId);
-      }
-    } catch (err) {
-      console.warn("resume_interrupted_chat failed", err);
-      if (convId) {
-        markUserInputResolved(convId, requestId, "pending", undefined);
-        chatStreams.cleanup(convId);
-      }
-    } finally {
-      const { [requestId]: _resolved, ...rest } = resolvingUserInputIds;
-      resolvingUserInputIds = rest;
-      const { [convId]: _conversation, ...remainingConversations } = resolvingUserInputConvIds;
-      resolvingUserInputConvIds = remainingConversations;
-    }
+    await resolvePendingUserInput(
+      requestId,
+      { values },
+      "answered",
+      "resume_interrupted_chat failed",
+    );
   }
 
   async function cancelUserInput(requestId: string) {
+    await resolvePendingUserInput(
+      requestId,
+      { cancelled: true },
+      "cancelled",
+      "cancel user input failed",
+    );
+  }
+
+  async function resolvePendingUserInput(
+    requestId: string,
+    response: unknown,
+    state: "answered" | "cancelled",
+    errorLabel: string,
+  ) {
     const convId = activeConvId;
-    const response = { cancelled: true };
-    if (!convId || resolvingUserInputIds[requestId] || resolvingUserInputConvIds[convId]) return;
-    resolvingUserInputIds = { ...resolvingUserInputIds, [requestId]: true };
-    resolvingUserInputConvIds = { ...resolvingUserInputConvIds, [convId]: true };
+    if (!convId) return;
+    const resolution = userInputResolutions.begin(requestId, convId);
+    if (!resolution) return;
+
+    const assistantMessageId = crypto.randomUUID();
+    if (resolution.firstForConversation) {
+      chatStreams.startTiming(convId);
+      chatStreams.streamingConversationIds = {
+        ...chatStreams.streamingConversationIds,
+        [convId]: true,
+      };
+      // All approvals in this provider batch continue the same logical Turn.
+      // Initialize its resumed stream once while sibling responses queue in Rust.
+      chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: [] };
+      chatStreams.assistantMessageIds = {
+        ...chatStreams.assistantMessageIds,
+        [convId]: assistantMessageId,
+      };
+    }
+    // Optimistically remove only the clicked form. Other approval cards remain
+    // interactive while their exact request IDs wait on the runtime queue.
+    markUserInputResolved(convId, requestId, state, response);
     try {
-      if (convId) {
-        const assistantMessageId = crypto.randomUUID();
-        chatStreams.startTiming(convId);
-        chatStreams.streamingConversationIds = {
-          ...chatStreams.streamingConversationIds,
-          [convId]: true,
-        };
-        chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: [] };
-        chatStreams.assistantMessageIds = {
-          ...chatStreams.assistantMessageIds,
-          [convId]: assistantMessageId,
-        };
-        markUserInputResolved(convId, requestId, "cancelled", response);
-        await openAgent.resumeInterrupt({
-          convId,
-          interruptId: requestId,
-          response: JSON.stringify(response),
-          branchId: activeBranchIds[convId] ?? null,
-          assistantMessageId,
-        });
-        clearPendingInput(convId, requestId);
-      }
+      await openAgent.resumeInterrupt({
+        convId,
+        interruptId: requestId,
+        response: JSON.stringify(response),
+        branchId: activeBranchIds[convId] ?? null,
+        assistantMessageId,
+      });
+      clearPendingInput(convId, requestId);
     } catch (err) {
-      console.warn("cancel user input failed", err);
-      if (convId) {
-        markUserInputResolved(convId, requestId, "pending", undefined);
+      console.warn(errorLabel, err);
+      markUserInputResolved(convId, requestId, "pending", undefined);
+      if (!userInputResolutions.hasOtherInConversation(convId, requestId)) {
         chatStreams.cleanup(convId);
       }
     } finally {
-      const { [requestId]: _resolved, ...rest } = resolvingUserInputIds;
-      resolvingUserInputIds = rest;
-      const { [convId]: _conversation, ...remainingConversations } = resolvingUserInputConvIds;
-      resolvingUserInputConvIds = remainingConversations;
+      userInputResolutions.finish(requestId);
     }
   }
 

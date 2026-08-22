@@ -67,6 +67,7 @@
   import { openBrowserUrl } from "$lib/openagent/externalUrl";
   import { HttpTransport } from "$lib/openagent/httpTransport";
   import { randomUuid } from "$lib/uuid";
+  import { InterruptResolutionTracker } from "$lib/interruptResolutionTracker";
   import { clampSidebarWidth, loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
 
   type Screen = "loading" | "pair" | "chat";
@@ -114,11 +115,12 @@
   let streamPaused = $state(false);
   let forkDisplayMessages = $state<ChatMessage[] | null>(null);
   let queuedChatMessages = $state<QueuedChatMessages>({});
-  let resolvingInterrupt = $state<{
-    id: string;
+  type OptimisticInterruptResolution = {
     state: "answered" | "cancelled";
     response: unknown;
-  } | null>(null);
+  };
+  let resolvingInterrupts = $state<Record<string, OptimisticInterruptResolution>>({});
+  const interruptResolutions = new InterruptResolutionTracker();
   const previewUrls = new Set<string>();
   const handledMermaidInterrupts = new Set<string>();
 
@@ -187,7 +189,7 @@
   const running = $derived(
     conversation?.phase === "before_completion" ||
       pendingAssistantMessageId !== null ||
-      resolvingInterrupt !== null,
+      Object.keys(resolvingInterrupts).length > 0,
   );
   const projectedMessages = $derived.by(() => {
     let projected: ChatMessage[];
@@ -213,24 +215,26 @@
           )
         : [];
     }
-    const pendingResolution = resolvingInterrupt;
-    if (!pendingResolution) return projected;
-    return projected.map((message) =>
-      message.items?.some(
-        (item) =>
-          (item.type === "user_input" && item.request.request_id === pendingResolution.id) ||
-          (item.type === "tool_call" && item.approval?.request.request_id === pendingResolution.id),
-      )
-        ? {
-            ...message,
-            items: resolveUserInput(
-              message.items,
-              pendingResolution.id,
-              pendingResolution.state,
-              pendingResolution.response,
-            ),
-          }
-        : message,
+    return Object.entries(resolvingInterrupts).reduce(
+      (messages, [requestId, resolution]) =>
+        messages.map((message) =>
+          message.items?.some(
+            (item) =>
+              (item.type === "user_input" && item.request.request_id === requestId) ||
+              (item.type === "tool_call" && item.approval?.request.request_id === requestId),
+          )
+            ? {
+                ...message,
+                items: resolveUserInput(
+                  message.items,
+                  requestId,
+                  resolution.state,
+                  resolution.response,
+                ),
+              }
+            : message,
+        ),
+      projected,
     );
   });
   const liveAssistant = $derived.by(() => {
@@ -516,7 +520,7 @@
     pendingAssistantMessageId = null;
     streamPaused = false;
     forkDisplayMessages = null;
-    resolvingInterrupt = null;
+    resolvingInterrupts = {};
     error = "";
     if (window.matchMedia("(max-width: 760px)").matches) sidebarCollapsed = true;
   }
@@ -550,11 +554,13 @@
             };
           }
         }
-        if (
-          resolvingInterrupt &&
-          !state.interrupts.some((interrupt) => interrupt.id === resolvingInterrupt?.id)
-        ) {
-          resolvingInterrupt = null;
+        const stillPending = Object.fromEntries(
+          Object.entries(resolvingInterrupts).filter(([requestId]) =>
+            state.interrupts.some((interrupt) => interrupt.id === requestId),
+          ),
+        );
+        if (Object.keys(stillPending).length !== Object.keys(resolvingInterrupts).length) {
+          resolvingInterrupts = stillPending;
         }
         if (optimisticUser && state.messages.some((message) => message.id === optimisticUser?.id)) {
           optimisticUser = null;
@@ -938,13 +944,15 @@
     response: unknown,
     state: "answered" | "cancelled",
   ) {
-    if (!conversation || resolvingInterrupt) return;
+    if (!conversation) return;
     const convId = conversation.conv_id;
-    resolvingInterrupt = { id: requestId, state, response };
+    const resolution = interruptResolutions.begin(requestId, convId);
+    if (!resolution) return;
+    resolvingInterrupts = { ...resolvingInterrupts, [requestId]: { state, response } };
     busy = true;
     error = "";
-    const assistantMessageId = randomUuid();
-    pendingAssistantMessageId = assistantMessageId;
+    const assistantMessageId = pendingAssistantMessageId ?? randomUuid();
+    if (resolution.firstForConversation) pendingAssistantMessageId = assistantMessageId;
     try {
       await client.resumeInterrupt({
         convId,
@@ -953,11 +961,15 @@
         assistantMessageId,
       });
     } catch (cause) {
-      resolvingInterrupt = null;
-      pendingAssistantMessageId = null;
+      const { [requestId]: _failed, ...remaining } = resolvingInterrupts;
+      resolvingInterrupts = remaining;
+      if (!interruptResolutions.hasOtherInConversation(convId, requestId)) {
+        pendingAssistantMessageId = null;
+      }
       error = cause instanceof Error ? cause.message : String(cause);
     } finally {
-      busy = false;
+      interruptResolutions.finish(requestId);
+      busy = interruptResolutions.size > 0;
     }
   }
 

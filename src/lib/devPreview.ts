@@ -1,4 +1,5 @@
 export type StandaloneDevPreview =
+  | "approval-queue"
   | "attachment-composer"
   | "book-mode"
   | "checkpoint-flow"
@@ -18,6 +19,7 @@ export type StandaloneDevPreview =
   | "workspace-switcher";
 
 const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
+  ["approval-queue-preview", "approval-queue"],
   ["desktop-shell-preview", "desktop-shell"],
   ["book-mode-preview", "book-mode"],
   ["permission-settings-preview", "permission-settings"],

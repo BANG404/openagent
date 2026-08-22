@@ -24,6 +24,7 @@
     ReasoningEffort,
     RecentWorkspace,
     StreamItem,
+    UserInputRequest,
     WorkspaceContext,
     UserMessageContext,
   } from "$lib/types";
@@ -43,6 +44,7 @@
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
   import ReasoningEffortSelect from "$lib/components/ReasoningEffortSelect.svelte";
   import RoleSelector from "$lib/components/RoleSelector.svelte";
+  import ToolCallCard from "$lib/components/ToolCallCard.svelte";
   import WorkspaceSwitcher from "$lib/components/WorkspaceSwitcher.svelte";
 
   let { preview }: { preview: StandaloneDevPreview } = $props();
@@ -132,6 +134,29 @@
     "Preparing the live response. [OpenAgent](https://github.com/BANG404/openagent)",
   );
   let paused = $state(false);
+  const approvalPreviewRequests: UserInputRequest[] = [
+    {
+      request_id: "approval-preview-1",
+      conv_id: "approval-queue-preview",
+      kind: "tool_approval",
+      fields: [],
+    },
+    {
+      request_id: "approval-preview-2",
+      conv_id: "approval-queue-preview",
+      kind: "tool_approval",
+      fields: [],
+    },
+    {
+      request_id: "approval-preview-3",
+      conv_id: "approval-queue-preview",
+      kind: "tool_approval",
+      fields: [],
+    },
+  ];
+  let approvalPreviewStates = $state<Record<string, "pending" | "answered" | "cancelled">>(
+    Object.fromEntries(approvalPreviewRequests.map((request) => [request.request_id, "pending"])),
+  );
   let checkpointValue = $state("");
   let checkpointAttachments = $state<ChatAttachment[]>([]);
   let checkpointConfig = $state<AppConfig>(
@@ -656,10 +681,36 @@
         streamingMessagesElement.clientHeight <=
       24;
   }
+
+  function resolvePreviewApproval(requestId: string, approved: boolean) {
+    if (approvalPreviewStates[requestId] !== "pending") return;
+    approvalPreviewStates = {
+      ...approvalPreviewStates,
+      [requestId]: approved ? "answered" : "cancelled",
+    };
+  }
 </script>
 
 {#if preview === "desktop-shell"}
   <DesktopShellPreview />
+{:else if preview === "approval-queue"}
+  <main class="approval-queue-preview-stage">
+    <section class="approval-queue-preview-stack" aria-label="Approval queue preview">
+      {#each approvalPreviewRequests as request, index (request.request_id)}
+        <ToolCallCard
+          name={index === 0 ? "terminal_exec" : index === 1 ? "write_file" : "dispatch_role"}
+          args={JSON.stringify({ request: index + 1 }, null, 2)}
+          result={undefined}
+          expanded={false}
+          argHint={`request ${index + 1}`}
+          approval={{ request, state: approvalPreviewStates[request.request_id] }}
+          onApprove={(requestId) => resolvePreviewApproval(requestId, true)}
+          onDeny={(requestId) => resolvePreviewApproval(requestId, false)}
+          onToggle={() => {}}
+        />
+      {/each}
+    </section>
+  </main>
 {:else if preview === "input-surfaces"}
   <main class="input-surfaces-preview-stage">
     <section class="input-surfaces-preview-stack">
@@ -1108,6 +1159,7 @@
 {/if}
 
 <style>
+  .approval-queue-preview-stage,
   .reasoning-effort-preview-stage,
   .input-surfaces-preview-stage,
   .permission-settings-preview-stage,
@@ -1120,6 +1172,16 @@
     min-height: 100vh;
     box-sizing: border-box;
     background: var(--bg);
+  }
+  .approval-queue-preview-stage {
+    display: grid;
+    place-items: start center;
+    padding: 48px 24px;
+  }
+  .approval-queue-preview-stack {
+    display: grid;
+    width: min(720px, 100%);
+    gap: 12px;
   }
   .input-surfaces-preview-stage {
     display: grid;

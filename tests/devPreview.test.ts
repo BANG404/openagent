@@ -4,6 +4,12 @@ import { describe, expect, test } from "bun:test";
 import { previewParameterPrefix, resolveStandaloneDevPreview } from "../src/lib/devPreview";
 
 describe("standalone development previews", () => {
+  test("resolves the approval queue preview only during development", () => {
+    const query = new URLSearchParams("approval-queue-preview");
+    expect(resolveStandaloneDevPreview(query, true)).toBe("approval-queue");
+    expect(resolveStandaloneDevPreview(query, false)).toBeNull();
+  });
+
   test("selects one explicit preview only in development", () => {
     const query = new URLSearchParams("checkpoint-flow-preview&pause-control-preview");
     expect(resolveStandaloneDevPreview(query, true)).toBe("checkpoint-flow");

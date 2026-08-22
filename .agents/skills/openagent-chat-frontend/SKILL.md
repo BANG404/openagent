@@ -266,6 +266,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   keyboard focus or an actively running tool, not for the tool's type.
 - Keep `ask_user`, approvals, HTML previews, and other dedicated tools outside
   ordinary grouping.
+- Batched approval cards remain independently clickable. Optimistically resolve
+  only the exact request ID that was clicked, reject duplicate responses for
+  that same request, and leave sibling cards interactive while the runtime's
+  per-conversation queue advances each response from the latest durable tip.
+  A failed response restores only its matching card and must not tear down a
+  sibling approval that is still queued or running. Apply the same behavior to
+  desktop and remote transcript projections.
 - Render `render_mermaid` as a standalone transcript row from ToolCall source and
   restore it from the matching durable ToolResult. Defer `render_html` and
   `render_mermaid` previews until their successful ToolResult arrives; never
@@ -754,6 +761,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   shared composer's streaming primary action. Its `-theme` and `-locale`
   parameters must keep pause, resume, send, light/dark, and Chinese/English
   checks addressable without a native runtime.
+- Keep the development-only `approval-queue-preview` query available for
+  rapidly resolving several real tool-approval cards. Its `-theme` and
+  `-locale` parameters must keep independent optimistic approve/deny behavior,
+  light/dark themes, and Chinese/English copy directly verifiable without a
+  native runtime.
 - Keep the development-only `runtime-notice-preview` query available for the
   standard persisted interruption divider. Its `-theme` and `-locale` parameters
   must verify that the localized title is not followed by the redundant durable
