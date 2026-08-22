@@ -270,6 +270,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   only the exact request ID that was clicked, reject duplicate responses for
   that same request, and leave sibling cards interactive while the runtime's
   per-conversation queue advances each response from the latest durable tip.
+  A live approval request arrives before its run's terminal interruption event;
+  if the clicked request still belongs to the live stream, wait for that event
+  to finalize the assistant turn before initializing the resumed stream. Never
+  clear the text or tool cards that contain the approval being resolved.
   A failed response restores only its matching card and must not tear down a
   sibling approval that is still queued or running. Apply the same behavior to
   desktop and remote transcript projections.

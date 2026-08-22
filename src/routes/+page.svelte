@@ -30,7 +30,10 @@
     newConversationComposerDraftKey,
   } from "$lib/composerDrafts";
   import { ChatStreamState } from "$lib/chatStreamState.svelte";
-  import { InterruptResolutionTracker } from "$lib/interruptResolutionTracker";
+  import {
+    InterruptResolutionTracker,
+    InterruptTerminalHandoff,
+  } from "$lib/interruptResolutionTracker";
   import { resolveStandaloneDevPreview } from "$lib/devPreview";
   import {
     addWorkspaceToPersistedOrder,
@@ -355,6 +358,9 @@
   // Prevent duplicate responses for one durable request without blocking
   // sibling approval cards. Rust serializes their conversation transitions.
   const userInputResolutions = new InterruptResolutionTracker();
+  // A live approval may be clicked before its run has emitted the terminal
+  // interruption event. Resume only after that event has finalized the turn.
+  const interruptTerminalHandoffs = new InterruptTerminalHandoff();
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
   let checkpointFlowPanelCollapsed = $state(true);
@@ -1090,25 +1096,37 @@
     const resolution = userInputResolutions.begin(requestId, convId);
     if (!resolution) return;
 
+    const requestIsInLiveTurn = (chatStreams.itemsByConversation[convId] ?? []).some((item) =>
+      hasInputRequest(item, requestId),
+    );
+    const terminalHandoff = requestIsInLiveTurn
+      ? interruptTerminalHandoffs.wait(convId)
+      : Promise.resolve();
+
     const assistantMessageId = crypto.randomUUID();
-    if (resolution.firstForConversation) {
-      chatStreams.startTiming(convId);
-      chatStreams.streamingConversationIds = {
-        ...chatStreams.streamingConversationIds,
-        [convId]: true,
-      };
-      // All approvals in this provider batch continue the same logical Turn.
-      // Initialize its resumed stream once while sibling responses queue in Rust.
-      chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: [] };
-      chatStreams.assistantMessageIds = {
-        ...chatStreams.assistantMessageIds,
-        [convId]: assistantMessageId,
-      };
-    }
     // Optimistically remove only the clicked form. Other approval cards remain
     // interactive while their exact request IDs wait on the runtime queue.
     markUserInputResolved(convId, requestId, state, response);
     try {
+      // The approval request event precedes the run's terminal event. Preserve
+      // the live assistant turn until `onInterrupted` has moved it into the
+      // durable transcript; otherwise initializing the resumed stream here
+      // erases the text and tool cards that the user just approved.
+      await terminalHandoff;
+      if (resolution.firstForConversation) {
+        chatStreams.startTiming(convId);
+        chatStreams.streamingConversationIds = {
+          ...chatStreams.streamingConversationIds,
+          [convId]: true,
+        };
+        // All approvals in this provider batch continue the same logical Turn.
+        // Initialize its resumed stream once while sibling responses queue in Rust.
+        chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: [] };
+        chatStreams.assistantMessageIds = {
+          ...chatStreams.assistantMessageIds,
+          [convId]: assistantMessageId,
+        };
+      }
       await openAgent.resumeInterrupt({
         convId,
         interruptId: requestId,
@@ -1134,6 +1152,14 @@
     state: "pending" | "answered" | "cancelled",
     response: unknown,
   ) {
+    const liveItems = chatStreams.itemsByConversation[convId];
+    if (liveItems?.some((item) => hasInputRequest(item, requestId))) {
+      chatStreams.itemsByConversation = {
+        ...chatStreams.itemsByConversation,
+        [convId]: resolveUserInput(liveItems, requestId, state, response),
+      };
+    }
+
     const convIdx = conversations.findIndex((c) => c.id === convId);
     if (convIdx === -1) return;
     const updatedMessages = conversations[convIdx].messages.map((msg) => {
@@ -2590,6 +2616,7 @@
       },
       onDone: (conv_id, asstMsgId, error) => {
         finalizeStreamedMessage(conv_id, error ? "failed" : "completed", asstMsgId, error);
+        interruptTerminalHandoffs.release(conv_id);
       },
       onFollowUpSuggestions: (convId, assistantMessageId, suggestions) => {
         const normalized = normalizeSuggestions(suggestions);
@@ -2609,6 +2636,7 @@
       },
       onInterrupted: (conv_id) => {
         finalizeStreamedMessage(conv_id, "interrupted");
+        interruptTerminalHandoffs.release(conv_id);
         // The live `chat-user-input-request` event has already attached the
         // next approval to its tool card. Do not re-project the complete
         // checkpoint here: replacing the conversation while the user clicks
@@ -2617,6 +2645,7 @@
       },
       onCancelled: (conv_id) => {
         finalizeStreamedMessage(conv_id, "cancelled");
+        interruptTerminalHandoffs.release(conv_id);
       },
     });
     await Promise.all([...registrations, chatEventRegistration]);

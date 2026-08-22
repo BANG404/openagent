@@ -109,7 +109,10 @@ call is allowed. Approval never widens the active permission profile.
 The General settings page exposes these as two separate controls, while the
 conversation composer provides a shortcut for approval mode only. Approval has
 `manual`, `auto`, and `off` modes and defaults to `off`; it never selects a
-sandbox policy. **Execution Permissions & Sandbox** selects `managed` or
+sandbox policy. In `auto`, all tool calls proposed in one model turn are
+classified by one Flash request with an independent decision for each exact
+tool-call ID; incomplete or unreliable results fall back to manual review.
+**Execution Permissions & Sandbox** selects `managed` or
 `disabled` enforcement. Managed enforcement offers canonical
 workspace-writable and read-only presets, plus an advanced editor for ordered
 `read`, `write`, and `deny` path rules. Network access is configured separately
