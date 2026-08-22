@@ -66,11 +66,9 @@ permissions and do not commit it to source control.
 
 First-run onboarding completion is stored as `onboarding_completed` in
 `config.toml`, so it follows the selected `OPENAGENT_HOME` across desktop
-WebView resets and workspace changes. The setup window opens only when that
-field is false and no completed marker remains in legacy WebView local storage.
-Older releases stored this marker in WebView local storage; the desktop migrates
-that legacy value into the durable configuration once and removes it after a
-successful save.
+WebView resets and workspace changes. This field is the only completion source:
+the setup window opens when it is false and stays closed when it is true.
+WebView local storage is not read or migrated for onboarding compatibility.
 
 The first-run welcome and configuration flow opens in a dedicated setup window
 while the bootstrapped main window stays hidden. Finishing setup applies the

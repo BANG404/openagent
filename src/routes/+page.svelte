@@ -56,11 +56,7 @@
     DEV_MAIN_DEBUG_VISIBILITY_EVENT,
     readMainDebugComponentsVisible,
   } from "$lib/devDebugVisibility";
-  import {
-    ONBOARDING_COMPLETE_EVENT,
-    clearLegacyOnboardingCompletion,
-    hasLegacyOnboardingCompletion,
-  } from "$lib/onboarding";
+  import { ONBOARDING_COMPLETE_EVENT } from "$lib/onboarding";
   import {
     clearQueuedChatMessages,
     dequeueChatMessage,
@@ -1827,16 +1823,7 @@
         !isAgentPluginsSettingsPreview &&
         !isMoreManagementPreview
       ) {
-        const legacyCompleted = hasLegacyOnboardingCompletion();
-        if (!config.onboarding_completed && legacyCompleted) {
-          try {
-            await saveSettings({ ...config, onboarding_completed: true }, config, false);
-            clearLegacyOnboardingCompletion();
-          } catch (error) {
-            console.warn("Failed to migrate legacy onboarding completion:", error);
-          }
-        }
-        requiresOnboarding = !config.onboarding_completed && !legacyCompleted;
+        requiresOnboarding = !config.onboarding_completed;
       }
       const uiReadyAt = performance.now();
       initialLoading = false;
@@ -4130,7 +4117,6 @@
   }
 
   async function completeOnboarding() {
-    clearLegacyOnboardingCompletion();
     if (!tauriAvailable) return;
     await emit(ONBOARDING_COMPLETE_EVENT, { workspace_path: workspacePath });
     await getCurrentWindow().hide();
