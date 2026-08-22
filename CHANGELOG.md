@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.45.1-beta.1] - 2026-08-22
+
+### Bug Fixes
+- **chat**: Enforce batched automatic approvals
+- **chat**: Preserve batched approval turns
+- **chat**: Allow queued approval decisions
+- **ui**: Align onboarding window controls
+
+### Refactoring
+- **onboarding**: Drop legacy completion state
+
 ## [0.45.0-beta.1] - 2026-08-21
 
 ### Features
