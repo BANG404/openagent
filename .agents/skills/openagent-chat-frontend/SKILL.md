@@ -576,7 +576,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   theme surfaces without an ambient color field or animated glow. On a new
   conversation, treat the greeting and composer as one vertical stack whose
   measured total height is centered with a small fixed offset below the geometric
-  center, and constrain that composer to a 760px outer column. Give its compact
+  center. When no generated suggestions are available, raise that complete stack
+  by 24px without positioning the greeting and composer independently. Constrain
+  that composer to a 760px outer column. Give its compact
   textarea more single-line height than the bottom-anchored composer, and keep
   the loading skeleton at the same expanded height. Do not position the greeting
   and composer independently. Ordinary conversations keep the composer anchored

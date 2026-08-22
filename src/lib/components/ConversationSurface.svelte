@@ -212,6 +212,8 @@
       class="input-area"
       class:input-area-streaming={view.isStreaming}
       class:input-area-new-conversation={view.newConversationLayout}
+      class:input-area-new-conversation-without-suggestions={view.newConversationLayout &&
+        view.newConversationSuggestions.length === 0}
       bind:clientHeight={inputAreaHeight}
     >
       {#if view.newConversationLayout}
@@ -425,6 +427,10 @@
     bottom: auto;
     padding-bottom: 0;
     transform: translateY(-50%);
+  }
+
+  .input-area-new-conversation-without-suggestions {
+    top: calc(50% - 10px);
   }
 
   .conversation-input-fade-streaming::after {
