@@ -315,7 +315,8 @@
   .roles-panel {
     flex: 1;
     min-width: 0;
-    height: 100vh;
+    min-height: 0;
+    height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -601,7 +602,7 @@
   }
 
   .form-field textarea {
-    min-height: 240px;
+    min-height: 180px;
     height: 100%;
     padding: 11px;
     resize: none;
