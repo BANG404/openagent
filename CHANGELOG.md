@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.46.0-beta.1] - 2026-08-23
+
+### Features
+- Notify when agent replies in background
+- **desktop**: Use native window materials
+
+### Bug Fixes
+- **desktop**: Authorize native theme synchronization
+- **ui**: Keep feature canvases transparent
+- **ui**: Align collection controls and native theme
+- **ui**: Keep role actions visible
+- **desktop**: Tune native material transparency
+- **chat**: Stabilize book mode window resizing
+
 ## [0.45.3-beta.1] - 2026-08-23
 
 ### Bug Fixes
