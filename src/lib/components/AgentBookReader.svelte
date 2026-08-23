@@ -49,6 +49,7 @@
   let pageIndex = $state(0);
   let pageCount = $state(1);
   let pageStride = 0;
+  let paginationFrame: number | null = null;
   let selectedIndex = $derived(
     Math.max(
       0,
@@ -70,23 +71,21 @@
   $effect(() => {
     activeKey;
     pageIndex = 0;
-    void tick().then(recalculatePagination);
+    void tick().then(schedulePagination);
   });
 
   $effect(() => {
     fontSize;
-    void tick().then(recalculatePagination);
+    void tick().then(schedulePagination);
   });
 
   $effect(() => {
     const element = pageElement;
     if (!element) return;
-    const handleEmbeddedLoad = () => {
-      void tick().then(recalculatePagination);
-    };
-    const resizeObserver = new ResizeObserver(recalculatePagination);
+    const handleEmbeddedLoad = () => schedulePagination();
+    const resizeObserver = new ResizeObserver(schedulePagination);
     const mutationObserver = new MutationObserver(() => {
-      void tick().then(recalculatePagination);
+      void tick().then(schedulePagination);
     });
     resizeObserver.observe(element);
     mutationObserver.observe(element, {
@@ -97,8 +96,9 @@
     });
     element.addEventListener("load", handleEmbeddedLoad, true);
     element.addEventListener("loadedmetadata", handleEmbeddedLoad, true);
-    recalculatePagination();
+    schedulePagination();
     return () => {
+      cancelScheduledPagination();
       resizeObserver.disconnect();
       mutationObserver.disconnect();
       element.removeEventListener("load", handleEmbeddedLoad, true);
@@ -106,27 +106,47 @@
     };
   });
 
+  function cancelScheduledPagination() {
+    if (paginationFrame === null) return;
+    cancelAnimationFrame(paginationFrame);
+    paginationFrame = null;
+  }
+
+  function schedulePagination() {
+    if (typeof requestAnimationFrame === "undefined") return;
+    cancelScheduledPagination();
+    paginationFrame = requestAnimationFrame(() => {
+      paginationFrame = null;
+      recalculatePagination();
+    });
+  }
+
+  function setPageProperty(element: HTMLElement, property: string, value: number) {
+    const nextValue = `${value}px`;
+    if (element.style.getPropertyValue(property) !== nextValue) {
+      element.style.setProperty(property, nextValue);
+    }
+  }
+
   function recalculatePagination() {
-    if (!pageElement || pageElement.clientWidth === 0) return;
-    const styles = getComputedStyle(pageElement);
+    const element = pageElement;
+    if (!element?.isConnected || element.clientWidth === 0) return;
+    const styles = getComputedStyle(element);
     const paddingInline = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
     const paddingBlock = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
     const columnGap = parseFloat(styles.columnGap) || 0;
-    const columnsPerPage = pageElement.clientWidth <= 640 ? 1 : 2;
-    const contentWidth = Math.max(1, pageElement.clientWidth - paddingInline);
+    const columnsPerPage = element.clientWidth <= 640 ? 1 : 2;
+    const contentWidth = Math.max(1, element.clientWidth - paddingInline);
     const columnWidth = Math.max(
       1,
       (contentWidth - columnGap * (columnsPerPage - 1)) / columnsPerPage,
     );
-    pageElement.style.setProperty("--book-column-width", `${columnWidth}px`);
-    const pageContentHeight = Math.max(160, pageElement.clientHeight - paddingBlock);
-    pageElement.style.setProperty("--book-page-content-height", `${pageContentHeight}px`);
-    pageElement.style.setProperty(
-      "--book-embed-max-height",
-      `${Math.max(160, pageContentHeight - 64)}px`,
-    );
+    setPageProperty(element, "--book-column-width", columnWidth);
+    const pageContentHeight = Math.max(160, element.clientHeight - paddingBlock);
+    setPageProperty(element, "--book-page-content-height", pageContentHeight);
+    setPageProperty(element, "--book-embed-max-height", Math.max(160, pageContentHeight - 64));
 
-    const overflowContentWidth = Math.max(1, pageElement.scrollWidth - paddingInline);
+    const overflowContentWidth = Math.max(1, element.scrollWidth - paddingInline);
     const columnCount = Math.max(
       1,
       Math.round((overflowContentWidth + columnGap) / (columnWidth + columnGap)),
@@ -134,7 +154,10 @@
     pageCount = Math.max(1, Math.ceil(columnCount / columnsPerPage));
     pageStride = columnsPerPage * (columnWidth + columnGap);
     pageIndex = Math.min(pageIndex, pageCount - 1);
-    pageElement.scrollTo({ left: pageIndex * pageStride, behavior: "auto" });
+    const pageOffset = pageIndex * pageStride;
+    if (Math.abs(element.scrollLeft - pageOffset) > 0.5) {
+      element.scrollTo({ left: pageOffset, behavior: "auto" });
+    }
   }
 
   function movePage(offset: number) {

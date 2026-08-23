@@ -74,6 +74,18 @@ describe("process record group", () => {
     );
   });
 
+  test("coalesces book pagination outside ResizeObserver delivery", async () => {
+    const source = await readFile(agentBookReaderUrl, "utf8");
+
+    expect(source).toContain("const resizeObserver = new ResizeObserver(schedulePagination)");
+    expect(source).toMatch(
+      /function schedulePagination\(\)\s*{[^}]*cancelScheduledPagination\(\);[^}]*requestAnimationFrame/s,
+    );
+    expect(source).toContain("cancelScheduledPagination();\n      resizeObserver.disconnect();");
+    expect(source).toContain('setPageProperty(element, "--book-column-width", columnWidth)');
+    expect(source).not.toContain("new ResizeObserver(recalculatePagination)");
+  });
+
   test("keeps every fully mounted transcript row visible", async () => {
     const [source, messageSource] = await Promise.all([
       readFile(transcriptListUrl, "utf8"),

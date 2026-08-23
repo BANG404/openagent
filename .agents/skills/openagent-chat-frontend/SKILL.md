@@ -216,6 +216,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Mermaid, code, and HTML previews within the usable page height; preserve
   their native containment or internal scrolling rather than clipping content.
   Recalculate after embedded media loads as well as after resize or expansion.
+  Coalesce resize, mutation, and media-load pagination requests into one
+  cancellable animation-frame update. Resize observers must never synchronously
+  write column geometry or scroll position back to the observed book page, and
+  unchanged geometry must not be written again; this prevents WebView2 resize
+  feedback from overwhelming the renderer while the native window is dragged.
   Retain the same collapsible process-record grouping instead of flattening or
   dropping work details. When expanded, change the process content from its
   ordinary flex stack to a fragmentable block inside the book's multi-column
