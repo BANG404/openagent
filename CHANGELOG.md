@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.45.3-beta.1] - 2026-08-23
+
+### Bug Fixes
+- **chat**: Pin new conversation greeting
+
+### Styling
+- **chat**: Unify transcript component backgrounds
+
 ## [0.45.2-beta.1] - 2026-08-22
 
 ### Bug Fixes
