@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.45.2-beta.1] - 2026-08-22
+
+### Bug Fixes
+- **sidebar**: Restore all available workspaces
+
+### Styling
+- **chat**: Sharpen conversation surface shadows
+- **chat**: Neutralize auxiliary surfaces
+- **chat**: Raise empty new conversation
+- **chat**: Remove colorful conversation effects
+
 ## [0.45.1-beta.1] - 2026-08-22
 
 ### Bug Fixes
