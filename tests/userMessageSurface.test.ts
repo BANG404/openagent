@@ -7,7 +7,6 @@ const sharedSurfaceComponents = [
   "../src/lib/components/MessageList.svelte",
   "../src/lib/components/RetryAttempt.svelte",
   "../src/lib/components/ToolCallCard.svelte",
-  "../src/lib/components/ToolCallGroup.svelte",
   "../src/lib/components/UserInputForm.svelte",
   "../src/lib/components/UserInputSummary.svelte",
 ];
@@ -22,4 +21,16 @@ test("keeps transcript-owned user surfaces on the opaque secondary fill", async 
   for (const source of sources) {
     expect(source).toContain("var(--user-message-bg)");
   }
+});
+
+test("keeps grouped tool calls on the transcript canvas", async () => {
+  const source = await readFile(
+    new URL("../src/lib/components/ToolCallGroup.svelte", import.meta.url),
+    "utf8",
+  );
+
+  expect(source).not.toContain("var(--user-message-bg)");
+  expect(source).toContain(".tool-call-group-toggle {");
+  expect(source).toContain("border: 1px solid var(--border);");
+  expect(source.match(/background: transparent;/g)).toHaveLength(3);
 });

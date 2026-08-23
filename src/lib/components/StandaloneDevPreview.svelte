@@ -580,6 +580,18 @@
           args: JSON.stringify({ paths: ["MessageList.svelte", "checkpointTree.ts"] }),
           result: "Read the transcript grouping and compaction boundary logic.",
         },
+        {
+          type: "tool_call",
+          name: "search_symbols",
+          args: JSON.stringify({ query: "ToolCallGroup" }),
+          result: "Found the grouped tool-call renderer.",
+        },
+        {
+          type: "tool_call",
+          name: "inspect_styles",
+          args: JSON.stringify({ selector: ".tool-call-group" }),
+          result: "Confirmed the group wrapper stays transparent.",
+        },
         { type: "compaction", stage: "summarizing" },
         { type: "compaction_boundary" },
         { type: "text", content: "Answer context immediately before the rendered artifact." },

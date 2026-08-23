@@ -44,6 +44,7 @@
   import Tooltip from "./Tooltip.svelte";
   import Select from "./ui/Select.svelte";
   import Switch from "./ui/Switch.svelte";
+  import SettingsActionButton from "./ui/SettingsActionButton.svelte";
   import SettingsStatusToggle from "./ui/SettingsStatusToggle.svelte";
   import PermissionSettings from "./PermissionSettings.svelte";
   import AgentPluginsSettings from "./AgentPluginsSettings.svelte";
@@ -2374,27 +2375,24 @@
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("memoryBackup")}</h4>
           <div class="memory-action-grid">
-            <button
-              class="filter-toggle"
+            <SettingsActionButton
+              label={$t("exportMemory")}
+              icon="download"
               onclick={exportMemory}
               disabled={memoryBusy || !memoryScopeAvailable()}
-            >
-              {$t("exportMemory")}
-            </button>
-            <button
-              class="filter-toggle"
+            />
+            <SettingsActionButton
+              label={$t("importMemoryMerge")}
+              icon="merge"
               onclick={() => importMemory(false)}
               disabled={memoryBusy || !memoryScopeAvailable()}
-            >
-              {$t("importMemoryMerge")}
-            </button>
-            <button
-              class="filter-toggle"
+            />
+            <SettingsActionButton
+              label={$t("importMemoryReplace")}
+              icon="replace"
               onclick={() => importMemory(true)}
               disabled={memoryBusy || !memoryScopeAvailable()}
-            >
-              {$t("importMemoryReplace")}
-            </button>
+            />
           </div>
         </section>
 
@@ -2403,13 +2401,13 @@
             <p class="danger-title">{$t("clearMemory")}</p>
             <p class="danger-copy">{$t("clearMemoryDesc")}</p>
           </div>
-          <button
-            class="filter-toggle danger-btn"
+          <SettingsActionButton
+            label={$t("clearMemory")}
+            icon="trash"
+            tone="danger"
             onclick={clearMemoryScope}
             disabled={memoryBusy || !memoryScopeAvailable()}
-          >
-            {$t("clearMemory")}
-          </button>
+          />
         </section>
 
         {#if memoryStatus}
@@ -2574,7 +2572,12 @@
           {/if}
         </div>
         <div class="list-footer">
-          <button class="add-provider-btn" onclick={addProvider}>{$t("addProvider")}</button>
+          <SettingsActionButton
+            label={$t("addProvider")}
+            icon="add"
+            tone="primary"
+            onclick={addProvider}
+          />
         </div>
       </div>
 
@@ -3453,7 +3456,12 @@
           {/if}
         </div>
         <div class="list-footer">
-          <button class="add-provider-btn" onclick={addMcpServer}>{$t("addMcpServer")}</button>
+          <SettingsActionButton
+            label={$t("addMcpServer")}
+            icon="add"
+            tone="primary"
+            onclick={addMcpServer}
+          />
         </div>
       </div>
 
@@ -3547,13 +3555,12 @@
                         >
                       </div>
                     {/each}
-                    <button
-                      class="filter-toggle"
-                      style="margin-top:6px"
+                    <SettingsActionButton
+                      label={$t("addHeader")}
+                      icon="add"
+                      tone="quiet"
                       onclick={() => addHeader(selectedMcpIndex)}
-                    >
-                      {$t("addHeader")}
-                    </button>
+                    />
                   </div>
                 {:else}
                   <label class="detail-label">
@@ -3599,25 +3606,23 @@
                         >
                       </div>
                     {/each}
-                    <button
-                      class="filter-toggle"
-                      style="margin-top:6px"
+                    <SettingsActionButton
+                      label={$t("addEnvVar")}
+                      icon="add"
+                      tone="quiet"
                       onclick={() => addEnvVar(selectedMcpIndex)}
-                    >
-                      {$t("addEnvVar")}
-                    </button>
+                    />
                   </div>
                 {/if}
               </div>
 
               <div class="key-input-row" style="margin-top:10px">
-                <button
-                  class="filter-toggle"
+                <SettingsActionButton
+                  label={status?.tone === "testing" ? $t("mcpTesting") : $t("testMcpServer")}
+                  icon="test"
                   onclick={() => testMcpServer(server.id)}
                   disabled={status?.tone === "testing"}
-                >
-                  {status?.tone === "testing" ? $t("mcpTesting") : $t("testMcpServer")}
-                </button>
+                />
               </div>
               {#if status && status.tone !== "idle"}
                 <div
@@ -3636,9 +3641,12 @@
             <section class="detail-section danger-zone">
               <p class="danger-title">{$t("deleteNode")}</p>
               <p class="danger-copy">{$t("deleteNodeDesc")}</p>
-              <button class="filter-toggle danger-btn" onclick={() => removeMcpServer(server.id)}>
-                {$t("deleteMcpServer")}
-              </button>
+              <SettingsActionButton
+                label={$t("deleteMcpServer")}
+                icon="trash"
+                tone="danger"
+                onclick={() => removeMcpServer(server.id)}
+              />
             </section>
           </div>
         </div>
@@ -3941,9 +3949,7 @@
     box-shadow: var(--mica-shadow), var(--focus-ring);
   }
 
-  .filter-toggle,
-  .add-provider-btn,
-  .danger-btn {
+  .filter-toggle {
     border: 0;
     background: var(--surface2);
     color: var(--text-muted);
@@ -3977,11 +3983,6 @@
   .model-action-btn:active,
   .filter-toggle:active {
     transform: scale(0.95);
-  }
-
-  .add-provider-btn {
-    width: 100%;
-    border-style: dashed;
   }
 
   .provider-list {
@@ -5473,10 +5474,6 @@
   .about-app-name {
     color: var(--text);
     font-weight: 600;
-  }
-
-  .danger-btn {
-    color: var(--danger);
   }
 
   .content-col-title {
