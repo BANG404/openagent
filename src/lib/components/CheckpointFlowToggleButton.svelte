@@ -14,7 +14,7 @@
   {#snippet trigger(props)}
     <button
       {...props}
-      class="checkpoint-flow-toggle"
+      class="checkpoint-flow-toggle app-icon-button"
       type="button"
       aria-label={$t(collapsed ? "checkpointFlowExpand" : "checkpointFlowCollapse")}
       aria-controls="checkpoint-flow-panel"

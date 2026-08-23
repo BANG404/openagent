@@ -119,7 +119,7 @@
       </div>
       <Tooltip text={$t("openFolder")} side="top">
         <button
-          class="pick-workspace"
+          class="pick-workspace app-icon-button"
           type="button"
           aria-label={$t("openFolder")}
           disabled={workspaceLoading}

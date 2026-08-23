@@ -231,6 +231,7 @@
                 {#snippet trigger(props)}
                   <button
                     {...props}
+                    class="app-icon-button"
                     type="button"
                     aria-label={$t("attachmentZoomOut")}
                     disabled={previewScale <= ATTACHMENT_PREVIEW_MIN_SCALE}
@@ -247,6 +248,7 @@
                 {#snippet trigger(props)}
                   <button
                     {...props}
+                    class="app-icon-button"
                     type="button"
                     aria-label={$t("attachmentFitPreview")}
                     disabled={previewScale === 1}
@@ -262,6 +264,7 @@
                 {#snippet trigger(props)}
                   <button
                     {...props}
+                    class="app-icon-button"
                     type="button"
                     aria-label={$t("attachmentZoomIn")}
                     disabled={previewScale >= ATTACHMENT_PREVIEW_MAX_SCALE}
@@ -277,7 +280,11 @@
             {/if}
             <Tooltip text={$t("closeAttachmentPreview")}>
               {#snippet trigger(props)}
-                <Dialog.Close {...props} aria-label={$t("closeAttachmentPreview")}>
+                <Dialog.Close
+                  {...props}
+                  class="app-icon-button"
+                  aria-label={$t("closeAttachmentPreview")}
+                >
                   <svg viewBox="0 0 14 14" aria-hidden="true">
                     <path d="M3 3 L11 11 M11 3 L3 11" />
                   </svg>

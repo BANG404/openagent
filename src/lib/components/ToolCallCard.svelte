@@ -328,7 +328,7 @@
             {#snippet trigger(props)}
               <button
                 {...props}
-                class="tool-icon-btn"
+                class="tool-icon-btn app-icon-button"
                 aria-label={$t("openContainingFolder")}
                 onclick={(event) => openContainingFolder(filePath, event)}
               >

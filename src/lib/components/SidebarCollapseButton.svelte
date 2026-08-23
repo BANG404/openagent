@@ -14,7 +14,7 @@
   {#snippet trigger(props)}
     <button
       {...props}
-      class="sidebar-collapse-button"
+      class="sidebar-collapse-button app-icon-button"
       type="button"
       aria-label={collapsed ? $t("expandSidebar") : $t("collapseSidebar")}
       onclick={onToggle}

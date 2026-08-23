@@ -292,6 +292,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep ordinary and enhanced file/search tool cards on the same neutral
   perimeter. Reserve the blue accent for real interaction state such as
   keyboard focus or an actively running tool, not for the tool's type.
+- Render non-semantic icon-only chat controls through the shared neutral
+  application icon-button treatment. Attach, open-folder, panel, history,
+  preview, close, and navigation controls share one filled control surface,
+  muted resting icon, radius, elevation, hover fill, focus ring, and pressed
+  scale in both themes. Reserve blue fill for true primary actions such as Send
+  and preserve semantic destructive treatments instead of inventing local blue
+  or gray variants.
 - Keep `ask_user`, approvals, HTML previews, and other dedicated tools outside
   ordinary grouping.
 - Batched approval cards remain independently clickable. Optimistically resolve

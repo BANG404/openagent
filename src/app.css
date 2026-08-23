@@ -774,3 +774,54 @@
 .user-msg.memory-source-highlight {
   animation: memory-source-pulse 2.4s ease-out;
 }
+
+/* Shared neutral treatment for square, icon-only application controls. */
+.app-icon-button.app-icon-button {
+  display: inline-grid;
+  width: var(--app-icon-button-size, 32px);
+  height: var(--app-icon-button-size, 32px);
+  flex: 0 0 var(--app-icon-button-size, 32px);
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--app-icon-button-radius, 8px);
+  outline: none;
+  background: var(--control-surface);
+  color: var(--text-muted);
+  box-shadow: var(--control-shadow);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease,
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.app-icon-button.app-icon-button:hover:not(:disabled),
+.app-icon-button.app-icon-button[data-state="open"] {
+  background: var(--interactive-state-bg);
+  color: var(--text);
+}
+
+.app-icon-button.app-icon-button:focus-visible {
+  background: var(--control-surface);
+  color: var(--text);
+  box-shadow: var(--control-shadow), var(--focus-ring);
+}
+
+.app-icon-button.app-icon-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.app-icon-button.app-icon-button:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-icon-button.app-icon-button {
+    transition: none;
+  }
+}
