@@ -11,8 +11,11 @@ each behavior or invariant in one primary source of truth.
 | Repository ownership, commands, safety, verification, or contribution policy | `AGENTS.md` |
 | Product behavior, architecture, integration contract, configuration, release, or design system | The matching file under `docs/`, plus a README when public setup or behavior changes |
 | Chat transcript, composer, tool rendering, streaming, reconciliation, restore, attachments, chat events, or streamed content | `.agents/skills/openagent-chat-frontend/`; update `docs/` only when the public product or architecture contract also changes |
+| Tauri host, native windows, single-instance behavior, IPC adapters, or native verification | `.agents/skills/openagent-desktop-host/`, plus `docs/design.md` for visible product behavior |
+| Configuration, databases, memory, schemas, migrations, backups, or data-transition UX | `.agents/skills/openagent-persistence/`, plus `docs/configuration.md` for the public contract |
+| CI classification, release workflows, Tauri bundles, sidecars, or pinned helper artifacts | `.agents/skills/openagent-release-engineering/`, plus `docs/release.md` for the public contract |
 | A repeatable agent procedure or fragile subsystem invariant | The workspace skill that must trigger for future work |
-| Native host boundary or packaging | `AGENTS.md` or the matching `docs/` guide |
+| Repository-wide ownership, commands, safety, verification, or contribution policy | `AGENTS.md` |
 | Private SDK implementation | Follow `sdk/AGENTS.md` and update SDK-owned documentation in the SDK commit before updating the parent gitlink |
 
 Prefer an existing owner. Create a focused document, skill, or skill reference
