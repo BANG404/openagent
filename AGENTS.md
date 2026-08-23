@@ -137,6 +137,11 @@ to a deliberate tracked location.
   focus the existing main window. Do not apply that guard to the headless agent
   server or SDK-owned `--openagent-workspace-window` processes; dedicated
   workspace processes remain part of the multi-workspace contract.
+- Keep ordinary main and onboarding WebViews transparent over the Rust-owned
+  native window material. Apply Windows Mica with Acrylic and Blur fallbacks and
+  macOS Vibrancy through the Tauri-compatible `window-vibrancy` version; native
+  effect failure must leave the translucent theme tint readable, while quick
+  chat and development inspector windows retain their separate backgrounds.
 - Frontends submit ordinary chat and slash-command input through the shared SDK
   client; do not add flow selection or command parsing to the host/frontend.
 - Tauri's synchronous `setup` callback does not run inside a Tokio worker.
