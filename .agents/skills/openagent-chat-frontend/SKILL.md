@@ -372,9 +372,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Paint durable, editable, and loading-skeleton user-message bubbles with the
   shared `--user-message-bg` token, which maps to the opaque secondary surface
   rather than the conversation canvas so native-window transparency cannot
-  wash it out. Reuse that exact fill for transcript-owned tool-call groups,
-  tool-call cards, user-input cards and summaries, and retry attachment cards
-  so auxiliary components do not introduce another gray in either theme.
+  wash it out. Reuse that exact fill for transcript-owned tool-call cards,
+  user-input cards and summaries, and retry attachment cards so auxiliary
+  components do not introduce another gray in either theme. Keep grouped tool
+  calls on the transcript canvas: the summary is its own outlined button and
+  expanded tool cards retain their individual surfaces without a shared group
+  background or enclosing perimeter.
 - Collapse long user-message text by a fixed number of complete rendered lines
   on an inner content layer. Keep bubble padding outside the clamp so changing
   type metrics cannot expose or crop a partial trailing line. Apply preserved
@@ -861,10 +864,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   native runtime. The `-empty` parameter exposes the centered Graph planning
   state directly.
 - Keep the development-only `book-mode-preview` query available with long,
-  process-bearing fixture content. Its `-theme` and `-locale` query parameters
-  must keep two-column flow, multi-page navigation, process collapse, and
-  light/dark Chinese/English checks addressable without onboarding or native
-  state.
+  process-bearing fixture content and consecutive ordinary tools that exercise
+  grouped tool-call rendering. Its `-theme` and `-locale` query parameters must
+  keep two-column flow, multi-page navigation, process collapse, and light/dark
+  Chinese/English checks addressable without onboarding or native state.
 - Keep the development-only `permission-settings-preview` query as the direct,
   interactive surface for execution permissions. Its `-theme` and `-locale`
   parameters must keep managed, disabled, preset, custom-rule, network, warning,

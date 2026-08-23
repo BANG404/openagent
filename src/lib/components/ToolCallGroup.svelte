@@ -149,10 +149,7 @@
 <style>
   .tool-call-group {
     margin: 2px 0;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--user-message-bg);
+    background: transparent;
     font-size: 12px;
   }
 
@@ -164,8 +161,9 @@
     min-height: 32px;
     gap: 7px;
     padding: 5px 10px;
-    border: 0;
-    background: var(--user-message-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
     color: var(--text-muted);
     cursor: pointer;
     text-align: left;
@@ -263,9 +261,8 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 5px;
-    border-top: 1px solid var(--border);
-    background: var(--user-message-bg);
+    padding-top: 5px;
+    background: transparent;
   }
 
   .tool-call-group-items :global(.tool-call-card) {
