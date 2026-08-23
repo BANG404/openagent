@@ -9,6 +9,9 @@ describe("native window theme", () => {
       new URL("../src/lib/components/SettingsView.svelte", import.meta.url),
       "utf8",
     );
+    const capability = JSON.parse(
+      await readFile(new URL("../src-tauri/capabilities/default.json", import.meta.url), "utf8"),
+    );
 
     expect(route).toContain(
       'const nativeTheme = theme === "system" ? null : dark ? "dark" : "light";',
@@ -17,5 +20,6 @@ describe("native window theme", () => {
     expect(route).toContain("onThemePreview={applyTheme}");
     expect(settings).toContain("if (onThemePreview) onThemePreview(theme);");
     expect(settings).toContain("else applyDocumentTheme(theme);");
+    expect(capability.permissions).toContain("core:window:allow-set-theme");
   });
 });

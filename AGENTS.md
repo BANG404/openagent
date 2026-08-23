@@ -89,24 +89,36 @@ private compiler output to a public cache, are the SDK CI optimization boundary.
 Full public-host qualification must build the real pinned helper and export its
 digest before checking the host.
 
-## Browser-backed frontend workflow
+## Native-window and frontend verification workflow
 
-Use the workspace `playwright` skill for every repository workflow that renders
-or interacts with the frontend in a browser. Use its bundled wrapper, which
-prefers an installed `playwright-cli`, then resolves it through Bun, with
-Node/npm as an allowed fallback; do not substitute another browser control
-surface. This includes, without limitation, verifying frontend changes,
-reproducing browser-visible bugs, exercising preview routes and interactions,
-checking responsive layouts, light/dark themes, and Chinese/English copy, and
-capturing software screenshots, PDFs, videos, or traces.
+For behavior that depends on the real Tauri shell, native window material,
+transparent WebView composition, operating-system theme, title bar, focus, or
+window geometry, use [tauri-pilot](https://github.com/mpiton/tauri-pilot) to
+drive the debug application and inspect its DOM and runtime logs. Pair it with
+an [Appium](https://github.com/appium/appium) server and the Windows UI
+Automation-compatible [DesktopDriver](https://github.com/verisoft-ai/appium-desktop-driver)
+to attach to the exact application window,
+inspect the native window tree, handle, and bounds, and capture native
+before-and-after screenshots. Use an isolated temporary `OPENAGENT_HOME`,
+identify the target process and window explicitly, and keep automatic artifacts
+in the system temporary directory. Tauri-pilot instrumentation is debug-only:
+when it is not already part of the application, add it only in the task
+worktree for investigation and remove its dependency, plugin initialization,
+and capability before delivery unless the task explicitly requires a shipped
+test hook.
 
-Start the required development server, open the target through the skill,
-snapshot before using element references, and re-snapshot after navigation or
-material DOM changes. Prefer dedicated browser preview routes for state that
-would otherwise require native Tauri setup. Keep automatic browser artifacts in
-the system temporary directory through the skill wrapper. Do not create
-repository-root output directories; copy only explicitly requested deliverables
-to a deliberate tracked location.
+Use the workspace `playwright` skill as the fallback when the behavior can be
+reproduced completely in an ordinary browser or a dedicated preview route and
+native-window state is not part of the acceptance criteria. Use its bundled
+wrapper, which prefers an installed `playwright-cli`, then resolves it through
+Bun, with Node/npm as an allowed fallback; do not substitute another browser
+control surface. Start the required development server, use a task-specific
+session, snapshot before using element references, and re-snapshot after
+navigation or material DOM changes. Browser verification covers responsive
+layouts and interactions as well as light/dark themes and Chinese/English copy.
+For visible native changes, capture those theme and locale states through the
+native workflow instead. Do not create repository-root output directories;
+copy only explicitly requested deliverables to a deliberate tracked location.
 
 ## Public repository ownership
 
