@@ -41,8 +41,10 @@
     padding: 2px;
     border: 0;
     border-radius: 7px;
-    background: var(--surface2);
+    background: var(--control-surface);
     box-shadow: var(--control-shadow);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
   }
 
   button {
@@ -57,6 +59,10 @@
     font-size: 11px;
     line-height: 24px;
     cursor: pointer;
+    transition:
+      background 0.12s,
+      color 0.12s,
+      transform 0.1s;
   }
 
   button:hover:not(:disabled) {
@@ -67,7 +73,15 @@
   button.active {
     background: var(--interactive-state-bg);
     color: var(--text);
-    box-shadow: 0 1px 2px var(--shadow);
+  }
+
+  button:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  button:active:not(:disabled) {
+    transform: scale(0.95);
   }
 
   button:disabled {

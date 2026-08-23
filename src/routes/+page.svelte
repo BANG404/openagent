@@ -449,6 +449,7 @@
   let streamCompletionTailAnchorSequence = 0;
   const tauriAvailable = isTauri();
   const usesNativeWindowMaterial = tauriAvailable && !isQuickChatSurface && !isDevInspectorWindow;
+  const appWindow = tauriAvailable ? getCurrentWindow() : null;
   const browserModeNotice =
     "Desktop features require the Tauri runtime. Start this app with `bun tauri dev`, not `bun run dev`.";
   const fallbackConfig: AppConfig = {
@@ -2887,7 +2888,13 @@
   }
 
   function applyTheme(theme: string) {
-    isDarkTheme = applyDocumentTheme(theme);
+    const dark = applyDocumentTheme(theme);
+    isDarkTheme = dark;
+    if (!appWindow || !usesNativeWindowMaterial) return;
+    const nativeTheme = theme === "system" ? null : dark ? "dark" : "light";
+    void appWindow
+      .setTheme(nativeTheme)
+      .catch((error) => console.warn("Failed to synchronize native window theme:", error));
   }
 
   async function loadWorkspace() {
@@ -4432,7 +4439,6 @@
 
   // ─── Window Controls ─────────────────────────────────────────────────────────
 
-  const appWindow = tauriAvailable ? getCurrentWindow() : null;
   let windowFocused = $state(true);
 
   onMount(() => {
@@ -4631,6 +4637,7 @@
             initialNav={settingsInitialNav}
             onSave={saveSettings}
             onOpenConversation={openHookConversation}
+            onThemePreview={applyTheme}
           />
         </div>
       {:else}

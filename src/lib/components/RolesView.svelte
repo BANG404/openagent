@@ -325,7 +325,7 @@
 
   .collection-toolbar {
     min-height: 44px;
-    padding: 4px 12px 0;
+    padding: 6px 12px 2px;
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -337,6 +337,7 @@
   .roles-header-title {
     font-size: 14px;
     font-weight: 600;
+    line-height: 20px;
   }
 
   .roles-body {
@@ -366,8 +367,10 @@
     padding: 0 9px;
     border: 0;
     border-radius: 7px;
-    background: var(--surface2);
+    background: var(--control-surface);
     box-shadow: var(--control-shadow);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
   }
 
   .search-box:focus-within {
@@ -420,7 +423,15 @@
   }
 
   .role-item.active {
-    background: var(--interactive-state-bg);
+    background: var(--item-selected-bg);
+  }
+
+  .role-item:focus-visible,
+  .new-role-button:focus-visible,
+  .save-button:focus-visible,
+  .delete-button:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
   }
 
   .role-item-copy {
@@ -507,6 +518,12 @@
   .new-role-button:hover,
   .save-button:hover:not(:disabled) {
     background: var(--primary-hover);
+  }
+
+  .new-role-button:active,
+  .save-button:active:not(:disabled),
+  .delete-button:active {
+    transform: scale(0.95);
   }
 
   .new-role-button svg {

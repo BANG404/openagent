@@ -18,6 +18,7 @@
     formatQuickChatShortcut,
   } from "$lib/quickChatShortcut";
   import { normalizeConfigShape } from "$lib/config";
+  import { applyDocumentTheme } from "$lib/appTheme";
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
   import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
   import {
@@ -133,12 +134,14 @@
     initialNav,
     onSave,
     onOpenConversation,
+    onThemePreview,
   }: {
     config: AppConfig | null;
     workspacePath: string;
     initialNav?: SettingsNav;
     onSave: (config: AppConfig, baseConfig?: AppConfig) => Promise<AppConfig>;
     onOpenConversation: (conversationId: string) => Promise<void>;
+    onThemePreview?: (theme: string) => void;
   } = $props();
 
   const fallbackConfig: AppConfig = {
@@ -677,9 +680,8 @@
 
   $effect(() => {
     const theme = draftConfig.theme ?? "system";
-    document.documentElement.classList.remove("dark", "light");
-    if (theme === "dark") document.documentElement.classList.add("dark");
-    else if (theme === "light") document.documentElement.classList.add("light");
+    if (onThemePreview) onThemePreview(theme);
+    else applyDocumentTheme(theme);
   });
 
   $effect(() => {

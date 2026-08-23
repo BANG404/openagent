@@ -560,6 +560,7 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
     flex-direction: column;
     overflow: hidden;
     background: var(--bg);
+    color: var(--text);
   }
 
   .collection-toolbar {
@@ -567,7 +568,7 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
     align-items: center;
     gap: 10px;
     min-height: 44px;
-    padding: 4px 12px 0;
+    padding: 6px 12px 2px;
     box-sizing: border-box;
     flex-shrink: 0;
   }
@@ -575,6 +576,7 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
   .skills-header-title {
     font-size: 14px;
     font-weight: 600;
+    line-height: 20px;
     color: var(--text);
   }
 
@@ -680,7 +682,7 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
     min-width: 18px;
     padding: 1px 5px;
     border-radius: 999px;
-    background: var(--surface2);
+    background: var(--control-surface);
     color: var(--text-muted);
     font-size: 10px;
     line-height: 1.4;
@@ -706,7 +708,7 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
     align-items: center;
     justify-content: center;
     gap: 6px;
-    background: var(--surface2);
+    background: var(--control-surface);
     color: var(--text-muted);
     border: 0;
     border-radius: 7px;
@@ -723,6 +725,16 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
   .skill-footer-btn:hover {
     background: var(--interactive-state-bg);
     color: var(--text);
+  }
+
+  .skill-footer-btn:focus-visible,
+  .skill-item:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  .skill-footer-btn:active {
+    transform: scale(0.95);
   }
 
   .skill-footer-btn svg {
@@ -794,7 +806,7 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
   }
 
   .skill-item.active {
-    background: var(--interactive-state-bg);
+    background: var(--item-selected-bg);
   }
 
   .skill-item-main {
