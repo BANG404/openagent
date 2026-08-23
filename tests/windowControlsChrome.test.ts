@@ -20,9 +20,15 @@ describe("Windows window controls", () => {
     expect(source).toMatch(/\.win-close:hover \{\s*background: #e81123;/);
   });
 
-  test("stay flush with the trailing edge of the onboarding window", async () => {
+  test("stay flush in the title-free onboarding chrome", async () => {
     const source = await readFile(onboardingFlowUrl, "utf8");
 
-    expect(source).toMatch(/\.onboarding-header\s*{[^}]*padding: 0 0 0 16px;/s);
+    expect(source).not.toContain('"Getting started"');
+    expect(source).not.toContain('"入门设置"');
+    expect(source).toMatch(/\.onboarding-header\s*{[^}]*justify-content: flex-end;/s);
+    expect(source).toMatch(/\.onboarding-header\s*{[^}]*height: 40px;/s);
+    expect(source).toMatch(/\.onboarding-header\s*{[^}]*padding: 0;/s);
+    expect(source).toMatch(/\.onboarding-nav\s*{[^}]*background: transparent;/s);
+    expect(source).toMatch(/button\s*{[^}]*border: 0;/s);
   });
 });

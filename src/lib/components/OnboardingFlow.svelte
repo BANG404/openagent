@@ -259,7 +259,6 @@
 
 <div class="onboarding-panel">
   <header class="onboarding-header" data-tauri-drag-region>
-    <span>{draft.language === "en" ? "Getting started" : "入门设置"}</span>
     <WindowControls onMinimize={winMinimize} onMaximize={winMaximize} onClose={winClose} />
   </header>
   <div class="onboarding-body">
@@ -471,23 +470,18 @@
     min-width: 0;
     flex-direction: column;
     overflow: hidden;
-    background: var(--bg);
+    background: var(--app-chrome-bg);
     color: var(--text);
   }
   .onboarding-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    height: 48px;
+    justify-content: flex-end;
+    height: 40px;
     flex: none;
     box-sizing: border-box;
-    padding: 0 0 0 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
-  }
-  .onboarding-header > span {
-    font-size: 14px;
-    font-weight: 600;
+    padding: 0;
+    background: var(--app-chrome-bg);
   }
   .onboarding-body {
     display: flex;
@@ -495,16 +489,16 @@
     min-height: 0;
     flex: 1;
     overflow: hidden;
+    padding: 0 8px 8px;
   }
   .onboarding-nav {
     display: flex;
-    width: 172px;
+    width: 184px;
     flex: none;
     flex-direction: column;
     box-sizing: border-box;
-    padding: 12px 8px;
-    border-right: 1px solid var(--border);
-    background: var(--bg);
+    padding: 28px 12px 14px 4px;
+    background: transparent;
   }
   .onboarding-nav nav {
     display: flex;
@@ -564,20 +558,24 @@
     flex-direction: column;
     box-sizing: border-box;
     overflow-y: auto;
-    padding: 40px max(24px, calc((100% - 720px) / 2)) 24px;
+    padding: 56px max(32px, calc((100% - 720px) / 2)) 28px;
+    border-radius: 8px;
+    background: var(--bg);
+    box-shadow: var(--raised-shadow);
   }
   h1 {
-    margin: 0 0 9px;
-    font-size: 22px;
+    margin: 0 0 12px;
+    font-size: 30px;
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.035em;
+    line-height: 1.16;
   }
   .lead {
     max-width: 600px;
-    margin: 0 0 32px;
+    margin: 0 0 40px;
     color: var(--text-muted);
-    font-size: 13px;
-    line-height: 1.55;
+    font-size: 14px;
+    line-height: 1.6;
   }
   .workspace-card,
   .summary {
@@ -677,7 +675,7 @@
   button {
     min-height: 32px;
     padding: 0 12px;
-    border: 1px solid var(--border);
+    border: 0;
     border-radius: 7px;
     background: var(--bg);
     color: var(--text);
@@ -696,7 +694,6 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    border-color: var(--primary);
     background: var(--primary);
     color: white;
   }
@@ -724,9 +721,8 @@
   }
   .chatgpt-model-catalog-hint {
     margin: 0;
-    border-left: 3px solid var(--primary);
-    border-radius: 0 9px 9px 0;
-    padding: 9px 11px;
+    border-radius: 9px;
+    padding: 10px 12px;
     background: var(--surface2);
     color: var(--text-muted);
     font-size: 12px;
@@ -778,7 +774,7 @@
       display: none;
     }
     .step-content {
-      padding: 28px 16px 20px;
+      padding: 36px 20px 20px;
     }
     .two {
       grid-template-columns: 1fr;
