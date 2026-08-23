@@ -17,6 +17,13 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 - Section rhythm across multiple pages: light hero → dark product tile → light utility tile → dark tile → parchment footer — a predictable pulse.
 - **Neutral conversation surfaces:** chat canvases, composers, and empty-conversation greetings use only theme-neutral depth; colored ambient fields are not conversation chrome.
 - **Settings cards:** align each section title with its supporting copy and align each card row's label with its description. Use one softly elevated surface for the card itself; controls nested inside that card use a 1px hairline border without a second shadow.
+- **Markdown editors:** treat the editor as part of the feature canvas rather
+  than an embedded third-party panel. Its toolbar stays transparent and
+  borderless, uses the application's compact 28px control scale, 7px corner
+  radius, neutral hover fill, primary-tinted active state, and standard focus
+  ring. Keep toolbar separators quiet, preserve horizontal overflow without a
+  persistent scrollbar, and align editable content to the surrounding feature
+  view's 36px reading gutter.
 - **Transient scrollbars:** scrollbars across the application keep their
   layout footprint but hide their thumb while idle. Scrolling or moving the
   pointer within a scrollable region reveals its scrollbar temporarily; nested,
