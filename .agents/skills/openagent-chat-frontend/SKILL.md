@@ -894,6 +894,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   diagnostics, responsive layout, light/dark themes, and Chinese/English copy
   addressable without native plugin state. Plugin cards and loading or empty
   states must not use a flat secondary gray fill.
+- Settings action controls use one compact semantic hierarchy: primary blue
+  pills for creation, borderless filled controls for ordinary file and test
+  actions, blue shadowless controls for inline row construction, and restrained
+  danger-tinted controls for destructive actions. Keep provider status text and
+  its switch flat instead of wrapping either in an additional gray capsule.
 
 ## IPC and events
 
