@@ -69,6 +69,7 @@
   import { randomUuid } from "$lib/uuid";
   import { InterruptResolutionTracker } from "$lib/interruptResolutionTracker";
   import { clampSidebarWidth, loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
+  import { NEW_CONVERSATION_GREETING } from "$lib/newConversation";
 
   type Screen = "loading" | "pair" | "chat";
   const openAgentIconUrl = "/app-icon.png";
@@ -1178,7 +1179,7 @@
               {messageLayout}
               {messageDoubleColumnMinWidth}
               {bookModeFontSize}
-              newConversationGreeting={$t("remoteNewConversationGreeting")}
+              newConversationGreeting={NEW_CONVERSATION_GREETING}
               newConversationGreetingLoading={false}
               showNewConversationContext={!newConversationLayout}
               editable={!running}
@@ -1205,7 +1206,7 @@
         >
           {#if newConversationLayout}
             <NewConversationContext
-              prompt={$t("remoteNewConversationGreeting")}
+              prompt={NEW_CONVERSATION_GREETING}
               loading={false}
               showApiKeyWarn={remoteModels.length === 0}
               placement="stack"

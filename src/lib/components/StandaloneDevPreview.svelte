@@ -11,6 +11,7 @@
   import { previewParameterPrefix, type StandaloneDevPreview } from "$lib/devPreview";
   import { initI18n, t, type Locale } from "$lib/i18n";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
+  import { NEW_CONVERSATION_GREETING } from "$lib/newConversation";
   import { defaultPermissionProfile, normalizeConfigShape } from "$lib/config";
   import { ComposerPreferences } from "$lib/composerPreferences.svelte";
   import type { WindowPlatform } from "$lib/windowPlatform";
@@ -838,7 +839,7 @@
   <main class="follow-up-suggestions-preview-stage">
     <section class="suggestions-new-conversation">
       <NewConversationContext
-        prompt={$t("newConversationGreeting")}
+        prompt={NEW_CONVERSATION_GREETING}
         loading={false}
         showApiKeyWarn={false}
         placement="stack"

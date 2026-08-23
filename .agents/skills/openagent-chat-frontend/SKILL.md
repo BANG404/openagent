@@ -624,11 +624,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Treat the new-conversation action as idempotent while that surface is already
   visible. Do not reload its greeting or suggestions, rewrite its durable active marker,
   or toggle its loading skeleton on a repeated click.
-- The new-conversation greeting is the fixed product name `OpenAgent` in every
-  locale and uses a compact, regular-weight display heading
-  treatment above the centered composer. Keep its tracking locale-aware: Latin
-  copy remains subtly compact while Chinese copy uses open, positive character
-  spacing. It must not depend on memory or a Flash task. Show exactly three optional Flash-generated
+- The new-conversation greeting is the fixed prompt `Where should we start?`
+  across desktop, remote, preview, and every locale. Keep it outside the
+  localization dictionaries so an immediate locale switch cannot replace it.
+  It uses a compact, regular-weight display heading treatment above the
+  centered composer. Keep its tracking locale-aware: Latin copy remains subtly
+  compact while Chinese copy uses open, positive character spacing. It must not
+  depend on memory or a Flash task. Show exactly three optional Flash-generated
   suggestions derived from up to the five most recently updated top-level
   conversation titles, persisted per workspace and locale below the composer.
   Selecting one sends it immediately through the shared user-message path.

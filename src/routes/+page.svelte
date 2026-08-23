@@ -60,6 +60,7 @@
     readMainDebugComponentsVisible,
   } from "$lib/devDebugVisibility";
   import { ONBOARDING_COMPLETE_EVENT } from "$lib/onboarding";
+  import { NEW_CONVERSATION_GREETING } from "$lib/newConversation";
   import {
     clearQueuedChatMessages,
     dequeueChatMessage,
@@ -414,7 +415,7 @@
   let isDarkTheme = $state(false);
   let newConversationSuggestions = $state<string[]>([]);
   let followUpSuggestionsByMessageId = $state<Record<string, string[]>>(loadFollowUpSuggestions());
-  let newConversationGreeting = $derived($t("newConversationGreeting"));
+  const newConversationGreeting = NEW_CONVERSATION_GREETING;
 
   // ─── Branch / Re-execute state ────────────────────────────────────────────────
   // The conversation is a tree of checkpoints. Each tree node represents one turn
