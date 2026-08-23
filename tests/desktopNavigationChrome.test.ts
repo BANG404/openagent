@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const routeUrl = new URL("../src/routes/+page.svelte", import.meta.url);
 const componentsUrl = new URL("../src/lib/components/", import.meta.url);
+const appCssUrl = new URL("../src/app.css", import.meta.url);
 
 describe("desktop navigation chrome", () => {
   test("keeps one shared title bar above every ordinary desktop surface", async () => {
@@ -80,6 +81,29 @@ describe("desktop navigation chrome", () => {
     expect(workspaceSwitcher).toMatch(
       /\.workspace-btn\[data-state="open"\]\)\s*{[^}]*background: var\(--interactive-state-bg\);/s,
     );
+  });
+
+  test("keeps native window canvases at roughly seventy percent transparency", async () => {
+    const appCss = await readFile(appCssUrl, "utf8");
+    const nativeMaterialTokens = appCss.match(/html\.native-window-material\s*{([^}]*)}/s)?.[1];
+
+    expect(nativeMaterialTokens).toContain("--bg: rgba(245, 245, 247, 0.3)");
+    expect(nativeMaterialTokens).toContain("--app-chrome-bg: rgba(245, 245, 247, 0.3)");
+    expect(nativeMaterialTokens).toContain("--sidebar-bg: rgba(245, 245, 247, 0.3)");
+    expect(appCss).toMatch(
+      /html\.native-window-material \.conversation-workspace\s*{[^}]*background: var\(--bg\);/s,
+    );
+
+    for (const component of [
+      "MemoryView.svelte",
+      "RolesView.svelte",
+      "SkillsView.svelte",
+      "SettingsView.svelte",
+      "OnboardingFlow.svelte",
+    ]) {
+      const source = await readFile(new URL(component, componentsUrl), "utf8");
+      expect(source).toContain("background: var(--bg)");
+    }
   });
 
   test("searches every workspace and reserves new processes for File new window", async () => {

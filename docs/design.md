@@ -36,10 +36,12 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   onboarding title bar keeps its title inset but places the Windows controls
   flush against the trailing window edge. The title bar and sidebar share the
   native window material: Windows prefers Mica with Acrylic and Blur fallbacks,
-  while macOS uses Vibrancy. A translucent theme tint preserves light/dark
-  contrast without replacing that material with a flat gray fill; platforms
-  without a native effect retain the tint as the readable fallback. The
-  operating system retains the native window outline, rounded corners, and
+  while macOS uses Vibrancy. The ordinary WebView canvas, shared chrome,
+  sidebar, feature views, and conversation workspace use a consistent theme
+  tint at 30% opacity, leaving roughly 70% of the native material visible.
+  Content-bearing controls and cards retain their own surfaces. Browser previews
+  retain the opaque theme canvas because they have no native material.
+  The operating system retains the native window outline, rounded corners, and
   exterior shadow.
   Do not draw a border between those two chrome segments or beneath the title
   bar. Separate chat from navigation through an inset rounded conversation canvas

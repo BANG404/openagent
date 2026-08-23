@@ -146,31 +146,31 @@
     --item-selected-hover-bg: var(--interactive-state-bg);
   }
 
-  /* The native host supplies Mica/Acrylic/Blur or Vibrancy below this tint. */
+  /* Keep roughly 70% of the native material visible below a readable theme tint. */
   html.native-window-material {
-    --bg: rgba(245, 245, 247, 0.7);
-    --app-chrome-bg: rgba(245, 245, 247, 0.34);
-    --sidebar-bg: rgba(232, 232, 237, 0.38);
+    --bg: rgba(245, 245, 247, 0.3);
+    --app-chrome-bg: rgba(245, 245, 247, 0.3);
+    --sidebar-bg: rgba(245, 245, 247, 0.3);
   }
 
   @media (prefers-color-scheme: dark) {
     html.native-window-material {
-      --bg: rgba(15, 17, 23, 0.68);
-      --app-chrome-bg: rgba(15, 17, 23, 0.32);
-      --sidebar-bg: rgba(20, 22, 32, 0.38);
+      --bg: rgba(15, 17, 23, 0.3);
+      --app-chrome-bg: rgba(15, 17, 23, 0.3);
+      --sidebar-bg: rgba(15, 17, 23, 0.3);
     }
   }
 
   html.dark.native-window-material {
-    --bg: rgba(15, 17, 23, 0.68);
-    --app-chrome-bg: rgba(15, 17, 23, 0.32);
-    --sidebar-bg: rgba(20, 22, 32, 0.38);
+    --bg: rgba(15, 17, 23, 0.3);
+    --app-chrome-bg: rgba(15, 17, 23, 0.3);
+    --sidebar-bg: rgba(15, 17, 23, 0.3);
   }
 
   html.light.native-window-material {
-    --bg: rgba(245, 245, 247, 0.7);
-    --app-chrome-bg: rgba(245, 245, 247, 0.34);
-    --sidebar-bg: rgba(232, 232, 237, 0.38);
+    --bg: rgba(245, 245, 247, 0.3);
+    --app-chrome-bg: rgba(245, 245, 247, 0.3);
+    --sidebar-bg: rgba(245, 245, 247, 0.3);
   }
 
   * {
@@ -199,6 +199,16 @@
   html.native-window-material,
   html.native-window-material body {
     background: transparent;
+  }
+
+  html.native-window-material .conversation-workspace {
+    background: var(--bg);
+  }
+
+  html.native-window-material .conversation-workspace::before {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
   * {
