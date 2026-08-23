@@ -36,6 +36,9 @@ Read `sdk/AGENTS.md` before changing the SDK side of any boundary.
 - Run SDK-owned persisted-data compatibility inspection before runtime and
   WebView construction. The desktop may collect native confirmation, but the
   host must not duplicate inspection, backup, reset, or migration operations.
+- Pre-create the centered onboarding window at its fixed 960 × 640px product
+  geometry. Keep it non-resizable and non-maximizable so every setup step uses
+  the same verified canvas while dense form content scrolls inside the WebView.
 
 ## Native material
 

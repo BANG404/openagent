@@ -11,11 +11,13 @@
     onMaximize,
     onClose,
     platform,
+    canMaximize = true,
   }: {
     onMinimize: () => void;
     onMaximize: () => void | Promise<void>;
     onClose: () => void;
     platform?: WindowPlatform;
+    canMaximize?: boolean;
   } = $props();
 
   let isMaximized = $state(false);
@@ -91,44 +93,46 @@
       </svg>
     </button>
   </Tooltip>
-  <Tooltip text={isMaximized ? $t("restoreWindow") : $t("maximizeWindow")} side="bottom">
-    <button
-      class="win-btn win-maximize"
-      aria-label={isMaximized ? $t("restoreWindow") : $t("maximizeWindow")}
-      onclick={handleMaximize}
-    >
-      {#if isMaximized}
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-          <path
-            d="M4.25 3.25V2.5c0-.69.56-1.25 1.25-1.25h4c.69 0 1.25.56 1.25 1.25v4c0 .69-.56 1.25-1.25 1.25h-.75"
-            stroke="currentColor"
-            stroke-width="1.25"
-          />
-          <rect
-            x="1.25"
-            y="3.75"
-            width="7"
-            height="7"
-            rx="1.25"
-            stroke="currentColor"
-            stroke-width="1.25"
-          />
-        </svg>
-      {:else}
-        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
-          <rect
-            x="0.75"
-            y="0.75"
-            width="9.5"
-            height="9.5"
-            rx="1.5"
-            stroke="currentColor"
-            stroke-width="1.5"
-          />
-        </svg>
-      {/if}
-    </button>
-  </Tooltip>
+  {#if canMaximize}
+    <Tooltip text={isMaximized ? $t("restoreWindow") : $t("maximizeWindow")} side="bottom">
+      <button
+        class="win-btn win-maximize"
+        aria-label={isMaximized ? $t("restoreWindow") : $t("maximizeWindow")}
+        onclick={handleMaximize}
+      >
+        {#if isMaximized}
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path
+              d="M4.25 3.25V2.5c0-.69.56-1.25 1.25-1.25h4c.69 0 1.25.56 1.25 1.25v4c0 .69-.56 1.25-1.25 1.25h-.75"
+              stroke="currentColor"
+              stroke-width="1.25"
+            />
+            <rect
+              x="1.25"
+              y="3.75"
+              width="7"
+              height="7"
+              rx="1.25"
+              stroke="currentColor"
+              stroke-width="1.25"
+            />
+          </svg>
+        {:else}
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+            <rect
+              x="0.75"
+              y="0.75"
+              width="9.5"
+              height="9.5"
+              rx="1.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+            />
+          </svg>
+        {/if}
+      </button>
+    </Tooltip>
+  {/if}
   {#if resolvedPlatform !== "macos"}
     <Tooltip text={$t("closeWindow")} side="bottom">
       <button class="win-btn win-close" aria-label={$t("closeWindow")} onclick={onClose}>

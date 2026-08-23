@@ -35,8 +35,13 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   corner while restored, then becomes square when maximized. The dedicated
   onboarding title bar omits a visible setup label, matches the main chrome
   height, and places the Windows controls flush against the trailing window
-  edge. Its inset content canvas and step navigation use whitespace, neutral
-  fill, and shared elevation instead of perimeter borders or divider lines.
+  edge. The centered onboarding window is a fixed, non-maximizable 960 × 640px
+  canvas. Its Windows 11 OOBE-inspired body pairs a quiet illustration and
+  compact numbered progress controls on the native-material side with the
+  current setup form in an inset content canvas. Both sides use whitespace,
+  neutral fill, and shared elevation instead of perimeter borders or divider
+  lines; dense provider content scrolls inside the form column without changing
+  the native window geometry.
   The title bar and sidebar share the
   native window material: Windows prefers Mica with Acrylic and Blur fallbacks,
   while macOS uses Vibrancy. The ordinary WebView canvas, shared chrome,

@@ -495,11 +495,15 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   window APIs. Completing or dismissing a debug revisit must hide rather than
   destroy the preloaded window so later inspector invocations reuse the same
   initialized instance. Keep its compact title bar free of a visible setup
-  label and match the main application chrome height. Lead directly with the
-  current step's display heading inside an inset, borderless content canvas;
-  separate the borderless step navigation through spacing and neutral
-  selection fill instead of divider lines. Onboarding controls use filled
-  surfaces, elevation, and focus state rather than resting perimeter borders.
+  label and match the main application chrome height. Keep the onboarding
+  canvas fixed at 960 × 640px and omit its maximize affordance. Pair one quiet,
+  product-owned setup illustration with compact numbered progress controls in
+  the native-material column, then lead directly with the current step's
+  display heading inside the inset, borderless content canvas. Dense step
+  content scrolls inside that form column without resizing the window. Separate
+  both columns through spacing and neutral selection fill instead of divider
+  lines. Onboarding controls use filled surfaces, elevation, and focus state
+  rather than resting perimeter borders.
   Render a layout-stable loading skeleton until its
   configuration is ready. Keep the development-only `onboarding-preview` query with
   `onboarding-preview-theme=light|dark` and `onboarding-preview-locale=zh|en`

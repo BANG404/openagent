@@ -9,6 +9,7 @@
     providerDefaultBaseUrl,
     providerRequiresApiKey,
   } from "$lib/providerCatalog";
+  import Tooltip from "./Tooltip.svelte";
   import WindowControls from "./WindowControls.svelte";
 
   let {
@@ -58,6 +59,7 @@
     draft.language === "en"
       ? {
           steps: ["Welcome", "Preferences", "Model service", "Default models", "Ready"],
+          stepProgress: "Step {current} of {total}",
           welcomeTitle: "Welcome to OpenAgent",
           welcomeBody: "Let’s set up the essentials so your first conversation is ready to run.",
           workspace: "Current workspace",
@@ -96,10 +98,12 @@
           back: "Back",
           next: "Continue",
           finish: "Start using OpenAgent",
+          credentialNote: "Your model credentials stay on this device.",
           saveFailed: "Could not save settings",
         }
       : {
           steps: ["欢迎", "偏好", "模型服务", "默认模型", "完成"],
+          stepProgress: "第 {current} 步，共 {total} 步",
           welcomeTitle: "欢迎使用 OpenAgent",
           welcomeBody: "用几步完成必要配置，接下来就可以直接开始第一段对话。",
           workspace: "当前工作区",
@@ -137,6 +141,7 @@
           back: "上一步",
           next: "继续",
           finish: "开始使用 OpenAgent",
+          credentialNote: "模型凭据仅保存在此设备。",
           saveFailed: "无法保存设置",
         },
   );
@@ -259,190 +264,212 @@
 
 <div class="onboarding-panel">
   <header class="onboarding-header" data-tauri-drag-region>
-    <WindowControls onMinimize={winMinimize} onMaximize={winMaximize} onClose={winClose} />
+    <WindowControls
+      onMinimize={winMinimize}
+      onMaximize={winMaximize}
+      onClose={winClose}
+      canMaximize={false}
+    />
   </header>
   <div class="onboarding-body">
-    <aside class="onboarding-nav">
-      <nav aria-label={draft.language === "en" ? "Setup steps" : "设置步骤"}>
-        {#each copy.steps as label, index (index)}
-          <button
-            class="onboarding-nav-item"
-            class:active={index === step}
-            class:complete={index < step}
-            disabled={index > step}
-            onclick={() => {
-              if (index < step) step = index;
-            }}
-          >
-            <span>{index < step ? "✓" : index + 1}</span>
-            {label}
-          </button>
-        {/each}
-      </nav>
-      <p class="nav-note">
-        API Key {draft.language === "en" ? "stays on this device" : "仅保存在本机配置中"}
-      </p>
+    <aside class="onboarding-visual">
+      <img
+        class="onboarding-illustration"
+        src="/assets/onboarding/openagent-workspace.png"
+        alt=""
+        aria-hidden="true"
+      />
+      <div class="onboarding-progress">
+        <p>
+          {copy.stepProgress
+            .replace("{current}", String(step + 1))
+            .replace("{total}", String(copy.steps.length))}
+        </p>
+        <nav aria-label={draft.language === "en" ? "Setup steps" : "设置步骤"}>
+          {#each copy.steps as label, index (index)}
+            <Tooltip text={label} side="top">
+              <button
+                class="onboarding-nav-item"
+                class:active={index === step}
+                class:complete={index < step}
+                aria-current={index === step ? "step" : undefined}
+                aria-label={`${index + 1}. ${label}`}
+                disabled={index > step}
+                onclick={() => {
+                  if (index < step) step = index;
+                }}
+              >
+                <span aria-hidden="true">{index + 1}</span>
+              </button>
+            </Tooltip>
+          {/each}
+        </nav>
+        <strong>{copy.steps[step]}</strong>
+        <p class="nav-note">{copy.credentialNote}</p>
+      </div>
     </aside>
 
     <main class="step-content" aria-label={copy.steps[step]}>
-      {#if step === 0}
-        <h1>{copy.welcomeTitle}</h1>
-        <p class="lead">{copy.welcomeBody}</p>
-        <div class="workspace-card">
-          <div>
+      <div class="step-scroll">
+        {#if step === 0}
+          <h1>{copy.welcomeTitle}</h1>
+          <p class="lead">{copy.welcomeBody}</p>
+          <div class="workspace-card">
+            <div>
+              <span>{copy.workspace}</span>
+              <strong>{workspacePath || copy.noWorkspace}</strong>
+            </div>
+            <button class="secondary" onclick={() => void onPickWorkspace()}
+              >{copy.chooseWorkspace}</button
+            >
+          </div>
+        {:else if step === 1}
+          <h1>{copy.preferenceTitle}</h1>
+          <p class="lead">{copy.preferenceBody}</p>
+          <div class="form-grid two">
+            <label>
+              <span>{copy.language}</span>
+              <select bind:value={draft.language}>
+                <option value="zh">简体中文</option>
+                <option value="en">English</option>
+              </select>
+            </label>
+            <label>
+              <span>{copy.theme}</span>
+              <select bind:value={draft.theme}>
+                <option value="system">{copy.system}</option>
+                <option value="light">{copy.light}</option>
+                <option value="dark">{copy.dark}</option>
+              </select>
+            </label>
+          </div>
+        {:else if step === 2}
+          <h1>{copy.providerTitle}</h1>
+          <p class="lead">{copy.providerBody}</p>
+          <div class="provider-tabs">
+            {#each draft.providers as provider (provider.id)}
+              <button
+                class:active={provider.id === selectedProviderId}
+                onclick={() => (selectedProviderId = provider.id)}
+              >
+                <span class:online={provider.enabled}></span>{provider.name}
+              </button>
+            {/each}
+            <button class="add" onclick={addProvider}>{copy.addProvider}</button>
+          </div>
+          {#if selectedProvider}
+            <div class="form-grid">
+              <div class="two">
+                <label>
+                  <span>{copy.providerName}</span>
+                  <input bind:value={selectedProvider.name} />
+                </label>
+                <label>
+                  <span>{copy.providerType}</span>
+                  <select bind:value={selectedProvider.provider} onchange={resetConnection}>
+                    {#each PROVIDER_CATALOG as entry (entry.value)}
+                      <option value={entry.value}>{entry.label}</option>
+                    {/each}
+                  </select>
+                </label>
+              </div>
+              <label>
+                <span>{copy.baseUrl}</span>
+                <input
+                  bind:value={selectedProvider.base_url}
+                  oninput={resetConnection}
+                  placeholder={providerDefaultBaseUrl(selectedProvider.provider) ||
+                    "https://your-resource.openai.azure.com"}
+                />
+              </label>
+              <label>
+                <span>
+                  {providerRequiresApiKey(selectedProvider.provider)
+                    ? copy.apiKey
+                    : selectedProvider.provider === "chatgpt"
+                      ? copy.oauthAccessToken
+                      : copy.optionalApiKey}
+                </span>
+                <input
+                  type="password"
+                  bind:value={selectedProvider.api_key}
+                  oninput={resetConnection}
+                  placeholder="••••••••••••••••"
+                />
+              </label>
+              {#if selectedProvider.provider === "chatgpt"}
+                <p class="chatgpt-model-catalog-hint" role="note">
+                  {copy.chatgptModelCatalogHint}
+                </p>
+              {/if}
+              <div class="manual-model-row">
+                <input
+                  bind:value={manualModelName}
+                  placeholder={copy.modelName}
+                  onkeydown={(event) => {
+                    if (event.key === "Enter") addManualModel();
+                  }}
+                />
+                <button class="secondary" onclick={addManualModel}>{copy.addModel}</button>
+              </div>
+              <div class="connection-row">
+                <button
+                  class="verify"
+                  onclick={verifyProvider}
+                  disabled={(providerRequiresApiKey(selectedProvider.provider) &&
+                    !selectedProvider.api_key.trim()) ||
+                    connectionStatus === "loading"}
+                >
+                  {connectionStatus === "loading" ? copy.verifying : copy.verify}
+                </button>
+                {#if connectionMessage}<p
+                    class:success={connectionStatus === "success"}
+                    class:error={connectionStatus === "error"}
+                  >
+                    {connectionMessage}
+                  </p>{/if}
+              </div>
+            </div>
+          {/if}
+        {:else if step === 3}
+          <h1>{copy.defaultTitle}</h1>
+          <p class="lead">{copy.defaultBody}</p>
+          <div class="form-grid">
+            <label>
+              <span>{copy.chatModel}</span>
+              <select
+                value={bindingValue(draft.defaults.chat_model)}
+                onchange={(event) => setModel("chat_model", event.currentTarget.value)}
+              >
+                {#each modelBindings as option (option.value)}<option value={option.value}
+                    >{option.label}</option
+                  >{/each}
+              </select>
+            </label>
+            <label>
+              <span>{copy.flashModel}</span>
+              <select
+                value={bindingValue(draft.defaults.flash_model)}
+                onchange={(event) => setModel("flash_model", event.currentTarget.value)}
+              >
+                {#each modelBindings as option (option.value)}<option value={option.value}
+                    >{option.label}</option
+                  >{/each}
+              </select>
+            </label>
+          </div>
+        {:else}
+          <h1>{copy.readyTitle}</h1>
+          <p class="lead">{copy.readyBody}</p>
+          <div class="summary">
+            <span>{copy.chatModel}</span>
+            <strong>{draft.defaults.chat_model.model}</strong>
             <span>{copy.workspace}</span>
             <strong>{workspacePath || copy.noWorkspace}</strong>
           </div>
-          <button class="secondary" onclick={() => void onPickWorkspace()}
-            >{copy.chooseWorkspace}</button
-          >
-        </div>
-      {:else if step === 1}
-        <h1>{copy.preferenceTitle}</h1>
-        <p class="lead">{copy.preferenceBody}</p>
-        <div class="form-grid two">
-          <label>
-            <span>{copy.language}</span>
-            <select bind:value={draft.language}>
-              <option value="zh">简体中文</option>
-              <option value="en">English</option>
-            </select>
-          </label>
-          <label>
-            <span>{copy.theme}</span>
-            <select bind:value={draft.theme}>
-              <option value="system">{copy.system}</option>
-              <option value="light">{copy.light}</option>
-              <option value="dark">{copy.dark}</option>
-            </select>
-          </label>
-        </div>
-      {:else if step === 2}
-        <h1>{copy.providerTitle}</h1>
-        <p class="lead">{copy.providerBody}</p>
-        <div class="provider-tabs">
-          {#each draft.providers as provider (provider.id)}
-            <button
-              class:active={provider.id === selectedProviderId}
-              onclick={() => (selectedProviderId = provider.id)}
-            >
-              <span class:online={provider.enabled}></span>{provider.name}
-            </button>
-          {/each}
-          <button class="add" onclick={addProvider}>＋ {copy.addProvider}</button>
-        </div>
-        {#if selectedProvider}
-          <div class="form-grid">
-            <div class="two">
-              <label>
-                <span>{copy.providerName}</span>
-                <input bind:value={selectedProvider.name} />
-              </label>
-              <label>
-                <span>{copy.providerType}</span>
-                <select bind:value={selectedProvider.provider} onchange={resetConnection}>
-                  {#each PROVIDER_CATALOG as entry (entry.value)}
-                    <option value={entry.value}>{entry.label}</option>
-                  {/each}
-                </select>
-              </label>
-            </div>
-            <label>
-              <span>{copy.baseUrl}</span>
-              <input
-                bind:value={selectedProvider.base_url}
-                oninput={resetConnection}
-                placeholder={providerDefaultBaseUrl(selectedProvider.provider) ||
-                  "https://your-resource.openai.azure.com"}
-              />
-            </label>
-            <label>
-              <span>
-                {providerRequiresApiKey(selectedProvider.provider)
-                  ? copy.apiKey
-                  : selectedProvider.provider === "chatgpt"
-                    ? copy.oauthAccessToken
-                    : copy.optionalApiKey}
-              </span>
-              <input
-                type="password"
-                bind:value={selectedProvider.api_key}
-                oninput={resetConnection}
-                placeholder="••••••••••••••••"
-              />
-            </label>
-            {#if selectedProvider.provider === "chatgpt"}
-              <p class="chatgpt-model-catalog-hint" role="note">
-                {copy.chatgptModelCatalogHint}
-              </p>
-            {/if}
-            <div class="manual-model-row">
-              <input
-                bind:value={manualModelName}
-                placeholder={copy.modelName}
-                onkeydown={(event) => {
-                  if (event.key === "Enter") addManualModel();
-                }}
-              />
-              <button class="secondary" onclick={addManualModel}>{copy.addModel}</button>
-            </div>
-            <div class="connection-row">
-              <button
-                class="verify"
-                onclick={verifyProvider}
-                disabled={(providerRequiresApiKey(selectedProvider.provider) &&
-                  !selectedProvider.api_key.trim()) ||
-                  connectionStatus === "loading"}
-              >
-                {connectionStatus === "loading" ? copy.verifying : copy.verify}
-              </button>
-              {#if connectionMessage}<p
-                  class:success={connectionStatus === "success"}
-                  class:error={connectionStatus === "error"}
-                >
-                  {connectionMessage}
-                </p>{/if}
-            </div>
-          </div>
+          {#if saveError}<p class="error">{saveError}</p>{/if}
         {/if}
-      {:else if step === 3}
-        <h1>{copy.defaultTitle}</h1>
-        <p class="lead">{copy.defaultBody}</p>
-        <div class="form-grid">
-          <label>
-            <span>{copy.chatModel}</span>
-            <select
-              value={bindingValue(draft.defaults.chat_model)}
-              onchange={(event) => setModel("chat_model", event.currentTarget.value)}
-            >
-              {#each modelBindings as option (option.value)}<option value={option.value}
-                  >{option.label}</option
-                >{/each}
-            </select>
-          </label>
-          <label>
-            <span>{copy.flashModel}</span>
-            <select
-              value={bindingValue(draft.defaults.flash_model)}
-              onchange={(event) => setModel("flash_model", event.currentTarget.value)}
-            >
-              {#each modelBindings as option (option.value)}<option value={option.value}
-                  >{option.label}</option
-                >{/each}
-            </select>
-          </label>
-        </div>
-      {:else}
-        <h1>{copy.readyTitle}</h1>
-        <p class="lead">{copy.readyBody}</p>
-        <div class="summary">
-          <span>{copy.chatModel}</span>
-          <strong>{draft.defaults.chat_model.model}</strong>
-          <span>{copy.workspace}</span>
-          <strong>{workspacePath || copy.noWorkspace}</strong>
-        </div>
-        {#if saveError}<p class="error">{saveError}</p>{/if}
-      {/if}
+      </div>
 
       <footer>
         <button class="secondary" onclick={() => (step -= 1)} disabled={step === 0 || saving}
@@ -450,11 +477,11 @@
         >
         {#if step < 4}
           <button class="primary" onclick={() => (step += 1)} disabled={!canContinue}
-            >{copy.next}<span>→</span></button
+            >{copy.next}</button
           >
         {:else}
           <button class="primary" onclick={finish} disabled={saving}
-            >{saving ? "…" : copy.finish}<span>→</span></button
+            >{saving ? "…" : copy.finish}</button
           >
         {/if}
       </footer>
@@ -484,70 +511,98 @@
     background: var(--app-chrome-bg);
   }
   .onboarding-body {
-    display: flex;
+    display: grid;
+    grid-template-columns: 46% minmax(0, 54%);
     min-width: 0;
     min-height: 0;
     flex: 1;
     overflow: hidden;
     padding: 0 8px 8px;
   }
-  .onboarding-nav {
+  .onboarding-visual {
     display: flex;
-    width: 184px;
-    flex: none;
     flex-direction: column;
+    align-items: center;
     box-sizing: border-box;
-    padding: 28px 12px 14px 4px;
+    min-width: 0;
+    padding: 46px 38px 28px;
     background: transparent;
   }
-  .onboarding-nav nav {
-    display: flex;
-    flex-direction: column;
-    gap: var(--list-item-stack-gap);
+  .onboarding-illustration {
+    display: block;
+    width: min(100%, 320px);
+    height: auto;
+    margin: 72px auto 0;
+    filter: drop-shadow(0 18px 22px rgba(31, 76, 138, 0.12));
+    user-select: none;
+    -webkit-user-drag: none;
   }
-  .onboarding-nav-item {
-    position: relative;
+  .onboarding-progress {
+    display: flex;
+    width: 100%;
+    margin-top: auto;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .onboarding-progress > p:first-child {
+    margin: 0 0 10px;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+  .onboarding-progress nav {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    width: 100%;
-    min-height: 34px;
-    padding: 8px 10px;
+  }
+  .onboarding-nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0;
     border: 0;
-    border-radius: 7px;
-    background: none;
+    border-radius: 50%;
+    background: var(--surface);
     color: var(--text-muted);
+    box-shadow: var(--control-shadow);
     cursor: pointer;
     font: inherit;
-    font-size: 13px;
-    text-align: left;
+    font-size: 11px;
   }
   .onboarding-nav-item:hover:not(:disabled) {
     background: var(--interactive-state-bg);
     color: var(--text);
   }
   .onboarding-nav-item.active {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-    font-weight: 500;
+    background: var(--primary);
+    color: #fff;
+    box-shadow:
+      var(--control-shadow),
+      0 0 0 2px color-mix(in srgb, var(--primary) 16%, transparent);
+    font-weight: 600;
   }
   .onboarding-nav-item:disabled {
     cursor: default;
     opacity: 0.55;
   }
-  .onboarding-nav-item span {
-    width: 16px;
-    color: var(--text-muted);
-    font-size: 11px;
-    text-align: center;
-  }
-  .onboarding-nav-item.complete span {
+  .onboarding-nav-item.complete {
     color: var(--primary);
   }
+  .onboarding-progress strong {
+    margin-top: 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
   .nav-note {
-    margin: auto 10px 2px;
+    max-width: 240px;
+    margin: 8px 0 0;
     color: var(--text-muted);
-    font-size: 10px;
+    font-size: 11px;
     line-height: 1.5;
   }
   .step-content {
@@ -557,11 +612,17 @@
     flex: 1;
     flex-direction: column;
     box-sizing: border-box;
-    overflow-y: auto;
-    padding: 56px max(32px, calc((100% - 720px) / 2)) 28px;
+    overflow: hidden;
+    padding: 0 48px 24px;
     border-radius: 8px;
     background: var(--bg);
     box-shadow: var(--raised-shadow);
+  }
+  .step-scroll {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 2px 24px;
   }
   h1 {
     margin: 0 0 12px;
@@ -571,8 +632,8 @@
     line-height: 1.16;
   }
   .lead {
-    max-width: 600px;
-    margin: 0 0 40px;
+    max-width: 520px;
+    margin: 0 0 32px;
     color: var(--text-muted);
     font-size: 14px;
     line-height: 1.6;
@@ -673,15 +734,16 @@
     background: #22a06b;
   }
   button {
-    min-height: 32px;
-    padding: 0 12px;
+    min-height: 34px;
+    padding: 0 14px;
     border: 0;
     border-radius: 7px;
-    background: var(--bg);
+    background: var(--surface);
     color: var(--text);
     cursor: pointer;
     font: inherit;
     font-size: 12px;
+    box-shadow: var(--control-shadow);
   }
   button:hover:not(:disabled) {
     background: var(--interactive-state-bg);
@@ -691,20 +753,16 @@
     opacity: 0.5;
   }
   .primary {
-    display: flex;
-    align-items: center;
-    gap: 14px;
+    min-width: 92px;
     background: var(--primary);
     color: white;
+    box-shadow: none;
   }
   .primary:hover:not(:disabled) {
     background: var(--primary-hover, var(--primary));
   }
-  .primary span {
-    font-size: 15px;
-  }
   .secondary {
-    background: transparent;
+    background: var(--surface);
   }
   .verify {
     color: var(--primary);
@@ -757,27 +815,7 @@
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    margin-top: auto;
-    padding-top: 30px;
-  }
-  @media (max-width: 760px) {
-    .onboarding-nav {
-      width: 52px;
-      padding-inline: 7px;
-    }
-    .onboarding-nav-item {
-      justify-content: center;
-      padding-inline: 0;
-      font-size: 0;
-    }
-    .nav-note {
-      display: none;
-    }
-    .step-content {
-      padding: 36px 20px 20px;
-    }
-    .two {
-      grid-template-columns: 1fr;
-    }
+    flex: none;
+    padding-top: 20px;
   }
 </style>

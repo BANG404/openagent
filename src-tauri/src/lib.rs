@@ -1529,10 +1529,11 @@ fn run_with_mode(agent_server: bool) {
                     tauri::WebviewUrl::App("/?onboarding-window=1".into()),
                 )
                 .title("OpenAgent Setup")
-                .inner_size(900.0, 640.0)
-                .min_inner_size(800.0, 560.0)
+                .inner_size(960.0, 640.0)
                 .decorations(false)
                 .transparent(true)
+                .resizable(false)
+                .maximizable(false)
                 .center()
                 .visible(false)
                 .build()?;

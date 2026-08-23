@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const windowControlsUrl = new URL("../src/lib/components/WindowControls.svelte", import.meta.url);
 const onboardingFlowUrl = new URL("../src/lib/components/OnboardingFlow.svelte", import.meta.url);
+const desktopHostUrl = new URL("../src-tauri/src/lib.rs", import.meta.url);
 
 describe("Windows window controls", () => {
   test("follow the title-bar height and native outer-corner state", async () => {
@@ -28,7 +29,26 @@ describe("Windows window controls", () => {
     expect(source).toMatch(/\.onboarding-header\s*{[^}]*justify-content: flex-end;/s);
     expect(source).toMatch(/\.onboarding-header\s*{[^}]*height: 40px;/s);
     expect(source).toMatch(/\.onboarding-header\s*{[^}]*padding: 0;/s);
-    expect(source).toMatch(/\.onboarding-nav\s*{[^}]*background: transparent;/s);
+    expect(source).toMatch(/\.onboarding-visual\s*{[^}]*background: transparent;/s);
     expect(source).toMatch(/button\s*{[^}]*border: 0;/s);
+  });
+
+  test("keeps onboarding on one fixed Windows 11-style canvas", async () => {
+    const [controls, onboarding, host] = await Promise.all([
+      readFile(windowControlsUrl, "utf8"),
+      readFile(onboardingFlowUrl, "utf8"),
+      readFile(desktopHostUrl, "utf8"),
+    ]);
+
+    expect(controls).toContain("canMaximize = true");
+    expect(controls).toContain("{#if canMaximize}");
+    expect(onboarding).toContain("canMaximize={false}");
+    expect(onboarding).toContain("/assets/onboarding/openagent-workspace.png");
+    expect(onboarding).toMatch(
+      /\.onboarding-body\s*{[^}]*grid-template-columns: 46% minmax\(0, 54%\);/s,
+    );
+    expect(host).toMatch(
+      /"onboarding",[\s\S]*?\.inner_size\(960\.0, 640\.0\)[\s\S]*?\.resizable\(false\)[\s\S]*?\.maximizable\(false\)/,
+    );
   });
 });
