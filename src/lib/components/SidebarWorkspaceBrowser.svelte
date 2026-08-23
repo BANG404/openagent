@@ -710,10 +710,7 @@
 
   .project-row-shell:hover,
   .project-row-shell:focus-within,
-  .project-row-shell.active,
-  .project-row:hover,
-  .project-row:focus-visible,
-  .project-row-shell.active .project-row {
+  .project-row-shell.active {
     background: var(--interactive-state-bg);
     outline: none;
   }

@@ -558,6 +558,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Keep project-specific actions on each project row instead of the Projects
   heading: expose a direct new-conversation action plus a compact menu for
   pinning, opening the folder, and removing the project from the project list.
+  Let the project-row shell alone paint the shared hover, focus, and selected
+  fill while its inner row stays transparent; painting both layers compounds
+  the translucent neutral state into a darker gray.
   Project pins are durable sidebar presentation preferences. Removing a project
   must not delete its folder or conversations; its conversations remain
   reachable from Recents. Keep global conversation search with the primary
