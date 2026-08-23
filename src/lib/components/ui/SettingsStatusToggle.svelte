@@ -37,16 +37,14 @@
     align-items: center;
     justify-content: flex-end;
     flex: 0 0 auto;
-    gap: 8px;
+    gap: 14px;
   }
 
   .settings-status-pill,
   .settings-toggle-pill {
     display: inline-flex;
     align-items: center;
-    min-height: 30px;
-    border-radius: 999px;
-    background: var(--surface2);
+    min-height: 28px;
     color: var(--text-muted);
     font-size: 11px;
     font-weight: 600;
@@ -56,7 +54,6 @@
 
   .settings-status-pill {
     gap: 6px;
-    padding: 4px 10px;
   }
 
   .settings-status-pill.active {
@@ -74,7 +71,6 @@
 
   .settings-toggle-pill {
     gap: 9px;
-    padding: 4px 6px 4px 11px;
   }
 
   @media (max-width: 640px) {
