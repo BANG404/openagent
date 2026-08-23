@@ -68,6 +68,8 @@ state under `~/.openagent`.
   Runtime state machines and transport ownership stay in the SDK.
 - `src/routes/+page.svelte` is the frontend composition root. Put views in
   `src/lib/components/` and keep leaf components presentational.
+- Keep Tailwind source detection rooted in `src/`; repository documentation and
+  agent instructions must not become Vite dependencies or trigger page reloads.
 - Put `invoke()` calls and cross-component state in feature containers or the
   page shell. Use Svelte 5 runes, one-way data flow, and direct ordinary
   children; use a `children` snippet only when parameters require it.

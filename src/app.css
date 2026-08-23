@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import "tailwindcss" source("./");
 @import "@mdxeditor/editor/style.css";
 @source "../node_modules/svelte-streamdown/**/*";
 
