@@ -1,0 +1,25 @@
+// @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
+import { expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
+
+const sharedSurfaceComponents = [
+  "../src/lib/components/LoadingSkeleton.svelte",
+  "../src/lib/components/MessageList.svelte",
+  "../src/lib/components/RetryAttempt.svelte",
+  "../src/lib/components/ToolCallCard.svelte",
+  "../src/lib/components/ToolCallGroup.svelte",
+  "../src/lib/components/UserInputForm.svelte",
+  "../src/lib/components/UserInputSummary.svelte",
+];
+
+test("keeps transcript-owned user surfaces on the opaque secondary fill", async () => {
+  const appCss = await readFile(new URL("../src/app.css", import.meta.url), "utf8");
+  expect(appCss).toContain("--user-message-bg: var(--surface2);");
+
+  const sources = await Promise.all(
+    sharedSurfaceComponents.map((path) => readFile(new URL(path, import.meta.url), "utf8")),
+  );
+  for (const source of sources) {
+    expect(source).toContain("var(--user-message-bg)");
+  }
+});
