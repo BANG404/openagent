@@ -45,12 +45,12 @@ describe("application navigation history", () => {
 
     const backward = moveNavigationHistory(history, -1);
     expect(backward).not.toBeNull();
-    history = recordNavigationLocation(backward!.history, location("memory", "one"));
+    history = recordNavigationLocation(backward!.history, location("chat", "three"));
 
     expect(history.entries).toEqual([
       location("chat", "one"),
       location("settings", "one"),
-      location("memory", "one"),
+      location("chat", "three"),
     ]);
     expect(moveNavigationHistory(history, 1)).toBeNull();
   });

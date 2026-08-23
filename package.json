@@ -49,7 +49,6 @@
   },
   "license": "GPL-3.0-or-later",
   "dependencies": {
-    "@mdxeditor/editor": "^4.1.1",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-autostart": "^2.5.1",
     "@tauri-apps/plugin-dialog": "^2.7.2",

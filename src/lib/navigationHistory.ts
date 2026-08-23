@@ -1,4 +1,4 @@
-export type AppNavigationSurface = "chat" | "memory" | "roles" | "skills" | "settings";
+export type AppNavigationSurface = "chat" | "settings";
 
 export interface AppNavigationLocation {
   workspacePath: string;

@@ -34,9 +34,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the route as the desktop composition and runtime-coordination boundary.
   The desktop sidebar owns its width, resize gesture, collapse persistence, and
   conversation navigation chrome; the shared title bar owns application menus,
-  sync, and window chrome across chat, Settings, Memory,
-  Roles, and Skills, while those feature views must not create a second native
-  title bar. Keep its center free of workspace names and Git branches so the
+  sync, and window chrome across chat and Settings. The title bar renders File,
+  Edit, and Help only; do not restore the removed Configure menu or its Memory,
+  Roles, and Skills management surfaces and shortcuts. Keep its center free of
+  workspace names and Git branches so the
   remaining drag region stays visually quiet. The route owns the native
   window-focus state and passes that same value to both top-chrome segments, so
   the sidebar collapse/history controls
@@ -579,22 +580,18 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   sidebar or neighboring row controls change width.
   The resize hit target and active indicator begin below the shared title bar so
   a sidebar drag never draws a separator through application chrome.
-- Keep the Memory view's horizontal resize handle quiet at rest, but render its
-  short primary-colored grip at full opacity on hover and while dragging so the
-  active separator remains visible in both themes.
 - Keep the expanded sidebar's role trigger above Projects and size it to its
   visible role name without a redundant caret. Keep the full-width new-conversation
   and global conversation-search actions immediately below it; the new action
   uses the window's selected workspace, while project-row actions may explicitly
   select another workspace first. Retain Settings as the sole bottom navigation
-  action and keep the former expandable More destinations in the shared menus.
-  Keep the back and forward
+  action. Keep the back and forward
   controls fixed beside the sidebar-collapse button in the shared top chrome.
   On macOS, reserve the native traffic-light footprint before those controls;
   on Windows, keep minimize, maximize/restore, and close at the trailing edge
   with platform-standard hit targets and close affordance. Tie history controls
   to the window's real destination history: conversations, the
-  new-conversation surface, and feature views all participate; visiting a new
+  new-conversation surface, and Settings all participate; visiting a new
   destination after going back discards the abandoned forward branch, and
   deleting a conversation removes its stale destinations.
 - Keep desktop conversation rows at a compact 30px height. Ellipsize long

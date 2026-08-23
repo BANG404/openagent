@@ -230,9 +230,6 @@
         activeConversationId = null;
       }}
       onNewWindow={() => {}}
-      onOpenMemory={() => {}}
-      onOpenRoles={() => {}}
-      onOpenSkills={() => {}}
       onOpenSettings={() => {}}
       onOpenAbout={() => {}}
       onQuit={() => {}}

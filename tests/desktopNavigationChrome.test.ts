@@ -11,14 +11,9 @@ describe("desktop navigation chrome", () => {
     const route = await readFile(routeUrl, "utf8");
 
     expect(route.match(/<DesktopTitleBar\b/g)).toHaveLength(1);
-    expect(route.indexOf("<DesktopTitleBar")).toBeLessThan(route.indexOf("{#if memoryOpen"));
+    expect(route.indexOf("<DesktopTitleBar")).toBeLessThan(route.indexOf("{#if settingsOpen"));
 
-    for (const component of [
-      "MemoryView.svelte",
-      "RolesView.svelte",
-      "SkillsView.svelte",
-      "SettingsView.svelte",
-    ]) {
+    for (const component of ["SettingsView.svelte"]) {
       const source = await readFile(new URL(component, componentsUrl), "utf8");
       expect(source).not.toContain("WindowControls");
       expect(source).not.toContain("data-tauri-drag-region");
@@ -94,21 +89,12 @@ describe("desktop navigation chrome", () => {
     );
     expect(route).toMatch(/\.app\s*{[^}]*background: transparent;/s);
 
-    for (const component of [
-      "MemoryView.svelte",
-      "RolesView.svelte",
-      "SkillsView.svelte",
-      "SettingsView.svelte",
-      "OnboardingFlow.svelte",
-    ]) {
+    for (const component of ["SettingsView.svelte", "OnboardingFlow.svelte"]) {
       const source = await readFile(new URL(component, componentsUrl), "utf8");
       expect(source).toContain("background: var(--bg)");
     }
 
     for (const [component, transparentRegions] of [
-      ["MemoryView.svelte", ["section-header", "memory-resizer"]],
-      ["RolesView.svelte", ["collection-toolbar", "role-list-column", "editor-topbar"]],
-      ["SkillsView.svelte", ["skill-list-col", "editor-topbar"]],
       [
         "SettingsView.svelte",
         [
@@ -131,6 +117,28 @@ describe("desktop navigation chrome", () => {
         );
       }
     }
+  });
+
+  test("omits the Configure menu and its retired management surfaces", async () => {
+    const route = await readFile(routeUrl, "utf8");
+    const menu = await readFile(new URL("ApplicationMenuBar.svelte", componentsUrl), "utf8");
+    const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
+    const appCss = await readFile(appCssUrl, "utf8");
+
+    expect(menu).not.toContain("application-view-menu");
+    expect(menu).not.toContain('t("viewMenu")');
+    expect(menu).not.toContain("onOpenMemory");
+    expect(menu).not.toContain("onOpenRoles");
+    expect(menu).not.toContain("onOpenSkills");
+    expect(titleBar).not.toContain("onOpenMemory");
+    expect(titleBar).not.toContain("onOpenRoles");
+    expect(titleBar).not.toContain("onOpenSkills");
+    expect(route).not.toContain("MemoryView.svelte");
+    expect(route).not.toContain("RolesView.svelte");
+    expect(route).not.toContain("SkillsView.svelte");
+    expect(route).not.toContain("more-management-preview");
+    expect(appCss).not.toContain("mdx-editor-root");
+    expect(appCss).not.toContain("@mdxeditor/editor");
   });
 
   test("searches every workspace and reserves new processes for File new window", async () => {

@@ -192,13 +192,6 @@
   const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
   const isAgentsSettingsPreview = devQuery?.has("agents-settings-preview") === true;
   const isAgentPluginsSettingsPreview = devQuery?.has("agent-plugins-settings-preview") === true;
-  const isMoreManagementPreview = devQuery?.has("more-management-preview") === true;
-  const moreManagementPreviewKind =
-    devQuery?.get("more-management-preview-kind") === "memory"
-      ? "memory"
-      : devQuery?.get("more-management-preview-kind") === "roles"
-        ? "roles"
-        : "skills";
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isOnboardingWindow = runtimeQuery?.has("onboarding-window") === true;
   const isOnboardingSurface = isOnboardingWindow || isOnboardingPreview;
@@ -249,18 +242,6 @@
     devQuery?.get("agent-plugins-settings-preview-locale") === "en"
       ? "en"
       : devQuery?.get("agent-plugins-settings-preview-locale") === "zh"
-        ? "zh"
-        : null;
-  const moreManagementPreviewTheme =
-    devQuery?.get("more-management-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("more-management-preview-theme") === "light"
-        ? "light"
-        : null;
-  const moreManagementPreviewLocale: Locale | null =
-    devQuery?.get("more-management-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("more-management-preview-locale") === "zh"
         ? "zh"
         : null;
   const isDebugBuild = import.meta.env.DEV;
@@ -387,16 +368,10 @@
     | "about"
     | undefined
   >(undefined);
-  let memoryOpen = $state(false);
-  let rolesOpen = $state(false);
-  let skillsOpen = $state(false);
   let navigationHistory = $state<AppNavigationHistory>(createNavigationHistory());
   let navigationTransitioning = $state(false);
   let navigationCaptureDepth = $state(0);
   let SettingsView = $state<LazyViewComponent | null>(null);
-  let MemoryView = $state<LazyViewComponent | null>(null);
-  let RolesView = $state<LazyViewComponent | null>(null);
-  let SkillsView = $state<LazyViewComponent | null>(null);
   let workspacePath = $state("");
   let recentWorkspaces = $state<RecentWorkspace[]>([]);
   let pinnedProjectPaths = $state(
@@ -576,15 +551,7 @@
 
   let currentNavigationLocation = $derived.by<AppNavigationLocation>(() => ({
     workspacePath,
-    surface: memoryOpen
-      ? "memory"
-      : rolesOpen
-        ? "roles"
-        : skillsOpen
-          ? "skills"
-          : settingsOpen
-            ? "settings"
-            : "chat",
+    surface: settingsOpen ? "settings" : "chat",
     conversationId: activeConvId,
     roleKey: selectedRoleKey,
   }));
@@ -1587,23 +1554,6 @@
     await activateNewConversationSurface(roleKey);
   }
 
-  async function handleRolesChanged(): Promise<void> {
-    const previousRoleKey = selectedRoleKey;
-    await loadAvailableRoles();
-    if (selectedRoleKey === previousRoleKey) return;
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(roleSelectionStorageKey(), selectedRoleKey);
-    }
-    restoringSurface = "new-conversation";
-    activeConvId = null;
-    cacheRestoreSurface("new-conversation", null);
-    await Promise.all([reloadRoleConversations(), refreshRecentConversations()]);
-    await invoke("set_active_conversation", {
-      convId: null,
-      workspace: workspacePath || "",
-    }).catch(() => {});
-  }
-
   async function ensureConversationLineage(meta: Conversation): Promise<void> {
     const lineage: Conversation[] = [];
     const visited = new Set<string>();
@@ -1815,17 +1765,6 @@
               ? "agents"
               : "channels";
           settingsOpen = true;
-        } else if (isMoreManagementPreview) {
-          if (moreManagementPreviewKind === "memory") {
-            MemoryView = (await import("$lib/components/MemoryView.svelte")).default;
-            memoryOpen = true;
-          } else if (moreManagementPreviewKind === "roles") {
-            RolesView = (await import("$lib/components/RolesView.svelte")).default;
-            rolesOpen = true;
-          } else {
-            SkillsView = (await import("$lib/components/SkillsView.svelte")).default;
-            skillsOpen = true;
-          }
         }
         restoringSurface = "new-conversation";
         activeConvId = null;
@@ -1859,8 +1798,7 @@
         config &&
         !isChannelsSettingsPreview &&
         !isAgentsSettingsPreview &&
-        !isAgentPluginsSettingsPreview &&
-        !isMoreManagementPreview
+        !isAgentPluginsSettingsPreview
       ) {
         requiresOnboarding = !config.onboarding_completed;
       }
@@ -1908,7 +1846,7 @@
         void checkForAppUpdate();
       }
       if (!startupApplied && launchContext?.conversation_id) {
-        void openMemorySource(launchContext.conversation_id, launchContext.message_id ?? "");
+        void revealMemorySource(launchContext.conversation_id, launchContext.message_id ?? "");
       }
     }
   });
@@ -2946,7 +2884,6 @@
       }
       applyTheme(
         onboardingPreviewTheme ??
-          moreManagementPreviewTheme ??
           channelsSettingsPreviewTheme ??
           agentsSettingsPreviewTheme ??
           agentPluginsSettingsPreviewTheme ??
@@ -2955,7 +2892,6 @@
       );
       await initI18n(
         onboardingPreviewLocale ??
-          moreManagementPreviewLocale ??
           channelsSettingsPreviewLocale ??
           agentsSettingsPreviewLocale ??
           agentPluginsSettingsPreviewLocale ??
@@ -3096,17 +3032,9 @@
       return;
     }
     const newConversationSurfaceVisible =
-      !mainContentLoading &&
-      newConversationLayout &&
-      !settingsOpen &&
-      !memoryOpen &&
-      !rolesOpen &&
-      !skillsOpen;
+      !mainContentLoading && newConversationLayout && !settingsOpen;
     if (newConversationSurfaceVisible) return;
     if (settingsOpen) closeSettings();
-    if (memoryOpen) memoryOpen = false;
-    if (rolesOpen) rolesOpen = false;
-    if (skillsOpen) skillsOpen = false;
     await activateNewConversationSurface();
   }
 
@@ -3163,22 +3091,9 @@
     await scrollToBottom();
   }
 
-  async function openMemorySource(convId: string, messageId: string) {
-    if (tauriAvailable) {
-      const sourceWorkspace = await invoke<string | null>("get_conversation_workspace", {
-        convId,
-      }).catch(() => null);
-      if (sourceWorkspace && sourceWorkspace !== workspacePath) {
-        await applyWorkspace(sourceWorkspace, convId);
-      }
-    }
-    await revealMemorySource(convId, messageId);
-  }
-
   async function revealMemorySource(convId: string, messageId: string) {
     navigationCaptureDepth += 1;
     try {
-      memoryOpen = false;
       await switchConversation(convId);
       await tick();
       const target = document.getElementById(`message-${messageId}`);
@@ -4124,9 +4039,6 @@
       if (!config) return;
     }
     SettingsView ??= (await import("$lib/components/SettingsView.svelte")).default;
-    if (memoryOpen) memoryOpen = false;
-    if (rolesOpen) rolesOpen = false;
-    if (skillsOpen) skillsOpen = false;
     settingsInitialNav = initialNav;
     settingsOpen = true;
   }
@@ -4196,49 +4108,8 @@
     await getCurrentWindow().hide();
   }
 
-  // ─── Memory / Roles / Skills ─────────────────────────────────────────────────
-
-  async function openMemory() {
-    if (!tauriAvailable) {
-      alert(browserModeNotice);
-      return;
-    }
-    MemoryView ??= (await import("$lib/components/MemoryView.svelte")).default;
-    if (settingsOpen) closeSettings();
-    if (rolesOpen) rolesOpen = false;
-    if (skillsOpen) skillsOpen = false;
-    memoryOpen = true;
-  }
-
-  async function openRoles() {
-    if (!tauriAvailable) {
-      alert(browserModeNotice);
-      return;
-    }
-    RolesView ??= (await import("$lib/components/RolesView.svelte")).default;
-    if (settingsOpen) closeSettings();
-    memoryOpen = false;
-    skillsOpen = false;
-    rolesOpen = true;
-  }
-
-  async function openSkills() {
-    if (!tauriAvailable) {
-      alert(browserModeNotice);
-      return;
-    }
-    SkillsView ??= (await import("$lib/components/SkillsView.svelte")).default;
-    if (settingsOpen) closeSettings();
-    if (memoryOpen) memoryOpen = false;
-    if (rolesOpen) rolesOpen = false;
-    skillsOpen = true;
-  }
-
   function closeAuxiliarySurfaces(): void {
     if (settingsOpen) closeSettings();
-    memoryOpen = false;
-    rolesOpen = false;
-    skillsOpen = false;
   }
 
   async function restoreNavigationLocation(location: AppNavigationLocation): Promise<void> {
@@ -4253,15 +4124,6 @@
     }
 
     switch (location.surface) {
-      case "memory":
-        await openMemory();
-        break;
-      case "roles":
-        await openRoles();
-        break;
-      case "skills":
-        await openSkills();
-        break;
       case "settings":
         await openSettings();
         break;
@@ -4322,8 +4184,6 @@
         return () => newConversation();
       case "model":
         return () => openSettings("defaults");
-      case "memory":
-        return () => openMemory();
       case "compact":
         return () => {
           void compactCurrentConversation();
@@ -4331,8 +4191,6 @@
       case "goal":
       case "graph":
         return null;
-      case "skills":
-        return () => openSkills();
       case "settings":
         return () => openSettings();
       default:
@@ -4346,10 +4204,6 @@
         return () => newConversation();
       case "open_model_settings":
         return () => openSettings("defaults");
-      case "open_memory":
-        return () => openMemory();
-      case "open_skills":
-        return () => openSkills();
       case "open_settings":
         return () => openSettings();
       default:
@@ -4564,9 +4418,6 @@
         onLoadMore={loadNextConversationPage}
         onSelect={(id) => {
           if (settingsOpen) closeSettings();
-          if (memoryOpen) memoryOpen = false;
-          if (rolesOpen) rolesOpen = false;
-          if (skillsOpen) skillsOpen = false;
           return selectSidebarConversation(id);
         }}
         onTogglePin={togglePin}
@@ -4586,18 +4437,13 @@
         {recentWorkspaces}
         {tauriAvailable}
         memorySyncing={isMemorySyncing}
-        checkpointFlowAvailable={Boolean(
-          currentCheckpointFlow && !memoryOpen && !rolesOpen && !skillsOpen && !settingsOpen,
-        )}
+        checkpointFlowAvailable={Boolean(currentCheckpointFlow && !settingsOpen)}
         {checkpointFlowPanelCollapsed}
         onPickWorkspace={pickWorkspace}
         onPickWsl={pickWslWorkspace}
         onSelectWorkspace={requestWorkspace}
         onNewConversation={newConversation}
         onNewWindow={pickWorkspaceInNewWindow}
-        onOpenMemory={openMemory}
-        onOpenRoles={openRoles}
-        onOpenSkills={openSkills}
         onOpenSettings={() => openSettings()}
         onOpenAbout={() => openSettings("about")}
         onQuit={quitApp}
@@ -4609,27 +4455,7 @@
         {windowFocused}
       />
 
-      {#if memoryOpen && MemoryView}
-        <div class="feature-main">
-          <MemoryView
-            {workspace}
-            preview={isMoreManagementPreview}
-            onOpenSource={openMemorySource}
-          />
-        </div>
-      {:else if rolesOpen && RolesView}
-        <div class="feature-main">
-          <RolesView
-            {workspace}
-            preview={isMoreManagementPreview}
-            onRolesChanged={() => void handleRolesChanged()}
-          />
-        </div>
-      {:else if skillsOpen && SkillsView}
-        <div class="feature-main">
-          <SkillsView {workspace} preview={isMoreManagementPreview} />
-        </div>
-      {:else if settingsOpen && SettingsView}
+      {#if settingsOpen && SettingsView}
         <div class="feature-main">
           <SettingsView
             {config}

@@ -1,15 +1,13 @@
 <script lang="ts">
   let {
-    variant = "editor",
+    variant = "list",
     rows = 6,
     label = "Loading content",
   }: {
     variant?:
-      | "editor"
       | "list"
       | "sidebar"
       | "draft-list"
-      | "memory-list"
       | "detail-list"
       | "table"
       | "conversation"
@@ -99,14 +97,6 @@
         <span class="block line" style={`width:${68 - (index % 3) * 9}%`}></span>
       </div>
     {/each}
-  {:else if variant === "memory-list"}
-    {#each Array(rows) as _, index (index)}
-      <div class="memory-card">
-        <span class="block meta-line"></span>
-        <span class="block line" style={`width:${88 - (index % 2) * 14}%`}></span>
-        <span class="block line secondary" style={`width:${58 + (index % 2) * 12}%`}></span>
-      </div>
-    {/each}
   {:else if variant === "detail-list"}
     {#each Array(rows) as _, index (index)}
       <div class="detail-row" class:active={index === 0}>
@@ -114,7 +104,7 @@
         <span class="block line secondary" style={`width:${42 + (index % 2) * 12}%`}></span>
       </div>
     {/each}
-  {:else if variant === "list"}
+  {:else}
     {#each Array(rows) as _, index (index)}
       <div class="list-row">
         <span class="block icon"></span>
@@ -124,19 +114,6 @@
         </span>
       </div>
     {/each}
-  {:else}
-    <div class="editor-toolbar">
-      <span class="block editor-toggle"></span>
-      {#each Array(7) as _, index (index)}
-        <span class="block editor-tool" class:wide-tool={index === 1}></span>
-      {/each}
-    </div>
-    <div class="editor-copy">
-      {#each Array(rows) as _, index (index)}
-        <span class="block line" style={`width:${index === rows - 1 ? 38 : 92 - (index % 4) * 9}%`}
-        ></span>
-      {/each}
-    </div>
   {/if}
 </div>
 
@@ -160,44 +137,6 @@
     );
     background-size: 240% 100%;
     animation: shimmer 1.35s ease-in-out infinite;
-  }
-
-  .editor {
-    height: 100%;
-    background: var(--bg);
-  }
-
-  .editor-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 40px;
-    padding: 4px 10px;
-    box-sizing: border-box;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-  }
-
-  .editor-toggle {
-    width: 74px;
-    height: 26px;
-    border-radius: 7px;
-  }
-
-  .editor-tool {
-    width: 25px;
-    height: 25px;
-    border-radius: 6px;
-  }
-
-  .editor-tool.wide-tool {
-    width: 62px;
-  }
-
-  .editor-copy {
-    display: grid;
-    gap: 13px;
-    padding: 22px 20px;
   }
 
   .line {
@@ -287,31 +226,6 @@
   }
 
   .draft-row .line {
-    height: 9px;
-  }
-
-  .memory-list {
-    display: grid;
-    align-content: start;
-    gap: 8px;
-    padding: 8px 12px 12px;
-  }
-
-  .memory-card {
-    display: grid;
-    gap: 8px;
-    padding: 7px 10px 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-  }
-
-  .memory-card .meta-line {
-    width: 18%;
-    height: 7px;
-  }
-
-  .memory-card .secondary {
     height: 9px;
   }
 

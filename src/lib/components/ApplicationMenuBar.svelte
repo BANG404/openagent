@@ -26,9 +26,6 @@
     onPickWsl,
     onSelectWorkspace,
     onOpenWorkspaceLocation,
-    onOpenMemory,
-    onOpenRoles,
-    onOpenSkills,
     onOpenSettings,
     onOpenAbout,
     onCloseWindow,
@@ -43,9 +40,6 @@
     onPickWsl: () => void;
     onSelectWorkspace: (path: string) => void;
     onOpenWorkspaceLocation: () => void;
-    onOpenMemory: () => void;
-    onOpenRoles: () => void;
-    onOpenSkills: () => void;
     onOpenSettings: () => void;
     onOpenAbout: () => void;
     onCloseWindow: () => void;
@@ -169,11 +163,9 @@
           ? "application-file-menu"
           : key === "e"
             ? "application-edit-menu"
-            : key === "v"
-              ? "application-view-menu"
-              : key === "h"
-                ? "application-help-menu"
-                : null;
+            : key === "h"
+              ? "application-help-menu"
+              : null;
       if (!triggerId) return;
       if (key === "e") captureEditContext();
       runShortcut(event, () => {
@@ -194,9 +186,6 @@
     else if (!event.shiftKey && key === "w") runShortcut(event, onCloseWindow);
     else if (!event.shiftKey && key === "q") runShortcut(event, onQuit);
     else if (!event.shiftKey && key === ",") runShortcut(event, onOpenSettings);
-    else if (event.shiftKey && event.code === "Digit1") runShortcut(event, onOpenMemory);
-    else if (event.shiftKey && event.code === "Digit2") runShortcut(event, onOpenRoles);
-    else if (event.shiftKey && event.code === "Digit3") runShortcut(event, onOpenSkills);
     else if (event.shiftKey && key === "u") {
       runShortcut(event, () => void checkForAppUpdate(true));
     }
@@ -365,35 +354,6 @@
         <DropdownMenu.Item class="application-menu-item" onSelect={onOpenSettings}>
           <span>{$t("settings")}</span><span class="application-menu-shortcut"
             >{primaryModifier}+,</span
-          >
-        </DropdownMenu.Item>
-      </DropdownMenu.Content>
-    </DropdownMenu.Portal>
-  </DropdownMenu.Root>
-
-  <DropdownMenu.Root>
-    <DropdownMenu.Trigger id="application-view-menu" class="application-menu-trigger" accesskey="v"
-      >{$t("viewMenu")}</DropdownMenu.Trigger
-    >
-    <DropdownMenu.Portal>
-      <DropdownMenu.Content
-        class="desktop-menu-panel application-menu-content"
-        sideOffset={2}
-        align="start"
-      >
-        <DropdownMenu.Item class="application-menu-item" onSelect={onOpenMemory}>
-          <span>{$t("memory")}</span><span class="application-menu-shortcut"
-            >{primaryModifier}+Shift+1</span
-          >
-        </DropdownMenu.Item>
-        <DropdownMenu.Item class="application-menu-item" onSelect={onOpenRoles}>
-          <span>{$t("roles")}</span><span class="application-menu-shortcut"
-            >{primaryModifier}+Shift+2</span
-          >
-        </DropdownMenu.Item>
-        <DropdownMenu.Item class="application-menu-item" onSelect={onOpenSkills}>
-          <span>{$t("skills")}</span><span class="application-menu-shortcut"
-            >{primaryModifier}+Shift+3</span
           >
         </DropdownMenu.Item>
       </DropdownMenu.Content>

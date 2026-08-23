@@ -19,9 +19,6 @@
     onSelectWorkspace,
     onNewConversation,
     onNewWindow,
-    onOpenMemory,
-    onOpenRoles,
-    onOpenSkills,
     onOpenSettings,
     onOpenAbout,
     onQuit,
@@ -43,9 +40,6 @@
     onSelectWorkspace: (path: string) => void | Promise<void>;
     onNewConversation: () => void | Promise<void>;
     onNewWindow: () => void | Promise<void>;
-    onOpenMemory: () => void | Promise<void>;
-    onOpenRoles: () => void | Promise<void>;
-    onOpenSkills: () => void | Promise<void>;
     onOpenSettings: () => void | Promise<void>;
     onOpenAbout: () => void | Promise<void>;
     onQuit: () => void;
@@ -89,9 +83,6 @@
       onPickWsl={() => void onPickWsl()}
       onSelectWorkspace={(path) => void onSelectWorkspace(path)}
       onOpenWorkspaceLocation={() => void openWorkspaceLocation()}
-      onOpenMemory={() => void onOpenMemory()}
-      onOpenRoles={() => void onOpenRoles()}
-      onOpenSkills={() => void onOpenSkills()}
       onOpenSettings={() => void onOpenSettings()}
       onOpenAbout={() => void onOpenAbout()}
       onCloseWindow={onClose}
