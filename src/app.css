@@ -378,6 +378,11 @@
   transform: scale(0.95);
 }
 
+.interactive-control[aria-haspopup]:active:not(:disabled),
+.application-menu-trigger[aria-haspopup]:active:not(:disabled) {
+  transform: none;
+}
+
 .desktop-menu-item,
 .application-menu-item {
   position: relative;
