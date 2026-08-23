@@ -20,6 +20,10 @@
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import { installDownloadHook } from "$lib/downloadHook";
   import { checkForAppUpdate } from "$lib/appUpdater";
+  import {
+    notifyAgentReplyCompleted,
+    shouldNotifyAgentReplyCompleted,
+  } from "$lib/agentCompletionNotification";
   import { Tooltip as TooltipPrimitive } from "bits-ui";
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
@@ -2760,6 +2764,7 @@
     asstMsgId?: string,
     error?: string | null,
   ) {
+    notifyInactiveWindowOfAgentCompletion(status, !!chatStreams.streamingConversationIds[conv_id]);
     beginStreamCompletionTailAnchor(conv_id);
     let items = chatStreams.itemsByConversation[conv_id] ?? [];
     if (error) {
@@ -2863,6 +2868,15 @@
 
     chatStreams.cleanup(conv_id);
     void dispatchNextQueuedMessage(conv_id);
+  }
+
+  function notifyInactiveWindowOfAgentCompletion(
+    status: CheckpointTurnStatus,
+    wasStreaming: boolean,
+  ): void {
+    if (!shouldNotifyAgentReplyCompleted({ status, windowFocused, tauriAvailable, wasStreaming }))
+      return;
+    void notifyAgentReplyCompleted($t("agentReplyCompletedNotification"));
   }
 
   function applyTheme(theme: string) {
@@ -3416,6 +3430,7 @@
         loadedConvIds.delete(convId);
         void loadMessagesForConv(convId, false).finally(() => {
           if (!chatStreams.streamingConversationIds[convId]) return;
+          notifyInactiveWindowOfAgentCompletion("completed", true);
           chatStreams.cleanup(convId);
           void dispatchNextQueuedMessage(convId);
         });

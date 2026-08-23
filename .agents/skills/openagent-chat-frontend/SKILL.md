@@ -935,6 +935,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - `chat-response-started` means the stream connected, not that content arrived.
   Clear transient waiting state on the first text/thinking chunk and every
   terminal path.
+- A successfully completed Agent reply sends a generic system notification
+  through Tauri's notification plugin only while the owning desktop window is
+  inactive. Never include conversation or model content in the notification;
+  permission denial and notification failures must not affect stream
+  finalization. Interrupted, cancelled, and failed turns do not notify.
 - Treat `chat-mermaid-render-request` as automatic frontend-assisted tool
   execution. Render with the shared Mermaid engine and return its structured
   result through `submit_interrupt_response`.

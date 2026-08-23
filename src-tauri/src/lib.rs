@@ -1437,6 +1437,7 @@ fn run_with_mode(agent_server: bool) {
     builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(runtime.clone())
         .setup(move |app| {
             // init_tracing() spawns a background Tokio task (batch exporter). The

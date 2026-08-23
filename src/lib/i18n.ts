@@ -212,6 +212,7 @@ const zh = {
   skipMemoryRetrieval: "跳过检索",
   agentRunFailed: "运行失败",
   agentRunInterrupted: "运行已中断",
+  agentReplyCompletedNotification: "Agent 已完成回复",
   extensions: "MCP",
   about: "关于作者",
   // General settings
@@ -1072,6 +1073,7 @@ const en: Translations = {
   skipMemoryRetrieval: "Skip search",
   agentRunFailed: "Run failed",
   agentRunInterrupted: "Run interrupted",
+  agentReplyCompletedNotification: "Agent finished responding",
   extensions: "MCP",
   about: "About",
   appearance: "Appearance",

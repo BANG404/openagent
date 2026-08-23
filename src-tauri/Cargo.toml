@@ -52,6 +52,7 @@ tokio = { version = "1", features = ["rt", "sync", "time"] }
 tauri-plugin-i18n = "2"
 tracing = "0.1"
 rfd = { version = "0.16", default-features = false, features = ["common-controls-v6"] }
+tauri-plugin-notification = "2"
 
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-autostart = "2.5.1"
