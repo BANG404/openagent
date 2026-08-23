@@ -58,7 +58,7 @@
       aria-label={ariaLabel}
       oninput={(e) => (inputValue = e.currentTarget.value)}
     />
-    <Combobox.Trigger class="ui-combobox-trigger" aria-label={ariaLabel}>
+    <Combobox.Trigger class="interactive-control ui-combobox-trigger" aria-label={ariaLabel}>
       <svg viewBox="0 0 16 16" aria-hidden="true">
         <path
           d="M4 6l4 4 4-4"
@@ -82,7 +82,7 @@
               value={item.value}
               label={item.label}
               disabled={item.disabled}
-              class="ui-combobox-item"
+              class="desktop-menu-item ui-combobox-item"
             >
               <span class="ui-combobox-item-label">{item.label}</span>
             </Combobox.Item>
@@ -141,13 +141,6 @@
       background 0.15s,
       color 0.15s;
   }
-  :global(.ui-combobox-trigger:hover) {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-  :global(.ui-combobox-trigger[data-state="open"]) {
-    background: var(--interactive-state-bg);
-  }
   :global(.ui-combobox-trigger svg) {
     width: 14px;
     height: 14px;
@@ -175,35 +168,7 @@
     text-align: center;
   }
   :global(.ui-combobox-item) {
-    position: relative;
-    display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: var(--menu-item-gap);
-    min-height: var(--menu-item-min-height);
-    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
-    border-radius: var(--menu-item-radius);
-    font-size: var(--menu-item-font-size);
-    line-height: var(--menu-item-line-height);
-    color: var(--text);
-    cursor: pointer;
-    outline: none;
-    user-select: none;
-  }
-  :global(.ui-combobox-item + .ui-combobox-item) {
-    margin-top: var(--menu-item-stack-gap);
-  }
-  :global(.ui-combobox-item[data-highlighted]:not([data-selected])),
-  :global(.ui-combobox-item:hover:not([data-selected])) {
-    background: var(--interactive-state-bg);
-  }
-  :global(.ui-combobox-item[data-selected]) {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-  :global(.ui-combobox-item[data-disabled]) {
-    opacity: 0.4;
-    cursor: not-allowed;
   }
   :global(.ui-combobox-item-label) {
     flex: 1;

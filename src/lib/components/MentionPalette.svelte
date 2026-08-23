@@ -71,10 +71,14 @@
         <span>{emptyText}</span>
       </div>
     {:else if items.length === 0}
-      <Command.Empty class="palette-empty">{emptyText}</Command.Empty>
+      <Command.Empty class="desktop-menu-empty palette-empty">{emptyText}</Command.Empty>
     {:else}
       {#each items as item (item.id)}
-        <Command.Item value={item.id} onSelect={() => onSelect(item)} class="palette-row">
+        <Command.Item
+          value={item.id}
+          onSelect={() => onSelect(item)}
+          class="desktop-menu-item palette-row"
+        >
           <span class="palette-label">{item.label}</span>
           {#if item.detail}
             <span class="palette-detail">{item.detail}</span>
@@ -100,7 +104,6 @@
   :global(.palette-list) {
     display: flex;
     flex-direction: column;
-    gap: var(--menu-item-stack-gap);
     max-height: max(
       0px,
       calc(min(320px, var(--palette-available-height, 320px)) - (2 * var(--menu-content-padding)))
@@ -141,31 +144,6 @@
     to {
       transform: rotate(360deg);
     }
-  }
-
-  :global(.palette-row) {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: var(--menu-item-gap);
-    width: 100%;
-    background: transparent;
-    border: none;
-    border-radius: var(--menu-item-radius);
-    min-height: var(--menu-item-min-height);
-    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
-    cursor: pointer;
-    text-align: left;
-    outline: none;
-    user-select: none;
-  }
-
-  :global(.palette-row:hover:not([data-selected])) {
-    background: var(--interactive-state-bg);
-  }
-
-  :global(.palette-row[data-selected]) {
-    background: var(--interactive-state-bg);
   }
 
   :global(.palette-label) {

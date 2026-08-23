@@ -397,6 +397,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   neighboring hover and selected fills visibly separate. Options with
   descriptions may grow vertically and use 11px secondary copy; do not
   compress them to the single-line height.
+- Keep reusable interaction and menu presentation in `src/app.css`: the shared
+  hover/open/selected control fill, menu rows, search fields, empty states, and
+  separators are application primitives. Components own only their dimensions,
+  content layout, and semantic exceptions; do not duplicate the shared state
+  declarations in component styles.
 - Reuse the shared conversation-input surface for the composer, file-change
   banner, every desktop menu panel, command/mention palettes, floating
   text-selection actions, and notifications so their Mica fill, hairline
@@ -422,8 +427,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep selection signaling consistent across floating option rows and persistent
   navigation lists: neutral buttons, triggers, and option rows use the shared
   theme-aware `--interactive-state-bg` for hover, open, and selected states;
-  the light value is `#ebebeb`. Selected rows use that neutral fill without a
-  decorative left rail, stronger fill, checkmark, or selected text color. GPUI
+  derive that gray from the current text color at the shared semi-transparent
+  opacity so it adapts to the surface beneath it. Selected rows use that neutral
+  fill without a decorative left rail, stronger fill, checkmark, or selected text color. GPUI
   preserves the same row geometry, selected fill, selection semantics,
   accessibility state, and interactions. Primary and destructive actions retain
   their semantic state colors.

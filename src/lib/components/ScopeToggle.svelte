@@ -16,6 +16,7 @@
 
 <div class="scope-toggle" role="group" aria-label={$t("scope")}>
   <button
+    class="interactive-control"
     class:active={value === "global"}
     type="button"
     aria-pressed={value === "global"}
@@ -24,6 +25,7 @@
     {$t("globalTab")}
   </button>
   <button
+    class="interactive-control"
     class:active={value === "local"}
     type="button"
     aria-pressed={value === "local"}
@@ -59,29 +61,6 @@
     font-size: 11px;
     line-height: 24px;
     cursor: pointer;
-    transition:
-      background 0.12s,
-      color 0.12s,
-      transform 0.1s;
-  }
-
-  button:hover:not(:disabled) {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-
-  button.active {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-
-  button:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
-  }
-
-  button:active:not(:disabled) {
-    transform: scale(0.95);
   }
 
   button:disabled {

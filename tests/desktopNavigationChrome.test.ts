@@ -78,9 +78,7 @@ describe("desktop navigation chrome", () => {
     expect(workspaceSwitcher).toMatch(
       /\.composer-workspace-btn\)\s*{[^}]*padding: 5px 8px;[^}]*color: var\(--text-muted\);/s,
     );
-    expect(workspaceSwitcher).toMatch(
-      /\.workspace-btn\[data-state="open"\]\)\s*{[^}]*background: var\(--interactive-state-bg\);/s,
-    );
+    expect(workspaceSwitcher).toContain("interactive-control workspace-btn");
   });
 
   test("keeps native window canvases at roughly seventy percent transparency", async () => {

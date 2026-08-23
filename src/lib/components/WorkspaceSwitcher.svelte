@@ -62,7 +62,9 @@
     >
       {#snippet trigger(props)}
         <DropdownMenu.Trigger
-          class="workspace-btn {variant === 'composer' ? 'composer-workspace-btn' : ''}"
+          class="interactive-control workspace-btn {variant === 'composer'
+            ? 'composer-workspace-btn'
+            : ''}"
           aria-label={`${$t("currentWorkspace")}: ${workspaceTooltip}`}
           {...props}
         >
@@ -96,17 +98,23 @@
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DropdownMenu.Item class="ws-dropdown-item ws-open-folder" onSelect={onPick}>
+        <DropdownMenu.Item
+          class="desktop-menu-item ws-dropdown-item ws-open-folder"
+          onSelect={onPick}
+        >
           {$t("openFolder")}
         </DropdownMenu.Item>
         {#if platform === "windows"}
-          <DropdownMenu.Item class="ws-dropdown-item ws-open-folder" onSelect={onPickWsl}>
+          <DropdownMenu.Item
+            class="desktop-menu-item ws-dropdown-item ws-open-folder"
+            onSelect={onPickWsl}
+          >
             {$t("openWslFolder")}
           </DropdownMenu.Item>
         {/if}
         {#if workspacePath}
           <DropdownMenu.Item
-            class="ws-dropdown-item"
+            class="desktop-menu-item ws-dropdown-item"
             disabled={!tauriAvailable}
             onSelect={() => openWorkspaceLocation(workspacePath)}
           >
@@ -114,10 +122,10 @@
           </DropdownMenu.Item>
         {/if}
         {#if otherRecent.length > 0}
-          <DropdownMenu.Separator class="ws-dropdown-divider" />
+          <DropdownMenu.Separator class="desktop-menu-separator ws-dropdown-divider" />
           <DropdownMenu.Sub>
             <DropdownMenu.SubTrigger
-              class="ws-dropdown-item ws-recent-trigger"
+              class="desktop-menu-item ws-dropdown-item ws-recent-trigger"
               textValue={$t("recentWorkspaces")}
             >
               <span class="ws-dropdown-name">{$t("recentWorkspaces")}</span>
@@ -136,7 +144,7 @@
                     <div class="ws-recent-row">
                       <Tooltip text={ws.path} side="right" block>
                         <DropdownMenu.Item
-                          class="ws-dropdown-item"
+                          class="desktop-menu-item ws-dropdown-item"
                           onSelect={() => onSelect(ws.path)}
                         >
                           {#if isWslWorkspacePath(ws.path)}
@@ -218,17 +226,6 @@
     transform: rotate(180deg);
   }
 
-  :global(.workspace-btn:hover),
-  :global(.workspace-btn[data-state="open"]) {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-
-  :global(.workspace-btn:focus-visible) {
-    box-shadow: var(--focus-ring);
-    outline: none;
-  }
-
   .folder-name {
     font-size: 13px;
     font-weight: 600;
@@ -267,23 +264,7 @@
   }
 
   :global(.ws-dropdown-item) {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: var(--menu-item-gap);
-    width: 100%;
-    background: none;
-    border: none;
-    border-radius: var(--menu-item-radius);
-    min-height: var(--menu-item-min-height);
-    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
-    font-size: var(--menu-item-font-size);
-    line-height: var(--menu-item-line-height);
-    color: var(--text);
-    cursor: pointer;
-    text-align: left;
     transition: background 0.12s;
-    outline: none;
   }
 
   :global(.ws-dropdown-item + .ws-dropdown-item),
@@ -293,10 +274,6 @@
 
   :global(.ws-recent-trigger) {
     justify-content: space-between;
-  }
-
-  :global(.ws-recent-trigger[data-state="open"]) {
-    background: var(--interactive-state-bg);
   }
 
   :global(.ws-submenu-chevron) {
@@ -335,16 +312,6 @@
     min-width: 0;
   }
 
-  :global(.ws-dropdown-item[data-highlighted]:not([data-selected])),
-  :global(.ws-dropdown-item:hover:not([data-selected])) {
-    background: var(--interactive-state-bg);
-  }
-
-  :global(.ws-dropdown-item[data-selected]) {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-
   .ws-dropdown-name {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -355,11 +322,5 @@
     min-width: 0;
     overflow-wrap: anywhere;
     line-height: 16px;
-  }
-
-  :global(.ws-dropdown-divider) {
-    height: 1px;
-    background: var(--border);
-    margin: var(--menu-separator-margin);
   }
 </style>

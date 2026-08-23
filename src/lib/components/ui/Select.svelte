@@ -78,7 +78,11 @@
   onOpenChange={handleOpenStateChange}
   {onValueChange}
 >
-  <Select.Trigger {id} class="ui-select-trigger {triggerClass}" aria-label={ariaLabel}>
+  <Select.Trigger
+    {id}
+    class="interactive-control ui-select-trigger {triggerClass}"
+    aria-label={ariaLabel}
+  >
     <span class="ui-select-value" class:placeholder={!selectedLabel}>
       {#if selectedItem?.icon || selectedItem?.iconFallback}
         <span class="ui-select-item-icon" aria-hidden="true">
@@ -111,8 +115,8 @@
       avoidCollisions={contentAvoidCollisions}
     >
       {#if searchable}
-        <div class="ui-select-search-wrap">
-          <svg class="ui-select-search-icon" viewBox="0 0 16 16" aria-hidden="true">
+        <div class="desktop-menu-search-wrap">
+          <svg class="desktop-menu-search-icon" viewBox="0 0 16 16" aria-hidden="true">
             <circle cx="7" cy="7" r="4.25" fill="none" stroke="currentColor" stroke-width="1.5" />
             <path
               d="m10.25 10.25 3 3"
@@ -123,7 +127,7 @@
             />
           </svg>
           <input
-            class="ui-select-search"
+            class="desktop-menu-search-input ui-select-search"
             type="search"
             value={searchQuery}
             placeholder={searchPlaceholder}
@@ -135,14 +139,14 @@
       {/if}
       <Select.Viewport class="ui-select-viewport">
         {#if filteredItems.length === 0}
-          <div class="ui-select-empty">{emptyText}</div>
+          <div class="desktop-menu-empty">{emptyText}</div>
         {:else}
           {#each filteredItems as item (item.value)}
             <Select.Item
               value={item.value}
               label={item.label}
               disabled={item.disabled}
-              class="ui-select-item"
+              class="desktop-menu-item ui-select-item"
             >
               {#if item.icon || item.iconFallback}
                 <span class="ui-select-item-icon" aria-hidden="true">
@@ -190,12 +194,8 @@
     box-shadow: var(--mica-shadow);
     transition: box-shadow 0.2s;
   }
-  :global(.ui-select-trigger:focus-visible),
-  :global(.ui-select-trigger[data-state="open"]) {
+  :global(.ui-select-trigger:focus-visible) {
     box-shadow: var(--mica-shadow), var(--focus-ring);
-  }
-  :global(.ui-select-trigger[data-state="open"]) {
-    background: var(--interactive-state-bg);
   }
   :global(.ui-select-trigger.composer-model-trigger),
   :global(.ui-select-trigger.reasoning-effort-trigger),
@@ -209,14 +209,10 @@
   :global(.ui-select-trigger.composer-model-trigger:hover:not(:disabled)),
   :global(.ui-select-trigger.composer-model-trigger[data-state="open"]),
   :global(.ui-select-trigger.reasoning-effort-trigger:hover:not(:disabled)),
-  :global(.ui-select-trigger.reasoning-effort-trigger[data-state="open"]) {
-    background: var(--interactive-state-bg);
-    box-shadow: none;
-  }
+  :global(.ui-select-trigger.reasoning-effort-trigger[data-state="open"]),
   :global(.ui-select-trigger.quick-select-trigger:hover:not(:disabled)),
   :global(.ui-select-trigger.quick-select-trigger:focus-visible),
   :global(.ui-select-trigger.quick-select-trigger[data-state="open"]) {
-    background: var(--interactive-state-bg);
     box-shadow: none;
   }
   :global(.ui-select-trigger.composer-model-trigger:focus-visible),
@@ -288,81 +284,11 @@
     flex: 1;
     overflow-y: auto;
   }
-  .ui-select-search-wrap {
-    position: relative;
-    padding: 2px 2px 6px;
-  }
-  .ui-select-search-icon {
-    position: absolute;
-    left: 12px;
-    top: calc(50% - 2px);
-    width: 14px;
-    height: 14px;
-    color: var(--text-muted, #888);
-    transform: translateY(-50%);
-    pointer-events: none;
-  }
-  .ui-select-search {
-    width: 100%;
-    box-sizing: border-box;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--text);
-    font: inherit;
-    font-size: var(--menu-item-font-size);
-    line-height: var(--menu-item-line-height);
-    outline: none;
-    box-shadow: none;
-    padding: 7px 10px 7px 30px;
-  }
-  .ui-select-search:focus-visible {
-    box-shadow: var(--focus-ring);
-  }
-  .ui-select-search::placeholder {
-    color: var(--text-muted, #888);
-  }
   .ui-select-search::-webkit-search-cancel-button {
     cursor: pointer;
   }
-  .ui-select-empty {
-    min-height: var(--menu-item-min-height);
-    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
-    color: var(--text-muted, #888);
-    font-size: var(--menu-item-font-size);
-    line-height: var(--menu-item-line-height);
-    text-align: center;
-  }
   :global(.ui-select-item) {
-    position: relative;
-    display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: var(--menu-item-gap);
-    min-height: var(--menu-item-min-height);
-    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
-    border-radius: var(--menu-item-radius);
-    font-size: var(--menu-item-font-size);
-    line-height: var(--menu-item-line-height);
-    color: var(--text);
-    cursor: pointer;
-    outline: none;
-    user-select: none;
-  }
-  :global(.ui-select-item + .ui-select-item) {
-    margin-top: var(--menu-item-stack-gap);
-  }
-  :global(.ui-select-item[data-highlighted]:not([data-selected])),
-  :global(.ui-select-item:hover:not([data-selected])) {
-    background: var(--interactive-state-bg);
-  }
-  :global(.ui-select-item[data-selected]) {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-  :global(.ui-select-item[data-disabled]) {
-    opacity: 0.4;
-    cursor: not-allowed;
   }
   :global(.ui-select-item-label) {
     min-width: 0;

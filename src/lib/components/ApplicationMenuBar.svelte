@@ -453,17 +453,6 @@
     outline: none;
   }
 
-  :global(.application-menu-trigger:hover),
-  :global(.application-menu-trigger:focus-visible),
-  :global(.application-menu-trigger[data-state="open"]) {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-
-  :global(.application-menu-trigger:focus-visible) {
-    box-shadow: var(--focus-ring);
-  }
-
   :global(.application-menu-content) {
     min-width: 230px;
     max-width: min(460px, calc(100vw - 24px));
@@ -471,33 +460,9 @@
   }
 
   :global(.application-menu-item) {
-    position: relative;
-    display: flex;
-    align-items: center;
     justify-content: space-between;
     gap: 24px;
-    min-height: var(--menu-item-min-height);
-    box-sizing: border-box;
-    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
-    border-radius: var(--menu-item-radius);
-    color: var(--text);
-    font-size: var(--menu-item-font-size);
-    line-height: var(--menu-item-line-height);
     cursor: default;
-    outline: none;
-  }
-
-  :global(.application-menu-item + .application-menu-item) {
-    margin-top: var(--menu-item-stack-gap);
-  }
-
-  :global(.application-menu-item[data-highlighted]),
-  :global(.application-menu-item:hover) {
-    background: var(--interactive-state-bg);
-  }
-
-  :global(.application-menu-item[data-disabled]) {
-    opacity: 0.42;
   }
 
   :global(.application-menu-shortcut) {
@@ -518,12 +483,6 @@
     stroke-width: 1.5;
     stroke-linecap: round;
     stroke-linejoin: round;
-  }
-
-  :global(.application-menu-separator) {
-    height: 1px;
-    margin: var(--menu-separator-margin);
-    background: var(--border);
   }
 
   :global(.application-recent-menu) {

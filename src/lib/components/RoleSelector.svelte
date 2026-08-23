@@ -54,7 +54,9 @@
     {#snippet trigger(props)}
       <Select.Trigger
         {...props}
-        class="role-selector-trigger {compact ? 'compact' : ''} {header ? 'header' : ''}"
+        class="interactive-control role-selector-trigger {compact ? 'compact' : ''} {header
+          ? 'header'
+          : ''}"
         aria-label={$t("selectRole")}
       >
         {#if !header}
@@ -87,12 +89,13 @@
       side="bottom"
       sideOffset={6}
     >
-      <div class="role-selector-search-wrap">
-        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <div class="desktop-menu-search-wrap role-selector-search-wrap">
+        <svg class="desktop-menu-search-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <circle cx="7" cy="7" r="4.25" />
           <path d="m10.25 10.25 3 3" />
         </svg>
         <input
+          class="desktop-menu-search-input"
           type="search"
           value={query}
           placeholder={$t("roleSelectorSearch")}
@@ -103,10 +106,14 @@
       </div>
       <Select.Viewport class="role-selector-viewport">
         {#if filteredItems.length === 0}
-          <div class="role-selector-empty">{$t("noMatchingRoles")}</div>
+          <div class="desktop-menu-empty">{$t("noMatchingRoles")}</div>
         {:else}
           {#each filteredItems as item (item.value)}
-            <Select.Item value={item.value} label={item.label} class="role-selector-item">
+            <Select.Item
+              value={item.value}
+              label={item.label}
+              class="desktop-menu-item role-selector-item"
+            >
               <span class="role-selector-item-copy">
                 <span class="role-selector-item-name">{item.label}</span>
                 <span class="role-selector-item-description">{item.description}</span>
@@ -136,15 +143,6 @@
     cursor: pointer;
     outline: none;
     text-align: left;
-  }
-  :global(.role-selector-trigger:hover),
-  :global(.role-selector-trigger:focus-visible),
-  :global(.role-selector-trigger[data-state="open"]) {
-    background: var(--interactive-state-bg);
-  }
-
-  :global(.role-selector-trigger:focus-visible) {
-    box-shadow: var(--focus-ring);
   }
   :global(.role-selector-trigger.compact) {
     width: 32px;
@@ -235,75 +233,15 @@
   :global(.role-selector-content.header) {
     width: min(max(var(--bits-select-anchor-width), 240px), calc(100vw - 24px));
   }
-  .role-selector-search-wrap {
-    position: relative;
-    padding: 2px 2px 6px;
-  }
   .role-selector-search-wrap svg {
-    position: absolute;
-    width: 14px;
-    height: 14px;
-    left: 12px;
-    top: 12px;
     stroke: var(--text-muted);
     stroke-width: 1.5;
     stroke-linecap: round;
-    pointer-events: none;
-  }
-  .role-selector-search-wrap input {
-    width: 100%;
-    box-sizing: border-box;
-    border: 0;
-    border-radius: 6px;
-    padding: 7px 10px 7px 30px;
-    background: transparent;
-    color: var(--text);
-    font: inherit;
-    font-size: var(--menu-item-font-size);
-    line-height: var(--menu-item-line-height);
-    outline: none;
-    box-shadow: none;
-  }
-  .role-selector-search-wrap input:focus-visible {
-    box-shadow: var(--focus-ring);
   }
   :global(.role-selector-viewport) {
     min-height: 0;
     flex: 1;
     overflow-y: auto;
-  }
-  :global(.role-selector-item) {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: var(--menu-item-gap);
-    min-height: var(--menu-item-min-height);
-    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
-    border-radius: var(--menu-item-radius);
-    font-size: var(--menu-item-font-size);
-    line-height: var(--menu-item-line-height);
-    color: var(--text);
-    outline: none;
-    cursor: pointer;
-  }
-  :global(.role-selector-item + .role-selector-item) {
-    margin-top: var(--menu-item-stack-gap);
-  }
-  :global(.role-selector-item[data-highlighted]:not([data-selected])),
-  :global(.role-selector-item:hover:not([data-selected])) {
-    background: var(--interactive-state-bg);
-  }
-  :global(.role-selector-item[data-selected]) {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-  .role-selector-empty {
-    min-height: var(--menu-item-min-height);
-    padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
-    color: var(--text-muted);
-    font-size: var(--menu-item-font-size);
-    line-height: var(--menu-item-line-height);
-    text-align: center;
   }
   .role-selector-item-copy {
     min-width: 0;
