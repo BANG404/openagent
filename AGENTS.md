@@ -140,8 +140,10 @@ to a deliberate tracked location.
 - Keep ordinary main and onboarding WebViews transparent over the Rust-owned
   native window material. Apply Windows Mica with Acrylic and Blur fallbacks and
   macOS Vibrancy through the Tauri-compatible `window-vibrancy` version; native
-  effect failure must leave the translucent theme tint readable, while quick
-  chat and development inspector windows retain their separate backgrounds.
+  main, onboarding, feature, and conversation canvases use one consistent
+  30%-opaque theme tint so roughly 70% of that material remains visible.
+  Content-bearing controls remain surfaced, while quick chat, browser previews,
+  and development inspector windows retain their separate backgrounds.
 - Frontends submit ordinary chat and slash-command input through the shared SDK
   client; do not add flow selection or command parsing to the host/frontend.
 - Tauri's synchronous `setup` callback does not run inside a Tokio worker.
