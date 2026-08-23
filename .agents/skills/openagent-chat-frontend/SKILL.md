@@ -41,7 +41,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   window-focus state and passes that same value to both top-chrome segments, so
   the sidebar collapse/history controls
   and title-bar content dim and restore together without changing their shared
-  background or geometry. The conversation surface owns transcript/composer
+  native window material or geometry. The ordinary Tauri shell must keep its
+  WebView transparent and place only a translucent theme tint over the Rust-owned
+  Mica/Acrylic/Blur or macOS Vibrancy effect; browser previews retain the opaque
+  theme canvas, and the quick-chat transparent stage keeps its separate contract.
+  The conversation surface owns transcript/composer
   composition, Goal/Graph panel presentation, and chat renderer theme overrides.
   Pass each surface a deliberate view model and action contract instead of
   returning leaf component markup or surface-local layout state to the route.

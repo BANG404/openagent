@@ -34,9 +34,13 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   height; the close hover uses the platform red and follows the outer 7px window
   corner while restored, then becomes square when maximized. The dedicated
   onboarding title bar keeps its title inset but places the Windows controls
-  flush against the trailing window edge. The title bar and
-  sidebar share one opaque application-chrome background while the operating
-  system retains the native window outline, rounded corners, and exterior shadow.
+  flush against the trailing window edge. The title bar and sidebar share the
+  native window material: Windows prefers Mica with Acrylic and Blur fallbacks,
+  while macOS uses Vibrancy. A translucent theme tint preserves light/dark
+  contrast without replacing that material with a flat gray fill; platforms
+  without a native effect retain the tint as the readable fallback. The
+  operating system retains the native window outline, rounded corners, and
+  exterior shadow.
   Do not draw a border between those two chrome segments or beneath the title
   bar. Separate chat from navigation through an inset rounded conversation canvas
   directly against the title bar's lower edge, with 8px side and bottom gutters

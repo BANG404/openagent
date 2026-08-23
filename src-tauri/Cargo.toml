@@ -59,6 +59,11 @@ tauri-plugin-global-shortcut = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "2.10.1"
 
+[target.'cfg(any(target_os = "macos", windows))'.dependencies]
+# Match Tauri's pinned native-effect implementation so the host can choose
+# platform fallbacks without linking a second window-vibrancy version.
+window-vibrancy = "=0.6.0"
+
 [target.'cfg(windows)'.dependencies]
 # Keep the Codex Windows sandbox graph compatible with the repository's Rust
 # 1.95 toolchain until the stable Rama release lowers its 1.96 MSRV.

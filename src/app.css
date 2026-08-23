@@ -146,6 +146,33 @@
     --item-selected-hover-bg: var(--interactive-state-bg);
   }
 
+  /* The native host supplies Mica/Acrylic/Blur or Vibrancy below this tint. */
+  html.native-window-material {
+    --bg: rgba(245, 245, 247, 0.7);
+    --app-chrome-bg: rgba(245, 245, 247, 0.34);
+    --sidebar-bg: rgba(232, 232, 237, 0.38);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html.native-window-material {
+      --bg: rgba(15, 17, 23, 0.68);
+      --app-chrome-bg: rgba(15, 17, 23, 0.32);
+      --sidebar-bg: rgba(20, 22, 32, 0.38);
+    }
+  }
+
+  html.dark.native-window-material {
+    --bg: rgba(15, 17, 23, 0.68);
+    --app-chrome-bg: rgba(15, 17, 23, 0.32);
+    --sidebar-bg: rgba(20, 22, 32, 0.38);
+  }
+
+  html.light.native-window-material {
+    --bg: rgba(245, 245, 247, 0.7);
+    --app-chrome-bg: rgba(245, 245, 247, 0.34);
+    --sidebar-bg: rgba(232, 232, 237, 0.38);
+  }
+
   * {
     box-sizing: border-box;
   }
@@ -167,6 +194,11 @@
       sans-serif;
     font-size: 14px;
     line-height: 1.6;
+  }
+
+  html.native-window-material,
+  html.native-window-material body {
+    background: transparent;
   }
 
   * {

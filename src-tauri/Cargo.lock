@@ -7610,6 +7610,7 @@ dependencies = [
  "tauri-plugin-updater",
  "tokio",
  "tracing",
+ "window-vibrancy",
 ]
 
 [[package]]

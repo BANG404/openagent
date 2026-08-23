@@ -444,6 +444,7 @@
   let streamCompletionTailAnchor = $state<{ convId: string; token: number } | null>(null);
   let streamCompletionTailAnchorSequence = 0;
   const tauriAvailable = isTauri();
+  const usesNativeWindowMaterial = tauriAvailable && !isQuickChatSurface && !isDevInspectorWindow;
   const browserModeNotice =
     "Desktop features require the Tauri runtime. Start this app with `bun tauri dev`, not `bun run dev`.";
   const fallbackConfig: AppConfig = {
@@ -1744,6 +1745,12 @@
       navigationCaptureDepth -= 1;
     }
   }
+
+  onMount(() => {
+    if (!usesNativeWindowMaterial) return;
+    document.documentElement.classList.add("native-window-material");
+    return () => document.documentElement.classList.remove("native-window-material");
+  });
 
   onMount(() => {
     if (isDevInspectorWindow || standaloneDevPreview || isOnboardingSurface) return;

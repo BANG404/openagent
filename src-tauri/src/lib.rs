@@ -33,6 +33,40 @@ use tauri::{path::BaseDirectory, Emitter, Manager, State};
 
 const EMBEDDING_MODEL_RESOURCE_PATH: &str = "models/all-MiniLM-L6-v2-q";
 
+fn apply_native_window_material(window: &tauri::WebviewWindow) {
+    #[cfg(target_os = "windows")]
+    {
+        if let Err(mica_error) = window_vibrancy::apply_mica(window, None) {
+            tracing::debug!(%mica_error, "Mica unavailable; trying Acrylic window material");
+            if let Err(acrylic_error) = window_vibrancy::apply_acrylic(window, None) {
+                tracing::debug!(%acrylic_error, "Acrylic unavailable; trying Blur window material");
+                if let Err(blur_error) = window_vibrancy::apply_blur(window, None) {
+                    tracing::warn!(
+                        %mica_error,
+                        %acrylic_error,
+                        %blur_error,
+                        window = window.label(),
+                        "Native Windows material is unavailable"
+                    );
+                }
+            }
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    if let Err(error) = window_vibrancy::apply_vibrancy(
+        window,
+        window_vibrancy::NSVisualEffectMaterial::UnderWindowBackground,
+        Some(window_vibrancy::NSVisualEffectState::FollowsWindowActiveState),
+        None,
+    ) {
+        tracing::warn!(%error, window = window.label(), "Native macOS vibrancy is unavailable");
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    let _ = window;
+}
+
 // Keep the flat arguments aligned with the existing typed Tauri command contract.
 #[allow(clippy::too_many_arguments)]
 #[tauri::command]
@@ -1458,6 +1492,10 @@ fn run_with_mode(agent_server: bool) {
                 "Tauri setup started"
             );
 
+            if let Some(window) = app.get_webview_window("main") {
+                apply_native_window_material(&window);
+            }
+
             // Keep diagnostics alongside the application without shipping an
             // inspector surface in release builds. The frontend route is also
             // guarded by import.meta.env.DEV.
@@ -1484,7 +1522,7 @@ fn run_with_mode(agent_server: bool) {
             }
 
             if !agent_server && !is_workspace_window {
-                tauri::WebviewWindowBuilder::new(
+                let onboarding_window = tauri::WebviewWindowBuilder::new(
                     app,
                     "onboarding",
                     tauri::WebviewUrl::App("/?onboarding-window=1".into()),
@@ -1493,9 +1531,11 @@ fn run_with_mode(agent_server: bool) {
                 .inner_size(900.0, 640.0)
                 .min_inner_size(800.0, 560.0)
                 .decorations(false)
+                .transparent(true)
                 .center()
                 .visible(false)
                 .build()?;
+                apply_native_window_material(&onboarding_window);
 
                 tauri::WebviewWindowBuilder::new(
                     app,
