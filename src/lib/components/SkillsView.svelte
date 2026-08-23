@@ -604,7 +604,7 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: color-mix(in srgb, var(--surface2) 18%, var(--bg));
+    background: transparent;
   }
 
   .skill-list-items {
@@ -851,7 +851,7 @@ command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || 
     gap: 8px;
     padding: 0 16px;
     height: 36px;
-    background: var(--bg);
+    background: transparent;
     flex-shrink: 0;
   }
 

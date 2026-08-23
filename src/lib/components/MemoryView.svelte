@@ -422,7 +422,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 20px 8px;
-    background: var(--bg);
+    background: transparent;
     flex-shrink: 0;
   }
 
@@ -463,7 +463,7 @@
     position: relative;
     height: 7px;
     flex: 0 0 7px;
-    background: var(--bg);
+    background: transparent;
     cursor: row-resize;
     display: flex;
     align-items: center;

@@ -331,7 +331,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: var(--bg);
+    background: transparent;
     flex-shrink: 0;
   }
 
@@ -353,7 +353,7 @@
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    background: color-mix(in srgb, var(--surface2) 18%, var(--bg));
+    background: transparent;
   }
 
   .role-search-wrap {
@@ -546,7 +546,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    background: var(--bg);
+    background: transparent;
     font-size: 12px;
     font-weight: 600;
     flex-shrink: 0;

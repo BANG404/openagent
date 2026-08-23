@@ -3818,7 +3818,7 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    background: var(--bg);
+    background: transparent;
     border-right: 0;
     padding: 12px 8px;
   }
@@ -3893,7 +3893,7 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    background: var(--bg);
+    background: transparent;
     border-right: 0;
   }
 
@@ -4116,7 +4116,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 24px;
-    background: var(--bg);
+    background: transparent;
   }
 
   .detail-actions,
@@ -4496,13 +4496,13 @@
     gap: 0;
     width: 100%;
     min-height: 100%;
-    background: var(--bg);
+    background: transparent;
   }
 
   .channel-settings-list {
     min-width: 0;
     padding: 6px;
-    background: var(--bg);
+    background: transparent;
   }
 
   .channel-settings-list-items {
@@ -4602,7 +4602,7 @@
 
   .channel-settings-detail {
     min-width: 0;
-    background: var(--bg);
+    background: transparent;
   }
 
   .channel-config-card {
