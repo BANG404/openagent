@@ -85,6 +85,7 @@ describe("desktop navigation chrome", () => {
 
   test("keeps native window canvases at roughly seventy percent transparency", async () => {
     const appCss = await readFile(appCssUrl, "utf8");
+    const route = await readFile(routeUrl, "utf8");
     const nativeMaterialTokens = appCss.match(/html\.native-window-material\s*{([^}]*)}/s)?.[1];
 
     expect(nativeMaterialTokens).toContain("--bg: rgba(245, 245, 247, 0.3)");
@@ -93,6 +94,7 @@ describe("desktop navigation chrome", () => {
     expect(appCss).toMatch(
       /html\.native-window-material \.conversation-workspace\s*{[^}]*background: var\(--bg\);/s,
     );
+    expect(route).toMatch(/\.app\s*{[^}]*background: transparent;/s);
 
     for (const component of [
       "MemoryView.svelte",
@@ -103,6 +105,33 @@ describe("desktop navigation chrome", () => {
     ]) {
       const source = await readFile(new URL(component, componentsUrl), "utf8");
       expect(source).toContain("background: var(--bg)");
+    }
+
+    for (const [component, transparentRegions] of [
+      ["MemoryView.svelte", ["section-header", "memory-resizer"]],
+      ["RolesView.svelte", ["collection-toolbar", "role-list-column", "editor-topbar"]],
+      ["SkillsView.svelte", ["skill-list-col", "editor-topbar"]],
+      [
+        "SettingsView.svelte",
+        [
+          "settings-nav-col",
+          "settings-list-col",
+          "detail-top-bar",
+          "channel-settings-layout",
+          "channel-settings-list",
+          "channel-settings-detail",
+        ],
+      ],
+    ] as const) {
+      const source = await readFile(new URL(component, componentsUrl), "utf8");
+      for (const region of transparentRegions) {
+        expect(source).toMatch(
+          new RegExp(
+            `\\.${region.replaceAll("-", "\\-")}\\)?\\s*\\{[^}]*background: transparent;`,
+            "s",
+          ),
+        );
+      }
     }
   });
 
