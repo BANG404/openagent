@@ -17,7 +17,6 @@
     {#snippet trigger(props)}
       <button
         {...props}
-        class="app-icon-button"
         type="button"
         aria-label={$t("navigateBack")}
         disabled={!canGoBack}
@@ -33,7 +32,6 @@
     {#snippet trigger(props)}
       <button
         {...props}
-        class="app-icon-button"
         type="button"
         aria-label={$t("navigateForward")}
         disabled={!canGoForward}

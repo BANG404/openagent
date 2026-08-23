@@ -273,8 +273,6 @@ Conversation canvases, new-conversation states, and composer backgrounds use onl
 
 **`button-icon-circular`** — Floats over photography. 44 × 44px, background `{colors.surface-chip-translucent}` at ~64% alpha, icon in `{colors.ink}`, rounded `{rounded.full}`. Used for carousel controls, close buttons, and in-image controls (product image thumbnails on the iPhone buy page).
 
-**`application-icon-button`** — The standard desktop-application treatment for non-semantic icon-only controls such as attach, open folder, panel toggle, history, zoom, close, and page navigation. Use one neutral 32 × 32px rounded square with an 8px radius, `--control-surface`, muted icon color, and `--control-shadow`; component layout may set a deliberate size while retaining the same surface and radius grammar. Hover and open states use `--interactive-state-bg`, keyboard focus adds `--focus-ring`, and active presses scale to 0.95. Do not color these controls blue or introduce a second gray variant at rest. Blue fill is reserved for a true primary action such as Send, while destructive actions retain their semantic treatment.
-
 **`dialog-action-quiet`** — A low-emphasis alternative action in application dialogs. It uses a transparent background, no border, muted text at 13px, and adopts the shared neutral interaction fill plus normal text color on hover. Use it for reversible choices such as “Switch this window” and “Cancel” beside a filled primary action; do not render those choices as bordered secondary buttons. Keep destructive actions visually separate from this quiet action and the primary confirmation.
 
 **`text-link`** — Inline body links in `{colors.primary}` (Action Blue). Underlined or non-underlined per context.

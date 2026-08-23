@@ -272,7 +272,7 @@
       {#if streamdown.controls.mermaid}
         <div class={`${streamdown.theme.mermaid.buttons} mermaid-controls`}>
           <button
-            class={`${streamdown.theme.components.button} app-icon-button`}
+            class={streamdown.theme.components.button}
             aria-label="Zoom to fit"
             onclick={() => panzoom.zoomToFit()}
             data-panzoom-ignore
@@ -280,7 +280,7 @@
             {@render (streamdown.icons?.fitView || fitViewIcon)()}
           </button>
           <button
-            class={`${streamdown.theme.components.button} app-icon-button`}
+            class={streamdown.theme.components.button}
             aria-label="Zoom in"
             onclick={() => panzoom.zoomIn()}
             data-panzoom-ignore
@@ -288,7 +288,7 @@
             {@render (streamdown.icons?.zoomIn || zoomInIcon)()}
           </button>
           <button
-            class={`${streamdown.theme.components.button} app-icon-button`}
+            class={streamdown.theme.components.button}
             aria-label="Zoom out"
             onclick={() => panzoom.zoomOut()}
             data-panzoom-ignore
@@ -296,7 +296,7 @@
             {@render (streamdown.icons?.zoomOut || zoomOutIcon)()}
           </button>
           <button
-            class={`${streamdown.theme.components.button} app-icon-button`}
+            class={streamdown.theme.components.button}
             aria-label="Toggle expand"
             onclick={() => panzoom.toggleExpand()}
             data-panzoom-ignore
@@ -307,7 +307,7 @@
             {#snippet trigger(props)}
               <button
                 {...props}
-                class={`${streamdown.theme.components.button} app-icon-button`}
+                class={streamdown.theme.components.button}
                 aria-label="Copy Mermaid source code"
                 onclick={copySourceCode}
                 data-panzoom-ignore
@@ -317,7 +317,7 @@
             {/snippet}
           </Tooltip>
           <button
-            class={`${streamdown.theme.components.button} app-icon-button`}
+            class={streamdown.theme.components.button}
             aria-label="Download diagram"
             onclick={() => (downloadOpen = !downloadOpen)}
             data-panzoom-ignore

@@ -230,11 +230,7 @@
         <div class="agent-book-controls">
           <Tooltip text={$t("closeBookMode")}>
             {#snippet trigger(props)}
-              <Dialog.Close
-                {...props}
-                class="book-close app-icon-button"
-                aria-label={$t("closeBookMode")}
-              >
+              <Dialog.Close {...props} class="book-close" aria-label={$t("closeBookMode")}>
                 <svg viewBox="0 0 16 16" aria-hidden="true">
                   <path d="M6 3H3v3M10 13h3v-3M3 6l4-4M13 10l-4 4" />
                 </svg>
@@ -246,7 +242,7 @@
 
       <div class="agent-book-spread">
         <button
-          class="page-turn page-turn-previous app-icon-button"
+          class="page-turn page-turn-previous"
           type="button"
           disabled={pageIndex === 0}
           aria-label={$t("previousPage")}
@@ -272,7 +268,7 @@
           {/if}
         </article>
         <button
-          class="page-turn page-turn-next app-icon-button"
+          class="page-turn page-turn-next"
           type="button"
           disabled={pageIndex === pageCount - 1}
           aria-label={$t("nextPage")}

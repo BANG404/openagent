@@ -261,7 +261,6 @@
         {#snippet trigger(props)}
           <button
             {...props}
-            class="app-icon-button"
             type="button"
             onclick={() => {
               expanded = !expanded;
@@ -308,7 +307,6 @@
           {#snippet trigger(props)}
             <button
               {...props}
-              class="app-icon-button"
               type="button"
               onclick={openHtmlFile}
               disabled={busy !== null}
@@ -341,7 +339,6 @@
         {#snippet trigger(props)}
           <button
             {...props}
-            class="app-icon-button"
             type="button"
             onclick={copyHtml}
             disabled={busy !== null}
@@ -372,7 +369,6 @@
         {#snippet trigger(props)}
           <button
             {...props}
-            class="app-icon-button"
             type="button"
             onclick={downloadImage}
             disabled={busy !== null}

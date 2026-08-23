@@ -902,7 +902,7 @@
         {#if showAttachments}<Tooltip text={$t("attachFiles")}>
             {#snippet trigger(props)}
               <button
-                class="attach-btn app-icon-button"
+                class="attach-btn"
                 type="button"
                 aria-label={$t("attachFiles")}
                 {...props}
@@ -1031,12 +1031,7 @@
     </Tooltip>
     {#if showStopButton}<Tooltip text={stopTitle}>
         {#snippet trigger(props)}
-          <button
-            class="stop-btn app-icon-button"
-            aria-label={stopTitle}
-            {...props}
-            onclick={onStop}
-          >
+          <button class="stop-btn" aria-label={stopTitle} {...props} onclick={onStop}>
             <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12"
               ><rect x="3" y="3" width="10" height="10" rx="1" /></svg
             >
