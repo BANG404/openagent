@@ -40,8 +40,11 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   geometry. Windows controls fill the title-bar
   height; the close hover uses the platform red and follows the outer 7px window
   corner while restored, then becomes square when maximized. The dedicated
-  onboarding title bar keeps its title inset but places the Windows controls
-  flush against the trailing window edge. The title bar and sidebar share the
+  onboarding title bar omits a visible setup label, matches the main chrome
+  height, and places the Windows controls flush against the trailing window
+  edge. Its inset content canvas and step navigation use whitespace, neutral
+  fill, and shared elevation instead of perimeter borders or divider lines.
+  The title bar and sidebar share the
   native window material: Windows prefers Mica with Acrylic and Blur fallbacks,
   while macOS uses Vibrancy. The ordinary WebView canvas, shared chrome,
   sidebar, feature views, and conversation workspace use a consistent theme
