@@ -493,13 +493,13 @@
     border-radius: 8px;
     overflow: hidden;
     font-size: 12px;
-    background: var(--surface);
+    background: var(--user-message-bg);
   }
 
   .tool-call-header {
     display: flex;
     align-items: stretch;
-    background: var(--surface2);
+    background: var(--user-message-bg);
   }
 
   .tool-toggle {

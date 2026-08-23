@@ -152,7 +152,7 @@
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: 8px;
-    background: var(--surface);
+    background: var(--user-message-bg);
     font-size: 12px;
   }
 
@@ -165,7 +165,7 @@
     gap: 7px;
     padding: 5px 10px;
     border: 0;
-    background: var(--surface2);
+    background: var(--user-message-bg);
     color: var(--text-muted);
     cursor: pointer;
     text-align: left;
@@ -265,7 +265,7 @@
     gap: 2px;
     padding: 5px;
     border-top: 1px solid var(--border);
-    background: var(--bg);
+    background: var(--user-message-bg);
   }
 
   .tool-call-group-items :global(.tool-call-card) {

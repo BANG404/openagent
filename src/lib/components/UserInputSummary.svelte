@@ -65,14 +65,14 @@
     padding: 11px 13px;
     border: 0;
     border-radius: 10px;
-    background: var(--surface);
+    background: var(--user-message-bg);
     color: var(--text);
     font-size: 13px;
     box-shadow: var(--control-shadow);
   }
 
   .user-input-summary.cancelled {
-    background: var(--surface2);
+    background: var(--user-message-bg);
     color: var(--text-muted);
   }
 

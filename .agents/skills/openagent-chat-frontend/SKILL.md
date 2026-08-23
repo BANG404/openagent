@@ -357,8 +357,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   target: the message bubble retains its accessible edit label and reveals a
   non-interactive pencil affordance on pointer hover or keyboard focus.
 - Paint durable, editable, and loading-skeleton user-message bubbles with the
-  shared `--bg` canvas token so their fill matches the outer conversation area
-  in both themes.
+  shared `--user-message-bg` token. Reuse that exact fill for transcript-owned
+  tool-call groups, tool-call cards, user-input cards and summaries, and retry
+  attachment cards so auxiliary components do not introduce another gray in
+  either theme.
 - Collapse long user-message text by a fixed number of complete rendered lines
   on an inner content layer. Keep bubble padding outside the clamp so changing
   type metrics cannot expose or crop a partial trailing line. Apply preserved

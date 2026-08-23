@@ -7,6 +7,7 @@
   :root {
     color-scheme: light;
     --bg: #f5f5f7;
+    --user-message-bg: var(--bg);
     --app-chrome-bg: var(--bg);
     --sidebar-bg: #e8e8ed;
     --surface: #ffffff;

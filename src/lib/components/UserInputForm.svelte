@@ -94,7 +94,7 @@
 </script>
 
 <div
-  class="flex flex-col gap-3 my-2 px-4 py-[14px] rounded-[10px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+  class="flex flex-col gap-3 my-2 px-4 py-[14px] rounded-[10px] border border-[var(--border)] bg-[var(--user-message-bg)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
   role="dialog"
   aria-label={request.title ?? $t("askUserDefaultTitle")}
 >

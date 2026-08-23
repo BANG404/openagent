@@ -177,7 +177,7 @@
     padding: 6px 8px;
     border: 0;
     border-radius: 6px;
-    background: var(--surface2);
+    background: var(--user-message-bg);
     box-shadow: var(--control-shadow);
   }
 
