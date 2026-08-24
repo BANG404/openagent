@@ -47,6 +47,7 @@ describe("Windows window controls", () => {
     expect(onboarding).toMatch(
       /\.onboarding-body\s*{[^}]*grid-template-columns: 50% minmax\(0, 50%\);/s,
     );
+    expect(onboarding).toMatch(/\.step-content\s*{[^}]*margin-block: 8px;/s);
     expect(host).toMatch(
       /"onboarding",[\s\S]*?\.inner_size\(960\.0, 640\.0\)[\s\S]*?\.resizable\(false\)[\s\S]*?\.maximizable\(false\)/,
     );

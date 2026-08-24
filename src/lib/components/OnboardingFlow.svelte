@@ -642,6 +642,7 @@
     flex: 1;
     flex-direction: column;
     box-sizing: border-box;
+    margin-block: 8px;
     overflow: hidden;
     border-radius: 8px;
     background: var(--bg);
