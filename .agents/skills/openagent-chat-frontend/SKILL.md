@@ -946,11 +946,18 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   diagnostics, responsive layout, light/dark themes, and Chinese/English copy
   addressable without native plugin state. Plugin cards and loading or empty
   states must not use a flat secondary gray fill.
-- Settings action controls use one compact semantic hierarchy: primary blue
-  pills for creation, borderless filled controls for ordinary file and test
-  actions, blue shadowless controls for inline row construction, and restrained
-  danger-tinted controls for destructive actions. Keep provider status text and
-  its switch flat instead of wrapping either in an additional gray capsule.
+- Settings action controls use one compact, shadowless semantic hierarchy:
+  primary blue pills for creation, borderless filled controls for ordinary file
+  and test actions, blue controls for inline row construction, and restrained
+  danger-tinted controls for destructive actions. Size ordinary action buttons
+  to their content, let creation actions in a fixed list footer fill its available
+  width, and align standalone form-testing actions to the trailing edge. Keep
+  informational callouts free of decorative borders and render destructive
+  action rows on the neutral Mica surface without a danger-tinted perimeter or
+  background. Keep provider status text and its switch flat instead of wrapping
+  either in an additional gray capsule, and route provider filtering and node
+  deletion through the same shared settings-action control as neighboring
+  actions.
 - Channel ID allowlists use the shared fixed-height settings list input. Keep
   resizing disabled and let long lists scroll vertically inside the control so
   every channel configuration retains the same layout height.
