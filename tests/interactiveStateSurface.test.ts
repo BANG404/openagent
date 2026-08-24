@@ -103,6 +103,12 @@ test("reuses shared controls across onboarding and settings collections", async 
   expect(permissions).not.toMatch(/\.permission-settings\s*{[^}]*box-shadow:/s);
   expect(settings).toContain('class="interactive-control filter-toggle"');
   expect(settings).toMatch(/\.filter-toggle\s*{[^}]*background: transparent;/s);
+  expect(settings.match(/class="detail-input settings-card-number-input"/g)).toHaveLength(6);
+  expect(settings).toMatch(
+    /\.settings-card-number-input\s*{[^}]*justify-self: end;[^}]*margin-inline-start: auto;/s,
+  );
+  expect(settings.match(/settings-card-control settings-card-number-control/g)).toHaveLength(2);
+  expect(settings).toMatch(/\.settings-card-number-control\s*{[^}]*justify-content: flex-end;/s);
   expect(settings).not.toContain('icon="add"\n            tone="primary"');
   expect(workspaceBrowser.match(/class="desktop-menu-item project-menu-item/g)).toHaveLength(3);
   expect(workspaceBrowser).not.toContain(".project-menu-item[data-highlighted]");

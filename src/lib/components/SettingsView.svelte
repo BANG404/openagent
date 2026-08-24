@@ -1635,7 +1635,7 @@
                 </span>
                 <input
                   type="number"
-                  class="detail-input execution-number-input"
+                  class="detail-input settings-card-number-input"
                   min="960"
                   max="2400"
                   step="40"
@@ -1650,7 +1650,7 @@
               </span>
               <input
                 type="number"
-                class="detail-input execution-number-input"
+                class="detail-input settings-card-number-input"
                 min="14"
                 max="24"
                 step="1"
@@ -1805,7 +1805,7 @@
               </span>
               <input
                 type="number"
-                class="detail-input execution-number-input"
+                class="detail-input settings-card-number-input"
                 min="160"
                 max="1200"
                 step="20"
@@ -1835,7 +1835,7 @@
                 </span>
                 <input
                   type="number"
-                  class="detail-input execution-number-input"
+                  class="detail-input settings-card-number-input"
                   min="1"
                   max="1000"
                   step="1"
@@ -3088,9 +3088,9 @@
                 <span class="label-text">{$t("retryCountPerModel")}</span>
                 <span class="detail-hint">{$t("retryCountPerModelHint")}</span>
               </span>
-              <span class="settings-card-control">
+              <span class="settings-card-control settings-card-number-control">
                 <input
-                  class="detail-input"
+                  class="detail-input settings-card-number-input"
                   type="number"
                   min="0"
                   max="10"
@@ -3103,9 +3103,9 @@
                 <span class="label-text">{$t("retryDelaySeconds")}</span>
                 <span class="detail-hint">{$t("retryDelaySecondsHint")}</span>
               </span>
-              <span class="settings-card-control">
+              <span class="settings-card-control settings-card-number-control">
                 <input
-                  class="detail-input"
+                  class="detail-input settings-card-number-input"
                   type="number"
                   min="0"
                   max="60"
@@ -4631,10 +4631,18 @@
     content: "";
   }
 
-  .execution-number-input {
+  .settings-card-number-input {
     width: 136px;
-    flex: 0 0 136px;
+    max-width: 100%;
+    flex: 0 1 136px;
+    justify-self: end;
+    margin-inline-start: auto;
     background: var(--mica-surface);
+  }
+
+  .settings-card-number-control {
+    display: flex;
+    justify-content: flex-end;
   }
 
   .compaction-threshold-input {
