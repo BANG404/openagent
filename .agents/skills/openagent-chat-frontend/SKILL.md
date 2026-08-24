@@ -87,10 +87,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   default HTTP(S) URL scope; command permission alone silently leaves valid web
   destinations unopened. Browser verification must confirm the destination tab
   opens as well as confirming that the source page remains mounted.
-- Keep fenced Markdown code headers, containers, loading skeletons, and controls
-  on application theme surfaces through stable chat theme hooks. Shiki owns
-  highlighted token colors, not the surrounding block background; fixed light
-  renderer utilities must never remain visible in the dark application theme.
+- Keep fenced Markdown code headers, containers, loading skeletons, controls,
+  and Markdown table headers or row-hover fills on the shared neutral
+  hover/selection fill through stable chat theme hooks. Shiki owns highlighted
+  token colors, not the surrounding block background; fixed light renderer
+  utilities must never remain visible in the dark application theme.
   Expose copy as the only fenced-code action; do not show the renderer's code
   download control.
 - In responsive double-column mode, expanded process records participate in

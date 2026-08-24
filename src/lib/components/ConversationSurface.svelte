@@ -522,7 +522,7 @@
   }
 
   :global([data-streamdown-thead]) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   :global([data-streamdown-th]) {
@@ -553,7 +553,7 @@
   }
 
   :global([data-streamdown-tbody] [data-streamdown-tr]:hover) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   /* ─── Streamdown general prose overrides ─────────────────────────────────── */
@@ -620,7 +620,7 @@
   }
 
   :global([data-streamdown-code]) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     border: none !important;
     margin: 8px 0 12px;
     border-radius: 8px;
@@ -628,13 +628,13 @@
   }
 
   :global(.assistant-msg [data-streamdown-code] > .chat-code-header) {
-    background: color-mix(in srgb, var(--surface2) 88%, var(--surface)) !important;
+    background: var(--interactive-state-bg) !important;
     border-bottom: 1px solid var(--border);
     color: var(--text-muted) !important;
   }
 
   :global(.assistant-msg [data-streamdown-code] > .chat-code-container) {
-    background: var(--surface2) !important;
+    background: var(--interactive-state-bg) !important;
     padding: 0 !important;
   }
 
@@ -656,7 +656,7 @@
   }
 
   :global(.assistant-msg pre) {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     border-radius: 8px;
     padding: 14px 16px;
     margin: 8px 0 12px;
