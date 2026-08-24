@@ -39,3 +39,27 @@ test("owns translucent interaction and desktop-menu states in app.css", async ()
   expect(appCss).toContain(".application-menu-item[data-highlighted]:not([data-disabled])");
   expect(applicationMenu).not.toContain("background: var(--interactive-state-bg);");
 });
+
+test("reuses shared controls across onboarding and settings collections", async () => {
+  const onboarding = await readFile(
+    new URL("../src/lib/components/OnboardingFlow.svelte", import.meta.url),
+    "utf8",
+  );
+  const settings = await readFile(
+    new URL("../src/lib/components/SettingsView.svelte", import.meta.url),
+    "utf8",
+  );
+  const workspaceBrowser = await readFile(
+    new URL("../src/lib/components/SidebarWorkspaceBrowser.svelte", import.meta.url),
+    "utf8",
+  );
+
+  expect(onboarding).toContain('import Select from "./ui/Select.svelte";');
+  expect(onboarding.match(/<Select\b/g)).toHaveLength(5);
+  expect(onboarding).not.toContain("<select");
+  expect(settings).toContain('class="interactive-control filter-toggle"');
+  expect(settings).toMatch(/\.filter-toggle\s*{[^}]*background: transparent;/s);
+  expect(settings).not.toContain('icon="add"\n            tone="primary"');
+  expect(workspaceBrowser.match(/class="desktop-menu-item project-menu-item/g)).toHaveLength(3);
+  expect(workspaceBrowser).not.toContain(".project-menu-item[data-highlighted]");
+});

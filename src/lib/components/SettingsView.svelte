@@ -2510,7 +2510,7 @@
               bind:value={providerSearch}
             />
             <button
-              class="filter-toggle"
+              class="interactive-control filter-toggle"
               onclick={() => {
                 providerFilter =
                   providerFilter === "all"
@@ -2572,12 +2572,7 @@
           {/if}
         </div>
         <div class="list-footer">
-          <SettingsActionButton
-            label={$t("addProvider")}
-            icon="add"
-            tone="primary"
-            onclick={addProvider}
-          />
+          <SettingsActionButton label={$t("addProvider")} icon="add" onclick={addProvider} />
         </div>
       </div>
 
@@ -3456,12 +3451,7 @@
           {/if}
         </div>
         <div class="list-footer">
-          <SettingsActionButton
-            label={$t("addMcpServer")}
-            icon="add"
-            tone="primary"
-            onclick={addMcpServer}
-          />
+          <SettingsActionButton label={$t("addMcpServer")} icon="add" onclick={addMcpServer} />
         </div>
       </div>
 
@@ -3951,14 +3941,14 @@
 
   .filter-toggle {
     border: 0;
-    background: var(--surface2);
+    background: transparent;
     color: var(--text-muted);
     border-radius: 6px;
     padding: 6px 12px;
     font-size: 13px;
     cursor: pointer;
     white-space: nowrap;
-    box-shadow: var(--control-shadow);
+    box-shadow: none;
     transition:
       transform 0.1s,
       background 0.1s;

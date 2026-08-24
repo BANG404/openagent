@@ -10,6 +10,7 @@
     providerRequiresApiKey,
   } from "$lib/providerCatalog";
   import Tooltip from "./Tooltip.svelte";
+  import Select from "./ui/Select.svelte";
   import WindowControls from "./WindowControls.svelte";
 
   let {
@@ -159,6 +160,18 @@
           binding: { provider_id: provider.id, model } satisfies DefaultModelBinding,
         })),
       ),
+  );
+  let languageOptions = $derived([
+    { value: "zh", label: "简体中文" },
+    { value: "en", label: "English" },
+  ]);
+  let themeOptions = $derived([
+    { value: "system", label: copy.system },
+    { value: "light", label: copy.light },
+    { value: "dark", label: copy.dark },
+  ]);
+  let providerOptions = $derived(
+    PROVIDER_CATALOG.map((entry) => ({ value: entry.value, label: entry.label })),
   );
   let canContinue = $derived(
     step < 2 ||
@@ -329,18 +342,15 @@
           <div class="form-grid two">
             <label>
               <span>{copy.language}</span>
-              <select bind:value={draft.language}>
-                <option value="zh">简体中文</option>
-                <option value="en">English</option>
-              </select>
+              <Select
+                bind:value={draft.language}
+                items={languageOptions}
+                ariaLabel={copy.language}
+              />
             </label>
             <label>
               <span>{copy.theme}</span>
-              <select bind:value={draft.theme}>
-                <option value="system">{copy.system}</option>
-                <option value="light">{copy.light}</option>
-                <option value="dark">{copy.dark}</option>
-              </select>
+              <Select bind:value={draft.theme} items={themeOptions} ariaLabel={copy.theme} />
             </label>
           </div>
         {:else if step === 2}
@@ -366,11 +376,12 @@
                 </label>
                 <label>
                   <span>{copy.providerType}</span>
-                  <select bind:value={selectedProvider.provider} onchange={resetConnection}>
-                    {#each PROVIDER_CATALOG as entry (entry.value)}
-                      <option value={entry.value}>{entry.label}</option>
-                    {/each}
-                  </select>
+                  <Select
+                    bind:value={selectedProvider.provider}
+                    items={providerOptions}
+                    ariaLabel={copy.providerType}
+                    onValueChange={resetConnection}
+                  />
                 </label>
               </div>
               <label>
@@ -437,25 +448,21 @@
           <div class="form-grid">
             <label>
               <span>{copy.chatModel}</span>
-              <select
+              <Select
                 value={bindingValue(draft.defaults.chat_model)}
-                onchange={(event) => setModel("chat_model", event.currentTarget.value)}
-              >
-                {#each modelBindings as option (option.value)}<option value={option.value}
-                    >{option.label}</option
-                  >{/each}
-              </select>
+                items={modelBindings}
+                ariaLabel={copy.chatModel}
+                onValueChange={(value) => setModel("chat_model", value)}
+              />
             </label>
             <label>
               <span>{copy.flashModel}</span>
-              <select
+              <Select
                 value={bindingValue(draft.defaults.flash_model)}
-                onchange={(event) => setModel("flash_model", event.currentTarget.value)}
-              >
-                {#each modelBindings as option (option.value)}<option value={option.value}
-                    >{option.label}</option
-                  >{/each}
-              </select>
+                items={modelBindings}
+                ariaLabel={copy.flashModel}
+                onValueChange={(value) => setModel("flash_model", value)}
+              />
             </label>
           </div>
         {:else}
@@ -686,8 +693,7 @@
     font-size: 12px;
     font-weight: 600;
   }
-  input,
-  select {
+  input {
     box-sizing: border-box;
     width: 100%;
     height: 36px;
@@ -701,8 +707,7 @@
     font-size: 13px;
     box-shadow: var(--control-shadow);
   }
-  input:focus,
-  select:focus {
+  input:focus {
     box-shadow: var(--control-shadow), var(--focus-ring);
   }
   .provider-tabs {

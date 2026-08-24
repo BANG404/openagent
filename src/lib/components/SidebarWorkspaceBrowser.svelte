@@ -403,7 +403,7 @@
                         align="end"
                       >
                         <DropdownMenu.Item
-                          class="project-menu-item"
+                          class="desktop-menu-item project-menu-item"
                           onSelect={() => onToggleProjectPin(project.path)}
                         >
                           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -420,7 +420,7 @@
                           >
                         </DropdownMenu.Item>
                         <DropdownMenu.Item
-                          class="project-menu-item"
+                          class="desktop-menu-item project-menu-item"
                           onSelect={() => onOpenProjectFolder(project.path)}
                         >
                           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -433,7 +433,7 @@
                         </DropdownMenu.Item>
                         <DropdownMenu.Separator class="project-menu-separator" />
                         <DropdownMenu.Item
-                          class="project-menu-item danger"
+                          class="desktop-menu-item project-menu-item danger"
                           onSelect={() => onRemoveProject(project.path)}
                         >
                           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -649,10 +649,6 @@
     font-size: var(--menu-item-font-size);
     line-height: var(--menu-item-line-height);
     outline: none;
-  }
-
-  :global(.project-menu-item[data-highlighted]) {
-    background: var(--bg);
   }
 
   :global(.project-menu-item + .project-menu-item) {
