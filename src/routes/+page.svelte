@@ -4374,6 +4374,7 @@
         onSave={saveSettings}
         onPickWorkspace={pickOnboardingWorkspace}
         onComplete={completeOnboarding}
+        onThemePreview={applyTheme}
         {winMinimize}
         {winMaximize}
         winClose={onboardingWinClose}

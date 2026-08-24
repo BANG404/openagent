@@ -152,7 +152,10 @@ Only then does it:
 Release binaries use the repository's size-oriented Cargo profile: full link-time
 optimization, one codegen unit, size optimization, abort-on-panic, stripped
 symbols. Windows desktop releases produce only the signed NSIS installer and its
-updater artifact; WiX/MSI is not part of the release surface. The Windows
+updater artifact; WiX/MSI is not part of the release surface. The native
+verification dependency remains registered in the host but compiles its named
+pipe server and injected WebView automation bridge only for debug builds;
+release builds receive the plugin's no-op implementation. The Windows
 platform Tauri configuration is also the sole owner of the `codex-resources/`
 mapping, so Windows sandbox helpers cannot leak into a Linux or macOS application
 bundle. The embedding model remains a bundled base resource on every supported

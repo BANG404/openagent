@@ -542,6 +542,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   configuration is ready. Keep the development-only `onboarding-preview` query with
   `onboarding-preview-theme=light|dark` and `onboarding-preview-locale=zh|en`
   parameters so the surface remains browser-verifiable without native state.
+  Preview every onboarding theme change through the page shell so the WebView
+  palette and the native window material switch together instead of compositing
+  a dark translucent canvas over a light native backdrop.
 - Persist a newly created conversation and active-workspace selection
   atomically before its first turn.
 - Keep the main window hidden until the bootstrap snapshot is applied; retain

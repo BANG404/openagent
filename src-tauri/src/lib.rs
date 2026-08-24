@@ -1427,6 +1427,10 @@ fn run_with_mode(agent_server: bool) {
         builder
     };
 
+    // Pilot exposes its named-pipe automation bridge only in debug builds and
+    // becomes a no-op plugin in release builds.
+    let builder = builder.plugin(tauri_plugin_pilot::init());
+
     let builder = builder
         .register_asynchronous_uri_scheme_protocol(
             html_preview_protocol::SCHEME,

@@ -50,6 +50,14 @@ surfaced; quick chat, browser previews, and development inspector windows keep
 their intentional separate backgrounds. Treat `docs/design.md` as the visual
 source of truth.
 
+## Debug automation
+
+Keep `tauri-plugin-pilot` registered after the single-instance plugin. Its
+named-pipe bridge and injected WebView instrumentation are available by default
+in debug builds for native-shell verification; the plugin remains a no-op in
+release builds. Retain `pilot:default` only on the existing desktop capability
+that covers application-owned windows.
+
 ## Verification routing
 
 For behavior involving the real shell, native material, OS theme, title bar,

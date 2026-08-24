@@ -2,6 +2,7 @@
   import { untrack } from "svelte";
   import { invoke } from "$lib/openagent/tauriClient";
   import { normalizeConfigShape } from "$lib/config";
+  import { applyDocumentTheme } from "$lib/appTheme";
   import type { AppConfig, DefaultModelBinding } from "$lib/types";
   import { createProviderConfig } from "$lib/settingsConfig";
   import {
@@ -19,6 +20,7 @@
     onSave,
     onPickWorkspace,
     onComplete,
+    onThemePreview,
     winMinimize,
     winMaximize,
     winClose,
@@ -28,6 +30,7 @@
     onSave: (config: AppConfig) => Promise<AppConfig>;
     onPickWorkspace: () => Promise<void>;
     onComplete: () => void;
+    onThemePreview?: (theme: string) => void;
     winMinimize: () => void;
     winMaximize: () => void;
     winClose: () => void;
@@ -45,15 +48,9 @@
   let saveError = $state("");
 
   $effect(() => {
-    const theme = draft.theme;
-    document.documentElement.classList.remove("dark", "light");
-    const resolved =
-      theme === "system"
-        ? window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light"
-        : theme;
-    document.documentElement.classList.add(resolved);
+    const theme = draft.theme ?? "system";
+    if (onThemePreview) onThemePreview(theme);
+    else applyDocumentTheme(theme);
   });
 
   const copy = $derived(

@@ -12,10 +12,9 @@ screenshots.
 - Capture light and dark themes and Chinese and English copy for visible native
   changes.
 
-Tauri-pilot instrumentation is debug-only. If it is not already shipped, add it
-only for investigation and remove its dependency, plugin initialization, and
-capability before delivery unless the task explicitly requests a persistent
-test hook.
+Tauri-pilot instrumentation is an intentional debug-only dependency. Keep its
+plugin initialization and capability in place after verification; its server
+and injected bridge are compiled out of release builds.
 
 Use browser verification only when native-window state is outside the
 acceptance criteria. Do not substitute another browser control surface for the

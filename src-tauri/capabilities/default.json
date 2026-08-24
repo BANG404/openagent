@@ -9,6 +9,7 @@
     "opener:allow-default-urls",
     "dialog:allow-open",
     "notification:default",
+    "pilot:default",
     "updater:allow-check",
     "updater:allow-download-and-install",
     "autostart:allow-enable",
