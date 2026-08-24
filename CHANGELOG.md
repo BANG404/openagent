@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.47.2-beta.1] - 2026-08-24
+
+### Bug Fixes
+- **chat**: Unify ask_user surfaces
+- **chat**: Distinguish tool result states
+- **runtime**: Accept provider ask user options
+
 ## [0.47.1-beta.1] - 2026-08-24
 
 ### Bug Fixes
