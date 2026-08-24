@@ -9,6 +9,7 @@
     responsiveColumns?: boolean;
     doubleColumnMinWidth?: number;
     followTail?: boolean;
+    onTailPin?: () => void;
     tailAnchorToken?: number | null;
     onTailAnchorSettled?: (token: number) => void;
   }
@@ -20,6 +21,7 @@
     responsiveColumns = false,
     doubleColumnMinWidth = 1200,
     followTail = true,
+    onTailPin,
     tailAnchorToken = null,
     onTailAnchorSettled,
   }: Props = $props();
@@ -39,7 +41,10 @@
     if (tailFollowFrame !== null) cancelAnimationFrame(tailFollowFrame);
     tailFollowFrame = requestAnimationFrame(() => {
       tailFollowFrame = null;
-      if (scrollElement && followTail) scrollElement.scrollTop = scrollElement.scrollHeight;
+      if (scrollElement && followTail) {
+        onTailPin?.();
+        scrollElement.scrollTop = scrollElement.scrollHeight;
+      }
     });
   }
 
@@ -71,6 +76,7 @@
     for (let frame = 0; frame < 2; frame += 1) {
       await nextFrame();
       if (runId !== tailAnchorRunId || tailAnchorToken !== token || !scrollElement) return;
+      onTailPin?.();
       scrollElement.scrollTop = scrollElement.scrollHeight;
     }
     if (runId === tailAnchorRunId && tailAnchorToken === token) onTailAnchorSettled?.(token);

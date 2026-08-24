@@ -247,6 +247,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   `html`/`body` overflow locked and contain transcript overscroll so wheel or
   touch input at either boundary cannot chain into an outer scrollbar. User
   message index navigation targets the already-mounted real row directly.
+  Mark ResizeObserver-owned tail pins as programmatic before assigning
+  `scrollTop`, so their delayed scroll events cannot disable following between
+  streamed fragments. Only reader scroll intent may leave the live tail.
 - After completion, reconcile the optimistic turn with its durable checkpoint
   in the background. Do not show the conversation-loading skeleton, remount an
   unchanged transcript, overwrite backend history, or remove optimistic
@@ -291,8 +294,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Group consecutive ordinary ToolCalls into one collapsed summary row with
   independently expandable calls.
 - Keep ordinary and enhanced file/search tool cards on the same neutral
-  perimeter. Reserve the blue accent for real interaction state such as
-  keyboard focus or an actively running tool, not for the tool's type.
+  perimeter and leave their base canvas transparent. Reserve the blue accent
+  for real interaction state such as keyboard focus or an actively running
+  tool, not for the tool's type.
 - Keep `ask_user`, approvals, HTML previews, and other dedicated tools outside
   ordinary grouping.
 - Batched approval cards remain independently clickable. Optimistically resolve
@@ -349,6 +353,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   clear another conversation's pending composer state. Write the active reactive
   draft back to its keyed store before swapping the composer to another draft;
   retaining only the pre-proxy source object loses edits made through bindings.
+  Synchronize the textarea's measured height on mount, before the first edit,
+  and clamp input-driven measurements to its CSS minimum so the first typed
+  character cannot resize or move the composer.
 - Reuse one attachment preview component in composer and restored transcript.
 - Open attachment previews in the same full-window visual frame used by rich
   Mermaid and book previews: center the attachment within the framed canvas and
@@ -372,12 +379,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Paint durable, editable, and loading-skeleton user-message bubbles with the
   shared `--user-message-bg` token, which maps to the opaque secondary surface
   rather than the conversation canvas so native-window transparency cannot
-  wash it out. Reuse that exact fill for transcript-owned tool-call cards,
-  user-input cards and summaries, and retry attachment cards so auxiliary
+  wash it out. Reuse that exact fill for user-input cards and summaries, and
+  retry attachment cards so auxiliary
   components do not introduce another gray in either theme. Keep grouped tool
   calls on the transcript canvas: the summary is its own outlined button and
-  expanded tool cards retain their individual surfaces without a shared group
-  background or enclosing perimeter.
+  expanded ordinary tool cards retain transparent backgrounds without a shared
+  group background or enclosing perimeter.
 - Collapse long user-message text by a fixed number of complete rendered lines
   on an inner content layer. Keep bubble padding outside the clamp so changing
   type metrics cannot expose or crop a partial trailing line. Apply preserved
@@ -432,7 +439,7 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   navigation lists: neutral buttons, triggers, and option rows use the shared
   theme-aware `--interactive-state-bg` for hover, open, and selected states;
   derive that gray from the current text color at the shared semi-transparent
-  opacity so it adapts to the surface beneath it. Selected rows use that neutral
+  8% opacity so it adapts to the surface beneath it. Selected rows use that neutral
   fill without a decorative left rail, stronger fill, checkmark, or selected text color. GPUI
   preserves the same row geometry, selected fill, selection semantics,
   accessibility state, and interactions. Primary and destructive actions retain

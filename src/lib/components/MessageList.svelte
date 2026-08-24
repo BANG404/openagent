@@ -63,6 +63,7 @@
     messageDoubleColumnMinWidth?: number;
     bookModeFontSize?: number;
     followTail?: boolean;
+    onTailPin?: () => void;
     tailAnchorToken?: number | null;
     onTailAnchorSettled?: (token: number) => void;
     newConversationGreeting: string | null;
@@ -112,6 +113,7 @@
     messageDoubleColumnMinWidth = 1200,
     bookModeFontSize = 17,
     followTail = true,
+    onTailPin,
     tailAnchorToken = null,
     onTailAnchorSettled,
     newConversationGreeting,
@@ -538,6 +540,7 @@
     responsiveColumns={messageLayout === "responsive_double"}
     doubleColumnMinWidth={messageDoubleColumnMinWidth}
     {followTail}
+    {onTailPin}
     {tailAnchorToken}
     {onTailAnchorSettled}
   >

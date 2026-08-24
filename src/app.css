@@ -31,7 +31,7 @@
       0 5px 12px rgba(31, 35, 48, 0.14);
     --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
     --focus-ring: 0 0 0 1px var(--primary);
-    --interactive-state-opacity: 10%;
+    --interactive-state-opacity: 8%;
     --interactive-state-bg: color-mix(
       in srgb,
       var(--text) var(--interactive-state-opacity),

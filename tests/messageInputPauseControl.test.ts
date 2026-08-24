@@ -26,4 +26,16 @@ describe("stream pause control", () => {
     expect(previews).toContain('["pause-control-preview", "pause-control"]');
     expect(remote).toMatch(/if \(streamPaused\) await setStreamPaused\(false\);/);
   });
+
+  test("measures the textarea before its first edit without crossing its CSS minimum", async () => {
+    const source = await Bun.file(
+      new URL("../src/lib/components/MessageInput.svelte", import.meta.url),
+    ).text();
+
+    expect(source).toContain(
+      "const minHeight = Number.parseFloat(getComputedStyle(element).minHeight)",
+    );
+    expect(source).toContain("Math.max(element.scrollHeight, minHeight)");
+    expect(source).toMatch(/onMount\(\(\) => \{\s+resizeTextarea\(\);\s+focusInput\(\);/);
+  });
 });

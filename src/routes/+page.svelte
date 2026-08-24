@@ -3570,6 +3570,10 @@
     followStreamToBottom = isMessagesScrolledToBottom();
   }
 
+  function markProgrammaticTailPin() {
+    programmaticBottomScrollUntil = Math.max(programmaticBottomScrollUntil, Date.now() + 120);
+  }
+
   function cancelBottomScrollFromUser() {
     const hasCompletionAnchor = streamCompletionTailAnchor?.convId === activeConvId;
     if (Date.now() >= programmaticBottomScrollUntil && !hasCompletionAnchor) return;
@@ -4275,6 +4279,7 @@
     configureModels: () => openSettings("providers"),
     finishStreamCompletionTailAnchor,
     handleMessagesScroll,
+    markProgrammaticTailPin,
     pauseCurrentStream,
     pickWorkspace: pickNewConversationWorkspace,
     pickWslWorkspace: () => pickWslWorkspace(true),

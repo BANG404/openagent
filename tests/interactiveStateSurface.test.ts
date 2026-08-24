@@ -13,7 +13,7 @@ const componentPaths = [
 test("owns translucent interaction and desktop-menu states in app.css", async () => {
   const appCss = await readFile(new URL("../src/app.css", import.meta.url), "utf8");
 
-  expect(appCss.match(/--interactive-state-opacity: 10%;/g)).toHaveLength(1);
+  expect(appCss.match(/--interactive-state-opacity: 8%;/g)).toHaveLength(1);
   expect(appCss.match(/--interactive-state-bg: color-mix\(/g)).toHaveLength(1);
   expect(appCss).toMatch(
     /--interactive-state-bg: color-mix\(\s*in srgb,\s*var\(--text\) var\(--interactive-state-opacity\),\s*transparent\s*\);/s,

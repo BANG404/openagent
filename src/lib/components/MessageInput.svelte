@@ -506,6 +506,13 @@
     }
   });
 
+  function resizeTextarea(element: HTMLTextAreaElement | null = textareaEl) {
+    if (!element) return;
+    const minHeight = Number.parseFloat(getComputedStyle(element).minHeight) || 0;
+    element.style.height = "auto";
+    element.style.height = `${Math.min(Math.max(element.scrollHeight, minHeight), 200)}px`;
+  }
+
   function syncPaletteAvailableHeight() {
     if (!composerEl) return;
     const viewportTop = window.visualViewport?.offsetTop ?? 0;
@@ -529,6 +536,7 @@
   });
 
   onMount(() => {
+    resizeTextarea();
     focusInput();
     const syncOpenPalette = () => {
       if (paletteMode) syncPaletteAvailableHeight();
@@ -747,8 +755,7 @@
             if (!textareaEl) return;
             textareaEl.focus();
             textareaEl.setSelectionRange(selection.caret, selection.caret);
-            textareaEl.style.height = "auto";
-            textareaEl.style.height = Math.min(textareaEl.scrollHeight, 200) + "px";
+            resizeTextarea();
           });
         } else {
           value = "";
@@ -775,8 +782,7 @@
         if (!textareaEl) return;
         textareaEl.focus();
         textareaEl.setSelectionRange(newCaret, newCaret);
-        textareaEl.style.height = "auto";
-        textareaEl.style.height = Math.min(textareaEl.scrollHeight, 200) + "px";
+        resizeTextarea();
       });
     }
   }
@@ -819,8 +825,7 @@
 
   function handleInput(e: Event) {
     const el = e.target as HTMLTextAreaElement;
-    el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 200) + "px";
+    resizeTextarea(el);
     syncPaletteFromCaret();
   }
 

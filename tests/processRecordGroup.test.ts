@@ -99,4 +99,16 @@ describe("process record group", () => {
     expect(messageSource).not.toContain("VirtualMessageList");
     expect(messageSource).not.toContain("estimateEntrySize");
   });
+
+  test("marks ResizeObserver tail pins as programmatic scrolls", async () => {
+    const source = await readFile(transcriptListUrl, "utf8");
+    const pageSource = await readFile(
+      new URL("../src/routes/+page.svelte", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("onTailPin?.();\n        scrollElement.scrollTop");
+    expect(pageSource).toContain("function markProgrammaticTailPin()");
+    expect(pageSource).toContain("Date.now() + 120");
+  });
 });

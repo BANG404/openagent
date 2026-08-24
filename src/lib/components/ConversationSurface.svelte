@@ -79,6 +79,7 @@
     configureModels: () => void | Promise<void>;
     finishStreamCompletionTailAnchor: (token: number) => void;
     handleMessagesScroll: () => void;
+    markProgrammaticTailPin: () => void;
     pauseCurrentStream: () => void | Promise<void>;
     removeQueuedMessage: (convId: string, index: number) => void;
     resumeCurrentStream: () => void | Promise<void>;
@@ -189,6 +190,7 @@
           messageDoubleColumnMinWidth={view.config?.message_double_column_min_width ?? 1200}
           bookModeFontSize={view.config?.book_mode_font_size ?? 17}
           followTail={view.followTail}
+          onTailPin={actions.markProgrammaticTailPin}
           tailAnchorToken={view.tailAnchorToken}
           onTailAnchorSettled={actions.finishStreamCompletionTailAnchor}
           newConversationGreeting={view.newConversationGreeting}
