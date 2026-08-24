@@ -16,7 +16,7 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 - Tight two-row nav: slim `{component.global-nav}` + product-specific `{component.sub-nav-frosted}` with persistent right-aligned primary CTA.
 - Section rhythm across multiple pages: light hero → dark product tile → light utility tile → dark tile → parchment footer — a predictable pulse.
 - **Neutral conversation surfaces:** chat canvases, composers, and empty-conversation greetings use only theme-neutral depth; colored ambient fields are not conversation chrome.
-- **Settings cards:** align each section title with its supporting copy and align each card row's label with its description. Use one shadowless Mica surface for the card itself; controls nested inside that card use a 1px hairline border without a second shadow.
+- **Settings cards:** align each section title with its supporting copy and align each card row's label with its description. Use the shadowless shared `.settings-card` Mica surface from `app.css`; controls nested inside that card, and equivalent onboarding form fields, use the shared `.application-settings-control` 1px hairline treatment without a second shadow.
 - **Transient scrollbars:** scrollbars across the application keep their
   layout footprint but hide their thumb while idle. Scrolling or moving the
   pointer within a scrollable region reveals its scrollbar temporarily; nested,

@@ -23,6 +23,9 @@ test("owns translucent interaction and desktop-menu states in app.css", async ()
   expect(appCss).toContain(".interactive-control:hover:not(:disabled)");
   expect(appCss).toContain(".desktop-menu-item[data-selected]:not([data-disabled])");
   expect(appCss).toContain(".desktop-menu-search-input:focus-visible");
+  expect(appCss).toContain(".settings-card {");
+  expect(appCss).toContain(".application-settings-control {");
+  expect(appCss).toMatch(/\.application-settings-control\s*{[^}]*box-shadow: none;/s);
 
   const sources = await Promise.all(
     componentPaths.map((path) => readFile(new URL(path, import.meta.url), "utf8")),
@@ -56,6 +59,9 @@ test("reuses shared controls across onboarding and settings collections", async 
 
   expect(onboarding).toContain('import Select from "./ui/Select.svelte";');
   expect(onboarding.match(/<Select\b/g)).toHaveLength(5);
+  expect(onboarding.match(/triggerClass="application-settings-control"/g)).toHaveLength(5);
+  expect(onboarding.match(/class="application-settings-control"/g)).toHaveLength(4);
+  expect(onboarding).not.toMatch(/\n\s*input\s*{/);
   expect(onboarding).not.toContain("<select");
   expect(settings).toContain('class="interactive-control filter-toggle"');
   expect(settings).toMatch(/\.filter-toggle\s*{[^}]*background: transparent;/s);

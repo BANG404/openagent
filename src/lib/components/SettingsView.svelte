@@ -4775,15 +4775,6 @@
     line-height: 1.5;
   }
 
-  .settings-card {
-    overflow: hidden;
-    border: 1px solid var(--mica-border);
-    border-radius: 10px;
-    background: var(--mica-surface);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-  }
-
   .settings-card-row {
     position: relative;
     display: grid;

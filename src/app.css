@@ -261,6 +261,46 @@
     background: var(--floating-surface);
   }
 
+  /* Settings and onboarding forms share one flat Mica control treatment. */
+  .settings-card {
+    overflow: hidden;
+    border: 1px solid var(--mica-border);
+    border-radius: 10px;
+    background: var(--mica-surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+  }
+
+  .application-settings-control {
+    box-sizing: border-box;
+    width: 100%;
+    height: 36px;
+    padding: 0 11px;
+    border: 1px solid var(--mica-divider);
+    border-radius: 8px;
+    outline: none;
+    background: var(--mica-surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: none;
+  }
+
+  .ui-select-trigger.application-settings-control {
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 11px;
+  }
+
+  .application-settings-control:focus-visible,
+  .application-settings-control:focus,
+  .ui-select-trigger.application-settings-control[data-state="open"] {
+    border-color: var(--mica-divider);
+    box-shadow: var(--focus-ring);
+  }
+
   /* Context Menu (bits-ui) — global so it works regardless of which component is mounted. */
   .desktop-menu-panel {
     padding: var(--menu-content-padding);

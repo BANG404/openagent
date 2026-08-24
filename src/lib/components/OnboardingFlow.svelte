@@ -357,11 +357,17 @@
                 bind:value={draft.language}
                 items={languageOptions}
                 ariaLabel={copy.language}
+                triggerClass="application-settings-control"
               />
             </label>
             <label>
               <span>{copy.theme}</span>
-              <Select bind:value={draft.theme} items={themeOptions} ariaLabel={copy.theme} />
+              <Select
+                bind:value={draft.theme}
+                items={themeOptions}
+                ariaLabel={copy.theme}
+                triggerClass="application-settings-control"
+              />
             </label>
           </div>
         {:else if step === 2}
@@ -383,7 +389,7 @@
               <div class="two">
                 <label>
                   <span>{copy.providerName}</span>
-                  <input bind:value={selectedProvider.name} />
+                  <input class="application-settings-control" bind:value={selectedProvider.name} />
                 </label>
                 <label>
                   <span>{copy.providerType}</span>
@@ -392,12 +398,14 @@
                     items={providerOptions}
                     ariaLabel={copy.providerType}
                     onValueChange={resetConnection}
+                    triggerClass="application-settings-control"
                   />
                 </label>
               </div>
               <label>
                 <span>{copy.baseUrl}</span>
                 <input
+                  class="application-settings-control"
                   bind:value={selectedProvider.base_url}
                   oninput={resetConnection}
                   placeholder={providerDefaultBaseUrl(selectedProvider.provider) ||
@@ -413,6 +421,7 @@
                       : copy.optionalApiKey}
                 </span>
                 <input
+                  class="application-settings-control"
                   type="password"
                   bind:value={selectedProvider.api_key}
                   oninput={resetConnection}
@@ -426,6 +435,7 @@
               {/if}
               <div class="manual-model-row">
                 <input
+                  class="application-settings-control"
                   bind:value={manualModelName}
                   placeholder={copy.modelName}
                   onkeydown={(event) => {
@@ -464,6 +474,7 @@
                 items={modelBindings}
                 ariaLabel={copy.chatModel}
                 onValueChange={(value) => setModel("chat_model", value)}
+                triggerClass="application-settings-control"
               />
             </label>
             <label>
@@ -473,6 +484,7 @@
                 items={modelBindings}
                 ariaLabel={copy.flashModel}
                 onValueChange={(value) => setModel("flash_model", value)}
+                triggerClass="application-settings-control"
               />
             </label>
           </div>
@@ -718,23 +730,6 @@
     color: var(--text-muted);
     font-size: 12px;
     font-weight: 600;
-  }
-  input {
-    box-sizing: border-box;
-    width: 100%;
-    height: 36px;
-    padding: 0 11px;
-    border: 0;
-    border-radius: 8px;
-    outline: none;
-    background: var(--surface);
-    color: var(--text);
-    font: inherit;
-    font-size: 13px;
-    box-shadow: var(--control-shadow);
-  }
-  input:focus {
-    box-shadow: var(--control-shadow), var(--focus-ring);
   }
   .provider-tabs {
     display: flex;
