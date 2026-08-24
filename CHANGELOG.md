@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.47.0-beta.1] - 2026-08-24
+
+### Features
+- **onboarding**: Adopt fixed Windows 11 setup layout
+- **settings**: Redesign semantic action controls
+- Remove configure management views
+- **ui**: Standardize neutral icon buttons
+- **onboarding**: Simplify setup chrome
+
+### Bug Fixes
+- **ui**: Align onboarding scroll surface
+- **ui**: Clarify onboarding setup guidance
+- **frontend**: Unify setup and settings controls
+- **chat**: Remove grouped tool background
+- **ui**: Remove dropdown press scaling
+- **frontend**: Avoid stacked project selection fill
+- **frontend**: Scope Tailwind source detection
+- **chat**: Strengthen user message surfaces
+- **ui**: Align markdown editor with app styling
+
+### Refactoring
+- **frontend**: Centralize interactive surface styles
+
 ## [0.46.0-beta.1] - 2026-08-23
 
 ### Features
