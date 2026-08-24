@@ -60,6 +60,10 @@ test("reuses shared controls across onboarding and settings collections", async 
     new URL("../src/lib/components/SettingsView.svelte", import.meta.url),
     "utf8",
   );
+  const settingsActionButton = await readFile(
+    new URL("../src/lib/components/ui/SettingsActionButton.svelte", import.meta.url),
+    "utf8",
+  );
   const permissions = await readFile(
     new URL("../src/lib/components/PermissionSettings.svelte", import.meta.url),
     "utf8",
@@ -101,8 +105,9 @@ test("reuses shared controls across onboarding and settings collections", async 
     'class="application-settings-scope application-settings-surface permission-settings"',
   );
   expect(permissions).not.toMatch(/\.permission-settings\s*{[^}]*box-shadow:/s);
-  expect(settings).toContain('class="interactive-control filter-toggle"');
-  expect(settings).toMatch(/\.filter-toggle\s*{[^}]*background: transparent;/s);
+  expect(settings).not.toContain('class="interactive-control filter-toggle"');
+  expect(settings).toMatch(/<SettingsActionButton\s+label=\{providerFilter/);
+  expect(settingsActionButton).toMatch(/\.settings-action\s*{[^}]*box-shadow: none;/s);
   expect(settings.match(/class="detail-input settings-card-number-input"/g)).toHaveLength(6);
   expect(settings).toMatch(
     /\.settings-card-number-input\s*{[^}]*justify-self: end;[^}]*margin-inline-start: auto;/s,

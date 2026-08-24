@@ -2498,8 +2498,12 @@
               placeholder={$t("searchProviders")}
               bind:value={providerSearch}
             />
-            <button
-              class="interactive-control filter-toggle"
+            <SettingsActionButton
+              label={providerFilter === "all"
+                ? $t("filterAll")
+                : providerFilter === "enabled"
+                  ? $t("filterEnabled")
+                  : $t("filterDisabled")}
               onclick={() => {
                 providerFilter =
                   providerFilter === "all"
@@ -2508,13 +2512,7 @@
                       ? "disabled"
                       : "all";
               }}
-            >
-              {providerFilter === "all"
-                ? $t("filterAll")
-                : providerFilter === "enabled"
-                  ? $t("filterEnabled")
-                  : $t("filterDisabled")}
-            </button>
+            />
           </div>
         </div>
         <div class="provider-list">
@@ -2561,7 +2559,12 @@
           {/if}
         </div>
         <div class="list-footer">
-          <SettingsActionButton label={$t("addProvider")} icon="add" onclick={addProvider} />
+          <SettingsActionButton
+            label={$t("addProvider")}
+            icon="add"
+            fullWidth
+            onclick={addProvider}
+          />
         </div>
       </div>
 
@@ -2728,9 +2731,12 @@
                   <div class="danger-title">{$t("deleteNode")}</div>
                   <div class="danger-copy">{$t("deleteNodeDesc")}</div>
                 </div>
-                <button class="danger-btn" onclick={() => removeProvider(selectedProvider.id)}
-                  >{$t("deleteNode")}</button
-                >
+                <SettingsActionButton
+                  label={$t("deleteNode")}
+                  icon="trash"
+                  tone="danger"
+                  onclick={() => removeProvider(selectedProvider.id)}
+                />
               </div>
             </section>
           </div>
@@ -3440,7 +3446,12 @@
           {/if}
         </div>
         <div class="list-footer">
-          <SettingsActionButton label={$t("addMcpServer")} icon="add" onclick={addMcpServer} />
+          <SettingsActionButton
+            label={$t("addMcpServer")}
+            icon="add"
+            fullWidth
+            onclick={addMcpServer}
+          />
         </div>
       </div>
 
@@ -3595,7 +3606,7 @@
                 {/if}
               </div>
 
-              <div class="key-input-row" style="margin-top:10px">
+              <div class="key-input-row mcp-test-actions">
                 <SettingsActionButton
                   label={status?.tone === "testing" ? $t("mcpTesting") : $t("testMcpServer")}
                   icon="test"
@@ -4107,6 +4118,11 @@
 
   .key-input-row .detail-input {
     flex: 1;
+  }
+
+  .mcp-test-actions {
+    justify-content: flex-end;
+    margin-top: 10px;
   }
 
   .toggle-row,
@@ -5035,8 +5051,7 @@
 
   .chatgpt-model-catalog-hint {
     margin: 0 0 12px;
-    border-left: 3px solid var(--primary);
-    border-radius: 0 9px 9px 0;
+    border-radius: 9px;
     padding: 9px 11px;
     background: var(--surface2);
     color: var(--text-muted, #888);
@@ -5323,8 +5338,8 @@
   }
 
   .danger-zone {
-    border: 1px solid color-mix(in srgb, var(--danger) 10%, var(--mica-border));
-    background: color-mix(in srgb, var(--danger) 6%, var(--mica-surface));
+    border: 0;
+    background: var(--mica-surface);
   }
 
   .danger-title,
