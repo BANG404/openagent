@@ -45,6 +45,7 @@
   import Select from "./ui/Select.svelte";
   import Switch from "./ui/Switch.svelte";
   import SettingsActionButton from "./ui/SettingsActionButton.svelte";
+  import SettingsListInput from "./ui/SettingsListInput.svelte";
   import SettingsStatusToggle from "./ui/SettingsStatusToggle.svelte";
   import PermissionSettings from "./PermissionSettings.svelte";
   import AgentPluginsSettings from "./AgentPluginsSettings.svelte";
@@ -1993,14 +1994,12 @@
                 </div>
                 <label class="detail-label">
                   <span class="label-text">{$t("channelAllowedChatIds")}</span>
-                  <textarea
-                    class="detail-input hook-textarea channel-allowlist"
+                  <SettingsListInput
                     value={draftConfig.channels!.feishu!.allowed_chat_ids.join("\n")}
                     placeholder={$t("channelAllowlistPlaceholder")}
-                    oninput={(event) =>
-                      (draftConfig.channels!.feishu!.allowed_chat_ids = parseChannelIds(
-                        event.currentTarget.value,
-                      ))}></textarea>
+                    oninput={(value) =>
+                      (draftConfig.channels!.feishu!.allowed_chat_ids = parseChannelIds(value))}
+                  />
                 </label>
               </div>
               {#if channelStatuses.feishu?.error}
@@ -2033,14 +2032,12 @@
                 </label>
                 <label class="detail-label">
                   <span class="label-text">{$t("channelAllowedChatIds")}</span>
-                  <textarea
-                    class="detail-input hook-textarea channel-allowlist"
+                  <SettingsListInput
                     value={draftConfig.channels!.telegram!.allowed_chat_ids.join("\n")}
                     placeholder={$t("channelAllowlistPlaceholder")}
-                    oninput={(event) =>
-                      (draftConfig.channels!.telegram!.allowed_chat_ids = parseChannelIds(
-                        event.currentTarget.value,
-                      ))}></textarea>
+                    oninput={(value) =>
+                      (draftConfig.channels!.telegram!.allowed_chat_ids = parseChannelIds(value))}
+                  />
                 </label>
               </div>
               {#if channelStatuses.telegram?.error}<div class="provider-status error">
@@ -2078,14 +2075,12 @@
                 >
                 <label class="detail-label">
                   <span class="label-text">{$t("channelAllowedUserIds")}</span>
-                  <textarea
-                    class="detail-input hook-textarea channel-allowlist"
+                  <SettingsListInput
                     value={draftConfig.channels!.qq!.allowed_user_ids.join("\n")}
                     placeholder={$t("channelAllowlistPlaceholder")}
-                    oninput={(event) =>
-                      (draftConfig.channels!.qq!.allowed_user_ids = parseChannelIds(
-                        event.currentTarget.value,
-                      ))}></textarea>
+                    oninput={(value) =>
+                      (draftConfig.channels!.qq!.allowed_user_ids = parseChannelIds(value))}
+                  />
                 </label>
               </div>
               {#if channelStatuses.qq?.error}<div class="provider-status error">
@@ -2117,14 +2112,12 @@
                 >
                 <label class="detail-label">
                   <span class="label-text">{$t("channelAllowedChannelIds")}</span>
-                  <textarea
-                    class="detail-input hook-textarea channel-allowlist"
+                  <SettingsListInput
                     value={draftConfig.channels!.discord!.allowed_channel_ids.join("\n")}
                     placeholder={$t("channelAllowlistPlaceholder")}
-                    oninput={(event) =>
-                      (draftConfig.channels!.discord!.allowed_channel_ids = parseChannelIds(
-                        event.currentTarget.value,
-                      ))}></textarea>
+                    oninput={(value) =>
+                      (draftConfig.channels!.discord!.allowed_channel_ids = parseChannelIds(value))}
+                  />
                 </label>
               </div>
               {#if channelStatuses.discord?.error}<div class="provider-status error">
@@ -2163,14 +2156,12 @@
                 >
                 <label class="detail-label">
                   <span class="label-text">{$t("channelAllowedChannelIds")}</span>
-                  <textarea
-                    class="detail-input hook-textarea channel-allowlist"
+                  <SettingsListInput
                     value={draftConfig.channels!.slack!.allowed_channel_ids.join("\n")}
                     placeholder={$t("channelAllowlistPlaceholder")}
-                    oninput={(event) =>
-                      (draftConfig.channels!.slack!.allowed_channel_ids = parseChannelIds(
-                        event.currentTarget.value,
-                      ))}></textarea>
+                    oninput={(value) =>
+                      (draftConfig.channels!.slack!.allowed_channel_ids = parseChannelIds(value))}
+                  />
                 </label>
               </div>
               {#if channelStatuses.slack?.error}<div class="provider-status error">
@@ -2198,15 +2189,13 @@
                     >{$t("wechatChannelAllowedUsers")}</label
                   >
                   <p class="detail-hint">{$t("wechatChannelAllowedUsersHint")}</p>
-                  <textarea
+                  <SettingsListInput
                     id="wechat-allowed-users"
-                    class="detail-input hook-textarea wechat-user-ids"
                     value={draftConfig.channels!.wechat.allowed_user_ids.join("\n")}
                     placeholder={$t("wechatChannelAllowedUsersPlaceholder")}
-                    oninput={(event) =>
-                      (draftConfig.channels!.wechat.allowed_user_ids = parseChannelIds(
-                        event.currentTarget.value,
-                      ))}></textarea>
+                    oninput={(value) =>
+                      (draftConfig.channels!.wechat.allowed_user_ids = parseChannelIds(value))}
+                  />
                 </div>
               </div>
               {#if draftConfig.channels!.wechat.enabled && wechatChannelStatus?.state === "awaiting_scan" && wechatChannelStatus.qr_image_data_url}
@@ -4253,12 +4242,6 @@
     border-top: 0;
   }
 
-  .wechat-user-ids {
-    min-height: 76px;
-    margin-top: 4px;
-    resize: vertical;
-  }
-
   .wechat-qr-card,
   .wechat-connected-card {
     display: flex;
@@ -4567,11 +4550,6 @@
   .channel-config-card .detail-label {
     margin: 0;
   }
-  .channel-allowlist {
-    min-height: 76px;
-    resize: vertical;
-  }
-
   @media (max-width: 640px) {
     .channel-settings-layout {
       grid-template-columns: 1fr;

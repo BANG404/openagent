@@ -946,6 +946,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   actions, blue shadowless controls for inline row construction, and restrained
   danger-tinted controls for destructive actions. Keep provider status text and
   its switch flat instead of wrapping either in an additional gray capsule.
+- Channel ID allowlists use the shared fixed-height settings list input. Keep
+  resizing disabled and let long lists scroll vertically inside the control so
+  every channel configuration retains the same layout height.
 
 ## IPC and events
 

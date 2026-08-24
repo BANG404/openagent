@@ -397,6 +397,7 @@
 
 .application-settings-scope .ui-select-trigger,
 .application-settings-scope .detail-input,
+.application-settings-scope .settings-list-input,
 .application-settings-scope .list-search-input,
 .application-settings-scope .model-search-input,
 .application-settings-scope .shortcut-recorder {
@@ -410,6 +411,7 @@
 .application-settings-scope .ui-select-trigger:focus-visible,
 .application-settings-scope .ui-select-trigger[data-state="open"],
 .application-settings-scope .detail-input:focus,
+.application-settings-scope .settings-list-input:focus,
 .application-settings-scope .list-search-input:focus,
 .application-settings-scope .model-search-input:focus {
   border-color: var(--mica-divider);
