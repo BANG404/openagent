@@ -293,10 +293,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   a successful but blank card after finalization, reload, or branch switching.
 - Group consecutive ordinary ToolCalls into one collapsed summary row with
   independently expandable calls.
-- Keep ordinary and enhanced file/search tool cards on the same neutral
-  perimeter and leave their base canvas transparent. Reserve the blue accent
-  for real interaction state such as keyboard focus or an actively running
-  tool, not for the tool's type.
+- Keep ordinary and enhanced file/search tool cards, grouped tool summaries,
+  and `ask_user` forms on the same compact, transparent, neutral-perimeter
+  grammar: one summary row followed by independently expandable 32px tool
+  rows with a quiet terminal-status mark. Reserve the blue accent for real
+  interaction state such as keyboard focus or an actively running tool, not
+  for the tool's type.
 - Keep `ask_user`, approvals, HTML previews, and other dedicated tools outside
   ordinary grouping.
 - Batched approval cards remain independently clickable. Optimistically resolve
