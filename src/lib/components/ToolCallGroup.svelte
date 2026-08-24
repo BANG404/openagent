@@ -246,6 +246,12 @@
   .status.success {
     color: #22c55e;
   }
+
+  /* The count is already shown beside the group title. Keep completed groups
+     as a single quiet confirmation, like their individual tool rows. */
+  .status.success span:last-child {
+    display: none;
+  }
   .status.failed {
     color: var(--danger, #dc2626);
   }
@@ -260,8 +266,8 @@
   .tool-call-group-items {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding-top: 5px;
+    gap: 4px;
+    padding-top: 4px;
     background: transparent;
   }
 

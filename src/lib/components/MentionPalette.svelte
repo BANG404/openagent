@@ -61,7 +61,7 @@
   onValueChange={handleValueChange}
   loop
   disableInitialScroll
-  class="palette conversation-input-surface"
+  class="palette floating-application-surface"
   label="Suggestions"
 >
   <Command.List bind:ref={listEl} class="palette-list">

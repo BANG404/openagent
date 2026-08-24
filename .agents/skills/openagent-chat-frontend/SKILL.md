@@ -293,10 +293,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   a successful but blank card after finalization, reload, or branch switching.
 - Group consecutive ordinary ToolCalls into one collapsed summary row with
   independently expandable calls.
-- Keep ordinary and enhanced file/search tool cards on the same neutral
-  perimeter and leave their base canvas transparent. Reserve the blue accent
-  for real interaction state such as keyboard focus or an actively running
-  tool, not for the tool's type.
+- Keep ordinary and enhanced file/search tool cards, grouped tool summaries,
+  and `ask_user` forms on the same compact, transparent, neutral-perimeter
+  grammar: one summary row followed by independently expandable 32px tool
+  rows with a quiet terminal-status mark. Reserve the blue accent for real
+  interaction state such as keyboard focus or an actively running tool, not
+  for the tool's type.
 - Bound expanded `edit_file` replacement previews by source characters and
   rendered diff rows. Large Agent edits must end with a neutral omission marker
   instead of allocating an unbounded preview or mounting enough transcript DOM
@@ -417,11 +419,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   separators are application primitives. Components own only their dimensions,
   content layout, and semantic exceptions; do not duplicate the shared state
   declarations in component styles.
-- Reuse the shared conversation-input surface for the composer, file-change
-  banner, every desktop menu panel, command/mention palettes, floating
-  text-selection actions, and notifications so their Mica fill, hairline
-  perimeter, 18px radius, 24px saturated blur, and compact, clearly edged
-  elevation stay identical in both themes. This includes model, role,
+- Reuse the shared raised-surface geometry for the composer, file-change banner,
+  every desktop menu panel, command/mention palettes, floating text-selection
+  actions, and notifications so their hairline perimeter, 18px radius, 24px
+  saturated blur, and compact, clearly edged elevation stay identical in both
+  themes. Floating content uses the dedicated 90%-opaque theme fill so underlying
+  text cannot wash out its content; non-floating input surfaces retain the lighter
+  Mica fill. This includes model, role,
   workspace, recent-workspace, application, context, combobox, and compact
   download panels. Their
   dimensions, internal spacing, and content behavior remain component-owned;
