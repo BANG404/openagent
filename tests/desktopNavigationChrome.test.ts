@@ -62,9 +62,13 @@ describe("desktop navigation chrome", () => {
     expect(titleBar).toMatch(/\.title-bar-menu\s*{[^}]*margin-left: 100px;/s);
     expect(titleBar).toMatch(/\.title-bar\.macos \.title-bar-menu\s*{[^}]*margin-left: 176px;/s);
     expect(settingsAction).not.toContain("border-top:");
-    expect(conversationSurface).toMatch(
-      /\.conversation-workspace\s*{[^}]*margin: 40px 8px 8px;[^}]*border-radius: 12px;[^}]*background: var\(--surface\);[^}]*box-shadow:/s,
-    );
+    const conversationWorkspace = conversationSurface.match(
+      /\.conversation-workspace\s*{([^}]*)}/s,
+    )?.[1];
+    expect(conversationWorkspace).toContain("margin: 40px 8px 8px");
+    expect(conversationWorkspace).toContain("border-radius: 12px");
+    expect(conversationWorkspace).toContain("background: var(--surface)");
+    expect(conversationWorkspace).not.toContain("box-shadow");
     expect(titleBar).not.toContain("workspace-environment");
     expect(titleBar).not.toContain("workspace-name");
     expect(titleBar).not.toContain("branch-name");

@@ -4782,7 +4782,6 @@
     background: var(--mica-surface);
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: var(--mica-shadow);
   }
 
   .settings-card-row {

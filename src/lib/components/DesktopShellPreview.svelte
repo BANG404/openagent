@@ -313,9 +313,6 @@
     overflow: hidden;
     border-radius: 12px;
     background: var(--surface);
-    box-shadow:
-      0 1px 2px rgba(15, 23, 42, 0.08),
-      0 4px 12px rgba(15, 23, 42, 0.1);
   }
 
   .new-conversation-heading {
@@ -367,11 +364,5 @@
   .existing-conversation p {
     color: var(--text-muted);
     font-size: 12px;
-  }
-
-  :global(html.dark) .desktop-shell-content {
-    box-shadow:
-      0 1px 2px rgba(0, 0, 0, 0.26),
-      0 5px 14px rgba(0, 0, 0, 0.26);
   }
 </style>

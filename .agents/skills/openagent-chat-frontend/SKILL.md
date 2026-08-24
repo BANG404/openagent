@@ -141,7 +141,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Paint one neutral translucent Mica background on that shared workspace. Keep
   the composer's bottom readability fade there rather than inside the
   conversation-only track, but do not add an ambient color or streaming glow
-  behind the composer. Give both the ordinary composer and expanded panel the
+  behind the composer. Keep the main conversation workspace shadowless in both
+  themes. Give both the ordinary composer and expanded panel the
   same standard Mica card surface and blur without a colored state shadow.
   Retain the expanded panel's card border, radius, and shadow; its surface must
   use the same composition as the composer rather than an independently tinted
