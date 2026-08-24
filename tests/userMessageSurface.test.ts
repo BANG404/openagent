@@ -6,7 +6,6 @@ const sharedSurfaceComponents = [
   "../src/lib/components/LoadingSkeleton.svelte",
   "../src/lib/components/MessageList.svelte",
   "../src/lib/components/RetryAttempt.svelte",
-  "../src/lib/components/UserInputSummary.svelte",
 ];
 
 test("keeps transcript-owned user surfaces on the opaque secondary fill", async () => {
@@ -21,15 +20,19 @@ test("keeps transcript-owned user surfaces on the opaque secondary fill", async 
   }
 });
 
-test("keeps ask-user forms in the compact transparent tool grammar", async () => {
-  const source = await readFile(
-    new URL("../src/lib/components/UserInputForm.svelte", import.meta.url),
-    "utf8",
-  );
+test("keeps ask-user forms and summaries in the compact transparent tool grammar", async () => {
+  const [source, summarySource] = await Promise.all([
+    readFile(new URL("../src/lib/components/UserInputForm.svelte", import.meta.url), "utf8"),
+    readFile(new URL("../src/lib/components/UserInputSummary.svelte", import.meta.url), "utf8"),
+  ]);
 
   expect(source).toContain("rounded-lg border border-[var(--border)] bg-transparent");
   expect(source).not.toContain("shadow-[0_1px_3px_rgba(0,0,0,0.04)]");
   expect(source).not.toContain("bg-[var(--user-message-bg)]");
+  expect(summarySource).toMatch(
+    /\.user-input-summary\s*\{[^}]*border: 1px solid var\(--border\);[^}]*background: transparent;[^}]*box-shadow: none;/s,
+  );
+  expect(summarySource).not.toContain("var(--user-message-bg)");
 });
 
 test("keeps grouped tool calls on the transcript canvas", async () => {

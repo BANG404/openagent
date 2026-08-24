@@ -304,11 +304,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Group consecutive ordinary ToolCalls into one collapsed summary row with
   independently expandable calls.
 - Keep ordinary and enhanced file/search tool cards, grouped tool summaries,
-  and `ask_user` forms on the same compact, transparent, neutral-perimeter
-  grammar: one summary row followed by independently expandable 32px tool
-  rows with a quiet terminal-status mark. Reserve the blue accent for real
-  interaction state such as keyboard focus or an actively running tool, not
-  for the tool's type.
+  and both pending and completed `ask_user` surfaces on the same compact,
+  transparent, neutral-perimeter grammar: one summary row followed by
+  independently expandable 32px tool rows with a quiet terminal-status mark.
+  Reserve the blue accent for real interaction state such as keyboard focus or
+  an actively running tool, not for the tool's type.
 - Bound expanded `edit_file` replacement previews by source characters and
   rendered diff rows. Large Agent edits must end with a neutral omission marker
   instead of allocating an unbounded preview or mounting enough transcript DOM

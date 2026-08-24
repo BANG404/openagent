@@ -63,20 +63,20 @@
   .user-input-summary {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     max-width: 100%;
-    margin: 8px 0 10px;
-    padding: 11px 13px;
-    border: 0;
-    border-radius: 10px;
-    background: var(--user-message-bg);
+    margin: 8px 0;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
     color: var(--text);
     font-size: 13px;
-    box-shadow: var(--control-shadow);
+    box-shadow: none;
   }
 
   .user-input-summary.cancelled {
-    background: var(--user-message-bg);
+    background: transparent;
     color: var(--text-muted);
   }
 
