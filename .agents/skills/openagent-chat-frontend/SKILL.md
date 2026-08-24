@@ -297,6 +297,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   perimeter and leave their base canvas transparent. Reserve the blue accent
   for real interaction state such as keyboard focus or an actively running
   tool, not for the tool's type.
+- Bound expanded `edit_file` replacement previews by source characters and
+  rendered diff rows. Large Agent edits must end with a neutral omission marker
+  instead of allocating an unbounded preview or mounting enough transcript DOM
+  nodes to terminate the desktop WebView.
 - Keep `ask_user`, approvals, HTML previews, and other dedicated tools outside
   ordinary grouping.
 - Batched approval cards remain independently clickable. Optimistically resolve
@@ -849,6 +853,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   transcript scrollbar during activity with stable geometry and idle hiding,
   contained boundary scrolling, and
   light/dark rendering remain directly testable without a native runtime.
+- Keep the development-only `tool-diff-preview` query available with a large
+  `edit_file` fixture. Its `-theme` and `-locale` parameters must keep bounded
+  expansion, light/dark themes, and Chinese/English rendering directly
+  verifiable without native state.
 - Keep the development-only `mermaid-finalization-preview` query available for
   exercising a live Mermaid render through the completed-Turn process-fold
   transition. Its `-theme` and `-locale` parameters must keep the transition,

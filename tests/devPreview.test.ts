@@ -31,6 +31,13 @@ describe("standalone development previews", () => {
     expect(previewParameterPrefix("streaming-transcript")).toBe("streaming-transcript-preview");
   });
 
+  test("exposes the bounded tool diff preview", () => {
+    expect(resolveStandaloneDevPreview(new URLSearchParams("tool-diff-preview"), true)).toBe(
+      "tool-diff",
+    );
+    expect(previewParameterPrefix("tool-diff")).toBe("tool-diff-preview");
+  });
+
   test("exposes the Mermaid finalization preview", () => {
     expect(
       resolveStandaloneDevPreview(new URLSearchParams("mermaid-finalization-preview"), true),

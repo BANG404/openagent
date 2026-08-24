@@ -128,6 +128,12 @@
   let quoteMessagesElement = $state<HTMLElement | null>(null);
   let runtimeNoticeMessagesElement = $state<HTMLElement | null>(null);
   let mermaidFinalizationMessagesElement = $state<HTMLElement | null>(null);
+  let toolDiffExpanded = $state(false);
+  const toolDiffArgs = JSON.stringify({
+    file_path: "src/generated/large-agent-edit.html",
+    old_string: Array.from({ length: 2_000 }, (_, index) => `old line ${index}`).join("\n"),
+    new_string: Array.from({ length: 2_000 }, (_, index) => `new line ${index}`).join("\n"),
+  });
   let mermaidFinalized = $state(false);
   let streamingMessagesElement = $state<HTMLElement | null>(null);
   let streamingFollowTail = $state(true);
@@ -724,6 +730,19 @@
       {/each}
     </section>
   </main>
+{:else if preview === "tool-diff"}
+  <main class="tool-diff-preview-stage">
+    <section class="tool-diff-preview-stack" aria-label="Large Agent edit preview">
+      <ToolCallCard
+        name="edit_file"
+        args={toolDiffArgs}
+        result="updated"
+        expanded={toolDiffExpanded}
+        argHint="large-agent-edit.html"
+        onToggle={() => (toolDiffExpanded = !toolDiffExpanded)}
+      />
+    </section>
+  </main>
 {:else if preview === "input-surfaces"}
   <main class="input-surfaces-preview-stage">
     <section class="input-surfaces-preview-stack">
@@ -1172,6 +1191,7 @@
 
 <style>
   .approval-queue-preview-stage,
+  .tool-diff-preview-stage,
   .reasoning-effort-preview-stage,
   .input-surfaces-preview-stage,
   .permission-settings-preview-stage,
@@ -1190,10 +1210,16 @@
     place-items: start center;
     padding: 48px 24px;
   }
-  .approval-queue-preview-stack {
+  .approval-queue-preview-stack,
+  .tool-diff-preview-stack {
     display: grid;
     width: min(720px, 100%);
     gap: 12px;
+  }
+  .tool-diff-preview-stage {
+    display: grid;
+    place-items: start center;
+    padding: 48px 24px;
   }
   .input-surfaces-preview-stage {
     display: grid;

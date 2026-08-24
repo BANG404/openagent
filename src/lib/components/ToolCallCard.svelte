@@ -5,6 +5,7 @@
   import type { HtmlPreviewConfig, UserInputRequest } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t } from "$lib/i18n";
+  import { buildReplacementDiff } from "$lib/toolCallDiff";
   import { shouldDisplayToolCall, toolCallStatus, type ToolCallItem } from "$lib/toolCallGroups";
   import Tooltip from "./Tooltip.svelte";
   import ToolApprovalActions from "./ToolApprovalActions.svelte";
@@ -29,7 +30,6 @@
   }
 
   type JsonObject = Record<string, unknown>;
-  type DiffLine = { type: "add" | "remove" | "context"; text: string };
   type GrepMatch = { file: string; line: number; content: string };
   const capabilities = useOpenAgentUiCapabilities();
 
@@ -133,7 +133,11 @@
 
   function lineCount(text: string): number {
     if (!text) return 0;
-    return text.split("\n").length;
+    let count = 1;
+    for (let index = 0; index < text.length; index += 1) {
+      if (text.charCodeAt(index) === 10) count += 1;
+    }
+    return count;
   }
 
   function trimPreview(text: string, max = 2400): string {
@@ -194,46 +198,6 @@
         const match = /^(\d+)\|\s?(.*)$/.exec(line);
         return match ? { line: match[1], content: match[2] } : { line: "", content: line };
       });
-  }
-
-  function buildReplacementDiff(oldText: string, newText: string): DiffLine[] {
-    if (!oldText && !newText) return [];
-    const oldLines = oldText.split("\n");
-    const newLines = newText.split("\n");
-    let prefix = 0;
-    while (
-      prefix < oldLines.length &&
-      prefix < newLines.length &&
-      oldLines[prefix] === newLines[prefix]
-    ) {
-      prefix += 1;
-    }
-
-    let oldSuffix = oldLines.length - 1;
-    let newSuffix = newLines.length - 1;
-    while (
-      oldSuffix >= prefix &&
-      newSuffix >= prefix &&
-      oldLines[oldSuffix] === newLines[newSuffix]
-    ) {
-      oldSuffix -= 1;
-      newSuffix -= 1;
-    }
-
-    const lines: DiffLine[] = [];
-    for (let i = Math.max(0, prefix - 2); i < prefix; i += 1) {
-      lines.push({ type: "context", text: "  " + oldLines[i] });
-    }
-    for (let i = prefix; i <= oldSuffix; i += 1) {
-      lines.push({ type: "remove", text: "- " + oldLines[i] });
-    }
-    for (let i = prefix; i <= newSuffix; i += 1) {
-      lines.push({ type: "add", text: "+ " + newLines[i] });
-    }
-    for (let i = newSuffix + 1; i < Math.min(newLines.length, newSuffix + 3); i += 1) {
-      lines.push({ type: "context", text: "  " + newLines[i] });
-    }
-    return lines;
   }
 
   async function openPath(path: string, event?: MouseEvent) {
