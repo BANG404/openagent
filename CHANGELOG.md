@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.47.1-beta.1] - 2026-08-24
+
+### Bug Fixes
+- **chat**: Prevent edited file crash
+- **ui**: Improve floating surface readability
+- **chat**: Stabilize input and streaming surfaces
+
+### Styling
+- **chat**: Unify tool call surfaces
+
+### Miscellaneous
+- **sdk**: Update interrupted-turn recovery
+
 ## [0.47.0-beta.1] - 2026-08-24
 
 ### Features
