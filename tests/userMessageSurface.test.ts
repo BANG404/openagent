@@ -8,9 +8,9 @@ const sharedSurfaceComponents = [
   "../src/lib/components/RetryAttempt.svelte",
 ];
 
-test("keeps transcript-owned user surfaces on the opaque secondary fill", async () => {
+test("keeps transcript-owned user surfaces on the shared interaction fill", async () => {
   const appCss = await readFile(new URL("../src/app.css", import.meta.url), "utf8");
-  expect(appCss).toContain("--user-message-bg: var(--surface2);");
+  expect(appCss).toContain("--user-message-bg: var(--interactive-state-bg);");
 
   const sources = await Promise.all(
     sharedSurfaceComponents.map((path) => readFile(new URL(path, import.meta.url), "utf8")),
@@ -18,6 +18,25 @@ test("keeps transcript-owned user surfaces on the opaque secondary fill", async 
   for (const source of sources) {
     expect(source).toContain("var(--user-message-bg)");
   }
+});
+
+test("keeps every attachment card off the white surface", async () => {
+  const source = await readFile(
+    new URL("../src/lib/components/AttachmentPreview.svelte", import.meta.url),
+    "utf8",
+  );
+
+  for (const selector of [
+    /\.attachment-preview\s*\{[^}]*background: var\(--interactive-state-bg\);/s,
+    /\.thumbnail\s*\{[^}]*background: var\(--interactive-state-bg\);/s,
+    /\.thumbnail\.image\s*\{[^}]*background: var\(--interactive-state-bg\);/s,
+    /\.message-capsule\s*\{[^}]*background: var\(--interactive-state-bg\);/s,
+    /\.composer-card\s*\{[^}]*background: var\(--interactive-state-bg\);/s,
+    /\.message-capsule \.preview-trigger \.thumbnail\s*\{[^}]*background: var\(--interactive-state-bg\);/s,
+  ]) {
+    expect(source).toMatch(selector);
+  }
+  expect(source).toMatch(/\.composer-card \.thumbnail\s*\{[^}]*background: transparent;/s);
 });
 
 test("keeps ask-user forms and summaries in the compact transparent tool grammar", async () => {

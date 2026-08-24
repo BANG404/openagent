@@ -332,7 +332,7 @@
     overflow: hidden;
     border: 0;
     border-radius: 11px;
-    background: var(--surface);
+    background: var(--interactive-state-bg);
     color: var(--text);
     box-shadow: var(--control-shadow);
   }
@@ -344,15 +344,11 @@
     place-items: center;
     overflow: hidden;
     border-bottom: 1px solid var(--border);
-    background: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--primary) 13%, var(--surface2)),
-      var(--surface2)
-    );
+    background: var(--interactive-state-bg);
   }
 
   .thumbnail.image {
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   .thumbnail img {
@@ -369,7 +365,7 @@
     overflow: hidden;
     padding: 7px;
     color: var(--text-muted);
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     font:
       7px/1.35 ui-monospace,
       SFMono-Regular,
@@ -393,7 +389,7 @@
     height: 48px;
     border: 1px solid color-mix(in srgb, var(--primary) 42%, var(--border));
     border-radius: 5px;
-    background: color-mix(in srgb, var(--surface) 92%, var(--primary));
+    background: var(--interactive-state-bg);
     box-shadow: 0 5px 14px var(--shadow);
   }
 
@@ -406,7 +402,7 @@
     height: 11px;
     border-bottom: 1px solid color-mix(in srgb, var(--primary) 42%, var(--border));
     border-left: 1px solid color-mix(in srgb, var(--primary) 42%, var(--border));
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     clip-path: polygon(0 0, 100% 100%, 0 100%);
   }
 
@@ -438,7 +434,7 @@
     height: 38px;
     border-color: var(--border);
     border-radius: 11px;
-    background: var(--surface);
+    background: var(--interactive-state-bg);
     box-shadow: none;
     transition:
       background 0.15s,
@@ -485,7 +481,7 @@
     height: 112px;
     flex: 0 0 112px;
     border-radius: 18px;
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
     box-shadow: none;
   }
 
@@ -566,7 +562,7 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: color-mix(in srgb, var(--surface) 90%, transparent);
+    background: transparent;
     color: var(--text);
     box-shadow: 0 1px 4px color-mix(in srgb, var(--shadow) 72%, transparent);
     transform: none;
@@ -674,7 +670,7 @@
     border: 0;
     border-radius: 8px;
     border-bottom: 0;
-    background: var(--surface2);
+    background: var(--interactive-state-bg);
   }
 
   .message-capsule .thumbnail pre {
@@ -712,7 +708,7 @@
     width: 22px;
     height: 22px;
     opacity: 0;
-    background: var(--surface);
+    background: transparent;
   }
 
   .message-capsule:hover .remove-button,

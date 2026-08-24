@@ -394,12 +394,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   target: the message bubble retains its accessible edit label and reveals a
   non-interactive pencil affordance on pointer hover or keyboard focus.
 - Paint durable, editable, and loading-skeleton user-message bubbles with the
-  shared `--user-message-bg` token, which maps to the opaque secondary surface
-  rather than the conversation canvas so native-window transparency cannot
-  wash it out. Reuse that exact fill for user-input cards and summaries, and
-  retry attachment cards so auxiliary
-  components do not introduce another gray in either theme. Keep grouped tool
-  calls on the transcript canvas: the summary is its own outlined button and
+  shared `--user-message-bg` token, which maps to the same neutral
+  hover/selection fill as assistant-rendered cards. Use that fill for every
+  attachment-card variant as well; attachment thumbnails and controls must not
+  introduce a white base. Keep user-input cards and summaries in their compact
+  transparent grammar, and keep grouped tool calls on the transcript canvas:
+  the summary is its own outlined button and
   expanded ordinary tool cards retain transparent backgrounds without a shared
   group background or enclosing perimeter.
 - Collapse long user-message text by a fixed number of complete rendered lines
