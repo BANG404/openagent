@@ -44,7 +44,10 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   informed choice before continuing. Both sides use whitespace,
   neutral fill, and shared elevation instead of perimeter borders or divider
   lines; dense provider content scrolls inside the form column without changing
-  the native window geometry.
+  the native window geometry, and its scrollbar stays flush with the trailing
+  edge of the inset canvas while the content keeps its reading inset. Preserve
+  enough space around the content canvas for its raised shadow to remain visible
+  on every edge.
   The title bar and sidebar share the
   native window material: Windows prefers Mica with Acrylic and Blur fallbacks,
   while macOS uses Vibrancy. The ordinary WebView canvas, shared chrome,

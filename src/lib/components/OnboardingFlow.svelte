@@ -535,7 +535,7 @@
     min-height: 0;
     flex: 1;
     overflow: hidden;
-    padding: 0 8px 8px;
+    padding: 8px;
   }
   .onboarding-visual {
     display: flex;
@@ -631,7 +631,6 @@
     flex-direction: column;
     box-sizing: border-box;
     overflow: hidden;
-    padding: 0 48px 24px;
     border-radius: 8px;
     background: var(--bg);
     box-shadow: var(--raised-shadow);
@@ -640,7 +639,7 @@
     min-height: 0;
     flex: 1;
     overflow-y: auto;
-    padding: 32px 2px 24px;
+    padding: 32px 50px 24px;
   }
   h1 {
     margin: 0 0 12px;
@@ -848,6 +847,6 @@
     justify-content: space-between;
     gap: 12px;
     flex: none;
-    padding-top: 20px;
+    padding: 20px 48px 24px;
   }
 </style>

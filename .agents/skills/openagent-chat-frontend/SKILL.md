@@ -505,10 +505,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   display heading inside the inset, borderless content canvas. The welcome step
   must explain the product, summarize the upcoming configuration, and describe
   how the workspace is used before asking a first-time user to continue. Dense
-  step content scrolls inside that form column without resizing the window. Separate
-  both columns through spacing and neutral selection fill instead of divider
-  lines. Onboarding controls use filled surfaces, elevation, and focus state
-  rather than resting perimeter borders.
+  step content scrolls inside that form column without resizing the window; keep
+  its scrollbar flush with the trailing canvas edge while preserving the content
+  inset. Separate both columns through spacing and neutral selection fill instead
+  of divider lines. Onboarding controls use filled surfaces, elevation, and focus
+  state rather than resting perimeter borders. Keep a canvas inset on every edge
+  so overflow clipping cannot remove the raised shadow.
   Render a layout-stable loading skeleton until its
   configuration is ready. Keep the development-only `onboarding-preview` query with
   `onboarding-preview-theme=light|dark` and `onboarding-preview-locale=zh|en`
