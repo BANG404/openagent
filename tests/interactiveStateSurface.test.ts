@@ -28,6 +28,9 @@ test("owns translucent interaction and desktop-menu states in app.css", async ()
   expect(appCss).toContain(".application-settings-control {");
   expect(appCss).toMatch(/\.application-settings-control\s*{[^}]*box-shadow: none;/s);
   expect(appCss).toContain(".application-settings-scope .ui-select-trigger,");
+  expect(appCss).toMatch(
+    /\.application-settings-scope \.ui-select-trigger,[^}]*border: 1px solid var\(--mica-divider\);/s,
+  );
   expect(appCss.indexOf(".application-settings-surface {")).toBeGreaterThan(
     appCss.indexOf("/* Unlayered so shared settings utilities"),
   );
@@ -75,6 +78,7 @@ test("reuses shared controls across onboarding and settings collections", async 
   expect(onboarding).not.toContain("<select");
   expect(settings.match(/application-settings-surface/g)).toHaveLength(28);
   expect(settings).toContain('class="application-settings-scope settings-panel"');
+  expect(settings).not.toMatch(/\.list-search-input,[\s\S]*?\.detail-input\s*{[^}]*border:/);
   for (const surfaceClass of [
     "settings-card",
     "shortcut-setting-row",

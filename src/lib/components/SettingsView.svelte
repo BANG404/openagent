@@ -3914,7 +3914,6 @@
     width: 100%;
     box-sizing: border-box;
     background: var(--mica-surface);
-    border: 1px solid var(--mica-border);
     border-radius: 6px;
     padding: 6px 12px;
     color: var(--text);
@@ -4183,7 +4182,6 @@
     justify-content: center;
     gap: 8px;
     padding: 0 12px;
-    border: 1px solid var(--border);
     border-radius: 7px;
     background: var(--control-surface);
     color: var(--text);
@@ -5030,7 +5028,6 @@
     width: 100%;
     box-sizing: border-box;
     background: var(--mica-surface);
-    border: 1px solid var(--mica-border);
     border-radius: 6px;
     padding: 6px 12px;
     color: var(--text);

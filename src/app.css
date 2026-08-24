@@ -400,7 +400,7 @@
 .application-settings-scope .list-search-input,
 .application-settings-scope .model-search-input,
 .application-settings-scope .shortcut-recorder {
-  border-color: var(--mica-divider);
+  border: 1px solid var(--mica-divider);
   box-shadow: none;
 }
 
