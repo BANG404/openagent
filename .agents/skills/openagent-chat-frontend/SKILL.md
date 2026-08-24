@@ -810,7 +810,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   description next to its label, including nested numeric controls. A section
   heading or neighboring field description does not replace field-level help.
   Apply the same label-and-description structure to every row that uses the
-  shared settings-card pattern in other settings tabs.
+  shared settings-card pattern in other settings tabs. Keep numeric inputs in
+  those card rows at the shared compact width and align them to the card's
+  trailing edge, including fields nested in a control wrapper.
 - Role and workspace changes affect only the next quick-chat conversation.
   Never restore or render conversation history in the launcher.
 - Keep the search field inside every searchable selector menu transparent and
