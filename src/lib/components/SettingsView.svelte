@@ -1382,7 +1382,7 @@
 
 <svelte:window onkeydown={handleQuickShortcutKeydown} />
 
-<div class="settings-panel">
+<div class="application-settings-scope settings-panel">
   <Tabs.Root value="general" orientation="vertical" activationMode="manual" class="settings-body">
     <Tabs.List class="settings-nav-col">
       <div class="settings-nav-items">
@@ -3923,7 +3923,6 @@
     font-family: inherit;
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: var(--mica-shadow);
     transition: box-shadow 0.2s;
   }
 
@@ -3932,11 +3931,6 @@
     color: var(--text-muted, #888);
     font-size: 12px;
     line-height: 1.5;
-  }
-
-  .list-search-input:focus,
-  .detail-input:focus {
-    box-shadow: var(--mica-shadow), var(--focus-ring);
   }
 
   .filter-toggle {
@@ -4201,11 +4195,9 @@
   }
 
   .shortcut-recorder:hover,
-  .shortcut-recorder:focus-visible,
   .shortcut-recorder.recording {
     background: var(--interactive-state-bg);
     border-color: var(--primary);
-    box-shadow: none;
   }
 
   .shortcut-recorder.recording {
@@ -4775,19 +4767,6 @@
     min-width: 0;
   }
 
-  .settings-card :global(.ui-select-trigger),
-  .settings-card .detail-input {
-    border: 1px solid var(--mica-divider);
-    box-shadow: none;
-  }
-
-  .settings-card :global(.ui-select-trigger:focus-visible),
-  .settings-card :global(.ui-select-trigger[data-state="open"]),
-  .settings-card .detail-input:focus {
-    border-color: var(--mica-divider);
-    box-shadow: var(--focus-ring);
-  }
-
   .detail-section-header,
   .danger-zone {
     display: flex;
@@ -4930,12 +4909,6 @@
   .flash-task-inline-setting .detail-input {
     margin: 0;
     border-color: var(--mica-divider);
-    box-shadow: none;
-  }
-
-  .flash-task-inline-setting .detail-input:focus {
-    border-color: var(--mica-divider);
-    box-shadow: var(--focus-ring);
   }
 
   .flash-task-custom {
@@ -4992,12 +4965,6 @@
     min-height: 72px;
     resize: vertical;
     border-color: var(--mica-divider);
-    box-shadow: none;
-  }
-
-  .flash-task-textarea:focus {
-    border-color: var(--mica-divider);
-    box-shadow: var(--focus-ring);
   }
 
   .flash-task-mode-pill {
@@ -5073,12 +5040,7 @@
     margin-bottom: 8px;
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: var(--mica-shadow);
     transition: box-shadow 0.2s;
-  }
-
-  .model-search-input:focus {
-    box-shadow: var(--mica-shadow), var(--focus-ring);
   }
 
   .manual-model-row {
@@ -5439,29 +5401,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .execution-setting .detail-input,
-  .channel-config-card .detail-input,
-  .remote-gateway-card .detail-input,
-  .channel-config-card :global(.ui-select-trigger),
-  .remote-gateway-card :global(.ui-select-trigger),
-  .remote-gateway-credentials :global(.ui-select-trigger) {
-    border: 1px solid var(--mica-divider);
-    box-shadow: none;
-  }
-
-  .execution-setting .detail-input:focus,
-  .channel-config-card .detail-input:focus,
-  .remote-gateway-card .detail-input:focus,
-  .channel-config-card :global(.ui-select-trigger:focus-visible),
-  .channel-config-card :global(.ui-select-trigger[data-state="open"]),
-  .remote-gateway-card :global(.ui-select-trigger:focus-visible),
-  .remote-gateway-card :global(.ui-select-trigger[data-state="open"]),
-  .remote-gateway-credentials :global(.ui-select-trigger:focus-visible),
-  .remote-gateway-credentials :global(.ui-select-trigger[data-state="open"]) {
-    border-color: var(--mica-divider);
-    box-shadow: var(--focus-ring);
   }
 
   @media (max-width: 640px) {

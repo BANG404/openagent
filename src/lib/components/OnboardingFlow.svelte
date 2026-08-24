@@ -284,7 +284,7 @@
   }
 </script>
 
-<div class="onboarding-panel">
+<div class="application-settings-scope onboarding-panel">
   <header class="onboarding-header" data-tauri-drag-region>
     <WindowControls
       onMinimize={winMinimize}

@@ -27,6 +27,10 @@ test("owns translucent interaction and desktop-menu states in app.css", async ()
   expect(appCss).toMatch(/\.application-settings-surface\s*{[^}]*box-shadow: none;/s);
   expect(appCss).toContain(".application-settings-control {");
   expect(appCss).toMatch(/\.application-settings-control\s*{[^}]*box-shadow: none;/s);
+  expect(appCss).toContain(".application-settings-scope .ui-select-trigger,");
+  expect(appCss.indexOf(".application-settings-surface {")).toBeGreaterThan(
+    appCss.indexOf("/* Unlayered so shared settings utilities"),
+  );
 
   const sources = await Promise.all(
     componentPaths.map((path) => readFile(new URL(path, import.meta.url), "utf8")),
@@ -53,6 +57,10 @@ test("reuses shared controls across onboarding and settings collections", async 
     new URL("../src/lib/components/SettingsView.svelte", import.meta.url),
     "utf8",
   );
+  const permissions = await readFile(
+    new URL("../src/lib/components/PermissionSettings.svelte", import.meta.url),
+    "utf8",
+  );
   const workspaceBrowser = await readFile(
     new URL("../src/lib/components/SidebarWorkspaceBrowser.svelte", import.meta.url),
     "utf8",
@@ -62,9 +70,11 @@ test("reuses shared controls across onboarding and settings collections", async 
   expect(onboarding.match(/<Select\b/g)).toHaveLength(5);
   expect(onboarding.match(/triggerClass="application-settings-control"/g)).toHaveLength(5);
   expect(onboarding.match(/class="application-settings-control"/g)).toHaveLength(4);
+  expect(onboarding).toContain('class="application-settings-scope onboarding-panel"');
   expect(onboarding).not.toMatch(/\n\s*input\s*{/);
   expect(onboarding).not.toContain("<select");
   expect(settings.match(/application-settings-surface/g)).toHaveLength(28);
+  expect(settings).toContain('class="application-settings-scope settings-panel"');
   for (const surfaceClass of [
     "settings-card",
     "shortcut-setting-row",
@@ -83,6 +93,10 @@ test("reuses shared controls across onboarding and settings collections", async 
       new RegExp(`class="[^"]*application-settings-surface[^"]*\\b${surfaceClass}\\b`),
     );
   }
+  expect(permissions).toContain(
+    'class="application-settings-scope application-settings-surface permission-settings"',
+  );
+  expect(permissions).not.toMatch(/\.permission-settings\s*{[^}]*box-shadow:/s);
   expect(settings).toContain('class="interactive-control filter-toggle"');
   expect(settings).toMatch(/\.filter-toggle\s*{[^}]*background: transparent;/s);
   expect(settings).not.toContain('icon="add"\n            tone="primary"');

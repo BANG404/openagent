@@ -261,47 +261,6 @@
     background: var(--floating-surface);
   }
 
-  /* Settings surfaces and onboarding forms share one flat Mica treatment. */
-  .application-settings-surface {
-    overflow: hidden;
-    border: 1px solid var(--mica-border);
-    border-radius: 10px;
-    background: var(--mica-surface);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: none;
-  }
-
-  .application-settings-control {
-    box-sizing: border-box;
-    width: 100%;
-    height: 36px;
-    padding: 0 11px;
-    border: 1px solid var(--mica-divider);
-    border-radius: 8px;
-    outline: none;
-    background: var(--mica-surface);
-    color: var(--text);
-    font: inherit;
-    font-size: 13px;
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: none;
-  }
-
-  .ui-select-trigger.application-settings-control {
-    justify-content: space-between;
-    gap: 8px;
-    padding: 0 11px;
-  }
-
-  .application-settings-control:focus-visible,
-  .application-settings-control:focus,
-  .ui-select-trigger.application-settings-control[data-state="open"] {
-    border-color: var(--mica-divider);
-    box-shadow: var(--focus-ring);
-  }
-
   /* Context Menu (bits-ui) — global so it works regardless of which component is mounted. */
   .desktop-menu-panel {
     padding: var(--menu-content-padding);
@@ -400,7 +359,70 @@
     }
   }
 }
-\n\n/* Shared interaction primitives. Components own layout; app.css owns state and menu grammar. */
+
+/* Unlayered so shared settings utilities outrank component-local default elevation. */
+.application-settings-surface {
+  overflow: hidden;
+  border: 1px solid var(--mica-border);
+  border-radius: 10px;
+  background: var(--mica-surface);
+  -webkit-backdrop-filter: blur(24px) saturate(1.28);
+  backdrop-filter: blur(24px) saturate(1.28);
+  box-shadow: none;
+}
+
+.application-settings-control {
+  box-sizing: border-box;
+  width: 100%;
+  height: 36px;
+  padding: 0 11px;
+  border: 1px solid var(--mica-divider);
+  border-radius: 8px;
+  outline: none;
+  background: var(--mica-surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  -webkit-backdrop-filter: blur(24px) saturate(1.28);
+  backdrop-filter: blur(24px) saturate(1.28);
+  box-shadow: none;
+}
+
+.ui-select-trigger.application-settings-control {
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 11px;
+  box-shadow: none;
+}
+
+.application-settings-scope .ui-select-trigger,
+.application-settings-scope .detail-input,
+.application-settings-scope .list-search-input,
+.application-settings-scope .model-search-input,
+.application-settings-scope .shortcut-recorder {
+  border-color: var(--mica-divider);
+  box-shadow: none;
+}
+
+.application-settings-control:focus-visible,
+.application-settings-control:focus,
+.ui-select-trigger.application-settings-control[data-state="open"],
+.application-settings-scope .ui-select-trigger:focus-visible,
+.application-settings-scope .ui-select-trigger[data-state="open"],
+.application-settings-scope .detail-input:focus,
+.application-settings-scope .list-search-input:focus,
+.application-settings-scope .model-search-input:focus {
+  border-color: var(--mica-divider);
+  box-shadow: var(--focus-ring);
+}
+
+.application-settings-scope .shortcut-recorder:focus-visible,
+.application-settings-scope .shortcut-recorder.recording {
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
+}
+
+/* Shared interaction primitives. Components own layout; app.css owns state and menu grammar. */
 .interactive-control,
 .application-menu-trigger {
   transition:
