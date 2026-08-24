@@ -16,6 +16,7 @@ export type StandaloneDevPreview =
   | "reasoning-effort"
   | "runtime-notice"
   | "streaming-transcript"
+  | "tool-status"
   | "tool-diff"
   | "workspace-switcher";
 
@@ -37,6 +38,7 @@ const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
   ["reasoning-effort-preview", "reasoning-effort"],
   ["runtime-notice-preview", "runtime-notice"],
   ["streaming-transcript-preview", "streaming-transcript"],
+  ["tool-status-preview", "tool-status"],
   ["tool-diff-preview", "tool-diff"],
   ["attachment-composer-preview", "attachment-composer"],
 ];

@@ -5,6 +5,7 @@
 
 import { appendChunk } from "./chatStream";
 import { normalizeCheckpointFlow, type CheckpointFlow } from "./checkpointFlow";
+import { isUnansweredToolResult, toolCallStatus } from "./toolCallGroups";
 import type {
   ChatMessage,
   CheckpointMetadataFields,
@@ -310,21 +311,31 @@ function attachPersistedToolResult(
     const items = [...message.items];
     const item = items[itemIndex];
     if (item.type === "tool_call") {
-      items[itemIndex] = { ...item, result };
+      const status = toolCallStatus({ ...item, result }, false);
+      const approval = item.approval
+        ? {
+            ...item.approval,
+            state:
+              status === "unanswered"
+                ? ("unanswered" as const)
+                : status === "cancelled"
+                  ? ("cancelled" as const)
+                  : ("answered" as const),
+          }
+        : undefined;
+      items[itemIndex] = { ...item, result, approval };
     } else if (item.type === "user_input") {
       const response = parsePersistedUserInputResponse(result);
-      const cancelled =
-        Boolean(
-          response &&
-          typeof response === "object" &&
-          !Array.isArray(response) &&
-          (response as Record<string, unknown>).cancelled === true,
-        ) ||
-        (typeof response === "string" &&
-          response.includes("was not approved because the user continued the conversation"));
+      const unanswered = isUnansweredToolResult(result);
+      const cancelled = Boolean(
+        response &&
+        typeof response === "object" &&
+        !Array.isArray(response) &&
+        (response as Record<string, unknown>).cancelled === true,
+      );
       items[itemIndex] = {
         ...item,
-        state: cancelled ? "cancelled" : "answered",
+        state: unanswered ? "unanswered" : cancelled ? "cancelled" : "answered",
         response,
       };
     } else {

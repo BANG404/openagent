@@ -22,6 +22,8 @@ export type UserMessageContext = {
 export type ContextCompactionStage =
   "checking" | "summarizing" | "creating" | "done" | "skipped" | "failed";
 
+export type UserInputState = "pending" | "answered" | "cancelled" | "unanswered";
+
 export type StreamItem =
   | { type: "text"; content: string }
   | { type: "thinking"; content: string }
@@ -34,7 +36,7 @@ export type StreamItem =
       toolUseId?: string;
       approval?: {
         request: UserInputRequest;
-        state: "pending" | "answered" | "cancelled";
+        state: UserInputState;
         response?: unknown;
       };
     }
@@ -61,7 +63,7 @@ export type StreamItem =
   | {
       type: "user_input";
       request: UserInputRequest;
-      state: "pending" | "answered" | "cancelled";
+      state: UserInputState;
       response?: unknown;
     };
 

@@ -285,8 +285,18 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Render the standard runtime-interrupted marker as one localized divider title.
   Suppress a persisted or transient reason that only repeats that title, while
   retaining nonstandard interruption details and all runtime-error details.
-- Render durable `ask_user` calls with the dedicated input component, resolved
-  by their matching ToolResult after streaming, reload, and branch switches.
+- Render durable `ask_user` calls with the dedicated input component. A call
+  without a ToolResult in an interrupted Turn is waiting; a submitted result is
+  answered; the runtime ToolResult added when the user sends a new message
+  instead of using the form is unanswered; an explicit form cancellation stays
+  cancelled. Preserve those distinctions after streaming, reload, and branch
+  switches.
+- Derive every tool's visible lifecycle from its matching ToolResult: no result
+  is waiting outside an active stream and running during one, ordinary output
+  is successful, a runtime patch for a user who continued the conversation is
+  unanswered, and explicit denial or run cancellation is cancelled. Hide
+  failed tool calls before grouping so neither an individual card nor an empty
+  or misleading group appears in live or durable transcripts.
 - Project every durable ToolResult content block into the same concise text used
   by live tool events: preserve text, serialize JSON values, and represent image
   results without exposing encoded bytes. Structured tool output must not become
@@ -319,8 +329,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Render `render_mermaid` as a standalone transcript row from ToolCall source and
   restore it from the matching durable ToolResult. Defer `render_html` and
   `render_mermaid` previews until their successful ToolResult arrives; never
-  mount pending or failed render previews, while failures from ordinary tools
-  retain their cards.
+  mount pending or failed render previews. Apply the same failed-result hiding
+  rule to ordinary tools.
 - During an active stream, the empty composer's primary action pauses output;
   once paused it resumes output, unless a draft or attachment is present, in
   which case it remains the send action. Sending a queued follow-up from the
@@ -861,6 +871,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   `edit_file` fixture. Its `-theme` and `-locale` parameters must keep bounded
   expansion, light/dark themes, and Chinese/English rendering directly
   verifiable without native state.
+- Keep the development-only `tool-status-preview` query available for the
+  shared ToolResult lifecycle. Its `-theme` and `-locale` parameters must keep
+  waiting, successful, unanswered, hidden-failure, pending `ask_user`, and
+  unanswered `ask_user` rendering directly verifiable in light/dark themes and
+  Chinese/English copy without native state.
 - Keep the development-only `mermaid-finalization-preview` query available for
   exercising a live Mermaid render through the completed-Turn process-fold
   transition. Its `-theme` and `-locale` parameters must keep the transition,

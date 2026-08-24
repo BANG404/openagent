@@ -2,6 +2,7 @@
 // subscription lives in the OpenAgent client SDK.
 
 import type { ContextCompactionStage, StreamItem, UserInputRequest } from "./types";
+import { toolCallStatus } from "./toolCallGroups";
 
 export function appendChunk(items: StreamItem[], text: string): StreamItem[] {
   const split = splitThinkingTags(text);
@@ -82,18 +83,29 @@ export function attachToolResult(
     );
     if (exact >= 0) {
       const item = next[exact];
-      if (item.type === "tool_call") next[exact] = { ...item, result };
+      if (item.type === "tool_call") next[exact] = toolCallWithResult(item, result);
       return next;
     }
   }
   for (let i = next.length - 1; i >= 0; i--) {
     const it = next[i];
     if (it.type === "tool_call" && it.result === undefined) {
-      next[i] = { ...it, result };
+      next[i] = toolCallWithResult(it, result);
       return next;
     }
   }
   return next;
+}
+
+function toolCallWithResult(
+  item: Extract<StreamItem, { type: "tool_call" }>,
+  result: string,
+): Extract<StreamItem, { type: "tool_call" }> {
+  if (!item.approval) return { ...item, result };
+  const status = toolCallStatus({ ...item, result }, false);
+  const state =
+    status === "unanswered" ? "unanswered" : status === "cancelled" ? "cancelled" : "answered";
+  return { ...item, result, approval: { ...item.approval, state } };
 }
 
 export function appendUserInput(items: StreamItem[], request: UserInputRequest): StreamItem[] {

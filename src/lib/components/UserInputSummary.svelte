@@ -4,7 +4,7 @@
 
   interface Props {
     request: UserInputRequest;
-    state: "answered" | "cancelled";
+    state: "answered" | "cancelled" | "unanswered";
     response?: unknown;
   }
 
@@ -30,11 +30,15 @@
   }
 </script>
 
-<div class="user-input-summary" class:cancelled={state === "cancelled"}>
+<div class="user-input-summary" class:cancelled={state !== "answered"}>
   <div class="summary-head">
     <span class="summary-title">{request.title ?? $t("askUserDefaultTitle")}</span>
     <span class="summary-badge">
-      {state === "cancelled" ? $t("askUserCancelled") : "Answered"}
+      {state === "unanswered"
+        ? $t("toolStatusUnanswered")
+        : state === "cancelled"
+          ? $t("askUserCancelled")
+          : $t("askUserAnswered")}
     </span>
   </div>
 

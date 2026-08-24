@@ -46,6 +46,8 @@
   import ReasoningEffortSelect from "$lib/components/ReasoningEffortSelect.svelte";
   import RoleSelector from "$lib/components/RoleSelector.svelte";
   import ToolCallCard from "$lib/components/ToolCallCard.svelte";
+  import UserInputForm from "$lib/components/UserInputForm.svelte";
+  import UserInputSummary from "$lib/components/UserInputSummary.svelte";
   import WorkspaceSwitcher from "$lib/components/WorkspaceSwitcher.svelte";
 
   let { preview }: { preview: StandaloneDevPreview } = $props();
@@ -164,6 +166,28 @@
   let approvalPreviewStates = $state<Record<string, "pending" | "answered" | "cancelled">>(
     Object.fromEntries(approvalPreviewRequests.map((request) => [request.request_id, "pending"])),
   );
+  const unansweredToolResult =
+    "Tool 'write_file' was not approved because the user continued the conversation. It was not executed.";
+  let toolStatusAskUserRequest = $derived<UserInputRequest>({
+    request_id: "tool-status-ask-user",
+    conv_id: "tool-status-preview",
+    kind: "ask_user",
+    title: locale === "zh" ? "补充执行方式" : "Choose an execution mode",
+    fields: [
+      {
+        type: "select",
+        name: "mode",
+        label: locale === "zh" ? "执行方式" : "Execution mode",
+        options: locale === "zh" ? ["安全模式", "快速模式"] : ["Safe", "Fast"],
+      },
+    ],
+  });
+  const toolStatusApprovalRequest: UserInputRequest = {
+    request_id: "tool-status-approval",
+    conv_id: "tool-status-preview",
+    kind: "tool_approval",
+    fields: [],
+  };
   let checkpointValue = $state("");
   let checkpointAttachments = $state<ChatAttachment[]>([]);
   let checkpointConfig = $state<AppConfig>(
@@ -743,6 +767,52 @@
       />
     </section>
   </main>
+{:else if preview === "tool-status"}
+  <main class="tool-status-preview-stage">
+    <section class="tool-status-preview-stack" aria-label="Tool result status preview">
+      <ToolCallCard
+        name="terminal_exec"
+        args={JSON.stringify({ command: "bun run check" }, null, 2)}
+        result={undefined}
+        expanded={false}
+        argHint="bun run check"
+        approval={{ request: toolStatusApprovalRequest, state: "pending" }}
+        onApprove={() => {}}
+        onDeny={() => {}}
+        onToggle={() => {}}
+      />
+      <ToolCallCard
+        name="read_file"
+        args={JSON.stringify({ path: "src/lib/types.ts" }, null, 2)}
+        result="42 lines"
+        expanded={false}
+        argHint="src/lib/types.ts"
+        onToggle={() => {}}
+      />
+      <ToolCallCard
+        name="write_file"
+        args={JSON.stringify({ path: "notes.md" }, null, 2)}
+        result={unansweredToolResult}
+        expanded={false}
+        argHint="notes.md"
+        onToggle={() => {}}
+      />
+      <ToolCallCard
+        name="hidden_failed_tool"
+        args={"{}"}
+        result="failed to parse tool arguments: missing required field"
+        expanded={false}
+        argHint="hidden"
+        onToggle={() => {}}
+      />
+      <UserInputForm request={toolStatusAskUserRequest} onSubmit={() => {}} onCancel={() => {}} />
+      <UserInputSummary
+        request={toolStatusAskUserRequest}
+        state="unanswered"
+        response={unansweredToolResult}
+      />
+    </section>
+  </main>
 {:else if preview === "input-surfaces"}
   <main class="input-surfaces-preview-stage">
     <section class="input-surfaces-preview-stack">
@@ -1191,6 +1261,7 @@
 
 <style>
   .approval-queue-preview-stage,
+  .tool-status-preview-stage,
   .tool-diff-preview-stage,
   .reasoning-effort-preview-stage,
   .input-surfaces-preview-stage,
@@ -1211,10 +1282,16 @@
     padding: 48px 24px;
   }
   .approval-queue-preview-stack,
+  .tool-status-preview-stack,
   .tool-diff-preview-stack {
     display: grid;
     width: min(720px, 100%);
     gap: 12px;
+  }
+  .tool-status-preview-stage {
+    display: grid;
+    place-items: start center;
+    padding: 48px 24px;
   }
   .tool-diff-preview-stage {
     display: grid;

@@ -1,6 +1,11 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
-  import { toolCallStatus, type ToolCallItem, type ToolCallStatus } from "$lib/toolCallGroups";
+  import {
+    shouldDisplayToolCall,
+    toolCallStatus,
+    type ToolCallItem,
+    type ToolCallStatus,
+  } from "$lib/toolCallGroups";
   import type { HtmlPreviewConfig } from "$lib/types";
   import ToolCallCard from "./ToolCallCard.svelte";
   import Tooltip from "./Tooltip.svelte";
@@ -24,13 +29,16 @@
   let expanded = $state(false);
   let expandedCalls = $state(new Set<number>());
 
-  const statuses = $derived(items.map((item) => toolCallStatus(item, isStreaming)));
+  const visibleItems = $derived(items.filter((item) => shouldDisplayToolCall(item, isStreaming)));
+  const statuses = $derived(visibleItems.map((item) => toolCallStatus(item, isStreaming)));
   const statusCounts = $derived.by(() => {
     const counts: Record<ToolCallStatus, number> = {
-      pending: 0,
+      waiting: 0,
       running: 0,
       success: 0,
       failed: 0,
+      unanswered: 0,
+      cancelled: 0,
     };
     for (const status of statuses) counts[status] += 1;
     return counts;
@@ -62,89 +70,110 @@
           ? "toolStatusFailed"
           : status === "running"
             ? "toolStatusRunning"
-            : "toolStatusPending",
+            : status === "unanswered"
+              ? "toolStatusUnanswered"
+              : status === "cancelled"
+                ? "toolStatusCancelled"
+                : "toolStatusWaiting",
     );
   }
 </script>
 
-<section class="tool-call-group">
-  <button
-    class="tool-call-group-toggle"
-    type="button"
-    aria-expanded={expanded}
-    onclick={() => (expanded = !expanded)}
-  >
-    <span class="group-chevron" class:expanded aria-hidden="true">
-      <svg
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.8"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path d="M6 4l4 4-4 4" />
-      </svg>
-    </span>
-    <span class="group-title">{$t("toolCallGroup")}</span>
-    <span class="group-count">{items.length}</span>
-    <span class="group-names" aria-hidden="true">
-      {items.map((item) => item.name).join(" · ")}
-    </span>
-    <span class="group-statuses">
-      {#if statusCounts.failed}
-        <Tooltip text={`${statusCounts.failed} ${statusLabel("failed")}`}>
-          <span class="status failed">
-            <span aria-hidden="true">×</span><span>{statusCounts.failed}</span>
-          </span>
-        </Tooltip>
-      {/if}
-      {#if statusCounts.running}
-        <Tooltip text={`${statusCounts.running} ${statusLabel("running")}`}>
-          <span class="status running">
-            <span aria-hidden="true">…</span><span>{statusCounts.running}</span>
-          </span>
-        </Tooltip>
-      {/if}
-      {#if statusCounts.pending}
-        <Tooltip text={`${statusCounts.pending} ${statusLabel("pending")}`}>
-          <span class="status pending">
-            <span aria-hidden="true">○</span><span>{statusCounts.pending}</span>
-          </span>
-        </Tooltip>
-      {/if}
-      {#if statusCounts.success}
-        <Tooltip text={`${statusCounts.success} ${statusLabel("success")}`}>
-          <span class="status success">
-            <span aria-hidden="true">✓</span><span>{statusCounts.success}</span>
-          </span>
-        </Tooltip>
-      {/if}
-    </span>
-    <span class="sr-only">{expanded ? $t("toolCallGroupCollapse") : $t("toolCallGroupExpand")}</span
+{#if visibleItems.length > 0}
+  <section class="tool-call-group">
+    <button
+      class="tool-call-group-toggle"
+      type="button"
+      aria-expanded={expanded}
+      onclick={() => (expanded = !expanded)}
     >
-  </button>
+      <span class="group-chevron" class:expanded aria-hidden="true">
+        <svg
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M6 4l4 4-4 4" />
+        </svg>
+      </span>
+      <span class="group-title">{$t("toolCallGroup")}</span>
+      <span class="group-count">{visibleItems.length}</span>
+      <span class="group-names" aria-hidden="true">
+        {visibleItems.map((item) => item.name).join(" · ")}
+      </span>
+      <span class="group-statuses">
+        {#if statusCounts.failed}
+          <Tooltip text={`${statusCounts.failed} ${statusLabel("failed")}`}>
+            <span class="status failed">
+              <span aria-hidden="true">×</span><span>{statusCounts.failed}</span>
+            </span>
+          </Tooltip>
+        {/if}
+        {#if statusCounts.running}
+          <Tooltip text={`${statusCounts.running} ${statusLabel("running")}`}>
+            <span class="status running">
+              <span aria-hidden="true">…</span><span>{statusCounts.running}</span>
+            </span>
+          </Tooltip>
+        {/if}
+        {#if statusCounts.waiting}
+          <Tooltip text={`${statusCounts.waiting} ${statusLabel("waiting")}`}>
+            <span class="status pending">
+              <span aria-hidden="true">○</span><span>{statusCounts.waiting}</span>
+            </span>
+          </Tooltip>
+        {/if}
+        {#if statusCounts.unanswered}
+          <Tooltip text={`${statusCounts.unanswered} ${statusLabel("unanswered")}`}>
+            <span class="status unanswered">
+              <span aria-hidden="true">—</span><span>{statusCounts.unanswered}</span>
+            </span>
+          </Tooltip>
+        {/if}
+        {#if statusCounts.cancelled}
+          <Tooltip text={`${statusCounts.cancelled} ${statusLabel("cancelled")}`}>
+            <span class="status cancelled">
+              <span aria-hidden="true">×</span><span>{statusCounts.cancelled}</span>
+            </span>
+          </Tooltip>
+        {/if}
+        {#if statusCounts.success}
+          <Tooltip text={`${statusCounts.success} ${statusLabel("success")}`}>
+            <span class="status success">
+              <span aria-hidden="true">✓</span><span>{statusCounts.success}</span>
+            </span>
+          </Tooltip>
+        {/if}
+      </span>
+      <span class="sr-only"
+        >{expanded ? $t("toolCallGroupCollapse") : $t("toolCallGroupExpand")}</span
+      >
+    </button>
 
-  {#if expanded}
-    <div class="tool-call-group-items">
-      {#each items as item, index (`${item.toolUseId ?? item.name}-${index}`)}
-        <ToolCallCard
-          name={item.name}
-          args={item.args}
-          result={item.result}
-          expanded={expandedCalls.has(index)}
-          argHint={toolArgHint(item.args)}
-          approval={item.approval}
-          onApprove={(requestId) => onSubmitUserInput(requestId, { approved: true })}
-          onDeny={onCancelUserInput}
-          {htmlPreviewConfig}
-          showRunning={isStreaming}
-          onToggle={() => toggleCall(index)}
-        />
-      {/each}
-    </div>
-  {/if}
-</section>
+    {#if expanded}
+      <div class="tool-call-group-items">
+        {#each visibleItems as item, index (`${item.toolUseId ?? item.name}-${index}`)}
+          <ToolCallCard
+            name={item.name}
+            args={item.args}
+            result={item.result}
+            expanded={expandedCalls.has(index)}
+            argHint={toolArgHint(item.args)}
+            approval={item.approval}
+            onApprove={(requestId) => onSubmitUserInput(requestId, { approved: true })}
+            onDeny={onCancelUserInput}
+            {htmlPreviewConfig}
+            showRunning={isStreaming}
+            onToggle={() => toggleCall(index)}
+          />
+        {/each}
+      </div>
+    {/if}
+  </section>
+{/if}
 
 <style>
   .tool-call-group {
@@ -260,6 +289,11 @@
     animation: pulse 1.2s ease-in-out infinite;
   }
   .status.pending {
+    color: var(--text-muted);
+  }
+
+  .status.unanswered,
+  .status.cancelled {
     color: var(--text-muted);
   }
 

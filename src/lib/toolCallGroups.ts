@@ -43,6 +43,10 @@ export function groupStreamItems(items: StreamItem[]): StreamItemSegment[] {
   const segments: StreamItemSegment[] = [];
   for (let index = 0; index < items.length;) {
     const item = items[index];
+    if (item.type === "tool_call" && toolCallStatus(item, false) === "failed") {
+      index += 1;
+      continue;
+    }
     if (!isGroupableToolCall(item)) {
       segments.push({ kind: "item", item, startIndex: index });
       index += 1;
@@ -53,6 +57,10 @@ export function groupStreamItems(items: StreamItem[]): StreamItemSegment[] {
     let end = index;
     while (end < items.length) {
       const next = items[end];
+      if (next.type === "tool_call" && toolCallStatus(next, false) === "failed") {
+        end += 1;
+        continue;
+      }
       if (!isGroupableToolCall(next)) break;
       calls.push(next);
       end += 1;
@@ -250,16 +258,28 @@ export function appendLiveStreamEntry(
   return streamMessageId ? [...entries, { kind: "live_stream", key: streamMessageId }] : entries;
 }
 
-export type ToolCallStatus = "pending" | "running" | "success" | "failed";
+export type ToolCallStatus =
+  "waiting" | "running" | "success" | "failed" | "unanswered" | "cancelled";
+
+const UNANSWERED_TOOL_RESULT = /\bwas not approved because the user continued the conversation\b/i;
+const CANCELLED_TOOL_RESULT =
+  /\b(?:was denied by the user|command denied by the user|did not complete because the chat run was cancelled|did not run because the chat was cancelled during approval)\b/i;
+
+export function isUnansweredToolResult(result: string): boolean {
+  return UNANSWERED_TOOL_RESULT.test(result.trim());
+}
 
 export function toolCallStatus(item: ToolCallItem, showRunning: boolean): ToolCallStatus {
-  if (item.result === undefined) return showRunning ? "running" : "pending";
+  if (item.result === undefined) return showRunning ? "running" : "waiting";
   const text = item.result.trim();
+  if (isUnansweredToolResult(text)) return "unanswered";
+  if (CANCELLED_TOOL_RESULT.test(text)) return "cancelled";
   if (/^(error|failed|failure)\b\s*:?\s*/i.test(text)) return "failed";
   try {
     const parsed = JSON.parse(text) as unknown;
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       const record = parsed as Record<string, unknown>;
+      if (record.cancelled === true) return "cancelled";
       if (record.ok === false || record.success === false || record.error) return "failed";
     }
   } catch {
@@ -270,6 +290,8 @@ export function toolCallStatus(item: ToolCallItem, showRunning: boolean): ToolCa
 }
 
 export function shouldDisplayToolCall(item: ToolCallItem, showRunning: boolean): boolean {
+  const status = toolCallStatus(item, showRunning);
+  if (status === "failed") return false;
   const isRenderPreview = item.name === "render_html" || item.name === "render_mermaid";
-  return !isRenderPreview || toolCallStatus(item, showRunning) === "success";
+  return !isRenderPreview || status === "success";
 }

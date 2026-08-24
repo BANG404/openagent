@@ -21,7 +21,7 @@
     showRunning?: boolean;
     approval?: {
       request: UserInputRequest;
-      state: "pending" | "answered" | "cancelled";
+      state: "pending" | "answered" | "cancelled" | "unanswered";
       response?: unknown;
     };
     onApprove?: (requestId: string) => void;
@@ -99,10 +99,16 @@
           ? "toolStatusFailed"
           : status === "running"
             ? "toolStatusRunning"
-            : "toolStatusPending",
+            : status === "unanswered"
+              ? "toolStatusUnanswered"
+              : status === "cancelled"
+                ? "toolStatusCancelled"
+                : "toolStatusWaiting",
     ),
   );
-  const resultSummary = $derived.by(() => summarizeResult(name, resultText));
+  const resultSummary = $derived.by(() =>
+    status === "success" ? summarizeResult(name, resultText) : "",
+  );
   const writeContent = $derived(getString(parsedArgs, "content"));
   const oldString = $derived(getString(parsedArgs, "old_string"));
   const newString = $derived(getString(parsedArgs, "new_string"));
@@ -260,7 +266,9 @@
               class:tool-done={status === "success"}
               class:tool-failed={status === "failed"}
               class:tool-running={status === "running"}
-              class:tool-pending={status === "pending"}
+              class:tool-pending={status === "waiting"}
+              class:tool-unanswered={status === "unanswered"}
+              class:tool-cancelled={status === "cancelled"}
             >
               <span aria-hidden="true"
                 >{status === "success"
@@ -269,7 +277,11 @@
                     ? "×"
                     : status === "running"
                       ? "…"
-                      : "○"}</span
+                      : status === "unanswered"
+                        ? "—"
+                        : status === "cancelled"
+                          ? "×"
+                          : "○"}</span
               >
               <span class="sr-only">{statusText}</span>
             </span>
@@ -551,6 +563,11 @@
   }
 
   .tool-pending {
+    color: var(--text-muted);
+  }
+
+  .tool-unanswered,
+  .tool-cancelled {
     color: var(--text-muted);
   }
 

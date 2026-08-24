@@ -100,6 +100,10 @@
 >
   <div class="flex items-center gap-2 font-semibold text-[var(--text)] text-[13px]">
     <span>{request.title ?? $t("askUserDefaultTitle")}</span>
+    <span
+      class="ml-auto shrink-0 rounded-full bg-[var(--surface2)] px-[7px] py-0.5 text-[11px] font-normal leading-[1.3] text-[var(--text-muted)]"
+      >{$t("toolStatusWaiting")}</span
+    >
   </div>
 
   {#if request.description}

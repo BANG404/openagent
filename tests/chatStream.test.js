@@ -376,7 +376,7 @@ describe("buildTreeFromCheckpoints", () => {
     });
   });
 
-  test("restores an ask_user abandoned by a direct reply as cancelled", () => {
+  test("restores an ask_user abandoned by a direct reply as unanswered", () => {
     const record = (id, role, content) => ({
       id,
       role,
@@ -413,7 +413,7 @@ describe("buildTreeFromCheckpoints", () => {
 
     expect(tree.nodes.final.timelineMessages[0].items[0]).toMatchObject({
       type: "user_input",
-      state: "cancelled",
+      state: "unanswered",
     });
   });
 

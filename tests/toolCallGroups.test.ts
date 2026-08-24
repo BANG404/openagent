@@ -166,15 +166,30 @@ describe("tool-call grouping", () => {
     }
   });
 
-  test("reports running, successful, and conventional failed results", () => {
+  test("classifies waiting, running, successful, failed, unanswered, and cancelled results", () => {
     expect(toolCallStatus(call("read_file"), true)).toBe("running");
-    expect(toolCallStatus(call("read_file"), false)).toBe("pending");
+    expect(toolCallStatus(call("read_file"), false)).toBe("waiting");
     expect(toolCallStatus(call("read_file", "2 lines"), false)).toBe("success");
     expect(toolCallStatus(call("read_file", "Error: unavailable"), false)).toBe("failed");
     expect(toolCallStatus(call("read_file", '{"ok":false}'), false)).toBe("failed");
+    expect(
+      toolCallStatus(
+        call(
+          "read_file",
+          "Tool 'read_file' was not approved because the user continued the conversation. It was not executed.",
+        ),
+        false,
+      ),
+    ).toBe("unanswered");
+    expect(
+      toolCallStatus(
+        call("read_file", "Tool 'read_file' was denied by the user; it was not executed."),
+        false,
+      ),
+    ).toBe("cancelled");
   });
 
-  test("shows render previews only after a successful result", () => {
+  test("hides every failed tool and shows non-render tools in other states", () => {
     expect(shouldDisplayToolCall(call("render_html", "Error: invalid document"), false)).toBe(
       false,
     );
@@ -183,7 +198,34 @@ describe("tool-call grouping", () => {
     expect(shouldDisplayToolCall(call("render_mermaid"), false)).toBe(false);
     expect(shouldDisplayToolCall(call("render_html", '{"ok":true}'), false)).toBe(true);
     expect(shouldDisplayToolCall(call("render_mermaid", '{"ok":true}'), false)).toBe(true);
-    expect(shouldDisplayToolCall(call("read_file", "Error: unavailable"), false)).toBe(true);
+    expect(shouldDisplayToolCall(call("read_file", "Error: unavailable"), false)).toBe(false);
+    expect(shouldDisplayToolCall(call("read_file"), false)).toBe(true);
+    expect(
+      shouldDisplayToolCall(
+        call(
+          "read_file",
+          "Tool 'read_file' was not approved because the user continued the conversation. It was not executed.",
+        ),
+        false,
+      ),
+    ).toBe(true);
+  });
+
+  test("removes failed tools before grouping without hiding adjacent visible calls", () => {
+    const segments = groupStreamItems([
+      call("read_file", "ok"),
+      call("ask_user", "failed to parse tool arguments: missing fields"),
+      call(
+        "write_file",
+        "Tool 'write_file' was not approved because the user continued the conversation. It was not executed.",
+      ),
+    ]);
+
+    expect(segments).toHaveLength(1);
+    expect(segments[0]).toMatchObject({
+      kind: "tool_group",
+      items: [{ name: "read_file" }, { name: "write_file" }],
+    });
   });
 
   test("retains the transcript row key when a live stream becomes a completed message", () => {
