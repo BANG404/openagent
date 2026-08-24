@@ -415,11 +415,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   separators are application primitives. Components own only their dimensions,
   content layout, and semantic exceptions; do not duplicate the shared state
   declarations in component styles.
-- Reuse the shared conversation-input surface for the composer, file-change
-  banner, every desktop menu panel, command/mention palettes, floating
-  text-selection actions, and notifications so their Mica fill, hairline
-  perimeter, 18px radius, 24px saturated blur, and compact, clearly edged
-  elevation stay identical in both themes. This includes model, role,
+- Reuse the shared raised-surface geometry for the composer, file-change banner,
+  every desktop menu panel, command/mention palettes, floating text-selection
+  actions, and notifications so their hairline perimeter, 18px radius, 24px
+  saturated blur, and compact, clearly edged elevation stay identical in both
+  themes. Floating content uses the dedicated 90%-opaque theme fill so underlying
+  text cannot wash out its content; non-floating input surfaces retain the lighter
+  Mica fill. This includes model, role,
   workspace, recent-workspace, application, context, combobox, and compact
   download panels. Their
   dimensions, internal spacing, and content behavior remain component-owned;

@@ -962,7 +962,7 @@
 
 {#if selectionPopover}
   <button
-    class="selection-add-button conversation-input-surface"
+    class="selection-add-button floating-application-surface"
     type="button"
     style={`left: ${selectionPopover.left}px; top: ${selectionPopover.top}px`}
     onpointerdown={(event) => event.preventDefault()}

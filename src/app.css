@@ -24,6 +24,7 @@
     --control-surface: rgba(255, 255, 255, 0.82);
     --control-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.06);
     --mica-surface: rgba(255, 255, 255, 0.62);
+    --floating-surface: rgba(255, 255, 255, 0.9);
     --mica-border: rgba(255, 255, 255, 0.74);
     --mica-divider: rgba(110, 110, 115, 0.2);
     --mica-shadow:
@@ -79,6 +80,7 @@
       --control-surface: rgba(26, 29, 39, 0.88);
       --control-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.28);
       --mica-surface: rgba(36, 40, 56, 0.64);
+      --floating-surface: rgba(36, 40, 56, 0.9);
       --mica-border: rgba(255, 255, 255, 0.09);
       --mica-divider: rgba(148, 163, 184, 0.16);
       --mica-shadow:
@@ -106,6 +108,7 @@
     --control-surface: rgba(26, 29, 39, 0.88);
     --control-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.28);
     --mica-surface: rgba(36, 40, 56, 0.64);
+    --floating-surface: rgba(36, 40, 56, 0.9);
     --mica-border: rgba(255, 255, 255, 0.09);
     --mica-divider: rgba(148, 163, 184, 0.16);
     --mica-shadow:
@@ -132,6 +135,7 @@
     --control-surface: rgba(255, 255, 255, 0.82);
     --control-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.06);
     --mica-surface: rgba(255, 255, 255, 0.62);
+    --floating-surface: rgba(255, 255, 255, 0.9);
     --mica-border: rgba(255, 255, 255, 0.74);
     --mica-divider: rgba(110, 110, 115, 0.2);
     --mica-shadow:
@@ -237,15 +241,24 @@
     background: var(--text-muted);
   }
 
-  /* One raised Mica surface for the composer and every floating application panel. */
+  /* Shared geometry for raised input surfaces and higher-opacity floating panels. */
   .desktop-menu-panel,
+  .floating-application-surface,
   .conversation-input-surface {
-    background: var(--mica-surface);
     border: 1px solid var(--mica-border);
     border-radius: 18px;
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
     box-shadow: var(--mica-shadow);
+  }
+
+  .conversation-input-surface {
+    background: var(--mica-surface);
+  }
+
+  .desktop-menu-panel,
+  .floating-application-surface {
+    background: var(--floating-surface);
   }
 
   /* Context Menu (bits-ui) — global so it works regardless of which component is mounted. */

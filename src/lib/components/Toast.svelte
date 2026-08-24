@@ -22,7 +22,7 @@
 
 <div class="toast-stack" role="region" aria-live="polite">
   {#each $toasts as toast (toast.id)}
-    <div class="toast conversation-input-surface" transition:fly={{ y: -16, duration: 180 }}>
+    <div class="toast floating-application-surface" transition:fly={{ y: -16, duration: 180 }}>
       <div class="toast-body">
         <div class="toast-title">{toast.title}</div>
         {#if toast.description || toast.link}
