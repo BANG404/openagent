@@ -1576,7 +1576,7 @@
       <div class="settings-content-col">
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("appearance")}</h4>
-          <div class="settings-card">
+          <div class="application-settings-surface settings-card">
             <div class="settings-card-row">
               <span class="settings-card-copy">
                 <span class="label-text">{$t("theme")}</span>
@@ -1660,7 +1660,7 @@
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("quickChat")}</h4>
-          <div class="shortcut-setting-row">
+          <div class="application-settings-surface shortcut-setting-row">
             <div class="shortcut-setting-copy">
               <span class="label-text">{$t("quickShortcutLabel")}</span>
               <p class="detail-hint">{$t("quickShortcutHint")}</p>
@@ -1709,7 +1709,7 @@
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("approvalMode")}</h4>
-          <div class="settings-card">
+          <div class="application-settings-surface settings-card">
             <div class="settings-card-row">
               <span class="settings-card-copy">
                 <span class="label-text"
@@ -1753,7 +1753,7 @@
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("privacyDiagnostics")}</h4>
-          <div class="startup-row">
+          <div class="application-settings-surface startup-row">
             <div class="startup-copy">
               <span class="label-text">{$t("diagnosticLogCollection")}</span>
               <p class="detail-hint">{$t("diagnosticLogCollectionHint")}</p>
@@ -1766,7 +1766,7 @@
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("startup")}</h4>
-          <div class="startup-row">
+          <div class="application-settings-surface startup-row">
             <div class="startup-copy">
               <span class="label-text">{$t("launchOnStartup")}</span>
               <p class="detail-hint">{$t("launchOnStartupHint")}</p>
@@ -1783,7 +1783,7 @@
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("mentionPalette")}</h4>
-          <div class="startup-row">
+          <div class="application-settings-surface startup-row">
             <div class="startup-copy">
               <span class="label-text">{$t("showGlobalDraftsInMentions")}</span>
               <p class="detail-hint">{$t("showGlobalDraftsInMentionsHint")}</p>
@@ -1796,7 +1796,7 @@
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("htmlPreview")}</h4>
-          <div class="settings-card">
+          <div class="application-settings-surface settings-card">
             <label class="settings-card-row">
               <span class="settings-card-copy">
                 <span class="label-text">{$t("htmlPreviewFixedHeight")}</span>
@@ -1816,7 +1816,7 @@
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("agentExecution")}</h4>
           <div class="execution-settings">
-            <div class="execution-setting">
+            <div class="application-settings-surface execution-setting">
               <div class="startup-row execution-toggle-row">
                 <div class="startup-copy">
                   <span class="label-text">{$t("agentTurnLimit")}</span>
@@ -1967,7 +1967,7 @@
                   ariaLabel={$t("channelEnabled")}
                 />
               </div>
-              <div class="channel-config-card">
+              <div class="application-settings-surface channel-config-card">
                 <label class="detail-label">
                   <span class="label-text">{$t("channelAppId")}</span>
                   <input class="detail-input" bind:value={draftConfig.channels!.feishu!.app_id} />
@@ -2022,7 +2022,7 @@
                   ariaLabel={$t("channelEnabled")}
                 />
               </div>
-              <div class="channel-config-card">
+              <div class="application-settings-surface channel-config-card">
                 <label class="detail-label">
                   <span class="label-text">{$t("channelBotToken")}</span>
                   <input
@@ -2062,7 +2062,7 @@
                   ariaLabel={$t("channelEnabled")}
                 />
               </div>
-              <div class="channel-config-card">
+              <div class="application-settings-surface channel-config-card">
                 <label class="detail-label"
                   ><span class="label-text">{$t("channelAppId")}</span><input
                     class="detail-input"
@@ -2107,7 +2107,7 @@
                   ariaLabel={$t("channelEnabled")}
                 />
               </div>
-              <div class="channel-config-card">
+              <div class="application-settings-surface channel-config-card">
                 <label class="detail-label"
                   ><span class="label-text">{$t("channelBotToken")}</span><input
                     type="password"
@@ -2146,7 +2146,7 @@
                   ariaLabel={$t("channelEnabled")}
                 />
               </div>
-              <div class="channel-config-card">
+              <div class="application-settings-surface channel-config-card">
                 <label class="detail-label"
                   ><span class="label-text">{$t("slackBotToken")}</span><input
                     type="password"
@@ -2192,7 +2192,7 @@
                   ariaLabel={$t("wechatChannelEnabled")}
                 />
               </div>
-              <div class="remote-gateway-card">
+              <div class="application-settings-surface remote-gateway-card">
                 <div class="wechat-channel-access">
                   <label class="label-text" for="wechat-allowed-users"
                     >{$t("wechatChannelAllowedUsers")}</label
@@ -2210,7 +2210,7 @@
                 </div>
               </div>
               {#if draftConfig.channels!.wechat.enabled && wechatChannelStatus?.state === "awaiting_scan" && wechatChannelStatus.qr_image_data_url}
-                <div class="wechat-qr-card">
+                <div class="application-settings-surface wechat-qr-card">
                   <img src={wechatChannelStatus.qr_image_data_url} alt={$t("wechatChannelQrAlt")} />
                   <div>
                     <strong>{$t("wechatChannelScanTitle")}</strong>
@@ -2218,7 +2218,7 @@
                   </div>
                 </div>
               {:else if draftConfig.channels!.wechat.enabled && wechatChannelStatus?.state === "connected"}
-                <div class="wechat-connected-card">
+                <div class="application-settings-surface wechat-connected-card">
                   <div>
                     <span class="remote-credential-label">{$t("wechatChannelAccount")}</span><code
                       >{wechatChannelStatus.account_id}</code
@@ -2255,7 +2255,7 @@
                   ariaLabel={$t("remoteGatewayEnabled")}
                 />
               </div>
-              <div class="remote-gateway-card">
+              <div class="application-settings-surface remote-gateway-card">
                 <div class="remote-gateway-toggle-row remote-gateway-workspace-row">
                   <div class="remote-gateway-icon workspace" aria-hidden="true">LAN</div>
                   <div class="startup-copy">
@@ -2285,7 +2285,7 @@
                 </div>
               </div>
               {#if draftConfig.remote_gateway.enabled && remoteGatewayStatus}
-                <div class="remote-gateway-credentials">
+                <div class="application-settings-surface remote-gateway-credentials">
                   <div class="remote-credential-row">
                     <div class="remote-credential-copy">
                       <span class="remote-credential-label">{$t("remoteGatewayLocalUrl")}</span
@@ -2396,7 +2396,7 @@
           </div>
         </section>
 
-        <section class="detail-section danger-zone">
+        <section class="application-settings-surface detail-section danger-zone">
           <div>
             <p class="danger-title">{$t("clearMemory")}</p>
             <p class="danger-copy">{$t("clearMemoryDesc")}</p>
@@ -2697,7 +2697,7 @@
                   onclick={() => addManualModel(selectedProvider)}>{$t("addModel")}</button
                 >
               </div>
-              <div class="model-list-box">
+              <div class="application-settings-surface model-list-box">
                 {#if selectedProvider.models.length === 0}
                   <div class="model-list-empty">{$t("noModels")}</div>
                 {:else if filteredModels.length === 0}
@@ -2734,7 +2734,7 @@
             </section>
 
             <section class="detail-section">
-              <div class="danger-zone">
+              <div class="application-settings-surface danger-zone">
                 <div>
                   <div class="danger-title">{$t("deleteNode")}</div>
                   <div class="danger-copy">{$t("deleteNodeDesc")}</div>
@@ -2852,7 +2852,7 @@
 
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("activeHooks")}</h4>
-          <div class="model-list-box">
+          <div class="application-settings-surface model-list-box">
             {#if scheduledHooks.length > 0}
               {#each scheduledHooks as hook (hook.id)}
                 <div class="hook-item">
@@ -2943,7 +2943,7 @@
               >{$t("add")}</button
             >
           </div>
-          <div class="model-list-box retry-queue-list">
+          <div class="application-settings-surface model-list-box retry-queue-list">
             {#if draftConfig.model_retry.chat_queue.length > 0}
               {#each draftConfig.model_retry.chat_queue as binding, index (binding)}
                 <div
@@ -3034,7 +3034,7 @@
               >{$t("add")}</button
             >
           </div>
-          <div class="model-list-box retry-queue-list">
+          <div class="application-settings-surface model-list-box retry-queue-list">
             {#if draftConfig.model_retry.flash_queue.length > 0}
               {#each draftConfig.model_retry.flash_queue as binding, index (binding)}
                 <div
@@ -3093,7 +3093,7 @@
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("modelRetryPolicy")}</h4>
           <p class="detail-section-intro">{$t("modelRetryPolicyDescription")}</p>
-          <div class="settings-card">
+          <div class="application-settings-surface settings-card">
             <label class="settings-card-row">
               <span class="settings-card-copy">
                 <span class="label-text">{$t("retryCountPerModel")}</span>
@@ -3143,7 +3143,7 @@
             <h4 id="conversation-flash-tasks">{$t("conversationFlashTasks")}</h4>
             <p>{$t("conversationFlashTasksDescription")}</p>
           </div>
-          <div class="flash-task-card">
+          <div class="application-settings-surface flash-task-card">
             <article class="flash-task-item">
               <div class="flash-task-heading">
                 <div class="flash-task-copy">
@@ -3302,7 +3302,7 @@
             <h4 id="automation-flash-tasks">{$t("automationFlashTasks")}</h4>
             <p>{$t("automationFlashTasksDescription")}</p>
           </div>
-          <div class="flash-task-card">
+          <div class="application-settings-surface flash-task-card">
             <article class="flash-task-item">
               <div class="flash-task-heading">
                 <div class="flash-task-copy">
@@ -3628,7 +3628,7 @@
               {/if}
             </section>
 
-            <section class="detail-section danger-zone">
+            <section class="application-settings-surface detail-section danger-zone">
               <p class="danger-title">{$t("deleteNode")}</p>
               <p class="danger-copy">{$t("deleteNodeDesc")}</p>
               <SettingsActionButton
@@ -4148,12 +4148,6 @@
     justify-content: space-between;
     gap: 16px;
     padding: 12px;
-    border: 1px solid var(--mica-border);
-    border-radius: 10px;
-    background: var(--mica-surface);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: var(--mica-shadow);
   }
 
   .startup-copy {
@@ -4170,12 +4164,6 @@
     justify-content: space-between;
     gap: 20px;
     padding: 12px;
-    border: 1px solid var(--mica-border);
-    border-radius: 10px;
-    background: var(--mica-surface);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: var(--mica-shadow);
   }
 
   .shortcut-setting-copy {
@@ -4268,17 +4256,6 @@
     font-size: 12px;
   }
 
-  .remote-gateway-card,
-  .remote-gateway-credentials {
-    overflow: hidden;
-    border: 1px solid var(--mica-border);
-    border-radius: 10px;
-    background: var(--mica-surface);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: var(--mica-shadow);
-  }
-
   .wechat-channel-access {
     display: grid;
     gap: 6px;
@@ -4299,12 +4276,7 @@
     gap: 16px;
     margin-top: 12px;
     padding: 16px;
-    border: 1px solid var(--mica-border);
     border-radius: 8px;
-    background: var(--mica-surface);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: var(--mica-shadow);
   }
 
   .wechat-qr-card img {
@@ -4600,12 +4572,6 @@
     display: grid;
     gap: 14px;
     padding: 16px;
-    border: 1px solid var(--mica-border);
-    border-radius: 10px;
-    background: var(--mica-surface);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: var(--mica-shadow);
   }
 
   .channel-config-card .detail-label {
@@ -4666,16 +4632,6 @@
   .execution-settings {
     display: grid;
     gap: 12px;
-  }
-
-  .execution-setting {
-    overflow: hidden;
-    border: 1px solid var(--mica-border);
-    border-radius: 10px;
-    background: var(--mica-surface);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: var(--mica-shadow);
   }
 
   .execution-toggle-row {
@@ -4867,16 +4823,6 @@
     color: var(--text-muted);
     font-size: 12px;
     line-height: 1.5;
-  }
-
-  .flash-task-card {
-    overflow: hidden;
-    border: 1px solid var(--mica-border);
-    border-radius: 10px;
-    background: var(--mica-surface);
-    box-shadow: var(--mica-shadow);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
   }
 
   .flash-task-item {
@@ -5163,16 +5109,6 @@
     white-space: nowrap;
   }
 
-  .model-list-box {
-    border: 1px solid var(--mica-border);
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--mica-surface);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: var(--mica-shadow);
-  }
-
   .model-item {
     position: relative;
     display: flex;
@@ -5444,9 +5380,6 @@
   .danger-zone {
     border: 1px solid color-mix(in srgb, var(--danger) 10%, var(--mica-border));
     background: color-mix(in srgb, var(--danger) 6%, var(--mica-surface));
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: var(--mica-shadow);
   }
 
   .danger-title,

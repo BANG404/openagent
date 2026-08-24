@@ -23,7 +23,8 @@ test("owns translucent interaction and desktop-menu states in app.css", async ()
   expect(appCss).toContain(".interactive-control:hover:not(:disabled)");
   expect(appCss).toContain(".desktop-menu-item[data-selected]:not([data-disabled])");
   expect(appCss).toContain(".desktop-menu-search-input:focus-visible");
-  expect(appCss).toContain(".settings-card {");
+  expect(appCss).toContain(".application-settings-surface {");
+  expect(appCss).toMatch(/\.application-settings-surface\s*{[^}]*box-shadow: none;/s);
   expect(appCss).toContain(".application-settings-control {");
   expect(appCss).toMatch(/\.application-settings-control\s*{[^}]*box-shadow: none;/s);
 
@@ -63,6 +64,25 @@ test("reuses shared controls across onboarding and settings collections", async 
   expect(onboarding.match(/class="application-settings-control"/g)).toHaveLength(4);
   expect(onboarding).not.toMatch(/\n\s*input\s*{/);
   expect(onboarding).not.toContain("<select");
+  expect(settings.match(/application-settings-surface/g)).toHaveLength(28);
+  for (const surfaceClass of [
+    "settings-card",
+    "shortcut-setting-row",
+    "startup-row",
+    "execution-setting",
+    "channel-config-card",
+    "remote-gateway-card",
+    "remote-gateway-credentials",
+    "wechat-qr-card",
+    "wechat-connected-card",
+    "model-list-box",
+    "flash-task-card",
+    "danger-zone",
+  ]) {
+    expect(settings).toMatch(
+      new RegExp(`class="[^"]*application-settings-surface[^"]*\\b${surfaceClass}\\b`),
+    );
+  }
   expect(settings).toContain('class="interactive-control filter-toggle"');
   expect(settings).toMatch(/\.filter-toggle\s*{[^}]*background: transparent;/s);
   expect(settings).not.toContain('icon="add"\n            tone="primary"');

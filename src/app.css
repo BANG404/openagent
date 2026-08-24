@@ -261,14 +261,15 @@
     background: var(--floating-surface);
   }
 
-  /* Settings and onboarding forms share one flat Mica control treatment. */
-  .settings-card {
+  /* Settings surfaces and onboarding forms share one flat Mica treatment. */
+  .application-settings-surface {
     overflow: hidden;
     border: 1px solid var(--mica-border);
     border-radius: 10px;
     background: var(--mica-surface);
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
+    box-shadow: none;
   }
 
   .application-settings-control {
