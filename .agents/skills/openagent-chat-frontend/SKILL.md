@@ -502,8 +502,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   canvas fixed at 960 × 640px and omit its maximize affordance. Pair one quiet,
   product-owned setup illustration with compact numbered progress controls in
   the native-material column, then lead directly with the current step's
-  display heading inside the inset, borderless content canvas. Dense step
-  content scrolls inside that form column without resizing the window. Separate
+  display heading inside the inset, borderless content canvas. The welcome step
+  must explain the product, summarize the upcoming configuration, and describe
+  how the workspace is used before asking a first-time user to continue. Dense
+  step content scrolls inside that form column without resizing the window. Separate
   both columns through spacing and neutral selection fill instead of divider
   lines. Onboarding controls use filled surfaces, elevation, and focus state
   rather than resting perimeter borders.

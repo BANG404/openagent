@@ -62,8 +62,13 @@
           steps: ["Welcome", "Preferences", "Model service", "Default models", "Ready"],
           stepProgress: "Step {current} of {total}",
           welcomeTitle: "Welcome to OpenAgent",
-          welcomeBody: "Let’s set up the essentials so your first conversation is ready to run.",
+          welcomeBody:
+            "OpenAgent is a desktop AI agent that can understand projects, edit files, and carry out tasks in the workspace you choose.",
+          setupBody:
+            "This guide will set your preferences, connect a model service, and choose the models OpenAgent uses. You can change everything later in Settings.",
           workspace: "Current workspace",
+          workspaceDescription:
+            "The workspace is the folder where OpenAgent reads files, runs commands, and keeps project context.",
           noWorkspace: "No workspace selected",
           chooseWorkspace: "Choose workspace",
           preferenceTitle: "Make OpenAgent yours",
@@ -106,8 +111,12 @@
           steps: ["欢迎", "偏好", "模型服务", "默认模型", "完成"],
           stepProgress: "第 {current} 步，共 {total} 步",
           welcomeTitle: "欢迎使用 OpenAgent",
-          welcomeBody: "用几步完成必要配置，接下来就可以直接开始第一段对话。",
+          welcomeBody:
+            "OpenAgent 是一款桌面 AI Agent，可以在你选择的工作区中理解项目、编辑文件并执行任务。",
+          setupBody:
+            "接下来将设置界面偏好、连接模型服务并选择 OpenAgent 使用的默认模型；这些配置之后都可以在设置中修改。",
           workspace: "当前工作区",
+          workspaceDescription: "工作区是 OpenAgent 读取文件、执行命令并保留项目上下文的文件夹。",
           noWorkspace: "尚未选择工作区",
           chooseWorkspace: "选择工作区",
           preferenceTitle: "设置你的使用偏好",
@@ -327,10 +336,12 @@
         {#if step === 0}
           <h1>{copy.welcomeTitle}</h1>
           <p class="lead">{copy.welcomeBody}</p>
+          <p class="setup-description">{copy.setupBody}</p>
           <div class="workspace-card">
             <div>
               <span>{copy.workspace}</span>
               <strong>{workspacePath || copy.noWorkspace}</strong>
+              <p>{copy.workspaceDescription}</p>
             </div>
             <button class="secondary" onclick={() => void onPickWorkspace()}
               >{copy.chooseWorkspace}</button
@@ -640,9 +651,16 @@
   }
   .lead {
     max-width: 520px;
-    margin: 0 0 32px;
+    margin: 0 0 14px;
     color: var(--text-muted);
     font-size: 14px;
+    line-height: 1.6;
+  }
+  .setup-description {
+    max-width: 520px;
+    margin: 0 0 28px;
+    color: var(--text);
+    font-size: 13px;
     line-height: 1.6;
   }
   .workspace-card,
@@ -664,6 +682,9 @@
     min-width: 0;
     gap: 5px;
   }
+  .workspace-card button {
+    white-space: nowrap;
+  }
   .workspace-card span,
   .summary span {
     color: var(--text-muted);
@@ -674,6 +695,12 @@
     font-size: 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .workspace-card p {
+    margin: 1px 0 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.5;
   }
   .form-grid {
     display: grid;

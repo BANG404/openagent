@@ -57,7 +57,6 @@
   }
 
   .settings-status-pill.active {
-    background: var(--item-selected-bg);
     color: var(--primary);
   }
 
