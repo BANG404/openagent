@@ -542,7 +542,7 @@
   }
   .onboarding-body {
     display: grid;
-    grid-template-columns: 46% minmax(0, 54%);
+    grid-template-columns: 50% minmax(0, 50%);
     min-width: 0;
     min-height: 0;
     flex: 1;

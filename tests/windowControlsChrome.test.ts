@@ -45,7 +45,7 @@ describe("Windows window controls", () => {
     expect(onboarding).toContain("canMaximize={false}");
     expect(onboarding).toContain("/assets/onboarding/openagent-workspace.png");
     expect(onboarding).toMatch(
-      /\.onboarding-body\s*{[^}]*grid-template-columns: 46% minmax\(0, 54%\);/s,
+      /\.onboarding-body\s*{[^}]*grid-template-columns: 50% minmax\(0, 50%\);/s,
     );
     expect(host).toMatch(
       /"onboarding",[\s\S]*?\.inner_size\(960\.0, 640\.0\)[\s\S]*?\.resizable\(false\)[\s\S]*?\.maximizable\(false\)/,
