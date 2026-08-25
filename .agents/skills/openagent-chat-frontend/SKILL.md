@@ -458,8 +458,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep selection signaling consistent across floating option rows and persistent
   navigation lists: neutral buttons, triggers, and option rows use the shared
   theme-aware `--interactive-state-bg` for hover, open, and selected states;
-  derive that gray from the current text color at the shared semi-transparent
-  8% opacity so it adapts to the surface beneath it. Selected rows use that neutral
+  use the shadcn neutral palette's `#f4f4f5` light fill and `#27272a` dark fill
+  so conversation components and application controls retain one stable gray
+  across their underlying surfaces. Selected rows use that neutral
   fill without a decorative left rail, stronger fill, checkmark, or selected text color. GPUI
   preserves the same row geometry, selected fill, selection semantics,
   accessibility state, and interactions. Primary and destructive actions retain

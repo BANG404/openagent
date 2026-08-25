@@ -10,14 +10,12 @@ const componentPaths = [
   "../src/lib/components/ui/Select.svelte",
 ];
 
-test("owns translucent interaction and desktop-menu states in app.css", async () => {
+test("owns the shared neutral interaction palette and desktop-menu states in app.css", async () => {
   const appCss = await readFile(new URL("../src/app.css", import.meta.url), "utf8");
 
-  expect(appCss.match(/--interactive-state-opacity: 8%;/g)).toHaveLength(1);
-  expect(appCss.match(/--interactive-state-bg: color-mix\(/g)).toHaveLength(1);
-  expect(appCss).toMatch(
-    /--interactive-state-bg: color-mix\(\s*in srgb,\s*var\(--text\) var\(--interactive-state-opacity\),\s*transparent\s*\);/s,
-  );
+  expect(appCss.match(/--interactive-state-bg: #f4f4f5;/g)).toHaveLength(2);
+  expect(appCss.match(/--interactive-state-bg: #27272a;/g)).toHaveLength(2);
+  expect(appCss).not.toContain("--interactive-state-opacity");
   expect(appCss).toContain("--item-selected-bg: var(--interactive-state-bg);");
   expect(appCss).toContain("--item-selected-hover-bg: var(--interactive-state-bg);");
   expect(appCss).toContain(".interactive-control:hover:not(:disabled)");
