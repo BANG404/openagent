@@ -404,8 +404,33 @@
     },
   ]);
   const streamingMessages: ChatMessage[] = [];
+  const fencedCodePreview = [
+    "A language-tagged fence keeps its compact header:",
+    "",
+    "```svelte",
+    '<script lang="ts">',
+    "  let count = 0;",
+    "<" + "/script>",
+    "```",
+    "",
+    "A fence without a language keeps the same surface without an empty header:",
+    "",
+    "```",
+    "import {",
+    "  Select,",
+    "  SelectContent,",
+    "  SelectGroup,",
+    "  SelectItem,",
+    "  SelectTrigger,",
+    "  SelectValue,",
+    "} from '@/components/ui/select'",
+    "```",
+  ].join("\n");
   for (let index = 0; index < 18; index += 1) {
-    const content = `Completed answer ${index + 1}. ${"Fully mounted turn content. ".repeat(8)}`;
+    const content =
+      index === 17
+        ? fencedCodePreview
+        : `Completed answer ${index + 1}. ${"Fully mounted turn content. ".repeat(8)}`;
     streamingMessages.push(
       {
         id: `streaming-preview-user-${index}`,

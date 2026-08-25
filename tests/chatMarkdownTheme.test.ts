@@ -12,7 +12,11 @@ describe("chat Markdown theme", () => {
 
   test("exposes stable theme hooks for fenced code surfaces", () => {
     expect(chatMarkdownTheme.code?.header.split(/\s+/)).toContain("chat-code-header");
+    expect(chatMarkdownTheme.code?.buttons.split(/\s+/)).toContain("chat-code-buttons");
+    expect(chatMarkdownTheme.code?.language.split(/\s+/)).toContain("chat-code-language");
     expect(chatMarkdownTheme.code?.container.split(/\s+/)).toContain("chat-code-container");
     expect(chatMarkdownTheme.code?.skeleton.split(/\s+/)).toContain("chat-code-skeleton");
+    expect(chatMarkdownTheme.code?.pre.split(/\s+/)).toContain("chat-code-pre");
+    expect(chatMarkdownTheme.code?.line.split(/\s+/)).toContain("chat-code-line");
   });
 });

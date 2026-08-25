@@ -609,66 +609,12 @@
     letter-spacing: 0;
   }
 
-  :global([data-streamdown-code]) {
-    background: var(--component-neutral-bg);
-    border: none !important;
-    margin: 8px 0 12px;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] > .chat-code-header) {
-    background: var(--component-neutral-bg) !important;
-    border-bottom: 1px solid var(--border);
-    color: var(--text-muted) !important;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] > .chat-code-container) {
-    background: var(--component-neutral-bg) !important;
-    padding: 0 !important;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] .chat-code-skeleton) {
-    background: var(--border) !important;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] button) {
-    color: var(--text-muted) !important;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] button[title="Download code"]) {
-    display: none;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] button:hover) {
-    background: var(--interactive-state-bg) !important;
-    color: var(--text) !important;
-  }
-
   :global(.assistant-msg pre) {
     background: var(--component-neutral-bg);
     border-radius: 8px;
     padding: 14px 16px;
     margin: 8px 0 12px;
     overflow-x: auto;
-  }
-
-  /* Shiki controls token colors; the application theme owns the block surface. */
-  :global(.assistant-msg [data-streamdown-code] pre) {
-    background: transparent;
-    border-radius: 0;
-    padding: 12px 16px;
-    margin: 0;
-  }
-
-  :global(.assistant-msg [data-streamdown-code] pre code) {
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: 13px;
-    font-family: "JetBrains Mono", "Fira Code", monospace;
-    letter-spacing: 0;
-    line-height: 1.6;
   }
 
   :global(.assistant-msg pre code) {

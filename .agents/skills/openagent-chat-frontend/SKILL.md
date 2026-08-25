@@ -88,12 +88,14 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   destinations unopened. Browser verification must confirm the destination tab
   opens as well as confirming that the source page remains mounted.
 - Keep fenced Markdown code headers, containers, loading skeletons, controls,
-  and Markdown table headers or row-hover fills on the shared neutral
-  hover/selection fill through stable chat theme hooks. Shiki owns highlighted
-  token colors, not the surrounding block background; fixed light renderer
-  utilities must never remain visible in the dark application theme.
+  and line numbers on the shared user-message neutral fill through stable chat
+  theme hooks styled in `src/app.css`. Shiki owns highlighted token colors, not
+  the surrounding block background; fixed light renderer utilities must never
+  remain visible in the dark application theme. A fence without a language
+  collapses the empty header and overlays the copy action in the upper-right.
   Expose copy as the only fenced-code action; do not show the renderer's code
-  download control.
+  download control. Keep Markdown table headers or row-hover fills on the
+  corresponding shared neutral hover/selection fill.
 - In responsive double-column mode, expanded process records participate in
   pagination instead of moving as one container. Keep the process header with
   its first record and preserve the same atomic break rules used by ordinary
