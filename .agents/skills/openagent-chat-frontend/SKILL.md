@@ -48,7 +48,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   macOS Vibrancy effect, leaving roughly 70% of the native material visible.
   Content-bearing controls and cards paint their own surfaces. Browser
   previews retain the opaque theme canvas, and the quick-chat transparent stage
-  keeps its separate contract.
+  keeps its separate contract. Serialize native theme changes so rapid Settings
+  previews cannot complete out of order. Returning to the system theme must
+  clear the native override before resolving the WebView media preference,
+  because the previous native override can still influence that query.
   The conversation surface owns transcript/composer
   composition, Goal/Graph panel presentation, and chat renderer theme overrides.
   Pass each surface a deliberate view model and action contract instead of

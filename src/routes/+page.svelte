@@ -26,7 +26,7 @@
   } from "$lib/agentCompletionNotification";
   import { Tooltip as TooltipPrimitive } from "bits-ui";
   import { normalizeConfigShape } from "$lib/config";
-  import { applyDocumentTheme } from "$lib/appTheme";
+  import { applyDocumentTheme, createNativeThemeSynchronizer, type AppTheme } from "$lib/appTheme";
   import { ComposerPreferences } from "$lib/composerPreferences.svelte";
   import {
     ComposerDraftStore,
@@ -425,6 +425,16 @@
   const tauriAvailable = isTauri();
   const usesNativeWindowMaterial = tauriAvailable && !isQuickChatSurface && !isDevInspectorWindow;
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
+  const synchronizeNativeTheme =
+    appWindow && usesNativeWindowMaterial
+      ? createNativeThemeSynchronizer({
+          applyWebTheme: applyDocumentTheme,
+          setNativeTheme: (theme) => appWindow.setTheme(theme),
+          onResolvedTheme: (dark) => (isDarkTheme = dark),
+          afterNativeThemeChange: () => new Promise((resolve) => setTimeout(resolve, 0)),
+          onError: (error) => console.warn("Failed to synchronize native window theme:", error),
+        })
+      : null;
   const browserModeNotice =
     "Desktop features require the Tauri runtime. Start this app with `bun tauri dev`, not `bun run dev`.";
   const fallbackConfig: AppConfig = {
@@ -2826,13 +2836,11 @@
   }
 
   function applyTheme(theme: string) {
-    const dark = applyDocumentTheme(theme);
-    isDarkTheme = dark;
-    if (!appWindow || !usesNativeWindowMaterial) return;
-    const nativeTheme = theme === "system" ? null : dark ? "dark" : "light";
-    void appWindow
-      .setTheme(nativeTheme)
-      .catch((error) => console.warn("Failed to synchronize native window theme:", error));
+    if (synchronizeNativeTheme) {
+      void synchronizeNativeTheme(theme as AppTheme);
+      return;
+    }
+    isDarkTheme = applyDocumentTheme(theme);
   }
 
   async function loadWorkspace() {

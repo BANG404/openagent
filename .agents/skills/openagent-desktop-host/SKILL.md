@@ -47,8 +47,10 @@ material. Windows uses Mica with Acrylic and Blur fallbacks; macOS uses the
 Tauri-compatible `window-vibrancy` integration. Main, onboarding, feature, and
 conversation canvases share a 30%-opaque theme tint. Content controls remain
 surfaced; quick chat, browser previews, and development inspector windows keep
-their intentional separate backgrounds. Treat `docs/design.md` as the visual
-source of truth.
+their intentional separate backgrounds. Serialize native theme requests and,
+when returning to the system theme, clear the native override before resolving
+the WebView media preference so both layers use the same palette. Treat
+`docs/design.md` as the visual source of truth.
 
 ## Debug automation
 
