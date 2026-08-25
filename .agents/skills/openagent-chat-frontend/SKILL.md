@@ -132,11 +132,14 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   overlay until the matching persisted `chat-checkpoint` has been reconciled.
   Leave optimistic transcript records mounted throughout and ignore stale
   asynchronous refreshes so an older checkpoint cannot replace a newer live
-  Goal or Graph state. A new or newly selected flow starts with its resizable
-  right-side status panel fully collapsed; a user's expand or collapse choice
-  survives later checkpoints for that same flow. Keep the single panel toggle at
+  Goal or Graph state. A newly created Goal or Graph automatically opens its
+  resizable right-side status panel, including flows created by slash commands
+  or tools. Selecting an existing flow starts collapsed, while a user's expand
+  or collapse choice survives later checkpoints for that same selected flow.
+  Keep the single panel toggle at
   the trailing end of the shared title bar, use it for both expansion and collapse,
-  and remove the panel entirely from the conversation layout while collapsed.
+  and collapse the panel to a zero-width, non-interactive track using the same
+  180ms width curve as the conversation sidebar.
   Place the expanded panel
   as a full-height inset card inside the conversation workspace's flex container,
   using the same translucent Mica material as the conversation surface so it stays
@@ -259,6 +262,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   in the background. Do not show the conversation-loading skeleton, remount an
   unchanged transcript, overwrite backend history, or remove optimistic
   messages from a queued turn.
+- Preserve messages inserted by live events while any foreground or background
+  checkpoint hydration is in flight. If an externally started run reaches its
+  first durable checkpoint without a visible user message, reload and reconcile
+  that checkpoint so a quick-chat launch cannot render an assistant-only turn
+  after missing the lossy run-started event.
 - Treat the cross-workspace Recent conversations list as a live projection, not
   only a database refresh result. User submission, externally started runs, and
   terminal stream updates must immediately promote the matching conversation.
@@ -753,8 +761,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   can toggle during the operation. A submission hides the launcher only after
   the target workspace accepted the turn; failures keep it visible with its
   draft intact. Every shortcut reveal must explicitly return DOM focus to the
-  composer textarea after the native launcher window has been shown and focused;
-  the persistent hidden window does not remount its composer between sessions.
+  composer textarea after the native launcher window has been shown and focused,
+  and the native focused callback must repeat that request after the operating
+  system confirms activation. The persistent hidden window does not remount its
+  composer between sessions.
 - A webview cannot paint beyond its native window bounds. Keep the launcher
   card compact and fixed-height. Prepare the transparent native window at its
   expanded selector size before showing it, keep that size fixed for the whole

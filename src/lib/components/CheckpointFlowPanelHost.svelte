@@ -9,11 +9,9 @@
 
   let {
     flow,
-    conversationId,
     collapsed = $bindable(true),
   }: {
     flow: CheckpointFlow;
-    conversationId: string;
     collapsed?: boolean;
   } = $props();
 
@@ -30,14 +28,6 @@
         ),
   );
   let resizing = $state(false);
-  let lastFlowKey = "";
-
-  $effect(() => {
-    const key = `${conversationId}\u0000${flow.kind}\u0000${flow.objective}`;
-    if (key === lastFlowKey) return;
-    lastFlowKey = key;
-    collapsed = true;
-  });
 
   function startResize(event: PointerEvent): void {
     if (event.button !== 0 || collapsed || resizing) return;

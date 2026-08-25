@@ -145,7 +145,7 @@ describe("desktop navigation chrome", () => {
     expect(appCss).not.toContain("@mdxeditor/editor");
   });
 
-  test("searches every workspace and reserves new processes for File new window", async () => {
+  test("searches every workspace and creates duplicate windows without a folder picker", async () => {
     const route = await readFile(routeUrl, "utf8");
     const openConversation = route.slice(
       route.indexOf("async function openSidebarConversation"),
@@ -158,8 +158,14 @@ describe("desktop navigation chrome", () => {
       "await applyWorkspace(conversationWorkspace, conversation.id)",
     );
     expect(openConversation).not.toContain("openWorkspaceInNewWindow");
-    expect(route.match(/await openWorkspaceInNewWindow\(/g)).toHaveLength(1);
-    expect(route).toContain("onNewWindow={pickWorkspaceInNewWindow}");
+    expect(route).not.toContain("function openWorkspaceInNewWindow(");
+    expect(route).toContain('await invoke("create_workspace_window", { path: workspacePath })');
+    expect(route).toContain("onNewWindow={createNewWindow}");
+    const createNewWindow = route.slice(
+      route.indexOf("async function createNewWindow"),
+      route.indexOf("async function switchNewConversationWorkspace"),
+    );
+    expect(createNewWindow).not.toContain("openDialog");
   });
 
   test("keeps the first 20 role-scoped recents in the main sidebar flow", async () => {
@@ -216,7 +222,7 @@ describe("desktop navigation chrome", () => {
     );
     const applyWorkspace = route.slice(
       route.indexOf("async function applyWorkspace"),
-      route.indexOf("async function openWorkspaceInNewWindow"),
+      route.indexOf("async function requestWorkspace"),
     );
 
     expect(loadingState).not.toContain("workspaceLoading");
@@ -244,6 +250,7 @@ describe("desktop navigation chrome", () => {
     const panel = await readFile(new URL("CheckpointFlowStatus.svelte", componentsUrl), "utf8");
 
     expect(route).toContain("bind:checkpointFlowPanelCollapsed");
+    expect(route).toContain("shouldAutoOpenCheckpointFlowPanel(previous, next.flow)");
     expect(titleBar).toContain("<CheckpointFlowToggleButton");
     expect(titleBar.indexOf("<CheckpointFlowToggleButton")).toBeLessThan(
       titleBar.lastIndexOf("<WindowControls {platform}"),
@@ -251,5 +258,8 @@ describe("desktop navigation chrome", () => {
     expect(panel).not.toContain("peek-button");
     expect(panel).not.toContain("collapse-button");
     expect(panel).not.toContain("flow-panel-placeholder");
+    expect(panel).toContain("width 180ms cubic-bezier(0.16, 1, 0.3, 1)");
+    expect(panel).toContain("width: 0;");
+    expect(panel).not.toContain("display: none;");
   });
 });

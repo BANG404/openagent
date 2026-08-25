@@ -82,6 +82,8 @@
   import ConversationSurface from "$lib/components/ConversationSurface.svelte";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import {
+    checkpointFlowPanelKey,
+    shouldAutoOpenCheckpointFlowPanel,
     updateLiveCheckpointFlowProjection,
     type LiveCheckpointFlowProjection,
   } from "$lib/checkpointFlow";
@@ -327,6 +329,7 @@
   // A checkpoint event is emitted only after its durable snapshot exists. Keep
   // Goal/Graph projection current without hydrating partial transcript records.
   const liveCheckpointRefreshVersions = new Map<string, number>();
+  const pendingExternalUserRecoveries = new Set<string>();
   // Goal tools and Graph reducers mutate the canonical in-memory checkpoint
   // before that snapshot becomes durable. Render their complete event projection
   // until the matching persisted checkpoint has been reconciled.
@@ -350,6 +353,8 @@
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
   let checkpointFlowPanelCollapsed = $state(true);
+  let checkpointFlowPanelSelectionKey = $state<string | null>(null);
+  let checkpointFlowPanelAutoOpenKey = $state<string | null>(null);
   let workspace = $state<WorkspaceContext | null>(null);
   let config = $state<AppConfig | null>(null);
   let isMemorySyncing = $state(false);
@@ -627,6 +632,18 @@
       ? (liveCheckpointFlowProjections[activeConvId]?.flow ?? currentCheckpointFlowNode?.flow)
       : undefined,
   );
+
+  $effect(() => {
+    const key = checkpointFlowPanelKey(
+      activeConvId,
+      activeConvId ? (activeBranchIds[activeConvId] ?? null) : null,
+      currentCheckpointFlow,
+    );
+    if (key === checkpointFlowPanelSelectionKey) return;
+    checkpointFlowPanelSelectionKey = key;
+    checkpointFlowPanelCollapsed = !key || key !== checkpointFlowPanelAutoOpenKey;
+    if (key === checkpointFlowPanelAutoOpenKey) checkpointFlowPanelAutoOpenKey = null;
+  });
   const compactionOnlyConvIds = new Set<string>();
   const compactionProgressRevisions = new Map<string, number>();
   let workspacePrefsSaveQueue: Promise<void> = Promise.resolve();
@@ -691,13 +708,11 @@
     if (loadedConvIds.has(convId) && !forceRefresh) return;
     loadedConvIds.add(convId);
     if (!tauriAvailable) return;
-    const messageIdsAtStart = showLoadingState
-      ? undefined
-      : new Set(
-          conversations
-            .find((conversation) => conversation.id === convId)
-            ?.messages.map((message) => message.id) ?? [],
-        );
+    const messageIdsAtStart = new Set(
+      conversations
+        .find((conversation) => conversation.id === convId)
+        ?.messages.map((message) => message.id) ?? [],
+    );
     if (showLoadingState) {
       loadingConversationIds = { ...loadingConversationIds, [convId]: true };
     }
@@ -764,6 +779,15 @@
     const current = liveCheckpointFlowProjections[convId];
     const next = updateLiveCheckpointFlowProjection(current, update);
     if (!next || next === current) return;
+    const previous = current?.flow ?? getActiveTipNode(convTrees[convId])?.flow;
+    if (convId === activeConvId && shouldAutoOpenCheckpointFlowPanel(previous, next.flow)) {
+      checkpointFlowPanelAutoOpenKey = checkpointFlowPanelKey(
+        convId,
+        activeBranchIds[convId] ?? null,
+        next.flow,
+      );
+      checkpointFlowPanelCollapsed = false;
+    }
     liveCheckpointFlowProjections = { ...liveCheckpointFlowProjections, [convId]: next };
   }
 
@@ -2508,6 +2532,19 @@
       onCheckpoint: (conv_id, checkpoint_id) => {
         pendingCheckpointIds = { ...pendingCheckpointIds, [conv_id]: checkpoint_id };
         void refreshLiveCheckpointTip(conv_id, checkpoint_id);
+        const visibleMessages = conversations.find(
+          (conversation) => conversation.id === conv_id,
+        )?.messages;
+        if (
+          visibleMessages &&
+          !visibleMessages.some((message) => message.role === "user") &&
+          !pendingExternalUserRecoveries.has(conv_id)
+        ) {
+          pendingExternalUserRecoveries.add(conv_id);
+          void loadMessagesForConv(conv_id, false, true).finally(() => {
+            pendingExternalUserRecoveries.delete(conv_id);
+          });
+        }
       },
       onRetry: (conv_id, attempt, maxAttempts, model, error, restoredCheckpoint) => {
         chatStreams.clearAwaitingOutput(conv_id);
@@ -3834,20 +3871,6 @@
     return true;
   }
 
-  async function openWorkspaceInNewWindow(
-    path: string,
-    conversationId?: string,
-    messageId?: string,
-  ) {
-    if (!tauriAvailable) return;
-    await addToRecentWorkspaces(path);
-    await invoke("open_workspace_window", {
-      path,
-      conversationId: conversationId ?? null,
-      messageId: messageId ?? null,
-    });
-  }
-
   async function requestWorkspace(path: string) {
     if (!path || path === workspacePath) return;
     await applyWorkspace(path);
@@ -3930,16 +3953,21 @@
     workspace = await invoke<WorkspaceContext>("get_workspace_context");
   }
 
-  async function pickWorkspaceInNewWindow() {
+  async function createNewWindow() {
     if (!tauriAvailable) {
       alert(browserModeNotice);
       return;
     }
-    const defaultPath = await homeDir();
-    const selected = await openDialog({ directory: true, multiple: false, defaultPath });
-    if (typeof selected === "string" && selected) {
-      await openWorkspaceInNewWindow(selected);
-    }
+    if (!workspacePath) return;
+    await invoke("create_workspace_window", { path: workspacePath }).catch((error) => {
+      console.warn("Failed to create workspace window", error);
+      showToast({
+        title: $t("workspaceUnavailable"),
+        description: workspacePath,
+        descriptionFromEnd: true,
+        variant: "error",
+      });
+    });
   }
 
   async function switchNewConversationWorkspace(path: string): Promise<void> {
@@ -4457,7 +4485,7 @@
         onPickWsl={pickWslWorkspace}
         onSelectWorkspace={requestWorkspace}
         onNewConversation={newConversation}
-        onNewWindow={pickWorkspaceInNewWindow}
+        onNewWindow={createNewWindow}
         onOpenSettings={() => openSettings()}
         onOpenAbout={() => openSettings("about")}
         onQuit={quitApp}

@@ -1208,6 +1208,11 @@ async fn open_workspace_window(
 }
 
 #[tauri::command]
+fn create_workspace_window(path: String) -> Result<(), String> {
+    openagent_runtime::commands::create_workspace_window(path)
+}
+
+#[tauri::command]
 async fn submit_quick_chat(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     workspace: String,
@@ -1365,15 +1370,26 @@ fn should_enforce_single_instance(agent_server: bool, is_workspace_window: bool)
     !agent_server && !is_workspace_window
 }
 
+fn should_reveal_workspace_shell_early(agent_server: bool, is_workspace_window: bool) -> bool {
+    !agent_server && is_workspace_window
+}
+
 #[cfg(test)]
 mod single_instance_tests {
-    use super::should_enforce_single_instance;
+    use super::{should_enforce_single_instance, should_reveal_workspace_shell_early};
 
     #[test]
     fn only_regular_desktop_launches_share_the_primary_instance() {
         assert!(should_enforce_single_instance(false, false));
         assert!(!should_enforce_single_instance(false, true));
         assert!(!should_enforce_single_instance(true, false));
+    }
+
+    #[test]
+    fn dedicated_workspace_windows_reveal_the_loading_shell_early() {
+        assert!(!should_reveal_workspace_shell_early(false, false));
+        assert!(should_reveal_workspace_shell_early(false, true));
+        assert!(!should_reveal_workspace_shell_early(true, true));
     }
 }
 
@@ -1568,6 +1584,20 @@ fn run_with_mode(agent_server: bool) {
             let _ = runtime.set_host(Arc::new(TauriRuntimeHost {
                 app: app.handle().clone(),
             }));
+            if should_reveal_workspace_shell_early(agent_server, is_workspace_window) {
+                if let Some(window) = app.get_webview_window("main") {
+                    window.show()?;
+                    window.set_focus()?;
+                    state
+                        .startup_window_revealed
+                        .store(true, std::sync::atomic::Ordering::Release);
+                    tracing::info!(
+                        target: "openagent::startup",
+                        elapsed_ms = startup_started_at.elapsed().as_millis() as u64,
+                        "workspace window shell revealed"
+                    );
+                }
+            }
             tauri::async_runtime::spawn(openagent_runtime::commands::watch_config(
                 runtime.inner().clone(),
             ));
@@ -1713,6 +1743,7 @@ fn run_with_mode(agent_server: bool) {
             get_startup_bootstrap,
             get_workspace_launch_context,
             open_workspace_window,
+            create_workspace_window,
             submit_quick_chat,
             get_conversation_workspace,
             clear_conversation,
