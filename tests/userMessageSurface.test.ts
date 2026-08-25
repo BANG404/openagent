@@ -42,17 +42,21 @@ test("keeps every attachment card off the white surface", async () => {
 });
 
 test("keeps static Markdown cards on the component-neutral fill", async () => {
-  const source = await readFile(
-    new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url),
-    "utf8",
-  );
+  const [source, appCss] = await Promise.all([
+    readFile(new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url), "utf8"),
+    readFile(new URL("../src/app.css", import.meta.url), "utf8"),
+  ]);
 
   expect(source).toMatch(
     /:global\(\[data-streamdown-thead\]\)\s*\{[^}]*background: var\(--component-neutral-bg\);/s,
   );
-  expect(source).toMatch(
-    /:global\(\[data-streamdown-code\]\)\s*\{[^}]*background: var\(--component-neutral-bg\);/s,
+  expect(appCss).toMatch(
+    /\.assistant-msg \[data-streamdown-code\]\s*\{[^}]*background: var\(--user-message-bg\);/s,
   );
+  expect(appCss).toMatch(
+    /\.chat-code-header:has\(\.chat-code-language:empty\)\s*\{[^}]*position: absolute;[^}]*border-bottom: 0;/s,
+  );
+  expect(appCss).toMatch(/\.chat-code-line::before\s*\{[^}]*content: counter\(chat-code-line\);/s);
   expect(source).toMatch(
     /:global\(\[data-streamdown-tbody\] \[data-streamdown-tr\]:hover\)\s*\{[^}]*background: var\(--interactive-state-bg\);/s,
   );

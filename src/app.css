@@ -375,6 +375,99 @@
   box-shadow: none;
 }
 
+/* Fenced code is a shared chat surface, independent of the mounted conversation shell. */
+.assistant-msg [data-streamdown-code] {
+  position: relative;
+  margin: 8px 0 12px;
+  overflow: hidden;
+  border: none !important;
+  border-radius: 8px;
+  background: var(--user-message-bg);
+}
+
+.assistant-msg [data-streamdown-code] > .chat-code-header {
+  min-height: 34px;
+  border-bottom: 1px solid var(--border);
+  background: var(--user-message-bg) !important;
+  color: var(--text-muted) !important;
+}
+
+.assistant-msg [data-streamdown-code] > .chat-code-header:has(.chat-code-language:empty) {
+  position: absolute;
+  z-index: 1;
+  top: 7px;
+  right: 7px;
+  min-height: 0;
+  padding: 0;
+  border-bottom: 0;
+  background: transparent !important;
+}
+
+.assistant-msg [data-streamdown-code] .chat-code-language:empty {
+  display: none;
+}
+
+.assistant-msg [data-streamdown-code] > .chat-code-container {
+  background: var(--user-message-bg) !important;
+  padding: 0 !important;
+}
+
+.assistant-msg [data-streamdown-code] .chat-code-skeleton {
+  margin: 0 16px 0 48px;
+  background: var(--border) !important;
+}
+
+.assistant-msg [data-streamdown-code] button {
+  color: var(--text-muted) !important;
+}
+
+.assistant-msg [data-streamdown-code] button[title="Download code"] {
+  display: none;
+}
+
+.assistant-msg [data-streamdown-code] button:hover {
+  background: var(--interactive-state-bg) !important;
+  color: var(--text) !important;
+}
+
+/* Shiki owns token colors; app.css owns the shared block surface and line rhythm. */
+.assistant-msg [data-streamdown-code] .chat-code-pre {
+  margin: 0;
+  padding: 12px 0;
+  border-radius: 0;
+  background: transparent !important;
+  counter-reset: chat-code-line;
+}
+
+.assistant-msg [data-streamdown-code] .chat-code-pre code {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+
+.assistant-msg [data-streamdown-code] .chat-code-line {
+  position: relative;
+  display: block;
+  min-height: 1.6em;
+  padding: 0 16px 0 48px;
+  counter-increment: chat-code-line;
+}
+
+.assistant-msg [data-streamdown-code] .chat-code-line::before {
+  position: absolute;
+  left: 0;
+  width: 32px;
+  color: var(--text-muted);
+  content: counter(chat-code-line);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  user-select: none;
+}
+
 .application-settings-control {
   box-sizing: border-box;
   width: 100%;
