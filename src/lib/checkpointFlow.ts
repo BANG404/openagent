@@ -41,6 +41,24 @@ export interface LiveCheckpointFlowProjection {
   version: number;
 }
 
+export function checkpointFlowPanelKey(
+  conversationId: string | null,
+  branchId: string | null,
+  flow: CheckpointFlow | null | undefined,
+): string | null {
+  if (!conversationId || !flow) return null;
+  return `${conversationId}\u0000${branchId ?? ""}\u0000${flow.kind}\u0000${flow.objective}`;
+}
+
+export function shouldAutoOpenCheckpointFlowPanel(
+  previous: CheckpointFlow | null | undefined,
+  next: CheckpointFlow,
+): boolean {
+  if (!previous) return true;
+  if (previous.kind !== next.kind || previous.objective !== next.objective) return true;
+  return previous.status !== "running" && next.status === "running";
+}
+
 const flowStatuses = new Set<CheckpointFlowStatus>(["running", "completed", "failed", "blocked"]);
 
 function asRecord(value: unknown): Record<string, unknown> | null {

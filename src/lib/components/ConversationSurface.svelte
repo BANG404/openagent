@@ -303,7 +303,6 @@
   {#if view.checkpointFlow}
     <CheckpointFlowPanelHost
       flow={view.checkpointFlow}
-      conversationId={view.activeConvId ?? ""}
       bind:collapsed={checkpointFlowPanelCollapsed}
     />
   {/if}

@@ -152,6 +152,7 @@
   class:resizing
   style:--flow-panel-width={`${width}px`}
   aria-label={$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}
+  aria-hidden={collapsed}
 >
   {#if !collapsed}
     <button
@@ -315,10 +316,23 @@
     border-radius: 14px;
     background: transparent;
     box-shadow: var(--mica-shadow);
-    transition: width 160ms ease;
+    transition:
+      width 180ms cubic-bezier(0.16, 1, 0.3, 1),
+      min-width 180ms cubic-bezier(0.16, 1, 0.3, 1),
+      max-width 180ms cubic-bezier(0.16, 1, 0.3, 1),
+      margin 180ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-width 180ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 120ms ease;
   }
   .flow-panel.collapsed {
-    display: none;
+    width: 0;
+    min-width: 0;
+    max-width: 0;
+    margin-right: 0;
+    border-width: 0;
+    box-shadow: none;
+    opacity: 0;
+    pointer-events: none;
   }
   .flow-panel.resizing {
     transition: none;

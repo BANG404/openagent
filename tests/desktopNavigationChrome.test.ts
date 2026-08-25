@@ -250,6 +250,7 @@ describe("desktop navigation chrome", () => {
     const panel = await readFile(new URL("CheckpointFlowStatus.svelte", componentsUrl), "utf8");
 
     expect(route).toContain("bind:checkpointFlowPanelCollapsed");
+    expect(route).toContain("shouldAutoOpenCheckpointFlowPanel(previous, next.flow)");
     expect(titleBar).toContain("<CheckpointFlowToggleButton");
     expect(titleBar.indexOf("<CheckpointFlowToggleButton")).toBeLessThan(
       titleBar.lastIndexOf("<WindowControls {platform}"),
@@ -257,5 +258,8 @@ describe("desktop navigation chrome", () => {
     expect(panel).not.toContain("peek-button");
     expect(panel).not.toContain("collapse-button");
     expect(panel).not.toContain("flow-panel-placeholder");
+    expect(panel).toContain("width 180ms cubic-bezier(0.16, 1, 0.3, 1)");
+    expect(panel).toContain("width: 0;");
+    expect(panel).not.toContain("display: none;");
   });
 });
