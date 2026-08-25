@@ -260,6 +260,7 @@
   let modelConfigOriginalName = $state("");
   let modelConfigName = $state("");
   let modelConfigThreshold = $state<string | number | undefined>("");
+  let modelConfigSupportsReasoningEffort = $state(false);
   let autostartReady = $state(false);
   let autostartSyncing = $state(false);
   let autostartStatus = $state("");
@@ -915,7 +916,35 @@
     modelConfigOriginalName = modelName;
     modelConfigName = modelName;
     modelConfigThreshold = `${provider.model_context_compaction_thresholds[modelName] ?? ""}`;
+    modelConfigSupportsReasoningEffort =
+      provider.provider === "chatgpt" ||
+      provider.model_reasoning_effort_enabled?.[modelName] === true;
     modelConfigDialogOpen = true;
+  }
+
+  function setModelReasoningEffortSupport(
+    provider: ProviderConfig,
+    modelName: string,
+    enabled: boolean,
+  ) {
+    if (provider.provider === "chatgpt") return;
+    const model_reasoning_effort_enabled = { ...(provider.model_reasoning_effort_enabled ?? {}) };
+    if (enabled) model_reasoning_effort_enabled[modelName] = true;
+    else delete model_reasoning_effort_enabled[modelName];
+    provider.model_reasoning_effort_enabled = model_reasoning_effort_enabled;
+
+    if (!enabled) {
+      const model_reasoning_efforts = { ...(provider.model_reasoning_efforts ?? {}) };
+      delete model_reasoning_efforts[modelName];
+      provider.model_reasoning_efforts = model_reasoning_efforts;
+    }
+  }
+
+  function modelConfigUsesResponsesReasoning() {
+    return (
+      draftConfig.providers.find((provider) => provider.id === modelConfigProviderId)?.provider ===
+      "chatgpt"
+    );
   }
 
   function modelConfigValidationError() {
@@ -961,9 +990,18 @@
       if (previousThreshold !== undefined) {
         provider.model_context_compaction_thresholds[nextName] = previousThreshold;
       }
+      const previousEffort = provider.model_reasoning_efforts[previousName];
+      delete provider.model_reasoning_efforts[previousName];
+      if (previousEffort !== undefined) provider.model_reasoning_efforts[nextName] = previousEffort;
+      const enabled = provider.model_reasoning_effort_enabled?.[previousName] === true;
+      const model_reasoning_effort_enabled = { ...(provider.model_reasoning_effort_enabled ?? {}) };
+      delete model_reasoning_effort_enabled[previousName];
+      if (enabled) model_reasoning_effort_enabled[nextName] = true;
+      provider.model_reasoning_effort_enabled = model_reasoning_effort_enabled;
     }
 
     setModelCompactionThreshold(provider, nextName, modelConfigThreshold);
+    setModelReasoningEffortSupport(provider, nextName, modelConfigSupportsReasoningEffort);
     modelConfigDialogOpen = false;
   }
 
@@ -980,6 +1018,11 @@
     provider.model_context_compaction_thresholds = {
       ...provider.model_context_compaction_thresholds,
     };
+    delete provider.model_reasoning_efforts[modelName];
+    provider.model_reasoning_efforts = { ...provider.model_reasoning_efforts };
+    const model_reasoning_effort_enabled = { ...(provider.model_reasoning_effort_enabled ?? {}) };
+    delete model_reasoning_effort_enabled[modelName];
+    provider.model_reasoning_effort_enabled = model_reasoning_effort_enabled;
     repairDefaultModelBindings();
   }
 
@@ -3757,6 +3800,18 @@
             {draftConfig.context_compaction_threshold}
           </span>
         </label>
+
+        <label class="reasoning-support-field">
+          <input
+            type="checkbox"
+            bind:checked={modelConfigSupportsReasoningEffort}
+            disabled={modelConfigUsesResponsesReasoning()}
+          />
+          <span>
+            <span class="label-text">{$t("modelSupportsReasoningEffort")}</span>
+            <span class="field-hint">{$t("modelSupportsReasoningEffortHint")}</span>
+          </span>
+        </label>
       </div>
 
       {#if modelConfigValidationError()}
@@ -3769,7 +3824,7 @@
         </button>
         <div class="dialog-actions-end">
           <button
-            class="dialog-action-quiet"
+            class="model-config-cancel"
             type="button"
             onclick={() => (modelConfigDialogOpen = false)}
           >
@@ -5312,6 +5367,54 @@
     color: var(--text-muted);
     font-size: 12px;
     line-height: 1.4;
+  }
+
+  .reasoning-support-field {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .reasoning-support-field input {
+    width: 15px;
+    height: 15px;
+    margin: 2px 0 0;
+    accent-color: var(--primary);
+  }
+
+  .reasoning-support-field > span {
+    display: grid;
+    gap: 3px;
+  }
+
+  .reasoning-support-field :global(.field-hint) {
+    display: block;
+  }
+
+  .reasoning-support-field:has(input:disabled) {
+    cursor: default;
+  }
+
+  .model-config-cancel {
+    border: 0;
+    background: transparent;
+    padding: 6px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .model-config-cancel:hover {
+    background: transparent;
+    color: var(--text);
+  }
+
+  .model-config-cancel:focus-visible {
+    border-radius: 3px;
+    box-shadow: var(--focus-ring);
+    outline: none;
   }
 
   .dialog-error {
