@@ -3826,20 +3826,6 @@
     return true;
   }
 
-  async function openWorkspaceInNewWindow(
-    path: string,
-    conversationId?: string,
-    messageId?: string,
-  ) {
-    if (!tauriAvailable) return;
-    await addToRecentWorkspaces(path);
-    await invoke("open_workspace_window", {
-      path,
-      conversationId: conversationId ?? null,
-      messageId: messageId ?? null,
-    });
-  }
-
   async function requestWorkspace(path: string) {
     if (!path || path === workspacePath) return;
     await applyWorkspace(path);
@@ -3922,16 +3908,21 @@
     workspace = await invoke<WorkspaceContext>("get_workspace_context");
   }
 
-  async function pickWorkspaceInNewWindow() {
+  async function createNewWindow() {
     if (!tauriAvailable) {
       alert(browserModeNotice);
       return;
     }
-    const defaultPath = await homeDir();
-    const selected = await openDialog({ directory: true, multiple: false, defaultPath });
-    if (typeof selected === "string" && selected) {
-      await openWorkspaceInNewWindow(selected);
-    }
+    if (!workspacePath) return;
+    await invoke("create_workspace_window", { path: workspacePath }).catch((error) => {
+      console.warn("Failed to create workspace window", error);
+      showToast({
+        title: $t("workspaceUnavailable"),
+        description: workspacePath,
+        descriptionFromEnd: true,
+        variant: "error",
+      });
+    });
   }
 
   async function switchNewConversationWorkspace(path: string): Promise<void> {
@@ -4449,7 +4440,7 @@
         onPickWsl={pickWslWorkspace}
         onSelectWorkspace={requestWorkspace}
         onNewConversation={newConversation}
-        onNewWindow={pickWorkspaceInNewWindow}
+        onNewWindow={createNewWindow}
         onOpenSettings={() => openSettings()}
         onOpenAbout={() => openSettings("about")}
         onQuit={quitApp}
