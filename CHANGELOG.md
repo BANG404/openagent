@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.48.0-beta.2] - 2026-08-25
+
+## [0.48.0-beta.1] - 2026-08-25
+
+### Features
+- **settings**: Unify channel list inputs
+
+### Bug Fixes
+- Synchronize onboarding native theme
+- **settings**: Align numeric card inputs
+- Restore settings input borders
+- Enforce shared settings elevation
+- **chat**: Unify message and attachment fills
+- **chat**: Unify rich card selection surfaces
+
+### Styling
+- **settings**: Flatten action surfaces
+- Reduce onboarding card height
+- Balance onboarding columns
+- Unify shadowless settings surfaces
+- Share shadowless settings controls
+- Remove settings and conversation card shadows
+
 ## [0.47.2-beta.1] - 2026-08-24
 
 ### Bug Fixes
