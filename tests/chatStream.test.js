@@ -1,5 +1,6 @@
 // @ts-nocheck -- Bun provides the test module at runtime.
 import { describe, expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
 import { appendCompactionProgress, resolveUserInput } from "../src/lib/chatStream";
 import {
   ROOT_KEY,
@@ -43,6 +44,35 @@ describe("background checkpoint reconciliation", () => {
         new Set(["user-1"]),
       ),
     ).toEqual([previousUser, queuedUser]);
+  });
+});
+
+describe("external conversation hydration", () => {
+  test("keeps a quick-chat user message that arrives during foreground hydration", () => {
+    const externalUser = {
+      id: "quick-user-1",
+      role: "user",
+      content: "from quick chat",
+      timestamp: 1,
+    };
+
+    expect(preserveMessagesAddedDuringHydration([externalUser], [], new Set())).toEqual([
+      externalUser,
+    ]);
+  });
+
+  test("reloads the first durable checkpoint when a live run has no user message", async () => {
+    const pageSource = await readFile(
+      new URL("../src/routes/+page.svelte", import.meta.url),
+      "utf8",
+    );
+
+    expect(pageSource).toMatch(
+      /const messageIdsAtStart = new Set\([\s\S]*?\.messages\.map\(\(message\) => message\.id\)/,
+    );
+    expect(pageSource).toMatch(
+      /onCheckpoint:[\s\S]*?!visibleMessages\.some\(\(message\) => message\.role === "user"\)[\s\S]*?pendingExternalUserRecoveries\.add\(conv_id\)[\s\S]*?loadMessagesForConv\(conv_id, false, true\)/,
+    );
   });
 });
 
