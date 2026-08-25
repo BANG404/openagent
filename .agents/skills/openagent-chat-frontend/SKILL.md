@@ -969,7 +969,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   primary blue pills for creation, divider-bordered filled controls for ordinary
   file, test, and navigation actions, blue controls for inline row construction,
   and restrained danger-tinted controls with a subtle matching perimeter for
-  destructive actions. Size ordinary action buttons
+  destructive actions. Model-configuration dialog save and delete actions use
+  those shared primary and danger controls so hover, pressed, focus-visible, and
+  disabled feedback stays consistent. Size ordinary action buttons
   to their content, let creation actions in a fixed list footer fill its available
   width, and align standalone form-testing actions to the trailing edge. Keep
   informational callouts free of decorative borders and render destructive

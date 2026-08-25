@@ -3821,9 +3821,12 @@
       {/if}
 
       <div class="dialog-actions model-config-actions">
-        <button class="danger-btn" onclick={deleteConfiguredModel}>
-          {$t("deleteModel")}
-        </button>
+        <SettingsActionButton
+          label={$t("deleteModel")}
+          icon="trash"
+          tone="danger"
+          onclick={deleteConfiguredModel}
+        />
         <div class="dialog-actions-end">
           <button
             class="model-config-cancel"
@@ -3832,13 +3835,12 @@
           >
             {$t("cancel")}
           </button>
-          <button
-            class="btn-primary"
+          <SettingsActionButton
+            label={$t("save")}
+            tone="primary"
             onclick={saveModelConfig}
             disabled={Boolean(modelConfigValidationError())}
-          >
-            {$t("save")}
-          </button>
+          />
         </div>
       </div>
     </Dialog.Content>
