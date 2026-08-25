@@ -82,6 +82,8 @@
   import ConversationSurface from "$lib/components/ConversationSurface.svelte";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import {
+    checkpointFlowPanelKey,
+    shouldAutoOpenCheckpointFlowPanel,
     updateLiveCheckpointFlowProjection,
     type LiveCheckpointFlowProjection,
   } from "$lib/checkpointFlow";
@@ -350,6 +352,8 @@
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
   let checkpointFlowPanelCollapsed = $state(true);
+  let checkpointFlowPanelSelectionKey = $state<string | null>(null);
+  let checkpointFlowPanelAutoOpenKey = $state<string | null>(null);
   let workspace = $state<WorkspaceContext | null>(null);
   let config = $state<AppConfig | null>(null);
   let isMemorySyncing = $state(false);
@@ -617,6 +621,18 @@
       ? (liveCheckpointFlowProjections[activeConvId]?.flow ?? currentCheckpointFlowNode?.flow)
       : undefined,
   );
+
+  $effect(() => {
+    const key = checkpointFlowPanelKey(
+      activeConvId,
+      activeConvId ? (activeBranchIds[activeConvId] ?? null) : null,
+      currentCheckpointFlow,
+    );
+    if (key === checkpointFlowPanelSelectionKey) return;
+    checkpointFlowPanelSelectionKey = key;
+    checkpointFlowPanelCollapsed = !key || key !== checkpointFlowPanelAutoOpenKey;
+    if (key === checkpointFlowPanelAutoOpenKey) checkpointFlowPanelAutoOpenKey = null;
+  });
   const compactionOnlyConvIds = new Set<string>();
   const compactionProgressRevisions = new Map<string, number>();
   let workspacePrefsSaveQueue: Promise<void> = Promise.resolve();
@@ -754,6 +770,15 @@
     const current = liveCheckpointFlowProjections[convId];
     const next = updateLiveCheckpointFlowProjection(current, update);
     if (!next || next === current) return;
+    const previous = current?.flow ?? getActiveTipNode(convTrees[convId])?.flow;
+    if (convId === activeConvId && shouldAutoOpenCheckpointFlowPanel(previous, next.flow)) {
+      checkpointFlowPanelAutoOpenKey = checkpointFlowPanelKey(
+        convId,
+        activeBranchIds[convId] ?? null,
+        next.flow,
+      );
+      checkpointFlowPanelCollapsed = false;
+    }
     liveCheckpointFlowProjections = { ...liveCheckpointFlowProjections, [convId]: next };
   }
 

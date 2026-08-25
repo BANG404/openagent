@@ -129,11 +129,14 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   overlay until the matching persisted `chat-checkpoint` has been reconciled.
   Leave optimistic transcript records mounted throughout and ignore stale
   asynchronous refreshes so an older checkpoint cannot replace a newer live
-  Goal or Graph state. A new or newly selected flow starts with its resizable
-  right-side status panel fully collapsed; a user's expand or collapse choice
-  survives later checkpoints for that same flow. Keep the single panel toggle at
+  Goal or Graph state. A newly created Goal or Graph automatically opens its
+  resizable right-side status panel, including flows created by slash commands
+  or tools. Selecting an existing flow starts collapsed, while a user's expand
+  or collapse choice survives later checkpoints for that same selected flow.
+  Keep the single panel toggle at
   the trailing end of the shared title bar, use it for both expansion and collapse,
-  and remove the panel entirely from the conversation layout while collapsed.
+  and collapse the panel to a zero-width, non-interactive track using the same
+  180ms width curve as the conversation sidebar.
   Place the expanded panel
   as a full-height inset card inside the conversation workspace's flex container,
   using the same translucent Mica material as the conversation surface so it stays
