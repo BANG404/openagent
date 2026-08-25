@@ -34,6 +34,7 @@
     createProviderConfig,
     mcpConnectionFingerprint,
     providerConnectionFingerprint,
+    providerServiceName,
     repairModelBindings,
     replaceProviderModels,
     selectModelBindingProvider,
@@ -635,7 +636,7 @@
     return draftConfig.providers.filter((provider) => {
       const matchesQuery =
         !query ||
-        provider.name.toLowerCase().includes(query) ||
+        providerServiceName(provider).toLowerCase().includes(query) ||
         provider.provider.toLowerCase().includes(query) ||
         provider.base_url.toLowerCase().includes(query) ||
         provider.models.some((model) => model.toLowerCase().includes(query));
@@ -1036,7 +1037,7 @@
       .filter((provider) => provider.enabled && provider.models.length > 0)
       .map((provider) => ({
         value: provider.id,
-        label: provider.name,
+        label: providerServiceName(provider),
         icon: providerIconPath(provider.provider),
         iconFallback: providerCatalogEntry(provider.provider).badge,
       }));
@@ -2576,7 +2577,7 @@
                       <img src={providerIcon} alt="" aria-hidden="true" />
                     </div>
                     <div class="provider-item-info">
-                      <span class="provider-item-name">{provider.name}</span>
+                      <span class="provider-item-name">{providerServiceName(provider)}</span>
                       <span class="provider-item-url">{getProviderUrl(provider)}</span>
                     </div>
                     <span
@@ -2614,7 +2615,7 @@
       {#if selectedProviderIndex >= 0 && selectedProvider}
         <div class="settings-detail-col">
           <div class="detail-top-bar">
-            <span class="detail-service-name">{selectedProvider.name}</span>
+            <span class="detail-service-name">{providerServiceName(selectedProvider)}</span>
             <SettingsStatusToggle
               statusLabel={selectedProvider.enabled ? $t("filterEnabled") : $t("filterDisabled")}
               statusActive={selectedProvider.enabled}
@@ -2633,6 +2634,7 @@
                 <input
                   class="detail-input"
                   bind:value={draftConfig.providers[selectedProviderIndex].name}
+                  placeholder={providerServiceName(selectedProvider)}
                 />
               </label>
               <div class="detail-label">

@@ -5,6 +5,7 @@ import {
   applyFetchedProviderModels,
   createProviderConfig,
   mcpConnectionFingerprint,
+  providerServiceName,
   repairModelBindings,
   replaceProviderModels,
   selectModelBindingProvider,
@@ -54,11 +55,23 @@ describe("settings config helpers", () => {
   test("creates deterministic provider defaults when an id is supplied", () => {
     expect(createProviderConfig("anthropic", "provider-id")).toMatchObject({
       id: "provider-id",
-      name: "Anthropic Claude Node",
+      name: "",
       provider: "anthropic",
       enabled: false,
       models: [],
     });
+  });
+
+  test("derives an unnamed service from its effective request domain", () => {
+    const custom = createProviderConfig("openai", "custom");
+    custom.base_url = "https://gateway.example.com/v1";
+    expect(providerServiceName(custom)).toBe("gateway.example.com");
+
+    const builtIn = createProviderConfig("anthropic", "built-in");
+    expect(providerServiceName(builtIn)).toBe("api.anthropic.com");
+
+    builtIn.name = "My Claude";
+    expect(providerServiceName(builtIn)).toBe("My Claude");
   });
 
   test("repairs defaults and prunes retry bindings against enabled models", () => {
