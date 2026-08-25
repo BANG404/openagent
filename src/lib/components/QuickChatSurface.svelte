@@ -309,8 +309,10 @@
       : null;
     const unlistenFocus = appWindow?.onFocusChanged(({ payload: focused }) => {
       if (focusSuppressed) return;
-      if (focused) focusArmed = true;
-      else if (focusArmed) void close();
+      if (focused) {
+        focusArmed = true;
+        inputFocusRequest += 1;
+      } else if (focusArmed) void close();
     });
     const unlistenMoved = appWindow?.onMoved(({ payload: position }) => {
       saveQuickChatWindowPosition(window.localStorage, position);

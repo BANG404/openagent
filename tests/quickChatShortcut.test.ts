@@ -23,6 +23,9 @@ describe("quick chat shortcut", () => {
     );
     expect(surfaceSource).toContain("inputFocusRequest += 1;");
     expect(surfaceSource).toContain("focusRequest={inputFocusRequest}");
+    expect(surfaceSource).toMatch(
+      /if \(focused\) \{\s+focusArmed = true;\s+inputFocusRequest \+= 1;/,
+    );
     expect(inputSource).toMatch(/if \(focusRequest > 0\) void focusInput\(\);/);
   });
 

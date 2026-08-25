@@ -329,6 +329,7 @@
   // A checkpoint event is emitted only after its durable snapshot exists. Keep
   // Goal/Graph projection current without hydrating partial transcript records.
   const liveCheckpointRefreshVersions = new Map<string, number>();
+  const pendingExternalUserRecoveries = new Set<string>();
   // Goal tools and Graph reducers mutate the canonical in-memory checkpoint
   // before that snapshot becomes durable. Render their complete event projection
   // until the matching persisted checkpoint has been reconciled.
@@ -697,13 +698,11 @@
     if (loadedConvIds.has(convId) && !forceRefresh) return;
     loadedConvIds.add(convId);
     if (!tauriAvailable) return;
-    const messageIdsAtStart = showLoadingState
-      ? undefined
-      : new Set(
-          conversations
-            .find((conversation) => conversation.id === convId)
-            ?.messages.map((message) => message.id) ?? [],
-        );
+    const messageIdsAtStart = new Set(
+      conversations
+        .find((conversation) => conversation.id === convId)
+        ?.messages.map((message) => message.id) ?? [],
+    );
     if (showLoadingState) {
       loadingConversationIds = { ...loadingConversationIds, [convId]: true };
     }
@@ -2523,6 +2522,19 @@
       onCheckpoint: (conv_id, checkpoint_id) => {
         pendingCheckpointIds = { ...pendingCheckpointIds, [conv_id]: checkpoint_id };
         void refreshLiveCheckpointTip(conv_id, checkpoint_id);
+        const visibleMessages = conversations.find(
+          (conversation) => conversation.id === conv_id,
+        )?.messages;
+        if (
+          visibleMessages &&
+          !visibleMessages.some((message) => message.role === "user") &&
+          !pendingExternalUserRecoveries.has(conv_id)
+        ) {
+          pendingExternalUserRecoveries.add(conv_id);
+          void loadMessagesForConv(conv_id, false, true).finally(() => {
+            pendingExternalUserRecoveries.delete(conv_id);
+          });
+        }
       },
       onRetry: (conv_id, attempt, maxAttempts, model, error, restoredCheckpoint) => {
         chatStreams.clearAwaitingOutput(conv_id);
