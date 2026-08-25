@@ -224,15 +224,17 @@ and onboarding views therefore call out manual model entry; fetching that
 catalog again replaces the configured model list, including manually added
 names. Fetching a non-empty model catalog or successfully detecting a service
 with a non-empty catalog also enables that model service and repairs unavailable
-default-model bindings; an empty catalog leaves the service disabled. For
-ChatGPT OAuth models, the composer exposes Light, Medium, High,
-Extra High, and Ultra reasoning effort. The selection is stored per model and
-projected to the Responses API as `reasoning.effort = low | medium | high |
-xhigh | max`; chat retries, interrupt resumes, and flash-agent work use the
-same model setting. A model without an explicit selection keeps the provider's
-default (shown as Medium in the composer). OpenAgent does not currently expose
-ChatGPT speed/service-tier controls, so request scheduling uses the provider
-path's default.
+default-model bindings; an empty catalog leaves the service disabled. Model
+configuration lets a user declare that a model supports reasoning effort.
+For any declared non-ChatGPT model, the composer exposes Light, Medium, High,
+Extra High, and Ultra and Rig receives `reasoning_effort = low | medium |
+high | xhigh | max`. ChatGPT OAuth models always support the control and use
+the Responses API form, `reasoning.effort`; chat retries, interrupt resumes,
+and flash-agent work use the same model setting. A model without an explicit
+selection keeps the provider's default (shown as Medium in the composer). A
+service must support the documented field before users enable it for a model.
+OpenAgent does not currently expose ChatGPT speed/service-tier controls, so
+request scheduling uses the provider path's default.
 
 OpenAgent validates `messages.db` before constructing the runtime. Schema v1 is
 the current compatibility baseline. A database inside a future declared support

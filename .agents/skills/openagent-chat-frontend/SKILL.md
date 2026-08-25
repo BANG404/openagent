@@ -353,7 +353,7 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   General settings. Switching `manual`, `auto`, or `off` saves the normalized
   configuration without changing the independent permission profile; quick
   chat does not own or mutate this control.
-- Keep main-composer model selection, ChatGPT reasoning effort, and approval
+- Keep main-composer model selection, per-model reasoning effort, and approval
   persistence in the composer-preferences controller so queued saves and
   rollback-to-settings behavior remain one boundary rather than page-level
   state spread across render branches. Snapshot reactive configuration before

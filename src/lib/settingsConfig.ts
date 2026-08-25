@@ -21,6 +21,7 @@ export function createProviderConfig(
     models: [],
     model_context_compaction_thresholds: {},
     model_reasoning_efforts: {},
+    model_reasoning_effort_enabled: {},
   };
 }
 
@@ -52,6 +53,11 @@ export function replaceProviderModels(provider: ProviderConfig, models: string[]
   provider.model_reasoning_efforts = Object.fromEntries(
     Object.entries(provider.model_reasoning_efforts ?? {}).filter(([model]) =>
       models.includes(model),
+    ),
+  );
+  provider.model_reasoning_effort_enabled = Object.fromEntries(
+    Object.entries(provider.model_reasoning_effort_enabled ?? {}).filter(
+      ([model, enabled]) => models.includes(model) && enabled,
     ),
   );
 }
