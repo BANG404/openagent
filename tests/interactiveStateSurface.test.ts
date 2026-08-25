@@ -108,6 +108,9 @@ test("reuses shared controls across onboarding and settings collections", async 
   expect(permissions).not.toMatch(/\.permission-settings\s*{[^}]*box-shadow:/s);
   expect(settings).not.toContain('class="interactive-control filter-toggle"');
   expect(settings).toMatch(/<SettingsActionButton\s+label=\{providerFilter/);
+  expect(settingsActionButton).toMatch(
+    /\.settings-action\s*{[^}]*border: 1px solid var\(--mica-divider\);/s,
+  );
   expect(settingsActionButton).toMatch(/\.settings-action\s*{[^}]*box-shadow: none;/s);
   expect(settings.match(/class="detail-input settings-card-number-input"/g)).toHaveLength(6);
   expect(settings).toMatch(

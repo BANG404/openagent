@@ -44,13 +44,12 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   The welcome step first explains
   what OpenAgent does, what the setup will configure, and how the selected
   workspace scopes file and command activity, so a first-time user can make an
-  informed choice before continuing. Both sides use whitespace,
-  neutral fill, and shared elevation instead of perimeter borders or divider
-  lines; dense provider content scrolls inside the form column without changing
+  informed choice before continuing. The right-side setup canvas and its nested
+  summary cards use the same bordered, shadowless Mica surface as grouped
+  Settings cards, while spacing rather than divider lines separates the two
+  columns. Dense provider content scrolls inside the form column without changing
   the native window geometry, and its scrollbar stays flush with the trailing
-  edge of the inset canvas while the content keeps its reading inset. Preserve
-  enough space around the content canvas for its raised shadow to remain visible
-  on every edge.
+  edge of the inset canvas while the content keeps its reading inset.
   The title bar and sidebar share the
   native window material: Windows prefers Mica with Acrylic and Blur fallbacks,
   while macOS uses Vibrancy. The ordinary WebView canvas, shared chrome,
@@ -281,7 +280,7 @@ Conversation canvases, new-conversation states, and composer backgrounds use onl
 
 **`dialog-action-quiet`** — A low-emphasis alternative action in application dialogs. It uses a transparent background, no border, muted text at 13px, and adopts the shared neutral interaction fill plus normal text color on hover. Use it for reversible choices such as “Switch this window” and “Cancel” beside a filled primary action; do not render those choices as bordered secondary buttons. Keep destructive actions visually separate from this quiet action and the primary confirmation.
 
-**Settings actions** — Keep settings-page actions on a compact 30px grammar with an icon and explicit semantic hierarchy. Creation actions use a content-sized primary blue pill instead of a full-width gray bar. Ordinary file and test actions use an 8px borderless filled control with `--control-shadow`; inline row-building actions use a shadowless blue text treatment. Destructive actions use a restrained danger-tinted fill and no shadow, especially inside an already elevated danger card. Status text and switches remain flat and must not be wrapped in additional gray capsules.
+**Settings actions** — Keep settings-page and onboarding actions on a compact 30px grammar with an icon and explicit semantic hierarchy. Creation actions use a content-sized primary blue pill instead of a full-width gray bar. Ordinary file, test, and navigation actions use an 8px shadowless filled control with the same restrained `--mica-divider` perimeter as Settings inputs; inline row-building actions use a shadowless blue text treatment. Destructive actions use a restrained danger-tinted fill and matching subtle perimeter, especially inside a grouped Settings card. Status text and switches remain flat and must not be wrapped in additional gray capsules.
 
 **`text-link`** — Inline body links in `{colors.primary}` (Action Blue). Underlined or non-underlined per context.
 

@@ -30,7 +30,7 @@ describe("Windows window controls", () => {
     expect(source).toMatch(/\.onboarding-header\s*{[^}]*height: 40px;/s);
     expect(source).toMatch(/\.onboarding-header\s*{[^}]*padding: 0;/s);
     expect(source).toMatch(/\.onboarding-visual\s*{[^}]*background: transparent;/s);
-    expect(source).toMatch(/button\s*{[^}]*border: 0;/s);
+    expect(source).toMatch(/\.onboarding-nav-item\s*{[^}]*border: 0;/s);
   });
 
   test("keeps onboarding on one fixed Windows 11-style canvas", async () => {

@@ -12,6 +12,7 @@
   } from "$lib/providerCatalog";
   import Tooltip from "./Tooltip.svelte";
   import Select from "./ui/Select.svelte";
+  import SettingsActionButton from "./ui/SettingsActionButton.svelte";
   import WindowControls from "./WindowControls.svelte";
 
   let {
@@ -328,21 +329,22 @@
       </div>
     </aside>
 
-    <main class="step-content" aria-label={copy.steps[step]}>
+    <main class="application-settings-surface step-content" aria-label={copy.steps[step]}>
       <div class="step-scroll">
         {#if step === 0}
           <h1>{copy.welcomeTitle}</h1>
           <p class="lead">{copy.welcomeBody}</p>
           <p class="setup-description">{copy.setupBody}</p>
-          <div class="workspace-card">
+          <div class="application-settings-surface workspace-card">
             <div>
               <span>{copy.workspace}</span>
               <strong>{workspacePath || copy.noWorkspace}</strong>
               <p>{copy.workspaceDescription}</p>
             </div>
-            <button class="secondary" onclick={() => void onPickWorkspace()}
-              >{copy.chooseWorkspace}</button
-            >
+            <SettingsActionButton
+              label={copy.chooseWorkspace}
+              onclick={() => void onPickWorkspace()}
+            />
           </div>
         {:else if step === 1}
           <h1>{copy.preferenceTitle}</h1>
@@ -379,7 +381,12 @@
                 <span class:online={provider.enabled}></span>{provider.name}
               </button>
             {/each}
-            <button class="add" onclick={addProvider}>{copy.addProvider}</button>
+            <SettingsActionButton
+              label={copy.addProvider}
+              icon="add"
+              tone="primary"
+              onclick={addProvider}
+            />
           </div>
           {#if selectedProvider}
             <div class="form-grid">
@@ -439,18 +446,16 @@
                     if (event.key === "Enter") addManualModel();
                   }}
                 />
-                <button class="secondary" onclick={addManualModel}>{copy.addModel}</button>
+                <SettingsActionButton label={copy.addModel} onclick={addManualModel} />
               </div>
               <div class="connection-row">
-                <button
-                  class="verify"
+                <SettingsActionButton
+                  label={connectionStatus === "loading" ? copy.verifying : copy.verify}
                   onclick={verifyProvider}
                   disabled={(providerRequiresApiKey(selectedProvider.provider) &&
                     !selectedProvider.api_key.trim()) ||
                     connectionStatus === "loading"}
-                >
-                  {connectionStatus === "loading" ? copy.verifying : copy.verify}
-                </button>
+                />
                 {#if connectionMessage}<p
                     class:success={connectionStatus === "success"}
                     class:error={connectionStatus === "error"}
@@ -488,7 +493,7 @@
         {:else}
           <h1>{copy.readyTitle}</h1>
           <p class="lead">{copy.readyBody}</p>
-          <div class="summary">
+          <div class="application-settings-surface summary">
             <span>{copy.chatModel}</span>
             <strong>{draft.defaults.chat_model.model}</strong>
             <span>{copy.workspace}</span>
@@ -499,17 +504,25 @@
       </div>
 
       <footer>
-        <button class="secondary" onclick={() => (step -= 1)} disabled={step === 0 || saving}
-          >{copy.back}</button
-        >
+        <SettingsActionButton
+          label={copy.back}
+          onclick={() => (step -= 1)}
+          disabled={step === 0 || saving}
+        />
         {#if step < 4}
-          <button class="primary" onclick={() => (step += 1)} disabled={!canContinue}
-            >{copy.next}</button
-          >
+          <SettingsActionButton
+            label={copy.next}
+            tone="primary"
+            onclick={() => (step += 1)}
+            disabled={!canContinue}
+          />
         {:else}
-          <button class="primary" onclick={finish} disabled={saving}
-            >{saving ? "…" : copy.finish}</button
-          >
+          <SettingsActionButton
+            label={saving ? "…" : copy.finish}
+            tone="primary"
+            onclick={finish}
+            disabled={saving}
+          />
         {/if}
       </footer>
     </main>
@@ -642,8 +655,7 @@
     margin-block: 8px;
     overflow: hidden;
     border-radius: 8px;
-    background: var(--bg);
-    box-shadow: var(--raised-shadow);
+    background: var(--mica-surface);
   }
   .step-scroll {
     min-height: 0;
@@ -675,10 +687,8 @@
   .workspace-card,
   .summary {
     padding: 16px;
-    border: 0;
     border-radius: 8px;
-    background: var(--surface);
-    box-shadow: var(--control-shadow);
+    background: var(--mica-surface);
   }
   .workspace-card {
     display: flex;
@@ -691,7 +701,7 @@
     min-width: 0;
     gap: 5px;
   }
-  .workspace-card button {
+  .workspace-card :global(.settings-action) {
     white-space: nowrap;
   }
   .workspace-card span,
@@ -745,9 +755,6 @@
     background: var(--interactive-state-bg);
     color: var(--text);
   }
-  .provider-tabs .add {
-    color: var(--primary);
-  }
   .provider-tabs span {
     width: 6px;
     height: 6px;
@@ -757,39 +764,24 @@
   .provider-tabs span.online {
     background: #22a06b;
   }
-  button {
+  .provider-tabs button {
     min-height: 34px;
     padding: 0 14px;
-    border: 0;
+    border: 1px solid var(--mica-divider);
     border-radius: 7px;
-    background: var(--surface);
+    background: var(--mica-surface);
     color: var(--text);
     cursor: pointer;
     font: inherit;
     font-size: 12px;
-    box-shadow: var(--control-shadow);
-  }
-  button:hover:not(:disabled) {
-    background: var(--interactive-state-bg);
-  }
-  button:disabled {
-    cursor: default;
-    opacity: 0.5;
-  }
-  .primary {
-    min-width: 92px;
-    background: var(--primary);
-    color: white;
     box-shadow: none;
   }
-  .primary:hover:not(:disabled) {
-    background: var(--primary-hover, var(--primary));
+  .provider-tabs button:hover:not(:disabled) {
+    background: var(--interactive-state-bg);
   }
-  .secondary {
-    background: var(--surface);
-  }
-  .verify {
-    color: var(--primary);
+  .provider-tabs button:disabled {
+    cursor: default;
+    opacity: 0.5;
   }
   .connection-row {
     display: flex;
@@ -810,7 +802,7 @@
     font-size: 12px;
     line-height: 1.5;
   }
-  .manual-model-row .secondary {
+  .manual-model-row :global(.settings-action) {
     white-space: nowrap;
   }
   .connection-row p {

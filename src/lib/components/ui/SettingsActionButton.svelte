@@ -58,7 +58,7 @@
     justify-content: center;
     gap: 7px;
     padding: 0 12px;
-    border: 0;
+    border: 1px solid var(--mica-divider);
     border-radius: 8px;
     background: var(--control-surface);
     color: var(--text);
@@ -87,6 +87,7 @@
   }
 
   .settings-action.primary {
+    border-color: transparent;
     border-radius: 9999px;
     background: var(--primary);
     color: white;
@@ -101,12 +102,14 @@
   .settings-action.quiet {
     min-height: 28px;
     padding-inline: 5px;
+    border-color: transparent;
     background: transparent;
     color: var(--primary);
     box-shadow: none;
   }
 
   .settings-action.danger {
+    border-color: color-mix(in srgb, var(--danger) 18%, transparent);
     background: color-mix(in srgb, var(--danger) 11%, transparent);
     color: var(--danger);
     box-shadow: none;

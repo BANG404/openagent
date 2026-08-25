@@ -93,10 +93,12 @@ describe("desktop navigation chrome", () => {
     );
     expect(route).toMatch(/\.app\s*{[^}]*background: transparent;/s);
 
-    for (const component of ["SettingsView.svelte", "OnboardingFlow.svelte"]) {
-      const source = await readFile(new URL(component, componentsUrl), "utf8");
-      expect(source).toContain("background: var(--bg)");
-    }
+    const settings = await readFile(new URL("SettingsView.svelte", componentsUrl), "utf8");
+    const onboarding = await readFile(new URL("OnboardingFlow.svelte", componentsUrl), "utf8");
+
+    expect(settings).toContain("background: var(--bg)");
+    expect(onboarding).toContain('class="application-settings-surface step-content"');
+    expect(onboarding).toMatch(/\.step-content\s*{[^}]*background: var\(--mica-surface\);/s);
 
     for (const [component, transparentRegions] of [
       [

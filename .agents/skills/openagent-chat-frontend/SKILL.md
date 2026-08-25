@@ -545,9 +545,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   step content scrolls inside that form column without resizing the window; keep
   its scrollbar flush with the trailing canvas edge while preserving the content
   inset. Separate both columns through spacing and neutral selection fill instead
-  of divider lines. Onboarding controls use filled surfaces, elevation, and focus
-  state rather than resting perimeter borders. Keep a canvas inset on every edge
-  so overflow clipping cannot remove the raised shadow.
+  of divider lines. The right-side setup canvas and its nested summary cards use
+  the same bordered, shadowless Mica surface as grouped Settings cards. Reuse the
+  shared Settings action button for ordinary onboarding actions; its secondary
+  treatment carries the same restrained divider-colored perimeter as Settings
+  inputs, while primary actions remain filled.
   Render a layout-stable loading skeleton until its
   configuration is ready. Keep the development-only `onboarding-preview` query with
   `onboarding-preview-theme=light|dark` and `onboarding-preview-locale=zh|en`
@@ -959,9 +961,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   addressable without native plugin state. Plugin cards and loading or empty
   states must not use a flat secondary gray fill.
 - Settings action controls use one compact, shadowless semantic hierarchy:
-  primary blue pills for creation, borderless filled controls for ordinary file
-  and test actions, blue controls for inline row construction, and restrained
-  danger-tinted controls for destructive actions. Size ordinary action buttons
+  primary blue pills for creation, divider-bordered filled controls for ordinary
+  file, test, and navigation actions, blue controls for inline row construction,
+  and restrained danger-tinted controls with a subtle matching perimeter for
+  destructive actions. Size ordinary action buttons
   to their content, let creation actions in a fixed list footer fill its available
   width, and align standalone form-testing actions to the trailing edge. Keep
   informational callouts free of decorative borders and render destructive
