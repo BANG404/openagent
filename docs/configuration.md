@@ -206,6 +206,10 @@ must have a bundled icon; the exhaustive mapping makes a newly added type fail
 type-checking until its asset is assigned. Artwork comes from Cherry Studio at
 commit `16e2905fd30fbfe21d1c58651574dcc939b6fb30` where available, with missing
 brands sourced from the provider's official site or project repository.
+The service name is optional. When it is blank, configuration normalization uses
+the hostname of the configured request URL, or the hostname of that service
+type's default request URL when no custom URL is set. Services without a valid
+request URL fall back to the catalog display name.
 
 Default-model and retry-queue bindings treat the provider and model as one
 selection. Changing a provider immediately replaces the model with that

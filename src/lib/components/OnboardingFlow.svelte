@@ -4,7 +4,7 @@
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
   import type { AppConfig, DefaultModelBinding } from "$lib/types";
-  import { createProviderConfig } from "$lib/settingsConfig";
+  import { createProviderConfig, providerServiceName } from "$lib/settingsConfig";
   import {
     PROVIDER_CATALOG,
     providerDefaultBaseUrl,
@@ -79,7 +79,7 @@
           providerTitle: "Connect a model service",
           providerBody: "Choose a model service, then verify the connection and load its models.",
           addProvider: "Add service",
-          providerName: "Service name",
+          providerName: "Service name (optional)",
           providerType: "Service type",
           baseUrl: "Base URL (optional)",
           apiKey: "API key",
@@ -127,7 +127,7 @@
           providerTitle: "连接模型服务",
           providerBody: "选择模型服务，验证连接并获取可用模型。",
           addProvider: "添加服务",
-          providerName: "服务名称",
+          providerName: "服务名称（可选）",
           providerType: "服务类型",
           baseUrl: "服务地址（可选）",
           apiKey: "API Key",
@@ -163,7 +163,7 @@
       .flatMap((provider) =>
         provider.models.map((model) => ({
           value: JSON.stringify([provider.id, model]),
-          label: `${model} · ${provider.name}`,
+          label: `${model} · ${providerServiceName(provider)}`,
           binding: { provider_id: provider.id, model } satisfies DefaultModelBinding,
         })),
       ),
@@ -378,7 +378,7 @@
                 class:active={provider.id === selectedProviderId}
                 onclick={() => (selectedProviderId = provider.id)}
               >
-                <span class:online={provider.enabled}></span>{provider.name}
+                <span class:online={provider.enabled}></span>{providerServiceName(provider)}
               </button>
             {/each}
             <SettingsActionButton
@@ -393,7 +393,11 @@
               <div class="two">
                 <label>
                   <span>{copy.providerName}</span>
-                  <input class="application-settings-control" bind:value={selectedProvider.name} />
+                  <input
+                    class="application-settings-control"
+                    bind:value={selectedProvider.name}
+                    placeholder={providerServiceName(selectedProvider)}
+                  />
                 </label>
                 <label>
                   <span>{copy.providerType}</span>

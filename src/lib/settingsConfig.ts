@@ -1,5 +1,5 @@
 import type { AppConfig, DefaultModelBinding, McpServerConfig, ProviderConfig } from "$lib/types";
-import { providerCatalogEntry } from "$lib/providerCatalog";
+import { providerCatalogEntry, providerDefaultBaseUrl } from "$lib/providerCatalog";
 
 export type RetryQueueKind = "chat_queue" | "flash_queue";
 
@@ -13,7 +13,7 @@ export function createProviderConfig(
 ): ProviderConfig {
   return {
     id,
-    name: `${providerCatalogEntry(provider).label} Node`,
+    name: "",
     provider,
     api_key: "",
     base_url: "",
@@ -23,6 +23,18 @@ export function createProviderConfig(
     model_reasoning_efforts: {},
     model_reasoning_effort_enabled: {},
   };
+}
+
+export function providerServiceName(provider: ProviderConfig): string {
+  const explicitName = provider.name.trim();
+  if (explicitName) return explicitName;
+
+  const requestUrl = provider.base_url.trim() || providerDefaultBaseUrl(provider.provider);
+  try {
+    return new URL(requestUrl).hostname || providerCatalogEntry(provider.provider).label;
+  } catch {
+    return providerCatalogEntry(provider.provider).label;
+  }
 }
 
 export function providerConnectionFingerprint(provider: ProviderConfig): string {

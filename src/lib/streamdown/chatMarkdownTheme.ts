@@ -10,6 +10,10 @@ export const chatMarkdownTheme: NonNullable<StreamdownProps["theme"]> = {
   code: {
     container: "chat-code-container",
     header: "chat-code-header",
+    buttons: "chat-code-buttons",
+    language: "chat-code-language",
     skeleton: "chat-code-skeleton",
+    pre: "chat-code-pre",
+    line: "chat-code-line",
   },
 };

@@ -19,10 +19,8 @@ describe("native window theme", () => {
       await readFile(new URL("../src-tauri/capabilities/default.json", import.meta.url), "utf8"),
     );
 
-    expect(route).toContain(
-      'const nativeTheme = theme === "system" ? null : dark ? "dark" : "light";',
-    );
-    expect(route).toContain(".setTheme(nativeTheme)");
+    expect(route).toContain("createNativeThemeSynchronizer({");
+    expect(route).toContain("setNativeTheme: (theme) => appWindow.setTheme(theme)");
     expect(route).toContain("onThemePreview={applyTheme}");
     expect(settings).toContain("if (onThemePreview) onThemePreview(theme);");
     expect(settings).toContain("else applyDocumentTheme(theme);");
