@@ -31,6 +31,13 @@ Read `sdk/AGENTS.md` before changing the SDK side of any boundary.
 - Exclude headless agent-server and SDK-owned
   `--openagent-workspace-window` processes from that guard; dedicated workspace
   processes are part of the multi-workspace contract.
+- File -> New window launches an independent copy of the current workspace
+  immediately. Keep that explicit duplicate detached from the SDK's registered
+  workspace route so targeted navigation continues to focus the canonical
+  workspace process.
+- Reveal a dedicated workspace window's main shell as soon as Tauri setup owns
+  the runtime host. Let the frontend's layout-stable loading state remain
+  visible while startup bootstrap restores durable conversation data.
 - Tauri's synchronous `setup` callback is not a Tokio worker. Enter
   `tauri::async_runtime` before SDK lifecycle calls that spawn Tokio tasks.
 - Run SDK-owned persisted-data compatibility inspection before runtime and

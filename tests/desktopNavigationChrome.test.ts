@@ -145,7 +145,7 @@ describe("desktop navigation chrome", () => {
     expect(appCss).not.toContain("@mdxeditor/editor");
   });
 
-  test("searches every workspace and reserves new processes for File new window", async () => {
+  test("searches every workspace and creates duplicate windows without a folder picker", async () => {
     const route = await readFile(routeUrl, "utf8");
     const openConversation = route.slice(
       route.indexOf("async function openSidebarConversation"),
@@ -158,8 +158,14 @@ describe("desktop navigation chrome", () => {
       "await applyWorkspace(conversationWorkspace, conversation.id)",
     );
     expect(openConversation).not.toContain("openWorkspaceInNewWindow");
-    expect(route.match(/await openWorkspaceInNewWindow\(/g)).toHaveLength(1);
-    expect(route).toContain("onNewWindow={pickWorkspaceInNewWindow}");
+    expect(route).not.toContain("function openWorkspaceInNewWindow(");
+    expect(route).toContain('await invoke("create_workspace_window", { path: workspacePath })');
+    expect(route).toContain("onNewWindow={createNewWindow}");
+    const createNewWindow = route.slice(
+      route.indexOf("async function createNewWindow"),
+      route.indexOf("async function switchNewConversationWorkspace"),
+    );
+    expect(createNewWindow).not.toContain("openDialog");
   });
 
   test("keeps the first 20 role-scoped recents in the main sidebar flow", async () => {
@@ -216,7 +222,7 @@ describe("desktop navigation chrome", () => {
     );
     const applyWorkspace = route.slice(
       route.indexOf("async function applyWorkspace"),
-      route.indexOf("async function openWorkspaceInNewWindow"),
+      route.indexOf("async function requestWorkspace"),
     );
 
     expect(loadingState).not.toContain("workspaceLoading");
