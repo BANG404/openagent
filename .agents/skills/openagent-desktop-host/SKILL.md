@@ -46,6 +46,12 @@ Read `sdk/AGENTS.md` before changing the SDK side of any boundary.
 - Pre-create the centered onboarding window at its fixed 960 × 640px product
   geometry. Keep it non-resizable and non-maximizable so every setup step uses
   the same verified canvas while dense form content scrolls inside the WebView.
+- On Windows, determine completion-notification activity by resolving the
+  foreground and Tauri HWNDs through `GA_ROOTOWNER`, with current-process
+  ownership as the native-dialog fallback. Do not require exact HWND equality:
+  WebView2 may activate a child HWND, including one hosted by its subprocess,
+  while the product window is visibly foreground. Other platforms retain
+  Tauri's native window-focus query.
 
 ## Native material
 

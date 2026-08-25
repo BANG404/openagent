@@ -20,10 +20,7 @@
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import { installDownloadHook } from "$lib/downloadHook";
   import { checkForAppUpdate } from "$lib/appUpdater";
-  import {
-    notifyAgentReplyCompleted,
-    shouldNotifyAgentReplyCompleted,
-  } from "$lib/agentCompletionNotification";
+  import { AgentCompletionNotifier } from "$lib/agentCompletionNotification";
   import { Tooltip as TooltipPrimitive } from "bits-ui";
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme, createNativeThemeSynchronizer, type AppTheme } from "$lib/appTheme";
@@ -430,6 +427,10 @@
   const tauriAvailable = isTauri();
   const usesNativeWindowMaterial = tauriAvailable && !isQuickChatSurface && !isDevInspectorWindow;
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
+  const completionWindowActivity = tauriAvailable
+    ? { isFocused: () => invoke<boolean>("is_desktop_window_active") }
+    : null;
+  const agentCompletionNotifier = new AgentCompletionNotifier();
   const synchronizeNativeTheme =
     appWindow && usesNativeWindowMaterial
       ? createNativeThemeSynchronizer({
@@ -2757,7 +2758,12 @@
     asstMsgId?: string,
     error?: string | null,
   ) {
-    notifyInactiveWindowOfAgentCompletion(status, !!chatStreams.streamingConversationIds[conv_id]);
+    const assistantMessageId = asstMsgId ?? chatStreams.assistantMessageIds[conv_id];
+    notifyInactiveWindowOfAgentCompletion(
+      assistantMessageId,
+      status,
+      !!chatStreams.streamingConversationIds[conv_id],
+    );
     beginStreamCompletionTailAnchor(conv_id);
     let items = chatStreams.itemsByConversation[conv_id] ?? [];
     if (error) {
@@ -2790,7 +2796,7 @@
 
     const finalizedAt = Date.now();
     const assistantMsg: ChatMessage = {
-      id: asstMsgId ?? chatStreams.assistantMessageIds[conv_id] ?? crypto.randomUUID(),
+      id: assistantMessageId ?? crypto.randomUUID(),
       role: "assistant",
       content: fullText,
       timestamp: finalizedAt,
@@ -2864,12 +2870,16 @@
   }
 
   function notifyInactiveWindowOfAgentCompletion(
+    replyId: string | undefined,
     status: CheckpointTurnStatus,
     wasStreaming: boolean,
   ): void {
-    if (!shouldNotifyAgentReplyCompleted({ status, windowFocused, tauriAvailable, wasStreaming }))
-      return;
-    void notifyAgentReplyCompleted($t("agentReplyCompletedNotification"));
+    if (!replyId) return;
+    void agentCompletionNotifier.notifyIfInactive(
+      { replyId, status, tauriAvailable, wasStreaming },
+      completionWindowActivity,
+      $t("agentReplyCompletedNotification"),
+    );
   }
 
   function applyTheme(theme: string) {
@@ -3404,7 +3414,7 @@
         loadedConvIds.delete(convId);
         void loadMessagesForConv(convId, false).finally(() => {
           if (!chatStreams.streamingConversationIds[convId]) return;
-          notifyInactiveWindowOfAgentCompletion("completed", true);
+          notifyInactiveWindowOfAgentCompletion(assistantMsgId, "completed", true);
           chatStreams.cleanup(convId);
           void dispatchNextQueuedMessage(convId);
         });
@@ -4345,10 +4355,6 @@
     const handleFocus = () => (windowFocused = true);
     const handleBlur = () => (windowFocused = false);
 
-    windowFocused = document.hasFocus();
-    window.addEventListener("focus", handleFocus);
-    window.addEventListener("blur", handleBlur);
-
     if (appWindow) {
       void appWindow
         .isFocused()
@@ -4365,12 +4371,18 @@
           else unlistenFocusChanged = unlisten;
         })
         .catch((error) => console.warn("Failed to track window focus state:", error));
+    } else {
+      windowFocused = document.hasFocus();
+      window.addEventListener("focus", handleFocus);
+      window.addEventListener("blur", handleBlur);
     }
 
     return () => {
       disposed = true;
-      window.removeEventListener("focus", handleFocus);
-      window.removeEventListener("blur", handleBlur);
+      if (!appWindow) {
+        window.removeEventListener("focus", handleFocus);
+        window.removeEventListener("blur", handleBlur);
+      }
       unlistenFocusChanged?.();
     };
   });

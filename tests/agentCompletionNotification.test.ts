@@ -1,6 +1,7 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, mock, spyOn, test } from "bun:test";
 import {
+  AgentCompletionNotifier,
   notifyAgentReplyCompleted,
   shouldNotifyAgentReplyCompleted,
 } from "../src/lib/agentCompletionNotification";
@@ -65,6 +66,75 @@ describe("Agent completion notifications", () => {
     });
 
     expect(await notifyAgentReplyCompleted("Agent finished responding", api)).toBe(false);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  test("checks native focus at completion and suppresses active-window notifications", async () => {
+    const api = notificationApi(true);
+    const notifier = new AgentCompletionNotifier(api);
+    const windowApi = { isFocused: mock(async () => true) };
+
+    expect(
+      await notifier.notifyIfInactive(
+        {
+          replyId: "reply-active",
+          status: "completed",
+          tauriAvailable: true,
+          wasStreaming: true,
+        },
+        windowApi,
+        "Agent finished responding",
+      ),
+    ).toBe(false);
+    expect(windowApi.isFocused).toHaveBeenCalledTimes(1);
+    expect(api.sendNotification).not.toHaveBeenCalled();
+  });
+
+  test("deduplicates racing terminal and fallback completion paths by reply ID", async () => {
+    const api = notificationApi(true);
+    const notifier = new AgentCompletionNotifier(api);
+    const windowApi = { isFocused: mock(async () => false) };
+    const request = {
+      replyId: "reply-race",
+      status: "completed",
+      tauriAvailable: true,
+      wasStreaming: true,
+    } as const;
+
+    expect(
+      await Promise.all([
+        notifier.notifyIfInactive(request, windowApi, "Agent finished responding"),
+        notifier.notifyIfInactive(request, windowApi, "Agent finished responding"),
+      ]),
+    ).toEqual([true, false]);
+    expect(windowApi.isFocused).toHaveBeenCalledTimes(1);
+    expect(api.sendNotification).toHaveBeenCalledTimes(1);
+  });
+
+  test("fails closed when native focus state cannot be read", async () => {
+    const api = notificationApi(true);
+    const notifier = new AgentCompletionNotifier(api);
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+    const windowApi = {
+      isFocused: mock(async () => {
+        throw new Error("unavailable");
+      }),
+    };
+
+    expect(
+      await notifier.notifyIfInactive(
+        {
+          replyId: "reply-focus-error",
+          status: "completed",
+          tauriAvailable: true,
+          wasStreaming: true,
+        },
+        windowApi,
+        "Agent finished responding",
+      ),
+    ).toBe(false);
+    expect(api.sendNotification).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
   });

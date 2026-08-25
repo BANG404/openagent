@@ -7679,6 +7679,7 @@ dependencies = [
  "tokio",
  "tracing",
  "window-vibrancy",
+ "windows 0.61.3",
 ]
 
 [[package]]

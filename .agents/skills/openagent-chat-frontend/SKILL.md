@@ -1044,8 +1044,14 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   terminal path.
 - A successfully completed Agent reply sends a generic system notification
   through Tauri's notification plugin only while the owning desktop window is
-  inactive. Never include conversation or model content in the notification;
-  permission denial and notification failures must not affect stream
+  inactive according to a native activity read taken at completion. On Windows,
+  resolve the foreground and Tauri HWNDs through their root-owner chains, then
+  fall back to current-process ownership, so a focused WebView2 child window or
+  app-owned native dialog cannot be mistaken for a background app. Deduplicate
+  the terminal event and submit-reconciliation fallback by the stable assistant
+  reply ID so one logical reply can trigger at most one notification attempt.
+  Never include conversation or model content in the notification; permission
+  denial, focus-read failure, and notification failure must not affect stream
   finalization. Interrupted, cancelled, and failed turns do not notify.
 - Treat `chat-mermaid-render-request` as automatic frontend-assisted tool
   execution. Render with the shared Mermaid engine and return its structured
