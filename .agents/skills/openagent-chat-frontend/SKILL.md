@@ -395,11 +395,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   target: the message bubble retains its accessible edit label and reveals a
   non-interactive pencil affordance on pointer hover or keyboard focus.
 - Paint durable, editable, and loading-skeleton user-message bubbles with the
-  shared `--user-message-bg` token, which maps to the same neutral
-  hover/selection fill as assistant-rendered cards. Use that fill for every
-  attachment-card variant as well; attachment thumbnails and controls must not
-  introduce a white base. Keep user-input cards and summaries in their compact
-  transparent grammar, and keep grouped tool calls on the transcript canvas:
+  shared `--user-message-bg` token, which maps to the fixed theme-aware
+  `--component-neutral-bg` used by assistant-rendered cards. Use that fill for
+  every attachment-card variant as well; attachment thumbnails and controls
+  must not introduce a white base. Keep user-input cards and summaries in their
+  compact transparent grammar, and keep grouped tool calls on the transcript canvas:
   the summary is its own outlined button and
   expanded ordinary tool cards retain transparent backgrounds without a shared
   group background or enclosing perimeter.
@@ -458,10 +458,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep selection signaling consistent across floating option rows and persistent
   navigation lists: neutral buttons, triggers, and option rows use the shared
   theme-aware `--interactive-state-bg` for hover, open, and selected states;
-  use the shadcn neutral palette's `#f4f4f5` light fill and `#27272a` dark fill
-  so conversation components and application controls retain one stable gray
-  across their underlying surfaces. Selected rows use that neutral
-  fill without a decorative left rail, stronger fill, checkmark, or selected text color. GPUI
+  derive it from the current text color at 8% opacity so the fill remains
+  visible over canvas, sidebar, and native Mica surfaces. Static conversation
+  components instead use `--component-neutral-bg`, with the shadcn neutral
+  palette's `#f4f4f5` light fill and `#27272a` dark fill. Selected rows use the
+  interaction fill without a decorative left rail, stronger fill, checkmark, or selected text color. GPUI
   preserves the same row geometry, selected fill, selection semantics,
   accessibility state, and interactions. Primary and destructive actions retain
   their semantic state colors.

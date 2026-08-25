@@ -513,7 +513,7 @@
   }
 
   :global([data-streamdown-thead]) {
-    background: var(--interactive-state-bg);
+    background: var(--component-neutral-bg);
   }
 
   :global([data-streamdown-th]) {
@@ -611,7 +611,7 @@
   }
 
   :global([data-streamdown-code]) {
-    background: var(--interactive-state-bg);
+    background: var(--component-neutral-bg);
     border: none !important;
     margin: 8px 0 12px;
     border-radius: 8px;
@@ -619,13 +619,13 @@
   }
 
   :global(.assistant-msg [data-streamdown-code] > .chat-code-header) {
-    background: var(--interactive-state-bg) !important;
+    background: var(--component-neutral-bg) !important;
     border-bottom: 1px solid var(--border);
     color: var(--text-muted) !important;
   }
 
   :global(.assistant-msg [data-streamdown-code] > .chat-code-container) {
-    background: var(--interactive-state-bg) !important;
+    background: var(--component-neutral-bg) !important;
     padding: 0 !important;
   }
 
@@ -647,7 +647,7 @@
   }
 
   :global(.assistant-msg pre) {
-    background: var(--interactive-state-bg);
+    background: var(--component-neutral-bg);
     border-radius: 8px;
     padding: 14px 16px;
     margin: 8px 0 12px;

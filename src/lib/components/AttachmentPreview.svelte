@@ -332,7 +332,7 @@
     overflow: hidden;
     border: 0;
     border-radius: 11px;
-    background: var(--interactive-state-bg);
+    background: var(--component-neutral-bg);
     color: var(--text);
     box-shadow: var(--control-shadow);
   }
@@ -344,11 +344,11 @@
     place-items: center;
     overflow: hidden;
     border-bottom: 1px solid var(--border);
-    background: var(--interactive-state-bg);
+    background: var(--component-neutral-bg);
   }
 
   .thumbnail.image {
-    background: var(--interactive-state-bg);
+    background: var(--component-neutral-bg);
   }
 
   .thumbnail img {
@@ -365,7 +365,7 @@
     overflow: hidden;
     padding: 7px;
     color: var(--text-muted);
-    background: var(--interactive-state-bg);
+    background: var(--component-neutral-bg);
     font:
       7px/1.35 ui-monospace,
       SFMono-Regular,
@@ -389,7 +389,7 @@
     height: 48px;
     border: 1px solid color-mix(in srgb, var(--primary) 42%, var(--border));
     border-radius: 5px;
-    background: var(--interactive-state-bg);
+    background: var(--component-neutral-bg);
     box-shadow: 0 5px 14px var(--shadow);
   }
 
@@ -402,7 +402,7 @@
     height: 11px;
     border-bottom: 1px solid color-mix(in srgb, var(--primary) 42%, var(--border));
     border-left: 1px solid color-mix(in srgb, var(--primary) 42%, var(--border));
-    background: var(--interactive-state-bg);
+    background: var(--component-neutral-bg);
     clip-path: polygon(0 0, 100% 100%, 0 100%);
   }
 
@@ -434,7 +434,7 @@
     height: 38px;
     border-color: var(--border);
     border-radius: 11px;
-    background: var(--interactive-state-bg);
+    background: var(--component-neutral-bg);
     box-shadow: none;
     transition:
       background 0.15s,
@@ -481,7 +481,7 @@
     height: 112px;
     flex: 0 0 112px;
     border-radius: 18px;
-    background: var(--interactive-state-bg);
+    background: var(--component-neutral-bg);
     box-shadow: none;
   }
 
@@ -670,7 +670,7 @@
     border: 0;
     border-radius: 8px;
     border-bottom: 0;
-    background: var(--interactive-state-bg);
+    background: var(--component-neutral-bg);
   }
 
   .message-capsule .thumbnail pre {
