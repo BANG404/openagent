@@ -49,7 +49,13 @@ export class ComposerPreferences {
   }
 
   get selectedModelSupportsReasoning(): boolean {
-    return this.selectedProvider?.provider === "chatgpt";
+    const binding = decodeModelBinding(this.selectedModel);
+    return Boolean(
+      binding &&
+      this.selectedProvider &&
+      (this.selectedProvider.provider === "chatgpt" ||
+        this.selectedProvider.model_reasoning_effort_enabled?.[binding.model]),
+    );
   }
 
   syncFromConfig(): void {
@@ -127,7 +133,7 @@ export class ComposerPreferences {
 
   handleReasoningEffortChange = (effort: ReasoningEffort): void => {
     const binding = decodeModelBinding(this.selectedModel);
-    if (!binding || this.selectedProvider?.provider !== "chatgpt") return;
+    if (!binding || !this.selectedModelSupportsReasoning) return;
     this.#updateReasoningEffort(binding.providerId, binding.model, effort);
     if (!this.dependencies.tauriAvailable) return;
     const requestedModel = this.selectedModel;

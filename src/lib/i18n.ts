@@ -389,6 +389,8 @@ const zh = {
   modelCompactionThreshold: "触发压缩上下文大小",
   modelCompactionThresholdHint: "留空时使用全局阈值，当前为",
   modelCompactionThresholdRange: "触发压缩上下文大小必须在 1,000 到 1,000,000 之间",
+  modelSupportsReasoningEffort: "支持推理强度",
+  modelSupportsReasoningEffortHint: "启用后，服务会通过 reasoning_effort 发送所选推理强度。",
   deleteNode: "删除节点",
   deleteNodeDesc: "不会影响其它已保存的服务商配置。",
   atLeastOneProvider: "至少需要保留一个服务节点",
@@ -1261,6 +1263,9 @@ const en: Translations = {
   modelCompactionThresholdHint: "Leave blank to use the global threshold, currently",
   modelCompactionThresholdRange:
     "Context compaction trigger size must be between 1,000 and 1,000,000",
+  modelSupportsReasoningEffort: "Supports reasoning effort",
+  modelSupportsReasoningEffortHint:
+    "When enabled, the provider receives the selected reasoning_effort field.",
   deleteNode: "Delete Node",
   deleteNodeDesc: "Will not affect other saved provider configs.",
   atLeastOneProvider: "At least one provider is required.",

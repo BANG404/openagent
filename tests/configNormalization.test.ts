@@ -77,6 +77,28 @@ describe("context compaction config", () => {
   });
 });
 
+describe("model reasoning effort config", () => {
+  test("retains only configured models explicitly declared to support reasoning effort", () => {
+    const normalized = normalizeConfigShape({
+      providers: [
+        {
+          id: "test",
+          name: "Test",
+          provider: "openai",
+          enabled: true,
+          api_key: "",
+          models: ["reasoning", "ordinary"],
+          model_reasoning_efforts: { reasoning: "high", removed: "low" },
+          model_reasoning_effort_enabled: { reasoning: true, ordinary: false, removed: true },
+        },
+      ],
+    } as unknown as AppConfig);
+
+    expect(normalized.providers[0].model_reasoning_efforts).toEqual({ reasoning: "high" });
+    expect(normalized.providers[0].model_reasoning_effort_enabled).toEqual({ reasoning: true });
+  });
+});
+
 describe("automatic memory retrieval config", () => {
   test("defaults older configuration payloads to agent-directed retrieval", () => {
     expect(normalizeConfigShape({} as AppConfig).memory_retrieval_enabled).toBe(false);

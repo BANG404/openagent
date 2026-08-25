@@ -91,16 +91,20 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
     const model_reasoning_efforts = Object.fromEntries(
       Object.entries(provider.model_reasoning_efforts ?? {}).filter(
         ([model, effort]) =>
-          provider.provider === "chatgpt" &&
-          configuredModels.has(model) &&
-          reasoningEfforts.has(effort as ReasoningEffort),
+          configuredModels.has(model) && reasoningEfforts.has(effort as ReasoningEffort),
       ),
     ) as Record<string, ReasoningEffort>;
+    const model_reasoning_effort_enabled = Object.fromEntries(
+      Object.entries(provider.model_reasoning_effort_enabled ?? {}).filter(
+        ([model, enabled]) => configuredModels.has(model) && enabled === true,
+      ),
+    ) as Record<string, boolean>;
     return {
       ...provider,
       models: provider.models ?? [],
       model_context_compaction_thresholds,
       model_reasoning_efforts,
+      model_reasoning_effort_enabled,
     };
   });
   const defaults = input.defaults ?? {

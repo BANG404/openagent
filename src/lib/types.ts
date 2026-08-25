@@ -460,8 +460,10 @@ export interface ProviderConfig {
   models: string[];
   /** Optional per-model thresholds; missing entries inherit the global value. */
   model_context_compaction_thresholds: Record<string, number>;
-  /** Optional ChatGPT OAuth Responses API reasoning effort per model. */
+  /** Optional reasoning effort per model. */
   model_reasoning_efforts: Record<string, ReasoningEffort>;
+  /** Models explicitly configured to accept OpenAI-compatible reasoning effort. */
+  model_reasoning_effort_enabled?: Record<string, boolean>;
 }
 
 export interface DefaultModelBinding {
