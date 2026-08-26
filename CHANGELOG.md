@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.49.0-beta.1] - 2026-08-25
+
+### Features
+- **onboarding**: Align setup cards with settings surfaces
+- **settings**: Derive unnamed service from request domain
+- **models**: Configure reasoning effort support
+
+### Bug Fixes
+- **settings**: Restore model dialog action feedback
+- **i18n**: Remove optional indication from provider name translations
+- Suppress completion notifications for active windows
+- **chat**: Unify fenced code surfaces
+- **theme**: Synchronize native and webview themes
+- **workspace**: Create current workspace windows directly
+- **chat**: Auto-open goal status panel
+- **chat**: Restore quick chat input and focus
+- **ui**: Restore visible interaction states
+
+### Styling
+- Soften conversation input shadow
+- **chat**: Unify neutral gray surfaces
+
 ## [0.48.0-beta.2] - 2026-08-25
 
 ## [0.48.0-beta.1] - 2026-08-25
