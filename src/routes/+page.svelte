@@ -98,8 +98,10 @@
     askUserRequestFromToolUse,
     isCompactionBoundary,
     preserveMessagesAddedDuringHydration,
+    preserveStreamingMessagesDuringHydration,
     type ConvTree,
   } from "$lib/checkpointTree";
+  import { restoreWorkspaceConversationSnapshot } from "$lib/workspaceConversationState";
   import {
     appendChunk,
     appendCompactionProgress,
@@ -333,6 +335,10 @@
   let liveCheckpointFlowProjections = $state<Record<string, LiveCheckpointFlowProjection>>({});
   // Tracks which conv_ids have had their messages loaded from SQLite
   const loadedConvIds = new Set<string>();
+  // Workspace switches replace the visible metadata page. Retain the previous
+  // page so an in-flight optimistic user turn can survive navigation and still
+  // receive its terminal event while another workspace is selected.
+  const workspaceConversationSnapshots = new Map<string, Conversation[]>();
   // File changes per conversation (loaded from SQLite)
   let fileChangesPerConv = $state<Record<string, FileChange[]>>({});
   // File changes reported by successful write tools before the turn reaches its
@@ -817,11 +823,9 @@
     const idx = conversations.findIndex((conversation) => conversation.id === convId);
     if (idx !== -1) {
       const visible = conversations[idx].messages;
-      const msgs = preserveMessagesAddedDuringHydration(
-        visible,
-        hydratedMessages,
-        messageIdsAtStart,
-      );
+      const msgs = chatStreams.streamingConversationIds[convId]
+        ? preserveStreamingMessagesDuringHydration(visible, hydratedMessages)
+        : preserveMessagesAddedDuringHydration(visible, hydratedMessages, messageIdsAtStart);
       // A normal completed turn is already represented by the client-side
       // stream finalizer. Keep those message instances when only checkpoint
       // metadata changed so the visible transcript does not remount.
@@ -1481,6 +1485,26 @@
       return { ...replacement, messages: conversation.messages };
     });
     return [...merged, ...incomingById.values()];
+  }
+
+  type ConversationLocation = {
+    conversations: Conversation[];
+    index: number;
+    isCurrentWorkspace: boolean;
+  };
+
+  function findConversationLocation(convId: string): ConversationLocation | null {
+    const currentIndex = conversations.findIndex((conversation) => conversation.id === convId);
+    if (currentIndex !== -1) {
+      return { conversations, index: currentIndex, isCurrentWorkspace: true };
+    }
+    for (const snapshot of workspaceConversationSnapshots.values()) {
+      const index = snapshot.findIndex((conversation) => conversation.id === convId);
+      if (index !== -1) {
+        return { conversations: snapshot, index, isCurrentWorkspace: false };
+      }
+    }
+    return null;
   }
 
   function promoteConversationInRecents(conversation: Conversation): void {
@@ -2533,9 +2557,8 @@
       onCheckpoint: (conv_id, checkpoint_id) => {
         pendingCheckpointIds = { ...pendingCheckpointIds, [conv_id]: checkpoint_id };
         void refreshLiveCheckpointTip(conv_id, checkpoint_id);
-        const visibleMessages = conversations.find(
-          (conversation) => conversation.id === conv_id,
-        )?.messages;
+        const location = findConversationLocation(conv_id);
+        const visibleMessages = location?.conversations[location.index].messages;
         if (
           visibleMessages &&
           !visibleMessages.some((message) => message.role === "user") &&
@@ -2653,9 +2676,9 @@
   // Insert a freshly-finalized turn into the tree, then update the active path so the
   // newly-streamed variant is visible (and any in-place user-msg copy gets its checkpointId).
   function attachNewTurnToTree(conv_id: string, ckId: string, assistantMsg: ChatMessage) {
-    const convIdx = conversations.findIndex((c) => c.id === conv_id);
-    if (convIdx === -1) return;
-    const visibleMsgs = conversations[convIdx].messages;
+    const location = findConversationLocation(conv_id);
+    if (!location) return;
+    const visibleMsgs = location.conversations[location.index].messages;
     let userMsg: ChatMessage | undefined;
     for (let i = visibleMsgs.length - 2; i >= 0; i--) {
       if (visibleMsgs[i].role === "user") {
@@ -2678,16 +2701,21 @@
       const stamped = visibleMsgs.map((m) =>
         m.id === userMsg!.id ? { ...m, checkpointId: ckId } : m,
       );
-      conversations[convIdx] = { ...conversations[convIdx], messages: stamped };
+      location.conversations[location.index] = {
+        ...location.conversations[location.index],
+        messages: stamped,
+      };
     }
 
     // The checkpoint is the sole durable source for a compaction boundary.
     // Reload after a turn so its tagged system boundary is rendered in
     // chronological order, instead of manufacturing a boundary in the stream.
-    loadedConvIds.delete(conv_id);
-    // Reconcile the optimistic turn with its durable checkpoint without
-    // replacing the visible transcript with the conversation-loading skeleton.
-    void loadMessagesForConv(conv_id, false);
+    if (location.isCurrentWorkspace) {
+      loadedConvIds.delete(conv_id);
+      // Reconcile the optimistic turn with its durable checkpoint without
+      // replacing the visible transcript with the conversation-loading skeleton.
+      void loadMessagesForConv(conv_id, false);
+    }
   }
 
   async function persistStreamDraft(conv_id: string, aborted = false) {
@@ -2808,8 +2836,8 @@
       transientTurnStatus: status,
     };
 
-    const convIdx = conversations.findIndex((c) => c.id === conv_id);
-    if (convIdx === -1) {
+    const location = findConversationLocation(conv_id);
+    if (!location) {
       // Conv was deleted while streaming — drop the in-flight message instead of saving an orphan row.
       const { [conv_id]: _items, ...restItems } = chatStreams.itemsByConversation;
       const { [conv_id]: _streaming, ...restStreaming } = chatStreams.streamingConversationIds;
@@ -2826,12 +2854,12 @@
       return;
     }
 
-    conversations[convIdx] = {
-      ...conversations[convIdx],
-      messages: [...conversations[convIdx].messages, assistantMsg],
+    location.conversations[location.index] = {
+      ...location.conversations[location.index],
+      messages: [...location.conversations[location.index].messages, assistantMsg],
       updatedAt: Date.now(),
     };
-    promoteConversationInRecents(conversations[convIdx]);
+    promoteConversationInRecents(location.conversations[location.index]);
 
     // Rust persists completed responses, but the client is the source of the
     // stream timing. Save every final message so firstTokenAt/completedAt are
@@ -3207,6 +3235,12 @@
     if (!ownerWorkspace || ownerWorkspace === workspacePath) {
       conversations = conversations.filter((c) => c.id !== id);
     }
+    for (const [path, snapshot] of workspaceConversationSnapshots) {
+      const filtered = snapshot.filter((conversation) => conversation.id !== id);
+      if (filtered.length !== snapshot.length) {
+        workspaceConversationSnapshots.set(path, filtered);
+      }
+    }
     recentConversations = recentConversations.filter((conversation) => conversation.id !== id);
     searchConversations = searchConversations.filter((conversation) => conversation.id !== id);
     navigationHistory = removeNavigationLocations(
@@ -3323,18 +3357,20 @@
         ...attachments.map((attachment) => ({ type: "attachment" as const, attachment })),
       ],
     };
-    const convIdx = conversations.findIndex((c) => c.id === convId);
-    const priorMessages = conversations[convIdx]?.messages ?? [];
+    const location = findConversationLocation(convId);
+    if (!location) return;
+    const existingConversation = location.conversations[location.index];
+    const priorMessages = existingConversation.messages;
     const isFirstUserMsg = !priorMessages.some((m) => m.role === "user");
-    const newTitle = isFirstUserMsg ? text.slice(0, 48) : conversations[convIdx]?.title;
+    const newTitle = isFirstUserMsg ? text.slice(0, 48) : existingConversation.title;
 
-    conversations[convIdx] = {
-      ...conversations[convIdx],
+    location.conversations[location.index] = {
+      ...existingConversation,
       messages: [...priorMessages, userMsg],
       title: newTitle ?? $t("newConv"),
       updatedAt: Date.now(),
     };
-    promoteConversationInRecents(conversations[convIdx]);
+    promoteConversationInRecents(location.conversations[location.index]);
 
     // The user message is persisted atomically in the resulting checkpoint.
     // Update conversation title in SQLite on first user message
@@ -3391,7 +3427,7 @@
       convId in pendingForkMessageId ? pendingForkMessageId[convId] : undefined,
     );
 
-    await scrollToBottom();
+    if (location.isCurrentWorkspace) await scrollToBottom();
 
     // Fire and forget — global listeners handle chunk/checkpoint/done events
     openAgent
@@ -3411,6 +3447,13 @@
         // If a terminal event was lost, reconcile instead of leaving a permanent
         // streaming row and sidebar dot.
         if (!chatStreams.streamingConversationIds[convId]) return;
+        const latestLocation = findConversationLocation(convId);
+        if (latestLocation && !latestLocation.isCurrentWorkspace) {
+          notifyInactiveWindowOfAgentCompletion(assistantMsgId, "completed", true);
+          chatStreams.cleanup(convId);
+          void dispatchNextQueuedMessage(convId);
+          return;
+        }
         loadedConvIds.delete(convId);
         void loadMessagesForConv(convId, false).finally(() => {
           if (!chatStreams.streamingConversationIds[convId]) return;
@@ -3426,11 +3469,11 @@
           content: `Error: ${err}`,
           timestamp: Date.now(),
         };
-        const idx = conversations.findIndex((c) => c.id === convId);
-        if (idx !== -1) {
-          conversations[idx] = {
-            ...conversations[idx],
-            messages: [...conversations[idx].messages, errMsg],
+        const failedLocation = findConversationLocation(convId);
+        if (failedLocation) {
+          failedLocation.conversations[failedLocation.index] = {
+            ...failedLocation.conversations[failedLocation.index],
+            messages: [...failedLocation.conversations[failedLocation.index].messages, errMsg],
             updatedAt: Date.now(),
           };
         }
@@ -3818,12 +3861,18 @@
 
       // Commit the prepared workspace as one state transition so the mounted
       // transcript and composer are never replaced by an app-wide loading pass.
+      workspaceConversationSnapshots.set(previousWorkspacePath, conversations);
+      const cachedTargetConversations = workspaceConversationSnapshots.get(path) ?? [];
       workspacePath = path;
       workspace = nextWorkspace;
       agentRoles = prepared.roles;
       selectedRoleKey = prepared.selectedRoleKey;
       loadedConvIds.clear();
-      conversations = prepared.conversations;
+      conversations = restoreWorkspaceConversationSnapshot(
+        prepared.conversations,
+        cachedTargetConversations,
+      );
+      workspaceConversationSnapshots.set(path, conversations);
       conversationNextCursor = prepared.conversationNextCursor;
       searchConversations = [];
       searchConversationNextCursor = null;

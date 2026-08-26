@@ -527,6 +527,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   context, roles, conversation page, and fully hydrated active conversation as
   one state change. Never clear the current workspace first or route workspace
   transition state through the sidebar, transcript, or composer skeletons.
+  Retain each visited workspace's conversation transcript snapshot so switching
+  away from an active Turn cannot discard its optimistic user message or make a
+  terminal event look like it belongs to a deleted conversation. When that
+  workspace is revisited during streaming, reconcile its durable checkpoint
+  while preserving cached messages that the checkpoint has not yet recorded.
 - Derive first-run onboarding visibility from the normalized bootstrap config.
   Persist completion in the versioned config beneath `OPENAGENT_HOME`; migrate
   the legacy WebView-local marker once and remove it only after the durable save

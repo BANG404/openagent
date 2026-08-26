@@ -37,6 +37,18 @@ export function preserveMessagesAddedDuringHydration(
   return appended.length > 0 ? [...hydrated, ...appended] : hydrated;
 }
 
+/**
+ * A workspace switch can revisit a conversation while its current Turn is
+ * still streaming. Its optimistic user input predates the new hydration, but
+ * must remain visible until the terminal checkpoint includes that message.
+ */
+export function preserveStreamingMessagesDuringHydration(
+  visible: ChatMessage[],
+  hydrated: ChatMessage[],
+): ChatMessage[] {
+  return preserveMessagesAddedDuringHydration(visible, hydrated, new Set());
+}
+
 export interface CkTreeNode {
   ckId: string;
   parentCkId: string | null;
