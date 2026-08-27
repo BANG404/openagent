@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.49.1-beta.1] - 2026-08-27
+
+### Bug Fixes
+- **chat**: Preserve active turns across workspaces
+
 ## [0.49.0-beta.1] - 2026-08-25
 
 ### Features
