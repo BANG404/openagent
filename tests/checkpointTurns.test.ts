@@ -55,3 +55,63 @@ test("restores historical turn metadata and hides memory content", () => {
   expect(path.map(({ content }) => content)).toEqual(["visible request", "answer"]);
   expect(path.find(({ id }) => id === "assistant-1")?.turn).toEqual(turn);
 });
+
+test("restores each assistant turn's owning checkpoint from a complete snapshot", () => {
+  const firstTurn = {
+    id: "assistant-1",
+    input_message_id: "user-1",
+    response_message_id: "assistant-1",
+    status: "completed",
+    started_at: 10,
+    completed_at: 30,
+    duration_ms: 20,
+  };
+  const secondTurn = {
+    id: "assistant-2",
+    input_message_id: "user-2",
+    response_message_id: "assistant-2",
+    status: "completed",
+    started_at: 40,
+    completed_at: 60,
+    duration_ms: 20,
+  };
+  const firstMessages = [
+    message("user-1", "user", [{ type: "text", text: "first request" }]),
+    message("assistant-1", "assistant", [{ type: "text", text: "first reply" }]),
+  ];
+  const checkpoints = [
+    {
+      meta: {
+        thread_id: "conv-1",
+        checkpoint_id: "checkpoint-1",
+        parent_checkpoint_id: null,
+        metadata: JSON.stringify({ turn: firstTurn }),
+        created_at: 30,
+      },
+      data: { messages: firstMessages, file_change_ids: [], phase: "final_completed" },
+    },
+    {
+      meta: {
+        thread_id: "conv-1",
+        checkpoint_id: "checkpoint-2",
+        parent_checkpoint_id: "checkpoint-1",
+        metadata: JSON.stringify({ turn: secondTurn }),
+        created_at: 60,
+      },
+      data: {
+        messages: [
+          ...firstMessages,
+          message("user-2", "user", [{ type: "text", text: "second request" }]),
+          message("assistant-2", "assistant", [{ type: "text", text: "second reply" }]),
+        ],
+        file_change_ids: [],
+        phase: "final_completed",
+      },
+    },
+  ];
+
+  const path = computeActivePath(buildTreeFromCheckpoints(checkpoints));
+
+  expect(path.find(({ id }) => id === "assistant-1")?.checkpointId).toBe("checkpoint-1");
+  expect(path.find(({ id }) => id === "assistant-2")?.checkpointId).toBe("checkpoint-2");
+});

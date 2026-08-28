@@ -912,8 +912,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   light/dark rendering remain directly testable without a native runtime.
 - Keep the development-only `cache-usage-preview` query available for the
   completed-turn footer. Its `-theme` and `-locale` parameters must keep an
-  aggregated cache-hit state and the explicit no-activity state directly
-  verifiable in light/dark themes and Chinese/English copy.
+  independently aggregated cache-hit state for multiple completed Turns and a
+  hidden missing-usage state directly verifiable in light/dark themes and
+  Chinese/English copy.
 - Keep the development-only `tool-diff-preview` query available with a large
   `edit_file` fixture. Its `-theme` and `-locale` parameters must keep bounded
   expansion, light/dark themes, and Chinese/English rendering directly
@@ -1020,11 +1021,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   checkpoint match, but tolerate the runtime's request-scoped temporary
   checkpoint by associating its trace only when the coarse creation timestamp
   overlaps exactly one persisted terminal Turn window. Show observed
-  cache reads and writes against the provider input total. When cache counters
-  are zero, report that no cache activity was reported instead of claiming a
-  measured zero-percent hit rate; inconsistent totals keep the raw counters
-  visible but must not produce a percentage. Production transcript footers must
-  not load or render this diagnostic usage.
+  cache reads and writes against the provider input total. Complete snapshots
+  must restore each historical assistant response's owning checkpoint so one
+  Turn never reuses the newest Turn's diagnostic usage. When cache counters are
+  zero or provider totals cannot produce a valid hit rate, omit cache usage from
+  that footer. Production transcript footers must not load or render this
+  diagnostic usage.
 - Application update checks expose one shared `idle`/`checking`/`installing`
   state to every desktop surface. Manual checks must disable duplicate input,
   show visible progress, apply a finite timeout, surface localized success or

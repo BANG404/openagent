@@ -546,14 +546,22 @@ function attachSelectedTurnMetadata(
   messages: ChatMessage[],
   selectedNodes: CkTreeNode[],
 ): ChatMessage[] {
-  const byResponseMessageId = new Map<string, CheckpointTurnMetadata>();
+  const byResponseMessageId = new Map<
+    string,
+    { checkpointId: string; turn: CheckpointTurnMetadata }
+  >();
   for (const node of selectedNodes) {
-    if (node.turn) byResponseMessageId.set(node.turn.response_message_id, node.turn);
+    if (node.turn) {
+      byResponseMessageId.set(node.turn.response_message_id, {
+        checkpointId: node.ckId,
+        turn: node.turn,
+      });
+    }
   }
   if (byResponseMessageId.size === 0) return messages;
   return messages.map((message) => {
-    const turn = byResponseMessageId.get(message.id);
-    return turn ? { ...message, turn } : message;
+    const owner = byResponseMessageId.get(message.id);
+    return owner ? { ...message, checkpointId: owner.checkpointId, turn: owner.turn } : message;
   });
 }
 

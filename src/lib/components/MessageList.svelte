@@ -775,23 +775,13 @@
                   {timing.total}
                 </span>
               {/if}
-              {#if cacheUsage}
+              {#if cacheUsage?.kind === "available"}
                 <span class="cache-usage">
-                  {#if cacheUsage.kind === "available"}
-                    {$t("cacheHit")}
-                    {formatPercent(cacheUsage.readRate)} · {formatTokens(cacheUsage.cachedTokens)}
-                    {$t("cachedTokens")}
-                    {#if cacheUsage.writtenTokens > 0}
-                      · {$t("cacheWrite")} {formatPercent(cacheUsage.writeRate)}
-                    {/if}
-                  {:else if cacheUsage.kind === "no_activity"}
-                    {$t("noCacheActivity")}
-                  {:else}
-                    {$t("cacheRead")}
-                    {formatTokens(cacheUsage.cachedTokens)}
-                    {#if cacheUsage.writtenTokens > 0}
-                      · {$t("cacheWrite")} {formatTokens(cacheUsage.writtenTokens)}
-                    {/if}
+                  {$t("cacheHit")}
+                  {formatPercent(cacheUsage.readRate)} · {formatTokens(cacheUsage.cachedTokens)}
+                  {$t("cachedTokens")}
+                  {#if cacheUsage.writtenTokens > 0}
+                    · {$t("cacheWrite")} {formatPercent(cacheUsage.writeRate)}
                   {/if}
                 </span>
               {/if}

@@ -431,14 +431,14 @@
     {
       id: "cache-preview-user-zero",
       role: "user",
-      content: "Show the zero-cache state too.",
+      content: "Show a separate cache rate for this turn.",
       timestamp: Date.now() - 3_000,
     },
     {
       id: "cache-preview-assistant-zero",
       role: "assistant",
-      content: "This completed turn reported no cache counters.",
-      items: [{ type: "text", content: "This completed turn reported no cache counters." }],
+      content: "This completed turn has its own provider usage.",
+      items: [{ type: "text", content: "This completed turn has its own provider usage." }],
       checkpointId: "cache-preview-zero",
       timestamp: Date.now() - 2_000,
       turn: {
@@ -449,6 +449,29 @@
         started_at: Date.now() - 3_000,
         completed_at: Date.now() - 2_000,
         duration_ms: 1_000,
+      },
+    },
+    {
+      id: "cache-preview-user-hidden",
+      role: "user",
+      content: "Do not show cache metadata when no hit rate is available.",
+      timestamp: Date.now() - 1_500,
+    },
+    {
+      id: "cache-preview-assistant-hidden",
+      role: "assistant",
+      content: "This completed turn has no displayable cache rate.",
+      items: [{ type: "text", content: "This completed turn has no displayable cache rate." }],
+      checkpointId: "cache-preview-hidden",
+      timestamp: Date.now() - 1_000,
+      turn: {
+        id: "cache-preview-turn-hidden",
+        input_message_id: "cache-preview-user-hidden",
+        response_message_id: "cache-preview-assistant-hidden",
+        status: "completed",
+        started_at: Date.now() - 1_500,
+        completed_at: Date.now() - 1_000,
+        duration_ms: 500,
       },
     },
   ];
@@ -465,6 +488,17 @@
       },
     ],
     "cache-preview-zero": [
+      {
+        input_tokens: 40,
+        output_tokens: 10,
+        total_tokens: 110,
+        cached_input_tokens: 60,
+        cache_creation_input_tokens: 0,
+        tool_use_prompt_tokens: 0,
+        reasoning_tokens: 0,
+      },
+    ],
+    "cache-preview-hidden": [
       {
         input_tokens: 100,
         output_tokens: 10,
