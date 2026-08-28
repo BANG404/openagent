@@ -3,6 +3,7 @@ import type {
   ApprovalMode,
   FetchConfig,
   HtmlPreviewConfig,
+  McpServerConfig,
   PermissionProfile,
   ReasoningEffort,
   WebSearchConfig,
@@ -14,8 +15,13 @@ export type NormalizedWebSearchConfig = WebSearchConfig & {
   provider_enabled: boolean;
 };
 
-export type NormalizedAppConfig = Omit<AppConfig, "web_search"> & {
+export type NormalizedMcpServerConfig = McpServerConfig & {
+  disabled_tools: string[];
+};
+
+export type NormalizedAppConfig = Omit<AppConfig, "web_search" | "mcp"> & {
   web_search: NormalizedWebSearchConfig;
+  mcp: { servers: NormalizedMcpServerConfig[] };
 };
 
 function defaultWebSearch(): NormalizedWebSearchConfig {
@@ -134,8 +140,15 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
         args: [] as string[],
         env: {} as Record<string, string>,
         cwd: "",
+        disabled_tools: [] as string[],
       };
-      return { ...defaults, ...s };
+      return {
+        ...defaults,
+        ...s,
+        disabled_tools: [
+          ...new Set((s.disabled_tools ?? []).map((tool) => tool.trim()).filter(Boolean)),
+        ].sort((left, right) => left.localeCompare(right)),
+      };
     }),
   };
 

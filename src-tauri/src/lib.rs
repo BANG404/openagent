@@ -1745,12 +1745,9 @@ fn run_with_mode(agent_server: bool) {
                 let runtime = startup_app.state::<Arc<OpenAgentRuntime>>();
                 let state = runtime.state();
                 let config = state.config.lock().await.clone();
-                let tool_server = state.tool_server.lock().await.clone();
-                let recall_tool_server = state.recall_tool_server.lock().await.clone();
                 let servers =
                     openagent_runtime::commands::effective_mcp_servers(state, &config).await;
-                let mcp_handles =
-                    mcp::connect_mcp_servers(&servers, &[tool_server, recall_tool_server]);
+                let mcp_handles = mcp::connect_mcp_servers(&servers);
                 *state.mcp_join_handles.lock().await = mcp_handles;
                 tracing::info!(
                     target: "openagent::startup",

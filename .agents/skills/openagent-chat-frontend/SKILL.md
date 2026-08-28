@@ -976,6 +976,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   diagnostics, responsive layout, light/dark themes, and Chinese/English copy
   addressable without native plugin state. Plugin cards and loading or empty
   states must not use a flat secondary gray fill.
+- Keep the development-only `mcp-settings-preview` query as the direct browser
+  surface for Settings → Extensions → MCP. Its `-theme` and `-locale` query
+  parameters must keep enabled and disabled tool switches, long wrapping tool
+  names, light/dark themes, and Chinese/English copy addressable without a
+  native MCP server.
 - Settings action controls use one compact, shadowless semantic hierarchy:
   primary blue pills for creation, divider-bordered filled controls for ordinary
   file, test, and navigation actions, blue controls for inline row construction,
@@ -1046,6 +1051,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   disable provider editing while unavailable, and leave independent fetch
   configuration usable. Saving either switch relies on the shared runtime
   configuration refresh to add or remove the `websearch` tool.
+- Per-server MCP `disabled_tools` is an additive optional transport field and
+  normalizes to an empty list. Settings discovers the server's complete live
+  tool list and persists only disabled names. Saving that list must rebuild the
+  runtime MCP connections so disabled tools are absent from both later Agent
+  definitions and dispatch, including resumed approvals; keep disabled names
+  when a server temporarily stops advertising them so they remain disabled if
+  they return.
 - General model settings place the dedicated retry policy card as the final
   section after the Flash retry queue, separate from either model queue. The
   interval is displayed in seconds while preserving milliseconds at the

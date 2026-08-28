@@ -5,19 +5,17 @@
   import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
   import { onMount, tick, untrack } from "svelte";
   import { ContextMenu, Dialog, Tabs } from "bits-ui";
-  import type {
-    AgentRole,
-    AppConfig,
-    McpServerConfig,
-    PermissionProfile,
-    ProviderConfig,
-  } from "$lib/types";
+  import type { AgentRole, AppConfig, PermissionProfile, ProviderConfig } from "$lib/types";
   import {
     captureQuickChatShortcut,
     DEFAULT_QUICK_CHAT_SHORTCUT,
     formatQuickChatShortcut,
   } from "$lib/quickChatShortcut";
-  import { normalizeConfigShape, type NormalizedAppConfig } from "$lib/config";
+  import {
+    normalizeConfigShape,
+    type NormalizedAppConfig,
+    type NormalizedMcpServerConfig,
+  } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
   import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
@@ -233,7 +231,22 @@
   let chatgptOAuthAuthenticated = $state(false);
 
   type McpTestStatus = { tone: "idle" | "testing" | "success" | "error"; message: string };
+  const isMcpSettingsPreview =
+    import.meta.env.DEV &&
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("mcp-settings-preview");
   let mcpTestStatus = $state<Record<string, McpTestStatus>>({});
+  let mcpDiscoveredTools = $state<Record<string, string[]>>(
+    isMcpSettingsPreview
+      ? {
+          "preview-mcp": [
+            "create_design_asset",
+            "delete_design_asset",
+            "inspect_design_asset_with_a_very_long_tool_name",
+          ],
+        }
+      : {},
+  );
   let selectedMcpId = $state<string | null>(null);
   let scheduledHooks = $state<ScheduledChatHook[]>([]);
   let hookMessage = $state("");
@@ -1099,7 +1112,7 @@
   // 鈹€鈹€鈹€ MCP helpers 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   function addMcpServer() {
-    const server: McpServerConfig = {
+    const server: NormalizedMcpServerConfig = {
       id: crypto.randomUUID(),
       name: "MCP Server",
       enabled: false,
@@ -1111,6 +1124,7 @@
       args: [],
       env: {},
       cwd: "",
+      disabled_tools: [],
     };
     draftConfig.mcp.servers = [...draftConfig.mcp.servers, server];
     selectedMcpId = server.id;
@@ -1133,6 +1147,10 @@
       const result = await invoke<McpProbeResult>("test_mcp_server", {
         server: $state.snapshot(server),
       });
+      mcpDiscoveredTools = {
+        ...mcpDiscoveredTools,
+        [id]: [...new Set(result.tools)].sort((left, right) => left.localeCompare(right)),
+      };
       mcpTestStatus = {
         ...mcpTestStatus,
         [id]: {
@@ -1171,6 +1189,10 @@
       const result = await invoke<McpProbeResult>("test_mcp_server", {
         server: $state.snapshot(server),
       });
+      mcpDiscoveredTools = {
+        ...mcpDiscoveredTools,
+        [id]: [...new Set(result.tools)].sort((left, right) => left.localeCompare(right)),
+      };
       server.enabled = true;
       mcpTestStatus = {
         ...mcpTestStatus,
@@ -1186,6 +1208,15 @@
         [id]: { tone: "error", message: `${$t("mcpTestFailed")}: ${err}` },
       };
     }
+  }
+
+  function setMcpToolEnabled(serverId: string, toolName: string, enabled: boolean) {
+    const server = draftConfig.mcp.servers.find((item) => item.id === serverId);
+    if (!server) return;
+    const disabled = new Set(server.disabled_tools);
+    if (enabled) disabled.delete(toolName);
+    else disabled.add(toolName);
+    server.disabled_tools = [...disabled].sort((left, right) => left.localeCompare(right));
   }
 
   function addEnvVar(idx: number) {
@@ -1222,6 +1253,16 @@
     draftConfig.mcp.servers.find((s) => s.id === selectedMcpId) ?? null,
   );
   let selectedMcpIndex = $derived(draftConfig.mcp.servers.findIndex((s) => s.id === selectedMcpId));
+  const mcpDiscoveryFingerprints = new Map<string, string>();
+
+  $effect(() => {
+    const server = selectedMcpServer;
+    if (!server?.enabled || !isTauri()) return;
+    const fingerprint = mcpConnectionFingerprint(server);
+    if (mcpDiscoveryFingerprints.get(server.id) === fingerprint) return;
+    mcpDiscoveryFingerprints.set(server.id, fingerprint);
+    untrack(() => void testMcpServer(server.id));
+  });
 
   async function refreshHooks() {
     const definitions = await invoke<
@@ -3534,6 +3575,7 @@
       {#if selectedMcpServer && selectedMcpIndex >= 0}
         {@const server = draftConfig.mcp.servers[selectedMcpIndex]}
         {@const status = mcpTestStatus[server.id]}
+        {@const discoveredTools = mcpDiscoveredTools[server.id] ?? []}
         <div class="settings-detail-col">
           <div class="detail-top-bar">
             <span class="detail-service-name">{server.name || "Unnamed Server"}</span>
@@ -3701,6 +3743,29 @@
                 >
                   {status.message}
                 </div>
+              {/if}
+            </section>
+
+            <section class="detail-section">
+              <h4 class="detail-section-title">{$t("mcpTools")}</h4>
+              <p class="detail-section-intro">{$t("mcpToolsDescription")}</p>
+              {#if discoveredTools.length > 0}
+                <div class="application-settings-surface mcp-tool-list">
+                  {#each discoveredTools as tool (tool)}
+                    <div class="mcp-tool-row">
+                      <code>{tool}</code>
+                      <Switch
+                        checked={!server.disabled_tools.includes(tool)}
+                        onCheckedChange={(checked) => setMcpToolEnabled(server.id, tool, checked)}
+                        ariaLabel={`${$t("mcpToolEnabled")}: ${tool}`}
+                      />
+                    </div>
+                  {/each}
+                </div>
+              {:else}
+                <p class="detail-hint mcp-tools-empty">
+                  {status?.tone === "testing" ? $t("mcpToolsLoading") : $t("mcpToolsEmpty")}
+                </p>
               {/if}
             </section>
 
@@ -4213,6 +4278,34 @@
   .mcp-test-actions {
     justify-content: flex-end;
     margin-top: 10px;
+  }
+
+  .mcp-tool-list {
+    overflow: hidden;
+  }
+
+  .mcp-tool-row {
+    display: flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 12px;
+  }
+
+  .mcp-tool-row + .mcp-tool-row {
+    border-top: 1px solid var(--mica-divider);
+  }
+
+  .mcp-tool-row code {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--text-primary);
+    font-size: 12px;
+  }
+
+  .mcp-tools-empty {
+    margin: 0;
   }
 
   .toggle-row,

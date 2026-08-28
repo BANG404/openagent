@@ -79,4 +79,18 @@ describe("standalone development previews", () => {
     ).toBe("compaction-status");
     expect(previewParameterPrefix("compaction-status")).toBe("compaction-status-preview");
   });
+
+  test("keeps the MCP settings tool-control preview wired to its fixture", async () => {
+    const [route, settings] = await Promise.all([
+      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/components/SettingsView.svelte", import.meta.url)).text(),
+    ]);
+
+    expect(route).toContain('devQuery?.has("mcp-settings-preview")');
+    expect(route).toContain('disabled_tools: ["delete_design_asset"]');
+    expect(settings).toContain(
+      'new URLSearchParams(window.location.search).has("mcp-settings-preview")',
+    );
+    expect(settings).toContain("inspect_design_asset_with_a_very_long_tool_name");
+  });
 });

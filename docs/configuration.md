@@ -67,6 +67,15 @@ enabled alongside a configured provider before the Agent receives the
 preserving the selected provider, API keys, and URL. The separate `fetch` tool
 and its page-size setting are unaffected.
 
+Each native MCP server entry stores a `disabled_tools` list alongside its
+connection settings. Settings probes the server and displays every currently
+advertised tool with an individual enable switch. Disabled names remain visible
+and persisted, but they are omitted from the Agent's tool definitions and from
+the dispatch registry. A server-level enable switch still controls the whole
+connection. MCP `tools/list_changed` updates are reflected on the next Agent
+turn while preserving configured disabled names, including names that
+temporarily disappear and later return.
+
 Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
 permissions and do not commit it to source control.

@@ -64,6 +64,31 @@ describe("web search enablement config", () => {
   });
 });
 
+describe("MCP tool policy config", () => {
+  test("defaults older server payloads to no disabled tools", () => {
+    const normalized = normalizeConfigShape({
+      mcp: { servers: [{ id: "server" }] },
+    } as unknown as AppConfig);
+
+    expect(normalized.mcp.servers[0].disabled_tools).toEqual([]);
+  });
+
+  test("normalizes persisted disabled tool names", () => {
+    const normalized = normalizeConfigShape({
+      mcp: {
+        servers: [
+          {
+            id: "server",
+            disabled_tools: ["beta", " alpha ", "alpha", ""],
+          },
+        ],
+      },
+    } as unknown as AppConfig);
+
+    expect(normalized.mcp.servers[0].disabled_tools).toEqual(["alpha", "beta"]);
+  });
+});
+
 describe("model retry config", () => {
   test("defaults each model to three retries with a thirty second interval", () => {
     const normalized = normalizeConfigShape({} as AppConfig);

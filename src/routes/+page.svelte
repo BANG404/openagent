@@ -193,6 +193,7 @@
   const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
   const isAgentsSettingsPreview = devQuery?.has("agents-settings-preview") === true;
   const isAgentPluginsSettingsPreview = devQuery?.has("agent-plugins-settings-preview") === true;
+  const isMcpSettingsPreview = devQuery?.has("mcp-settings-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isOnboardingWindow = runtimeQuery?.has("onboarding-window") === true;
   const isOnboardingSurface = isOnboardingWindow || isOnboardingPreview;
@@ -243,6 +244,18 @@
     devQuery?.get("agent-plugins-settings-preview-locale") === "en"
       ? "en"
       : devQuery?.get("agent-plugins-settings-preview-locale") === "zh"
+        ? "zh"
+        : null;
+  const mcpSettingsPreviewTheme =
+    devQuery?.get("mcp-settings-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("mcp-settings-preview-theme") === "light"
+        ? "light"
+        : null;
+  const mcpSettingsPreviewLocale: Locale | null =
+    devQuery?.get("mcp-settings-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("mcp-settings-preview-locale") === "zh"
         ? "zh"
         : null;
   const isDebugBuild = import.meta.env.DEV;
@@ -594,6 +607,7 @@
       isChannelsSettingsPreview ||
       isAgentsSettingsPreview ||
       isAgentPluginsSettingsPreview ||
+      isMcpSettingsPreview ||
       initialLoading ||
       workspaceLoading ||
       navigationTransitioning ||
@@ -1816,13 +1830,20 @@
       } else {
         await loadSettings();
         await loadWorkspace();
-        if (isChannelsSettingsPreview || isAgentsSettingsPreview || isAgentPluginsSettingsPreview) {
+        if (
+          isChannelsSettingsPreview ||
+          isAgentsSettingsPreview ||
+          isAgentPluginsSettingsPreview ||
+          isMcpSettingsPreview
+        ) {
           SettingsView = (await import("$lib/components/SettingsView.svelte")).default;
-          settingsInitialNav = isAgentPluginsSettingsPreview
-            ? "plugins"
-            : isAgentsSettingsPreview
-              ? "agents"
-              : "channels";
+          settingsInitialNav = isMcpSettingsPreview
+            ? "extensions"
+            : isAgentPluginsSettingsPreview
+              ? "plugins"
+              : isAgentsSettingsPreview
+                ? "agents"
+                : "channels";
           settingsOpen = true;
         }
         restoringSurface = "new-conversation";
@@ -1857,7 +1878,8 @@
         config &&
         !isChannelsSettingsPreview &&
         !isAgentsSettingsPreview &&
-        !isAgentPluginsSettingsPreview
+        !isAgentPluginsSettingsPreview &&
+        !isMcpSettingsPreview
       ) {
         requiresOnboarding = !config.onboarding_completed;
       }
@@ -2942,7 +2964,31 @@
 
   async function loadSettings() {
     if (!tauriAvailable) {
-      config = normalizeConfigShape(fallbackConfig);
+      config = normalizeConfigShape(
+        isMcpSettingsPreview
+          ? {
+              ...fallbackConfig,
+              mcp: {
+                servers: [
+                  {
+                    id: "preview-mcp",
+                    name: "Design tools",
+                    enabled: true,
+                    transport: "http",
+                    url: "https://mcp.example.test",
+                    bearer_token: "",
+                    headers: {},
+                    command: "",
+                    args: [],
+                    env: {},
+                    cwd: "",
+                    disabled_tools: ["delete_design_asset"],
+                  },
+                ],
+              },
+            }
+          : fallbackConfig,
+      );
       if (isOnboardingPreview) {
         config = {
           ...config,
@@ -2950,16 +2996,23 @@
           language: onboardingPreviewLocale ?? config.language,
         };
       }
-      if (isChannelsSettingsPreview || isAgentsSettingsPreview || isAgentPluginsSettingsPreview) {
+      if (
+        isChannelsSettingsPreview ||
+        isAgentsSettingsPreview ||
+        isAgentPluginsSettingsPreview ||
+        isMcpSettingsPreview
+      ) {
         config = {
           ...config,
           theme:
             agentPluginsSettingsPreviewTheme ??
+            mcpSettingsPreviewTheme ??
             agentsSettingsPreviewTheme ??
             channelsSettingsPreviewTheme ??
             config.theme,
           language:
             agentPluginsSettingsPreviewLocale ??
+            mcpSettingsPreviewLocale ??
             agentsSettingsPreviewLocale ??
             channelsSettingsPreviewLocale ??
             config.language,
@@ -2970,6 +3023,7 @@
           channelsSettingsPreviewTheme ??
           agentsSettingsPreviewTheme ??
           agentPluginsSettingsPreviewTheme ??
+          mcpSettingsPreviewTheme ??
           config.theme ??
           "system",
       );
@@ -2978,6 +3032,7 @@
           channelsSettingsPreviewLocale ??
           agentsSettingsPreviewLocale ??
           agentPluginsSettingsPreviewLocale ??
+          mcpSettingsPreviewLocale ??
           config.language,
       );
       return;

@@ -540,6 +540,7 @@ export interface McpServerConfig {
   args: string[];
   env: Record<string, string>;
   cwd?: string;
+  disabled_tools?: string[];
 }
 
 export interface McpSettings {
