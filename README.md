@@ -202,7 +202,7 @@ OpenAI-compatible endpoints (DeepSeek, OpenRouter, local Ollama, etc.) work the 
 
 ### Enable web search (optional)
 
-Open **Settings → Web Search** and configure the provider you want to use. The `web_search` tool is available only after the selected provider has the required value: a Brave or Tavily API key, or a SearXNG base URL. The independent `fetch` tool always retrieves a page directly with Spider, returns readable text, and paginates long results according to the configured fetch page size. Omit `page` for the first page and use subsequent 1-based page numbers for the rest. Saving Settings refreshes the tool list immediately.
+Open **Settings → Web Search** to enable or disable web search and the selected search provider independently. Both switches must be on and the selected provider must have its required value—a Brave or Tavily API key, or a SearXNG base URL—before the `websearch` tool is available. Turning either switch off preserves the provider and credentials. The independent `fetch` tool always retrieves a page directly with Spider, returns readable text, and paginates long results according to the configured fetch page size. Omit `page` for the first page and use subsequent 1-based page numbers for the rest. Saving Settings refreshes the tool list immediately.
 
 ### Choose a tool approval mode
 

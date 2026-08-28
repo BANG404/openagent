@@ -570,6 +570,8 @@ export interface AgentPluginSummary {
 export type WebSearchProvider = "brave" | "tavily" | "searxng";
 
 export interface WebSearchConfig {
+  enabled?: boolean;
+  provider_enabled?: boolean;
   provider: WebSearchProvider;
   brave_api_key: string;
   tavily_api_key: string;

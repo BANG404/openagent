@@ -60,6 +60,13 @@ If the user saves through the UI while the file is missing or invalid, the
 write starts from the runtime's last validated snapshot and repairs the
 canonical file instead of resetting unspecified fields to defaults.
 
+Web search has independent feature and selected-provider enablement switches.
+Both default to enabled when loading an older configuration, and both must be
+enabled alongside a configured provider before the Agent receives the
+`websearch` tool. Turning either switch off removes that tool immediately while
+preserving the selected provider, API keys, and URL. The separate `fetch` tool
+and its page-size setting are unaffected.
+
 Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
 permissions and do not commit it to source control.

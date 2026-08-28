@@ -193,7 +193,7 @@ flash_model = { provider_id = "anthropic-main", model = "claude-haiku-4-5" }
 
 ### 启用网络搜索（可选）
 
-打开 **设置 → Web Search**，配置要使用的服务。只有所选服务具备必要配置后，Agent 才会获得 `web_search` 工具：Brave 或 Tavily 需要 API Key，SearXNG 需要基础 URL。独立的 `fetch` 工具始终可用，它会通过 Spider 直接获取页面并返回可读文本；长内容按配置的获取页大小分页。省略 `page` 即获取第 1 页，后续页面使用从 1 开始的页码。保存设置后，工具列表会立即刷新。
+打开 **设置 → Web Search**，可以分别启用或关闭网络搜索和所选搜索服务。只有两个开关均已开启，并且所选服务具备必要配置后，Agent 才会获得 `websearch` 工具：Brave 或 Tavily 需要 API Key，SearXNG 需要基础 URL。关闭任一开关都会保留服务选择和凭据。独立的 `fetch` 工具始终可用，它会通过 Spider 直接获取页面并返回可读文本；长内容按配置的获取页大小分页。省略 `page` 即获取第 1 页，后续页面使用从 1 开始的页码。保存设置后，工具列表会立即刷新。
 
 ### 选择工具审批模式
 

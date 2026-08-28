@@ -637,7 +637,11 @@ const zh = {
   openContainingFolder: "打开所在文件夹",
   // Web search
   webSearch: "网络搜索",
+  webSearchEnabled: "启用网络搜索",
+  webSearchEnabledDesc: "控制 Agent 是否可以使用网络搜索工具；关闭后仍保留搜索服务及凭据。",
   searchProvider: "搜索服务",
+  searchProviderEnabled: "启用搜索服务",
+  searchProviderEnabledDesc: "选择服务并控制其是否可用；关闭后仍保留服务配置。",
   searchProviderBrave: "Brave Search API",
   searchProviderTavily: "Tavily API",
   searchProviderSearxng: "SearXNG",
@@ -1522,7 +1526,13 @@ const en: Translations = {
   toolApprovalApprove: "Approve and continue",
   openContainingFolder: "Open containing folder",
   webSearch: "Web Search",
+  webSearchEnabled: "Enable web search",
+  webSearchEnabledDesc:
+    "Controls whether Agent can use the web search tool. Turning it off preserves the provider and credentials.",
   searchProvider: "Search Provider",
+  searchProviderEnabled: "Enable search provider",
+  searchProviderEnabledDesc:
+    "Choose the provider and control whether it is available. Turning it off preserves its configuration.",
   searchProviderBrave: "Brave Search API",
   searchProviderTavily: "Tavily API",
   searchProviderSearxng: "SearXNG",

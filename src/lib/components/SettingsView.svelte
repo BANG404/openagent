@@ -17,7 +17,7 @@
     DEFAULT_QUICK_CHAT_SHORTCUT,
     formatQuickChatShortcut,
   } from "$lib/quickChatShortcut";
-  import { normalizeConfigShape } from "$lib/config";
+  import { normalizeConfigShape, type NormalizedAppConfig } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
   import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
@@ -285,7 +285,7 @@
   const providerConnectionFingerprints = new Map<string, string>();
   const mcpConnectionFingerprints = new Map<string, string>();
 
-  let draftConfig = $state<AppConfig>(
+  let draftConfig = $state<NormalizedAppConfig>(
     normalizeConfigShape(untrack(() => config) ?? fallbackConfig),
   );
   let permissionProfile = $derived(draftConfig.permission_profile as PermissionProfile);
@@ -2458,6 +2458,21 @@
     <Tabs.Content value="websearch" class="settings-tab-panel">
       <div class="settings-content-col">
         <section class="detail-section">
+          <h4 class="detail-section-title">{$t("webSearch")}</h4>
+          <div class="application-settings-surface startup-row">
+            <div class="startup-copy">
+              <span class="label-text">{$t("webSearchEnabled")}</span>
+              <p class="detail-hint">{$t("webSearchEnabledDesc")}</p>
+            </div>
+            <Switch
+              checked={draftConfig.web_search.enabled}
+              onCheckedChange={(checked) => (draftConfig.web_search.enabled = checked)}
+              ariaLabel={$t("webSearchEnabled")}
+            />
+          </div>
+        </section>
+
+        <section class="detail-section">
           <h4 class="detail-section-title">{$t("fetchSettings")}</h4>
           <label class="detail-label">
             <span class="label-text">{$t("fetchPageSize")}</span>
@@ -2476,17 +2491,27 @@
         <section class="detail-section">
           <div class="detail-label">
             <span class="label-text">{$t("searchProvider")}</span>
-            <Select
-              bind:value={draftConfig.web_search.provider}
-              items={[
-                { value: "brave", label: $t("searchProviderBrave") },
-                { value: "tavily", label: $t("searchProviderTavily") },
-                { value: "searxng", label: $t("searchProviderSearxng") },
-              ]}
-              ariaLabel={$t("searchProvider")}
-            />
+            <div class="web-search-provider-controls">
+              <Select
+                bind:value={draftConfig.web_search.provider}
+                items={[
+                  { value: "brave", label: $t("searchProviderBrave") },
+                  { value: "tavily", label: $t("searchProviderTavily") },
+                  { value: "searxng", label: $t("searchProviderSearxng") },
+                ]}
+                disabled={!draftConfig.web_search.enabled ||
+                  !draftConfig.web_search.provider_enabled}
+                ariaLabel={$t("searchProvider")}
+              />
+              <Switch
+                checked={draftConfig.web_search.provider_enabled}
+                disabled={!draftConfig.web_search.enabled}
+                onCheckedChange={(checked) => (draftConfig.web_search.provider_enabled = checked)}
+                ariaLabel={$t("searchProviderEnabled")}
+              />
+            </div>
           </div>
-          <p class="detail-hint">{$t("searchProviderDesc")}</p>
+          <p class="detail-hint">{$t("searchProviderEnabledDesc")}</p>
         </section>
 
         {#if draftConfig.web_search.provider === "brave"}
@@ -2498,6 +2523,8 @@
                 type="password"
                 class="detail-input"
                 placeholder={$t("braveApiKeyPlaceholder")}
+                disabled={!draftConfig.web_search.enabled ||
+                  !draftConfig.web_search.provider_enabled}
                 bind:value={draftConfig.web_search.brave_api_key}
               />
             </label>
@@ -2511,6 +2538,8 @@
                 type="password"
                 class="detail-input"
                 placeholder={$t("tavilyApiKeyPlaceholder")}
+                disabled={!draftConfig.web_search.enabled ||
+                  !draftConfig.web_search.provider_enabled}
                 bind:value={draftConfig.web_search.tavily_api_key}
               />
             </label>
@@ -2524,6 +2553,8 @@
                 type="text"
                 class="detail-input"
                 placeholder={$t("searxngBaseUrlPlaceholder")}
+                disabled={!draftConfig.web_search.enabled ||
+                  !draftConfig.web_search.provider_enabled}
                 bind:value={draftConfig.web_search.searxng_base_url}
               />
             </label>
@@ -4213,6 +4244,16 @@
 
   .startup-copy .detail-hint {
     margin-inline: 0;
+  }
+
+  .web-search-provider-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .web-search-provider-controls :global(.ui-select-trigger) {
+    min-width: 220px;
   }
 
   .shortcut-setting-row {

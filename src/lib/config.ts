@@ -9,8 +9,19 @@ import type {
 } from "./types";
 import { normalizeQuickChatShortcut } from "./quickChatShortcut";
 
-function defaultWebSearch(): WebSearchConfig {
+export type NormalizedWebSearchConfig = WebSearchConfig & {
+  enabled: boolean;
+  provider_enabled: boolean;
+};
+
+export type NormalizedAppConfig = Omit<AppConfig, "web_search"> & {
+  web_search: NormalizedWebSearchConfig;
+};
+
+function defaultWebSearch(): NormalizedWebSearchConfig {
   return {
+    enabled: true,
+    provider_enabled: true,
     provider: "brave",
     brave_api_key: "",
     tavily_api_key: "",
@@ -60,7 +71,7 @@ function normalizePermissionProfile(profile: PermissionProfile | undefined): Per
 
 const reasoningEfforts = new Set<ReasoningEffort>(["low", "medium", "high", "xhigh", "max"]);
 
-export function normalizeConfigShape(input: AppConfig): AppConfig {
+export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
   const requestedMaxTurns = Number(input.agent_max_turns);
   const agentMaxTurns = Number.isFinite(requestedMaxTurns)
     ? Math.min(1000, Math.max(1, Math.floor(requestedMaxTurns)))
@@ -128,7 +139,10 @@ export function normalizeConfigShape(input: AppConfig): AppConfig {
     }),
   };
 
-  const web_search: WebSearchConfig = { ...defaultWebSearch(), ...(input.web_search ?? {}) };
+  const web_search: NormalizedWebSearchConfig = {
+    ...defaultWebSearch(),
+    ...(input.web_search ?? {}),
+  };
   const requestedHtmlHeight = Number(input.html_preview?.fixed_height);
   const html_preview: HtmlPreviewConfig = {
     ...defaultHtmlPreview(),

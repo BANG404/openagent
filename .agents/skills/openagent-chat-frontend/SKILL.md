@@ -1040,6 +1040,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   normalized to the current version before a settings snapshot can be saved;
   persisted unversioned configuration is handled by the pre-runtime transition,
   never by settings autosave.
+- Web-search feature and selected-provider enablement are separate optional
+  transport fields that normalize to enabled for older payloads. Settings must
+  preserve provider selection and credentials when either switch is off,
+  disable provider editing while unavailable, and leave independent fetch
+  configuration usable. Saving either switch relies on the shared runtime
+  configuration refresh to add or remove the `websearch` tool.
 - General model settings place the dedicated retry policy card as the final
   section after the Flash retry queue, separate from either model queue. The
   interval is displayed in seconds while preserving milliseconds at the
