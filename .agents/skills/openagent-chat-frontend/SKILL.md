@@ -910,6 +910,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   transcript scrollbar during activity with stable geometry and idle hiding,
   contained boundary scrolling, and
   light/dark rendering remain directly testable without a native runtime.
+- Keep the development-only `cache-usage-preview` query available for the
+  completed-turn footer. Its `-theme` and `-locale` parameters must keep an
+  aggregated cache-hit state and the explicit no-activity state directly
+  verifiable in light/dark themes and Chinese/English copy.
 - Keep the development-only `tool-diff-preview` query available with a large
   `edit_file` fixture. Its `-theme` and `-locale` parameters must keep bounded
   expansion, light/dark themes, and Chinese/English rendering directly
@@ -1008,13 +1012,16 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 ## IPC and events
 
-- The development Inspector may derive cache utilization from persisted Rig
-  usage only when `total_tokens - output_tokens` reconciles with either the
-  inclusive-input or separately reported cache-token shape. Show observed cache
-  reads and writes against that provider input total. When cache counters are
-  zero, report that no cache activity was reported instead of claiming a measured
-  zero-percent hit rate; inconsistent totals keep the raw counters visible but
-  must not produce a percentage.
+- Development surfaces may derive cache utilization from persisted Rig usage
+  only when `total_tokens - output_tokens` reconciles with either the
+  inclusive-input or separately reported cache-token shape. The Inspector shows
+  each request, while every completed assistant footer in a development build
+  aggregates all chat requests linked to that turn's checkpoint. Show observed
+  cache reads and writes against the provider input total. When cache counters
+  are zero, report that no cache activity was reported instead of claiming a
+  measured zero-percent hit rate; inconsistent totals keep the raw counters
+  visible but must not produce a percentage. Production transcript footers must
+  not load or render this diagnostic usage.
 - Application update checks expose one shared `idle`/`checking`/`installing`
   state to every desktop surface. Manual checks must disable duplicate input,
   show visible progress, apply a finite timeout, surface localized success or

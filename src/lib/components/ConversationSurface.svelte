@@ -15,6 +15,7 @@
     FileChange,
     RecentWorkspace,
     StreamItem,
+    TaskTokenUsage,
     UserMessageContext,
     WorkspaceContext,
   } from "$lib/types";
@@ -40,6 +41,7 @@
     currentStreamItems: StreamItem[];
     currentStreamMessageId: string | null;
     debugMode: boolean;
+    devMode: boolean;
     fileChanges: FileChange[];
     followTail: boolean;
     isAwaitingStreamOutput: boolean;
@@ -58,6 +60,7 @@
     restoringSurface: CachedRestoreSurface;
     shikiTheme: string;
     slashCommands: SlashCommand[];
+    taskUsagesByCheckpointId: Record<string, TaskTokenUsage[]>;
     tailAnchorToken: number | null;
     tauriAvailable: boolean;
     workspace: WorkspaceContext | null;
@@ -194,6 +197,8 @@
           activeConvId={view.activeConvId}
           activeBranchId={view.activeBranchId}
           debugMode={view.debugMode}
+          devMode={view.devMode}
+          taskUsagesByCheckpointId={view.taskUsagesByCheckpointId}
           activeTree={view.activeTree}
           paddingBottom={inputAreaHeight + 24}
           showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(view.config)}

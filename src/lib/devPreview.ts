@@ -2,6 +2,7 @@ export type StandaloneDevPreview =
   | "approval-queue"
   | "attachment-composer"
   | "book-mode"
+  | "cache-usage"
   | "checkpoint-flow"
   | "compaction-status"
   | "command-palette"
@@ -24,6 +25,7 @@ const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
   ["approval-queue-preview", "approval-queue"],
   ["desktop-shell-preview", "desktop-shell"],
   ["book-mode-preview", "book-mode"],
+  ["cache-usage-preview", "cache-usage"],
   ["permission-settings-preview", "permission-settings"],
   ["workspace-switcher-preview", "workspace-switcher"],
   ["checkpoint-flow-preview", "checkpoint-flow"],

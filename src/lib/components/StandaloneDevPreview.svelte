@@ -25,6 +25,7 @@
     ReasoningEffort,
     RecentWorkspace,
     StreamItem,
+    TaskTokenUsage,
     UserInputRequest,
     WorkspaceContext,
     UserMessageContext,
@@ -403,6 +404,78 @@
       timestamp: Date.now() - 1_000,
     },
   ]);
+  const cacheUsageMessages: ChatMessage[] = [
+    {
+      id: "cache-preview-user-hit",
+      role: "user",
+      content: "Show the cache utilization for this reply.",
+      timestamp: Date.now() - 6_000,
+    },
+    {
+      id: "cache-preview-assistant-hit",
+      role: "assistant",
+      content: "This completed turn reused most of its provider input.",
+      items: [{ type: "text", content: "This completed turn reused most of its provider input." }],
+      checkpointId: "cache-preview-hit",
+      timestamp: Date.now() - 5_000,
+      turn: {
+        id: "cache-preview-turn-hit",
+        input_message_id: "cache-preview-user-hit",
+        response_message_id: "cache-preview-assistant-hit",
+        status: "completed",
+        started_at: Date.now() - 6_000,
+        completed_at: Date.now() - 5_000,
+        duration_ms: 1_000,
+      },
+    },
+    {
+      id: "cache-preview-user-zero",
+      role: "user",
+      content: "Show the zero-cache state too.",
+      timestamp: Date.now() - 3_000,
+    },
+    {
+      id: "cache-preview-assistant-zero",
+      role: "assistant",
+      content: "This completed turn reported no cache counters.",
+      items: [{ type: "text", content: "This completed turn reported no cache counters." }],
+      checkpointId: "cache-preview-zero",
+      timestamp: Date.now() - 2_000,
+      turn: {
+        id: "cache-preview-turn-zero",
+        input_message_id: "cache-preview-user-zero",
+        response_message_id: "cache-preview-assistant-zero",
+        status: "completed",
+        started_at: Date.now() - 3_000,
+        completed_at: Date.now() - 2_000,
+        duration_ms: 1_000,
+      },
+    },
+  ];
+  const cacheUsageByCheckpoint: Record<string, TaskTokenUsage[]> = {
+    "cache-preview-hit": [
+      {
+        input_tokens: 10,
+        output_tokens: 10,
+        total_tokens: 110,
+        cached_input_tokens: 70,
+        cache_creation_input_tokens: 20,
+        tool_use_prompt_tokens: 0,
+        reasoning_tokens: 0,
+      },
+    ],
+    "cache-preview-zero": [
+      {
+        input_tokens: 100,
+        output_tokens: 10,
+        total_tokens: 110,
+        cached_input_tokens: 0,
+        cache_creation_input_tokens: 0,
+        tool_use_prompt_tokens: 0,
+        reasoning_tokens: 0,
+      },
+    ],
+  };
   const streamingMessages: ChatMessage[] = [];
   const fencedCodePreview = [
     "A language-tagged fence keeps its compact header:",
@@ -1182,6 +1255,38 @@
       />
     </section>
   </main>
+{:else if preview === "cache-usage"}
+  <main class="cache-usage-preview-stage">
+    <section class="cache-usage-preview-messages">
+      <MessageList
+        messages={cacheUsageMessages}
+        scrollElement={null}
+        isStreaming={false}
+        isAwaitingStreamOutput={false}
+        currentStreamItems={[]}
+        currentStreamMessageId={null}
+        activeConvId="cache-usage-preview"
+        activeBranchId={null}
+        debugMode={false}
+        devMode
+        taskUsagesByCheckpointId={cacheUsageByCheckpoint}
+        activeTree={undefined}
+        paddingBottom={48}
+        showApiKeyWarn={false}
+        shikiTheme={theme === "dark" ? "github-dark" : "github-light"}
+        mermaidConfig={mermaidConfigFor(theme === "dark")}
+        newConversationGreeting={null}
+        newConversationGreetingLoading={false}
+        editable={false}
+        onCommitEdit={() => {}}
+        onAddQuote={() => {}}
+        onReExecute={() => {}}
+        onSwitchBranch={() => {}}
+        onSubmitUserInput={() => {}}
+        onCancelUserInput={() => {}}
+      />
+    </section>
+  </main>
 {:else if preview === "streaming-transcript"}
   <main
     class="streaming-transcript-preview-stage"
@@ -1419,6 +1524,15 @@
   }
   .compaction-status-preview-list {
     width: min(900px, 100%);
+  }
+  .cache-usage-preview-stage {
+    min-height: 100vh;
+    padding: 24px;
+    background: var(--bg);
+  }
+  .cache-usage-preview-messages {
+    width: min(900px, 100%);
+    margin: 0 auto;
   }
   .streaming-transcript-preview-stage {
     height: 100vh;

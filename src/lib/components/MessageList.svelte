@@ -11,6 +11,7 @@
   import FollowUpSuggestions from "./FollowUpSuggestions.svelte";
   import { t } from "$lib/i18n";
   import { finalAssistantOutput } from "$lib/assistantOutput";
+  import { summarizeCacheUsages } from "$lib/cacheUsage";
   import { latestTurnSuggestionHostMessageId } from "$lib/followUpSuggestions";
   import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
   import {
@@ -24,6 +25,7 @@
     ChatMessage,
     HtmlPreviewConfig,
     StreamItem,
+    TaskTokenUsage,
     UserMessageContext,
   } from "$lib/types";
   import AttachmentPreview from "./AttachmentPreview.svelte";
@@ -53,6 +55,8 @@
     activeConvId: string | null;
     activeBranchId: string | null;
     debugMode: boolean;
+    devMode?: boolean;
+    taskUsagesByCheckpointId?: Record<string, TaskTokenUsage[]>;
     activeTree: ConvTree | undefined;
     paddingBottom: number;
     showApiKeyWarn: boolean;
@@ -103,6 +107,8 @@
     activeConvId,
     activeBranchId,
     debugMode,
+    devMode = false,
+    taskUsagesByCheckpointId = {},
     activeTree,
     paddingBottom,
     showApiKeyWarn,
@@ -427,6 +433,22 @@
     return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
+  function formatTokens(tokens: number): string {
+    return new Intl.NumberFormat([], { notation: "compact", maximumFractionDigits: 1 }).format(
+      tokens,
+    );
+  }
+
+  function formatPercent(rate: number): string {
+    return new Intl.NumberFormat([], { style: "percent", maximumFractionDigits: 1 }).format(rate);
+  }
+
+  function cacheUsageForMessage(message: ChatMessage) {
+    if (!devMode || !message.checkpointId) return null;
+    const usages = taskUsagesByCheckpointId[message.checkpointId];
+    return usages?.length ? summarizeCacheUsages(usages) : null;
+  }
+
   function userIndexTitle(content: string, index: number) {
     const text = content.trim().replace(/\s+/g, " ");
     return text ? `${index + 1}. ${text.slice(0, 80)}` : `${index + 1}`;
@@ -582,6 +604,7 @@
         {@const timing = assistantMsg
           ? runTiming(assistantMsg, assistantMsgIdx, turnMessages)
           : null}
+        {@const cacheUsage = assistantMsg ? cacheUsageForMessage(assistantMsg) : null}
         {@const turnSuggestions = turnSuggestionHostMessageId
           ? (followUpSuggestionsByMessageId[turnSuggestionHostMessageId] ?? [])
           : []}
@@ -648,7 +671,7 @@
           </div>
         {/if}
         {#if assistantMsg}
-          {#if isRerunnable || timing || assistantMsg.timestamp > 0 || renderedAssistantItems.length > 0}
+          {#if isRerunnable || timing || cacheUsage || assistantMsg.timestamp > 0 || renderedAssistantItems.length > 0}
             <div
               class="msg-footer-row message-record pagination-footer"
               id={renderedAssistantItems.length > 0 ? undefined : `message-${assistantMsg.id}`}
@@ -750,6 +773,26 @@
                   {#if timing.firstToken}{$t("firstTokenTime")} {timing.firstToken} ·
                   {/if}{$t("totalRunTime")}
                   {timing.total}
+                </span>
+              {/if}
+              {#if cacheUsage}
+                <span class="cache-usage">
+                  {#if cacheUsage.kind === "available"}
+                    {$t("cacheHit")}
+                    {formatPercent(cacheUsage.readRate)} · {formatTokens(cacheUsage.cachedTokens)}
+                    {$t("cachedTokens")}
+                    {#if cacheUsage.writtenTokens > 0}
+                      · {$t("cacheWrite")} {formatPercent(cacheUsage.writeRate)}
+                    {/if}
+                  {:else if cacheUsage.kind === "no_activity"}
+                    {$t("noCacheActivity")}
+                  {:else}
+                    {$t("cacheRead")}
+                    {formatTokens(cacheUsage.cachedTokens)}
+                    {#if cacheUsage.writtenTokens > 0}
+                      · {$t("cacheWrite")} {formatTokens(cacheUsage.writtenTokens)}
+                    {/if}
+                  {/if}
                 </span>
               {/if}
               {#if assistantMsg.timestamp > 0}<span class="ts"
@@ -1486,7 +1529,8 @@
     display: flex;
     gap: 6px;
   }
-  .run-timing {
+  .run-timing,
+  .cache-usage {
     color: var(--text-muted);
     font-size: 11px;
     line-height: 1;

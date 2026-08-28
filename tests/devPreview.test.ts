@@ -31,6 +31,13 @@ describe("standalone development previews", () => {
     expect(previewParameterPrefix("streaming-transcript")).toBe("streaming-transcript-preview");
   });
 
+  test("exposes the development cache-usage footer preview", () => {
+    expect(resolveStandaloneDevPreview(new URLSearchParams("cache-usage-preview"), true)).toBe(
+      "cache-usage",
+    );
+    expect(previewParameterPrefix("cache-usage")).toBe("cache-usage-preview");
+  });
+
   test("exposes the bounded tool diff preview", () => {
     expect(resolveStandaloneDevPreview(new URLSearchParams("tool-diff-preview"), true)).toBe(
       "tool-diff",

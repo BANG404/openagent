@@ -21,6 +21,7 @@
   import { installDownloadHook } from "$lib/downloadHook";
   import { checkForAppUpdate } from "$lib/appUpdater";
   import { AgentCompletionNotifier } from "$lib/agentCompletionNotification";
+  import { chatTaskUsagesByCheckpoint } from "$lib/cacheUsage";
   import { Tooltip as TooltipPrimitive } from "bits-ui";
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme, createNativeThemeSynchronizer, type AppTheme } from "$lib/appTheme";
@@ -155,6 +156,8 @@
     GoalRunUpdatedEvent,
     UserMessageContext,
     CheckpointTurnStatus,
+    TaskTokenUsage,
+    TaskTrace,
   } from "$lib/types";
 
   type AgentCommandSpec = {
@@ -423,6 +426,8 @@
   // common parent are alternate variants; the active path through the tree is what
   // the user sees. Nested branch arrows fall out naturally from rendering this path.
   let convTrees = $state<Record<string, ConvTree>>({});
+  let devTaskUsagesByConversation = $state<Record<string, Record<string, TaskTokenUsage[]>>>({});
+  const devTaskUsageRefreshVersions = new Map<string, number>();
   let checkpointLoadErrors = $state<Record<string, string>>({});
   // Per-conv: parent checkpoint id for the next finalized turn (used to attach a
   // re-execution as a sibling of the edited turn instead of as a tip-extension).
@@ -444,6 +449,23 @@
   let streamCompletionTailAnchor = $state<{ convId: string; token: number } | null>(null);
   let streamCompletionTailAnchorSequence = 0;
   const tauriAvailable = isTauri();
+
+  async function refreshDevTaskUsagesForConversation(convId: string): Promise<void> {
+    if (!isDebugBuild || !tauriAvailable) return;
+    const version = (devTaskUsageRefreshVersions.get(convId) ?? 0) + 1;
+    devTaskUsageRefreshVersions.set(convId, version);
+    try {
+      const traces = await invoke<TaskTrace[]>("get_task_traces");
+      if (devTaskUsageRefreshVersions.get(convId) !== version) return;
+      devTaskUsagesByConversation = {
+        ...devTaskUsagesByConversation,
+        [convId]: chatTaskUsagesByCheckpoint(traces, convId),
+      };
+    } catch (error) {
+      console.warn("Failed to load development task usage:", error);
+    }
+  }
+
   const usesNativeWindowMaterial = tauriAvailable && !isQuickChatSurface && !isDevInspectorWindow;
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
   const completionWindowActivity = tauriAvailable
@@ -744,6 +766,7 @@
         showLoadingState,
         messageIdsAtStart,
       );
+      void refreshDevTaskUsagesForConversation(convId);
       if (convId in checkpointLoadErrors) {
         const { [convId]: _cleared, ...rest } = checkpointLoadErrors;
         checkpointLoadErrors = rest;
@@ -2899,6 +2922,7 @@
     if (checkpointId) {
       attachNewTurnToTree(conv_id, checkpointId, assistantMsg);
     }
+    void refreshDevTaskUsagesForConversation(conv_id);
 
     // Clean up pending checkpoint id and any re-execution hint for this conv
     const { [conv_id]: _ck, ...restCk } = pendingCheckpointIds;
@@ -4373,6 +4397,8 @@
     currentStreamItems,
     currentStreamMessageId,
     debugMode: isDebugMode,
+    devMode: isDebugBuild,
+    taskUsagesByCheckpointId: activeConvId ? (devTaskUsagesByConversation[activeConvId] ?? {}) : {},
     fileChanges: currentFileChanges,
     followUpSuggestionsByMessageId,
     followTail: followStreamToBottom,
