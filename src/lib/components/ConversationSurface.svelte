@@ -41,7 +41,6 @@
     currentStreamItems: StreamItem[];
     currentStreamMessageId: string | null;
     debugMode: boolean;
-    devMode: boolean;
     fileChanges: FileChange[];
     followTail: boolean;
     isAwaitingStreamOutput: boolean;
@@ -197,7 +196,6 @@
           activeConvId={view.activeConvId}
           activeBranchId={view.activeBranchId}
           debugMode={view.debugMode}
-          devMode={view.devMode}
           taskUsagesByCheckpointId={view.taskUsagesByCheckpointId}
           activeTree={view.activeTree}
           paddingBottom={inputAreaHeight + 24}

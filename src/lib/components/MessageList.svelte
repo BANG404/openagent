@@ -55,7 +55,6 @@
     activeConvId: string | null;
     activeBranchId: string | null;
     debugMode: boolean;
-    devMode?: boolean;
     taskUsagesByCheckpointId?: Record<string, TaskTokenUsage[]>;
     activeTree: ConvTree | undefined;
     paddingBottom: number;
@@ -107,7 +106,6 @@
     activeConvId,
     activeBranchId,
     debugMode,
-    devMode = false,
     taskUsagesByCheckpointId = {},
     activeTree,
     paddingBottom,
@@ -444,7 +442,7 @@
   }
 
   function cacheUsageForMessage(message: ChatMessage) {
-    if (!devMode || !message.checkpointId) return null;
+    if (!message.checkpointId) return null;
     const usages = taskUsagesByCheckpointId[message.checkpointId];
     return usages?.length ? summarizeCacheUsages(usages) : null;
   }

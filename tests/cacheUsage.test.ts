@@ -239,3 +239,17 @@ describe("cache usage normalization", () => {
     ).toEqual({});
   });
 });
+
+describe("completed-turn cache usage", () => {
+  test("loads and renders usage in production builds", async () => {
+    const [routeSource, messageListSource] = await Promise.all([
+      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/components/MessageList.svelte", import.meta.url)).text(),
+    ]);
+
+    expect(routeSource).toContain("if (!tauriAvailable) return;");
+    expect(routeSource).not.toContain("if (!isDebugBuild || !tauriAvailable) return;");
+    expect(messageListSource).toContain("if (!message.checkpointId) return null;");
+    expect(messageListSource).not.toContain("if (!devMode || !message.checkpointId) return null;");
+  });
+});

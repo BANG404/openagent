@@ -1013,11 +1013,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 ## IPC and events
 
-- Development surfaces may derive cache utilization from persisted Rig usage
+- Transcript surfaces may derive cache utilization from persisted Rig usage
   only when `total_tokens - output_tokens` reconciles with either the
   inclusive-input or separately reported cache-token shape. The Inspector shows
-  each request, while every completed assistant footer in a development build
-  aggregates all chat requests belonging to that durable Turn. Prefer an exact
+  each request, while every completed assistant footer in development and
+  production builds aggregates all chat requests belonging to that durable Turn. Prefer an exact
   checkpoint match, but tolerate the runtime's request-scoped temporary
   checkpoint by associating its trace only when the coarse creation timestamp
   overlaps exactly one persisted terminal Turn window. Show observed
@@ -1025,8 +1025,7 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   must restore each historical assistant response's owning checkpoint so one
   Turn never reuses the newest Turn's diagnostic usage. When cache counters are
   zero or provider totals cannot produce a valid hit rate, omit cache usage from
-  that footer. Production transcript footers must not load or render this
-  diagnostic usage.
+  that footer.
 - Application update checks expose one shared `idle`/`checking`/`installing`
   state to every desktop surface. Manual checks must disable duplicate input,
   show visible progress, apply a finite timeout, surface localized success or

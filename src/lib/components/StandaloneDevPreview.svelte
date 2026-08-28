@@ -1302,7 +1302,6 @@
         activeConvId="cache-usage-preview"
         activeBranchId={null}
         debugMode={false}
-        devMode
         taskUsagesByCheckpointId={cacheUsageByCheckpoint}
         activeTree={undefined}
         paddingBottom={48}

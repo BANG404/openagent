@@ -426,8 +426,8 @@
   // common parent are alternate variants; the active path through the tree is what
   // the user sees. Nested branch arrows fall out naturally from rendering this path.
   let convTrees = $state<Record<string, ConvTree>>({});
-  let devTaskUsagesByConversation = $state<Record<string, Record<string, TaskTokenUsage[]>>>({});
-  const devTaskUsageRefreshVersions = new Map<string, number>();
+  let taskUsagesByConversation = $state<Record<string, Record<string, TaskTokenUsage[]>>>({});
+  const taskUsageRefreshVersions = new Map<string, number>();
   let checkpointLoadErrors = $state<Record<string, string>>({});
   // Per-conv: parent checkpoint id for the next finalized turn (used to attach a
   // re-execution as a sibling of the edited turn instead of as a tip-extension).
@@ -450,15 +450,15 @@
   let streamCompletionTailAnchorSequence = 0;
   const tauriAvailable = isTauri();
 
-  async function refreshDevTaskUsagesForConversation(convId: string): Promise<void> {
-    if (!isDebugBuild || !tauriAvailable) return;
-    const version = (devTaskUsageRefreshVersions.get(convId) ?? 0) + 1;
-    devTaskUsageRefreshVersions.set(convId, version);
+  async function refreshTaskUsagesForConversation(convId: string): Promise<void> {
+    if (!tauriAvailable) return;
+    const version = (taskUsageRefreshVersions.get(convId) ?? 0) + 1;
+    taskUsageRefreshVersions.set(convId, version);
     try {
       const traces = await invoke<TaskTrace[]>("get_task_traces");
-      if (devTaskUsageRefreshVersions.get(convId) !== version) return;
-      devTaskUsagesByConversation = {
-        ...devTaskUsagesByConversation,
+      if (taskUsageRefreshVersions.get(convId) !== version) return;
+      taskUsagesByConversation = {
+        ...taskUsagesByConversation,
         [convId]: chatTaskUsagesByCheckpoint(
           traces,
           convId,
@@ -469,7 +469,7 @@
         ),
       };
     } catch (error) {
-      console.warn("Failed to load development task usage:", error);
+      console.warn("Failed to load task usage:", error);
     }
   }
 
@@ -773,7 +773,7 @@
         showLoadingState,
         messageIdsAtStart,
       );
-      void refreshDevTaskUsagesForConversation(convId);
+      void refreshTaskUsagesForConversation(convId);
       if (convId in checkpointLoadErrors) {
         const { [convId]: _cleared, ...rest } = checkpointLoadErrors;
         checkpointLoadErrors = rest;
@@ -2929,7 +2929,7 @@
     if (checkpointId) {
       attachNewTurnToTree(conv_id, checkpointId, assistantMsg);
     }
-    void refreshDevTaskUsagesForConversation(conv_id);
+    void refreshTaskUsagesForConversation(conv_id);
 
     // Clean up pending checkpoint id and any re-execution hint for this conv
     const { [conv_id]: _ck, ...restCk } = pendingCheckpointIds;
@@ -4404,8 +4404,7 @@
     currentStreamItems,
     currentStreamMessageId,
     debugMode: isDebugMode,
-    devMode: isDebugBuild,
-    taskUsagesByCheckpointId: activeConvId ? (devTaskUsagesByConversation[activeConvId] ?? {}) : {},
+    taskUsagesByCheckpointId: activeConvId ? (taskUsagesByConversation[activeConvId] ?? {}) : {},
     fileChanges: currentFileChanges,
     followUpSuggestionsByMessageId,
     followTail: followStreamToBottom,
