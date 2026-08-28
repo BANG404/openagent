@@ -7,6 +7,7 @@
   import InspectorDatabase from "$lib/components/InspectorDatabase.svelte";
   import Tooltip from "$lib/components/Tooltip.svelte";
   import { showToast, updateToast } from "$lib/toast";
+  import { summarizeCacheUsage } from "$lib/cacheUsage";
   import {
     DEV_MAIN_DEBUG_VISIBILITY_EVENT,
     readMainDebugComponentsVisible,
@@ -75,6 +76,9 @@
       .sort((left, right) => right.timestamp - left.timestamp);
   });
   const selectedTrace = $derived(traces.find((item) => item.id === selectedTaskTraceId) ?? null);
+  const selectedCacheUsage = $derived(
+    selectedTaskTrace?.usage ? summarizeCacheUsage(selectedTaskTrace.usage) : null,
+  );
   const messageTimeline = $derived.by(() =>
     selectedTaskTrace ? buildTaskTimeline(selectedTaskTrace) : [],
   );
@@ -104,6 +108,10 @@
     return new Intl.NumberFormat([], { notation: "compact", maximumFractionDigits: 1 }).format(
       tokens,
     );
+  }
+
+  function formatPercent(rate: number): string {
+    return new Intl.NumberFormat([], { style: "percent", maximumFractionDigits: 1 }).format(rate);
   }
 
   function buildTaskTimeline(trace: TaskTrace): TimelineEvent[] {
@@ -504,12 +512,27 @@
                   selectedTaskTrace.usage.output_tokens,
                 )} output</span
               >
-              <span
-                >{formatTokens(selectedTaskTrace.usage.cached_input_tokens)} cached
-                {#if selectedTaskTrace.usage.cache_creation_input_tokens > 0}
-                  · {formatTokens(selectedTaskTrace.usage.cache_creation_input_tokens)} written
-                {/if}</span
-              >
+              {#if selectedCacheUsage?.kind === "available"}
+                <span
+                  >{formatPercent(selectedCacheUsage.readRate)} cache hit · {formatTokens(
+                    selectedTaskTrace.usage.cached_input_tokens,
+                  )} cached
+                  {#if selectedTaskTrace.usage.cache_creation_input_tokens > 0}
+                    · {formatPercent(selectedCacheUsage.writeRate)} written
+                  {/if}</span
+                >
+              {:else if selectedCacheUsage?.kind === "no_activity"}
+                <span>No cache activity reported</span>
+              {:else}
+                <span
+                  >Cache rate unavailable · {formatTokens(
+                    selectedTaskTrace.usage.cached_input_tokens,
+                  )} cached
+                  {#if selectedTaskTrace.usage.cache_creation_input_tokens > 0}
+                    · {formatTokens(selectedTaskTrace.usage.cache_creation_input_tokens)} written
+                  {/if}</span
+                >
+              {/if}
             {/if}
           </div>
         </div>
