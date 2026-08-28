@@ -5,8 +5,12 @@ import { readFile } from "node:fs/promises";
 const componentsUrl = new URL("../src/lib/components/", import.meta.url);
 
 describe("window focus chrome", () => {
-  test("dims both top-chrome segments from one window focus state", async () => {
+  test("drives chrome and composer behavior from one window focus state", async () => {
     const route = await readFile(new URL("../src/routes/+page.svelte", import.meta.url), "utf8");
+    const conversationSurface = await readFile(
+      new URL("ConversationSurface.svelte", componentsUrl),
+      "utf8",
+    );
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
     const historyControls = await readFile(
       new URL("SidebarHistoryControls.svelte", componentsUrl),
@@ -17,7 +21,12 @@ describe("window focus chrome", () => {
 
     expect(route).toContain(".onFocusChanged(({ payload: focused }) =>");
     expect(route).toContain('window.addEventListener("blur", handleBlur)');
-    expect(route.match(/\{windowFocused\}/g)).toHaveLength(2);
+    expect(route.match(/\{windowFocused\}/g)).toHaveLength(3);
+    expect(conversationSurface).toContain("let wasWindowFocused: boolean | undefined;");
+    expect(conversationSurface).toContain(
+      "if (windowFocused && wasWindowFocused === false) requestComposerFocus();",
+    );
+    expect(conversationSurface).toContain("focusRequest={composerFocusRequest}");
     expect(sidebar).toContain("class:window-inactive={!windowFocused}");
     expect(sidebar).toMatch(/\.sidebar\.window-inactive \.sidebar-top \{\s*opacity: 0\.55;/);
     expect(historyControls).toMatch(
