@@ -213,10 +213,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   replace successful progress with the durable completion divider only after
   checkpoint reconciliation. Do not show a redundant success toast for the same
   transition.
-  Do not show the reply actions—including regenerate, copy, and book mode—while
-  the conversation is streaming, even when a durable prefix exists before a
-  live context-compaction continuation. Reveal the actions together only after
-  the complete Agent reply finishes.
+  Do not show a reply's actions—including regenerate, copy, and book mode—while
+  that logical assistant turn is streaming, even when a durable prefix exists
+  before a live context-compaction continuation. Keep already completed turns'
+  action footers mounted while a later turn streams. Reveal the live turn's
+  actions together only after its complete Agent reply finishes.
   Book mode opens from that footer and flows each complete reply continuously
   across a two-column, full-window spread, adding pages when the reply exceeds
   one spread. Match Mermaid fullscreen's fixed viewport footprint and inner

@@ -570,13 +570,13 @@
         {@const isRerunnable =
           assistantMsg !== null &&
           assistantMsgIdx >= 0 &&
-          !isStreaming &&
+          !assistantIsStreaming &&
           turnIsTerminal &&
           Boolean(assistantMsg.checkpointId) &&
           Boolean(activeTree?.nodes[assistantMsg.checkpointId!])}
         {@const copyableOutput = finalAssistantOutput(turnMessages)}
         {@const showAssistantActions =
-          !isStreaming &&
+          !assistantIsStreaming &&
           turnIsTerminal &&
           (isRerunnable || Boolean(copyableOutput) || renderedAssistantItems.length > 0)}
         {@const timing = assistantMsg
@@ -757,7 +757,7 @@
                 >{/if}
             </div>
           {/if}
-          {#if !isStreaming && turnIsTerminal && turnSuggestionHostMessageId === suggestionHostMessageId && turnSuggestions.length === 3}
+          {#if !assistantIsStreaming && turnIsTerminal && turnSuggestionHostMessageId === suggestionHostMessageId && turnSuggestions.length === 3}
             <div class="message-record pagination-footer">
               <FollowUpSuggestions suggestions={turnSuggestions} onSelect={onSelectSuggestion} />
             </div>
