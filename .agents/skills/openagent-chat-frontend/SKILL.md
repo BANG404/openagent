@@ -39,10 +39,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Roles, and Skills management surfaces and shortcuts. Keep its center free of
   workspace names and Git branches so the
   remaining drag region stays visually quiet. The route owns the native
-  window-focus state and passes that same value to both top-chrome segments, so
-  the sidebar collapse/history controls
-  and title-bar content dim and restore together without changing their shared
-  native window material or geometry. The ordinary Tauri shell must keep its
+  window-focus state and passes that same value to both top-chrome segments and
+  the conversation surface, so the sidebar collapse/history controls and
+  title-bar content dim and restore together without changing their shared
+  native window material or geometry. When that state transitions from inactive
+  to active while the conversation composer is mounted, return keyboard focus
+  to its enabled textarea through the shared composer focus-request channel.
+  The ordinary Tauri shell must keep its
   WebView, shared chrome, feature canvases, and conversation workspace at one
   consistent 30%-opaque theme tint over the Rust-owned Mica/Acrylic/Blur or
   macOS Vibrancy effect, leaving roughly 70% of the native material visible.

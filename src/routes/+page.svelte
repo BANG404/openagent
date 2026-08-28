@@ -4579,6 +4579,7 @@
             bind:inputAreaHeight
             bind:checkpointFlowPanelCollapsed
             composerDraft={activeComposerDraft}
+            {windowFocused}
           />
         </div>
       {/if}

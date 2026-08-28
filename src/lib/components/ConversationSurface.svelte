@@ -104,6 +104,7 @@
     inputAreaHeight = $bindable(120),
     checkpointFlowPanelCollapsed = $bindable(true),
     composerDraft,
+    windowFocused,
   }: {
     view: ConversationSurfaceView;
     actions: ConversationSurfaceActions;
@@ -112,9 +113,22 @@
     inputAreaHeight: number;
     checkpointFlowPanelCollapsed: boolean;
     composerDraft: ComposerDraft;
+    windowFocused: boolean;
   } = $props();
 
   let composerFocusRequest = $state(0);
+  let nextComposerFocusRequest = 0;
+  let wasWindowFocused: boolean | undefined;
+
+  function requestComposerFocus() {
+    nextComposerFocusRequest += 1;
+    composerFocusRequest = nextComposerFocusRequest;
+  }
+
+  $effect(() => {
+    if (windowFocused && wasWindowFocused === false) requestComposerFocus();
+    wasWindowFocused = windowFocused;
+  });
 
   function addQuote(context: UserMessageContext) {
     if (
@@ -125,7 +139,7 @@
           item.sourceMessageId === context.sourceMessageId,
       )
     ) {
-      composerFocusRequest += 1;
+      requestComposerFocus();
       return;
     }
     if (composerDraft.contexts.length >= 8) {
@@ -133,7 +147,7 @@
       return;
     }
     composerDraft.contexts = [...composerDraft.contexts, context];
-    composerFocusRequest += 1;
+    requestComposerFocus();
   }
 
   function shouldShowDefaultProviderCredentialWarning(appConfig: AppConfig | null): boolean {
