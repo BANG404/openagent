@@ -20,19 +20,19 @@ OpenAgent never merges two populated roots automatically.
 
 The root contains these user-maintained or durable files:
 
-| Path                              | Purpose                                                                                              |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `config.toml`                     | Providers, model bindings, tool policy, UI preferences, onboarding completion, MCP, web search, and remote-gateway settings |
-| `config.toml.bak`                 | Previous valid configuration used for startup recovery                                               |
-| `memory.md`                       | Global user memory                                                                                   |
-| `messages.db`                     | Conversation and checkpoint storage                                                                  |
-| `messages.db.pre-schema-v<N>.bak` | SQLite-consistent snapshot retained before an automatic database schema upgrade                      |
-| `backups/before-data-v1-*/`       | User-confirmed transition backup of settings and/or conversations replaced outside the support window |
-| `scheduled_chat_hooks.json`       | Durable scheduled-chat definitions                                                                   |
-| `logs/openagent.<date>.jsonl`     | Local structured application diagnostics; daily rotation with the latest 15 files retained           |
-| `drafts/`, `DESIGN.md`            | Global drafts and design context                                                                     |
-| `plugins/<name>/`                 | Validated installed Agent Plugin packages                                                             |
-| `plugin-data/<name>/`             | Persistent writable `PLUGIN_DATA`, retained when a plugin is uninstalled                              |
+| Path                              | Purpose                                                                                                                       |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `config.toml`                     | Providers, model bindings, tool policy, UI preferences, onboarding completion, MCP, web fetching, and remote-gateway settings |
+| `config.toml.bak`                 | Previous valid configuration used for startup recovery                                                                        |
+| `memory.md`                       | Global user memory                                                                                                            |
+| `messages.db`                     | Conversation and checkpoint storage                                                                                           |
+| `messages.db.pre-schema-v<N>.bak` | SQLite-consistent snapshot retained before an automatic database schema upgrade                                               |
+| `backups/before-data-v1-*/`       | User-confirmed transition backup of settings and/or conversations replaced outside the support window                         |
+| `scheduled_chat_hooks.json`       | Durable scheduled-chat definitions                                                                                            |
+| `logs/openagent.<date>.jsonl`     | Local structured application diagnostics; daily rotation with the latest 15 files retained                                    |
+| `drafts/`, `DESIGN.md`            | Global drafts and design context                                                                                              |
+| `plugins/<name>/`                 | Validated installed Agent Plugin packages                                                                                     |
+| `plugin-data/<name>/`             | Persistent writable `PLUGIN_DATA`, retained when a plugin is uninstalled                                                      |
 
 Workspace-scoped memory, skills, drafts, and design files remain under that
 workspace's `.agents/` directory rather than the user-scoped root.
@@ -60,12 +60,10 @@ If the user saves through the UI while the file is missing or invalid, the
 write starts from the runtime's last validated snapshot and repairs the
 canonical file instead of resetting unspecified fields to defaults.
 
-Web search has independent feature and selected-provider enablement switches.
-Both default to enabled when loading an older configuration, and both must be
-enabled alongside a configured provider before the Agent receives the
-`websearch` tool. Turning either switch off removes that tool immediately while
-preserving the selected provider, API keys, and URL. The separate `fetch` tool
-and its page-size setting are unaffected.
+The built-in `fetch` tool is always part of the Agent tool set. Its persisted
+page-size setting controls pagination without changing whether the tool is
+available. Older `[web_search]` tables are ignored when loading configuration
+and disappear on the next successful settings save.
 
 Each native MCP server entry stores a `disabled_tools` list alongside its
 connection settings. Settings probes the server and displays every currently
@@ -128,8 +126,8 @@ conversation composer provides a shortcut for approval mode only. Approval has
 sandbox policy. In `auto`, all tool calls proposed in one model turn are
 classified by one Flash request with an independent decision for each exact
 tool-call ID; incomplete or unreliable results fall back to manual review.
-Public read-only `websearch` and `fetch` calls skip automatic classification
-and run without human confirmation. Other calls reach manual review only when
+Public read-only `fetch` calls skip automatic classification and run without
+human confirmation. Other calls reach manual review only when
 their exact arguments create a meaningful privacy risk or a dangerous,
 destructive, irreversible, security-sensitive, or consequential external
 effect. Manual mode continues to request confirmation for these web tools like
@@ -267,12 +265,12 @@ the upgraded application and conversation behavior have been verified.
 
 The current compatibility window is explicit:
 
-| Stored schema                         | Startup behavior                                                                |
-| ------------------------------------- | ------------------------------------------------------------------------------- |
-| No database or empty SQLite file      | Create schema v1                                                                |
-| Populated unversioned legacy schema   | Ask; on consent back up consistently, then create a fresh schema v1 database    |
-| Valid schema v1                       | Validate and open                                                               |
-| Invalid schema v1 or higher schema    | Ask in desktop mode; back up and replace only on consent; non-interactive stops |
+| Stored schema                       | Startup behavior                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
+| No database or empty SQLite file    | Create schema v1                                                                |
+| Populated unversioned legacy schema | Ask; on consent back up consistently, then create a fresh schema v1 database    |
+| Valid schema v1                     | Validate and open                                                               |
+| Invalid schema v1 or higher schema  | Ask in desktop mode; back up and replace only on consent; non-interactive stops |
 
 Configuration and database scopes are evaluated independently. For example, an
 unversioned configuration paired with a valid schema v1 database resets only

@@ -38,32 +38,6 @@ describe("diagnostic log collection config", () => {
   });
 });
 
-describe("web search enablement config", () => {
-  test("defaults both enablement layers on for older payloads", () => {
-    const normalized = normalizeConfigShape({ web_search: {} } as unknown as AppConfig);
-
-    expect(normalized.web_search.enabled).toBe(true);
-    expect(normalized.web_search.provider_enabled).toBe(true);
-  });
-
-  test("preserves independent feature and provider opt-outs", () => {
-    const normalized = normalizeConfigShape({
-      web_search: {
-        enabled: false,
-        provider_enabled: false,
-        provider: "tavily",
-        brave_api_key: "",
-        tavily_api_key: "retained-secret",
-        searxng_base_url: "",
-      },
-    } as AppConfig);
-
-    expect(normalized.web_search.enabled).toBe(false);
-    expect(normalized.web_search.provider_enabled).toBe(false);
-    expect(normalized.web_search.tavily_api_key).toBe("retained-secret");
-  });
-});
-
 describe("MCP tool policy config", () => {
   test("defaults older server payloads to no disabled tools", () => {
     const normalized = normalizeConfigShape({

@@ -3,9 +3,8 @@
 </p>
 
 <div align="center">
- 
 
-  **现代化桌面 AI Agent 客户端 — 基于 Tauri、SvelteKit 与 Rust 构建。**
+**现代化桌面 AI Agent 客户端 — 基于 Tauri、SvelteKit 与 Rust 构建。**
 
   <p>
     <img alt="Tauri" src="https://img.shields.io/badge/Tauri-2.0-FFC131?style=flat-square&logo=tauri&logoColor=white">
@@ -40,7 +39,7 @@
   - [开发模式启动](#开发模式启动)
   - [构建发行版](#构建发行版)
 - [配置第一个 Provider](#配置第一个-provider)
-  - [启用网络搜索（可选）](#启用网络搜索可选)
+  - [配置网页抓取（可选）](#配置网页抓取可选)
   - [选择工具审批模式](#选择工具审批模式)
 - [示例：编写一个技能](#示例编写一个技能)
 - [可复用角色与技能渐进发现](#可复用角色与技能渐进发现)
@@ -121,11 +120,11 @@
 
 ### 前置依赖
 
-| 工具 | 版本 | 说明 |
-|------|------|------|
-| [Bun](https://bun.sh) | 最新 | 包管理器（代替 npm / yarn） |
-| [Rust](https://rustup.rs) | 1.70+ | Tauri 后端编译所需 |
-| [Node.js](https://nodejs.org) | 18+ | SvelteKit 工具链依赖 |
+| 工具                          | 版本  | 说明                        |
+| ----------------------------- | ----- | --------------------------- |
+| [Bun](https://bun.sh)         | 最新  | 包管理器（代替 npm / yarn） |
+| [Rust](https://rustup.rs)     | 1.70+ | Tauri 后端编译所需          |
+| [Node.js](https://nodejs.org) | 18+   | SvelteKit 工具链依赖        |
 
 > **Windows** 还需要 WebView2 和 MSVC 构建工具；**macOS** 需要 Xcode Command Line Tools；**Linux** 需要 `webkit2gtk`、`libgtk-3`。详见 [Tauri 官方先决条件](https://tauri.app/start/prerequisites/)。
 
@@ -191,19 +190,19 @@ flash_model = { provider_id = "anthropic-main", model = "claude-haiku-4-5" }
 
 兼容 OpenAI API 的端点（DeepSeek、OpenRouter、本地 Ollama 等）同样适用——只需将 `base_url` 指向对应地址，并设置 `provider = "openai"`。`base_url` 可填写主机地址、`/v1` API 根路径或完整的 `/chat/completions` 地址；OpenAgent 会自动规范化为 API 根路径。
 
-### 启用网络搜索（可选）
+### 配置网页抓取（可选）
 
-打开 **设置 → Web Search**，可以分别启用或关闭网络搜索和所选搜索服务。只有两个开关均已开启，并且所选服务具备必要配置后，Agent 才会获得 `websearch` 工具：Brave 或 Tavily 需要 API Key，SearXNG 需要基础 URL。关闭任一开关都会保留服务选择和凭据。独立的 `fetch` 工具始终可用，它会通过 Spider 直接获取页面并返回可读文本；长内容按配置的获取页大小分页。省略 `page` 即获取第 1 页，后续页面使用从 1 开始的页码。保存设置后，工具列表会立即刷新。
+内置的 `fetch` 工具会通过 Spider 直接获取页面并返回可读文本；长内容按 **设置 → 通用 → 网页抓取** 中配置的每页字符数分页。省略 `page` 即获取第 1 页，后续页面使用从 1 开始的页码。
 
 ### 选择工具审批模式
 
 打开 **设置 → 常规设置 → 审批模式**，控制 Agent 如何执行工具调用。当调用需要你确认时，OpenAgent 会暂停对话、展示准确的工具名称和参数，并在你批准或拒绝后继续执行。
 
-| 模式 | 行为 |
-| --- | --- |
-| **人工审批** | 每次工具调用都需要你确认。 |
-| **自动审批** | Flash 任务会评估调用影响；重要或不确定的调用仍会交由你审批。 |
-| **关闭审批** | 所有工具调用直接执行，不进入审批流程。 |
+| 模式                 | 行为                                                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **人工审批**         | 每次工具调用都需要你确认。                                                                                                    |
+| **自动审批**         | Flash 任务会评估调用影响；重要或不确定的调用仍会交由你审批。                                                                  |
+| **关闭审批**         | 所有工具调用直接执行，不进入审批流程。                                                                                        |
 | **沙盒模式**（默认） | 仅对文件管理和终端工具应用工作区策略：工作区内操作放行，试图越出工作区的操作会被拒绝。其他内置工具和 MCP 工具保持其正常行为。 |
 
 ---
@@ -219,6 +218,7 @@ description: 检查 Python 代码改动中的类型注解覆盖率、错误处�
 ---
 
 当被要求 Review Python 代码时：
+
 1. 检查公开函数是否有类型注解。
 2. 标记裸 `except:` 子句和静默失败。
 3. 在合适时建议使用更地道的标准库替代方案。
@@ -265,15 +265,15 @@ Agent 在任务中途遇到需要用户决策的情况时——指令存在歧�
 
 支持的字段类型：
 
-| 类型 | 适用场景 |
-| --- | --- |
-| `text` | 简短的自由文本输入 |
-| `textarea` | 多行文本 |
-| `select` | 从列表中单选 |
-| `checkbox` | 单个开关（是/否） |
-| `checkbox_group` | 从列表中多选 |
-| `date` | 日期选择 |
-| `confirm` | 二选一确认（Yes / No） |
+| 类型             | 适用场景               |
+| ---------------- | ---------------------- |
+| `text`           | 简短的自由文本输入     |
+| `textarea`       | 多行文本               |
+| `select`         | 从列表中单选           |
+| `checkbox`       | 单个开关（是/否）      |
+| `checkbox_group` | 从列表中多选           |
+| `date`           | 日期选择               |
+| `confirm`        | 二选一确认（Yes / No） |
 
 Agent 被要求**一次性问清楚**所有相关问题，并优先使用结构化字段（勾选、下拉）而非让用户手敲文字，减少来回打扰。
 
@@ -287,13 +287,13 @@ Agent 被要求**一次性问清楚**所有相关问题，并优先使用结构�
 
 语法：`ComponentName(prop: value, prop2: "字符串")`
 
-| 组件 | 示例 | 渲染效果 |
-| --- | --- | --- |
-| `File` | `File(path: "src/tools.rs", lines: "120-140")` | 可点击的文件胶囊，直接跳转到对应行 |
-| `Url` | `Url(href: "https://docs.rs/rig", title: "rig 文档")` | 外链胶囊，点击在浏览器打开 |
-| `Chart` | `Chart(type: "bar", labels: ["A","B"], data: [10,20])` | ECharts 柱状图 / 折线图 / 饼图 |
-| `Image` | `Image(src: "assets/result.png", caption: "结果")` | 工作区本地或 HTTP(S) 图片，可附带说明 |
-| `Video` | `Video(src: "assets/demo.mp4", controls: true)` | 工作区本地或 HTTP(S) 视频，可显示播放控件 |
+| 组件    | 示例                                                   | 渲染效果                                  |
+| ------- | ------------------------------------------------------ | ----------------------------------------- |
+| `File`  | `File(path: "src/tools.rs", lines: "120-140")`         | 可点击的文件胶囊，直接跳转到对应行        |
+| `Url`   | `Url(href: "https://docs.rs/rig", title: "rig 文档")`  | 外链胶囊，点击在浏览器打开                |
+| `Chart` | `Chart(type: "bar", labels: ["A","B"], data: [10,20])` | ECharts 柱状图 / 折线图 / 饼图            |
+| `Image` | `Image(src: "assets/result.png", caption: "结果")`     | 工作区本地或 HTTP(S) 图片，可附带说明     |
+| `Video` | `Video(src: "assets/demo.mp4", controls: true)`        | 工作区本地或 HTTP(S) 视频，可显示播放控件 |
 
 多系列图表使用 `series: [{name, data}, ...]`。
 
@@ -313,9 +313,11 @@ Agent 不再使用行内 AGUI 标签，而是可以通过调用内置的 `render
 
 ```markdown
 ## [用户手写] 个人习惯
+
 <!-- 此区域由用户自由编辑；Agent 永远不会修改此部分 -->
 
 ## [Agent 维护] 近期上下文摘要
+
 <!-- Memory Agent 仅在此注释以下进行操作 -->
 ```
 

@@ -56,7 +56,6 @@
     | "defaults"
     | "agents"
     | "memory"
-    | "websearch"
     | "hooks"
     | "plugins"
     | "extensions"
@@ -184,12 +183,6 @@
     context_compaction_threshold: 200000,
     context_compaction_prompt: "",
     memory_retrieval_enabled: false,
-    web_search: {
-      provider: "brave",
-      brave_api_key: "",
-      tavily_api_key: "",
-      searxng_base_url: "",
-    },
     html_preview: {
       fixed_height: 480,
     },
@@ -1574,22 +1567,6 @@
           </svg>
           {$t("memoryManagement")}
         </Tabs.Trigger>
-        <Tabs.Trigger value="websearch" class="settings-nav-item">
-          <svg
-            class="nav-icon"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="7" cy="7" r="4" />
-            <path d="M10 10l3.2 3.2" />
-          </svg>
-          {$t("webSearch")}
-        </Tabs.Trigger>
         <Tabs.Trigger value="extensions" class="settings-nav-item">
           <svg
             class="nav-icon"
@@ -1895,6 +1872,25 @@
                 max="1200"
                 step="20"
                 bind:value={draftConfig.html_preview.fixed_height}
+              />
+            </label>
+          </div>
+        </section>
+        <section class="detail-section">
+          <h4 class="detail-section-title">{$t("fetchSettings")}</h4>
+          <div class="application-settings-surface settings-card">
+            <label class="settings-card-row">
+              <span class="settings-card-copy">
+                <span class="label-text">{$t("fetchPageSize")}</span>
+                <span class="detail-hint">{$t("fetchPageSizeHint")}</span>
+              </span>
+              <input
+                type="number"
+                class="detail-input settings-card-number-input"
+                min="1000"
+                max="50000"
+                step="1000"
+                bind:value={draftConfig.fetch.page_size}
               />
             </label>
           </div>
@@ -2492,115 +2488,6 @@
           >
             {memoryStatus}
           </div>
-        {/if}
-      </div>
-    </Tabs.Content>
-
-    <Tabs.Content value="websearch" class="settings-tab-panel">
-      <div class="settings-content-col">
-        <section class="detail-section">
-          <h4 class="detail-section-title">{$t("webSearch")}</h4>
-          <div class="application-settings-surface startup-row">
-            <div class="startup-copy">
-              <span class="label-text">{$t("webSearchEnabled")}</span>
-              <p class="detail-hint">{$t("webSearchEnabledDesc")}</p>
-            </div>
-            <Switch
-              checked={draftConfig.web_search.enabled}
-              onCheckedChange={(checked) => (draftConfig.web_search.enabled = checked)}
-              ariaLabel={$t("webSearchEnabled")}
-            />
-          </div>
-        </section>
-
-        <section class="detail-section">
-          <h4 class="detail-section-title">{$t("fetchSettings")}</h4>
-          <label class="detail-label">
-            <span class="label-text">{$t("fetchPageSize")}</span>
-            <input
-              type="number"
-              class="detail-input"
-              min="1000"
-              max="50000"
-              step="1000"
-              bind:value={draftConfig.fetch.page_size}
-            />
-          </label>
-          <p class="detail-hint">{$t("fetchPageSizeHint")}</p>
-        </section>
-
-        <section class="detail-section">
-          <div class="detail-label">
-            <span class="label-text">{$t("searchProvider")}</span>
-            <div class="web-search-provider-controls">
-              <Select
-                bind:value={draftConfig.web_search.provider}
-                items={[
-                  { value: "brave", label: $t("searchProviderBrave") },
-                  { value: "tavily", label: $t("searchProviderTavily") },
-                  { value: "searxng", label: $t("searchProviderSearxng") },
-                ]}
-                disabled={!draftConfig.web_search.enabled ||
-                  !draftConfig.web_search.provider_enabled}
-                ariaLabel={$t("searchProvider")}
-              />
-              <Switch
-                checked={draftConfig.web_search.provider_enabled}
-                disabled={!draftConfig.web_search.enabled}
-                onCheckedChange={(checked) => (draftConfig.web_search.provider_enabled = checked)}
-                ariaLabel={$t("searchProviderEnabled")}
-              />
-            </div>
-          </div>
-          <p class="detail-hint">{$t("searchProviderEnabledDesc")}</p>
-        </section>
-
-        {#if draftConfig.web_search.provider === "brave"}
-          <section class="detail-section">
-            <h4 class="detail-section-title">{$t("searchProviderBrave")}</h4>
-            <label class="detail-label">
-              <span class="label-text">{$t("braveApiKey")}</span>
-              <input
-                type="password"
-                class="detail-input"
-                placeholder={$t("braveApiKeyPlaceholder")}
-                disabled={!draftConfig.web_search.enabled ||
-                  !draftConfig.web_search.provider_enabled}
-                bind:value={draftConfig.web_search.brave_api_key}
-              />
-            </label>
-          </section>
-        {:else if draftConfig.web_search.provider === "tavily"}
-          <section class="detail-section">
-            <h4 class="detail-section-title">{$t("searchProviderTavily")}</h4>
-            <label class="detail-label">
-              <span class="label-text">{$t("tavilyApiKey")}</span>
-              <input
-                type="password"
-                class="detail-input"
-                placeholder={$t("tavilyApiKeyPlaceholder")}
-                disabled={!draftConfig.web_search.enabled ||
-                  !draftConfig.web_search.provider_enabled}
-                bind:value={draftConfig.web_search.tavily_api_key}
-              />
-            </label>
-          </section>
-        {:else if draftConfig.web_search.provider === "searxng"}
-          <section class="detail-section">
-            <h4 class="detail-section-title">{$t("searchProviderSearxng")}</h4>
-            <label class="detail-label">
-              <span class="label-text">{$t("searxngBaseUrl")}</span>
-              <input
-                type="text"
-                class="detail-input"
-                placeholder={$t("searxngBaseUrlPlaceholder")}
-                disabled={!draftConfig.web_search.enabled ||
-                  !draftConfig.web_search.provider_enabled}
-                bind:value={draftConfig.web_search.searxng_base_url}
-              />
-            </label>
-            <p class="detail-hint">{$t("searxngHint")}</p>
-          </section>
         {/if}
       </div>
     </Tabs.Content>
@@ -4337,16 +4224,6 @@
 
   .startup-copy .detail-hint {
     margin-inline: 0;
-  }
-
-  .web-search-provider-controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .web-search-provider-controls :global(.ui-select-trigger) {
-    min-width: 220px;
   }
 
   .shortcut-setting-row {

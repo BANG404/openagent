@@ -568,17 +568,6 @@ export interface AgentPluginSummary {
   error: string | null;
 }
 
-export type WebSearchProvider = "brave" | "tavily" | "searxng";
-
-export interface WebSearchConfig {
-  enabled?: boolean;
-  provider_enabled?: boolean;
-  provider: WebSearchProvider;
-  brave_api_key: string;
-  tavily_api_key: string;
-  searxng_base_url: string;
-}
-
 export interface HtmlPreviewConfig {
   fixed_height: number;
 }
@@ -658,7 +647,6 @@ export interface AppConfig {
   mcp: McpSettings;
   theme: "system" | "light" | "dark";
   language: "zh" | "en";
-  web_search: WebSearchConfig;
   html_preview: HtmlPreviewConfig;
   fetch: FetchConfig;
   launch_on_startup: boolean;

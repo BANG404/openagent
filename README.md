@@ -39,7 +39,7 @@
   - [Run in dev mode](#run-in-dev-mode)
   - [Build a distributable](#build-a-distributable)
 - [Configure your first provider](#configure-your-first-provider)
-  - [Enable web search (optional)](#enable-web-search-optional)
+  - [Configure web fetching (optional)](#configure-web-fetching-optional)
   - [Choose a tool approval mode](#choose-a-tool-approval-mode)
 - [Example: write a Skill](#example-write-a-skill)
 - [Reusable roles and progressive Skill discovery](#reusable-roles-and-progressive-skill-discovery)
@@ -200,9 +200,9 @@ flash_model  = { provider_id = "anthropic-main", model = "claude-haiku-4-5" }
 
 OpenAI-compatible endpoints (DeepSeek, OpenRouter, local Ollama, etc.) work the same — just point `base_url` at the right host and set `provider = "openai"`. You may enter a host, a `/v1` API root, or a full `/chat/completions` URL; OpenAgent normalizes it to the API root.
 
-### Enable web search (optional)
+### Configure web fetching (optional)
 
-Open **Settings → Web Search** to enable or disable web search and the selected search provider independently. Both switches must be on and the selected provider must have its required value—a Brave or Tavily API key, or a SearXNG base URL—before the `websearch` tool is available. Turning either switch off preserves the provider and credentials. The independent `fetch` tool always retrieves a page directly with Spider, returns readable text, and paginates long results according to the configured fetch page size. Omit `page` for the first page and use subsequent 1-based page numbers for the rest. Saving Settings refreshes the tool list immediately.
+The built-in `fetch` tool retrieves a page directly with Spider, returns readable text, and paginates long results according to the page size under **Settings → General → Web Fetching**. Omit `page` for the first page and use subsequent 1-based page numbers for the rest.
 
 ### Choose a tool approval mode
 

@@ -112,7 +112,7 @@ test("reuses shared controls across onboarding and settings collections", async 
     /\.settings-action\s*{[^}]*border: 1px solid var\(--mica-divider\);/s,
   );
   expect(settingsActionButton).toMatch(/\.settings-action\s*{[^}]*box-shadow: none;/s);
-  expect(settings.match(/class="detail-input settings-card-number-input"/g)).toHaveLength(6);
+  expect(settings.match(/class="detail-input settings-card-number-input"/g)).toHaveLength(7);
   expect(settings).toMatch(
     /\.settings-card-number-input\s*{[^}]*justify-self: end;[^}]*margin-inline-start: auto;/s,
   );

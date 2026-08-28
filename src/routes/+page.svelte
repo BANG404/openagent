@@ -382,7 +382,6 @@
     | "defaults"
     | "agents"
     | "memory"
-    | "websearch"
     | "hooks"
     | "plugins"
     | "extensions"
@@ -491,12 +490,6 @@
     context_compaction_enabled: true,
     context_compaction_threshold: 200000,
     context_compaction_prompt: "",
-    web_search: {
-      provider: "brave",
-      brave_api_key: "",
-      tavily_api_key: "",
-      searxng_base_url: "",
-    },
     html_preview: {
       fixed_height: 480,
     },

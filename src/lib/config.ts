@@ -6,34 +6,16 @@ import type {
   McpServerConfig,
   PermissionProfile,
   ReasoningEffort,
-  WebSearchConfig,
 } from "./types";
 import { normalizeQuickChatShortcut } from "./quickChatShortcut";
-
-export type NormalizedWebSearchConfig = WebSearchConfig & {
-  enabled: boolean;
-  provider_enabled: boolean;
-};
 
 export type NormalizedMcpServerConfig = McpServerConfig & {
   disabled_tools: string[];
 };
 
-export type NormalizedAppConfig = Omit<AppConfig, "web_search" | "mcp"> & {
-  web_search: NormalizedWebSearchConfig;
+export type NormalizedAppConfig = Omit<AppConfig, "mcp"> & {
   mcp: { servers: NormalizedMcpServerConfig[] };
 };
-
-function defaultWebSearch(): NormalizedWebSearchConfig {
-  return {
-    enabled: true,
-    provider_enabled: true,
-    provider: "brave",
-    brave_api_key: "",
-    tavily_api_key: "",
-    searxng_base_url: "",
-  };
-}
 
 function defaultHtmlPreview(): HtmlPreviewConfig {
   return {
@@ -152,10 +134,6 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
     }),
   };
 
-  const web_search: NormalizedWebSearchConfig = {
-    ...defaultWebSearch(),
-    ...(input.web_search ?? {}),
-  };
   const requestedHtmlHeight = Number(input.html_preview?.fixed_height);
   const html_preview: HtmlPreviewConfig = {
     ...defaultHtmlPreview(),
@@ -246,7 +224,6 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
         (binding) => binding.provider_id && binding.model,
       ),
     },
-    web_search,
     html_preview,
     fetch,
     remote_gateway: {
