@@ -1,7 +1,7 @@
 [package]
 name = "openagent"
 default-run = "openagent"
-version = "0.50.0-beta.1"
+version = "0.51.0-beta.1"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"

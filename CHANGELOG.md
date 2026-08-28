@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.51.0-beta.1] - 2026-08-28
+
+### Features
+- **chat**: Show cache usage in production
+- **chat**: Show cache usage in dev footers
+- **inspector**: Show model cache utilization
+- **chat**: Persist follow-up suggestions
+- **settings**: Remove webpage fetching
+
+### Bug Fixes
+- **chat**: Scope cache usage to each turn
+- **chat**: Associate cache usage with terminal turns
+- **chat**: Time the first model response
+
 ## [0.50.0-beta.1] - 2026-08-28
 
 ### Features
