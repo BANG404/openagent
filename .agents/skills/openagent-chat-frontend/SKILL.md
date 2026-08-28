@@ -1016,7 +1016,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   only when `total_tokens - output_tokens` reconciles with either the
   inclusive-input or separately reported cache-token shape. The Inspector shows
   each request, while every completed assistant footer in a development build
-  aggregates all chat requests linked to that turn's checkpoint. Show observed
+  aggregates all chat requests belonging to that durable Turn. Prefer an exact
+  checkpoint match, but tolerate the runtime's request-scoped temporary
+  checkpoint by associating its trace only when the coarse creation timestamp
+  overlaps exactly one persisted terminal Turn window. Show observed
   cache reads and writes against the provider input total. When cache counters
   are zero, report that no cache activity was reported instead of claiming a
   measured zero-percent hit rate; inconsistent totals keep the raw counters

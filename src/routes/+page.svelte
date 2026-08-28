@@ -459,7 +459,14 @@
       if (devTaskUsageRefreshVersions.get(convId) !== version) return;
       devTaskUsagesByConversation = {
         ...devTaskUsagesByConversation,
-        [convId]: chatTaskUsagesByCheckpoint(traces, convId),
+        [convId]: chatTaskUsagesByCheckpoint(
+          traces,
+          convId,
+          Object.values(convTrees[convId]?.nodes ?? {}).map(({ ckId, turn }) => ({
+            checkpointId: ckId,
+            turn,
+          })),
+        ),
       };
     } catch (error) {
       console.warn("Failed to load development task usage:", error);

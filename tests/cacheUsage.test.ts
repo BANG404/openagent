@@ -167,4 +167,75 @@ describe("cache usage normalization", () => {
       ),
     ).toEqual({ "checkpoint-a": [selected, selected] });
   });
+
+  test("associates temporary request checkpoints with the persisted terminal turn", () => {
+    const selected = usage({
+      input_tokens: 13_782,
+      output_tokens: 229,
+      total_tokens: 14_011,
+      cached_input_tokens: 13_440,
+    });
+
+    expect(
+      chatTaskUsagesByCheckpoint(
+        [
+          trace({
+            checkpoint_id: "temporary-request-checkpoint",
+            usage: selected,
+            created_at: 1_787_935_749,
+          }),
+        ],
+        "conversation-a",
+        [
+          {
+            checkpointId: "terminal-checkpoint",
+            turn: {
+              id: "assistant-message",
+              input_message_id: "user-message",
+              response_message_id: "assistant-message",
+              status: "completed",
+              started_at: 1_787_935_749_531,
+              completed_at: 1_787_935_755_407,
+              duration_ms: 5_876,
+            },
+          },
+        ],
+      ),
+    ).toEqual({ "terminal-checkpoint": [selected] });
+  });
+
+  test("does not guess when a coarse trace timestamp overlaps multiple turns", () => {
+    const selected = usage({ input_tokens: 100, output_tokens: 10, total_tokens: 110 });
+
+    expect(
+      chatTaskUsagesByCheckpoint(
+        [trace({ checkpoint_id: "temporary", usage: selected, created_at: 10 })],
+        "conversation-a",
+        [
+          {
+            checkpointId: "first",
+            turn: {
+              id: "first",
+              input_message_id: "first-user",
+              response_message_id: "first",
+              status: "completed",
+              started_at: 9_800,
+              completed_at: 10_400,
+            },
+          },
+          {
+            checkpointId: "second",
+            turn: {
+              id: "second",
+              input_message_id: "second-user",
+              response_message_id: "second",
+              status: "completed",
+              started_at: 10_500,
+              completed_at: 11_200,
+            },
+          },
+        ],
+      ),
+    ).toEqual({});
+  });
 });

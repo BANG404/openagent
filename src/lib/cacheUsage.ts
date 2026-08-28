@@ -1,4 +1,4 @@
-import type { TaskTokenUsage, TaskTrace } from "$lib/types";
+import type { CheckpointTurnMetadata, TaskTokenUsage, TaskTrace } from "$lib/types";
 
 export type CacheUsageSummary =
   | {
@@ -60,8 +60,14 @@ export function summarizeCacheUsages(usages: readonly TaskTokenUsage[]): CacheUs
 export function chatTaskUsagesByCheckpoint(
   traces: readonly TaskTrace[],
   conversationId: string,
+  checkpoints: readonly { checkpointId: string; turn?: CheckpointTurnMetadata }[] = [],
 ): Record<string, TaskTokenUsage[]> {
   const byCheckpoint: Record<string, TaskTokenUsage[]> = {};
+  const checkpointIds = new Set(checkpoints.map((checkpoint) => checkpoint.checkpointId));
+  const terminalTurns = checkpoints.filter(
+    (checkpoint): checkpoint is { checkpointId: string; turn: CheckpointTurnMetadata } =>
+      checkpoint.turn?.completed_at != null,
+  );
   for (const trace of traces) {
     if (
       trace.conv_id !== conversationId ||
@@ -71,7 +77,22 @@ export function chatTaskUsagesByCheckpoint(
     ) {
       continue;
     }
-    (byCheckpoint[trace.checkpoint_id] ??= []).push(trace.usage);
+
+    let checkpointId = trace.checkpoint_id;
+    if (!checkpointIds.has(checkpointId) && terminalTurns.length > 0) {
+      const traceSecondStart = trace.created_at * 1_000;
+      const traceSecondEnd = traceSecondStart + 999;
+      const matchingTurns = terminalTurns.filter(
+        ({ turn }) =>
+          turn.started_at <= traceSecondEnd &&
+          turn.completed_at != null &&
+          turn.completed_at >= traceSecondStart,
+      );
+      if (matchingTurns.length !== 1) continue;
+      checkpointId = matchingTurns[0].checkpointId;
+    }
+
+    (byCheckpoint[checkpointId] ??= []).push(trace.usage);
   }
   return byCheckpoint;
 }
