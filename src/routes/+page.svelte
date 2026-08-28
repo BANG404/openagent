@@ -493,9 +493,6 @@
     html_preview: {
       fixed_height: 480,
     },
-    fetch: {
-      page_size: 12000,
-    },
     launch_on_startup: false,
     onboarding_completed: false,
     diagnostic_log_collection_enabled: true,

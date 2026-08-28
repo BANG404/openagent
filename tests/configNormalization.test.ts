@@ -10,6 +10,18 @@ describe("configuration version", () => {
   });
 });
 
+describe("removed web tools config", () => {
+  test("drops legacy search and fetching fields from transport snapshots", () => {
+    const normalized = normalizeConfigShape({
+      web_search: { provider: "tavily" },
+      fetch: { page_size: 24_000 },
+    } as unknown as AppConfig);
+
+    expect(normalized).not.toHaveProperty("web_search");
+    expect(normalized).not.toHaveProperty("fetch");
+  });
+});
+
 describe("onboarding completion config", () => {
   test("defaults older configuration payloads to incomplete", () => {
     expect(normalizeConfigShape({} as AppConfig).onboarding_completed).toBe(false);

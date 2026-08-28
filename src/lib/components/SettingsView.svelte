@@ -186,9 +186,6 @@
     html_preview: {
       fixed_height: 480,
     },
-    fetch: {
-      page_size: 12000,
-    },
     remote_gateway: {
       enabled: false,
       allow_lan_access: false,
@@ -1872,25 +1869,6 @@
                 max="1200"
                 step="20"
                 bind:value={draftConfig.html_preview.fixed_height}
-              />
-            </label>
-          </div>
-        </section>
-        <section class="detail-section">
-          <h4 class="detail-section-title">{$t("fetchSettings")}</h4>
-          <div class="application-settings-surface settings-card">
-            <label class="settings-card-row">
-              <span class="settings-card-copy">
-                <span class="label-text">{$t("fetchPageSize")}</span>
-                <span class="detail-hint">{$t("fetchPageSizeHint")}</span>
-              </span>
-              <input
-                type="number"
-                class="detail-input settings-card-number-input"
-                min="1000"
-                max="50000"
-                step="1000"
-                bind:value={draftConfig.fetch.page_size}
               />
             </label>
           </div>

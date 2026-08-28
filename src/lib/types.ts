@@ -572,10 +572,6 @@ export interface HtmlPreviewConfig {
   fixed_height: number;
 }
 
-export interface FetchConfig {
-  page_size: number;
-}
-
 export interface RemoteGatewayConfig {
   enabled: boolean;
   allow_lan_access: boolean;
@@ -648,7 +644,6 @@ export interface AppConfig {
   theme: "system" | "light" | "dark";
   language: "zh" | "en";
   html_preview: HtmlPreviewConfig;
-  fetch: FetchConfig;
   launch_on_startup: boolean;
   onboarding_completed?: boolean;
   diagnostic_log_collection_enabled: boolean;

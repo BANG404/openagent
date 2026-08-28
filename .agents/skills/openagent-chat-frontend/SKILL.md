@@ -1045,10 +1045,8 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   normalized to the current version before a settings snapshot can be saved;
   persisted unversioned configuration is handled by the pre-runtime transition,
   never by settings autosave.
-- Keep the built-in `fetch` page-size setting in General settings and normalize
-  it through the shared configuration boundary. The runtime always exposes
-  `fetch`; the frontend must not recreate the removed search-provider settings
-  or `websearch` tool contract.
+- Do not recreate settings, configuration types, or tool presentation for the
+  removed built-in webpage search and fetching capabilities.
 - Per-server MCP `disabled_tools` is an additive optional transport field and
   normalizes to an empty list. Settings discovers the server's complete live
   tool list and persists only disabled names. Saving that list must rebuild the

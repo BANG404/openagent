@@ -641,9 +641,6 @@ const zh = {
   toolApprovalDeny: "拒绝",
   toolApprovalApprove: "批准并继续",
   openContainingFolder: "打开所在文件夹",
-  fetchSettings: "网页抓取",
-  fetchPageSize: "每页字符数",
-  fetchPageSizeHint: "抓取结果会按此长度分页；首次调用默认只返回第 1 页，范围为 1,000–50,000。",
   // About
   aboutDesc: "基于 Tauri + SvelteKit 构建的 AI 对话工具，支持 Anthropic 与 OpenAI Compatible API。",
   aboutVersion: `版本 ${pkg.version}`,
@@ -1519,10 +1516,6 @@ const en: Translations = {
   toolApprovalDeny: "Deny",
   toolApprovalApprove: "Approve and continue",
   openContainingFolder: "Open containing folder",
-  fetchSettings: "Web Fetching",
-  fetchPageSize: "Characters per page",
-  fetchPageSizeHint:
-    "Fetch results are paginated at this length. The first call returns page 1; allowed range: 1,000–50,000.",
   aboutDesc:
     "An AI chat tool built with Tauri + SvelteKit, supporting Anthropic and OpenAI Compatible APIs.",
   aboutVersion: `Version ${pkg.version}`,

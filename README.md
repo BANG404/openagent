@@ -39,7 +39,6 @@
   - [Run in dev mode](#run-in-dev-mode)
   - [Build a distributable](#build-a-distributable)
 - [Configure your first provider](#configure-your-first-provider)
-  - [Configure web fetching (optional)](#configure-web-fetching-optional)
   - [Choose a tool approval mode](#choose-a-tool-approval-mode)
 - [Example: write a Skill](#example-write-a-skill)
 - [Reusable roles and progressive Skill discovery](#reusable-roles-and-progressive-skill-discovery)
@@ -88,7 +87,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 ### Tools and integrations
 
 - **MCP-Native** — Connect external MCP servers over HTTP or stdio; tools are injected into the agent at call time.
-- **First-class Dev Tools** — Built-in file, search, fetch, and terminal tools. Managed terminal sessions support interactive or long-running background processes; `fetch` retrieves pages locally with Spider, extracts readable text, and supports pagination.
+- **First-class Dev Tools** — Built-in file, search, and terminal tools. Managed terminal sessions support interactive or long-running background processes.
 - **Independent Approval & Runtime Permissions** — Choose when tool calls pause for review separately from the managed filesystem and network sandbox.
 - **Skills System** — Drop a `SKILL.md` into `~/.agents/skills/` or `<workspace>/.agents/skills/`. Category-based progressive discovery keeps large global and project catalogs compact, with optional Flash classification for uncategorized Skills.
 - **Portable Agent Plugins** — Install Agent Plugins 1.0.0 packages from **Settings → Agent Plugins**, with isolated Agent Skill and stdio/Streamable HTTP MCP discovery. See [Agent Plugins](docs/agent-plugins.md).
@@ -199,10 +198,6 @@ flash_model  = { provider_id = "anthropic-main", model = "claude-haiku-4-5" }
 ```
 
 OpenAI-compatible endpoints (DeepSeek, OpenRouter, local Ollama, etc.) work the same — just point `base_url` at the right host and set `provider = "openai"`. You may enter a host, a `/v1` API root, or a full `/chat/completions` URL; OpenAgent normalizes it to the API root.
-
-### Configure web fetching (optional)
-
-The built-in `fetch` tool retrieves a page directly with Spider, returns readable text, and paginates long results according to the page size under **Settings → General → Web Fetching**. Omit `page` for the first page and use subsequent 1-based page numbers for the rest.
 
 ### Choose a tool approval mode
 

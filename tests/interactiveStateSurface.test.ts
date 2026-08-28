@@ -81,7 +81,7 @@ test("reuses shared controls across onboarding and settings collections", async 
   expect(onboarding).toContain('class="application-settings-scope onboarding-panel"');
   expect(onboarding).not.toMatch(/\n\s*input\s*{/);
   expect(onboarding).not.toContain("<select");
-  expect(settings.match(/application-settings-surface/g)).toHaveLength(30);
+  expect(settings.match(/application-settings-surface/g)).toHaveLength(29);
   expect(settings).toContain('class="application-settings-scope settings-panel"');
   expect(settings).not.toMatch(/\.list-search-input,[\s\S]*?\.detail-input\s*{[^}]*border:/);
   for (const surfaceClass of [
@@ -112,7 +112,7 @@ test("reuses shared controls across onboarding and settings collections", async 
     /\.settings-action\s*{[^}]*border: 1px solid var\(--mica-divider\);/s,
   );
   expect(settingsActionButton).toMatch(/\.settings-action\s*{[^}]*box-shadow: none;/s);
-  expect(settings.match(/class="detail-input settings-card-number-input"/g)).toHaveLength(7);
+  expect(settings.match(/class="detail-input settings-card-number-input"/g)).toHaveLength(6);
   expect(settings).toMatch(
     /\.settings-card-number-input\s*{[^}]*justify-self: end;[^}]*margin-inline-start: auto;/s,
   );

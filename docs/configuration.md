@@ -22,7 +22,7 @@ The root contains these user-maintained or durable files:
 
 | Path                              | Purpose                                                                                                                       |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `config.toml`                     | Providers, model bindings, tool policy, UI preferences, onboarding completion, MCP, web fetching, and remote-gateway settings |
+| `config.toml`                     | Providers, model bindings, tool policy, UI preferences, onboarding completion, MCP, and remote-gateway settings              |
 | `config.toml.bak`                 | Previous valid configuration used for startup recovery                                                                        |
 | `memory.md`                       | Global user memory                                                                                                            |
 | `messages.db`                     | Conversation and checkpoint storage                                                                                           |
@@ -60,10 +60,9 @@ If the user saves through the UI while the file is missing or invalid, the
 write starts from the runtime's last validated snapshot and repairs the
 canonical file instead of resetting unspecified fields to defaults.
 
-The built-in `fetch` tool is always part of the Agent tool set. Its persisted
-page-size setting controls pagination without changing whether the tool is
-available. Older `[web_search]` tables are ignored when loading configuration
-and disappear on the next successful settings save.
+Older `[web_search]` and `[fetch]` tables are ignored when loading configuration
+and disappear on the next successful settings save. Webpage search and fetching
+are not built-in Agent capabilities.
 
 Each native MCP server entry stores a `disabled_tools` list alongside its
 connection settings. Settings probes the server and displays every currently
@@ -126,12 +125,10 @@ conversation composer provides a shortcut for approval mode only. Approval has
 sandbox policy. In `auto`, all tool calls proposed in one model turn are
 classified by one Flash request with an independent decision for each exact
 tool-call ID; incomplete or unreliable results fall back to manual review.
-Public read-only `fetch` calls skip automatic classification and run without
-human confirmation. Other calls reach manual review only when
-their exact arguments create a meaningful privacy risk or a dangerous,
+Calls reach manual review only when their exact arguments create a meaningful privacy risk or a dangerous,
 destructive, irreversible, security-sensitive, or consequential external
-effect. Manual mode continues to request confirmation for these web tools like
-other ordinary tool calls.
+effect. Manual mode requests confirmation for tool calls that are not explicitly
+exempted lifecycle controls.
 **Execution Permissions & Sandbox** selects `managed` or
 `disabled` enforcement. Managed enforcement offers canonical
 workspace-writable and read-only presets, plus an advanced editor for ordered

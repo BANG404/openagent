@@ -39,7 +39,6 @@
   - [开发模式启动](#开发模式启动)
   - [构建发行版](#构建发行版)
 - [配置第一个 Provider](#配置第一个-provider)
-  - [配置网页抓取（可选）](#配置网页抓取可选)
   - [选择工具审批模式](#选择工具审批模式)
 - [示例：编写一个技能](#示例编写一个技能)
 - [可复用角色与技能渐进发现](#可复用角色与技能渐进发现)
@@ -89,7 +88,7 @@
 ### 工具与集成
 
 - **原生 MCP 集成** — 通过 HTTP 或 stdio 连接外部 MCP 服务器，工具在调用时动态注入 Agent。
-- **开箱即用的开发工具** — 内置文件、搜索、抓取与终端工具。受管终端会话支持交互式或长时间运行的后台进程；`fetch` 通过 Spider 在本地获取页面、提取可读文本并支持分页。
+- **开箱即用的开发工具** — 内置文件、搜索与终端工具。受管终端会话支持交互式或长时间运行的后台进程。
 - **工具审批与工作区沙盒** — 可选择逐次人工审批、模型辅助审批、关闭审批，或仅针对文件与终端工具的工作区沙盒策略。
 - **技能系统（Skills）** — 将 `SKILL.md` 放入 `~/.agents/skills/` 或 `<workspace>/.agents/skills/`。基于分类的渐进发现让大型全局/项目技能目录保持紧凑，也可用 Flash 任务为未分类技能自动分组。
 - **可移植 Agent Plugins** — 在**设置 → Agent Plugins** 中安装 Agent Plugins 1.0.0 本地包，并独立发现其中的 Agent Skill 与 stdio/Streamable HTTP MCP 服务。详见 [Agent Plugins](docs/agent-plugins.md)。
@@ -189,10 +188,6 @@ flash_model = { provider_id = "anthropic-main", model = "claude-haiku-4-5" }
 ```
 
 兼容 OpenAI API 的端点（DeepSeek、OpenRouter、本地 Ollama 等）同样适用——只需将 `base_url` 指向对应地址，并设置 `provider = "openai"`。`base_url` 可填写主机地址、`/v1` API 根路径或完整的 `/chat/completions` 地址；OpenAgent 会自动规范化为 API 根路径。
-
-### 配置网页抓取（可选）
-
-内置的 `fetch` 工具会通过 Spider 直接获取页面并返回可读文本；长内容按 **设置 → 通用 → 网页抓取** 中配置的每页字符数分页。省略 `page` 即获取第 1 页，后续页面使用从 1 开始的页码。
 
 ### 选择工具审批模式
 

@@ -1,7 +1,6 @@
 import type {
   AppConfig,
   ApprovalMode,
-  FetchConfig,
   HtmlPreviewConfig,
   McpServerConfig,
   PermissionProfile,
@@ -20,12 +19,6 @@ export type NormalizedAppConfig = Omit<AppConfig, "mcp"> & {
 function defaultHtmlPreview(): HtmlPreviewConfig {
   return {
     fixed_height: 480,
-  };
-}
-
-function defaultFetch(): FetchConfig {
-  return {
-    page_size: 12_000,
   };
 }
 
@@ -60,6 +53,9 @@ function normalizePermissionProfile(profile: PermissionProfile | undefined): Per
 const reasoningEfforts = new Set<ReasoningEffort>(["low", "medium", "high", "xhigh", "max"]);
 
 export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
+  const normalizedInput = { ...input } as AppConfig & Record<string, unknown>;
+  delete normalizedInput.web_search;
+  delete normalizedInput.fetch;
   const requestedMaxTurns = Number(input.agent_max_turns);
   const agentMaxTurns = Number.isFinite(requestedMaxTurns)
     ? Math.min(1000, Math.max(1, Math.floor(requestedMaxTurns)))
@@ -142,14 +138,6 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
       ? Math.min(1200, Math.max(160, Math.floor(requestedHtmlHeight)))
       : 480,
   };
-  const requestedFetchPageSize = Number(input.fetch?.page_size);
-  const fetch: FetchConfig = {
-    ...defaultFetch(),
-    ...(input.fetch ?? {}),
-    page_size: Number.isFinite(requestedFetchPageSize)
-      ? Math.min(50_000, Math.max(1_000, Math.floor(requestedFetchPageSize)))
-      : 12_000,
-  };
   const approval_mode: ApprovalMode = ["manual", "auto", "off"].includes(input.approval_mode)
     ? input.approval_mode
     : "off";
@@ -190,7 +178,7 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
   };
 
   return {
-    ...input,
+    ...normalizedInput,
     config_version: 1,
     approval_mode,
     permission_profile,
@@ -225,7 +213,6 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
       ),
     },
     html_preview,
-    fetch,
     remote_gateway: {
       enabled: input.remote_gateway?.enabled ?? false,
       allow_lan_access: input.remote_gateway?.allow_lan_access ?? false,
