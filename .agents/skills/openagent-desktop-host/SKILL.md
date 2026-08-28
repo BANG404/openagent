@@ -27,7 +27,9 @@ Read `sdk/AGENTS.md` before changing the SDK side of any boundary.
 
 - Register single-instance enforcement as the first Tauri plugin for ordinary
   primary launches. A repeated launch restores, shows, and focuses the existing
-  main window.
+  main window. If the first-run setup window is currently visible, restore that
+  instead; its pre-created but hidden WebView must never reopen onboarding for a
+  configured user.
 - Exclude headless agent-server and SDK-owned
   `--openagent-workspace-window` processes from that guard; dedicated workspace
   processes are part of the multi-workspace contract.

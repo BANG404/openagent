@@ -1427,9 +1427,20 @@ fn should_reveal_workspace_shell_early(agent_server: bool, is_workspace_window: 
     !agent_server && is_workspace_window
 }
 
+fn single_instance_window_label(onboarding_visible: bool) -> &'static str {
+    if onboarding_visible {
+        "onboarding"
+    } else {
+        "main"
+    }
+}
+
 #[cfg(test)]
 mod single_instance_tests {
-    use super::{should_enforce_single_instance, should_reveal_workspace_shell_early};
+    use super::{
+        should_enforce_single_instance, should_reveal_workspace_shell_early,
+        single_instance_window_label,
+    };
 
     #[test]
     fn only_regular_desktop_launches_share_the_primary_instance() {
@@ -1443,6 +1454,12 @@ mod single_instance_tests {
         assert!(!should_reveal_workspace_shell_early(false, false));
         assert!(should_reveal_workspace_shell_early(false, true));
         assert!(!should_reveal_workspace_shell_early(true, true));
+    }
+
+    #[test]
+    fn repeated_launch_restores_main_when_onboarding_is_hidden() {
+        assert_eq!(single_instance_window_label(false), "main");
+        assert_eq!(single_instance_window_label(true), "onboarding");
     }
 }
 
@@ -1482,11 +1499,13 @@ fn run_with_mode(agent_server: bool) {
     #[cfg(desktop)]
     let builder = if should_enforce_single_instance(agent_server, is_workspace_window) {
         builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(window) = app.get_webview_window("onboarding") {
-                let _ = window.unminimize();
-                let _ = window.show();
-                let _ = window.set_focus();
-            } else if let Some(window) = app.get_webview_window("main") {
+            let onboarding_visible = app
+                .get_webview_window("onboarding")
+                .and_then(|window| window.is_visible().ok())
+                .unwrap_or(false);
+            if let Some(window) =
+                app.get_webview_window(single_instance_window_label(onboarding_visible))
+            {
                 let _ = window.unminimize();
                 let _ = window.show();
                 let _ = window.set_focus();
