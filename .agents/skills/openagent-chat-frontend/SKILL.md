@@ -1008,6 +1008,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 ## IPC and events
 
+- The development Inspector may derive cache utilization from persisted Rig
+  usage only when `total_tokens - output_tokens` reconciles with either the
+  inclusive-input or separately reported cache-token shape. Show observed cache
+  reads and writes against that provider input total. When cache counters are
+  zero, report that no cache activity was reported instead of claiming a measured
+  zero-percent hit rate; inconsistent totals keep the raw counters visible but
+  must not produce a percentage.
 - Application update checks expose one shared `idle`/`checking`/`installing`
   state to every desktop surface. Manual checks must disable duplicate input,
   show visible progress, apply a finite timeout, surface localized success or
