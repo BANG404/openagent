@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.50.0-beta.1] - 2026-08-28
+
+### Features
+- **settings**: Remove web search
+- **mcp**: Add per-tool controls
+- **settings**: Add web search enablement controls
+
+### Bug Fixes
+- **desktop**: Restore main window on repeated launch
+- **chat**: Retain completed actions while streaming
+- **chat**: Focus composer when window reactivates
+
 ## [0.49.1-beta.1] - 2026-08-27
 
 ### Bug Fixes
