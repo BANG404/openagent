@@ -128,8 +128,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Reduce logical Turn metadata from checkpoints on the selected branch and
   attach it to the backend-preallocated response message. A tool interrupt and
   its resume keep that Turn key; only terminal Turn states expose duration,
-  regenerate, copy, and book-mode actions. Ignore typed `memory` user content
-  in every ordinary transcript, index, edit, copy, and book projection.
+  regenerate, copy, and book-mode actions. Treat the compatibility field
+  `first_token_at` as the first observable model response, not only the first
+  text token: non-empty text, thinking, or a tool call starts it, while stream
+  connection alone does not. Keep the transient stream timer and durable
+  checkpoint metadata aligned to that definition. Ignore typed `memory` user
+  content in every ordinary transcript, index, edit, copy, and book projection.
 - Treat the selected branch tip's durable checkpoint as final Goal and Graph
   authority, not transient conversation badges. During streaming, project the
   complete checkpoint-owned `FlowState` carried by `goal-run-updated` after

@@ -20,8 +20,8 @@ export class ChatStreamState {
     this.firstTokenAt = rest;
   }
 
-  recordFirstToken(conversationId: string, text: string): void {
-    if (!text || this.firstTokenAt[conversationId]) return;
+  recordFirstResponse(conversationId: string): void {
+    if (this.firstTokenAt[conversationId]) return;
     this.firstTokenAt = { ...this.firstTokenAt, [conversationId]: Date.now() };
   }
 

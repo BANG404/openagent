@@ -2507,15 +2507,17 @@
       onChunk: (conv_id, text) => {
         if (text) chatStreams.clearAwaitingOutput(conv_id);
         if (text) chatStreams.clearMemoryRetrieval(conv_id);
-        chatStreams.recordFirstToken(conv_id, text);
+        if (text) chatStreams.recordFirstResponse(conv_id);
         applyStreamMutation(conv_id, (items) => appendChunk(items, text));
       },
       onThinkingChunk: (conv_id, text) => {
         if (text) chatStreams.clearAwaitingOutput(conv_id);
         if (text) chatStreams.clearMemoryRetrieval(conv_id);
+        if (text) chatStreams.recordFirstResponse(conv_id);
         applyStreamMutation(conv_id, (items) => appendThinkingChunk(items, text));
       },
       onToolCall: (conv_id, name, args, toolUseId) => {
+        chatStreams.recordFirstResponse(conv_id);
         let items = appendToolCall(
           chatStreams.itemsByConversation[conv_id] ?? [],
           name,
