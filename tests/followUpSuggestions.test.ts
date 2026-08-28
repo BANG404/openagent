@@ -1,6 +1,40 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
-import { latestTurnSuggestionHostMessageId } from "../src/lib/followUpSuggestions";
+import {
+  durableFollowUpSuggestionsByMessageId,
+  latestTurnSuggestionHostMessageId,
+} from "../src/lib/followUpSuggestions";
+
+describe("durableFollowUpSuggestionsByMessageId", () => {
+  test("restores suggestions by the logical Turn response ID", () => {
+    expect(
+      durableFollowUpSuggestionsByMessageId([
+        {
+          meta: {
+            metadata: JSON.stringify({
+              turn: { response_message_id: "logical-response" },
+            }),
+          },
+          follow_up_suggestions: ["Continue", "Review", "Summarize"],
+        },
+      ]),
+    ).toEqual({
+      "logical-response": ["Continue", "Review", "Summarize"],
+    });
+  });
+
+  test("ignores malformed durable payloads", () => {
+    expect(
+      durableFollowUpSuggestionsByMessageId([
+        { meta: { metadata: "not-json" }, follow_up_suggestions: ["one", "two", "three"] },
+        {
+          meta: { metadata: JSON.stringify({ turn: { response_message_id: "duplicate" } }) },
+          follow_up_suggestions: ["same", "Same", "third"],
+        },
+      ]),
+    ).toEqual({});
+  });
+});
 
 describe("latestTurnSuggestionHostMessageId", () => {
   test("selects only the final assistant reply on the active branch", () => {

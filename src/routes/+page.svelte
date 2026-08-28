@@ -62,6 +62,7 @@
   } from "$lib/devDebugVisibility";
   import { ONBOARDING_COMPLETE_EVENT } from "$lib/onboarding";
   import { NEW_CONVERSATION_GREETING } from "$lib/newConversation";
+  import { durableFollowUpSuggestionsByMessageId } from "$lib/followUpSuggestions";
   import {
     clearQueuedChatMessages,
     dequeueChatMessage,
@@ -413,7 +414,7 @@
   } | null>(null);
   let isDarkTheme = $state(false);
   let newConversationSuggestions = $state<string[]>([]);
-  let followUpSuggestionsByMessageId = $state<Record<string, string[]>>(loadFollowUpSuggestions());
+  let followUpSuggestionsByMessageId = $state<Record<string, string[]>>({});
   const newConversationGreeting = NEW_CONVERSATION_GREETING;
 
   // ─── Branch / Re-execute state ────────────────────────────────────────────────
@@ -810,6 +811,7 @@
     syncBackendHistory: boolean,
     messageIdsAtStart?: ReadonlySet<string>,
   ): Promise<void> {
+    mergeDurableFollowUpSuggestions(checkpoints);
     let tree = buildTreeFromCheckpoints(checkpoints, convTrees[convId]);
     if (savedTip) tree = selectActivePathToCheckpoint(tree, savedTip);
     if (savedTip) {
@@ -2655,7 +2657,10 @@
       onFollowUpSuggestions: (convId, assistantMessageId, suggestions) => {
         const normalized = normalizeSuggestions(suggestions);
         if (!convId || !assistantMessageId || normalized.length !== 3) return;
-        storeFollowUpSuggestions(assistantMessageId, normalized);
+        followUpSuggestionsByMessageId = {
+          ...followUpSuggestionsByMessageId,
+          [assistantMessageId]: normalized,
+        };
       },
       onNewConversationSuggestions: (suggestionWorkspace, suggestions) => {
         const normalized = normalizeSuggestions(suggestions);
@@ -3066,32 +3071,13 @@
     return suggestions.length === 3 && unique.size === 3 ? suggestions : [];
   }
 
-  function loadFollowUpSuggestions(): Record<string, string[]> {
-    if (typeof window === "undefined") return {};
-    try {
-      const parsed = JSON.parse(
-        window.localStorage.getItem("openagent_follow_up_suggestions:v1") ?? "{}",
-      ) as Record<string, unknown>;
-      return Object.fromEntries(
-        Object.entries(parsed)
-          .map(([messageId, value]) => [messageId, normalizeSuggestions(value)] as const)
-          .filter(([, suggestions]) => suggestions.length === 3),
-      );
-    } catch {
-      return {};
-    }
-  }
-
-  function storeFollowUpSuggestions(messageId: string, suggestions: string[]) {
-    const entries = [
-      ...Object.entries(followUpSuggestionsByMessageId).filter(([id]) => id !== messageId),
-      [messageId, suggestions] as const,
-    ].slice(-100);
-    followUpSuggestionsByMessageId = Object.fromEntries(entries);
-    window.localStorage.setItem(
-      "openagent_follow_up_suggestions:v1",
-      JSON.stringify(followUpSuggestionsByMessageId),
-    );
+  function mergeDurableFollowUpSuggestions(checkpoints: StartupConversationBundle["checkpoints"]) {
+    const durable = durableFollowUpSuggestionsByMessageId(checkpoints);
+    if (Object.keys(durable).length === 0) return;
+    followUpSuggestionsByMessageId = {
+      ...followUpSuggestionsByMessageId,
+      ...durable,
+    };
   }
 
   function newConversationSuggestionsStorageKey(workspace: string, language: Locale) {

@@ -284,9 +284,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   title or activity timestamp; keep the list role-filtered, newest-first,
   workspace-owned, deduplicated, and capped at 20 entries.
 - Attach Flash-generated follow-up suggestions to the stable preallocated
-  backend assistant message ID for the triggering user turn. Cache them by
-  message ID across navigation. Resolve that host from the selected Turn's
-  `response_message_id`, not from its final assistant checkpoint record, because
+  backend assistant message ID for the triggering user turn. Restore them from
+  the durable renderable-checkpoint projection and merge live events by message
+  ID; WebView-local storage is not a persistence source. Resolve that host from
+  the selected Turn's `response_message_id`, not from its final assistant
+  checkpoint record, because
   tool rounds can append several assistant records under one Turn. An ask_user
   or approval resume retains that logical Turn response ID while its newly
   appended assistant records keep distinct message IDs; do not re-key or restart

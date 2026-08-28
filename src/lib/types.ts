@@ -312,6 +312,7 @@ export interface GoalRunUpdatedEvent {
 export interface RenderableCheckpoint {
   meta: CheckpointMeta;
   data: CheckpointData;
+  follow_up_suggestions?: string[];
 }
 
 export interface FileChange {
