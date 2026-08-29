@@ -77,6 +77,8 @@ struct DesktopWindowState {
     startup_window_revealed: std::sync::atomic::AtomicBool,
 }
 
+const DESKTOP_WINDOW_ACTIVATED_EVENT: &str = "desktop-window-activated";
+
 struct HostRuntimeBootstrap {
     initial_locale: String,
     runtime: Option<Arc<OpenAgentRuntime>>,
@@ -2346,7 +2348,9 @@ fn run_with_mode(agent_server: bool) {
             {
                 let _ = window.unminimize();
                 let _ = window.show();
-                let _ = window.set_focus();
+                if window.set_focus().is_ok() {
+                    let _ = window.emit(DESKTOP_WINDOW_ACTIVATED_EVENT, ());
+                }
             }
         }))
     } else {

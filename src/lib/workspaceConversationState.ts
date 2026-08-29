@@ -14,3 +14,23 @@ export function restoreWorkspaceConversationSnapshot(
     return previous ? { ...conversation, messages: previous.messages } : conversation;
   });
 }
+
+/**
+ * Install a fully hydrated active transcript into fresh workspace metadata
+ * before the route commits that workspace as visible. Other conversations keep
+ * their keyed transcript instances from an earlier visit.
+ */
+export function prepareWorkspaceConversationSnapshot(
+  incoming: Conversation[],
+  cached: Conversation[],
+  activeConversationId: string | null,
+  activeMessages: Conversation["messages"] | null,
+): Conversation[] {
+  const restored = restoreWorkspaceConversationSnapshot(incoming, cached);
+  if (!activeConversationId || !activeMessages) return restored;
+  return restored.map((conversation) =>
+    conversation.id === activeConversationId
+      ? { ...conversation, messages: activeMessages }
+      : conversation,
+  );
+}

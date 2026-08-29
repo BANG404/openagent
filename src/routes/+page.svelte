@@ -103,7 +103,12 @@
     preserveStreamingMessagesDuringHydration,
     type ConvTree,
   } from "$lib/checkpointTree";
-  import { restoreWorkspaceConversationSnapshot } from "$lib/workspaceConversationState";
+  import { prepareWorkspaceConversationSnapshot } from "$lib/workspaceConversationState";
+  import {
+    applyWindowFocusEvent,
+    DESKTOP_WINDOW_ACTIVATED_EVENT,
+    type WindowFocusState,
+  } from "$lib/windowFocus";
   import {
     appendChunk,
     appendCompactionProgress,
@@ -833,11 +838,18 @@
       }
     }
     convTrees = { ...convTrees, [convId]: tree };
-    const hydratedMessages = restorePendingUserInputFromCheckpoint(
+    const pendingProjection = restorePendingUserInputFromCheckpoint(
       convId,
       computeActivePath(tree),
       checkpoints,
     );
+    if (pendingProjection.pendingRequest) {
+      pendingUserInputs = {
+        ...pendingUserInputs,
+        [convId]: pendingProjection.pendingRequest,
+      };
+    }
+    const hydratedMessages = pendingProjection.messages;
     const idx = conversations.findIndex((conversation) => conversation.id === convId);
     if (idx !== -1) {
       const visible = conversations[idx].messages;
@@ -888,20 +900,18 @@
     convId: string,
     messages: ChatMessage[],
     checkpoints: Awaited<ReturnType<typeof fetchRenderableCheckpoints>>,
-  ): ChatMessage[] {
+  ): { messages: ChatMessage[]; pendingRequest?: UserInputRequest } {
     const assistant = [...messages]
       .reverse()
       .find((message) => message.role === "assistant" && message.checkpointId);
-    if (!assistant?.checkpointId) return messages;
+    if (!assistant?.checkpointId) return { messages };
 
     const checkpoint = checkpoints.find(
       ({ meta }) => meta.checkpoint_id === assistant.checkpointId,
     );
-    if (!checkpoint) return messages;
+    if (!checkpoint) return { messages };
     const requests = pendingUserInputRequestsFromCheckpoint(convId, checkpoint);
-    if (requests.length === 0) return messages;
-
-    pendingUserInputs = { ...pendingUserInputs, [convId]: requests[0] };
+    if (requests.length === 0) return { messages };
     // Each persisted tool use is rendered as its own assistant message. Attach
     // an approval across the complete timeline by toolUseId; limiting this to
     // the final assistant message turns earlier calls in a batch into detached
@@ -936,7 +946,7 @@
         );
       }
     }
-    return restored;
+    return { messages: restored, pendingRequest: requests[0] };
   }
 
   /**
@@ -1443,7 +1453,18 @@
       // pending ask_user from the selected tip's tool_use plus interrupt state,
       // just as a full conversation load does.
       const checkpoints = await fetchRenderableCheckpoints(convId).catch(() => []);
-      branchMessages = restorePendingUserInputFromCheckpoint(convId, branchMessages, checkpoints);
+      const pendingProjection = restorePendingUserInputFromCheckpoint(
+        convId,
+        branchMessages,
+        checkpoints,
+      );
+      branchMessages = pendingProjection.messages;
+      if (pendingProjection.pendingRequest) {
+        pendingUserInputs = {
+          ...pendingUserInputs,
+          [convId]: pendingProjection.pendingRequest,
+        };
+      }
     }
     const savedTip = [...branchMessages]
       .reverse()
@@ -3830,9 +3851,12 @@
 
   type PreparedWorkspaceSwitch = {
     activeConversation: StartupConversationBundle | null;
+    activeConversationTree?: ConvTree;
+    activeBranchId: string | null;
     activeConversationId: string | null;
     conversations: Conversation[];
     conversationNextCursor: ConversationPageCursor | null;
+    pendingUserInput?: UserInputRequest;
     roles: AgentRole[];
     selectedRoleKey: string;
   };
@@ -3895,11 +3919,58 @@
         }))
       : null;
 
+    let preparedConversations = prepareWorkspaceConversationSnapshot(
+      mergeConversationMetadata(page.conversations, lineage),
+      workspaceConversationSnapshots.get(path) ?? [],
+      activeConversationId,
+      null,
+    );
+    let activeConversationTree: ConvTree | undefined;
+    let activeBranchId: string | null = null;
+    let pendingUserInput: UserInputRequest | undefined;
+    if (activeConversationId && activeConversation) {
+      mergeDurableFollowUpSuggestions(activeConversation.checkpoints);
+      let tree = buildTreeFromCheckpoints(
+        activeConversation.checkpoints,
+        convTrees[activeConversationId],
+      );
+      if (activeConversation.active_branch_tip) {
+        tree = selectActivePathToCheckpoint(tree, activeConversation.active_branch_tip);
+        activeBranchId =
+          activeConversation.branches.find(
+            (branch) => branch.head_checkpoint_id === activeConversation.active_branch_tip,
+          )?.id ?? null;
+      }
+      const pendingProjection = restorePendingUserInputFromCheckpoint(
+        activeConversationId,
+        computeActivePath(tree),
+        activeConversation.checkpoints,
+      );
+      pendingUserInput = pendingProjection.pendingRequest;
+      const cachedMessages =
+        workspaceConversationSnapshots
+          .get(path)
+          ?.find((conversation) => conversation.id === activeConversationId)?.messages ?? [];
+      const hydratedMessages = chatStreams.streamingConversationIds[activeConversationId]
+        ? preserveStreamingMessagesDuringHydration(cachedMessages, pendingProjection.messages)
+        : pendingProjection.messages;
+      preparedConversations = prepareWorkspaceConversationSnapshot(
+        preparedConversations,
+        [],
+        activeConversationId,
+        hydratedMessages,
+      );
+      activeConversationTree = tree;
+    }
+
     return {
       activeConversation,
+      activeConversationTree,
+      activeBranchId,
       activeConversationId,
-      conversations: mergeConversationMetadata(page.conversations, lineage),
+      conversations: preparedConversations,
       conversationNextCursor: page.nextCursor,
+      pendingUserInput,
       roles,
       selectedRoleKey,
     };
@@ -3919,9 +3990,12 @@
         ? await prepareWorkspaceSwitch(path, preferredConversationId)
         : ({
             activeConversation: null,
+            activeConversationTree: undefined,
+            activeBranchId: null,
             activeConversationId: null,
             conversations: [],
             conversationNextCursor: null,
+            pendingUserInput: undefined,
             roles: [],
             selectedRoleKey: defaultRoleKey,
           } satisfies PreparedWorkspaceSwitch);
@@ -3941,16 +4015,11 @@
       // Commit the prepared workspace as one state transition so the mounted
       // transcript and composer are never replaced by an app-wide loading pass.
       workspaceConversationSnapshots.set(previousWorkspacePath, conversations);
-      const cachedTargetConversations = workspaceConversationSnapshots.get(path) ?? [];
       workspacePath = path;
       workspace = nextWorkspace;
       agentRoles = prepared.roles;
       selectedRoleKey = prepared.selectedRoleKey;
-      loadedConvIds.clear();
-      conversations = restoreWorkspaceConversationSnapshot(
-        prepared.conversations,
-        cachedTargetConversations,
-      );
+      conversations = prepared.conversations;
       workspaceConversationSnapshots.set(path, conversations);
       conversationNextCursor = prepared.conversationNextCursor;
       searchConversations = [];
@@ -3963,17 +4032,22 @@
 
       if (activeConvId && prepared.activeConversation) {
         loadedConvIds.add(activeConvId);
+        if (prepared.activeConversationTree) {
+          convTrees = { ...convTrees, [activeConvId]: prepared.activeConversationTree };
+        }
+        if (prepared.activeBranchId) {
+          activeBranchIds = { ...activeBranchIds, [activeConvId]: prepared.activeBranchId };
+        }
+        if (prepared.pendingUserInput) {
+          pendingUserInputs = { ...pendingUserInputs, [activeConvId]: prepared.pendingUserInput };
+        }
         fileChangesPerConv = {
           ...fileChangesPerConv,
           [activeConvId]: prepared.activeConversation.file_changes,
         };
-        await hydrateConversation(
-          activeConvId,
-          prepared.activeConversation.checkpoints,
-          prepared.activeConversation.active_branch_tip,
-          prepared.activeConversation.branches,
-          true,
-        );
+        if (prepared.activeConversationTree) {
+          await syncAgentHistoryToActivePath(activeConvId, prepared.activeConversationTree);
+        }
         if (activeConvId === preferredConversationId) {
           window.localStorage.setItem(roleSelectionStorageKey(path), selectedRoleKey);
           await invoke("set_active_conversation", {
@@ -4473,27 +4547,45 @@
 
   // ─── Window Controls ─────────────────────────────────────────────────────────
 
-  let windowFocused = $state(true);
+  let windowFocusState = $state<WindowFocusState>({
+    focused: true,
+    composerFocusRequest: 0,
+  });
+  let windowFocused = $derived(windowFocusState.focused);
+  let composerFocusRequest = $derived(windowFocusState.composerFocusRequest);
+
+  function handleWindowFocusEvent(focused: boolean): void {
+    windowFocusState = applyWindowFocusEvent(windowFocusState, focused);
+  }
 
   onMount(() => {
     if (isDevInspectorWindow || standaloneDevPreview || isQuickChatSurface || isOnboardingSurface)
       return;
 
     let disposed = false;
+    let unlistenDesktopActivated: (() => void) | undefined;
     let unlistenFocusChanged: (() => void) | undefined;
-    const handleFocus = () => (windowFocused = true);
-    const handleBlur = () => (windowFocused = false);
+    const handleFocus = () => handleWindowFocusEvent(true);
+    const handleBlur = () => handleWindowFocusEvent(false);
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
+    void listen(DESKTOP_WINDOW_ACTIVATED_EVENT, () => handleWindowFocusEvent(true))
+      .then((unlisten) => {
+        if (disposed) unlisten();
+        else unlistenDesktopActivated = unlisten;
+      })
+      .catch((error) => console.warn("Failed to track desktop window activation:", error));
 
     if (appWindow) {
       void appWindow
         .isFocused()
         .then((focused) => {
-          if (!disposed) windowFocused = focused;
+          if (!disposed) handleWindowFocusEvent(focused);
         })
         .catch((error) => console.warn("Failed to read window focus state:", error));
       void appWindow
         .onFocusChanged(({ payload: focused }) => {
-          if (!disposed) windowFocused = focused;
+          if (!disposed) handleWindowFocusEvent(focused);
         })
         .then((unlisten) => {
           if (disposed) unlisten();
@@ -4501,17 +4593,14 @@
         })
         .catch((error) => console.warn("Failed to track window focus state:", error));
     } else {
-      windowFocused = document.hasFocus();
-      window.addEventListener("focus", handleFocus);
-      window.addEventListener("blur", handleBlur);
+      handleWindowFocusEvent(document.hasFocus());
     }
 
     return () => {
       disposed = true;
-      if (!appWindow) {
-        window.removeEventListener("focus", handleFocus);
-        window.removeEventListener("blur", handleBlur);
-      }
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+      unlistenDesktopActivated?.();
       unlistenFocusChanged?.();
     };
   });
@@ -4662,7 +4751,7 @@
             bind:inputAreaHeight
             bind:checkpointFlowPanelCollapsed
             composerDraft={activeComposerDraft}
-            {windowFocused}
+            focusRequest={composerFocusRequest}
           />
         </div>
       {/if}

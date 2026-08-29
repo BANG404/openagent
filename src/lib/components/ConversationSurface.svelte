@@ -106,7 +106,7 @@
     inputAreaHeight = $bindable(120),
     checkpointFlowPanelCollapsed = $bindable(true),
     composerDraft,
-    windowFocused,
+    focusRequest,
   }: {
     view: ConversationSurfaceView;
     actions: ConversationSurfaceActions;
@@ -115,22 +115,14 @@
     inputAreaHeight: number;
     checkpointFlowPanelCollapsed: boolean;
     composerDraft: ComposerDraft;
-    windowFocused: boolean;
+    focusRequest: number;
   } = $props();
 
-  let composerFocusRequest = $state(0);
-  let nextComposerFocusRequest = 0;
-  let wasWindowFocused: boolean | undefined;
+  let localComposerFocusRequest = $state(0);
 
   function requestComposerFocus() {
-    nextComposerFocusRequest += 1;
-    composerFocusRequest = nextComposerFocusRequest;
+    localComposerFocusRequest += 1;
   }
-
-  $effect(() => {
-    if (windowFocused && wasWindowFocused === false) requestComposerFocus();
-    wasWindowFocused = windowFocused;
-  });
 
   function addQuote(context: UserMessageContext) {
     if (
@@ -299,7 +291,7 @@
             onPickWorkspace={() => void actions.pickWorkspace()}
             onPickWslWorkspace={() => void actions.pickWslWorkspace()}
             onSelectWorkspace={(path) => void actions.selectWorkspace(path)}
-            focusRequest={composerFocusRequest}
+            focusRequest={focusRequest + localComposerFocusRequest}
             onSend={actions.sendMessage}
             onStop={actions.stopMessage}
             onPause={actions.pauseCurrentStream}

@@ -234,6 +234,12 @@ describe("desktop navigation chrome", () => {
       applyWorkspace.indexOf("workspacePath = path"),
     );
     expect(applyWorkspace).not.toContain("conversations = []");
+    expect(applyWorkspace).toContain("conversations = prepared.conversations");
+    expect(applyWorkspace).not.toContain("loadedConvIds.clear()");
+    expect(applyWorkspace).not.toContain("await hydrateConversation(");
+    expect(route.indexOf("prepareWorkspaceConversationSnapshot(")).toBeLessThan(
+      route.indexOf("workspacePath = path"),
+    );
   });
 
   test("exposes keyboard edit commands and the shared update check", async () => {

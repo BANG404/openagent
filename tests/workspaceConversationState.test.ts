@@ -1,7 +1,10 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
 import { preserveStreamingMessagesDuringHydration } from "../src/lib/checkpointTree";
-import { restoreWorkspaceConversationSnapshot } from "../src/lib/workspaceConversationState";
+import {
+  prepareWorkspaceConversationSnapshot,
+  restoreWorkspaceConversationSnapshot,
+} from "../src/lib/workspaceConversationState";
 import type { ChatMessage, Conversation } from "../src/lib/types";
 
 function message(id: string, content: string): ChatMessage {
@@ -21,6 +24,23 @@ describe("workspace conversation transcript restoration", () => {
     );
 
     expect(restored).toEqual([conversation("active", [optimistic])]);
+  });
+
+  test("prepares the hydrated active transcript before a workspace becomes visible", () => {
+    const cachedInactiveMessages = [message("cached", "keep mounted state")];
+    const hydratedActiveMessages = [message("durable", "ready at commit")];
+    const restored = prepareWorkspaceConversationSnapshot(
+      [conversation("active", []), conversation("inactive", [])],
+      [
+        conversation("active", [message("stale", "stale")]),
+        conversation("inactive", cachedInactiveMessages),
+      ],
+      "active",
+      hydratedActiveMessages,
+    );
+
+    expect(restored[0].messages).toBe(hydratedActiveMessages);
+    expect(restored[1].messages).toBe(cachedInactiveMessages);
   });
 
   test("keeps an optimistic user message until the streaming checkpoint contains it", () => {

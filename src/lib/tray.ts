@@ -4,6 +4,8 @@ import { Image } from "@tauri-apps/api/image";
 import { Menu } from "@tauri-apps/api/menu";
 import { TrayIcon, type TrayIconEvent } from "@tauri-apps/api/tray";
 import { getCurrentWindow, type Window } from "@tauri-apps/api/window";
+import { emit } from "$lib/openagent/tauriClient";
+import { DESKTOP_WINDOW_ACTIVATED_EVENT } from "$lib/windowFocus";
 
 let trayReady = false;
 let trayIcon: TrayIcon | null = null;
@@ -13,6 +15,7 @@ async function showMainWindow(appWindow: Window) {
   await appWindow.unminimize().catch(() => {});
   await appWindow.show();
   await appWindow.setFocus().catch(() => {});
+  await emit(DESKTOP_WINDOW_ACTIVATED_EVENT).catch(() => {});
 }
 
 function isPrimaryActivate(event: TrayIconEvent) {

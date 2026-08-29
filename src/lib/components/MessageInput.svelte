@@ -565,8 +565,18 @@
   });
 
   $effect(() => {
-    if (focusRequest > 0) void focusInput();
+    if (focusRequest > 0) void focusInputAfterWindowActivation(focusRequest);
   });
+
+  async function focusInputAfterWindowActivation(request: number) {
+    await focusInput();
+    // Windows can report the Tauri window as focused before WebView2 finishes
+    // restoring its internal keyboard focus. Retry after that native handoff so
+    // the browser does not restore the previously focused control over us.
+    await new Promise<void>((resolve) => setTimeout(resolve, 100));
+    if (focusRequest !== request || !textareaEl || disabled) return;
+    textareaEl.focus({ preventScroll: true });
+  }
 
   async function focusInput() {
     await tick();
