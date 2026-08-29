@@ -41,6 +41,15 @@ is complete:
    verify. SHA-256 protects integrity after selection; it does not replace a
    signed update channel.
 
+The host-side supervisor is implemented as a separate lifecycle component. It
+accepts only loopback HTTP readiness records in the supported protocol range,
+uses a process-scoped Bearer token for the health probe, stops the current
+server through its private stdin control pipe, and starts the candidate only
+after the old process exits. If candidate startup or probing fails, it restarts
+the previous launch specification. The supervisor remains dormant while Tauri
+still owns the embedded runtime; activation before transport extraction would
+violate the single-writer boundary.
+
 This boundary prevents two runtimes from writing the same SQLite state and avoids
 an unstable Rust ABI between the shell and SDK. A frontend-only production update
 also requires a signed, versioned asset bundle served by a host-owned protocol;

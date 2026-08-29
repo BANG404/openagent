@@ -24,6 +24,7 @@ src-tauri/target/
 src-tauri/.fastembed_cache/
 src-tauri/resources/codex-resources/*.exe
 src-tauri/binaries/bwrap-*
+src-tauri/binaries/openagent-server-*
 
 # Environment
 .env

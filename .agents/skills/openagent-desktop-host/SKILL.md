@@ -25,6 +25,11 @@ binary, and exclusive durable-state ownership.
   operations, or runtime state machines in the host.
 - Change IPC contracts atomically across the SDK contract or adapter, public
   frontend types, and every caller.
+- A replaceable Runtime supervisor must accept only compatible loopback
+  readiness records, authenticate health probes with a process-scoped token,
+  stop the old child through its private control pipe before starting a
+  candidate, and restart the previous verified launch on failure. Keep that
+  supervisor dormant while the embedded Runtime still owns durable state.
 
 ## Startup and windows
 

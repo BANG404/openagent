@@ -8,7 +8,8 @@ use openagent_app::pending_development_persistence_transition as pending_product
 use openagent_app::pending_persistence_transition as pending_product_persistence_transition;
 use openagent_app::{
     apply_persistence_transition, EmbeddingResourceManager, EmbeddingResourceStatus,
-    PersistenceTransitionPlan,
+    InstalledRuntimeResource, PersistenceTransitionPlan, RuntimeResourceManager,
+    RuntimeResourceSource,
 };
 use openagent_runtime::checkpoint::{
     BranchMeta, CheckpointMeta, ConvPatch, ConversationMeta, FileChange, RenderableCheckpoint,
@@ -34,7 +35,37 @@ use openagent_runtime::{
 use std::sync::Arc;
 use tauri::{path::BaseDirectory, Emitter, Manager, State};
 
+pub mod runtime_process;
+
 const EMBEDDING_MODEL_RESOURCE_PATH: &str = "models/all-MiniLM-L6-v2-q";
+const UPDATE_PUBLIC_KEY: &str = "untrusted comment: minisign public key: C373284FCF9656A0\nRWSgVpbPTyhzw46ILL4vBbjg4XueHFxKhTk48DCGqAT/IfE5vSyBDSGl\n";
+
+fn modular_update_channel() -> &'static str {
+    let version = env!("CARGO_PKG_VERSION");
+    if version.contains("-rc.") {
+        "rc"
+    } else if version.contains('-') {
+        "beta"
+    } else {
+        "stable"
+    }
+}
+
+fn runtime_resource_manager() -> RuntimeResourceManager {
+    let manifest_url = format!(
+        "https://github.com/BANG404/openagent/releases/download/runtime-{}/openagent-sdk-manifest.json",
+        modular_update_channel()
+    );
+    RuntimeResourceManager::new(
+        openagent_runtime::config::config_dir(),
+        RuntimeResourceSource {
+            signature_url: format!("{manifest_url}.sig"),
+            manifest_url,
+            public_key: UPDATE_PUBLIC_KEY.to_string(),
+        },
+        openagent_protocol::SDK_PROTOCOL_VERSION,
+    )
+}
 
 fn bundled_embedding_seed(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
     #[cfg(debug_assertions)]
@@ -95,6 +126,21 @@ async fn prepare_embedding_resource(
         .await?;
     load_embedding_model(runtime.inner().clone(), manager.model_dir().to_path_buf()).await?;
     Ok(installed)
+}
+
+#[tauri::command]
+async fn prepare_runtime_resource(
+    app: tauri::AppHandle,
+    manager: State<'_, RuntimeResourceManager>,
+) -> Result<InstalledRuntimeResource, String> {
+    let progress_app = app.clone();
+    manager
+        .install_latest(move |progress| {
+            if let Err(error) = progress_app.emit("runtime-resource-progress", progress) {
+                tracing::warn!(%error, "failed to emit Runtime resource progress");
+            }
+        })
+        .await
 }
 
 fn apply_native_window_material(window: &tauri::WebviewWindow) {
@@ -1630,6 +1676,7 @@ fn run_with_mode(agent_server: bool) {
         .plugin(tauri_plugin_notification::init())
         .manage(runtime.clone())
         .manage(EmbeddingResourceManager::default())
+        .manage(runtime_resource_manager())
         .setup(move |app| {
             // init_tracing() spawns a background Tokio task (batch exporter). The
             // .setup() callback runs on the main thread which is not a Tokio worker
@@ -1827,6 +1874,7 @@ fn run_with_mode(agent_server: bool) {
             get_settings,
             get_embedding_resource_status,
             prepare_embedding_resource,
+            prepare_runtime_resource,
             save_settings,
             get_channel_statuses,
             get_wechat_channel_status,

@@ -67,6 +67,17 @@ not require a desktop installer update. The desktop still embeds the runtime, so
 desktop runtime changes remain application updates until the supervised-process
 boundary in [modular-updates.md](modular-updates.md) is complete.
 
+Every desktop release also builds the pinned `openagent-server` for all four
+desktop targets, packages the matching binary as the installer's fallback
+sidecar, and uploads only those release-qualified binaries with a detached
+Minisign signature over their manifest. After the versioned release is public,
+the same six files are atomically replaced on the fixed `runtime-beta`,
+`runtime-rc`, or `runtime-stable` release channel. The runtime channel uses
+the Tauri updater trust root, while each artifact's declared size and SHA-256
+protect the selected bytes. Publishing this dormant fallback and channel does
+not activate desktop modular updates before the host supervisor and typed
+transport extraction are complete.
+
 The selected release channel controls the suffix and GitHub Release state. The
 release-relevant Conventional Commits control the `X.Y.Z` base version:
 

@@ -4,8 +4,8 @@
   "version": "0.50.0-beta.1",
   "identifier": "com.iumm.openagent",
   "build": {
-    "beforeDevCommand": "bun run prepare:linux-sandbox:dev && bun run prepare:windows-sandbox:dev && bun run dev",
-    "beforeBuildCommand": "bun run prepare:linux-sandbox:release && bun run prepare:windows-sandbox:release && bun run build",
+    "beforeDevCommand": "bun run prepare:linux-sandbox:dev && bun run prepare:windows-sandbox:dev && bun run prepare:runtime-server:dev && bun run dev",
+    "beforeBuildCommand": "bun run prepare:linux-sandbox:release && bun run prepare:windows-sandbox:release && bun run prepare:runtime-server:release && bun run build",
     "frontendDist": "../build",
     "removeUnusedCommands": true,
     "additionalWatchFolders": [
@@ -40,6 +40,7 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
+    "externalBin": ["binaries/openagent-server"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

@@ -283,18 +283,30 @@ jobs:
             platform: macos-latest
             args: --target aarch64-apple-darwin
             rust_target: aarch64-apple-darwin
+            runtime_target: macos-arm64
+            runtime_sidecar: openagent-server-aarch64-apple-darwin
+            runtime_artifact: openagent-server-macos-arm64
           - name: macOS Intel
             platform: macos-latest
             args: --target x86_64-apple-darwin
             rust_target: x86_64-apple-darwin
+            runtime_target: macos-x64
+            runtime_sidecar: openagent-server-x86_64-apple-darwin
+            runtime_artifact: openagent-server-macos-x64
           - name: Linux x64
             platform: ubuntu-22.04
             args: ""
             rust_target: ""
+            runtime_target: linux-x64
+            runtime_sidecar: openagent-server-x86_64-unknown-linux-gnu
+            runtime_artifact: openagent-server-linux-x64
           - name: Windows x64
             platform: windows-latest
             args: ""
             rust_target: ""
+            runtime_target: windows-x64
+            runtime_sidecar: openagent-server-x86_64-pc-windows-msvc.exe
+            runtime_artifact: openagent-server-windows-x64.exe
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v7
@@ -374,6 +386,24 @@ jobs:
           retryAttempts: 2
           args: ${{ matrix.args }}
 
+      - name: Stage qualified runtime component
+        shell: bash
+        env:
+          RUNTIME_SIDECAR: ${{ matrix.runtime_sidecar }}
+          RUNTIME_ARTIFACT: ${{ matrix.runtime_artifact }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/runtime-component"
+          cp "src-tauri/binaries/$RUNTIME_SIDECAR" \
+            "$RUNNER_TEMP/runtime-component/$RUNTIME_ARTIFACT"
+
+      - name: Upload qualified runtime component
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-component-${{ matrix.runtime_target }}
+          path: ${{ runner.temp }}/runtime-component/${{ matrix.runtime_artifact }}
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Build full first-install bundle
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -402,6 +432,8 @@ jobs:
           New-Item -ItemType Directory -Path $stage -Force | Out-Null
           Copy-Item "src-tauri\target\release\openagent.exe" $stage
           Copy-Item "src-tauri\target\release\openagent-agent-server.exe" $stage
+          Copy-Item "src-tauri\binaries\openagent-server-x86_64-pc-windows-msvc.exe" `
+            (Join-Path $stage "openagent-server.exe")
           Get-ChildItem "src-tauri\target\release" -Filter *.dll -File |
             Copy-Item -Destination $stage
           Copy-Item "src-tauri\resources\models\all-MiniLM-L6-v2-q" `
@@ -480,6 +512,10 @@ jobs:
               throw "Microsoft Store package staging is missing Windows sandbox helper $helper."
             }
           }
+          $runtimeFallback = Join-Path $stage "openagent-server.exe"
+          if (-not (Test-Path -LiteralPath $runtimeFallback)) {
+            throw "Microsoft Store package staging is missing the fallback runtime server."
+          }
 
           winapp pack $stage `
             --manifest $manifestPath `
@@ -497,6 +533,77 @@ jobs:
           path: ${{ runner.temp }}/openagent-store.msix
           if-no-files-found: error
           retention-days: 7
+
+  runtime-components:
+    name: Publish signed runtime components
+    needs:
+      - detect
+      - create-draft
+      - build
+    if: >-
+      needs.create-draft.outputs.published != 'true'
+      && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.tag }}
+
+      - name: Resolve pinned SDK revision
+        id: sdk
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out private SDK metadata
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ steps.sdk.outputs.sha }}
+          path: sdk
+          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install signing CLI
+        run: bun install --frozen-lockfile
+
+      - name: Download qualified runtime binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: runtime-component-*
+          path: runtime-components
+          merge-multiple: true
+
+      - name: Create and sign runtime manifest
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' sdk/rust/openagent-server/Cargo.toml | head -n 1)"
+          protocol="$(sed -n 's/^pub const SDK_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' sdk/rust/openagent-protocol/src/lib.rs)"
+          if [[ -z "$version" || -z "$protocol" ]]; then
+            echo "Unable to resolve the pinned runtime version or protocol." >&2
+            exit 1
+          fi
+          node sdk/scripts/server-artifacts.mjs \
+            --artifacts runtime-components \
+            --output runtime-components/openagent-sdk-manifest.json \
+            --version "$version" \
+            --protocol "$protocol"
+          bun scripts/tauri.mjs signer sign \
+            runtime-components/openagent-sdk-manifest.json
+          test -s runtime-components/openagent-sdk-manifest.json.sig
+
+      - name: Upload signed runtime components to draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+        run: gh release upload "$RELEASE_TAG" runtime-components/* --clobber
 
   publish-store:
     name: Submit Microsoft Store update
@@ -557,12 +664,14 @@ jobs:
       - detect
       - create-draft
       - build
+      - runtime-components
       - publish-store
     if: >-
       always()
       && needs.detect.result == 'success'
       && needs.create-draft.result == 'success'
       && (needs.build.result == 'success' || needs.build.result == 'skipped')
+      && (needs.runtime-components.result == 'success' || needs.runtime-components.result == 'skipped')
       && (needs.publish-store.result == 'success' || needs.publish-store.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
@@ -573,6 +682,71 @@ jobs:
           RELEASE_TAG: ${{ needs.detect.outputs.tag }}
           PRERELEASE: ${{ needs.detect.outputs.prerelease }}
         run: gh release edit "$RELEASE_TAG" --draft=false --prerelease="$PRERELEASE"
+
+      - name: Update signed runtime component channel
+        if: needs.runtime-components.result == 'success'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+          RELEASE_CHANNEL: ${{ needs.detect.outputs.channel }}
+        run: |
+          component_channel="runtime-$RELEASE_CHANNEL"
+          component_dir="$(mktemp -d)"
+          gh release download "$RELEASE_TAG" \
+            --pattern 'openagent-server-*' \
+            --pattern 'openagent-sdk-manifest.json' \
+            --pattern 'openagent-sdk-manifest.json.sig' \
+            --dir "$component_dir"
+          expected_count=6
+          actual_count="$(find "$component_dir" -maxdepth 1 -type f | wc -l | tr -d ' ')"
+          if [[ "$actual_count" != "$expected_count" ]]; then
+            echo "Expected $expected_count runtime component files, found $actual_count." >&2
+            exit 1
+          fi
+
+          tag_type="$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.type')"
+          tag_object="$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')"
+          if [[ "$tag_type" == "tag" ]]; then
+            release_commit="$(gh api "repos/$GH_REPO/git/tags/$tag_object" --jq '.object.sha')"
+          elif [[ "$tag_type" == "commit" ]]; then
+            release_commit="$tag_object"
+          else
+            echo "Unsupported release tag object type: $tag_type" >&2
+            exit 1
+          fi
+          channel_is_draft=true
+          if gh release view "$component_channel" >/dev/null 2>&1; then
+            channel_is_draft="$(gh release view "$component_channel" --json isDraft --jq '.isDraft')"
+          else
+            gh release create "$component_channel" \
+              --draft \
+              --target "$release_commit" \
+              --title "OpenAgent $RELEASE_CHANNEL runtime channel" \
+              --notes "Signed runtime resources for compatible OpenAgent desktop shells." \
+              --prerelease
+          fi
+          gh release upload "$component_channel" "$component_dir"/* --clobber
+          if [[ "$channel_is_draft" == "true" ]]; then
+            gh release edit "$component_channel" \
+              --target "$release_commit" \
+              --draft=false \
+              --prerelease
+          fi
+
+          manifest_url="https://github.com/$GH_REPO/releases/download/$component_channel/openagent-sdk-manifest.json"
+          signature_url="$manifest_url.sig"
+          for attempt in {1..5}; do
+            if curl --fail --location --silent --show-error "$manifest_url" --output /dev/null \
+              && curl --fail --location --silent --show-error "$signature_url" --output /dev/null; then
+              echo "$component_channel is public with a signed runtime manifest."
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          echo "$component_channel did not publish its signed manifest." >&2
+          exit 1
 
       - name: Update prerelease updater channel
         if: needs.detect.outputs.prerelease == 'true'

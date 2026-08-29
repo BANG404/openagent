@@ -117,6 +117,21 @@ describe("CI module classification", () => {
     });
   });
 
+  test("runs native checks when runtime sidecar packaging changes", () => {
+    expect(classifyChangedModules(["scripts/prepare-runtime-server.mjs"])).toEqual({
+      ...nothing,
+      automation: true,
+      nativeQuality: true,
+      nativePlatform: true,
+    });
+    expect(classifyChangedModules(["scripts/prepare-runtime-server.test.mjs"])).toEqual({
+      ...nothing,
+      automation: true,
+      nativeQuality: true,
+      nativePlatform: true,
+    });
+  });
+
   test("keeps automation-only tests out of the frontend suite", () => {
     expect(classifyChangedModules(["tests/codexExecBatch.test.js"])).toEqual({
       ...nothing,

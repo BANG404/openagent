@@ -62,6 +62,11 @@ export function classifyChangedModules(files, forceAll = false) {
   const nativeManifestChanged = normalized.some((file) =>
     ["src-tauri/Cargo.toml", "src-tauri/Cargo.lock", "src-tauri/build.rs"].includes(file),
   );
+  const runtimePackagingChanged = normalized.some((file) =>
+    ["scripts/prepare-runtime-server.mjs", "scripts/prepare-runtime-server.test.mjs"].includes(
+      file,
+    ),
+  );
   const automationTests = new Set([
     "tests/ciChanges.test.js",
     "tests/codexExecBatch.test.js",
@@ -113,10 +118,16 @@ export function classifyChangedModules(files, forceAll = false) {
     nativeSourceChanged ||
     sharedDependenciesChanged ||
     sdkChanged ||
+    runtimePackagingChanged ||
     normalized.includes("scripts/verify-private-sdk-boundary.mjs");
 
   const nativePlatform =
-    all || nativeWorkflowChanged || nativeSourceChanged || sharedDependenciesChanged || sdkChanged;
+    all ||
+    nativeWorkflowChanged ||
+    nativeSourceChanged ||
+    sharedDependenciesChanged ||
+    sdkChanged ||
+    runtimePackagingChanged;
 
   const embedding =
     all ||

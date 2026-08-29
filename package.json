@@ -15,6 +15,8 @@
     "fetch:embedding-model": "bun scripts/fetch-embedding-model.mjs",
     "prepare:linux-sandbox:dev": "bun scripts/prepare-linux-sandbox-helper.mjs --profile dev",
     "prepare:linux-sandbox:release": "bun scripts/prepare-linux-sandbox-helper.mjs --profile release",
+    "prepare:runtime-server:dev": "bun scripts/prepare-runtime-server.mjs --profile dev",
+    "prepare:runtime-server:release": "bun scripts/prepare-runtime-server.mjs --profile release",
     "prepare:windows-sandbox:dev": "bun scripts/prepare-windows-sandbox-helpers.mjs --profile dev",
     "prepare:windows-sandbox:release": "bun scripts/prepare-windows-sandbox-helpers.mjs --profile release",
     "build:pages": "bun scripts/build-pages.mjs",

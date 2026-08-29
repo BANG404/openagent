@@ -1,5 +1,5 @@
 {
   "bundle": {
-    "externalBin": ["binaries/bwrap"]
+    "externalBin": ["binaries/bwrap", "binaries/openagent-server"]
   }
 }

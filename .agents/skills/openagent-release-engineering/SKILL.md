@@ -48,8 +48,13 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   every `latest.json` target.
 - Treat SDK server releases as independent process resources for headless and
   third-party consumers. Keep their machine-readable manifest, target matrix,
-  protocol range, byte sizes, and SHA-256 values aligned. Do not describe them
-  as desktop hot updates while the desktop still embeds the runtime.
+  protocol range, byte sizes, and SHA-256 values aligned. Desktop release builds
+  additionally package the exact pinned server as an `externalBin` fallback and
+  publish only those release-qualified binaries through a fixed runtime channel
+  whose manifest has a detached signature from the Tauri updater trust root.
+  Ordinary public CI artifacts and caches must still never expose private SDK
+  outputs. Do not describe the channel as an active desktop hot update until the
+  host supervisor and transport extraction are complete.
 - During Tauri development, pass the selected Vite URL as a CLI configuration
   layer and stage rebuilt helper resources only when their bytes change.
 
