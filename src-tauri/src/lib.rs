@@ -82,19 +82,27 @@ const DESKTOP_WINDOW_ACTIVATED_EVENT: &str = "desktop-window-activated";
 #[cfg(windows)]
 fn focus_webview_host(window: &tauri::WebviewWindow) -> Result<(), String> {
     use windows::core::{w, PCWSTR};
-    use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
-    use windows::Win32::UI::WindowsAndMessaging::FindWindowExW;
+    use windows::Win32::UI::Input::KeyboardAndMouse::{GetFocus, SetFocus};
+    use windows::Win32::UI::WindowsAndMessaging::{FindWindowExW, IsChild};
 
     let parent = window.hwnd().map_err(|error| error.to_string())?;
     let webview_host =
         unsafe { FindWindowExW(Some(parent), None, w!("WRY_WEBVIEW"), PCWSTR::null()) }
             .map_err(|error| format!("failed to resolve WRY WebView host: {error}"))?;
-    unsafe { SetFocus(Some(webview_host)) }
-        .map_err(|error| format!("failed to focus WRY WebView host: {error}"))?;
+    // Win32 returns the previously focused HWND, not a success flag. The
+    // windows crate maps a null previous HWND to Err even when SetFocus has
+    // successfully focused the requested host, which is common after Alt+Tab.
+    // Verify the resulting thread focus instead of interpreting that return.
+    let _ = unsafe { SetFocus(Some(webview_host)) };
     window
         .as_ref()
         .set_focus()
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())?;
+    let focused = unsafe { GetFocus() };
+    if focused != webview_host && !unsafe { IsChild(webview_host, focused) }.as_bool() {
+        return Err("native keyboard focus did not enter the WRY WebView host".to_string());
+    }
+    Ok(())
 }
 
 #[cfg(windows)]

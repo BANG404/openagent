@@ -69,7 +69,9 @@ binary, and exclusive durable-state ownership.
   back from the user's newer target. Perform the handoff on Tauri's main thread:
   focus the `WRY_WEBVIEW` Win32 child first, then ask the WebView2 controller to
   move focus into its content. Controller focus alone does not attach the native
-  keyboard queue to the WebView host.
+  keyboard queue to the WebView host. Win32 `SetFocus` returns the previously
+  focused window rather than a success flag, so a null return after Alt+Tab must
+  not abort the handoff; verify the resulting current-thread focus instead.
 - Exclude headless agent-server and SDK-owned
   `--openagent-workspace-window` processes from that guard; dedicated workspace
   processes are part of the multi-workspace contract.
