@@ -42,6 +42,10 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
 - Use `bun run tauri:build` for release builds so generated helper digests reach
   Cargo. Keep the release Cargo profile size-oriented and audit installer size,
   not generated `target/` contents.
+- Treat the ordinary Tauri build as the lightweight installer and sole updater
+  input. Build the full first-install overlay separately, upload its renamed
+  manual installer without updater metadata, and keep its embedding seed out of
+  every `latest.json` target.
 - During Tauri development, pass the selected Vite URL as a CLI configuration
   layer and stage rebuilt helper resources only when their bytes change.
 

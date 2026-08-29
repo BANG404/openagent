@@ -542,10 +542,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   terminal event look like it belongs to a deleted conversation. When that
   workspace is revisited during streaming, reconcile its durable checkpoint
   while preserving cached messages that the checkpoint has not yet recorded.
-- Derive first-run onboarding visibility from the normalized bootstrap config.
-  Persist completion in the versioned config beneath `OPENAGENT_HOME`; migrate
-  the legacy WebView-local marker once and remove it only after the durable save
-  succeeds.
+- Derive setup-window visibility from the normalized bootstrap config and the
+  SDK-owned embedding-resource status. Persist configuration completion in the
+  versioned config beneath `OPENAGENT_HOME`, but keep the main shell hidden
+  until the resource is verified. A configured repair opens directly on the
+  final resource step without rewriting settings.
 - Render first-run onboarding in its own undecorated Tauri window while the main
   window remains hidden. Completing the flow hands the selected workspace back
   to the already-bootstrapped main window before revealing it. The development
@@ -572,10 +573,15 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   shared Settings action button for ordinary onboarding actions; its secondary
   treatment carries the same restrained divider-colored perimeter as Settings
   inputs, while primary actions remain filled.
+  Start embedding preparation in the background when onboarding mounts. The
+  final step shows stable progress and retry states and keeps completion
+  disabled until a fresh backend status read confirms readiness.
   Render a layout-stable loading skeleton until its
   configuration is ready. Keep the development-only `onboarding-preview` query with
   `onboarding-preview-theme=light|dark` and `onboarding-preview-locale=zh|en`
   parameters so the surface remains browser-verifiable without native state.
+  Add `onboarding-preview-resource=ready|downloading` to open the configured-
+  user repair state directly on the final model card.
   Preview every onboarding theme change through the page shell so the WebView
   palette and the native window material switch together instead of compositing
   a dark translucent canvas over a light native backdrop.

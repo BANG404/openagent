@@ -26,6 +26,9 @@ const nativeCargoManifest = readFileSync(
 const tauriConfig = JSON.parse(
   readFileSync(new URL("../src-tauri/tauri.conf.json", import.meta.url), "utf8"),
 );
+const fullTauriConfig = JSON.parse(
+  readFileSync(new URL("../src-tauri/tauri.full.conf.json", import.meta.url), "utf8"),
+);
 const prHeadWorkflow = readFileSync(
   new URL("../.github/workflows/report-pr-head-ci.yml", import.meta.url),
   "utf8",
@@ -147,6 +150,18 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain(
       'public_metadata_url="https://github.com/$GH_REPO/releases/download/$RELEASE_CHANNEL/latest.json"',
     );
+  });
+
+  test("publishes lightweight updater inputs and separate full first-install bundles", () => {
+    expect(tauriConfig.bundle.createUpdaterArtifacts).toBe(true);
+    expect(tauriConfig.bundle.resources).toBeUndefined();
+    expect(fullTauriConfig.bundle.createUpdaterArtifacts).toBe(false);
+    expect(fullTauriConfig.bundle.resources).toEqual({
+      "resources/models/all-MiniLM-L6-v2-q/": "models/all-MiniLM-L6-v2-q/",
+    });
+    expect(releaseWorkflow).toContain("Build full first-install bundle");
+    expect(releaseWorkflow).toContain("bun run tauri:build:full -- ${{ matrix.args }}");
+    expect(releaseWorkflow).toContain("upload-full-release-asset.mjs --tag");
   });
 
   test("refreshes an unpublished Beta marker onto the latest master source", () => {

@@ -7589,7 +7589,10 @@ dependencies = [
  "codex-windows-sandbox",
  "dirs 5.0.1",
  "openagent-runtime",
+ "reqwest 0.12.28",
  "rusqlite",
+ "serde",
+ "sha2",
  "tokio",
 ]
 

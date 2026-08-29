@@ -141,9 +141,10 @@ validation resolves `previousTag` against local immutable tag refs.
 Only then does it:
 
 1. create or reuse a draft GitHub Release;
-2. build the complete application once for Windows x64, Linux x64, macOS
-   arm64, and macOS Intel;
-3. upload signed updater and installer artifacts;
+2. build the lightweight application for Windows x64, Linux x64, macOS arm64,
+   and macOS Intel;
+3. upload its signed updater metadata and installer artifacts, then build and
+   upload one additional full first-install bundle per target;
 4. publish the draft after every target succeeds;
 5. update the fixed Beta or RC updater metadata when applicable;
 6. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published prerelease SHA when applicable;
@@ -151,15 +152,20 @@ Only then does it:
 
 Release binaries use the repository's size-oriented Cargo profile: full link-time
 optimization, one codegen unit, size optimization, abort-on-panic, stripped
-symbols. Windows desktop releases produce only the signed NSIS installer and its
-updater artifact; WiX/MSI is not part of the release surface. The native
+symbols. Windows desktop releases produce lightweight and `full` NSIS
+installers. The lightweight NSIS artifact and its signature are the only inputs
+referenced by `latest.json`; the full installer is a manual first-install option
+and does not produce updater metadata. WiX/MSI is not part of the release
+surface. The native
 verification dependency remains registered in the host but compiles its named
 pipe server and injected WebView automation bridge only for debug builds;
 release builds receive the plugin's no-op implementation. The Windows
 platform Tauri configuration is also the sole owner of the `codex-resources/`
 mapping, so Windows sandbox helpers cannot leak into a Linux or macOS application
-bundle. The embedding model remains a bundled base resource on every supported
-desktop platform.
+bundle. Linux and macOS likewise publish one additional `full` AppImage or DMG.
+The embedding seed exists only in those full manual-download artifacts and the
+Microsoft Store package. Automatic application updates are always lightweight
+and preserve the verified model under `OPENAGENT_HOME`.
 
 Prerelease updater channel tags and download URLs use the lowercase manifest
 values `beta` and `rc`. GitHub release tags and asset URLs are case-sensitive,

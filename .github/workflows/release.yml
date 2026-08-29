@@ -374,6 +374,17 @@ jobs:
           retryAttempts: 2
           args: ${{ matrix.args }}
 
+      - name: Build full first-install bundle
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          OPENAGENT_LOGS_INGEST_TOKEN: ${{ secrets.OPENAGENT_LOGS_INGEST_TOKEN }}
+        run: bun run tauri:build:full -- ${{ matrix.args }}
+
+      - name: Upload full first-install bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/upload-full-release-asset.mjs --tag ${{ needs.detect.outputs.tag }}
+
       - name: Build Microsoft Store package
         if: matrix.platform == 'windows-latest' && needs.detect.outputs.prerelease != 'true'
         shell: pwsh

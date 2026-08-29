@@ -33,6 +33,7 @@ The root contains these user-maintained or durable files:
 | `drafts/`, `DESIGN.md`            | Global drafts and design context                                                                                              |
 | `plugins/<name>/`                 | Validated installed Agent Plugin packages                                                                                     |
 | `plugin-data/<name>/`             | Persistent writable `PLUGIN_DATA`, retained when a plugin is uninstalled                                                      |
+| `resources/embedding/<model>/<version>/` | Verified, versioned local semantic-memory model resources shared by full and lightweight application updates           |
 
 Workspace-scoped memory, skills, drafts, and design files remain under that
 workspace's `.agents/` directory rather than the user-scoped root.
@@ -79,15 +80,22 @@ permissions and do not commit it to source control.
 
 First-run onboarding completion is stored as `onboarding_completed` in
 `config.toml`, so it follows the selected `OPENAGENT_HOME` across desktop
-WebView resets and workspace changes. This field is the only completion source:
-the setup window opens when it is false and stays closed when it is true.
-WebView local storage is not read or migrated for onboarding compatibility.
+WebView resets and workspace changes. It records configuration completion, but
+the main application also requires a verified embedding resource. A configured
+installation whose resource is absent or corrupt reopens the setup window on
+the resource-only final step until repair succeeds. WebView local storage is
+not read or migrated for onboarding compatibility.
 
 The first-run welcome and configuration flow opens in a dedicated setup window
 while the bootstrapped main window stays hidden. Finishing setup applies the
-selected workspace, reveals the main window, and closes setup. Development
-builds can reopen the same setup window from the inspector without changing the
-stored completion marker.
+selected workspace, reveals the main window, and closes setup only after the
+embedding resource is installed, SHA-256 verified, and loaded. Resource
+preparation starts in the background when setup mounts: full installers copy
+their packaged seed, while lightweight installers download the same immutable
+GitHub-hosted files. Files are staged and verified before atomic activation;
+partial downloads never become runtime input. Development builds can reopen the
+same setup window from the inspector without changing the stored completion
+marker.
 
 `config.toml` carries an explicit top-level `config_version`; the current
 version is 1. At startup, OpenAgent loads the primary file and then a current,

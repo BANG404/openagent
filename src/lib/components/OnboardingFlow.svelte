@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { untrack } from "svelte";
-  import { invoke } from "$lib/openagent/tauriClient";
+  import { onMount, untrack } from "svelte";
+  import { isTauri } from "@tauri-apps/api/core";
+  import { invoke, listen } from "$lib/openagent/tauriClient";
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
   import type { AppConfig, DefaultModelBinding } from "$lib/types";
@@ -22,6 +23,7 @@
     onPickWorkspace,
     onComplete,
     onThemePreview,
+    embeddingPreviewState,
     winMinimize,
     winMaximize,
     winClose,
@@ -32,6 +34,7 @@
     onPickWorkspace: () => Promise<void>;
     onComplete: () => void;
     onThemePreview?: (theme: string) => void;
+    embeddingPreviewState?: "ready" | "downloading";
     winMinimize: () => void;
     winMaximize: () => void;
     winClose: () => void;
@@ -40,13 +43,95 @@
   let draft = $state<AppConfig>(
     normalizeConfigShape($state.snapshot(untrack(() => config)) as AppConfig),
   );
-  let step = $state(0);
+  const resourceOnly = Boolean(draft.onboarding_completed);
+  let step = $state(resourceOnly ? 4 : 0);
   let selectedProviderId = $state(draft.providers[0]?.id ?? "");
   let connectionStatus = $state<"idle" | "loading" | "success" | "error">("idle");
   let connectionMessage = $state("");
   let manualModelName = $state("");
   let saving = $state(false);
   let saveError = $state("");
+  type EmbeddingResourceStatus = {
+    state: "ready" | "missing" | "corrupt";
+    model_id: string;
+    version: string;
+    total_bytes: number;
+  };
+  type EmbeddingResourceProgress = {
+    downloaded_bytes: number;
+    total_bytes: number;
+    current_file: string;
+  };
+  let embeddingStatus = $state<EmbeddingResourceStatus | null>(null);
+  let embeddingProgress = $state<EmbeddingResourceProgress | null>(null);
+  let embeddingPreparing = $state(false);
+  let embeddingError = $state("");
+  let embeddingReady = $derived(embeddingStatus?.state === "ready");
+  let embeddingPercent = $derived(
+    embeddingReady
+      ? 100
+      : embeddingProgress?.total_bytes
+        ? Math.min(
+            100,
+            Math.round((embeddingProgress.downloaded_bytes / embeddingProgress.total_bytes) * 100),
+          )
+        : 0,
+  );
+
+  async function prepareEmbeddingResource() {
+    embeddingPreparing = true;
+    embeddingError = "";
+    try {
+      embeddingStatus = await invoke<EmbeddingResourceStatus>("prepare_embedding_resource");
+    } catch (error) {
+      embeddingError = `${error}`;
+      embeddingStatus = await invoke<EmbeddingResourceStatus>(
+        "get_embedding_resource_status",
+      ).catch(() => embeddingStatus);
+    } finally {
+      embeddingPreparing = false;
+    }
+  }
+
+  onMount(() => {
+    if (!isTauri()) {
+      embeddingStatus = {
+        state: embeddingPreviewState === "downloading" ? "missing" : "ready",
+        model_id: "all-MiniLM-L6-v2-q",
+        version: "1",
+        total_bytes: 23_695_490,
+      };
+      if (embeddingPreviewState === "downloading") {
+        embeddingPreparing = true;
+        embeddingProgress = {
+          downloaded_bytes: 9_478_196,
+          total_bytes: 23_695_490,
+          current_file: "model_quantized.onnx",
+        };
+      }
+      return;
+    }
+
+    let disposed = false;
+    let stopListening: (() => void) | undefined;
+    void (async () => {
+      try {
+        stopListening = await listen<EmbeddingResourceProgress>(
+          "embedding-resource-progress",
+          ({ payload }) => {
+            if (!disposed) embeddingProgress = payload;
+          },
+        );
+      } catch (error) {
+        console.warn("Failed to listen for embedding resource progress:", error);
+      }
+      if (!disposed) await prepareEmbeddingResource();
+    })();
+    return () => {
+      disposed = true;
+      stopListening?.();
+    };
+  });
 
   $effect(() => {
     const theme = draft.theme ?? "system";
@@ -98,7 +183,13 @@
           chatModel: "Chat model",
           flashModel: "Flash model",
           readyTitle: "You’re ready",
-          readyBody: "OpenAgent is configured. Start a conversation and give it a real task.",
+          readyBody:
+            "OpenAgent can start after its local semantic-memory model is installed and verified.",
+          embeddingTitle: "Local embedding model",
+          embeddingReady: "Installed and verified",
+          embeddingPreparing: "Preparing in the background…",
+          embeddingWaiting: "Waiting to start download",
+          embeddingRetry: "Retry",
           back: "Back",
           next: "Continue",
           finish: "Start using OpenAgent",
@@ -145,7 +236,12 @@
           chatModel: "对话模型",
           flashModel: "Flash 模型",
           readyTitle: "一切就绪",
-          readyBody: "OpenAgent 已完成配置。开始一段对话，把真正的任务交给它吧。",
+          readyBody: "本地语义记忆模型安装并校验完成后，即可开始使用 OpenAgent。",
+          embeddingTitle: "本地 Embedding 模型",
+          embeddingReady: "已安装并通过校验",
+          embeddingPreparing: "正在后台准备…",
+          embeddingWaiting: "等待开始下载",
+          embeddingRetry: "重试",
           back: "上一步",
           next: "继续",
           finish: "开始使用 OpenAgent",
@@ -191,7 +287,7 @@
             modelBindings.some(
               (option) => option.value === bindingValue(draft.defaults.flash_model),
             )
-          : true),
+          : embeddingReady),
   );
 
   function addProvider() {
@@ -269,10 +365,18 @@
     saving = true;
     saveError = "";
     try {
-      await onSave({
-        ...($state.snapshot(draft) as AppConfig),
-        onboarding_completed: true,
-      });
+      const currentResource = isTauri()
+        ? await invoke<EmbeddingResourceStatus>("get_embedding_resource_status")
+        : embeddingStatus;
+      if (currentResource?.state !== "ready") {
+        throw new Error(embeddingError || copy.embeddingPreparing);
+      }
+      if (!resourceOnly) {
+        await onSave({
+          ...($state.snapshot(draft) as AppConfig),
+          onboarding_completed: true,
+        });
+      }
       onComplete();
     } catch (error) {
       saveError = `${copy.saveFailed}: ${error}`;
@@ -503,6 +607,38 @@
             <span>{copy.workspace}</span>
             <strong>{workspacePath || copy.noWorkspace}</strong>
           </div>
+          <div class="application-settings-surface embedding-card" aria-live="polite">
+            <div class="embedding-heading">
+              <span>{copy.embeddingTitle}</span>
+              <strong>{embeddingReady ? copy.embeddingReady : `${embeddingPercent}%`}</strong>
+            </div>
+            <div
+              class="embedding-meter"
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow={embeddingPercent}
+            >
+              <span style={`width: ${embeddingPercent}%`}></span>
+            </div>
+            {#if !embeddingReady}
+              <div class="embedding-detail">
+                <p>
+                  {embeddingPreparing ? copy.embeddingPreparing : copy.embeddingWaiting}
+                  {#if embeddingProgress?.current_file}
+                    · {embeddingProgress.current_file}
+                  {/if}
+                </p>
+                {#if !embeddingPreparing}
+                  <SettingsActionButton
+                    label={copy.embeddingRetry}
+                    onclick={() => void prepareEmbeddingResource()}
+                  />
+                {/if}
+              </div>
+            {/if}
+            {#if embeddingError}<p class="error">{embeddingError}</p>{/if}
+          </div>
           {#if saveError}<p class="error">{saveError}</p>{/if}
         {/if}
       </div>
@@ -511,7 +647,7 @@
         <SettingsActionButton
           label={copy.back}
           onclick={() => (step -= 1)}
-          disabled={step === 0 || saving}
+          disabled={step === 0 || saving || resourceOnly}
         />
         {#if step < 4}
           <SettingsActionButton
@@ -525,7 +661,7 @@
             label={saving ? "…" : copy.finish}
             tone="primary"
             onclick={finish}
-            disabled={saving}
+            disabled={saving || !embeddingReady}
           />
         {/if}
       </footer>
@@ -830,6 +966,48 @@
     font-size: 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .embedding-card {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 16px;
+    border-radius: 8px;
+    background: var(--mica-surface);
+  }
+  .embedding-heading,
+  .embedding-detail {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .embedding-heading span,
+  .embedding-detail p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+  .embedding-heading strong {
+    font-size: 12px;
+  }
+  .embedding-meter {
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--surface2);
+  }
+  .embedding-meter span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent);
+    transition: width 160ms ease-out;
+  }
+  .embedding-card > .error {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.45;
   }
   footer {
     display: flex;

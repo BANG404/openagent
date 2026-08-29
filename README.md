@@ -112,7 +112,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 
 ### Install a release build
 
-Download the latest installer or app bundle from [GitHub Releases](https://github.com/BANG404/openagent/releases). OpenAgent publishes separate **beta**, **RC**, and **stable** update channels; you can also check for updates manually from Settings. Manual checks show progress, time out if the updater endpoint does not respond, and leave the action retryable with visible success or failure feedback.
+Download the latest installer or app bundle from [GitHub Releases](https://github.com/BANG404/openagent/releases). New users should choose the `full` bundle, which carries the local embedding seed; lightweight bundles download and verify it in the welcome window. Later automatic updates always use the lightweight application artifact and preserve the installed model. OpenAgent publishes separate **beta**, **RC**, and **stable** update channels; you can also check for updates manually from Settings.
 
 To build from source instead, continue below.
 
@@ -164,12 +164,15 @@ configuration and data separate from an installed release. Set
 ### Build a distributable
 
 ```bash
-bun run tauri:build
+bun run tauri:build       # lightweight installer and updater artifact
+bun run tauri:build:full  # first-install bundle with embedding seed
 ```
 
 The built installers / app bundle land in `src-tauri/target/release/bundle/`.
 Windows builds produce the NSIS installer only; Linux and macOS retain their
-native bundle targets.
+native bundle targets. The release workflow signs and publishes the lightweight
+build as the sole automatic updater input and uploads the full build under a
+`-full` filename for manual first installation.
 On Linux this command builds the pinned Codex Bubblewrap sidecar, strips it,
 embeds its SHA-256 in the release binary, and packages the same bytes. Linux
 source builds therefore also require `libcap` development headers, `pkg-config`,

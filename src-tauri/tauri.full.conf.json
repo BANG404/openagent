@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "createUpdaterArtifacts": false,
+    "resources": {
+      "resources/models/all-MiniLM-L6-v2-q/": "models/all-MiniLM-L6-v2-q/"
+    }
+  }
+}

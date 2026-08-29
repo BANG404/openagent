@@ -6,7 +6,10 @@ use openagent_app::bootstrap_runtime as bootstrap_product_runtime;
 use openagent_app::pending_development_persistence_transition as pending_product_persistence_transition;
 #[cfg(not(debug_assertions))]
 use openagent_app::pending_persistence_transition as pending_product_persistence_transition;
-use openagent_app::{apply_persistence_transition, PersistenceTransitionPlan};
+use openagent_app::{
+    apply_persistence_transition, EmbeddingResourceManager, EmbeddingResourceStatus,
+    PersistenceTransitionPlan,
+};
 use openagent_runtime::checkpoint::{
     BranchMeta, CheckpointMeta, ConvPatch, ConversationMeta, FileChange, RenderableCheckpoint,
     TaskTrace,
@@ -32,6 +35,67 @@ use std::sync::Arc;
 use tauri::{path::BaseDirectory, Emitter, Manager, State};
 
 const EMBEDDING_MODEL_RESOURCE_PATH: &str = "models/all-MiniLM-L6-v2-q";
+
+fn bundled_embedding_seed(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
+    #[cfg(debug_assertions)]
+    {
+        let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join(EMBEDDING_MODEL_RESOURCE_PATH);
+        if source.is_dir() {
+            return Some(source);
+        }
+    }
+
+    app.path()
+        .resolve(EMBEDDING_MODEL_RESOURCE_PATH, BaseDirectory::Resource)
+        .ok()
+        .filter(|path| path.is_dir())
+}
+
+async fn load_embedding_model(
+    runtime: Arc<OpenAgentRuntime>,
+    model_dir: std::path::PathBuf,
+) -> Result<(), String> {
+    let model = tokio::task::spawn_blocking(move || {
+        openagent_runtime::embedding::load_bundled_model(model_dir).map(Arc::new)
+    })
+    .await
+    .map_err(|error| format!("embedding task failed: {error}"))??;
+    *runtime.state().embedding_model.lock().await = Some(model);
+    tracing::info!(target: "openagent::app", "embedding model ready");
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_embedding_resource_status(
+    manager: State<'_, EmbeddingResourceManager>,
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+) -> Result<EmbeddingResourceStatus, String> {
+    let resource = manager.status().await;
+    if resource.ready() && runtime.state().embedding_model.lock().await.is_none() {
+        load_embedding_model(runtime.inner().clone(), manager.model_dir().to_path_buf()).await?;
+    }
+    Ok(resource)
+}
+
+#[tauri::command]
+async fn prepare_embedding_resource(
+    app: tauri::AppHandle,
+    manager: State<'_, EmbeddingResourceManager>,
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+) -> Result<EmbeddingResourceStatus, String> {
+    let progress_app = app.clone();
+    let installed = manager
+        .prepare(bundled_embedding_seed(&app), move |progress| {
+            if let Err(error) = progress_app.emit("embedding-resource-progress", progress) {
+                tracing::warn!(%error, "failed to emit embedding resource progress");
+            }
+        })
+        .await?;
+    load_embedding_model(runtime.inner().clone(), manager.model_dir().to_path_buf()).await?;
+    Ok(installed)
+}
 
 fn apply_native_window_material(window: &tauri::WebviewWindow) {
     #[cfg(target_os = "windows")]
@@ -1565,6 +1629,7 @@ fn run_with_mode(agent_server: bool) {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .manage(runtime.clone())
+        .manage(EmbeddingResourceManager::default())
         .setup(move |app| {
             // init_tracing() spawns a background Tokio task (batch exporter). The
             // .setup() callback runs on the main thread which is not a Tokio worker
@@ -1756,41 +1821,12 @@ fn run_with_mode(agent_server: bool) {
                 );
             });
 
-            if !agent_server {
-                // Initialize the bundled quantized model in the background so startup is not
-                // blocked. Hybrid memory search gracefully falls back to keyword + time scoring
-                // while it is loading or if the packaged resource cannot be initialized.
-                let em = app
-                    .state::<Arc<OpenAgentRuntime>>()
-                    .state()
-                    .embedding_model
-                    .clone();
-                let model_dir = app
-                    .path()
-                    .resolve(EMBEDDING_MODEL_RESOURCE_PATH, BaseDirectory::Resource);
-                tauri::async_runtime::spawn(async move {
-                    let result = tokio::task::spawn_blocking(move || {
-                        let model_dir = model_dir.map_err(|error| {
-                            format!("failed to resolve bundled embedding resources: {error}")
-                        })?;
-                        openagent_runtime::embedding::load_bundled_model(model_dir).map(Arc::new)
-                    })
-                    .await;
-
-                    match result {
-                        Ok(Ok(model)) => {
-                            *em.lock().await = Some(model);
-                            tracing::info!(target: "openagent::app", "embedding model ready");
-                        }
-                        Ok(Err(e)) => tracing::error!(target: "openagent::app", error = %e, "embedding model initialization failed"),
-                        Err(e) => tracing::error!(target: "openagent::app", error = %e, "embedding task failed"),
-                    }
-                });
-            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
+            get_embedding_resource_status,
+            prepare_embedding_resource,
             save_settings,
             get_channel_statuses,
             get_wechat_channel_status,
@@ -1990,5 +2026,49 @@ mod tests {
             .iter()
             .flatten()
             .all(|component| component.is_finite()));
+    }
+
+    #[test]
+    fn bundled_embedding_seed_installs_the_persistent_resource() {
+        let seed = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join(EMBEDDING_MODEL_RESOURCE_PATH);
+        let fixture = std::env::temp_dir().join(format!(
+            "openagent-embedding-install-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let manager = EmbeddingResourceManager::new(fixture.clone());
+        let installed = tauri::async_runtime::block_on(manager.prepare(Some(seed), |_| {}))
+            .expect("bundled seed should install");
+
+        assert!(installed.ready());
+        openagent_runtime::embedding::load_bundled_model(manager.model_dir().to_path_buf())
+            .expect("installed resource should load offline");
+        std::fs::remove_dir_all(fixture).expect("embedding fixture should be removable");
+    }
+
+    #[test]
+    #[ignore = "requires GitHub access and downloads the 23.7 MB embedding resource"]
+    fn embedding_resource_downloads_and_loads_from_github() {
+        let fixture = std::env::temp_dir().join(format!(
+            "openagent-embedding-download-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let manager = EmbeddingResourceManager::new(fixture.clone());
+        let installed = tauri::async_runtime::block_on(manager.prepare(None, |_| {}))
+            .expect("GitHub embedding resource should install");
+
+        assert!(installed.ready());
+        openagent_runtime::embedding::load_bundled_model(manager.model_dir().to_path_buf())
+            .expect("downloaded resource should load offline");
+        std::fs::remove_dir_all(fixture).expect("embedding fixture should be removable");
     }
 }

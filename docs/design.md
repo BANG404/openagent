@@ -50,6 +50,12 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   columns. Dense provider content scrolls inside the form column without changing
   the native window geometry, and its scrollbar stays flush with the trailing
   edge of the inset canvas while the content keeps its reading inset.
+  Embedding preparation begins in the background as soon as this window mounts.
+  The final step keeps the primary action disabled and presents a layout-stable
+  progress card until the local model is installed and verified; failures keep
+  an actionable retry in the same card. A configured installation that needs
+  resource repair opens directly on this final step instead of repeating model-
+  provider configuration.
   The title bar and sidebar share the
   native window material: Windows prefers Mica with Acrylic and Blur fallbacks,
   while macOS uses Vibrancy. The ordinary WebView canvas, shared chrome,

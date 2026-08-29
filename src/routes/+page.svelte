@@ -187,11 +187,19 @@
         original_text: string;
       };
 
+  type EmbeddingResourceStatus = {
+    state: "ready" | "missing" | "corrupt";
+    model_id: string;
+    version: string;
+    total_bytes: number;
+  };
+
   const runtimeQuery =
     typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const devQuery = import.meta.env.DEV ? runtimeQuery : null;
   const isDevInspectorWindow = devQuery?.has("dev-inspector") === true;
   const isOnboardingPreview = devQuery?.has("onboarding-preview") === true;
+  const onboardingResourcePreview = devQuery?.get("onboarding-preview-resource") ?? null;
   const isQuickChatPreview = devQuery?.has("quick-chat-preview") === true;
   const standaloneDevPreview = resolveStandaloneDevPreview(runtimeQuery, import.meta.env.DEV);
   const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
@@ -1896,6 +1904,14 @@
         void refreshRecentConversations();
       }
     } finally {
+      let embeddingResourceReady = !tauriAvailable;
+      if (tauriAvailable) {
+        embeddingResourceReady = await invoke<EmbeddingResourceStatus>(
+          "get_embedding_resource_status",
+        )
+          .then((resource) => resource.state === "ready")
+          .catch(() => false);
+      }
       if (
         config &&
         !isChannelsSettingsPreview &&
@@ -1903,7 +1919,7 @@
         !isAgentPluginsSettingsPreview &&
         !isMcpSettingsPreview
       ) {
-        requiresOnboarding = !config.onboarding_completed;
+        requiresOnboarding = !config.onboarding_completed || !embeddingResourceReady;
       }
       const uiReadyAt = performance.now();
       initialLoading = false;
@@ -4531,7 +4547,10 @@
   {:else if isOnboardingSurface}
     {#if config}
       <OnboardingFlow
-        {config}
+        config={onboardingResourcePreview ? { ...config, onboarding_completed: true } : config}
+        embeddingPreviewState={onboardingResourcePreview === "downloading"
+          ? "downloading"
+          : "ready"}
         {workspacePath}
         onSave={saveSettings}
         onPickWorkspace={pickOnboardingWorkspace}

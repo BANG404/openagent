@@ -36,6 +36,7 @@
     "lint:actions": "github-actionlint",
     "tauri": "bun scripts/tauri.mjs",
     "tauri:build": "bun scripts/tauri-build.mjs",
+    "tauri:build:full": "bun scripts/tauri-build.mjs --config src-tauri/tauri.full.conf.json",
     "commit:lint": "bun scripts/validate-commit-msg.mjs",
     "release": "bun scripts/release.mjs",
     "release:beta:dry-run": "bun scripts/release.mjs --dry-run --channel=beta",

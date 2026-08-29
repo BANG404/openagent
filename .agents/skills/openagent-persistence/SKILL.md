@@ -25,6 +25,10 @@ implementation.
   scope does not erase a valid one.
 - Never overwrite user-maintained memory sections. Use existing structured
   commands or tools for structured memory changes.
+- Keep versioned embedding resources beneath `OPENAGENT_HOME/resources`. Stage
+  packaged-seed copies and downloads outside the active version directory,
+  verify every declared size and SHA-256, and atomically activate only a
+  complete resource. Hosts may project progress but do not own these files.
 
 ## Compatibility changes
 
