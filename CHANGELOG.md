@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.52.0-beta.1] - 2026-08-29
+
+### Features
+- **release**: Publish SDK development channel
+- **updates**: Complete supervised runtime hot updates
+- **updates**: Transact supervised runtime activation
+- **transport**: Proxy supervised runtime through Tauri
+- **transport**: Pin authenticated runtime gateway
+- **updates**: Activate signed frontend resources
+- **updates**: Stage signed runtime resources
+- **sdk**: Distribute reloadable server resources
+- **resources**: Separate embedding from app updates
+
+### Bug Fixes
+- **desktop**: Pin upstream Windows webview focus fix
+- **desktop**: Accept empty previous focus after task switch
+- **desktop**: Restore webview focus after window activation
+- **desktop**: Focus targeted workspace windows
+- **chat**: Preserve state across desktop transitions
+- **terminal**: Update hidden Windows process handling
+- **updates**: Qualify modular hot update pipeline
+
 ## [0.51.0-beta.1] - 2026-08-28
 
 ### Features
