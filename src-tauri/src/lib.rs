@@ -2071,6 +2071,9 @@ impl RuntimeHost for TauriRuntimeHost {
         window.set_focus().map_err(|error| error.to_string())?;
         self.app
             .emit_to("main", "workspace-window-open-request", context)
+            .map_err(|error| error.to_string())?;
+        window
+            .emit(DESKTOP_WINDOW_ACTIVATED_EVENT, ())
             .map_err(|error| error.to_string())
     }
 

@@ -2188,9 +2188,13 @@
       message_id: string | null;
     }>("workspace-window-open-request", (event) => {
       const { conversation_id, message_id } = event.payload;
-      if (conversation_id) {
-        void revealMemorySource(conversation_id, message_id ?? "");
-      }
+      void (async () => {
+        if (conversation_id) {
+          await revealMemorySource(conversation_id, message_id ?? "");
+        }
+      })()
+        .catch((error) => console.error("Failed to reveal the requested workspace target:", error))
+        .finally(() => handleWindowFocusEvent(true));
     });
 
     register<{ visible: boolean }>(DEV_MAIN_DEBUG_VISIBILITY_EVENT, (event) => {

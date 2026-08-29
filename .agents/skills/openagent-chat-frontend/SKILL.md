@@ -52,6 +52,14 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   native window material or geometry. When that state transitions from inactive
   to active while the conversation composer is mounted, return keyboard focus
   to its enabled textarea through the shared composer focus-request channel.
+  Treat every native focused callback and explicit desktop-window activation
+  event as a distinct request even if no preceding blur callback reached the
+  WebView; route that monotonic request through `ConversationSurface` to
+  `MessageInput`, and retry after the WebView2 focus handoff, so task switching,
+  tray activation, repeated launches, and registered-workspace navigation restore
+  DOM focus without a pointer click. A targeted workspace request reissues the
+  focus request after its conversation navigation settles so an atomic switch
+  cannot leave focus attached to the previously visible composer.
   The ordinary Tauri shell must keep its
   WebView, shared chrome, feature canvases, and conversation workspace at one
   consistent 30%-opaque theme tint over the Rust-owned Mica/Acrylic/Blur or
@@ -544,6 +552,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   context, roles, conversation page, and fully hydrated active conversation as
   one state change. Never clear the current workspace first or route workspace
   transition state through the sidebar, transcript, or composer skeletons.
+  Build the target checkpoint tree, selected branch, pending input, file changes,
+  and transcript before changing the visible workspace identity. Do not clear
+  the global loaded-conversation set during a switch; visited conversation trees,
+  messages, drafts, and transient stream state remain keyed by conversation.
   Retain each visited workspace's conversation transcript snapshot so switching
   away from an active Turn cannot discard its optimistic user message or make a
   terminal event look like it belongs to a deleted conversation. When that

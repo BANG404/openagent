@@ -37,6 +37,9 @@ describe("window focus chrome", () => {
     expect(route).toContain(".onFocusChanged(({ payload: focused }) =>");
     expect(route).toContain("handleWindowFocusEvent(focused)");
     expect(route).toContain("listen(DESKTOP_WINDOW_ACTIVATED_EVENT");
+    expect(route).toMatch(
+      /workspace-window-open-request[\s\S]*?await revealMemorySource[\s\S]*?finally\(\(\) => handleWindowFocusEvent\(true\)\)/,
+    );
     expect(route).toContain('window.addEventListener("blur", handleBlur)');
     expect(route).toMatch(
       /window\.addEventListener\("focus", handleFocus\);[\s\S]*?if \(appWindow\)/,
@@ -56,6 +59,9 @@ describe("window focus chrome", () => {
     expect(input).toContain("textareaEl.focus({ preventScroll: true });");
     expect(nativeHost).toMatch(
       /tauri_plugin_single_instance::init[\s\S]*?window\.unminimize\(\)[\s\S]*?window\.show\(\)[\s\S]*?window\.set_focus\(\)[\s\S]*?window\.emit\(DESKTOP_WINDOW_ACTIVATED_EVENT/,
+    );
+    expect(nativeHost).toMatch(
+      /fn activate_workspace_window[\s\S]*?window\.set_focus\(\)[\s\S]*?workspace-window-open-request[\s\S]*?window[\s\S]*?emit\(DESKTOP_WINDOW_ACTIVATED_EVENT/,
     );
     expect(tray).toMatch(/appWindow\.setFocus\(\)[\s\S]*?emit\(DESKTOP_WINDOW_ACTIVATED_EVENT\)/);
     expect(sidebar).toContain("class:window-inactive={!windowFocused}");

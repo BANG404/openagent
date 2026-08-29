@@ -54,7 +54,12 @@ binary, and exclusive durable-state ownership.
   main window. If the setup window is currently visible for first-run
   configuration or embedding-resource repair, restore that instead; its pre-
   created but hidden WebView stays closed only when configuration and the local
-  resource are both ready.
+  resource are both ready. After any successful programmatic `set_focus`, including
+  repeated launch and registered-workspace navigation, emit
+  `desktop-window-activated` to the target WebView because Windows may not deliver
+  a distinct focus-changed callback. The main WebView consumes both signals as new
+  composer-focus requests, including activation events that arrive without a
+  preceding blur callback.
 - Exclude headless agent-server and SDK-owned
   `--openagent-workspace-window` processes from that guard; dedicated workspace
   processes are part of the multi-workspace contract.
