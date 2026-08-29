@@ -79,87 +79,6 @@ struct DesktopWindowState {
 
 const DESKTOP_WINDOW_ACTIVATED_EVENT: &str = "desktop-window-activated";
 
-#[cfg(windows)]
-fn focus_webview_host(window: &tauri::WebviewWindow) -> Result<(), String> {
-    use windows::core::{w, PCWSTR};
-    use windows::Win32::UI::Input::KeyboardAndMouse::{GetFocus, SetFocus};
-    use windows::Win32::UI::WindowsAndMessaging::{FindWindowExW, IsChild};
-
-    let parent = window.hwnd().map_err(|error| error.to_string())?;
-    let webview_host =
-        unsafe { FindWindowExW(Some(parent), None, w!("WRY_WEBVIEW"), PCWSTR::null()) }
-            .map_err(|error| format!("failed to resolve WRY WebView host: {error}"))?;
-    // Win32 returns the previously focused HWND, not a success flag. The
-    // windows crate maps a null previous HWND to Err even when SetFocus has
-    // successfully focused the requested host, which is common after Alt+Tab.
-    // Verify the resulting thread focus instead of interpreting that return.
-    let _ = unsafe { SetFocus(Some(webview_host)) };
-    window
-        .as_ref()
-        .set_focus()
-        .map_err(|error| error.to_string())?;
-    let focused = unsafe { GetFocus() };
-    if focused != webview_host && !unsafe { IsChild(webview_host, focused) }.as_bool() {
-        return Err("native keyboard focus did not enter the WRY WebView host".to_string());
-    }
-    Ok(())
-}
-
-#[cfg(windows)]
-fn register_webview_focus_handoff(window: &tauri::WebviewWindow) {
-    let activation_window = window.clone();
-    window.on_window_event(move |event| {
-        if !matches!(event, tauri::WindowEvent::Focused(true)) {
-            return;
-        }
-
-        let activation_window = activation_window.clone();
-        tauri::async_runtime::spawn(async move {
-            // Windows reports the top-level focus transition before it finishes
-            // assigning keyboard focus inside WebView2. Defer the child focus
-            // until that native handoff settles, and do not steal focus back if
-            // the user already switched away again.
-            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-            if !activation_window.is_focused().unwrap_or(false) {
-                return;
-            }
-            let focus_window = activation_window.clone();
-            if let Err(error) = activation_window.run_on_main_thread(move || {
-                if !focus_window.is_focused().unwrap_or(false) {
-                    return;
-                }
-                if let Err(error) = focus_webview_host(&focus_window) {
-                    tracing::warn!(
-                        target: "openagent::window",
-                        window = focus_window.label(),
-                        %error,
-                        "failed to hand native window focus to WebView"
-                    );
-                    return;
-                }
-                if let Err(error) = focus_window.emit(DESKTOP_WINDOW_ACTIVATED_EVENT, ()) {
-                    tracing::warn!(
-                        target: "openagent::window",
-                        window = focus_window.label(),
-                        %error,
-                        "failed to notify frontend after WebView focus handoff"
-                    );
-                }
-            }) {
-                tracing::warn!(
-                    target: "openagent::window",
-                    window = activation_window.label(),
-                    %error,
-                    "failed to schedule WebView focus handoff"
-                );
-            }
-        });
-    });
-}
-
-#[cfg(not(windows))]
-fn register_webview_focus_handoff(_window: &tauri::WebviewWindow) {}
-
 struct HostRuntimeBootstrap {
     initial_locale: String,
     runtime: Option<Arc<OpenAgentRuntime>>,
@@ -2560,7 +2479,6 @@ fn run_with_mode(agent_server: bool) {
 
             if let Some(window) = app.get_webview_window("main") {
                 apply_native_window_material(&window);
-                register_webview_focus_handoff(&window);
                 if !cfg!(debug_assertions) {
                     if let Some(version) = startup_frontend_manager.active_version() {
                         let url = external_frontend_url("", &version)

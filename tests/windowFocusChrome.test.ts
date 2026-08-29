@@ -33,6 +33,10 @@ describe("window focus chrome", () => {
     const input = await readFile(new URL("MessageInput.svelte", componentsUrl), "utf8");
     const tray = await readFile(new URL("../src/lib/tray.ts", import.meta.url), "utf8");
     const nativeHost = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const nativeManifest = await readFile(
+      new URL("../src-tauri/Cargo.toml", import.meta.url),
+      "utf8",
+    );
 
     expect(route).toContain(".onFocusChanged(({ payload: focused }) =>");
     expect(route).toContain("handleWindowFocusEvent(focused)");
@@ -63,17 +67,11 @@ describe("window focus chrome", () => {
     expect(nativeHost).toMatch(
       /fn activate_workspace_window[\s\S]*?window\.set_focus\(\)[\s\S]*?workspace-window-open-request[\s\S]*?window[\s\S]*?emit\(DESKTOP_WINDOW_ACTIVATED_EVENT/,
     );
-    expect(nativeHost).toMatch(
-      /fn focus_webview_host[\s\S]*?FindWindowExW[\s\S]*?WRY_WEBVIEW[\s\S]*?let _ = unsafe \{ SetFocus[\s\S]*?window\s*\.as_ref\(\)\s*\.set_focus[\s\S]*?GetFocus[\s\S]*?IsChild/,
-    );
-    expect(nativeHost).not.toMatch(
-      /unsafe\s*\{\s*SetFocus\(Some\(webview_host\)\)\s*\}\s*\.map_err/,
-    );
-    expect(nativeHost).toMatch(
-      /fn register_webview_focus_handoff[\s\S]*?WindowEvent::Focused\(true\)[\s\S]*?from_millis\(50\)[\s\S]*?activation_window\.is_focused\(\)[\s\S]*?run_on_main_thread[\s\S]*?focus_webview_host[\s\S]*?focus_window\.emit\(DESKTOP_WINDOW_ACTIVATED_EVENT/,
-    );
-    expect(nativeHost).toMatch(
-      /get_webview_window\("main"\)[\s\S]*?register_webview_focus_handoff\(&window\)/,
+    expect(nativeHost).not.toContain("register_webview_focus_handoff");
+    expect(nativeHost).not.toContain("focus_webview_host");
+    expect(nativeManifest).toContain("[patch.crates-io]");
+    expect(nativeManifest).toContain(
+      'tauri = { git = "https://github.com/tauri-apps/tauri", rev = "08acfb3fa04945a6a4f822d66c7556111d9385aa" }',
     );
     expect(tray).toMatch(/appWindow\.setFocus\(\)[\s\S]*?emit\(DESKTOP_WINDOW_ACTIVATED_EVENT\)/);
     expect(sidebar).toContain("class:window-inactive={!windowFocused}");

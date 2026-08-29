@@ -25,6 +25,10 @@ strip = true
 [patch.crates-io]
 tokio-tungstenite = { git = "https://github.com/openai-oss-forks/tokio-tungstenite", rev = "0e5b2d73aa18dd9f0a50ee9ff199d5aef7594186" }
 tungstenite = { git = "https://github.com/openai-oss-forks/tungstenite-rs", rev = "4fffad30fe373adbdcffab9545e9e9bf4f2fc19f" }
+# tauri-plugin-pilot enables Tauri's unstable multi-WebView path. Tauri 2.11.1
+# regressed the Windows Alt+Tab focus handoff in that path; pin the merged
+# upstream fix until a stable Tauri release contains tauri-apps/tauri#15625.
+tauri = { git = "https://github.com/tauri-apps/tauri", rev = "08acfb3fa04945a6a4f822d66c7556111d9385aa" }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -85,4 +89,4 @@ window-vibrancy = "=0.6.0"
 rama-error = "=0.3.0-alpha.4"
 rama-macros = "=0.3.0-alpha.4"
 rama-utils = "=0.3.0-alpha.4"
-windows = { version = "0.61.3", features = ["Win32_Storage_FileSystem", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }
+windows = { version = "0.61.3", features = ["Win32_Storage_FileSystem", "Win32_UI_WindowsAndMessaging"] }
