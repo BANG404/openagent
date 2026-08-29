@@ -1,5 +1,6 @@
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
+use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::time::Duration;
@@ -182,23 +183,13 @@ impl RuntimeProcessSupervisor {
         );
         let mut command = Command::new(&spec.binary_path);
         command
-            .arg("--workspace")
-            .arg(&spec.workspace)
-            .arg("--listen")
-            .arg("127.0.0.1:0")
-            .arg("--token-env")
-            .arg(TOKEN_ENV)
-            .arg("--output")
-            .arg("json")
+            .args(runtime_arguments(&spec))
             .env("OPENAGENT_HOME", &spec.openagent_home)
             .env(TOKEN_ENV, &token)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .kill_on_drop(true);
-        if spec.primary_desktop_services {
-            command.arg("--desktop-primary");
-        }
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
@@ -270,6 +261,24 @@ impl RuntimeProcessSupervisor {
         }
         Ok(())
     }
+}
+
+fn runtime_arguments(spec: &RuntimeLaunchSpec) -> Vec<OsString> {
+    let mut arguments = vec![
+        "--workspace".into(),
+        spec.workspace.as_os_str().to_os_string(),
+        "--listen".into(),
+        "127.0.0.1:0".into(),
+        "--token-env".into(),
+        TOKEN_ENV.into(),
+        "--output".into(),
+        "json".into(),
+        "--desktop-api".into(),
+    ];
+    if spec.primary_desktop_services {
+        arguments.push("--desktop-primary".into());
+    }
+    arguments
 }
 
 impl Drop for RuntimeProcessSupervisor {
@@ -379,7 +388,11 @@ async fn stop_child(mut child: Child) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{validate_ready, RuntimeProtocolRange, RuntimeReady};
+    use super::{
+        runtime_arguments, validate_ready, RuntimeLaunchSpec, RuntimeProtocolRange, RuntimeReady,
+    };
+    use std::ffi::OsString;
+    use std::path::PathBuf;
 
     fn ready(endpoint: &str) -> RuntimeReady {
         RuntimeReady {
@@ -408,5 +421,25 @@ mod tests {
     fn rejects_an_incompatible_runtime_protocol() {
         assert!(validate_ready(&ready("http://127.0.0.1:43123"), 1).is_err());
         assert!(validate_ready(&ready("http://127.0.0.1:43123"), 4).is_err());
+    }
+
+    #[test]
+    fn supervised_runtime_enables_product_api_for_every_desktop_process() {
+        let ordinary = RuntimeLaunchSpec {
+            binary_path: PathBuf::from("openagent-server"),
+            workspace: PathBuf::from("workspace"),
+            openagent_home: PathBuf::from("data"),
+            primary_desktop_services: false,
+        };
+        let ordinary_arguments = runtime_arguments(&ordinary);
+        assert!(ordinary_arguments.contains(&OsString::from("--desktop-api")));
+        assert!(!ordinary_arguments.contains(&OsString::from("--desktop-primary")));
+
+        let primary_arguments = runtime_arguments(&RuntimeLaunchSpec {
+            primary_desktop_services: true,
+            ..ordinary
+        });
+        assert!(primary_arguments.contains(&OsString::from("--desktop-api")));
+        assert!(primary_arguments.contains(&OsString::from("--desktop-primary")));
     }
 }

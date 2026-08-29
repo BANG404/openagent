@@ -66,6 +66,9 @@ Cookie and CSRF boundary. Tauri keeps the token in Rust, bounds and restricts
 proxied WebView requests to `/api`, and re-emits Runtime messages through the
 existing desktop event names. A lagged or disconnected stream stops delivery;
 the frontend restores a fresh durable startup snapshot before restarting it.
+Every supervised desktop launch explicitly enables this product surface with
+`--desktop-api`; an ordinary standalone Harness launch exposes only `/v1`, so a
+Bearer token cannot discover desktop-only `/api` routes.
 Runtime-generated media and HTML URLs are rewritten to the private
 `openagent-runtime` protocol. Rust adds authentication and permits only bounded
 GET/HEAD asset routes, including byte ranges for media; the Bearer token never
