@@ -256,41 +256,62 @@ fn validate_webview_product_request(request: &RuntimeProxyRequest) -> Result<(),
         .path_segments()
         .map(|segments| segments.collect::<Vec<_>>())
         .unwrap_or_default();
-    let allowed = match (method, segments.as_slice()) {
+    let allowed = matches!(
+        (method, segments.as_slice()),
         (Method::GET, ["api", "desktop", "bootstrap"])
-        | (Method::GET, ["api", "session"])
-        | (Method::GET, ["api", "workspaces"])
-        | (Method::GET, ["api", "models"])
-        | (Method::GET, ["api", "commands"])
-        | (Method::GET, ["api", "preferences"])
-        | (Method::GET, ["api", "workspaces", _, "roles"])
-        | (Method::GET, ["api", "workspaces", _, "files"])
-        | (Method::GET, ["api", "workspaces", _, "conversations"])
-        | (Method::GET, ["api", "conversations", _])
-        | (Method::GET, ["api", "conversations", _, "history"])
-        | (Method::GET, ["api", "attachments", _])
-        | (Method::POST, ["api", "pair"])
-        | (Method::POST, ["api", "desktop", "operations"])
-        | (Method::POST, ["api", "conversations"])
-        | (Method::POST, ["api", "attachments"])
-        | (Method::POST, ["api", "attachments", _])
-        | (Method::POST, ["api", "conversations", _, "active-tip"])
-        | (Method::POST, ["api", "conversations", _, "fork-runs"])
-        | (Method::POST, ["api", "conversations", _, "cancel"])
-        | (Method::POST, ["api", "conversations", _, "runs"])
-        | (Method::POST, ["api", "conversations", _, "stream", "pause"])
-        | (Method::POST, ["api", "conversations", _, "memory-retrieval", "skip"])
-        | (Method::POST, ["api", "conversations", _, "interrupts", _])
-        | (Method::POST, ["api", "conversations", _, "interrupts", _, "response"])
-        | (Method::POST, ["api", "conversations", _, "file-changes", _, "revert"])
-        | (Method::POST, ["api", "conversations", _, "workspace", "open"])
-        | (Method::POST, ["api", "conversations", _, "workspace", "text-snippet"])
-        | (Method::POST, ["api", "conversations", _, "workspace", "media"])
-        | (Method::POST, ["api", "conversations", _, "workspace", "html-preview"])
-        | (Method::PATCH, ["api", "conversations", _])
-        | (Method::DELETE, ["api", "conversations", _]) => true,
-        _ => false,
-    };
+            | (Method::GET, ["api", "session"])
+            | (Method::GET, ["api", "workspaces"])
+            | (Method::GET, ["api", "models"])
+            | (Method::GET, ["api", "commands"])
+            | (Method::GET, ["api", "preferences"])
+            | (Method::GET, ["api", "workspaces", _, "roles"])
+            | (Method::GET, ["api", "workspaces", _, "files"])
+            | (Method::GET, ["api", "workspaces", _, "conversations"])
+            | (Method::GET, ["api", "conversations", _])
+            | (Method::GET, ["api", "conversations", _, "history"])
+            | (Method::GET, ["api", "attachments", _])
+            | (Method::POST, ["api", "pair"])
+            | (Method::POST, ["api", "desktop", "operations"])
+            | (Method::POST, ["api", "conversations"])
+            | (Method::POST, ["api", "attachments"])
+            | (Method::POST, ["api", "attachments", _])
+            | (Method::POST, ["api", "conversations", _, "active-tip"])
+            | (Method::POST, ["api", "conversations", _, "fork-runs"])
+            | (Method::POST, ["api", "conversations", _, "cancel"])
+            | (Method::POST, ["api", "conversations", _, "runs"])
+            | (Method::POST, ["api", "conversations", _, "stream", "pause"])
+            | (
+                Method::POST,
+                ["api", "conversations", _, "memory-retrieval", "skip"]
+            )
+            | (Method::POST, ["api", "conversations", _, "interrupts", _])
+            | (
+                Method::POST,
+                ["api", "conversations", _, "interrupts", _, "response"]
+            )
+            | (
+                Method::POST,
+                ["api", "conversations", _, "file-changes", _, "revert"]
+            )
+            | (
+                Method::POST,
+                ["api", "conversations", _, "workspace", "open"]
+            )
+            | (
+                Method::POST,
+                ["api", "conversations", _, "workspace", "text-snippet"]
+            )
+            | (
+                Method::POST,
+                ["api", "conversations", _, "workspace", "media"]
+            )
+            | (
+                Method::POST,
+                ["api", "conversations", _, "workspace", "html-preview"]
+            )
+            | (Method::PATCH, ["api", "conversations", _])
+            | (Method::DELETE, ["api", "conversations", _])
+    );
     if !allowed {
         return Err("Runtime product operation is not available to the WebView".to_string());
     }

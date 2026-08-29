@@ -114,6 +114,10 @@ that covers application-owned windows.
 
 ## Verification routing
 
+Keep host Rust warning-free: native quality treats compiler and Clippy warnings
+as errors, so behavior-preserving refactors must use the idioms required by the
+configured toolchain.
+
 For behavior involving the real shell, native material, OS theme, title bar,
 focus, or window geometry, read and follow
 [references/native-verification.md](references/native-verification.md).
