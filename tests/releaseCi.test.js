@@ -59,6 +59,8 @@ describe("release CI verification", () => {
 
   test("keeps native-only compilation independent from a frontend production build", () => {
     expect(nativeWorkflow.match(/Materialize frontendDist for Tauri macros/g)).toHaveLength(3);
+    expect(nativeWorkflow.match(/Materialize Runtime sidecar for Tauri macros/g)).toHaveLength(3);
+    expect(nativeWorkflow.match(/prepare-runtime-server\.mjs --placeholder/g)).toHaveLength(3);
     const hostCompatibilityJob = sdkWorkflow.match(
       / {2}host-compatibility:\n(?<job>[\s\S]*?)\n {2}required:/,
     )?.groups?.job;

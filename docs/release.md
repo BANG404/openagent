@@ -391,7 +391,9 @@ The private dispatcher forces every capability for release, nightly, and manual
 runs. Rust formatting, lint, tests, Linux/macOS sandbox checks, TypeScript SDK
 checks, the Linux/Windows Harness matrix, and public-host compatibility remain
 independent jobs. Public-host compatibility materializes the configured empty
-`frontendDist` before native compilation; frontend type checking remains
+`frontendDist` and a target-named placeholder for every configured Tauri
+`externalBin` before native compilation; qualification never substitutes that
+placeholder for the release-built Runtime sidecar. Frontend type checking remains
 separate and does not need to produce a release build. The SDK Release workflow
 waits for the exact description `Public SDK full validation passed` before any
 build or publish job. GitHub's

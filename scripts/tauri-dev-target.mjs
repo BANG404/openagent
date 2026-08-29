@@ -37,7 +37,7 @@ export function defaultTauriDevTargetRoot({
     return path.resolve(environment.OPENAGENT_DEV_TARGET_ROOT);
   }
   if (platform === "win32" && environment.LOCALAPPDATA) {
-    return path.join(environment.LOCALAPPDATA, "OpenAgent", "dev-targets");
+    return path.win32.join(environment.LOCALAPPDATA, "OpenAgent", "dev-targets");
   }
   if (platform === "darwin") {
     return path.join(homeDirectory, "Library", "Caches", "OpenAgent", "dev-targets");

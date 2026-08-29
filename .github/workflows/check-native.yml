@@ -81,6 +81,9 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - name: Materialize Runtime sidecar for Tauri macros
+        run: node scripts/prepare-runtime-server.mjs --placeholder
+
       - name: Verify private SDK boundary
         run: node scripts/verify-private-sdk-boundary.mjs
 
@@ -153,6 +156,9 @@ jobs:
           node -e "require('fs').mkdirSync('build', { recursive: true })"
 
       - uses: dtolnay/rust-toolchain@stable
+
+      - name: Materialize Runtime sidecar for Tauri macros
+        run: node scripts/prepare-runtime-server.mjs --placeholder
 
       - uses: oven-sh/setup-bun@v2
         if: runner.os == 'Windows'
@@ -313,6 +319,9 @@ jobs:
           node -e "require('fs').mkdirSync('build', { recursive: true })"
 
       - uses: dtolnay/rust-toolchain@stable
+
+      - name: Materialize Runtime sidecar for Tauri macros
+        run: node scripts/prepare-runtime-server.mjs --placeholder
 
       - uses: Swatinem/rust-cache@v2
         with:

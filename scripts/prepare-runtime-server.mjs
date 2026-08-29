@@ -1,4 +1,4 @@
-import { chmod, mkdir } from "node:fs/promises";
+import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
@@ -103,9 +103,35 @@ export async function prepareRuntimeServer({ profile = "dev", targetTriple } = {
   return { ...paths, targetTriple: resolvedTarget, changed };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  await prepareRuntimeServer({
-    profile: argument("--profile", "dev"),
-    targetTriple: argument("--target", undefined),
+export async function materializeRuntimeServerPlaceholder({
+  repositoryRoot = root,
+  targetTriple,
+} = {}) {
+  const resolvedTarget = targetTriple ?? parseRustHost(run(process.env.RUSTC ?? "rustc", ["-vV"]));
+  const paths = runtimeServerPaths({
+    repositoryRoot,
+    targetTriple: resolvedTarget,
+    profile: "dev",
   });
+  await mkdir(path.dirname(paths.destination), { recursive: true });
+  try {
+    await writeFile(paths.destination, "", { flag: "wx" });
+  } catch (error) {
+    if (error?.code !== "EEXIST") throw error;
+  }
+  if (!resolvedTarget.includes("windows")) await chmod(paths.destination, 0o755);
+  console.log(`Materialized Runtime server placeholder for ${resolvedTarget}.`);
+  return { ...paths, targetTriple: resolvedTarget };
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const options = { targetTriple: argument("--target", undefined) };
+  if (process.argv.includes("--placeholder")) {
+    await materializeRuntimeServerPlaceholder(options);
+  } else {
+    await prepareRuntimeServer({
+      ...options,
+      profile: argument("--profile", "dev"),
+    });
+  }
 }

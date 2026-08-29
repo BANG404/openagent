@@ -1,7 +1,14 @@
 import { expect, test } from "bun:test";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
-import { parseRustHost, runtimeServerPaths, tauriTarget } from "./prepare-runtime-server.mjs";
+import {
+  materializeRuntimeServerPlaceholder,
+  parseRustHost,
+  runtimeServerPaths,
+  tauriTarget,
+} from "./prepare-runtime-server.mjs";
 
 test("parses the exact rust host triple", () => {
   expect(parseRustHost("rustc 1.90.0\nhost: x86_64-pc-windows-msvc\nrelease: 1.90.0")).toBe(
@@ -63,4 +70,24 @@ test("rejects targets that the release matrix cannot publish", () => {
       profile: "release",
     }),
   ).toThrow("no packaged runtime server");
+});
+
+test("materializes a target-named placeholder without replacing real bytes", async () => {
+  const repositoryRoot = await mkdtemp(path.join(os.tmpdir(), "openagent-runtime-placeholder-"));
+  try {
+    const first = await materializeRuntimeServerPlaceholder({
+      repositoryRoot,
+      targetTriple: "x86_64-pc-windows-msvc",
+    });
+    expect(await readFile(first.destination, "utf8")).toBe("");
+
+    await writeFile(first.destination, "runtime-bytes");
+    await materializeRuntimeServerPlaceholder({
+      repositoryRoot,
+      targetTriple: "x86_64-pc-windows-msvc",
+    });
+    expect(await readFile(first.destination, "utf8")).toBe("runtime-bytes");
+  } finally {
+    await rm(repositoryRoot, { recursive: true, force: true });
+  }
 });

@@ -874,7 +874,7 @@ jobs:
           SDK_SHA: ${{ inputs.sdk_sha }}
         shell: bash
         run: |
-          main_sha="$(gh api repos/$SDK_REPOSITORY/commits/main --jq '.sha')"
+          main_sha="$(gh api "repos/$SDK_REPOSITORY/commits/main" --jq '.sha')"
           if [[ "$main_sha" != "$SDK_SHA" ]]; then
             echo "::notice::Skipping development publication because SDK main advanced to $main_sha."
             echo "publish=false" >> "$GITHUB_OUTPUT"

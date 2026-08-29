@@ -33,9 +33,11 @@ describe("public host Rust source boundary", () => {
 
   test("keeps the pre-push hook tied to the exact allowlist", () => {
     const hook = readFileSync(".githooks/pre-push", "utf8");
+    const verifier = readFileSync("scripts/verify-private-sdk-boundary.mjs", "utf8");
 
     expect(hook).toContain("public-host-sources.txt");
     expect(hook).toContain('grep -Fvx -f "$public_host_sources"');
     expect(hook).toContain("src-tauri/crates/openagent-runtime");
+    expect(verifier).toContain("public-host-sources.txt");
   });
 });

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const hostSourceRoot = resolve(repositoryRoot, "src-tauri", "src");
-const allowedHostSources = new Set(["bin/openagent-agent-server.rs", "lib.rs", "main.rs"]);
+const publicHostSourceAllowlist = resolve(repositoryRoot, ".githooks", "public-host-sources.txt");
 
 function filesBelow(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -13,6 +13,13 @@ function filesBelow(directory) {
   });
 }
 
+const allowedHostSources = new Set(
+  readFileSync(publicHostSourceAllowlist, "utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((path) => path.replace(/^src-tauri\/src\//, "")),
+);
 const unexpectedHostSources = filesBelow(hostSourceRoot)
   .map((path) => relative(hostSourceRoot, path).replaceAll("\\", "/"))
   .filter((path) => !allowedHostSources.has(path));

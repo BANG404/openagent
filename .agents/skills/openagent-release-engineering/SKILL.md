@@ -29,7 +29,9 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
 ## Host and helper artifacts
 
 - Native CI that compiles Tauri without the frontend build must materialize the
-  configured `frontendDist`; frontend qualification owns the production build.
+  configured `frontendDist` and target-named placeholders for configured
+  `externalBin` resources; frontend qualification and release component builds
+  own the production bytes.
   Keep direct native-dialog dependencies from enabling a Linux backend that
   conflicts with the backend selected by `tauri-plugin-dialog`.
 - Build platform sandbox helpers from the Codex revision pinned by the SDK.
