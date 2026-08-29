@@ -52,6 +52,11 @@ on:
         required: true
         default: true
         type: boolean
+      publish_dev:
+        description: Refresh public development Runtime and client artifacts after full validation
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -738,3 +743,184 @@ jobs:
           if [[ "$state" != success ]]; then
             exit 1
           fi
+
+  development-runtime:
+    name: Development Runtime (${{ matrix.name }})
+    if: inputs.publish_dev && inputs.full
+    needs: required
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64
+            os: ubuntu-latest
+            source: target/release/openagent-server
+            artifact: openagent-server-linux-x64
+          - name: Windows x64
+            os: windows-latest
+            source: target/release/openagent-server.exe
+            artifact: openagent-server-windows-x64.exe
+          - name: macOS arm64
+            os: macos-14
+            source: target/release/openagent-server
+            artifact: openagent-server-macos-arm64
+          - name: macOS x64
+            os: macos-15-intel
+            source: target/release/openagent-server
+            artifact: openagent-server-macos-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with: *reporter
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with: *sdk-checkout
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: *rust-cache
+      - name: Build release Runtime server
+        working-directory: sdk
+        run: cargo build --release -p openagent-server
+      - name: Package development Runtime server
+        working-directory: sdk
+        run: node scripts/package-server.mjs "${{ matrix.source }}" "${{ matrix.artifact }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdk-development-runtime-${{ matrix.artifact }}
+          path: sdk/release-artifacts/*
+          if-no-files-found: error
+          retention-days: 1
+
+  development-clients:
+    name: Development clients
+    if: inputs.publish_dev && inputs.full
+    needs: required
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with: *reporter
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with: *sdk-checkout
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+      - name: Build public development clients
+        shell: bash
+        env:
+          SDK_SHA: ${{ inputs.sdk_sha }}
+        run: |
+          short_sha="${SDK_SHA:0:12}"
+          base_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' sdk/rust/openagent-server/Cargo.toml | head -n 1)"
+          version="${base_version%%-*}-dev.$short_sha"
+          mkdir -p sdk-development-clients
+          printf '%s\n' "$version" > sdk-development-clients/version.txt
+          tar --format=ustar -C sdk/typescript -czf \
+            "$GITHUB_WORKSPACE/sdk-development-clients/openagent-typescript-sdk.tar.gz" \
+            src package.json tsconfig.json tsconfig.build.json README.md LICENSE
+          cd sdk/harness-typescript
+          bun install --frozen-lockfile
+          npm pkg set "version=$version"
+          bun run build
+          npm pack --pack-destination "$GITHUB_WORKSPACE/sdk-development-clients"
+          cd "$GITHUB_WORKSPACE"
+          mv sdk-development-clients/bang404-openagent-harness-*.tgz \
+            sdk-development-clients/openagent-harness.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdk-development-clients
+          path: sdk-development-clients/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-development:
+    name: Publish development Runtime and clients
+    if: inputs.publish_dev && inputs.full
+    needs: [required, development-runtime, development-clients]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with: *reporter
+      - name: Check out private SDK metadata
+        uses: actions/checkout@v7
+        with: *sdk-checkout
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+      - name: Install signing CLI
+        run: bun install --frozen-lockfile
+      - name: Download qualified development artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: sdk-development-*
+          path: sdk-development-components
+          merge-multiple: true
+      - name: Require the latest private SDK main revision
+        id: current
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SDK_SHA: ${{ inputs.sdk_sha }}
+        shell: bash
+        run: |
+          main_sha="$(gh api repos/$SDK_REPOSITORY/commits/main --jq '.sha')"
+          if [[ "$main_sha" != "$SDK_SHA" ]]; then
+            echo "::notice::Skipping development publication because SDK main advanced to $main_sha."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create and sign development manifests
+        if: steps.current.outputs.publish == 'true'
+        env:
+          SDK_SHA: ${{ inputs.sdk_sha }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          version="$(cat sdk-development-components/version.txt)"
+          protocol="$(sed -n 's/^pub const SDK_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' sdk/rust/openagent-protocol/src/lib.rs)"
+          node sdk/scripts/server-artifacts.mjs \
+            --artifacts sdk-development-components \
+            --output sdk-development-components/openagent-sdk-manifest.json \
+            --version "$version" \
+            --protocol "$protocol" \
+            --sdk-sha "$SDK_SHA"
+          node scripts/sdk-dev-artifacts.mjs \
+            --artifacts sdk-development-components \
+            --output sdk-development-components/sdk-dev-manifest.json \
+            --sdk-sha "$SDK_SHA" \
+            --version "$version"
+          bun scripts/tauri.mjs signer sign sdk-development-components/openagent-sdk-manifest.json
+          bun scripts/tauri.mjs signer sign sdk-development-components/sdk-dev-manifest.json
+          rm sdk-development-components/version.txt
+      - name: Refresh public development channel
+        if: steps.current.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SDK_SHA: ${{ inputs.sdk_sha }}
+        shell: bash
+        run: |
+          channel=runtime-dev
+          notes="Signed development Runtime and public clients for immutable SDK commit \`$SDK_SHA\`."
+          if gh release view "$channel" >/dev/null 2>&1; then
+            gh release edit "$channel" --notes "$notes" --prerelease
+          else
+            gh release create "$channel" \
+              --target "$GITHUB_SHA" \
+              --title "OpenAgent development Runtime channel" \
+              --notes "$notes" \
+              --prerelease
+          fi
+          gh release upload "$channel" sdk-development-components/* --clobber

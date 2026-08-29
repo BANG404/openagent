@@ -60,12 +60,30 @@ Conventional Commit subject therefore participates in the same bump rules as
 application source changes.
 
 The private SDK also has its own release train for headless and third-party
-consumers. An immutable `sdk-vX.Y.Z` release publishes the thin Harness package,
-platform `openagent-server` binaries, and `openagent-sdk-manifest.json` with the
-compatible protocol range, size, and SHA-256 for every target. That release does
-not require a desktop installer update. Desktop Runtime changes are also
+consumers. An immutable `sdk-vX.Y.Z` release publishes the behavior-free typed
+client, the thin Harness package, platform `openagent-server` binaries, and
+`openagent-sdk-manifest.json` with the compatible protocol range, size, and
+SHA-256 for every target. That release does not require a desktop installer
+update. Desktop Runtime changes are also
 eligible for the signed Runtime component channel and do not require a Tauri
 installer when the native shell is unchanged.
+
+Nightly and explicit full SDK qualification additionally maintain a public
+`runtime-dev` prerelease channel for external debugging. Publication happens
+only after the complete SDK result succeeds and only while the qualified commit
+is still the private SDK's current `main`. The channel contains four
+release-built server binaries, signed Runtime and development manifests, a
+behavior-free TypeScript SDK source snapshot, and the public Harness package.
+Both manifests identify the immutable SDK commit; consumers reject a channel
+whose SHA differs from the host's pinned SDK gitlink. Tag-triggered SDK
+qualification never overwrites this moving development channel.
+
+Pull requests from forks never receive the private SDK deploy key. Frontend-only
+checks download the `runtime-dev` TypeScript snapshot, verify its commit, byte
+size, and SHA-256, and materialize only that public client boundary. Native or
+Rust checks remain unavailable to untrusted fork code because compiling them
+would expose private SDK sources to the runner; maintainers reproduce or
+qualify those changes after review.
 
 Runtime-selected desktop releases build the pinned `openagent-server` for all
 four desktop targets and upload only those release-qualified binaries with a detached

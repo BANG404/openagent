@@ -10,7 +10,7 @@ on:
         type: boolean
     secrets:
       OPENAGENT_SDK_DEPLOY_KEY:
-        required: true
+        required: false
 
 permissions:
   contents: read
@@ -29,6 +29,9 @@ jobs:
         run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
 
       - name: Check out private SDK
+        if: >-
+          github.event_name != 'pull_request'
+          || github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/checkout@v7
         with:
           repository: BANG404/openagent-sdk
@@ -36,6 +39,19 @@ jobs:
           path: sdk
           ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
           persist-credentials: false
+
+      - name: Fetch public TypeScript SDK for fork pull request
+        if: >-
+          github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name != github.repository
+        shell: bash
+        run: |
+          archive="$RUNNER_TEMP/openagent-typescript-sdk.tar.gz"
+          node scripts/fetch-public-typescript-sdk.mjs \
+            --sdk-sha "${{ steps.sdk.outputs.sha }}" \
+            --output "$archive"
+          mkdir -p sdk/typescript
+          tar -xzf "$archive" -C sdk/typescript
 
       - uses: oven-sh/setup-bun@v2
         with:

@@ -72,6 +72,16 @@ describe("release CI verification", () => {
     );
   });
 
+  test("uses public SDK artifacts for untrusted frontend pull requests", () => {
+    expect(frontendWorkflow).toContain("required: false");
+    expect(frontendWorkflow).toContain("Fetch public TypeScript SDK for fork pull request");
+    expect(frontendWorkflow).toContain("scripts/fetch-public-typescript-sdk.mjs");
+    expect(frontendWorkflow).toContain(
+      "github.event.pull_request.head.repo.full_name != github.repository",
+    );
+    expect(ciWorkflow).toContain("if: needs.changes.outputs.frontend == 'true'");
+  });
+
   test("keeps release binaries and generated Tauri commands size-oriented", () => {
     expect(nativeCargoManifest).toContain("[profile.release]");
     expect(nativeCargoManifest).toContain("codegen-units = 1");
@@ -194,6 +204,17 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain(
       'bun scripts/prepare-runtime-server.mjs --profile release "${target_args[@]}"',
     );
+  });
+
+  test("publishes qualified SDK development artifacts for external debugging", () => {
+    expect(sdkWorkflow).toContain("publish_dev:");
+    expect(sdkWorkflow).toContain("development-runtime:");
+    expect(sdkWorkflow).toContain("development-clients:");
+    expect(sdkWorkflow).toContain("publish-development:");
+    expect(sdkWorkflow).toContain("needs: [required, development-runtime, development-clients]");
+    expect(sdkWorkflow).toContain("channel=runtime-dev");
+    expect(sdkWorkflow).toContain("sdk-dev-manifest.json");
+    expect(sdkWorkflow).toContain('--sdk-sha "$SDK_SHA"');
   });
 
   test("keeps resource-only releases independent from native publishing", () => {

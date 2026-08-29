@@ -55,6 +55,13 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   Ordinary public CI artifacts and caches must still never expose private SDK
   outputs. The release desktop activates verified candidates through the
   supervised external Runtime transaction.
+- Trusted nightly and explicit full SDK qualification may refresh the public
+  `runtime-dev` channel after the exact private `main` commit passes. That
+  channel may contain only signed Runtime manifests, release-built server
+  binaries, the behavior-free TypeScript SDK snapshot, and the public Harness
+  package. Fork pull requests may consume the exact checksummed TypeScript
+  snapshot for frontend checks; never expose private Rust sources, credentials,
+  caches, diagnostics, or an artifact for a different gitlink SHA.
 - Publish the platform-independent frontend archive, bounded manifest, and
   detached signature only from the release-qualified static build. Refresh the
   matching fixed `frontend-beta`, `frontend-rc`, or `frontend-stable` channel
