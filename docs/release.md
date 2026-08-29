@@ -59,6 +59,14 @@ An update to the pinned private `sdk` gitlink is release-relevant. Its
 Conventional Commit subject therefore participates in the same bump rules as
 application source changes.
 
+The private SDK also has its own release train for headless and third-party
+consumers. An immutable `sdk-vX.Y.Z` release publishes the thin Harness package,
+platform `openagent-server` binaries, and `openagent-sdk-manifest.json` with the
+compatible protocol range, size, and SHA-256 for every target. That release does
+not require a desktop installer update. The desktop still embeds the runtime, so
+desktop runtime changes remain application updates until the supervised-process
+boundary in [modular-updates.md](modular-updates.md) is complete.
+
 The selected release channel controls the suffix and GitHub Release state. The
 release-relevant Conventional Commits control the `X.Y.Z` base version:
 

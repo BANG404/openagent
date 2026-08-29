@@ -51,6 +51,15 @@ The thin client and daemon protocol share a release version. The daemon also
 reports an explicit protocol range so incompatible clients fail before a run
 starts.
 
+SDK releases publish `openagent-sdk-manifest.json` beside the platform server
+binaries. Node and Bun callers may use `installOpenAgentBinary` to select the
+current target, check the protocol range, verify the byte size and SHA-256, and
+atomically install the executable into a versioned directory. Long-running
+development hosts may use `spawnReloadableOpenAgent`; after active runs finish
+or are cancelled, `reload(newBinaryPath)` restarts on the new process and falls
+back to the prior binary if startup fails. Durable conversations remain under
+the caller-selected `OPENAGENT_HOME`; in-memory runs do not cross a reload.
+
 ## Distribution
 
 The TypeScript client is MIT licensed. The core Rust crates are not published

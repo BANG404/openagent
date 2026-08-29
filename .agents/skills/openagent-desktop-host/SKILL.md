@@ -9,6 +9,9 @@ metadata:
 
 Keep `src-tauri` a product adapter over the private SDK, not a second runtime.
 Read `sdk/AGENTS.md` before changing the SDK side of any boundary.
+Do not load replaceable Rust dynamic libraries. Runtime extraction uses a
+verified, supervised process with a versioned transport contract, fallback
+binary, and exclusive durable-state ownership.
 
 ## Ownership
 

@@ -466,6 +466,7 @@ For Anthropic, set `OPENAGENT_TEST_PROVIDER=anthropic` and provide `OPENAGENT_TE
 - [`docs/release.md`](docs/release.md) — Versioning, beta/RC/stable channels, and publishing workflow
 - [`docs/embedding-model.md`](docs/embedding-model.md) — Bundled model provenance, size, and verification
 - [`docs/harness-sdk.md`](docs/harness-sdk.md) — Headless third-party harness integration without publishing the core runtime
+- [`docs/modular-updates.md`](docs/modular-updates.md) — Frontend HMR, independent SDK binaries, process reloads, and the desktop extraction boundary
 - [`docs/design.md`](docs/design.md) — Apple-style design spec
 - [Tauri docs](https://tauri.app/) · [SvelteKit docs](https://kit.svelte.dev/) · [rig (Rust LLM)](https://github.com/0xPlaygrounds/rig)
 

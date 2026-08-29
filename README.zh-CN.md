@@ -440,6 +440,7 @@ LANGFUSE_HOST=https://cloud.langfuse.com
 - [`docs/channels.md`](docs/channels.md) — 消息平台配置、范围切换命令、中断回复、持久化与安全说明
 - [`docs/release.md`](docs/release.md) — 版本规则、beta/RC/stable 渠道与发布流程
 - [`docs/embedding-model.md`](docs/embedding-model.md) — 随包模型的来源、大小与校验方式
+- [`docs/modular-updates.md`](docs/modular-updates.md) — 前端热更新、独立 SDK 二进制、进程重载与桌面端拆分边界
 - [`docs/design.md`](docs/design.md) — Apple 风格 UI 设计规范
 - [Tauri 文档](https://tauri.app/) · [SvelteKit 文档](https://kit.svelte.dev/) · [rig（Rust LLM 框架）](https://github.com/0xPlaygrounds/rig)
 

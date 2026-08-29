@@ -46,6 +46,10 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   input. Build the full first-install overlay separately, upload its renamed
   manual installer without updater metadata, and keep its embedding seed out of
   every `latest.json` target.
+- Treat SDK server releases as independent process resources for headless and
+  third-party consumers. Keep their machine-readable manifest, target matrix,
+  protocol range, byte sizes, and SHA-256 values aligned. Do not describe them
+  as desktop hot updates while the desktop still embeds the runtime.
 - During Tauri development, pass the selected Vite URL as a CLI configuration
   layer and stage rebuilt helper resources only when their bytes change.
 
