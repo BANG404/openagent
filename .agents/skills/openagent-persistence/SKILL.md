@@ -29,6 +29,9 @@ implementation.
   packaged-seed copies and downloads outside the active version directory,
   verify every declared size and SHA-256, and atomically activate only a
   complete resource. Hosts may project progress but do not own these files.
+- Keep frontend versions immutable beneath `resources/frontend/<version>`.
+  Replace `active.json` atomically, retain one previous verified selection while
+  activation is pending, and treat an unconfirmed startup as rollback state.
 
 ## Compatibility changes
 

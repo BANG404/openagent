@@ -196,6 +196,7 @@
 
   const runtimeQuery =
     typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const frontendActivationVersion = runtimeQuery?.get("frontend-version") ?? null;
   const devQuery = import.meta.env.DEV ? runtimeQuery : null;
   const isDevInspectorWindow = devQuery?.has("dev-inspector") === true;
   const isOnboardingPreview = devQuery?.has("onboarding-preview") === true;
@@ -1808,6 +1809,13 @@
     if (!usesNativeWindowMaterial) return;
     document.documentElement.classList.add("native-window-material");
     return () => document.documentElement.classList.remove("native-window-material");
+  });
+
+  onMount(() => {
+    if (!tauriAvailable || !frontendActivationVersion) return;
+    void invoke("confirm_frontend_activation", { version: frontendActivationVersion }).catch(
+      (error) => console.error("Failed to confirm frontend activation:", error),
+    );
   });
 
   onMount(() => {

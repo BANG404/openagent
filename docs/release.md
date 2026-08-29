@@ -78,6 +78,17 @@ protect the selected bytes. Publishing this dormant fallback and channel does
 not activate desktop modular updates before the host supervisor and typed
 transport extraction are complete.
 
+The same desktop release builds the static frontend once, archives it as
+`openagent-frontend.tar.gz`, records its exact compressed and unpacked sizes,
+file count, and SHA-256 in `openagent-frontend-manifest.json`, and signs that
+manifest with the updater trust root. The manifest also binds the frontend to
+the compatible host protocol range. The archive, manifest, and signature are
+published through the fixed `frontend-beta`, `frontend-rc`, or
+`frontend-stable` channel. Desktop activation remains independent from the
+native installer: WebViews reload the verified resource and confirm startup,
+while an unconfirmed activation rolls back to the previous resource or the
+frontend embedded in the Tauri bundle.
+
 The selected release channel controls the suffix and GitHub Release state. The
 release-relevant Conventional Commits control the `X.Y.Z` base version:
 

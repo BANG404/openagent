@@ -164,6 +164,17 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("upload-full-release-asset.mjs --tag");
   });
 
+  test("publishes signed runtime and frontend component channels", () => {
+    expect(tauriConfig.bundle.externalBin).toContain("binaries/openagent-server");
+    expect(releaseWorkflow).toContain("runtime-components:");
+    expect(releaseWorkflow).toContain('component_channel="runtime-$RELEASE_CHANNEL"');
+    expect(releaseWorkflow).toContain("openagent-sdk-manifest.json.sig");
+    expect(releaseWorkflow).toContain("frontend-components:");
+    expect(releaseWorkflow).toContain("scripts/frontend-artifacts.mjs");
+    expect(releaseWorkflow).toContain('component_channel="frontend-$RELEASE_CHANNEL"');
+    expect(releaseWorkflow).toContain("openagent-frontend-manifest.json.sig");
+  });
+
   test("refreshes an unpublished Beta marker onto the latest master source", () => {
     expect(prepareReleaseWorkflow).toContain("ref: master");
     expect(prepareReleaseWorkflow).toContain(

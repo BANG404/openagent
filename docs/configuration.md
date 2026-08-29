@@ -34,6 +34,9 @@ The root contains these user-maintained or durable files:
 | `plugins/<name>/`                 | Validated installed Agent Plugin packages                                                                                     |
 | `plugin-data/<name>/`             | Persistent writable `PLUGIN_DATA`, retained when a plugin is uninstalled                                                      |
 | `resources/embedding/<model>/<version>/` | Verified, versioned local semantic-memory model resources shared by full and lightweight application updates           |
+| `resources/runtime/<version>/<target>/` | Signed standalone Runtime candidates; installation is immutable and activation remains host-supervised                |
+| `resources/frontend/<version>/`         | Signed static frontend versions served by the desktop's private protocol                                               |
+| `resources/frontend/active.json`        | Atomically replaced active/previous frontend selection and pending-confirmation marker                                 |
 
 Workspace-scoped memory, skills, drafts, and design files remain under that
 workspace's `.agents/` directory rather than the user-scoped root.

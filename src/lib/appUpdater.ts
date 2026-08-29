@@ -20,6 +20,39 @@ function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+type PreparedFrontendResource = {
+  version: string;
+  update_available: boolean;
+};
+
+async function checkForFrontendResourceUpdate(): Promise<boolean> {
+  if (import.meta.env.DEV) return false;
+  const candidate = await withAppUpdateTimeout(
+    invoke<PreparedFrontendResource>("prepare_frontend_resource"),
+  );
+  if (!candidate.update_available) return false;
+  showToast({
+    title: `${translate("frontendUpdateAvailable")} ${candidate.version}`,
+    description: translate("frontendUpdateAvailableDescription"),
+    durationMs: 0,
+    action: {
+      label: translate("updateAndReload"),
+      onClick: async () =>
+        invoke<void>("activate_frontend_resource", { version: candidate.version }).catch(
+          (error) => {
+            showToast({
+              title: translate("updateFailed"),
+              description: describeError(error),
+              variant: "error",
+              durationMs: 8000,
+            });
+          },
+        ),
+    },
+  });
+  return true;
+}
+
 function updateProgressMessage(
   event: DownloadEvent,
   downloadedBytes: number,
@@ -99,9 +132,15 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
   mutableAppUpdateState.set("checking");
 
   try {
+    let frontendUpdateAvailable = false;
+    try {
+      frontendUpdateAvailable = await checkForFrontendResourceUpdate();
+    } catch (error) {
+      console.warn("[openagent] Frontend resource update check failed", error);
+    }
     const update = await withAppUpdateTimeout(check());
     if (!update) {
-      if (notifyWhenUpToDate) {
+      if (notifyWhenUpToDate && !frontendUpdateAvailable) {
         showToast({
           title: translate("updateCurrent"),
           description: translate("updateCurrentDescription"),

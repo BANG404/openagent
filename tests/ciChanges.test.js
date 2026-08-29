@@ -132,6 +132,19 @@ describe("CI module classification", () => {
     });
   });
 
+  test("runs frontend checks when signed frontend packaging changes", () => {
+    expect(classifyChangedModules(["scripts/frontend-artifacts.mjs"])).toEqual({
+      ...nothing,
+      automation: true,
+      frontend: true,
+    });
+    expect(classifyChangedModules(["scripts/frontend-artifacts.test.mjs"])).toEqual({
+      ...nothing,
+      automation: true,
+      frontend: true,
+    });
+  });
+
   test("keeps automation-only tests out of the frontend suite", () => {
     expect(classifyChangedModules(["tests/codexExecBatch.test.js"])).toEqual({
       ...nothing,

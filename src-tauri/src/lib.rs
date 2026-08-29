@@ -35,7 +35,18 @@ use openagent_runtime::{
 use std::sync::Arc;
 use tauri::{path::BaseDirectory, Emitter, Manager, State};
 
+pub mod frontend_resource;
 pub mod runtime_process;
+
+use frontend_resource::{
+    FrontendResourceManager, FrontendResourceSource, InstalledFrontendResource,
+};
+
+#[derive(serde::Serialize)]
+struct PreparedFrontendResource {
+    version: String,
+    update_available: bool,
+}
 
 const EMBEDDING_MODEL_RESOURCE_PATH: &str = "models/all-MiniLM-L6-v2-q";
 const UPDATE_PUBLIC_KEY: &str = "untrusted comment: minisign public key: C373284FCF9656A0\nRWSgVpbPTyhzw46ILL4vBbjg4XueHFxKhTk48DCGqAT/IfE5vSyBDSGl\n";
@@ -65,6 +76,75 @@ fn runtime_resource_manager() -> RuntimeResourceManager {
         },
         openagent_protocol::SDK_PROTOCOL_VERSION,
     )
+}
+
+fn frontend_resource_manager() -> Result<FrontendResourceManager, String> {
+    let manifest_url = format!(
+        "https://github.com/BANG404/openagent/releases/download/frontend-{}/openagent-frontend-manifest.json",
+        modular_update_channel()
+    );
+    FrontendResourceManager::new(
+        openagent_runtime::config::config_dir(),
+        FrontendResourceSource {
+            signature_url: format!("{manifest_url}.sig"),
+            manifest_url,
+            public_key: UPDATE_PUBLIC_KEY.to_string(),
+        },
+        env!("CARGO_PKG_VERSION"),
+        frontend_resource::FRONTEND_HOST_PROTOCOL_VERSION,
+    )
+}
+
+fn external_frontend_url(query: &str, version: &str) -> Result<tauri::Url, String> {
+    let separator = if query.is_empty() { '?' } else { '&' };
+    tauri::Url::parse(&format!(
+        "openagent-ui://localhost/{query}{separator}frontend-version={version}"
+    ))
+    .map_err(|error| format!("failed to build external frontend URL: {error}"))
+}
+
+fn embedded_frontend_url(query: &str) -> Result<tauri::Url, String> {
+    #[cfg(target_os = "windows")]
+    let origin = "http://tauri.localhost/";
+    #[cfg(not(target_os = "windows"))]
+    let origin = "tauri://localhost/";
+    tauri::Url::parse(&format!("{origin}{query}"))
+        .map_err(|error| format!("failed to build embedded frontend URL: {error}"))
+}
+
+fn frontend_window_query(label: &str) -> &'static str {
+    match label {
+        "onboarding" => "?onboarding-window=1",
+        "quick-chat" => "?quick-chat-window=1",
+        "debug" => "?dev-inspector=1",
+        _ => "",
+    }
+}
+
+fn navigate_frontend_windows(app: &tauri::AppHandle, version: Option<&str>) -> Result<(), String> {
+    for (label, window) in app.webview_windows() {
+        let query = frontend_window_query(&label);
+        let url = match version {
+            Some(version) => external_frontend_url(query, version)?,
+            None => embedded_frontend_url(query)?,
+        };
+        window
+            .navigate(url)
+            .map_err(|error| format!("failed to reload frontend window {label}: {error}"))?;
+    }
+    Ok(())
+}
+
+fn product_webview_url(
+    manager: &FrontendResourceManager,
+    query: &str,
+) -> Result<tauri::WebviewUrl, String> {
+    if !cfg!(debug_assertions) {
+        if let Some(version) = manager.active_version() {
+            return external_frontend_url(query, &version).map(tauri::WebviewUrl::CustomProtocol);
+        }
+    }
+    Ok(tauri::WebviewUrl::App(format!("/{query}").into()))
 }
 
 fn bundled_embedding_seed(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
@@ -141,6 +221,58 @@ async fn prepare_runtime_resource(
             }
         })
         .await
+}
+
+#[tauri::command]
+async fn prepare_frontend_resource(
+    manager: State<'_, FrontendResourceManager>,
+) -> Result<PreparedFrontendResource, String> {
+    if cfg!(debug_assertions) {
+        return Err("production frontend resources are disabled in development builds".to_string());
+    }
+    let InstalledFrontendResource { version, .. } = manager.install_latest().await?;
+    let update_available = manager.is_newer_than_active(&version)?;
+    Ok(PreparedFrontendResource {
+        version,
+        update_available,
+    })
+}
+
+#[tauri::command]
+async fn activate_frontend_resource(
+    app: tauri::AppHandle,
+    manager: State<'_, FrontendResourceManager>,
+    version: String,
+) -> Result<(), String> {
+    if cfg!(debug_assertions) {
+        return Err("production frontend resources are disabled in development builds".to_string());
+    }
+    manager.activate(&version).await?;
+    navigate_frontend_windows(&app, Some(&version))?;
+    let rollback_manager = manager.inner().clone();
+    let rollback_app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_secs(15)).await;
+        match rollback_manager.rollback_pending().await {
+            Ok(true) => {
+                let version = rollback_manager.active_version();
+                if let Err(error) = navigate_frontend_windows(&rollback_app, version.as_deref()) {
+                    tracing::error!(%error, "failed to display frontend rollback");
+                }
+            }
+            Ok(false) => {}
+            Err(error) => tracing::error!(%error, "failed to roll back unconfirmed frontend"),
+        }
+    });
+    Ok(())
+}
+
+#[tauri::command]
+async fn confirm_frontend_activation(
+    manager: State<'_, FrontendResourceManager>,
+    version: String,
+) -> Result<(), String> {
+    manager.confirm(&version).await
 }
 
 fn apply_native_window_material(window: &tauri::WebviewWindow) {
@@ -1601,6 +1733,10 @@ fn run_with_mode(agent_server: bool) {
         .unwrap_or_else(|error| panic!("Failed to initialize OpenAgent runtime: {error:#}"));
 
     let protocol_roots = html_preview_roots;
+    let frontend_manager = frontend_resource_manager()
+        .unwrap_or_else(|error| panic!("Failed to initialize frontend resources: {error}"));
+    let frontend_protocol_root = frontend_manager.asset_root();
+    let startup_frontend_manager = frontend_manager.clone();
     let builder = tauri::Builder::default();
 
     // This must remain the first registered plugin. Ordinary desktop launches
@@ -1636,6 +1772,15 @@ fn run_with_mode(agent_server: bool) {
                 let roots = protocol_roots.clone();
                 tauri::async_runtime::spawn(async move {
                     responder.respond(html_preview_protocol::serve(request, roots).await);
+                });
+            },
+        )
+        .register_asynchronous_uri_scheme_protocol(
+            frontend_resource::FRONTEND_SCHEME,
+            move |_context, request, responder| {
+                let root = frontend_protocol_root.clone();
+                tauri::async_runtime::spawn(async move {
+                    responder.respond(frontend_resource::serve(request, root).await);
                 });
             },
         )
@@ -1677,6 +1822,7 @@ fn run_with_mode(agent_server: bool) {
         .manage(runtime.clone())
         .manage(EmbeddingResourceManager::default())
         .manage(runtime_resource_manager())
+        .manage(frontend_manager)
         .setup(move |app| {
             // init_tracing() spawns a background Tokio task (batch exporter). The
             // .setup() callback runs on the main thread which is not a Tokio worker
@@ -1699,6 +1845,13 @@ fn run_with_mode(agent_server: bool) {
 
             if let Some(window) = app.get_webview_window("main") {
                 apply_native_window_material(&window);
+                if !cfg!(debug_assertions) {
+                    if let Some(version) = startup_frontend_manager.active_version() {
+                        let url = external_frontend_url("", &version)
+                            .map_err(std::io::Error::other)?;
+                        window.navigate(url)?;
+                    }
+                }
             }
 
             // Keep diagnostics alongside the application without shipping an
@@ -1730,7 +1883,8 @@ fn run_with_mode(agent_server: bool) {
                 let onboarding_window = tauri::WebviewWindowBuilder::new(
                     app,
                     "onboarding",
-                    tauri::WebviewUrl::App("/?onboarding-window=1".into()),
+                    product_webview_url(&startup_frontend_manager, "?onboarding-window=1")
+                        .map_err(std::io::Error::other)?,
                 )
                 .title("OpenAgent Setup")
                 .inner_size(960.0, 640.0)
@@ -1746,7 +1900,8 @@ fn run_with_mode(agent_server: bool) {
                 tauri::WebviewWindowBuilder::new(
                     app,
                     "quick-chat",
-                    tauri::WebviewUrl::App("/?quick-chat-window=1".into()),
+                    product_webview_url(&startup_frontend_manager, "?quick-chat-window=1")
+                        .map_err(std::io::Error::other)?,
                 )
                 .title("OpenAgent Quick Chat")
                 .inner_size(856.0, 246.0)
@@ -1875,6 +2030,9 @@ fn run_with_mode(agent_server: bool) {
             get_embedding_resource_status,
             prepare_embedding_resource,
             prepare_runtime_resource,
+            prepare_frontend_resource,
+            activate_frontend_resource,
+            confirm_frontend_activation,
             save_settings,
             get_channel_statuses,
             get_wechat_channel_status,

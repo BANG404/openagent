@@ -605,6 +605,61 @@ jobs:
           RELEASE_TAG: ${{ needs.detect.outputs.tag }}
         run: gh release upload "$RELEASE_TAG" runtime-components/* --clobber
 
+  frontend-components:
+    name: Publish signed frontend component
+    needs:
+      - detect
+      - create-draft
+      - build
+    if: >-
+      needs.create-draft.outputs.published != 'true'
+      && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.tag }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Build release frontend
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Create and sign frontend component
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          mkdir -p frontend-components
+          tar --format=ustar -C build -czf frontend-components/openagent-frontend.tar.gz .
+          version="$(node -p "require('./package.json').version")"
+          protocol="$(sed -n 's/^pub const FRONTEND_HOST_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' src-tauri/src/frontend_resource.rs)"
+          if [[ -z "$protocol" ]]; then
+            echo "Unable to resolve the frontend host protocol." >&2
+            exit 1
+          fi
+          node scripts/frontend-artifacts.mjs \
+            --archive frontend-components/openagent-frontend.tar.gz \
+            --assets build \
+            --output frontend-components/openagent-frontend-manifest.json \
+            --version "$version" \
+            --protocol "$protocol"
+          bun scripts/tauri.mjs signer sign \
+            frontend-components/openagent-frontend-manifest.json
+          test -s frontend-components/openagent-frontend-manifest.json.sig
+
+      - name: Upload signed frontend component to draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+        run: gh release upload "$RELEASE_TAG" frontend-components/* --clobber
+
   publish-store:
     name: Submit Microsoft Store update
     needs:
@@ -665,6 +720,7 @@ jobs:
       - create-draft
       - build
       - runtime-components
+      - frontend-components
       - publish-store
     if: >-
       always()
@@ -672,6 +728,7 @@ jobs:
       && needs.create-draft.result == 'success'
       && (needs.build.result == 'success' || needs.build.result == 'skipped')
       && (needs.runtime-components.result == 'success' || needs.runtime-components.result == 'skipped')
+      && (needs.frontend-components.result == 'success' || needs.frontend-components.result == 'skipped')
       && (needs.publish-store.result == 'success' || needs.publish-store.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
@@ -741,6 +798,70 @@ jobs:
             if curl --fail --location --silent --show-error "$manifest_url" --output /dev/null \
               && curl --fail --location --silent --show-error "$signature_url" --output /dev/null; then
               echo "$component_channel is public with a signed runtime manifest."
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          echo "$component_channel did not publish its signed manifest." >&2
+          exit 1
+
+      - name: Update signed frontend component channel
+        if: needs.frontend-components.result == 'success'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+          RELEASE_CHANNEL: ${{ needs.detect.outputs.channel }}
+        run: |
+          component_channel="frontend-$RELEASE_CHANNEL"
+          component_dir="$(mktemp -d)"
+          gh release download "$RELEASE_TAG" \
+            --pattern 'openagent-frontend.tar.gz' \
+            --pattern 'openagent-frontend-manifest.json' \
+            --pattern 'openagent-frontend-manifest.json.sig' \
+            --dir "$component_dir"
+          actual_count="$(find "$component_dir" -maxdepth 1 -type f | wc -l | tr -d ' ')"
+          if [[ "$actual_count" != "3" ]]; then
+            echo "Expected three frontend component files, found $actual_count." >&2
+            exit 1
+          fi
+
+          tag_type="$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.type')"
+          tag_object="$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')"
+          if [[ "$tag_type" == "tag" ]]; then
+            release_commit="$(gh api "repos/$GH_REPO/git/tags/$tag_object" --jq '.object.sha')"
+          elif [[ "$tag_type" == "commit" ]]; then
+            release_commit="$tag_object"
+          else
+            echo "Unsupported release tag object type: $tag_type" >&2
+            exit 1
+          fi
+          channel_is_draft=true
+          if gh release view "$component_channel" >/dev/null 2>&1; then
+            channel_is_draft="$(gh release view "$component_channel" --json isDraft --jq '.isDraft')"
+          else
+            gh release create "$component_channel" \
+              --draft \
+              --target "$release_commit" \
+              --title "OpenAgent $RELEASE_CHANNEL frontend channel" \
+              --notes "Signed frontend resources for compatible OpenAgent desktop shells." \
+              --prerelease
+          fi
+          gh release upload "$component_channel" "$component_dir"/* --clobber
+          if [[ "$channel_is_draft" == "true" ]]; then
+            gh release edit "$component_channel" \
+              --target "$release_commit" \
+              --draft=false \
+              --prerelease
+          fi
+
+          manifest_url="https://github.com/$GH_REPO/releases/download/$component_channel/openagent-frontend-manifest.json"
+          signature_url="$manifest_url.sig"
+          for attempt in {1..5}; do
+            if curl --fail --location --silent --show-error "$manifest_url" --output /dev/null \
+              && curl --fail --location --silent --show-error "$signature_url" --output /dev/null; then
+              echo "$component_channel is public with a signed frontend manifest."
               exit 0
             fi
             sleep $((attempt * 2))

@@ -24,6 +24,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   from event delivery or compensate with a host-local runtime state machine.
 - Submit every ordinary chat message and slash command from either host through
   `submit_agent_input` so runtime routing and command semantics remain shared.
+- When the route is loaded from a versioned production frontend resource,
+  confirm the exact `frontend-version` with the host immediately after mount.
+  Confirmation is a resource-health handshake, not durable chat restoration;
+  normal bootstrap still restores the complete snapshot before event use.
 - Use Tauri/Svelte as GPUI's visual and functional parity source. GPUI
   intentionally omits the decorative aurora glow while preserving shared
   geometry, neutral selection fill, semantics, accessibility, and pointer and

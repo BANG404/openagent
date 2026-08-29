@@ -8,7 +8,7 @@ is never loaded as a replaceable dynamic library.
 
 | Surface | Development | Published delivery | Activation |
 | --- | --- | --- | --- |
-| Frontend | Vite HMR through `bun tauri dev` | Part of the signed Tauri application today | WebView reload |
+| Frontend | Vite HMR through `bun tauri dev` | Signed `frontend-beta`, `frontend-rc`, or `frontend-stable` resource | Confirmed WebView reload with rollback |
 | Headless SDK | Rebuild and restart `openagent-server` | Versioned SDK release binaries plus `openagent-sdk-manifest.json` | Supervised process restart |
 | Third-party client | Local TypeScript source or published npm package | `@bang404/openagent-harness` | Normal package update |
 | Desktop native shell | Tauri rebuild/restart | Signed installer and Tauri updater | Application restart |
@@ -51,10 +51,19 @@ still owns the embedded runtime; activation before transport extraction would
 violate the single-writer boundary.
 
 This boundary prevents two runtimes from writing the same SQLite state and avoids
-an unstable Rust ABI between the shell and SDK. A frontend-only production update
-also requires a signed, versioned asset bundle served by a host-owned protocol;
-the shell must retain a known-good embedded frontend for rollback. Until that
-loader exists, production frontend changes remain part of the signed Tauri update.
+an unstable Rust ABI between the shell and SDK.
+
+A frontend-only production update uses a signed, versioned `tar.gz` bundle under
+`OPENAGENT_HOME/resources/frontend/<version>/`. The host verifies the detached
+Minisign signature before parsing the manifest, checks archive size and SHA-256,
+requires a compatible frontend-host protocol range, rejects traversal, links,
+unexpected entry types, and declared extraction-limit
+violations, then commits an immutable version directory. Activation atomically
+updates `active.json` and reloads every product WebView through the host-owned
+`openagent-ui` protocol. The new frontend confirms its version after mounting;
+if it does not confirm within 15 seconds, or the process exits while confirmation
+is pending, the host restores the previous verified version or its embedded
+frontend. The embedded frontend always remains the final fallback.
 
 ## Third-party development
 

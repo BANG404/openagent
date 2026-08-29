@@ -67,6 +67,9 @@ export function classifyChangedModules(files, forceAll = false) {
       file,
     ),
   );
+  const frontendPackagingChanged = normalized.some((file) =>
+    ["scripts/frontend-artifacts.mjs", "scripts/frontend-artifacts.test.mjs"].includes(file),
+  );
   const automationTests = new Set([
     "tests/ciChanges.test.js",
     "tests/codexExecBatch.test.js",
@@ -110,6 +113,7 @@ export function classifyChangedModules(files, forceAll = false) {
         "sdk",
       ]),
     ) ||
+    frontendPackagingChanged ||
     normalized.some((file) => file.startsWith("tests/") && !automationTests.has(file));
 
   const nativeQuality =

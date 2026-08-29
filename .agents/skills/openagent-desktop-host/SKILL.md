@@ -30,6 +30,11 @@ binary, and exclusive durable-state ownership.
   stop the old child through its private control pipe before starting a
   candidate, and restart the previous verified launch on failure. Keep that
   supervisor dormant while the embedded Runtime still owns durable state.
+- Serve replaceable frontend versions only through the host-owned
+  `openagent-ui` protocol. Activation must atomically retain the previous
+  selection, reload every product WebView with the candidate version, require
+  a mounted-frontend confirmation, and fall back to the embedded frontend when
+  no verified previous selection exists.
 
 ## Startup and windows
 
