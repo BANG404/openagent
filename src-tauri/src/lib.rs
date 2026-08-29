@@ -37,10 +37,13 @@ use tauri::{path::BaseDirectory, Emitter, Manager, State};
 
 pub mod frontend_resource;
 pub mod runtime_process;
+pub mod runtime_transport;
 
 use frontend_resource::{
     FrontendResourceManager, FrontendResourceSource, InstalledFrontendResource,
 };
+use runtime_process::RuntimeProcessSupervisor;
+use runtime_transport::{RuntimeEventProxy, RuntimeProxyRequest, RuntimeProxyResponse};
 
 #[derive(serde::Serialize)]
 struct PreparedFrontendResource {
@@ -221,6 +224,40 @@ async fn prepare_runtime_resource(
             }
         })
         .await
+}
+
+#[tauri::command]
+async fn proxy_runtime_request(
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+    request: RuntimeProxyRequest,
+) -> Result<RuntimeProxyResponse, String> {
+    runtime_transport::proxy_runtime_request(supervisor.inner(), request).await
+}
+
+#[tauri::command]
+async fn runtime_transport_mode(
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+) -> Result<String, String> {
+    Ok(if supervisor.status().await.is_some() {
+        "external".to_string()
+    } else {
+        "embedded".to_string()
+    })
+}
+
+#[tauri::command]
+async fn start_runtime_event_proxy(
+    app: tauri::AppHandle,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+    proxy: State<'_, RuntimeEventProxy>,
+) -> Result<u64, String> {
+    proxy.start(app, supervisor.inner().clone()).await
+}
+
+#[tauri::command]
+async fn stop_runtime_event_proxy(proxy: State<'_, RuntimeEventProxy>) -> Result<(), String> {
+    proxy.stop().await;
+    Ok(())
 }
 
 #[tauri::command]
@@ -1737,6 +1774,10 @@ fn run_with_mode(agent_server: bool) {
         .unwrap_or_else(|error| panic!("Failed to initialize frontend resources: {error}"));
     let frontend_protocol_root = frontend_manager.asset_root();
     let startup_frontend_manager = frontend_manager.clone();
+    let runtime_supervisor = Arc::new(
+        RuntimeProcessSupervisor::new(openagent_protocol::SDK_PROTOCOL_VERSION)
+            .unwrap_or_else(|error| panic!("Failed to initialize Runtime supervisor: {error}")),
+    );
     let builder = tauri::Builder::default();
 
     // This must remain the first registered plugin. Ordinary desktop launches
@@ -1820,6 +1861,8 @@ fn run_with_mode(agent_server: bool) {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .manage(runtime.clone())
+        .manage(runtime_supervisor)
+        .manage(RuntimeEventProxy::default())
         .manage(EmbeddingResourceManager::default())
         .manage(runtime_resource_manager())
         .manage(frontend_manager)
@@ -2030,6 +2073,10 @@ fn run_with_mode(agent_server: bool) {
             get_embedding_resource_status,
             prepare_embedding_resource,
             prepare_runtime_resource,
+            runtime_transport_mode,
+            proxy_runtime_request,
+            start_runtime_event_proxy,
+            stop_runtime_event_proxy,
             prepare_frontend_resource,
             activate_frontend_resource,
             confirm_frontend_activation,

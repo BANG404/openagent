@@ -1853,13 +1853,13 @@
       isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
       if (tauriAvailable) {
-        // Register chat events before bootstrap. If one legacy conversation
-        // cannot be restored, the fallback surface must still receive stream
-        // chunks and terminal events for newly submitted turns.
-        await setupGlobalEventListeners();
-        const bootstrap = await invoke<StartupBootstrap>("get_startup_bootstrap");
+        const bootstrap = await openAgent.getStartupBootstrap<StartupBootstrap>();
         bootstrapReadyAt = performance.now();
         await applyStartupBootstrap(bootstrap);
+        // Live Runtime events are a lossy projection. Restore the complete
+        // durable snapshot before subscribing so startup and resync never
+        // reconstruct state from partial event delivery.
+        await setupGlobalEventListeners();
         startupApplied = true;
         installDownloadHook();
         if (launchContext?.conversation_id) {
@@ -2169,6 +2169,23 @@
     const register = <T,>(event: string, handler: (event: { payload: T }) => void) => {
       registrations.push(listen<T>(event, handler));
     };
+    let runtimeResyncInFlight = false;
+
+    register<{ generation: number }>("runtime-resync-required", () => {
+      if (runtimeResyncInFlight) return;
+      runtimeResyncInFlight = true;
+      void (async () => {
+        const bootstrap = await openAgent.getStartupBootstrap<StartupBootstrap>();
+        await applyStartupBootstrap(bootstrap);
+        await invoke<number>("start_runtime_event_proxy");
+      })()
+        .catch((error) => {
+          console.error("Failed to restore Runtime state after event resync:", error);
+        })
+        .finally(() => {
+          runtimeResyncInFlight = false;
+        });
+    });
 
     register<{
       workspace: string | null;

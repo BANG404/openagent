@@ -22,6 +22,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   store or replay log. On terminal and checkpoint events, reload and reconcile
   the relevant durable conversation/checkpoint state; do not infer final state
   from event delivery or compensate with a host-local runtime state machine.
+  The external desktop Runtime proxy stops delivery when its SSE subscriber
+  lags or disconnects, emits `runtime-resync-required`, and resumes the stream
+  only after the route has restored and applied a fresh startup bootstrap.
 - Submit every ordinary chat message and slash command from either host through
   `submit_agent_input` so runtime routing and command semantics remain shared.
 - When the route is loaded from a versioned production frontend resource,

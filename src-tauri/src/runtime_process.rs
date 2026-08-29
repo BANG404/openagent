@@ -55,6 +55,12 @@ struct RunningRuntime {
     ready: RuntimeReady,
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct RuntimeConnection {
+    pub endpoint: Url,
+    pub token: String,
+}
+
 /// Owns the single replaceable Runtime child for one desktop host process.
 ///
 /// Callers must drain or cancel active work before `reload_after_drain`. The
@@ -96,6 +102,19 @@ impl RuntimeProcessSupervisor {
             .await
             .as_ref()
             .map(|runtime| process_status(&runtime.ready))
+    }
+
+    pub(crate) async fn connection(&self) -> Result<RuntimeConnection, String> {
+        let running = self.running.lock().await;
+        let runtime = running
+            .as_ref()
+            .ok_or_else(|| "Runtime process is not running".to_string())?;
+        let endpoint = Url::parse(&runtime.ready.endpoint)
+            .map_err(|error| format!("Runtime endpoint is invalid: {error}"))?;
+        Ok(RuntimeConnection {
+            endpoint,
+            token: runtime.token.clone(),
+        })
     }
 
     pub async fn stop(&self) -> Result<(), String> {

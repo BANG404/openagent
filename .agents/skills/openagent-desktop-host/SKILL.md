@@ -30,6 +30,11 @@ binary, and exclusive durable-state ownership.
   stop the old child through its private control pipe before starting a
   candidate, and restart the previous verified launch on failure. Keep that
   supervisor dormant while the embedded Runtime still owns durable state.
+- Keep the supervised Runtime Bearer token in Rust. WebViews send only bounded
+  `/api` method/path/body requests through the host proxy, while Rust attaches
+  authentication and relays the Runtime SSE bus to existing Tauri event names.
+  A lagged or disconnected SSE stream must stop live delivery and request a
+  durable frontend resync before a new stream is started.
 - Serve replaceable frontend versions only through the host-owned
   `openagent-ui` protocol. Activation must atomically retain the previous
   selection, reload every product WebView with the candidate version, require
