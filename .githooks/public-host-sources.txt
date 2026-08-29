@@ -1,0 +1,7 @@
+src-tauri/src/bin/openagent-agent-server.rs
+src-tauri/src/frontend_resource.rs
+src-tauri/src/lib.rs
+src-tauri/src/main.rs
+src-tauri/src/runtime_asset_protocol.rs
+src-tauri/src/runtime_process.rs
+src-tauri/src/runtime_transport.rs

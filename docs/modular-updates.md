@@ -40,6 +40,10 @@ after the old process exits. If candidate startup or probing fails, it restarts
 the previous launch specification. Ordinary release startup activates this
 supervisor before writable product operations are accepted, preserving the
 single-writer boundary.
+The supervisor, authenticated Tauri proxy, and host-owned resource protocols are
+public desktop adapters so contributors can build and extend the shell without
+receiving the private Runtime implementation. Agent execution, providers,
+prompts, persistence, and Runtime-owned state machines remain in the private SDK.
 
 The Runtime now exposes a Bearer-only drain barrier that blocks new HTTP writes,
 optionally cancels active conversations, and waits for authoritative run guards

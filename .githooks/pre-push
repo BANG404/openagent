@@ -7,6 +7,13 @@ if [ "$remote_name" != "origin" ]; then
 fi
 
 zero_sha="0000000000000000000000000000000000000000"
+hook_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+public_host_sources="$hook_dir/public-host-sources.txt"
+
+if [ ! -f "$public_host_sources" ]; then
+  echo "Push blocked: public host source allowlist is missing: $public_host_sources" >&2
+  exit 1
+fi
 
 verify_backend_absent() {
   commit="$1"
@@ -14,7 +21,7 @@ verify_backend_absent() {
     git ls-tree -r --name-only "$commit" -- \
       src-tauri/src \
       src-tauri/crates/openagent-runtime
-  } | grep -Ev '^(src-tauri/src/(lib|main)\.rs|src-tauri/src/bin/openagent-agent-server\.rs)$' || true)"
+  } | grep -Fvx -f "$public_host_sources" || true)"
   if [ -n "$unexpected" ]; then
     echo "Push blocked: commit $commit contains private backend source in the host repository:" >&2
     echo "$unexpected" >&2

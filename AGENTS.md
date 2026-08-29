@@ -66,6 +66,9 @@ state under `~/.openagent`.
 - `src-tauri/` contains thin entry points, Tauri plugins and commands, event
   adapters, desktop capabilities, build configuration, and packaging metadata.
   Runtime state machines and transport ownership stay in the SDK.
+- `.githooks/public-host-sources.txt` explicitly lists public Rust host adapters.
+  Add entries only for Tauri-owned native boundaries; SDK runtime behavior must
+  remain behind the `sdk` gitlink. Unlisted host Rust modules block pushes.
 - `src/routes/+page.svelte` is the frontend composition root. Put views in
   `src/lib/components/` and keep leaf components presentational.
 - Keep Tailwind source detection rooted in `src/`; repository documentation and
