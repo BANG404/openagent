@@ -5,6 +5,10 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { addDevUrlConfigArgument, findAvailableLoopbackPort } from "./tauri-dev-port.mjs";
+import {
+  addCargoTargetDirectoryArgument,
+  resolveTauriDevTargetDirectory,
+} from "./tauri-dev-target.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const tauriCli = path.join(root, "node_modules", "@tauri-apps", "cli", "tauri.js");
@@ -16,6 +20,14 @@ if (arguments_[0] === "dev") {
   const port = await findAvailableLoopbackPort();
   environment.OPENAGENT_DEV_PORT = String(port);
   arguments_ = addDevUrlConfigArgument(arguments_, port);
+  const customRunner = arguments_.some(
+    (argument) => argument === "--runner" || argument.startsWith("--runner="),
+  );
+  if (!environment.CARGO_TARGET_DIR && !customRunner) {
+    const targetDirectory = resolveTauriDevTargetDirectory(root, { environment });
+    arguments_ = addCargoTargetDirectoryArgument(arguments_, targetDirectory);
+    console.log(`Using isolated Cargo target directory ${targetDirectory}`);
+  }
   console.log(`Starting development server on http://localhost:${port}`);
 }
 

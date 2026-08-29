@@ -76,7 +76,13 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   RC and Stable promotions inherit the source component set, and legacy
   manifests without it conservatively select every component.
 - During Tauri development, pass the selected Vite URL as a CLI configuration
-  layer and stage rebuilt helper resources only when their bytes change.
+  layer and give the Cargo runner a stable external target directory derived
+  from the worktree plus `OPENAGENT_HOME`. This prevents Windows from locking a
+  different worktree or task fixture to the same `target/debug/openagent.exe`
+  while preserving incremental compilation for repeated runs. Respect an
+  explicit `CARGO_TARGET_DIR`, leave custom runners untouched, and do not leak
+  the derived directory into helper or private Runtime builds. Stage rebuilt
+  helper resources only when their bytes change.
 
 Use `deliver-via-pr` for repository delivery. Its preflight and CI handoff rules
 remain authoritative; do not duplicate ordinary CI locally.
