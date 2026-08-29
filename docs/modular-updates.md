@@ -50,6 +50,14 @@ the previous launch specification. The supervisor remains dormant while Tauri
 still owns the embedded runtime; activation before transport extraction would
 violate the single-writer boundary.
 
+The supervised server now accepts that process-scoped Bearer token for its typed
+product `/api` routes and exposes the transport-neutral Runtime event bus through
+an authenticated `/api/events` SSE stream. Bearer requests do not create browser
+sessions or bypass the loopback and workspace allowlists; paired browser clients
+retain their separate Cookie and CSRF boundary. The Tauri-side authenticated
+request/event proxy and the remaining desktop operation mappings must still be
+completed before the supervisor may replace the embedded Runtime.
+
 This boundary prevents two runtimes from writing the same SQLite state and avoids
 an unstable Rust ABI between the shell and SDK.
 
