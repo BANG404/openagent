@@ -63,22 +63,21 @@ The private SDK also has its own release train for headless and third-party
 consumers. An immutable `sdk-vX.Y.Z` release publishes the thin Harness package,
 platform `openagent-server` binaries, and `openagent-sdk-manifest.json` with the
 compatible protocol range, size, and SHA-256 for every target. That release does
-not require a desktop installer update. The desktop still embeds the runtime, so
-desktop runtime changes remain application updates until the supervised-process
-boundary in [modular-updates.md](modular-updates.md) is complete.
+not require a desktop installer update. Desktop Runtime changes are also
+eligible for the signed Runtime component channel and do not require a Tauri
+installer when the native shell is unchanged.
 
-Every desktop release also builds the pinned `openagent-server` for all four
-desktop targets, packages the matching binary as the installer's fallback
-sidecar, and uploads only those release-qualified binaries with a detached
+Runtime-selected desktop releases build the pinned `openagent-server` for all
+four desktop targets and upload only those release-qualified binaries with a detached
 Minisign signature over their manifest. After the versioned release is public,
 the same six files are atomically replaced on the fixed `runtime-beta`,
 `runtime-rc`, or `runtime-stable` release channel. The runtime channel uses
 the Tauri updater trust root, while each artifact's declared size and SHA-256
-protect the selected bytes. Publishing this dormant fallback and channel does
-not activate desktop modular updates before the host supervisor and typed
-transport extraction are complete.
+protect the selected bytes. Native-shell installers additionally package the
+same pinned server as the immutable fallback used when no downloaded candidate
+can be activated.
 
-The same desktop release builds the static frontend once, archives it as
+Frontend-selected releases build the static frontend once, archive it as
 `openagent-frontend.tar.gz`, records its exact compressed and unpacked sizes,
 file count, and SHA-256 in `openagent-frontend-manifest.json`, and signs that
 manifest with the updater trust root. The manifest also binds the frontend to
@@ -88,6 +87,16 @@ published through the fixed `frontend-beta`, `frontend-rc`, or
 native installer: WebViews reload the verified resource and confirm startup,
 while an unconfirmed activation rolls back to the previous resource or the
 frontend embedded in the Tauri bundle.
+
+Each generated `.github/release.json` records a `components` object with
+`frontend`, `runtime`, and `nativeShell` booleans. Beta preparation classifies
+the application diff and the actual paths changed between the old and new SDK
+gitlinks. RC and Stable promotions inherit the selected source release's
+component set. Manifests created before this field existed are treated
+conservatively as selecting all three components. Frontend-only releases build
+and publish only the signed frontend resource; Runtime-only releases build the
+four signed server resources; only `nativeShell` releases build Tauri updater
+artifacts, full first-install bundles, and eligible Microsoft Store packages.
 
 The selected release channel controls the suffix and GitHub Release state. The
 release-relevant Conventional Commits control the `X.Y.Z` base version:
@@ -168,17 +177,20 @@ allows the workflow to create the annotated tag or begin platform builds. The
 detection checkout includes complete tag history because release metadata
 validation resolves `previousTag` against local immutable tag refs.
 
-Only then does it:
+Only then does it, according to the selected component set:
 
 1. create or reuse a draft GitHub Release;
-2. build the lightweight application for Windows x64, Linux x64, macOS arm64,
-   and macOS Intel;
-3. upload its signed updater metadata and installer artifacts, then build and
-   upload one additional full first-install bundle per target;
-4. publish the draft after every target succeeds;
-5. update the fixed Beta or RC updater metadata when applicable;
-6. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published prerelease SHA when applicable;
-7. deploy the release landing page with the published tag.
+2. build Runtime resources for Windows x64, Linux x64, macOS arm64, and macOS
+   Intel when `runtime` is selected;
+3. build and upload Tauri updater/install artifacts and one full first-install
+   bundle per target only when `nativeShell` is selected;
+4. build and upload the platform-independent frontend resource when `frontend`
+   is selected;
+5. publish the draft after every selected component succeeds;
+6. update fixed component channels and, for native-shell prereleases only, the
+   fixed Beta or RC `latest.json`;
+7. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published prerelease SHA when applicable;
+8. deploy the release landing page with the published tag.
 
 Release binaries use the repository's size-oriented Cargo profile: full link-time
 optimization, one codegen unit, size optimization, abort-on-panic, stripped
@@ -200,8 +212,10 @@ and preserve the verified model under `OPENAGENT_HOME`.
 Prerelease updater channel tags and download URLs use the lowercase manifest
 values `beta` and `rc`. GitHub release tags and asset URLs are case-sensitive,
 so the release workflow must pass the manifest channel through unchanged when
-creating the channel release, uploading `latest.json`, and verifying its public
-URL. The packaged updater endpoint uses the same lowercase channel name.
+creating a native-shell channel release, uploading `latest.json`, and verifying
+its public URL. Frontend-only and Runtime-only releases do not create or replace
+Tauri updater metadata. The packaged updater endpoint uses the same lowercase
+channel name.
 
 The Linux target first builds `codex-bwrap` from the immutable Codex revision
 pinned by the SDK, strips the helper, and exports its SHA-256 before Tauri

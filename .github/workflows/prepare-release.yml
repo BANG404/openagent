@@ -37,10 +37,15 @@ jobs:
       - name: Require administrator push token
         env:
           ADMIN_MERGE_TOKEN: ${{ secrets.ADMIN_MERGE_TOKEN }}
+          OPENAGENT_SDK_DEPLOY_KEY: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
         shell: bash
         run: |
           if [[ -z "$ADMIN_MERGE_TOKEN" ]]; then
             echo "Repository secret ADMIN_MERGE_TOKEN is required for direct release pushes." >&2
+            exit 1
+          fi
+          if [[ -z "$OPENAGENT_SDK_DEPLOY_KEY" ]]; then
+            echo "Repository secret OPENAGENT_SDK_DEPLOY_KEY is required for release classification." >&2
             exit 1
           fi
 
@@ -128,6 +133,7 @@ jobs:
                 tests/ciChanges.test.js \
                 tests/docsSync.test.js \
                 tests/releaseCi.test.js \
+                tests/releaseComponents.test.js \
                 tests/releaseVersion.test.js
               git config user.name "github-actions[bot]"
               git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -138,6 +144,7 @@ jobs:
                 tests/ciChanges.test.js \
                 tests/docsSync.test.js \
                 tests/releaseCi.test.js \
+                tests/releaseComponents.test.js \
                 tests/releaseVersion.test.js
               # Keep the archive head separate from the promoted release
               # marker so branch creation cannot be mistaken for a new release.
@@ -154,6 +161,21 @@ jobs:
             echo "source_tag=$source_tag"
             echo "promotion_arg=$promotion_arg"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Resolve pinned SDK revision for component classification
+        id: sdk
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out private SDK for component classification
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ steps.sdk.outputs.sha }}
+          path: sdk
+          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Resolve or generate the release commit
         id: release

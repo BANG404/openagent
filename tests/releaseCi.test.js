@@ -175,6 +175,44 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("openagent-frontend-manifest.json.sig");
   });
 
+  test("builds only the release components selected by the manifest", () => {
+    expect(releaseWorkflow).toContain(
+      "const components = manifest.components ?? { frontend: true, runtime: true, nativeShell: true };",
+    );
+    expect(releaseWorkflow).toContain("console.log(`frontend=${components.frontend === true}`)");
+    expect(releaseWorkflow).toContain("console.log(`runtime=${components.runtime === true}`)");
+    expect(releaseWorkflow).toContain(
+      "console.log(`native_shell=${components.nativeShell === true}`)",
+    );
+    expect(releaseWorkflow).toContain(
+      "&& (needs.detect.outputs.native_shell == 'true' || needs.detect.outputs.runtime == 'true')",
+    );
+    expect(releaseWorkflow).toContain(
+      "if: needs.detect.outputs.native_shell == 'true'\n        uses: tauri-apps/tauri-action@v0",
+    );
+    expect(releaseWorkflow).toContain("name: Build qualified runtime component");
+    expect(releaseWorkflow).toContain(
+      'bun scripts/prepare-runtime-server.mjs --profile release "${target_args[@]}"',
+    );
+  });
+
+  test("keeps resource-only releases independent from native publishing", () => {
+    const frontendJob = releaseWorkflow.match(
+      / {2}frontend-components:\n(?<job>[\s\S]*?)\n {2}publish-store:/,
+    )?.groups?.job;
+    const storeJob = releaseWorkflow.match(/ {2}publish-store:\n(?<job>[\s\S]*?)\n {2}publish:/)
+      ?.groups?.job;
+
+    expect(frontendJob).not.toContain("- build");
+    expect(frontendJob).toContain("repository: BANG404/openagent-sdk");
+    expect(frontendJob).toContain("needs.detect.outputs.frontend == 'true'");
+    expect(storeJob).toContain("needs.detect.outputs.native_shell == 'true'");
+    expect(releaseWorkflow).toContain(
+      "if: needs.detect.outputs.native_shell == 'true' && needs.detect.outputs.prerelease == 'true'",
+    );
+    expect(releaseWorkflow).toContain("needs.detect.outputs.runtime == 'true'");
+  });
+
   test("refreshes an unpublished Beta marker onto the latest master source", () => {
     expect(prepareReleaseWorkflow).toContain("ref: master");
     expect(prepareReleaseWorkflow).toContain(

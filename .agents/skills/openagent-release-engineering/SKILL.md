@@ -53,12 +53,17 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   publish only those release-qualified binaries through a fixed runtime channel
   whose manifest has a detached signature from the Tauri updater trust root.
   Ordinary public CI artifacts and caches must still never expose private SDK
-  outputs. Do not describe the channel as an active desktop hot update until the
-  host supervisor and transport extraction are complete.
+  outputs. The release desktop activates verified candidates through the
+  supervised external Runtime transaction.
 - Publish the platform-independent frontend archive, bounded manifest, and
   detached signature only from the release-qualified static build. Refresh the
   matching fixed `frontend-beta`, `frontend-rc`, or `frontend-stable` channel
   after the immutable release is public.
+- Record `frontend`, `runtime`, and `nativeShell` in release metadata. Component
+  releases build only their selected resources; only `nativeShell` builds Tauri
+  updater artifacts, full installers, Store packages, or fixed `latest.json`.
+  RC and Stable promotions inherit the source component set, and legacy
+  manifests without it conservatively select every component.
 - During Tauri development, pass the selected Vite URL as a CLI configuration
   layer and stage rebuilt helper resources only when their bytes change.
 

@@ -32,6 +32,9 @@ jobs:
       tag: ${{ steps.release.outputs.tag }}
       channel: ${{ steps.release.outputs.channel }}
       prerelease: ${{ steps.release.outputs.prerelease }}
+      frontend: ${{ steps.release.outputs.frontend }}
+      runtime: ${{ steps.release.outputs.runtime }}
+      native_shell: ${{ steps.release.outputs.native_shell }}
       sha: ${{ github.sha }}
     steps:
       - name: Detect release marker change
@@ -122,10 +125,14 @@ jobs:
           bun scripts/release.mjs --verify
           node <<'NODE' >> "$GITHUB_OUTPUT"
           const manifest = JSON.parse(require("fs").readFileSync(".github/release.json", "utf8"));
+          const components = manifest.components ?? { frontend: true, runtime: true, nativeShell: true };
           console.log("active=true");
           console.log(`tag=${manifest.tag}`);
           console.log(`channel=${manifest.channel}`);
           console.log(`prerelease=${manifest.channel !== "stable"}`);
+          console.log(`frontend=${components.frontend === true}`);
+          console.log(`runtime=${components.runtime === true}`);
+          console.log(`native_shell=${components.nativeShell === true}`);
           NODE
 
       - name: Require private release credentials
@@ -135,6 +142,7 @@ jobs:
           OPENAGENT_SDK_DEPLOY_KEY: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           PRERELEASE: ${{ steps.release.outputs.prerelease }}
+          NATIVE_SHELL: ${{ steps.release.outputs.native_shell }}
           AZURE_AD_APPLICATION_CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
           AZURE_AD_APPLICATION_SECRET: ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
           AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
@@ -153,7 +161,7 @@ jobs:
             exit 1
           fi
 
-          if [[ "$PRERELEASE" == "false" ]]; then
+          if [[ "$PRERELEASE" == "false" && "$NATIVE_SHELL" == "true" ]]; then
             required_store_secrets=(
               AZURE_AD_APPLICATION_CLIENT_ID
               AZURE_AD_APPLICATION_SECRET
@@ -274,7 +282,9 @@ jobs:
     needs:
       - detect
       - create-draft
-    if: needs.create-draft.outputs.published != 'true'
+    if: >-
+      needs.create-draft.outputs.published != 'true'
+      && (needs.detect.outputs.native_shell == 'true' || needs.detect.outputs.runtime == 'true')
     strategy:
       fail-fast: false
       matrix:
@@ -340,10 +350,14 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Set up WinApp CLI
-        if: matrix.platform == 'windows-latest' && needs.detect.outputs.prerelease != 'true'
+        if: >-
+          needs.detect.outputs.native_shell == 'true'
+          && matrix.platform == 'windows-latest'
+          && needs.detect.outputs.prerelease != 'true'
         uses: microsoft/setup-WinAppCli@v0.1
 
       - name: Install frontend dependencies
+        if: needs.detect.outputs.native_shell == 'true'
         run: bun install --frozen-lockfile
 
       - name: Install Linux dependencies
@@ -361,7 +375,7 @@ jobs:
             pkg-config
 
       - name: Prepare pinned Linux sandbox helper
-        if: matrix.platform == 'ubuntu-22.04'
+        if: needs.detect.outputs.native_shell == 'true' && matrix.platform == 'ubuntu-22.04'
         shell: bash
         run: |
           if ! node scripts/prepare-linux-sandbox-helper.mjs --profile release --github-env >"$RUNNER_TEMP/linux-sandbox-helper-build.log" 2>&1; then
@@ -372,6 +386,7 @@ jobs:
       # This is the authoritative full product compilation for the immutable
       # release SHA. Pull-request and master CI validate source-level modules.
       - name: Build and upload to GitHub Release
+        if: needs.detect.outputs.native_shell == 'true'
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -386,7 +401,20 @@ jobs:
           retryAttempts: 2
           args: ${{ matrix.args }}
 
+      - name: Build qualified runtime component
+        if: needs.detect.outputs.runtime == 'true'
+        shell: bash
+        env:
+          RUST_TARGET: ${{ matrix.rust_target }}
+        run: |
+          target_args=()
+          if [[ -n "$RUST_TARGET" ]]; then
+            target_args+=(--target "$RUST_TARGET")
+          fi
+          bun scripts/prepare-runtime-server.mjs --profile release "${target_args[@]}"
+
       - name: Stage qualified runtime component
+        if: needs.detect.outputs.runtime == 'true'
         shell: bash
         env:
           RUNTIME_SIDECAR: ${{ matrix.runtime_sidecar }}
@@ -397,6 +425,7 @@ jobs:
             "$RUNNER_TEMP/runtime-component/$RUNTIME_ARTIFACT"
 
       - name: Upload qualified runtime component
+        if: needs.detect.outputs.runtime == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: runtime-component-${{ matrix.runtime_target }}
@@ -405,18 +434,23 @@ jobs:
           retention-days: 7
 
       - name: Build full first-install bundle
+        if: needs.detect.outputs.native_shell == 'true'
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           OPENAGENT_LOGS_INGEST_TOKEN: ${{ secrets.OPENAGENT_LOGS_INGEST_TOKEN }}
         run: bun run tauri:build:full -- ${{ matrix.args }}
 
       - name: Upload full first-install bundle
+        if: needs.detect.outputs.native_shell == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/upload-full-release-asset.mjs --tag ${{ needs.detect.outputs.tag }}
 
       - name: Build Microsoft Store package
-        if: matrix.platform == 'windows-latest' && needs.detect.outputs.prerelease != 'true'
+        if: >-
+          needs.detect.outputs.native_shell == 'true'
+          && matrix.platform == 'windows-latest'
+          && needs.detect.outputs.prerelease != 'true'
         shell: pwsh
         env:
           MS_STORE_PACKAGE_IDENTITY_NAME: ${{ vars.MS_STORE_PACKAGE_IDENTITY_NAME }}
@@ -526,7 +560,10 @@ jobs:
           }
 
       - name: Upload Microsoft Store package
-        if: matrix.platform == 'windows-latest' && needs.detect.outputs.prerelease != 'true'
+        if: >-
+          needs.detect.outputs.native_shell == 'true'
+          && matrix.platform == 'windows-latest'
+          && needs.detect.outputs.prerelease != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: openagent-store-msix
@@ -542,6 +579,7 @@ jobs:
       - build
     if: >-
       needs.create-draft.outputs.published != 'true'
+      && needs.detect.outputs.runtime == 'true'
       && needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -610,15 +648,28 @@ jobs:
     needs:
       - detect
       - create-draft
-      - build
     if: >-
       needs.create-draft.outputs.published != 'true'
-      && needs.build.result == 'success'
+      && needs.detect.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.detect.outputs.tag }}
+
+      - name: Resolve pinned SDK revision
+        id: sdk
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ steps.sdk.outputs.sha }}
+          path: sdk
+          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          persist-credentials: false
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -667,7 +718,8 @@ jobs:
       - create-draft
       - build
     if: >-
-      needs.detect.outputs.prerelease != 'true'
+      needs.detect.outputs.native_shell == 'true'
+      && needs.detect.outputs.prerelease != 'true'
       && needs.create-draft.outputs.published != 'true'
       && needs.build.result == 'success'
     runs-on: windows-latest
@@ -870,7 +922,7 @@ jobs:
           exit 1
 
       - name: Update prerelease updater channel
-        if: needs.detect.outputs.prerelease == 'true'
+        if: needs.detect.outputs.native_shell == 'true' && needs.detect.outputs.prerelease == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

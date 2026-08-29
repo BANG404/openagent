@@ -7,6 +7,13 @@ import {
   getLatestReleaseTag,
   getPromotion,
 } from "./release-version.mjs";
+import {
+  allReleaseComponents,
+  classifyReleaseComponents,
+  hasReleaseComponents,
+  isReleaseComponents,
+  normalizeReleaseComponents,
+} from "./release-components.mjs";
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
@@ -273,8 +280,16 @@ function updateCargoLock(version) {
   writeFileSync(file, updated);
 }
 
-function updateReleaseManifest(version, tag, channel, sourceSha, previousTag, sourceTag = "") {
-  const manifest = { ready: true, version, tag, channel, sourceSha, previousTag };
+function updateReleaseManifest(
+  version,
+  tag,
+  channel,
+  sourceSha,
+  previousTag,
+  components,
+  sourceTag = "",
+) {
+  const manifest = { ready: true, version, tag, channel, sourceSha, previousTag, components };
   if (sourceTag) manifest.sourceTag = sourceTag;
   writeFileSync(releaseManifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
 }
@@ -392,6 +407,13 @@ function verifyPendingRelease() {
   }
   if (manifest.previousTag && !tagExists(manifest.previousTag)) {
     throw new Error(`Previous release tag ${manifest.previousTag} does not exist.`);
+  }
+  if (manifest.components !== undefined && !isReleaseComponents(manifest.components)) {
+    throw new Error("Release manifest components are invalid.");
+  }
+  const components = normalizeReleaseComponents(manifest.components);
+  if (!hasReleaseComponents(components)) {
+    throw new Error("Release manifest does not select a publishable component.");
   }
   if (sourceTag) {
     const expectedSourceChannel = manifest.channel === "rc" ? "beta" : "rc";
@@ -687,6 +709,35 @@ function main() {
     ? []
     : getReleaseRelevantCommitMessages(releaseBaseTag).map(parseConventionalCommit).filter(Boolean);
   const bump = determineBump(commits);
+  const sourceBase = lastTag ? git(["merge-base", lastTag, "HEAD"]) : "";
+  const sourceFiles = promotionSourceTag
+    ? []
+    : git(["diff", "--name-only", ...(sourceBase ? [sourceBase, "HEAD"] : ["HEAD"])])
+        .split(/\r?\n/)
+        .map((file) => file.trim())
+        .filter(Boolean);
+  let sdkFiles = null;
+  if (!promotionSourceTag && sourceFiles.includes("sdk")) {
+    try {
+      const previousSdk = sourceBase ? git(["rev-parse", `${sourceBase}:sdk`]) : "";
+      const currentSdk = git(["rev-parse", "HEAD:sdk"]);
+      sdkFiles = previousSdk
+        ? execFileSync("git", ["-C", "sdk", "diff", "--name-only", previousSdk, currentSdk], {
+            encoding: "utf8",
+          })
+            .trim()
+            .split(/\r?\n/)
+            .filter(Boolean)
+        : null;
+    } catch {
+      sdkFiles = null;
+    }
+  }
+  let components = promotionSourceTag
+    ? normalizeReleaseComponents(
+        readReferenceJson(promotionSourceTag, releaseManifestFile)?.components,
+      )
+    : classifyReleaseComponents(sourceFiles, sdkFiles);
   const current = parseSemver(releaseBaseVersion);
   const promotion =
     ((channel === "rc" && current.prereleaseChannel === "beta") ||
@@ -698,6 +749,14 @@ function main() {
   // would compare lower than an installed 0.24.0. Move the next Beta to the
   // following patch line once; later releases retain the full Beta version.
   const migrateLegacyBetaVersion = betaIncrement && currentTauriVersion === current.base;
+  if (!hasReleaseComponents(components)) {
+    if (betaIncrement) {
+      components = allReleaseComponents();
+    } else {
+      console.log("No desktop release components changed.");
+      return;
+    }
+  }
 
   if (bump === "none" && !promotion && !betaIncrement) {
     console.log("No release-worthy Conventional Commits found.");
@@ -734,7 +793,15 @@ function main() {
   updateTauriConfig(nextVersion, channel);
   updateCargoToml(nextVersion);
   updateCargoLock(nextVersion);
-  updateReleaseManifest(nextVersion, nextTag, channel, sourceSha, lastTag, promotionSourceTag);
+  updateReleaseManifest(
+    nextVersion,
+    nextTag,
+    channel,
+    sourceSha,
+    lastTag,
+    components,
+    promotionSourceTag,
+  );
   if (promotion) {
     updatePromotionChangelog(nextVersion, currentVersion, channel);
   } else {
