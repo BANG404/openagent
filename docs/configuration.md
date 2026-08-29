@@ -11,6 +11,13 @@ development configuration schema cannot rewrite state used by an installed
 release. Set `OPENAGENT_HOME` explicitly when a development run should use a
 specific fixture or deliberately share another root.
 
+In release desktop builds, one supervised external Runtime is the sole writer
+for `OPENAGENT_HOME`. The Tauri host does not construct a second embedded
+Runtime against the same root. A packaged Runtime binary is retained only as a
+verified launch fallback; downloaded candidates are installed under
+`resources/runtime/` and become writers only after the old supervised process
+has drained and exited.
+
 An existing platform configuration directory—such as
 `%APPDATA%\openagent` on Windows, `~/.config/openagent` on Linux, or the former
 Application Support location on macOS—is moved to `~/.openagent` once when the

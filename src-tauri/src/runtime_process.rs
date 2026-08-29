@@ -16,6 +16,7 @@ pub struct RuntimeLaunchSpec {
     pub binary_path: PathBuf,
     pub workspace: PathBuf,
     pub openagent_home: PathBuf,
+    pub primary_desktop_services: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
@@ -195,6 +196,9 @@ impl RuntimeProcessSupervisor {
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .kill_on_drop(true);
+        if spec.primary_desktop_services {
+            command.arg("--desktop-primary");
+        }
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
@@ -247,7 +251,7 @@ impl RuntimeProcessSupervisor {
     async fn probe_health(&self, ready: &RuntimeReady, token: &str) -> Result<(), String> {
         let health_url = Url::parse(&ready.endpoint)
             .map_err(|error| format!("Runtime endpoint is invalid: {error}"))?
-            .join("/v1/health")
+            .join("/api/desktop/health")
             .map_err(|error| format!("Runtime health URL is invalid: {error}"))?;
         let health: RuntimeHealth = self
             .client

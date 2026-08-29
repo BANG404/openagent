@@ -13,6 +13,13 @@ test("production update checks prefer a verified frontend resource without resta
   expect(updater).toContain("if (import.meta.env.DEV) return false");
 });
 
+test("production update checks can activate a verified Runtime without a shell update", () => {
+  expect(updater).toContain('invoke<PreparedRuntimeResource>("prepare_runtime_resource")');
+  expect(updater).toContain('invoke("activate_runtime_resource"');
+  expect(updater).toContain('translate("updateAndReconnect")');
+  expect(updater).toContain("runtimeUpdateAvailable && !frontendUpdateAvailable");
+});
+
 test("versioned WebViews confirm activation through the host handshake", () => {
   expect(route).toContain('runtimeQuery?.get("frontend-version")');
   expect(route).toContain('invoke("confirm_frontend_activation"');

@@ -28,6 +28,12 @@ pub struct RuntimeProxyResponse {
     pub body: String,
 }
 
+pub struct RuntimeAssetProxyResponse {
+    pub status: u16,
+    pub headers: Vec<(String, String)>,
+    pub body: Vec<u8>,
+}
+
 #[derive(Debug, Deserialize)]
 struct ProjectedRuntimeEvent {
     name: String,
@@ -133,6 +139,153 @@ pub async fn proxy_runtime_request(
         content_type,
         body,
     })
+}
+
+pub async fn proxy_webview_runtime_request(
+    supervisor: &RuntimeProcessSupervisor,
+    request: RuntimeProxyRequest,
+) -> Result<RuntimeProxyResponse, String> {
+    validate_webview_product_request(&request)?;
+    proxy_runtime_request(supervisor, request).await
+}
+
+pub async fn proxy_runtime_asset_request(
+    supervisor: &RuntimeProcessSupervisor,
+    method: &str,
+    path: &str,
+    range: Option<&str>,
+) -> Result<RuntimeAssetProxyResponse, String> {
+    validate_runtime_asset_request(method, path)?;
+    let connection = supervisor.connection().await?;
+    let url = resolve_api_url(&connection.endpoint, path)?;
+    let method = match method {
+        "GET" => Method::GET,
+        "HEAD" => Method::HEAD,
+        _ => return Err("Runtime asset method is not allowed".to_string()),
+    };
+    let mut outbound = reqwest::Client::new()
+        .request(method, url)
+        .bearer_auth(&connection.token);
+    if let Some(range) = range {
+        outbound = outbound.header(reqwest::header::RANGE, range);
+    }
+    let mut response = outbound
+        .send()
+        .await
+        .map_err(|error| format!("Runtime asset request failed: {error}"))?;
+    let status = response.status().as_u16();
+    let headers = [
+        reqwest::header::CONTENT_TYPE,
+        reqwest::header::CONTENT_LENGTH,
+        reqwest::header::CONTENT_RANGE,
+        reqwest::header::ACCEPT_RANGES,
+    ]
+    .into_iter()
+    .filter_map(|name| {
+        response
+            .headers()
+            .get(&name)
+            .and_then(|value| value.to_str().ok())
+            .map(|value| (name.as_str().to_string(), value.to_string()))
+    })
+    .collect();
+    let mut body = Vec::new();
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|error| format!("Runtime asset response failed: {error}"))?
+    {
+        if body.len().saturating_add(chunk.len()) > MAX_PROXY_BODY_BYTES {
+            return Err("Runtime asset response exceeds the desktop proxy limit".to_string());
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Ok(RuntimeAssetProxyResponse {
+        status,
+        headers,
+        body,
+    })
+}
+
+fn validate_runtime_asset_request(method: &str, path: &str) -> Result<(), String> {
+    if !matches!(method, "GET" | "HEAD") {
+        return Err("Runtime asset method is not allowed".to_string());
+    }
+    let url = Url::parse("http://openagent.runtime")
+        .and_then(|base| base.join(path))
+        .map_err(|error| format!("Runtime asset path is invalid: {error}"))?;
+    let segments = url
+        .path_segments()
+        .map(|segments| segments.collect::<Vec<_>>())
+        .unwrap_or_default();
+    let allowed = matches!(segments.as_slice(), ["api", "media-assets", _])
+        || matches!(segments.as_slice(), ["api", "html-assets", _, _, ..]);
+    if url.origin() != Url::parse("http://openagent.runtime").unwrap().origin()
+        || !allowed
+        || path.contains(['\r', '\n', '#'])
+        || path.starts_with("//")
+    {
+        return Err("Runtime asset path is not allowed".to_string());
+    }
+    Ok(())
+}
+
+fn validate_webview_product_request(request: &RuntimeProxyRequest) -> Result<(), String> {
+    let method = parse_method(&request.method)?;
+    let url = Url::parse("http://openagent.runtime")
+        .and_then(|base| base.join(&request.path))
+        .map_err(|error| format!("Runtime proxy path is invalid: {error}"))?;
+    if url.origin() != Url::parse("http://openagent.runtime").unwrap().origin()
+        || !request.path.starts_with("/api/")
+        || request.path.contains(['\r', '\n', '#'])
+        || request.path.starts_with("//")
+    {
+        return Err("Runtime proxy path is not allowed".to_string());
+    }
+
+    let segments = url
+        .path_segments()
+        .map(|segments| segments.collect::<Vec<_>>())
+        .unwrap_or_default();
+    let allowed = match (method, segments.as_slice()) {
+        (Method::GET, ["api", "desktop", "bootstrap"])
+        | (Method::GET, ["api", "session"])
+        | (Method::GET, ["api", "workspaces"])
+        | (Method::GET, ["api", "models"])
+        | (Method::GET, ["api", "commands"])
+        | (Method::GET, ["api", "preferences"])
+        | (Method::GET, ["api", "workspaces", _, "roles"])
+        | (Method::GET, ["api", "workspaces", _, "files"])
+        | (Method::GET, ["api", "workspaces", _, "conversations"])
+        | (Method::GET, ["api", "conversations", _])
+        | (Method::GET, ["api", "conversations", _, "history"])
+        | (Method::GET, ["api", "attachments", _])
+        | (Method::POST, ["api", "pair"])
+        | (Method::POST, ["api", "desktop", "operations"])
+        | (Method::POST, ["api", "conversations"])
+        | (Method::POST, ["api", "attachments"])
+        | (Method::POST, ["api", "attachments", _])
+        | (Method::POST, ["api", "conversations", _, "active-tip"])
+        | (Method::POST, ["api", "conversations", _, "fork-runs"])
+        | (Method::POST, ["api", "conversations", _, "cancel"])
+        | (Method::POST, ["api", "conversations", _, "runs"])
+        | (Method::POST, ["api", "conversations", _, "stream", "pause"])
+        | (Method::POST, ["api", "conversations", _, "memory-retrieval", "skip"])
+        | (Method::POST, ["api", "conversations", _, "interrupts", _])
+        | (Method::POST, ["api", "conversations", _, "interrupts", _, "response"])
+        | (Method::POST, ["api", "conversations", _, "file-changes", _, "revert"])
+        | (Method::POST, ["api", "conversations", _, "workspace", "open"])
+        | (Method::POST, ["api", "conversations", _, "workspace", "text-snippet"])
+        | (Method::POST, ["api", "conversations", _, "workspace", "media"])
+        | (Method::POST, ["api", "conversations", _, "workspace", "html-preview"])
+        | (Method::PATCH, ["api", "conversations", _])
+        | (Method::DELETE, ["api", "conversations", _]) => true,
+        _ => false,
+    };
+    if !allowed {
+        return Err("Runtime product operation is not available to the WebView".to_string());
+    }
+    Ok(())
 }
 
 fn parse_method(method: &str) -> Result<Method, String> {
@@ -248,7 +401,10 @@ fn parse_sse_frame(frame: &[u8]) -> Result<Option<(String, String)>, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{find_sse_frame, parse_method, parse_sse_frame, resolve_api_url};
+    use super::{
+        find_sse_frame, parse_method, parse_sse_frame, resolve_api_url,
+        validate_runtime_asset_request, validate_webview_product_request, RuntimeProxyRequest,
+    };
     use reqwest::{Method, Url};
 
     #[test]
@@ -270,6 +426,51 @@ mod tests {
         assert_eq!(parse_method("PATCH").unwrap(), Method::PATCH);
         assert_eq!(parse_method("DELETE").unwrap(), Method::DELETE);
         assert!(parse_method("PUT").is_err());
+    }
+
+    #[test]
+    fn webview_proxy_allows_product_operations_but_denies_lifecycle_control() {
+        for (method, path) in [
+            ("GET", "/api/desktop/bootstrap"),
+            ("GET", "/api/workspaces/workspace-1/files?query=src"),
+            ("POST", "/api/conversations/conv-1/runs"),
+            ("POST", "/api/desktop/operations"),
+            ("PATCH", "/api/conversations/conv-1"),
+        ] {
+            validate_webview_product_request(&RuntimeProxyRequest {
+                method: method.to_string(),
+                path: path.to_string(),
+                body: None,
+            })
+            .unwrap();
+        }
+
+        for (method, path) in [
+            ("POST", "/api/desktop/drain"),
+            ("GET", "/api/events"),
+            ("POST", "/api/conversations/conv-1/admin"),
+            ("GET", "//example.com/api/conversations/conv-1"),
+        ] {
+            assert!(validate_webview_product_request(&RuntimeProxyRequest {
+                method: method.to_string(),
+                path: path.to_string(),
+                body: None,
+            })
+            .is_err());
+        }
+    }
+
+    #[test]
+    fn runtime_asset_proxy_accepts_only_bounded_read_routes() {
+        assert!(validate_runtime_asset_request("GET", "/api/media-assets/token").is_ok());
+        assert!(
+            validate_runtime_asset_request("HEAD", "/api/html-assets/token/assets/app.css").is_ok()
+        );
+        assert!(validate_runtime_asset_request("POST", "/api/media-assets/token").is_err());
+        assert!(validate_runtime_asset_request("GET", "/api/desktop/bootstrap").is_err());
+        assert!(
+            validate_runtime_asset_request("GET", "//example.com/api/media-assets/token").is_err()
+        );
     }
 
     #[test]

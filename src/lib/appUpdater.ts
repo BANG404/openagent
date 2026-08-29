@@ -25,6 +25,61 @@ type PreparedFrontendResource = {
   update_available: boolean;
 };
 
+type PreparedRuntimeResource = {
+  version: string;
+  target: string;
+  update_available: boolean;
+};
+
+async function activateRuntimeResource(candidate: PreparedRuntimeResource): Promise<void> {
+  if (get(mutableAppUpdateState) !== "idle") return;
+  mutableAppUpdateState.set("installing");
+  const progressToastId = showToast({
+    title: translate("runtimeUpdateInProgress"),
+    description: translate("runtimeUpdateInProgressDescription"),
+    durationMs: 0,
+  });
+  try {
+    await invoke("activate_runtime_resource", {
+      version: candidate.version,
+      target: candidate.target,
+    });
+    showToast({
+      title: translate("runtimeUpdateInstalled"),
+      description: translate("runtimeUpdateInstalledDescription"),
+      durationMs: 5000,
+    });
+  } catch (error) {
+    showToast({
+      title: translate("updateFailed"),
+      description: describeError(error),
+      variant: "error",
+      durationMs: 8000,
+    });
+  } finally {
+    dismissToast(progressToastId);
+    mutableAppUpdateState.set("idle");
+  }
+}
+
+async function checkForRuntimeResourceUpdate(): Promise<boolean> {
+  if (import.meta.env.DEV) return false;
+  const candidate = await withAppUpdateTimeout(
+    invoke<PreparedRuntimeResource>("prepare_runtime_resource"),
+  );
+  if (!candidate.update_available) return false;
+  showToast({
+    title: `${translate("runtimeUpdateAvailable")} ${candidate.version}`,
+    description: translate("runtimeUpdateAvailableDescription"),
+    durationMs: 0,
+    action: {
+      label: translate("updateAndReconnect"),
+      onClick: () => activateRuntimeResource(candidate),
+    },
+  });
+  return true;
+}
+
 async function checkForFrontendResourceUpdate(): Promise<boolean> {
   if (import.meta.env.DEV) return false;
   const candidate = await withAppUpdateTimeout(
@@ -132,6 +187,12 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
   mutableAppUpdateState.set("checking");
 
   try {
+    let runtimeUpdateAvailable = false;
+    try {
+      runtimeUpdateAvailable = await checkForRuntimeResourceUpdate();
+    } catch (error) {
+      console.warn("[openagent] Runtime resource update check failed", error);
+    }
     let frontendUpdateAvailable = false;
     try {
       frontendUpdateAvailable = await checkForFrontendResourceUpdate();
@@ -140,7 +201,7 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
     }
     const update = await withAppUpdateTimeout(check());
     if (!update) {
-      if (notifyWhenUpToDate && !frontendUpdateAvailable) {
+      if (notifyWhenUpToDate && !runtimeUpdateAvailable && !frontendUpdateAvailable) {
         showToast({
           title: translate("updateCurrent"),
           description: translate("updateCurrentDescription"),

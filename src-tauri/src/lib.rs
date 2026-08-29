@@ -8,8 +8,8 @@ use openagent_app::pending_development_persistence_transition as pending_product
 use openagent_app::pending_persistence_transition as pending_product_persistence_transition;
 use openagent_app::{
     apply_persistence_transition, EmbeddingResourceManager, EmbeddingResourceStatus,
-    InstalledRuntimeResource, PersistenceTransitionPlan, RuntimeResourceManager,
-    RuntimeResourceSource,
+    ExternalRuntimeLaunch, InstalledRuntimeResource, PersistenceTransitionPlan,
+    RuntimeResourceManager, RuntimeResourceSource,
 };
 use openagent_runtime::checkpoint::{
     BranchMeta, CheckpointMeta, ConvPatch, ConversationMeta, FileChange, RenderableCheckpoint,
@@ -24,7 +24,7 @@ use openagent_runtime::conversation_memory::{
 };
 use openagent_runtime::skills::SkillMetadata;
 use openagent_runtime::state::{
-    OpenAgentRuntime, RuntimeAsset, RuntimeHost, ScheduledChatHookDefinition,
+    HtmlPreviewRoots, OpenAgentRuntime, RuntimeAsset, RuntimeHost, ScheduledChatHookDefinition,
 };
 use openagent_runtime::tools::ScheduleChatHookArgs;
 use openagent_runtime::{
@@ -36,6 +36,7 @@ use std::sync::Arc;
 use tauri::{path::BaseDirectory, Emitter, Manager, State};
 
 pub mod frontend_resource;
+pub mod runtime_asset_protocol;
 pub mod runtime_process;
 pub mod runtime_transport;
 
@@ -69,6 +70,59 @@ struct ActivatedRuntimeResource {
 struct RuntimeUpdateState {
     pending: tokio::sync::Mutex<Option<InstalledRuntimeResource>>,
     lifecycle: tokio::sync::Mutex<()>,
+}
+
+#[derive(Default)]
+struct DesktopWindowState {
+    startup_window_revealed: std::sync::atomic::AtomicBool,
+}
+
+struct HostRuntimeBootstrap {
+    initial_locale: String,
+    runtime: Option<Arc<OpenAgentRuntime>>,
+    html_preview_roots: HtmlPreviewRoots,
+    external_launch: Option<ExternalRuntimeLaunch>,
+}
+
+fn prepare_host_runtime(agent_server: bool) -> anyhow::Result<HostRuntimeBootstrap> {
+    #[cfg(debug_assertions)]
+    {
+        let RuntimeBootstrap {
+            initial_locale,
+            runtime,
+            html_preview_roots,
+        } = bootstrap_product_runtime(agent_server)?;
+        Ok(HostRuntimeBootstrap {
+            initial_locale,
+            runtime: Some(runtime),
+            html_preview_roots,
+            external_launch: None,
+        })
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        if agent_server {
+            let RuntimeBootstrap {
+                initial_locale,
+                runtime,
+                html_preview_roots,
+            } = bootstrap_product_runtime(true)?;
+            return Ok(HostRuntimeBootstrap {
+                initial_locale,
+                runtime: Some(runtime),
+                html_preview_roots,
+                external_launch: None,
+            });
+        }
+        let launch = openagent_app::prepare_external_runtime_launch()?;
+        Ok(HostRuntimeBootstrap {
+            initial_locale: launch.initial_locale.clone(),
+            runtime: None,
+            html_preview_roots: Default::default(),
+            external_launch: Some(launch),
+        })
+    }
 }
 
 const EMBEDDING_MODEL_RESOURCE_PATH: &str = "models/all-MiniLM-L6-v2-q";
@@ -195,6 +249,7 @@ fn bundled_embedding_seed(app: &tauri::AppHandle) -> Option<std::path::PathBuf> 
         .filter(|path| path.is_dir())
 }
 
+#[cfg(debug_assertions)]
 async fn load_embedding_model(
     runtime: Arc<OpenAgentRuntime>,
     model_dir: std::path::PathBuf,
@@ -210,6 +265,7 @@ async fn load_embedding_model(
 }
 
 #[tauri::command]
+#[cfg(debug_assertions)]
 async fn get_embedding_resource_status(
     manager: State<'_, EmbeddingResourceManager>,
     runtime: State<'_, Arc<OpenAgentRuntime>>,
@@ -222,6 +278,15 @@ async fn get_embedding_resource_status(
 }
 
 #[tauri::command]
+#[cfg(not(debug_assertions))]
+async fn get_embedding_resource_status(
+    manager: State<'_, EmbeddingResourceManager>,
+) -> Result<EmbeddingResourceStatus, String> {
+    Ok(manager.status().await)
+}
+
+#[tauri::command]
+#[cfg(debug_assertions)]
 async fn prepare_embedding_resource(
     app: tauri::AppHandle,
     manager: State<'_, EmbeddingResourceManager>,
@@ -236,6 +301,59 @@ async fn prepare_embedding_resource(
         })
         .await?;
     load_embedding_model(runtime.inner().clone(), manager.model_dir().to_path_buf()).await?;
+    Ok(installed)
+}
+
+#[tauri::command]
+#[cfg(not(debug_assertions))]
+async fn prepare_embedding_resource(
+    app: tauri::AppHandle,
+    manager: State<'_, EmbeddingResourceManager>,
+    updates: State<'_, RuntimeUpdateState>,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+    proxy: State<'_, RuntimeEventProxy>,
+) -> Result<EmbeddingResourceStatus, String> {
+    let _lifecycle = updates.lifecycle.lock().await;
+    let progress_app = app.clone();
+    let installed = manager
+        .prepare(bundled_embedding_seed(&app), move |progress| {
+            if let Err(error) = progress_app.emit("embedding-resource-progress", progress) {
+                tracing::warn!(%error, "failed to emit embedding resource progress");
+            }
+        })
+        .await?;
+    let Some(spec) = supervisor.launch_spec().await else {
+        return Ok(installed);
+    };
+    let drain = drain_supervised_runtime(supervisor.inner()).await?;
+    if !drain.drained {
+        return Err(format!(
+            "Runtime did not drain {} active conversation(s) before loading the embedding resource",
+            drain.active_conversations.len()
+        ));
+    }
+    proxy.stop().await;
+    if let Err(error) = supervisor.reload_after_drain(spec.clone()).await {
+        let reconnect =
+            reconnect_supervised_runtime(&app, supervisor.inner().clone(), &proxy).await;
+        return Err(match reconnect {
+            Ok(_) => error,
+            Err(reconnect_error) => {
+                format!("{error}; Runtime reconnect failed: {reconnect_error}")
+            }
+        });
+    }
+    if let Err(error) = reconnect_supervised_runtime(&app, supervisor.inner().clone(), &proxy).await
+    {
+        let rollback =
+            restore_previous_runtime(&app, supervisor.inner().clone(), &proxy, spec).await;
+        return Err(match rollback {
+            Ok(_) => format!("Runtime embedding reload failed and was restarted: {error}"),
+            Err(rollback_error) => format!(
+                "Runtime embedding reload failed ({error}); recovery also failed ({rollback_error})"
+            ),
+        });
+    }
     Ok(installed)
 }
 
@@ -277,7 +395,7 @@ async fn proxy_runtime_request(
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
     request: RuntimeProxyRequest,
 ) -> Result<RuntimeProxyResponse, String> {
-    runtime_transport::proxy_runtime_request(supervisor.inner(), request).await
+    runtime_transport::proxy_webview_runtime_request(supervisor.inner(), request).await
 }
 
 #[tauri::command]
@@ -441,6 +559,7 @@ async fn activate_runtime_resource(
         binary_path: candidate.binary_path.clone(),
         workspace: previous_spec.workspace.clone(),
         openagent_home: previous_spec.openagent_home.clone(),
+        primary_desktop_services: previous_spec.primary_desktop_services,
     };
     if let Err(candidate_error) = supervisor.reload_after_drain(candidate_spec).await {
         let recovery = reconnect_supervised_runtime(&app, supervisor.inner().clone(), &proxy).await;
@@ -1267,6 +1386,7 @@ async fn get_skills_dir(
     openagent_runtime::commands::get_skills_dir(scope, runtime.state()).await
 }
 
+#[cfg(debug_assertions)]
 #[tauri::command]
 async fn open_path(
     path: String,
@@ -1276,6 +1396,44 @@ async fn open_path(
     use tauri_plugin_opener::OpenerExt;
 
     let resolved = openagent_runtime::commands::resolve_open_path(path, runtime.state()).await?;
+    app_handle
+        .opener()
+        .open_path(resolved, None::<&str>)
+        .map_err(|error| error.to_string())
+}
+
+#[cfg(not(debug_assertions))]
+#[tauri::command]
+async fn open_path(
+    path: String,
+    app_handle: tauri::AppHandle,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+
+    let response = runtime_transport::proxy_runtime_request(
+        supervisor.inner(),
+        RuntimeProxyRequest {
+            method: "POST".to_string(),
+            path: "/api/desktop/operations".to_string(),
+            body: Some(
+                serde_json::json!({
+                    "operation": "resolve_open_path",
+                    "args": { "path": path },
+                })
+                .to_string(),
+            ),
+        },
+    )
+    .await?;
+    if !(200..300).contains(&response.status) {
+        return Err(format!(
+            "Runtime path resolution failed with status {}: {}",
+            response.status, response.body
+        ));
+    }
+    let resolved: String = serde_json::from_str(&response.body)
+        .map_err(|error| format!("Runtime path resolution response was invalid: {error}"))?;
     app_handle
         .opener()
         .open_path(resolved, None::<&str>)
@@ -1751,11 +1909,10 @@ fn show_onboarding_window(app: &tauri::AppHandle) -> Result<(), String> {
 #[tauri::command]
 fn reveal_onboarding_window(
     app: tauri::AppHandle,
-    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    windows: State<'_, DesktopWindowState>,
 ) -> Result<(), String> {
     show_onboarding_window(&app)?;
-    runtime
-        .state()
+    windows
         .startup_window_revealed
         .store(true, std::sync::atomic::Ordering::Release);
     Ok(())
@@ -1764,14 +1921,13 @@ fn reveal_onboarding_window(
 #[tauri::command]
 fn reveal_main_window(
     app: tauri::AppHandle,
-    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    windows: State<'_, DesktopWindowState>,
 ) -> Result<(), String> {
     let window = app
         .get_webview_window("main")
         .ok_or_else(|| "Main window is unavailable".to_string())?;
     window.show().map_err(|error| error.to_string())?;
-    runtime
-        .state()
+    windows
         .startup_window_revealed
         .store(true, std::sync::atomic::Ordering::Release);
     window.set_focus().map_err(|error| error.to_string())
@@ -2010,6 +2166,92 @@ fn should_reveal_workspace_shell_early(agent_server: bool, is_workspace_window: 
     !agent_server && is_workspace_window
 }
 
+fn packaged_runtime_binary() -> Result<std::path::PathBuf, String> {
+    let executable = std::env::current_exe()
+        .map_err(|error| format!("Failed to resolve desktop executable path: {error}"))?;
+    let directory = executable
+        .parent()
+        .ok_or_else(|| "Desktop executable has no parent directory".to_string())?;
+    #[cfg(windows)]
+    let name = "openagent-server.exe";
+    #[cfg(not(windows))]
+    let name = "openagent-server";
+    let binary = directory.join(name);
+    if !binary.is_file() {
+        return Err(format!(
+            "Packaged Runtime fallback is missing: {}",
+            binary.display()
+        ));
+    }
+    Ok(binary)
+}
+
+async fn start_runtime_spec(
+    supervisor: &RuntimeProcessSupervisor,
+    spec: RuntimeLaunchSpec,
+) -> Result<(), String> {
+    supervisor.start(spec).await?;
+    if let Err(error) = validate_supervised_runtime_bootstrap(supervisor).await {
+        let _ = supervisor.stop().await;
+        return Err(error);
+    }
+    Ok(())
+}
+
+async fn start_external_desktop_runtime(
+    app: &tauri::AppHandle,
+    supervisor: Arc<RuntimeProcessSupervisor>,
+    manager: &RuntimeResourceManager,
+    launch: ExternalRuntimeLaunch,
+    primary_desktop_services: bool,
+) -> Result<(), String> {
+    let spec_for = |binary_path| RuntimeLaunchSpec {
+        binary_path,
+        workspace: launch.workspace.clone(),
+        openagent_home: launch.openagent_home.clone(),
+        primary_desktop_services,
+    };
+    let mut failures = Vec::new();
+    if let Some(active) = manager.active_resource().await? {
+        match start_runtime_spec(&supervisor, spec_for(active.binary_path.clone())).await {
+            Ok(()) => {
+                app.state::<RuntimeEventProxy>()
+                    .start(app.clone(), supervisor)
+                    .await?;
+                return Ok(());
+            }
+            Err(error) => {
+                failures.push(format!("active Runtime {} failed: {error}", active.version))
+            }
+        }
+        if let Some(previous) = manager.rollback_active().await? {
+            match start_runtime_spec(&supervisor, spec_for(previous.binary_path.clone())).await {
+                Ok(()) => {
+                    app.state::<RuntimeEventProxy>()
+                        .start(app.clone(), supervisor)
+                        .await?;
+                    return Ok(());
+                }
+                Err(error) => failures.push(format!(
+                    "previous Runtime {} failed: {error}",
+                    previous.version
+                )),
+            }
+        }
+    }
+    let packaged = packaged_runtime_binary()?;
+    start_runtime_spec(&supervisor, spec_for(packaged))
+        .await
+        .map_err(|error| {
+            failures.push(format!("packaged Runtime failed: {error}"));
+            failures.join("; ")
+        })?;
+    app.state::<RuntimeEventProxy>()
+        .start(app.clone(), supervisor)
+        .await?;
+    Ok(())
+}
+
 fn single_instance_window_label(onboarding_visible: bool) -> &'static str {
     if onboarding_visible {
         "onboarding"
@@ -2066,11 +2308,12 @@ fn run_with_mode(agent_server: bool) {
     }
     let startup_started_at = std::time::Instant::now();
     let is_workspace_window = is_workspace_window_process();
-    let RuntimeBootstrap {
+    let HostRuntimeBootstrap {
         initial_locale,
         runtime,
         html_preview_roots,
-    } = bootstrap_product_runtime(agent_server)
+        external_launch,
+    } = prepare_host_runtime(agent_server)
         .unwrap_or_else(|error| panic!("Failed to initialize OpenAgent runtime: {error:#}"));
 
     let protocol_roots = html_preview_roots;
@@ -2082,6 +2325,10 @@ fn run_with_mode(agent_server: bool) {
         RuntimeProcessSupervisor::new(openagent_protocol::SDK_PROTOCOL_VERSION)
             .unwrap_or_else(|error| panic!("Failed to initialize Runtime supervisor: {error}")),
     );
+    let startup_runtime_supervisor = runtime_supervisor.clone();
+    let protocol_runtime_supervisor = runtime_supervisor.clone();
+    let runtime_manager = runtime_resource_manager();
+    let startup_runtime_manager = runtime_manager.clone();
     let builder = tauri::Builder::default();
 
     // This must remain the first registered plugin. Ordinary desktop launches
@@ -2129,6 +2376,15 @@ fn run_with_mode(agent_server: bool) {
                 });
             },
         )
+        .register_asynchronous_uri_scheme_protocol(
+            runtime_asset_protocol::SCHEME,
+            move |_context, request, responder| {
+                let supervisor = protocol_runtime_supervisor.clone();
+                tauri::async_runtime::spawn(async move {
+                    responder.respond(runtime_asset_protocol::serve(request, &supervisor).await);
+                });
+            },
+        )
         .plugin(tauri_plugin_i18n::init(Some(initial_locale)));
 
     #[cfg(desktop)]
@@ -2160,28 +2416,40 @@ fn run_with_mode(agent_server: bool) {
         context.config_mut().app.windows.clear();
     }
 
-    builder
+    let builder = builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_notification::init())
-        .manage(runtime.clone())
+        .plugin(tauri_plugin_notification::init());
+    let builder = if let Some(runtime) = runtime.clone() {
+        builder.manage(runtime)
+    } else {
+        builder
+    };
+    builder
         .manage(runtime_supervisor)
         .manage(RuntimeEventProxy::default())
         .manage(RuntimeUpdateState::default())
+        .manage(DesktopWindowState::default())
         .manage(EmbeddingResourceManager::default())
-        .manage(runtime_resource_manager())
+        .manage(runtime_manager)
         .manage(frontend_manager)
         .setup(move |app| {
             // init_tracing() spawns a background Tokio task (batch exporter). The
             // .setup() callback runs on the main thread which is not a Tokio worker
             // thread, so we use block_on to enter the runtime context before calling it.
             tauri::async_runtime::block_on(async {
-                let diagnostic_logs_enabled = runtime
-                    .state()
-                    .config
-                    .lock()
-                    .await
-                    .diagnostic_log_collection_enabled;
+                let diagnostic_logs_enabled = if let Some(runtime) = runtime.as_ref() {
+                    runtime
+                        .state()
+                        .config
+                        .lock()
+                        .await
+                        .diagnostic_log_collection_enabled
+                } else {
+                    openagent_runtime::config::load_config()
+                        .map(|config| config.diagnostic_log_collection_enabled)
+                        .unwrap_or(true)
+                };
                 tracing_setup::set_diagnostic_log_collection_enabled(diagnostic_logs_enabled);
                 tracing_setup::init_tracing_with_service_version(env!("CARGO_PKG_VERSION"));
             });
@@ -2190,6 +2458,17 @@ fn run_with_mode(agent_server: bool) {
                 elapsed_ms = startup_started_at.elapsed().as_millis() as u64,
                 "Tauri setup started"
             );
+
+            if let Some(launch) = external_launch.clone() {
+                tauri::async_runtime::block_on(start_external_desktop_runtime(
+                    app.handle(),
+                    startup_runtime_supervisor.clone(),
+                    &startup_runtime_manager,
+                    launch,
+                    !is_workspace_window,
+                ))
+                .map_err(std::io::Error::other)?;
+            }
 
             if let Some(window) = app.get_webview_window("main") {
                 apply_native_window_material(&window);
@@ -2264,18 +2543,11 @@ fn run_with_mode(agent_server: bool) {
                 .build()?;
             }
 
-            // Publish the AppHandle to anything that needs to emit events to the
-            // frontend from outside a command (e.g. AskUserTool).
-            let runtime = app.state::<Arc<OpenAgentRuntime>>();
-            let state = runtime.state();
-            let _ = runtime.set_host(Arc::new(TauriRuntimeHost {
-                app: app.handle().clone(),
-            }));
             if should_reveal_workspace_shell_early(agent_server, is_workspace_window) {
                 if let Some(window) = app.get_webview_window("main") {
                     window.show()?;
                     window.set_focus()?;
-                    state
+                    app.state::<DesktopWindowState>()
                         .startup_window_revealed
                         .store(true, std::sync::atomic::Ordering::Release);
                     tracing::info!(
@@ -2285,9 +2557,17 @@ fn run_with_mode(agent_server: bool) {
                     );
                 }
             }
-            tauri::async_runtime::spawn(openagent_runtime::commands::watch_config(
-                runtime.inner().clone(),
-            ));
+
+            // Embedded development and the legacy headless Tauri entry point
+            // retain their in-process host adapter. Ordinary release desktop
+            // processes have already started the sole external Runtime above.
+            if let Some(runtime) = runtime.as_ref() {
+                let _ = runtime.set_host(Arc::new(TauriRuntimeHost {
+                    app: app.handle().clone(),
+                }));
+                tauri::async_runtime::spawn(openagent_runtime::commands::watch_config(
+                    runtime.clone(),
+                ));
             let mut runtime_events = runtime.subscribe();
             let event_app = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -2315,11 +2595,11 @@ fn run_with_mode(agent_server: bool) {
             if !is_workspace_window {
                 tauri::async_runtime::block_on(async {
                     openagent_runtime::channels::start_channel_supervisor(
-                        runtime.inner().clone(),
+                        runtime.clone(),
                         openagent_runtime::config::config_dir(),
                     );
                 });
-                let gateway_runtime = runtime.inner().clone();
+                let gateway_runtime = runtime.clone();
                 let result = tauri::async_runtime::block_on(async {
                     start_remote_gateway(gateway_runtime)
                 });
@@ -2327,21 +2607,8 @@ fn run_with_mode(agent_server: bool) {
                     tracing::warn!(%error, "OpenAgent remote gateway did not start");
                 }
             }
-            if !agent_server {
-                let startup_window_revealed = state.startup_window_revealed.clone();
-                let startup_app = app.handle().clone();
-                tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-                    if !startup_window_revealed.load(std::sync::atomic::Ordering::Acquire) {
-                        if let Some(window) = startup_app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                    }
-                });
-            }
             if !agent_server && !is_workspace_window {
-                let restore_runtime = runtime.inner().clone();
+                let restore_runtime = runtime.clone();
                 tauri::async_runtime::spawn(async move {
                     match tools::restore_scheduled_chat_hooks(restore_runtime).await {
                         Ok(count) if count > 0 => {
@@ -2355,10 +2622,9 @@ fn run_with_mode(agent_server: bool) {
             // MCP transports may spawn subprocesses or establish network
             // connections. Keep all of that work off Tauri's main-thread setup
             // path so the webview can begin bootstrapping immediately.
-            let startup_app = app.handle().clone();
+            let startup_runtime = runtime.clone();
             tauri::async_runtime::spawn(async move {
-                let runtime = startup_app.state::<Arc<OpenAgentRuntime>>();
-                let state = runtime.state();
+                let state = startup_runtime.state();
                 let config = state.config.lock().await.clone();
                 let servers =
                     openagent_runtime::commands::effective_mcp_servers(state, &config).await;
@@ -2370,6 +2636,24 @@ fn run_with_mode(agent_server: bool) {
                     "MCP connections scheduled"
                 );
             });
+            }
+
+            if !agent_server {
+                let startup_app = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                    if !startup_app
+                        .state::<DesktopWindowState>()
+                        .startup_window_revealed
+                        .load(std::sync::atomic::Ordering::Acquire)
+                    {
+                        if let Some(window) = startup_app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                });
+            }
 
             Ok(())
         })

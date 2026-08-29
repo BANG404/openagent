@@ -660,6 +660,14 @@ const zh = {
   updateChangelog: "查看更新日志",
   updateAndRestart: "更新并重启",
   updateAndReload: "更新并重新加载",
+  updateAndReconnect: "更新并重新连接",
+  runtimeUpdateAvailable: "发现 Runtime 更新",
+  runtimeUpdateAvailableDescription:
+    "已下载并验证新的后端 Runtime，可在不更新桌面外壳的情况下切换。",
+  runtimeUpdateInProgress: "正在切换 Runtime",
+  runtimeUpdateInProgressDescription: "正在排空任务、重启后端并恢复连接…",
+  runtimeUpdateInstalled: "Runtime 已更新",
+  runtimeUpdateInstalledDescription: "后端已重新连接；会话状态已从持久化数据恢复。",
   frontendUpdateAvailable: "发现前端更新",
   frontendUpdateAvailableDescription: "下载已验证完成，可无需更新桌面外壳直接重新加载界面。",
   updateInProgress: "正在更新 OpenAgent",
@@ -1543,6 +1551,15 @@ const en: Translations = {
   updateChangelog: "View changelog",
   updateAndRestart: "Update and restart",
   updateAndReload: "Update and reload",
+  updateAndReconnect: "Update and reconnect",
+  runtimeUpdateAvailable: "Runtime update available",
+  runtimeUpdateAvailableDescription:
+    "A verified backend Runtime is ready and can switch without updating the desktop shell.",
+  runtimeUpdateInProgress: "Switching Runtime",
+  runtimeUpdateInProgressDescription: "Draining work, restarting the backend, and reconnecting…",
+  runtimeUpdateInstalled: "Runtime updated",
+  runtimeUpdateInstalledDescription:
+    "The backend reconnected and conversation state was restored from durable storage.",
   frontendUpdateAvailable: "Frontend update available",
   frontendUpdateAvailableDescription:
     "The verified download is ready and can reload the interface without updating the desktop shell.",

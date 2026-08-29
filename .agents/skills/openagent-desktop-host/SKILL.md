@@ -28,13 +28,19 @@ binary, and exclusive durable-state ownership.
 - A replaceable Runtime supervisor must accept only compatible loopback
   readiness records, authenticate health probes with a process-scoped token,
   stop the old child through its private control pipe before starting a
-  candidate, and restart the previous verified launch on failure. Keep that
-  supervisor dormant while the embedded Runtime still owns durable state.
+  candidate, and restart the previous verified launch on failure. Release
+  desktop startup must use that supervised process as the only durable-state
+  Runtime; the packaged server is a fallback binary, not a concurrent writer.
 - Keep the supervised Runtime Bearer token in Rust. WebViews send only bounded
   `/api` method/path/body requests through the host proxy, while Rust attaches
   authentication and relays the Runtime SSE bus to existing Tauri event names.
   A lagged or disconnected SSE stream must stop live delivery and request a
   durable frontend resync before a new stream is started.
+- Rewrite Runtime media and HTML asset URLs to the host-owned
+  `openagent-runtime` protocol. Permit only GET/HEAD requests for bounded media
+  and HTML asset paths, preserve byte-range response headers, and attach the
+  process token only in Rust. Resolve workspace paths in the Runtime before the
+  host invokes the native opener.
 - Serve replaceable frontend versions only through the host-owned
   `openagent-ui` protocol. Activation must atomically retain the previous
   selection, reload every product WebView with the candidate version, require

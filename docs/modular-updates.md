@@ -9,7 +9,7 @@ is never loaded as a replaceable dynamic library.
 | Surface | Development | Published delivery | Activation |
 | --- | --- | --- | --- |
 | Frontend | Vite HMR through `bun tauri dev` | Signed `frontend-beta`, `frontend-rc`, or `frontend-stable` resource | Confirmed WebView reload with rollback |
-| Headless SDK | Rebuild and restart `openagent-server` | Versioned SDK release binaries plus `openagent-sdk-manifest.json` | Supervised process restart |
+| Desktop Runtime / headless SDK | Rebuild and restart `openagent-server` | Signed Runtime channel or versioned SDK release binaries plus `openagent-sdk-manifest.json` | Supervised drain, restart, probe, reconnect, and rollback |
 | Third-party client | Local TypeScript source or published npm package | `@bang404/openagent-harness` | Normal package update |
 | Desktop native shell | Tauri rebuild/restart | Signed installer and Tauri updater | Application restart |
 
@@ -21,34 +21,25 @@ install it into a versioned directory, and explicitly reload the supervised
 process. If the replacement fails to start, the supervisor restarts the prior
 binary.
 
-## Desktop runtime extraction boundary
+## Desktop Runtime boundary
 
-The desktop currently embeds `openagent-app` and `openagent-runtime`; a change to
-that embedded runtime still requires a desktop updater artifact. Do not present
-the headless SDK release as a desktop hot update until the following migration
-is complete:
-
-1. Promote every product operation needed by the desktop frontend to the typed
-   SDK operation map and authenticated local HTTP/SSE transport.
-2. Keep windows, updater, tray, notifications, file pickers, and other native
-   capabilities in the Tauri local-capability bridge.
-3. Make the thin host supervise a verified `openagent-server` resource beneath
-   `OPENAGENT_HOME`, with an installed fallback version and protocol negotiation
-   before switching.
-4. Drain or explicitly cancel active runs, stop the old process, start and probe
-   the new process, reconnect event streams, and restore durable conversations.
-5. Publish the SDK manifest through a channel whose authenticity the desktop can
-   verify. SHA-256 protects integrity after selection; it does not replace a
-   signed update channel.
+Release desktop builds use one supervised external `openagent-server` as the
+only Runtime process that owns configuration, SQLite, memory, and other durable
+state. Product operations travel through the typed SDK operation map and an
+authenticated loopback HTTP/SSE transport. Tauri retains only native
+capabilities such as windows, updater, tray, notifications, dialogs, path
+opening, and private resource protocols. The installer packages the pinned
+server as a verified fallback, but does not run an embedded Runtime alongside
+the external process.
 
 The host-side supervisor is implemented as a separate lifecycle component. It
 accepts only loopback HTTP readiness records in the supported protocol range,
 uses a process-scoped Bearer token for the health probe, stops the current
 server through its private stdin control pipe, and starts the candidate only
 after the old process exits. If candidate startup or probing fails, it restarts
-the previous launch specification. The supervisor remains dormant while Tauri
-still owns the embedded runtime; activation before transport extraction would
-violate the single-writer boundary.
+the previous launch specification. Ordinary release startup activates this
+supervisor before writable product operations are accepted, preserving the
+single-writer boundary.
 
 The Runtime now exposes a Bearer-only drain barrier that blocks new HTTP writes,
 optionally cancels active conversations, and waits for authoritative run guards
@@ -62,10 +53,6 @@ generic rollback reason without exposing the process token or user data. Runtime
 version comparison uses the active resource or supervised process version, not
 the independently versioned Tauri application.
 
-This transaction remains unavailable while the supervisor is dormant. The
-frontend update entry point must not offer Runtime activation until ordinary
-desktop startup and every writable product operation use the external Runtime.
-
 The supervised server accepts that process-scoped Bearer token for its typed
 product `/api` routes, exposes a Bearer-only complete desktop startup bootstrap,
 and projects the transport-neutral Runtime event bus through authenticated
@@ -75,9 +62,10 @@ Cookie and CSRF boundary. Tauri keeps the token in Rust, bounds and restricts
 proxied WebView requests to `/api`, and re-emits Runtime messages through the
 existing desktop event names. A lagged or disconnected stream stops delivery;
 the frontend restores a fresh durable startup snapshot before restarting it.
-The adapter selects this path only while a supervised process is running, so
-the remaining desktop operation mappings and lifecycle activation must still be
-completed before the supervisor replaces the embedded Runtime by default.
+Runtime-generated media and HTML URLs are rewritten to the private
+`openagent-runtime` protocol. Rust adds authentication and permits only bounded
+GET/HEAD asset routes, including byte ranges for media; the Bearer token never
+enters WebView state. Relative HTML assets remain on the same private origin.
 
 This boundary prevents two runtimes from writing the same SQLite state and avoids
 an unstable Rust ABI between the shell and SDK.
