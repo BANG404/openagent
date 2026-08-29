@@ -50,6 +50,22 @@ the previous launch specification. The supervisor remains dormant while Tauri
 still owns the embedded runtime; activation before transport extraction would
 violate the single-writer boundary.
 
+The Runtime now exposes a Bearer-only drain barrier that blocks new HTTP writes,
+optionally cancels active conversations, and waits for authoritative run guards
+to release. The thin host keeps an installed candidate in Rust-owned pending
+state, so a WebView cannot select an arbitrary executable. In external mode the
+activation transaction drains the old process, stops the event relay, starts and
+probes the candidate, validates a durable desktop bootstrap, reconnects SSE, and
+only then commits `active.json`. Candidate startup, bootstrap, reconnect, or
+selection-commit failure restores the previous launch specification and emits a
+generic rollback reason without exposing the process token or user data. Runtime
+version comparison uses the active resource or supervised process version, not
+the independently versioned Tauri application.
+
+This transaction remains unavailable while the supervisor is dormant. The
+frontend update entry point must not offer Runtime activation until ordinary
+desktop startup and every writable product operation use the external Runtime.
+
 The supervised server accepts that process-scoped Bearer token for its typed
 product `/api` routes, exposes a Bearer-only complete desktop startup bootstrap,
 and projects the transport-neutral Runtime event bus through authenticated

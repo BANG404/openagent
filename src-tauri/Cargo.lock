@@ -7608,6 +7608,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "tokio",
+ "windows 0.62.2",
 ]
 
 [[package]]

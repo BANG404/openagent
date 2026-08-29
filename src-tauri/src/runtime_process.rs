@@ -104,6 +104,14 @@ impl RuntimeProcessSupervisor {
             .map(|runtime| process_status(&runtime.ready))
     }
 
+    pub async fn launch_spec(&self) -> Option<RuntimeLaunchSpec> {
+        self.running
+            .lock()
+            .await
+            .as_ref()
+            .map(|runtime| runtime.spec.clone())
+    }
+
     pub(crate) async fn connection(&self) -> Result<RuntimeConnection, String> {
         let running = self.running.lock().await;
         let runtime = running

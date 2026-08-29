@@ -42,13 +42,33 @@ pub mod runtime_transport;
 use frontend_resource::{
     FrontendResourceManager, FrontendResourceSource, InstalledFrontendResource,
 };
-use runtime_process::RuntimeProcessSupervisor;
+use runtime_process::{RuntimeLaunchSpec, RuntimeProcessSupervisor};
 use runtime_transport::{RuntimeEventProxy, RuntimeProxyRequest, RuntimeProxyResponse};
 
 #[derive(serde::Serialize)]
 struct PreparedFrontendResource {
     version: String,
     update_available: bool,
+}
+
+#[derive(serde::Serialize)]
+struct PreparedRuntimeResource {
+    version: String,
+    target: String,
+    update_available: bool,
+}
+
+#[derive(serde::Serialize)]
+struct ActivatedRuntimeResource {
+    version: String,
+    target: String,
+    event_generation: u64,
+}
+
+#[derive(Default)]
+struct RuntimeUpdateState {
+    pending: tokio::sync::Mutex<Option<InstalledRuntimeResource>>,
+    lifecycle: tokio::sync::Mutex<()>,
 }
 
 const EMBEDDING_MODEL_RESOURCE_PATH: &str = "models/all-MiniLM-L6-v2-q";
@@ -79,6 +99,14 @@ fn runtime_resource_manager() -> RuntimeResourceManager {
         },
         openagent_protocol::SDK_PROTOCOL_VERSION,
     )
+}
+
+fn runtime_update_available(candidate: &str, baseline: &str) -> Result<bool, String> {
+    let candidate = semver::Version::parse(candidate)
+        .map_err(|error| format!("Runtime candidate version is invalid: {error}"))?;
+    let baseline = semver::Version::parse(baseline)
+        .map_err(|error| format!("Runtime baseline version is invalid: {error}"))?;
+    Ok(candidate > baseline)
 }
 
 fn frontend_resource_manager() -> Result<FrontendResourceManager, String> {
@@ -215,15 +243,33 @@ async fn prepare_embedding_resource(
 async fn prepare_runtime_resource(
     app: tauri::AppHandle,
     manager: State<'_, RuntimeResourceManager>,
-) -> Result<InstalledRuntimeResource, String> {
+    updates: State<'_, RuntimeUpdateState>,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+) -> Result<PreparedRuntimeResource, String> {
     let progress_app = app.clone();
-    manager
+    let candidate = manager
         .install_latest(move |progress| {
             if let Err(error) = progress_app.emit("runtime-resource-progress", progress) {
                 tracing::warn!(%error, "failed to emit Runtime resource progress");
             }
         })
-        .await
+        .await?;
+    let active = manager.active_resource().await?;
+    let running = supervisor.status().await;
+    let baseline = active
+        .as_ref()
+        .map(|value| value.version.as_str())
+        .or_else(|| running.as_ref().map(|value| value.version.as_str()));
+    let update_available = baseline
+        .map(|baseline| runtime_update_available(&candidate.version, baseline))
+        .transpose()?
+        .unwrap_or(false);
+    *updates.pending.lock().await = update_available.then(|| candidate.clone());
+    Ok(PreparedRuntimeResource {
+        version: candidate.version,
+        target: candidate.target,
+        update_available,
+    })
 }
 
 #[tauri::command]
@@ -258,6 +304,264 @@ async fn start_runtime_event_proxy(
 async fn stop_runtime_event_proxy(proxy: State<'_, RuntimeEventProxy>) -> Result<(), String> {
     proxy.stop().await;
     Ok(())
+}
+
+#[derive(serde::Deserialize)]
+struct RuntimeDrainResponse {
+    drained: bool,
+    active_conversations: Vec<String>,
+}
+
+fn validate_runtime_bootstrap(value: &serde_json::Value) -> Result<(), String> {
+    let Some(object) = value.as_object() else {
+        return Err("Runtime bootstrap was not a JSON object".to_string());
+    };
+    for field in [
+        "config",
+        "workspace_path",
+        "workspace",
+        "launch_context",
+        "conversations",
+        "active_conv_id",
+    ] {
+        if !object.contains_key(field) {
+            return Err(format!("Runtime bootstrap omitted required field {field}"));
+        }
+    }
+    if !object["config"].is_object()
+        || !object["workspace_path"].is_string()
+        || !object["workspace"].is_object()
+        || !object["launch_context"].is_object()
+        || !object["conversations"].is_array()
+    {
+        return Err("Runtime bootstrap field types were invalid".to_string());
+    }
+    Ok(())
+}
+
+async fn drain_supervised_runtime(
+    supervisor: &RuntimeProcessSupervisor,
+) -> Result<RuntimeDrainResponse, String> {
+    let response = runtime_transport::proxy_runtime_request(
+        supervisor,
+        RuntimeProxyRequest {
+            method: "POST".to_string(),
+            path: "/api/desktop/drain".to_string(),
+            body: Some("{\"cancel\":true}".to_string()),
+        },
+    )
+    .await?;
+    if response.status != 200 {
+        return Err(format!(
+            "Runtime drain was rejected with status {}",
+            response.status
+        ));
+    }
+    serde_json::from_str(&response.body)
+        .map_err(|error| format!("Runtime drain response was invalid: {error}"))
+}
+
+async fn validate_supervised_runtime_bootstrap(
+    supervisor: &RuntimeProcessSupervisor,
+) -> Result<(), String> {
+    let response = runtime_transport::proxy_runtime_request(
+        supervisor,
+        RuntimeProxyRequest {
+            method: "GET".to_string(),
+            path: "/api/desktop/bootstrap".to_string(),
+            body: None,
+        },
+    )
+    .await?;
+    if response.status != 200 {
+        return Err(format!(
+            "Runtime bootstrap was rejected with status {}",
+            response.status
+        ));
+    }
+    let bootstrap: serde_json::Value = serde_json::from_str(&response.body)
+        .map_err(|error| format!("Runtime bootstrap response was invalid: {error}"))?;
+    validate_runtime_bootstrap(&bootstrap)
+}
+
+async fn reconnect_supervised_runtime(
+    app: &tauri::AppHandle,
+    supervisor: Arc<RuntimeProcessSupervisor>,
+    proxy: &RuntimeEventProxy,
+) -> Result<u64, String> {
+    validate_supervised_runtime_bootstrap(&supervisor).await?;
+    proxy.start(app.clone(), supervisor).await
+}
+
+async fn restore_previous_runtime(
+    app: &tauri::AppHandle,
+    supervisor: Arc<RuntimeProcessSupervisor>,
+    proxy: &RuntimeEventProxy,
+    previous_spec: RuntimeLaunchSpec,
+) -> Result<u64, String> {
+    proxy.stop().await;
+    supervisor.reload_after_drain(previous_spec).await?;
+    reconnect_supervised_runtime(app, supervisor, proxy).await
+}
+
+#[tauri::command]
+async fn activate_runtime_resource(
+    app: tauri::AppHandle,
+    manager: State<'_, RuntimeResourceManager>,
+    updates: State<'_, RuntimeUpdateState>,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+    proxy: State<'_, RuntimeEventProxy>,
+    version: String,
+    target: String,
+) -> Result<ActivatedRuntimeResource, String> {
+    let _lifecycle = updates.lifecycle.lock().await;
+    let candidate = updates
+        .pending
+        .lock()
+        .await
+        .as_ref()
+        .filter(|candidate| candidate.version == version && candidate.target == target)
+        .cloned()
+        .ok_or_else(|| "Runtime candidate is not the pending verified resource".to_string())?;
+    let previous_spec = supervisor
+        .launch_spec()
+        .await
+        .ok_or_else(|| "Runtime activation requires external Runtime mode".to_string())?;
+
+    let drain = drain_supervised_runtime(supervisor.inner()).await?;
+    if !drain.drained {
+        return Err(format!(
+            "Runtime did not drain {} active conversation(s) before the deadline",
+            drain.active_conversations.len()
+        ));
+    }
+
+    proxy.stop().await;
+    let candidate_spec = RuntimeLaunchSpec {
+        binary_path: candidate.binary_path.clone(),
+        workspace: previous_spec.workspace.clone(),
+        openagent_home: previous_spec.openagent_home.clone(),
+    };
+    if let Err(candidate_error) = supervisor.reload_after_drain(candidate_spec).await {
+        let recovery = reconnect_supervised_runtime(&app, supervisor.inner().clone(), &proxy).await;
+        let _ = app.emit(
+            "runtime-resource-rolled-back",
+            serde_json::json!({ "reason": "candidate_start_failed" }),
+        );
+        return Err(match recovery {
+            Ok(_) => candidate_error,
+            Err(recovery_error) => {
+                format!("{candidate_error}; previous Runtime reconnect failed: {recovery_error}")
+            }
+        });
+    }
+
+    if let Err(validation_error) = validate_supervised_runtime_bootstrap(supervisor.inner()).await {
+        let rollback = restore_previous_runtime(
+            &app,
+            supervisor.inner().clone(),
+            &proxy,
+            previous_spec.clone(),
+        )
+        .await;
+        let _ = app.emit(
+            "runtime-resource-rolled-back",
+            serde_json::json!({ "reason": "bootstrap_failed" }),
+        );
+        return Err(match rollback {
+            Ok(_) => validation_error,
+            Err(rollback_error) => {
+                format!("{validation_error}; Runtime rollback failed: {rollback_error}")
+            }
+        });
+    }
+
+    let generation = match proxy.start(app.clone(), supervisor.inner().clone()).await {
+        Ok(generation) => generation,
+        Err(reconnect_error) => {
+            let rollback = restore_previous_runtime(
+                &app,
+                supervisor.inner().clone(),
+                &proxy,
+                previous_spec.clone(),
+            )
+            .await;
+            let _ = app.emit(
+                "runtime-resource-rolled-back",
+                serde_json::json!({ "reason": "event_reconnect_failed" }),
+            );
+            return Err(match rollback {
+                Ok(_) => reconnect_error,
+                Err(rollback_error) => {
+                    format!("{reconnect_error}; Runtime rollback failed: {rollback_error}")
+                }
+            });
+        }
+    };
+
+    if let Err(activation_error) = manager.activate(&candidate).await {
+        let rollback =
+            restore_previous_runtime(&app, supervisor.inner().clone(), &proxy, previous_spec).await;
+        let _ = app.emit(
+            "runtime-resource-rolled-back",
+            serde_json::json!({ "reason": "selection_commit_failed" }),
+        );
+        return Err(match rollback {
+            Ok(_) => activation_error,
+            Err(rollback_error) => {
+                format!("{activation_error}; Runtime rollback failed: {rollback_error}")
+            }
+        });
+    }
+
+    *updates.pending.lock().await = None;
+    let _ = app.emit(
+        "runtime-resource-activated",
+        serde_json::json!({
+            "version": candidate.version,
+            "target": candidate.target,
+            "generation": generation,
+        }),
+    );
+    let _ = app.emit(
+        "runtime-resync-required",
+        serde_json::json!({ "generation": generation }),
+    );
+    Ok(ActivatedRuntimeResource {
+        version: candidate.version,
+        target: candidate.target,
+        event_generation: generation,
+    })
+}
+
+#[cfg(test)]
+mod modular_runtime_update_tests {
+    use super::{runtime_update_available, validate_runtime_bootstrap};
+
+    #[test]
+    fn runtime_candidate_must_be_newer_than_the_active_resource() {
+        assert!(runtime_update_available("1.2.0", "1.1.9").unwrap());
+        assert!(!runtime_update_available("1.2.0", "1.2.0").unwrap());
+        assert!(!runtime_update_available("1.1.9", "1.2.0").unwrap());
+        assert!(runtime_update_available("1.2.0", "invalid").is_err());
+    }
+
+    #[test]
+    fn candidate_bootstrap_requires_the_durable_desktop_shape() {
+        let valid = serde_json::json!({
+            "config": {},
+            "workspace_path": "C:/workspace",
+            "workspace": {},
+            "launch_context": {},
+            "conversations": [],
+            "active_conv_id": null,
+        });
+        assert!(validate_runtime_bootstrap(&valid).is_ok());
+
+        let mut invalid = valid;
+        invalid.as_object_mut().unwrap().remove("conversations");
+        assert!(validate_runtime_bootstrap(&invalid).is_err());
+    }
 }
 
 #[tauri::command]
@@ -1863,6 +2167,7 @@ fn run_with_mode(agent_server: bool) {
         .manage(runtime.clone())
         .manage(runtime_supervisor)
         .manage(RuntimeEventProxy::default())
+        .manage(RuntimeUpdateState::default())
         .manage(EmbeddingResourceManager::default())
         .manage(runtime_resource_manager())
         .manage(frontend_manager)
@@ -2073,6 +2378,7 @@ fn run_with_mode(agent_server: bool) {
             get_embedding_resource_status,
             prepare_embedding_resource,
             prepare_runtime_resource,
+            activate_runtime_resource,
             runtime_transport_mode,
             proxy_runtime_request,
             start_runtime_event_proxy,
