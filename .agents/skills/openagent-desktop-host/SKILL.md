@@ -59,7 +59,17 @@ binary, and exclusive durable-state ownership.
   `desktop-window-activated` to the target WebView because Windows may not deliver
   a distinct focus-changed callback. The main WebView consumes both signals as new
   composer-focus requests, including activation events that arrive without a
-  preceding blur callback.
+  preceding blur callback. On Windows, a normal operating-system activation such
+  as Alt+Tab must also hand the focused top-level window to its embedded WebView
+  through the native WebView focus API before emitting that activation event;
+  focusing only the top-level `WebviewWindow` leaves WebView2 without keyboard
+  input until the user clicks inside it. Defer that WebView focus until the
+  native activation callback has settled, and confirm the top-level window is
+  still focused before applying it so a rapid task switch cannot steal focus
+  back from the user's newer target. Perform the handoff on Tauri's main thread:
+  focus the `WRY_WEBVIEW` Win32 child first, then ask the WebView2 controller to
+  move focus into its content. Controller focus alone does not attach the native
+  keyboard queue to the WebView host.
 - Exclude headless agent-server and SDK-owned
   `--openagent-workspace-window` processes from that guard; dedicated workspace
   processes are part of the multi-workspace contract.

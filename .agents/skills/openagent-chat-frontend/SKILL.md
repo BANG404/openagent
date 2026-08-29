@@ -57,7 +57,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   WebView; route that monotonic request through `ConversationSurface` to
   `MessageInput`, and retry after the WebView2 focus handoff, so task switching,
   tray activation, repeated launches, and registered-workspace navigation restore
-  DOM focus without a pointer click. A targeted workspace request reissues the
+  DOM focus without a pointer click. On Windows the host must transfer a newly
+  activated top-level window into the embedded WebView before sending the
+  activation event; the frontend request then owns only the final DOM textarea
+  focus. A targeted workspace request reissues the
   focus request after its conversation navigation settles so an atomic switch
   cannot leave focus attached to the previously visible composer.
   The ordinary Tauri shell must keep its

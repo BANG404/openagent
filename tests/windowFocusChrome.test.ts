@@ -63,6 +63,15 @@ describe("window focus chrome", () => {
     expect(nativeHost).toMatch(
       /fn activate_workspace_window[\s\S]*?window\.set_focus\(\)[\s\S]*?workspace-window-open-request[\s\S]*?window[\s\S]*?emit\(DESKTOP_WINDOW_ACTIVATED_EVENT/,
     );
+    expect(nativeHost).toMatch(
+      /fn focus_webview_host[\s\S]*?FindWindowExW[\s\S]*?WRY_WEBVIEW[\s\S]*?SetFocus[\s\S]*?window\s*\.as_ref\(\)\s*\.set_focus/,
+    );
+    expect(nativeHost).toMatch(
+      /fn register_webview_focus_handoff[\s\S]*?WindowEvent::Focused\(true\)[\s\S]*?from_millis\(50\)[\s\S]*?activation_window\.is_focused\(\)[\s\S]*?run_on_main_thread[\s\S]*?focus_webview_host[\s\S]*?focus_window\.emit\(DESKTOP_WINDOW_ACTIVATED_EVENT/,
+    );
+    expect(nativeHost).toMatch(
+      /get_webview_window\("main"\)[\s\S]*?register_webview_focus_handoff\(&window\)/,
+    );
     expect(tray).toMatch(/appWindow\.setFocus\(\)[\s\S]*?emit\(DESKTOP_WINDOW_ACTIVATED_EVENT\)/);
     expect(sidebar).toContain("class:window-inactive={!windowFocused}");
     expect(sidebar).toMatch(/\.sidebar\.window-inactive \.sidebar-top \{\s*opacity: 0\.55;/);
