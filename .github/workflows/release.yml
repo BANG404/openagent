@@ -631,7 +631,7 @@ jobs:
             --output runtime-components/openagent-sdk-manifest.json \
             --version "$version" \
             --protocol "$protocol"
-          bun scripts/tauri.mjs signer sign \
+          bun scripts/tauri.mjs signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" \
             runtime-components/openagent-sdk-manifest.json
           test -s runtime-components/openagent-sdk-manifest.json.sig
 
@@ -699,7 +699,7 @@ jobs:
             --output frontend-components/openagent-frontend-manifest.json \
             --version "$version" \
             --protocol "$protocol"
-          bun scripts/tauri.mjs signer sign \
+          bun scripts/tauri.mjs signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" \
             frontend-components/openagent-frontend-manifest.json
           test -s frontend-components/openagent-frontend-manifest.json.sig
 

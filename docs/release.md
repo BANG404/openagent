@@ -277,8 +277,11 @@ Runtime and frontend channel manifests are signed with the Tauri signer. Its
 detached `.sig` artifact is the Tauri-standard Base64 wrapper around minisign
 text; desktop resource installers decode that wrapper, verify the exact
 downloaded manifest bytes against the updater public key, and only then fetch
-or activate the referenced artifact. Local integration tests use an ephemeral
-test keypair and never require the production private key.
+or activate the referenced artifact. The release workflow passes the validated
+private key explicitly to each standalone manifest-signing command, rather than
+depending on the signer's environment-variable discovery. Local integration
+tests use an ephemeral test keypair and never require the production private
+key.
 
 The Release workflow first runs all frontend, Rust, embedding, sandbox, and
 Harness qualification, then performs the authoritative product compilation for

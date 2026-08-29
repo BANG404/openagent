@@ -183,6 +183,9 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("openagent-sdk-manifest.json.sig");
     expect(releaseWorkflow).toContain("frontend-components:");
     expect(releaseWorkflow).toContain("scripts/frontend-artifacts.mjs");
+    expect(
+      releaseWorkflow.match(/signer sign --private-key "\$TAURI_SIGNING_PRIVATE_KEY"/g),
+    ).toHaveLength(2);
     expect(releaseWorkflow).toContain('component_channel="frontend-$RELEASE_CHANNEL"');
     expect(releaseWorkflow).toContain("openagent-frontend-manifest.json.sig");
   });
