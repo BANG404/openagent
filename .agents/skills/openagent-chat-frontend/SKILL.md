@@ -1026,6 +1026,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 ## IPC and events
 
+- Route replaceable Runtime behavior through the shared SDK client. Keep direct
+  literal Tauri `invoke()` calls limited to commands classified by
+  `tests/runtimeCommandBoundary.test.js` as product operations or explicit
+  native/local capabilities; new unclassified commands must fail that audit.
+  Keep development database and model-control commands confined to their
+  dedicated Inspector surfaces.
 - Transcript surfaces may derive cache utilization from persisted Rig usage
   only when `total_tokens - output_tokens` reconciles with either the
   inclusive-input or separately reported cache-token shape. The Inspector shows

@@ -157,6 +157,15 @@ pub async fn proxy_runtime_asset_request(
 ) -> Result<RuntimeAssetProxyResponse, String> {
     validate_runtime_asset_request(method, path)?;
     let connection = supervisor.connection().await?;
+    proxy_runtime_asset_connection(&connection, method, path, range).await
+}
+
+async fn proxy_runtime_asset_connection(
+    connection: &crate::runtime_process::RuntimeConnection,
+    method: &str,
+    path: &str,
+    range: Option<&str>,
+) -> Result<RuntimeAssetProxyResponse, String> {
     let url = resolve_api_url(&connection.endpoint, path)?;
     let method = match method {
         "GET" => Method::GET,
@@ -402,10 +411,15 @@ fn parse_sse_frame(frame: &[u8]) -> Result<Option<(String, String)>, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        find_sse_frame, parse_method, parse_sse_frame, resolve_api_url,
-        validate_runtime_asset_request, validate_webview_product_request, RuntimeProxyRequest,
+        find_sse_frame, parse_method, parse_sse_frame, proxy_runtime_asset_connection,
+        resolve_api_url, validate_runtime_asset_request, validate_webview_product_request,
+        RuntimeProxyRequest,
     };
+    use crate::runtime_process::RuntimeConnection;
     use reqwest::{Method, Url};
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::sync::mpsc;
 
     #[test]
     fn proxy_allows_only_product_api_paths_on_the_supervised_origin() {
@@ -470,6 +484,94 @@ mod tests {
         assert!(validate_runtime_asset_request("GET", "/api/desktop/bootstrap").is_err());
         assert!(
             validate_runtime_asset_request("GET", "//example.com/api/media-assets/token").is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn runtime_asset_proxy_keeps_authentication_native_and_preserves_ranges() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let (requests_tx, requests_rx) = mpsc::channel();
+        let server = std::thread::spawn(move || {
+            for _ in 0..3 {
+                let (mut stream, _) = listener.accept().unwrap();
+                let mut request = Vec::new();
+                let mut buffer = [0_u8; 1024];
+                while !request.windows(4).any(|window| window == b"\r\n\r\n") {
+                    let read = stream.read(&mut buffer).unwrap();
+                    if read == 0 {
+                        break;
+                    }
+                    request.extend_from_slice(&buffer[..read]);
+                }
+                let request = String::from_utf8(request).unwrap();
+                requests_tx.send(request.clone()).unwrap();
+                let first_line = request.lines().next().unwrap_or_default();
+                let response = if first_line.starts_with("GET /api/media-assets/media-1") {
+                    "HTTP/1.1 206 Partial Content\r\nContent-Type: image/png\r\nContent-Length: 3\r\nContent-Range: bytes 1-3/5\r\nAccept-Ranges: bytes\r\nConnection: close\r\n\r\nbcd"
+                } else if first_line.starts_with("HEAD /api/html-assets/html-1/assets/app.css") {
+                    "HTTP/1.1 200 OK\r\nContent-Type: text/css\r\nContent-Length: 4\r\nAccept-Ranges: bytes\r\nConnection: close\r\n\r\n"
+                } else {
+                    "HTTP/1.1 200 OK\r\nContent-Type: text/css\r\nContent-Length: 4\r\nConnection: close\r\n\r\nbody"
+                };
+                stream.write_all(response.as_bytes()).unwrap();
+            }
+        });
+        let connection = RuntimeConnection {
+            endpoint: Url::parse(&format!("http://{address}/")).unwrap(),
+            token: "native-only-token".to_string(),
+        };
+
+        let ranged = proxy_runtime_asset_connection(
+            &connection,
+            "GET",
+            "/api/media-assets/media-1",
+            Some("bytes=1-3"),
+        )
+        .await
+        .unwrap();
+        assert_eq!(ranged.status, 206);
+        assert_eq!(ranged.body, b"bcd");
+        assert!(ranged
+            .headers
+            .contains(&("content-range".to_string(), "bytes 1-3/5".to_string())));
+        assert!(ranged
+            .headers
+            .contains(&("accept-ranges".to_string(), "bytes".to_string())));
+
+        let head = proxy_runtime_asset_connection(
+            &connection,
+            "HEAD",
+            "/api/html-assets/html-1/assets/app.css",
+            None,
+        )
+        .await
+        .unwrap();
+        assert_eq!(head.status, 200);
+        assert!(head.body.is_empty());
+
+        let nested = proxy_runtime_asset_connection(
+            &connection,
+            "GET",
+            "/api/html-assets/html-1/nested/theme.css",
+            None,
+        )
+        .await
+        .unwrap();
+        assert_eq!(nested.body, b"body");
+        assert!(!String::from_utf8_lossy(&nested.body).contains(&connection.token));
+
+        server.join().unwrap();
+        let requests = requests_rx.try_iter().collect::<Vec<_>>();
+        assert_eq!(requests.len(), 3);
+        for request in &requests {
+            assert!(
+                request.contains("authorization: Bearer native-only-token")
+                    || request.contains("Authorization: Bearer native-only-token")
+            );
+        }
+        assert!(
+            requests[0].contains("range: bytes=1-3") || requests[0].contains("Range: bytes=1-3")
         );
     }
 

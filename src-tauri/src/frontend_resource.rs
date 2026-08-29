@@ -1,3 +1,4 @@
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use flate2::read::GzDecoder;
 use http::{header, Request, Response, StatusCode};
 use minisign_verify::{PublicKey, Signature};
@@ -364,9 +365,8 @@ fn verify_manifest(
 ) -> Result<FrontendManifest, String> {
     let public_key = PublicKey::decode(public_key_text)
         .map_err(|error| format!("frontend signing public key is invalid: {error}"))?;
-    let signature_text = std::str::from_utf8(signature_bytes)
-        .map_err(|_| "frontend manifest signature is not UTF-8".to_string())?;
-    let signature = Signature::decode(signature_text)
+    let signature_text = decode_signature_text(signature_bytes, "frontend manifest signature")?;
+    let signature = Signature::decode(&signature_text)
         .map_err(|error| format!("frontend manifest signature is invalid: {error}"))?;
     public_key
         .verify(manifest_bytes, &signature, false)
@@ -375,6 +375,19 @@ fn verify_manifest(
         .map_err(|error| format!("frontend manifest is invalid JSON: {error}"))?;
     validate_manifest(&manifest, host_protocol)?;
     Ok(manifest)
+}
+
+fn decode_signature_text(bytes: &[u8], label: &str) -> Result<String, String> {
+    let text = std::str::from_utf8(bytes)
+        .map_err(|_| format!("{label} is not UTF-8"))?
+        .trim();
+    if text.starts_with("untrusted comment:") {
+        return Ok(text.to_string());
+    }
+    let decoded = STANDARD
+        .decode(text)
+        .map_err(|error| format!("{label} is neither minisign text nor Tauri Base64: {error}"))?;
+    String::from_utf8(decoded).map_err(|_| format!("decoded {label} is not UTF-8"))
 }
 
 fn validate_manifest(manifest: &FrontendManifest, host_protocol: u32) -> Result<(), String> {
@@ -684,7 +697,109 @@ mod tests {
         extract_archive, requested_asset, safe_version, serve, validate_manifest, FrontendArtifact,
         FrontendManifest, FrontendProtocolRange, FrontendResourceManager, FrontendResourceSource,
     };
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
     use http::{Request, StatusCode};
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+
+    const TAURI_TEST_PUBLIC_KEY: &str = "untrusted comment: minisign public key: F3E2CE91678DD036\nRWQ20I1nkc7i86e8j0+Jk41TEAN1vbGE+xIhUYs28OcUGs7zKUI9YDWI\n";
+    const TAURI_FRONTEND_MANIFEST_BASE64: &str = "ewogICJzY2hlbWFfdmVyc2lvbiI6IDEsCiAgInZlcnNpb24iOiAiOS45LjktdGVzdC4xIiwKICAicHJvdG9jb2wiOiB7ICJtaW4iOiAxLCAibWF4IjogMSB9LAogICJhcnRpZmFjdCI6IHsKICAgICJmaWxlIjogIm9wZW5hZ2VudC1mcm9udGVuZC50YXIuZ3oiLAogICAgInNoYTI1NiI6ICI0NzhkMWVkMWRmY2UzMjlkNWMxNTA3NzQyZmNmNzY0NWYyMTg2ZTgwNWQ1MzJmMzkxZWU2ODQwZWZlYTlmYjRiIiwKICAgICJzaXplIjogMjMwLAogICAgInVucGFja2VkX3NpemUiOiAxMDksCiAgICAiZmlsZXMiOiAyCiAgfQp9Cg==";
+    const TAURI_FRONTEND_SIGNATURE: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRMjBJMW5rYzdpODN4dTlXd0dEck1jOUlZU3B3WHlLUVdPL2MxZW5ROWRFNFZ3b01oL0JVd052MjFKN3MzeFJLVnFrZzZ2RVo1MktKUnFnRFNQWjB4WlMrbi9YMy9WbHdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4MDA5ODI0CWZpbGU6b3BlbmFnZW50LWZyb250ZW5kLW1hbmlmZXN0Lmpzb24KYnJCK2Znam5qOXV6YlQ1MS9oS2xkYWNxbmFla3l1RCtvRzhubGJjRHlxUUZiUGRTakZBSzhnZ2hSeEFKVS9GdVZlbkVyY1lJaFN1Z2JJSy83M0o1RHc9PQo=";
+    const TAURI_FRONTEND_ARCHIVE_BASE64: &str = "H4sIAEndkmoAA+3TQQuCMBQH8M59ivUF9K22dciCIBMvFmXQLTSXGqbiJui3z+oQeOkQFsV+h22wsb0H+8dpwCstkpek1xkAYIyh29xozwAYMMJ0SAiljIwpAoyHI9ZD0F1JT6WQXtGU8u497eZ+hDEIsqOsc45uf2BmPEY/C+qZiMOUB+hUZKnkabOIK1kW3NDvu4Z+P9r/dgPKWzwhuBS6l+faWXT0xqv8AyXt/LMxqPx/Qphkvpe4USy01dp05pbpuIetbTnm4rC09+5uY6IpkkXJJyrqiqIof+QKX/Na0QAMAAA=";
+
+    fn serve_signed_frontend_fixture(archive: Vec<u8>) -> (String, std::thread::JoinHandle<()>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let manifest = STANDARD.decode(TAURI_FRONTEND_MANIFEST_BASE64).unwrap();
+        let signature = TAURI_FRONTEND_SIGNATURE.as_bytes().to_vec();
+        let server = std::thread::spawn(move || {
+            for _ in 0..3 {
+                let (mut stream, _) = listener.accept().unwrap();
+                let mut request = Vec::new();
+                let mut buffer = [0_u8; 1024];
+                while !request.windows(4).any(|window| window == b"\r\n\r\n") {
+                    let read = stream.read(&mut buffer).unwrap();
+                    if read == 0 {
+                        break;
+                    }
+                    request.extend_from_slice(&buffer[..read]);
+                }
+                let request = String::from_utf8(request).unwrap();
+                let path = request
+                    .lines()
+                    .next()
+                    .and_then(|line| line.split_whitespace().nth(1))
+                    .unwrap();
+                let body = match path {
+                    "/openagent-frontend-manifest.json" => &manifest,
+                    "/openagent-frontend-manifest.json.sig" => &signature,
+                    "/openagent-frontend.tar.gz" => &archive,
+                    _ => panic!("unexpected fixture request {path}"),
+                };
+                write!(
+                    stream,
+                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    body.len()
+                )
+                .unwrap();
+                stream.write_all(body).unwrap();
+            }
+        });
+        (format!("http://{address}"), server)
+    }
+
+    #[tokio::test]
+    async fn installs_a_tauri_signed_frontend_over_http_and_rejects_tampering() {
+        let archive = STANDARD.decode(TAURI_FRONTEND_ARCHIVE_BASE64).unwrap();
+        let (origin, server) = serve_signed_frontend_fixture(archive.clone());
+        let home = std::env::temp_dir().join(format!(
+            "openagent-frontend-signed-http-{}",
+            uuid::Uuid::new_v4()
+        ));
+        let manager = FrontendResourceManager::new(
+            home.clone(),
+            FrontendResourceSource {
+                manifest_url: format!("{origin}/openagent-frontend-manifest.json"),
+                signature_url: format!("{origin}/openagent-frontend-manifest.json.sig"),
+                public_key: TAURI_TEST_PUBLIC_KEY.to_string(),
+            },
+            "1.0.0",
+            1,
+        )
+        .unwrap();
+        let installed = manager.install_latest().await.unwrap();
+        assert_eq!(installed.version, "9.9.9-test.1");
+        assert!(installed.root.join("index.html").is_file());
+        manager.activate(&installed.version).await.unwrap();
+        manager.confirm(&installed.version).await.unwrap();
+        assert_eq!(manager.active_version().as_deref(), Some("9.9.9-test.1"));
+        server.join().unwrap();
+        std::fs::remove_dir_all(home).unwrap();
+
+        let mut tampered = archive;
+        tampered[0] ^= 1;
+        let (origin, server) = serve_signed_frontend_fixture(tampered);
+        let home = std::env::temp_dir().join(format!(
+            "openagent-frontend-tampered-http-{}",
+            uuid::Uuid::new_v4()
+        ));
+        let manager = FrontendResourceManager::new(
+            home.clone(),
+            FrontendResourceSource {
+                manifest_url: format!("{origin}/openagent-frontend-manifest.json"),
+                signature_url: format!("{origin}/openagent-frontend-manifest.json.sig"),
+                public_key: TAURI_TEST_PUBLIC_KEY.to_string(),
+            },
+            "1.0.0",
+            1,
+        )
+        .unwrap();
+        assert!(manager.install_latest().await.is_err());
+        server.join().unwrap();
+        if home.exists() {
+            std::fs::remove_dir_all(home).unwrap();
+        }
+    }
 
     #[test]
     fn validates_bounded_frontend_manifests() {

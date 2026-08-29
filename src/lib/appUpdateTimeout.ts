@@ -1,4 +1,5 @@
 export const APP_UPDATE_CHECK_TIMEOUT_MS = 15_000;
+export const RESOURCE_UPDATE_PREPARE_TIMEOUT_MS = 10 * 60_000;
 
 export class AppUpdateTimeoutError extends Error {
   constructor() {

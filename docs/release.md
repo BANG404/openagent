@@ -255,6 +255,12 @@ VCLibs package dependency is present.
 The target repository must define `OPENAGENT_SDK_DEPLOY_KEY` and
 `TAURI_SIGNING_PRIVATE_KEY`. Release validates both secrets before tagging or
 starting platform builds; secret values are never printed.
+Runtime and frontend channel manifests are signed with the Tauri signer. Its
+detached `.sig` artifact is the Tauri-standard Base64 wrapper around minisign
+text; desktop resource installers decode that wrapper, verify the exact
+downloaded manifest bytes against the updater public key, and only then fetch
+or activate the referenced artifact. Local integration tests use an ephemeral
+test keypair and never require the production private key.
 
 The Release workflow first runs all frontend, Rust, embedding, sandbox, and
 Harness qualification, then performs the authoritative product compilation for

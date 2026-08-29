@@ -11,6 +11,7 @@ test("production update checks prefer a verified frontend resource without resta
   expect(updater).toContain('invoke<void>("activate_frontend_resource"');
   expect(updater).toContain('translate("updateAndReload")');
   expect(updater).toContain("if (import.meta.env.DEV) return false");
+  expect(updater).toContain("RESOURCE_UPDATE_PREPARE_TIMEOUT_MS");
 });
 
 test("production update checks can activate a verified Runtime without a shell update", () => {

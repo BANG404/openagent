@@ -56,7 +56,7 @@
     replaceQuickChatShortcut,
   } from "$lib/quickChatWindow";
   import { desktopOpenAgent as openAgent, emit, invoke, listen } from "$lib/openagent/tauriClient";
-  import type { ChatRunStartedEvent } from "$lib/openagent";
+  import type { AgentCommandSpec, ChatRunStartedEvent } from "$lib/openagent";
   import {
     DEV_MAIN_DEBUG_VISIBILITY_EVENT,
     readMainDebugComponentsVisible,
@@ -159,33 +159,6 @@
     TaskTokenUsage,
     TaskTrace,
   } from "$lib/types";
-
-  type AgentCommandSpec = {
-    name: string;
-    owner: "runtime" | "client";
-    argument: "none" | "required_text";
-    label_key: string;
-    description_key: string;
-  };
-
-  type ResolvedAgentInput =
-    | { type: "chat"; text: string }
-    | {
-        type: "agent_command";
-        command: "compact" | "goal" | "graph";
-        argument: string;
-        original_text: string;
-      }
-    | {
-        type: "client_action";
-        action:
-          | "new_conversation"
-          | "open_model_settings"
-          | "open_memory"
-          | "open_skills"
-          | "open_settings";
-        original_text: string;
-      };
 
   type EmbeddingResourceStatus = {
     state: "ready" | "missing" | "corrupt";
@@ -1959,7 +1932,8 @@
 
     syncNewConversationSuggestionsFromStorage();
     if (tauriAvailable) {
-      void invoke<AgentCommandSpec[]>("get_agent_commands")
+      void openAgent
+        .listAgentCommands()
         .then((commandSpecs) => {
           agentCommandSpecs = commandSpecs;
         })
@@ -3636,7 +3610,7 @@
 
   async function handleClientSlashInput(text: string): Promise<boolean> {
     try {
-      const resolved = await invoke<ResolvedAgentInput>("resolve_agent_input", { text });
+      const resolved = await openAgent.invokeProduct("resolve_agent_input", { text });
       if (resolved.type === "agent_command" && resolved.command === "compact") {
         clearComposerDraft();
         await compactCurrentConversation();

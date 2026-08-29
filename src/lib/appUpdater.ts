@@ -4,7 +4,11 @@ import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
 import { get, readonly, writable } from "svelte/store";
 import { appUpdateReleaseUrl } from "$lib/appUpdateRelease";
 import { t, type TranslationKeys } from "$lib/i18n";
-import { AppUpdateTimeoutError, withAppUpdateTimeout } from "$lib/appUpdateTimeout";
+import {
+  AppUpdateTimeoutError,
+  RESOURCE_UPDATE_PREPARE_TIMEOUT_MS,
+  withAppUpdateTimeout,
+} from "$lib/appUpdateTimeout";
 import { dismissToast, showToast, updateToast } from "$lib/toast";
 
 export type AppUpdateState = "idle" | "checking" | "installing";
@@ -66,6 +70,7 @@ async function checkForRuntimeResourceUpdate(): Promise<boolean> {
   if (import.meta.env.DEV) return false;
   const candidate = await withAppUpdateTimeout(
     invoke<PreparedRuntimeResource>("prepare_runtime_resource"),
+    RESOURCE_UPDATE_PREPARE_TIMEOUT_MS,
   );
   if (!candidate.update_available) return false;
   showToast({
@@ -84,6 +89,7 @@ async function checkForFrontendResourceUpdate(): Promise<boolean> {
   if (import.meta.env.DEV) return false;
   const candidate = await withAppUpdateTimeout(
     invoke<PreparedFrontendResource>("prepare_frontend_resource"),
+    RESOURCE_UPDATE_PREPARE_TIMEOUT_MS,
   );
   if (!candidate.update_available) return false;
   showToast({

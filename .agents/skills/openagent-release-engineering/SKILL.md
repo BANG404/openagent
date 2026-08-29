@@ -59,6 +59,10 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   detached signature only from the release-qualified static build. Refresh the
   matching fixed `frontend-beta`, `frontend-rc`, or `frontend-stable` channel
   after the immutable release is public.
+- Treat Tauri signer `.sig` files as Base64-wrapped minisign text. Resource
+  installers must decode that standard wrapper, verify the exact manifest bytes
+  before downloading artifacts, and retain integration coverage with an
+  ephemeral test key; never require or print the production signing key locally.
 - Record `frontend`, `runtime`, and `nativeShell` in release metadata. Component
   releases build only their selected resources; only `nativeShell` builds Tauri
   updater artifacts, full installers, Store packages, or fixed `latest.json`.
