@@ -14,7 +14,6 @@
   import Tooltip from "./Tooltip.svelte";
   import Select from "./ui/Select.svelte";
   import SettingsActionButton from "./ui/SettingsActionButton.svelte";
-  import WindowControls from "./WindowControls.svelte";
 
   let {
     config,
@@ -24,9 +23,6 @@
     onComplete,
     onThemePreview,
     embeddingPreviewState,
-    winMinimize,
-    winMaximize,
-    winClose,
   }: {
     config: AppConfig;
     workspacePath: string;
@@ -35,9 +31,6 @@
     onComplete: () => void;
     onThemePreview?: (theme: string) => void;
     embeddingPreviewState?: "ready" | "downloading";
-    winMinimize: () => void;
-    winMaximize: () => void;
-    winClose: () => void;
   } = $props();
 
   let draft = $state<AppConfig>(
@@ -388,14 +381,6 @@
 </script>
 
 <div class="application-settings-scope onboarding-panel">
-  <header class="onboarding-header" data-tauri-drag-region>
-    <WindowControls
-      onMinimize={winMinimize}
-      onMaximize={winMaximize}
-      onClose={winClose}
-      canMaximize={false}
-    />
-  </header>
   <div class="onboarding-body">
     <aside class="onboarding-visual">
       <img
@@ -680,16 +665,6 @@
     overflow: hidden;
     background: var(--app-chrome-bg);
     color: var(--text);
-  }
-  .onboarding-header {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    height: 40px;
-    flex: none;
-    box-sizing: border-box;
-    padding: 0;
-    background: var(--app-chrome-bg);
   }
   .onboarding-body {
     display: grid;

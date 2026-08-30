@@ -4671,8 +4671,6 @@
   const winMinimize = () => appWindow?.minimize();
   const winMaximize = () => appWindow?.toggleMaximize();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
-  const onboardingWinClose = () =>
-    config?.onboarding_completed ? appWindow?.hide() : void invoke("quit_app");
   const quitApp = () => void invoke("quit_app");
 
   // Keep the webview's built-in context menu available while developing, but
@@ -4707,9 +4705,6 @@
         onPickWorkspace={pickOnboardingWorkspace}
         onComplete={completeOnboarding}
         onThemePreview={applyTheme}
-        {winMinimize}
-        {winMaximize}
-        winClose={onboardingWinClose}
       />
     {:else}
       <div class="onboarding-loading">

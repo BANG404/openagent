@@ -21,14 +21,13 @@ describe("Windows window controls", () => {
     expect(source).toMatch(/\.win-close:hover \{\s*background: #e81123;/);
   });
 
-  test("stay flush in the title-free onboarding chrome", async () => {
+  test("omits custom controls from the title-free onboarding chrome", async () => {
     const source = await readFile(onboardingFlowUrl, "utf8");
 
     expect(source).not.toContain('"Getting started"');
     expect(source).not.toContain('"入门设置"');
-    expect(source).toMatch(/\.onboarding-header\s*{[^}]*justify-content: flex-end;/s);
-    expect(source).toMatch(/\.onboarding-header\s*{[^}]*height: 40px;/s);
-    expect(source).toMatch(/\.onboarding-header\s*{[^}]*padding: 0;/s);
+    expect(source).not.toContain("WindowControls");
+    expect(source).not.toContain("onboarding-header");
     expect(source).toMatch(/\.onboarding-visual\s*{[^}]*background: transparent;/s);
     expect(source).toMatch(/\.onboarding-nav-item\s*{[^}]*border: 0;/s);
   });
@@ -42,7 +41,7 @@ describe("Windows window controls", () => {
 
     expect(controls).toContain("canMaximize = true");
     expect(controls).toContain("{#if canMaximize}");
-    expect(onboarding).toContain("canMaximize={false}");
+    expect(onboarding).not.toContain("canMaximize");
     expect(onboarding).toContain("/assets/onboarding/openagent-workspace.png");
     expect(onboarding).toMatch(
       /\.onboarding-body\s*{[^}]*grid-template-columns: 50% minmax\(0, 50%\);/s,

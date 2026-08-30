@@ -34,10 +34,10 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   geometry. Windows controls fill the title-bar
   height; the close hover uses the platform red and follows the outer 7px window
   corner while restored, then becomes square when maximized. The dedicated
-  onboarding title bar omits a visible setup label, matches the main chrome
-  height, and places the Windows controls flush against the trailing window
-  edge. The centered onboarding window is a fixed, non-maximizable 960 × 640px
-  canvas. Its Windows 11 OOBE-inspired body pairs a quiet illustration and
+  onboarding window omits the custom title bar and window controls so its setup
+  body fills the complete frameless canvas. The centered onboarding window is a
+  fixed, non-maximizable 960 × 640px canvas. Its Windows 11 OOBE-inspired body
+  pairs a quiet illustration and
   compact numbered progress controls on the native-material side with the
   current setup form in a slightly narrower, near-even content canvas with a
   small vertical inset.
