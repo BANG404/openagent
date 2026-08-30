@@ -4000,12 +4000,13 @@
 
   async function applyWorkspace(path: string, preferredConversationId?: string): Promise<boolean> {
     if (path === workspacePath) return true;
-    if (tauriAvailable) return false;
     if (workspaceLoading) return false;
 
     workspaceSwitchTarget = path;
     workspaceLoading = true;
     const previousWorkspacePath = workspacePath;
+    let runtimeWorkspaceChanged = false;
+    let workspaceStateCommitted = false;
     try {
       const prepared = await prepareWorkspaceSwitch(path, preferredConversationId);
 
@@ -4015,6 +4016,14 @@
         has_agent_dir: false,
         environment: { kind: "local" },
       };
+      if (tauriAvailable) {
+        await openAgent.invokeProduct("set_workspace", { path: path || null });
+        runtimeWorkspaceChanged = true;
+        nextWorkspace = (await openAgent.invokeProduct<"get_workspace_context">(
+          "get_workspace_context",
+          {},
+        )) as WorkspaceContext;
+      }
       // Commit the prepared workspace as one state transition so the mounted
       // transcript and composer are never replaced by an app-wide loading pass.
       workspaceConversationSnapshots.set(previousWorkspacePath, conversations);
@@ -4031,6 +4040,7 @@
       activeConvId = prepared.activeConversationId;
       restoringSurface = activeConvId ? "conversation" : "new-conversation";
       syncNewConversationSuggestionsFromStorage();
+      workspaceStateCommitted = true;
 
       if (activeConvId && prepared.activeConversation) {
         loadedConvIds.add(activeConvId);
@@ -4058,11 +4068,20 @@
           }).catch(() => {});
         }
         await scrollToBottom();
+      } else if (tauriAvailable) {
+        await openAgent
+          .invokeProduct("set_active_conversation", { convId: null, workspace: path || "" })
+          .catch(() => {});
       }
       cacheRestoreSurface(restoringSurface, activeConvId, path);
       await addToRecentWorkspaces(path);
       void refreshRecentConversations();
     } catch (error) {
+      if (runtimeWorkspaceChanged && !workspaceStateCommitted) {
+        await openAgent
+          .invokeProduct("set_workspace", { path: previousWorkspacePath || null })
+          .catch(() => {});
+      }
       console.warn("Failed to open workspace:", path, error);
       showToast({
         title: $t("workspaceUnavailable"),
@@ -4092,25 +4111,8 @@
     if (!tauriAvailable)
       return (await applyWorkspace(path, target.conversationId)) ? "current" : "failed";
 
-    try {
-      await addToRecentWorkspaces(path);
-      await invoke("open_workspace_window", {
-        path,
-        conversationId: target.conversationId ?? null,
-        messageId: target.messageId ?? null,
-        newConversation: target.newConversation ?? false,
-      });
-      return "routed";
-    } catch (error) {
-      console.warn("Failed to route workspace:", path, error);
-      showToast({
-        title: $t("workspaceUnavailable"),
-        description: path,
-        descriptionFromEnd: true,
-        variant: "error",
-      });
-      return "failed";
-    }
+    if (await applyWorkspace(path, target.conversationId)) return "current";
+    return "failed";
   }
 
   async function requestWorkspace(path: string) {

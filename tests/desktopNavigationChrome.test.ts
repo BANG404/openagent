@@ -147,7 +147,7 @@ describe("desktop navigation chrome", () => {
     expect(appCss).not.toContain("@mdxeditor/editor");
   });
 
-  test("searches every workspace and creates duplicate windows without a folder picker", async () => {
+  test("searches every workspace and keeps switching in the current window", async () => {
     const route = await readFile(routeUrl, "utf8");
     const openConversation = route.slice(
       route.indexOf("async function openSidebarConversation"),
@@ -159,9 +159,8 @@ describe("desktop navigation chrome", () => {
     expect(openConversation).toContain("await routeWorkspace(conversationWorkspace, {");
     expect(openConversation).toContain("conversationId: conversation.id");
     expect(openConversation).toContain('if (result !== "current") return');
-    expect(route).toContain('await invoke("open_workspace_window"');
-    expect(route).toContain("newConversation: target.newConversation ?? false");
-    expect(route).not.toContain('invoke("set_workspace"');
+    expect(route).toContain('openAgent.invokeProduct("set_workspace"');
+    expect(route).not.toContain('invoke("open_workspace_window"');
     expect(route).toContain('await invoke("create_workspace_window", { path: workspacePath })');
     expect(route).toContain("onNewWindow={createNewWindow}");
     const createNewWindow = route.slice(

@@ -1886,8 +1886,17 @@ fn restart_app(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
-fn quit_app(app: tauri::AppHandle) {
+async fn quit_app(
+    app: tauri::AppHandle,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+    proxy: State<'_, RuntimeEventProxy>,
+) -> Result<(), String> {
+    proxy.stop().await;
+    if let Err(error) = supervisor.stop().await {
+        tracing::warn!(%error, "failed to stop supervised Runtime during quit");
+    }
     app.exit(0);
+    Ok(())
 }
 
 #[cfg(windows)]

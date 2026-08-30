@@ -74,6 +74,12 @@ binary, and exclusive durable-state ownership.
   immediately. Keep that explicit duplicate detached from the SDK's registered
   workspace route so targeted navigation continues to focus the canonical
   workspace process.
+- Switching the workspace in the current shell is an in-place product
+  operation, including when the Tauri WebView uses the supervised server
+  Runtime. Only the explicit New window command may spawn a second process.
+- Quit must stop the Runtime event proxy and supervised Runtime before calling
+  `app.exit`; relying on supervisor destruction after the Tauri event loop can
+  leave server processes and their background tasks alive.
 - A supervised external Runtime receives the host process's exact workspace
   navigation context: optional conversation ID, optional message ID, and the
   explicit-new-conversation flag. Preserve those fields across Runtime resource
