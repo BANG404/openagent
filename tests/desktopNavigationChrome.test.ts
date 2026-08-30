@@ -170,6 +170,17 @@ describe("desktop navigation chrome", () => {
     expect(createNewWindow).not.toContain("openDialog");
   });
 
+  test("quits only after the supervised Runtime and Tauri resources are cleaned up", async () => {
+    const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const quit = host.slice(host.indexOf("async fn quit_app"), host.indexOf("#[cfg(windows)]"));
+
+    expect(quit).toContain("proxy.stop().await");
+    expect(quit).toContain("supervisor.stop().await");
+    expect(quit).toContain("tracing_setup::shutdown_tracing()");
+    expect(quit).toContain("app.cleanup_before_exit()");
+    expect(quit).toContain("std::process::exit(0)");
+  });
+
   test("keeps the first 20 role-scoped recents in the main sidebar flow", async () => {
     const route = await readFile(routeUrl, "utf8");
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");

@@ -1895,8 +1895,9 @@ async fn quit_app(
     if let Err(error) = supervisor.stop().await {
         tracing::warn!(%error, "failed to stop supervised Runtime during quit");
     }
-    app.exit(0);
-    Ok(())
+    tracing_setup::shutdown_tracing();
+    app.cleanup_before_exit();
+    std::process::exit(0)
 }
 
 #[cfg(windows)]
