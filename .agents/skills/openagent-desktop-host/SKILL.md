@@ -40,7 +40,10 @@ binary, and exclusive durable-state ownership.
   `openagent-runtime` protocol. Permit only GET/HEAD requests for bounded media
   and HTML asset paths, preserve byte-range response headers, and attach the
   process token only in Rust. Resolve workspace paths in the Runtime before the
-  host invokes the native opener.
+  host invokes the native opener. Native open requests must select the active
+  Runtime mode at runtime: ordinary debug and release shells use the supervised
+  Runtime proxy, while the explicit embedded diagnostic uses its managed
+  Runtime state. Do not select this boundary with compile-time debug cfgs.
 - Serve replaceable frontend versions only through the host-owned
   `openagent-ui` protocol. Activation must atomically retain the previous
   selection, reload every product WebView with the candidate version, require

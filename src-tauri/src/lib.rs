@@ -1383,33 +1383,16 @@ async fn get_skills_dir(
     openagent_runtime::commands::get_skills_dir(scope, runtime.state()).await
 }
 
-#[cfg(debug_assertions)]
-#[tauri::command]
-async fn open_path(
+async fn resolve_desktop_open_path(
     path: String,
-    app_handle: tauri::AppHandle,
-    runtime: State<'_, Arc<OpenAgentRuntime>>,
-) -> Result<(), String> {
-    use tauri_plugin_opener::OpenerExt;
-
-    let resolved = openagent_runtime::commands::resolve_open_path(path, runtime.state()).await?;
-    app_handle
-        .opener()
-        .open_path(resolved, None::<&str>)
-        .map_err(|error| error.to_string())
-}
-
-#[cfg(not(debug_assertions))]
-#[tauri::command]
-async fn open_path(
-    path: String,
-    app_handle: tauri::AppHandle,
-    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
-) -> Result<(), String> {
-    use tauri_plugin_opener::OpenerExt;
-
+    embedded_runtime: Option<&OpenAgentRuntime>,
+    supervisor: &RuntimeProcessSupervisor,
+) -> Result<String, String> {
+    if let Some(runtime) = embedded_runtime {
+        return openagent_runtime::commands::resolve_open_path(path, runtime.state()).await;
+    }
     let response = runtime_transport::proxy_runtime_request(
-        supervisor.inner(),
+        supervisor,
         RuntimeProxyRequest {
             method: "POST".to_string(),
             path: "/api/desktop/operations".to_string(),
@@ -1429,8 +1412,25 @@ async fn open_path(
             response.status, response.body
         ));
     }
-    let resolved: String = serde_json::from_str(&response.body)
-        .map_err(|error| format!("Runtime path resolution response was invalid: {error}"))?;
+    serde_json::from_str(&response.body)
+        .map_err(|error| format!("Runtime path resolution response was invalid: {error}"))
+}
+
+#[tauri::command]
+async fn open_path(
+    path: String,
+    app_handle: tauri::AppHandle,
+    embedded_runtime: State<'_, EmbeddedRuntimeState>,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+
+    let resolved = resolve_desktop_open_path(
+        path,
+        embedded_runtime.inner().0.as_deref(),
+        supervisor.inner(),
+    )
+    .await?;
     app_handle
         .opener()
         .open_path(resolved, None::<&str>)
