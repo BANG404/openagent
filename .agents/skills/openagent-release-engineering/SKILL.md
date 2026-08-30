@@ -51,6 +51,11 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
 - Treat SDK server releases as independent process resources for headless and
   third-party consumers. Keep their machine-readable manifest, target matrix,
   protocol range, byte sizes, and SHA-256 values aligned. Desktop release builds
+  first resolve the exact SDK gitlink SHA and either reuse its newest valid
+  ancestor release when no SDK Conventional Commit requires a bump, or trigger
+  an immutable release tag on that exact SHA and wait for full public SDK
+  qualification. A failed or mismatched SDK manifest stops desktop tagging.
+  Publish an exact desktop-to-SDK mapping manifest with the desktop release.
   additionally package the exact pinned server as an `externalBin` fallback and
   publish only those release-qualified binaries through a fixed runtime channel
   whose manifest has a detached signature from the Tauri updater trust root.
