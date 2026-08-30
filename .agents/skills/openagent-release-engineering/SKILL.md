@@ -22,6 +22,9 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
 - Release, nightly, and explicit manual qualification force every frontend,
   automation, native, embedding, and Harness capability. A failed qualification
   stops tagging, building, and publication.
+- Qualify an exact SDK revision before creating its immutable release tag. A
+  failed candidate advances to a new commit and tag; never move the old tag or
+  bypass its failed gate.
 - Treat the private SDK gitlink as release-relevant input. Private SDK output,
   build artifacts, and target caches must not leak into public logs, artifacts,
   or caches; keep Rust caches at `cache-targets: false`.

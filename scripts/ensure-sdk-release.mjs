@@ -228,23 +228,46 @@ async function main() {
   const plan = JSON.parse(run(process.execPath, releaseVersion.args, { cwd: releaseVersion.cwd }));
   let manifest = await publishedRelease(repository, plan);
   if (!manifest) {
+    const ciTitle = `SDK CI ${plan.releaseSha}`;
+    const ciDispatch = dispatchWorkflow(repository, "ci.yml", "main", [
+      `sdk_sha=${plan.releaseSha}`,
+    ]);
+    const ciRun = await waitForWorkflowRun(
+      repository,
+      "ci.yml",
+      plan.releaseSha,
+      ciDispatch,
+      ciTitle,
+    );
+    let qualifiedRun = ciRun;
+    while (qualifiedRun.status !== "completed") {
+      await new Promise((resolve) => setTimeout(resolve, 30_000));
+      qualifiedRun = refreshWorkflowRun(repository, qualifiedRun);
+    }
+    if (qualifiedRun.conclusion !== "success") {
+      throw new Error(
+        `${qualifiedRun.workflow} failed before tagging ${plan.tag}: ${qualifiedRun.url}`,
+      );
+    }
+
     if (plan.releaseRequired) {
       dispatchWorkflow(repository, "prepare-release.yml", "main", [`sdk_sha=${sdkSha}`]);
     }
     await waitForSdkTag(repository, plan);
 
-    const ciTitle = `SDK CI ${plan.releaseSha}`;
-    const ciDispatch = dispatchWorkflow(repository, "ci.yml", "main", [
-      `sdk_sha=${plan.releaseSha}`,
-    ]);
     const releaseTitle = `Publish SDK Release ${plan.tag}`;
     const releaseDispatch = dispatchWorkflow(repository, "release.yml", "main", [
       `sdk_tag=${plan.tag}`,
     ]);
-    let trackedRuns = await Promise.all([
-      waitForWorkflowRun(repository, "ci.yml", plan.releaseSha, ciDispatch, ciTitle),
-      waitForWorkflowRun(repository, "release.yml", plan.releaseSha, releaseDispatch, releaseTitle),
-    ]);
+    let trackedRuns = [
+      await waitForWorkflowRun(
+        repository,
+        "release.yml",
+        plan.releaseSha,
+        releaseDispatch,
+        releaseTitle,
+      ),
+    ];
 
     for (let attempt = 0; attempt < 360 && !manifest; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 30_000));

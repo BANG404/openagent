@@ -374,7 +374,9 @@ native merge queues. If ownership moves to an organization, prefer a native
 merge queue and keep the existing `merge_group` CI trigger so the queued merge
 commit is tested against the latest target branch.
 
-SDK release tags, nightly schedules, and manual full dispatches use the public
+SDK release candidates are fully qualified by the public workflow before the
+private repository creates their immutable `sdk-v*` tags. SDK release tags,
+nightly schedules, and manual full dispatches use the public
 `sdk-ci.yml` workflow so Rust, Harness, host-compatibility, and native
 process-sandbox jobs run on public runners. Ordinary private `main` pushes do
 not run CI. Linux sandbox tests run on Ubuntu 24, install Bubblewrap, disable only

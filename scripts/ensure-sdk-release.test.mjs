@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   sdkReleaseVersionInvocation,
@@ -45,6 +46,16 @@ describe("SDK release manifest verification", () => {
 });
 
 describe("SDK release workflow orchestration", () => {
+  test("qualifies an SDK revision before preparing its immutable tag", () => {
+    const source = readFileSync(new URL("./ensure-sdk-release.mjs", import.meta.url), "utf8");
+    const ciDispatch = source.indexOf('dispatchWorkflow(repository, "ci.yml"');
+    const qualificationWait = source.indexOf('while (qualifiedRun.status !== "completed")');
+    const prepareDispatch = source.indexOf('dispatchWorkflow(repository, "prepare-release.yml"');
+    expect(ciDispatch).toBeGreaterThanOrEqual(0);
+    expect(qualificationWait).toBeGreaterThan(ciDispatch);
+    expect(prepareDispatch).toBeGreaterThan(qualificationWait);
+  });
+
   test("dispatches current CI automation for an immutable SDK SHA", () => {
     expect(
       workflowDispatchInvocation("BANG404/openagent-sdk", "ci.yml", "main", [
