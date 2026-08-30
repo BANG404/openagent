@@ -161,6 +161,13 @@ describe("desktop navigation chrome", () => {
     expect(openConversation).toContain('if (result !== "current") return');
     expect(route).toContain('openAgent.invokeProduct("set_workspace"');
     expect(route).not.toContain('invoke("open_workspace_window"');
+    const applyWorkspace = route.slice(
+      route.indexOf("async function applyWorkspace"),
+      route.indexOf("type WorkspaceRouteResult"),
+    );
+    expect(applyWorkspace.indexOf('openAgent.invokeProduct("set_workspace"')).toBeLessThan(
+      applyWorkspace.indexOf("prepareWorkspaceSwitch(path, preferredConversationId)"),
+    );
     expect(route).toContain('await invoke("create_workspace_window", { path: workspacePath })');
     expect(route).toContain("onNewWindow={createNewWindow}");
     const createNewWindow = route.slice(

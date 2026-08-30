@@ -4008,8 +4008,6 @@
     let runtimeWorkspaceChanged = false;
     let workspaceStateCommitted = false;
     try {
-      const prepared = await prepareWorkspaceSwitch(path, preferredConversationId);
-
       let nextWorkspace: WorkspaceContext = {
         path,
         git_branch: null,
@@ -4019,6 +4017,9 @@
       if (tauriAvailable) {
         await openAgent.invokeProduct("set_workspace", { path: path || null });
         runtimeWorkspaceChanged = true;
+      }
+      const prepared = await prepareWorkspaceSwitch(path, preferredConversationId);
+      if (tauriAvailable) {
         nextWorkspace = (await openAgent.invokeProduct<"get_workspace_context">(
           "get_workspace_context",
           {},
