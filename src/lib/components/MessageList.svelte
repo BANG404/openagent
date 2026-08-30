@@ -161,6 +161,7 @@
   let streamedOpenThinkingItemKeys = $state(new Set<string>());
   let copiedAssistantMessageId = $state<string | null>(null);
   let readingTurnKey = $state<string | null>(null);
+  let showAwaitingStreamOutput = $state(false);
   let suggestionHostMessageId = $derived(latestTurnSuggestionHostMessageId(messages));
   let copyFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
   let transcriptList = $state<TranscriptList | null>(null);
@@ -217,6 +218,24 @@
     activeConvId;
     cancelEdit();
     readingTurnKey = null;
+  });
+
+  // Fast responses should move directly from the optimistic user turn to real
+  // output. Delay the generic waiting label so a short persistence or stream
+  // connection interval cannot paint it for only one or two frames.
+  $effect(() => {
+    activeConvId;
+    currentStreamMessageId;
+    if (!isStreaming || !isAwaitingStreamOutput) {
+      showAwaitingStreamOutput = false;
+      return;
+    }
+
+    showAwaitingStreamOutput = false;
+    const timer = setTimeout(() => {
+      showAwaitingStreamOutput = true;
+    }, 250);
+    return () => clearTimeout(timer);
   });
 
   function contextKey(context: UserMessageContext): string {
@@ -662,7 +681,7 @@
               >
             {/if}
           </div>
-        {:else if assistantIsStreaming && isAwaitingStreamOutput}
+        {:else if assistantIsStreaming && showAwaitingStreamOutput}
           <div class="thinking-status" role="status" aria-live="polite">
             <span class="thinking-dot"></span>
             <span>{$t("awaitingStreamOutput")}</span>

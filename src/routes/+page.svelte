@@ -3884,6 +3884,7 @@
   async function prepareWorkspaceSwitch(
     path: string,
     preferredConversationId?: string,
+    restoreActiveConversation = true,
   ): Promise<PreparedWorkspaceSwitch> {
     if (!tauriAvailable) {
       return {
@@ -3900,7 +3901,9 @@
     }
     const [roles, durableActiveId] = await Promise.all([
       loadAvailableRolesForWorkspace(path),
-      invoke<string | null>("get_active_conv_id", { workspace: path || "" }).catch(() => null),
+      restoreActiveConversation
+        ? invoke<string | null>("get_active_conv_id", { workspace: path || "" }).catch(() => null)
+        : Promise.resolve(null),
     ]);
     let activeConversationId = preferredConversationId ?? durableActiveId;
     let activeMeta = activeConversationId
@@ -4009,7 +4012,10 @@
     };
   }
 
-  async function applyWorkspace(path: string, preferredConversationId?: string): Promise<boolean> {
+  async function applyWorkspace(
+    path: string,
+    target: { conversationId?: string; newConversation?: boolean } = {},
+  ): Promise<boolean> {
     if (path === workspacePath) return true;
     if (workspaceLoading) return false;
 
@@ -4029,7 +4035,11 @@
         await openAgent.invokeProduct("set_workspace", { path: path || null });
         runtimeWorkspaceChanged = true;
       }
-      const prepared = await prepareWorkspaceSwitch(path, preferredConversationId);
+      const prepared = await prepareWorkspaceSwitch(
+        path,
+        target.conversationId,
+        !target.newConversation,
+      );
       if (tauriAvailable) {
         nextWorkspace = (await openAgent.invokeProduct<"get_workspace_context">(
           "get_workspace_context",
@@ -4072,7 +4082,7 @@
         if (prepared.activeConversationTree) {
           await syncAgentHistoryToActivePath(activeConvId, prepared.activeConversationTree);
         }
-        if (activeConvId === preferredConversationId) {
+        if (activeConvId === target.conversationId) {
           window.localStorage.setItem(roleSelectionStorageKey(path), selectedRoleKey);
           await invoke("set_active_conversation", {
             convId: activeConvId,
@@ -4120,10 +4130,9 @@
     } = {},
   ): Promise<WorkspaceRouteResult> {
     if (path === workspacePath) return "current";
-    if (!tauriAvailable)
-      return (await applyWorkspace(path, target.conversationId)) ? "current" : "failed";
+    if (!tauriAvailable) return (await applyWorkspace(path, target)) ? "current" : "failed";
 
-    if (await applyWorkspace(path, target.conversationId)) return "current";
+    if (await applyWorkspace(path, target)) return "current";
     return "failed";
   }
 

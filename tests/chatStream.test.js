@@ -86,6 +86,10 @@ describe("conversation transition rendering", () => {
       new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url),
       "utf8",
     );
+    const messageListSource = await readFile(
+      new URL("../src/lib/components/MessageList.svelte", import.meta.url),
+      "utf8",
+    );
     const dispatchSource = pageSource.slice(
       pageSource.indexOf("async function dispatchChatMessage"),
       pageSource.indexOf("async function sendMessage"),
@@ -95,6 +99,14 @@ describe("conversation transition rendering", () => {
       dispatchSource.indexOf('await invoke("create_conversation"'),
     );
     expect(surfaceSource).toContain("showNewConversationContext={false}");
+    expect(messageListSource).toContain("showAwaitingStreamOutput");
+    expect(messageListSource).toContain("}, 250);");
+    expect(messageListSource).toContain(
+      "{:else if assistantIsStreaming && showAwaitingStreamOutput}",
+    );
+    expect(messageListSource).not.toContain(
+      "{:else if assistantIsStreaming && isAwaitingStreamOutput}",
+    );
   });
 });
 

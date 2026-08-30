@@ -166,8 +166,9 @@ describe("desktop navigation chrome", () => {
       route.indexOf("type WorkspaceRouteResult"),
     );
     expect(applyWorkspace.indexOf('openAgent.invokeProduct("set_workspace"')).toBeLessThan(
-      applyWorkspace.indexOf("prepareWorkspaceSwitch(path, preferredConversationId)"),
+      applyWorkspace.indexOf("prepareWorkspaceSwitch("),
     );
+    expect(route).toContain("target.conversationId,\n        !target.newConversation");
     expect(route).toContain('await invoke("create_workspace_window", { path: workspacePath })');
     expect(route).toContain("onNewWindow={createNewWindow}");
     const createNewWindow = route.slice(
@@ -278,6 +279,8 @@ describe("desktop navigation chrome", () => {
     expect(route.indexOf("prepareWorkspaceConversationSnapshot(")).toBeLessThan(
       route.indexOf("workspacePath = path"),
     );
+    expect(route).toContain("restoreActiveConversation = true");
+    expect(route).toContain("restoreActiveConversation\n        ? invoke<string | null>");
   });
 
   test("exposes keyboard edit commands and the shared update check", async () => {

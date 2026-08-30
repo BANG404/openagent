@@ -558,6 +558,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   inert and busy during that transition, then commit the target workspace
   context, roles, conversation page, and fully hydrated active conversation as
   one state change. Never clear the current workspace first or route workspace
+  switches initiated by the new-conversation composer through a restored active
+  conversation: prepare and commit the target workspace directly on its
+  new-conversation surface so no intermediate transcript is painted.
   transition state through the sidebar, transcript, or composer skeletons.
   Build the target checkpoint tree, selected branch, pending input, file changes,
   and transcript before changing the visible workspace identity. Do not clear
@@ -616,7 +619,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   awaiting that persistence so the visible surface moves directly from the
   centered new-conversation composer to the populated transcript. An active
   conversation with no renderable messages must not fall back to the
-  new-conversation greeting during creation, hydration, or navigation.
+  new-conversation greeting during creation, hydration, or navigation. Delay
+  the generic awaiting-output label briefly and cancel it on real output so a
+  fast response never paints a one-frame waiting status.
 - Keep the main window hidden until the bootstrap snapshot is applied; retain
   the failure watchdog.
 - Use transcript-shaped and composer skeletons during history loading. A new
