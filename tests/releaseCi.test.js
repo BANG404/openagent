@@ -212,11 +212,9 @@ describe("release CI verification", () => {
       'bun scripts/prepare-runtime-server.mjs --profile release "${target_args[@]}"',
     );
     expect(
-      releaseWorkflow.match(/TAURI_ENV_PLATFORM: \$\{\{ matrix\.tauri_platform \}\}/g),
+      releaseWorkflow.match(/OPENAGENT_RUNTIME_TARGET: \$\{\{ matrix\.sidecar_target \}\}/g),
     ).toHaveLength(2);
-    expect(releaseWorkflow.match(/TAURI_ENV_ARCH: \$\{\{ matrix\.tauri_arch \}\}/g)).toHaveLength(
-      2,
-    );
+    expect(releaseWorkflow).not.toContain("TAURI_ENV_ARCH:");
   });
 
   test("publishes qualified SDK development artifacts for external debugging", () => {

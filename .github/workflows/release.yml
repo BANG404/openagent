@@ -293,8 +293,7 @@ jobs:
             platform: macos-latest
             args: --target aarch64-apple-darwin
             rust_target: aarch64-apple-darwin
-            tauri_platform: macos
-            tauri_arch: aarch64
+            sidecar_target: aarch64-apple-darwin
             runtime_target: macos-arm64
             runtime_sidecar: openagent-server-aarch64-apple-darwin
             runtime_artifact: openagent-server-macos-arm64
@@ -302,8 +301,7 @@ jobs:
             platform: macos-latest
             args: --target x86_64-apple-darwin
             rust_target: x86_64-apple-darwin
-            tauri_platform: macos
-            tauri_arch: x86_64
+            sidecar_target: x86_64-apple-darwin
             runtime_target: macos-x64
             runtime_sidecar: openagent-server-x86_64-apple-darwin
             runtime_artifact: openagent-server-macos-x64
@@ -311,8 +309,7 @@ jobs:
             platform: ubuntu-22.04
             args: ""
             rust_target: ""
-            tauri_platform: linux
-            tauri_arch: x86_64
+            sidecar_target: x86_64-unknown-linux-gnu
             runtime_target: linux-x64
             runtime_sidecar: openagent-server-x86_64-unknown-linux-gnu
             runtime_artifact: openagent-server-linux-x64
@@ -320,8 +317,7 @@ jobs:
             platform: windows-latest
             args: ""
             rust_target: ""
-            tauri_platform: windows
-            tauri_arch: x86_64
+            sidecar_target: x86_64-pc-windows-msvc
             runtime_target: windows-x64
             runtime_sidecar: openagent-server-x86_64-pc-windows-msvc.exe
             runtime_artifact: openagent-server-windows-x64.exe
@@ -399,8 +395,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_ENV_PLATFORM: ${{ matrix.tauri_platform }}
-          TAURI_ENV_ARCH: ${{ matrix.tauri_arch }}
+          OPENAGENT_RUNTIME_TARGET: ${{ matrix.sidecar_target }}
           OPENAGENT_LOGS_INGEST_TOKEN: ${{ secrets.OPENAGENT_LOGS_INGEST_TOKEN }}
         with:
           tagName: ${{ needs.detect.outputs.tag }}
@@ -447,8 +442,7 @@ jobs:
         if: needs.detect.outputs.native_shell == 'true'
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_ENV_PLATFORM: ${{ matrix.tauri_platform }}
-          TAURI_ENV_ARCH: ${{ matrix.tauri_arch }}
+          OPENAGENT_RUNTIME_TARGET: ${{ matrix.sidecar_target }}
           OPENAGENT_LOGS_INGEST_TOKEN: ${{ secrets.OPENAGENT_LOGS_INGEST_TOKEN }}
         run: bun run tauri:build:full -- ${{ matrix.args }}
 

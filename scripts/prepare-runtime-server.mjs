@@ -77,6 +77,7 @@ export async function prepareRuntimeServer({ profile = "dev", targetTriple } = {
   const cargo = process.env.CARGO ?? "cargo";
   const resolvedTarget =
     targetTriple ??
+    process.env.OPENAGENT_RUNTIME_TARGET ??
     tauriTarget(process.env.TAURI_ENV_PLATFORM, process.env.TAURI_ENV_ARCH) ??
     parseRustHost(run(process.env.RUSTC ?? "rustc", ["-vV"]));
   const paths = runtimeServerPaths({

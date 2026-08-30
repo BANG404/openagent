@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   materializeRuntimeServerPlaceholder,
   parseRustHost,
+  prepareRuntimeServer,
   runtimeServerPaths,
   tauriTarget,
 } from "./prepare-runtime-server.mjs";
@@ -22,6 +23,27 @@ test("maps Tauri cross-build environment to the requested target", () => {
   expect(tauriTarget("windows", "x86_64")).toBe("x86_64-pc-windows-msvc");
   expect(tauriTarget("linux", "x86_64")).toBe("x86_64-unknown-linux-gnu");
   expect(tauriTarget("linux", "aarch64")).toBeUndefined();
+});
+
+test("prefers the explicit release target over Tauri's host environment", async () => {
+  const previousTarget = process.env.OPENAGENT_RUNTIME_TARGET;
+  const previousPlatform = process.env.TAURI_ENV_PLATFORM;
+  const previousArchitecture = process.env.TAURI_ENV_ARCH;
+  process.env.OPENAGENT_RUNTIME_TARGET = "unsupported-explicit-target";
+  process.env.TAURI_ENV_PLATFORM = "macos";
+  process.env.TAURI_ENV_ARCH = "aarch64";
+  try {
+    await expect(prepareRuntimeServer()).rejects.toThrow(
+      "OpenAgent has no packaged runtime server for unsupported-explicit-target.",
+    );
+  } finally {
+    if (previousTarget === undefined) delete process.env.OPENAGENT_RUNTIME_TARGET;
+    else process.env.OPENAGENT_RUNTIME_TARGET = previousTarget;
+    if (previousPlatform === undefined) delete process.env.TAURI_ENV_PLATFORM;
+    else process.env.TAURI_ENV_PLATFORM = previousPlatform;
+    if (previousArchitecture === undefined) delete process.env.TAURI_ENV_ARCH;
+    else process.env.TAURI_ENV_ARCH = previousArchitecture;
+  }
 });
 
 test("maps runtime server outputs to Tauri sidecar names", () => {
