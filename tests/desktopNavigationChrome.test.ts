@@ -179,13 +179,28 @@ describe("desktop navigation chrome", () => {
 
   test("quits only after the supervised Runtime and Tauri resources are cleaned up", async () => {
     const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
-    const quit = host.slice(host.indexOf("async fn quit_app"), host.indexOf("#[cfg(windows)]"));
+    const quit = host.slice(
+      host.indexOf("async fn quit_desktop"),
+      host.indexOf("#[tauri::command]\nasync fn quit_app"),
+    );
 
     expect(quit).toContain("proxy.stop().await");
     expect(quit).toContain("supervisor.stop().await");
     expect(quit).toContain("tracing_setup::shutdown_tracing()");
     expect(quit).toContain("app.cleanup_before_exit()");
     expect(quit).toContain("std::process::exit(0)");
+  });
+
+  test("keeps the system tray and its actions in the native host", async () => {
+    const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const route = await readFile(routeUrl, "utf8");
+
+    expect(host).toContain('TrayIconBuilder::with_id("openagent-tray")');
+    expect(host).toContain('.text("show", "Show OpenAgent")');
+    expect(host).toContain('.text("quit", "Quit")');
+    expect(host).toContain('"quit" =>');
+    expect(host).toContain("quit_desktop(app).await");
+    expect(route).not.toContain("initializeTray");
   });
 
   test("keeps the first 20 role-scoped recents in the main sidebar flow", async () => {

@@ -45,7 +45,6 @@
     promoteRecentConversation,
     togglePinnedProjectPath,
   } from "$lib/sidebarProjects";
-  import { initializeTray } from "$lib/tray";
   import { t, tr, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import { showToast } from "$lib/toast";
   import { decodeModelBinding } from "$lib/modelBinding";
@@ -1961,7 +1960,6 @@
         .catch(() => {});
       pollMemoryStatus();
       if (!launchContext?.workspace) {
-        void initializeTray();
         void initializeQuickChatShortcut(config?.quick_chat_shortcut).catch((error) => {
           console.warn("Failed to register quick chat shortcut", error);
         });

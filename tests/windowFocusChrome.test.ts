@@ -31,7 +31,6 @@ describe("window focus chrome", () => {
     const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
     const preview = await readFile(new URL("DesktopShellPreview.svelte", componentsUrl), "utf8");
     const input = await readFile(new URL("MessageInput.svelte", componentsUrl), "utf8");
-    const tray = await readFile(new URL("../src/lib/tray.ts", import.meta.url), "utf8");
     const nativeHost = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
     const nativeManifest = await readFile(
       new URL("../src-tauri/Cargo.toml", import.meta.url),
@@ -73,7 +72,9 @@ describe("window focus chrome", () => {
     expect(nativeManifest).toContain(
       'tauri = { git = "https://github.com/tauri-apps/tauri", rev = "08acfb3fa04945a6a4f822d66c7556111d9385aa" }',
     );
-    expect(tray).toMatch(/appWindow\.setFocus\(\)[\s\S]*?emit\(DESKTOP_WINDOW_ACTIVATED_EVENT\)/);
+    expect(nativeHost).toMatch(
+      /fn show_desktop_window[\s\S]*?window\.set_focus\(\)[\s\S]*?window\.emit\(DESKTOP_WINDOW_ACTIVATED_EVENT/,
+    );
     expect(sidebar).toContain("class:window-inactive={!windowFocused}");
     expect(sidebar).toMatch(/\.sidebar\.window-inactive \.sidebar-top \{\s*opacity: 0\.55;/);
     expect(historyControls).toMatch(
