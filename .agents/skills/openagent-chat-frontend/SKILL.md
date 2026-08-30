@@ -181,8 +181,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   behind the composer. Keep the main conversation workspace shadowless in both
   themes. Give both the ordinary composer and expanded panel the
   same standard Mica card surface and blur without a colored state shadow. Use
-  the shared two-layer, short-falloff neutral shadow so the input edge stays
-  softly legible without looking like a floating panel.
+  the ordinary composer a low-contrast neutral hairline and a two-layer,
+  short-falloff neutral shadow so its edge stays softly legible without looking
+  like a floating panel. Keep that perimeter quieter than floating menus in both
+  themes without weakening the shared elevation of other input surfaces.
   Retain the expanded panel's card border, radius, and shadow; its surface must
   use the same composition as the composer rather than an independently tinted
   backdrop. Do not retain a clickable edge peek, collapsed layout track, or a
