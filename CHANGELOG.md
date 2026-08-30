@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.53.0-beta.1] - 2026-08-30
+
+### Features
+- **release**: Couple desktop to pinned SDK releases
+- Align debug runtime with production
+
+### Bug Fixes
+- **onboarding**: Remove setup window top bar
+- **desktop**: Open workspace paths through active runtime
+- **chat**: Eliminate residual transition flicker
+- **desktop**: Hide windows while quit drains
+- **desktop**: Guarantee tray quit completion
+- **chat**: Prevent empty conversation transition flicker
+- **desktop**: Own tray actions in native host
+- **desktop**: Hot-refresh the supervised runtime
+- **frontend**: Authorize workspace before restoring conversation
+- **desktop**: Terminate runtime and authorize workspace switches
+- **desktop**: Keep workspace switching in current window
+- **desktop**: Route workspaces and bound cache usage
+
+### Styling
+- **chat**: Soften composer edge
+
 ## [0.52.0-beta.4] - 2026-08-30
 
 ## [0.52.0-beta.3] - 2026-08-30
