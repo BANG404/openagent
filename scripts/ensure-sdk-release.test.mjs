@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { join, resolve } from "node:path";
-import { sdkReleaseVersionInvocation, validateSdkManifest } from "./ensure-sdk-release.mjs";
+import {
+  sdkReleaseVersionInvocation,
+  selectDispatchedWorkflowRun,
+  validateSdkManifest,
+  workflowDispatchInvocation,
+} from "./ensure-sdk-release.mjs";
 
 describe("SDK release version invocation", () => {
   test("resolves the SDK script before changing to the SDK directory", () => {
@@ -36,5 +41,85 @@ describe("SDK release manifest verification", () => {
         plan,
       ),
     ).toThrow(/does not match/);
+  });
+});
+
+describe("SDK release workflow orchestration", () => {
+  test("dispatches current CI automation for an immutable SDK SHA", () => {
+    expect(
+      workflowDispatchInvocation("BANG404/openagent-sdk", "ci.yml", "main", [
+        `sdk_sha=${"b".repeat(40)}`,
+      ]),
+    ).toEqual([
+      "workflow",
+      "run",
+      "ci.yml",
+      "--repo",
+      "BANG404/openagent-sdk",
+      "--ref",
+      "main",
+      "-f",
+      `sdk_sha=${"b".repeat(40)}`,
+    ]);
+  });
+
+  test("dispatches workflows against an immutable SDK tag", () => {
+    expect(
+      workflowDispatchInvocation("BANG404/openagent-sdk", "release.yml", "main", [
+        "sdk_tag=sdk-v0.2.1",
+      ]),
+    ).toEqual([
+      "workflow",
+      "run",
+      "release.yml",
+      "--repo",
+      "BANG404/openagent-sdk",
+      "--ref",
+      "main",
+      "-f",
+      "sdk_tag=sdk-v0.2.1",
+    ]);
+  });
+
+  test("selects only the dispatched workflow for the exact SDK SHA", () => {
+    const dispatchedAt = Date.parse("2026-08-30T20:00:00Z");
+    const selected = selectDispatchedWorkflowRun(
+      [
+        {
+          event: "push",
+          headSha: "a".repeat(40),
+          createdAt: "2026-08-30T20:00:01Z",
+        },
+        {
+          databaseId: 42,
+          event: "workflow_dispatch",
+          headSha: "b".repeat(40),
+          createdAt: "2026-08-30T20:00:02Z",
+        },
+      ],
+      "b".repeat(40),
+      dispatchedAt,
+    );
+
+    expect(selected?.databaseId).toBe(42);
+  });
+
+  test("tracks an older immutable tag through its explicit run title", () => {
+    const selected = selectDispatchedWorkflowRun(
+      [
+        {
+          databaseId: 84,
+          event: "workflow_dispatch",
+          headSha: "c".repeat(40),
+          displayTitle: "Publish SDK Release sdk-v0.2.0",
+          createdAt: "2026-08-30T20:00:02Z",
+        },
+      ],
+      "b".repeat(40),
+      Date.parse("2026-08-30T20:00:00Z"),
+      "Publish SDK Release sdk-v0.2.0",
+    );
+
+    expect(selected?.databaseId).toBe(84);
   });
 });

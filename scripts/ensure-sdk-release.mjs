@@ -17,6 +17,40 @@ function run(command, args, options = {}) {
   }).trim();
 }
 
+const SDK_WORKFLOW_FAILURES = new Set([
+  "action_required",
+  "cancelled",
+  "failure",
+  "stale",
+  "startup_failure",
+  "timed_out",
+]);
+
+export function workflowDispatchInvocation(repository, workflow, ref, fields = []) {
+  return [
+    "workflow",
+    "run",
+    workflow,
+    "--repo",
+    repository,
+    "--ref",
+    ref,
+    ...fields.flatMap((field) => ["-f", field]),
+  ];
+}
+
+export function selectDispatchedWorkflowRun(runs, sdkSha, dispatchedAt, displayTitle = null) {
+  const earliest = dispatchedAt - 5_000;
+  return (
+    runs.find(
+      (candidate) =>
+        candidate.event === "workflow_dispatch" &&
+        (candidate.headSha === sdkSha || candidate.displayTitle === displayTitle) &&
+        Date.parse(candidate.createdAt) >= earliest,
+    ) ?? null
+  );
+}
+
 export function validateSdkManifest(manifest, plan) {
   if (manifest.version !== plan.version) {
     throw new Error(`SDK manifest version ${manifest.version} does not match ${plan.version}`);
@@ -96,6 +130,87 @@ async function publishedRelease(repository, plan) {
   }
 }
 
+function taggedReleaseSha(repository, tag) {
+  try {
+    const tagReference = JSON.parse(run("gh", ["api", `repos/${repository}/git/ref/tags/${tag}`]));
+    if (tagReference.object.type === "commit") return tagReference.object.sha;
+    if (tagReference.object.type !== "tag") {
+      throw new Error(`Unsupported SDK tag object type: ${tagReference.object.type}`);
+    }
+    return JSON.parse(run("gh", ["api", `repos/${repository}/git/tags/${tagReference.object.sha}`]))
+      .object.sha;
+  } catch (error) {
+    if (error?.status === 1) return null;
+    throw error;
+  }
+}
+
+function dispatchWorkflow(repository, workflow, ref, fields = []) {
+  const dispatchedAt = Date.now();
+  run("gh", workflowDispatchInvocation(repository, workflow, ref, fields));
+  return dispatchedAt;
+}
+
+function workflowRuns(repository, workflow) {
+  return JSON.parse(
+    run("gh", [
+      "run",
+      "list",
+      "--repo",
+      repository,
+      "--workflow",
+      workflow,
+      "--limit",
+      "30",
+      "--json",
+      "databaseId,event,status,conclusion,createdAt,displayTitle,headSha,url",
+    ]),
+  );
+}
+
+async function waitForWorkflowRun(repository, workflow, sdkSha, dispatchedAt, displayTitle = null) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const workflowRun = selectDispatchedWorkflowRun(
+      workflowRuns(repository, workflow),
+      sdkSha,
+      dispatchedAt,
+      displayTitle,
+    );
+    if (workflowRun) return { workflow, ...workflowRun };
+    await new Promise((resolve) => setTimeout(resolve, 3_000));
+  }
+  throw new Error(`GitHub did not create ${workflow} for SDK ${sdkSha}`);
+}
+
+function refreshWorkflowRun(repository, trackedRun) {
+  const current = JSON.parse(
+    run("gh", [
+      "run",
+      "view",
+      String(trackedRun.databaseId),
+      "--repo",
+      repository,
+      "--json",
+      "databaseId,status,conclusion,url",
+    ]),
+  );
+  return { ...trackedRun, ...current };
+}
+
+async function waitForSdkTag(repository, plan) {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const tagSha = taggedReleaseSha(repository, plan.tag);
+    if (tagSha) {
+      if (tagSha !== plan.releaseSha) {
+        throw new Error(`${plan.tag} points to ${tagSha}, not ${plan.releaseSha}`);
+      }
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
+  }
+  throw new Error(`Timed out waiting for immutable SDK tag ${plan.tag}`);
+}
+
 async function main() {
   const sdkDirectory = value("--sdk-dir");
   const sdkSha = value("--sdk-sha");
@@ -112,27 +227,40 @@ async function main() {
   const releaseVersion = sdkReleaseVersionInvocation(sdkDirectory, sdkSha);
   const plan = JSON.parse(run(process.execPath, releaseVersion.args, { cwd: releaseVersion.cwd }));
   let manifest = await publishedRelease(repository, plan);
-  if (!manifest && !plan.releaseRequired) {
-    throw new Error(`Reusable SDK release ${plan.tag} is not published with a valid manifest`);
-  }
   if (!manifest) {
-    run("gh", [
-      "workflow",
-      "run",
-      "prepare-release.yml",
-      "--repo",
-      repository,
-      "--ref",
-      "main",
-      "-f",
-      `sdk_sha=${sdkSha}`,
+    if (plan.releaseRequired) {
+      dispatchWorkflow(repository, "prepare-release.yml", "main", [`sdk_sha=${sdkSha}`]);
+    }
+    await waitForSdkTag(repository, plan);
+
+    const ciTitle = `SDK CI ${plan.releaseSha}`;
+    const ciDispatch = dispatchWorkflow(repository, "ci.yml", "main", [
+      `sdk_sha=${plan.releaseSha}`,
     ]);
-    for (let attempt = 0; attempt < 60 && !manifest; attempt += 1) {
+    const releaseTitle = `Publish SDK Release ${plan.tag}`;
+    const releaseDispatch = dispatchWorkflow(repository, "release.yml", "main", [
+      `sdk_tag=${plan.tag}`,
+    ]);
+    let trackedRuns = await Promise.all([
+      waitForWorkflowRun(repository, "ci.yml", plan.releaseSha, ciDispatch, ciTitle),
+      waitForWorkflowRun(repository, "release.yml", plan.releaseSha, releaseDispatch, releaseTitle),
+    ]);
+
+    for (let attempt = 0; attempt < 360 && !manifest; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 30_000));
       manifest = await publishedRelease(repository, plan);
+      if (manifest) break;
+
+      trackedRuns = trackedRuns.map((trackedRun) => refreshWorkflowRun(repository, trackedRun));
+      const failed = trackedRuns.find((trackedRun) =>
+        SDK_WORKFLOW_FAILURES.has(trackedRun.conclusion),
+      );
+      if (failed) {
+        throw new Error(`${failed.workflow} failed while publishing ${plan.tag}: ${failed.url}`);
+      }
     }
   }
-  if (!manifest) throw new Error(`Timed out waiting for qualified SDK release ${plan.tag}`);
+  if (!manifest) throw new Error(`Timed out waiting for published SDK release ${plan.tag}`);
 
   await writeFile(
     output,

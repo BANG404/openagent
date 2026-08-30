@@ -152,6 +152,7 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("needs.qualify.result == 'success'");
     expect(releaseWorkflow).toContain("name: Qualify or reuse pinned SDK release");
     expect(releaseWorkflow).toContain("scripts/ensure-sdk-release.mjs");
+    expect(releaseWorkflow).toContain("timeout-minutes: 190");
     expect(releaseWorkflow).toContain("OPENAGENT_SDK_RELEASE_TOKEN");
     expect(releaseWorkflow).toContain("openagent-desktop-manifest.json");
     expect(releaseWorkflow).toContain("needs.sdk-release.outputs.sdk_version");
@@ -220,6 +221,7 @@ describe("release CI verification", () => {
       releaseWorkflow.match(/OPENAGENT_RUNTIME_TARGET: \$\{\{ matrix\.sidecar_target \}\}/g),
     ).toHaveLength(2);
     expect(releaseWorkflow).not.toContain("TAURI_ENV_ARCH:");
+    expect(releaseWorkflow).toContain("cache-targets: false");
   });
 
   test("publishes qualified SDK development artifacts for external debugging", () => {

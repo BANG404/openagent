@@ -213,8 +213,14 @@ validation resolves `previousTag` against local immutable tag refs.
 Before desktop qualification, the workflow resolves the exact `sdk` gitlink. It
 validates and reuses the corresponding independent SDK release when available;
 otherwise it dispatches private SDK release preparation for that immutable SHA
-and waits for full SDK qualification plus a published manifest whose `sdk_sha`
-and protocol range match. Any failure stops desktop tagging and builds. A
+and then explicitly dispatches current private `main` SDK CI with the immutable
+commit SHA. SDK publication also uses current private `main` automation with the
+resulting `sdk-v*` tag as an explicit input, then checks out and verifies the
+immutable source. The host tracks those exact child workflow runs, reports
+their URLs when they fail, and waits for full SDK qualification plus a published
+manifest whose `sdk_sha` and protocol range match. It does not rely on a tag
+pushed by `GITHUB_TOKEN` to trigger another workflow. Any failure stops desktop
+tagging and builds. A
 published desktop release includes `openagent-desktop-manifest.json`, recording
 the desktop version and tag, SDK version, tag and source SHA, protocol range,
 and exact host compatibility mapping. This orchestration uses the dedicated

@@ -201,6 +201,7 @@ jobs:
     needs: detect
     if: needs.detect.outputs.active == 'true'
     runs-on: ubuntu-22.04
+    timeout-minutes: 190
     outputs:
       sdk_tag: ${{ steps.release.outputs.sdk_tag }}
       sdk_version: ${{ steps.release.outputs.sdk_version }}
@@ -403,6 +404,7 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: ./src-tauri -> target
+          cache-targets: false
 
       - uses: oven-sh/setup-bun@v2
         with:
