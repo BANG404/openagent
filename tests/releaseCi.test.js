@@ -184,7 +184,9 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("frontend-components:");
     expect(releaseWorkflow).toContain("scripts/frontend-artifacts.mjs");
     expect(
-      releaseWorkflow.match(/signer sign --private-key "\$TAURI_SIGNING_PRIVATE_KEY"/g),
+      releaseWorkflow.match(
+        /signer sign --private-key "\$TAURI_SIGNING_PRIVATE_KEY" --password ""/g,
+      ),
     ).toHaveLength(2);
     expect(releaseWorkflow).toContain('component_channel="frontend-$RELEASE_CHANNEL"');
     expect(releaseWorkflow).toContain("openagent-frontend-manifest.json.sig");
@@ -208,6 +210,12 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("name: Build qualified runtime component");
     expect(releaseWorkflow).toContain(
       'bun scripts/prepare-runtime-server.mjs --profile release "${target_args[@]}"',
+    );
+    expect(
+      releaseWorkflow.match(/TAURI_ENV_PLATFORM: \$\{\{ matrix\.tauri_platform \}\}/g),
+    ).toHaveLength(2);
+    expect(releaseWorkflow.match(/TAURI_ENV_ARCH: \$\{\{ matrix\.tauri_arch \}\}/g)).toHaveLength(
+      2,
     );
   });
 

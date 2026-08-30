@@ -278,15 +278,18 @@ detached `.sig` artifact is the Tauri-standard Base64 wrapper around minisign
 text; desktop resource installers decode that wrapper, verify the exact
 downloaded manifest bytes against the updater public key, and only then fetch
 or activate the referenced artifact. The release workflow passes the validated
-private key explicitly to each standalone manifest-signing command, rather than
-depending on the signer's environment-variable discovery. Local integration
-tests use an ephemeral test keypair and never require the production private
-key.
+passwordless private key and an explicit empty password to each standalone
+manifest-signing command, rather than depending on environment-variable
+discovery or an interactive password prompt. Local integration tests use an
+ephemeral test keypair and never require the production private key.
 
 The Release workflow first runs all frontend, Rust, embedding, sandbox, and
 Harness qualification, then performs the authoritative product compilation for
 the exact release SHA on every supported target and promotes those same
-artifacts without rebuilding them.
+artifacts without rebuilding them. Each platform matrix entry also exports its
+Tauri target platform and architecture while the native and full bundles run,
+so cross-compilation prepares the target-named Runtime sidecar instead of the
+runner host's sidecar.
 
 ## Modular CI
 
