@@ -1041,6 +1041,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 
 ## IPC and events
 
+- Keep ordinary debug and release desktop product operations on the same shared
+  SDK selection path: both use the supervised external Runtime transport, while
+  the explicit embedded diagnostic mode maps the same finite operations to Tauri
+  commands. Development Inspector Runtime operations belong to that finite map
+  and remain confined to their Inspector surfaces; native onboarding and window
+  controls stay local to Tauri.
 - Route replaceable Runtime behavior through the shared SDK client. Keep direct
   literal Tauri `invoke()` calls limited to commands classified by
   `tests/runtimeCommandBoundary.test.js` as product operations or explicit

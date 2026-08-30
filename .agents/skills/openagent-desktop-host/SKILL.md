@@ -111,6 +111,14 @@ the WebView media preference so both layers use the same palette. Treat
 
 ## Debug automation
 
+Ordinary `bun tauri dev` startup must use the prepared debug
+`openagent-server` through the same supervisor, authenticated proxy, Runtime
+asset protocol, and SSE resync path as release startup. Keep embedded Runtime
+composition behind the explicit `bun run tauri:dev:embedded` diagnostic command;
+external startup failure must remain visible instead of selecting it
+automatically. Both modes use the isolated development data root unless
+`OPENAGENT_HOME` explicitly selects a task fixture.
+
 Keep `tauri-plugin-pilot` registered after the single-instance plugin. Its
 named-pipe bridge and injected WebView instrumentation are available by default
 in debug builds for native-shell verification; the plugin remains a no-op in

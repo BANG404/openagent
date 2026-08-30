@@ -23,10 +23,13 @@ binary.
 
 ## Desktop Runtime boundary
 
-Release desktop builds use one supervised external `openagent-server` as the
-only Runtime process that owns configuration, SQLite, memory, and other durable
-state. Product operations travel through the typed SDK operation map and an
-authenticated loopback HTTP/SSE transport. Tauri retains only native
+Ordinary debug and release desktop builds use one supervised external
+`openagent-server` as the only Runtime process that owns configuration, SQLite,
+memory, and other durable state. Development builds prepare the local debug
+server and retain an explicit embedded mode only for Runtime-local diagnosis; a
+failed default external launch does not silently fall back to it. Product
+operations travel through the typed SDK operation map and an authenticated
+loopback HTTP/SSE transport. Tauri retains only native
 capabilities such as windows, updater, tray, notifications, dialogs, path
 opening, and private resource protocols. The installer packages the pinned
 server as a verified fallback, but does not run an embedded Runtime alongside

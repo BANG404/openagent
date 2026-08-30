@@ -37,6 +37,7 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint:actions": "github-actionlint",
     "tauri": "bun scripts/tauri.mjs",
+    "tauri:dev:embedded": "bun scripts/tauri.mjs dev --embedded-runtime",
     "tauri:build": "bun scripts/tauri-build.mjs",
     "tauri:build:full": "bun scripts/tauri-build.mjs --config src-tauri/tauri.full.conf.json",
     "commit:lint": "bun scripts/validate-commit-msg.mjs",

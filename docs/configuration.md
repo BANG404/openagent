@@ -8,12 +8,15 @@ desktop, and test environments the same path contract.
 
 The Tauri debug build defaults to the separate `~/.openagent-dev` root so a
 development configuration schema cannot rewrite state used by an installed
-release. Set `OPENAGENT_HOME` explicitly when a development run should use a
-specific fixture or deliberately share another root.
+release. Its ordinary startup uses the same supervised external Runtime boundary
+as production. `bun run tauri:dev:embedded` is an explicit Runtime-local
+diagnostic mode and is never an automatic startup fallback. Set `OPENAGENT_HOME`
+explicitly when a development run should use a specific fixture or deliberately
+share another root.
 
-In release desktop builds, one supervised external Runtime is the sole writer
-for `OPENAGENT_HOME`. The Tauri host does not construct a second embedded
-Runtime against the same root. A packaged Runtime binary is retained only as a
+In ordinary debug and release desktop builds, one supervised external Runtime
+is the sole writer for `OPENAGENT_HOME`. The Tauri host does not construct a
+second embedded Runtime against the same root. A packaged Runtime binary is retained only as a
 verified launch fallback; downloaded candidates are installed under
 `resources/runtime/` and become writers only after the old supervised process
 has drained and exited. Each desktop process supervises the Runtime for its

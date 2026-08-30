@@ -1,15 +1,19 @@
-#[cfg(debug_assertions)]
-use openagent_app::bootstrap_development_runtime as bootstrap_product_runtime;
-#[cfg(not(debug_assertions))]
-use openagent_app::bootstrap_runtime as bootstrap_product_runtime;
-#[cfg(debug_assertions)]
-use openagent_app::pending_development_persistence_transition as pending_product_persistence_transition;
-#[cfg(not(debug_assertions))]
-use openagent_app::pending_persistence_transition as pending_product_persistence_transition;
 use openagent_app::{
     apply_persistence_transition, EmbeddingResourceManager, EmbeddingResourceStatus,
     ExternalRuntimeLaunch, InstalledRuntimeResource, PersistenceTransitionPlan,
     RuntimeResourceManager, RuntimeResourceSource,
+};
+#[cfg(debug_assertions)]
+use openagent_app::{
+    bootstrap_development_runtime as bootstrap_product_runtime,
+    pending_development_persistence_transition as pending_product_persistence_transition,
+    prepare_development_external_runtime_launch as prepare_product_external_runtime_launch,
+};
+#[cfg(not(debug_assertions))]
+use openagent_app::{
+    bootstrap_runtime as bootstrap_product_runtime,
+    pending_persistence_transition as pending_product_persistence_transition,
+    prepare_external_runtime_launch as prepare_product_external_runtime_launch,
 };
 use openagent_runtime::checkpoint::{
     BranchMeta, ChatTaskUsage, CheckpointMeta, ConvPatch, ConversationMeta, FileChange,
@@ -86,44 +90,96 @@ struct HostRuntimeBootstrap {
     external_launch: Option<ExternalRuntimeLaunch>,
 }
 
-fn prepare_host_runtime(agent_server: bool) -> anyhow::Result<HostRuntimeBootstrap> {
+struct EmbeddedRuntimeState(Option<Arc<OpenAgentRuntime>>);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DesktopRuntimeMode {
+    External,
+    Embedded,
+}
+
+#[cfg(debug_assertions)]
+fn parse_development_runtime_mode(value: Option<&str>) -> Result<DesktopRuntimeMode, String> {
+    match value.map(str::trim) {
+        None | Some("") | Some("external") => Ok(DesktopRuntimeMode::External),
+        Some("embedded") => Ok(DesktopRuntimeMode::Embedded),
+        Some(value) => Err(format!(
+            "OPENAGENT_RUNTIME_MODE must be 'external' or 'embedded', got '{value}'"
+        )),
+    }
+}
+
+fn desktop_runtime_mode(agent_server: bool) -> anyhow::Result<DesktopRuntimeMode> {
+    if agent_server {
+        return Ok(DesktopRuntimeMode::Embedded);
+    }
+
     #[cfg(debug_assertions)]
     {
-        let RuntimeBootstrap {
-            initial_locale,
-            runtime,
-            html_preview_roots,
-        } = bootstrap_product_runtime(agent_server)?;
-        Ok(HostRuntimeBootstrap {
-            initial_locale,
-            runtime: Some(runtime),
-            html_preview_roots,
-            external_launch: None,
-        })
+        let value = match std::env::var("OPENAGENT_RUNTIME_MODE") {
+            Ok(value) => Some(value),
+            Err(std::env::VarError::NotPresent) => None,
+            Err(std::env::VarError::NotUnicode(_)) => {
+                anyhow::bail!("OPENAGENT_RUNTIME_MODE must contain Unicode text")
+            }
+        };
+        return parse_development_runtime_mode(value.as_deref()).map_err(anyhow::Error::msg);
     }
 
     #[cfg(not(debug_assertions))]
-    {
-        if agent_server {
+    Ok(DesktopRuntimeMode::External)
+}
+
+fn prepare_host_runtime(agent_server: bool) -> anyhow::Result<HostRuntimeBootstrap> {
+    match desktop_runtime_mode(agent_server)? {
+        DesktopRuntimeMode::Embedded => {
             let RuntimeBootstrap {
                 initial_locale,
                 runtime,
                 html_preview_roots,
-            } = bootstrap_product_runtime(true)?;
-            return Ok(HostRuntimeBootstrap {
+            } = bootstrap_product_runtime(agent_server)?;
+            Ok(HostRuntimeBootstrap {
                 initial_locale,
                 runtime: Some(runtime),
                 html_preview_roots,
                 external_launch: None,
-            });
+            })
         }
-        let launch = openagent_app::prepare_external_runtime_launch()?;
-        Ok(HostRuntimeBootstrap {
-            initial_locale: launch.initial_locale.clone(),
-            runtime: None,
-            html_preview_roots: Default::default(),
-            external_launch: Some(launch),
-        })
+        DesktopRuntimeMode::External => {
+            let launch = prepare_product_external_runtime_launch()?;
+            Ok(HostRuntimeBootstrap {
+                initial_locale: launch.initial_locale.clone(),
+                runtime: None,
+                html_preview_roots: Default::default(),
+                external_launch: Some(launch),
+            })
+        }
+    }
+}
+
+#[cfg(all(test, debug_assertions))]
+mod runtime_mode_tests {
+    use super::{parse_development_runtime_mode, DesktopRuntimeMode};
+
+    #[test]
+    fn development_desktop_defaults_to_external_runtime() {
+        assert_eq!(
+            parse_development_runtime_mode(None).unwrap(),
+            DesktopRuntimeMode::External
+        );
+        assert_eq!(
+            parse_development_runtime_mode(Some("external")).unwrap(),
+            DesktopRuntimeMode::External
+        );
+    }
+
+    #[test]
+    fn embedded_runtime_requires_an_explicit_valid_mode() {
+        assert_eq!(
+            parse_development_runtime_mode(Some("embedded")).unwrap(),
+            DesktopRuntimeMode::Embedded
+        );
+        assert!(parse_development_runtime_mode(Some("fallback")).is_err());
     }
 }
 
@@ -251,7 +307,6 @@ fn bundled_embedding_seed(app: &tauri::AppHandle) -> Option<std::path::PathBuf> 
         .filter(|path| path.is_dir())
 }
 
-#[cfg(debug_assertions)]
 async fn load_embedding_model(
     runtime: Arc<OpenAgentRuntime>,
     model_dir: std::path::PathBuf,
@@ -267,50 +322,24 @@ async fn load_embedding_model(
 }
 
 #[tauri::command]
-#[cfg(debug_assertions)]
 async fn get_embedding_resource_status(
     manager: State<'_, EmbeddingResourceManager>,
-    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    runtime: State<'_, EmbeddedRuntimeState>,
 ) -> Result<EmbeddingResourceStatus, String> {
     let resource = manager.status().await;
-    if resource.ready() && runtime.state().embedding_model.lock().await.is_none() {
-        load_embedding_model(runtime.inner().clone(), manager.model_dir().to_path_buf()).await?;
+    if let Some(runtime) = runtime.0.as_ref() {
+        if resource.ready() && runtime.state().embedding_model.lock().await.is_none() {
+            load_embedding_model(runtime.clone(), manager.model_dir().to_path_buf()).await?;
+        }
     }
     Ok(resource)
 }
 
 #[tauri::command]
-#[cfg(not(debug_assertions))]
-async fn get_embedding_resource_status(
-    manager: State<'_, EmbeddingResourceManager>,
-) -> Result<EmbeddingResourceStatus, String> {
-    Ok(manager.status().await)
-}
-
-#[tauri::command]
-#[cfg(debug_assertions)]
 async fn prepare_embedding_resource(
     app: tauri::AppHandle,
     manager: State<'_, EmbeddingResourceManager>,
-    runtime: State<'_, Arc<OpenAgentRuntime>>,
-) -> Result<EmbeddingResourceStatus, String> {
-    let progress_app = app.clone();
-    let installed = manager
-        .prepare(bundled_embedding_seed(&app), move |progress| {
-            if let Err(error) = progress_app.emit("embedding-resource-progress", progress) {
-                tracing::warn!(%error, "failed to emit embedding resource progress");
-            }
-        })
-        .await?;
-    load_embedding_model(runtime.inner().clone(), manager.model_dir().to_path_buf()).await?;
-    Ok(installed)
-}
-
-#[tauri::command]
-#[cfg(not(debug_assertions))]
-async fn prepare_embedding_resource(
-    app: tauri::AppHandle,
-    manager: State<'_, EmbeddingResourceManager>,
+    runtime: State<'_, EmbeddedRuntimeState>,
     updates: State<'_, RuntimeUpdateState>,
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
     proxy: State<'_, RuntimeEventProxy>,
@@ -324,6 +353,10 @@ async fn prepare_embedding_resource(
             }
         })
         .await?;
+    if let Some(runtime) = runtime.0.as_ref() {
+        load_embedding_model(runtime.clone(), manager.model_dir().to_path_buf()).await?;
+        return Ok(installed);
+    }
     let Some(spec) = supervisor.launch_spec().await else {
         return Ok(installed);
     };
@@ -2454,6 +2487,7 @@ fn run_with_mode(agent_server: bool) {
         builder
     };
     builder
+        .manage(EmbeddedRuntimeState(runtime.clone()))
         .manage(runtime_supervisor)
         .manage(RuntimeEventProxy::default())
         .manage(RuntimeUpdateState::default())
@@ -2515,10 +2549,13 @@ fn run_with_mode(agent_server: bool) {
             #[cfg(debug_assertions)]
             {
                 if !is_workspace_window {
-                    let runtime = app.state::<Arc<OpenAgentRuntime>>().inner().clone();
-                    let result = tauri::async_runtime::block_on(async { start_dev_api(runtime) });
-                    if let Err(error) = result {
-                        tracing::warn!(%error, "OpenAgent dev API did not start");
+                    if let Some(runtime) = runtime.as_ref() {
+                        let result = tauri::async_runtime::block_on(async {
+                            start_dev_api(runtime.clone())
+                        });
+                        if let Err(error) = result {
+                            tracing::warn!(%error, "OpenAgent dev API did not start");
+                        }
                     }
                     if !agent_server {
                         tauri::WebviewWindowBuilder::new(

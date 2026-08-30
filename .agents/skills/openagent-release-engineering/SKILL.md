@@ -84,7 +84,9 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   while preserving incremental compilation for repeated runs. Respect an
   explicit `CARGO_TARGET_DIR`, leave custom runners untouched, and do not leak
   the derived directory into helper or private Runtime builds. Stage rebuilt
-  helper resources only when their bytes change.
+  helper resources only when their bytes change. Ordinary development also
+  prepares and supervises the debug Runtime sidecar by default; keep embedded
+  composition as an explicit diagnostic command rather than a silent fallback.
 
 Use `deliver-via-pr` for repository delivery. Its preflight and CI handoff rules
 remain authoritative; do not duplicate ordinary CI locally.

@@ -16,6 +16,15 @@ await access(tauriCli);
 
 let arguments_ = process.argv.slice(2);
 const environment = { ...process.env };
+const embeddedRuntime = arguments_.includes("--embedded-runtime");
+if (embeddedRuntime) {
+  if (arguments_[0] !== "dev") {
+    throw new Error("--embedded-runtime is available only with tauri dev");
+  }
+  arguments_ = arguments_.filter((argument) => argument !== "--embedded-runtime");
+  environment.OPENAGENT_RUNTIME_MODE = "embedded";
+  console.log("Using the explicit embedded development Runtime");
+}
 if (arguments_[0] === "dev") {
   const port = await findAvailableLoopbackPort();
   environment.OPENAGENT_DEV_PORT = String(port);
