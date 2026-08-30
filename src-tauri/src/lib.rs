@@ -1870,8 +1870,13 @@ fn request_desktop_quit(app: tauri::AppHandle) {
 
     tracing::info!(target: "openagent::app", "desktop quit requested");
     #[cfg(desktop)]
-    if let Some(tray) = app.tray_by_id(DESKTOP_TRAY_ID) {
-        let _ = tray.set_visible(false);
+    {
+        if let Some(tray) = app.tray_by_id(DESKTOP_TRAY_ID) {
+            let _ = tray.set_visible(false);
+        }
+        for window in app.webview_windows().values() {
+            let _ = window.hide();
+        }
     }
 
     std::thread::Builder::new()

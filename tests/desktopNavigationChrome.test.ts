@@ -191,6 +191,8 @@ describe("desktop navigation chrome", () => {
     expect(quit).toContain("std::process::exit(0)");
     expect(quit).toContain("openagent-quit-watchdog");
     expect(quit).toContain("std::thread::sleep(DESKTOP_QUIT_WATCHDOG_TIMEOUT)");
+    expect(quit).toContain("for window in app.webview_windows().values()");
+    expect(quit).toContain("window.hide()");
     expect(quit.indexOf("supervisor.stop()")).toBeLessThan(quit.indexOf("proxy.stop()"));
   });
 
