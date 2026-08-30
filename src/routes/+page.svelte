@@ -3415,6 +3415,13 @@
     if (!targetConvId && isCurrentStreaming) return;
 
     let convId = targetConvId;
+    let pendingConversationCreation: {
+      id: string;
+      title: string;
+      workspace: string;
+      parentConvId: null;
+      roleId: string | null;
+    } | null = null;
     const composerDraftKeyToClear = selectedComposerDraftKey;
 
     if (!convId) {
@@ -3435,14 +3442,13 @@
       convId = conv.id;
       // Mark as loaded so switchConversation won't overwrite in-memory messages
       loadedConvIds.add(convId);
-      // Persist creation and the durable active selection atomically.
-      await invoke("create_conversation", {
+      pendingConversationCreation = {
         id: newId,
         title: $t("newConv"),
         workspace: wsPath,
         parentConvId: null,
         roleId: selectedRoleId,
-      }).catch(() => {});
+      };
     }
 
     if (clearInput) clearComposerDraft(composerDraftKeyToClear);
@@ -3480,6 +3486,13 @@
       updatedAt: Date.now(),
     };
     promoteConversationInRecents(location.conversations[location.index]);
+
+    // Commit the first optimistic user turn before yielding to persistence. An
+    // active-but-empty conversation would otherwise render the new-conversation
+    // prompt between the centered composer and the live transcript.
+    if (pendingConversationCreation) {
+      await invoke("create_conversation", pendingConversationCreation).catch(() => {});
+    }
 
     // The user message is persisted atomically in the resulting checkpoint.
     // Update conversation title in SQLite on first user message

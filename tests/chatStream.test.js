@@ -76,6 +76,28 @@ describe("external conversation hydration", () => {
   });
 });
 
+describe("conversation transition rendering", () => {
+  test("does not expose an empty active conversation while the first turn is persisted", async () => {
+    const pageSource = await readFile(
+      new URL("../src/routes/+page.svelte", import.meta.url),
+      "utf8",
+    );
+    const surfaceSource = await readFile(
+      new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url),
+      "utf8",
+    );
+    const dispatchSource = pageSource.slice(
+      pageSource.indexOf("async function dispatchChatMessage"),
+      pageSource.indexOf("async function sendMessage"),
+    );
+
+    expect(dispatchSource.indexOf("messages: [...priorMessages, userMsg]")).toBeLessThan(
+      dispatchSource.indexOf('await invoke("create_conversation"'),
+    );
+    expect(surfaceSource).toContain("showNewConversationContext={false}");
+  });
+});
+
 describe("resolveUserInput", () => {
   test("replaces a pending ask_user form with its answered state", () => {
     const request = {

@@ -608,7 +608,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   palette and the native window material switch together instead of compositing
   a dark translucent canvas over a light native backdrop.
 - Persist a newly created conversation and active-workspace selection
-  atomically before its first turn.
+  atomically before its first turn. Apply the optimistic user message before
+  awaiting that persistence so the visible surface moves directly from the
+  centered new-conversation composer to the populated transcript. An active
+  conversation with no renderable messages must not fall back to the
+  new-conversation greeting during creation, hydration, or navigation.
 - Keep the main window hidden until the bootstrap snapshot is applied; retain
   the failure watchdog.
 - Use transcript-shaped and composer skeletons during history loading. A new

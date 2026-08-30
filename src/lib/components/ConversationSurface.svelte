@@ -205,7 +205,7 @@
           newConversationGreeting={view.newConversationGreeting}
           newConversationGreetingLoading={false}
           followUpSuggestionsByMessageId={view.followUpSuggestionsByMessageId}
-          showNewConversationContext={!view.newConversationLayout}
+          showNewConversationContext={false}
           checkpointLoadError={view.checkpointLoadError}
           onCommitEdit={actions.commitEdit}
           onAddQuote={addQuote}
