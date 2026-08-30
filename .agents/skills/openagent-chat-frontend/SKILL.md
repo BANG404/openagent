@@ -31,6 +31,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   confirm the exact `frontend-version` with the host immediately after mount.
   Confirmation is a resource-health handshake, not durable chat restoration;
   normal bootstrap still restores the complete snapshot before event use.
+- Product pages must not create or own the system tray. The native desktop host
+  owns tray lifetime, Show, close-to-hide, and Quit so hidden or reloaded
+  WebViews cannot leave a visible tray whose actions no longer have a live
+  JavaScript channel.
 - Use Tauri/Svelte as GPUI's visual and functional parity source. GPUI
   intentionally omits the decorative aurora glow while preserving shared
   geometry, neutral selection fill, semantics, accessibility, and pointer and

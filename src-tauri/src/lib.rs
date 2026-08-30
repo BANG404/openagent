@@ -80,6 +80,7 @@ struct RuntimeUpdateState {
 #[derive(Default)]
 struct DesktopWindowState {
     startup_window_revealed: std::sync::atomic::AtomicBool,
+    quitting: std::sync::atomic::AtomicBool,
 }
 
 const DESKTOP_WINDOW_ACTIVATED_EVENT: &str = "desktop-window-activated";
@@ -1826,19 +1827,91 @@ fn restart_app(app: tauri::AppHandle) {
     app.restart();
 }
 
-#[tauri::command]
-async fn quit_app(
-    app: tauri::AppHandle,
-    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
-    proxy: State<'_, RuntimeEventProxy>,
-) -> Result<(), String> {
+async fn quit_desktop(app: tauri::AppHandle) -> Result<(), String> {
+    if app
+        .state::<DesktopWindowState>()
+        .quitting
+        .swap(true, std::sync::atomic::Ordering::AcqRel)
+    {
+        return Ok(());
+    }
+    let proxy = app.state::<RuntimeEventProxy>();
     proxy.stop().await;
+    let supervisor = app.state::<Arc<RuntimeProcessSupervisor>>();
     if let Err(error) = supervisor.stop().await {
         tracing::warn!(%error, "failed to stop supervised Runtime during quit");
     }
     tracing_setup::shutdown_tracing();
     app.cleanup_before_exit();
     std::process::exit(0)
+}
+
+#[tauri::command]
+async fn quit_app(app: tauri::AppHandle) -> Result<(), String> {
+    quit_desktop(app).await
+}
+
+#[cfg(desktop)]
+fn show_desktop_window(app: &tauri::AppHandle) {
+    let onboarding_visible = app
+        .get_webview_window("onboarding")
+        .and_then(|window| window.is_visible().ok())
+        .unwrap_or(false);
+    if let Some(window) = app.get_webview_window(single_instance_window_label(onboarding_visible)) {
+        let _ = window.unminimize();
+        let _ = window.show();
+        if window.set_focus().is_ok() {
+            let _ = window.emit(DESKTOP_WINDOW_ACTIVATED_EVENT, ());
+        }
+    }
+}
+
+#[cfg(desktop)]
+fn install_desktop_tray(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::menu::MenuBuilder;
+    use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+
+    let menu = MenuBuilder::new(app)
+        .text("show", "Show OpenAgent")
+        .text("quit", "Quit")
+        .build()?;
+    let mut tray = TrayIconBuilder::with_id("openagent-tray")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .tooltip("OpenAgent")
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "show" => show_desktop_window(app),
+            "quit" => {
+                let app = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Err(error) = quit_desktop(app).await {
+                        tracing::error!(%error, "desktop tray quit failed");
+                    }
+                });
+            }
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            let primary_activation = matches!(
+                event,
+                TrayIconEvent::DoubleClick {
+                    button: MouseButton::Left,
+                    ..
+                } | TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: MouseButtonState::Up,
+                    ..
+                }
+            );
+            if primary_activation {
+                show_desktop_window(tray.app_handle());
+            }
+        });
+    if let Some(icon) = app.default_window_icon().cloned() {
+        tray = tray.icon(icon);
+    }
+    tray.build(app)?;
+    Ok(())
 }
 
 #[cfg(windows)]
@@ -2201,6 +2274,10 @@ fn should_enforce_single_instance(agent_server: bool, is_workspace_window: bool)
     !agent_server && !is_workspace_window
 }
 
+fn should_install_desktop_tray(agent_server: bool, is_workspace_window: bool) -> bool {
+    !agent_server && !is_workspace_window
+}
+
 fn should_reveal_workspace_shell_early(agent_server: bool, is_workspace_window: bool) -> bool {
     !agent_server && is_workspace_window
 }
@@ -2306,8 +2383,8 @@ fn single_instance_window_label(onboarding_visible: bool) -> &'static str {
 #[cfg(test)]
 mod single_instance_tests {
     use super::{
-        should_enforce_single_instance, should_reveal_workspace_shell_early,
-        single_instance_window_label,
+        should_enforce_single_instance, should_install_desktop_tray,
+        should_reveal_workspace_shell_early, single_instance_window_label,
     };
 
     #[test]
@@ -2315,6 +2392,13 @@ mod single_instance_tests {
         assert!(should_enforce_single_instance(false, false));
         assert!(!should_enforce_single_instance(false, true));
         assert!(!should_enforce_single_instance(true, false));
+    }
+
+    #[test]
+    fn only_the_primary_desktop_process_owns_the_tray() {
+        assert!(should_install_desktop_tray(false, false));
+        assert!(!should_install_desktop_tray(false, true));
+        assert!(!should_install_desktop_tray(true, false));
     }
 
     #[test]
@@ -2515,8 +2599,22 @@ fn run_with_mode(agent_server: bool) {
                 .map_err(std::io::Error::other)?;
             }
 
+            #[cfg(desktop)]
+            if should_install_desktop_tray(agent_server, is_workspace_window) {
+                install_desktop_tray(app)?;
+            }
+
             if let Some(window) = app.get_webview_window("main") {
                 apply_native_window_material(&window);
+                if should_install_desktop_tray(agent_server, is_workspace_window) {
+                    let close_window = window.clone();
+                    window.on_window_event(move |event| {
+                        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                            api.prevent_close();
+                            let _ = close_window.hide();
+                        }
+                    });
+                }
                 if !cfg!(debug_assertions) {
                     if let Some(version) = startup_frontend_manager.active_version() {
                         let url = external_frontend_url("", &version)

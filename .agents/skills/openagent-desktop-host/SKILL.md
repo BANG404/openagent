@@ -85,9 +85,11 @@ binary, and exclusive durable-state ownership.
   requesting a host reload when SDK Runtime sources change. Do not watch those
   sources directly from Tauri because that can relaunch the host with the previous
   sidecar bytes and leave frontend/server operations out of sync.
-- Quit must stop the Runtime event proxy and supervised Runtime, flush tracing,
-  and perform Tauri cleanup before terminating the host process. Do not rely on
-  an exit request or supervisor destruction after the Tauri event loop: tray or
+- The system tray, its Show action, and its Quit action are native host
+  responsibilities and must not depend on a WebView JavaScript channel. Quit
+  stops the Runtime event proxy and supervised Runtime, flushes tracing, and
+  performs Tauri cleanup before terminating the host process. Do not rely on an
+  exit request or supervisor destruction after the Tauri event loop: tray or
   window lifecycle handlers can retain the host or leave server tasks alive.
 - A supervised external Runtime receives the host process's exact workspace
   navigation context: optional conversation ID, optional message ID, and the
