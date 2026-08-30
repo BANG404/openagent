@@ -87,10 +87,14 @@ binary, and exclusive durable-state ownership.
   sidecar bytes and leave frontend/server operations out of sync.
 - The system tray, its Show action, and its Quit action are native host
   responsibilities and must not depend on a WebView JavaScript channel. Quit
-  stops the Runtime event proxy and supervised Runtime, flushes tracing, and
-  performs Tauri cleanup before terminating the host process. Do not rely on an
-  exit request or supervisor destruction after the Tauri event loop: tray or
-  window lifecycle handlers can retain the host or leave server tasks alive.
+  is registered on the application-level native menu event path, immediately
+  records the one-way quitting state, and starts an independent bounded exit
+  watchdog before asynchronous cleanup. Stop the supervised Runtime before the
+  Runtime event proxy, bound both waits, flush tracing, and perform Tauri cleanup
+  before terminating the host process. Do not rely on an exit request, an
+  unbounded async task, or supervisor destruction after the Tauri event loop:
+  tray or window lifecycle handlers can retain the host or leave server tasks
+  alive.
 - A supervised external Runtime receives the host process's exact workspace
   navigation context: optional conversation ID, optional message ID, and the
   explicit-new-conversation flag. Preserve those fields across Runtime resource

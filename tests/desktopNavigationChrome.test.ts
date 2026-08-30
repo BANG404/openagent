@@ -177,29 +177,32 @@ describe("desktop navigation chrome", () => {
     expect(createNewWindow).not.toContain("openDialog");
   });
 
-  test("quits only after the supervised Runtime and Tauri resources are cleaned up", async () => {
+  test("bounds native quit cleanup and keeps an independent process-exit watchdog", async () => {
     const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
     const quit = host.slice(
-      host.indexOf("async fn quit_desktop"),
+      host.indexOf("async fn finish_desktop_quit"),
       host.indexOf("#[tauri::command]\nasync fn quit_app"),
     );
 
-    expect(quit).toContain("proxy.stop().await");
-    expect(quit).toContain("supervisor.stop().await");
+    expect(quit).toContain("timeout(DESKTOP_RUNTIME_STOP_TIMEOUT, supervisor.stop())");
+    expect(quit).toContain("timeout(DESKTOP_EVENT_PROXY_STOP_TIMEOUT, proxy.stop())");
     expect(quit).toContain("tracing_setup::shutdown_tracing()");
     expect(quit).toContain("app.cleanup_before_exit()");
     expect(quit).toContain("std::process::exit(0)");
+    expect(quit).toContain("openagent-quit-watchdog");
+    expect(quit).toContain("std::thread::sleep(DESKTOP_QUIT_WATCHDOG_TIMEOUT)");
+    expect(quit.indexOf("supervisor.stop()")).toBeLessThan(quit.indexOf("proxy.stop()"));
   });
 
   test("keeps the system tray and its actions in the native host", async () => {
     const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
     const route = await readFile(routeUrl, "utf8");
 
-    expect(host).toContain('TrayIconBuilder::with_id("openagent-tray")');
-    expect(host).toContain('.text("show", "Show OpenAgent")');
-    expect(host).toContain('.text("quit", "Quit")');
-    expect(host).toContain('"quit" =>');
-    expect(host).toContain("quit_desktop(app).await");
+    expect(host).toContain("TrayIconBuilder::with_id(DESKTOP_TRAY_ID)");
+    expect(host).toContain('.text(DESKTOP_TRAY_SHOW_ID, "Show OpenAgent")');
+    expect(host).toContain('.text(DESKTOP_TRAY_QUIT_ID, "Quit")');
+    expect(host).toContain("builder.on_menu_event");
+    expect(host).toContain("DESKTOP_TRAY_QUIT_ID => request_desktop_quit(app.clone())");
     expect(route).not.toContain("initializeTray");
   });
 

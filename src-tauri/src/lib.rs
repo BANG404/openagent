@@ -84,6 +84,15 @@ struct DesktopWindowState {
 }
 
 const DESKTOP_WINDOW_ACTIVATED_EVENT: &str = "desktop-window-activated";
+#[cfg(desktop)]
+const DESKTOP_TRAY_ID: &str = "openagent-tray";
+#[cfg(desktop)]
+const DESKTOP_TRAY_SHOW_ID: &str = "openagent-tray-show";
+#[cfg(desktop)]
+const DESKTOP_TRAY_QUIT_ID: &str = "openagent-tray-quit";
+const DESKTOP_QUIT_WATCHDOG_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(8);
+const DESKTOP_RUNTIME_STOP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(6);
+const DESKTOP_EVENT_PROXY_STOP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(1);
 
 struct HostRuntimeBootstrap {
     initial_locale: String,
@@ -1827,28 +1836,59 @@ fn restart_app(app: tauri::AppHandle) {
     app.restart();
 }
 
-async fn quit_desktop(app: tauri::AppHandle) -> Result<(), String> {
-    if app
-        .state::<DesktopWindowState>()
-        .quitting
-        .swap(true, std::sync::atomic::Ordering::AcqRel)
-    {
-        return Ok(());
+async fn finish_desktop_quit(app: tauri::AppHandle) {
+    let supervisor = app.state::<Arc<RuntimeProcessSupervisor>>();
+    match tokio::time::timeout(DESKTOP_RUNTIME_STOP_TIMEOUT, supervisor.stop()).await {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => {
+            tracing::warn!(%error, "failed to stop supervised Runtime during quit");
+        }
+        Err(_) => {
+            tracing::warn!("timed out stopping supervised Runtime during quit");
+        }
     }
     let proxy = app.state::<RuntimeEventProxy>();
-    proxy.stop().await;
-    let supervisor = app.state::<Arc<RuntimeProcessSupervisor>>();
-    if let Err(error) = supervisor.stop().await {
-        tracing::warn!(%error, "failed to stop supervised Runtime during quit");
+    if tokio::time::timeout(DESKTOP_EVENT_PROXY_STOP_TIMEOUT, proxy.stop())
+        .await
+        .is_err()
+    {
+        tracing::warn!("timed out stopping Runtime event proxy during quit");
     }
     tracing_setup::shutdown_tracing();
     app.cleanup_before_exit();
     std::process::exit(0)
 }
 
+fn request_desktop_quit(app: tauri::AppHandle) {
+    if app
+        .state::<DesktopWindowState>()
+        .quitting
+        .swap(true, std::sync::atomic::Ordering::AcqRel)
+    {
+        return;
+    }
+
+    tracing::info!(target: "openagent::app", "desktop quit requested");
+    #[cfg(desktop)]
+    if let Some(tray) = app.tray_by_id(DESKTOP_TRAY_ID) {
+        let _ = tray.set_visible(false);
+    }
+
+    std::thread::Builder::new()
+        .name("openagent-quit-watchdog".to_string())
+        .spawn(|| {
+            std::thread::sleep(DESKTOP_QUIT_WATCHDOG_TIMEOUT);
+            std::process::exit(0);
+        })
+        .expect("failed to start desktop quit watchdog");
+
+    tauri::async_runtime::spawn(finish_desktop_quit(app));
+}
+
 #[tauri::command]
 async fn quit_app(app: tauri::AppHandle) -> Result<(), String> {
-    quit_desktop(app).await
+    request_desktop_quit(app);
+    Ok(())
 }
 
 #[cfg(desktop)]
@@ -1872,25 +1912,13 @@ fn install_desktop_tray(app: &tauri::App) -> tauri::Result<()> {
     use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 
     let menu = MenuBuilder::new(app)
-        .text("show", "Show OpenAgent")
-        .text("quit", "Quit")
+        .text(DESKTOP_TRAY_SHOW_ID, "Show OpenAgent")
+        .text(DESKTOP_TRAY_QUIT_ID, "Quit")
         .build()?;
-    let mut tray = TrayIconBuilder::with_id("openagent-tray")
+    let mut tray = TrayIconBuilder::with_id(DESKTOP_TRAY_ID)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .tooltip("OpenAgent")
-        .on_menu_event(|app, event| match event.id().as_ref() {
-            "show" => show_desktop_window(app),
-            "quit" => {
-                let app = app.clone();
-                tauri::async_runtime::spawn(async move {
-                    if let Err(error) = quit_desktop(app).await {
-                        tracing::error!(%error, "desktop tray quit failed");
-                    }
-                });
-            }
-            _ => {}
-        })
         .on_tray_icon_event(|tray, event| {
             let primary_activation = matches!(
                 event,
@@ -1912,6 +1940,15 @@ fn install_desktop_tray(app: &tauri::App) -> tauri::Result<()> {
     }
     tray.build(app)?;
     Ok(())
+}
+
+#[cfg(desktop)]
+fn handle_desktop_menu_event(app: &tauri::AppHandle, event: &tauri::menu::MenuEvent) {
+    match event.id().as_ref() {
+        DESKTOP_TRAY_SHOW_ID => show_desktop_window(app),
+        DESKTOP_TRAY_QUIT_ID => request_desktop_quit(app.clone()),
+        _ => {}
+    }
 }
 
 #[cfg(windows)]
@@ -2485,6 +2522,13 @@ fn run_with_mode(agent_server: bool) {
     // Pilot exposes its named-pipe automation bridge only in debug builds and
     // becomes a no-op plugin in release builds.
     let builder = builder.plugin(tauri_plugin_pilot::init());
+
+    #[cfg(desktop)]
+    let builder = if should_install_desktop_tray(agent_server, is_workspace_window) {
+        builder.on_menu_event(|app, event| handle_desktop_menu_event(&app, &event))
+    } else {
+        builder
+    };
 
     let builder = builder
         .register_asynchronous_uri_scheme_protocol(
