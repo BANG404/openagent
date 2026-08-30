@@ -18,6 +18,7 @@ const nativeCommands = new Set([
   "is_desktop_window_active",
   "list_wsl_distributions",
   "open_path",
+  "open_workspace_window",
   "plugin:i18n|get_locale",
   "plugin:i18n|set_locale",
   "prepare_embedding_resource",

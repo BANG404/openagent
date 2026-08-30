@@ -12,8 +12,8 @@ use openagent_app::{
     RuntimeResourceManager, RuntimeResourceSource,
 };
 use openagent_runtime::checkpoint::{
-    BranchMeta, CheckpointMeta, ConvPatch, ConversationMeta, FileChange, RenderableCheckpoint,
-    TaskTrace,
+    BranchMeta, ChatTaskUsage, CheckpointMeta, ConvPatch, ConversationMeta, FileChange,
+    RenderableCheckpoint, TaskTrace,
 };
 use openagent_runtime::commands::*;
 use openagent_runtime::config::{
@@ -561,6 +561,9 @@ async fn activate_runtime_resource(
         binary_path: candidate.binary_path.clone(),
         workspace: previous_spec.workspace.clone(),
         openagent_home: previous_spec.openagent_home.clone(),
+        conversation_id: previous_spec.conversation_id.clone(),
+        message_id: previous_spec.message_id.clone(),
+        new_conversation: previous_spec.new_conversation,
         primary_desktop_services: previous_spec.primary_desktop_services,
     };
     if let Err(candidate_error) = supervisor.reload_after_drain(candidate_spec).await {
@@ -1247,6 +1250,14 @@ async fn get_task_traces(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<Vec<TaskTrace>, String> {
     openagent_runtime::commands::get_task_traces(runtime.state()).await
+}
+
+#[tauri::command]
+async fn get_chat_task_usages(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    conv_id: String,
+) -> Result<Vec<ChatTaskUsage>, String> {
+    openagent_runtime::commands::get_chat_task_usages(runtime.state(), conv_id).await
 }
 
 #[tauri::command]
@@ -1997,8 +2008,15 @@ async fn open_workspace_window(
     path: String,
     conversation_id: Option<String>,
     message_id: Option<String>,
+    new_conversation: bool,
 ) -> Result<(), String> {
-    openagent_runtime::commands::open_workspace_window(path, conversation_id, message_id).await
+    openagent_runtime::commands::open_workspace_window(
+        path,
+        conversation_id,
+        message_id,
+        new_conversation,
+    )
+    .await
 }
 
 #[tauri::command]
@@ -2214,6 +2232,9 @@ async fn start_external_desktop_runtime(
         binary_path,
         workspace: launch.workspace.clone(),
         openagent_home: launch.openagent_home.clone(),
+        conversation_id: launch.conversation_id.clone(),
+        message_id: launch.message_id.clone(),
+        new_conversation: launch.new_conversation,
         primary_desktop_services,
     };
     let mut failures = Vec::new();
@@ -2770,6 +2791,7 @@ fn run_with_mode(agent_server: bool) {
             get_branches,
             set_branch_head,
             delete_conversation,
+            get_chat_task_usages,
             get_task_traces,
             get_latest_checkpoint,
             get_checkpoint_metas,

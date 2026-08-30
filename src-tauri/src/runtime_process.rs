@@ -17,6 +17,9 @@ pub struct RuntimeLaunchSpec {
     pub binary_path: PathBuf,
     pub workspace: PathBuf,
     pub openagent_home: PathBuf,
+    pub conversation_id: Option<String>,
+    pub message_id: Option<String>,
+    pub new_conversation: bool,
     pub primary_desktop_services: bool,
 }
 
@@ -278,6 +281,17 @@ fn runtime_arguments(spec: &RuntimeLaunchSpec) -> Vec<OsString> {
     if spec.primary_desktop_services {
         arguments.push("--desktop-primary".into());
     }
+    if let Some(conversation_id) = spec.conversation_id.as_deref() {
+        arguments.push("--openagent-conversation".into());
+        arguments.push(conversation_id.into());
+    }
+    if let Some(message_id) = spec.message_id.as_deref() {
+        arguments.push("--openagent-message".into());
+        arguments.push(message_id.into());
+    }
+    if spec.new_conversation {
+        arguments.push("--openagent-new-conversation".into());
+    }
     arguments
 }
 
@@ -429,11 +443,18 @@ mod tests {
             binary_path: PathBuf::from("openagent-server"),
             workspace: PathBuf::from("workspace"),
             openagent_home: PathBuf::from("data"),
+            conversation_id: Some("conversation".into()),
+            message_id: Some("message".into()),
+            new_conversation: false,
             primary_desktop_services: false,
         };
         let ordinary_arguments = runtime_arguments(&ordinary);
         assert!(ordinary_arguments.contains(&OsString::from("--desktop-api")));
         assert!(!ordinary_arguments.contains(&OsString::from("--desktop-primary")));
+        assert!(ordinary_arguments.contains(&OsString::from("--openagent-conversation")));
+        assert!(ordinary_arguments.contains(&OsString::from("conversation")));
+        assert!(ordinary_arguments.contains(&OsString::from("--openagent-message")));
+        assert!(ordinary_arguments.contains(&OsString::from("message")));
 
         let primary_arguments = runtime_arguments(&RuntimeLaunchSpec {
             primary_desktop_services: true,
@@ -441,5 +462,19 @@ mod tests {
         });
         assert!(primary_arguments.contains(&OsString::from("--desktop-api")));
         assert!(primary_arguments.contains(&OsString::from("--desktop-primary")));
+    }
+
+    #[test]
+    fn supervised_runtime_forwards_explicit_new_conversation_launches() {
+        let arguments = runtime_arguments(&RuntimeLaunchSpec {
+            binary_path: PathBuf::from("openagent-server"),
+            workspace: PathBuf::from("workspace"),
+            openagent_home: PathBuf::from("data"),
+            conversation_id: None,
+            message_id: None,
+            new_conversation: true,
+            primary_desktop_services: false,
+        });
+        assert!(arguments.contains(&OsString::from("--openagent-new-conversation")));
     }
 }

@@ -177,6 +177,7 @@ export interface StartupBootstrap {
     workspace: string | null;
     conversation_id: string | null;
     message_id: string | null;
+    new_conversation: boolean;
   };
   conversations: ConversationMeta[];
   conversation_next_cursor: ConversationPageCursor | null;
@@ -239,6 +240,12 @@ export interface TaskTokenUsage {
   cache_creation_input_tokens: number;
   tool_use_prompt_tokens: number;
   reasoning_tokens: number;
+}
+
+export interface ChatTaskUsage {
+  checkpoint_id: string | null;
+  usage: TaskTokenUsage;
+  created_at: number;
 }
 
 export interface CheckpointMeta {

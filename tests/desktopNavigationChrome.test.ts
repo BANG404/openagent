@@ -156,11 +156,12 @@ describe("desktop navigation chrome", () => {
 
     expect(route).toContain("fetchConversationPage(null, null, 30, normalized, false, null)");
     expect(route).toContain("null,\n          searchConversationNextCursor");
-    expect(openConversation).toContain(
-      "await applyWorkspace(conversationWorkspace, conversation.id)",
-    );
-    expect(openConversation).not.toContain("openWorkspaceInNewWindow");
-    expect(route).not.toContain("function openWorkspaceInNewWindow(");
+    expect(openConversation).toContain("await routeWorkspace(conversationWorkspace, {");
+    expect(openConversation).toContain("conversationId: conversation.id");
+    expect(openConversation).toContain('if (result !== "current") return');
+    expect(route).toContain('await invoke("open_workspace_window"');
+    expect(route).toContain("newConversation: target.newConversation ?? false");
+    expect(route).not.toContain('invoke("set_workspace"');
     expect(route).toContain('await invoke("create_workspace_window", { path: workspacePath })');
     expect(route).toContain("onNewWindow={createNewWindow}");
     const createNewWindow = route.slice(

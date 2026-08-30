@@ -74,6 +74,11 @@ binary, and exclusive durable-state ownership.
   immediately. Keep that explicit duplicate detached from the SDK's registered
   workspace route so targeted navigation continues to focus the canonical
   workspace process.
+- A supervised external Runtime receives the host process's exact workspace
+  navigation context: optional conversation ID, optional message ID, and the
+  explicit-new-conversation flag. Preserve those fields across Runtime resource
+  reload and rollback. The host must not broaden the Runtime's startup workspace
+  authorization to make cross-workspace navigation succeed.
 - Reveal a dedicated workspace window's main shell as soon as Tauri setup owns
   the runtime host. Let the frontend's layout-stable loading state remain
   visible while startup bootstrap restores durable conversation data.

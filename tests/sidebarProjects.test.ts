@@ -212,9 +212,9 @@ describe("sidebar project order", () => {
       route.indexOf("async function persistRecentWorkspaces", openStart),
     );
 
-    expect(openHandler).toContain(
-      "if (!(await applyWorkspace(conversationWorkspace, conversation.id))) return",
-    );
+    expect(openHandler).toContain("const result = await routeWorkspace(conversationWorkspace, {");
+    expect(openHandler).toContain("conversationId: conversation.id");
+    expect(openHandler).toContain('if (result !== "current") return');
     expect(route).toContain('title: $t("workspaceUnavailable")');
   });
 

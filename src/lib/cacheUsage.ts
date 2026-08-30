@@ -1,4 +1,4 @@
-import type { CheckpointTurnMetadata, TaskTokenUsage, TaskTrace } from "$lib/types";
+import type { ChatTaskUsage, CheckpointTurnMetadata, TaskTokenUsage } from "$lib/types";
 
 export type CacheUsageSummary =
   | {
@@ -58,8 +58,7 @@ export function summarizeCacheUsages(usages: readonly TaskTokenUsage[]): CacheUs
 }
 
 export function chatTaskUsagesByCheckpoint(
-  traces: readonly TaskTrace[],
-  conversationId: string,
+  taskUsages: readonly ChatTaskUsage[],
   checkpoints: readonly { checkpointId: string; turn?: CheckpointTurnMetadata }[] = [],
 ): Record<string, TaskTokenUsage[]> {
   const byCheckpoint: Record<string, TaskTokenUsage[]> = {};
@@ -68,15 +67,8 @@ export function chatTaskUsagesByCheckpoint(
     (checkpoint): checkpoint is { checkpointId: string; turn: CheckpointTurnMetadata } =>
       checkpoint.turn?.completed_at != null,
   );
-  for (const trace of traces) {
-    if (
-      trace.conv_id !== conversationId ||
-      trace.task_kind !== "chat_request" ||
-      !trace.checkpoint_id ||
-      !trace.usage
-    ) {
-      continue;
-    }
+  for (const trace of taskUsages) {
+    if (!trace.checkpoint_id) continue;
 
     let checkpointId = trace.checkpoint_id;
     if (!checkpointIds.has(checkpointId) && terminalTurns.length > 0) {

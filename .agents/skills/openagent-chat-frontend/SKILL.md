@@ -1050,7 +1050,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Transcript surfaces may derive cache utilization from persisted Rig usage
   only when `total_tokens - output_tokens` reconciles with either the
   inclusive-input or separately reported cache-token shape. The Inspector shows
-  each request, while every completed assistant footer in development and
+  each full request. Ordinary transcript surfaces must fetch the bounded,
+  conversation-scoped chat-usage projection rather than `get_task_traces`, while
+  every completed assistant footer in development and
   production builds aggregates all chat requests belonging to that durable Turn. Prefer an exact
   checkpoint match, but tolerate the runtime's request-scoped temporary
   checkpoint by associating its trace only when the coarse creation timestamp
@@ -1060,6 +1062,12 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   Turn never reuses the newest Turn's diagnostic usage. When cache counters are
   zero or provider totals cannot produce a valid hit rate, omit cache usage from
   that footer.
+- In Tauri, selecting a different workspace or a conversation owned by another
+  workspace routes the request to that workspace's registered process through
+  `open_workspace_window`. Do not mutate the current external Runtime with
+  `set_workspace`; after a successful route, leave the current window's visible
+  state unchanged. Browser-only previews may continue applying a workspace
+  locally.
 - Application update checks expose one shared `idle`/`checking`/`installing`
   state to every desktop surface. Manual checks must disable duplicate input,
   show visible progress, apply a finite timeout, surface localized success or

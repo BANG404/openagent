@@ -374,6 +374,7 @@
       if (!resourceOnly) {
         await onSave({
           ...($state.snapshot(draft) as AppConfig),
+          workspace: workspacePath,
           onboarding_completed: true,
         });
       }

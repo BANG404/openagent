@@ -5,7 +5,7 @@ import {
   summarizeCacheUsage,
   summarizeCacheUsages,
 } from "../src/lib/cacheUsage";
-import type { TaskTokenUsage, TaskTrace } from "../src/lib/types";
+import type { ChatTaskUsage, TaskTokenUsage } from "../src/lib/types";
 
 function usage(overrides: Partial<TaskTokenUsage>): TaskTokenUsage {
   return {
@@ -20,20 +20,9 @@ function usage(overrides: Partial<TaskTokenUsage>): TaskTokenUsage {
   };
 }
 
-function trace(overrides: Partial<TaskTrace>): TaskTrace {
+function taskUsage(overrides: Partial<ChatTaskUsage>): ChatTaskUsage {
   return {
-    id: crypto.randomUUID(),
-    conv_id: "conversation-a",
-    session_id: "session-a",
     checkpoint_id: "checkpoint-a",
-    task_kind: "chat_request",
-    model: "model-a",
-    system_prompt: "",
-    tools: "[]",
-    prompt: "",
-    completion: null,
-    status: "completed",
-    error: null,
     usage: usage({ input_tokens: 100, output_tokens: 10, total_tokens: 110 }),
     created_at: 1,
     ...overrides,
@@ -147,7 +136,7 @@ describe("cache usage normalization", () => {
     });
   });
 
-  test("groups only persisted chat requests for the selected conversation", () => {
+  test("groups the server-scoped persisted chat usage projection", () => {
     const selected = usage({
       input_tokens: 100,
       output_tokens: 10,
@@ -155,16 +144,11 @@ describe("cache usage normalization", () => {
       cached_input_tokens: 80,
     });
     expect(
-      chatTaskUsagesByCheckpoint(
-        [
-          trace({ usage: selected }),
-          trace({ id: "second", usage: selected }),
-          trace({ id: "other-conversation", conv_id: "conversation-b", usage: selected }),
-          trace({ id: "other-task", task_kind: "flash_title", usage: selected }),
-          trace({ id: "missing-usage", usage: null }),
-        ],
-        "conversation-a",
-      ),
+      chatTaskUsagesByCheckpoint([
+        taskUsage({ usage: selected }),
+        taskUsage({ usage: selected }),
+        taskUsage({ checkpoint_id: null, usage: selected }),
+      ]),
     ).toEqual({ "checkpoint-a": [selected, selected] });
   });
 
@@ -179,13 +163,12 @@ describe("cache usage normalization", () => {
     expect(
       chatTaskUsagesByCheckpoint(
         [
-          trace({
+          taskUsage({
             checkpoint_id: "temporary-request-checkpoint",
             usage: selected,
             created_at: 1_787_935_749,
           }),
         ],
-        "conversation-a",
         [
           {
             checkpointId: "terminal-checkpoint",
@@ -209,8 +192,7 @@ describe("cache usage normalization", () => {
 
     expect(
       chatTaskUsagesByCheckpoint(
-        [trace({ checkpoint_id: "temporary", usage: selected, created_at: 10 })],
-        "conversation-a",
+        [taskUsage({ checkpoint_id: "temporary", usage: selected, created_at: 10 })],
         [
           {
             checkpointId: "first",
@@ -249,6 +231,8 @@ describe("completed-turn cache usage", () => {
 
     expect(routeSource).toContain("if (!tauriAvailable) return;");
     expect(routeSource).not.toContain("if (!isDebugBuild || !tauriAvailable) return;");
+    expect(routeSource).toContain('invoke<ChatTaskUsage[]>("get_chat_task_usages", { convId })');
+    expect(routeSource).not.toContain('invoke<TaskTrace[]>("get_task_traces")');
     expect(messageListSource).toContain("if (!message.checkpointId) return null;");
     expect(messageListSource).not.toContain("if (!devMode || !message.checkpointId) return null;");
   });
