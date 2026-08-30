@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 function value(name) {
@@ -30,6 +30,14 @@ export function validateSdkManifest(manifest, plan) {
     throw new Error("SDK manifest contains an invalid protocol range");
   }
   return { protocolMin: minimum, protocolMax: maximum };
+}
+
+export function sdkReleaseVersionInvocation(sdkDirectory, sdkSha) {
+  const cwd = resolve(sdkDirectory);
+  return {
+    args: [join(cwd, "scripts/release-version.mjs"), "--sha", sdkSha],
+    cwd,
+  };
 }
 
 async function publishedRelease(repository, plan) {
@@ -101,11 +109,8 @@ async function main() {
     );
   }
 
-  const plan = JSON.parse(
-    run(process.execPath, [join(sdkDirectory, "scripts/release-version.mjs"), "--sha", sdkSha], {
-      cwd: sdkDirectory,
-    }),
-  );
+  const releaseVersion = sdkReleaseVersionInvocation(sdkDirectory, sdkSha);
+  const plan = JSON.parse(run(process.execPath, releaseVersion.args, { cwd: releaseVersion.cwd }));
   let manifest = await publishedRelease(repository, plan);
   if (!manifest && !plan.releaseRequired) {
     throw new Error(`Reusable SDK release ${plan.tag} is not published with a valid manifest`);

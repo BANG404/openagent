@@ -62,6 +62,9 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   Ordinary public CI artifacts and caches must still never expose private SDK
   outputs. The release desktop activates verified candidates through the
   supervised external Runtime transaction.
+- Resolve the checked-out SDK directory once before invoking SDK-owned release
+  scripts. Use that absolute root for both the script path and working directory
+  so a relative checkout path is not applied twice.
 - Trusted nightly and explicit full SDK qualification may refresh the public
   `runtime-dev` channel after the exact private `main` commit passes. That
   channel may contain only signed Runtime manifests, release-built server
