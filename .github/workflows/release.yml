@@ -30,6 +30,7 @@ jobs:
     outputs:
       active: ${{ steps.release.outputs.active }}
       tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
       channel: ${{ steps.release.outputs.channel }}
       prerelease: ${{ steps.release.outputs.prerelease }}
       frontend: ${{ steps.release.outputs.frontend }}
@@ -128,6 +129,7 @@ jobs:
           const components = manifest.components ?? { frontend: true, runtime: true, nativeShell: true };
           console.log("active=true");
           console.log(`tag=${manifest.tag}`);
+          console.log(`version=${manifest.version}`);
           console.log(`channel=${manifest.channel}`);
           console.log(`prerelease=${manifest.channel !== "stable"}`);
           console.log(`frontend=${components.frontend === true}`);
@@ -140,6 +142,7 @@ jobs:
         shell: bash
         env:
           OPENAGENT_SDK_DEPLOY_KEY: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          OPENAGENT_SDK_RELEASE_TOKEN: ${{ secrets.OPENAGENT_SDK_RELEASE_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           PRERELEASE: ${{ steps.release.outputs.prerelease }}
           NATIVE_SHELL: ${{ steps.release.outputs.native_shell }}
@@ -158,6 +161,10 @@ jobs:
           fi
           if [[ -z "$TAURI_SIGNING_PRIVATE_KEY" ]]; then
             echo "Repository secret TAURI_SIGNING_PRIVATE_KEY is required." >&2
+            exit 1
+          fi
+          if [[ -z "$OPENAGENT_SDK_RELEASE_TOKEN" ]]; then
+            echo "Repository secret OPENAGENT_SDK_RELEASE_TOKEN is required." >&2
             exit 1
           fi
 
@@ -189,9 +196,57 @@ jobs:
             done
           fi
 
+  sdk-release:
+    name: Qualify or reuse pinned SDK release
+    needs: detect
+    if: needs.detect.outputs.active == 'true'
+    runs-on: ubuntu-22.04
+    outputs:
+      sdk_tag: ${{ steps.release.outputs.sdk_tag }}
+      sdk_version: ${{ steps.release.outputs.sdk_version }}
+      sdk_sha: ${{ steps.release.outputs.sdk_sha }}
+      sdk_release_sha: ${{ steps.release.outputs.sdk_release_sha }}
+      protocol_min: ${{ steps.release.outputs.protocol_min }}
+      protocol_max: ${{ steps.release.outputs.protocol_max }}
+      host_compatibility: ${{ steps.release.outputs.host_compatibility }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Resolve pinned SDK revision
+        id: sdk
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out exact private SDK source
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ steps.sdk.outputs.sha }}
+          path: sdk
+          fetch-depth: 0
+          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          persist-credentials: false
+
+      - name: Ensure independent SDK release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.OPENAGENT_SDK_RELEASE_TOKEN }}
+        run: >-
+          node scripts/ensure-sdk-release.mjs
+          --sdk-dir sdk
+          --sdk-sha "${{ steps.sdk.outputs.sha }}"
+          --host-version "${{ needs.detect.outputs.version }}"
+          --repository BANG404/openagent-sdk
+          --output "$GITHUB_OUTPUT"
+
   qualify:
     name: Complete release qualification
-    needs: detect
+    needs:
+      - detect
+      - sdk-release
     if: needs.detect.outputs.active == 'true'
     uses: ./.github/workflows/ci.yml
     with:
@@ -583,6 +638,7 @@ jobs:
       - detect
       - create-draft
       - build
+      - sdk-release
     if: >-
       needs.create-draft.outputs.published != 'true'
       && needs.detect.outputs.runtime == 'true'
@@ -626,7 +682,7 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
-          version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' sdk/rust/openagent-server/Cargo.toml | head -n 1)"
+          version="${{ needs.sdk-release.outputs.sdk_version }}"
           protocol="$(sed -n 's/^pub const SDK_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' sdk/rust/openagent-protocol/src/lib.rs)"
           if [[ -z "$version" || -z "$protocol" ]]; then
             echo "Unable to resolve the pinned runtime version or protocol." >&2
@@ -636,7 +692,8 @@ jobs:
             --artifacts runtime-components \
             --output runtime-components/openagent-sdk-manifest.json \
             --version "$version" \
-            --protocol "$protocol"
+            --protocol "$protocol" \
+            --sdk-sha "${{ steps.sdk.outputs.sha }}"
           bun scripts/tauri.mjs signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "" \
             runtime-components/openagent-sdk-manifest.json
           test -s runtime-components/openagent-sdk-manifest.json.sig
@@ -780,6 +837,7 @@ jobs:
       - runtime-components
       - frontend-components
       - publish-store
+      - sdk-release
     if: >-
       always()
       && needs.detect.result == 'success'
@@ -790,6 +848,45 @@ jobs:
       && (needs.publish-store.result == 'success' || needs.publish-store.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
+      - name: Upload desktop-to-SDK release mapping
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+          DESKTOP_VERSION: ${{ needs.detect.outputs.version }}
+          SDK_TAG: ${{ needs.sdk-release.outputs.sdk_tag }}
+          SDK_VERSION: ${{ needs.sdk-release.outputs.sdk_version }}
+          SDK_SHA: ${{ needs.sdk-release.outputs.sdk_sha }}
+          SDK_RELEASE_SHA: ${{ needs.sdk-release.outputs.sdk_release_sha }}
+          PROTOCOL_MIN: ${{ needs.sdk-release.outputs.protocol_min }}
+          PROTOCOL_MAX: ${{ needs.sdk-release.outputs.protocol_max }}
+          HOST_COMPATIBILITY: ${{ needs.sdk-release.outputs.host_compatibility }}
+        shell: bash
+        run: |
+          jq -n \
+            --arg desktop_version "$DESKTOP_VERSION" \
+            --arg desktop_tag "$RELEASE_TAG" \
+            --arg sdk_version "$SDK_VERSION" \
+            --arg sdk_tag "$SDK_TAG" \
+            --arg sdk_sha "$SDK_SHA" \
+            --arg sdk_release_sha "$SDK_RELEASE_SHA" \
+            --arg host_compatibility "$HOST_COMPATIBILITY" \
+            --argjson protocol_min "$PROTOCOL_MIN" \
+            --argjson protocol_max "$PROTOCOL_MAX" \
+            '{
+              schema_version: 1,
+              desktop_version: $desktop_version,
+              desktop_tag: $desktop_tag,
+              sdk_version: $sdk_version,
+              sdk_tag: $sdk_tag,
+              sdk_sha: $sdk_sha,
+              sdk_release_sha: $sdk_release_sha,
+              protocol_min: $protocol_min,
+              protocol_max: $protocol_max,
+              host_compatibility: $host_compatibility
+            }' > openagent-desktop-manifest.json
+          gh release upload "$RELEASE_TAG" openagent-desktop-manifest.json --clobber
+
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}

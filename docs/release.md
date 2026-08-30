@@ -63,8 +63,12 @@ The private SDK also has its own release train for headless and third-party
 consumers. An immutable `sdk-vX.Y.Z` release publishes the behavior-free typed
 client, the thin Harness package, platform `openagent-server` binaries, and
 `openagent-sdk-manifest.json` with the compatible protocol range, size, and
-SHA-256 for every target. That release does not require a desktop installer
-update. Desktop Runtime changes are also
+SHA-256 for every target. SDK SemVer is calculated only from SDK Conventional
+Commits after the newest ancestor SDK tag. The release tag points directly to
+the immutable SDK commit; package versions are stamped only in release build
+worktrees, so publishing never creates a different source SHA. A commit with no
+release-worthy SDK change reuses its newest ancestor SDK release. That release
+does not require a desktop installer update. Desktop Runtime changes are also
 eligible for the signed Runtime component channel and do not require a Tauri
 installer when the native shell is unchanged.
 
@@ -206,6 +210,17 @@ allows the workflow to create the annotated tag or begin platform builds. The
 detection checkout includes complete tag history because release metadata
 validation resolves `previousTag` against local immutable tag refs.
 
+Before desktop qualification, the workflow resolves the exact `sdk` gitlink. It
+validates and reuses the corresponding independent SDK release when available;
+otherwise it dispatches private SDK release preparation for that immutable SHA
+and waits for full SDK qualification plus a published manifest whose `sdk_sha`
+and protocol range match. Any failure stops desktop tagging and builds. A
+published desktop release includes `openagent-desktop-manifest.json`, recording
+the desktop version and tag, SDK version, tag and source SHA, protocol range,
+and exact host compatibility mapping. This orchestration uses the dedicated
+`OPENAGENT_SDK_RELEASE_TOKEN`; the SSH deploy key remains limited to checking
+out private source.
+
 Only then does it, according to the selected component set:
 
 1. create or reuse a draft GitHub Release;
@@ -281,9 +296,11 @@ second Store product or change the reserved package identity. Before submitting
 manually, inspect `Package.appxmanifest` in the staged layout and confirm the
 VCLibs package dependency is present.
 
-The target repository must define `OPENAGENT_SDK_DEPLOY_KEY` and
-`TAURI_SIGNING_PRIVATE_KEY`. Release validates both secrets before tagging or
-starting platform builds; secret values are never printed.
+The target repository must define `OPENAGENT_SDK_DEPLOY_KEY`,
+`OPENAGENT_SDK_RELEASE_TOKEN`, and `TAURI_SIGNING_PRIVATE_KEY`. The SDK release
+token needs workflow and release access only to the private SDK repository.
+Release validates all three secrets before tagging or starting platform builds;
+secret values are never printed.
 Runtime and frontend channel manifests are signed with the Tauri signer. Its
 detached `.sig` artifact is the Tauri-standard Base64 wrapper around minisign
 text; desktop resource installers decode that wrapper, verify the exact

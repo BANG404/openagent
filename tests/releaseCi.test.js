@@ -150,6 +150,11 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("uses: ./.github/workflows/ci.yml");
     expect(releaseWorkflow).toContain("full: true");
     expect(releaseWorkflow).toContain("needs.qualify.result == 'success'");
+    expect(releaseWorkflow).toContain("name: Qualify or reuse pinned SDK release");
+    expect(releaseWorkflow).toContain("scripts/ensure-sdk-release.mjs");
+    expect(releaseWorkflow).toContain("OPENAGENT_SDK_RELEASE_TOKEN");
+    expect(releaseWorkflow).toContain("openagent-desktop-manifest.json");
+    expect(releaseWorkflow).toContain("needs.sdk-release.outputs.sdk_version");
     expect(prepareReleaseWorkflow).toContain("- rc");
     expect(prepareReleaseWorkflow).toContain("--promote-rc=$RC_TAG");
     expect(releaseWorkflow).toContain("release/rc/**");
