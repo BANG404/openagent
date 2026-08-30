@@ -431,7 +431,13 @@ permissions explicitly so an App configuration drift fails at token creation
 instead of silently producing a token that cannot deliver private diagnostics.
 
 The private dispatcher forces every capability for release, nightly, and manual
-runs. Rust formatting, lint, tests, Linux/macOS sandbox checks, TypeScript SDK
+runs with `full` selected. Manual runs can clear `full` to classify the requested
+SDK commit against its first parent and dispatch only the affected Rust packages,
+platform sandboxes, clients, Harness, and host compatibility. The input remains
+enabled by default so older release callers that omit it still receive full qualification.
+Fast and full results use separate SDK commit-status contexts so a later fast run
+cannot replace the release qualification status. Rust formatting, lint, tests,
+Linux/macOS sandbox checks, TypeScript SDK
 checks, the Linux/Windows Harness matrix, and public-host compatibility remain
 independent jobs. Public-host compatibility materializes the configured empty
 `frontendDist` and a target-named placeholder for every configured Tauri

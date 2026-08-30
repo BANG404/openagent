@@ -60,6 +60,7 @@ describe("SDK release workflow orchestration", () => {
     expect(
       workflowDispatchInvocation("BANG404/openagent-sdk", "ci.yml", "main", [
         `sdk_sha=${"b".repeat(40)}`,
+        "full=true",
       ]),
     ).toEqual([
       "workflow",
@@ -71,6 +72,8 @@ describe("SDK release workflow orchestration", () => {
       "main",
       "-f",
       `sdk_sha=${"b".repeat(40)}`,
+      "-f",
+      "full=true",
     ]);
   });
 

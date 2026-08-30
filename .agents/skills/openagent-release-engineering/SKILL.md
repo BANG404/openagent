@@ -19,9 +19,13 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   administrator permission. Administrator-authored PRs use the documented
   bypass after local preflight. Ordinary `master` pushes do not replace release
   qualification.
-- Release, nightly, and explicit manual qualification force every frontend,
+- Release, nightly, and manual full qualification force every frontend,
   automation, native, embedding, and Harness capability. A failed qualification
   stops tagging, building, and publication.
+- Private SDK manual CI supports fast path classification against the requested
+  commit's first parent when `full` is cleared. Keep fast and full commit-status
+  contexts separate, retain a full default for older callers, and require
+  host-driven release orchestration to pass `full=true`.
 - Qualify an exact SDK revision before creating its immutable release tag. A
   failed candidate advances to a new commit and tag; never move the old tag or
   bypass its failed gate.

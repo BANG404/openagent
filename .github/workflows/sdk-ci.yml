@@ -67,7 +67,7 @@ concurrency:
 
 env:
   SDK_REPOSITORY: BANG404/openagent-sdk
-  SDK_STATUS_CONTEXT: Public SDK CI
+  SDK_STATUS_CONTEXT: ${{ inputs.full && 'Public SDK CI' || 'Public SDK Fast CI' }}
 
 jobs:
   pending:

@@ -57,6 +57,12 @@ describe("release CI verification", () => {
     );
   });
 
+  test("keeps fast SDK validation separate from release qualification", () => {
+    expect(sdkWorkflow).toContain(
+      "SDK_STATUS_CONTEXT: ${{ inputs.full && 'Public SDK CI' || 'Public SDK Fast CI' }}",
+    );
+  });
+
   test("keeps native-only compilation independent from a frontend production build", () => {
     expect(nativeWorkflow.match(/Materialize frontendDist for Tauri macros/g)).toHaveLength(3);
     expect(nativeWorkflow.match(/Materialize Runtime sidecar for Tauri macros/g)).toHaveLength(3);

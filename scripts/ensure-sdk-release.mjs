@@ -231,6 +231,7 @@ async function main() {
     const ciTitle = `SDK CI ${plan.releaseSha}`;
     const ciDispatch = dispatchWorkflow(repository, "ci.yml", "main", [
       `sdk_sha=${plan.releaseSha}`,
+      "full=true",
     ]);
     const ciRun = await waitForWorkflowRun(
       repository,
