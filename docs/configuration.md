@@ -19,10 +19,11 @@ is the sole writer for `OPENAGENT_HOME`. The Tauri host does not construct a
 second embedded Runtime against the same root. A packaged Runtime binary is retained only as a
 verified launch fallback; downloaded candidates are installed under
 `resources/runtime/` and become writers only after the old supervised process
-has drained and exited. Each desktop process supervises the Runtime for its
-startup workspace. Opening a different workspace or one of its conversations
-focuses or launches that workspace's registered process instead of changing the
-current Runtime's workspace authorization.
+has drained and exited. Each desktop window supervises one Runtime whose selected
+workspace changes with current-window navigation. The server authorizes that
+selected existing directory rather than retaining a startup-only workspace
+allowlist. Only the explicit File -> New window action launches another desktop
+process and Runtime.
 
 An existing platform configuration directory—such as
 `%APPDATA%\openagent` on Windows, `~/.config/openagent` on Linux, or the former

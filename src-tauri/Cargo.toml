@@ -49,6 +49,7 @@ openagent-app = { path = "../sdk/rust/openagent-app" }
 openagent-protocol = { path = "../sdk/rust/openagent-protocol" }
 openagent-runtime = { path = "../sdk/rust/openagent-runtime" }
 anyhow = "1"
+async-trait = "0.1"
 base64 = "0.22"
 tauri = { version = "2", features = ["protocol-asset", "tray-icon", "image-png", "image-ico", "macos-private-api"] }
 tauri-plugin-opener = "2"

@@ -77,6 +77,14 @@ binary, and exclusive durable-state ownership.
 - Switching the workspace in the current shell is an in-place product
   operation, including when the Tauri WebView uses the supervised server
   Runtime. Only the explicit New window command may spawn a second process.
+- Keep embedding resource status, seed/download preparation, verification,
+  progress events, and live model loading in the supervised server. Tauri may
+  resolve and pass a packaged seed directory, proxy the finite operations, and
+  project Runtime events; it must not restart the server to load a prepared model.
+- In ordinary Tauri development, rebuild and stage the debug server before
+  requesting a host reload when SDK Runtime sources change. Do not watch those
+  sources directly from Tauri because that can relaunch the host with the previous
+  sidecar bytes and leave frontend/server operations out of sync.
 - Quit must stop the Runtime event proxy and supervised Runtime, flush tracing,
   and perform Tauri cleanup before terminating the host process. Do not rely on
   an exit request or supervisor destruction after the Tauri event loop: tray or

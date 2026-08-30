@@ -21,6 +21,13 @@ main window remains hidden while the resource is missing or corrupt. A
 configured user enters only the setup window's resource-repair step rather than
 repeating provider configuration.
 
+The supervised `openagent-server` owns status inspection, seed installation or
+download, verification, progress events, and loading the verified model into its
+live Runtime. Tauri resolves an optional packaged seed path and proxies the typed
+operations and Runtime events; preparing the resource does not drain or restart
+the server. The explicit embedded debug mode retains a diagnostic host adapter
+with the same operation and event contract.
+
 ## Reproducibility and verification
 
 `bun run fetch:embedding-model` fetches the pinned Hugging Face revision and

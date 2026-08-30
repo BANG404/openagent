@@ -17,6 +17,7 @@ pub struct RuntimeLaunchSpec {
     pub binary_path: PathBuf,
     pub workspace: PathBuf,
     pub openagent_home: PathBuf,
+    pub embedding_seed: Option<PathBuf>,
     pub conversation_id: Option<String>,
     pub message_id: Option<String>,
     pub new_conversation: bool,
@@ -281,6 +282,10 @@ fn runtime_arguments(spec: &RuntimeLaunchSpec) -> Vec<OsString> {
     if spec.primary_desktop_services {
         arguments.push("--desktop-primary".into());
     }
+    if let Some(embedding_seed) = spec.embedding_seed.as_deref() {
+        arguments.push("--embedding-seed".into());
+        arguments.push(embedding_seed.as_os_str().to_os_string());
+    }
     if let Some(conversation_id) = spec.conversation_id.as_deref() {
         arguments.push("--openagent-conversation".into());
         arguments.push(conversation_id.into());
@@ -321,6 +326,14 @@ fn validate_launch_spec(spec: &RuntimeLaunchSpec) -> Result<(), String> {
     }
     if spec.openagent_home.as_os_str().is_empty() {
         return Err("OPENAGENT_HOME must not be empty".to_string());
+    }
+    if let Some(embedding_seed) = spec.embedding_seed.as_deref() {
+        if !embedding_seed.is_dir() {
+            return Err(format!(
+                "Embedding seed directory does not exist: {}",
+                embedding_seed.display()
+            ));
+        }
     }
     Ok(())
 }
@@ -443,6 +456,7 @@ mod tests {
             binary_path: PathBuf::from("openagent-server"),
             workspace: PathBuf::from("workspace"),
             openagent_home: PathBuf::from("data"),
+            embedding_seed: Some(PathBuf::from("embedding-seed")),
             conversation_id: Some("conversation".into()),
             message_id: Some("message".into()),
             new_conversation: false,
@@ -455,6 +469,8 @@ mod tests {
         assert!(ordinary_arguments.contains(&OsString::from("conversation")));
         assert!(ordinary_arguments.contains(&OsString::from("--openagent-message")));
         assert!(ordinary_arguments.contains(&OsString::from("message")));
+        assert!(ordinary_arguments.contains(&OsString::from("--embedding-seed")));
+        assert!(ordinary_arguments.contains(&OsString::from("embedding-seed")));
 
         let primary_arguments = runtime_arguments(&RuntimeLaunchSpec {
             primary_desktop_services: true,
@@ -470,6 +486,7 @@ mod tests {
             binary_path: PathBuf::from("openagent-server"),
             workspace: PathBuf::from("workspace"),
             openagent_home: PathBuf::from("data"),
+            embedding_seed: None,
             conversation_id: None,
             message_id: None,
             new_conversation: true,

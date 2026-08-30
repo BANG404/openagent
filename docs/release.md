@@ -185,6 +185,17 @@ The release metadata verifier checks that:
 - a Stable promotion declares a Beta source whose `X.Y.Z` matches the Stable
   target, and its product source matches that tag outside generated files.
 
+## Development Runtime refresh
+
+Ordinary `bun tauri dev` starts the Vite server together with a private Runtime
+source watcher. Changes beneath `sdk/rust` or to the SDK Cargo manifest/lockfile
+first rebuild and stage the debug `openagent-server`; only changed server bytes
+write the watched reload stamp that asks Tauri to rebuild and restart its host.
+This ordering prevents a hot frontend or host from connecting to a stale sidecar
+that lacks a newly added desktop operation. A failed server build leaves the
+currently running development process intact and the next source change retries.
+The explicit embedded diagnostic command does not use this sidecar path.
+
 ## Publishing
 
 The direct release commit changes `.github/release.json`, so its push starts the

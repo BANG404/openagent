@@ -1,5 +1,5 @@
 use openagent_app::{
-    apply_persistence_transition, EmbeddingResourceManager, EmbeddingResourceStatus,
+    apply_persistence_transition, load_embedding_model, EmbeddingResourceManager,
     ExternalRuntimeLaunch, InstalledRuntimeResource, PersistenceTransitionPlan,
     RuntimeResourceManager, RuntimeResourceSource,
 };
@@ -28,7 +28,8 @@ use openagent_runtime::conversation_memory::{
 };
 use openagent_runtime::skills::SkillMetadata;
 use openagent_runtime::state::{
-    HtmlPreviewRoots, OpenAgentRuntime, RuntimeAsset, RuntimeHost, ScheduledChatHookDefinition,
+    EmbeddingResourceStatus, HtmlPreviewRoots, OpenAgentRuntime, RuntimeAsset, RuntimeHost,
+    ScheduledChatHookDefinition,
 };
 use openagent_runtime::tools::ScheduleChatHookArgs;
 use openagent_runtime::{
@@ -307,89 +308,28 @@ fn bundled_embedding_seed(app: &tauri::AppHandle) -> Option<std::path::PathBuf> 
         .filter(|path| path.is_dir())
 }
 
-async fn load_embedding_model(
-    runtime: Arc<OpenAgentRuntime>,
-    model_dir: std::path::PathBuf,
-) -> Result<(), String> {
-    let model = tokio::task::spawn_blocking(move || {
-        openagent_runtime::embedding::load_bundled_model(model_dir).map(Arc::new)
-    })
-    .await
-    .map_err(|error| format!("embedding task failed: {error}"))??;
-    *runtime.state().embedding_model.lock().await = Some(model);
-    tracing::info!(target: "openagent::app", "embedding model ready");
-    Ok(())
-}
-
 #[tauri::command]
 async fn get_embedding_resource_status(
-    manager: State<'_, EmbeddingResourceManager>,
     runtime: State<'_, EmbeddedRuntimeState>,
 ) -> Result<EmbeddingResourceStatus, String> {
-    let resource = manager.status().await;
-    if let Some(runtime) = runtime.0.as_ref() {
-        if resource.ready() && runtime.state().embedding_model.lock().await.is_none() {
-            load_embedding_model(runtime.clone(), manager.model_dir().to_path_buf()).await?;
-        }
-    }
-    Ok(resource)
+    runtime
+        .0
+        .as_ref()
+        .ok_or_else(|| "Embedding resources are owned by the external Runtime".to_string())?
+        .embedding_resource_status()
+        .await
 }
 
 #[tauri::command]
 async fn prepare_embedding_resource(
-    app: tauri::AppHandle,
-    manager: State<'_, EmbeddingResourceManager>,
     runtime: State<'_, EmbeddedRuntimeState>,
-    updates: State<'_, RuntimeUpdateState>,
-    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
-    proxy: State<'_, RuntimeEventProxy>,
 ) -> Result<EmbeddingResourceStatus, String> {
-    let _lifecycle = updates.lifecycle.lock().await;
-    let progress_app = app.clone();
-    let installed = manager
-        .prepare(bundled_embedding_seed(&app), move |progress| {
-            if let Err(error) = progress_app.emit("embedding-resource-progress", progress) {
-                tracing::warn!(%error, "failed to emit embedding resource progress");
-            }
-        })
-        .await?;
-    if let Some(runtime) = runtime.0.as_ref() {
-        load_embedding_model(runtime.clone(), manager.model_dir().to_path_buf()).await?;
-        return Ok(installed);
-    }
-    let Some(spec) = supervisor.launch_spec().await else {
-        return Ok(installed);
-    };
-    let drain = drain_supervised_runtime(supervisor.inner()).await?;
-    if !drain.drained {
-        return Err(format!(
-            "Runtime did not drain {} active conversation(s) before loading the embedding resource",
-            drain.active_conversations.len()
-        ));
-    }
-    proxy.stop().await;
-    if let Err(error) = supervisor.reload_after_drain(spec.clone()).await {
-        let reconnect =
-            reconnect_supervised_runtime(&app, supervisor.inner().clone(), &proxy).await;
-        return Err(match reconnect {
-            Ok(_) => error,
-            Err(reconnect_error) => {
-                format!("{error}; Runtime reconnect failed: {reconnect_error}")
-            }
-        });
-    }
-    if let Err(error) = reconnect_supervised_runtime(&app, supervisor.inner().clone(), &proxy).await
-    {
-        let rollback =
-            restore_previous_runtime(&app, supervisor.inner().clone(), &proxy, spec).await;
-        return Err(match rollback {
-            Ok(_) => format!("Runtime embedding reload failed and was restarted: {error}"),
-            Err(rollback_error) => format!(
-                "Runtime embedding reload failed ({error}); recovery also failed ({rollback_error})"
-            ),
-        });
-    }
-    Ok(installed)
+    runtime
+        .0
+        .as_ref()
+        .ok_or_else(|| "Embedding resources are owned by the external Runtime".to_string())?
+        .prepare_embedding_resource()
+        .await
 }
 
 #[tauri::command]
@@ -594,6 +534,7 @@ async fn activate_runtime_resource(
         binary_path: candidate.binary_path.clone(),
         workspace: previous_spec.workspace.clone(),
         openagent_home: previous_spec.openagent_home.clone(),
+        embedding_seed: previous_spec.embedding_seed.clone(),
         conversation_id: previous_spec.conversation_id.clone(),
         message_id: previous_spec.message_id.clone(),
         new_conversation: previous_spec.new_conversation,
@@ -2099,8 +2040,11 @@ async fn get_conversation_workspace(
 
 struct TauriRuntimeHost {
     app: tauri::AppHandle,
+    embedding_resource: EmbeddingResourceManager,
+    embedding_seed: Option<std::path::PathBuf>,
 }
 
+#[async_trait::async_trait]
 impl RuntimeHost for TauriRuntimeHost {
     fn translate(&self, key: &str, fallback: &str) -> String {
         use tauri_plugin_i18n::PluginI18nExt;
@@ -2146,6 +2090,35 @@ impl RuntimeHost for TauriRuntimeHost {
                 bytes: asset.bytes,
                 mime_type: asset.mime_type,
             })
+    }
+
+    async fn embedding_resource_status(
+        &self,
+        runtime: Arc<OpenAgentRuntime>,
+    ) -> Result<EmbeddingResourceStatus, String> {
+        let resource = self.embedding_resource.status().await;
+        if resource.ready() && runtime.state().embedding_model.lock().await.is_none() {
+            load_embedding_model(runtime, self.embedding_resource.model_dir().to_path_buf())
+                .await?;
+        }
+        Ok(resource)
+    }
+
+    async fn prepare_embedding_resource(
+        &self,
+        runtime: Arc<OpenAgentRuntime>,
+    ) -> Result<EmbeddingResourceStatus, String> {
+        let events = runtime.state().events.clone();
+        let installed = self
+            .embedding_resource
+            .prepare(self.embedding_seed.clone(), move |progress| {
+                if let Err(error) = events.emit("embedding-resource-progress", progress) {
+                    tracing::warn!(%error, "failed to emit embedding resource progress");
+                }
+            })
+            .await?;
+        load_embedding_model(runtime, self.embedding_resource.model_dir().to_path_buf()).await?;
+        Ok(installed)
     }
 }
 
@@ -2275,6 +2248,7 @@ async fn start_external_desktop_runtime(
         binary_path,
         workspace: launch.workspace.clone(),
         openagent_home: launch.openagent_home.clone(),
+        embedding_seed: bundled_embedding_seed(app),
         conversation_id: launch.conversation_id.clone(),
         message_id: launch.message_id.clone(),
         new_conversation: launch.new_conversation,
@@ -2502,7 +2476,6 @@ fn run_with_mode(agent_server: bool) {
         .manage(RuntimeEventProxy::default())
         .manage(RuntimeUpdateState::default())
         .manage(DesktopWindowState::default())
-        .manage(EmbeddingResourceManager::default())
         .manage(runtime_manager)
         .manage(frontend_manager)
         .setup(move |app| {
@@ -2639,6 +2612,8 @@ fn run_with_mode(agent_server: bool) {
             if let Some(runtime) = runtime.as_ref() {
                 let _ = runtime.set_host(Arc::new(TauriRuntimeHost {
                     app: app.handle().clone(),
+                    embedding_resource: EmbeddingResourceManager::default(),
+                    embedding_seed: bundled_embedding_seed(app.handle()),
                 }));
                 tauri::async_runtime::spawn(openagent_runtime::commands::watch_config(
                     runtime.clone(),

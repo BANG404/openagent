@@ -1069,11 +1069,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   zero or provider totals cannot produce a valid hit rate, omit cache usage from
   that footer.
 - In Tauri, selecting a different workspace or a conversation owned by another
-  workspace routes the request to that workspace's registered process through
-  `open_workspace_window`. Do not mutate the current external Runtime with
-  `set_workspace`; after a successful route, leave the current window's visible
-  state unchanged. Browser-only previews may continue applying a workspace
-  locally.
+  workspace prepares the target state and changes the current supervised Runtime
+  with `set_workspace` before committing that state in the existing shell. The
+  server's desktop authorization follows the Runtime-selected existing directory.
+  Only File -> New window may route through `open_workspace_window` and launch a
+  second process. Browser-only previews may continue applying a workspace locally.
 - Application update checks expose one shared `idle`/`checking`/`installing`
   state to every desktop surface. Manual checks must disable duplicate input,
   show visible progress, apply a finite timeout, surface localized success or

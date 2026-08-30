@@ -87,6 +87,11 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   helper resources only when their bytes change. Ordinary development also
   prepares and supervises the debug Runtime sidecar by default; keep embedded
   composition as an explicit diagnostic command rather than a silent fallback.
+  Watch private Runtime Rust and Cargo inputs through the development command,
+  finish rebuilding and staging changed server bytes before signaling Tauri to
+  reload, and never let Tauri's direct source watcher restart against a stale
+  sidecar. A failed server build keeps the current process running and retries on
+  the next source change.
 
 Use `deliver-via-pr` for repository delivery. Its preflight and CI handoff rules
 remain authoritative; do not duplicate ordinary CI locally.

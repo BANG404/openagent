@@ -7,6 +7,7 @@
   "scripts": {
     "prepare": "bun scripts/install-git-hooks.mjs",
     "dev": "vite dev",
+    "dev:tauri": "bun scripts/dev-with-runtime-server.mjs",
     "build": "vite build",
     "check:bundle-size": "bun scripts/check-bundle-size.mjs",
     "check:embedding-model": "bun scripts/fetch-embedding-model.mjs --check",
