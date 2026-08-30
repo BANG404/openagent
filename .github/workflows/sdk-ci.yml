@@ -611,6 +611,9 @@ jobs:
             libssl-dev \
             pkg-config >/dev/null
       - uses: dtolnay/rust-toolchain@stable
+      - name: Materialize Runtime sidecar for Tauri macros
+        working-directory: host
+        run: node scripts/prepare-runtime-server.mjs --placeholder
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: ./host/src-tauri -> target

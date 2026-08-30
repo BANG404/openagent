@@ -69,6 +69,8 @@ describe("release CI verification", () => {
     expect(hostCompatibilityJob).toContain(
       `node -e "require('fs').mkdirSync('host/build', { recursive: true })"`,
     );
+    expect(hostCompatibilityJob).toContain("Materialize Runtime sidecar for Tauri macros");
+    expect(hostCompatibilityJob).toContain("node scripts/prepare-runtime-server.mjs --placeholder");
     expect(nativeCargoManifest).toContain(
       'rfd = { version = "0.16", default-features = false, features = ["common-controls-v6"] }',
     );
