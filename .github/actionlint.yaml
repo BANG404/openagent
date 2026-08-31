@@ -1,0 +1,6 @@
+self-hosted-runner:
+  labels:
+    - openagent-ci
+    - linux-x64
+    - windows-x64
+    - cloudflare-sccache

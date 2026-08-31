@@ -72,7 +72,7 @@ env:
 jobs:
   pending:
     name: Report pending status
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     timeout-minutes: 5
     steps:
       - name: Validate SDK revision
@@ -113,7 +113,7 @@ jobs:
     name: Rust formatting
     if: inputs.rust
     needs: pending
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     timeout-minutes: 10
     env:
       SDK_DIAGNOSTIC_NAME: Rust formatting
@@ -171,7 +171,7 @@ jobs:
     name: Rust lint
     if: inputs.rust
     needs: pending
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Rust lint
@@ -198,14 +198,12 @@ jobs:
           cache-targets: false
       - &install-private-sccache
         name: Install private compiler cache client
-        if: vars.OPENAGENT_SCCACHE_ENDPOINT != ''
         uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
         with:
           version: v0.17.0
           disable_annotations: true
       - &configure-private-sccache
         name: Configure private compiler cache
-        if: vars.OPENAGENT_SCCACHE_ENDPOINT != ''
         shell: bash
         env:
           SCCACHE_ACCESS_KEY: ${{ secrets.OPENAGENT_SCCACHE_ACCESS_KEY }}
@@ -213,8 +211,9 @@ jobs:
           SCCACHE_PRIVATE_BUCKET: ${{ vars.OPENAGENT_SCCACHE_BUCKET }}
           SCCACHE_PRIVATE_ENDPOINT: ${{ vars.OPENAGENT_SCCACHE_ENDPOINT }}
         run: |
-          if [[ -z "$SCCACHE_ACCESS_KEY" || -z "$SCCACHE_SECRET_KEY" || -z "$SCCACHE_PRIVATE_BUCKET" ]]; then
-            echo "::error::Private sccache endpoint is configured without complete credentials."
+          if [[ -z "$SCCACHE_ACCESS_KEY" || -z "$SCCACHE_SECRET_KEY" \
+            || -z "$SCCACHE_PRIVATE_BUCKET" || -z "$SCCACHE_PRIVATE_ENDPOINT" ]]; then
+            echo "::error::Private sccache requires an endpoint, bucket, and scoped credentials."
             exit 1
           fi
           {
@@ -258,7 +257,7 @@ jobs:
     name: Rust tests
     if: inputs.rust
     needs: pending
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Rust tests
@@ -304,7 +303,7 @@ jobs:
     name: Linux process sandbox
     if: inputs.linux_sandbox
     needs: pending
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Linux process sandbox
@@ -384,7 +383,7 @@ jobs:
     name: Windows process sandbox
     if: inputs.windows_sandbox
     needs: pending
-    runs-on: windows-latest
+    runs-on: [self-hosted, openagent-ci, windows-x64, cloudflare-sccache]
     timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Windows process sandbox
@@ -462,7 +461,7 @@ jobs:
     name: TypeScript SDK
     if: inputs.typescript
     needs: pending
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     timeout-minutes: 15
     env:
       SDK_DIAGNOSTIC_NAME: TypeScript SDK
@@ -517,8 +516,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(inputs.full && '[{"name":"Linux","os":"ubuntu-22.04"},{"name":"Windows","os":"windows-latest"}]' || '[{"name":"Linux","os":"ubuntu-22.04"}]') }}
-    runs-on: ${{ matrix.os }}
+        include: ${{ fromJSON(inputs.full && '[{"name":"Linux","runner":"[\"self-hosted\",\"openagent-ci\",\"linux-x64\",\"cloudflare-sccache\"]"},{"name":"Windows","runner":"[\"self-hosted\",\"openagent-ci\",\"windows-x64\",\"cloudflare-sccache\"]"}]' || '[{"name":"Linux","runner":"[\"self-hosted\",\"openagent-ci\",\"linux-x64\",\"cloudflare-sccache\"]"}]') }}
+    runs-on: ${{ fromJSON(matrix.runner) }}
     timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Harness client (${{ matrix.name }})
@@ -616,7 +615,7 @@ jobs:
     name: Public host compatibility
     if: inputs.host
     needs: pending
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Public host compatibility
@@ -734,7 +733,7 @@ jobs:
       - typescript
       - harness-client
       - host-compatibility
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
@@ -801,22 +800,26 @@ jobs:
       matrix:
         include:
           - name: Linux x64
-            os: ubuntu-latest
+            runner: '["self-hosted","openagent-ci","linux-x64","cloudflare-sccache"]'
+            runner_os: Linux
             source: target/release/openagent-server
             artifact: openagent-server-linux-x64
           - name: Windows x64
-            os: windows-latest
+            runner: '["self-hosted","openagent-ci","windows-x64","cloudflare-sccache"]'
+            runner_os: Windows
             source: target/release/openagent-server.exe
             artifact: openagent-server-windows-x64.exe
           - name: macOS arm64
-            os: macos-14
+            runner: '"macos-14"'
+            runner_os: macOS
             source: target/release/openagent-server
             artifact: openagent-server-macos-arm64
           - name: macOS x64
-            os: macos-15-intel
+            runner: '"macos-15-intel"'
+            runner_os: macOS
             source: target/release/openagent-server
             artifact: openagent-server-macos-x64
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ fromJSON(matrix.runner) }}
     timeout-minutes: 60
     steps:
       - name: Create SDK reporter token
@@ -828,7 +831,7 @@ jobs:
         with: *sdk-checkout
       - uses: dtolnay/rust-toolchain@stable
       - name: Install Linux Runtime build dependencies
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.runner_os == 'Linux'
         run: |
           sudo apt-get update >/dev/null
           sudo apt-get install -y binutils libcap-dev pkg-config >/dev/null
@@ -837,7 +840,7 @@ jobs:
       - *install-private-sccache
       - *configure-private-sccache
       - name: Prepare pinned Linux sandbox helper
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.runner_os == 'Linux'
         working-directory: sdk
         shell: bash
         run: |
@@ -863,7 +866,7 @@ jobs:
     name: Development clients
     if: inputs.publish_dev && inputs.full
     needs: required
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     timeout-minutes: 20
     steps:
       - name: Create SDK reporter token
@@ -908,7 +911,7 @@ jobs:
     name: Publish development Runtime and clients
     if: inputs.publish_dev && inputs.full
     needs: [required, development-runtime, development-clients]
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     timeout-minutes: 15
     permissions:
       contents: write

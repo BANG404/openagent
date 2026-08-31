@@ -380,12 +380,15 @@ SDK release candidates are fully qualified by the public workflow before the
 private repository creates their immutable `sdk-v*` tags. SDK release tags,
 nightly schedules, and manual full dispatches use the public
 `sdk-ci.yml` workflow so Rust, Harness, host-compatibility, and native
-process-sandbox jobs run on public runners. Full runs also build the four
-release Runtime targets once on those public runners. The private publication
-workflow waits for the exact status-linked public run to finish successfully,
-downloads its one-day Runtime artifacts, and publishes those bytes without a
-second private matrix build. Repository-scoped self-hosted infrastructure owns
-private dispatch, tag preparation, npm publication, and release finalization.
+process-sandbox jobs remain publicly observable while trusted Linux and Windows
+work executes on repository-scoped self-hosted runners. macOS qualification and
+builds remain on GitHub-hosted runners. Full runs build the four release Runtime
+targets once on that mixed platform matrix. The private publication workflow
+waits for the exact status-linked public run to finish successfully, downloads
+its one-day Runtime artifacts, and publishes those bytes without a second
+private matrix build. The same self-hosted Linux and Windows infrastructure is
+the primary path for native host CI, release preparation, release builds, Store
+publication, and release finalization.
 Ordinary private `main` pushes do not run CI. Linux sandbox tests run on Ubuntu
 24, install Bubblewrap, disable only
 that image's AppArmor restriction on unprivileged user namespaces, and enable
@@ -410,12 +413,13 @@ installed only on the SDK repository lets the public workflow read that
 revision and report the aggregate `Public SDK CI` commit status. Because
 workflow logs are public, SDK command output is suppressed. Ordinary build
 outputs are never uploaded, and public GitHub caches never contain Rust target
-or compiler output. Jobs may use an authenticated private sccache service whose
-storage remains on the trusted CI host; release and development Runtime jobs
-may upload only their documented short-lived distribution artifacts. Only
-Public Rust qualification jobs have enough execution time to populate an empty
-private compiler cache through the authenticated endpoint. Later runs reuse
-those compiler objects, but cache warmth is never a correctness requirement.
+or compiler output. Authenticated sccache through the Cloudflare Tunnel to the
+private MinIO backend is the primary compiler-output cache for trusted host,
+SDK, and release compilation. GitHub Rust caches retain only dependency data
+with `cache-targets: false`. Release and development Runtime jobs may upload
+only their documented short-lived distribution artifacts. Later runs reuse
+private compiler objects, but cache availability and warmth are never
+correctness requirements.
 Only
 generic pass/fail diagnostics or explicitly
 allowlisted fixed-category test codes may appear in the public run. Linux and

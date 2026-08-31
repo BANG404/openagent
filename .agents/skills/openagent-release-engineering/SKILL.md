@@ -34,6 +34,11 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   `cache-targets: false`. Compiler outputs may use only the authenticated
   private sccache backend, and release Runtime artifacts may leave public jobs
   only through the documented exact-run publication path.
+- Route trusted Linux and Windows native, Public SDK, release preparation, and
+  release jobs to the repository-scoped `openagent-ci` runners with the
+  platform and `cloudflare-sccache` labels. Keep macOS GitHub-hosted, keep
+  fork pull-request code off self-hosted runners, and treat the Cloudflare-to-
+  MinIO compiler cache as an optimization rather than a correctness dependency.
 
 ## Host and helper artifacts
 

@@ -1,0 +1,66 @@
+name: Set up private sccache
+description: Configure the authenticated OpenAgent compiler cache.
+
+inputs:
+  endpoint:
+    description: S3-compatible cache endpoint
+    required: true
+  bucket:
+    description: S3 bucket name
+    required: true
+  access-key:
+    description: Scoped S3 access key
+    required: true
+  secret-key:
+    description: Scoped S3 secret key
+    required: true
+  key-prefix:
+    description: Cache namespace prefix
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Require private compiler cache configuration
+      shell: bash
+      env:
+        SCCACHE_PRIVATE_ENDPOINT: ${{ inputs.endpoint }}
+        SCCACHE_PRIVATE_BUCKET: ${{ inputs.bucket }}
+        SCCACHE_PRIVATE_ACCESS_KEY: ${{ inputs.access-key }}
+        SCCACHE_PRIVATE_SECRET_KEY: ${{ inputs.secret-key }}
+      run: |
+        if [[ -z "$SCCACHE_PRIVATE_ENDPOINT" \
+          || -z "$SCCACHE_PRIVATE_BUCKET" \
+          || -z "$SCCACHE_PRIVATE_ACCESS_KEY" \
+          || -z "$SCCACHE_PRIVATE_SECRET_KEY" ]]; then
+          echo "::error::Private sccache requires an endpoint, bucket, and scoped credentials."
+          exit 1
+        fi
+
+    - name: Install private compiler cache client
+      uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
+      with:
+        version: v0.17.0
+        disable_annotations: true
+
+    - name: Configure private compiler cache
+      shell: bash
+      env:
+        SCCACHE_PRIVATE_ENDPOINT: ${{ inputs.endpoint }}
+        SCCACHE_PRIVATE_BUCKET: ${{ inputs.bucket }}
+        SCCACHE_PRIVATE_ACCESS_KEY: ${{ inputs.access-key }}
+        SCCACHE_PRIVATE_SECRET_KEY: ${{ inputs.secret-key }}
+        SCCACHE_PRIVATE_KEY_PREFIX: ${{ inputs.key-prefix }}
+      run: |
+        {
+          echo "AWS_ACCESS_KEY_ID=$SCCACHE_PRIVATE_ACCESS_KEY"
+          echo "AWS_SECRET_ACCESS_KEY=$SCCACHE_PRIVATE_SECRET_KEY"
+          echo "SCCACHE_BUCKET=$SCCACHE_PRIVATE_BUCKET"
+          echo "SCCACHE_ENDPOINT=$SCCACHE_PRIVATE_ENDPOINT"
+          echo "SCCACHE_REGION=auto"
+          echo "SCCACHE_S3_USE_SSL=true"
+          echo "SCCACHE_S3_KEY_PREFIX=$SCCACHE_PRIVATE_KEY_PREFIX"
+          echo "SCCACHE_IGNORE_SERVER_IO_ERROR=1"
+          echo "CARGO_INCREMENTAL=0"
+          echo "RUSTC_WRAPPER=sccache"
+        } >> "$GITHUB_ENV"

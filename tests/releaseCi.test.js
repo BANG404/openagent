@@ -37,6 +37,10 @@ const prepareReleaseWorkflow = readFileSync(
   new URL("../.github/workflows/prepare-release.yml", import.meta.url),
   "utf8",
 );
+const privateSccacheAction = readFileSync(
+  new URL("../.github/actions/setup-private-sccache/action.yml", import.meta.url),
+  "utf8",
+);
 
 describe("release CI verification", () => {
   test("reserves complete qualification for release, scheduled, and manual runs", () => {
@@ -61,6 +65,32 @@ describe("release CI verification", () => {
     expect(sdkWorkflow).toContain(
       "SDK_STATUS_CONTEXT: ${{ inputs.full && 'Public SDK CI' || 'Public SDK Fast CI' }}",
     );
+  });
+
+  test("routes trusted Linux and Windows compilation through private runners and sccache", () => {
+    const linuxRunner = "[self-hosted, openagent-ci, linux-x64, cloudflare-sccache]";
+    const windowsRunner = "[self-hosted, openagent-ci, windows-x64, cloudflare-sccache]";
+
+    expect(nativeWorkflow).toContain(linuxRunner);
+    expect(nativeWorkflow).toContain("windows-x64");
+    expect(nativeWorkflow).toContain("uses: ./.github/actions/setup-private-sccache");
+    expect(ciWorkflow).toContain(
+      "github.event.pull_request.head.repo.full_name == github.repository",
+    );
+    expect(ciWorkflow).toContain(
+      "OPENAGENT_SCCACHE_ACCESS_KEY: ${{ secrets.OPENAGENT_SCCACHE_ACCESS_KEY }}",
+    );
+    expect(sdkWorkflow).toContain(linuxRunner);
+    expect(sdkWorkflow).toContain(windowsRunner);
+    expect(sdkWorkflow).toContain("runs-on: macos-latest");
+    expect(sdkWorkflow).not.toContain("if: vars.OPENAGENT_SCCACHE_ENDPOINT != ''");
+    expect(releaseWorkflow).toContain(linuxRunner);
+    expect(releaseWorkflow).toContain(windowsRunner);
+    expect(releaseWorkflow).toContain("runner_os: macOS");
+    expect(releaseWorkflow).not.toContain("matrix.platform");
+    expect(prepareReleaseWorkflow).toContain(linuxRunner);
+    expect(privateSccacheAction).toContain("SCCACHE_S3_KEY_PREFIX");
+    expect(privateSccacheAction).toContain("SCCACHE_IGNORE_SERVER_IO_ERROR=1");
   });
 
   test("keeps native-only compilation independent from a frontend production build", () => {

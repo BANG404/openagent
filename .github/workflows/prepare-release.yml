@@ -31,7 +31,7 @@ permissions:
 jobs:
   prepare:
     name: Push release commit
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     timeout-minutes: 15
     steps:
       - name: Require administrator push token

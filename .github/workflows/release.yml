@@ -26,7 +26,7 @@ env:
 jobs:
   detect:
     name: Detect release commit
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     outputs:
       active: ${{ steps.release.outputs.active }}
       tag: ${{ steps.release.outputs.tag }}
@@ -200,7 +200,7 @@ jobs:
     name: Qualify or reuse pinned SDK release
     needs: detect
     if: needs.detect.outputs.active == 'true'
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     timeout-minutes: 190
     outputs:
       sdk_tag: ${{ steps.release.outputs.sdk_tag }}
@@ -263,7 +263,7 @@ jobs:
     if: >-
       needs.detect.outputs.active == 'true'
       && needs.qualify.result == 'success'
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -295,7 +295,7 @@ jobs:
     needs:
       - detect
       - tag
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     outputs:
       published: ${{ steps.release.outputs.published }}
     steps:
@@ -346,7 +346,8 @@ jobs:
       matrix:
         include:
           - name: macOS arm64
-            platform: macos-latest
+            runner: '"macos-latest"'
+            runner_os: macOS
             args: --target aarch64-apple-darwin
             rust_target: aarch64-apple-darwin
             sidecar_target: aarch64-apple-darwin
@@ -354,7 +355,8 @@ jobs:
             runtime_sidecar: openagent-server-aarch64-apple-darwin
             runtime_artifact: openagent-server-macos-arm64
           - name: macOS Intel
-            platform: macos-latest
+            runner: '"macos-latest"'
+            runner_os: macOS
             args: --target x86_64-apple-darwin
             rust_target: x86_64-apple-darwin
             sidecar_target: x86_64-apple-darwin
@@ -362,7 +364,8 @@ jobs:
             runtime_sidecar: openagent-server-x86_64-apple-darwin
             runtime_artifact: openagent-server-macos-x64
           - name: Linux x64
-            platform: ubuntu-22.04
+            runner: '["self-hosted","openagent-ci","linux-x64","cloudflare-sccache"]'
+            runner_os: Linux
             args: ""
             rust_target: ""
             sidecar_target: x86_64-unknown-linux-gnu
@@ -370,14 +373,15 @@ jobs:
             runtime_sidecar: openagent-server-x86_64-unknown-linux-gnu
             runtime_artifact: openagent-server-linux-x64
           - name: Windows x64
-            platform: windows-latest
+            runner: '["self-hosted","openagent-ci","windows-x64","cloudflare-sccache"]'
+            runner_os: Windows
             args: ""
             rust_target: ""
             sidecar_target: x86_64-pc-windows-msvc
             runtime_target: windows-x64
             runtime_sidecar: openagent-server-x86_64-pc-windows-msvc.exe
             runtime_artifact: openagent-server-windows-x64.exe
-    runs-on: ${{ matrix.platform }}
+    runs-on: ${{ fromJSON(matrix.runner) }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -406,6 +410,14 @@ jobs:
           workspaces: ./src-tauri -> target
           cache-targets: false
 
+      - uses: ./.github/actions/setup-private-sccache
+        with:
+          endpoint: ${{ vars.OPENAGENT_SCCACHE_ENDPOINT }}
+          bucket: ${{ vars.OPENAGENT_SCCACHE_BUCKET }}
+          access-key: ${{ secrets.OPENAGENT_SCCACHE_ACCESS_KEY }}
+          secret-key: ${{ secrets.OPENAGENT_SCCACHE_SECRET_KEY }}
+          key-prefix: openagent-host/v1
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
@@ -413,7 +425,7 @@ jobs:
       - name: Set up WinApp CLI
         if: >-
           needs.detect.outputs.native_shell == 'true'
-          && matrix.platform == 'windows-latest'
+          && matrix.runner_os == 'Windows'
           && needs.detect.outputs.prerelease != 'true'
         uses: microsoft/setup-WinAppCli@v0.1
 
@@ -422,7 +434,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
+        if: matrix.runner_os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -436,7 +448,7 @@ jobs:
             pkg-config
 
       - name: Prepare pinned Linux sandbox helper
-        if: needs.detect.outputs.native_shell == 'true' && matrix.platform == 'ubuntu-22.04'
+        if: needs.detect.outputs.native_shell == 'true' && matrix.runner_os == 'Linux'
         shell: bash
         run: |
           if ! node scripts/prepare-linux-sandbox-helper.mjs --profile release --github-env >"$RUNNER_TEMP/linux-sandbox-helper-build.log" 2>&1; then
@@ -512,7 +524,7 @@ jobs:
       - name: Build Microsoft Store package
         if: >-
           needs.detect.outputs.native_shell == 'true'
-          && matrix.platform == 'windows-latest'
+          && matrix.runner_os == 'Windows'
           && needs.detect.outputs.prerelease != 'true'
         shell: pwsh
         env:
@@ -625,7 +637,7 @@ jobs:
       - name: Upload Microsoft Store package
         if: >-
           needs.detect.outputs.native_shell == 'true'
-          && matrix.platform == 'windows-latest'
+          && matrix.runner_os == 'Windows'
           && needs.detect.outputs.prerelease != 'true'
         uses: actions/upload-artifact@v4
         with:
@@ -645,7 +657,7 @@ jobs:
       needs.create-draft.outputs.published != 'true'
       && needs.detect.outputs.runtime == 'true'
       && needs.build.result == 'success'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -716,7 +728,7 @@ jobs:
     if: >-
       needs.create-draft.outputs.published != 'true'
       && needs.detect.outputs.frontend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -787,7 +799,7 @@ jobs:
       && needs.detect.outputs.prerelease != 'true'
       && needs.create-draft.outputs.published != 'true'
       && needs.build.result == 'success'
-    runs-on: windows-latest
+    runs-on: [self-hosted, openagent-ci, windows-x64, cloudflare-sccache]
     steps:
       - name: Download Microsoft Store package
         uses: actions/download-artifact@v4
@@ -848,7 +860,7 @@ jobs:
       && (needs.runtime-components.result == 'success' || needs.runtime-components.result == 'skipped')
       && (needs.frontend-components.result == 'success' || needs.frontend-components.result == 'skipped')
       && (needs.publish-store.result == 'success' || needs.publish-store.result == 'skipped')
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     steps:
       - name: Upload desktop-to-SDK release mapping
         env:
@@ -1090,7 +1102,7 @@ jobs:
     if: >-
       needs.detect.outputs.prerelease == 'true'
       && needs.publish.result == 'success'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
     steps:
       - uses: actions/checkout@v7
         with:
