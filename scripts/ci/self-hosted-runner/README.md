@@ -12,7 +12,10 @@ HTTPS route used by public SDK jobs to reach the private compiler cache.
 
 1. Copy `.env.example` to `.env`, generate independent random MinIO root and
    scoped sccache credentials, and set `FRPC_BIN` to the absolute path of the
-   trusted PassNat `frpc` binary.
+   trusted PassNat `frpc` binary. If the host requires Clash or another HTTP
+   proxy to reach GitHub, set `RUNNER_HTTP_PROXY` to the proxy exposed on the
+   host, for example `http://host.docker.internal:7890`. Keep local services in
+   `RUNNER_NO_PROXY`.
 2. Put the account-generated tunnel files at
    `secrets/passnat-ssh.toml` and, when enabled,
    `secrets/passnat-cache.toml`.
