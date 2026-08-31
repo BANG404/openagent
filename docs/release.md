@@ -309,12 +309,12 @@ The target repository must define `OPENAGENT_SDK_DEPLOY_KEY`,
 token needs workflow and release access only to the private SDK repository.
 Release validates all three secrets before tagging or starting platform builds;
 secret values are never printed.
-Runtime and frontend channel manifests are signed with the Tauri signer. Its
+Runtime, frontend, and development channel manifests are signed with the Tauri signer. Its
 detached `.sig` artifact is the Tauri-standard Base64 wrapper around minisign
 text; desktop resource installers decode that wrapper, verify the exact
 downloaded manifest bytes against the updater public key, and only then fetch
 or activate the referenced artifact. The release workflow passes the validated
-passwordless private key and an explicit empty password to each standalone
+passwordless private key and an explicit empty password to every standalone
 manifest-signing command, rather than depending on environment-variable
 discovery or an interactive password prompt. Local integration tests use an
 ephemeral test keypair and never require the production private key.

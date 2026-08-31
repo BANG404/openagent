@@ -919,8 +919,14 @@ jobs:
             --output sdk-development-components/sdk-dev-manifest.json \
             --sdk-sha "$SDK_SHA" \
             --version "$version"
-          bun scripts/tauri.mjs signer sign sdk-development-components/openagent-sdk-manifest.json
-          bun scripts/tauri.mjs signer sign sdk-development-components/sdk-dev-manifest.json
+          bun scripts/tauri.mjs signer sign \
+            --private-key "$TAURI_SIGNING_PRIVATE_KEY" \
+            --password "" \
+            sdk-development-components/openagent-sdk-manifest.json
+          bun scripts/tauri.mjs signer sign \
+            --private-key "$TAURI_SIGNING_PRIVATE_KEY" \
+            --password "" \
+            sdk-development-components/sdk-dev-manifest.json
           rm sdk-development-components/version.txt
       - name: Refresh public development channel
         if: steps.current.outputs.publish == 'true'

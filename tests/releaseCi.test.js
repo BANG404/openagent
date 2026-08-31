@@ -241,6 +241,11 @@ describe("release CI verification", () => {
     expect(sdkWorkflow).toContain("channel=runtime-dev");
     expect(sdkWorkflow).toContain("sdk-dev-manifest.json");
     expect(sdkWorkflow).toContain('--sdk-sha "$SDK_SHA"');
+    expect(
+      sdkWorkflow.match(
+        /signer sign \\\n {12}--private-key "\$TAURI_SIGNING_PRIVATE_KEY" \\\n {12}--password ""/g,
+      ),
+    ).toHaveLength(2);
     const installLinuxDependencies = sdkWorkflow.indexOf(
       "name: Install Linux Runtime build dependencies",
     );
