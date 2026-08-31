@@ -172,7 +172,7 @@ jobs:
     if: inputs.rust
     needs: pending
     runs-on: ubuntu-22.04
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Rust lint
     steps:
@@ -259,7 +259,7 @@ jobs:
     if: inputs.rust
     needs: pending
     runs-on: ubuntu-22.04
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Rust tests
     steps:
@@ -305,7 +305,7 @@ jobs:
     if: inputs.linux_sandbox
     needs: pending
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Linux process sandbox
     steps:
@@ -351,7 +351,7 @@ jobs:
     if: inputs.macos_sandbox
     needs: pending
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: macOS process sandbox
     steps:
@@ -385,7 +385,7 @@ jobs:
     if: inputs.windows_sandbox
     needs: pending
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Windows process sandbox
     steps:
@@ -519,7 +519,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(inputs.full && '[{"name":"Linux","os":"ubuntu-22.04"},{"name":"Windows","os":"windows-latest"}]' || '[{"name":"Linux","os":"ubuntu-22.04"}]') }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Harness client (${{ matrix.name }})
     steps:
@@ -617,7 +617,7 @@ jobs:
     if: inputs.host
     needs: pending
     runs-on: ubuntu-22.04
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Public host compatibility
     steps:

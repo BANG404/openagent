@@ -413,6 +413,10 @@ outputs are never uploaded, and public GitHub caches never contain Rust target
 or compiler output. Jobs may use an authenticated private sccache service whose
 storage remains on the trusted CI host; release and development Runtime jobs
 may upload only their documented short-lived distribution artifacts. Only
+Public Rust qualification jobs have enough execution time to populate an empty
+private compiler cache through the authenticated endpoint. Later runs reuse
+those compiler objects, but cache warmth is never a correctness requirement.
+Only
 generic pass/fail diagnostics or explicitly
 allowlisted fixed-category test codes may appear in the public run. Linux and
 Windows sandbox tests may expose fixed
