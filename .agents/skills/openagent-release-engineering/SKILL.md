@@ -34,6 +34,9 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   `cache-targets: false`. Compiler outputs may use only the authenticated
   private sccache backend, and release Runtime artifacts may leave public jobs
   only through the documented exact-run publication path.
+- Authenticate trusted private SDK checkouts with a short-lived, read-only
+  GitHub App installation token over HTTPS. Do not make CI depend on outbound
+  SSH port 22 or retain a long-lived deploy key for source checkout.
 - Route trusted Linux and Windows native, Public SDK, release preparation, and
   release jobs to the repository-scoped `openagent-ci` runners with the
   platform and `cloudflare-sccache` labels. Keep macOS GitHub-hosted, keep

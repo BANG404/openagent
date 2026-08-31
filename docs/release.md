@@ -82,12 +82,13 @@ Both manifests identify the immutable SDK commit; consumers reject a channel
 whose SHA differs from the host's pinned SDK gitlink. Tag-triggered SDK
 qualification never overwrites this moving development channel.
 
-Pull requests from forks never receive the private SDK deploy key. Frontend-only
-checks download the `runtime-dev` TypeScript snapshot, verify its commit, byte
-size, and SHA-256, and materialize only that public client boundary. Native or
-Rust checks remain unavailable to untrusted fork code because compiling them
-would expose private SDK sources to the runner; maintainers reproduce or
-qualify those changes after review.
+Pull requests from forks never receive private SDK credentials. Trusted jobs
+create a short-lived, read-only GitHub App installation token and check out the
+private SDK over HTTPS. Frontend-only fork checks download the `runtime-dev`
+TypeScript snapshot, verify its commit, byte size, and SHA-256, and materialize
+only that public client boundary. Native or Rust checks remain unavailable to
+untrusted fork code because compiling them would expose private SDK sources to
+the runner; maintainers reproduce or qualify those changes after review.
 
 Runtime-selected desktop releases build the pinned `openagent-server` for all
 four desktop targets and upload only those release-qualified binaries with a detached
@@ -226,8 +227,8 @@ tagging and builds. A
 published desktop release includes `openagent-desktop-manifest.json`, recording
 the desktop version and tag, SDK version, tag and source SHA, protocol range,
 and exact host compatibility mapping. This orchestration uses the dedicated
-`OPENAGENT_SDK_RELEASE_TOKEN`; the SSH deploy key remains limited to checking
-out private source.
+`OPENAGENT_SDK_RELEASE_TOKEN`; private source checkout uses the CI reporter
+App's short-lived, read-only installation token over HTTPS.
 
 Only then does it, according to the selected component set:
 
@@ -304,11 +305,12 @@ second Store product or change the reserved package identity. Before submitting
 manually, inspect `Package.appxmanifest` in the staged layout and confirm the
 VCLibs package dependency is present.
 
-The target repository must define `OPENAGENT_SDK_DEPLOY_KEY`,
-`OPENAGENT_SDK_RELEASE_TOKEN`, and `TAURI_SIGNING_PRIVATE_KEY`. The SDK release
-token needs workflow and release access only to the private SDK repository.
-Release validates all three secrets before tagging or starting platform builds;
-secret values are never printed.
+The target repository must define the `OPENAGENT_CI_REPORTER_APP_ID` variable
+and the `OPENAGENT_CI_REPORTER_PRIVATE_KEY`, `OPENAGENT_SDK_RELEASE_TOKEN`,
+and `TAURI_SIGNING_PRIVATE_KEY` secrets. The SDK release token needs workflow
+and release access only to the private SDK repository. Release validates these
+credentials before tagging or starting platform builds; secret values are never
+printed.
 Runtime, frontend, and development channel manifests are signed with the Tauri signer. Its
 detached `.sig` artifact is the Tauri-standard Base64 wrapper around minisign
 text; desktop resource installers decode that wrapper, verify the exact

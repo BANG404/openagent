@@ -141,7 +141,8 @@ jobs:
         if: steps.release.outputs.active == 'true'
         shell: bash
         env:
-          OPENAGENT_SDK_DEPLOY_KEY: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          OPENAGENT_CI_REPORTER_APP_ID: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          OPENAGENT_CI_REPORTER_PRIVATE_KEY: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           OPENAGENT_SDK_RELEASE_TOKEN: ${{ secrets.OPENAGENT_SDK_RELEASE_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           PRERELEASE: ${{ steps.release.outputs.prerelease }}
@@ -155,8 +156,8 @@ jobs:
           MS_STORE_PACKAGE_PUBLISHER: ${{ vars.MS_STORE_PACKAGE_PUBLISHER }}
           MS_STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.MS_STORE_PUBLISHER_DISPLAY_NAME }}
         run: |
-          if [[ -z "$OPENAGENT_SDK_DEPLOY_KEY" ]]; then
-            echo "Repository secret OPENAGENT_SDK_DEPLOY_KEY is required." >&2
+          if [[ -z "$OPENAGENT_CI_REPORTER_APP_ID" || -z "$OPENAGENT_CI_REPORTER_PRIVATE_KEY" ]]; then
+            echo "OPENAGENT_CI_REPORTER_APP_ID and OPENAGENT_CI_REPORTER_PRIVATE_KEY are required." >&2
             exit 1
           fi
           if [[ -z "$TAURI_SIGNING_PRIVATE_KEY" ]]; then
@@ -221,6 +222,16 @@ jobs:
         shell: bash
         run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
 
+      - name: Create private SDK read token
+        id: sdk-read-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+
       - name: Check out exact private SDK source
         uses: actions/checkout@v7
         with:
@@ -228,7 +239,7 @@ jobs:
           ref: ${{ steps.sdk.outputs.sha }}
           path: sdk
           fetch-depth: 0
-          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          token: ${{ steps.sdk-read-token.outputs.token }}
           persist-credentials: false
 
       - name: Ensure independent SDK release
@@ -392,13 +403,23 @@ jobs:
         shell: bash
         run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
 
+      - name: Create private SDK read token
+        id: sdk-read-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+
       - name: Check out private SDK
         uses: actions/checkout@v7
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
           path: sdk
-          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          token: ${{ steps.sdk-read-token.outputs.token }}
           persist-credentials: false
 
       - uses: dtolnay/rust-toolchain@stable
@@ -668,13 +689,23 @@ jobs:
         shell: bash
         run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
 
+      - name: Create private SDK read token
+        id: sdk-read-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+
       - name: Check out private SDK metadata
         uses: actions/checkout@v7
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
           path: sdk
-          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          token: ${{ steps.sdk-read-token.outputs.token }}
           persist-credentials: false
 
       - uses: oven-sh/setup-bun@v2
@@ -739,13 +770,23 @@ jobs:
         shell: bash
         run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
 
+      - name: Create private SDK read token
+        id: sdk-read-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+
       - name: Check out private SDK
         uses: actions/checkout@v7
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
           path: sdk
-          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          token: ${{ steps.sdk-read-token.outputs.token }}
           persist-credentials: false
 
       - uses: oven-sh/setup-bun@v2

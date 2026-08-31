@@ -37,15 +37,16 @@ jobs:
       - name: Require administrator push token
         env:
           ADMIN_MERGE_TOKEN: ${{ secrets.ADMIN_MERGE_TOKEN }}
-          OPENAGENT_SDK_DEPLOY_KEY: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          OPENAGENT_CI_REPORTER_APP_ID: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          OPENAGENT_CI_REPORTER_PRIVATE_KEY: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
         shell: bash
         run: |
           if [[ -z "$ADMIN_MERGE_TOKEN" ]]; then
             echo "Repository secret ADMIN_MERGE_TOKEN is required for direct release pushes." >&2
             exit 1
           fi
-          if [[ -z "$OPENAGENT_SDK_DEPLOY_KEY" ]]; then
-            echo "Repository secret OPENAGENT_SDK_DEPLOY_KEY is required for release classification." >&2
+          if [[ -z "$OPENAGENT_CI_REPORTER_APP_ID" || -z "$OPENAGENT_CI_REPORTER_PRIVATE_KEY" ]]; then
+            echo "The CI reporter App credentials are required for release classification." >&2
             exit 1
           fi
 
@@ -167,13 +168,23 @@ jobs:
         shell: bash
         run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
 
+      - name: Create private SDK read token
+        id: sdk-read-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+
       - name: Check out private SDK for component classification
         uses: actions/checkout@v7
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
           path: sdk
-          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          token: ${{ steps.sdk-read-token.outputs.token }}
           fetch-depth: 0
           persist-credentials: false
 

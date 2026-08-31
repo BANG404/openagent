@@ -95,6 +95,32 @@ describe("release CI verification", () => {
     expect(sdkWorkflow).toContain("SCCACHE_NO_DAEMON=1");
   });
 
+  test("checks out private SDK source with short-lived HTTPS app tokens", () => {
+    for (const workflow of [
+      ciWorkflow,
+      frontendWorkflow,
+      nativeWorkflow,
+      sdkWorkflow,
+      releaseWorkflow,
+      prepareReleaseWorkflow,
+    ]) {
+      expect(workflow).not.toContain("OPENAGENT_SDK_DEPLOY_KEY");
+      expect(workflow).not.toContain("ssh-key:");
+    }
+
+    for (const workflow of [
+      frontendWorkflow,
+      nativeWorkflow,
+      sdkWorkflow,
+      releaseWorkflow,
+      prepareReleaseWorkflow,
+    ]) {
+      expect(workflow).toContain("uses: actions/create-github-app-token@v2");
+      expect(workflow).toContain("permission-contents: read");
+      expect(workflow).toContain("token: ${{ steps.");
+    }
+  });
+
   test("keeps native-only compilation independent from a frontend production build", () => {
     expect(nativeWorkflow.match(/Materialize frontendDist for Tauri macros/g)).toHaveLength(3);
     expect(nativeWorkflow.match(/Materialize Runtime sidecar for Tauri macros/g)).toHaveLength(3);

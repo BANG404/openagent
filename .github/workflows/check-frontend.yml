@@ -9,7 +9,7 @@ on:
         default: false
         type: boolean
     secrets:
-      OPENAGENT_SDK_DEPLOY_KEY:
+      OPENAGENT_CI_REPORTER_PRIVATE_KEY:
         required: false
 
 permissions:
@@ -28,6 +28,19 @@ jobs:
         shell: bash
         run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
 
+      - name: Create private SDK read token
+        id: sdk-read-token
+        if: >-
+          github.event_name != 'pull_request'
+          || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+
       - name: Check out private SDK
         if: >-
           github.event_name != 'pull_request'
@@ -37,7 +50,7 @@ jobs:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
           path: sdk
-          ssh-key: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+          token: ${{ steps.sdk-read-token.outputs.token }}
           persist-credentials: false
 
       - name: Fetch public TypeScript SDK for fork pull request

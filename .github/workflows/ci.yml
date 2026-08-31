@@ -192,7 +192,7 @@ jobs:
     permissions:
       contents: read
     secrets:
-      OPENAGENT_SDK_DEPLOY_KEY: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
+      OPENAGENT_CI_REPORTER_PRIVATE_KEY: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
 
   native:
     name: Native desktop
@@ -214,7 +214,6 @@ jobs:
     permissions:
       contents: read
     secrets:
-      OPENAGENT_SDK_DEPLOY_KEY: ${{ secrets.OPENAGENT_SDK_DEPLOY_KEY }}
       OPENAGENT_CI_REPORTER_PRIVATE_KEY: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
       OPENAGENT_SCCACHE_ACCESS_KEY: ${{ secrets.OPENAGENT_SCCACHE_ACCESS_KEY }}
       OPENAGENT_SCCACHE_SECRET_KEY: ${{ secrets.OPENAGENT_SCCACHE_SECRET_KEY }}
