@@ -91,6 +91,8 @@ describe("release CI verification", () => {
     expect(prepareReleaseWorkflow).toContain(linuxRunner);
     expect(privateSccacheAction).toContain("SCCACHE_S3_KEY_PREFIX");
     expect(privateSccacheAction).toContain("SCCACHE_IGNORE_SERVER_IO_ERROR=1");
+    expect(privateSccacheAction).toContain("SCCACHE_NO_DAEMON=1");
+    expect(sdkWorkflow).toContain("SCCACHE_NO_DAEMON=1");
   });
 
   test("keeps native-only compilation independent from a frontend production build", () => {
