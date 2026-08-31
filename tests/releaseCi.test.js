@@ -241,6 +241,16 @@ describe("release CI verification", () => {
     expect(sdkWorkflow).toContain("channel=runtime-dev");
     expect(sdkWorkflow).toContain("sdk-dev-manifest.json");
     expect(sdkWorkflow).toContain('--sdk-sha "$SDK_SHA"');
+    const prepareLinuxHelper = sdkWorkflow.indexOf("name: Prepare pinned Linux sandbox helper");
+    const buildDevelopmentRuntime = sdkWorkflow.indexOf(
+      "name: Build release Runtime server",
+      prepareLinuxHelper,
+    );
+    expect(prepareLinuxHelper).toBeGreaterThan(-1);
+    expect(buildDevelopmentRuntime).toBeGreaterThan(prepareLinuxHelper);
+    expect(sdkWorkflow).toContain(
+      "scripts/prepare-linux-sandbox-helper.mjs --profile release --github-env",
+    );
   });
 
   test("keeps resource-only releases independent from native publishing", () => {

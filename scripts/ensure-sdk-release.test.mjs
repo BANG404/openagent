@@ -7,6 +7,7 @@ import {
   selectSdkQualificationStatus,
   validateSdkManifest,
   workflowDispatchInvocation,
+  workflowRunProgress,
 } from "./ensure-sdk-release.mjs";
 
 describe("SDK release version invocation", () => {
@@ -47,6 +48,20 @@ describe("SDK release manifest verification", () => {
 });
 
 describe("SDK release workflow orchestration", () => {
+  test("renders safe progress metadata for tracked cross-repository runs", () => {
+    expect(
+      workflowRunProgress({
+        workflow: "ci.yml",
+        databaseId: 42,
+        status: "completed",
+        conclusion: "success",
+        url: "https://github.com/BANG404/openagent-sdk/actions/runs/42",
+      }),
+    ).toBe(
+      "ci.yml run 42: completed/success (https://github.com/BANG404/openagent-sdk/actions/runs/42)",
+    );
+  });
+
   test("qualifies an SDK revision before preparing its immutable tag", () => {
     const source = readFileSync(new URL("./ensure-sdk-release.mjs", import.meta.url), "utf8");
     const ciDispatch = source.indexOf('dispatchWorkflow(repository, "ci.yml"');

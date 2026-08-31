@@ -784,6 +784,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
+      - name: Prepare pinned Linux sandbox helper
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: sdk
+        shell: bash
+        run: |
+          if ! node scripts/prepare-linux-sandbox-helper.mjs --profile release --github-env \
+            >"$RUNNER_TEMP/sdk-development-runtime.log" 2>&1; then
+            echo "::error::Linux development Runtime sandbox helper build failed; diagnostic output was suppressed."
+            exit 1
+          fi
       - name: Build release Runtime server
         working-directory: sdk
         run: cargo build --release -p openagent-server

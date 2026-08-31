@@ -445,9 +445,15 @@ independent jobs. Public-host compatibility materializes the configured empty
 `frontendDist` and a target-named placeholder for every configured Tauri
 `externalBin` before native compilation; qualification never substitutes that
 placeholder for the release-built Runtime sidecar. Frontend type checking remains
-separate and does not need to produce a release build. The SDK Release workflow
-waits for the exact description `Public SDK full validation passed` before any
-build or publish job. GitHub's
+separate and does not need to produce a release build. Full development Runtime
+publication prepares the pinned, stripped Linux Bubblewrap helper before the
+Linux server build, exports its SHA-256 to the compiler, and publishes those
+helper bytes beside the server artifact. The SDK Release workflow waits for the
+exact description `Public SDK full validation passed` before any build or
+publish job. The host release coordinator reports metadata-only progress while
+it waits across repositories, including workflow name, run URL, status, and the
+immutable SDK revision or tag; it never forwards private SDK command output into
+the public release log. GitHub's
 failed-job rerun therefore repeats only failed capabilities and the aggregate
 status. Dependency caches may hold
 Cargo registry/git data and Bun's public package downloads, but every Rust cache

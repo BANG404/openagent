@@ -17,6 +17,10 @@ function run(command, args, options = {}) {
   }).trim();
 }
 
+function report(message) {
+  console.log(`[sdk-release] ${message}`);
+}
+
 const SDK_WORKFLOW_FAILURES = new Set([
   "action_required",
   "cancelled",
@@ -37,6 +41,11 @@ export function workflowDispatchInvocation(repository, workflow, ref, fields = [
     ref,
     ...fields.flatMap((field) => ["-f", field]),
   ];
+}
+
+export function workflowRunProgress(trackedRun) {
+  const conclusion = trackedRun.conclusion ? `/${trackedRun.conclusion}` : "";
+  return `${trackedRun.workflow} run ${trackedRun.databaseId}: ${trackedRun.status}${conclusion} (${trackedRun.url})`;
 }
 
 export function selectDispatchedWorkflowRun(runs, sdkSha, dispatchedAt, displayTitle = null) {
@@ -160,6 +169,7 @@ function taggedReleaseSha(repository, tag) {
 function dispatchWorkflow(repository, workflow, ref, fields = []) {
   const dispatchedAt = Date.now();
   run("gh", workflowDispatchInvocation(repository, workflow, ref, fields));
+  report(`Dispatched ${repository} ${workflow} from ${ref}.`);
   return dispatchedAt;
 }
 
@@ -188,7 +198,14 @@ async function waitForWorkflowRun(repository, workflow, sdkSha, dispatchedAt, di
       dispatchedAt,
       displayTitle,
     );
-    if (workflowRun) return { workflow, ...workflowRun };
+    if (workflowRun) {
+      const trackedRun = { workflow, ...workflowRun };
+      report(`Tracking ${workflowRunProgress(trackedRun)}.`);
+      return trackedRun;
+    }
+    if (attempt === 0 || (attempt + 1) % 5 === 0) {
+      report(`Waiting for GitHub to create ${repository} ${workflow} for SDK ${sdkSha}.`);
+    }
     await new Promise((resolve) => setTimeout(resolve, 3_000));
   }
   throw new Error(`GitHub did not create ${workflow} for SDK ${sdkSha}`);
@@ -227,11 +244,17 @@ async function waitForSdkQualification(repository, sdkSha, dispatchedAt) {
           `Public SDK CI reported unexpected success for ${sdkSha}: ${status.description}`,
         );
       }
+      report(`Public SDK qualification passed for ${sdkSha}: ${status.target_url}.`);
       return status;
     }
     if (status?.state === "failure" || status?.state === "error") {
       throw new Error(
         `Public SDK CI failed before tagging ${sdkSha}: ${status.target_url ?? "missing run URL"}`,
+      );
+    }
+    if (attempt === 0 || (attempt + 1) % 4 === 0) {
+      report(
+        `Waiting for Public SDK CI status for ${sdkSha}; current state is ${status?.state ?? "missing"}.`,
       );
     }
     await new Promise((resolve) => setTimeout(resolve, 30_000));
@@ -246,7 +269,11 @@ async function waitForSdkTag(repository, plan) {
       if (tagSha !== plan.releaseSha) {
         throw new Error(`${plan.tag} points to ${tagSha}, not ${plan.releaseSha}`);
       }
+      report(`Immutable SDK tag ${plan.tag} now points to ${plan.releaseSha}.`);
       return;
+    }
+    if (attempt === 0 || (attempt + 1) % 6 === 0) {
+      report(`Waiting for immutable SDK tag ${plan.tag}.`);
     }
     await new Promise((resolve) => setTimeout(resolve, 5_000));
   }
@@ -268,7 +295,11 @@ async function main() {
 
   const releaseVersion = sdkReleaseVersionInvocation(sdkDirectory, sdkSha);
   const plan = JSON.parse(run(process.execPath, releaseVersion.args, { cwd: releaseVersion.cwd }));
+  report(
+    `Resolved SDK ${sdkSha} to ${plan.tag} at release source ${plan.releaseSha}; release required: ${plan.releaseRequired}.`,
+  );
   let manifest = await publishedRelease(repository, plan);
+  if (manifest) report(`Reusing published SDK release ${plan.tag}.`);
   if (!manifest) {
     const ciTitle = `SDK CI ${plan.releaseSha}`;
     const ciDispatch = dispatchWorkflow(repository, "ci.yml", "main", [
@@ -286,6 +317,7 @@ async function main() {
     while (qualifiedRun.status !== "completed") {
       await new Promise((resolve) => setTimeout(resolve, 30_000));
       qualifiedRun = refreshWorkflowRun(repository, qualifiedRun);
+      report(`Waiting for ${workflowRunProgress(qualifiedRun)}.`);
     }
     if (qualifiedRun.conclusion !== "success") {
       throw new Error(
@@ -308,6 +340,7 @@ async function main() {
       while (prepareRun.status !== "completed") {
         await new Promise((resolve) => setTimeout(resolve, 10_000));
         prepareRun = refreshWorkflowRun(repository, prepareRun);
+        report(`Waiting for ${workflowRunProgress(prepareRun)}.`);
       }
       if (prepareRun.conclusion !== "success") {
         throw new Error(
@@ -337,6 +370,13 @@ async function main() {
       if (manifest) break;
 
       trackedRuns = trackedRuns.map((trackedRun) => refreshWorkflowRun(repository, trackedRun));
+      if (attempt === 0 || (attempt + 1) % 2 === 0) {
+        for (const trackedRun of trackedRuns) {
+          report(
+            `Waiting for published SDK release ${plan.tag}; ${workflowRunProgress(trackedRun)}.`,
+          );
+        }
+      }
       const failed = trackedRuns.find((trackedRun) =>
         SDK_WORKFLOW_FAILURES.has(trackedRun.conclusion),
       );
@@ -346,6 +386,7 @@ async function main() {
     }
   }
   if (!manifest) throw new Error(`Timed out waiting for published SDK release ${plan.tag}`);
+  report(`Published SDK release ${plan.tag} is ready.`);
 
   await writeFile(
     output,
