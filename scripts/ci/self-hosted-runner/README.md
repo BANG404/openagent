@@ -15,7 +15,8 @@ HTTPS route used by public SDK jobs to reach the private compiler cache.
    trusted PassNat `frpc` binary. If the host requires Clash or another HTTP
    proxy to reach GitHub, set `RUNNER_HTTP_PROXY` to the proxy exposed on the
    host, for example `http://host.docker.internal:7890`. Keep local services in
-   `RUNNER_NO_PROXY`.
+   `RUNNER_NO_PROXY`. The runner enables Node.js environment-proxy support so
+   JavaScript actions use the same route as Git and curl.
 2. Put the account-generated tunnel files at
    `secrets/passnat-ssh.toml` and, when enabled,
    `secrets/passnat-cache.toml`.
