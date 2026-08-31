@@ -91,8 +91,12 @@ describe("release CI verification", () => {
     expect(prepareReleaseWorkflow).toContain(linuxRunner);
     expect(privateSccacheAction).toContain("SCCACHE_S3_KEY_PREFIX");
     expect(privateSccacheAction).toContain("SCCACHE_IGNORE_SERVER_IO_ERROR=1");
+    expect(privateSccacheAction).toContain("SCCACHE_SERVER_PORT=34326");
     expect(privateSccacheAction).toContain("sccache --stop-server");
+    expect(privateSccacheAction).toContain("sccache --start-server");
     expect(sdkWorkflow).toContain("sccache --stop-server");
+    expect(sdkWorkflow).toContain("sccache --start-server");
+    expect(sdkWorkflow).toContain("SCCACHE_SERVER_PORT=34326");
     expect(privateSccacheAction).not.toContain("SCCACHE_NO_DAEMON");
     expect(sdkWorkflow).not.toContain("SCCACHE_NO_DAEMON");
   });
