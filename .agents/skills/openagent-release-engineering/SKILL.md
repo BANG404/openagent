@@ -42,8 +42,10 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   platform and `cloudflare-sccache` labels. Keep macOS GitHub-hosted, keep
   fork pull-request code off self-hosted runners, and treat the Cloudflare-to-
   MinIO compiler cache as an optimization rather than a correctness dependency.
-  Use sccache no-daemon mode so compiler invocations do not depend on a
-  background process surviving across self-hosted runner account boundaries.
+  Clear stale sccache server state before exporting each job's cache settings,
+  then use the normal job-scoped background server. Runner job cleanup owns the
+  server process lifetime; do not use `SCCACHE_NO_DAEMON`, which keeps the
+  auto-started server in the foreground and blocks compiler clients.
 
 ## Host and helper artifacts
 

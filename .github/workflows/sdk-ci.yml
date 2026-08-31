@@ -216,6 +216,7 @@ jobs:
             echo "::error::Private sccache requires an endpoint, bucket, and scoped credentials."
             exit 1
           fi
+          sccache --stop-server >/dev/null 2>&1 || true
           {
             echo "AWS_ACCESS_KEY_ID=$SCCACHE_ACCESS_KEY"
             echo "AWS_SECRET_ACCESS_KEY=$SCCACHE_SECRET_KEY"
@@ -225,7 +226,6 @@ jobs:
             echo "SCCACHE_S3_USE_SSL=true"
             echo "SCCACHE_S3_KEY_PREFIX=openagent-sdk/v1"
             echo "SCCACHE_IGNORE_SERVER_IO_ERROR=1"
-            echo "SCCACHE_NO_DAEMON=1"
             echo "CARGO_INCREMENTAL=0"
             echo "RUSTC_WRAPPER=sccache"
           } >> "$GITHUB_ENV"

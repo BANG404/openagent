@@ -52,6 +52,7 @@ runs:
         SCCACHE_PRIVATE_SECRET_KEY: ${{ inputs.secret-key }}
         SCCACHE_PRIVATE_KEY_PREFIX: ${{ inputs.key-prefix }}
       run: |
+        sccache --stop-server >/dev/null 2>&1 || true
         {
           echo "AWS_ACCESS_KEY_ID=$SCCACHE_PRIVATE_ACCESS_KEY"
           echo "AWS_SECRET_ACCESS_KEY=$SCCACHE_PRIVATE_SECRET_KEY"
@@ -61,7 +62,6 @@ runs:
           echo "SCCACHE_S3_USE_SSL=true"
           echo "SCCACHE_S3_KEY_PREFIX=$SCCACHE_PRIVATE_KEY_PREFIX"
           echo "SCCACHE_IGNORE_SERVER_IO_ERROR=1"
-          echo "SCCACHE_NO_DAEMON=1"
           echo "CARGO_INCREMENTAL=0"
           echo "RUSTC_WRAPPER=sccache"
         } >> "$GITHUB_ENV"

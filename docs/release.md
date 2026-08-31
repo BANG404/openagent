@@ -421,7 +421,9 @@ SDK, and release compilation. GitHub Rust caches retain only dependency data
 with `cache-targets: false`. Release and development Runtime jobs may upload
 only their documented short-lived distribution artifacts. Later runs reuse
 private compiler objects, but cache availability and warmth are never
-correctness requirements.
+correctness requirements. Each compiler job clears stale sccache server state
+before exporting its cache configuration, then lets sccache use its normal
+job-scoped background server; runner job cleanup owns that process lifetime.
 Only
 generic pass/fail diagnostics or explicitly
 allowlisted fixed-category test codes may appear in the public run. Linux and
