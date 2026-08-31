@@ -44,10 +44,11 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   MinIO compiler cache as an optimization rather than a correctness dependency.
   Use the explicit CI-only sccache server port documented in the workflows;
   the Windows runner's default port may be unavailable without a visible
-  listener. Clear stale server state on that port before exporting each job's
-  cache settings, then explicitly start the normal job-scoped background server
-  with bounded retries so persistent runners tolerate delayed port release.
-  Runner job cleanup owns the server process lifetime; do not use
+  listener. Clear stale server state on that port and briefly wait for release
+  before exporting each job's cache settings. Let the first compiler invocation
+  start the job-scoped background server in its build step; a server started in
+  a preceding setup step may not remain usable on Windows. Runner job cleanup
+  owns the server process lifetime; do not use
   `SCCACHE_NO_DAEMON`, which keeps the server in the foreground and blocks
   compiler clients.
 

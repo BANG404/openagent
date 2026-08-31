@@ -423,10 +423,11 @@ only their documented short-lived distribution artifacts. Later runs reuse
 private compiler objects, but cache availability and warmth are never
 correctness requirements. Compiler jobs use the explicit CI-only sccache server
 port `34326` because the Windows runner's default port may be unavailable
-without a visible listener. Each job clears stale state on that port, then
-explicitly starts a normal background server with the private cache
-configuration and bounded retries for delayed port release. Runner job cleanup
-owns the resulting process lifetime.
+without a visible listener. Each job clears stale state on that port, waits
+briefly for its release, and exports the private cache configuration. The first
+compiler invocation starts the job-scoped background server in its build step;
+setup steps do not pre-start a daemon that Windows may leave unusable across the
+step boundary. Runner job cleanup owns the resulting process lifetime.
 Only
 generic pass/fail diagnostics or explicitly
 allowlisted fixed-category test codes may appear in the public run. Linux and
