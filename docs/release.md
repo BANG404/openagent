@@ -380,8 +380,14 @@ SDK release candidates are fully qualified by the public workflow before the
 private repository creates their immutable `sdk-v*` tags. SDK release tags,
 nightly schedules, and manual full dispatches use the public
 `sdk-ci.yml` workflow so Rust, Harness, host-compatibility, and native
-process-sandbox jobs run on public runners. Ordinary private `main` pushes do
-not run CI. Linux sandbox tests run on Ubuntu 24, install Bubblewrap, disable only
+process-sandbox jobs run on public runners. Full runs also build the four
+release Runtime targets once on those public runners. The private publication
+workflow waits for the exact status-linked public run to finish successfully,
+downloads its one-day Runtime artifacts, and publishes those bytes without a
+second private matrix build. Repository-scoped self-hosted infrastructure owns
+private dispatch, tag preparation, npm publication, and release finalization.
+Ordinary private `main` pushes do not run CI. Linux sandbox tests run on Ubuntu
+24, install Bubblewrap, disable only
 that image's AppArmor restriction on unprivileged user namespaces, and enable
 the real filesystem boundary test; a dedicated macOS job exercises the system
 Seatbelt boundary.
@@ -402,9 +408,12 @@ upload the captured private output.
 The private repository dispatches an immutable commit SHA; a GitHub App
 installed only on the SDK repository lets the public workflow read that
 revision and report the aggregate `Public SDK CI` commit status. Because
-workflow logs are public, SDK command output is suppressed, build outputs are
-never uploaded, and Rust target or compiler-output caches are disabled for jobs
-that compile private source. Only generic pass/fail diagnostics or explicitly
+workflow logs are public, SDK command output is suppressed. Ordinary build
+outputs are never uploaded, and public GitHub caches never contain Rust target
+or compiler output. Jobs may use an authenticated private sccache service whose
+storage remains on the trusted CI host; release and development Runtime jobs
+may upload only their documented short-lived distribution artifacts. Only
+generic pass/fail diagnostics or explicitly
 allowlisted fixed-category test codes may appear in the public run. Linux and
 Windows sandbox tests may expose fixed
 `OPENAGENT_LINUX_SANDBOX_DIAGNOSTIC=[a-z-]+` and

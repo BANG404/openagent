@@ -196,6 +196,39 @@ jobs:
           workspaces: ./sdk -> target
           shared-key: public-sdk-dependencies
           cache-targets: false
+      - &install-private-sccache
+        name: Install private compiler cache client
+        if: vars.OPENAGENT_SCCACHE_ENDPOINT != ''
+        uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
+        with:
+          version: v0.17.0
+          disable_annotations: true
+      - &configure-private-sccache
+        name: Configure private compiler cache
+        if: vars.OPENAGENT_SCCACHE_ENDPOINT != ''
+        shell: bash
+        env:
+          SCCACHE_ACCESS_KEY: ${{ secrets.OPENAGENT_SCCACHE_ACCESS_KEY }}
+          SCCACHE_SECRET_KEY: ${{ secrets.OPENAGENT_SCCACHE_SECRET_KEY }}
+          SCCACHE_PRIVATE_BUCKET: ${{ vars.OPENAGENT_SCCACHE_BUCKET }}
+          SCCACHE_PRIVATE_ENDPOINT: ${{ vars.OPENAGENT_SCCACHE_ENDPOINT }}
+        run: |
+          if [[ -z "$SCCACHE_ACCESS_KEY" || -z "$SCCACHE_SECRET_KEY" || -z "$SCCACHE_PRIVATE_BUCKET" ]]; then
+            echo "::error::Private sccache endpoint is configured without complete credentials."
+            exit 1
+          fi
+          {
+            echo "AWS_ACCESS_KEY_ID=$SCCACHE_ACCESS_KEY"
+            echo "AWS_SECRET_ACCESS_KEY=$SCCACHE_SECRET_KEY"
+            echo "SCCACHE_BUCKET=$SCCACHE_PRIVATE_BUCKET"
+            echo "SCCACHE_ENDPOINT=$SCCACHE_PRIVATE_ENDPOINT"
+            echo "SCCACHE_REGION=auto"
+            echo "SCCACHE_S3_USE_SSL=true"
+            echo "SCCACHE_S3_KEY_PREFIX=openagent-sdk/v1"
+            echo "SCCACHE_IGNORE_SERVER_IO_ERROR=1"
+            echo "CARGO_INCREMENTAL=0"
+            echo "RUSTC_WRAPPER=sccache"
+          } >> "$GITHUB_ENV"
       - name: Lint Rust workspace
         working-directory: sdk
         env:
@@ -240,6 +273,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
+      - *install-private-sccache
+      - *configure-private-sccache
       - name: Test Rust workspace
         working-directory: sdk
         env:
@@ -284,6 +319,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
+      - *install-private-sccache
+      - *configure-private-sccache
       - name: Install Linux process sandbox dependency
         run: |
           sudo apt-get update >/dev/null
@@ -328,6 +365,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
+      - *install-private-sccache
+      - *configure-private-sccache
       - name: Exercise the Seatbelt filesystem boundary
         working-directory: sdk
         env:
@@ -360,6 +399,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
+      - *install-private-sccache
+      - *configure-private-sccache
       - name: Enable Windows Firewall profiles
         shell: pwsh
         run: |
@@ -492,6 +533,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
+      - *install-private-sccache
+      - *configure-private-sccache
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.21
@@ -619,6 +662,8 @@ jobs:
           workspaces: ./host/src-tauri -> target
           shared-key: public-sdk-host-dependencies
           cache-targets: false
+      - *install-private-sccache
+      - *configure-private-sccache
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.21
@@ -789,6 +834,8 @@ jobs:
           sudo apt-get install -y binutils libcap-dev pkg-config >/dev/null
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
+      - *install-private-sccache
+      - *configure-private-sccache
       - name: Prepare pinned Linux sandbox helper
         if: matrix.os == 'ubuntu-latest'
         working-directory: sdk

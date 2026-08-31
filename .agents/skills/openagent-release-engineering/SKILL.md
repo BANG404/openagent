@@ -29,9 +29,11 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
 - Qualify an exact SDK revision before creating its immutable release tag. A
   failed candidate advances to a new commit and tag; never move the old tag or
   bypass its failed gate.
-- Treat the private SDK gitlink as release-relevant input. Private SDK output,
-  build artifacts, and target caches must not leak into public logs, artifacts,
-  or caches; keep Rust caches at `cache-targets: false`.
+- Treat the private SDK gitlink as release-relevant input. Private SDK output
+  must not leak into public logs or public caches; keep GitHub Rust caches at
+  `cache-targets: false`. Compiler outputs may use only the authenticated
+  private sccache backend, and release Runtime artifacts may leave public jobs
+  only through the documented exact-run publication path.
 
 ## Host and helper artifacts
 
