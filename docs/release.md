@@ -212,9 +212,11 @@ validation resolves `previousTag` against local immutable tag refs.
 
 Before desktop qualification, the workflow resolves the exact `sdk` gitlink. It
 validates and reuses the corresponding independent SDK release when available;
-otherwise it dispatches private SDK release preparation for that immutable SHA
-and then explicitly dispatches current private `main` SDK CI with the immutable
-commit SHA. SDK publication also uses current private `main` automation with the
+otherwise it explicitly dispatches current private `main` SDK CI with the immutable
+commit SHA, waits for the resulting full public qualification status, and only
+then dispatches private SDK release preparation for that immutable SHA. The host
+tracks the preparation workflow through completion before accepting its tag. SDK
+publication also uses current private `main` automation with the
 resulting `sdk-v*` tag as an explicit input, then checks out and verifies the
 immutable source. The host tracks those exact child workflow runs, reports
 their URLs when they fail, and waits for full SDK qualification plus a published

@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import {
   sdkReleaseVersionInvocation,
   selectDispatchedWorkflowRun,
+  selectSdkQualificationStatus,
   validateSdkManifest,
   workflowDispatchInvocation,
 } from "./ensure-sdk-release.mjs";
@@ -135,5 +136,45 @@ describe("SDK release workflow orchestration", () => {
     );
 
     expect(selected?.databaseId).toBe(84);
+  });
+
+  test("waits for the full SDK status created by the current dispatch", () => {
+    const selected = selectSdkQualificationStatus(
+      [
+        {
+          context: "Public SDK CI",
+          state: "success",
+          description: "Public SDK full validation passed",
+          created_at: "2026-08-30T19:00:00Z",
+        },
+        {
+          context: "Public SDK CI",
+          state: "pending",
+          description: "Public SDK full validation pending",
+          created_at: "2026-08-30T20:00:02Z",
+        },
+        {
+          context: "Public SDK CI",
+          state: "success",
+          description: "Public SDK full validation passed",
+          created_at: "2026-08-30T20:19:02Z",
+        },
+      ],
+      Date.parse("2026-08-30T20:00:00Z"),
+    );
+
+    expect(selected?.state).toBe("success");
+  });
+
+  test("tracks SDK release preparation before waiting for its tag", () => {
+    const source = readFileSync(new URL("./ensure-sdk-release.mjs", import.meta.url), "utf8");
+    const qualificationWait = source.indexOf("await waitForSdkQualification");
+    const prepareDispatch = source.indexOf('dispatchWorkflow(repository, "prepare-release.yml"');
+    const prepareRunWait = source.indexOf("let prepareRun = await waitForWorkflowRun");
+    const tagWait = source.indexOf("await waitForSdkTag");
+    expect(qualificationWait).toBeGreaterThanOrEqual(0);
+    expect(prepareDispatch).toBeGreaterThan(qualificationWait);
+    expect(prepareRunWait).toBeGreaterThan(prepareDispatch);
+    expect(tagWait).toBeGreaterThan(prepareRunWait);
   });
 });

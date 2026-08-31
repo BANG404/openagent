@@ -51,6 +51,18 @@ export function selectDispatchedWorkflowRun(runs, sdkSha, dispatchedAt, displayT
   );
 }
 
+export function selectSdkQualificationStatus(statuses, dispatchedAt) {
+  const earliest = dispatchedAt - 5_000;
+  return statuses.reduce((latest, candidate) => {
+    if (candidate.context !== "Public SDK CI" || Date.parse(candidate.created_at) < earliest) {
+      return latest;
+    }
+    return !latest || Date.parse(candidate.created_at) > Date.parse(latest.created_at)
+      ? candidate
+      : latest;
+  }, null);
+}
+
 export function validateSdkManifest(manifest, plan) {
   if (manifest.version !== plan.version) {
     throw new Error(`SDK manifest version ${manifest.version} does not match ${plan.version}`);
@@ -197,6 +209,36 @@ function refreshWorkflowRun(repository, trackedRun) {
   return { ...trackedRun, ...current };
 }
 
+function sdkCommitStatuses(repository, sdkSha) {
+  return JSON.parse(
+    run("gh", ["api", `repos/${repository}/commits/${sdkSha}/status`, "--jq", ".statuses"]),
+  );
+}
+
+async function waitForSdkQualification(repository, sdkSha, dispatchedAt) {
+  for (let attempt = 0; attempt < 180; attempt += 1) {
+    const status = selectSdkQualificationStatus(
+      sdkCommitStatuses(repository, sdkSha),
+      dispatchedAt,
+    );
+    if (status?.state === "success") {
+      if (status.description !== "Public SDK full validation passed") {
+        throw new Error(
+          `Public SDK CI reported unexpected success for ${sdkSha}: ${status.description}`,
+        );
+      }
+      return status;
+    }
+    if (status?.state === "failure" || status?.state === "error") {
+      throw new Error(
+        `Public SDK CI failed before tagging ${sdkSha}: ${status.target_url ?? "missing run URL"}`,
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 30_000));
+  }
+  throw new Error(`Timed out waiting for complete public SDK qualification for ${sdkSha}`);
+}
+
 async function waitForSdkTag(repository, plan) {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     const tagSha = taggedReleaseSha(repository, plan.tag);
@@ -250,9 +292,28 @@ async function main() {
         `${qualifiedRun.workflow} failed before tagging ${plan.tag}: ${qualifiedRun.url}`,
       );
     }
+    await waitForSdkQualification(repository, plan.releaseSha, ciDispatch);
 
     if (plan.releaseRequired) {
-      dispatchWorkflow(repository, "prepare-release.yml", "main", [`sdk_sha=${sdkSha}`]);
+      const prepareDispatch = dispatchWorkflow(repository, "prepare-release.yml", "main", [
+        `sdk_sha=${sdkSha}`,
+      ]);
+      let prepareRun = await waitForWorkflowRun(
+        repository,
+        "prepare-release.yml",
+        plan.releaseSha,
+        prepareDispatch,
+        "Prepare SDK Release",
+      );
+      while (prepareRun.status !== "completed") {
+        await new Promise((resolve) => setTimeout(resolve, 10_000));
+        prepareRun = refreshWorkflowRun(repository, prepareRun);
+      }
+      if (prepareRun.conclusion !== "success") {
+        throw new Error(
+          `${prepareRun.workflow} failed before tagging ${plan.tag}: ${prepareRun.url}`,
+        );
+      }
     }
     await waitForSdkTag(repository, plan);
 
