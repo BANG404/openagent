@@ -782,6 +782,11 @@ jobs:
         uses: actions/checkout@v7
         with: *sdk-checkout
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux Runtime build dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update >/dev/null
+          sudo apt-get install -y binutils libcap-dev pkg-config >/dev/null
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
       - name: Prepare pinned Linux sandbox helper

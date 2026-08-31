@@ -241,13 +241,22 @@ describe("release CI verification", () => {
     expect(sdkWorkflow).toContain("channel=runtime-dev");
     expect(sdkWorkflow).toContain("sdk-dev-manifest.json");
     expect(sdkWorkflow).toContain('--sdk-sha "$SDK_SHA"');
-    const prepareLinuxHelper = sdkWorkflow.indexOf("name: Prepare pinned Linux sandbox helper");
+    const installLinuxDependencies = sdkWorkflow.indexOf(
+      "name: Install Linux Runtime build dependencies",
+    );
+    const prepareLinuxHelper = sdkWorkflow.indexOf(
+      "name: Prepare pinned Linux sandbox helper",
+      installLinuxDependencies,
+    );
     const buildDevelopmentRuntime = sdkWorkflow.indexOf(
       "name: Build release Runtime server",
       prepareLinuxHelper,
     );
+    expect(installLinuxDependencies).toBeGreaterThan(-1);
+    expect(prepareLinuxHelper).toBeGreaterThan(installLinuxDependencies);
     expect(prepareLinuxHelper).toBeGreaterThan(-1);
     expect(buildDevelopmentRuntime).toBeGreaterThan(prepareLinuxHelper);
+    expect(sdkWorkflow).toContain("sudo apt-get install -y binutils libcap-dev pkg-config");
     expect(sdkWorkflow).toContain(
       "scripts/prepare-linux-sandbox-helper.mjs --profile release --github-env",
     );
