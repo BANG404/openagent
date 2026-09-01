@@ -75,7 +75,7 @@ env:
 jobs:
   pending:
     name: Report pending status
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Validate SDK revision
@@ -124,7 +124,7 @@ jobs:
     name: Rust formatting
     if: inputs.rust
     needs: pending
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       SDK_DIAGNOSTIC_NAME: Rust formatting
@@ -182,7 +182,7 @@ jobs:
     name: Rust lint
     if: inputs.rust
     needs: pending
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Rust lint
@@ -295,7 +295,7 @@ jobs:
     name: Rust tests
     if: inputs.rust
     needs: pending
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Rust tests
@@ -341,7 +341,7 @@ jobs:
     name: Linux process sandbox
     if: inputs.linux_sandbox
     needs: pending
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Linux process sandbox
@@ -421,7 +421,7 @@ jobs:
     name: Windows process sandbox
     if: inputs.windows_sandbox
     needs: pending
-    runs-on: [self-hosted, openagent-ci, windows-x64, cloudflare-sccache]
+    runs-on: windows-2025
     timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Windows process sandbox
@@ -519,7 +519,7 @@ jobs:
     name: TypeScript SDK
     if: inputs.typescript
     needs: pending
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       SDK_DIAGNOSTIC_NAME: TypeScript SDK
@@ -574,7 +574,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(inputs.full && '[{"name":"Linux","runner":"[\"self-hosted\",\"openagent-ci\",\"linux-x64\",\"cloudflare-sccache\"]"},{"name":"Windows","runner":"[\"self-hosted\",\"openagent-ci\",\"windows-x64\",\"cloudflare-sccache\"]"}]' || '[{"name":"Linux","runner":"[\"self-hosted\",\"openagent-ci\",\"linux-x64\",\"cloudflare-sccache\"]"}]') }}
+        include: ${{ fromJSON(inputs.full && '[{"name":"Linux","runner":"\"ubuntu-24.04\""},{"name":"Windows","runner":"\"windows-2025\""}]' || '[{"name":"Linux","runner":"\"ubuntu-24.04\""}]') }}
     runs-on: ${{ fromJSON(matrix.runner) }}
     timeout-minutes: 90
     env:
@@ -686,7 +686,7 @@ jobs:
     name: Public host compatibility
     if: inputs.host
     needs: pending
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
       SDK_DIAGNOSTIC_NAME: Public host compatibility
@@ -804,7 +804,7 @@ jobs:
       - typescript
       - harness-client
       - host-compatibility
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
@@ -879,12 +879,12 @@ jobs:
       matrix:
         include:
           - name: Linux x64
-            runner: '["self-hosted","openagent-ci","linux-x64","cloudflare-sccache"]'
+            runner: '"ubuntu-24.04"'
             runner_os: Linux
             source: target/release/openagent-server
             artifact: openagent-server-linux-x64
           - name: Windows x64
-            runner: '["self-hosted","openagent-ci","windows-x64","cloudflare-sccache"]'
+            runner: '"windows-2025"'
             runner_os: Windows
             source: target/release/openagent-server.exe
             artifact: openagent-server-windows-x64.exe
@@ -945,7 +945,7 @@ jobs:
     name: Development clients
     if: inputs.publish_dev && inputs.full
     needs: required
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Create SDK reporter token
@@ -990,7 +990,7 @@ jobs:
     name: Publish development Runtime and clients
     if: inputs.publish_dev && inputs.full
     needs: [required, development-runtime, development-clients]
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: write

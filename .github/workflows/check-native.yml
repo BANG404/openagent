@@ -43,7 +43,7 @@ jobs:
   quality:
     name: Rust quality
     if: inputs.quality
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
@@ -149,7 +149,7 @@ jobs:
       matrix:
         include:
           - name: Windows x64
-            runner: '["self-hosted","openagent-ci","windows-x64","cloudflare-sccache"]'
+            runner: '"windows-2025"'
             cache_key: windows-x64
           - name: macOS arm64
             runner: '"macos-15"'
@@ -312,7 +312,7 @@ jobs:
   embedding-resources:
     name: Verify embedding resources
     if: inputs.embedding
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
@@ -332,7 +332,7 @@ jobs:
       matrix:
         include:
           - name: Windows x64
-            runner: '["self-hosted","openagent-ci","windows-x64","cloudflare-sccache"]'
+            runner: '"windows-2025"'
             cache_key: windows-x64
           - name: macOS arm64
             runner: '"macos-15"'
@@ -395,7 +395,7 @@ jobs:
   harness:
     name: Harness contract
     if: inputs.harness
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -460,7 +460,7 @@ jobs:
       - embedding-resources
       - embedding-platform
       - harness
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       CHANGES_RESULT: success
       CI_RESULT_MODULES: quality,platform,embedding-resources,embedding-platform,harness

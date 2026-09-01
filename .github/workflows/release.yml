@@ -26,7 +26,7 @@ env:
 jobs:
   detect:
     name: Detect release commit
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     outputs:
       active: ${{ steps.release.outputs.active }}
       tag: ${{ steps.release.outputs.tag }}
@@ -201,7 +201,7 @@ jobs:
     name: Qualify or reuse pinned SDK release
     needs: detect
     if: needs.detect.outputs.active == 'true'
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     timeout-minutes: 190
     outputs:
       sdk_tag: ${{ steps.release.outputs.sdk_tag }}
@@ -274,7 +274,7 @@ jobs:
     if: >-
       needs.detect.outputs.active == 'true'
       && needs.qualify.result == 'success'
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -306,7 +306,7 @@ jobs:
     needs:
       - detect
       - tag
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     outputs:
       published: ${{ steps.release.outputs.published }}
     steps:
@@ -375,7 +375,7 @@ jobs:
             runtime_sidecar: openagent-server-x86_64-apple-darwin
             runtime_artifact: openagent-server-macos-x64
           - name: Linux x64
-            runner: '["self-hosted","openagent-ci","linux-x64","cloudflare-sccache"]'
+            runner: '"ubuntu-24.04"'
             runner_os: Linux
             args: ""
             rust_target: ""
@@ -384,7 +384,7 @@ jobs:
             runtime_sidecar: openagent-server-x86_64-unknown-linux-gnu
             runtime_artifact: openagent-server-linux-x64
           - name: Windows x64
-            runner: '["self-hosted","openagent-ci","windows-x64","cloudflare-sccache"]'
+            runner: '"windows-2025"'
             runner_os: Windows
             args: ""
             rust_target: ""
@@ -678,7 +678,7 @@ jobs:
       needs.create-draft.outputs.published != 'true'
       && needs.detect.outputs.runtime == 'true'
       && needs.build.result == 'success'
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -759,7 +759,7 @@ jobs:
     if: >-
       needs.create-draft.outputs.published != 'true'
       && needs.detect.outputs.frontend == 'true'
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -840,7 +840,7 @@ jobs:
       && needs.detect.outputs.prerelease != 'true'
       && needs.create-draft.outputs.published != 'true'
       && needs.build.result == 'success'
-    runs-on: [self-hosted, openagent-ci, windows-x64, cloudflare-sccache]
+    runs-on: windows-2025
     steps:
       - name: Download Microsoft Store package
         uses: actions/download-artifact@v4
@@ -901,7 +901,7 @@ jobs:
       && (needs.runtime-components.result == 'success' || needs.runtime-components.result == 'skipped')
       && (needs.frontend-components.result == 'success' || needs.frontend-components.result == 'skipped')
       && (needs.publish-store.result == 'success' || needs.publish-store.result == 'skipped')
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     steps:
       - name: Upload desktop-to-SDK release mapping
         env:
@@ -1143,7 +1143,7 @@ jobs:
     if: >-
       needs.detect.outputs.prerelease == 'true'
       && needs.publish.result == 'success'
-    runs-on: [self-hosted, openagent-ci, linux-x64, cloudflare-sccache]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:

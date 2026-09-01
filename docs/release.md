@@ -383,15 +383,15 @@ SDK release candidates are fully qualified by the public workflow before the
 private repository creates their immutable `sdk-v*` tags. SDK release tags,
 nightly schedules, and manual full dispatches use the public
 `sdk-ci.yml` workflow so Rust, Harness, host-compatibility, and native
-process-sandbox jobs remain publicly observable while trusted Linux and Windows
-work executes on repository-scoped self-hosted runners. macOS qualification and
-builds remain on GitHub-hosted runners. Full runs build the four release Runtime
-targets once on that mixed platform matrix. The private publication workflow
+process-sandbox jobs remain publicly observable while trusted Linux, Windows,
+and macOS work executes on standard GitHub-hosted runners. Full runs build the
+four release Runtime targets once on that hosted platform matrix. The private
+publication workflow
 waits for the exact status-linked public run to finish successfully, downloads
 its one-day Runtime artifacts, and publishes those bytes without a second
-private matrix build. The same self-hosted Linux and Windows infrastructure is
-the primary path for native host CI, release preparation, release builds, Store
-publication, and release finalization.
+private matrix build. Standard GitHub-hosted runners are the only execution path
+for native host CI, release preparation, release builds, Store publication, and
+release finalization.
 Ordinary private `main` pushes do not run CI. Linux sandbox tests run on Ubuntu
 24, install Bubblewrap, disable only
 that image's AppArmor restriction on unprivileged user namespaces, and enable
@@ -415,8 +415,8 @@ The private repository dispatches an immutable commit SHA; a GitHub App
 installed only on the SDK repository lets the public workflow read that
 revision and report the aggregate `Public SDK CI` commit status. Because
 workflow logs are public, SDK command output is suppressed. The cross-repository
-status reporter sends JSON payloads directly to the GitHub REST API, so
-self-hosted SDK runners do not require a preinstalled GitHub CLI. Ordinary build
+status reporter sends JSON payloads directly to the GitHub REST API, so SDK jobs
+do not depend on a preinstalled GitHub CLI. Ordinary build
 outputs are never uploaded, and public GitHub caches never contain Rust target
 or compiler output. Authenticated sccache through the Cloudflare Tunnel to the
 private MinIO backend is the primary compiler-output cache for trusted host,
@@ -426,22 +426,22 @@ only their documented short-lived distribution artifacts. Later runs reuse
 private compiler objects, but cache availability and warmth are never
 correctness requirements. Unix compiler jobs use the explicit CI-only sccache
 server port `34326`, clear stale state on that port, and wait briefly for its
-release. Windows TUN and WinNAT may reserve a port without exposing a listener,
-so each Windows job asks the OS for an available loopback port instead of
-relying on either the default or a fixed replacement. Unix compiler invocations
+release. Windows may reserve a port without exposing a listener, so each Windows
+job asks the OS for an available loopback port instead of relying on either the
+default or a fixed replacement. Unix compiler invocations
 auto-start the job-scoped background server, and Windows compiler invocations do
 the same on the selected per-job port. Windows does not add a batch wrapper
 around rustc because feature-heavy crates can exceed `cmd.exe`'s command-line
 limit. Windows Harness Rust compilation runs under PowerShell so the MSVC linker
 takes precedence over Portable Git's unrelated `link.exe`; later Bun package
 steps may continue under Bash. Harness package-content verification uses
-`bun pm pack --dry-run`, so self-hosted runners do not require npm. Runner job
+`bun pm pack --dry-run`, keeping package verification on Bun. Runner job
 cleanup owns the resulting process lifetime. Windows sandbox helper discovery
 retries Cargo metadata resolution and reports metadata failures separately from
 a genuinely missing pinned helper package, so a transient proxy or registry
 failure cannot be misclassified as dependency drift.
-Public SDK Git operations force HTTP/1.1 so TUN and proxy routes do not depend
-on HTTP/2 transport stability while fetching public or private revisions.
+Public SDK Git operations force HTTP/1.1 so checkout transport does not depend
+on HTTP/2 stability while fetching public or private revisions.
 Only
 generic pass/fail diagnostics or explicitly
 allowlisted fixed-category test codes may appear in the public run. Linux and

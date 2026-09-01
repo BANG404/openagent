@@ -34,7 +34,7 @@ permissions:
 jobs:
   changes:
     name: Detect changed modules
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 50
     outputs:
       automation: ${{ steps.selection.outputs.automation }}
@@ -226,7 +226,7 @@ jobs:
       - automation
       - frontend
       - native
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       CHANGES_RESULT: ${{ needs.changes.result }}
       AUTOMATION_SELECTED: ${{ needs.changes.outputs.automation }}

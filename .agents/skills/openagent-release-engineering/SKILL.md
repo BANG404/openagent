@@ -37,13 +37,13 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
 - Authenticate trusted private SDK checkouts with a short-lived, read-only
   GitHub App installation token over HTTPS. Do not make CI depend on outbound
   SSH port 22 or retain a long-lived deploy key for source checkout.
-- Route trusted Linux and Windows native, Public SDK, release preparation, and
-  release jobs to the repository-scoped `openagent-ci` runners with the
-  platform and `cloudflare-sccache` labels. Keep macOS GitHub-hosted, keep
-  fork pull-request code off self-hosted runners, and treat the Cloudflare-to-
-  MinIO compiler cache as an optimization rather than a correctness dependency.
+- Route trusted Linux, Windows, and macOS native, Public SDK, release
+  preparation, and release jobs exclusively to standard GitHub-hosted runners.
+  Keep the Cloudflare-to-MinIO compiler cache authenticated and treat it as an
+  optimization rather than a correctness dependency. Fork pull-request code
+  must not receive private SDK or sccache credentials.
   Use the explicit CI-only sccache server port documented in the workflows on
-  Unix. Windows TUN and WinNAT can reserve ports without a visible listener, so
+  Unix. Windows can reserve ports without a visible listener, so
   select an available loopback port per job instead of relying on either the
   default or a fixed replacement. Clear stale Unix server state and briefly
   wait for release before exporting each job's cache settings. Unix compiler
