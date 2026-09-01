@@ -435,6 +435,8 @@ around rustc because feature-heavy crates can exceed `cmd.exe`'s command-line
 limit. Windows Harness Rust compilation runs under PowerShell so the MSVC linker
 takes precedence over Portable Git's unrelated `link.exe`; later Bun package
 steps may continue under Bash. Runner job cleanup owns the resulting process lifetime.
+Public SDK Git operations force HTTP/1.1 so TUN and proxy routes do not depend
+on HTTP/2 transport stability while fetching public or private revisions.
 Only
 generic pass/fail diagnostics or explicitly
 allowlisted fixed-category test codes may appear in the public run. Linux and
