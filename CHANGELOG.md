@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.53.1-beta.1] - 2026-09-01
+
+### Bug Fixes
+- **release**: Pin explicit SDK npm credential
+- **release**: Update SDK publication automation
+
 ## [0.53.0-beta.1] - 2026-08-30
 
 ### Features
