@@ -426,10 +426,10 @@ server port `34326`, clear stale state on that port, and wait briefly for its
 release. Windows TUN and WinNAT may reserve a port without exposing a listener,
 so each Windows job asks the OS for an available loopback port instead of
 relying on either the default or a fixed replacement. Unix compiler invocations
-auto-start the job-scoped background server. Windows uses a runner-local
-compiler wrapper that ensures the server is started inside each active build
-step before delegating to sccache. Runner job cleanup owns the resulting process
-lifetime.
+auto-start the job-scoped background server, and Windows compiler invocations do
+the same on the selected per-job port. Windows does not add a batch wrapper
+around rustc because feature-heavy crates can exceed `cmd.exe`'s command-line
+limit. Runner job cleanup owns the resulting process lifetime.
 Only
 generic pass/fail diagnostics or explicitly
 allowlisted fixed-category test codes may appear in the public run. Linux and

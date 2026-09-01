@@ -47,11 +47,11 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   select an available loopback port per job instead of relying on either the
   default or a fixed replacement. Clear stale Unix server state and briefly
   wait for release before exporting each job's cache settings. Unix compiler
-  invocations may auto-start the job-scoped background server. On Windows,
-  route `RUSTC_WRAPPER` through the generated runner-local command wrapper so
-  every compiler invocation ensures the server is started inside the active
-  build step before delegating to sccache. Runner job cleanup owns the server
-  process lifetime; do not use
+  invocations may auto-start the job-scoped background server. Windows compiler
+  invocations do the same on the selected per-job port; do not route rustc
+  through a batch wrapper because feature-heavy crates can exceed `cmd.exe`'s
+  command-line limit. Runner job cleanup owns the server process lifetime; do
+  not use
   `SCCACHE_NO_DAEMON`, which keeps the server in the foreground and blocks
   compiler clients.
 

@@ -225,9 +225,9 @@ jobs:
           export SCCACHE_S3_KEY_PREFIX=openagent-sdk/v1
           export SCCACHE_IGNORE_SERVER_IO_ERROR=1
           sccache_server_port=34326
-          rustc_wrapper=sccache
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             sccache_server_port="$(
+              # shellcheck disable=SC2016 -- PowerShell expands these variables.
               powershell.exe -NoProfile -NonInteractive -Command \
                 '$listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0); $listener.Start(); ([System.Net.IPEndPoint]$listener.LocalEndpoint).Port; $listener.Stop()'
             )"
@@ -236,12 +236,6 @@ jobs:
               echo "::error::Failed to select an available Windows sccache port."
               exit 1
             fi
-            rustc_wrapper="$RUNNER_TEMP/openagent-sccache-wrapper.cmd"
-            printf '%s\r\n' \
-              '@echo off' \
-              'sccache --start-server >NUL 2>&1' \
-              'sccache %*' \
-              > "$rustc_wrapper"
           else
             export SCCACHE_SERVER_PORT="$sccache_server_port"
             sccache --stop-server >/dev/null 2>&1 || true
@@ -259,7 +253,7 @@ jobs:
             echo "SCCACHE_IGNORE_SERVER_IO_ERROR=1"
             echo "SCCACHE_SERVER_PORT=$sccache_server_port"
             echo "CARGO_INCREMENTAL=0"
-            echo "RUSTC_WRAPPER=$rustc_wrapper"
+            echo "RUSTC_WRAPPER=sccache"
           } >> "$GITHUB_ENV"
       - name: Lint Rust workspace
         working-directory: sdk
