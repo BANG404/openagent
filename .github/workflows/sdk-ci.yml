@@ -102,12 +102,16 @@ jobs:
         run: |
           tier=fast
           if [[ "$SDK_CI_FULL" == "true" ]]; then tier=full; fi
-          gh api "repos/$SDK_REPOSITORY/commits/$SDK_SHA" --silent
-          gh api --method POST "repos/$SDK_REPOSITORY/statuses/$SDK_SHA" \
-            -f state=pending \
-            -f context="$SDK_STATUS_CONTEXT" \
-            -f description="Public SDK $tier validation is running" \
-            -f target_url="$TARGET_URL" --silent
+          curl -fsS -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/$SDK_REPOSITORY/commits/$SDK_SHA" -o /dev/null
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$SDK_REPOSITORY/statuses/$SDK_SHA" \
+            --data-urlencode state=pending \
+            --data-urlencode context="$SDK_STATUS_CONTEXT" \
+            --data-urlencode description="Public SDK $tier validation is running" \
+            --data-urlencode target_url="$TARGET_URL" -o /dev/null
 
   rust-format:
     name: Rust formatting
@@ -809,11 +813,15 @@ jobs:
             state=success
             description="Public SDK $tier validation passed"
           fi
-          gh api --method POST "repos/$SDK_REPOSITORY/statuses/$SDK_SHA" \
-            -f state="$state" \
-            -f context="$SDK_STATUS_CONTEXT" \
-            -f description="$description" \
-            -f target_url="$TARGET_URL" --silent
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$SDK_REPOSITORY/statuses/$SDK_SHA" \
+            --data-urlencode state="$state" \
+            --data-urlencode context="$SDK_STATUS_CONTEXT" \
+            --data-urlencode description="$description" \
+            --data-urlencode target_url="$TARGET_URL" -o /dev/null
           if [[ "$state" != success ]]; then
             exit 1
           fi
@@ -969,7 +977,11 @@ jobs:
           SDK_SHA: ${{ inputs.sdk_sha }}
         shell: bash
         run: |
-          main_sha="$(gh api "repos/$SDK_REPOSITORY/commits/main" --jq '.sha')"
+          main_sha="$(curl -fsS \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$SDK_REPOSITORY/commits/main" | jq -er '.sha')"
           if [[ "$main_sha" != "$SDK_SHA" ]]; then
             echo "::notice::Skipping development publication because SDK main advanced to $main_sha."
             echo "publish=false" >> "$GITHUB_OUTPUT"
@@ -1015,13 +1027,59 @@ jobs:
         run: |
           channel=runtime-dev
           notes="Signed development Runtime and public clients for immutable SDK commit \`$SDK_SHA\`."
-          if gh release view "$channel" >/dev/null 2>&1; then
-            gh release edit "$channel" --notes "$notes" --prerelease
+          api="https://api.github.com/repos/$GH_REPO"
+          release_json="$(curl -fsS \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$api/releases/tags/$channel" 2>/dev/null || true)"
+          if [[ -n "$release_json" ]] && jq -e '.id' >/dev/null <<<"$release_json"; then
+            release_id="$(jq -er '.id' <<<"$release_json")"
+            upload_url="$(jq -er '.upload_url' <<<"$release_json" | sed 's/{?name,label}$//')"
+            jq -n --arg body "$notes" '{body: $body, prerelease: true}' |
+              curl -fsS -X PATCH \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "$api/releases/$release_id" \
+                -H "Content-Type: application/json" \
+                --data-binary @- -o /dev/null
           else
-            gh release create "$channel" \
-              --target "$GITHUB_SHA" \
-              --title "OpenAgent development Runtime channel" \
-              --notes "$notes" \
-              --prerelease
+            release_json="$(jq -n \
+              --arg tag "$channel" \
+              --arg target "$GITHUB_SHA" \
+              --arg name "OpenAgent development Runtime channel" \
+              --arg body "$notes" \
+              '{tag_name: $tag, target_commitish: $target, name: $name, body: $body, prerelease: true}' |
+              curl -fsS -X POST \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "$api/releases" \
+                -H "Content-Type: application/json" \
+                --data-binary @-)
+            upload_url="$(jq -er '.upload_url' <<<"$release_json" | sed 's/{?name,label}$//')"
           fi
-          gh release upload "$channel" sdk-development-components/* --clobber
+          for asset in sdk-development-components/*; do
+            asset_name="$(basename "$asset")"
+            existing_asset_id="$(curl -fsS \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "$api/releases/$release_id/assets?per_page=100" |
+              jq -r --arg name "$asset_name" '.[] | select(.name == $name) | .id' | head -n 1)"
+            if [[ -n "$existing_asset_id" ]]; then
+              curl -fsS -X DELETE \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "$api/releases/assets/$existing_asset_id" -o /dev/null
+            fi
+            curl -fsS -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -H "Content-Type: application/octet-stream" \
+              "$upload_url?name=$asset_name" \
+              --data-binary "@$asset" -o /dev/null
+          done
