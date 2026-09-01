@@ -39,6 +39,35 @@ describe("unpublished Beta refreshes", () => {
     ).toBe(false);
   });
 
+  test("allows changelog regeneration and component expansion", () => {
+    const previousWithComponents = {
+      ...previous,
+      components: { frontend: true, runtime: true, nativeShell: false },
+    };
+    const expanded = {
+      ...current,
+      components: { frontend: true, runtime: true, nativeShell: true },
+    };
+
+    expect(
+      isBetaReleaseRefresh(
+        previousWithComponents,
+        expanded,
+        [".github/release.json", "CHANGELOG.md"],
+        ".github/release.json",
+        [".github/release.json", "CHANGELOG.md"],
+      ),
+    ).toBe(true);
+    expect(
+      isBetaReleaseRefresh(
+        expanded,
+        { ...current, components: previousWithComponents.components },
+        [".github/release.json"],
+        ".github/release.json",
+      ),
+    ).toBe(false);
+  });
+
   test("rejects stable promotions and refreshes mixed with other file changes", () => {
     expect(
       isBetaReleaseRefresh(

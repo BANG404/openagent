@@ -27,13 +27,15 @@ fetches `origin/master` again immediately before resolving that immutable base;
 if `master` advances after resolution, the direct push fails instead of
 publishing stale source.
 
-If the current Beta metadata has not produced its immutable tag yet and later
-automation-only commits advance `master`, another preparation run keeps that
-unpublished version and writes a marker-only refresh whose `sourceSha` is the
-latest `master` commit. Verification permits this narrow retry only when the
-prior release identity is unchanged, the old source is an ancestor of the new
-source, and `.github/release.json` is the only changed file. New releases still
-have to update every generated release file together.
+If the current prerelease metadata has not produced its immutable tag yet and
+later commits advance its source branch, another preparation run keeps that
+unpublished version and refreshes its `sourceSha`. The refresh may broaden the
+selected component set and regenerate that version's current changelog section
+so newly included source is built and documented. Verification permits only a
+descendant source, unchanged version/tag/channel/history, no component
+contraction, and edits to `.github/release.json` plus the current changelog
+section. New releases still have to update every generated release file
+together.
 
 RC requires an explicit published `vX.Y.Z-beta.N` tag and never silently
 selects the latest Beta. The workflow creates `release/rc/X.Y.Z` from that

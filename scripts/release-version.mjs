@@ -2,12 +2,14 @@ const releaseVersionPattern = /^(\d+)\.(\d+)\.(\d+)(?:-(beta|rc)\.(\d+))?$/;
 
 /**
  * Recognize the narrow retry shape that moves an unpublished prerelease marker
- * to newer source without rewriting its generated release files.
+ * to newer source while keeping its immutable identity and prior component
+ * coverage.
  *
  * @param {Record<string, unknown> | null} previousManifest
  * @param {Record<string, unknown>} manifest
  * @param {string[]} changedFiles
  * @param {string} releaseManifestFile
+ * @param {string[]} [allowedRefreshFiles]
  * @returns {boolean}
  */
 export function isPrereleaseReleaseRefresh(
@@ -15,7 +17,9 @@ export function isPrereleaseReleaseRefresh(
   manifest,
   changedFiles,
   releaseManifestFile,
+  allowedRefreshFiles = [releaseManifestFile],
 ) {
+  const allowedFiles = new Set(allowedRefreshFiles);
   if (
     !previousManifest ||
     (manifest.channel !== "beta" && manifest.channel !== "rc") ||
@@ -23,14 +27,35 @@ export function isPrereleaseReleaseRefresh(
     previousManifest.ready !== true ||
     previousManifest.sourceTag ||
     previousManifest.sourceSha === manifest.sourceSha ||
-    changedFiles.length !== 1 ||
-    changedFiles[0] !== releaseManifestFile
+    !changedFiles.includes(releaseManifestFile) ||
+    changedFiles.some((file) => !allowedFiles.has(file))
   ) {
     return false;
   }
 
-  const previousIdentity = { ...previousManifest, sourceSha: "" };
-  const currentIdentity = { ...manifest, sourceSha: "" };
+  /** @type {Array<"frontend" | "runtime" | "nativeShell">} */
+  const componentKeys = ["frontend", "runtime", "nativeShell"];
+  const previousComponents = /** @type {Record<string, boolean> | undefined} */ (
+    previousManifest.components
+  );
+  const currentComponents = /** @type {Record<string, boolean> | undefined} */ (
+    manifest.components
+  );
+  if (
+    componentKeys.some(
+      (key) =>
+        (previousComponents?.[key] ?? true) === true && (currentComponents?.[key] ?? true) !== true,
+    )
+  ) {
+    return false;
+  }
+
+  const previousIdentity = { ...previousManifest };
+  const currentIdentity = { ...manifest };
+  delete previousIdentity.sourceSha;
+  delete previousIdentity.components;
+  delete currentIdentity.sourceSha;
+  delete currentIdentity.components;
   return JSON.stringify(previousIdentity) === JSON.stringify(currentIdentity);
 }
 

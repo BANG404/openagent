@@ -7,6 +7,7 @@ import {
   getLatestReleaseTag,
   getPromotion,
 } from "./release-version.mjs";
+import { isReleaseRefreshChangelog, replaceCurrentReleaseSection } from "./release-changelog.mjs";
 import {
   allReleaseComponents,
   classifyReleaseComponents,
@@ -355,7 +356,10 @@ function assertOnlyVersionChanged(file, versionPattern, normalizeVersion, baseli
 function verifyChangelog(version, releaseRefresh = false) {
   const previous = readReferenceFile("HEAD^", "CHANGELOG.md");
   const current = readFileSync("CHANGELOG.md", "utf8");
-  if (releaseRefresh && current === previous) {
+  if (releaseRefresh) {
+    if (!isReleaseRefreshChangelog(previous, current, version)) {
+      throw new Error("CHANGELOG.md refresh may change only the current release section.");
+    }
     return;
   }
   const previousRelease = previous.search(/^## \[/m);
@@ -437,11 +441,13 @@ function verifyPendingRelease() {
 
   const changed = git(["diff", "--name-only", "HEAD^", "HEAD"]).split(/\r?\n/).filter(Boolean);
   const previousManifest = readReferenceJson("HEAD^", releaseManifestFile);
+  const refreshFiles = [releaseManifestFile, "CHANGELOG.md"];
   const releaseRefresh = isPrereleaseReleaseRefresh(
     previousManifest,
     manifest,
     changed,
     releaseManifestFile,
+    refreshFiles,
   );
   if (releaseRefresh) {
     try {
@@ -455,7 +461,7 @@ function verifyPendingRelease() {
   const unexpected = sourceTag
     ? []
     : changed.filter((file) =>
-        releaseRefresh ? file !== releaseManifestFile : !releaseFiles.includes(file),
+        releaseRefresh ? !refreshFiles.includes(file) : !releaseFiles.includes(file),
       );
   const missing = releaseRefresh ? [] : releaseFiles.filter((file) => !changed.includes(file));
   if (unexpected.length || missing.length) {
@@ -586,6 +592,8 @@ function updateChangelog(version, commits) {
   const content = readFileSync(file, "utf8");
   const duplicate = new RegExp(`^## \\[${version.replaceAll(".", "\\.")}\\]`, "m");
   if (duplicate.test(content)) {
+    const refreshed = replaceCurrentReleaseSection(content, version, section);
+    if (refreshed !== null) writeFileSync(file, refreshed);
     return;
   }
 

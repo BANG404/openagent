@@ -35,6 +35,10 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   `cache-targets: false`. Compiler outputs may use only the authenticated
   private sccache backend, and release Runtime artifacts may leave public jobs
   only through the documented exact-run publication path.
+- An unpublished prerelease refresh may advance only to a descendant source,
+  broaden its component selection, and regenerate its current changelog
+  section. Keep its version, tag, channel, older changelog history, and already
+  selected components stable; unrelated generated-file changes must fail.
 - Authenticate trusted private SDK checkouts with a short-lived, read-only
   GitHub App installation token over HTTPS. Do not make CI depend on outbound
   SSH port 22 or retain a long-lived deploy key for source checkout.

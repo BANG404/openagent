@@ -37,6 +37,7 @@ const prepareReleaseWorkflow = readFileSync(
   new URL("../.github/workflows/prepare-release.yml", import.meta.url),
   "utf8",
 );
+const releaseScript = readFileSync(new URL("../scripts/release.mjs", import.meta.url), "utf8");
 const privateSccacheAction = readFileSync(
   new URL("../.github/actions/setup-private-sccache/action.yml", import.meta.url),
   "utf8",
@@ -405,6 +406,10 @@ describe("release CI verification", () => {
     );
     expect(prepareReleaseWorkflow).toContain('automation_sha="$(git rev-parse origin/master)"');
     expect(prepareReleaseWorkflow).toContain('base_sha="$automation_sha"');
+    expect(releaseScript).toContain('const refreshFiles = [releaseManifestFile, "CHANGELOG.md"]');
+    expect(releaseScript).toContain(
+      "releaseRefresh ? !refreshFiles.includes(file) : !releaseFiles.includes(file)",
+    );
   });
 
   test("fetches tags before validating release metadata", () => {
