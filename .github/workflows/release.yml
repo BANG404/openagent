@@ -217,7 +217,7 @@ jobs:
           fi
 
   sdk-release:
-    name: Qualify or reuse pinned SDK release
+    name: Stage or reuse pinned SDK release
     needs: detect
     if: needs.detect.outputs.active == 'true'
     runs-on: ubuntu-24.04
@@ -272,6 +272,7 @@ jobs:
           --host-version "${{ needs.detect.outputs.version }}"
           --repository BANG404/openagent-sdk
           --output "$GITHUB_OUTPUT"
+          --mode stage
 
   qualify:
     name: Complete release qualification
@@ -1030,8 +1031,8 @@ jobs:
             throw "WinApp CLI failed to submit the Microsoft Store update."
           }
 
-  publish:
-    name: Publish release
+  publish-sdk-release:
+    name: Publish pinned SDK release
     needs:
       - detect
       - create-draft
@@ -1044,10 +1045,70 @@ jobs:
       always()
       && needs.detect.result == 'success'
       && needs.create-draft.result == 'success'
+      && needs.sdk-release.result == 'success'
       && (needs.publish-native-assets.result == 'success' || needs.publish-native-assets.result == 'skipped')
       && (needs.publish-runtime-components.result == 'success' || needs.publish-runtime-components.result == 'skipped')
       && (needs.publish-frontend-components.result == 'success' || needs.publish-frontend-components.result == 'skipped')
       && (needs.publish-store.result == 'success' || needs.publish-store.result == 'skipped')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 95
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+
+      - name: Create private SDK read token
+        id: sdk-read-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+
+      - name: Check out exact private SDK source
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ needs.sdk-release.outputs.sdk_sha }}
+          path: sdk
+          fetch-depth: 0
+          token: ${{ steps.sdk-read-token.outputs.token }}
+          persist-credentials: false
+
+      - name: Publish independently versioned SDK resources
+        env:
+          GH_TOKEN: ${{ secrets.OPENAGENT_SDK_RELEASE_TOKEN }}
+        run: >-
+          node scripts/ensure-sdk-release.mjs
+          --sdk-dir sdk
+          --sdk-sha "${{ needs.sdk-release.outputs.sdk_sha }}"
+          --host-version "${{ needs.detect.outputs.version }}"
+          --repository BANG404/openagent-sdk
+          --output "$RUNNER_TEMP/sdk-publish-output"
+          --mode publish
+
+  publish:
+    name: Publish release
+    needs:
+      - detect
+      - create-draft
+      - publish-native-assets
+      - publish-runtime-components
+      - publish-frontend-components
+      - publish-store
+      - publish-sdk-release
+      - sdk-release
+    if: >-
+      always()
+      && needs.detect.result == 'success'
+      && needs.create-draft.result == 'success'
+      && (needs.publish-native-assets.result == 'success' || needs.publish-native-assets.result == 'skipped')
+      && (needs.publish-runtime-components.result == 'success' || needs.publish-runtime-components.result == 'skipped')
+      && (needs.publish-frontend-components.result == 'success' || needs.publish-frontend-components.result == 'skipped')
+      && (needs.publish-store.result == 'success' || needs.publish-store.result == 'skipped')
+      && needs.publish-sdk-release.result == 'success'
     runs-on: ubuntu-24.04
     steps:
       - name: Upload desktop-to-SDK release mapping

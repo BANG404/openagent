@@ -74,6 +74,15 @@ does not require a desktop installer update. Desktop Runtime changes are also
 eligible for the signed Runtime component channel and do not require a Tauri
 installer when the native shell is unchanged.
 
+Host-triggered SDK publication is two-phase. The desktop workflow first stages
+the exact SDK tag and machine-readable manifest as a short-lived private SDK
+workflow artifact; this phase validates release metadata and the Harness package
+without publishing npm or a GitHub Release. After every selected desktop
+candidate has been attached to the desktop draft and the remaining publication
+gates pass, the host explicitly publishes that same immutable SDK tag and only
+then publishes the desktop draft. Independent SDK releases continue to publish
+directly.
+
 Nightly and explicit full SDK qualification additionally maintain a public
 `runtime-dev` prerelease channel for external debugging. Publication happens
 only after the complete SDK result succeeds and only while the qualified commit
@@ -226,10 +235,11 @@ independent SDK release when available;
 otherwise it explicitly dispatches current private `main` SDK CI with the immutable
 commit SHA, waits for the resulting full public qualification status, and only
 then dispatches private SDK release preparation for that immutable SHA. The host
-tracks the preparation workflow through completion before accepting its tag. SDK
-publication also uses current private `main` automation with the
-resulting `sdk-v*` tag as an explicit input, then checks out and verifies the
-immutable source. Its public-host reader token is restricted to the explicit
+tracks the preparation workflow through completion before accepting its tag,
+stages and validates its private manifest, and defers every public SDK side
+effect until the desktop draft is complete. Final SDK publication uses current
+private `main` automation with the resulting `sdk-v*` tag as an explicit input,
+then checks out and verifies the immutable source. Its public-host reader token is restricted to the explicit
 host repository and inherits the dispatcher App installation permissions;
 publication must not request a narrower permission override that can disagree
 with the installed grant. Private npm publication uses npm Trusted Publishing
@@ -254,8 +264,8 @@ App's short-lived, read-only installation token over HTTPS.
 
 Candidate construction and publication are separate phases:
 
-1. concurrently qualify the desktop SHA, qualify or reuse its pinned SDK
-   release, and build every selected platform candidate;
+1. concurrently qualify the desktop SHA, stage or reuse its pinned SDK release,
+   and build every selected platform candidate;
 2. store Runtime, frontend, lightweight Tauri, full first-install, and Store
    candidates only as run-scoped Actions artifacts;
 3. bind each native candidate manifest to the exact desktop SHA, SDK gitlink
@@ -267,7 +277,8 @@ Candidate construction and publication are separate phases:
    draft GitHub Release;
 5. download and verify every selected candidate, upload its existing bytes, and
    generate one combined `latest.json` from the four verified native targets;
-6. submit the Store package only after the same gate, then publish the draft;
+6. submit the Store package only after the same gate, publish the staged SDK
+   release, and then publish the desktop draft;
 7. update fixed component channels and, for native-shell prereleases only, the
    fixed Beta or RC `latest.json`;
 8. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published

@@ -103,10 +103,12 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   first resolve the exact SDK gitlink SHA and either reuse its newest valid
   ancestor release when no SDK Conventional Commit requires a bump, or trigger
   an immutable release tag on that exact SHA, explicitly dispatch current SDK CI
-  automation with the immutable SHA, dispatch current SDK publication automation
-  with the tag as an explicit input, and track the resulting workflow runs through
-  full public SDK qualification. Never rely on a tag pushed by `GITHUB_TOKEN` to
-  trigger another workflow. A failed or mismatched SDK manifest stops desktop tagging.
+  automation with the immutable SHA, and stage the exact manifest as a private
+  workflow artifact. A failed or mismatched staged manifest stops desktop
+  tagging. Publish the SDK tag only after every selected desktop candidate is
+  attached to the desktop draft and the remaining publication gates pass, then
+  publish the desktop draft. Never rely on a tag pushed by `GITHUB_TOKEN` to
+  trigger another workflow.
   Publish only `@bang404/openagent-harness` to npm; keep the product TypeScript
   client private and distribute it only as pinned source or a checksummed
   development snapshot. The release-qualified server remains the executable

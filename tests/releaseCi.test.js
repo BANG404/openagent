@@ -241,8 +241,9 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("uses: ./.github/workflows/ci.yml");
     expect(releaseWorkflow).toContain("full: true");
     expect(releaseWorkflow).toContain("needs.qualify.result == 'success'");
-    expect(releaseWorkflow).toContain("name: Qualify or reuse pinned SDK release");
+    expect(releaseWorkflow).toContain("name: Stage or reuse pinned SDK release");
     expect(releaseWorkflow).toContain("scripts/ensure-sdk-release.mjs");
+    expect(releaseWorkflow).toContain("--mode stage");
     expect(releaseWorkflow).toContain("timeout-minutes: 190");
     expect(releaseWorkflow).toContain("OPENAGENT_SDK_RELEASE_TOKEN");
     expect(releaseWorkflow).toContain("openagent-desktop-manifest.json");
@@ -269,6 +270,17 @@ describe("release CI verification", () => {
     expect(buildJob).toContain("name: native-release-${{ matrix.runtime_target }}");
     expect(releaseWorkflow).toContain("publish-native-assets:");
     expect(releaseWorkflow).toContain("release-candidate-artifacts.mjs publish");
+    const sdkPublishJob = releaseWorkflow.match(
+      / {2}publish-sdk-release:\n(?<job>[\s\S]*?)\n {2}publish:/,
+    )?.groups?.job;
+    const publishJob = releaseWorkflow.match(/ {2}publish:\n(?<job>[\s\S]*)/)?.groups?.job;
+    expect(sdkPublishJob).toContain("- publish-native-assets");
+    expect(sdkPublishJob).toContain("- publish-runtime-components");
+    expect(sdkPublishJob).toContain("- publish-frontend-components");
+    expect(sdkPublishJob).toContain("- publish-store");
+    expect(sdkPublishJob).toContain("--mode publish");
+    expect(publishJob).toContain("- publish-sdk-release");
+    expect(publishJob).toContain("needs.publish-sdk-release.result == 'success'");
     expect(prepareReleaseWorkflow).toContain("- rc");
     expect(prepareReleaseWorkflow).toContain("--promote-rc=$RC_TAG");
     expect(releaseWorkflow).toContain("release/rc/**");

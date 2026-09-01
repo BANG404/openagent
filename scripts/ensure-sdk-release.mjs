@@ -48,6 +48,15 @@ export function workflowRunProgress(trackedRun) {
   return `${trackedRun.workflow} run ${trackedRun.databaseId}: ${trackedRun.status}${conclusion} (${trackedRun.url})`;
 }
 
+export function sdkReleaseWorkflowTitle(tag, operation) {
+  const verb = operation === "stage" ? "Stage" : "Publish";
+  return `${verb} SDK Release ${tag}`;
+}
+
+export function sdkReleaseManifestArtifact(tag) {
+  return `sdk-release-manifest-${tag}`;
+}
+
 export function selectDispatchedWorkflowRun(runs, sdkSha, dispatchedAt, displayTitle = null) {
   const earliest = dispatchedAt - 5_000;
   return (
@@ -139,6 +148,29 @@ async function publishedRelease(repository, plan) {
       repository,
       "--pattern",
       "openagent-sdk-manifest.json",
+      "--dir",
+      directory,
+    ]);
+    const manifest = JSON.parse(
+      await readFile(join(directory, "openagent-sdk-manifest.json"), "utf8"),
+    );
+    return validateSdkManifest(manifest, plan);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+async function stagedReleaseManifest(repository, plan, runId) {
+  const directory = await mkdtemp(join(tmpdir(), "openagent-sdk-stage-"));
+  try {
+    run("gh", [
+      "run",
+      "download",
+      String(runId),
+      "--repo",
+      repository,
+      "--name",
+      sdkReleaseManifestArtifact(plan.tag),
       "--dir",
       directory,
     ]);
@@ -286,10 +318,19 @@ async function main() {
   const hostVersion = value("--host-version");
   const repository = value("--repository");
   const output = value("--output");
-  if (!sdkDirectory || !sdkSha || !hostVersion || !repository || !output) {
+  const mode = value("--mode");
+  if (
+    !sdkDirectory ||
+    !sdkSha ||
+    !hostVersion ||
+    !repository ||
+    !output ||
+    !["stage", "publish"].includes(mode)
+  ) {
     throw new Error(
       "Usage: ensure-sdk-release.mjs --sdk-dir <dir> --sdk-sha <sha> " +
-        "--host-version <version> --repository <owner/repo> --output <github-output>",
+        "--host-version <version> --repository <owner/repo> --output <github-output> " +
+        "--mode <stage|publish>",
     );
   }
 
@@ -300,7 +341,7 @@ async function main() {
   );
   let manifest = await publishedRelease(repository, plan);
   if (manifest) report(`Reusing published SDK release ${plan.tag}.`);
-  if (!manifest) {
+  if (!manifest && mode === "stage") {
     const ciTitle = `SDK CI ${plan.releaseSha}`;
     const ciDispatch = dispatchWorkflow(repository, "ci.yml", "main", [
       `sdk_sha=${plan.releaseSha}`,
@@ -350,43 +391,64 @@ async function main() {
     }
     await waitForSdkTag(repository, plan);
 
-    const releaseTitle = `Publish SDK Release ${plan.tag}`;
+    const releaseTitle = sdkReleaseWorkflowTitle(plan.tag, "stage");
     const releaseDispatch = dispatchWorkflow(repository, "release.yml", "main", [
       `sdk_tag=${plan.tag}`,
+      "operation=stage",
     ]);
-    let trackedRuns = [
-      await waitForWorkflowRun(
-        repository,
-        "release.yml",
-        plan.releaseSha,
-        releaseDispatch,
-        releaseTitle,
-      ),
-    ];
+    let stagedRun = await waitForWorkflowRun(
+      repository,
+      "release.yml",
+      plan.releaseSha,
+      releaseDispatch,
+      releaseTitle,
+    );
+    while (stagedRun.status !== "completed") {
+      await new Promise((resolve) => setTimeout(resolve, 30_000));
+      stagedRun = refreshWorkflowRun(repository, stagedRun);
+      report(`Waiting for ${workflowRunProgress(stagedRun)}.`);
+    }
+    if (stagedRun.conclusion !== "success") {
+      throw new Error(`${stagedRun.workflow} failed while staging ${plan.tag}: ${stagedRun.url}`);
+    }
+    manifest = await stagedReleaseManifest(repository, plan, stagedRun.databaseId);
+    report(`Private SDK release manifest ${plan.tag} is staged.`);
+  }
+  if (!manifest && mode === "publish") {
+    await waitForSdkTag(repository, plan);
+    const releaseTitle = sdkReleaseWorkflowTitle(plan.tag, "publish");
+    const releaseDispatch = dispatchWorkflow(repository, "release.yml", "main", [
+      `sdk_tag=${plan.tag}`,
+      "operation=publish",
+    ]);
+    let trackedRun = await waitForWorkflowRun(
+      repository,
+      "release.yml",
+      plan.releaseSha,
+      releaseDispatch,
+      releaseTitle,
+    );
 
     for (let attempt = 0; attempt < 360 && !manifest; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 30_000));
       manifest = await publishedRelease(repository, plan);
       if (manifest) break;
 
-      trackedRuns = trackedRuns.map((trackedRun) => refreshWorkflowRun(repository, trackedRun));
+      trackedRun = refreshWorkflowRun(repository, trackedRun);
       if (attempt === 0 || (attempt + 1) % 2 === 0) {
-        for (const trackedRun of trackedRuns) {
-          report(
-            `Waiting for published SDK release ${plan.tag}; ${workflowRunProgress(trackedRun)}.`,
-          );
-        }
+        report(
+          `Waiting for published SDK release ${plan.tag}; ${workflowRunProgress(trackedRun)}.`,
+        );
       }
-      const failed = trackedRuns.find((trackedRun) =>
-        SDK_WORKFLOW_FAILURES.has(trackedRun.conclusion),
-      );
-      if (failed) {
-        throw new Error(`${failed.workflow} failed while publishing ${plan.tag}: ${failed.url}`);
+      if (SDK_WORKFLOW_FAILURES.has(trackedRun.conclusion)) {
+        throw new Error(
+          `${trackedRun.workflow} failed while publishing ${plan.tag}: ${trackedRun.url}`,
+        );
       }
     }
   }
-  if (!manifest) throw new Error(`Timed out waiting for published SDK release ${plan.tag}`);
-  report(`Published SDK release ${plan.tag} is ready.`);
+  if (!manifest) throw new Error(`Timed out waiting for ${mode} SDK release ${plan.tag}`);
+  report(`${mode === "stage" ? "Staged" : "Published"} SDK release ${plan.tag} is ready.`);
 
   await writeFile(
     output,

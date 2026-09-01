@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   sdkReleaseVersionInvocation,
+  sdkReleaseManifestArtifact,
+  sdkReleaseWorkflowTitle,
   selectDispatchedWorkflowRun,
   selectSdkQualificationStatus,
   validateSdkManifest,
@@ -48,6 +50,12 @@ describe("SDK release manifest verification", () => {
 });
 
 describe("SDK release workflow orchestration", () => {
+  test("names staged and public release runs independently", () => {
+    expect(sdkReleaseWorkflowTitle("sdk-v0.2.1", "stage")).toBe("Stage SDK Release sdk-v0.2.1");
+    expect(sdkReleaseWorkflowTitle("sdk-v0.2.1", "publish")).toBe("Publish SDK Release sdk-v0.2.1");
+    expect(sdkReleaseManifestArtifact("sdk-v0.2.1")).toBe("sdk-release-manifest-sdk-v0.2.1");
+  });
+
   test("renders safe progress metadata for tracked cross-repository runs", () => {
     expect(
       workflowRunProgress({
@@ -93,10 +101,11 @@ describe("SDK release workflow orchestration", () => {
     ]);
   });
 
-  test("dispatches workflows against an immutable SDK tag", () => {
+  test("dispatches staged workflows against an immutable SDK tag", () => {
     expect(
       workflowDispatchInvocation("BANG404/openagent-sdk", "release.yml", "main", [
         "sdk_tag=sdk-v0.2.1",
+        "operation=stage",
       ]),
     ).toEqual([
       "workflow",
@@ -108,7 +117,17 @@ describe("SDK release workflow orchestration", () => {
       "main",
       "-f",
       "sdk_tag=sdk-v0.2.1",
+      "-f",
+      "operation=stage",
     ]);
+  });
+
+  test("requires staged and published modes explicitly", () => {
+    const source = readFileSync(new URL("./ensure-sdk-release.mjs", import.meta.url), "utf8");
+    expect(source).toContain('!["stage", "publish"].includes(mode)');
+    expect(source).toContain('"operation=stage"');
+    expect(source).toContain('"operation=publish"');
+    expect(source.indexOf('mode === "stage"')).toBeLessThan(source.indexOf('mode === "publish"'));
   });
 
   test("selects only the dispatched workflow for the exact SDK SHA", () => {
