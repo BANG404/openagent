@@ -230,7 +230,11 @@ resulting `sdk-v*` tag as an explicit input, then checks out and verifies the
 immutable source. Its public-host reader token is restricted to the explicit
 host repository and inherits the dispatcher App installation permissions;
 publication must not request a narrower permission override that can disagree
-with the installed grant. The host tracks those exact child workflow runs,
+with the installed grant. Private npm publication explicitly binds the
+repository `NPM_TOKEN` as `NODE_AUTH_TOKEN`; it must not inherit a publisher
+credential from the self-hosted runner environment, and the configured token
+must authorize every package published by the job. The host tracks those exact
+child workflow runs,
 reports their URLs when they fail, and waits for full SDK qualification plus a
 published manifest whose `sdk_sha` and protocol range match. It does not rely on
 a tag pushed by `GITHUB_TOKEN` to trigger another workflow. Any failure stops desktop
