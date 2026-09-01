@@ -436,7 +436,10 @@ limit. Windows Harness Rust compilation runs under PowerShell so the MSVC linker
 takes precedence over Portable Git's unrelated `link.exe`; later Bun package
 steps may continue under Bash. Harness package-content verification uses
 `bun pm pack --dry-run`, so self-hosted runners do not require npm. Runner job
-cleanup owns the resulting process lifetime.
+cleanup owns the resulting process lifetime. Windows sandbox helper discovery
+retries Cargo metadata resolution and reports metadata failures separately from
+a genuinely missing pinned helper package, so a transient proxy or registry
+failure cannot be misclassified as dependency drift.
 Public SDK Git operations force HTTP/1.1 so TUN and proxy routes do not depend
 on HTTP/2 transport stability while fetching public or private revisions.
 Only

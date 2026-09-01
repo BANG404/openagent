@@ -450,12 +450,32 @@ jobs:
         shell: pwsh
         run: |
           $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
-          $metadata = cargo metadata --locked --format-version 1 --manifest-path sdk/Cargo.toml | ConvertFrom-Json
+          $metadata = $null
+          foreach ($attempt in 1..3) {
+            $metadataJson = cargo metadata --locked --format-version 1 --manifest-path sdk/Cargo.toml 2>> $log
+            if ($LASTEXITCODE -eq 0) {
+              try {
+                $metadata = $metadataJson | ConvertFrom-Json -ErrorAction Stop
+                break
+              } catch {
+                "Cargo metadata returned invalid JSON: $($_.Exception.Message)" | Add-Content $log
+              }
+            }
+            if ($attempt -lt 3) {
+              "Cargo metadata attempt $attempt failed; retrying." | Add-Content $log
+              Start-Sleep -Seconds (5 * $attempt)
+            }
+          }
+          if (-not $metadata) {
+            "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
+            Write-Error "Windows sandbox dependency metadata failed; private diagnostic output was suppressed."
+            exit 1
+          }
           $package = $metadata.packages | Where-Object {
             $_.name -eq "codex-windows-sandbox" -and $_.source -like "git+*"
           } | Select-Object -First 1
           if (-not $package) {
-            "Pinned codex-windows-sandbox package was not found." *> $log
+            "Pinned codex-windows-sandbox package was not found." | Add-Content $log
             "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
             exit 1
           }
