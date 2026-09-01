@@ -99,6 +99,8 @@ describe("release CI verification", () => {
     expect(privateSccacheAction).toContain("TcpListener");
     expect(privateSccacheAction).toContain("sccache --stop-server");
     expect(privateSccacheAction).toContain("sccache --show-stats");
+    expect(privateSccacheAction).toContain("for sccache_attempt in 1 2 3");
+    expect(privateSccacheAction).toContain("sccache rustc -vV");
     expect(privateSccacheAction).toContain(
       "Private sccache did not start; continuing without compiler cache.",
     );

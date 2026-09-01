@@ -90,7 +90,21 @@ runs:
           echo "SCCACHE_SERVER_PORT=$sccache_server_port"
           echo "CARGO_INCREMENTAL=0"
         } >> "$GITHUB_ENV"
-        if sccache --show-stats >/dev/null 2>&1; then
+        sccache_ready=false
+        for sccache_attempt in 1 2 3; do
+          if sccache --show-stats >/dev/null 2>&1 && sccache rustc -vV >/dev/null 2>&1; then
+            sccache_ready=true
+            break
+          fi
+
+          # A failed daemon can prevent the next client from starting on this job's port.
+          sccache --stop-server >/dev/null 2>&1 || true
+          if [[ "$sccache_attempt" != 3 ]]; then
+            sleep "$sccache_attempt"
+          fi
+        done
+
+        if [[ "$sccache_ready" == true ]]; then
           echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
         else
           echo "::warning::Private sccache did not start; continuing without compiler cache."
