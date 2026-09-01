@@ -80,7 +80,8 @@ release-built server binaries, signed Runtime and development manifests, a
 behavior-free TypeScript SDK source snapshot, and the public Harness package.
 Both manifests identify the immutable SDK commit; consumers reject a channel
 whose SHA differs from the host's pinned SDK gitlink. Tag-triggered SDK
-qualification never overwrites this moving development channel.
+qualification never overwrites this moving development channel. A qualifying
+refresh updates or creates the prerelease and replaces each same-named asset.
 
 Pull requests from forks never receive private SDK credentials. Trusted jobs
 create a short-lived, read-only GitHub App installation token and check out the

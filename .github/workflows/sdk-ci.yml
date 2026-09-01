@@ -1058,6 +1058,7 @@ jobs:
                 "$api/releases" \
                 -H "Content-Type: application/json" \
                 --data-binary @-)
+            release_id="$(jq -er '.id' <<<"$release_json")"
             upload_url="$(jq -er '.upload_url' <<<"$release_json" | sed 's/{?name,label}$//')"
           fi
           for asset in sdk-development-components/*; do
