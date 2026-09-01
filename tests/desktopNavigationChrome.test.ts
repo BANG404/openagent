@@ -180,6 +180,10 @@ describe("desktop navigation chrome", () => {
 
   test("bounds native quit cleanup and keeps an independent process-exit watchdog", async () => {
     const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const workspace = await readFile(
+      new URL("../sdk/rust/openagent-runtime/src/commands/workspace.rs", import.meta.url),
+      "utf8",
+    );
     const quit = host.slice(
       host.indexOf("async fn finish_desktop_quit"),
       host.indexOf("#[tauri::command]\nasync fn quit_app"),
@@ -187,6 +191,7 @@ describe("desktop navigation chrome", () => {
 
     expect(quit).toContain("timeout(DESKTOP_RUNTIME_STOP_TIMEOUT, supervisor.stop())");
     expect(quit).toContain("timeout(DESKTOP_EVENT_PROXY_STOP_TIMEOUT, proxy.stop())");
+    expect(quit).toContain("finish_child_workspace_window_shutdown");
     expect(quit).toContain("tracing_setup::shutdown_tracing()");
     expect(quit).toContain("app.cleanup_before_exit()");
     expect(quit).toContain("std::process::exit(0)");
@@ -195,6 +200,12 @@ describe("desktop navigation chrome", () => {
     expect(quit).toContain("for window in app.webview_windows().values()");
     expect(quit).toContain("window.hide()");
     expect(quit.indexOf("supervisor.stop()")).toBeLessThan(quit.indexOf("proxy.stop()"));
+    expect(host).toContain("request_child_workspace_window_shutdown()");
+    expect(host).toContain("openagent-parent-shutdown-monitor");
+    expect(host).toContain("is_parent_controlled_workspace_window_process()");
+    expect(workspace).toContain(".arg(PARENT_CONTROLLED_WORKSPACE_WINDOW_ARG)");
+    expect(workspace).toContain(".stdin(Stdio::piped())");
+    expect(workspace).toContain('stdin.write_all(b"shutdown\\n")');
   });
 
   test("keeps the system tray and its actions in the native host", async () => {

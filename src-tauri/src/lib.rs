@@ -90,9 +90,12 @@ const DESKTOP_TRAY_ID: &str = "openagent-tray";
 const DESKTOP_TRAY_SHOW_ID: &str = "openagent-tray-show";
 #[cfg(desktop)]
 const DESKTOP_TRAY_QUIT_ID: &str = "openagent-tray-quit";
-const DESKTOP_QUIT_WATCHDOG_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(8);
+const DESKTOP_QUIT_WATCHDOG_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 const DESKTOP_RUNTIME_STOP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(6);
 const DESKTOP_EVENT_PROXY_STOP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(1);
+const DESKTOP_CHILD_PROCESS_GRACE_TIMEOUT: std::time::Duration =
+    std::time::Duration::from_millis(1500);
+const DESKTOP_CHILD_PROCESS_STOP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 
 struct HostRuntimeBootstrap {
     initial_locale: String,
@@ -1854,6 +1857,21 @@ async fn finish_desktop_quit(app: tauri::AppHandle) {
     {
         tracing::warn!("timed out stopping Runtime event proxy during quit");
     }
+    let child_cleanup = tauri::async_runtime::spawn_blocking(|| {
+        finish_child_workspace_window_shutdown(DESKTOP_CHILD_PROCESS_GRACE_TIMEOUT)
+    });
+    match tokio::time::timeout(DESKTOP_CHILD_PROCESS_STOP_TIMEOUT, child_cleanup).await {
+        Ok(Ok(Ok(()))) => {}
+        Ok(Ok(Err(error))) => {
+            tracing::warn!(%error, "failed to stop child workspace processes during quit");
+        }
+        Ok(Err(error)) => {
+            tracing::warn!(%error, "child workspace process cleanup task failed during quit");
+        }
+        Err(_) => {
+            tracing::warn!("timed out stopping child workspace processes during quit");
+        }
+    }
     tracing_setup::shutdown_tracing();
     app.cleanup_before_exit();
     std::process::exit(0)
@@ -1869,6 +1887,9 @@ fn request_desktop_quit(app: tauri::AppHandle) {
     }
 
     tracing::info!(target: "openagent::app", "desktop quit requested");
+    if let Err(error) = request_child_workspace_window_shutdown() {
+        tracing::warn!(%error, "failed to signal child workspace processes during quit");
+    }
     #[cfg(desktop)]
     {
         if let Some(tray) = app.tray_by_id(DESKTOP_TRAY_ID) {
@@ -1888,6 +1909,19 @@ fn request_desktop_quit(app: tauri::AppHandle) {
         .expect("failed to start desktop quit watchdog");
 
     tauri::async_runtime::spawn(finish_desktop_quit(app));
+}
+
+fn install_parent_shutdown_monitor(app: tauri::AppHandle) {
+    std::thread::Builder::new()
+        .name("openagent-parent-shutdown-monitor".to_string())
+        .spawn(move || {
+            use std::io::Read;
+
+            let mut signal = [0_u8; 1];
+            let _ = std::io::stdin().read(&mut signal);
+            request_desktop_quit(app);
+        })
+        .expect("failed to start parent shutdown monitor");
 }
 
 #[tauri::command]
@@ -2612,6 +2646,10 @@ fn run_with_mode(agent_server: bool) {
         .manage(runtime_manager)
         .manage(frontend_manager)
         .setup(move |app| {
+            if is_parent_controlled_workspace_window_process() {
+                install_parent_shutdown_monitor(app.handle().clone());
+            }
+
             // init_tracing() spawns a background Tokio task (batch exporter). The
             // .setup() callback runs on the main thread which is not a Tokio worker
             // thread, so we use block_on to enter the runtime context before calling it.

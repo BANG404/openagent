@@ -23,7 +23,10 @@ has drained and exited. Each desktop window supervises one Runtime whose selecte
 workspace changes with current-window navigation. The server authorizes that
 selected existing directory rather than retaining a startup-only workspace
 allowlist. Only the explicit File -> New window action launches another desktop
-process and Runtime.
+process and Runtime. Tray Quit is application-wide: it signals every desktop
+process launched by the current OpenAgent process tree, lets each window stop its
+own Runtime within the bounded shutdown window, and forcibly reaps any child that
+does not exit. Child windows also close when their launching process disappears.
 
 An existing platform configuration directory—such as
 `%APPDATA%\openagent` on Windows, `~/.config/openagent` on Linux, or the former

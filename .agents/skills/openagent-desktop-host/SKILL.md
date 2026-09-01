@@ -98,11 +98,14 @@ binary, and exclusive durable-state ownership.
   records the one-way quitting state, hides every application window and the tray,
   and starts an independent bounded exit watchdog before asynchronous cleanup.
   Stop the supervised Runtime before the Runtime event proxy, bound both waits,
-  flush tracing, and perform Tauri cleanup before terminating the host process. Do
-  not keep the product window visible while cleanup drains, or rely on an exit
-  request, an unbounded async task, or supervisor destruction after the Tauri event
-  loop: tray or window lifecycle handlers can retain the host or leave server tasks
-  alive.
+  and signal every parent-controlled workspace process before cleanup begins. Each
+  child must use the same native quit path so its own Runtime drains, while EOF on
+  the private parent-control pipe also closes descendants after an abnormal parent
+  exit. Reap bounded child processes before flushing tracing and performing Tauri
+  cleanup. Do not keep the product window visible while cleanup drains, or rely on
+  an exit request, an unbounded async task, or supervisor destruction after the
+  Tauri event loop: tray or window lifecycle handlers can retain the host or leave
+  desktop and server processes alive.
 - A supervised external Runtime receives the host process's exact workspace
   navigation context: optional conversation ID, optional message ID, and the
   explicit-new-conversation flag. Preserve those fields across Runtime resource
