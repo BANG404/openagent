@@ -206,14 +206,19 @@ The explicit embedded diagnostic command does not use this sidecar path.
 
 The direct release commit changes `.github/release.json`, so its push starts the
 Release workflow. It accepts Beta markers only from `master`, RC markers only
-from `release/rc/*`, and Stable markers only from `release/stable/*`, validates metadata and source integrity, then calls
-the complete reusable CI suite for that exact SHA. Only a successful full result
-allows the workflow to create the annotated tag or begin platform builds. The
-detection checkout includes complete tag history because release metadata
-validation resolves `previousTag` against local immutable tag refs.
+from `release/rc/*`, and Stable markers only from `release/stable/*`, validates
+metadata and source integrity, then starts the complete reusable CI suite, SDK
+release orchestration, and selected release candidate builds concurrently for
+that exact SHA. Candidate builds have no release-side effects: they upload only
+run-scoped Actions artifacts. Only a successful full result, successful SDK
+resolution, and every selected candidate allow the workflow to create the
+annotated tag. The detection checkout includes complete tag history because
+release metadata validation resolves `previousTag` against local immutable tag
+refs.
 
-Before desktop qualification, the workflow resolves the exact `sdk` gitlink. It
-validates and reuses the corresponding independent SDK release when available;
+In parallel with desktop qualification and candidate builds, the workflow
+resolves the exact `sdk` gitlink and validates and reuses the corresponding
+independent SDK release when available;
 otherwise it explicitly dispatches current private `main` SDK CI with the immutable
 commit SHA, waits for the resulting full public qualification status, and only
 then dispatches private SDK release preparation for that immutable SHA. The host
@@ -224,27 +229,32 @@ immutable source. The host tracks those exact child workflow runs, reports
 their URLs when they fail, and waits for full SDK qualification plus a published
 manifest whose `sdk_sha` and protocol range match. It does not rely on a tag
 pushed by `GITHUB_TOKEN` to trigger another workflow. Any failure stops desktop
-tagging and builds. A
+tagging and publication; already-built private candidates simply expire with
+the workflow run. A
 published desktop release includes `openagent-desktop-manifest.json`, recording
 the desktop version and tag, SDK version, tag and source SHA, protocol range,
 and exact host compatibility mapping. This orchestration uses the dedicated
 `OPENAGENT_SDK_RELEASE_TOKEN`; private source checkout uses the CI reporter
 App's short-lived, read-only installation token over HTTPS.
 
-Only then does it, according to the selected component set:
+Candidate construction and publication are separate phases:
 
-1. create or reuse a draft GitHub Release;
-2. build Runtime resources for Windows x64, Linux x64, macOS arm64, and macOS
-   Intel when `runtime` is selected;
-3. build and upload Tauri updater/install artifacts and one full first-install
-   bundle per target only when `nativeShell` is selected;
-4. build and upload the platform-independent frontend resource when `frontend`
-   is selected;
-5. publish the draft after every selected component succeeds;
-6. update fixed component channels and, for native-shell prereleases only, the
+1. concurrently qualify the desktop SHA, qualify or reuse its pinned SDK
+   release, and build every selected platform candidate;
+2. store Runtime, frontend, lightweight Tauri, full first-install, and Store
+   candidates only as run-scoped Actions artifacts;
+3. bind each native candidate manifest to the exact desktop SHA, SDK gitlink
+   SHA, target, byte sizes, and SHA-256 values;
+4. after every gate succeeds, create the immutable tag and create or reuse the
+   draft GitHub Release;
+5. download and verify every selected candidate, upload its existing bytes, and
+   generate one combined `latest.json` from the four verified native targets;
+6. submit the Store package only after the same gate, then publish the draft;
+7. update fixed component channels and, for native-shell prereleases only, the
    fixed Beta or RC `latest.json`;
-7. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published prerelease SHA when applicable;
-8. deploy the release landing page with the published tag.
+8. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published
+   prerelease SHA when applicable;
+9. deploy the release landing page with the published tag.
 
 Release binaries use the repository's size-oriented Cargo profile: full link-time
 optimization, one codegen unit, size optimization, abort-on-panic, stripped

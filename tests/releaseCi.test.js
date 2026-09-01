@@ -216,7 +216,7 @@ describe("release CI verification", () => {
     expect(prHeadWorkflow).toContain('-f sha="$CI_HEAD_SHA"');
   });
 
-  test("pushes release metadata directly and qualifies it before tagging or building", () => {
+  test("qualifies and builds immutable candidates in parallel before tagging", () => {
     expect(prepareReleaseWorkflow).toContain("Require administrator push token");
     expect(prepareReleaseWorkflow).toContain(
       'git push origin "$release_sha:refs/heads/$RELEASE_BASE_BRANCH"',
@@ -236,6 +236,28 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("OPENAGENT_SDK_RELEASE_TOKEN");
     expect(releaseWorkflow).toContain("openagent-desktop-manifest.json");
     expect(releaseWorkflow).toContain("needs.sdk-release.outputs.sdk_version");
+    const qualifyJob = releaseWorkflow.match(/ {2}qualify:\n(?<job>[\s\S]*?)\n {2}tag:/)?.groups
+      ?.job;
+    const tagJob = releaseWorkflow.match(/ {2}tag:\n(?<job>[\s\S]*?)\n {2}create-draft:/)?.groups
+      ?.job;
+    const buildJob = releaseWorkflow.match(/ {2}build:\n(?<job>[\s\S]*?)\n {2}runtime-components:/)
+      ?.groups?.job;
+    expect(qualifyJob).toContain("needs: detect");
+    expect(qualifyJob).not.toContain("sdk-release");
+    expect(tagJob).toContain("- sdk-release");
+    expect(tagJob).toContain("- qualify");
+    expect(tagJob).toContain("- build");
+    expect(tagJob).toContain("- runtime-components");
+    expect(tagJob).toContain("- frontend-components");
+    expect(buildJob).toContain("needs: detect");
+    expect(buildJob).not.toContain("create-draft");
+    expect(buildJob).not.toContain("tagName:");
+    expect(buildJob).not.toContain("releaseDraft:");
+    expect(buildJob).not.toContain("gh release upload");
+    expect(buildJob).toContain("release-candidate-artifacts.mjs stage-tauri");
+    expect(buildJob).toContain("name: native-release-${{ matrix.runtime_target }}");
+    expect(releaseWorkflow).toContain("publish-native-assets:");
+    expect(releaseWorkflow).toContain("release-candidate-artifacts.mjs publish");
     expect(prepareReleaseWorkflow).toContain("- rc");
     expect(prepareReleaseWorkflow).toContain("--promote-rc=$RC_TAG");
     expect(releaseWorkflow).toContain("release/rc/**");
@@ -259,7 +281,8 @@ describe("release CI verification", () => {
     });
     expect(releaseWorkflow).toContain("Build full first-install bundle");
     expect(releaseWorkflow).toContain("bun run tauri:build:full -- ${{ matrix.args }}");
-    expect(releaseWorkflow).toContain("upload-full-release-asset.mjs --tag");
+    expect(releaseWorkflow).toContain("release-candidate-artifacts.mjs stage-full");
+    expect(releaseWorkflow).not.toContain("upload-full-release-asset.mjs");
   });
 
   test("publishes signed runtime and frontend component channels", () => {
@@ -291,9 +314,9 @@ describe("release CI verification", () => {
       "&& (needs.detect.outputs.native_shell == 'true' || needs.detect.outputs.runtime == 'true')",
     );
     expect(releaseWorkflow).toContain(
-      "if: needs.detect.outputs.native_shell == 'true'\n        uses: tauri-apps/tauri-action@v0",
+      "id: tauri\n        if: needs.detect.outputs.native_shell == 'true'\n        uses: tauri-apps/tauri-action@v0",
     );
-    expect(releaseWorkflow).toContain("name: Build qualified runtime component");
+    expect(releaseWorkflow).toContain("name: Build runtime candidate");
     expect(releaseWorkflow).toContain(
       'bun scripts/prepare-runtime-server.mjs --profile release "${target_args[@]}"',
     );
@@ -341,7 +364,7 @@ describe("release CI verification", () => {
 
   test("keeps resource-only releases independent from native publishing", () => {
     const frontendJob = releaseWorkflow.match(
-      / {2}frontend-components:\n(?<job>[\s\S]*?)\n {2}publish-store:/,
+      / {2}frontend-components:\n(?<job>[\s\S]*?)\n {2}publish-native-assets:/,
     )?.groups?.job;
     const storeJob = releaseWorkflow.match(/ {2}publish-store:\n(?<job>[\s\S]*?)\n {2}publish:/)
       ?.groups?.job;

@@ -15,6 +15,7 @@ const AUTOMATION_TESTS = [
   "tests/privateSdkDiagnostic.test.js",
   "tests/releaseCi.test.js",
   "tests/releaseVersion.test.js",
+  "scripts/release-candidate-artifacts.test.mjs",
 ];
 
 /**

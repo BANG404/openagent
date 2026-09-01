@@ -36,6 +36,7 @@ jobs:
       frontend: ${{ steps.release.outputs.frontend }}
       runtime: ${{ steps.release.outputs.runtime }}
       native_shell: ${{ steps.release.outputs.native_shell }}
+      published: ${{ steps.state.outputs.published }}
       sha: ${{ github.sha }}
     steps:
       - name: Detect release marker change
@@ -136,6 +137,24 @@ jobs:
           console.log(`runtime=${components.runtime === true}`);
           console.log(`native_shell=${components.nativeShell === true}`);
           NODE
+
+      - name: Resolve existing release state
+        id: state
+        if: steps.release.outputs.active == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          published=false
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            is_draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft')"
+            if [[ "$is_draft" != "true" ]]; then
+              published=true
+            fi
+          fi
+          echo "published=$published" >> "$GITHUB_OUTPUT"
 
       - name: Require private release credentials
         if: steps.release.outputs.active == 'true'
@@ -256,9 +275,7 @@ jobs:
 
   qualify:
     name: Complete release qualification
-    needs:
-      - detect
-      - sdk-release
+    needs: detect
     if: needs.detect.outputs.active == 'true'
     uses: ./.github/workflows/ci.yml
     with:
@@ -270,10 +287,19 @@ jobs:
     name: Tag verified commit
     needs:
       - detect
+      - sdk-release
       - qualify
+      - build
+      - runtime-components
+      - frontend-components
     if: >-
-      needs.detect.outputs.active == 'true'
+      always()
+      && needs.detect.outputs.active == 'true'
+      && needs.sdk-release.result == 'success'
       && needs.qualify.result == 'success'
+      && (needs.build.result == 'success' || needs.build.result == 'skipped')
+      && (needs.runtime-components.result == 'success' || needs.runtime-components.result == 'skipped')
+      && (needs.frontend-components.result == 'success' || needs.frontend-components.result == 'skipped')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -346,11 +372,9 @@ jobs:
 
   build:
     name: Build ${{ matrix.name }}
-    needs:
-      - detect
-      - create-draft
+    needs: detect
     if: >-
-      needs.create-draft.outputs.published != 'true'
+      needs.detect.outputs.published != 'true'
       && (needs.detect.outputs.native_shell == 'true' || needs.detect.outputs.runtime == 'true')
     strategy:
       fail-fast: false
@@ -396,7 +420,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.detect.outputs.tag }}
+          ref: ${{ needs.detect.outputs.sha }}
 
       - name: Resolve pinned SDK revision
         id: sdk
@@ -479,24 +503,29 @@ jobs:
 
       # This is the authoritative full product compilation for the immutable
       # release SHA. Pull-request and master CI validate source-level modules.
-      - name: Build and upload to GitHub Release
+      - name: Build lightweight release candidate
+        id: tauri
         if: needs.detect.outputs.native_shell == 'true'
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           OPENAGENT_RUNTIME_TARGET: ${{ matrix.sidecar_target }}
           OPENAGENT_LOGS_INGEST_TOKEN: ${{ secrets.OPENAGENT_LOGS_INGEST_TOKEN }}
         with:
-          tagName: ${{ needs.detect.outputs.tag }}
-          releaseName: OpenAgent ${{ needs.detect.outputs.tag }} [${{ needs.detect.outputs.channel }}]
-          releaseBody: See the CHANGELOG for details.
-          releaseDraft: true
-          prerelease: ${{ needs.detect.outputs.prerelease }}
           retryAttempts: 2
           args: ${{ matrix.args }}
 
-      - name: Build qualified runtime component
+      - name: Stage lightweight release candidate
+        if: needs.detect.outputs.native_shell == 'true'
+        shell: bash
+        env:
+          TAURI_ARTIFACT_PATHS: ${{ steps.tauri.outputs.artifactPaths }}
+        run: >-
+          node scripts/release-candidate-artifacts.mjs stage-tauri
+          --output "$RUNNER_TEMP/native-release"
+          --target "${{ matrix.runtime_target }}"
+
+      - name: Build runtime candidate
         if: needs.detect.outputs.runtime == 'true'
         shell: bash
         env:
@@ -508,7 +537,7 @@ jobs:
           fi
           bun scripts/prepare-runtime-server.mjs --profile release "${target_args[@]}"
 
-      - name: Stage qualified runtime component
+      - name: Stage runtime candidate
         if: needs.detect.outputs.runtime == 'true'
         shell: bash
         env:
@@ -519,7 +548,7 @@ jobs:
           cp "src-tauri/binaries/$RUNTIME_SIDECAR" \
             "$RUNNER_TEMP/runtime-component/$RUNTIME_ARTIFACT"
 
-      - name: Upload qualified runtime component
+      - name: Upload runtime candidate
         if: needs.detect.outputs.runtime == 'true'
         uses: actions/upload-artifact@v4
         with:
@@ -536,11 +565,34 @@ jobs:
           OPENAGENT_LOGS_INGEST_TOKEN: ${{ secrets.OPENAGENT_LOGS_INGEST_TOKEN }}
         run: bun run tauri:build:full -- ${{ matrix.args }}
 
-      - name: Upload full first-install bundle
+      - name: Stage full first-install candidate
         if: needs.detect.outputs.native_shell == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/upload-full-release-asset.mjs --tag ${{ needs.detect.outputs.tag }}
+        shell: bash
+        run: >-
+          node scripts/release-candidate-artifacts.mjs stage-full
+          --bundle-root src-tauri/target
+          --output "$RUNNER_TEMP/native-release"
+          --target "${{ matrix.runtime_target }}"
+          --version "${{ needs.detect.outputs.version }}"
+
+      - name: Bind native candidate to release source
+        if: needs.detect.outputs.native_shell == 'true'
+        shell: bash
+        run: >-
+          node scripts/release-candidate-artifacts.mjs manifest
+          --output "$RUNNER_TEMP/native-release"
+          --target "${{ matrix.runtime_target }}"
+          --desktop-sha "${{ needs.detect.outputs.sha }}"
+          --sdk-sha "${{ steps.sdk.outputs.sha }}"
+
+      - name: Upload native release candidate
+        if: needs.detect.outputs.native_shell == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-release-${{ matrix.runtime_target }}
+          path: ${{ runner.temp }}/native-release/*
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Build Microsoft Store package
         if: >-
@@ -668,21 +720,20 @@ jobs:
           retention-days: 7
 
   runtime-components:
-    name: Publish signed runtime components
+    name: Prepare signed runtime candidate
     needs:
       - detect
-      - create-draft
       - build
       - sdk-release
     if: >-
-      needs.create-draft.outputs.published != 'true'
+      needs.detect.outputs.published != 'true'
       && needs.detect.outputs.runtime == 'true'
       && needs.build.result == 'success'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.detect.outputs.tag }}
+          ref: ${{ needs.detect.outputs.sha }}
 
       - name: Resolve pinned SDK revision
         id: sdk
@@ -715,7 +766,7 @@ jobs:
       - name: Install signing CLI
         run: bun install --frozen-lockfile
 
-      - name: Download qualified runtime binaries
+      - name: Download runtime candidate binaries
         uses: actions/download-artifact@v4
         with:
           pattern: runtime-component-*
@@ -743,27 +794,25 @@ jobs:
             runtime-components/openagent-sdk-manifest.json
           test -s runtime-components/openagent-sdk-manifest.json.sig
 
-      - name: Upload signed runtime components to draft release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
-        run: gh release upload "$RELEASE_TAG" runtime-components/* --clobber
+      - name: Upload signed runtime candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-runtime-components
+          path: runtime-components/*
+          if-no-files-found: error
+          retention-days: 7
 
   frontend-components:
-    name: Publish signed frontend component
-    needs:
-      - detect
-      - create-draft
+    name: Prepare signed frontend candidate
+    needs: detect
     if: >-
-      needs.create-draft.outputs.published != 'true'
+      needs.detect.outputs.published != 'true'
       && needs.detect.outputs.frontend == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.detect.outputs.tag }}
+          ref: ${{ needs.detect.outputs.sha }}
 
       - name: Resolve pinned SDK revision
         id: sdk
@@ -821,12 +870,110 @@ jobs:
             frontend-components/openagent-frontend-manifest.json
           test -s frontend-components/openagent-frontend-manifest.json.sig
 
-      - name: Upload signed frontend component to draft release
+      - name: Upload signed frontend candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-frontend-components
+          path: frontend-components/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-native-assets:
+    name: Publish native release assets
+    needs:
+      - detect
+      - create-draft
+      - build
+      - sdk-release
+    if: >-
+      needs.create-draft.outputs.published != 'true'
+      && needs.detect.outputs.native_shell == 'true'
+      && needs.build.result == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+
+      - name: Download native release candidates
+        uses: actions/download-artifact@v4
+        with:
+          pattern: native-release-*
+          path: native-candidates
+          merge-multiple: true
+
+      - name: Verify candidates and generate updater metadata
         shell: bash
+        run: >-
+          node scripts/release-candidate-artifacts.mjs publish
+          --candidates native-candidates
+          --output native-publication
+          --targets macos-arm64,macos-x64,linux-x64,windows-x64
+          --desktop-sha "${{ needs.detect.outputs.sha }}"
+          --sdk-sha "${{ needs.sdk-release.outputs.sdk_sha }}"
+          --tag "${{ needs.detect.outputs.tag }}"
+          --repository "${{ github.repository }}"
+          --version "${{ needs.detect.outputs.version }}"
+          --notes "See the CHANGELOG for details."
+
+      - name: Upload verified native assets to draft release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+        shell: bash
+        run: gh release upload "$RELEASE_TAG" native-publication/* --clobber
+
+  publish-runtime-components:
+    name: Publish signed runtime components
+    needs:
+      - detect
+      - create-draft
+      - runtime-components
+    if: >-
+      needs.create-draft.outputs.published != 'true'
+      && needs.detect.outputs.runtime == 'true'
+      && needs.runtime-components.result == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download signed runtime candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-runtime-components
+          path: runtime-components
+
+      - name: Upload signed runtime components to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+        shell: bash
+        run: gh release upload "$RELEASE_TAG" runtime-components/* --clobber
+
+  publish-frontend-components:
+    name: Publish signed frontend component
+    needs:
+      - detect
+      - create-draft
+      - frontend-components
+    if: >-
+      needs.create-draft.outputs.published != 'true'
+      && needs.detect.outputs.frontend == 'true'
+      && needs.frontend-components.result == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download signed frontend candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-frontend-components
+          path: frontend-components
+
+      - name: Upload signed frontend component to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+        shell: bash
         run: gh release upload "$RELEASE_TAG" frontend-components/* --clobber
 
   publish-store:
@@ -888,18 +1035,18 @@ jobs:
     needs:
       - detect
       - create-draft
-      - build
-      - runtime-components
-      - frontend-components
+      - publish-native-assets
+      - publish-runtime-components
+      - publish-frontend-components
       - publish-store
       - sdk-release
     if: >-
       always()
       && needs.detect.result == 'success'
       && needs.create-draft.result == 'success'
-      && (needs.build.result == 'success' || needs.build.result == 'skipped')
-      && (needs.runtime-components.result == 'success' || needs.runtime-components.result == 'skipped')
-      && (needs.frontend-components.result == 'success' || needs.frontend-components.result == 'skipped')
+      && (needs.publish-native-assets.result == 'success' || needs.publish-native-assets.result == 'skipped')
+      && (needs.publish-runtime-components.result == 'success' || needs.publish-runtime-components.result == 'skipped')
+      && (needs.publish-frontend-components.result == 'success' || needs.publish-frontend-components.result == 'skipped')
       && (needs.publish-store.result == 'success' || needs.publish-store.result == 'skipped')
     runs-on: ubuntu-24.04
     steps:
@@ -951,7 +1098,7 @@ jobs:
         run: gh release edit "$RELEASE_TAG" --draft=false --prerelease="$PRERELEASE"
 
       - name: Update signed runtime component channel
-        if: needs.runtime-components.result == 'success'
+        if: needs.publish-runtime-components.result == 'success'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -1016,7 +1163,7 @@ jobs:
           exit 1
 
       - name: Update signed frontend component channel
-        if: needs.frontend-components.result == 'success'
+        if: needs.publish-frontend-components.result == 'success'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

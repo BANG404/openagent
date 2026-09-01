@@ -20,8 +20,9 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   bypass after local preflight. Ordinary `master` pushes do not replace release
   qualification.
 - Release, nightly, and manual full qualification force every frontend,
-  automation, native, embedding, and Harness capability. A failed qualification
-  stops tagging, building, and publication.
+  automation, native, embedding, and Harness capability. Release candidate
+  builds may run concurrently with qualification, but a failed qualification
+  stops tagging and every publication side effect.
 - Private SDK manual CI supports fast path classification against the requested
   commit's first parent when `full` is cleared. Keep fast and full commit-status
   contexts separate, retain a full default for older callers, and require
@@ -81,6 +82,12 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   input. Build the full first-install overlay separately, upload its renamed
   manual installer without updater metadata, and keep its embedding seed out of
   every `latest.json` target.
+- Build release candidates from the exact desktop SHA before creating its tag.
+  Keep candidate installers private in run-scoped Actions artifacts, bind every
+  platform manifest to the desktop and SDK SHAs, and verify all sizes and
+  SHA-256 values after download. Only the post-qualification gate may create the
+  immutable tag, upload assets, generate the combined `latest.json`, submit a
+  Store package, update fixed channels, or publish the GitHub Release.
 - Treat SDK server releases as independent process resources for headless and
   third-party consumers. Keep their machine-readable manifest, target matrix,
   protocol range, byte sizes, and SHA-256 values aligned. Desktop release builds
