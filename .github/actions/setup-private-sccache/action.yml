@@ -60,11 +60,30 @@ runs:
         export SCCACHE_S3_USE_SSL=true
         export SCCACHE_S3_KEY_PREFIX="$SCCACHE_PRIVATE_KEY_PREFIX"
         export SCCACHE_IGNORE_SERVER_IO_ERROR=1
-        export SCCACHE_SERVER_PORT=34326
-        export SCCACHE_ERROR_LOG="$RUNNER_TEMP/sccache-$GITHUB_RUN_ID-$GITHUB_JOB.log"
-        export SCCACHE_LOG=debug
-        sccache --stop-server >/dev/null 2>&1 || true
-        sleep 1
+        sccache_server_port=34326
+        rustc_wrapper=sccache
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          sccache_server_port="$(
+            powershell.exe -NoProfile -NonInteractive -Command \
+              '$listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0); $listener.Start(); ([System.Net.IPEndPoint]$listener.LocalEndpoint).Port; $listener.Stop()'
+          )"
+          sccache_server_port="${sccache_server_port//$'\r'/}"
+          if [[ ! "$sccache_server_port" =~ ^[0-9]+$ ]]; then
+            echo "::error::Failed to select an available Windows sccache port."
+            exit 1
+          fi
+          rustc_wrapper="$RUNNER_TEMP/openagent-sccache-wrapper.cmd"
+          printf '%s\r\n' \
+            '@echo off' \
+            'sccache --start-server >NUL 2>&1' \
+            'sccache %*' \
+            > "$rustc_wrapper"
+        else
+          export SCCACHE_SERVER_PORT="$sccache_server_port"
+          sccache --stop-server >/dev/null 2>&1 || true
+          sleep 1
+        fi
+        export SCCACHE_SERVER_PORT="$sccache_server_port"
         {
           echo "AWS_ACCESS_KEY_ID=$SCCACHE_PRIVATE_ACCESS_KEY"
           echo "AWS_SECRET_ACCESS_KEY=$SCCACHE_PRIVATE_SECRET_KEY"
@@ -74,9 +93,7 @@ runs:
           echo "SCCACHE_S3_USE_SSL=true"
           echo "SCCACHE_S3_KEY_PREFIX=$SCCACHE_PRIVATE_KEY_PREFIX"
           echo "SCCACHE_IGNORE_SERVER_IO_ERROR=1"
-          echo "SCCACHE_SERVER_PORT=34326"
-          echo "SCCACHE_ERROR_LOG=$SCCACHE_ERROR_LOG"
-          echo "SCCACHE_LOG=debug"
+          echo "SCCACHE_SERVER_PORT=$sccache_server_port"
           echo "CARGO_INCREMENTAL=0"
-          echo "RUSTC_WRAPPER=sccache"
+          echo "RUSTC_WRAPPER=$rustc_wrapper"
         } >> "$GITHUB_ENV"

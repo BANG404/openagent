@@ -421,13 +421,15 @@ SDK, and release compilation. GitHub Rust caches retain only dependency data
 with `cache-targets: false`. Release and development Runtime jobs may upload
 only their documented short-lived distribution artifacts. Later runs reuse
 private compiler objects, but cache availability and warmth are never
-correctness requirements. Compiler jobs use the explicit CI-only sccache server
-port `34326` because the Windows runner's default port may be unavailable
-without a visible listener. Each job clears stale state on that port, waits
-briefly for its release, and exports the private cache configuration. The first
-compiler invocation starts the job-scoped background server in its build step;
-setup steps do not pre-start a daemon that Windows may leave unusable across the
-step boundary. Runner job cleanup owns the resulting process lifetime.
+correctness requirements. Unix compiler jobs use the explicit CI-only sccache
+server port `34326`, clear stale state on that port, and wait briefly for its
+release. Windows TUN and WinNAT may reserve a port without exposing a listener,
+so each Windows job asks the OS for an available loopback port instead of
+relying on either the default or a fixed replacement. Unix compiler invocations
+auto-start the job-scoped background server. Windows uses a runner-local
+compiler wrapper that ensures the server is started inside each active build
+step before delegating to sccache. Runner job cleanup owns the resulting process
+lifetime.
 Only
 generic pass/fail diagnostics or explicitly
 allowlisted fixed-category test codes may appear in the public run. Linux and

@@ -42,16 +42,18 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   platform and `cloudflare-sccache` labels. Keep macOS GitHub-hosted, keep
   fork pull-request code off self-hosted runners, and treat the Cloudflare-to-
   MinIO compiler cache as an optimization rather than a correctness dependency.
-  Use the explicit CI-only sccache server port documented in the workflows;
-  the Windows runner's default port may be unavailable without a visible
-  listener. Clear stale server state on that port and briefly wait for release
-  before exporting each job's cache settings. Let the first compiler invocation
-  start the job-scoped background server in its build step; a server started in
-  a preceding setup step may not remain usable on Windows. Runner job cleanup
-  owns the server process lifetime; do not use
+  Use the explicit CI-only sccache server port documented in the workflows on
+  Unix. Windows TUN and WinNAT can reserve ports without a visible listener, so
+  select an available loopback port per job instead of relying on either the
+  default or a fixed replacement. Clear stale Unix server state and briefly
+  wait for release before exporting each job's cache settings. Unix compiler
+  invocations may auto-start the job-scoped background server. On Windows,
+  route `RUSTC_WRAPPER` through the generated runner-local command wrapper so
+  every compiler invocation ensures the server is started inside the active
+  build step before delegating to sccache. Runner job cleanup owns the server
+  process lifetime; do not use
   `SCCACHE_NO_DAEMON`, which keeps the server in the foreground and blocks
-  compiler clients. Startup diagnostics must remain in the runner-local
-  temporary directory and must never be uploaded to or printed by public jobs.
+  compiler clients.
 
 ## Host and helper artifacts
 
