@@ -54,6 +54,10 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   not use
   `SCCACHE_NO_DAEMON`, which keeps the server in the foreground and blocks
   compiler clients.
+- Keep embedded ShellCheck directives parser-compatible: put only supported
+  directive syntax on the `# shellcheck` line and place any rationale in a
+  separate comment. CI may use a newer `github-actionlint` and ShellCheck than
+  the local dependency cache.
 
 ## Host and helper artifacts
 

@@ -227,7 +227,7 @@ jobs:
           sccache_server_port=34326
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             sccache_server_port="$(
-              # shellcheck disable=SC2016 -- PowerShell expands these variables.
+              # shellcheck disable=SC2016
               powershell.exe -NoProfile -NonInteractive -Command \
                 '$listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0); $listener.Start(); ([System.Net.IPEndPoint]$listener.LocalEndpoint).Port; $listener.Stop()'
             )"
