@@ -434,7 +434,10 @@ SDK, and release compilation. GitHub Rust caches retain only dependency data
 with `cache-targets: false`. Release and development Runtime jobs may upload
 only their documented short-lived distribution artifacts. Later runs reuse
 private compiler objects, but cache availability and warmth are never
-correctness requirements. Unix compiler jobs use the explicit CI-only sccache
+correctness requirements. Cache setup probes its job-scoped daemon before
+exporting `RUSTC_WRAPPER`; a failed probe emits a public warning and compiles
+without sccache rather than failing qualification. Unix compiler jobs use the
+explicit CI-only sccache
 server port `34326`, clear stale state on that port, and wait briefly for its
 release. Windows may reserve a port without exposing a listener, so each Windows
 job asks the OS for an available loopback port instead of relying on either the

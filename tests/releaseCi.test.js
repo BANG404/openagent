@@ -98,9 +98,17 @@ describe("release CI verification", () => {
     expect(privateSccacheAction).toContain("sccache_server_port=34326");
     expect(privateSccacheAction).toContain("TcpListener");
     expect(privateSccacheAction).toContain("sccache --stop-server");
+    expect(privateSccacheAction).toContain("sccache --show-stats");
+    expect(privateSccacheAction).toContain(
+      "Private sccache did not start; continuing without compiler cache.",
+    );
     expect(privateSccacheAction).not.toContain("openagent-sccache-wrapper.cmd");
     expect(privateSccacheAction).not.toContain("sccache --start-server");
     expect(sdkWorkflow).toContain("sccache --stop-server");
+    expect(sdkWorkflow).toContain("sccache --show-stats");
+    expect(sdkWorkflow).toContain(
+      "Private sccache did not start; continuing without compiler cache.",
+    );
     expect(sdkWorkflow).not.toContain("openagent-sccache-wrapper.cmd");
     expect(sdkWorkflow).not.toContain("sccache --start-server");
     expect(sdkWorkflow).toContain("sccache_server_port=34326");
