@@ -415,8 +415,8 @@ The private repository dispatches an immutable commit SHA; a GitHub App
 installed only on the SDK repository lets the public workflow read that
 revision and report the aggregate `Public SDK CI` commit status. Because
 workflow logs are public, SDK command output is suppressed. The cross-repository
-status reporter calls the GitHub REST API directly, so self-hosted SDK runners
-do not require a preinstalled GitHub CLI. Ordinary build
+status reporter sends JSON payloads directly to the GitHub REST API, so
+self-hosted SDK runners do not require a preinstalled GitHub CLI. Ordinary build
 outputs are never uploaded, and public GitHub caches never contain Rust target
 or compiler output. Authenticated sccache through the Cloudflare Tunnel to the
 private MinIO backend is the primary compiler-output cache for trusted host,
