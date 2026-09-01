@@ -1074,7 +1074,7 @@ jobs:
         shell: bash
         run: |
           channel=runtime-dev
-          notes="Signed development Runtime and public clients for immutable SDK commit \`$SDK_SHA\`."
+          notes="Signed development Runtime and public clients for immutable SDK commit $SDK_SHA."
           api="https://api.github.com/repos/$GH_REPO"
           release_json="$(curl -fsS \
             -H "Authorization: Bearer $GH_TOKEN" \

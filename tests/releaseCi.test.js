@@ -342,6 +342,10 @@ describe("release CI verification", () => {
     expect(sdkWorkflow).toContain("development-runtime:");
     expect(sdkWorkflow).toContain("development-clients:");
     expect(sdkWorkflow).toContain("publish-development:");
+    expect(sdkWorkflow).toContain(
+      'notes="Signed development Runtime and public clients for immutable SDK commit $SDK_SHA."',
+    );
+    expect(sdkWorkflow).not.toContain("\\`$SDK_SHA\\`");
     expect(sdkWorkflow).toContain("needs: [required, development-runtime, development-clients]");
     expect(sdkWorkflow).toContain("channel=runtime-dev");
     expect(sdkWorkflow).toContain("sdk-dev-manifest.json");

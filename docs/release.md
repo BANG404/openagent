@@ -82,6 +82,8 @@ Both manifests identify the immutable SDK commit; consumers reject a channel
 whose SHA differs from the host's pinned SDK gitlink. Tag-triggered SDK
 qualification never overwrites this moving development channel. A qualifying
 refresh updates or creates the prerelease and replaces each same-named asset.
+Its release note identifies the immutable SDK SHA as plain text so the Bash
+workflow remains portable across the ShellCheck version used by GitHub runners.
 
 Pull requests from forks never receive private SDK credentials. Trusted jobs
 create a short-lived, read-only GitHub App installation token and check out the
