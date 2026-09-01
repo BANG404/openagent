@@ -1083,7 +1083,7 @@ jobs:
             "$api/releases/tags/$channel" 2>/dev/null || true)"
           if [[ -n "$release_json" ]] && jq -e '.id' >/dev/null <<<"$release_json"; then
             release_id="$(jq -er '.id' <<<"$release_json")"
-            upload_url="$(jq -er '.upload_url' <<<"$release_json" | sed 's/{?name,label}$//')"
+            upload_url="$(jq -er '.upload_url | split("{")[0]' <<<"$release_json")"
             jq -n --arg body "$notes" '{body: $body, prerelease: true}' |
               curl -fsS -X PATCH \
                 -H "Authorization: Bearer $GH_TOKEN" \
@@ -1093,21 +1093,21 @@ jobs:
                 -H "Content-Type: application/json" \
                 --data-binary @- -o /dev/null
           else
-            release_json="$(jq -n \
+            release_payload="$(jq -n \
               --arg tag "$channel" \
               --arg target "$GITHUB_SHA" \
               --arg name "OpenAgent development Runtime channel" \
               --arg body "$notes" \
-              '{tag_name: $tag, target_commitish: $target, name: $name, body: $body, prerelease: true}' |
-              curl -fsS -X POST \
-                -H "Authorization: Bearer $GH_TOKEN" \
-                -H "Accept: application/vnd.github+json" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                "$api/releases" \
-                -H "Content-Type: application/json" \
-                --data-binary @-)
+              '{tag_name: $tag, target_commitish: $target, name: $name, body: $body, prerelease: true}')"
+            release_json="$(curl -fsS -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "$api/releases" \
+              -H "Content-Type: application/json" \
+              --data-binary "$release_payload")"
             release_id="$(jq -er '.id' <<<"$release_json")"
-            upload_url="$(jq -er '.upload_url' <<<"$release_json" | sed 's/{?name,label}$//')"
+            upload_url="$(jq -er '.upload_url | split("{")[0]' <<<"$release_json")"
           fi
           for asset in sdk-development-components/*; do
             asset_name="$(basename "$asset")"
@@ -1129,6 +1129,6 @@ jobs:
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               -H "Content-Type: application/octet-stream" \
-              "$upload_url?name=$asset_name" \
+              "${upload_url}?name=${asset_name}" \
               --data-binary "@$asset" -o /dev/null
           done

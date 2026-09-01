@@ -82,8 +82,8 @@ Both manifests identify the immutable SDK commit; consumers reject a channel
 whose SHA differs from the host's pinned SDK gitlink. Tag-triggered SDK
 qualification never overwrites this moving development channel. A qualifying
 refresh updates or creates the prerelease and replaces each same-named asset.
-Its release note identifies the immutable SDK SHA as plain text so the Bash
-workflow remains portable across the ShellCheck version used by GitHub runners.
+The workflow builds the release request JSON before submitting it, then parses
+GitHub's templated upload URL from the response before composing asset queries.
 
 Pull requests from forks never receive private SDK credentials. Trusted jobs
 create a short-lived, read-only GitHub App installation token and check out the
@@ -525,6 +525,9 @@ Release automation changes must pass both `bun run lint:frontend` and
 unused JavaScript and shell variables in release scripts and workflow steps.
 Dynamic values embedded in Bash parameter-expansion patterns must be quoted
 separately so ShellCheck does not treat their contents as glob syntax.
+On Windows, actionlint does not exercise its Linux ShellCheck integration, so
+workflow Bash changes also require the repository's Linux actionlint container
+check or the equivalent GitHub Actions job.
 
 Dry runs can execute on any branch:
 

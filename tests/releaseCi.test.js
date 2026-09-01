@@ -346,6 +346,11 @@ describe("release CI verification", () => {
       'notes="Signed development Runtime and public clients for immutable SDK commit $SDK_SHA."',
     );
     expect(sdkWorkflow).not.toContain("\\`$SDK_SHA\\`");
+    expect(sdkWorkflow).toContain(`jq -er '.upload_url | split("{")[0]'`);
+    expect(sdkWorkflow).not.toContain("sed 's/{?name,label}$//'");
+    expect(sdkWorkflow).toContain('release_payload="$(jq -n \\');
+    expect(sdkWorkflow).toContain('--data-binary "$release_payload")"');
+    expect(sdkWorkflow).toContain('"${upload_url}?name=${asset_name}"');
     expect(sdkWorkflow).toContain("needs: [required, development-runtime, development-clients]");
     expect(sdkWorkflow).toContain("channel=runtime-dev");
     expect(sdkWorkflow).toContain("sdk-dev-manifest.json");

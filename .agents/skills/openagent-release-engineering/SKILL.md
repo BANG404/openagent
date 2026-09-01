@@ -58,7 +58,12 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
 - Keep embedded ShellCheck directives parser-compatible: put only supported
   directive syntax on the `# shellcheck` line and place any rationale in a
   separate comment. CI may use a newer `github-actionlint` and ShellCheck than
-  the local dependency cache.
+  the local dependency cache. Windows actionlint does not run the Linux
+  ShellCheck integration, so validate changed workflow Bash with the repository's
+  Linux actionlint container path before treating the local result as complete.
+  Keep multiline JSON producers separate from quoted `curl` command
+  substitutions; ShellCheck 0.11 can misparse a producer-to-request pipeline
+  nested inside one assignment.
 
 ## Host and helper artifacts
 
