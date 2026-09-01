@@ -69,6 +69,20 @@ function validateAssetNames(target, names, includeFull) {
   if (includeFull) requireOne(names, /-full-setup\.exe$/, "full NSIS installer");
 }
 
+/** @param {string} target @param {string} name */
+function stagedAssetName(target, name) {
+  if (!target.startsWith("macos-")) return name;
+  const suffix = name.endsWith(".app.tar.gz.sig")
+    ? ".app.tar.gz.sig"
+    : name.endsWith(".app.tar.gz")
+      ? ".app.tar.gz"
+      : "";
+  if (!suffix) return name;
+  const architecture = target === "macos-arm64" ? "aarch64" : "x64";
+  const stem = name.slice(0, -suffix.length).replace(/_(?:aarch64|x64)$/, "");
+  return `${stem}_${architecture}${suffix}`;
+}
+
 /**
  * @param {{ artifactPaths: string[], outputDirectory: string, target: string }} options
  */
@@ -93,14 +107,18 @@ export async function stageTauriArtifacts({ artifactPaths, outputDirectory, targ
     }
     return name.endsWith("-setup.exe") || name.endsWith("-setup.exe.sig");
   });
-  const names = selected.map((file) => path.basename(file));
+  const staged = selected.map((file) => ({
+    file,
+    name: stagedAssetName(target, path.basename(file)),
+  }));
+  const names = staged.map(({ name }) => name);
   if (new Set(names).size !== names.length) {
     throw new Error(`Duplicate Tauri release asset names for ${target}: ${names.join(", ")}`);
   }
   validateAssetNames(target, names, false);
   await mkdir(outputDirectory, { recursive: true });
   await Promise.all(
-    selected.map((file) => copyFile(file, path.join(outputDirectory, path.basename(file)))),
+    staged.map(({ file, name }) => copyFile(file, path.join(outputDirectory, name))),
   );
   return names.sort();
 }

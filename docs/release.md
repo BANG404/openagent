@@ -254,6 +254,9 @@ Candidate construction and publication are separate phases:
    candidates only as run-scoped Actions artifacts;
 3. bind each native candidate manifest to the exact desktop SHA, SDK gitlink
    SHA, target, byte sizes, and SHA-256 values;
+   macOS updater archives and signatures include `aarch64` or `x64` in their
+   staged asset names so the two candidate artifacts can be merged without
+   overwriting one architecture with the other;
 4. after every gate succeeds, create the immutable tag and create or reuse the
    draft GitHub Release;
 5. download and verify every selected candidate, upload its existing bytes, and
