@@ -432,7 +432,9 @@ relying on either the default or a fixed replacement. Unix compiler invocations
 auto-start the job-scoped background server, and Windows compiler invocations do
 the same on the selected per-job port. Windows does not add a batch wrapper
 around rustc because feature-heavy crates can exceed `cmd.exe`'s command-line
-limit. Runner job cleanup owns the resulting process lifetime.
+limit. Windows Harness Rust compilation runs under PowerShell so the MSVC linker
+takes precedence over Portable Git's unrelated `link.exe`; later Bun package
+steps may continue under Bash. Runner job cleanup owns the resulting process lifetime.
 Only
 generic pass/fail diagnostics or explicitly
 allowlisted fixed-category test codes may appear in the public run. Linux and

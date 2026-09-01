@@ -579,6 +579,7 @@ jobs:
           key: public-sdk-bun-${{ runner.os }}-harness-${{ hashFiles('sdk/harness-typescript/bun.lock') }}
           restore-keys: public-sdk-bun-${{ runner.os }}-harness-
       - name: Build harness server
+        if: runner.os != 'Windows'
         shell: bash
         working-directory: sdk
         run: |
@@ -587,6 +588,18 @@ jobs:
             echo "::error::Harness server build failed; private diagnostic output was suppressed."
             exit 1
           fi
+      - name: Build harness server on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: sdk
+        run: |
+          $log = "$env:RUNNER_TEMP/sdk-harness-server.log"
+          cargo build -p openagent-server *>> $log
+          if ($LASTEXITCODE -ne 0) {
+            "sdk-harness-server.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
+            Write-Error "Harness server build failed; private diagnostic output was suppressed."
+            exit 1
+          }
       - name: Install harness dependencies
         shell: bash
         working-directory: sdk/harness-typescript
