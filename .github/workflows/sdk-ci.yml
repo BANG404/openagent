@@ -654,7 +654,7 @@ jobs:
         shell: bash
         working-directory: sdk/harness-typescript
         run: |
-          if ! npm pack --dry-run >"$RUNNER_TEMP/sdk-harness-pack.log" 2>&1; then
+          if ! bun pm pack --dry-run >"$RUNNER_TEMP/sdk-harness-pack.log" 2>&1; then
             echo "sdk-harness-pack.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
             echo "::error::Harness package verification failed; private diagnostic output was suppressed."
             exit 1
