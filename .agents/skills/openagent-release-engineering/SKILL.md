@@ -50,7 +50,8 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   a preceding setup step may not remain usable on Windows. Runner job cleanup
   owns the server process lifetime; do not use
   `SCCACHE_NO_DAEMON`, which keeps the server in the foreground and blocks
-  compiler clients.
+  compiler clients. Startup diagnostics must remain in the runner-local
+  temporary directory and must never be uploaded to or printed by public jobs.
 
 ## Host and helper artifacts
 
