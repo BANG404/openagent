@@ -4,6 +4,9 @@ OpenAgent supports third-party harnesses without publishing its agent runtime.
 The desktop application and the headless server embed the same pinned private
 SDK revision; external applications use the behavior-free
 `@bang404/openagent-harness` client and a checksummed `openagent-server` binary.
+The npm package is the only public TypeScript client. OpenAgent's internal
+frontend transport remains pinned source and is not published as
+`@bang404/openagent-sdk`.
 
 ## Security boundary
 
@@ -16,6 +19,9 @@ SDK revision; external applications use the behavior-free
   database schemas, and Inspector traces remain private.
 - Third-party tools integrate out of process through MCP rather than linking to
   the core Rust crates.
+- Tauri starts the same server with `--desktop-api`. That adds the authenticated
+  product `/api` surface without removing the complete Harness `/v1` routes;
+  both surfaces execute through the one supervised Runtime process.
 
 ## TypeScript usage
 

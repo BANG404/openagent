@@ -23,6 +23,10 @@ binary, and exclusive durable-state ownership.
 - Ordinary frontend input goes through the shared SDK client. Do not duplicate
   flow selection, slash-command parsing, configuration ownership, database
   operations, or runtime state machines in the host.
+- The supervised desktop server keeps the complete Harness `/v1` router and
+  adds the product `/api` router through `--desktop-api`. Both surfaces must
+  execute in that one server process; do not introduce an embedded or parallel
+  agent Runtime for desktop Harness behavior.
 - Change IPC contracts atomically across the SDK contract or adapter, public
   frontend types, and every caller.
 - A replaceable Runtime supervisor must accept only compatible loopback

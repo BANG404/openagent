@@ -103,6 +103,10 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   with the tag as an explicit input, and track the resulting workflow runs through
   full public SDK qualification. Never rely on a tag pushed by `GITHUB_TOKEN` to
   trigger another workflow. A failed or mismatched SDK manifest stops desktop tagging.
+  Publish only `@bang404/openagent-harness` to npm; keep the product TypeScript
+  client private and distribute it only as pinned source or a checksummed
+  development snapshot. The release-qualified server remains the executable
+  agent implementation paired with the Harness package.
   Publish an exact desktop-to-SDK mapping manifest with the desktop release.
   additionally package the exact pinned server as an `externalBin` fallback and
   publish only those release-qualified binaries through a fixed runtime channel

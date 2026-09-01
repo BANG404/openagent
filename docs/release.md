@@ -60,8 +60,8 @@ Conventional Commit subject therefore participates in the same bump rules as
 application source changes.
 
 The private SDK also has its own release train for headless and third-party
-consumers. An immutable `sdk-vX.Y.Z` release publishes the behavior-free typed
-client, the thin Harness package, platform `openagent-server` binaries, and
+consumers. An immutable `sdk-vX.Y.Z` release publishes the thin
+`@bang404/openagent-harness` package, platform `openagent-server` binaries, and
 `openagent-sdk-manifest.json` with the compatible protocol range, size, and
 SHA-256 for every target. SDK SemVer is calculated only from SDK Conventional
 Commits after the newest ancestor SDK tag. The release tag points directly to
@@ -232,10 +232,11 @@ host repository and inherits the dispatcher App installation permissions;
 publication must not request a narrower permission override that can disagree
 with the installed grant. Private npm publication uses npm Trusted Publishing
 from a dedicated GitHub-hosted job with job-scoped `id-token: write`; it retains
-no `NPM_TOKEN` or `NODE_AUTH_TOKEN`. The two public client packages bind
-`BANG404/openagent-sdk`, `release.yml`, and the `npm` environment in npm, require
-two-factor authentication without bypass tokens, and use `npm publish --tag` as
-the sole registry mutation. Existing-version retries verify the expected
+no `NPM_TOKEN` or `NODE_AUTH_TOKEN`. Only
+`@bang404/openagent-harness` binds `BANG404/openagent-sdk`, `release.yml`, and
+the `npm` environment in npm. It requires two-factor authentication without
+bypass tokens and uses `npm publish --tag` as the sole registry mutation.
+Existing-version retries verify the expected
 dist-tag instead of attempting a separately authenticated dist-tag update. The
 host tracks those exact child workflow runs,
 reports their URLs when they fail, and waits for full SDK qualification plus a
