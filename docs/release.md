@@ -227,10 +227,13 @@ then dispatches private SDK release preparation for that immutable SHA. The host
 tracks the preparation workflow through completion before accepting its tag. SDK
 publication also uses current private `main` automation with the
 resulting `sdk-v*` tag as an explicit input, then checks out and verifies the
-immutable source. The host tracks those exact child workflow runs, reports
-their URLs when they fail, and waits for full SDK qualification plus a published
-manifest whose `sdk_sha` and protocol range match. It does not rely on a tag
-pushed by `GITHUB_TOKEN` to trigger another workflow. Any failure stops desktop
+immutable source. Its public-host reader token is restricted to the explicit
+host repository and inherits the dispatcher App installation permissions;
+publication must not request a narrower permission override that can disagree
+with the installed grant. The host tracks those exact child workflow runs,
+reports their URLs when they fail, and waits for full SDK qualification plus a
+published manifest whose `sdk_sha` and protocol range match. It does not rely on
+a tag pushed by `GITHUB_TOKEN` to trigger another workflow. Any failure stops desktop
 tagging and publication; already-built private candidates simply expire with
 the workflow run. A
 published desktop release includes `openagent-desktop-manifest.json`, recording
