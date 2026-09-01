@@ -134,7 +134,7 @@ fn desktop_runtime_mode(agent_server: bool) -> anyhow::Result<DesktopRuntimeMode
                 anyhow::bail!("OPENAGENT_RUNTIME_MODE must contain Unicode text")
             }
         };
-        return parse_development_runtime_mode(value.as_deref()).map_err(anyhow::Error::msg);
+        parse_development_runtime_mode(value.as_deref()).map_err(anyhow::Error::msg)
     }
 
     #[cfg(not(debug_assertions))]
@@ -2530,7 +2530,7 @@ fn run_with_mode(agent_server: bool) {
 
     #[cfg(desktop)]
     let builder = if should_install_desktop_tray(agent_server, is_workspace_window) {
-        builder.on_menu_event(|app, event| handle_desktop_menu_event(&app, &event))
+        builder.on_menu_event(|app, event| handle_desktop_menu_event(app, &event))
     } else {
         builder
     };

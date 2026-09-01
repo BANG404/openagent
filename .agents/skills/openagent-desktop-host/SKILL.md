@@ -154,7 +154,9 @@ that covers application-owned windows.
 
 Keep host Rust warning-free: native quality treats compiler and Clippy warnings
 as errors, so behavior-preserving refactors must use the idioms required by the
-configured toolchain.
+configured toolchain. When a toolchain update introduces a style-only lint,
+adopt the current Rust expression or borrowing form instead of suppressing the
+warning.
 
 For behavior involving the real shell, native material, OS theme, title bar,
 focus, or window geometry, read and follow
