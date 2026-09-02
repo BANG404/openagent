@@ -95,10 +95,13 @@ authorize unrelated changes.
 2. Choose a unique `agent/<task-slug>` branch and non-existing sibling
    worktree path. Create both from the recorded local default `HEAD`, not from
    the remote default and not from the default worktree's index or working
-   tree. Never relocate, reset, clean, or reuse an unrelated worktree. Initialize
-   required pinned submodules and task-worktree dependencies before validation;
-   use frozen dependency metadata and do not change manifests or lockfiles as
-   incidental setup.
+   tree. Never relocate, reset, clean, or reuse an unrelated worktree. From the
+   task worktree, run `bun run prepare:worktree:dev` before validation. This
+   initializes pinned submodules, installs frozen Bun dependencies, and builds
+   the current-platform development sandbox and Runtime sidecars; it creates
+   ignored build inputs instead of relying on artifacts from another worktree.
+   Use the release variant only for release qualification, and do not change
+   manifests or lockfiles as incidental setup.
 3. Implement code, focused coverage, and agent-facing documentation together
    in the task worktree.
    Keep public behavior in `docs/`, repeatable procedures in the triggering

@@ -14,6 +14,8 @@
     "check:docs": "bun scripts/check-docs-sync.mjs",
     "preflight": "bun scripts/preflight.mjs",
     "fetch:embedding-model": "bun scripts/fetch-embedding-model.mjs",
+    "prepare:worktree:dev": "bun scripts/prepare-worktree.mjs --profile dev",
+    "prepare:worktree:release": "bun scripts/prepare-worktree.mjs --profile release",
     "prepare:linux-sandbox:dev": "bun scripts/prepare-linux-sandbox-helper.mjs --profile dev",
     "prepare:linux-sandbox:release": "bun scripts/prepare-linux-sandbox-helper.mjs --profile release",
     "prepare:runtime-server:dev": "bun scripts/prepare-runtime-server.mjs --profile dev",
