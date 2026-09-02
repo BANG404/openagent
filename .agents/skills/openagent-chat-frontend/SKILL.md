@@ -662,6 +662,9 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   styles never change its geometry. Its focused name search
   ranks exact, prefix, name, and path
   matches ahead of the unchanged remainder instead of hiding unmatched projects.
+  Render every child conversation without a leading kind or role icon, including
+  delegated role, Goal, and Graph conversations. Indent each child title beyond
+  its parent title and increase that inset at every deeper active-branch level.
   Recent conversations is one newest-first projection of the 20 most recently
   updated conversations across workspace metadata for the selected role. Keep
   that projection independent from the selected workspace's conversation page,

@@ -88,7 +88,10 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   skeleton before its first load, and shows a muted, indented `No chats` row
   without a persistent group background only after an authoritative empty result. It
   retains its Show more action across selection changes so row styling and DOM
-  identity do not flicker. Clicking an
+  identity do not flicker. Child conversation rows, including delegated role,
+  Goal, and Graph conversations, omit leading icons and indent their titles
+  beyond the parent title, with deeper active-branch levels receiving additional
+  inset. Clicking an
   expanded project collapses it without first selecting that workspace; clicking
   a collapsed project expands it and selects its workspace only when needed.
   Both sections collapse independently. Project-name search temporarily ranks
