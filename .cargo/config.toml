@@ -1,0 +1,4 @@
+# Keep Windows development links off the legacy MSVC linker. rust-lld ships
+# with the Rust toolchain, so this does not require a machine-wide LLVM install.
+[target.x86_64-pc-windows-msvc]
+linker = "rust-lld"
