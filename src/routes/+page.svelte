@@ -4475,6 +4475,8 @@
         convId: activeConvId,
         text: "/compact",
         modelBinding: decodeModelBinding(composerPreferences.selectedModel),
+        userMessageId: crypto.randomUUID(),
+        assistantMessageId: crypto.randomUUID(),
       });
       if (outcome.type === "immediate_command" && !outcome.changed) {
         showToast({
