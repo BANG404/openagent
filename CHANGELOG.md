@@ -2,9 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.53.1-beta.2] - 2026-09-02
+
 ## [0.53.1-beta.1] - 2026-09-01
 
 ### Bug Fixes
+- **desktop**: Close child windows on tray quit
+- **release**: Pair harness with runtime server
+- **release**: Adopt npm trusted publishing
 - **release**: Pin explicit SDK npm credential
 - **release**: Update SDK publication automation
 
