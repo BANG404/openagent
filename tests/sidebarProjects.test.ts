@@ -165,6 +165,22 @@ describe("sidebar project order", () => {
     expect(browser).not.toContain(".project-group.empty");
   });
 
+  test("renders child conversations as iconless, increasingly indented rows", async () => {
+    const list = await readFile(
+      new URL("../src/lib/components/ConversationList.svelte", import.meta.url),
+      "utf8",
+    );
+
+    expect(list).not.toContain("delegatedRoleBadge");
+    expect(list).not.toContain('class="role-badge"');
+    expect(list).toContain('style:padding-left="calc(var(--conversation-title-inset) + 12px)"');
+    expect(list).toContain(
+      "style:padding-left={`calc(var(--conversation-title-inset) + ${depth * 12}px)`}",
+    );
+    expect(list).toContain(".conv-list.embedded {");
+    expect(list).toContain("--conversation-title-inset: calc(");
+  });
+
   test("collapses an expanded inactive project without selecting its workspace", () => {
     expect(projectRowSelection("C:/two", "C:/one", [])).toEqual({
       collapsedProjectPaths: ["C:/two"],

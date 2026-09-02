@@ -149,15 +149,6 @@
   }
 </script>
 
-{#snippet delegatedRoleBadge()}
-  <span class="role-badge" aria-label={$t("delegatedRoleConversation")}>
-    <svg class="role-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="8" cy="5.25" r="2.35" />
-      <path d="M3.75 13c.35-2.35 1.85-3.65 4.25-3.65s3.9 1.3 4.25 3.65" />
-    </svg>
-  </span>
-{/snippet}
-
 {#snippet conversationTitle(title: string)}
   <SidebarConversationTitle text={title} />
 {/snippet}
@@ -168,12 +159,9 @@
       class="sub-conv-item {sub.id === activeConvId ? 'active' : ''} {streamingConvIds[sub.id]
         ? 'streaming'
         : ''}"
-      style:padding-left={`${8 + depth * 12}px`}
+      style:padding-left={`calc(var(--conversation-title-inset) + ${depth * 12}px)`}
       onclick={() => onSelect(sub.id)}
     >
-      {#if !sub.flowKind}
-        {@render delegatedRoleBadge()}
-      {/if}
       {@render conversationTitle(sub.title)}
       {#if streamingConvIds[sub.id]}
         <span class="conv-streaming-dot" aria-label="Streaming"></span>
@@ -338,12 +326,9 @@
                 ]
                   ? 'streaming'
                   : ''}"
-                style:padding-left="20px"
+                style:padding-left="calc(var(--conversation-title-inset) + 12px)"
                 onclick={() => onSelect(sub.id)}
               >
-                {#if !sub.flowKind}
-                  {@render delegatedRoleBadge()}
-                {/if}
                 {@render conversationTitle(sub.title)}
                 {#if streamingConvIds[sub.id]}
                   <span class="conv-streaming-dot" aria-label="Streaming"></span>
@@ -415,6 +400,8 @@
   }
 
   .conv-list {
+    --conversation-title-inset: var(--list-item-compact-padding-inline);
+
     position: relative;
     z-index: 1;
     width: 100%;
@@ -431,6 +418,10 @@
   }
 
   .conv-list.embedded {
+    --conversation-title-inset: calc(
+      var(--list-item-compact-padding-inline) + 16px + var(--list-item-compact-content-gap)
+    );
+
     height: auto;
     overflow: visible;
     padding: 3px 0 0;
@@ -444,9 +435,7 @@
   }
 
   .conv-list.embedded .conv-item {
-    padding-left: calc(
-      var(--list-item-compact-padding-inline) + 16px + var(--list-item-compact-content-gap)
-    );
+    padding-left: var(--conversation-title-inset);
   }
 
   .show-more-conversations {
@@ -631,27 +620,6 @@
     background: var(--primary);
     flex-shrink: 0;
     animation: pulse 1.2s ease-in-out infinite;
-  }
-
-  .role-badge {
-    width: 22px;
-    height: 22px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 22px;
-    border-radius: 9999px;
-    color: #7c4dbe;
-    background: color-mix(in srgb, #7c4dbe 10%, transparent);
-  }
-
-  .role-icon {
-    width: 14px;
-    height: 14px;
-    stroke: currentColor;
-    stroke-width: 1.45;
-    stroke-linecap: round;
-    stroke-linejoin: round;
   }
 
   :global(.conv-context-trigger) {
