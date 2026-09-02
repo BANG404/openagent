@@ -1,5 +1,5 @@
 import { invoke } from "$lib/openagent/tauriClient";
-import { check, type DownloadEvent, type Update } from "@tauri-apps/plugin-updater";
+import { check, type Update } from "@tauri-apps/plugin-updater";
 import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
 import { get, readonly, writable } from "svelte/store";
 import { appUpdateReleaseUrl } from "$lib/appUpdateRelease";
@@ -35,144 +35,83 @@ type PreparedRuntimeResource = {
   update_available: boolean;
 };
 
-async function activateRuntimeResource(candidate: PreparedRuntimeResource): Promise<void> {
-  if (get(mutableAppUpdateState) !== "idle") return;
-  mutableAppUpdateState.set("installing");
-  const progressToastId = showToast({
-    title: translate("runtimeUpdateInProgress"),
-    description: translate("runtimeUpdateInProgressDescription"),
-    durationMs: 0,
-  });
-  try {
-    await invoke("activate_runtime_resource", {
-      version: candidate.version,
-      target: candidate.target,
-    });
-    showToast({
-      title: translate("runtimeUpdateInstalled"),
-      description: translate("runtimeUpdateInstalledDescription"),
-      durationMs: 5000,
-    });
-  } catch (error) {
-    showToast({
-      title: translate("updateFailed"),
-      description: describeError(error),
-      variant: "error",
-      durationMs: 8000,
-    });
-  } finally {
-    dismissToast(progressToastId);
-    mutableAppUpdateState.set("idle");
-  }
-}
+type AvailableUpdates = {
+  runtime: PreparedRuntimeResource | null;
+  frontend: PreparedFrontendResource | null;
+  shell: Update | null;
+  shellDownload: Promise<void> | null;
+};
 
-async function checkForRuntimeResourceUpdate(): Promise<boolean> {
-  if (import.meta.env.DEV) return false;
+async function checkForRuntimeResourceUpdate(): Promise<PreparedRuntimeResource | null> {
+  if (import.meta.env.DEV) return null;
   const candidate = await withAppUpdateTimeout(
     invoke<PreparedRuntimeResource>("prepare_runtime_resource"),
     RESOURCE_UPDATE_PREPARE_TIMEOUT_MS,
   );
-  if (!candidate.update_available) return false;
-  showToast({
-    title: `${translate("runtimeUpdateAvailable")} ${candidate.version}`,
-    description: translate("runtimeUpdateAvailableDescription"),
-    durationMs: 0,
-    action: {
-      label: translate("updateAndReconnect"),
-      onClick: () => activateRuntimeResource(candidate),
-    },
-  });
-  return true;
+  return candidate.update_available ? candidate : null;
 }
 
-async function checkForFrontendResourceUpdate(): Promise<boolean> {
-  if (import.meta.env.DEV) return false;
+async function checkForFrontendResourceUpdate(): Promise<PreparedFrontendResource | null> {
+  if (import.meta.env.DEV) return null;
   const candidate = await withAppUpdateTimeout(
     invoke<PreparedFrontendResource>("prepare_frontend_resource"),
     RESOURCE_UPDATE_PREPARE_TIMEOUT_MS,
   );
-  if (!candidate.update_available) return false;
-  showToast({
-    title: `${translate("frontendUpdateAvailable")} ${candidate.version}`,
-    description: translate("frontendUpdateAvailableDescription"),
-    durationMs: 0,
-    action: {
-      label: translate("updateAndReload"),
-      onClick: async () =>
-        invoke<void>("activate_frontend_resource", { version: candidate.version }).catch(
-          (error) => {
-            showToast({
-              title: translate("updateFailed"),
-              description: describeError(error),
-              variant: "error",
-              durationMs: 8000,
-            });
-          },
-        ),
-    },
-  });
-  return true;
+  return candidate.update_available ? candidate : null;
 }
 
-function updateProgressMessage(
-  event: DownloadEvent,
-  downloadedBytes: number,
-  totalBytes?: number,
-): string {
-  if (event.event === "Started") {
-    return translate("updateDownloading");
-  }
-  if (event.event === "Finished") {
-    return translate("updateInstalling");
-  }
-  if (totalBytes && totalBytes > 0) {
-    const percent = Math.min(100, Math.round((downloadedBytes / totalBytes) * 100));
-    return `${translate("updateDownloaded")} ${percent}%`;
-  }
-  return translate("updateDownloading");
-}
-
-async function installUpdate(update: Update): Promise<void> {
+async function installUpdates(updates: AvailableUpdates): Promise<void> {
   if (get(mutableAppUpdateState) !== "idle") return;
   mutableAppUpdateState.set("installing");
 
-  let downloadedBytes = 0;
-  let totalBytes: number | undefined;
   let progressToastId: number | null = null;
-  let lastProgressBucket = -1;
 
   try {
     progressToastId = showToast({
       title: translate("updateInProgress"),
-      description: translate("updateDownloading"),
+      description: translate("updatePreparingComponents"),
       durationMs: 0,
     });
 
-    await update.downloadAndInstall((event) => {
-      if (event.event === "Started") {
-        downloadedBytes = 0;
-        totalBytes = event.data.contentLength;
-      } else if (event.event === "Progress") {
-        downloadedBytes += event.data.chunkLength;
+    if (updates.shellDownload) {
+      try {
+        await updates.shellDownload;
+      } catch {
+        // A background download may fail after the notification is shown; retry
+        // it when the user explicitly starts the update.
+        if (updates.shell) await updates.shell.download();
       }
-
-      const bucket = totalBytes ? Math.floor((downloadedBytes / totalBytes) * 10) : -1;
-      if (event.event !== "Progress" || bucket > lastProgressBucket) {
-        lastProgressBucket = bucket;
-        if (progressToastId === null) return;
-        updateToast(progressToastId, {
-          title: translate("updateInProgress"),
-          description: updateProgressMessage(event, downloadedBytes, totalBytes),
-        });
-      }
-    });
+    } else if (updates.shell) {
+      await updates.shell.download();
+    }
+    if (updates.runtime) {
+      updateToast(progressToastId, {
+        description: translate("runtimeUpdateInProgressDescription"),
+      });
+      await invoke("activate_runtime_resource", {
+        version: updates.runtime.version,
+        target: updates.runtime.target,
+      });
+    }
+    if (updates.frontend) {
+      updateToast(progressToastId, {
+        description: translate("frontendUpdateInProgressDescription"),
+      });
+      await invoke<void>("activate_frontend_resource", { version: updates.frontend.version });
+    }
+    if (updates.shell) {
+      updateToast(progressToastId, { description: translate("updateInstalling") });
+      await updates.shell.install();
+    }
 
     showToast({
       title: translate("updateInstalled"),
-      description: translate("updateRestarting"),
-      durationMs: 3000,
+      description: updates.shell
+        ? translate("updateRestarting")
+        : translate("updateComponentsInstalled"),
+      durationMs: updates.shell ? 3000 : 5000,
     });
-    await invoke("restart_app");
+    if (updates.shell) await invoke("restart_app");
   } catch (error) {
     showToast({
       title: translate("updateFailed"),
@@ -193,21 +132,21 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
   mutableAppUpdateState.set("checking");
 
   try {
-    let runtimeUpdateAvailable = false;
+    let runtime: PreparedRuntimeResource | null = null;
     try {
-      runtimeUpdateAvailable = await checkForRuntimeResourceUpdate();
+      runtime = await checkForRuntimeResourceUpdate();
     } catch (error) {
       console.warn("[openagent] Runtime resource update check failed", error);
     }
-    let frontendUpdateAvailable = false;
+    let frontend: PreparedFrontendResource | null = null;
     try {
-      frontendUpdateAvailable = await checkForFrontendResourceUpdate();
+      frontend = await checkForFrontendResourceUpdate();
     } catch (error) {
       console.warn("[openagent] Frontend resource update check failed", error);
     }
-    const update = await withAppUpdateTimeout(check());
-    if (!update) {
-      if (notifyWhenUpToDate && !runtimeUpdateAvailable && !frontendUpdateAvailable) {
+    const shell = await withAppUpdateTimeout(check());
+    if (!shell && !runtime && !frontend) {
+      if (notifyWhenUpToDate) {
         showToast({
           title: translate("updateCurrent"),
           description: translate("updateCurrentDescription"),
@@ -217,19 +156,31 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
       return;
     }
 
-    const releaseUrl = appUpdateReleaseUrl(update.version);
+    const shellDownload = shell ? shell.download() : null;
+    if (shellDownload) void shellDownload.catch(() => {});
+    const updates: AvailableUpdates = { runtime, frontend, shell, shellDownload };
+    const releaseUrl = shell ? appUpdateReleaseUrl(shell.version) : undefined;
+    const components = [
+      shell ? translate("updateComponentShell") : null,
+      frontend ? translate("updateComponentFrontend") : null,
+      runtime ? translate("updateComponentRuntime") : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
     showToast({
-      title: `${translate("updateAvailable")} ${update.version}`,
-      description: update.body || translate("updateAvailableDescription"),
+      title: `${translate("updateAvailable")} ${shell?.version ?? frontend?.version ?? runtime?.version}`,
+      description: `${translate("updateComponentsAvailable")}: ${components}`,
       durationMs: 0,
-      link: {
-        label: translate("updateChangelog"),
-        href: releaseUrl,
-        onClick: () => openExternalUrl(releaseUrl),
-      },
+      link: releaseUrl
+        ? {
+            label: translate("updateChangelog"),
+            href: releaseUrl,
+            onClick: () => openExternalUrl(releaseUrl),
+          }
+        : undefined,
       action: {
-        label: translate("updateAndRestart"),
-        onClick: () => installUpdate(update),
+        label: translate("updateAll"),
+        onClick: () => installUpdates(updates),
       },
     });
   } catch (error) {

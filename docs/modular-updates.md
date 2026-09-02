@@ -6,12 +6,12 @@ is never loaded as a replaceable dynamic library.
 
 ## Supported boundaries
 
-| Surface | Development | Published delivery | Activation |
-| --- | --- | --- | --- |
-| Frontend | Vite HMR through `bun tauri dev` | Signed `frontend-beta`, `frontend-rc`, or `frontend-stable` resource | Confirmed WebView reload with rollback |
-| Desktop Runtime / headless SDK | Rebuild and restart `openagent-server` | Signed Runtime channel or versioned SDK release binaries plus `openagent-sdk-manifest.json` | Supervised drain, restart, probe, reconnect, and rollback |
-| Third-party client | Local TypeScript source or published npm package | `@bang404/openagent-harness` | Normal package update |
-| Desktop native shell | Tauri rebuild/restart | Signed installer and Tauri updater | Application restart |
+| Surface                        | Development                                      | Published delivery                                                                          | Activation                                                |
+| ------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Frontend                       | Vite HMR through `bun tauri dev`                 | Signed `frontend-beta`, `frontend-rc`, or `frontend-stable` resource                        | Confirmed WebView reload with rollback                    |
+| Desktop Runtime / headless SDK | Rebuild and restart `openagent-server`           | Signed Runtime channel or versioned SDK release binaries plus `openagent-sdk-manifest.json` | Supervised drain, restart, probe, reconnect, and rollback |
+| Third-party client             | Local TypeScript source or published npm package | `@bang404/openagent-harness`                                                                | Normal package update                                     |
+| Desktop native shell           | Tauri rebuild/restart                            | Signed installer and Tauri updater                                                          | Application restart                                       |
 
 The standalone SDK release is independent from the desktop release. Updating a
 headless integration or development harness therefore does not require building
@@ -20,6 +20,15 @@ download the target binary, verify its protocol range, byte length, and SHA-256,
 install it into a versioned directory, and explicitly reload the supervised
 process. If the replacement fails to start, the supervisor restarts the prior
 binary.
+
+When a release contains the frontend, Runtime, and native shell together, the
+desktop checks aggregate them into one update notification. Frontend and Runtime
+resources are downloaded and verified before activation; the Tauri updater
+downloads the shell package in the background but installs it only after the
+user selects the update action. Activation drains and probes the Runtime,
+reloads and confirms the frontend, then installs the shell and restarts the
+application. Component-only releases keep the same notification model without
+restarting the shell.
 
 ## Desktop Runtime boundary
 
