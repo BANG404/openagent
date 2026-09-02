@@ -552,19 +552,6 @@
     channelStatuses = Object.fromEntries(statuses.map((status) => [status.channel, status]));
   }
 
-  function channelStatusKey(state: ChannelStatus["state"] | undefined) {
-    switch (state) {
-      case "starting":
-        return "channelStarting";
-      case "connected":
-        return "channelConnected";
-      case "error":
-        return "channelError";
-      default:
-        return "channelDisabled";
-    }
-  }
-
   function parseChannelIds(value: string) {
     return value
       .split(/[\s,，]+/)
@@ -582,21 +569,6 @@
       wechatChannelMessage = `${error}`;
     } finally {
       wechatChannelBusy = false;
-    }
-  }
-
-  function wechatStatusKey(state: WechatChannelStatus["state"] | undefined) {
-    switch (state) {
-      case "starting":
-        return "wechatChannelStarting";
-      case "awaiting_scan":
-        return "wechatChannelAwaitingScan";
-      case "connected":
-        return "wechatChannelConnected";
-      case "error":
-        return "wechatChannelError";
-      default:
-        return "wechatChannelDisabled";
     }
   }
 
@@ -2020,9 +1992,6 @@
                   <p class="remote-gateway-subtitle">{$t("feishuChannelSubtitle")}</p>
                 </div>
                 <SettingsStatusToggle
-                  statusLabel={$t(channelStatusKey(channelStatuses.feishu?.state))}
-                  statusActive={channelStatuses.feishu?.state === "connected"}
-                  toggleLabel={$t("channelEnabled")}
                   bind:checked={draftConfig.channels!.feishu!.enabled}
                   ariaLabel={$t("channelEnabled")}
                 />
@@ -2073,9 +2042,6 @@
                   <p class="remote-gateway-subtitle">{$t("telegramChannelSubtitle")}</p>
                 </div>
                 <SettingsStatusToggle
-                  statusLabel={$t(channelStatusKey(channelStatuses.telegram?.state))}
-                  statusActive={channelStatuses.telegram?.state === "connected"}
-                  toggleLabel={$t("channelEnabled")}
                   bind:checked={draftConfig.channels!.telegram!.enabled}
                   ariaLabel={$t("channelEnabled")}
                 />
@@ -2111,9 +2077,6 @@
                   <p class="remote-gateway-subtitle">{$t("qqChannelSubtitle")}</p>
                 </div>
                 <SettingsStatusToggle
-                  statusLabel={$t(channelStatusKey(channelStatuses.qq?.state))}
-                  statusActive={channelStatuses.qq?.state === "connected"}
-                  toggleLabel={$t("channelEnabled")}
                   bind:checked={draftConfig.channels!.qq!.enabled}
                   ariaLabel={$t("channelEnabled")}
                 />
@@ -2154,9 +2117,6 @@
                   <p class="remote-gateway-subtitle">{$t("discordChannelSubtitle")}</p>
                 </div>
                 <SettingsStatusToggle
-                  statusLabel={$t(channelStatusKey(channelStatuses.discord?.state))}
-                  statusActive={channelStatuses.discord?.state === "connected"}
-                  toggleLabel={$t("channelEnabled")}
                   bind:checked={draftConfig.channels!.discord!.enabled}
                   ariaLabel={$t("channelEnabled")}
                 />
@@ -2191,9 +2151,6 @@
                   <p class="remote-gateway-subtitle">{$t("slackChannelSubtitle")}</p>
                 </div>
                 <SettingsStatusToggle
-                  statusLabel={$t(channelStatusKey(channelStatuses.slack?.state))}
-                  statusActive={channelStatuses.slack?.state === "connected"}
-                  toggleLabel={$t("channelEnabled")}
                   bind:checked={draftConfig.channels!.slack!.enabled}
                   ariaLabel={$t("channelEnabled")}
                 />
@@ -2235,9 +2192,6 @@
                   <p class="remote-gateway-subtitle">{$t("wechatChannelSubtitle")}</p>
                 </div>
                 <SettingsStatusToggle
-                  statusLabel={$t(wechatStatusKey(wechatChannelStatus?.state))}
-                  statusActive={wechatChannelStatus?.state === "connected"}
-                  toggleLabel={$t("wechatChannelEnabled")}
                   bind:checked={draftConfig.channels!.wechat.enabled}
                   ariaLabel={$t("wechatChannelEnabled")}
                 />
@@ -2294,11 +2248,6 @@
                   <p class="remote-gateway-subtitle">{$t("remoteGatewaySubtitle")}</p>
                 </div>
                 <SettingsStatusToggle
-                  statusLabel={draftConfig.remote_gateway.enabled
-                    ? $t("remoteGatewayRunning")
-                    : $t("remoteGatewayStopped")}
-                  statusActive={draftConfig.remote_gateway.enabled}
-                  toggleLabel={$t("remoteGatewayEnabled")}
                   bind:checked={draftConfig.remote_gateway.enabled}
                   ariaLabel={$t("remoteGatewayEnabled")}
                 />
@@ -2554,9 +2503,6 @@
           <div class="detail-top-bar">
             <span class="detail-service-name">{providerServiceName(selectedProvider)}</span>
             <SettingsStatusToggle
-              statusLabel={selectedProvider.enabled ? $t("filterEnabled") : $t("filterDisabled")}
-              statusActive={selectedProvider.enabled}
-              toggleLabel={$t("providerEnabled")}
               bind:checked={draftConfig.providers[selectedProviderIndex].enabled}
               disabled={modelLoading[selectedProvider.id]}
               onCheckedChange={(checked) => setProviderEnabled(selectedProvider.id, checked)}
@@ -3128,11 +3074,6 @@
                   <p>{$t("titleTaskDescription")}</p>
                 </div>
                 <SettingsStatusToggle
-                  statusLabel={$t(
-                    draftConfig.flash_agents.title.enabled ? "filterEnabled" : "filterDisabled",
-                  )}
-                  statusActive={draftConfig.flash_agents.title.enabled}
-                  toggleLabel={$t("taskEnabled")}
                   bind:checked={draftConfig.flash_agents.title.enabled}
                   ariaLabel={$t("titleAgentEnabled")}
                 />
@@ -3159,13 +3100,6 @@
                   <p>{$t("suggestionsTaskDescription")}</p>
                 </div>
                 <SettingsStatusToggle
-                  statusLabel={$t(
-                    draftConfig.flash_agents.suggestions.enabled
-                      ? "filterEnabled"
-                      : "filterDisabled",
-                  )}
-                  statusActive={draftConfig.flash_agents.suggestions.enabled}
-                  toggleLabel={$t("taskEnabled")}
                   bind:checked={draftConfig.flash_agents.suggestions.enabled}
                   ariaLabel={$t("suggestionsAgentEnabled")}
                 />
@@ -3192,11 +3126,6 @@
                   <p>{$t("memoryTaskDescription")}</p>
                 </div>
                 <SettingsStatusToggle
-                  statusLabel={$t(
-                    draftConfig.flash_agents.memory.enabled ? "filterEnabled" : "filterDisabled",
-                  )}
-                  statusActive={draftConfig.flash_agents.memory.enabled}
-                  toggleLabel={$t("taskEnabled")}
                   bind:checked={draftConfig.flash_agents.memory.enabled}
                   ariaLabel={$t("memoryAgentEnabled")}
                 />
@@ -3236,11 +3165,6 @@
                   <p>{$t("compactionTaskDescription")}</p>
                 </div>
                 <SettingsStatusToggle
-                  statusLabel={$t(
-                    draftConfig.context_compaction_enabled ? "filterEnabled" : "filterDisabled",
-                  )}
-                  statusActive={draftConfig.context_compaction_enabled}
-                  toggleLabel={$t("taskEnabled")}
                   bind:checked={draftConfig.context_compaction_enabled}
                   ariaLabel={$t("contextCompaction")}
                 />
@@ -3287,13 +3211,6 @@
                   <p>{$t("skillCategoryTaskDescription")}</p>
                 </div>
                 <SettingsStatusToggle
-                  statusLabel={$t(
-                    draftConfig.flash_agents.skill_category.enabled
-                      ? "filterEnabled"
-                      : "filterDisabled",
-                  )}
-                  statusActive={draftConfig.flash_agents.skill_category.enabled}
-                  toggleLabel={$t("taskEnabled")}
                   bind:checked={draftConfig.flash_agents.skill_category.enabled}
                   ariaLabel={$t("skillCategoryAgentEnabled")}
                 />
@@ -3320,11 +3237,6 @@
                   <p>{$t("hookTaskDescription")}</p>
                 </div>
                 <SettingsStatusToggle
-                  statusLabel={$t(
-                    draftConfig.flash_agents.hook.enabled ? "filterEnabled" : "filterDisabled",
-                  )}
-                  statusActive={draftConfig.flash_agents.hook.enabled}
-                  toggleLabel={$t("taskEnabled")}
                   bind:checked={draftConfig.flash_agents.hook.enabled}
                   ariaLabel={$t("hookAgentEnabled")}
                 />
@@ -3445,9 +3357,6 @@
           <div class="detail-top-bar">
             <span class="detail-service-name">{server.name || "Unnamed Server"}</span>
             <SettingsStatusToggle
-              statusLabel={server.enabled ? $t("filterEnabled") : $t("filterDisabled")}
-              statusActive={server.enabled}
-              toggleLabel={$t("mcpEnabled")}
               bind:checked={draftConfig.mcp.servers[selectedMcpIndex].enabled}
               disabled={status?.tone === "testing"}
               onCheckedChange={(checked) => setMcpEnabled(server.id, checked)}

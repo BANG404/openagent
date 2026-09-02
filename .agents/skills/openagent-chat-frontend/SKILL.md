@@ -1018,7 +1018,7 @@ transcript. Avoid remounts and UI state loss during reconciliation.
 - Keep the development-only `agents-settings-preview` query as the direct
   browser surface for Settings → Agent tasks. Its `-theme` and `-locale` query
   parameters must keep the grouped conversation-organization and background-
-  automation task cards, task status/toggle capsules, optional custom-instruction
+  automation task cards, switch-only task controls, optional custom-instruction
   disclosures, inset row dividers, light/dark themes, and Chinese/English copy
   addressable without native configuration. Keep memory subfeatures and the
   compaction threshold inside their owning task rows, and identify automatic
@@ -1046,10 +1046,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   width, and align standalone form-testing actions to the trailing edge. Keep
   informational callouts free of decorative borders and render destructive
   action rows on the neutral Mica surface without a danger-tinted perimeter or
-  background. Keep provider status text and its switch flat instead of wrapping
-  either in an additional gray capsule, and route provider filtering and node
-  deletion through the same shared settings-action control as neighboring
-  actions.
+  background. Settings enablement controls render only the switch; do not place
+  redundant enabled/disabled status text, status dots, or action labels beside
+  it, and preserve a localized accessible name on the switch itself. Route
+  provider filtering and node deletion through the same shared settings-action
+  control as neighboring actions.
 - Channel ID allowlists use the shared fixed-height settings list input. Keep
   resizing disabled and let long lists scroll vertically inside the control so
   every channel configuration retains the same layout height.
