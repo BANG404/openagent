@@ -109,6 +109,13 @@ local release commands. Read `sdk/AGENTS.md` for private SDK workflow changes.
   attached to the desktop draft and the remaining publication gates pass, then
   publish the desktop draft. Never rely on a tag pushed by `GITHUB_TOKEN` to
   trigger another workflow.
+  Before publishing the desktop draft, generate its body from the exact current
+  changelog section, `previousTag...tag` comparison, selected components, and
+  the assets attached to that draft. Native-shell releases must expose each
+  expected user installer as a described direct download and fail when one is
+  missing or duplicated; component-only releases must say installers are
+  unchanged. Keep signatures, updater metadata, and component resources out of
+  the user-facing download table.
   Publish only `@bang404/openagent-harness` to npm; keep the product TypeScript
   client private and distribute it only as pinned source or a checksummed
   development snapshot. The release-qualified server remains the executable

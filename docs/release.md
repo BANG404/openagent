@@ -278,12 +278,27 @@ Candidate construction and publication are separate phases:
 5. download and verify every selected candidate, upload its existing bytes, and
    generate one combined `latest.json` from the four verified native targets;
 6. submit the Store package only after the same gate, publish the staged SDK
-   release, and then publish the desktop draft;
-7. update fixed component channels and, for native-shell prereleases only, the
+   release, upload the desktop-to-SDK mapping, and generate the GitHub Release
+   body from the current changelog section and the assets actually attached to
+   the draft;
+7. publish the desktop draft only after its release body contains the exact
+   previous-tag comparison and every expected user-facing installer shortcut;
+8. update fixed component channels and, for native-shell prereleases only, the
    fixed Beta or RC `latest.json`;
-8. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published
+9. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published
    prerelease SHA when applicable;
-9. deploy the release landing page with the published tag.
+10. deploy the release landing page with the published tag.
+
+The published GitHub Release body embeds only the current version's generated
+`CHANGELOG.md` section, links the exact `previousTag...tag` comparison, and
+summarizes the selected frontend, Runtime, and native-shell components. When a
+release includes the native shell, it also provides direct, described download
+links for the lightweight and full Windows installers, Apple Silicon and Intel
+DMGs, and Linux AppImage, DEB, and RPM packages. Missing or duplicate expected
+installer assets stop publication. Component-only releases explicitly state
+that desktop installers are unchanged instead of linking an older installer.
+Signatures, updater manifests, and developer-facing component resources remain
+in the GitHub Assets list rather than the quick-download table.
 
 Release binaries use the repository's size-oriented Cargo profile: full link-time
 optimization, one codegen unit, size optimization, abort-on-panic, stripped

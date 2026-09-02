@@ -281,6 +281,9 @@ describe("release CI verification", () => {
     expect(sdkPublishJob).toContain("--mode publish");
     expect(publishJob).toContain("- publish-sdk-release");
     expect(publishJob).toContain("needs.publish-sdk-release.result == 'success'");
+    expect(publishJob).toContain("name: Generate release details and download shortcuts");
+    expect(publishJob).toContain("node scripts/release-notes.mjs");
+    expect(publishJob).toContain('--notes-file "$RUNNER_TEMP/release-notes.md"');
     expect(prepareReleaseWorkflow).toContain("- rc");
     expect(prepareReleaseWorkflow).toContain("--promote-rc=$RC_TAG");
     expect(releaseWorkflow).toContain("release/rc/**");

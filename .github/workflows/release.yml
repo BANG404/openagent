@@ -1111,6 +1111,10 @@ jobs:
       && needs.publish-sdk-release.result == 'success'
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+
       - name: Upload desktop-to-SDK release mapping
         env:
           GH_TOKEN: ${{ github.token }}
@@ -1150,13 +1154,33 @@ jobs:
             }' > openagent-desktop-manifest.json
           gh release upload "$RELEASE_TAG" openagent-desktop-manifest.json --clobber
 
+      - name: Generate release details and download shortcuts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+        shell: bash
+        run: |
+          gh release view "$RELEASE_TAG" --json assets --jq '[.assets[].name]' \
+            > "$RUNNER_TEMP/release-assets.json"
+          node scripts/release-notes.mjs \
+            --manifest .github/release.json \
+            --changelog CHANGELOG.md \
+            --assets "$RUNNER_TEMP/release-assets.json" \
+            --repository "$GH_REPO" \
+            --output "$RUNNER_TEMP/release-notes.md"
+
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.detect.outputs.tag }}
           PRERELEASE: ${{ needs.detect.outputs.prerelease }}
-        run: gh release edit "$RELEASE_TAG" --draft=false --prerelease="$PRERELEASE"
+        run: >-
+          gh release edit "$RELEASE_TAG"
+          --notes-file "$RUNNER_TEMP/release-notes.md"
+          --draft=false
+          --prerelease="$PRERELEASE"
 
       - name: Update signed runtime component channel
         if: needs.publish-runtime-components.result == 'success'
