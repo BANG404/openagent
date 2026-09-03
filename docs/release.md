@@ -106,7 +106,9 @@ the runner; maintainers reproduce or qualify those changes after review.
 
 Runtime-selected desktop releases build the pinned `openagent-server` for all
 four desktop targets and upload only those release-qualified binaries with a detached
-Minisign signature over their manifest. After the versioned release is public,
+Minisign signature over their manifest. The Windows server binary embeds the
+same product icon as the desktop shell, including when used as the packaged
+fallback sidecar. After the versioned release is public,
 the same six files are atomically replaced on the fixed `runtime-beta`,
 `runtime-rc`, or `runtime-stable` release channel. The runtime channel uses
 the Tauri updater trust root, while each artifact's declared size and SHA-256
