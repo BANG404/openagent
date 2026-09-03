@@ -425,6 +425,9 @@
   let pendingForkMessageId = $state<Record<string, string | null>>({});
   // The selected branch head paired with the fork parent and message identity.
   let pendingForkSourceCheckpointId = $state<Record<string, string>>({});
+  // Keep the optimistic fork transcript authoritative until its user message
+  // appears in the durable selected branch.
+  let pendingForkUserMessageIds = $state<Record<string, string>>({});
   // A branch is the user-visible linear history. A checkpoint is only a
   // recoverable provider-request snapshot and may advance several times while
   // this value remains unchanged.
@@ -867,7 +870,11 @@
     if (idx !== -1) {
       const visible = conversations[idx].messages;
       const msgs = chatStreams.streamingConversationIds[convId]
-        ? preserveStreamingMessagesDuringHydration(visible, hydratedMessages)
+        ? preserveStreamingMessagesDuringHydration(
+            visible,
+            hydratedMessages,
+            pendingForkUserMessageIds[convId],
+          )
         : preserveMessagesAddedDuringHydration(visible, hydratedMessages, messageIdsAtStart);
       // A normal completed turn is already represented by the client-side
       // stream finalizer. Keep those message instances when only checkpoint
@@ -2975,6 +2982,7 @@
       const { [conv_id]: _pp, ...restPp } = pendingParentCk;
       const { [conv_id]: _pf, ...restPf } = pendingForkMessageId;
       const { [conv_id]: _pfs, ...restPfs } = pendingForkSourceCheckpointId;
+      const { [conv_id]: _pfu, ...restPfu } = pendingForkUserMessageIds;
       const { [conv_id]: _asstId, ...restAsstIds } = chatStreams.assistantMessageIds;
       chatStreams.itemsByConversation = restItems;
       chatStreams.streamingConversationIds = restStreaming;
@@ -2982,6 +2990,7 @@
       pendingParentCk = restPp;
       pendingForkMessageId = restPf;
       pendingForkSourceCheckpointId = restPfs;
+      pendingForkUserMessageIds = restPfu;
       chatStreams.assistantMessageIds = restAsstIds;
       return;
     }
@@ -3028,6 +3037,10 @@
     if (conv_id in pendingForkSourceCheckpointId) {
       const { [conv_id]: _pfs, ...restPfs } = pendingForkSourceCheckpointId;
       pendingForkSourceCheckpointId = restPfs;
+    }
+    if (conv_id in pendingForkUserMessageIds) {
+      const { [conv_id]: _pfu, ...restPfu } = pendingForkUserMessageIds;
+      pendingForkUserMessageIds = restPfu;
     }
 
     chatStreams.cleanup(conv_id);
@@ -3354,6 +3367,7 @@
       const { [id]: _p, ...rp } = pendingParentCk;
       const { [id]: _pf, ...rpf } = pendingForkMessageId;
       const { [id]: _pfs, ...rpfs } = pendingForkSourceCheckpointId;
+      const { [id]: _pfu, ...rpfu } = pendingForkUserMessageIds;
       const { [id]: _a, ...ra } = chatStreams.assistantMessageIds;
       const { [id]: _awaiting, ...restAwaiting } = chatStreams.awaitingOutput;
       const { [id]: _memoryStage, ...restMemoryStages } = chatStreams.memoryRetrievalStages;
@@ -3365,6 +3379,7 @@
       pendingParentCk = rp;
       pendingForkMessageId = rpf;
       pendingForkSourceCheckpointId = rpfs;
+      pendingForkUserMessageIds = rpfu;
       chatStreams.assistantMessageIds = ra;
       chatStreams.awaitingOutput = restAwaiting;
       chatStreams.memoryRetrievalStages = restMemoryStages;
@@ -3590,6 +3605,9 @@
       typeof forkedFromMessageId === "string" &&
       typeof forkSourceCheckpointId === "string" &&
       (await externalRuntimeTransport);
+    if (useRuntimeFork) {
+      pendingForkUserMessageIds = { ...pendingForkUserMessageIds, [convId]: userMsg.id };
+    }
     // Embedded diagnostics still need an explicit branch id. The ordinary
     // external Runtime owns branch creation and route selection atomically.
     const branchId = useRuntimeFork
@@ -3658,9 +3676,11 @@
         const { [convId]: _pp, ...restPp } = pendingParentCk;
         const { [convId]: _pf, ...restPf } = pendingForkMessageId;
         const { [convId]: _pfs, ...restPfs } = pendingForkSourceCheckpointId;
+        const { [convId]: _pfu, ...restPfu } = pendingForkUserMessageIds;
         pendingParentCk = restPp;
         pendingForkMessageId = restPf;
         pendingForkSourceCheckpointId = restPfs;
+        pendingForkUserMessageIds = restPfu;
         const errMsg: ChatMessage = {
           id: crypto.randomUUID(),
           role: "assistant",
@@ -4066,7 +4086,11 @@
           .get(path)
           ?.find((conversation) => conversation.id === activeConversationId)?.messages ?? [];
       const hydratedMessages = chatStreams.streamingConversationIds[activeConversationId]
-        ? preserveStreamingMessagesDuringHydration(cachedMessages, pendingProjection.messages)
+        ? preserveStreamingMessagesDuringHydration(
+            cachedMessages,
+            pendingProjection.messages,
+            pendingForkUserMessageIds[activeConversationId],
+          )
         : pendingProjection.messages;
       preparedConversations = prepareWorkspaceConversationSnapshot(
         preparedConversations,

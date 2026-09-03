@@ -39,13 +39,21 @@ export function preserveMessagesAddedDuringHydration(
 
 /**
  * A workspace switch can revisit a conversation while its current Turn is
- * still streaming. Its optimistic user input predates the new hydration, but
- * must remain visible until the terminal checkpoint includes that message.
+ * still streaming. Keep its optimistic input visible, and keep a fork's whole
+ * visible projection authoritative until the durable branch contains the new
+ * fork message instead of the abandoned branch suffix.
  */
 export function preserveStreamingMessagesDuringHydration(
   visible: ChatMessage[],
   hydrated: ChatMessage[],
+  pendingForkUserMessageId?: string,
 ): ChatMessage[] {
+  if (
+    pendingForkUserMessageId &&
+    !hydrated.some((message) => message.id === pendingForkUserMessageId)
+  ) {
+    return visible;
+  }
   return preserveMessagesAddedDuringHydration(visible, hydrated, new Set());
 }
 
