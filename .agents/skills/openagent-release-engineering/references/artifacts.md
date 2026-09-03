@@ -17,7 +17,9 @@
   exact bytes through `externalBin`.
 - Use `bun run tauri:build` for release builds so generated helper digests reach
   Cargo. Keep the release Cargo profile size-oriented and audit installer size,
-  not generated `target/` contents.
+  not generated `target/` contents. The ordinary desktop build must leave the
+  `embedded-runtime` Cargo feature disabled; only the explicit embedded
+  diagnostic may link the in-process Runtime command adapter.
 - Treat the ordinary Tauri build as the lightweight installer and sole updater
   input. Build the full first-install overlay separately, upload its renamed
   manual installer without updater metadata, and keep its embedding seed out of

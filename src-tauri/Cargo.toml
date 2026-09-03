@@ -12,6 +12,10 @@ members = ["."]
 default-members = ["."]
 resolver = "2"
 
+[features]
+default = []
+embedded-runtime = []
+
 [profile.release]
 codegen-units = 1
 lto = true
@@ -39,6 +43,11 @@ tauri = { git = "https://github.com/tauri-apps/tauri", rev = "08acfb3fa04945a6a4
 name = "openagent_lib"
 path = "src/lib.rs"
 crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "openagent-agent-server"
+path = "src/bin/openagent-agent-server.rs"
+required-features = ["embedded-runtime"]
 
 [build-dependencies]
 cc = "1"

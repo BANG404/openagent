@@ -22,6 +22,7 @@ if (embeddedRuntime) {
     throw new Error("--embedded-runtime is available only with tauri dev");
   }
   arguments_ = arguments_.filter((argument) => argument !== "--embedded-runtime");
+  arguments_.push("--features", "embedded-runtime");
   environment.OPENAGENT_RUNTIME_MODE = "embedded";
   console.log("Using the explicit embedded development Runtime");
 }

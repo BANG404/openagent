@@ -10,6 +10,11 @@ const windowsHelper = readFileSync(
   new URL("../scripts/prepare-windows-sandbox-helpers.mjs", import.meta.url),
   "utf8",
 );
+const cargoManifest = readFileSync(new URL("../src-tauri/Cargo.toml", import.meta.url), "utf8");
+const tauriLauncher = readFileSync(new URL("../scripts/tauri.mjs", import.meta.url), "utf8");
+const packageManifest = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+);
 const linuxHelper = readFileSync(
   new URL("../scripts/prepare-linux-sandbox-helper.mjs", import.meta.url),
   "utf8",
@@ -54,5 +59,13 @@ describe("sandbox helper packaging", () => {
     expect(windowsTauriConfig.bundle.resources).toEqual({
       "resources/codex-resources/": "codex-resources/",
     });
+  });
+
+  test("keeps embedded Runtime code out of ordinary desktop binaries", () => {
+    expect(cargoManifest).toContain("default = []");
+    expect(cargoManifest).toContain("embedded-runtime = []");
+    expect(cargoManifest).toContain('required-features = ["embedded-runtime"]');
+    expect(tauriLauncher).toContain('arguments_.push("--features", "embedded-runtime")');
+    expect(packageManifest.scripts["dev:agent-server"]).toContain("--features embedded-runtime");
   });
 });

@@ -10,7 +10,9 @@ The Tauri debug build defaults to the separate `~/.openagent-dev` root so a
 development configuration schema cannot rewrite state used by an installed
 release. Its ordinary startup uses the same supervised external Runtime boundary
 as production. `bun run tauri:dev:embedded` is an explicit Runtime-local
-diagnostic mode and is never an automatic startup fallback. Set `OPENAGENT_HOME`
+diagnostic mode and is never an automatic startup fallback. That command enables
+the compile-time `embedded-runtime` feature; ordinary debug and release desktop
+binaries exclude the embedded Runtime bootstrap and command adapter. Set `OPENAGENT_HOME`
 explicitly when a development run should use a specific fixture or deliberately
 share another root.
 

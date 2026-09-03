@@ -153,6 +153,9 @@ Ordinary `bun tauri dev` startup must use the prepared debug
 `openagent-server` through the same supervisor, authenticated proxy, Runtime
 asset protocol, and SSE resync path as release startup. Keep embedded Runtime
 composition behind the explicit `bun run tauri:dev:embedded` diagnostic command;
+that command alone enables the `embedded-runtime` Cargo feature. Keep the feature
+disabled by default so ordinary debug and release shell binaries do not retain
+the embedded Runtime bootstrap or product command adapter in their linked image.
 external startup failure must remain visible instead of selecting it
 automatically. Both modes use the isolated development data root unless
 `OPENAGENT_HOME` explicitly selects a task fixture.

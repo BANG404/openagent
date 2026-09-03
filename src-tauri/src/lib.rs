@@ -1,41 +1,57 @@
+#[cfg(all(debug_assertions, feature = "embedded-runtime"))]
+use openagent_app::bootstrap_development_runtime as bootstrap_product_runtime;
+#[cfg(all(not(debug_assertions), feature = "embedded-runtime"))]
+use openagent_app::bootstrap_runtime as bootstrap_product_runtime;
 use openagent_app::{
-    apply_persistence_transition, load_embedding_model, EmbeddingResourceManager,
-    ExternalRuntimeLaunch, InstalledRuntimeResource, PersistenceTransitionPlan,
-    RuntimeResourceManager, RuntimeResourceSource,
+    apply_persistence_transition, ExternalRuntimeLaunch, InstalledRuntimeResource,
+    PersistenceTransitionPlan, RuntimeResourceManager, RuntimeResourceSource,
 };
+#[cfg(feature = "embedded-runtime")]
+use openagent_app::{load_embedding_model, EmbeddingResourceManager};
 #[cfg(debug_assertions)]
 use openagent_app::{
-    bootstrap_development_runtime as bootstrap_product_runtime,
     pending_development_persistence_transition as pending_product_persistence_transition,
     prepare_development_external_runtime_launch as prepare_product_external_runtime_launch,
 };
 #[cfg(not(debug_assertions))]
 use openagent_app::{
-    bootstrap_runtime as bootstrap_product_runtime,
     pending_persistence_transition as pending_product_persistence_transition,
     prepare_external_runtime_launch as prepare_product_external_runtime_launch,
 };
+#[cfg(feature = "embedded-runtime")]
 use openagent_runtime::checkpoint::{
     BranchMeta, ChatTaskUsage, CheckpointMeta, ConvPatch, ConversationMeta, FileChange,
     RenderableCheckpoint, TaskTrace,
 };
+#[cfg(feature = "embedded-runtime")]
 use openagent_runtime::commands::*;
+use openagent_runtime::commands::{
+    finish_child_workspace_window_shutdown, is_parent_controlled_workspace_window_process,
+    is_workspace_window_process, request_child_workspace_window_shutdown,
+};
+#[cfg(feature = "embedded-runtime")]
 use openagent_runtime::config::{
     Config, DefaultModelBinding, McpServerConfig, ReasoningEffort, RecentWorkspace,
 };
+#[cfg(feature = "embedded-runtime")]
 use openagent_runtime::conversation_memory::{
     AgentMemoryEntry, AgentRole, ConversationPage, ConversationPageCursor,
 };
+#[cfg(feature = "embedded-runtime")]
 use openagent_runtime::skills::SkillMetadata;
+#[cfg(feature = "embedded-runtime")]
 use openagent_runtime::state::{
     EmbeddingResourceStatus, HtmlPreviewRoots, OpenAgentRuntime, RuntimeAsset, RuntimeHost,
     ScheduledChatHookDefinition,
 };
+#[cfg(feature = "embedded-runtime")]
 use openagent_runtime::tools::ScheduleChatHookArgs;
+use openagent_runtime::tracing_setup;
+#[cfg(feature = "embedded-runtime")]
 use openagent_runtime::{
-    html_preview_protocol, mcp, tools, tracing_setup, AgentInputRequest, ChatModelBinding,
-    CommandSpec, CreateConversationRequest, InputError, ResolvedInput, ResumeInterruptRequest,
-    RuntimeBootstrap, SubmissionOutcome, SubmitInterruptResponseRequest, UserMessageContext,
+    html_preview_protocol, mcp, tools, AgentInputRequest, ChatModelBinding, CommandSpec,
+    CreateConversationRequest, InputError, ResolvedInput, ResumeInterruptRequest, RuntimeBootstrap,
+    SubmissionOutcome, SubmitInterruptResponseRequest, UserMessageContext,
 };
 use std::sync::Arc;
 use tauri::{path::BaseDirectory, Emitter, Manager, State};
@@ -99,16 +115,20 @@ const DESKTOP_CHILD_PROCESS_STOP_TIMEOUT: std::time::Duration = std::time::Durat
 
 struct HostRuntimeBootstrap {
     initial_locale: String,
+    #[cfg(feature = "embedded-runtime")]
     runtime: Option<Arc<OpenAgentRuntime>>,
+    #[cfg(feature = "embedded-runtime")]
     html_preview_roots: HtmlPreviewRoots,
     external_launch: Option<ExternalRuntimeLaunch>,
 }
 
+#[cfg(feature = "embedded-runtime")]
 struct EmbeddedRuntimeState(Option<Arc<OpenAgentRuntime>>);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum DesktopRuntimeMode {
     External,
+    #[cfg(feature = "embedded-runtime")]
     Embedded,
 }
 
@@ -116,7 +136,13 @@ enum DesktopRuntimeMode {
 fn parse_development_runtime_mode(value: Option<&str>) -> Result<DesktopRuntimeMode, String> {
     match value.map(str::trim) {
         None | Some("") | Some("external") => Ok(DesktopRuntimeMode::External),
+        #[cfg(feature = "embedded-runtime")]
         Some("embedded") => Ok(DesktopRuntimeMode::Embedded),
+        #[cfg(not(feature = "embedded-runtime"))]
+        Some("embedded") => Err(
+            "OPENAGENT_RUNTIME_MODE=embedded requires the embedded-runtime Cargo feature"
+                .to_string(),
+        ),
         Some(value) => Err(format!(
             "OPENAGENT_RUNTIME_MODE must be 'external' or 'embedded', got '{value}'"
         )),
@@ -125,7 +151,10 @@ fn parse_development_runtime_mode(value: Option<&str>) -> Result<DesktopRuntimeM
 
 fn desktop_runtime_mode(agent_server: bool) -> anyhow::Result<DesktopRuntimeMode> {
     if agent_server {
+        #[cfg(feature = "embedded-runtime")]
         return Ok(DesktopRuntimeMode::Embedded);
+        #[cfg(not(feature = "embedded-runtime"))]
+        anyhow::bail!("the legacy agent server requires the embedded-runtime Cargo feature");
     }
 
     #[cfg(debug_assertions)]
@@ -146,6 +175,7 @@ fn desktop_runtime_mode(agent_server: bool) -> anyhow::Result<DesktopRuntimeMode
 
 fn prepare_host_runtime(agent_server: bool) -> anyhow::Result<HostRuntimeBootstrap> {
     match desktop_runtime_mode(agent_server)? {
+        #[cfg(feature = "embedded-runtime")]
         DesktopRuntimeMode::Embedded => {
             let RuntimeBootstrap {
                 initial_locale,
@@ -163,7 +193,9 @@ fn prepare_host_runtime(agent_server: bool) -> anyhow::Result<HostRuntimeBootstr
             let launch = prepare_product_external_runtime_launch()?;
             Ok(HostRuntimeBootstrap {
                 initial_locale: launch.initial_locale.clone(),
+                #[cfg(feature = "embedded-runtime")]
                 runtime: None,
+                #[cfg(feature = "embedded-runtime")]
                 html_preview_roots: Default::default(),
                 external_launch: Some(launch),
             })
@@ -189,10 +221,13 @@ mod runtime_mode_tests {
 
     #[test]
     fn embedded_runtime_requires_an_explicit_valid_mode() {
+        #[cfg(feature = "embedded-runtime")]
         assert_eq!(
             parse_development_runtime_mode(Some("embedded")).unwrap(),
             DesktopRuntimeMode::Embedded
         );
+        #[cfg(not(feature = "embedded-runtime"))]
+        assert!(parse_development_runtime_mode(Some("embedded")).is_err());
         assert!(parse_development_runtime_mode(Some("fallback")).is_err());
     }
 }
@@ -322,6 +357,7 @@ fn bundled_embedding_seed(app: &tauri::AppHandle) -> Option<std::path::PathBuf> 
 }
 
 #[tauri::command]
+#[cfg(feature = "embedded-runtime")]
 async fn get_embedding_resource_status(
     runtime: State<'_, EmbeddedRuntimeState>,
 ) -> Result<EmbeddingResourceStatus, String> {
@@ -334,6 +370,7 @@ async fn get_embedding_resource_status(
 }
 
 #[tauri::command]
+#[cfg(feature = "embedded-runtime")]
 async fn prepare_embedding_resource(
     runtime: State<'_, EmbeddedRuntimeState>,
 ) -> Result<EmbeddingResourceStatus, String> {
@@ -763,6 +800,13 @@ fn apply_native_window_material(window: &tauri::WebviewWindow) {
 
 // Keep the flat arguments aligned with the existing typed Tauri command contract.
 #[allow(clippy::too_many_arguments)]
+#[cfg(feature = "embedded-runtime")]
+macro_rules! embedded_runtime_items {
+    ($($item:item)*) => { $($item)* };
+}
+
+#[cfg(feature = "embedded-runtime")]
+embedded_runtime_items! {
 #[tauri::command]
 async fn submit_agent_input(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
@@ -919,6 +963,8 @@ async fn reset_wechat_channel(runtime: State<'_, Arc<OpenAgentRuntime>>) -> Resu
     openagent_runtime::channels::reset_wechat_channel(runtime.state()).await
 }
 
+}
+
 fn diagnostic_event_name(value: &str) -> &'static str {
     match value {
         "frontend_uncaught_error" => "frontend_uncaught_error",
@@ -979,6 +1025,9 @@ fn report_frontend_diagnostic(event_name: String, component: String, error_kind:
         "frontend operation failed"
     );
 }
+
+#[cfg(feature = "embedded-runtime")]
+embedded_runtime_items! {
 
 #[tauri::command]
 async fn set_default_chat_model(
@@ -1386,11 +1435,14 @@ async fn get_skills_dir(
     openagent_runtime::commands::get_skills_dir(scope, runtime.state()).await
 }
 
+}
+
 async fn resolve_desktop_open_path(
     path: String,
-    embedded_runtime: Option<&OpenAgentRuntime>,
+    #[cfg(feature = "embedded-runtime")] embedded_runtime: Option<&OpenAgentRuntime>,
     supervisor: &RuntimeProcessSupervisor,
 ) -> Result<String, String> {
+    #[cfg(feature = "embedded-runtime")]
     if let Some(runtime) = embedded_runtime {
         return openagent_runtime::commands::resolve_open_path(path, runtime.state()).await;
     }
@@ -1420,6 +1472,7 @@ async fn resolve_desktop_open_path(
 }
 
 #[tauri::command]
+#[cfg(feature = "embedded-runtime")]
 async fn open_path(
     path: String,
     app_handle: tauri::AppHandle,
@@ -1441,16 +1494,30 @@ async fn open_path(
 }
 
 #[tauri::command]
+#[cfg(not(feature = "embedded-runtime"))]
+async fn open_path(
+    path: String,
+    app_handle: tauri::AppHandle,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+
+    let resolved = resolve_desktop_open_path(path, supervisor.inner()).await?;
+    app_handle
+        .opener()
+        .open_path(resolved, None::<&str>)
+        .map_err(|error| error.to_string())
+}
+
+#[cfg(feature = "embedded-runtime")]
+embedded_runtime_items! {
+
+#[tauri::command]
 async fn read_html_preview_file(
     path: String,
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<HtmlPreviewFile, String> {
     openagent_runtime::commands::read_html_preview_file(path, runtime.state()).await
-}
-
-#[tauri::command]
-async fn read_text_file(path: String) -> Result<String, String> {
-    openagent_runtime::commands::read_text_file(path).await
 }
 
 #[tauri::command]
@@ -1486,6 +1553,13 @@ async fn resolve_workspace_media_source(
     Ok(source)
 }
 
+}
+
+#[tauri::command]
+async fn read_text_file(path: String) -> Result<String, String> {
+    openagent_runtime::commands::read_text_file(path).await
+}
+
 #[tauri::command]
 async fn save_download_file(
     filename: String,
@@ -1494,6 +1568,9 @@ async fn save_download_file(
 ) -> Result<String, String> {
     openagent_runtime::commands::save_download_file(filename, content, encoding).await
 }
+
+#[cfg(feature = "embedded-runtime")]
+embedded_runtime_items! {
 
 #[tauri::command]
 async fn get_mcp_servers(
@@ -1515,10 +1592,15 @@ async fn test_mcp_server(server: McpServerConfig) -> Result<mcp::McpProbeResult,
     openagent_runtime::commands::test_mcp_server(server).await
 }
 
+}
+
 #[tauri::command]
 fn get_system_locale() -> String {
     openagent_runtime::commands::get_system_locale()
 }
+
+#[cfg(feature = "embedded-runtime")]
+embedded_runtime_items! {
 
 #[tauri::command]
 async fn list_workspace_files(
@@ -1834,6 +1916,8 @@ async fn read_attachment_preview(
     openagent_runtime::commands::read_attachment_preview(runtime.state(), locator, name).await
 }
 
+}
+
 #[tauri::command]
 fn restart_app(app: tauri::AppHandle) {
     app.restart();
@@ -2080,11 +2164,13 @@ fn reveal_main_window(
 }
 
 #[tauri::command]
+#[cfg(feature = "embedded-runtime")]
 async fn get_remote_gateway_status() -> Result<RemoteGatewayStatus, String> {
     openagent_runtime::commands::get_remote_gateway_status().await
 }
 
 #[tauri::command]
+#[cfg(feature = "embedded-runtime")]
 async fn rotate_remote_gateway_pairing_code() -> Result<String, String> {
     openagent_runtime::commands::rotate_remote_gateway_pairing_code().await
 }
@@ -2110,6 +2196,7 @@ async fn resolve_wsl_workspace(
 }
 
 #[tauri::command]
+#[cfg(feature = "embedded-runtime")]
 async fn get_startup_bootstrap(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<StartupBootstrap, String> {
@@ -2117,6 +2204,7 @@ async fn get_startup_bootstrap(
 }
 
 #[tauri::command]
+#[cfg(feature = "embedded-runtime")]
 async fn set_workspace(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     path: Option<String>,
@@ -2125,6 +2213,7 @@ async fn set_workspace(
 }
 
 #[tauri::command]
+#[cfg(feature = "embedded-runtime")]
 async fn get_workspace_context(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<WorkspaceContext, String> {
@@ -2132,6 +2221,7 @@ async fn get_workspace_context(
 }
 
 #[tauri::command]
+#[cfg(feature = "embedded-runtime")]
 fn get_workspace_launch_context() -> WorkspaceLaunchContext {
     openagent_runtime::commands::get_workspace_launch_context()
 }
@@ -2158,6 +2248,7 @@ fn create_workspace_window(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[cfg(feature = "embedded-runtime")]
 async fn submit_quick_chat(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     workspace: String,
@@ -2180,6 +2271,7 @@ async fn submit_quick_chat(
 }
 
 #[tauri::command]
+#[cfg(feature = "embedded-runtime")]
 async fn get_conversation_workspace(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
@@ -2187,12 +2279,14 @@ async fn get_conversation_workspace(
     openagent_runtime::commands::get_conversation_workspace(runtime.state(), conv_id).await
 }
 
+#[cfg(feature = "embedded-runtime")]
 struct TauriRuntimeHost {
     app: tauri::AppHandle,
     embedding_resource: EmbeddingResourceManager,
     embedding_seed: Option<std::path::PathBuf>,
 }
 
+#[cfg(feature = "embedded-runtime")]
 #[async_trait::async_trait]
 impl RuntimeHost for TauriRuntimeHost {
     fn translate(&self, key: &str, fallback: &str) -> String {
@@ -2513,12 +2607,15 @@ fn run_with_mode(agent_server: bool) {
     let is_workspace_window = is_workspace_window_process();
     let HostRuntimeBootstrap {
         initial_locale,
+        #[cfg(feature = "embedded-runtime")]
         runtime,
+        #[cfg(feature = "embedded-runtime")]
         html_preview_roots,
         external_launch,
     } = prepare_host_runtime(agent_server)
         .unwrap_or_else(|error| panic!("Failed to initialize OpenAgent runtime: {error:#}"));
 
+    #[cfg(feature = "embedded-runtime")]
     let protocol_roots = html_preview_roots;
     let frontend_manager = frontend_resource_manager()
         .unwrap_or_else(|error| panic!("Failed to initialize frontend resources: {error}"));
@@ -2569,16 +2666,17 @@ fn run_with_mode(agent_server: bool) {
         builder
     };
 
+    #[cfg(feature = "embedded-runtime")]
+    let builder = builder.register_asynchronous_uri_scheme_protocol(
+        html_preview_protocol::SCHEME,
+        move |_context, request, responder| {
+            let roots = protocol_roots.clone();
+            tauri::async_runtime::spawn(async move {
+                responder.respond(html_preview_protocol::serve(request, roots).await);
+            });
+        },
+    );
     let builder = builder
-        .register_asynchronous_uri_scheme_protocol(
-            html_preview_protocol::SCHEME,
-            move |_context, request, responder| {
-                let roots = protocol_roots.clone();
-                tauri::async_runtime::spawn(async move {
-                    responder.respond(html_preview_protocol::serve(request, roots).await);
-                });
-            },
-        )
         .register_asynchronous_uri_scheme_protocol(
             frontend_resource::FRONTEND_SCHEME,
             move |_context, request, responder| {
@@ -2645,13 +2743,15 @@ fn run_with_mode(agent_server: bool) {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init());
+    #[cfg(feature = "embedded-runtime")]
     let builder = if let Some(runtime) = runtime.clone() {
         builder.manage(runtime)
     } else {
         builder
     };
-    builder
-        .manage(EmbeddedRuntimeState(runtime.clone()))
+    #[cfg(feature = "embedded-runtime")]
+    let builder = builder.manage(EmbeddedRuntimeState(runtime.clone()));
+    let builder = builder
         .manage(runtime_supervisor)
         .manage(RuntimeEventProxy::default())
         .manage(RuntimeUpdateState::default())
@@ -2667,6 +2767,7 @@ fn run_with_mode(agent_server: bool) {
             // .setup() callback runs on the main thread which is not a Tokio worker
             // thread, so we use block_on to enter the runtime context before calling it.
             tauri::async_runtime::block_on(async {
+                #[cfg(feature = "embedded-runtime")]
                 let diagnostic_logs_enabled = if let Some(runtime) = runtime.as_ref() {
                     runtime
                         .state()
@@ -2679,6 +2780,10 @@ fn run_with_mode(agent_server: bool) {
                         .map(|config| config.diagnostic_log_collection_enabled)
                         .unwrap_or(true)
                 };
+                #[cfg(not(feature = "embedded-runtime"))]
+                let diagnostic_logs_enabled = openagent_runtime::config::load_config()
+                    .map(|config| config.diagnostic_log_collection_enabled)
+                    .unwrap_or(true);
                 tracing_setup::set_diagnostic_log_collection_enabled(diagnostic_logs_enabled);
                 tracing_setup::init_tracing_with_service_version(env!("CARGO_PKG_VERSION"));
             });
@@ -2730,6 +2835,7 @@ fn run_with_mode(agent_server: bool) {
             #[cfg(debug_assertions)]
             {
                 if !is_workspace_window {
+                    #[cfg(feature = "embedded-runtime")]
                     if let Some(runtime) = runtime.as_ref() {
                         let result = tauri::async_runtime::block_on(async {
                             start_dev_api(runtime.clone())
@@ -2807,6 +2913,7 @@ fn run_with_mode(agent_server: bool) {
             // Embedded development and the legacy headless Tauri entry point
             // retain their in-process host adapter. Ordinary release desktop
             // processes have already started the sole external Runtime above.
+            #[cfg(feature = "embedded-runtime")]
             if let Some(runtime) = runtime.as_ref() {
                 let _ = runtime.set_host(Arc::new(TauriRuntimeHost {
                     app: app.handle().clone(),
@@ -2904,142 +3011,171 @@ fn run_with_mode(agent_server: bool) {
             }
 
             Ok(())
-        })
-        .invoke_handler(tauri::generate_handler![
-            get_settings,
-            get_embedding_resource_status,
-            prepare_embedding_resource,
-            prepare_runtime_resource,
-            activate_runtime_resource,
-            runtime_transport_mode,
-            proxy_runtime_request,
-            start_runtime_event_proxy,
-            stop_runtime_event_proxy,
-            prepare_frontend_resource,
-            activate_frontend_resource,
-            confirm_frontend_activation,
-            save_settings,
-            get_channel_statuses,
-            get_wechat_channel_status,
-            reset_wechat_channel,
-            report_frontend_diagnostic,
-            set_default_chat_model,
-            set_model_reasoning_effort,
-            test_provider_connection,
-            fetch_provider_models,
-            get_chatgpt_auth_status,
-            logout_chatgpt,
-            set_workspace,
-            get_workspace_context,
-            get_remote_gateway_status,
-            rotate_remote_gateway_pairing_code,
-            list_wsl_distributions,
-            get_wsl_home,
-            resolve_wsl_workspace,
-            get_startup_bootstrap,
-            get_workspace_launch_context,
-            open_workspace_window,
-            create_workspace_window,
-            submit_quick_chat,
-            get_conversation_workspace,
-            clear_conversation,
-            submit_agent_input,
-            get_agent_commands,
-            resolve_agent_input,
-            debug_create_context_compaction_diagnostic,
-            resume_interrupted_chat,
-            cancel_chat_message,
-            set_chat_stream_paused,
-            skip_memory_retrieval,
-            set_chat_queue_pending,
-            debug_disconnect_model_requests,
-            inspector_database_overview,
-            inspector_table_data,
-            trigger_memory_agent,
-            get_memory_status,
-            trigger_flash_agent,
-            get_flash_status,
-            list_scheduled_chat_hooks,
-            cancel_scheduled_chat_hook,
-            schedule_chat_hook,
-            update_scheduled_chat_hook,
-            get_memory,
-            save_memory,
-            export_memory_backup,
-            import_memory_backup,
-            clear_memory,
-            get_agent_memories,
-            delete_agent_memory,
-            list_agent_roles,
-            list_agent_roles_for_workspace,
-            save_agent_role,
-            delete_agent_role,
-            list_project_drafts,
-            ensure_project_drafts_dir,
-            get_project_draft,
-            save_project_draft,
-            delete_project_draft,
-            get_design_document,
-            save_design_document,
-            get_system_locale,
-            list_skills,
-            list_agent_plugins,
-            install_agent_plugin,
-            uninstall_agent_plugin,
-            get_skill_content,
-            save_skill_content,
-            create_skill,
-            delete_skill,
-            get_skills_dir,
-            open_path,
-            read_html_preview_file,
-            read_text_file,
-            read_workspace_text_snippet,
-            resolve_workspace_media_source,
-            save_download_file,
-            get_mcp_servers,
-            save_mcp_servers,
-            test_mcp_server,
-            refresh_mcp_servers,
-            get_conversations,
-            get_conversation_page,
-            get_conversation_meta,
-            get_child_conversations,
-            create_conversation,
-            update_conversation,
-            create_branch,
-            get_branches,
-            set_branch_head,
-            delete_conversation,
-            get_chat_task_usages,
-            get_task_traces,
-            get_latest_checkpoint,
-            get_checkpoint_metas,
-            get_renderable_checkpoints,
-            rollback_to_checkpoint,
-            restore_agent_history,
-            get_file_changes,
-            revert_file_change,
-            revert_file_change_keep,
-            apply_file_change_forward,
-            submit_interrupt_response,
-            save_workspace_prefs,
-            set_active_conversation,
-            get_active_conv_id,
-            set_active_branch_tip,
-            get_active_branch_tip,
-            list_workspace_files,
-            save_pasted_attachment,
-            materialize_attachment_blob,
-            repair_attachment_blob,
-            repair_attachment_blob_content,
-            read_attachment_preview,
-            restart_app,
-            quit_app,
-            is_desktop_window_active,
-            reveal_main_window,
-            reveal_onboarding_window,
-        ])
+        });
+    #[cfg(feature = "embedded-runtime")]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        get_settings,
+        get_embedding_resource_status,
+        prepare_embedding_resource,
+        prepare_runtime_resource,
+        activate_runtime_resource,
+        runtime_transport_mode,
+        proxy_runtime_request,
+        start_runtime_event_proxy,
+        stop_runtime_event_proxy,
+        prepare_frontend_resource,
+        activate_frontend_resource,
+        confirm_frontend_activation,
+        save_settings,
+        get_channel_statuses,
+        get_wechat_channel_status,
+        reset_wechat_channel,
+        report_frontend_diagnostic,
+        set_default_chat_model,
+        set_model_reasoning_effort,
+        test_provider_connection,
+        fetch_provider_models,
+        get_chatgpt_auth_status,
+        logout_chatgpt,
+        set_workspace,
+        get_workspace_context,
+        get_remote_gateway_status,
+        rotate_remote_gateway_pairing_code,
+        list_wsl_distributions,
+        get_wsl_home,
+        resolve_wsl_workspace,
+        get_startup_bootstrap,
+        get_workspace_launch_context,
+        open_workspace_window,
+        create_workspace_window,
+        submit_quick_chat,
+        get_conversation_workspace,
+        clear_conversation,
+        submit_agent_input,
+        get_agent_commands,
+        resolve_agent_input,
+        debug_create_context_compaction_diagnostic,
+        resume_interrupted_chat,
+        cancel_chat_message,
+        set_chat_stream_paused,
+        skip_memory_retrieval,
+        set_chat_queue_pending,
+        debug_disconnect_model_requests,
+        inspector_database_overview,
+        inspector_table_data,
+        trigger_memory_agent,
+        get_memory_status,
+        trigger_flash_agent,
+        get_flash_status,
+        list_scheduled_chat_hooks,
+        cancel_scheduled_chat_hook,
+        schedule_chat_hook,
+        update_scheduled_chat_hook,
+        get_memory,
+        save_memory,
+        export_memory_backup,
+        import_memory_backup,
+        clear_memory,
+        get_agent_memories,
+        delete_agent_memory,
+        list_agent_roles,
+        list_agent_roles_for_workspace,
+        save_agent_role,
+        delete_agent_role,
+        list_project_drafts,
+        ensure_project_drafts_dir,
+        get_project_draft,
+        save_project_draft,
+        delete_project_draft,
+        get_design_document,
+        save_design_document,
+        get_system_locale,
+        list_skills,
+        list_agent_plugins,
+        install_agent_plugin,
+        uninstall_agent_plugin,
+        get_skill_content,
+        save_skill_content,
+        create_skill,
+        delete_skill,
+        get_skills_dir,
+        open_path,
+        read_html_preview_file,
+        read_text_file,
+        read_workspace_text_snippet,
+        resolve_workspace_media_source,
+        save_download_file,
+        get_mcp_servers,
+        save_mcp_servers,
+        test_mcp_server,
+        refresh_mcp_servers,
+        get_conversations,
+        get_conversation_page,
+        get_conversation_meta,
+        get_child_conversations,
+        create_conversation,
+        update_conversation,
+        create_branch,
+        get_branches,
+        set_branch_head,
+        delete_conversation,
+        get_chat_task_usages,
+        get_task_traces,
+        get_latest_checkpoint,
+        get_checkpoint_metas,
+        get_renderable_checkpoints,
+        rollback_to_checkpoint,
+        restore_agent_history,
+        get_file_changes,
+        revert_file_change,
+        revert_file_change_keep,
+        apply_file_change_forward,
+        submit_interrupt_response,
+        save_workspace_prefs,
+        set_active_conversation,
+        get_active_conv_id,
+        set_active_branch_tip,
+        get_active_branch_tip,
+        list_workspace_files,
+        save_pasted_attachment,
+        materialize_attachment_blob,
+        repair_attachment_blob,
+        repair_attachment_blob_content,
+        read_attachment_preview,
+        restart_app,
+        quit_app,
+        is_desktop_window_active,
+        reveal_main_window,
+        reveal_onboarding_window,
+    ]);
+    #[cfg(not(feature = "embedded-runtime"))]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        prepare_runtime_resource,
+        activate_runtime_resource,
+        runtime_transport_mode,
+        proxy_runtime_request,
+        start_runtime_event_proxy,
+        stop_runtime_event_proxy,
+        prepare_frontend_resource,
+        activate_frontend_resource,
+        confirm_frontend_activation,
+        report_frontend_diagnostic,
+        list_wsl_distributions,
+        get_wsl_home,
+        resolve_wsl_workspace,
+        open_workspace_window,
+        create_workspace_window,
+        get_system_locale,
+        open_path,
+        read_text_file,
+        save_download_file,
+        restart_app,
+        quit_app,
+        is_desktop_window_active,
+        reveal_main_window,
+        reveal_onboarding_window,
+    ]);
+    builder
         .run(context)
         .expect("error while running tauri application");
 
@@ -3095,6 +3231,7 @@ mod tests {
         assert!(!foreground_belongs_to_desktop_window(false, None, 42));
     }
 
+    #[cfg(feature = "embedded-runtime")]
     #[test]
     fn bundled_embedding_model_runs_offline() {
         let model_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -3120,6 +3257,7 @@ mod tests {
             .all(|component| component.is_finite()));
     }
 
+    #[cfg(feature = "embedded-runtime")]
     #[test]
     fn bundled_embedding_seed_installs_the_persistent_resource() {
         let seed = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -3143,6 +3281,7 @@ mod tests {
         std::fs::remove_dir_all(fixture).expect("embedding fixture should be removable");
     }
 
+    #[cfg(feature = "embedded-runtime")]
     #[test]
     #[ignore = "requires GitHub access and downloads the 23.7 MB embedding resource"]
     fn embedding_resource_downloads_and_loads_from_github() {

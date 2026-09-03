@@ -33,7 +33,7 @@
     "test:agent-runtime": "cargo test --manifest-path sdk/rust/openagent-runtime/Cargo.toml",
     "test:harness-integration": "bun scripts/test-harness-integration.mjs",
     "check:harness-openapi": "bun run --cwd sdk/harness-typescript check:openapi",
-    "dev:agent-server": "cargo run --manifest-path src-tauri/Cargo.toml --bin openagent-agent-server",
+    "dev:agent-server": "cargo run --manifest-path src-tauri/Cargo.toml --features embedded-runtime --bin openagent-agent-server",
     "dev:agent-input-api": "cargo run --manifest-path sdk/rust/openagent-runtime/Cargo.toml --features test-api --bin openagent-runtime-test-api -- --port 0",
     "format:rust:check": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check",
     "lint:rust": "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings",
