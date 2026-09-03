@@ -131,6 +131,7 @@ describe("desktop conversation branches", () => {
 
     expect(reexecuteSource).toContain("if (!(await externalRuntimeTransport))");
     expect(dispatchSource).toContain("openAgent.forkRemoteConversationRun");
+    expect(dispatchSource).toContain("sourceCheckpointId: forkSourceCheckpointId");
     expect(switchSource).toContain("openAgent.switchRemoteConversationBranch");
     expect(switchSource).toContain("getActiveTipNode(updatedTree)?.ckId");
     expect(pageSource).not.toContain("branches.at(-1)");

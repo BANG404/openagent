@@ -423,6 +423,8 @@
   let pendingParentCk = $state<Record<string, string | null>>({});
   // The durable user-message identity at which a re-executed branch forks.
   let pendingForkMessageId = $state<Record<string, string | null>>({});
+  // The selected branch head paired with the fork parent and message identity.
+  let pendingForkSourceCheckpointId = $state<Record<string, string>>({});
   // A branch is the user-visible linear history. A checkpoint is only a
   // recoverable provider-request snapshot and may advance several times while
   // this value remains unchanged.
@@ -1358,6 +1360,8 @@
     // id; its parent is the exact history prefix before the edited turn.
     const newSiblingParentCk = findForkParentCheckpointId(convTrees[convId], userMsg.id);
     if (newSiblingParentCk === undefined) return;
+    const forkSourceCheckpointId = getActiveTipNode(convTrees[convId])?.ckId;
+    if (!forkSourceCheckpointId) return;
 
     if (!(await externalRuntimeTransport)) {
       try {
@@ -1387,6 +1391,10 @@
     // Tell finalize: attach the new turn as a sibling under newSiblingParentCk.
     pendingParentCk = { ...pendingParentCk, [convId]: newSiblingParentCk };
     pendingForkMessageId = { ...pendingForkMessageId, [convId]: userMsg.id };
+    pendingForkSourceCheckpointId = {
+      ...pendingForkSourceCheckpointId,
+      [convId]: forkSourceCheckpointId,
+    };
     selectComposerDraft(conversationComposerDraftKey(convId));
     activeComposerDraft.text = text;
     activeComposerDraft.attachments = resendAttachments;
@@ -2966,12 +2974,14 @@
       const { [conv_id]: _ck, ...restCk } = pendingCheckpointIds;
       const { [conv_id]: _pp, ...restPp } = pendingParentCk;
       const { [conv_id]: _pf, ...restPf } = pendingForkMessageId;
+      const { [conv_id]: _pfs, ...restPfs } = pendingForkSourceCheckpointId;
       const { [conv_id]: _asstId, ...restAsstIds } = chatStreams.assistantMessageIds;
       chatStreams.itemsByConversation = restItems;
       chatStreams.streamingConversationIds = restStreaming;
       pendingCheckpointIds = restCk;
       pendingParentCk = restPp;
       pendingForkMessageId = restPf;
+      pendingForkSourceCheckpointId = restPfs;
       chatStreams.assistantMessageIds = restAsstIds;
       return;
     }
@@ -3014,6 +3024,10 @@
     if (conv_id in pendingForkMessageId) {
       const { [conv_id]: _pf, ...restPf } = pendingForkMessageId;
       pendingForkMessageId = restPf;
+    }
+    if (conv_id in pendingForkSourceCheckpointId) {
+      const { [conv_id]: _pfs, ...restPfs } = pendingForkSourceCheckpointId;
+      pendingForkSourceCheckpointId = restPfs;
     }
 
     chatStreams.cleanup(conv_id);
@@ -3339,6 +3353,7 @@
       const { [id]: _c, ...rc } = pendingCheckpointIds;
       const { [id]: _p, ...rp } = pendingParentCk;
       const { [id]: _pf, ...rpf } = pendingForkMessageId;
+      const { [id]: _pfs, ...rpfs } = pendingForkSourceCheckpointId;
       const { [id]: _a, ...ra } = chatStreams.assistantMessageIds;
       const { [id]: _awaiting, ...restAwaiting } = chatStreams.awaitingOutput;
       const { [id]: _memoryStage, ...restMemoryStages } = chatStreams.memoryRetrievalStages;
@@ -3349,6 +3364,7 @@
       pendingCheckpointIds = rc;
       pendingParentCk = rp;
       pendingForkMessageId = rpf;
+      pendingForkSourceCheckpointId = rpfs;
       chatStreams.assistantMessageIds = ra;
       chatStreams.awaitingOutput = restAwaiting;
       chatStreams.memoryRetrievalStages = restMemoryStages;
@@ -3568,9 +3584,11 @@
       parentCheckpointId = tip?.checkpointId ?? null;
     }
     const forkedFromMessageId = pendingForkMessageId[convId];
+    const forkSourceCheckpointId = pendingForkSourceCheckpointId[convId];
     const useRuntimeFork =
       convId in pendingParentCk &&
       typeof forkedFromMessageId === "string" &&
+      typeof forkSourceCheckpointId === "string" &&
       (await externalRuntimeTransport);
     // Embedded diagnostics still need an explicit branch id. The ordinary
     // external Runtime owns branch creation and route selection atomically.
@@ -3586,10 +3604,13 @@
 
     // Fire and forget — global listeners handle chunk/checkpoint/done events
     const submission =
-      useRuntimeFork && typeof forkedFromMessageId === "string"
+      useRuntimeFork &&
+      typeof forkedFromMessageId === "string" &&
+      typeof forkSourceCheckpointId === "string"
         ? openAgent.forkRemoteConversationRun({
             convId,
             text,
+            sourceCheckpointId: forkSourceCheckpointId,
             parentCheckpointId,
             forkedFromMessageId,
             attachments: attachments.map((attachment) => ({
@@ -3634,6 +3655,12 @@
         });
       })
       .catch((err: unknown) => {
+        const { [convId]: _pp, ...restPp } = pendingParentCk;
+        const { [convId]: _pf, ...restPf } = pendingForkMessageId;
+        const { [convId]: _pfs, ...restPfs } = pendingForkSourceCheckpointId;
+        pendingParentCk = restPp;
+        pendingForkMessageId = restPf;
+        pendingForkSourceCheckpointId = restPfs;
         const errMsg: ChatMessage = {
           id: crypto.randomUUID(),
           role: "assistant",

@@ -23,6 +23,7 @@
     ckIdsAlongActivePath,
     computeActivePath,
     findForkParentCheckpointId,
+    getActiveTipNode,
     ROOT_KEY,
     selectActivePathToCheckpoint,
     type ConvTree,
@@ -776,6 +777,8 @@
     if (!userMessage || userMessage.role !== "user") return;
     const parentCheckpointId = findForkParentCheckpointId(activeTree, userMessage.id);
     if (parentCheckpointId === undefined) return;
+    const sourceCheckpointId = getActiveTipNode(activeTree)?.ckId;
+    if (!sourceCheckpointId) return;
     const normalizedText = text.trim();
     if (!normalizedText && sourceAttachments.length === 0 && sourceContexts.length === 0) return;
 
@@ -800,6 +803,7 @@
       await client.forkRemoteConversationRun({
         convId: conversation.conv_id,
         text: normalizedText,
+        sourceCheckpointId,
         parentCheckpointId,
         forkedFromMessageId: userMessage.id,
         attachments: sourceAttachments.map((attachment) => ({

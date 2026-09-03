@@ -808,10 +808,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   same SDK Runtime operations as the paired browser. The Runtime must atomically
   own branch creation, selected checkpoint restoration, provider history, and
   file-change reversal or replay; the page must not recreate that transition
-  from independent desktop commands. Derive the selected durable tip from the
-  active checkpoint-tree node, resolve branch identity only by an exact head
-  match, and clear a cached branch id when no exact match exists. Never guess
-  from branch creation order or pass a null checkpoint to the active-tip command.
+  from independent desktop commands. Freeze the selected branch-head checkpoint
+  together with the edited message and its fork parent, and send all three in
+  the Runtime fork request so validation cannot drift to a separately changing
+  active tip. Derive the selected durable tip from the active checkpoint-tree
+  node, resolve branch identity only by an exact head match, and clear a cached
+  branch id when no exact match exists. Never guess from branch creation order
+  or pass a null checkpoint to the active-tip command.
 
 ## Quick chat
 
