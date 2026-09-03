@@ -93,6 +93,7 @@ export function classifyChangedModules(files, forceAll = false) {
         ".github/",
         "scripts/",
         "docs/release.md",
+        "docs/release/",
         "package.json",
         "bun.lock",
       ]),

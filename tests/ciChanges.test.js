@@ -198,6 +198,13 @@ describe("CI module classification", () => {
     expect(classifyChangedModules(["README.md", "docs/design.md"])).toEqual(nothing);
   });
 
+  test("routes modular release documentation through automation checks", () => {
+    expect(classifyChangedModules(["docs/release/publishing.md"])).toEqual({
+      ...nothing,
+      automation: true,
+    });
+  });
+
   test("can force a complete run when no reliable base commit exists", () => {
     expect(classifyChangedModules([], true)).toEqual({
       automation: true,
