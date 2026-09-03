@@ -802,10 +802,16 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the same index marker.
 - Do not render approval controls for a switched branch until its active tip is
   durable.
-- Reset the cached active branch id whenever a branch switch or hydration cannot
-  match the new tip to a persisted branch record (the new tip is null or has no
-  branch with that head checkpoint). Leaving the previous branch id in place
-  would make the next send, approval, or resume target the wrong branch.
+- Reset the cached active branch id whenever a branch switch or hydration
+  selects a tip with no matching branch record. Leaving the previous branch id
+  in place would make the next send, approval, or resume target the wrong
+  branch. When the new tip is null (the user is sitting on a fresh sibling
+  before its first message) keep the previous branch id so the next send can
+  derive its parent branch from the visual tree.
+- `ensureActiveBranch` must not fall back to the most-recently created branch
+  when the current visual tip has no assistant checkpoint. That fallback would
+  attach a brand-new sibling's first message to the previous root branch
+  instead of creating a sibling branch under it.
 
 ## Quick chat
 

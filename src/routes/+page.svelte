@@ -838,23 +838,22 @@
     mergeDurableFollowUpSuggestions(checkpoints);
     let tree = buildTreeFromCheckpoints(checkpoints, convTrees[convId]);
     if (savedTip) tree = selectActivePathToCheckpoint(tree, savedTip);
-    const nextActiveBranchIds = { ...activeBranchIds };
     if (savedTip) {
       const activeBranch = branches.find((branch) => branch.head_checkpoint_id === savedTip);
       if (activeBranch) {
-        nextActiveBranchIds[convId] = activeBranch.id;
+        activeBranchIds = { ...activeBranchIds, [convId]: activeBranch.id };
       } else {
-        // The hydrated tip is not the head of any persisted branch. Drop the
-        // stale branch id so subsequent sends and approvals do not target the
-        // previous branch.
-        delete nextActiveBranchIds[convId];
+        // The hydrated tip exists but is not the head of any persisted branch.
+        // Drop the stale branch id so subsequent sends and approvals do not
+        // target the previous branch.
+        const next = { ...activeBranchIds };
+        delete next[convId];
+        activeBranchIds = next;
       }
-    } else {
-      // No assistant checkpoint is selected yet. Drop the stale branch id so
-      // the next send derives its parent branch from the visual tree.
-      delete nextActiveBranchIds[convId];
     }
-    activeBranchIds = nextActiveBranchIds;
+    // When savedTip is null the user is sitting on a fresh sibling before its
+    // first message. Keep the previous branch id so the next send can derive
+    // its parent branch from the visual tree.
     convTrees = { ...convTrees, [convId]: tree };
     const pendingProjection = restorePendingUserInputFromCheckpoint(
       convId,
@@ -1074,8 +1073,13 @@
       const tip = [...(convTrees[convId] ? computeActivePath(convTrees[convId]) : [])]
         .reverse()
         .find((message) => message.role === "assistant" && message.checkpointId)?.checkpointId;
-      const existing =
-        branches.find((branch) => branch.head_checkpoint_id === tip) ?? branches.at(-1);
+      // Only fall back to the most-recently created branch when we have a
+      // real assistant checkpoint at the current tip. Without a tip the user
+      // is on a brand-new sibling and the next send must derive its parent
+      // branch from the visual tree rather than the previous root branch.
+      const existing = tip
+        ? (branches.find((branch) => branch.head_checkpoint_id === tip) ?? branches.at(-1))
+        : undefined;
       if (existing) {
         activeBranchIds = { ...activeBranchIds, [convId]: existing.id };
         return existing.id;
@@ -1495,7 +1499,6 @@
         convId,
         checkpointId: savedTip ?? null,
       });
-      const nextActiveBranchIds = { ...activeBranchIds };
       if (savedTip) {
         const branches = await invoke<Array<{ id: string; head_checkpoint_id: string | null }>>(
           "get_branches",
@@ -1503,20 +1506,19 @@
         ).catch(() => []);
         const branch = branches.find((item) => item.head_checkpoint_id === savedTip);
         if (branch) {
-          nextActiveBranchIds[convId] = branch.id;
+          activeBranchIds = { ...activeBranchIds, [convId]: branch.id };
         } else {
           // The newly-selected branch tip is not the head of any persisted
           // branch record. Drop the stale branch id so subsequent sends and
           // approvals do not continue targeting the previous branch.
-          delete nextActiveBranchIds[convId];
+          const next = { ...activeBranchIds };
+          delete next[convId];
+          activeBranchIds = next;
         }
-      } else {
-        // No assistant checkpoint sits at the new branch tip (e.g. a fresh
-        // sibling before the next message). Drop the stale branch id so the
-        // next send derives its parent branch from the visual tree.
-        delete nextActiveBranchIds[convId];
       }
-      activeBranchIds = nextActiveBranchIds;
+      // When savedTip is null the user is sitting on a fresh sibling before
+      // its first message. Keep the previous branch id so the next send can
+      // derive its parent branch from the visual tree.
     }
     convTrees = { ...convTrees, [convId]: updatedTree };
     conversations[convIdx] = {
