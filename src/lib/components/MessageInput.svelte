@@ -500,18 +500,19 @@
         : $t("paletteNoFiles"),
   );
 
-  $effect(() => {
-    if (textareaEl && !value) {
-      textareaEl.style.height = "auto";
-    }
-  });
-
   function resizeTextarea(element: HTMLTextAreaElement | null = textareaEl) {
     if (!element) return;
     const minHeight = Number.parseFloat(getComputedStyle(element).minHeight) || 0;
-    element.style.height = "auto";
+    element.style.height = `${minHeight}px`;
     element.style.height = `${Math.min(Math.max(element.scrollHeight, minHeight), 200)}px`;
   }
+
+  $effect(() => {
+    const draftValue = value;
+    void tick().then(() => {
+      if (textareaEl?.value === draftValue) resizeTextarea();
+    });
+  });
 
   function syncPaletteAvailableHeight() {
     if (!composerEl) return;
@@ -899,6 +900,7 @@
     {/if}
     <textarea
       class="input"
+      rows="1"
       {placeholder}
       bind:value
       bind:this={textareaEl}

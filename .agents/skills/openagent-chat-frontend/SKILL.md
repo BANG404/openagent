@@ -426,9 +426,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   clear another conversation's pending composer state. Write the active reactive
   draft back to its keyed store before swapping the composer to another draft;
   retaining only the pre-proxy source object loses edits made through bindings.
-  Synchronize the textarea's measured height on mount, before the first edit,
-  and clamp input-driven measurements to its CSS minimum so the first typed
-  character cannot resize or move the composer.
+  Synchronize the single-row textarea's measured height on mount, before the
+  first edit. Start every measurement from its CSS minimum instead of `auto`,
+  then clamp the content height to that minimum so an empty restored draft and
+  its first typed character cannot resize or move the composer across browser
+  engines.
 - Reuse one attachment preview component in composer and restored transcript.
 - Open attachment previews in the same full-window visual frame used by rich
   Mermaid and book previews: center the attachment within the framed canvas and
