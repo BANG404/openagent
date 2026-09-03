@@ -838,12 +838,23 @@
     mergeDurableFollowUpSuggestions(checkpoints);
     let tree = buildTreeFromCheckpoints(checkpoints, convTrees[convId]);
     if (savedTip) tree = selectActivePathToCheckpoint(tree, savedTip);
+    const nextActiveBranchIds = { ...activeBranchIds };
     if (savedTip) {
       const activeBranch = branches.find((branch) => branch.head_checkpoint_id === savedTip);
       if (activeBranch) {
-        activeBranchIds = { ...activeBranchIds, [convId]: activeBranch.id };
+        nextActiveBranchIds[convId] = activeBranch.id;
+      } else {
+        // The hydrated tip is not the head of any persisted branch. Drop the
+        // stale branch id so subsequent sends and approvals do not target the
+        // previous branch.
+        delete nextActiveBranchIds[convId];
       }
+    } else {
+      // No assistant checkpoint is selected yet. Drop the stale branch id so
+      // the next send derives its parent branch from the visual tree.
+      delete nextActiveBranchIds[convId];
     }
+    activeBranchIds = nextActiveBranchIds;
     convTrees = { ...convTrees, [convId]: tree };
     const pendingProjection = restorePendingUserInputFromCheckpoint(
       convId,
@@ -1476,17 +1487,36 @@
     const savedTip = [...branchMessages]
       .reverse()
       .find((message) => message.role === "assistant" && message.checkpointId)?.checkpointId;
-    if (tauriAvailable && savedTip) {
+    if (tauriAvailable) {
       // Do not expose an approval card until its durable selected tip and
       // branch id are aligned. The resume command uses these values to reject
       // approvals aimed at a different branch.
-      await invoke("set_active_branch_tip", { convId, checkpointId: savedTip });
-      const branches = await invoke<Array<{ id: string; head_checkpoint_id: string | null }>>(
-        "get_branches",
-        { convId },
-      ).catch(() => []);
-      const branch = branches.find((item) => item.head_checkpoint_id === savedTip);
-      if (branch) activeBranchIds = { ...activeBranchIds, [convId]: branch.id };
+      await invoke("set_active_branch_tip", {
+        convId,
+        checkpointId: savedTip ?? null,
+      });
+      const nextActiveBranchIds = { ...activeBranchIds };
+      if (savedTip) {
+        const branches = await invoke<Array<{ id: string; head_checkpoint_id: string | null }>>(
+          "get_branches",
+          { convId },
+        ).catch(() => []);
+        const branch = branches.find((item) => item.head_checkpoint_id === savedTip);
+        if (branch) {
+          nextActiveBranchIds[convId] = branch.id;
+        } else {
+          // The newly-selected branch tip is not the head of any persisted
+          // branch record. Drop the stale branch id so subsequent sends and
+          // approvals do not continue targeting the previous branch.
+          delete nextActiveBranchIds[convId];
+        }
+      } else {
+        // No assistant checkpoint sits at the new branch tip (e.g. a fresh
+        // sibling before the next message). Drop the stale branch id so the
+        // next send derives its parent branch from the visual tree.
+        delete nextActiveBranchIds[convId];
+      }
+      activeBranchIds = nextActiveBranchIds;
     }
     convTrees = { ...convTrees, [convId]: updatedTree };
     conversations[convIdx] = {

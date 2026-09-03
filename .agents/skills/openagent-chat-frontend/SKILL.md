@@ -802,6 +802,10 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   the same index marker.
 - Do not render approval controls for a switched branch until its active tip is
   durable.
+- Reset the cached active branch id whenever a branch switch or hydration cannot
+  match the new tip to a persisted branch record (the new tip is null or has no
+  branch with that head checkpoint). Leaving the previous branch id in place
+  would make the next send, approval, or resume target the wrong branch.
 
 ## Quick chat
 
