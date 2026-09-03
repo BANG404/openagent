@@ -71,12 +71,18 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   WebView, shared chrome, feature canvases, and conversation workspace at one
   consistent 30%-opaque theme tint over the Rust-owned Mica/Acrylic/Blur or
   macOS Vibrancy effect, leaving roughly 70% of the native material visible.
-  Content-bearing controls and cards paint their own surfaces. Browser
-  previews retain the opaque theme canvas, and the quick-chat transparent stage
-  keeps its separate contract. Serialize native theme changes so rapid Settings
-  previews cannot complete out of order. Returning to the system theme must
-  clear the native override before resolving the WebView media preference,
-  because the previous native override can still influence that query.
+  Linux has no Rust-owned native material, so the route must not add the
+  `native-window-material` class on Linux; otherwise the body becomes
+  transparent and the WebView's default gray background leaks through the
+  tinted chrome. On Linux the chrome and canvas keep the opaque theme
+  background while still sharing the same component geometry and surface
+  tokens as the other platforms. Content-bearing controls and cards paint
+  their own surfaces. Browser previews retain the opaque theme canvas, and
+  the quick-chat transparent stage keeps its separate contract. Serialize
+  native theme changes so rapid Settings previews cannot complete out of
+  order. Returning to the system theme must clear the native override before
+  resolving the WebView media preference, because the previous native override
+  can still influence that query.
   The conversation surface owns transcript/composer
   composition, Goal/Graph panel presentation, and chat renderer theme overrides.
   Pass each surface a deliberate view model and action contract instead of

@@ -10,6 +10,7 @@
   import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
   import { onMount, tick, untrack } from "svelte";
   import type { Component } from "svelte";
+  import { detectWindowPlatform } from "$lib/windowPlatform";
 
   // Lazy-loaded feature views expose different prop contracts; each render site
   // below remains checked against the concrete component after loading.
@@ -459,7 +460,14 @@
     }
   }
 
-  const usesNativeWindowMaterial = tauriAvailable && !isQuickChatSurface && !isDevInspectorWindow;
+  // Linux has no Rust-owned native material (only Windows uses Mica/Acrylic and macOS uses
+  // NSVisualEffectMaterial), so applying the native-window-material class would turn the
+  // body transparent and expose the WebView's default gray background.
+  const usesNativeWindowMaterial =
+    tauriAvailable &&
+    detectWindowPlatform() !== "linux" &&
+    !isQuickChatSurface &&
+    !isDevInspectorWindow;
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
   const completionWindowActivity = tauriAvailable
     ? { isFocused: () => invoke<boolean>("is_desktop_window_active") }
