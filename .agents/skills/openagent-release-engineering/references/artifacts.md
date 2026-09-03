@@ -8,7 +8,9 @@
   conflicts with the backend selected by `tauri-plugin-dialog`.
 - Build platform sandbox helpers from the Codex revision pinned by the SDK.
   Never reset or overwrite a divergent SDK checkout automatically, and never
-  mix library, setup-helper, and command-runner revisions.
+  mix library, setup-helper, and command-runner revisions. Keep any compiler
+  warning override narrowly scoped to that third-party helper build; native
+  host and SDK warnings remain errors.
 - Windows bundles both sandbox helpers only through the Windows Tauri config
   and produces NSIS plus updater artifacts, not WiX. Linux strips
   `codex-bwrap`, embeds its SHA-256 at release compilation, and packages those

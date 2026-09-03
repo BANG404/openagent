@@ -123,7 +123,13 @@ export async function prepareLinuxSandboxHelper({
       "--target-dir",
       resolvedTargetDirectory,
     ],
-    { stdio: "inherit" },
+    {
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        CFLAGS: [process.env.CFLAGS, "-Wno-missing-field-initializers"].filter(Boolean).join(" "),
+      },
+    },
   );
 
   const builtHelper = path.join(resolvedTargetDirectory, targetTriple, profileDirectory, "bwrap");
