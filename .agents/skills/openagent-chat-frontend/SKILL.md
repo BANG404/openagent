@@ -91,6 +91,11 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   controller. The page shell coordinates durable conversation/checkpoint data
   with that controller, but must not recreate parallel maps for streaming,
   pause, timing, awaiting-output, or memory-retrieval state.
+- Accept and retain the durable `terminal_poll` message tag during checkpoint
+  restore and reconciliation. Tagged temporary terminal results and Agent
+  output are ordinary visible transcript records; the runtime alone decides
+  which polling rounds are omitted from an active provider request and restores
+  the complete chain after terminal completion or kill.
 - Completed messages and the active response share one keyed, fully mounted
   transcript list. Do not reintroduce viewport virtualization or row-height
   estimation: restored and live rows stay mounted so loading and scrolling do

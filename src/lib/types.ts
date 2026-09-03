@@ -91,6 +91,7 @@ export interface ChatMessage {
 
 export type AgentMessageTag =
   | "context_compaction"
+  | "terminal_poll"
   | "goal_bootstrap"
   | "graph_bootstrap"
   | "goal_continuation"
