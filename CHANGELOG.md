@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.54.0-beta.1] - 2026-09-02
+
+### Features
+- **updater**: Aggregate component updates
+
+### Bug Fixes
+- **sidebar**: Clarify child conversation hierarchy
+- **chat**: Provide ids for compact requests
+- **chat**: Add spacing before response metadata
+- **desktop**: Reduce terminal io pressure
+- **settings**: Show enablement switches without labels
+- **release**: Defer sdk publication until desktop gate
+
+### Performance
+- **windows**: Optimize rust development io
+
+### Miscellaneous
+- Standardize worktree preparation
+
 ## [0.53.1-beta.2] - 2026-09-02
 
 ## [0.53.1-beta.1] - 2026-09-01

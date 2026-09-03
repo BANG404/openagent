@@ -10,6 +10,7 @@
   import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
   import { onMount, tick, untrack } from "svelte";
   import type { Component } from "svelte";
+  import { detectWindowPlatform } from "$lib/windowPlatform";
 
   // Lazy-loaded feature views expose different prop contracts; each render site
   // below remains checked against the concrete component after loading.
@@ -422,6 +423,11 @@
   let pendingParentCk = $state<Record<string, string | null>>({});
   // The durable user-message identity at which a re-executed branch forks.
   let pendingForkMessageId = $state<Record<string, string | null>>({});
+  // The selected branch head paired with the fork parent and message identity.
+  let pendingForkSourceCheckpointId = $state<Record<string, string>>({});
+  // Keep the optimistic fork transcript authoritative until its user message
+  // appears in the durable selected branch.
+  let pendingForkUserMessageIds = $state<Record<string, string>>({});
   // A branch is the user-visible linear history. A checkpoint is only a
   // recoverable provider-request snapshot and may advance several times while
   // this value remains unchanged.
@@ -436,6 +442,11 @@
   let streamCompletionTailAnchor = $state<{ convId: string; token: number } | null>(null);
   let streamCompletionTailAnchorSequence = 0;
   const tauriAvailable = isTauri();
+  const externalRuntimeTransport = tauriAvailable
+    ? invoke<"embedded" | "external">("runtime_transport_mode")
+        .then((mode) => mode === "external")
+        .catch(() => false)
+    : Promise.resolve(false);
 
   async function refreshTaskUsagesForConversation(convId: string): Promise<void> {
     if (!tauriAvailable) return;
@@ -459,7 +470,14 @@
     }
   }
 
-  const usesNativeWindowMaterial = tauriAvailable && !isQuickChatSurface && !isDevInspectorWindow;
+  // Linux has no Rust-owned native material (only Windows uses Mica/Acrylic and macOS uses
+  // NSVisualEffectMaterial), so applying the native-window-material class would turn the
+  // body transparent and expose the WebView's default gray background.
+  const usesNativeWindowMaterial =
+    tauriAvailable &&
+    detectWindowPlatform() !== "linux" &&
+    !isQuickChatSurface &&
+    !isDevInspectorWindow;
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
   const completionWindowActivity = tauriAvailable
     ? { isFocused: () => invoke<boolean>("is_desktop_window_active") }
@@ -830,12 +848,11 @@
     mergeDurableFollowUpSuggestions(checkpoints);
     let tree = buildTreeFromCheckpoints(checkpoints, convTrees[convId]);
     if (savedTip) tree = selectActivePathToCheckpoint(tree, savedTip);
-    if (savedTip) {
-      const activeBranch = branches.find((branch) => branch.head_checkpoint_id === savedTip);
-      if (activeBranch) {
-        activeBranchIds = { ...activeBranchIds, [convId]: activeBranch.id };
-      }
-    }
+    const activeBranch = branches.find((branch) => branch.head_checkpoint_id === savedTip);
+    const nextActiveBranchIds = { ...activeBranchIds };
+    if (activeBranch) nextActiveBranchIds[convId] = activeBranch.id;
+    else delete nextActiveBranchIds[convId];
+    activeBranchIds = nextActiveBranchIds;
     convTrees = { ...convTrees, [convId]: tree };
     const pendingProjection = restorePendingUserInputFromCheckpoint(
       convId,
@@ -853,7 +870,11 @@
     if (idx !== -1) {
       const visible = conversations[idx].messages;
       const msgs = chatStreams.streamingConversationIds[convId]
-        ? preserveStreamingMessagesDuringHydration(visible, hydratedMessages)
+        ? preserveStreamingMessagesDuringHydration(
+            visible,
+            hydratedMessages,
+            pendingForkUserMessageIds[convId],
+          )
         : preserveMessagesAddedDuringHydration(visible, hydratedMessages, messageIdsAtStart);
       // A normal completed turn is already represented by the client-side
       // stream finalizer. Keep those message instances when only checkpoint
@@ -1055,8 +1076,7 @@
       const tip = [...(convTrees[convId] ? computeActivePath(convTrees[convId]) : [])]
         .reverse()
         .find((message) => message.role === "assistant" && message.checkpointId)?.checkpointId;
-      const existing =
-        branches.find((branch) => branch.head_checkpoint_id === tip) ?? branches.at(-1);
+      const existing = branches.find((branch) => branch.head_checkpoint_id === tip);
       if (existing) {
         activeBranchIds = { ...activeBranchIds, [convId]: existing.id };
         return existing.id;
@@ -1347,23 +1367,26 @@
     // id; its parent is the exact history prefix before the edited turn.
     const newSiblingParentCk = findForkParentCheckpointId(convTrees[convId], userMsg.id);
     if (newSiblingParentCk === undefined) return;
+    const forkSourceCheckpointId = getActiveTipNode(convTrees[convId])?.ckId;
+    if (!forkSourceCheckpointId) return;
 
-    try {
-      await invoke("rollback_to_checkpoint", { convId, checkpointId });
-    } catch {
-      return;
-    }
+    if (!(await externalRuntimeTransport)) {
+      try {
+        await invoke("rollback_to_checkpoint", { convId, checkpointId });
+      } catch {
+        return;
+      }
 
-    // Revert file changes belonging to checkpoints being rolled back.
-    // Keep the SQLite records so switching back later can replay them.
-    const cutMsgs = conv.messages.slice(userMsgIdx);
-    const rolledBackCps = new Set(
-      cutMsgs.filter((m) => m.role === "assistant" && m.checkpointId).map((m) => m.checkpointId!),
-    );
-    const allChanges = fileChangesPerConv[convId] ?? [];
-    const toRevert = allChanges.filter((fc) => rolledBackCps.has(fc.checkpoint_id));
-    for (const change of [...toRevert].reverse()) {
-      await invoke("revert_file_change_keep", { changeId: change.id }).catch(() => {});
+      // Embedded diagnostics do not run through the Runtime HTTP branch operation.
+      const cutMsgs = conv.messages.slice(userMsgIdx);
+      const rolledBackCps = new Set(
+        cutMsgs.filter((m) => m.role === "assistant" && m.checkpointId).map((m) => m.checkpointId!),
+      );
+      const allChanges = fileChangesPerConv[convId] ?? [];
+      const toRevert = allChanges.filter((fc) => rolledBackCps.has(fc.checkpoint_id));
+      for (const change of [...toRevert].reverse()) {
+        await invoke("revert_file_change_keep", { changeId: change.id }).catch(() => {});
+      }
     }
 
     conversations[convIdx] = {
@@ -1375,6 +1398,10 @@
     // Tell finalize: attach the new turn as a sibling under newSiblingParentCk.
     pendingParentCk = { ...pendingParentCk, [convId]: newSiblingParentCk };
     pendingForkMessageId = { ...pendingForkMessageId, [convId]: userMsg.id };
+    pendingForkSourceCheckpointId = {
+      ...pendingForkSourceCheckpointId,
+      [convId]: forkSourceCheckpointId,
+    };
     selectComposerDraft(conversationComposerDraftKey(convId));
     activeComposerDraft.text = text;
     activeComposerDraft.attachments = resendAttachments;
@@ -1406,6 +1433,28 @@
     if (convIdx === -1) return;
 
     const override = { ...tree.activeChild, [parentKey]: targetIdx };
+    const updatedTree: ConvTree = { ...tree, activeChild: override };
+    const targetTipCheckpoint = getActiveTipNode(updatedTree)?.ckId;
+    if (!targetTipCheckpoint) return;
+
+    if (tauriAvailable && (await externalRuntimeTransport)) {
+      try {
+        await openAgent.switchRemoteConversationBranch(convId, targetTipCheckpoint);
+        convTrees = { ...convTrees, [convId]: updatedTree };
+        await Promise.all([
+          loadMessagesForConv(convId, false, true),
+          loadFileChangesForConv(convId),
+        ]);
+        scrollToBottom();
+      } catch (error) {
+        checkpointLoadErrors = {
+          ...checkpointLoadErrors,
+          [convId]: `${tr("checkpointLoadFailed")} ${String(error)}`,
+        };
+      }
+      return;
+    }
+
     const sourceCps = ckIdsAlongActivePath(tree);
     const targetCps = ckIdsAlongActivePath(tree, override);
 
@@ -1434,18 +1483,12 @@
 
       // Restore the agent's in-memory history to the tip of the newly-active path
       // so the next message continues from where the user is now looking.
-      const newTreeView: ConvTree = { ...tree, activeChild: override };
-      const newPath = computeActivePath(newTreeView);
-      const targetTipCheckpoint = [...newPath]
-        .reverse()
-        .find((m) => m.role === "assistant" && m.checkpointId)?.checkpointId;
       await invoke("restore_agent_history", {
         convId,
-        checkpointId: targetTipCheckpoint ?? null,
+        checkpointId: targetTipCheckpoint,
       }).catch((e) => console.warn("restore_agent_history failed", e));
     }
 
-    const updatedTree: ConvTree = { ...tree, activeChild: override };
     let branchMessages = computeActivePath(updatedTree);
     if (tauriAvailable) {
       // A branch switch rebuilds messages from checkpoint records. Re-project a
@@ -1465,10 +1508,8 @@
         };
       }
     }
-    const savedTip = [...branchMessages]
-      .reverse()
-      .find((message) => message.role === "assistant" && message.checkpointId)?.checkpointId;
-    if (tauriAvailable && savedTip) {
+    const savedTip = getActiveTipNode(updatedTree)?.ckId;
+    if (tauriAvailable) {
       // Do not expose an approval card until its durable selected tip and
       // branch id are aligned. The resume command uses these values to reject
       // approvals aimed at a different branch.
@@ -1478,7 +1519,10 @@
         { convId },
       ).catch(() => []);
       const branch = branches.find((item) => item.head_checkpoint_id === savedTip);
-      if (branch) activeBranchIds = { ...activeBranchIds, [convId]: branch.id };
+      const nextActiveBranchIds = { ...activeBranchIds };
+      if (branch) nextActiveBranchIds[convId] = branch.id;
+      else delete nextActiveBranchIds[convId];
+      activeBranchIds = nextActiveBranchIds;
     }
     convTrees = { ...convTrees, [convId]: updatedTree };
     conversations[convIdx] = {
@@ -2937,12 +2981,16 @@
       const { [conv_id]: _ck, ...restCk } = pendingCheckpointIds;
       const { [conv_id]: _pp, ...restPp } = pendingParentCk;
       const { [conv_id]: _pf, ...restPf } = pendingForkMessageId;
+      const { [conv_id]: _pfs, ...restPfs } = pendingForkSourceCheckpointId;
+      const { [conv_id]: _pfu, ...restPfu } = pendingForkUserMessageIds;
       const { [conv_id]: _asstId, ...restAsstIds } = chatStreams.assistantMessageIds;
       chatStreams.itemsByConversation = restItems;
       chatStreams.streamingConversationIds = restStreaming;
       pendingCheckpointIds = restCk;
       pendingParentCk = restPp;
       pendingForkMessageId = restPf;
+      pendingForkSourceCheckpointId = restPfs;
+      pendingForkUserMessageIds = restPfu;
       chatStreams.assistantMessageIds = restAsstIds;
       return;
     }
@@ -2985,6 +3033,14 @@
     if (conv_id in pendingForkMessageId) {
       const { [conv_id]: _pf, ...restPf } = pendingForkMessageId;
       pendingForkMessageId = restPf;
+    }
+    if (conv_id in pendingForkSourceCheckpointId) {
+      const { [conv_id]: _pfs, ...restPfs } = pendingForkSourceCheckpointId;
+      pendingForkSourceCheckpointId = restPfs;
+    }
+    if (conv_id in pendingForkUserMessageIds) {
+      const { [conv_id]: _pfu, ...restPfu } = pendingForkUserMessageIds;
+      pendingForkUserMessageIds = restPfu;
     }
 
     chatStreams.cleanup(conv_id);
@@ -3310,6 +3366,8 @@
       const { [id]: _c, ...rc } = pendingCheckpointIds;
       const { [id]: _p, ...rp } = pendingParentCk;
       const { [id]: _pf, ...rpf } = pendingForkMessageId;
+      const { [id]: _pfs, ...rpfs } = pendingForkSourceCheckpointId;
+      const { [id]: _pfu, ...rpfu } = pendingForkUserMessageIds;
       const { [id]: _a, ...ra } = chatStreams.assistantMessageIds;
       const { [id]: _awaiting, ...restAwaiting } = chatStreams.awaitingOutput;
       const { [id]: _memoryStage, ...restMemoryStages } = chatStreams.memoryRetrievalStages;
@@ -3320,6 +3378,8 @@
       pendingCheckpointIds = rc;
       pendingParentCk = rp;
       pendingForkMessageId = rpf;
+      pendingForkSourceCheckpointId = rpfs;
+      pendingForkUserMessageIds = rpfu;
       chatStreams.assistantMessageIds = ra;
       chatStreams.awaitingOutput = restAwaiting;
       chatStreams.memoryRetrievalStages = restMemoryStages;
@@ -3538,30 +3598,60 @@
       const tip = [...path].reverse().find((m) => m.role === "assistant" && m.checkpointId);
       parentCheckpointId = tip?.checkpointId ?? null;
     }
-    // Re-executing an historical message starts a visible branch. Ordinary
-    // sends stay on the selected branch even though the provider may write
-    // multiple recovery checkpoints for this one request.
-    const branchId = await ensureActiveBranch(
-      convId,
-      convId in pendingParentCk ? parentCheckpointId : undefined,
-      convId in pendingForkMessageId ? pendingForkMessageId[convId] : undefined,
-    );
+    const forkedFromMessageId = pendingForkMessageId[convId];
+    const forkSourceCheckpointId = pendingForkSourceCheckpointId[convId];
+    const useRuntimeFork =
+      convId in pendingParentCk &&
+      typeof forkedFromMessageId === "string" &&
+      typeof forkSourceCheckpointId === "string" &&
+      (await externalRuntimeTransport);
+    if (useRuntimeFork) {
+      pendingForkUserMessageIds = { ...pendingForkUserMessageIds, [convId]: userMsg.id };
+    }
+    // Embedded diagnostics still need an explicit branch id. The ordinary
+    // external Runtime owns branch creation and route selection atomically.
+    const branchId = useRuntimeFork
+      ? null
+      : await ensureActiveBranch(
+          convId,
+          convId in pendingParentCk ? parentCheckpointId : undefined,
+          forkedFromMessageId,
+        );
 
     if (location.isCurrentWorkspace) await scrollToBottom();
 
     // Fire and forget — global listeners handle chunk/checkpoint/done events
-    openAgent
-      .submitInput({
-        convId,
-        text,
-        parentCheckpointId,
-        branchId,
-        attachments: attachments.map((attachment) => attachment.path),
-        contexts,
-        modelBinding: decodeModelBinding(model),
-        userMessageId: userMsg.id,
-        assistantMessageId: assistantMsgId,
-      })
+    const submission =
+      useRuntimeFork &&
+      typeof forkedFromMessageId === "string" &&
+      typeof forkSourceCheckpointId === "string"
+        ? openAgent.forkRemoteConversationRun({
+            convId,
+            text,
+            sourceCheckpointId: forkSourceCheckpointId,
+            parentCheckpointId,
+            forkedFromMessageId,
+            attachments: attachments.map((attachment) => ({
+              locator: attachment.path,
+              name: attachment.name,
+            })),
+            contexts,
+            modelBinding: decodeModelBinding(model),
+            userMessageId: userMsg.id,
+            assistantMessageId: assistantMsgId,
+          })
+        : openAgent.submitInput({
+            convId,
+            text,
+            parentCheckpointId,
+            branchId,
+            attachments: attachments.map((attachment) => attachment.path),
+            contexts,
+            modelBinding: decodeModelBinding(model),
+            userMessageId: userMsg.id,
+            assistantMessageId: assistantMsgId,
+          });
+    submission
       .then(() => {
         // Events are the live path, but the completed checkpoint is authoritative.
         // If a terminal event was lost, reconcile instead of leaving a permanent
@@ -3583,6 +3673,14 @@
         });
       })
       .catch((err: unknown) => {
+        const { [convId]: _pp, ...restPp } = pendingParentCk;
+        const { [convId]: _pf, ...restPf } = pendingForkMessageId;
+        const { [convId]: _pfs, ...restPfs } = pendingForkSourceCheckpointId;
+        const { [convId]: _pfu, ...restPfu } = pendingForkUserMessageIds;
+        pendingParentCk = restPp;
+        pendingForkMessageId = restPf;
+        pendingForkSourceCheckpointId = restPfs;
+        pendingForkUserMessageIds = restPfu;
         const errMsg: ChatMessage = {
           id: crypto.randomUUID(),
           role: "assistant",
@@ -3988,7 +4086,11 @@
           .get(path)
           ?.find((conversation) => conversation.id === activeConversationId)?.messages ?? [];
       const hydratedMessages = chatStreams.streamingConversationIds[activeConversationId]
-        ? preserveStreamingMessagesDuringHydration(cachedMessages, pendingProjection.messages)
+        ? preserveStreamingMessagesDuringHydration(
+            cachedMessages,
+            pendingProjection.messages,
+            pendingForkUserMessageIds[activeConversationId],
+          )
         : pendingProjection.messages;
       preparedConversations = prepareWorkspaceConversationSnapshot(
         preparedConversations,

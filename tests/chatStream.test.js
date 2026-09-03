@@ -9,6 +9,7 @@ import {
   getSiblingInfoForUserMessage,
   isCompactionBoundary,
   preserveMessagesAddedDuringHydration,
+  preserveStreamingMessagesDuringHydration,
 } from "../src/lib/checkpointTree";
 
 describe("background checkpoint reconciliation", () => {
@@ -76,6 +77,38 @@ describe("external conversation hydration", () => {
   });
 });
 
+describe("fork hydration", () => {
+  const message = (id, role, content) => ({
+    id,
+    role,
+    content,
+    timestamp: 1,
+  });
+
+  test("does not restore the abandoned branch suffix before the fork is durable", () => {
+    const prefixUser = message("user-1", "user", "first");
+    const abandonedAssistant = message("assistant-1", "assistant", "old answer");
+    const forkUser = message("user-2", "user", "edited first");
+
+    expect(
+      preserveStreamingMessagesDuringHydration(
+        [forkUser],
+        [prefixUser, abandonedAssistant],
+        forkUser.id,
+      ),
+    ).toEqual([forkUser]);
+  });
+
+  test("accepts the durable fork transcript once it contains the fork user", () => {
+    const forkUser = message("user-2", "user", "edited first");
+    const forkAssistant = message("assistant-2", "assistant", "new answer");
+
+    expect(
+      preserveStreamingMessagesDuringHydration([forkUser], [forkUser, forkAssistant], forkUser.id),
+    ).toEqual([forkUser, forkAssistant]);
+  });
+});
+
 describe("conversation transition rendering", () => {
   test("does not expose an empty active conversation while the first turn is persisted", async () => {
     const pageSource = await readFile(
@@ -107,6 +140,38 @@ describe("conversation transition rendering", () => {
     expect(messageListSource).not.toContain(
       "{:else if assistantIsStreaming && isAwaitingStreamOutput}",
     );
+  });
+});
+
+describe("desktop conversation branches", () => {
+  test("routes branch switches and edited-message forks through Runtime operations", async () => {
+    const pageSource = await readFile(
+      new URL("../src/routes/+page.svelte", import.meta.url),
+      "utf8",
+    );
+    const reexecuteSource = pageSource.slice(
+      pageSource.indexOf("async function reExecuteMsg"),
+      pageSource.indexOf("async function switchBranchAt"),
+    );
+    const switchSource = pageSource.slice(
+      pageSource.indexOf("async function switchBranchAt"),
+      pageSource.indexOf("async function commitEdit"),
+    );
+    const dispatchSource = pageSource.slice(
+      pageSource.indexOf("async function dispatchChatMessage"),
+      pageSource.indexOf("async function sendMessage"),
+    );
+
+    expect(reexecuteSource).toContain("if (!(await externalRuntimeTransport))");
+    expect(dispatchSource).toContain("openAgent.forkRemoteConversationRun");
+    expect(dispatchSource).toContain("sourceCheckpointId: forkSourceCheckpointId");
+    expect(dispatchSource).toContain(
+      "pendingForkUserMessageIds = { ...pendingForkUserMessageIds, [convId]: userMsg.id }",
+    );
+    expect(switchSource).toContain("openAgent.switchRemoteConversationBranch");
+    expect(switchSource).toContain("getActiveTipNode(updatedTree)?.ckId");
+    expect(pageSource).not.toContain("branches.at(-1)");
+    expect(pageSource).not.toContain("checkpointId: savedTip ?? null");
   });
 });
 

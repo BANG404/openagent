@@ -2627,6 +2627,19 @@ fn run_with_mode(agent_server: bool) {
     if agent_server {
         context.config_mut().app.windows.clear();
     }
+    #[cfg(target_os = "linux")]
+    if !agent_server {
+        if let Some(main_window) = context
+            .config_mut()
+            .app
+            .windows
+            .iter_mut()
+            .find(|window| window.label == "main")
+        {
+            main_window.decorations = true;
+            main_window.transparent = false;
+        }
+    }
 
     let builder = builder
         .plugin(tauri_plugin_opener::init())
