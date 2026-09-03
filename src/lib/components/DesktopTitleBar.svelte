@@ -101,7 +101,7 @@
         onToggle={onToggleCheckpointFlowPanel}
       />
     {/if}
-    {#if platform !== "macos"}
+    {#if platform === "windows"}
       <WindowControls {platform} {onMinimize} {onMaximize} {onClose} />
     {/if}
   </div>

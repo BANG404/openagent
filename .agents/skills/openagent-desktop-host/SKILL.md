@@ -122,6 +122,10 @@ binary, and exclusive durable-state ownership.
 - Pre-create the centered onboarding window at its fixed 960 × 640px product
   geometry. Keep it non-resizable and non-maximizable so every setup step uses
   the same verified canvas while dense form content scrolls inside the WebView.
+- Create the Linux main window as an opaque, natively decorated window so the
+  compositor, including WSLg, owns its outer frame and resize edge. Keep custom
+  window controls out of the Linux WebView; Windows and macOS retain the
+  frameless product chrome and platform-specific controls.
 - On Windows, determine completion-notification activity by resolving the
   foreground and Tauri HWNDs through `GA_ROOTOWNER`, with current-process
   ownership as the native-dialog fallback. Do not require exact HWND equality:
@@ -131,12 +135,14 @@ binary, and exclusive durable-state ownership.
 
 ## Native material
 
-Ordinary main and onboarding WebViews remain transparent over Rust-owned native
-material. Windows uses Mica with Acrylic and Blur fallbacks; macOS uses the
-Tauri-compatible `window-vibrancy` integration. Main, onboarding, feature, and
-conversation canvases share a 30%-opaque theme tint. Content controls remain
-surfaced; quick chat, browser previews, and development inspector windows keep
-their intentional separate backgrounds. Serialize native theme requests and,
+On Windows and macOS, ordinary main and onboarding WebViews remain transparent
+over Rust-owned native material. Windows uses Mica with Acrylic and Blur
+fallbacks; macOS uses the Tauri-compatible `window-vibrancy` integration. Linux
+uses an opaque WebView inside its native window-manager frame. Main, onboarding,
+feature, and conversation canvases share a 30%-opaque theme tint where native
+material is available. Content controls remain surfaced; quick chat, browser
+previews, and development inspector windows keep their intentional separate
+backgrounds. Serialize native theme requests and,
 when returning to the system theme, clear the native override before resolving
 the WebView media preference so both layers use the same palette. Treat
 `docs/design.md` as the visual source of truth.

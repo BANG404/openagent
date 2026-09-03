@@ -20,6 +20,20 @@ describe("desktop navigation chrome", () => {
     }
   });
 
+  test("uses the window manager frame for the Linux main window", async () => {
+    const [route, titleBar, host] = await Promise.all([
+      readFile(routeUrl, "utf8"),
+      readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8"),
+      readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8"),
+    ]);
+
+    expect(host).toMatch(
+      /#\[cfg\(target_os = "linux"\)\][\s\S]*?\.find\(\|window\| window\.label == "main"\)[\s\S]*?main_window\.decorations = true;[\s\S]*?main_window\.transparent = false;/,
+    );
+    expect(titleBar).toContain('{#if platform === "windows"}');
+    expect(route).toContain('detectWindowPlatform() !== "linux"');
+  });
+
   test("keeps primary actions below the role and Settings at the sidebar bottom", async () => {
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
     const resizeHandle = await readFile(
