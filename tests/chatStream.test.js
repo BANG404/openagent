@@ -110,6 +110,34 @@ describe("conversation transition rendering", () => {
   });
 });
 
+describe("desktop conversation branches", () => {
+  test("routes branch switches and edited-message forks through Runtime operations", async () => {
+    const pageSource = await readFile(
+      new URL("../src/routes/+page.svelte", import.meta.url),
+      "utf8",
+    );
+    const reexecuteSource = pageSource.slice(
+      pageSource.indexOf("async function reExecuteMsg"),
+      pageSource.indexOf("async function switchBranchAt"),
+    );
+    const switchSource = pageSource.slice(
+      pageSource.indexOf("async function switchBranchAt"),
+      pageSource.indexOf("async function commitEdit"),
+    );
+    const dispatchSource = pageSource.slice(
+      pageSource.indexOf("async function dispatchChatMessage"),
+      pageSource.indexOf("async function sendMessage"),
+    );
+
+    expect(reexecuteSource).toContain("if (!(await externalRuntimeTransport))");
+    expect(dispatchSource).toContain("openAgent.forkRemoteConversationRun");
+    expect(switchSource).toContain("openAgent.switchRemoteConversationBranch");
+    expect(switchSource).toContain("getActiveTipNode(updatedTree)?.ckId");
+    expect(pageSource).not.toContain("branches.at(-1)");
+    expect(pageSource).not.toContain("checkpointId: savedTip ?? null");
+  });
+});
+
 describe("resolveUserInput", () => {
   test("replaces a pending ask_user form with its answered state", () => {
     const request = {

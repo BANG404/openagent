@@ -437,6 +437,11 @@
   let streamCompletionTailAnchor = $state<{ convId: string; token: number } | null>(null);
   let streamCompletionTailAnchorSequence = 0;
   const tauriAvailable = isTauri();
+  const externalRuntimeTransport = tauriAvailable
+    ? invoke<"embedded" | "external">("runtime_transport_mode")
+        .then((mode) => mode === "external")
+        .catch(() => false)
+    : Promise.resolve(false);
 
   async function refreshTaskUsagesForConversation(convId: string): Promise<void> {
     if (!tauriAvailable) return;
@@ -838,22 +843,11 @@
     mergeDurableFollowUpSuggestions(checkpoints);
     let tree = buildTreeFromCheckpoints(checkpoints, convTrees[convId]);
     if (savedTip) tree = selectActivePathToCheckpoint(tree, savedTip);
-    if (savedTip) {
-      const activeBranch = branches.find((branch) => branch.head_checkpoint_id === savedTip);
-      if (activeBranch) {
-        activeBranchIds = { ...activeBranchIds, [convId]: activeBranch.id };
-      } else {
-        // The hydrated tip exists but is not the head of any persisted branch.
-        // Drop the stale branch id so subsequent sends and approvals do not
-        // target the previous branch.
-        const next = { ...activeBranchIds };
-        delete next[convId];
-        activeBranchIds = next;
-      }
-    }
-    // When savedTip is null the user is sitting on a fresh sibling before its
-    // first message. Keep the previous branch id so the next send can derive
-    // its parent branch from the visual tree.
+    const activeBranch = branches.find((branch) => branch.head_checkpoint_id === savedTip);
+    const nextActiveBranchIds = { ...activeBranchIds };
+    if (activeBranch) nextActiveBranchIds[convId] = activeBranch.id;
+    else delete nextActiveBranchIds[convId];
+    activeBranchIds = nextActiveBranchIds;
     convTrees = { ...convTrees, [convId]: tree };
     const pendingProjection = restorePendingUserInputFromCheckpoint(
       convId,
@@ -1073,13 +1067,7 @@
       const tip = [...(convTrees[convId] ? computeActivePath(convTrees[convId]) : [])]
         .reverse()
         .find((message) => message.role === "assistant" && message.checkpointId)?.checkpointId;
-      // Only fall back to the most-recently created branch when we have a
-      // real assistant checkpoint at the current tip. Without a tip the user
-      // is on a brand-new sibling and the next send must derive its parent
-      // branch from the visual tree rather than the previous root branch.
-      const existing = tip
-        ? (branches.find((branch) => branch.head_checkpoint_id === tip) ?? branches.at(-1))
-        : undefined;
+      const existing = branches.find((branch) => branch.head_checkpoint_id === tip);
       if (existing) {
         activeBranchIds = { ...activeBranchIds, [convId]: existing.id };
         return existing.id;
@@ -1371,22 +1359,23 @@
     const newSiblingParentCk = findForkParentCheckpointId(convTrees[convId], userMsg.id);
     if (newSiblingParentCk === undefined) return;
 
-    try {
-      await invoke("rollback_to_checkpoint", { convId, checkpointId });
-    } catch {
-      return;
-    }
+    if (!(await externalRuntimeTransport)) {
+      try {
+        await invoke("rollback_to_checkpoint", { convId, checkpointId });
+      } catch {
+        return;
+      }
 
-    // Revert file changes belonging to checkpoints being rolled back.
-    // Keep the SQLite records so switching back later can replay them.
-    const cutMsgs = conv.messages.slice(userMsgIdx);
-    const rolledBackCps = new Set(
-      cutMsgs.filter((m) => m.role === "assistant" && m.checkpointId).map((m) => m.checkpointId!),
-    );
-    const allChanges = fileChangesPerConv[convId] ?? [];
-    const toRevert = allChanges.filter((fc) => rolledBackCps.has(fc.checkpoint_id));
-    for (const change of [...toRevert].reverse()) {
-      await invoke("revert_file_change_keep", { changeId: change.id }).catch(() => {});
+      // Embedded diagnostics do not run through the Runtime HTTP branch operation.
+      const cutMsgs = conv.messages.slice(userMsgIdx);
+      const rolledBackCps = new Set(
+        cutMsgs.filter((m) => m.role === "assistant" && m.checkpointId).map((m) => m.checkpointId!),
+      );
+      const allChanges = fileChangesPerConv[convId] ?? [];
+      const toRevert = allChanges.filter((fc) => rolledBackCps.has(fc.checkpoint_id));
+      for (const change of [...toRevert].reverse()) {
+        await invoke("revert_file_change_keep", { changeId: change.id }).catch(() => {});
+      }
     }
 
     conversations[convIdx] = {
@@ -1429,6 +1418,28 @@
     if (convIdx === -1) return;
 
     const override = { ...tree.activeChild, [parentKey]: targetIdx };
+    const updatedTree: ConvTree = { ...tree, activeChild: override };
+    const targetTipCheckpoint = getActiveTipNode(updatedTree)?.ckId;
+    if (!targetTipCheckpoint) return;
+
+    if (tauriAvailable && (await externalRuntimeTransport)) {
+      try {
+        await openAgent.switchRemoteConversationBranch(convId, targetTipCheckpoint);
+        convTrees = { ...convTrees, [convId]: updatedTree };
+        await Promise.all([
+          loadMessagesForConv(convId, false, true),
+          loadFileChangesForConv(convId),
+        ]);
+        scrollToBottom();
+      } catch (error) {
+        checkpointLoadErrors = {
+          ...checkpointLoadErrors,
+          [convId]: `${tr("checkpointLoadFailed")} ${String(error)}`,
+        };
+      }
+      return;
+    }
+
     const sourceCps = ckIdsAlongActivePath(tree);
     const targetCps = ckIdsAlongActivePath(tree, override);
 
@@ -1457,18 +1468,12 @@
 
       // Restore the agent's in-memory history to the tip of the newly-active path
       // so the next message continues from where the user is now looking.
-      const newTreeView: ConvTree = { ...tree, activeChild: override };
-      const newPath = computeActivePath(newTreeView);
-      const targetTipCheckpoint = [...newPath]
-        .reverse()
-        .find((m) => m.role === "assistant" && m.checkpointId)?.checkpointId;
       await invoke("restore_agent_history", {
         convId,
-        checkpointId: targetTipCheckpoint ?? null,
+        checkpointId: targetTipCheckpoint,
       }).catch((e) => console.warn("restore_agent_history failed", e));
     }
 
-    const updatedTree: ConvTree = { ...tree, activeChild: override };
     let branchMessages = computeActivePath(updatedTree);
     if (tauriAvailable) {
       // A branch switch rebuilds messages from checkpoint records. Re-project a
@@ -1488,37 +1493,21 @@
         };
       }
     }
-    const savedTip = [...branchMessages]
-      .reverse()
-      .find((message) => message.role === "assistant" && message.checkpointId)?.checkpointId;
+    const savedTip = getActiveTipNode(updatedTree)?.ckId;
     if (tauriAvailable) {
       // Do not expose an approval card until its durable selected tip and
       // branch id are aligned. The resume command uses these values to reject
       // approvals aimed at a different branch.
-      await invoke("set_active_branch_tip", {
-        convId,
-        checkpointId: savedTip ?? null,
-      });
-      if (savedTip) {
-        const branches = await invoke<Array<{ id: string; head_checkpoint_id: string | null }>>(
-          "get_branches",
-          { convId },
-        ).catch(() => []);
-        const branch = branches.find((item) => item.head_checkpoint_id === savedTip);
-        if (branch) {
-          activeBranchIds = { ...activeBranchIds, [convId]: branch.id };
-        } else {
-          // The newly-selected branch tip is not the head of any persisted
-          // branch record. Drop the stale branch id so subsequent sends and
-          // approvals do not continue targeting the previous branch.
-          const next = { ...activeBranchIds };
-          delete next[convId];
-          activeBranchIds = next;
-        }
-      }
-      // When savedTip is null the user is sitting on a fresh sibling before
-      // its first message. Keep the previous branch id so the next send can
-      // derive its parent branch from the visual tree.
+      await invoke("set_active_branch_tip", { convId, checkpointId: savedTip });
+      const branches = await invoke<Array<{ id: string; head_checkpoint_id: string | null }>>(
+        "get_branches",
+        { convId },
+      ).catch(() => []);
+      const branch = branches.find((item) => item.head_checkpoint_id === savedTip);
+      const nextActiveBranchIds = { ...activeBranchIds };
+      if (branch) nextActiveBranchIds[convId] = branch.id;
+      else delete nextActiveBranchIds[convId];
+      activeBranchIds = nextActiveBranchIds;
     }
     convTrees = { ...convTrees, [convId]: updatedTree };
     conversations[convIdx] = {
@@ -3578,30 +3567,52 @@
       const tip = [...path].reverse().find((m) => m.role === "assistant" && m.checkpointId);
       parentCheckpointId = tip?.checkpointId ?? null;
     }
-    // Re-executing an historical message starts a visible branch. Ordinary
-    // sends stay on the selected branch even though the provider may write
-    // multiple recovery checkpoints for this one request.
-    const branchId = await ensureActiveBranch(
-      convId,
-      convId in pendingParentCk ? parentCheckpointId : undefined,
-      convId in pendingForkMessageId ? pendingForkMessageId[convId] : undefined,
-    );
+    const forkedFromMessageId = pendingForkMessageId[convId];
+    const useRuntimeFork =
+      convId in pendingParentCk &&
+      typeof forkedFromMessageId === "string" &&
+      (await externalRuntimeTransport);
+    // Embedded diagnostics still need an explicit branch id. The ordinary
+    // external Runtime owns branch creation and route selection atomically.
+    const branchId = useRuntimeFork
+      ? null
+      : await ensureActiveBranch(
+          convId,
+          convId in pendingParentCk ? parentCheckpointId : undefined,
+          forkedFromMessageId,
+        );
 
     if (location.isCurrentWorkspace) await scrollToBottom();
 
     // Fire and forget — global listeners handle chunk/checkpoint/done events
-    openAgent
-      .submitInput({
-        convId,
-        text,
-        parentCheckpointId,
-        branchId,
-        attachments: attachments.map((attachment) => attachment.path),
-        contexts,
-        modelBinding: decodeModelBinding(model),
-        userMessageId: userMsg.id,
-        assistantMessageId: assistantMsgId,
-      })
+    const submission =
+      useRuntimeFork && typeof forkedFromMessageId === "string"
+        ? openAgent.forkRemoteConversationRun({
+            convId,
+            text,
+            parentCheckpointId,
+            forkedFromMessageId,
+            attachments: attachments.map((attachment) => ({
+              locator: attachment.path,
+              name: attachment.name,
+            })),
+            contexts,
+            modelBinding: decodeModelBinding(model),
+            userMessageId: userMsg.id,
+            assistantMessageId: assistantMsgId,
+          })
+        : openAgent.submitInput({
+            convId,
+            text,
+            parentCheckpointId,
+            branchId,
+            attachments: attachments.map((attachment) => attachment.path),
+            contexts,
+            modelBinding: decodeModelBinding(model),
+            userMessageId: userMsg.id,
+            assistantMessageId: assistantMsgId,
+          });
+    submission
       .then(() => {
         // Events are the live path, but the completed checkpoint is authoritative.
         // If a terminal event was lost, reconcile instead of leaving a permanent
