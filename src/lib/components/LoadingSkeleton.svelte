@@ -440,7 +440,7 @@
 
   .composer-copy {
     box-sizing: border-box;
-    min-height: 87px;
+    min-height: 98px;
     overflow: hidden;
     border: 1px solid var(--mica-border);
     border-radius: 18px;

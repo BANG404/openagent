@@ -83,7 +83,10 @@
 - Keep an empty composer at its CSS single-row height. During startup and draft
   restoration, do not derive an empty textarea's height from `scrollHeight`:
   WebView2 can report a stale expanded value. Measure and clamp only non-empty
-  textarea content.
+  textarea content. A standard empty composer with its bottom toolbar is 98px
+  tall; keep the textarea block-level so inline baseline space cannot make that
+  geometry browser-dependent. Compact toolbar-free variants retain their own
+  smaller height, while attachments, quotes, and multiline text grow normally.
 - Selecting `/goal` or `/graph` replaces only the active slash trigger with the
   complete command token. Preserve any draft text after the caret as the command
   argument instead of clearing the composer.

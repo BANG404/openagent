@@ -1128,6 +1128,7 @@
   }
 
   .input {
+    display: block;
     width: 100%;
     box-sizing: border-box;
     background: transparent;
@@ -1141,7 +1142,7 @@
     outline: none;
     line-height: 1.47;
     transition: border-color 0.15s;
-    min-height: 42px;
+    min-height: 58px;
     max-height: 200px;
     overflow-y: auto;
   }
