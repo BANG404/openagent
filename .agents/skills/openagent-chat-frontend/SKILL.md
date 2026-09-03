@@ -811,10 +811,13 @@ transcript. Avoid remounts and UI state loss during reconciliation.
   from independent desktop commands. Freeze the selected branch-head checkpoint
   together with the edited message and its fork parent, and send all three in
   the Runtime fork request so validation cannot drift to a separately changing
-  active tip. Derive the selected durable tip from the active checkpoint-tree
-  node, resolve branch identity only by an exact head match, and clear a cached
-  branch id when no exact match exists. Never guess from branch creation order
-  or pass a null checkpoint to the active-tip command.
+  active tip. While that fork is streaming, keep its optimistic transcript
+  authoritative until the durable selected branch contains the fork's new user
+  message; an accepted run must not hydrate the abandoned branch suffix back
+  ahead of the new message. Derive the selected durable tip from the active
+  checkpoint-tree node, resolve branch identity only by an exact head match,
+  and clear a cached branch id when no exact match exists. Never guess from
+  branch creation order or pass a null checkpoint to the active-tip command.
 
 ## Quick chat
 
