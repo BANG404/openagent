@@ -80,6 +80,10 @@
 - Keep the localized shared-composer placeholder concise while advertising the
   Enter and Shift+Enter keyboard behavior plus the `/` command and `@` mention
   palette triggers.
+- Keep an empty composer at its CSS single-row height. During startup and draft
+  restoration, do not derive an empty textarea's height from `scrollHeight`:
+  WebView2 can report a stale expanded value. Measure and clamp only non-empty
+  textarea content.
 - Selecting `/goal` or `/graph` replaces only the active slash trigger with the
   complete command token. Preserve any draft text after the caret as the command
   argument instead of clearing the composer.

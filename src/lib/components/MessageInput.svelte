@@ -504,6 +504,8 @@
     if (!element) return;
     const minHeight = Number.parseFloat(getComputedStyle(element).minHeight) || 0;
     element.style.height = `${minHeight}px`;
+    // WebView2 can report a stale scroll height while restoring an empty textarea.
+    if (!element.value) return;
     element.style.height = `${Math.min(Math.max(element.scrollHeight, minHeight), 200)}px`;
   }
 

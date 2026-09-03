@@ -36,6 +36,7 @@ describe("stream pause control", () => {
       "const minHeight = Number.parseFloat(getComputedStyle(element).minHeight)",
     );
     expect(source).toContain("element.style.height = `${minHeight}px`;");
+    expect(source).toContain("if (!element.value) return;");
     expect(source).toContain("Math.max(element.scrollHeight, minHeight)");
     expect(source).toMatch(/<textarea\s+class="input"\s+rows="1"/);
     expect(source).not.toContain('element.style.height = "auto";');
