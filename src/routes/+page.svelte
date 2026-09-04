@@ -2593,15 +2593,7 @@
           recoverUnannouncedChatStream(conv_id);
         }
         chatStreams.clearMemoryRetrieval(conv_id);
-        const items = chatStreams.itemsByConversation[conv_id] ?? [];
-        const hasStreamOutput = items.some(
-          (item) =>
-            item.type === "text" ||
-            item.type === "thinking" ||
-            (item.type === "retry" &&
-              item.items.some((nested) => nested.type === "text" || nested.type === "thinking")),
-        );
-        if (!hasStreamOutput && chatStreams.streamingConversationIds[conv_id]) {
+        if (chatStreams.streamingConversationIds[conv_id]) {
           chatStreams.awaitingOutput = {
             ...chatStreams.awaitingOutput,
             [conv_id]: true,
@@ -2635,6 +2627,8 @@
         applyStreamMutation(conv_id, (items) => appendThinkingChunk(items, text));
       },
       onToolCall: (conv_id, name, args, toolUseId) => {
+        chatStreams.clearAwaitingOutput(conv_id);
+        chatStreams.clearMemoryRetrieval(conv_id);
         chatStreams.recordFirstResponse(conv_id);
         let items = appendToolCall(
           chatStreams.itemsByConversation[conv_id] ?? [],

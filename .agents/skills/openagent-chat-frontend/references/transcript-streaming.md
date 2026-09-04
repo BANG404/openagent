@@ -49,6 +49,12 @@
   controller. The page shell coordinates durable conversation/checkpoint data
   with that controller, but must not recreate parallel maps for streaming,
   pause, timing, awaiting-output, or memory-retrieval state.
+- Drive awaiting-output from the SDK's model-request lifecycle rather than from
+  an empty transcript. Every Rig completion request, including a follow-up
+  request after tool results, starts the delayed thinking indicator; the first
+  observable text, reasoning, or tool call clears it. Earlier records in the
+  same logical turn must not suppress the indicator for a later agent-loop
+  request.
 - Completed messages and the active response share one keyed, fully mounted
   transcript list. Do not reintroduce viewport virtualization or row-height
   estimation: restored and live rows stay mounted so loading and scrolling do

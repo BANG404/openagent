@@ -65,6 +65,7 @@
       ? (query.get(`${prefix}-platform`) as WindowPlatform)
       : undefined,
   );
+  let streamingAwaitingOutput = $derived(query.has(`${prefix}-awaiting-output`));
 
   let attachmentValue = $state("");
   let inputSurfaceValue = $state("");
@@ -554,7 +555,19 @@
       },
     );
   }
-  let streamingItems = $derived<StreamItem[]>([{ type: "text", content: streamingText }]);
+  let streamingItems = $derived<StreamItem[]>([
+    { type: "text", content: streamingText },
+    ...(streamingAwaitingOutput
+      ? [
+          {
+            type: "tool_call" as const,
+            name: "read_file",
+            args: JSON.stringify({ path: "src/routes/+page.svelte" }),
+            result: "Loaded the requested file.",
+          },
+        ]
+      : []),
+  ]);
   let mermaidFinalizationItems = $derived<StreamItem[]>([
     {
       type: "thinking",
@@ -838,6 +851,7 @@
       Math.max(CHECKPOINT_FLOW_PANEL_MIN_WIDTH, 320),
     );
     if (preview !== "streaming-transcript") return;
+    if (streamingAwaitingOutput) return;
     let chunk = 0;
     const timer = window.setInterval(() => {
       chunk += 1;
@@ -1332,7 +1346,7 @@
       messages={streamingMessages}
       scrollElement={streamingMessagesElement}
       isStreaming={true}
-      isAwaitingStreamOutput={false}
+      isAwaitingStreamOutput={streamingAwaitingOutput}
       currentStreamItems={streamingItems}
       currentStreamMessageId="streaming-preview-live-turn"
       activeConvId="streaming-preview"

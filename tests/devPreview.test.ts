@@ -1,7 +1,10 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 
 import { previewParameterPrefix, resolveStandaloneDevPreview } from "../src/lib/devPreview";
+
+const previewSource = readFileSync("src/lib/components/StandaloneDevPreview.svelte", "utf8");
 
 describe("standalone development previews", () => {
   test("resolves the approval queue preview only during development", () => {
@@ -100,4 +103,10 @@ describe("standalone development previews", () => {
     );
     expect(settings).toContain("inspect_design_asset_with_a_very_long_tool_name");
   });
+});
+
+test("streaming transcript can preview waiting after completed tool output", () => {
+  expect(previewSource).toContain("query.has(`${prefix}-awaiting-output`)");
+  expect(previewSource).toContain("isAwaitingStreamOutput={streamingAwaitingOutput}");
+  expect(previewSource).toContain('result: "Loaded the requested file."');
 });

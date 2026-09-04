@@ -12,6 +12,24 @@ import {
   preserveStreamingMessagesDuringHydration,
 } from "../src/lib/checkpointTree";
 
+describe("model request activity", () => {
+  test("shows waiting for every Rig completion round and clears it on a tool call", async () => {
+    const route = await readFile("src/routes/+page.svelte", "utf8");
+    const responseStart = route.slice(
+      route.indexOf("onResponseStarted:"),
+      route.indexOf("onMemoryRetrieval:", route.indexOf("onResponseStarted:")),
+    );
+    const toolCall = route.slice(
+      route.indexOf("onToolCall:"),
+      route.indexOf("onToolResult:", route.indexOf("onToolCall:")),
+    );
+
+    expect(responseStart).toContain("[conv_id]: true");
+    expect(responseStart).not.toContain("hasStreamOutput");
+    expect(toolCall).toContain("chatStreams.clearAwaitingOutput(conv_id)");
+  });
+});
+
 describe("background checkpoint reconciliation", () => {
   const message = (id, role, content) => ({
     id,
