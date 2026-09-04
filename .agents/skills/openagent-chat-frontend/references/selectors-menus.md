@@ -59,6 +59,11 @@
   for the default OpenAgent role. Do not add a persistent Settings row to the
   sidebar. Switching roles retains role-scoped conversation filtering and
   starts on that role's new-conversation surface.
+- Keep the role editor as a viewport-bounded horizontal workspace: role identity
+  and instructions occupy one column while skills and MCP assignments occupy the
+  other. The dialog body itself does not scroll. Each resource collection owns
+  its search field and overflow scrolling, and inner controls use flat bordered
+  surfaces rather than nested elevation.
 - Keep the new-conversation composer's workspace switcher beside approval mode
   and focused on open-folder actions. Hide it once an existing workspace-owned
   conversation is active; the Projects section remains the visible workspace

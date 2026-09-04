@@ -37,7 +37,27 @@
   let scope = $state<"global" | "local">("local");
   let skillIds = $state<string[]>([]);
   let mcpServerIds = $state<string[]>([]);
+  let skillQuery = $state("");
+  let mcpServerQuery = $state("");
   let initializedKey = "";
+
+  let filteredSkills = $derived.by(() => {
+    const query = skillQuery.trim().toLocaleLowerCase();
+    if (!query) return skills;
+    return skills.filter((skill) =>
+      `${skill.name} ${skill.description} ${skill.dir_name}`.toLocaleLowerCase().includes(query),
+    );
+  });
+  let enabledMcpServers = $derived(mcpServers.filter((server) => server.enabled));
+  let filteredMcpServers = $derived.by(() => {
+    const query = mcpServerQuery.trim().toLocaleLowerCase();
+    if (!query) return enabledMcpServers;
+    return enabledMcpServers.filter((server) =>
+      `${server.name} ${server.transport} ${server.url} ${server.command}`
+        .toLocaleLowerCase()
+        .includes(query),
+    );
+  });
 
   $effect(() => {
     if (!open) {
@@ -52,6 +72,8 @@
     scope = role?.scope === "global" ? "global" : "local";
     skillIds = [...(role?.skill_ids ?? [])];
     mcpServerIds = [...(role?.mcp_server_ids ?? [])];
+    skillQuery = "";
+    mcpServerQuery = "";
   });
 
   function skillId(skill: SkillMetadata): string {
@@ -92,30 +114,32 @@
       </header>
 
       <div class="role-editor-body">
-        <div class="role-fields">
-          <label>
-            <span>{$t("roleName")}</span>
-            <input bind:value={name} placeholder={$t("roleNamePlaceholder")} autocomplete="off" />
-          </label>
-          <fieldset class="scope-field" disabled={Boolean(role)}>
-            <legend>{$t("scope")}</legend>
-            <div class="scope-options">
-              <label
-                ><input type="radio" bind:group={scope} value="local" />{$t("projectTab")}</label
-              >
-              <label
-                ><input type="radio" bind:group={scope} value="global" />{$t("globalTab")}</label
-              >
-            </div>
-          </fieldset>
-        </div>
+        <section class="role-details">
+          <div class="role-fields">
+            <label>
+              <span>{$t("roleName")}</span>
+              <input bind:value={name} placeholder={$t("roleNamePlaceholder")} autocomplete="off" />
+            </label>
+            <fieldset class="scope-field" disabled={Boolean(role)}>
+              <legend>{$t("scope")}</legend>
+              <div class="scope-options">
+                <label
+                  ><input type="radio" bind:group={scope} value="local" />{$t("projectTab")}</label
+                >
+                <label
+                  ><input type="radio" bind:group={scope} value="global" />{$t("globalTab")}</label
+                >
+              </div>
+            </fieldset>
+          </div>
 
-        <label class="prompt-field">
-          <span>{$t("roleSystemPrompt")}</span>
-          <textarea bind:value={description} placeholder={$t("roleDescriptionPlaceholder")} rows="7"
-          ></textarea>
-          <small>{$t("roleDescriptionHint")}</small>
-        </label>
+          <label class="prompt-field">
+            <span>{$t("roleSystemPrompt")}</span>
+            <textarea bind:value={description} placeholder={$t("roleDescriptionPlaceholder")}
+            ></textarea>
+            <small>{$t("roleDescriptionHint")}</small>
+          </label>
+        </section>
 
         <section class="resource-section">
           <div class="resource-heading">
@@ -130,46 +154,90 @@
             <div class="resource-columns">
               <div class="resource-column">
                 <h4>{$t("skills")}</h4>
-                <div class="resource-list">
-                  {#each skills as skill (skillId(skill))}
-                    <label class="resource-row">
-                      <input
-                        type="checkbox"
-                        checked={skillIds.includes(skillId(skill))}
-                        onchange={(event) =>
-                          (skillIds = toggle(
-                            skillIds,
-                            skillId(skill),
-                            event.currentTarget.checked,
-                          ))}
-                      />
-                      <span><strong>{skill.name}</strong><small>{skill.description}</small></span>
-                    </label>
-                  {:else}
-                    <p class="resource-empty">{$t("noSkills")}</p>
-                  {/each}
+                <div class="resource-browser">
+                  <div class="desktop-menu-search-wrap resource-search">
+                    <svg
+                      class="desktop-menu-search-icon"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <circle cx="7" cy="7" r="4.25" />
+                      <path d="m10.25 10.25 3 3" />
+                    </svg>
+                    <input
+                      class="desktop-menu-search-input"
+                      type="search"
+                      bind:value={skillQuery}
+                      placeholder={$t("searchSkills")}
+                      aria-label={$t("searchSkills")}
+                    />
+                  </div>
+                  <div class="resource-list">
+                    {#each filteredSkills as skill (skillId(skill))}
+                      <label class="resource-row">
+                        <input
+                          type="checkbox"
+                          checked={skillIds.includes(skillId(skill))}
+                          onchange={(event) =>
+                            (skillIds = toggle(
+                              skillIds,
+                              skillId(skill),
+                              event.currentTarget.checked,
+                            ))}
+                        />
+                        <span><strong>{skill.name}</strong><small>{skill.description}</small></span>
+                      </label>
+                    {:else}
+                      <p class="resource-empty">
+                        {skillQuery ? $t("noMatchingSkills") : $t("noSkills")}
+                      </p>
+                    {/each}
+                  </div>
                 </div>
               </div>
               <div class="resource-column">
                 <h4>{$t("mcpServers")}</h4>
-                <div class="resource-list">
-                  {#each mcpServers.filter((server) => server.enabled) as server (server.id)}
-                    <label class="resource-row">
-                      <input
-                        type="checkbox"
-                        checked={mcpServerIds.includes(server.id)}
-                        onchange={(event) =>
-                          (mcpServerIds = toggle(
-                            mcpServerIds,
-                            server.id,
-                            event.currentTarget.checked,
-                          ))}
-                      />
-                      <span><strong>{server.name}</strong><small>{server.transport}</small></span>
-                    </label>
-                  {:else}
-                    <p class="resource-empty">{$t("noMcpServers")}</p>
-                  {/each}
+                <div class="resource-browser">
+                  <div class="desktop-menu-search-wrap resource-search">
+                    <svg
+                      class="desktop-menu-search-icon"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <circle cx="7" cy="7" r="4.25" />
+                      <path d="m10.25 10.25 3 3" />
+                    </svg>
+                    <input
+                      class="desktop-menu-search-input"
+                      type="search"
+                      bind:value={mcpServerQuery}
+                      placeholder={$t("searchMcpServers")}
+                      aria-label={$t("searchMcpServers")}
+                    />
+                  </div>
+                  <div class="resource-list">
+                    {#each filteredMcpServers as server (server.id)}
+                      <label class="resource-row">
+                        <input
+                          type="checkbox"
+                          checked={mcpServerIds.includes(server.id)}
+                          onchange={(event) =>
+                            (mcpServerIds = toggle(
+                              mcpServerIds,
+                              server.id,
+                              event.currentTarget.checked,
+                            ))}
+                        />
+                        <span><strong>{server.name}</strong><small>{server.transport}</small></span>
+                      </label>
+                    {:else}
+                      <p class="resource-empty">
+                        {mcpServerQuery ? $t("noMatchingMcpServers") : $t("noMcpServers")}
+                      </p>
+                    {/each}
+                  </div>
                 </div>
               </div>
             </div>
@@ -220,8 +288,8 @@
     top: 50%;
     left: 50%;
     z-index: 1101;
-    width: min(760px, calc(100vw - 40px));
-    max-height: min(760px, calc(100vh - 40px));
+    width: min(1040px, calc(100vw - 32px));
+    height: min(680px, calc(100vh - 32px));
     display: flex;
     flex-direction: column;
     transform: translate(-50%, -50%);
@@ -289,16 +357,41 @@
 
   .role-editor-body {
     min-height: 0;
+    flex: 1;
     display: grid;
-    gap: 18px;
+    grid-template-columns: minmax(280px, 0.82fr) minmax(440px, 1.18fr);
+    gap: 24px;
     padding: 18px;
-    overflow-y: auto;
+    overflow: hidden;
+  }
+
+  .role-details,
+  .resource-section,
+  .resource-columns,
+  .resource-column,
+  .resource-browser,
+  .prompt-field {
+    min-height: 0;
+  }
+
+  .role-details,
+  .resource-section,
+  .resource-column,
+  .resource-browser,
+  .prompt-field {
+    display: flex;
+    flex-direction: column;
   }
 
   .role-fields {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 210px;
+    grid-template-columns: minmax(0, 1fr) 148px;
     gap: 14px;
+  }
+
+  .prompt-field {
+    flex: 1;
+    margin-top: 18px;
   }
 
   label > span,
@@ -329,10 +422,11 @@
   }
 
   textarea {
-    min-height: 132px;
+    min-height: 100px;
+    flex: 1;
     padding: 10px;
     line-height: 1.5;
-    resize: vertical;
+    resize: none;
   }
 
   input:not([type]):focus,
@@ -366,7 +460,7 @@
     box-sizing: border-box;
     border-radius: 6px;
     background: var(--control-surface);
-    box-shadow: var(--control-shadow);
+    border: 1px solid var(--mica-divider);
   }
 
   .scope-options label {
@@ -399,18 +493,46 @@
   }
 
   .resource-columns {
+    min-height: 0;
+    flex: 1;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin-top: 10px;
   }
 
-  .resource-list {
-    height: 168px;
-    overflow-y: auto;
+  .resource-browser {
+    flex: 1;
     border-radius: 6px;
     background: var(--control-surface);
-    box-shadow: var(--control-shadow);
+    border: 1px solid var(--mica-divider);
+    overflow: hidden;
+  }
+
+  .resource-search {
+    flex: 0 0 auto;
+    padding: 6px;
+    border-bottom: 1px solid var(--mica-divider);
+  }
+
+  .resource-search :global(.desktop-menu-search-icon) {
+    left: 16px;
+    top: 50%;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+  }
+
+  .resource-search :global(.desktop-menu-search-input) {
+    min-height: 30px;
+    border: 0;
+    background: transparent;
+  }
+
+  .resource-list {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
   }
 
   .resource-row {
@@ -516,14 +638,24 @@
     opacity: 0.5;
   }
 
-  @media (max-width: 720px) {
-    .role-fields,
-    .resource-columns {
+  @media (max-width: 820px) {
+    :global(.role-editor-dialog) {
+      width: calc(100vw - 24px);
+      height: calc(100vh - 24px);
+    }
+
+    .role-editor-body {
+      grid-template-columns: minmax(230px, 0.8fr) minmax(0, 1.2fr);
+      gap: 16px;
+      padding: 14px;
+    }
+
+    .role-fields {
       grid-template-columns: 1fr;
     }
 
-    .resource-list {
-      height: 132px;
+    .resource-columns {
+      gap: 8px;
     }
   }
 </style>
