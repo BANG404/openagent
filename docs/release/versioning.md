@@ -106,6 +106,15 @@ native installer: WebViews reload the verified resource and confirm startup,
 while an unconfirmed activation rolls back to the previous resource or the
 frontend embedded in the Tauri bundle.
 
+Installed applications track the three update identities independently. The
+native shell compares its packaged product version through the Tauri updater,
+the frontend compares the active signed frontend-manifest version, and the
+Runtime compares the active independently versioned SDK/server manifest. The
+combined product update check must query all three channels before reporting
+that OpenAgent is current. A component-only product release may therefore
+advance the release tag and the selected component without changing the
+packaged native-shell version.
+
 Each generated `.github/release.json` records a `components` object with
 `frontend`, `runtime`, and `nativeShell` booleans. Beta preparation classifies
 the application diff and the actual paths changed between the old and new SDK

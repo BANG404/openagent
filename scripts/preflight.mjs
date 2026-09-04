@@ -16,6 +16,7 @@ const AUTOMATION_TESTS = [
   "tests/releaseCi.test.js",
   "tests/releaseVersion.test.js",
   "scripts/release-candidate-artifacts.test.mjs",
+  "scripts/release-workflow.test.mjs",
 ];
 
 /**

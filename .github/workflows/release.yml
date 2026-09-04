@@ -333,6 +333,10 @@ jobs:
     needs:
       - detect
       - tag
+    if: >-
+      always()
+      && needs.detect.result == 'success'
+      && needs.tag.result == 'success'
     runs-on: ubuntu-24.04
     outputs:
       published: ${{ steps.release.outputs.published }}

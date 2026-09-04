@@ -57,7 +57,9 @@ Candidate construction and publication are separate phases:
    staged asset names so the two candidate artifacts can be merged without
    overwriting one architecture with the other;
 4. after every gate succeeds, create the immutable tag and create or reuse the
-   draft GitHub Release;
+   draft GitHub Release; draft creation must explicitly continue past skipped
+   jobs for unselected components while still requiring successful detection
+   and tagging, so frontend-only and Runtime-only releases reach publication;
 5. download and verify every selected candidate, upload its existing bytes, and
    generate one combined `latest.json` from the four verified native targets;
 6. submit the Store package only after the same gate, publish the staged SDK
