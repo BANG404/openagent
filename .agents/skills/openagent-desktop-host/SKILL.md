@@ -122,6 +122,12 @@ binary, and exclusive durable-state ownership.
 - Pre-create the centered onboarding window at its fixed 960 × 640px product
   geometry. Keep it non-resizable and non-maximizable so every setup step uses
   the same verified canvas while dense form content scrolls inside the WebView.
+- Create Settings management windows on demand with fixed domain labels. Each
+  domain is a modeless singleton: repeated application-menu requests select the
+  requested section, restore the existing window, and focus it instead of
+  constructing another WebView. Window construction remains a native host
+  responsibility; each Settings WebView reloads and saves configuration through
+  the shared SDK contract.
 - Create the Linux main window as an opaque, natively decorated window so the
   compositor, including WSLg, owns its outer frame and resize edge. Keep custom
   window controls out of the Linux WebView; Windows and macOS retain the

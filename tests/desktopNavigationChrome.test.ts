@@ -210,6 +210,40 @@ describe("desktop navigation chrome", () => {
     expect(appCss).not.toContain("@mdxeditor/editor");
   });
 
+  test("routes settings domains to singleton utility windows", async () => {
+    const route = await readFile(routeUrl, "utf8");
+    const menu = await readFile(new URL("ApplicationMenuBar.svelte", componentsUrl), "utf8");
+    const settings = await readFile(new URL("SettingsView.svelte", componentsUrl), "utf8");
+    const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+
+    expect(route).toContain("<SettingsWindowSurface");
+    expect(route).toContain("onOpenSettingsWindow={openManagementWindow}");
+    expect(route).toContain(': ["general"]');
+    expect(menu).toContain('onOpenSettingsWindow("models", "providers")');
+    expect(menu).toContain('onOpenSettingsWindow("agent", "execution")');
+    expect(menu).toContain('onOpenSettingsWindow("integrations", "channels")');
+    expect(menu).toContain('onOpenSettingsWindow("automation", "hooks")');
+    expect(settings).toContain('<Tabs.Content value="execution"');
+    expect(settings).toMatch(
+      /if \(visibleSections\.has\("channels"\)\) \{[\s\S]*?wechatStatusTimer = setInterval/,
+    );
+    expect(host).toContain("fn open_settings_window(");
+    expect(host).toContain("if let Some(window) = app.get_webview_window(spec.label)");
+    expect(host).toMatch(/window\s*\.emit\("settings-section-requested", &section\)/s);
+  });
+
+  test("keeps settings below notifications and nested configuration dialogs", async () => {
+    const route = await readFile(routeUrl, "utf8");
+    const toast = await readFile(new URL("Toast.svelte", componentsUrl), "utf8");
+    const dialogs = await readFile(new URL("WorkspaceDialogs.svelte", componentsUrl), "utf8");
+
+    expect(route).toMatch(/\.settings-dialog-overlay\)\s*{[^}]*z-index: 80;/s);
+    expect(route).toMatch(/\.settings-dialog\)\s*{[^}]*z-index: 81;/s);
+    expect(dialogs).toMatch(/\.dialog-overlay\)\s*{[^}]*z-index: 100;/s);
+    expect(dialogs).toMatch(/\.dialog\)\s*{[^}]*z-index: 101;/s);
+    expect(toast).toMatch(/\.toast-stack\s*{[^}]*z-index: 900;/s);
+  });
+
   test("searches every workspace and keeps switching in the current window", async () => {
     const route = await readFile(routeUrl, "utf8");
     const openConversation = route.slice(

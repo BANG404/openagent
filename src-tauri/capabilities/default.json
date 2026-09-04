@@ -2,7 +2,18 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the application, setup, and debug inspector windows",
-  "windows": ["main", "debug", "quick-chat", "onboarding"],
+  "windows": [
+    "main",
+    "debug",
+    "quick-chat",
+    "onboarding",
+    "settings-models",
+    "settings-agent",
+    "settings-integrations",
+    "settings-memory",
+    "settings-automation",
+    "settings-about"
+  ],
   "permissions": [
     "core:default",
     "opener:allow-open-url",
@@ -30,6 +41,7 @@
     "core:window:allow-set-min-size",
     "core:window:allow-set-position",
     "core:window:allow-set-size",
+    "core:window:allow-set-title",
     "core:window:allow-set-theme",
     "core:window:allow-show",
     "core:window:allow-start-dragging",

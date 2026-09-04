@@ -237,6 +237,7 @@
       }}
       onNewWindow={() => {}}
       onOpenSettings={() => {}}
+      onOpenSettingsWindow={() => {}}
       onCreateRole={() => {
         roleEditorRole = null;
         roleEditorOpen = true;
