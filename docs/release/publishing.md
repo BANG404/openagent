@@ -99,6 +99,8 @@ bundle. Linux and macOS likewise publish one additional `full` AppImage or DMG.
 The embedding seed exists only in those full manual-download artifacts and the
 Microsoft Store package. Automatic application updates are always lightweight
 and preserve the verified model under `OPENAGENT_HOME`.
+The desktop capability uses Tauri's `updater:default` permission set because
+the updater client downloads and installs shell updates as separate commands.
 
 Prerelease updater channel tags and download URLs use the lowercase manifest
 values `beta` and `rc`. GitHub release tags and asset URLs are case-sensitive,
