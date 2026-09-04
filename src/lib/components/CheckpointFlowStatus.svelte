@@ -172,164 +172,168 @@
       aria-label={$t("checkpointFlowResize")}
       onpointerdown={onResizeStart}
     ></button>
-    <nav class="panel-navigation" aria-label={$t("conversationDetails")}>
-      {#if flow}
-        <button
-          type="button"
-          class:active={activePanel === "status"}
-          aria-current={activePanel === "status" ? "page" : undefined}
-          onclick={() => (activePanel = "status")}>{$t("conversationStatus")}</button
-        >
-      {/if}
-      {#if changes.length > 0}
-        <button
-          type="button"
-          class:active={activePanel === "files"}
-          aria-current={activePanel === "files" ? "page" : undefined}
-          onclick={() => (activePanel = "files")}
-        >
-          {$t("conversationFiles")}
-          <span>{changes.length}</span>
-        </button>
-      {/if}
-    </nav>
   {/if}
+  <div class="flow-panel-surface">
+    {#if !collapsed}
+      <nav class="panel-navigation" aria-label={$t("conversationDetails")}>
+        {#if flow}
+          <button
+            type="button"
+            class:active={activePanel === "status"}
+            aria-current={activePanel === "status" ? "page" : undefined}
+            onclick={() => (activePanel = "status")}>{$t("conversationStatus")}</button
+          >
+        {/if}
+        {#if changes.length > 0}
+          <button
+            type="button"
+            class:active={activePanel === "files"}
+            aria-current={activePanel === "files" ? "page" : undefined}
+            onclick={() => (activePanel = "files")}
+          >
+            {$t("conversationFiles")}
+            <span>{changes.length}</span>
+          </button>
+        {/if}
+      </nav>
+    {/if}
 
-  {#if !collapsed && activePanel === "status" && flow}
-    <header class="flow-header">
-      <span class="flow-heading">
-        <strong>{$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}</strong>
-        <span>{flow.objective}</span>
-      </span>
-      <span class="flow-count">{progress.completed}/{progress.total}</span>
-    </header>
-    <div class="flow-overview">
-      <div
-        class="progress-track"
-        aria-label={$t("checkpointFlowProgress")}
-        aria-valuemin="0"
-        aria-valuemax={progress.total}
-        aria-valuenow={progress.completed}
-        role="progressbar"
-      >
-        <span style:width={`${percent}%`}></span>
+    {#if !collapsed && activePanel === "status" && flow}
+      <header class="flow-header">
+        <span class="flow-heading">
+          <strong>{$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}</strong>
+          <span>{flow.objective}</span>
+        </span>
+        <span class="flow-count">{progress.completed}/{progress.total}</span>
+      </header>
+      <div class="flow-overview">
+        <div
+          class="progress-track"
+          aria-label={$t("checkpointFlowProgress")}
+          aria-valuemin="0"
+          aria-valuemax={progress.total}
+          aria-valuenow={progress.completed}
+          role="progressbar"
+        >
+          <span style:width={`${percent}%`}></span>
+        </div>
       </div>
-    </div>
 
-    <div class="flow-body" class:graph={flow.kind === "graph"}>
-      {#if flow.kind === "goal"}
-        {#if flow.todos.length === 0}
-          <p class="flow-empty">{$t("checkpointGoalNoTodos")}</p>
+      <div class="flow-body" class:graph={flow.kind === "graph"}>
+        {#if flow.kind === "goal"}
+          {#if flow.todos.length === 0}
+            <p class="flow-empty">{$t("checkpointGoalNoTodos")}</p>
+          {:else}
+            {#each flow.todos as todo (todo.id)}
+              <div class="flow-item {todo.status}">
+                <span class="status-dot" aria-hidden="true"></span>
+                <span class="item-copy"
+                  ><strong>{todo.task}</strong>{#if todo.result}<small>{todo.result}</small
+                    >{/if}</span
+                >
+                <span class="item-status">{statusLabel(todo.status)}</span>
+              </div>
+            {/each}
+          {/if}
         {:else}
-          {#each flow.todos as todo (todo.id)}
-            <div class="flow-item {todo.status}">
-              <span class="status-dot" aria-hidden="true"></span>
-              <span class="item-copy"
-                ><strong>{todo.task}</strong>{#if todo.result}<small>{todo.result}</small
-                  >{/if}</span
+          {#if flow.nodes.length === 0}
+            <p class="flow-empty">{$t("checkpointGraphPlanning")}</p>
+          {:else}
+            <div class="graph-viewport" bind:this={graphViewport}>
+              <div
+                class="graph-canvas"
+                bind:this={graphCanvas}
+                style:--graph-scale={graphScale}
+                style:--graph-top={`${graphTop}px`}
+                role="list"
               >
-              <span class="item-status">{statusLabel(todo.status)}</span>
-            </div>
-          {/each}
-        {/if}
-      {:else}
-        {#if flow.nodes.length === 0}
-          <p class="flow-empty">{$t("checkpointGraphPlanning")}</p>
-        {:else}
-          <div class="graph-viewport" bind:this={graphViewport}>
-            <div
-              class="graph-canvas"
-              bind:this={graphCanvas}
-              style:--graph-scale={graphScale}
-              style:--graph-top={`${graphTop}px`}
-              role="list"
-            >
-              <svg class="graph-edges" aria-hidden="true">
-                <defs>
-                  <marker
-                    id="graph-arrow-running"
-                    viewBox="0 0 8 8"
-                    refX="7"
-                    refY="4"
-                    markerWidth="6"
-                    markerHeight="6"
-                    orient="auto"
-                    ><path d="M 0 0 L 8 4 L 0 8 z" fill="var(--primary)"></path></marker
-                  >
-                  <marker
-                    id="graph-arrow-completed"
-                    viewBox="0 0 8 8"
-                    refX="7"
-                    refY="4"
-                    markerWidth="6"
-                    markerHeight="6"
-                    orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="#18794e"></path></marker
-                  >
-                  <marker
-                    id="graph-arrow-failed"
-                    viewBox="0 0 8 8"
-                    refX="7"
-                    refY="4"
-                    markerWidth="6"
-                    markerHeight="6"
-                    orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="#b42318"></path></marker
-                  >
-                  <marker
-                    id="graph-arrow-blocked"
-                    viewBox="0 0 8 8"
-                    refX="7"
-                    refY="4"
-                    markerWidth="6"
-                    markerHeight="6"
-                    orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="#b42318"></path></marker
-                  >
-                </defs>
-                {#each graphEdges as edge (edge.key)}
-                  <path
-                    class="graph-edge {edge.status}"
-                    d={edge.path}
-                    marker-end={`url(#graph-arrow-${edge.status})`}
-                  ></path>
-                {/each}
-              </svg>
-              {#each graphLayers as layer, layerIndex (`layer-${layerIndex}`)}
-                <div class="graph-layer" class:single={layer.length === 1}>
-                  {#each layer as node (node.id)}
-                    <div
-                      class="graph-node {node.status}"
-                      role="listitem"
-                      aria-label={`${node.id}: ${node.task}. ${statusLabel(node.status)}`}
-                      use:registerGraphNode={node.id}
+                <svg class="graph-edges" aria-hidden="true">
+                  <defs>
+                    <marker
+                      id="graph-arrow-running"
+                      viewBox="0 0 8 8"
+                      refX="7"
+                      refY="4"
+                      markerWidth="6"
+                      markerHeight="6"
+                      orient="auto"
+                      ><path d="M 0 0 L 8 4 L 0 8 z" fill="var(--primary)"></path></marker
                     >
-                      <div class="node-header">
-                        <code>{node.id}</code>
-                        <span class="item-status">{statusLabel(node.status)}</span>
-                      </div>
-                      <strong>{node.task}</strong>
-                      {#if node.result}<small>{node.result}</small>{/if}
-                      {#if node.dependsOn.length > 0}
-                        <span class="sr-only"
-                          >{$t("checkpointDependsOn")}: {node.dependsOn.join(", ")}</span
-                        >
-                      {/if}
-                    </div>
+                    <marker
+                      id="graph-arrow-completed"
+                      viewBox="0 0 8 8"
+                      refX="7"
+                      refY="4"
+                      markerWidth="6"
+                      markerHeight="6"
+                      orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="#18794e"></path></marker
+                    >
+                    <marker
+                      id="graph-arrow-failed"
+                      viewBox="0 0 8 8"
+                      refX="7"
+                      refY="4"
+                      markerWidth="6"
+                      markerHeight="6"
+                      orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="#b42318"></path></marker
+                    >
+                    <marker
+                      id="graph-arrow-blocked"
+                      viewBox="0 0 8 8"
+                      refX="7"
+                      refY="4"
+                      markerWidth="6"
+                      markerHeight="6"
+                      orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="#b42318"></path></marker
+                    >
+                  </defs>
+                  {#each graphEdges as edge (edge.key)}
+                    <path
+                      class="graph-edge {edge.status}"
+                      d={edge.path}
+                      marker-end={`url(#graph-arrow-${edge.status})`}
+                    ></path>
                   {/each}
-                </div>
-              {/each}
+                </svg>
+                {#each graphLayers as layer, layerIndex (`layer-${layerIndex}`)}
+                  <div class="graph-layer" class:single={layer.length === 1}>
+                    {#each layer as node (node.id)}
+                      <div
+                        class="graph-node {node.status}"
+                        role="listitem"
+                        aria-label={`${node.id}: ${node.task}. ${statusLabel(node.status)}`}
+                        use:registerGraphNode={node.id}
+                      >
+                        <div class="node-header">
+                          <code>{node.id}</code>
+                          <span class="item-status">{statusLabel(node.status)}</span>
+                        </div>
+                        <strong>{node.task}</strong>
+                        {#if node.result}<small>{node.result}</small>{/if}
+                        {#if node.dependsOn.length > 0}
+                          <span class="sr-only"
+                            >{$t("checkpointDependsOn")}: {node.dependsOn.join(", ")}</span
+                          >
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
+                {/each}
+              </div>
             </div>
-          </div>
+          {/if}
         {/if}
-      {/if}
 
-      {#if flow.summary}<p class="flow-summary">{flow.summary}</p>{/if}
-    </div>
-  {:else if !collapsed && activePanel === "files"}
-    <FileChangePanel {changes} {onRevert} />
-  {:else if !collapsed}
-    <div class="flow-body">
-      <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>
-    </div>
-  {/if}
+        {#if flow.summary}<p class="flow-summary">{flow.summary}</p>{/if}
+      </div>
+    {:else if !collapsed && activePanel === "files"}
+      <FileChangePanel {changes} {onRevert} />
+    {:else if !collapsed}
+      <div class="flow-body">
+        <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>
+      </div>
+    {/if}
+  </div>
 </aside>
 
 <style>
@@ -337,15 +341,12 @@
     position: relative;
     z-index: 12;
     display: flex;
-    width: min(var(--flow-panel-width), 45%, calc(100% - 8px));
-    min-width: min(260px, 45%, calc(100% - 8px));
-    max-width: min(520px, 45%, calc(100% - 8px));
+    width: min(var(--flow-panel-width), 45%, calc(100% - var(--workspace-card-gap)));
+    min-width: min(260px, 45%, calc(100% - var(--workspace-card-gap)));
+    max-width: min(520px, 45%, calc(100% - var(--workspace-card-gap)));
     flex: 0 0 auto;
     flex-direction: column;
-    margin-left: 8px;
-    overflow: hidden;
-    border-radius: 12px;
-    background: var(--surface);
+    margin-left: var(--workspace-card-gap);
     transition:
       width 180ms cubic-bezier(0.16, 1, 0.3, 1),
       min-width 180ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -364,11 +365,21 @@
   .flow-panel.resizing {
     transition: none;
   }
+  .flow-panel-surface {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--surface);
+  }
   .resize-handle {
     position: absolute;
-    inset: 0 auto 0 -4px;
+    inset: 0 auto 0 calc(-1 * var(--workspace-card-gap));
     z-index: 2;
-    width: 8px;
+    width: var(--column-resize-hit-width);
     padding: 0;
     border: 0;
     background: transparent;
@@ -379,7 +390,7 @@
   .resize-handle::after {
     position: absolute;
     inset: 0 auto 0 3px;
-    width: 2px;
+    width: var(--column-resize-indicator-width);
     background: var(--primary);
     content: "";
     opacity: 0;
@@ -389,7 +400,7 @@
   .resize-handle:hover::after,
   .resize-handle:focus-visible::after,
   .resizing .resize-handle::after {
-    opacity: 0.7;
+    opacity: var(--column-resize-indicator-opacity);
   }
   .panel-navigation {
     display: flex;
@@ -747,9 +758,9 @@
 
   @media (max-width: 760px) {
     .flow-panel:not(.collapsed) {
-      width: min(var(--flow-panel-width), 45%, calc(100% - 8px));
-      min-width: min(260px, 45%, calc(100% - 8px));
-      max-width: min(420px, 45%, calc(100% - 8px));
+      width: min(var(--flow-panel-width), 45%, calc(100% - var(--workspace-card-gap)));
+      min-width: min(260px, 45%, calc(100% - var(--workspace-card-gap)));
+      max-width: min(420px, 45%, calc(100% - var(--workspace-card-gap)));
     }
   }
 

@@ -361,11 +361,11 @@
   .desktop-shell-content {
     position: relative;
     display: flex;
-    height: calc(100vh - var(--desktop-titlebar-height) - 16px);
+    height: calc(100vh - var(--desktop-titlebar-height) - var(--workspace-card-gap));
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    margin: var(--desktop-titlebar-height) 8px 8px;
+    margin: var(--desktop-titlebar-height) var(--workspace-card-gap) var(--workspace-card-gap);
     padding: 32px;
     overflow: hidden;
     border-radius: 12px;

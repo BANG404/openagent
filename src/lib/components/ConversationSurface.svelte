@@ -322,7 +322,7 @@
     min-width: 0;
     min-height: 0;
     flex: 1;
-    margin: var(--desktop-titlebar-height) 8px 8px;
+    margin: var(--desktop-titlebar-height) var(--workspace-card-gap) var(--workspace-card-gap);
     overflow: hidden;
     background: transparent;
   }

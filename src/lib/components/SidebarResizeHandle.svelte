@@ -102,9 +102,9 @@
     position: absolute;
     z-index: 20;
     top: var(--desktop-titlebar-height);
-    right: -4px;
-    bottom: 0;
-    width: 8px;
+    right: calc(-1 * (var(--workspace-card-gap) + 4px));
+    bottom: var(--workspace-card-gap);
+    width: var(--column-resize-hit-width);
   }
 
   .sidebar-resize-handle {
@@ -128,7 +128,7 @@
     top: 0;
     bottom: 0;
     left: 3px;
-    width: 2px;
+    width: var(--column-resize-indicator-width);
     background: var(--primary);
     opacity: 0;
     pointer-events: none;
@@ -138,7 +138,7 @@
   .sidebar-resize-handle:hover + .sidebar-resize-line,
   .sidebar-resize-handle:focus-visible + .sidebar-resize-line,
   .sidebar-resize-handle.dragging + .sidebar-resize-line {
-    opacity: 0.7;
+    opacity: var(--column-resize-indicator-opacity);
   }
 
   @media (prefers-reduced-motion: reduce) {

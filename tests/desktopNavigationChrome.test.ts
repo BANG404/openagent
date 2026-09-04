@@ -69,6 +69,9 @@ describe("desktop navigation chrome", () => {
     expect(resizeHandle).toMatch(
       /\.sidebar-resize-shell\s*{[^}]*top: var\(--desktop-titlebar-height\);/s,
     );
+    expect(resizeHandle).toMatch(
+      /\.sidebar-resize-shell\s*{[^}]*right: calc\(-1 \* \(var\(--workspace-card-gap\) \+ 4px\)\);[^}]*bottom: var\(--workspace-card-gap\);[^}]*width: var\(--column-resize-hit-width\);/s,
+    );
   });
 
   test("uses continuous chrome, an empty title-bar center, and a surface-free workspace trigger", async () => {
@@ -88,6 +91,10 @@ describe("desktop navigation chrome", () => {
       "utf8",
     );
     expect(appCss).toContain("--desktop-titlebar-height: 35px");
+    expect(appCss).toContain("--workspace-card-gap: 8px");
+    expect(appCss).toContain("--column-resize-hit-width: 8px");
+    expect(appCss).toContain("--column-resize-indicator-width: 2px");
+    expect(appCss).toContain("--column-resize-indicator-opacity: 0.7");
     expect(sidebar).toContain("background: var(--app-chrome-bg)");
     expect(sidebar).toContain("padding-top: var(--desktop-titlebar-height)");
     expect(titleBar).toContain("background: var(--app-chrome-bg)");
@@ -99,11 +106,19 @@ describe("desktop navigation chrome", () => {
     for (const platform of ["windows", "macos", "linux"]) {
       expect(desktopShellPreview).toContain(`requestedPlatform === "${platform}"`);
     }
+    expect(desktopShellPreview).toContain(
+      "height: calc(100vh - var(--desktop-titlebar-height) - var(--workspace-card-gap))",
+    );
+    expect(desktopShellPreview).toContain(
+      "margin: var(--desktop-titlebar-height) var(--workspace-card-gap) var(--workspace-card-gap)",
+    );
     const conversationWorkspace = conversationSurface.match(
       /\.conversation-workspace\s*{([^}]*)}/s,
     )?.[1];
     const conversationStage = conversationSurface.match(/\.conversation-stage\s*{([^}]*)}/s)?.[1];
-    expect(conversationWorkspace).toContain("margin: var(--desktop-titlebar-height) 8px 8px");
+    expect(conversationWorkspace).toContain(
+      "margin: var(--desktop-titlebar-height) var(--workspace-card-gap) var(--workspace-card-gap)",
+    );
     expect(conversationWorkspace).toContain("background: transparent");
     expect(conversationWorkspace).not.toContain("box-shadow");
     expect(conversationStage).toContain("border-radius: 12px");
@@ -133,7 +148,7 @@ describe("desktop navigation chrome", () => {
       /html\.native-window-material \.conversation-stage\s*{[^}]*background: var\(--bg\);/s,
     );
     expect(appCss).toMatch(
-      /html\.native-window-material \.flow-panel\s*{[^}]*background: var\(--surface\);[^}]*backdrop-filter: none;/s,
+      /html\.native-window-material \.flow-panel-surface\s*{[^}]*background: var\(--surface\);[^}]*backdrop-filter: none;/s,
     );
     expect(flowPanel).not.toContain("backdrop-filter");
     expect(route).toMatch(/\.app\s*{[^}]*background: transparent;/s);
@@ -381,9 +396,17 @@ describe("desktop navigation chrome", () => {
     expect(panel).toContain("width 180ms cubic-bezier(0.16, 1, 0.3, 1)");
     expect(panel).toContain("width: 0;");
     expect(panel).not.toContain("display: none;");
-    expect(panelShell).toContain("margin-left: 8px");
-    expect(panelShell).toContain("border-radius: 12px");
+    expect(panelShell).toContain("margin-left: var(--workspace-card-gap)");
+    expect(panel).toMatch(
+      /\.flow-panel-surface\s*{[^}]*border-radius: 12px;[^}]*background: var\(--surface\);/s,
+    );
     expect(panelShell).not.toContain("border:");
     expect(panelShell).not.toContain("box-shadow:");
+    expect(panel).toMatch(
+      /\.resize-handle\s*{[^}]*inset: 0 auto 0 calc\(-1 \* var\(--workspace-card-gap\)\);[^}]*width: var\(--column-resize-hit-width\);/s,
+    );
+    expect(panel).toMatch(
+      /\.resize-handle::after\s*{[^}]*inset: 0 auto 0 3px;[^}]*width: var\(--column-resize-indicator-width\);/s,
+    );
   });
 });

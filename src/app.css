@@ -10,6 +10,10 @@
     --user-message-bg: var(--component-neutral-bg);
     --app-chrome-bg: var(--bg);
     --desktop-titlebar-height: 35px;
+    --workspace-card-gap: 8px;
+    --column-resize-hit-width: 8px;
+    --column-resize-indicator-width: 2px;
+    --column-resize-indicator-opacity: 0.7;
     --sidebar-bg: #e8e8ed;
     --surface: #ffffff;
     --surface2: #f0f0f5;
@@ -237,7 +241,7 @@
     background: var(--bg);
   }
 
-  html.native-window-material .flow-panel {
+  html.native-window-material .flow-panel-surface {
     background: var(--surface);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
