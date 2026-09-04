@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.56.0-beta.1] - 2026-09-04
+
+### Features
+- **ui**: Optimize role editor layout
+- **ui**: Add role rail and modal settings
+- **chat**: Move file changes into details panel
+- **chat**: Highlight composer reference tokens
+
+### Bug Fixes
+- **ui**: Align sidebar resize indicators
+- **runtime**: Retain resumed file changes
+- **chat**: Keep conversation details toggle available
+- **chat**: Retain file panel through terminal projection
+- **chat**: Branch from earlier user messages
+- **chat**: Preserve file change sidebar state
+- **ui**: Simplify checkpoint flow headers
+- **ui**: Restore sidebar role navigation
+- **chat**: Make file change previews responsive
+
+### Performance
+- **release**: Reuse compiled outputs for full bundles
+
 ## [0.55.1-beta.1] - 2026-09-04
 
 ### Bug Fixes
