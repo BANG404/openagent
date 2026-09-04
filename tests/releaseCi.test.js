@@ -306,7 +306,9 @@ describe("release CI verification", () => {
       "resources/models/all-MiniLM-L6-v2-q/": "models/all-MiniLM-L6-v2-q/",
     });
     expect(releaseWorkflow).toContain("Build full first-install bundle");
-    expect(releaseWorkflow).toContain("bun run tauri:build:full -- ${{ matrix.args }}");
+    expect(releaseWorkflow).toContain(
+      "bun run tauri:bundle -- --config src-tauri/tauri.full.conf.json ${{ matrix.args }}",
+    );
     expect(releaseWorkflow).toContain("release-candidate-artifacts.mjs stage-full");
     expect(releaseWorkflow).not.toContain("upload-full-release-asset.mjs");
   });
