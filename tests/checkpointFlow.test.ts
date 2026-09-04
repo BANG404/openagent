@@ -92,6 +92,28 @@ describe("checkpoint Goal and Graph state", () => {
     });
   });
 
+  test("shows running Graph nodes as pending until the runtime starts them", () => {
+    const flow = normalizeCheckpointFlow("graph", {
+      objective: "Run in order",
+      status: "running",
+      nodes: [
+        { id: "active", task: "Active", status: "running", started: true },
+        { id: "waiting", task: "Waiting", status: "running", started: false },
+        { id: "legacy", task: "Legacy", status: "running" },
+        { id: "done", task: "Done", status: "completed", started: false },
+      ],
+    });
+
+    expect(flow).toMatchObject({
+      nodes: [
+        { id: "active", status: "running" },
+        { id: "waiting", status: "pending" },
+        { id: "legacy", status: "running" },
+        { id: "done", status: "completed" },
+      ],
+    });
+  });
+
   test("exposes flow state from the selected durable branch tip", () => {
     const tree = buildTreeFromCheckpoints([
       checkpoint("first", null, {

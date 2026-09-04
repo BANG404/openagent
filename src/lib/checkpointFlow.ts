@@ -1,6 +1,7 @@
 import type { GoalRunUpdatedEvent } from "./types";
 
 export type CheckpointFlowStatus = "running" | "completed" | "failed" | "blocked";
+export type CheckpointGraphNodeStatus = CheckpointFlowStatus | "pending";
 
 export interface CheckpointGoalTodo {
   id: string;
@@ -13,7 +14,7 @@ export interface CheckpointGraphNode {
   id: string;
   task: string;
   dependsOn: string[];
-  status: CheckpointFlowStatus;
+  status: CheckpointGraphNodeStatus;
   result?: string;
 }
 
@@ -80,6 +81,11 @@ function flowStatus(value: unknown): CheckpointFlowStatus {
     : "running";
 }
 
+function graphNodeStatus(value: unknown, started: unknown): CheckpointGraphNodeStatus {
+  const status = flowStatus(value);
+  return status === "running" && started === false ? "pending" : status;
+}
+
 function optionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
@@ -134,7 +140,7 @@ export function normalizeCheckpointFlow(
           {
             id: node.id,
             task: node.task,
-            status: flowStatus(node.status),
+            status: graphNodeStatus(node.status, node.started),
             dependsOn: Array.isArray(node.depends_on)
               ? node.depends_on.filter(
                   (dependency): dependency is string => typeof dependency === "string",

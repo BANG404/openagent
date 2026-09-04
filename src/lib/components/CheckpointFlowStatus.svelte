@@ -4,7 +4,7 @@
     checkpointFlowProgress,
     checkpointGraphLayers,
     type CheckpointFlow,
-    type CheckpointFlowStatus,
+    type CheckpointGraphNodeStatus,
   } from "$lib/checkpointFlow";
   import type { FileChange } from "$lib/types";
   import { t } from "$lib/i18n";
@@ -26,7 +26,7 @@
   let graphLayers = $derived(flow?.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
   let graphViewport: HTMLDivElement | null = $state(null);
   let graphCanvas: HTMLDivElement | null = $state(null);
-  let graphEdges = $state<{ key: string; path: string; status: CheckpointFlowStatus }[]>([]);
+  let graphEdges = $state<{ key: string; path: string; status: CheckpointGraphNodeStatus }[]>([]);
   const graphNodeElements = new Map<string, HTMLElement>();
   let graphResizeObserver: ResizeObserver | null = null;
   let graphFrame = 0;
@@ -204,6 +204,16 @@
               <div class="graph-canvas" bind:this={graphCanvas} role="list">
                 <svg class="graph-edges" aria-hidden="true">
                   <defs>
+                    <marker
+                      id="graph-arrow-pending"
+                      viewBox="0 0 8 8"
+                      refX="7"
+                      refY="4"
+                      markerWidth="6"
+                      markerHeight="6"
+                      orient="auto"
+                      ><path d="M 0 0 L 8 4 L 0 8 z" fill="var(--text-muted)"></path></marker
+                    >
                     <marker
                       id="graph-arrow-running"
                       viewBox="0 0 8 8"

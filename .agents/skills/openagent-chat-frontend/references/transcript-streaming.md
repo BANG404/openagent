@@ -175,6 +175,9 @@
   cards, with parallel nodes sharing a row. Preserve readable card typography
   and let a long graph scroll vertically instead of scaling the complete graph
   down to the panel height or routing connections around the panel edges.
+  Graph runtime nodes retain `status: running` before execution begins; project
+  an explicitly `started: false` node as pending, while preserving the status
+  value for started, terminal, and older nodes without that field.
   Place the expanded panel as a full-height card beside the conversation card in
   the workspace flex container. Keep a narrow transparent gap between these two
   sibling cards while its persisted width reduces the conversation track. Give
