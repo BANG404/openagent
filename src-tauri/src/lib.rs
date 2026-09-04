@@ -466,6 +466,7 @@ fn validate_runtime_bootstrap(value: &serde_json::Value) -> Result<(), String> {
         "launch_context",
         "conversations",
         "active_conv_id",
+        "new_conversation_suggestions",
     ] {
         if !object.contains_key(field) {
             return Err(format!("Runtime bootstrap omitted required field {field}"));
@@ -476,6 +477,7 @@ fn validate_runtime_bootstrap(value: &serde_json::Value) -> Result<(), String> {
         || !object["workspace"].is_object()
         || !object["launch_context"].is_object()
         || !object["conversations"].is_array()
+        || !object["new_conversation_suggestions"].is_array()
     {
         return Err("Runtime bootstrap field types were invalid".to_string());
     }
@@ -703,6 +705,7 @@ mod modular_runtime_update_tests {
             "launch_context": {},
             "conversations": [],
             "active_conv_id": null,
+            "new_conversation_suggestions": [],
         });
         assert!(validate_runtime_bootstrap(&valid).is_ok());
 
@@ -1078,6 +1081,20 @@ async fn get_active_conv_id(
     workspace: String,
 ) -> Result<Option<String>, String> {
     openagent_runtime::commands::get_active_conv_id(runtime.state(), workspace).await
+}
+
+#[tauri::command]
+async fn get_new_conversation_suggestions(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    workspace: String,
+    language: String,
+) -> Result<Vec<String>, String> {
+    openagent_runtime::commands::get_new_conversation_suggestions(
+        runtime.state(),
+        workspace,
+        language,
+    )
+    .await
 }
 
 #[tauri::command]
@@ -3134,6 +3151,7 @@ fn run_with_mode(agent_server: bool) {
         save_workspace_prefs,
         set_active_conversation,
         get_active_conv_id,
+        get_new_conversation_suggestions,
         set_active_branch_tip,
         get_active_branch_tip,
         list_workspace_files,

@@ -1994,7 +1994,6 @@
       }
     }
 
-    syncNewConversationSuggestionsFromStorage();
     if (tauriAvailable) {
       void openAgent
         .listAgentCommands()
@@ -2022,7 +2021,7 @@
     applyTheme(config.theme ?? "system");
     await initI18n(config.language);
     workspacePath = bootstrap.workspace_path;
-    syncNewConversationSuggestionsFromStorage();
+    newConversationSuggestions = normalizeSuggestions(bootstrap.new_conversation_suggestions);
     workspace = bootstrap.workspace;
     launchContext = bootstrap.launch_context;
     recentWorkspaces = config.recent_workspaces ?? [];
@@ -2267,8 +2266,19 @@
           const nextShortcut = normalizeQuickChatShortcut(next.quick_chat_shortcut);
           config = structuredClone(next);
           applyTheme(config.theme ?? "system");
-          setLocale((config.language ?? "zh") as Locale);
-          syncNewConversationSuggestionsFromStorage();
+          const suggestionLanguage = (config.language ?? "zh") as Locale;
+          const suggestionWorkspace = workspacePath;
+          setLocale(suggestionLanguage);
+          void loadNewConversationSuggestions(suggestionWorkspace, suggestionLanguage).then(
+            (storedSuggestions) => {
+              if (
+                suggestionWorkspace === workspacePath &&
+                suggestionLanguage === (config?.language ?? "zh")
+              ) {
+                newConversationSuggestions = storedSuggestions;
+              }
+            },
+          );
           if (previousShortcut !== nextShortcut && !launchContext?.workspace) {
             void replaceQuickChatShortcut(nextShortcut).catch((error) =>
               console.error("Failed to apply reloaded quick-chat shortcut:", error),
@@ -2776,14 +2786,13 @@
           [assistantMessageId]: normalized,
         };
       },
-      onNewConversationSuggestions: (suggestionWorkspace, suggestions) => {
+      onNewConversationSuggestions: (suggestionWorkspace, language, suggestions) => {
         const normalized = normalizeSuggestions(suggestions);
         if (normalized.length !== 3) return;
-        window.localStorage.setItem(
-          newConversationSuggestionsStorageKey(suggestionWorkspace || "", config?.language ?? "zh"),
-          JSON.stringify(normalized),
-        );
-        if ((suggestionWorkspace || "") === (workspacePath || "")) {
+        if (
+          (suggestionWorkspace || "") === (workspacePath || "") &&
+          language === (config?.language ?? "zh")
+        ) {
           newConversationSuggestions = normalized;
         }
       },
@@ -3206,29 +3215,21 @@
     };
   }
 
-  function newConversationSuggestionsStorageKey(workspace: string, language: Locale) {
-    return `openagent_new_conversation_suggestions:v1:${language}:${encodeURIComponent(workspace || "global")}`;
-  }
-
-  function loadNewConversationSuggestions(workspace: string, language: Locale): string[] {
-    if (typeof window === "undefined") return [];
+  async function loadNewConversationSuggestions(
+    workspace: string,
+    language: Locale,
+  ): Promise<string[]> {
+    if (!tauriAvailable) return [];
     try {
       return normalizeSuggestions(
-        JSON.parse(
-          window.localStorage.getItem(newConversationSuggestionsStorageKey(workspace, language)) ??
-            "[]",
-        ),
+        await openAgent.invokeProduct("get_new_conversation_suggestions", {
+          workspace: workspace || "",
+          language,
+        }),
       );
     } catch {
       return [];
     }
-  }
-
-  function syncNewConversationSuggestionsFromStorage() {
-    newConversationSuggestions = loadNewConversationSuggestions(
-      workspacePath,
-      config?.language ?? "zh",
-    );
   }
 
   // ─── Conversation Management ──────────────────────────────────────────────────
@@ -3262,7 +3263,6 @@
         workspace: workspacePath || "",
       }).catch(() => {});
     }
-    syncNewConversationSuggestionsFromStorage();
   }
 
   async function newConversation() {
@@ -3971,6 +3971,7 @@
     pendingUserInput?: UserInputRequest;
     roles: AgentRole[];
     selectedRoleKey: string;
+    newConversationSuggestions: string[];
   };
 
   async function prepareWorkspaceSwitch(
@@ -3989,13 +3990,15 @@
         pendingUserInput: undefined,
         roles: [],
         selectedRoleKey: defaultRoleKey,
+        newConversationSuggestions: [],
       };
     }
-    const [roles, durableActiveId] = await Promise.all([
+    const [roles, durableActiveId, preparedNewConversationSuggestions] = await Promise.all([
       loadAvailableRolesForWorkspace(path),
       restoreActiveConversation
         ? invoke<string | null>("get_active_conv_id", { workspace: path || "" }).catch(() => null)
         : Promise.resolve(null),
+      loadNewConversationSuggestions(path, config?.language ?? "zh"),
     ]);
     let activeConversationId = preferredConversationId ?? durableActiveId;
     let activeMeta = activeConversationId
@@ -4105,6 +4108,7 @@
       pendingUserInput,
       roles,
       selectedRoleKey,
+      newConversationSuggestions: preparedNewConversationSuggestions,
     };
   }
 
@@ -4157,7 +4161,7 @@
       conversationSearchGeneration += 1;
       activeConvId = prepared.activeConversationId;
       restoringSurface = activeConvId ? "conversation" : "new-conversation";
-      syncNewConversationSuggestionsFromStorage();
+      newConversationSuggestions = prepared.newConversationSuggestions;
       workspaceStateCommitted = true;
 
       if (activeConvId && prepared.activeConversation) {

@@ -44,7 +44,7 @@ The root contains these user-maintained or durable files:
 | `config.toml`                     | Providers, model bindings, tool policy, UI preferences, onboarding completion, MCP, and remote-gateway settings              |
 | `config.toml.bak`                 | Previous valid configuration used for startup recovery                                                                        |
 | `memory.md`                       | Global user memory                                                                                                            |
-| `messages.db`                     | Conversation, checkpoint, branch-specific follow-up suggestion, attachment, and rollback storage                             |
+| `messages.db`                     | Conversation, checkpoint, follow-up suggestion, workspace-and-locale new-conversation suggestion, attachment, and rollback storage |
 | `messages.db.pre-schema-v<N>.bak` | SQLite-consistent snapshot retained before an automatic database schema upgrade                                               |
 | `backups/before-data-v1-*/`       | User-confirmed transition backup of settings and/or conversations replaced outside the support window                         |
 | `scheduled_chat_hooks.json`       | Durable scheduled-chat definitions                                                                                            |
@@ -281,7 +281,7 @@ service must support the documented field before users enable it for a model.
 OpenAgent does not currently expose ChatGPT speed/service-tier controls, so
 request scheduling uses the provider path's default.
 
-OpenAgent validates `messages.db` before constructing the runtime. Schema v2 is
+OpenAgent validates `messages.db` before constructing the runtime. Schema v3 is
 the current compatibility baseline. A database inside a future declared support
 window must be upgraded through an explicit atomic migration with a consistent
 pre-migration backup. A populated unversioned database, a database outside the
@@ -290,6 +290,9 @@ interactive backup-and-fresh-store transition described above. The backup uses
 SQLite itself so committed WAL data is included. The v1-to-v2 migration adds
 durable follow-up suggestions keyed by the logical Turn response ID, allowing
 reload, branch switching, and paired clients to restore the same suggestions.
+The v2-to-v3 migration adds new-conversation suggestions keyed by workspace and
+locale so they survive WebView resets and are shared through the SDK. Upgrading
+directly from v1 applies both migrations atomically.
 Keep the reported backup until
 the upgraded application and conversation behavior have been verified.
 
@@ -297,12 +300,13 @@ The current compatibility window is explicit:
 
 | Stored schema                       | Startup behavior                                                                |
 | ----------------------------------- | ------------------------------------------------------------------------------- |
-| No database or empty SQLite file    | Create schema v2                                                                |
-| Populated unversioned legacy schema | Ask; on consent back up consistently, then create a fresh schema v2 database    |
-| Valid schema v1                     | Back up consistently, then atomically migrate to schema v2                      |
-| Valid schema v2                     | Validate and open                                                               |
-| Invalid schema v2 or higher schema  | Ask in desktop mode; back up and replace only on consent; non-interactive stops |
+| No database or empty SQLite file    | Create schema v3                                                                |
+| Populated unversioned legacy schema | Ask; on consent back up consistently, then create a fresh schema v3 database    |
+| Valid schema v1                     | Back up consistently, then atomically migrate to schema v3                      |
+| Valid schema v2                     | Back up consistently, then atomically migrate to schema v3                      |
+| Valid schema v3                     | Validate and open                                                               |
+| Invalid schema v3 or higher schema  | Ask in desktop mode; back up and replace only on consent; non-interactive stops |
 
 Configuration and database scopes are evaluated independently. For example, an
-unversioned configuration paired with a valid schema v2 database resets only
+unversioned configuration paired with a valid schema v3 database resets only
 settings; its conversation history remains active.

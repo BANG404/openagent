@@ -227,8 +227,10 @@
   compact while Chinese copy uses open, positive character spacing. It must not
   depend on memory or a Flash task. Show exactly three optional Flash-generated
   suggestions derived from up to the five most recently updated top-level
-  conversation titles, persisted per workspace and locale below the composer.
-  Selecting one sends it immediately through the shared user-message path.
+  conversation titles below the composer. Restore them from `messages.db`
+  through the SDK bootstrap and product operation, keyed by workspace and
+  locale; WebView local storage is not an authority. Selecting one sends it
+  immediately through the shared user-message path.
 - Keep the development-only `follow-up-suggestions-preview` query available
   with `-theme=light|dark` and `-locale=zh|en` parameters so both suggestion
   placements, logical-Turn hosting across multiple assistant records, and their

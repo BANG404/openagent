@@ -184,6 +184,7 @@ export interface StartupBootstrap {
   conversation_next_cursor: ConversationPageCursor | null;
   active_conv_id: string | null;
   active_conversation: StartupConversationBundle | null;
+  new_conversation_suggestions: string[];
 }
 
 export interface RecentWorkspace {
