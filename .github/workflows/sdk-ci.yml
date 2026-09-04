@@ -877,7 +877,7 @@ jobs:
   development-runtime:
     name: Development Runtime (${{ matrix.name }})
     if: inputs.publish_dev && inputs.full
-    needs: required
+    needs: pending
     strategy:
       fail-fast: false
       matrix:

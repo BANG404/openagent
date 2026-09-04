@@ -52,7 +52,10 @@ nightly schedules, and manual full dispatches use the public
 `sdk-ci.yml` workflow so Rust, Harness, host-compatibility, and native
 process-sandbox jobs remain publicly observable while trusted Linux, Windows,
 and macOS work executes on standard GitHub-hosted runners. Full runs build the
-four release Runtime targets once on that hosted platform matrix. The private
+four release Runtime targets once on that hosted platform matrix. Runtime
+candidate construction starts after the immutable SDK revision is validated and
+runs concurrently with capability qualification; publishing remains gated on
+both successful qualification and every Runtime candidate. The private
 publication workflow
 waits for the exact status-linked public run to finish successfully, downloads
 its one-day Runtime artifacts, and publishes those bytes without a second

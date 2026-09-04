@@ -360,6 +360,9 @@ describe("release CI verification", () => {
     expect(sdkWorkflow).toContain("development-runtime:");
     expect(sdkWorkflow).toContain("development-clients:");
     expect(sdkWorkflow).toContain("publish-development:");
+    expect(sdkWorkflow).toMatch(
+      /development-runtime:\n[\s\S]*?needs: pending\n[\s\S]*?development-clients:/,
+    );
     expect(sdkWorkflow).toContain(
       'notes="Signed development Runtime and public clients for immutable SDK commit $SDK_SHA."',
     );
