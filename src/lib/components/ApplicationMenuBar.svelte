@@ -2,7 +2,7 @@
   import { DropdownMenu } from "bits-ui";
   import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
   import { t } from "$lib/i18n";
-  import type { RecentWorkspace } from "$lib/types";
+  import type { AgentRole, RecentWorkspace } from "$lib/types";
   import type { WindowPlatform } from "$lib/windowPlatform";
   import { isWslWorkspacePath } from "$lib/workspacePath";
 
@@ -20,6 +20,8 @@
   let {
     recentWorkspaces,
     workspacePath,
+    roles,
+    selectedRoleKey,
     onNewConversation,
     onNewWindow,
     onPickWorkspace,
@@ -27,6 +29,8 @@
     onSelectWorkspace,
     onOpenWorkspaceLocation,
     onOpenSettings,
+    onCreateRole,
+    onConfigureRole,
     onOpenAbout,
     onCloseWindow,
     onQuit,
@@ -34,6 +38,8 @@
   }: {
     recentWorkspaces: RecentWorkspace[];
     workspacePath: string;
+    roles: AgentRole[];
+    selectedRoleKey: string;
     onNewConversation: () => void;
     onNewWindow: () => void;
     onPickWorkspace: () => void;
@@ -41,6 +47,8 @@
     onSelectWorkspace: (path: string) => void;
     onOpenWorkspaceLocation: () => void;
     onOpenSettings: () => void;
+    onCreateRole: () => void;
+    onConfigureRole: (role: AgentRole) => void;
     onOpenAbout: () => void;
     onCloseWindow: () => void;
     onQuit: () => void;
@@ -48,6 +56,7 @@
   } = $props();
 
   let otherRecent = $derived(recentWorkspaces.filter((item) => item.path !== workspacePath));
+  let selectedRole = $derived(roles.find((role) => role.id === selectedRoleKey) ?? null);
   let editContext = $state<EditContext | null>(null);
   let editAvailability = $state<Record<EditCommand, boolean>>({
     undo: false,
@@ -163,9 +172,11 @@
           ? "application-file-menu"
           : key === "e"
             ? "application-edit-menu"
-            : key === "h"
-              ? "application-help-menu"
-              : null;
+            : key === "r"
+              ? "application-role-menu"
+              : key === "h"
+                ? "application-help-menu"
+                : null;
       if (!triggerId) return;
       if (key === "e") captureEditContext();
       runShortcut(event, () => {
@@ -355,6 +366,30 @@
           <span>{$t("settings")}</span><span class="application-menu-shortcut"
             >{primaryModifier}+,</span
           >
+        </DropdownMenu.Item>
+      </DropdownMenu.Content>
+    </DropdownMenu.Portal>
+  </DropdownMenu.Root>
+
+  <DropdownMenu.Root>
+    <DropdownMenu.Trigger id="application-role-menu" class="application-menu-trigger" accesskey="r"
+      >{$t("rolesTitle")}</DropdownMenu.Trigger
+    >
+    <DropdownMenu.Portal>
+      <DropdownMenu.Content
+        class="desktop-menu-panel application-menu-content"
+        sideOffset={2}
+        align="start"
+      >
+        <DropdownMenu.Item class="application-menu-item" onSelect={onCreateRole}>
+          {$t("newRole")}
+        </DropdownMenu.Item>
+        <DropdownMenu.Item
+          class="application-menu-item"
+          disabled={!selectedRole}
+          onSelect={() => selectedRole && onConfigureRole(selectedRole)}
+        >
+          {$t("configureRole")}
         </DropdownMenu.Item>
       </DropdownMenu.Content>
     </DropdownMenu.Portal>

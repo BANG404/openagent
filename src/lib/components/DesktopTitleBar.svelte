@@ -1,7 +1,7 @@
 <script lang="ts">
   import { invoke } from "$lib/openagent/tauriClient";
   import { t } from "$lib/i18n";
-  import type { RecentWorkspace } from "$lib/types";
+  import type { AgentRole, RecentWorkspace } from "$lib/types";
   import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
   import ApplicationMenuBar from "$lib/components/ApplicationMenuBar.svelte";
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
@@ -10,6 +10,8 @@
   let {
     workspacePath,
     recentWorkspaces,
+    roles,
+    selectedRoleKey,
     tauriAvailable,
     memorySyncing,
     conversationDetailsAvailable,
@@ -20,6 +22,8 @@
     onNewConversation,
     onNewWindow,
     onOpenSettings,
+    onCreateRole,
+    onConfigureRole,
     onOpenAbout,
     onQuit,
     onToggleCheckpointFlowPanel,
@@ -31,6 +35,8 @@
   }: {
     workspacePath: string;
     recentWorkspaces: RecentWorkspace[];
+    roles: AgentRole[];
+    selectedRoleKey: string;
     tauriAvailable: boolean;
     memorySyncing: boolean;
     conversationDetailsAvailable: boolean;
@@ -41,6 +47,8 @@
     onNewConversation: () => void | Promise<void>;
     onNewWindow: () => void | Promise<void>;
     onOpenSettings: () => void | Promise<void>;
+    onCreateRole: () => void;
+    onConfigureRole: (role: AgentRole) => void;
     onOpenAbout: () => void | Promise<void>;
     onQuit: () => void;
     onToggleCheckpointFlowPanel: () => void;
@@ -77,6 +85,8 @@
     <ApplicationMenuBar
       {recentWorkspaces}
       {workspacePath}
+      {roles}
+      {selectedRoleKey}
       onNewConversation={() => void onNewConversation()}
       onNewWindow={() => void onNewWindow()}
       onPickWorkspace={() => void onPickWorkspace()}
@@ -84,6 +94,8 @@
       onSelectWorkspace={(path) => void onSelectWorkspace(path)}
       onOpenWorkspaceLocation={() => void openWorkspaceLocation()}
       onOpenSettings={() => void onOpenSettings()}
+      {onCreateRole}
+      {onConfigureRole}
       onOpenAbout={() => void onOpenAbout()}
       onCloseWindow={onClose}
       {onQuit}
@@ -122,12 +134,12 @@
 
   .title-bar-menu {
     height: 100%;
-    margin-left: calc(var(--role-sidebar-width, 0px) + 39px);
+    margin-left: 39px;
     flex: 0 0 auto;
   }
 
   .title-bar.macos .title-bar-menu {
-    margin-left: calc(var(--role-sidebar-width, 0px) + 124px);
+    margin-left: 124px;
   }
 
   .mac-window-controls {

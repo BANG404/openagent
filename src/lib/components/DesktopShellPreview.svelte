@@ -10,7 +10,6 @@
   } from "$lib/types";
   import type { WindowPlatform } from "$lib/windowPlatform";
   import DesktopSidebar from "./DesktopSidebar.svelte";
-  import RoleSidebar from "./RoleSidebar.svelte";
   import RoleEditorDialog from "./RoleEditorDialog.svelte";
   import DesktopTitleBar from "./DesktopTitleBar.svelte";
   import MessageInput from "./MessageInput.svelte";
@@ -25,7 +24,6 @@
   let draft = $state("");
   let attachments = $state<ChatAttachment[]>([]);
   let approvalMode = $state<ApprovalMode>("auto");
-  let settingsOpen = $state(false);
   let roleEditorOpen = $state(false);
   let roleEditorRole = $state<AgentRole | null>(null);
   let searchQuery = $state("");
@@ -152,27 +150,8 @@
 </script>
 
 <div class="desktop-shell-preview">
-  <RoleSidebar
-    {roles}
-    {selectedRoleKey}
-    {settingsOpen}
-    {windowFocused}
-    onRoleChange={(role) => {
-      selectedRoleKey = role;
-    }}
-    onCreateRole={() => {
-      roleEditorRole = null;
-      roleEditorOpen = true;
-    }}
-    onEditRole={(role) => {
-      roleEditorRole = role;
-      roleEditorOpen = true;
-    }}
-    onOpenSettings={() => {
-      settingsOpen = !settingsOpen;
-    }}
-  />
   <DesktopSidebar
+    {roles}
     {selectedRoleKey}
     canGoBack={false}
     canGoForward={false}
@@ -189,6 +168,9 @@
     loadingMore={false}
     loadingRecentConversations={false}
     loading={false}
+    onRoleChange={(role) => {
+      selectedRoleKey = role;
+    }}
     onBack={() => {}}
     onForward={() => {}}
     onNew={() => {
@@ -241,6 +223,8 @@
     <DesktopTitleBar
       {workspacePath}
       {recentWorkspaces}
+      {roles}
+      {selectedRoleKey}
       tauriAvailable
       memorySyncing={false}
       conversationDetailsAvailable={false}
@@ -253,6 +237,14 @@
       }}
       onNewWindow={() => {}}
       onOpenSettings={() => {}}
+      onCreateRole={() => {
+        roleEditorRole = null;
+        roleEditorOpen = true;
+      }}
+      onConfigureRole={(role) => {
+        roleEditorRole = role;
+        roleEditorOpen = true;
+      }}
       onOpenAbout={() => {}}
       onQuit={() => {}}
       onToggleCheckpointFlowPanel={() => {}}
@@ -353,7 +345,6 @@
 
 <style>
   .desktop-shell-preview {
-    --role-sidebar-width: 52px;
     display: flex;
     width: 100vw;
     height: 100vh;

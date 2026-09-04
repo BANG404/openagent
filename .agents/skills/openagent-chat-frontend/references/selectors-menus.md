@@ -53,11 +53,11 @@
   preserves the same row geometry, selected fill, selection semantics,
   accessibility state, and interactions. Primary and destructive actions retain
   their semantic state colors.
-- Keep role switching in the dedicated narrow rail to the left of the
-  conversation sidebar. The rail owns the default role, saved-role initials,
-  create/edit actions, and the sole persistent Settings entry; the conversation
-  sidebar must not duplicate a role selector in its header or a Settings row in
-  its footer. Switching roles retains role-scoped conversation filtering and
+- Keep role switching in the conversation sidebar header beside the window
+  history controls. The top application menu owns role creation and editing;
+  configuring a role targets the currently selected saved role and is disabled
+  for the default OpenAgent role. Do not add a persistent Settings row to the
+  sidebar. Switching roles retains role-scoped conversation filtering and
   starts on that role's new-conversation surface.
 - Keep the new-conversation composer's workspace switcher beside approval mode
   and focused on open-folder actions. Hide it once an existing workspace-owned

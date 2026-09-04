@@ -24,7 +24,6 @@ describe("window focus chrome", () => {
       "utf8",
     );
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
-    const roleSidebar = await readFile(new URL("RoleSidebar.svelte", componentsUrl), "utf8");
     const historyControls = await readFile(
       new URL("SidebarHistoryControls.svelte", componentsUrl),
       "utf8",
@@ -48,7 +47,7 @@ describe("window focus chrome", () => {
     expect(route).toMatch(
       /window\.addEventListener\("focus", handleFocus\);[\s\S]*?if \(appWindow\)/,
     );
-    expect(route.match(/\{windowFocused\}/g)).toHaveLength(3);
+    expect(route.match(/\{windowFocused\}/g)).toHaveLength(2);
     expect(route).toContain("focusRequest={composerFocusRequest}");
     expect(conversationSurface).toContain("focusRequest: number;");
     expect(conversationSurface).toContain(
@@ -78,10 +77,8 @@ describe("window focus chrome", () => {
     );
     expect(sidebar).toContain("class:window-inactive={!windowFocused}");
     expect(sidebar).toMatch(
-      /\.sidebar\.window-inactive \.sidebar-top,[\s\S]*?\.sidebar\.window-inactive \.sidebar-history \{\s*opacity: 0\.55;/,
+      /\.sidebar\.window-inactive \.sidebar-top,[\s\S]*?\.sidebar\.window-inactive \.sidebar-role \{\s*opacity: 0\.55;/,
     );
-    expect(roleSidebar).toContain("class:window-inactive={!windowFocused}");
-    expect(roleSidebar).toMatch(/\.role-sidebar\.window-inactive \{\s*opacity: 0\.55;/);
     expect(historyControls).toMatch(
       /button:disabled \{\s*color: color-mix\(in srgb, var\(--text-muted\) 62%, transparent\);/,
     );
@@ -91,6 +88,6 @@ describe("window focus chrome", () => {
     );
     expect(titleBar).toContain("background: var(--app-chrome-bg)");
     expect(preview).toContain('query.get("desktop-shell-preview-focused") !== "false"');
-    expect(preview.match(/\{windowFocused\}/g)).toHaveLength(3);
+    expect(preview.match(/\{windowFocused\}/g)).toHaveLength(2);
   });
 });

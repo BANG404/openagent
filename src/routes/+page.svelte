@@ -77,7 +77,6 @@
   import StandaloneDevPreview from "$lib/components/StandaloneDevPreview.svelte";
   import WorkspaceDialogs from "$lib/components/WorkspaceDialogs.svelte";
   import DesktopSidebar from "$lib/components/DesktopSidebar.svelte";
-  import RoleSidebar from "$lib/components/RoleSidebar.svelte";
   import RoleEditorDialog from "$lib/components/RoleEditorDialog.svelte";
   import DesktopTitleBar from "$lib/components/DesktopTitleBar.svelte";
   import ConversationSurface from "$lib/components/ConversationSurface.svelte";
@@ -4890,18 +4889,9 @@
     <QuickChatSurface preview={isQuickChatPreview} />
   {:else}
     <div class="app" aria-busy={workspaceLoading} inert={workspaceLoading}>
-      <RoleSidebar
-        roles={agentRoles}
-        {selectedRoleKey}
-        {settingsOpen}
-        {windowFocused}
-        onRoleChange={changeConversationRole}
-        onCreateRole={() => void openRoleEditor(null)}
-        onEditRole={(role) => void openRoleEditor(role)}
-        onOpenSettings={() => (settingsOpen ? closeSettings() : openSettings())}
-      />
       <!-- ─── Sidebar ─────────────────────────────────────────────────────────────── -->
       <DesktopSidebar
+        roles={agentRoles}
         {selectedRoleKey}
         {canGoBack}
         {canGoForward}
@@ -4918,6 +4908,7 @@
         loadingMore={sidebarLoadingMoreConversations}
         {loadingRecentConversations}
         loading={initialLoading}
+        onRoleChange={changeConversationRole}
         onBack={() => navigateHistory(-1)}
         onForward={() => navigateHistory(1)}
         onNew={newConversation}
@@ -4943,6 +4934,8 @@
       <DesktopTitleBar
         {workspacePath}
         {recentWorkspaces}
+        roles={agentRoles}
+        {selectedRoleKey}
         {tauriAvailable}
         memorySyncing={isMemorySyncing}
         conversationDetailsAvailable={Boolean(
@@ -4955,6 +4948,8 @@
         onNewConversation={newConversation}
         onNewWindow={createNewWindow}
         onOpenSettings={() => openSettings()}
+        onCreateRole={() => void openRoleEditor(null)}
+        onConfigureRole={(role) => void openRoleEditor(role)}
         onOpenAbout={() => openSettings("about")}
         onQuit={quitApp}
         onToggleCheckpointFlowPanel={() =>
@@ -5055,7 +5050,6 @@
   }
 
   .app {
-    --role-sidebar-width: 52px;
     display: flex;
     height: 100vh;
     overflow: hidden;
@@ -5096,10 +5090,12 @@
     overflow: hidden;
     border: 1px solid var(--mica-border);
     border-radius: 8px;
-    background: var(--bg);
+    background: var(--floating-surface);
     box-shadow: var(--raised-shadow);
     color: var(--text);
     outline: none;
+    -webkit-backdrop-filter: blur(24px) saturate(1.5);
+    backdrop-filter: blur(24px) saturate(1.5);
   }
 
   :global(.settings-dialog-title) {

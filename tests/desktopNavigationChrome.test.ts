@@ -34,10 +34,10 @@ describe("desktop navigation chrome", () => {
     expect(route).toContain('detectWindowPlatform() !== "linux"');
   });
 
-  test("keeps roles in a dedicated rail and history actions in the conversation sidebar", async () => {
+  test("keeps role selection in the conversation sidebar and role editing in the menu", async () => {
     const route = await readFile(routeUrl, "utf8");
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
-    const roleSidebar = await readFile(new URL("RoleSidebar.svelte", componentsUrl), "utf8");
+    const menu = await readFile(new URL("ApplicationMenuBar.svelte", componentsUrl), "utf8");
     const resizeHandle = await readFile(
       new URL("SidebarResizeHandle.svelte", componentsUrl),
       "utf8",
@@ -49,20 +49,18 @@ describe("desktop navigation chrome", () => {
     expect(sidebar.indexOf("<SidebarPrimaryActions")).toBeLessThan(
       sidebar.indexOf("<SidebarWorkspaceBrowser"),
     );
-    expect(sidebar).not.toContain("RoleSelector");
+    expect(sidebar).toContain("RoleSelector");
     expect(sidebar).not.toContain("SidebarSettingsAction");
-    expect(route.indexOf("<RoleSidebar")).toBeLessThan(route.indexOf("<DesktopSidebar"));
-    expect(roleSidebar).toContain('class="role-list"');
-    expect(roleSidebar).toContain('class="role-actions"');
-    expect(roleSidebar).toContain("onCreateRole");
-    expect(roleSidebar).toContain("onEditRole");
-    expect(roleSidebar).toContain("onOpenSettings");
+    expect(route).not.toContain("<RoleSidebar");
+    expect(menu).toContain('id="application-role-menu"');
+    expect(menu).toContain("onCreateRole");
+    expect(menu).toContain("onConfigureRole");
+    expect(menu).toContain("disabled={!selectedRole}");
     expect(sidebar).toContain("onNew={() => void onNew()}");
     expect(sidebar).toContain('src="/app-icon.png"');
     expect(sidebar).not.toContain("SidebarCollapseButton");
     expect(sidebar).not.toContain("openagent.sidebar.collapsed");
-    expect(roleSidebar).toMatch(/\.role-sidebar\s*{[^}]*width: var\(--role-sidebar-width\);/s);
-    expect(route).toContain("--role-sidebar-width: 52px");
+    expect(route).not.toContain("--role-sidebar-width");
     expect(sidebar).not.toContain("class:collapsed");
     expect(sidebar).not.toContain("{#if !collapsed}");
     expect(route).not.toContain("sidebarCollapsed");
@@ -85,7 +83,6 @@ describe("desktop navigation chrome", () => {
       new URL("DesktopShellPreview.svelte", componentsUrl),
       "utf8",
     );
-    const roleSidebar = await readFile(new URL("RoleSidebar.svelte", componentsUrl), "utf8");
     const workspaceSwitcher = await readFile(
       new URL("WorkspaceSwitcher.svelte", componentsUrl),
       "utf8",
@@ -97,16 +94,11 @@ describe("desktop navigation chrome", () => {
     expect(titleBar).toContain("height: var(--desktop-titlebar-height)");
     expect(sidebar).not.toContain("border-right:");
     expect(titleBar).not.toContain("border-bottom:");
-    expect(titleBar).toMatch(
-      /\.title-bar-menu\s*{[^}]*margin-left: calc\(var\(--role-sidebar-width, 0px\) \+ 39px\);/s,
-    );
-    expect(titleBar).toMatch(
-      /\.title-bar\.macos \.title-bar-menu\s*{[^}]*margin-left: calc\(var\(--role-sidebar-width, 0px\) \+ 124px\);/s,
-    );
+    expect(titleBar).toMatch(/\.title-bar-menu\s*{[^}]*margin-left: 39px;/s);
+    expect(titleBar).toMatch(/\.title-bar\.macos \.title-bar-menu\s*{[^}]*margin-left: 124px;/s);
     for (const platform of ["windows", "macos", "linux"]) {
       expect(desktopShellPreview).toContain(`requestedPlatform === "${platform}"`);
     }
-    expect(roleSidebar).toContain("role-action-separator");
     const conversationWorkspace = conversationSurface.match(
       /\.conversation-workspace\s*{([^}]*)}/s,
     )?.[1];
@@ -149,7 +141,10 @@ describe("desktop navigation chrome", () => {
     const settings = await readFile(new URL("SettingsView.svelte", componentsUrl), "utf8");
     const onboarding = await readFile(new URL("OnboardingFlow.svelte", componentsUrl), "utf8");
 
-    expect(settings).toContain("background: var(--bg)");
+    expect(settings).toMatch(/\.settings-panel\s*{[^}]*background: transparent;/s);
+    expect(route).toMatch(
+      /\.settings-dialog\)\s*{[^}]*background: var\(--floating-surface\);[^}]*backdrop-filter: blur\(24px\) saturate\(1\.5\);/s,
+    );
     expect(onboarding).toContain('class="application-settings-surface step-content"');
     expect(onboarding).toMatch(/\.step-content\s*{[^}]*background: var\(--mica-surface\);/s);
 
@@ -288,8 +283,7 @@ describe("desktop navigation chrome", () => {
     expect(route).toContain("fetchConversationPage(null, null, 20, null, true, recentRoleId)");
     expect(route).not.toContain("recentConversationNextCursor");
     expect(route).not.toContain("loadNextRecentConversationPage");
-    const roleSidebar = await readFile(new URL("RoleSidebar.svelte", componentsUrl), "utf8");
-    expect(roleSidebar).toContain("onclick={() => void onRoleChange(role.id)}");
+    expect(sidebar).toContain("onChange={changeRole}");
     expect(sidebar).not.toContain("onLoadMoreRecent");
     expect(primaryActions).toContain("onfocusout={handleSearchFocusout}");
     expect(workspaceBrowser).toContain("projectsCollapsed");

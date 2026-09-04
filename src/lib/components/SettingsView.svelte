@@ -3724,7 +3724,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: var(--bg);
+    background: transparent;
   }
 
   .detail-service-name {

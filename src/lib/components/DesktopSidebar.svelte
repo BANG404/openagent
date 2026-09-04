@@ -1,9 +1,10 @@
 <script lang="ts">
-  import type { Conversation, RecentWorkspace } from "$lib/types";
+  import type { AgentRole, Conversation, RecentWorkspace } from "$lib/types";
   import { loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
   import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
 
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
+  import RoleSelector from "$lib/components/RoleSelector.svelte";
   import SidebarHistoryControls from "$lib/components/SidebarHistoryControls.svelte";
   import SidebarPrimaryActions from "$lib/components/SidebarPrimaryActions.svelte";
   import SidebarResizeHandle from "$lib/components/SidebarResizeHandle.svelte";
@@ -11,6 +12,7 @@
   import { t } from "$lib/i18n";
 
   let {
+    roles,
     selectedRoleKey,
     canGoBack,
     canGoForward,
@@ -27,6 +29,7 @@
     loadingMore,
     loadingRecentConversations,
     loading,
+    onRoleChange,
     onBack,
     onForward,
     onNew,
@@ -45,6 +48,7 @@
     platformOverride,
     windowFocused,
   }: {
+    roles: AgentRole[];
     selectedRoleKey: string;
     canGoBack: boolean;
     canGoForward: boolean;
@@ -61,6 +65,7 @@
     loadingMore: boolean;
     loadingRecentConversations: boolean;
     loading: boolean;
+    onRoleChange: (role: string) => void | Promise<void>;
     onBack: () => void | Promise<void>;
     onForward: () => void | Promise<void>;
     onNew: () => void | Promise<void>;
@@ -85,6 +90,12 @@
   let resizing = $state(false);
   let searchOpen = $state(false);
 
+  function changeRole(role: string): void {
+    searchOpen = false;
+    onSearch("");
+    void onRoleChange(role);
+  }
+
   function openConversation(conversation: Conversation): void {
     if (searchOpen) {
       searchOpen = false;
@@ -105,7 +116,8 @@
     <img class="sidebar-app-icon" src="/app-icon.png" alt="OpenAgent" draggable="false" />
   </div>
   <div class="sidebar-content">
-    <div class="sidebar-history">
+    <div class="sidebar-role">
+      <RoleSelector value={selectedRoleKey} {roles} header onChange={changeRole} />
       <SidebarHistoryControls
         {canGoBack}
         {canGoForward}
@@ -177,7 +189,7 @@
   .sidebar-top {
     position: fixed;
     top: 0;
-    left: var(--role-sidebar-width);
+    left: 0;
     z-index: 11;
     height: var(--desktop-titlebar-height);
     display: flex;
@@ -188,12 +200,12 @@
   }
 
   .sidebar.window-inactive .sidebar-top,
-  .sidebar.window-inactive .sidebar-history {
+  .sidebar.window-inactive .sidebar-role {
     opacity: 0.55;
   }
 
   .sidebar.macos .sidebar-top {
-    left: calc(var(--role-sidebar-width) + 76px);
+    left: 76px;
   }
 
   .sidebar-app-icon {
@@ -211,13 +223,19 @@
     flex-direction: column;
   }
 
-  .sidebar-history {
+  .sidebar-role {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
+    gap: 4px;
     padding: 5px 8px 1px;
     transition: opacity 120ms ease;
+  }
+
+  .sidebar-role :global(.role-selector-trigger.header) {
+    min-width: 0;
+    max-width: calc(100% - 62px);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -226,7 +244,7 @@
     }
 
     .sidebar-top,
-    .sidebar-history {
+    .sidebar-role {
       transition: none;
     }
   }

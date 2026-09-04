@@ -155,8 +155,8 @@
   visible role name without a redundant caret. Keep the full-width new-conversation
   and global conversation-search actions immediately below it; the new action
   uses the window's selected workspace, while project-row actions may explicitly
-  select another workspace first. Retain Settings as the sole bottom navigation
-  action. Keep the back and forward
+  select another workspace first. Do not add a persistent Settings action to the
+  sidebar. Keep the back and forward
   controls right-aligned in the same row as the sidebar role trigger. Keep the
   application icon in the leading slot of the shared top chrome; it is branding,
   not an interactive sidebar-collapse control.
