@@ -38,7 +38,7 @@ describe("stream pause control", () => {
     expect(source).toContain("element.style.height = `${minHeight}px`;");
     expect(source).toContain("if (!element.value) return;");
     expect(source).toContain("Math.max(element.scrollHeight, minHeight)");
-    expect(source).toMatch(/<textarea\s+class="input"\s+rows="1"/);
+    expect(source).toMatch(/<textarea\s+class="input input-editor"\s+rows="1"/);
     expect(source).not.toContain('element.style.height = "auto";');
     expect(source).toMatch(
       /const draftValue = value;\s+void tick\(\)\.then\(\(\) => \{\s+if \(textareaEl\?\.value === draftValue\) resizeTextarea\(\);/,

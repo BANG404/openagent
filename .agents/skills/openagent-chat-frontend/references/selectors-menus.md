@@ -85,6 +85,11 @@
 - Keep the localized shared-composer placeholder concise while advertising the
   Enter and Shift+Enter keyboard behavior plus the `/` command and `@` mention
   palette triggers.
+- Style boundary-delimited `@` mention and `#` reference tokens in the composer
+  with the shared primary accent while preserving the submitted plain text.
+  Keep the native textarea as the editable and accessible control; any visual
+  token layer must match its wrapping and scroll position without changing
+  caret, selection, IME, draft restoration, or palette behavior.
 - Keep an empty composer at its CSS single-row height. During startup and draft
   restoration, do not derive an empty textarea's height from `scrollHeight`:
   WebView2 can report a stale expanded value. Measure and clamp only non-empty
