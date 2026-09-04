@@ -29,7 +29,7 @@ const LOGIC_FILES = [
 const CHAT_FRONTEND_FILES = [
   /^src\/routes\/(?:remote\/)?\+page\.svelte$/,
   /^src\/lib\/(?:chatStream|conversationDb|checkpointTree|assistantOutput|chatQueue|remoteConversationProjection|startupRestoreCache|toolCallGroups|types)\.ts$/,
-  /^src\/lib\/components\/(?:AttachmentPreview|FileChangeBanner|MermaidToolPreview|MessageInput|MessageList|ProcessRecordGroup|RetryAttempt|StreamItemRenderer|ToolApprovalActions|ToolCallCard|ToolCallGroup|TranscriptList|UserInputForm|UserInputSummary)\.svelte$/,
+  /^src\/lib\/components\/(?:AttachmentPreview|FileChangeBanner|FileChangePanel|MermaidToolPreview|MessageInput|MessageList|ProcessRecordGroup|RetryAttempt|StreamItemRenderer|ToolApprovalActions|ToolCallCard|ToolCallGroup|TranscriptList|UserInputForm|UserInputSummary)\.svelte$/,
   /^src\/lib\/streamdown\//,
 ];
 

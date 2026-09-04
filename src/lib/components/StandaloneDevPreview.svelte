@@ -36,7 +36,6 @@
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
   import CompactionStatus from "$lib/components/CompactionStatus.svelte";
   import DesktopShellPreview from "$lib/components/DesktopShellPreview.svelte";
-  import FileChangeBanner from "$lib/components/FileChangeBanner.svelte";
   import FollowUpSuggestions from "$lib/components/FollowUpSuggestions.svelte";
   import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
   import MessageDivider from "$lib/components/MessageDivider.svelte";
@@ -92,19 +91,46 @@
       last_used_at: 2,
     },
   ];
-  const inputSurfaceChanges: FileChange[] = [
+  const checkpointPanelChanges: FileChange[] = [
     {
       id: "preview-file-change",
       conv_id: "input-surfaces-preview",
       checkpoint_id: "preview-checkpoint",
       path: "src/lib/components/MessageInput.svelte",
       operation: "write",
-      old_patch: "@@ -1 +1 @@\n-old surface\n+shared surface",
+      old_patch: "@@ -1 +1 @@\n-shared surface\n+old surface",
       old_content_z: null,
       new_content_z: null,
       new_hash: null,
       seq: 1,
       created_at: 1,
+    },
+    {
+      id: "preview-file-change-two",
+      conv_id: "input-surfaces-preview",
+      checkpoint_id: "preview-checkpoint",
+      path: "src/lib/components/ConversationSurface.svelte",
+      operation: "write",
+      old_patch:
+        "@@ -238,2 +238,5 @@\n-          <FileChangeBanner changes={view.fileChanges} />\n+          <MessageInput\n+            bind:value={composerDraft.text}\n             disabled={!view.tauriAvailable}",
+      old_content_z: null,
+      new_content_z: null,
+      new_hash: null,
+      seq: 2,
+      created_at: 2,
+    },
+    {
+      id: "preview-file-change-three",
+      conv_id: "input-surfaces-preview",
+      checkpoint_id: "preview-checkpoint",
+      path: "docs/conversation-details.md",
+      operation: "write",
+      old_patch: null,
+      old_content_z: null,
+      new_content_z: null,
+      new_hash: null,
+      seq: 3,
+      created_at: 3,
     },
   ];
   let attachmentItems = $state<ChatAttachment[]>([
@@ -985,7 +1011,6 @@
         onSend={() => {}}
         onStop={() => {}}
       />
-      <FileChangeBanner changes={inputSurfaceChanges} onRevert={async () => {}} />
       <div class="input-surfaces-role-anchor">
         <RoleSelector
           value={inputSurfaceRole}
@@ -1039,7 +1064,7 @@
   <main class="checkpoint-flow-preview-stage">
     <div class="conversation-input-fade" aria-hidden="true"></div>
     <header class="checkpoint-flow-preview-titlebar">
-      <span>{$t(checkpointFlow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}</span>
+      <span>{$t("conversationDetails")}</span>
       <CheckpointFlowToggleButton
         collapsed={panelCollapsed}
         onToggle={() => (panelCollapsed = !panelCollapsed)}
@@ -1075,10 +1100,12 @@
       </div>
     </section>
     <CheckpointFlowStatus
-      flow={checkpointFlow}
+      flow={query.has("checkpoint-flow-preview-files-only") ? null : checkpointFlow}
+      changes={checkpointPanelChanges}
       width={panelWidth}
       collapsed={panelCollapsed}
       resizing={panelResizing}
+      onRevert={async () => {}}
       onResizeStart={startPanelResize}
     />
   </main>

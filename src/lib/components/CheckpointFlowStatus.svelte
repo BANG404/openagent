@@ -6,20 +6,25 @@
     type CheckpointFlow,
     type CheckpointFlowStatus,
   } from "$lib/checkpointFlow";
+  import type { FileChange } from "$lib/types";
   import { t } from "$lib/i18n";
+  import FileChangePanel from "$lib/components/FileChangePanel.svelte";
 
   interface Props {
-    flow: CheckpointFlow;
+    flow: CheckpointFlow | null;
+    changes: FileChange[];
     width: number;
     collapsed: boolean;
     resizing: boolean;
     onResizeStart: (event: PointerEvent) => void;
+    onRevert: (changeId: string) => Promise<void>;
   }
 
-  let { flow, width, collapsed, resizing, onResizeStart }: Props = $props();
-  let progress = $derived(checkpointFlowProgress(flow));
+  let { flow, changes, width, collapsed, resizing, onResizeStart, onRevert }: Props = $props();
+  let activePanel = $state<"status" | "files">("status");
+  let progress = $derived(flow ? checkpointFlowProgress(flow) : { completed: 0, total: 0 });
   let percent = $derived(progress.total > 0 ? (progress.completed / progress.total) * 100 : 0);
-  let graphLayers = $derived(flow.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
+  let graphLayers = $derived(flow?.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
   let graphViewport: HTMLDivElement | null = $state(null);
   let graphCanvas: HTMLDivElement | null = $state(null);
   let graphScale = $state(1);
@@ -30,7 +35,7 @@
   let graphFrame = 0;
 
   function updateGraphLayout() {
-    if (!graphViewport || !graphCanvas || flow.kind !== "graph") {
+    if (!graphViewport || !graphCanvas || flow?.kind !== "graph") {
       graphEdges = [];
       return;
     }
@@ -135,6 +140,11 @@
     });
   });
 
+  $effect(() => {
+    if (activePanel === "status" && !flow && changes.length > 0) activePanel = "files";
+    if (activePanel === "files" && changes.length === 0 && flow) activePanel = "status";
+  });
+
   function statusLabel(status: string): string {
     if (status === "completed") return $t("checkpointFlowCompleted");
     if (status === "failed") return $t("checkpointFlowFailed");
@@ -151,7 +161,7 @@
   class:collapsed
   class:resizing
   style:--flow-panel-width={`${width}px`}
-  aria-label={$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}
+  aria-label={$t("conversationDetails")}
   aria-hidden={collapsed}
 >
   {#if !collapsed}
@@ -161,15 +171,36 @@
       aria-label={$t("checkpointFlowResize")}
       onpointerdown={onResizeStart}
     ></button>
+    <nav class="panel-navigation" aria-label={$t("conversationDetails")}>
+      {#if flow}
+        <button
+          type="button"
+          class:active={activePanel === "status"}
+          aria-current={activePanel === "status" ? "page" : undefined}
+          onclick={() => (activePanel = "status")}>{$t("conversationStatus")}</button
+        >
+      {/if}
+      {#if changes.length > 0}
+        <button
+          type="button"
+          class:active={activePanel === "files"}
+          aria-current={activePanel === "files" ? "page" : undefined}
+          onclick={() => (activePanel = "files")}
+        >
+          {$t("conversationFiles")}
+          <span>{changes.length}</span>
+        </button>
+      {/if}
+    </nav>
+  {/if}
+
+  {#if !collapsed && activePanel === "status" && flow}
     <header class="flow-header">
       <span class="flow-heading">
         <strong>{$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}</strong>
         <span>{flow.objective}</span>
       </span>
     </header>
-  {/if}
-
-  {#if !collapsed}
     <div class="flow-overview">
       <div class="overview-row">
         <span class="flow-status {flow.status}">{statusLabel(flow.status)}</span>
@@ -294,6 +325,8 @@
 
       {#if flow.summary}<p class="flow-summary">{flow.summary}</p>{/if}
     </div>
+  {:else if !collapsed && activePanel === "files"}
+    <FileChangePanel {changes} {onRevert} />
   {/if}
 </aside>
 
@@ -355,6 +388,61 @@
   .resize-handle:focus-visible::after,
   .resizing .resize-handle::after {
     opacity: 0.7;
+  }
+  .panel-navigation {
+    display: flex;
+    min-height: 42px;
+    align-items: end;
+    gap: 2px;
+    padding: 5px 7px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-navigation button {
+    position: relative;
+    display: flex;
+    height: 36px;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px 6px 0 0;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .panel-navigation button:hover,
+  .panel-navigation button:focus-visible {
+    background: var(--interactive-state-bg);
+    color: var(--text);
+    outline: none;
+  }
+  .panel-navigation button:focus-visible {
+    box-shadow: inset var(--focus-ring);
+  }
+  .panel-navigation button.active {
+    color: var(--text);
+  }
+  .panel-navigation button.active::after {
+    position: absolute;
+    inset: auto 8px -1px;
+    height: 2px;
+    background: var(--primary);
+    content: "";
+  }
+  .panel-navigation span {
+    display: grid;
+    min-width: 17px;
+    height: 17px;
+    place-items: center;
+    padding: 0 4px;
+    box-sizing: border-box;
+    border-radius: 9px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    font:
+      500 9px/1 "JetBrains Mono",
+      monospace;
   }
   .flow-header {
     display: flex;

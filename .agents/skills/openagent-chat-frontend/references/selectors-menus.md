@@ -13,8 +13,8 @@
   separators are application primitives. Components own only their dimensions,
   content layout, and semantic exceptions; do not duplicate the shared state
   declarations in component styles.
-- Reuse the shared raised-surface geometry for the composer, file-change banner,
-  every desktop menu panel, command/mention palettes, floating text-selection
+- Reuse the shared raised-surface geometry for the composer, remote file-change
+  banner, every desktop menu panel, command/mention palettes, floating text-selection
   actions, and notifications so their hairline perimeter, 18px radius, 24px
   saturated blur, and compact, clearly edged elevation stay identical in both
   themes. Floating content uses the dedicated 90%-opaque theme fill so underlying

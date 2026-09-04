@@ -358,6 +358,7 @@
   let checkpointFlowPanelCollapsed = $state(true);
   let checkpointFlowPanelSelectionKey = $state<string | null>(null);
   let checkpointFlowPanelAutoOpenKey = $state<string | null>(null);
+  let fileChangesPanelSelectionKey = $state<string | null>(null);
   let workspace = $state<WorkspaceContext | null>(null);
   let config = $state<AppConfig | null>(null);
   let isMemorySyncing = $state(false);
@@ -703,7 +704,7 @@
       ...live.filter((change) => !persisted.some((saved) => saved.id === change.id)),
     ];
     // Restrict to checkpoints that belong to the currently active branch tail.
-    // Without this filter, file changes from sibling branches would leak into the banner.
+    // Without this filter, file changes from sibling branches would leak into the details panel.
     // A self-contained tip snapshot assigns its display records to the tip.
     // File changes still belong to every checkpoint on the selected branch,
     // so derive that set from the tree rather than rendered message IDs.
@@ -739,6 +740,16 @@
       }
     }
     return Array.from(byPath.values());
+  });
+
+  $effect(() => {
+    const key =
+      activeConvId && currentFileChanges.length > 0
+        ? `${activeConvId}:${activeBranchIds[activeConvId] ?? "root"}`
+        : null;
+    if (key === fileChangesPanelSelectionKey) return;
+    fileChangesPanelSelectionKey = key;
+    if (!currentCheckpointFlow) checkpointFlowPanelCollapsed = !key;
   });
 
   async function loadMessagesForConv(
@@ -4862,7 +4873,9 @@
         {recentWorkspaces}
         {tauriAvailable}
         memorySyncing={isMemorySyncing}
-        checkpointFlowAvailable={Boolean(currentCheckpointFlow && !settingsOpen)}
+        conversationDetailsAvailable={Boolean(
+          (currentCheckpointFlow || currentFileChanges.length > 0) && !settingsOpen,
+        )}
         {checkpointFlowPanelCollapsed}
         onPickWorkspace={pickWorkspace}
         onPickWsl={pickWslWorkspace}

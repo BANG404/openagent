@@ -129,8 +129,8 @@
   parameters must keep light/dark and Chinese/English keyboard, scrolling, and
   selection checks addressable without onboarding or native state.
 - Keep the development-only `input-surfaces-preview` query available for direct
-  comparison of the composer, file-change banner, model and workspace menus,
-  and open role-selector panel. Its `-theme` and `-locale` parameters must keep
+  comparison of the composer, model and workspace menus, and open role-selector
+  panel. Its `-theme` and `-locale` parameters must keep
   the shared surface treatment verifiable in light/dark themes and
   Chinese/English copy.
 - Keep the development-only `pause-control-preview` query available for the
@@ -194,12 +194,13 @@
   use a borderless surface and grow with wrapped text instead of truncating the
   selected context to a fixed line count.
 - Keep the development-only `checkpoint-flow-preview` query available for the
-  right-side Goal/Graph checkpoint panel and composer approval selector. Its
-  `-kind`, `-theme`, and `-locale` query parameters must keep Goal/Graph,
-  resize/collapse, approval selection through the real composer-preferences
-  save queue, light/dark, and Chinese/English checks addressable without a
-  native runtime. The `-empty` parameter exposes the centered Graph planning
-  state directly.
+  right-side conversation-details panel and composer approval selector. Its
+  `-kind`, `-theme`, and `-locale` query parameters must keep Goal/Graph, edited
+  file tabs, resize/collapse, approval selection through the real
+  composer-preferences save queue, light/dark, and Chinese/English checks
+  addressable without a native runtime. The `-empty` parameter exposes the
+  centered Graph planning state, while `-files-only` removes Goal/Graph to
+  exercise the file-only panel directly.
 - Keep the development-only `book-mode-preview` query available with long,
   process-bearing fixture content and consecutive ordinary tools that exercise
   grouped tool-call rendering. Its `-theme` and `-locale` query parameters must
