@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.55.0-beta.1] - 2026-09-04
+
+### Features
+- **ui**: Keep desktop sidebar expanded
+- **chat**: Separate goal panel card
+- Support bounded agent tool execution
+
+### Bug Fixes
+- **desktop**: Match VS Code title bar geometry
+- **runtime**: Cascade stop into graph children
+- **frontend**: Make flow status panel opaque
+- **chat**: Persist new conversation suggestions
+- **chat**: Show thinking between agent tool rounds
+- **chat**: Align composer height with reference
+- **build**: Silence pinned sandbox helper warnings
+- **desktop**: Restore native Linux window frame
+- **chat**: Keep empty composer compact
+- **chat**: Preserve optimistic fork transcript during hydration
+- **chat**: Accept bodyless runtime mutations
+- **chat**: Validate forks on renderable checkpoints
+- **chat**: Bind forks to selected checkpoint tip
+- **chat**: Stabilize empty composer height
+- **chat**: Route conversation branches through runtime
+- **chat**: Stop pinning brand-new sibling sends to the previous root branch
+- **chat**: Reset stale active branch id after switch and hydration
+- **desktop**: Keep theme background on Linux instead of transparent
+- **chat**: Surface compaction failures
+- **chat**: Surface compaction failures
+
+### Refactoring
+- **desktop**: Exclude embedded runtime by default
+
+### Miscellaneous
+- **sdk**: Update pinned revision
+
 ## [0.54.0-beta.1] - 2026-09-02
 
 ### Features
