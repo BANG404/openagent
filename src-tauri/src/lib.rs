@@ -87,10 +87,17 @@ struct ActivatedRuntimeResource {
     event_generation: u64,
 }
 
+#[derive(serde::Serialize)]
+struct ComponentUpdateGate {
+    ready: bool,
+    active_count: usize,
+}
+
 #[derive(Default)]
 struct RuntimeUpdateState {
     pending: tokio::sync::Mutex<Option<InstalledRuntimeResource>>,
     lifecycle: tokio::sync::Mutex<()>,
+    component_update_active: tokio::sync::Mutex<bool>,
 }
 
 #[derive(Default)]
@@ -492,13 +499,14 @@ fn validate_runtime_bootstrap(value: &serde_json::Value) -> Result<(), String> {
 
 async fn drain_supervised_runtime(
     supervisor: &RuntimeProcessSupervisor,
+    cancel: bool,
 ) -> Result<RuntimeDrainResponse, String> {
     let response = runtime_transport::proxy_runtime_request(
         supervisor,
         RuntimeProxyRequest {
             method: "POST".to_string(),
             path: "/api/desktop/drain".to_string(),
-            body: Some("{\"cancel\":true}".to_string()),
+            body: Some(format!("{{\"cancel\":{cancel}}}")),
         },
     )
     .await?;
@@ -510,6 +518,70 @@ async fn drain_supervised_runtime(
     }
     serde_json::from_str(&response.body)
         .map_err(|error| format!("Runtime drain response was invalid: {error}"))
+}
+
+async fn resume_supervised_runtime(supervisor: &RuntimeProcessSupervisor) -> Result<(), String> {
+    let response = runtime_transport::proxy_runtime_request(
+        supervisor,
+        RuntimeProxyRequest {
+            method: "POST".to_string(),
+            path: "/api/desktop/resume".to_string(),
+            body: Some("{}".to_string()),
+        },
+    )
+    .await?;
+    if response.status != 204 {
+        return Err(format!(
+            "Runtime resume was rejected with status {}",
+            response.status
+        ));
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn begin_component_update(
+    updates: State<'_, RuntimeUpdateState>,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+) -> Result<ComponentUpdateGate, String> {
+    let _lifecycle = updates.lifecycle.lock().await;
+    let mut active = updates.component_update_active.lock().await;
+    if *active {
+        return Ok(ComponentUpdateGate {
+            ready: true,
+            active_count: 0,
+        });
+    }
+    let drain = drain_supervised_runtime(supervisor.inner(), false).await?;
+    if drain.drained {
+        *active = true;
+    }
+    Ok(ComponentUpdateGate {
+        ready: drain.drained,
+        active_count: drain.active_conversations.len(),
+    })
+}
+
+#[tauri::command]
+async fn end_component_update(
+    updates: State<'_, RuntimeUpdateState>,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+) -> Result<(), String> {
+    release_component_update(updates.inner(), supervisor.inner()).await
+}
+
+async fn release_component_update(
+    updates: &RuntimeUpdateState,
+    supervisor: &RuntimeProcessSupervisor,
+) -> Result<(), String> {
+    let _lifecycle = updates.lifecycle.lock().await;
+    let mut active = updates.component_update_active.lock().await;
+    if !*active {
+        return Ok(());
+    }
+    resume_supervised_runtime(supervisor).await?;
+    *active = false;
+    Ok(())
 }
 
 async fn validate_supervised_runtime_bootstrap(
@@ -552,6 +624,10 @@ async fn restore_previous_runtime(
 ) -> Result<u64, String> {
     proxy.stop().await;
     supervisor.reload_after_drain(previous_spec).await?;
+    let drain = drain_supervised_runtime(&supervisor, false).await?;
+    if !drain.drained {
+        return Err("restored Runtime could not enter the component update barrier".to_string());
+    }
     reconnect_supervised_runtime(app, supervisor, proxy).await
 }
 
@@ -566,6 +642,9 @@ async fn activate_runtime_resource(
     target: String,
 ) -> Result<ActivatedRuntimeResource, String> {
     let _lifecycle = updates.lifecycle.lock().await;
+    if !*updates.component_update_active.lock().await {
+        return Err("Runtime activation requires an active component update barrier".to_string());
+    }
     let candidate = updates
         .pending
         .lock()
@@ -578,14 +657,6 @@ async fn activate_runtime_resource(
         .launch_spec()
         .await
         .ok_or_else(|| "Runtime activation requires external Runtime mode".to_string())?;
-
-    let drain = drain_supervised_runtime(supervisor.inner()).await?;
-    if !drain.drained {
-        return Err(format!(
-            "Runtime did not drain {} active conversation(s) before the deadline",
-            drain.active_conversations.len()
-        ));
-    }
 
     proxy.stop().await;
     let candidate_spec = RuntimeLaunchSpec {
@@ -608,6 +679,31 @@ async fn activate_runtime_resource(
             Ok(_) => candidate_error,
             Err(recovery_error) => {
                 format!("{candidate_error}; previous Runtime reconnect failed: {recovery_error}")
+            }
+        });
+    }
+
+    let candidate_barrier_error = match drain_supervised_runtime(supervisor.inner(), false).await {
+        Ok(drain) if drain.drained => None,
+        Ok(_) => Some("new Runtime could not enter the component update barrier".to_string()),
+        Err(error) => Some(error),
+    };
+    if let Some(candidate_barrier_error) = candidate_barrier_error {
+        let rollback = restore_previous_runtime(
+            &app,
+            supervisor.inner().clone(),
+            &proxy,
+            previous_spec.clone(),
+        )
+        .await;
+        let _ = app.emit(
+            "runtime-resource-rolled-back",
+            serde_json::json!({ "reason": "update_barrier_failed" }),
+        );
+        return Err(match rollback {
+            Ok(_) => candidate_barrier_error,
+            Err(rollback_error) => {
+                format!("{candidate_barrier_error}; Runtime rollback failed: {rollback_error}")
             }
         });
     }
@@ -740,10 +836,15 @@ async fn prepare_frontend_resource(
 async fn activate_frontend_resource(
     app: tauri::AppHandle,
     manager: State<'_, FrontendResourceManager>,
+    updates: State<'_, RuntimeUpdateState>,
     version: String,
 ) -> Result<(), String> {
     if cfg!(debug_assertions) {
         return Err("production frontend resources are disabled in development builds".to_string());
+    }
+    let _lifecycle = updates.lifecycle.lock().await;
+    if !*updates.component_update_active.lock().await {
+        return Err("frontend activation requires an active component update barrier".to_string());
     }
     manager.activate(&version).await?;
     navigate_frontend_windows(&app, Some(&version))?;
@@ -757,6 +858,13 @@ async fn activate_frontend_resource(
                 if let Err(error) = navigate_frontend_windows(&rollback_app, version.as_deref()) {
                     tracing::error!(%error, "failed to display frontend rollback");
                 }
+                let updates = rollback_app.state::<RuntimeUpdateState>();
+                let supervisor = rollback_app.state::<Arc<RuntimeProcessSupervisor>>();
+                if let Err(error) =
+                    release_component_update(updates.inner(), supervisor.inner()).await
+                {
+                    tracing::error!(%error, "failed to release frontend update barrier after rollback");
+                }
             }
             Ok(false) => {}
             Err(error) => tracing::error!(%error, "failed to roll back unconfirmed frontend"),
@@ -768,9 +876,12 @@ async fn activate_frontend_resource(
 #[tauri::command]
 async fn confirm_frontend_activation(
     manager: State<'_, FrontendResourceManager>,
+    updates: State<'_, RuntimeUpdateState>,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
     version: String,
 ) -> Result<(), String> {
-    manager.confirm(&version).await
+    manager.confirm(&version).await?;
+    release_component_update(updates.inner(), supervisor.inner()).await
 }
 
 fn apply_native_window_material(window: &tauri::WebviewWindow) {
@@ -3136,6 +3247,8 @@ fn run_with_mode(agent_server: bool) {
         get_embedding_resource_status,
         prepare_embedding_resource,
         prepare_runtime_resource,
+        begin_component_update,
+        end_component_update,
         activate_runtime_resource,
         runtime_transport_mode,
         proxy_runtime_request,
@@ -3271,6 +3384,8 @@ fn run_with_mode(agent_server: bool) {
     #[cfg(not(feature = "embedded-runtime"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
         prepare_runtime_resource,
+        begin_component_update,
+        end_component_update,
         activate_runtime_resource,
         runtime_transport_mode,
         proxy_runtime_request,

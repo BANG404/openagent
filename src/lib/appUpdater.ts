@@ -42,6 +42,11 @@ type AvailableUpdates = {
   shellDownload: Promise<void> | null;
 };
 
+type ComponentUpdateGate = {
+  ready: boolean;
+  active_count: number;
+};
+
 async function checkForRuntimeResourceUpdate(): Promise<PreparedRuntimeResource | null> {
   if (import.meta.env.DEV) return null;
   const candidate = await withAppUpdateTimeout(
@@ -65,6 +70,8 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
   mutableAppUpdateState.set("installing");
 
   let progressToastId: number | null = null;
+  let componentUpdateStarted = false;
+  let frontendActivationCommitted = false;
 
   try {
     progressToastId = showToast({
@@ -84,6 +91,16 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
     } else if (updates.shell) {
       await updates.shell.download();
     }
+    const gate = await invoke<ComponentUpdateGate>("begin_component_update");
+    if (!gate.ready) {
+      showToast({
+        title: translate("updateDeferred"),
+        description: translate("updateDeferredActiveAgent"),
+        durationMs: 5000,
+      });
+      return;
+    }
+    componentUpdateStarted = true;
     if (updates.runtime) {
       updateToast(progressToastId, {
         description: translate("runtimeUpdateInProgressDescription"),
@@ -98,6 +115,7 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
         description: translate("frontendUpdateInProgressDescription"),
       });
       await invoke<void>("activate_frontend_resource", { version: updates.frontend.version });
+      frontendActivationCommitted = true;
     }
     if (updates.shell) {
       updateToast(progressToastId, { description: translate("updateInstalling") });
@@ -120,6 +138,11 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
       durationMs: 8000,
     });
   } finally {
+    if (componentUpdateStarted && !frontendActivationCommitted) {
+      await invoke("end_component_update").catch((error) =>
+        console.warn("[openagent] Failed to release component update barrier", error),
+      );
+    }
     if (progressToastId !== null) {
       dismissToast(progressToastId);
     }

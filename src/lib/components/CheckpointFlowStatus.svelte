@@ -26,8 +26,6 @@
   let graphLayers = $derived(flow?.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
   let graphViewport: HTMLDivElement | null = $state(null);
   let graphCanvas: HTMLDivElement | null = $state(null);
-  let graphScale = $state(1);
-  let graphTop = $state(0);
   let graphEdges = $state<{ key: string; path: string; status: CheckpointFlowStatus }[]>([]);
   const graphNodeElements = new Map<string, HTMLElement>();
   let graphResizeObserver: ResizeObserver | null = null;
@@ -39,7 +37,6 @@
       return;
     }
 
-    const appliedScale = graphScale || 1;
     const canvasRect = graphCanvas.getBoundingClientRect();
     const knownIds = new Set(flow.nodes.map((node) => node.id));
     graphEdges = flow.nodes.flatMap((node) => {
@@ -51,43 +48,20 @@
         const source = graphNodeElements.get(dependency);
         if (!source) return [];
         const sourceRect = source.getBoundingClientRect();
-        const startX = (sourceRect.left + sourceRect.width / 2 - canvasRect.left) / appliedScale;
-        const startY = (sourceRect.bottom - canvasRect.top) / appliedScale;
-        const targetLeft = (targetRect.left - canvasRect.left) / appliedScale;
-        const targetRight = (targetRect.right - canvasRect.left) / appliedScale;
-        const targetCenterX = (targetLeft + targetRight) / 2;
-        const targetCenterY =
-          (targetRect.top + targetRect.height / 2 - canvasRect.top) / appliedScale;
-        const canvasCenterX = canvasRect.width / appliedScale / 2;
-        const side =
-          Math.abs(targetCenterX - canvasCenterX) > targetRect.width / appliedScale / 4
-            ? targetCenterX < canvasCenterX
-              ? -1
-              : 1
-            : startX < canvasCenterX
-              ? -1
-              : 1;
-        const endX = side < 0 ? targetLeft : targetRight;
-        const gutterX = side < 0 ? 4 : canvasRect.width / appliedScale - 4;
-        const branchY = startY + 9;
+        const startX = sourceRect.left + sourceRect.width / 2 - canvasRect.left;
+        const startY = sourceRect.bottom - canvasRect.top;
+        const endX = targetRect.left + targetRect.width / 2 - canvasRect.left;
+        const endY = targetRect.top - canvasRect.top;
+        const controlOffset = Math.max(10, (endY - startY) / 2);
         return [
           {
             key: `${dependency}:${node.id}`,
-            path: `M ${startX} ${startY} C ${startX} ${branchY}, ${gutterX} ${branchY}, ${gutterX} ${branchY} L ${gutterX} ${targetCenterY} C ${gutterX} ${targetCenterY}, ${endX + side * 10} ${targetCenterY}, ${endX} ${targetCenterY}`,
+            path: `M ${startX} ${startY} C ${startX} ${startY + controlOffset}, ${endX} ${endY - controlOffset}, ${endX} ${endY}`,
             status: node.status,
           },
         ];
       });
     });
-
-    const naturalWidth = Math.max(1, graphCanvas.scrollWidth);
-    const naturalHeight = Math.max(1, graphCanvas.scrollHeight);
-    graphScale = Math.min(
-      1,
-      graphViewport.clientWidth / naturalWidth,
-      graphViewport.clientHeight / naturalHeight,
-    );
-    graphTop = Math.max(0, (graphViewport.clientHeight - naturalHeight * graphScale) / 2);
   }
 
   function scheduleGraphLayout() {
@@ -227,13 +201,7 @@
             <p class="flow-empty">{$t("checkpointGraphPlanning")}</p>
           {:else}
             <div class="graph-viewport" bind:this={graphViewport}>
-              <div
-                class="graph-canvas"
-                bind:this={graphCanvas}
-                style:--graph-scale={graphScale}
-                style:--graph-top={`${graphTop}px`}
-                role="list"
-              >
+              <div class="graph-canvas" bind:this={graphCanvas} role="list">
                 <svg class="graph-edges" aria-hidden="true">
                   <defs>
                     <marker
@@ -579,21 +547,18 @@
     min-width: 0;
     min-height: 0;
     flex: 1;
-    overflow: hidden;
-    padding: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 12px 10px 20px;
+    scrollbar-gutter: stable;
   }
   .graph-canvas {
-    position: absolute;
-    top: var(--graph-top);
-    left: 50%;
+    position: relative;
     display: grid;
     width: 100%;
-    min-height: 0;
     box-sizing: border-box;
-    gap: 24px;
-    padding: 10px;
-    transform: translateX(-50%) scale(var(--graph-scale));
-    transform-origin: top center;
+    gap: 28px;
+    padding: 2px 4px;
   }
   .graph-edges {
     position: absolute;
@@ -606,13 +571,14 @@
   .graph-edge {
     fill: none;
     stroke: var(--text-muted);
-    stroke-width: 1.25;
-    opacity: 0.55;
+    stroke-linecap: round;
+    stroke-width: 1.2;
+    opacity: 0.42;
     vector-effect: non-scaling-stroke;
   }
   .graph-edge.running {
     stroke: var(--primary);
-    opacity: 0.85;
+    opacity: 0.62;
   }
   .graph-edge.completed {
     stroke: #18794e;
@@ -629,7 +595,7 @@
     display: grid;
     min-width: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 12px;
   }
   .graph-layer.single {
     grid-template-columns: minmax(0, min(240px, 100%));
@@ -638,25 +604,34 @@
   .graph-node {
     display: flex;
     min-width: 0;
-    height: 72px;
+    min-height: 74px;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
     box-sizing: border-box;
-    padding: 7px 9px;
+    padding: 8px 10px;
     border: 1px solid var(--border);
-    border-radius: 9px;
-    background: color-mix(in srgb, var(--surface) 92%, transparent);
-    box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
+    border-radius: 8px;
+    background: var(--surface);
   }
   .graph-node.running {
-    border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+    background: color-mix(in srgb, var(--primary) 3%, var(--surface));
   }
-  .graph-node.completed {
-    border-color: color-mix(in srgb, #18794e 32%, var(--border));
+  .graph-node.running .item-status {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 11%, transparent);
+  }
+  .graph-node.completed .item-status {
+    color: #18794e;
+    background: color-mix(in srgb, #18794e 10%, transparent);
   }
   .graph-node.failed,
   .graph-node.blocked {
-    border-color: color-mix(in srgb, #b42318 34%, var(--border));
+    background: color-mix(in srgb, var(--danger) 3%, var(--surface));
+  }
+  .graph-node.failed .item-status,
+  .graph-node.blocked .item-status {
+    color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 10%, transparent);
   }
   .node-header {
     display: flex;
@@ -668,7 +643,7 @@
   .node-header code {
     overflow: hidden;
     color: var(--text-muted);
-    font-size: 9px;
+    font-size: 10px;
     line-height: 1.25;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -679,7 +654,7 @@
     color: var(--text);
     font-size: 11px;
     font-weight: 500;
-    line-height: 1.35;
+    line-height: 1.4;
     overflow-wrap: anywhere;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
@@ -688,8 +663,8 @@
   .graph-node > small {
     overflow: hidden;
     color: var(--text-muted);
-    font-size: 9px;
-    line-height: 1.2;
+    font-size: 10px;
+    line-height: 1.3;
     text-overflow: ellipsis;
     white-space: nowrap;
   }

@@ -695,7 +695,7 @@ const zh = {
   runtimeUpdateAvailableDescription:
     "已下载并验证新的后端 Runtime，可在不更新桌面外壳的情况下切换。",
   runtimeUpdateInProgress: "正在切换 Runtime",
-  runtimeUpdateInProgressDescription: "正在排空任务、重启后端并恢复连接…",
+  runtimeUpdateInProgressDescription: "等待任务自然结束、重启后端并恢复连接…",
   runtimeUpdateInstalled: "Runtime 已更新",
   runtimeUpdateInstalledDescription: "后端已重新连接；会话状态已从持久化数据恢复。",
   frontendUpdateAvailable: "发现前端更新",
@@ -707,6 +707,8 @@ const zh = {
   updateInstalling: "正在安装更新…",
   updateInstalled: "更新已安装",
   updateRestarting: "OpenAgent 将重启以完成更新。",
+  updateDeferred: "更新已延迟",
+  updateDeferredActiveAgent: "Agent 正在执行；任务结束后可再次开始更新。",
   updateFailed: "更新失败",
   // Input palette (slash commands + @file mentions)
   paletteNoCommands: "无匹配的指令",
@@ -1618,7 +1620,8 @@ const en: Translations = {
   runtimeUpdateAvailableDescription:
     "A verified backend Runtime is ready and can switch without updating the desktop shell.",
   runtimeUpdateInProgress: "Switching Runtime",
-  runtimeUpdateInProgressDescription: "Draining work, restarting the backend, and reconnecting…",
+  runtimeUpdateInProgressDescription:
+    "Waiting for active work to finish, restarting the backend, and reconnecting…",
   runtimeUpdateInstalled: "Runtime updated",
   runtimeUpdateInstalledDescription:
     "The backend reconnected and conversation state was restored from durable storage.",
@@ -1632,6 +1635,8 @@ const en: Translations = {
   updateInstalling: "Installing update…",
   updateInstalled: "Update installed",
   updateRestarting: "OpenAgent will restart to finish the update.",
+  updateDeferred: "Update deferred",
+  updateDeferredActiveAgent: "An agent is running. Start the update again after it finishes.",
   updateFailed: "Update failed",
   paletteNoCommands: "No matching commands",
   paletteLoadingMentions: "Loading roles and files…",
