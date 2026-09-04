@@ -171,6 +171,10 @@
   The status panel header uses the concise `Goal` or `Graph` kind label, its
   objective beneath it, and a right-aligned completed/total count. Do not render
   a separate progress track or duplicate flow-status badge below the header.
+  Render Graph dependencies as direct top-to-bottom connections between node
+  cards, with parallel nodes sharing a row. Preserve readable card typography
+  and let a long graph scroll vertically instead of scaling the complete graph
+  down to the panel height or routing connections around the panel edges.
   Place the expanded panel as a full-height card beside the conversation card in
   the workspace flex container. Keep a narrow transparent gap between these two
   sibling cards while its persisted width reduces the conversation track. Give

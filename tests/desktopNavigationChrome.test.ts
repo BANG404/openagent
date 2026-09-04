@@ -450,5 +450,8 @@ describe("desktop navigation chrome", () => {
     expect(panel).toMatch(
       /\.resize-handle::after\s*{[^}]*inset: 0 auto 0 3px;[^}]*width: var\(--column-resize-indicator-width\);/s,
     );
+    expect(panel).toMatch(/\.graph-viewport\s*{[^}]*overflow-y: auto;/s);
+    expect(panel).not.toContain("graphScale");
+    expect(panel).not.toContain("--graph-scale");
   });
 });
