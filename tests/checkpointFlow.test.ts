@@ -2,6 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   checkpointFlowFromLiveUpdate,
+  checkpointFlowNeedsDisplay,
   checkpointFlowProgress,
   checkpointGraphLayers,
   normalizeCheckpointFlow,
@@ -32,6 +33,21 @@ const checkpoint = (id: string, parent: string | null, flow: unknown) => ({
 });
 
 describe("checkpoint Goal and Graph state", () => {
+  test("shows only unfinished checkpoint flows in conversation details", () => {
+    const flow = {
+      kind: "goal",
+      objective: "Ship the panel",
+      iteration: 1,
+      todos: [],
+    };
+
+    expect(checkpointFlowNeedsDisplay({ ...flow, status: "running" })).toBe(true);
+    expect(checkpointFlowNeedsDisplay({ ...flow, status: "failed" })).toBe(true);
+    expect(checkpointFlowNeedsDisplay({ ...flow, status: "blocked" })).toBe(true);
+    expect(checkpointFlowNeedsDisplay({ ...flow, status: "completed" })).toBe(false);
+    expect(checkpointFlowNeedsDisplay(undefined)).toBe(false);
+  });
+
   test("normalizes Goal to-dos and computes progress", () => {
     const flow = normalizeCheckpointFlow("goal", {
       objective: "Ship the panel",

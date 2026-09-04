@@ -41,6 +41,12 @@ export interface LiveCheckpointFlowProjection {
   version: number;
 }
 
+export function checkpointFlowNeedsDisplay(
+  flow: CheckpointFlow | null | undefined,
+): flow is CheckpointFlow {
+  return Boolean(flow && flow.status !== "completed");
+}
+
 export function checkpointFlowPanelKey(
   conversationId: string | null,
   branchId: string | null,

@@ -7,7 +7,7 @@
     CHECKPOINT_FLOW_PANEL_MIN_WIDTH,
     clampCheckpointFlowPanelWidth,
   } from "$lib/checkpointFlowPanelSizing";
-  import type { CheckpointFlow } from "$lib/checkpointFlow";
+  import { checkpointFlowNeedsDisplay, type CheckpointFlow } from "$lib/checkpointFlow";
   import { previewParameterPrefix, type StandaloneDevPreview } from "$lib/devPreview";
   import { initI18n, t, type Locale } from "$lib/i18n";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
@@ -760,6 +760,23 @@
   if (query.has("checkpoint-flow-preview-empty") && checkpointFlow.kind === "graph") {
     checkpointFlow.nodes = [];
   }
+  if (query.has("checkpoint-flow-preview-completed")) checkpointFlow.status = "completed";
+  const checkpointFlowPreviewFlow =
+    query.has("checkpoint-flow-preview-files-only") ||
+    query.has("checkpoint-flow-preview-no-details")
+      ? null
+      : checkpointFlow;
+  const checkpointFlowPreviewVisibleFlow = checkpointFlowNeedsDisplay(checkpointFlowPreviewFlow)
+    ? checkpointFlowPreviewFlow
+    : null;
+  const checkpointFlowPreviewChanges =
+    query.has("checkpoint-flow-preview-no-details") ||
+    query.has("checkpoint-flow-preview-completed")
+      ? []
+      : checkpointPanelChanges;
+  const checkpointFlowPreviewHasDetails = Boolean(
+    checkpointFlowPreviewVisibleFlow || checkpointFlowPreviewChanges.length > 0,
+  );
 
   const bookTable = [
     "| Section | Status | Notes |",
@@ -1068,7 +1085,7 @@
   <main class="checkpoint-flow-preview-stage">
     <div class="conversation-input-fade" aria-hidden="true"></div>
     <header class="checkpoint-flow-preview-titlebar">
-      {#if !query.has("checkpoint-flow-preview-no-details")}
+      {#if checkpointFlowPreviewHasDetails}
         <span>{$t("conversationDetails")}</span>
         <CheckpointFlowToggleButton
           collapsed={panelCollapsed}
@@ -1105,10 +1122,10 @@
         />
       </div>
     </section>
-    {#if !query.has("checkpoint-flow-preview-no-details")}
+    {#if checkpointFlowPreviewHasDetails}
       <CheckpointFlowStatus
-        flow={query.has("checkpoint-flow-preview-files-only") ? null : checkpointFlow}
-        changes={checkpointPanelChanges}
+        flow={checkpointFlowPreviewVisibleFlow}
+        changes={checkpointFlowPreviewChanges}
         width={panelWidth}
         collapsed={panelCollapsed}
         resizing={panelResizing}

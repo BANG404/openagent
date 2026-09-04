@@ -133,11 +133,12 @@
   overlay until the matching persisted `chat-checkpoint` has been reconciled.
   Leave optimistic transcript records mounted throughout and ignore stale
   asynchronous refreshes so an older checkpoint cannot replace a newer live
-  Goal or Graph state. When either kind of data is observable, the resizable
-  right-side conversation-details panel owns both this status and branch-scoped
-  file changes in the ordinary desktop conversation; those file changes must not
-  render above the composer. When neither kind is observable, omit the panel
-  host, its layout region, and its title-bar entry completely. Keep live
+  Goal or Graph state. When an unfinished Goal/Graph or branch-scoped file change
+  is observable, the resizable right-side conversation-details panel owns that
+  content in the ordinary desktop conversation; those file changes must not
+  render above the composer. A completed Goal/Graph is no longer panel content.
+  When no unfinished flow or file change remains, omit the panel host, its layout
+  region, and its title-bar entry completely. Keep live
   file changes visible through terminal reconciliation until the matching durable
   records are observable on the selected checkpoint path; database visibility alone
   is not sufficient. Reconcile again when checkpoint hydration advances, and ensure a
@@ -146,8 +147,8 @@
   top-level Status and Files tabs preserve one
   full-height body, and the Files page uses horizontally scrollable file tabs
   with one line-numbered diff and revert action for the selected file. Keep the
-  title-bar toggle and collapsible panel host available whenever Goal/Graph or
-  file-change data is currently observable. A temporary empty file projection
+  title-bar toggle and collapsible panel host available whenever an unfinished
+  Goal/Graph or file-change data is currently observable. A temporary empty file projection
   must not hide the panel while its matching live changes are still awaiting
   durable reconciliation.
   Wrap diff

@@ -378,12 +378,11 @@ describe("desktop navigation chrome", () => {
     const panelShell = panel.match(/\.flow-panel\s*{([^}]*)}/s)?.[1];
 
     expect(route).toContain("bind:checkpointFlowPanelCollapsed");
+    expect(route).toContain("currentConversationDetailsFlow || currentFileChanges.length > 0");
     expect(route).toContain(
-      "activeConvId && !settingsOpen && (currentCheckpointFlow || currentFileChanges.length > 0)",
+      "if (!currentConversationDetailsFlow && key) checkpointFlowPanelCollapsed = false",
     );
-    expect(route).toContain(
-      "if (!currentCheckpointFlow && key) checkpointFlowPanelCollapsed = false",
-    );
+    expect(route).toContain("checkpointFlow: currentConversationDetailsFlow ?? null");
     expect(conversationSurface).toContain(
       "{#if view.activeConvId && (view.checkpointFlow || view.fileChanges.length > 0)}",
     );

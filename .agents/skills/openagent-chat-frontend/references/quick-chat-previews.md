@@ -212,7 +212,8 @@
   centered Graph planning state, while `-files-only` removes Goal/Graph to
   exercise the file-only panel directly. The `-no-details` parameter removes
   both kinds of data so complete omission of the panel and its title-bar entry
-  remains directly verifiable.
+  remains directly verifiable. The `-completed` parameter retains a completed
+  flow projection without file changes and must produce that same omitted UI.
 - Keep the development-only `book-mode-preview` query available with long,
   process-bearing fixture content and consecutive ordinary tools that exercise
   grouped tool-call rendering. Its `-theme` and `-locale` query parameters must
