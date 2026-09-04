@@ -23,7 +23,6 @@
   let { flow, changes, width, collapsed, resizing, onResizeStart, onRevert }: Props = $props();
   let activePanel = $state<"status" | "files">("status");
   let progress = $derived(flow ? checkpointFlowProgress(flow) : { completed: 0, total: 0 });
-  let percent = $derived(progress.total > 0 ? (progress.completed / progress.total) * 100 : 0);
   let graphLayers = $derived(flow?.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
   let graphViewport: HTMLDivElement | null = $state(null);
   let graphCanvas: HTMLDivElement | null = $state(null);
@@ -206,18 +205,6 @@
         </span>
         <span class="flow-count">{progress.completed}/{progress.total}</span>
       </header>
-      <div class="flow-overview">
-        <div
-          class="progress-track"
-          aria-label={$t("checkpointFlowProgress")}
-          aria-valuemin="0"
-          aria-valuemax={progress.total}
-          aria-valuenow={progress.completed}
-          role="progressbar"
-        >
-          <span style:width={`${percent}%`}></span>
-        </div>
-      </div>
 
       <div class="flow-body" class:graph={flow.kind === "graph"}>
         {#if flow.kind === "goal"}
@@ -483,10 +470,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .flow-overview {
-    padding: 4px 10px 10px;
-    border-bottom: 1px solid var(--border);
-  }
   .flow-count {
     flex: 0 0 auto;
     font:
@@ -512,19 +495,6 @@
   .item-status.in_progress {
     color: var(--primary);
     background: color-mix(in srgb, var(--primary) 11%, transparent);
-  }
-  .progress-track {
-    height: 4px;
-    overflow: hidden;
-    border-radius: 999px;
-    background: var(--surface2);
-  }
-  .progress-track span {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--primary);
-    transition: width 180ms ease;
   }
   .flow-body {
     display: grid;

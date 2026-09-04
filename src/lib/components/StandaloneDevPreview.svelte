@@ -7,7 +7,7 @@
     CHECKPOINT_FLOW_PANEL_MIN_WIDTH,
     clampCheckpointFlowPanelWidth,
   } from "$lib/checkpointFlowPanelSizing";
-  import { checkpointFlowNeedsDisplay, type CheckpointFlow } from "$lib/checkpointFlow";
+  import { conversationDetailsAvailable, type CheckpointFlow } from "$lib/checkpointFlow";
   import { previewParameterPrefix, type StandaloneDevPreview } from "$lib/devPreview";
   import { initI18n, t, type Locale } from "$lib/i18n";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
@@ -766,16 +766,13 @@
     query.has("checkpoint-flow-preview-no-details")
       ? null
       : checkpointFlow;
-  const checkpointFlowPreviewVisibleFlow = checkpointFlowNeedsDisplay(checkpointFlowPreviewFlow)
-    ? checkpointFlowPreviewFlow
-    : null;
   const checkpointFlowPreviewChanges =
     query.has("checkpoint-flow-preview-no-details") ||
     query.has("checkpoint-flow-preview-completed")
       ? []
       : checkpointPanelChanges;
   const checkpointFlowPreviewHasDetails = Boolean(
-    checkpointFlowPreviewVisibleFlow || checkpointFlowPreviewChanges.length > 0,
+    conversationDetailsAvailable(checkpointFlowPreviewFlow, checkpointFlowPreviewChanges.length),
   );
 
   const bookTable = [
@@ -1124,7 +1121,7 @@
     </section>
     {#if checkpointFlowPreviewHasDetails}
       <CheckpointFlowStatus
-        flow={checkpointFlowPreviewVisibleFlow}
+        flow={checkpointFlowPreviewFlow}
         changes={checkpointFlowPreviewChanges}
         width={panelWidth}
         collapsed={panelCollapsed}

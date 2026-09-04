@@ -133,12 +133,12 @@
   overlay until the matching persisted `chat-checkpoint` has been reconciled.
   Leave optimistic transcript records mounted throughout and ignore stale
   asynchronous refreshes so an older checkpoint cannot replace a newer live
-  Goal or Graph state. When an unfinished Goal/Graph or branch-scoped file change
-  is observable, the resizable right-side conversation-details panel owns that
+  Goal or Graph state. When any Goal/Graph status or branch-scoped file change is
+  observable, the resizable right-side conversation-details panel owns that
   content in the ordinary desktop conversation; those file changes must not
-  render above the composer. A completed Goal/Graph is no longer panel content.
-  When no unfinished flow or file change remains, omit the panel host, its layout
-  region, and its title-bar entry completely. Keep live
+  render above the composer. Completed and unsuccessful Goal/Graph states remain
+  inspectable. Only when no flow or file change exists may the panel host, its
+  layout region, and its title-bar entry be omitted completely. Keep live
   file changes visible through terminal reconciliation until the matching durable
   records are observable on the selected checkpoint path; database visibility alone
   is not sufficient. Reconcile again when checkpoint hydration advances, and ensure a
@@ -147,8 +147,8 @@
   top-level Status and Files tabs preserve one
   full-height body, and the Files page uses horizontally scrollable file tabs
   with one line-numbered diff and revert action for the selected file. Keep the
-  title-bar toggle and collapsible panel host available whenever an unfinished
-  Goal/Graph or file-change data is currently observable. A temporary empty file projection
+  title-bar toggle and collapsible panel host available whenever any Goal/Graph
+  or file-change data is currently observable. A temporary empty file projection
   must not hide the panel while its matching live changes are still awaiting
   durable reconciliation.
   Wrap diff
@@ -169,8 +169,8 @@
   non-interactive track using the same 180ms width curve as the conversation
   sidebar.
   The status panel header uses the concise `Goal` or `Graph` kind label, its
-  objective beneath it, and a right-aligned completed/total count; retain the
-  progress track below the header without a duplicate flow-status badge.
+  objective beneath it, and a right-aligned completed/total count. Do not render
+  a separate progress track or duplicate flow-status badge below the header.
   Place the expanded panel as a full-height card beside the conversation card in
   the workspace flex container. Keep a narrow transparent gap between these two
   sibling cards while its persisted width reduces the conversation track. Give

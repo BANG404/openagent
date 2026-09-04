@@ -41,10 +41,11 @@ export interface LiveCheckpointFlowProjection {
   version: number;
 }
 
-export function checkpointFlowNeedsDisplay(
+export function conversationDetailsAvailable(
   flow: CheckpointFlow | null | undefined,
-): flow is CheckpointFlow {
-  return Boolean(flow && flow.status !== "completed");
+  fileChangeCount: number,
+): boolean {
+  return Boolean(flow || fileChangeCount > 0);
 }
 
 export function checkpointFlowPanelKey(

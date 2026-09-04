@@ -378,13 +378,15 @@ describe("desktop navigation chrome", () => {
     const panelShell = panel.match(/\.flow-panel\s*{([^}]*)}/s)?.[1];
 
     expect(route).toContain("bind:checkpointFlowPanelCollapsed");
-    expect(route).toContain("currentConversationDetailsFlow || currentFileChanges.length > 0");
     expect(route).toContain(
-      "if (!currentConversationDetailsFlow && key) checkpointFlowPanelCollapsed = false",
+      "conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length)",
     );
-    expect(route).toContain("checkpointFlow: currentConversationDetailsFlow ?? null");
+    expect(route).toContain(
+      "if (!currentCheckpointFlow && key) checkpointFlowPanelCollapsed = false",
+    );
+    expect(route).toContain("checkpointFlow: currentCheckpointFlow ?? null");
     expect(conversationSurface).toContain(
-      "{#if view.activeConvId && (view.checkpointFlow || view.fileChanges.length > 0)}",
+      "{#if view.activeConvId && conversationDetailsAvailable(view.checkpointFlow, view.fileChanges.length)}",
     );
     expect(route).toContain("shouldAutoOpenCheckpointFlowPanel(previous, next.flow)");
     expect(titleBar).toContain("<CheckpointFlowToggleButton");
@@ -394,6 +396,11 @@ describe("desktop navigation chrome", () => {
     expect(panel).not.toContain("peek-button");
     expect(panel).not.toContain("collapse-button");
     expect(panel).not.toContain("flow-panel-placeholder");
+    expect(panel).not.toContain("progress-track");
+    expect(panel).not.toContain('role="progressbar"');
+    expect(panel).toContain(
+      '<span class="flow-count">{progress.completed}/{progress.total}</span>',
+    );
     expect(panel).toContain("width 180ms cubic-bezier(0.16, 1, 0.3, 1)");
     expect(panel).toContain("width: 0;");
     expect(panel).not.toContain("display: none;");

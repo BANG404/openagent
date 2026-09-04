@@ -82,7 +82,7 @@
   import ConversationSurface from "$lib/components/ConversationSurface.svelte";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import {
-    checkpointFlowNeedsDisplay,
+    conversationDetailsAvailable,
     checkpointFlowPanelKey,
     shouldAutoOpenCheckpointFlowPanel,
     updateLiveCheckpointFlowProjection,
@@ -690,10 +690,6 @@
       ? (liveCheckpointFlowProjections[activeConvId]?.flow ?? currentCheckpointFlowNode?.flow)
       : undefined,
   );
-  let currentConversationDetailsFlow = $derived(
-    checkpointFlowNeedsDisplay(currentCheckpointFlow) ? currentCheckpointFlow : undefined,
-  );
-
   $effect(() => {
     const key = checkpointFlowPanelKey(
       activeConvId,
@@ -774,7 +770,7 @@
         : null;
     if (key === fileChangesPanelSelectionKey) return;
     fileChangesPanelSelectionKey = key;
-    if (!currentConversationDetailsFlow && key) checkpointFlowPanelCollapsed = false;
+    if (!currentCheckpointFlow && key) checkpointFlowPanelCollapsed = false;
   });
 
   async function loadMessagesForConv(
@@ -4774,7 +4770,7 @@
     activeConvId,
     activeTree: activeConvId ? convTrees[activeConvId] : undefined,
     browserModeNotice,
-    checkpointFlow: currentConversationDetailsFlow ?? null,
+    checkpointFlow: currentCheckpointFlow ?? null,
     checkpointLoadError: activeConvId ? (checkpointLoadErrors[activeConvId] ?? null) : null,
     config,
     currentStreamItems,
@@ -4991,7 +4987,7 @@
         conversationDetailsAvailable={Boolean(
           activeConvId &&
           !settingsOpen &&
-          (currentConversationDetailsFlow || currentFileChanges.length > 0),
+          conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length),
         )}
         {checkpointFlowPanelCollapsed}
         onPickWorkspace={pickWorkspace}

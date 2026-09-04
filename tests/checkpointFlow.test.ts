@@ -2,7 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   checkpointFlowFromLiveUpdate,
-  checkpointFlowNeedsDisplay,
+  conversationDetailsAvailable,
   checkpointFlowProgress,
   checkpointGraphLayers,
   normalizeCheckpointFlow,
@@ -33,19 +33,27 @@ const checkpoint = (id: string, parent: string | null, flow: unknown) => ({
 });
 
 describe("checkpoint Goal and Graph state", () => {
-  test("shows only unfinished checkpoint flows in conversation details", () => {
-    const flow = {
-      kind: "goal",
-      objective: "Ship the panel",
-      iteration: 1,
-      todos: [],
-    };
+  test("shows Goal and Graph details in every durable status", () => {
+    for (const status of ["running", "completed", "failed", "blocked"]) {
+      expect(
+        conversationDetailsAvailable(
+          { kind: "goal", objective: "Goal", iteration: 1, todos: [], status },
+          0,
+        ),
+      ).toBe(true);
+      expect(
+        conversationDetailsAvailable(
+          { kind: "graph", objective: "Graph", iteration: 1, nodes: [], status },
+          0,
+        ),
+      ).toBe(true);
+    }
+  });
 
-    expect(checkpointFlowNeedsDisplay({ ...flow, status: "running" })).toBe(true);
-    expect(checkpointFlowNeedsDisplay({ ...flow, status: "failed" })).toBe(true);
-    expect(checkpointFlowNeedsDisplay({ ...flow, status: "blocked" })).toBe(true);
-    expect(checkpointFlowNeedsDisplay({ ...flow, status: "completed" })).toBe(false);
-    expect(checkpointFlowNeedsDisplay(undefined)).toBe(false);
+  test("hides only details without a flow or file changes", () => {
+    expect(conversationDetailsAvailable(undefined, 0)).toBe(false);
+    expect(conversationDetailsAvailable(null, 0)).toBe(false);
+    expect(conversationDetailsAvailable(undefined, 1)).toBe(true);
   });
 
   test("normalizes Goal to-dos and computes progress", () => {
