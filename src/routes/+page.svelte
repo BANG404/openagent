@@ -838,6 +838,12 @@
         ...convTrees,
         [convId]: reconcileLiveCheckpointTip(checkpoints, convTrees[convId], checkpointId),
       };
+      const liveChanges = liveFileChangesPerConv[convId] ?? [];
+      reconcileLiveFileChanges(
+        convId,
+        fileChangesPerConv[convId] ?? [],
+        new Set(liveChanges.map((change) => change.id)),
+      );
       if ((liveCheckpointFlowProjections[convId]?.version ?? 0) === flowVersion) {
         const { [convId]: _durableFlow, ...rest } = liveCheckpointFlowProjections;
         liveCheckpointFlowProjections = rest;
@@ -882,6 +888,12 @@
     else delete nextActiveBranchIds[convId];
     activeBranchIds = nextActiveBranchIds;
     convTrees = { ...convTrees, [convId]: tree };
+    const liveChanges = liveFileChangesPerConv[convId] ?? [];
+    reconcileLiveFileChanges(
+      convId,
+      fileChangesPerConv[convId] ?? [],
+      new Set(liveChanges.map((change) => change.id)),
+    );
     const pendingProjection = restorePendingUserInputFromCheckpoint(
       convId,
       computeActivePath(tree),
@@ -1151,7 +1163,14 @@
     finalizedIds: ReadonlySet<string>,
   ): void {
     const current = liveFileChangesPerConv[convId] ?? [];
-    const remaining = retainUndurableFileChanges(current, durableChanges, finalizedIds);
+    const tree = convTrees[convId];
+    const projectedCheckpointIds = tree ? ckIdsAlongActivePath(tree) : new Set<string>();
+    const remaining = retainUndurableFileChanges(
+      current,
+      durableChanges,
+      finalizedIds,
+      projectedCheckpointIds,
+    );
     if (remaining.length === current.length) return;
     if (remaining.length > 0) {
       liveFileChangesPerConv = { ...liveFileChangesPerConv, [convId]: remaining };

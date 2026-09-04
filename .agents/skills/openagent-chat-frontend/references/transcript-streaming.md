@@ -137,8 +137,9 @@
   both this status and branch-scoped file changes in the ordinary desktop
   conversation; those file changes must not render above the composer. Keep live
   file changes visible through terminal reconciliation until the matching durable
-  records are observable; a successful but stale refresh must not remove the Files
-  entry or its title-bar toggle. Its
+  records are observable on the selected checkpoint path; database visibility alone
+  is not sufficient. Reconcile again when checkpoint hydration advances, and ensure a
+  successful but stale refresh cannot remove the Files entry or its title-bar toggle. Its
   top-level Status and Files tabs preserve one
   full-height body, and the Files page uses horizontally scrollable file tabs
   with one line-numbered diff and revert action for the selected file. Wrap diff
