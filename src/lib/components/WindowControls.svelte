@@ -198,7 +198,7 @@
 
   .win-controls.macos {
     position: fixed;
-    top: 14px;
+    top: 4px;
     left: 13px;
     z-index: 12;
     align-self: center;

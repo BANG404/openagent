@@ -177,7 +177,7 @@
   .sidebar {
     position: relative;
     width: var(--sidebar-width);
-    padding-top: 40px;
+    padding-top: var(--desktop-titlebar-height);
     box-sizing: border-box;
     flex-shrink: 0;
     display: flex;
@@ -197,7 +197,7 @@
     top: 0;
     left: 0;
     z-index: 11;
-    height: 40px;
+    height: var(--desktop-titlebar-height);
     display: flex;
     align-items: center;
     padding: 0 4px 0 6px;
@@ -215,9 +215,9 @@
   }
 
   .sidebar-app-icon {
-    width: 24px;
-    height: 24px;
-    margin-left: 5px;
+    width: 16px;
+    height: 16px;
+    margin-left: 9px;
     object-fit: contain;
     pointer-events: none;
   }

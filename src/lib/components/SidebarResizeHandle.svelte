@@ -101,7 +101,7 @@
   .sidebar-resize-shell {
     position: absolute;
     z-index: 20;
-    top: 40px;
+    top: var(--desktop-titlebar-height);
     right: -4px;
     bottom: 0;
     width: 8px;

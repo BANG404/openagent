@@ -4961,7 +4961,7 @@
     min-width: 0;
     flex: 1;
     display: flex;
-    padding-top: 40px;
+    padding-top: var(--desktop-titlebar-height);
     box-sizing: border-box;
     overflow: hidden;
   }

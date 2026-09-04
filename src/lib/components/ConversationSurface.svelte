@@ -324,7 +324,7 @@
     min-width: 0;
     min-height: 0;
     flex: 1;
-    margin: 40px 8px 8px;
+    margin: var(--desktop-titlebar-height) 8px 8px;
     overflow: hidden;
     background: transparent;
   }

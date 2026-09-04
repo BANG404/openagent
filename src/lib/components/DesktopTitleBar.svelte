@@ -114,7 +114,7 @@
     z-index: 10;
     display: flex;
     align-items: center;
-    height: 40px;
+    height: var(--desktop-titlebar-height);
     box-sizing: border-box;
     background: var(--app-chrome-bg);
     user-select: none;
@@ -122,7 +122,7 @@
 
   .title-bar-menu {
     height: 100%;
-    margin-left: 48px;
+    margin-left: 39px;
     flex: 0 0 auto;
   }
 
@@ -133,9 +133,9 @@
   .mac-window-controls {
     position: absolute;
     left: 13px;
-    top: 6px;
+    top: 4px;
     z-index: 2;
-    height: 28px;
+    height: 27px;
   }
 
   .title-bar-drag-handle {

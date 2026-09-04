@@ -64,14 +64,22 @@ describe("desktop navigation chrome", () => {
     expect(sidebar).not.toContain("{#if !collapsed}");
     expect(route).not.toContain("sidebarCollapsed");
     expect(route).not.toContain("openagent.sidebar.collapsed");
-    expect(resizeHandle).toMatch(/\.sidebar-resize-shell\s*{[^}]*top: 40px;/s);
+    expect(sidebar).toMatch(/\.sidebar-app-icon\s*{[^}]*width: 16px;[^}]*height: 16px;/s);
+    expect(resizeHandle).toMatch(
+      /\.sidebar-resize-shell\s*{[^}]*top: var\(--desktop-titlebar-height\);/s,
+    );
   });
 
   test("uses continuous chrome, an empty title-bar center, and a surface-free workspace trigger", async () => {
+    const appCss = await readFile(appCssUrl, "utf8");
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
     const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
     const conversationSurface = await readFile(
       new URL("ConversationSurface.svelte", componentsUrl),
+      "utf8",
+    );
+    const desktopShellPreview = await readFile(
+      new URL("DesktopShellPreview.svelte", componentsUrl),
       "utf8",
     );
     const settingsAction = await readFile(
@@ -82,18 +90,24 @@ describe("desktop navigation chrome", () => {
       new URL("WorkspaceSwitcher.svelte", componentsUrl),
       "utf8",
     );
+    expect(appCss).toContain("--desktop-titlebar-height: 35px");
     expect(sidebar).toContain("background: var(--app-chrome-bg)");
+    expect(sidebar).toContain("padding-top: var(--desktop-titlebar-height)");
     expect(titleBar).toContain("background: var(--app-chrome-bg)");
+    expect(titleBar).toContain("height: var(--desktop-titlebar-height)");
     expect(sidebar).not.toContain("border-right:");
     expect(titleBar).not.toContain("border-bottom:");
-    expect(titleBar).toMatch(/\.title-bar-menu\s*{[^}]*margin-left: 48px;/s);
+    expect(titleBar).toMatch(/\.title-bar-menu\s*{[^}]*margin-left: 39px;/s);
     expect(titleBar).toMatch(/\.title-bar\.macos \.title-bar-menu\s*{[^}]*margin-left: 124px;/s);
+    for (const platform of ["windows", "macos", "linux"]) {
+      expect(desktopShellPreview).toContain(`requestedPlatform === "${platform}"`);
+    }
     expect(settingsAction).not.toContain("border-top:");
     const conversationWorkspace = conversationSurface.match(
       /\.conversation-workspace\s*{([^}]*)}/s,
     )?.[1];
     const conversationStage = conversationSurface.match(/\.conversation-stage\s*{([^}]*)}/s)?.[1];
-    expect(conversationWorkspace).toContain("margin: 40px 8px 8px");
+    expect(conversationWorkspace).toContain("margin: var(--desktop-titlebar-height) 8px 8px");
     expect(conversationWorkspace).toContain("background: transparent");
     expect(conversationWorkspace).not.toContain("box-shadow");
     expect(conversationStage).toContain("border-radius: 12px");

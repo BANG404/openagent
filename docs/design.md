@@ -27,7 +27,10 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   horizontal, textarea, and attachment-strip scrollers follow the same behavior.
 - **Desktop application shell:** keep one compact, continuous top chrome across
   the sidebar, conversation, and Settings surfaces. Settings does not render a
-  second title bar. The leading controls collapse
+  second title bar. Match VS Code's compact desktop geometry: the shared title
+  bar is 35px tall, its application icon is 16px square, and every shell-owned
+  top inset or resize boundary derives from that same height token. The leading
+  controls collapse
   the sidebar and traverse application history; File owns workspace-opening and
   explicit new-window commands. The File menu follows the forward control with
   the same compact optical rhythm as the other leading controls, without an

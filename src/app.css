@@ -9,6 +9,7 @@
     --component-neutral-bg: #f4f4f5;
     --user-message-bg: var(--component-neutral-bg);
     --app-chrome-bg: var(--bg);
+    --desktop-titlebar-height: 35px;
     --sidebar-bg: #e8e8ed;
     --surface: #ffffff;
     --surface2: #f0f0f5;

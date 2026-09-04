@@ -8,6 +8,7 @@
     RecentWorkspace,
     WorkspaceContext,
   } from "$lib/types";
+  import type { WindowPlatform } from "$lib/windowPlatform";
   import DesktopSidebar from "./DesktopSidebar.svelte";
   import DesktopTitleBar from "./DesktopTitleBar.svelte";
   import MessageInput from "./MessageInput.svelte";
@@ -24,8 +25,13 @@
   let approvalMode = $state<ApprovalMode>("auto");
   let settingsOpen = $state(false);
   let searchQuery = $state("");
-  const platformOverride =
-    query.get("desktop-shell-preview-platform") === "macos" ? "macos" : undefined;
+  const requestedPlatform = query.get("desktop-shell-preview-platform");
+  const platformOverride: WindowPlatform | undefined =
+    requestedPlatform === "windows" ||
+    requestedPlatform === "macos" ||
+    requestedPlatform === "linux"
+      ? requestedPlatform
+      : undefined;
   const windowFocused = query.get("desktop-shell-preview-focused") !== "false";
 
   const roles: AgentRole[] = [
@@ -302,11 +308,11 @@
   .desktop-shell-content {
     position: relative;
     display: flex;
-    height: calc(100vh - 56px);
+    height: calc(100vh - var(--desktop-titlebar-height) - 16px);
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    margin: 40px 8px 8px;
+    margin: var(--desktop-titlebar-height) 8px 8px;
     padding: 32px;
     overflow: hidden;
     border-radius: 12px;

@@ -33,6 +33,11 @@
   through File -> New window. Show WSL workspace-opening actions in the File
   menu and composer workspace switcher only on Windows; native folder opening
   remains available on every desktop platform.
+- Keep the application menu, platform window controls, sidebar top region,
+  resize boundary, and main-content inset on the shared
+  `--desktop-titlebar-height` token. The desktop-shell browser preview accepts
+  `desktop-shell-preview-platform=windows|macos|linux` so each platform's
+  title-bar geometry remains directly verifiable.
 - Render those floating panels through the shared desktop menu surface, which
   consumes the conversation-input material while retaining the shared 6px menu
   inset. Keep component-specific width, height, scrolling, and item content,
