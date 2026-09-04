@@ -7,6 +7,14 @@ export PWCLI="$PWD/.agents/skills/playwright/scripts/playwright_cli.sh"
 "$PWCLI" --help
 ```
 
+The wrapper automatically loads `.playwright/cli.config.json` and uses the
+persistent browser directory documented in the parent skill. On a new machine,
+prepare the pinned Chromium build once:
+
+```bash
+"$PWCLI" install-browser
+```
+
 Optional convenience alias:
 
 ```bash

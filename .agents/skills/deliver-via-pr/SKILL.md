@@ -40,9 +40,11 @@ authorize unrelated changes.
   Direct local mode leaves unrelated changes untouched and commits only
   explicit intended paths or hunks. Independent changes may share a file when
   their lines and semantics remain clearly separable; preserve the other work
-  and stage only the owned hunks. `OWT` leaves unrelated changes in the default
+  and stage only the owned hunks. Use the automatic conflict-isolation
+  procedure below when unrelated local state blocks safe editing or authoritative
+  verification. `OWT` leaves unrelated changes in the default
   worktree while it works from that branch's committed `HEAD`; never copy those
-  changes into the task worktree. Stop for direction when line overlap or
+  changes into the task worktree. Stop for direction only when line overlap or
   semantic coupling prevents reliable ownership separation.
 - Follow `sdk/AGENTS.md` for SDK work. The private SDK does not use pull
   requests: verify and push focused commits directly to `main` first, regardless
@@ -53,14 +55,15 @@ authorize unrelated changes.
 
 1. Work in the existing default worktree on its local default branch (`master`
    in OpenAgent). Do not create or switch branches, create a task worktree,
-   reset, rebase, merge, pull, or push. Unpublished local commits are a valid
-   base.
+   reset, rebase, merge, pull, or push unless the automatic conflict-isolation
+   procedure below applies. Unpublished local commits are a valid base.
 2. Inspect tracked, staged, and untracked changes before editing. Preserve every
    unrelated change in place. An intended file may already contain independent
    work: when ownership is clear at both the hunk and semantic level, edit around
-   it and later stage only the owned hunks. Stop for direction instead of
-   absorbing or overwriting changes that overlap or cannot be separated
-   reliably.
+   it and later stage only the owned hunks. If existing state blocks safe editing
+   or authoritative verification, use automatic conflict isolation below. Stop
+   for direction instead of absorbing or overwriting changes only when ownership
+   cannot be separated reliably.
 3. Implement code, focused coverage, and agent-facing documentation together in
    the default worktree. Keep public behavior in `docs/`, repeatable procedures
    in the triggering skill, and private SDK internals in the SDK repository.
@@ -81,8 +84,39 @@ authorize unrelated changes.
    unless explicitly requested.
 7. Confirm the intended commit and paths are on the local default branch and
    that all pre-existing unrelated changes remain unchanged. Report the branch,
-   commit hashes, verification, preserved changes, and that no branch,
-   worktree, push, or PR was created.
+   commit hashes, verification, preserved changes, whether automatic isolation
+   was used and cleaned up, and that no push or PR was created.
+
+### Automatic conflict isolation for direct local delivery
+
+This is a recovery mechanism inside unprefixed direct local delivery, not OWT
+mode. Use it proactively when pre-existing changes in the default worktree
+overlap the task, prevent reliable staging, or cause required verification to
+exercise unrelated unfinished work. Do not wait for the user to request a
+worktree when ownership is already clear.
+
+1. Record the default branch and exact starting `HEAD`. Create a uniquely named
+   temporary branch and sibling worktree from that local commit. Do not fetch a
+   different implementation base, switch the default worktree, or transfer any
+   user-owned changes into the isolation worktree.
+2. Run `bun run prepare:worktree:dev` in the isolation worktree. Reproduce the
+   task there, or move already-created agent-owned changes only after comparing
+   the complete source and destination patch IDs. Remove only those verified
+   agent-owned copies from the default worktree; preserve its index and every
+   unrelated file exactly.
+3. Inspect, stage, preflight, and commit in isolation using the same quality
+   gates as direct local delivery. If the default branch advances concurrently,
+   merge it into the temporary branch without rewriting either side, rerun
+   preflight, and retry the fast-forward integration.
+4. Fast-forward the unchanged default branch to the verified temporary branch
+   without stashing unrelated working changes. If those changes would be
+   overwritten, keep both sides intact and stop for direction.
+5. Treat cleanup as part of delivery: after confirming integration, remove the
+   clean registered isolation worktree without force and delete its fully merged
+   temporary branch. Do not leave the directory or branch behind. If delivery
+   cannot complete, preserve the task as a commit or patch, then remove the
+   temporary worktree as soon as recovery is confirmed; report any cleanup that
+   remains blocked rather than silently consuming disk.
 
 ## OWT mode: isolate work, then fast-forward the local default branch
 

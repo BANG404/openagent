@@ -8,7 +8,7 @@ metadata:
 
 # Playwright CLI Skill
 
-Drive a real browser from the terminal using `playwright-cli`. Use the bundled wrapper so workflows prefer an installed CLI, fall back to Bunx, and remain compatible with npx when only Node/npm is available.
+Drive a real browser from the terminal using `playwright-cli`. Use the bundled wrapper so workflows prefer an installed CLI, fall back to a pinned Bunx or npx package, and remain compatible with both Bun and Node/npm.
 Treat this skill as CLI-first automation. Do not pivot to `@playwright/test` unless the user explicitly asks for test files.
 
 ## Prerequisite check (required)
@@ -19,21 +19,48 @@ Before proposing commands, check that at least one supported launcher is availab
 command -v playwright-cli >/dev/null 2>&1 || command -v bunx >/dev/null 2>&1 || command -v npx >/dev/null 2>&1
 ```
 
-Prefer a Bun-managed global installation for repeated workflows:
+Prefer the pinned Bun-managed global installation for repeated workflows:
 
 ```bash
-bun add --global @playwright/cli@latest
+bun add --global @playwright/cli@0.1.19
 playwright-cli --help
 ```
 
 Node/npm is a supported alternative:
 
 ```bash
-npm install --global @playwright/cli@latest
+npm install --global @playwright/cli@0.1.19
 playwright-cli --help
 ```
 
 If neither runtime is installed, pause and ask the user to install Bun or Node.js. Once any supported launcher is present, proceed through the wrapper.
+
+## Persistent browser installation
+
+The wrappers load `.playwright/cli.config.json`, use Chromium consistently, and
+store its managed binaries outside the disposable Playwright cache. The default
+is `${XDG_DATA_HOME:-$HOME/.local/share}/openagent/playwright` on Bash and
+`%LOCALAPPDATA%\OpenAgent\playwright` on Windows. Respect an existing
+`PLAYWRIGHT_BROWSERS_PATH` override when a machine deliberately centralizes
+Playwright browsers elsewhere.
+
+Prepare the pinned browser once after cloning or after intentionally removing
+that data directory:
+
+```bash
+export PWCLI="$PWD/.agents/skills/playwright/scripts/playwright_cli.sh"
+"$PWCLI" install-browser
+```
+
+```powershell
+$PWCLI = Join-Path (Get-Location) ".agents\skills\playwright\scripts\playwright_cli.ps1"
+& $PWCLI install-browser
+```
+
+Do not run `playwright install` during ordinary verification and do not point
+the wrapper back at `~/.cache/ms-playwright`. The wrapper's installer pins the
+browser package to the CLI-compatible Playwright release, so updating either
+pin requires updating both wrappers and reinstalling the persistent browser.
 
 ## Skill path (set once)
 
@@ -156,8 +183,12 @@ Prefer repository-provided browser preview routes over imitating unavailable nat
 Both platform wrappers resolve the CLI in this order:
 
 1. `playwright-cli` already available on `PATH`.
-2. `bunx --package @playwright/cli playwright-cli`.
-3. `npx --yes --package @playwright/cli playwright-cli`.
+2. `bunx --package @playwright/cli@0.1.19 playwright-cli`.
+3. `npx --yes --package @playwright/cli@0.1.19 playwright-cli`.
+
+Both wrappers inject the repository config and persistent browser path. Do not
+add `--browser` to routine commands. An explicit `--config` remains available
+for a task that genuinely needs a different browser contract.
 
 Use the same interface regardless of the selected launcher:
 
