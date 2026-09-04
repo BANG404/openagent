@@ -87,6 +87,11 @@
     updateLiveCheckpointFlowProjection,
     type LiveCheckpointFlowProjection,
   } from "$lib/checkpointFlow";
+  import {
+    loadCheckpointFlowPanelCollapsed,
+    saveCheckpointFlowPanelCollapsed,
+  } from "$lib/checkpointFlowPanelSizing";
+  import { retainUndurableFileChanges } from "$lib/fileChangeReconciliation";
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
     ROOT_KEY,
@@ -357,7 +362,9 @@
   const interruptTerminalHandoffs = new InterruptTerminalHandoff();
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
-  let checkpointFlowPanelCollapsed = $state(true);
+  let checkpointFlowPanelCollapsed = $state(
+    typeof window === "undefined" ? true : loadCheckpointFlowPanelCollapsed(window.localStorage),
+  );
   let checkpointFlowPanelSelectionKey = $state<string | null>(null);
   let checkpointFlowPanelAutoOpenKey = $state<string | null>(null);
   let fileChangesPanelSelectionKey = $state<string | null>(null);
@@ -690,8 +697,14 @@
     );
     if (key === checkpointFlowPanelSelectionKey) return;
     checkpointFlowPanelSelectionKey = key;
-    checkpointFlowPanelCollapsed = !key || key !== checkpointFlowPanelAutoOpenKey;
-    if (key === checkpointFlowPanelAutoOpenKey) checkpointFlowPanelAutoOpenKey = null;
+    if (key === checkpointFlowPanelAutoOpenKey) {
+      checkpointFlowPanelCollapsed = false;
+      checkpointFlowPanelAutoOpenKey = null;
+    }
+  });
+
+  $effect(() => {
+    saveCheckpointFlowPanelCollapsed(window.localStorage, checkpointFlowPanelCollapsed);
   });
   const compactionOnlyConvIds = new Set<string>();
   const compactionProgressRevisions = new Map<string, number>();
@@ -1109,14 +1122,14 @@
     return id;
   }
 
-  async function loadFileChangesForConv(convId: string): Promise<boolean> {
-    if (!tauriAvailable) return false;
+  async function loadFileChangesForConv(convId: string): Promise<FileChange[] | null> {
+    if (!tauriAvailable) return null;
     try {
       const changes = await fetchFileChanges(convId);
       fileChangesPerConv = { ...fileChangesPerConv, [convId]: changes };
-      return true;
+      return changes;
     } catch {
-      return false;
+      return null;
     }
   }
 
@@ -1129,6 +1142,21 @@
     }
     const { [convId]: _live, ...rest } = liveFileChangesPerConv;
     liveFileChangesPerConv = rest;
+  }
+
+  function reconcileLiveFileChanges(
+    convId: string,
+    durableChanges: FileChange[],
+    finalizedIds: ReadonlySet<string>,
+  ): void {
+    const current = liveFileChangesPerConv[convId] ?? [];
+    const remaining = retainUndurableFileChanges(current, durableChanges, finalizedIds);
+    if (remaining.length === current.length) return;
+    if (remaining.length > 0) {
+      liveFileChangesPerConv = { ...liveFileChangesPerConv, [convId]: remaining };
+      return;
+    }
+    clearLiveFileChanges(convId);
   }
 
   function clearPendingInput(convId: string, requestId?: string) {
@@ -3024,8 +3052,10 @@
       const finalizedLiveChangeIds = new Set(
         (liveFileChangesPerConv[conv_id] ?? []).map((change) => change.id),
       );
-      void loadFileChangesForConv(conv_id).then((loaded) => {
-        if (loaded) clearLiveFileChanges(conv_id, finalizedLiveChangeIds);
+      void loadFileChangesForConv(conv_id).then((durableChanges) => {
+        if (durableChanges) {
+          reconcileLiveFileChanges(conv_id, durableChanges, finalizedLiveChangeIds);
+        }
       });
       chatStreams.cleanup(conv_id);
       void dispatchNextQueuedMessage(conv_id);
@@ -3088,8 +3118,10 @@
     const finalizedLiveChangeIds = new Set(
       (liveFileChangesPerConv[conv_id] ?? []).map((change) => change.id),
     );
-    void loadFileChangesForConv(conv_id).then((loaded) => {
-      if (loaded) clearLiveFileChanges(conv_id, finalizedLiveChangeIds);
+    void loadFileChangesForConv(conv_id).then((durableChanges) => {
+      if (durableChanges) {
+        reconcileLiveFileChanges(conv_id, durableChanges, finalizedLiveChangeIds);
+      }
     });
 
     // Attach the just-completed turn to the conversation tree.
