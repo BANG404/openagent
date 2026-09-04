@@ -5,6 +5,7 @@ import { appendCompactionProgress, resolveUserInput } from "../src/lib/chatStrea
 import {
   ROOT_KEY,
   buildTreeFromCheckpoints,
+  findUserMessageIndexForAssistant,
   findForkParentCheckpointId,
   getSiblingInfoForUserMessage,
   isCompactionBoundary,
@@ -190,6 +191,35 @@ describe("desktop conversation branches", () => {
     expect(switchSource).toContain("getActiveTipNode(updatedTree)?.ckId");
     expect(pageSource).not.toContain("branches.at(-1)");
     expect(pageSource).not.toContain("checkpointId: savedTip ?? null");
+  });
+});
+
+describe("assistant prompt ownership", () => {
+  test("finds an earlier user prompt when its projected checkpoint differs", () => {
+    const messages = [
+      { id: "user-1", role: "user", checkpointId: "selected-tip" },
+      { id: "assistant-1", role: "assistant", checkpointId: "turn-1-final" },
+      { id: "user-2", role: "user", checkpointId: "selected-tip" },
+      { id: "assistant-2", role: "assistant", checkpointId: "selected-tip" },
+    ];
+
+    expect(findUserMessageIndexForAssistant(messages, 1)).toBe(0);
+    expect(findUserMessageIndexForAssistant(messages, 3)).toBe(2);
+  });
+
+  test("skips an internal compaction replay before a continued reply", () => {
+    const messages = [
+      { id: "user-1", role: "user", checkpointId: "request" },
+      {
+        id: "compaction",
+        role: "user",
+        checkpointId: "compacted",
+        tags: ["context_compaction"],
+      },
+      { id: "assistant-1", role: "assistant", checkpointId: "final" },
+    ];
+
+    expect(findUserMessageIndexForAssistant(messages, 2)).toBe(0);
   });
 });
 

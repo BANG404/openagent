@@ -22,6 +22,7 @@
     checkpointRecordsToMessages,
     ckIdsAlongActivePath,
     computeActivePath,
+    findUserMessageIndexForAssistant,
     findForkParentCheckpointId,
     getActiveTipNode,
     ROOT_KEY,
@@ -840,10 +841,10 @@
     if (conversation?.conv_id !== convId) return;
     const assistant = projectedMessages[assistantMessageIndex];
     if (!assistant || assistant.role !== "assistant") return;
-    let userMessageIndex = assistantMessageIndex - 1;
-    while (userMessageIndex >= 0 && projectedMessages[userMessageIndex]?.role !== "user") {
-      userMessageIndex -= 1;
-    }
+    const userMessageIndex = findUserMessageIndexForAssistant(
+      projectedMessages,
+      assistantMessageIndex,
+    );
     const userMessage = projectedMessages[userMessageIndex];
     if (!userMessage || userMessage.role !== "user") return;
     const sourceAttachments = (userMessage.items ?? [])

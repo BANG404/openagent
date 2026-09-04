@@ -104,6 +104,7 @@
     ckIdsAlongActivePath,
     attachNewTurn,
     askUserRequestFromToolUse,
+    findUserMessageIndexForAssistant,
     isCompactionBoundary,
     preserveMessagesAddedDuringHydration,
     preserveStreamingMessagesDuringHydration,
@@ -1356,16 +1357,10 @@
     if (!assistantMsg || assistantMsg.role !== "assistant") return;
     const checkpointId = assistantMsg.checkpointId;
     if (!checkpointId) return;
-    // Tool calls and their results sit between the user prompt and the final
-    // assistant reply, so the prior display message is not necessarily user.
-    let userMsgIdx = -1;
-    for (let index = assistantMsgIdx - 1; index >= 0; index -= 1) {
-      const message = conv.messages[index];
-      if (message.role === "user" && message.checkpointId === checkpointId) {
-        userMsgIdx = index;
-        break;
-      }
-    }
+    // Complete snapshots stamp older user records with the selected tip while
+    // Turn metadata keeps their assistant on its owning checkpoint. Pair by
+    // transcript order instead of requiring those projected IDs to match.
+    const userMsgIdx = findUserMessageIndexForAssistant(conv.messages, assistantMsgIdx);
     const userMsg = conv.messages[userMsgIdx];
     if (!userMsg || userMsg.role !== "user") return;
     const sourceAttachments =

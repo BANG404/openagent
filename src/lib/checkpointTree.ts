@@ -99,6 +99,19 @@ export function isCompactionBoundary(message: ChatMessage): boolean {
   );
 }
 
+/** Find the authored prompt that owns an assistant record in transcript order. */
+export function findUserMessageIndexForAssistant(
+  messages: ChatMessage[],
+  assistantMessageIndex: number,
+): number {
+  if (messages[assistantMessageIndex]?.role !== "assistant") return -1;
+  for (let index = assistantMessageIndex - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message.role === "user" && !isCompactionBoundary(message)) return index;
+  }
+  return -1;
+}
+
 function isHiddenCheckpointRecord(record: CheckpointMessage): boolean {
   // Legacy compaction system messages are restoration-only. Tagged replay
   // users remain durable UI boundaries so MessageList can place the divider

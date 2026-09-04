@@ -43,6 +43,11 @@
 - Keep editable user messages discoverable without adding a second action
   target: the message bubble retains its accessible edit label and reveals a
   non-interactive pencil affordance on pointer hover or keyboard focus.
+- Pair edit and regenerate actions with the nearest preceding user-authored
+  message in transcript order, skipping tagged compaction replays. Do not
+  require projected checkpoint IDs to match: a complete selected-tip snapshot
+  stamps historical user records with the tip while Turn metadata can retain
+  the assistant record's owning checkpoint.
 - Paint durable, editable, and loading-skeleton user-message bubbles with the
   shared `--user-message-bg` token, which maps to the fixed theme-aware
   `--component-neutral-bg` used by assistant-rendered cards. Use that fill for
