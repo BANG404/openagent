@@ -133,10 +133,17 @@
   overlay until the matching persisted `chat-checkpoint` has been reconciled.
   Leave optimistic transcript records mounted throughout and ignore stale
   asynchronous refreshes so an older checkpoint cannot replace a newer live
-  Goal or Graph state. A newly created Goal or Graph automatically opens its
-  resizable right-side status panel, including flows created by slash commands
-  or tools. Selecting an existing flow starts collapsed, while a user's expand
-  or collapse choice survives later checkpoints for that same selected flow.
+  Goal or Graph state. The resizable right-side conversation-details panel owns
+  both this status and branch-scoped file changes in the ordinary desktop
+  conversation; those file changes must not render above the composer. Its
+  top-level Status and Files tabs preserve one
+  full-height body, and the Files page uses horizontally scrollable file tabs
+  with one line-numbered diff and revert action for the selected file. A newly
+  created Goal or Graph automatically opens the panel, including flows created
+  by slash commands or tools. File-only activity also opens it so removing the
+  composer banner does not hide new edits. Selecting an existing flow starts
+  collapsed, while a user's expand or collapse choice survives later
+  checkpoints for that same selected flow.
   Keep the single panel toggle at
   the trailing end of the shared title bar, use it for both expansion and collapse,
   and collapse the panel to a zero-width, non-interactive track using the same
@@ -145,7 +152,7 @@
   the workspace flex container. Keep a narrow transparent gap between these two
   sibling cards while its persisted width reduces the conversation track. Give
   both cards the same radius and neutral surface, with no perimeter border or shadow.
-  Keep the status panel surface opaque even when the surrounding conversation canvas
+  Keep the details panel surface opaque even when the surrounding conversation canvas
   uses native material, so workspace content never shows through it. Keep the
   composer's bottom readability fade inside the conversation card, but do not add an
   ambient color or streaming glow behind the composer. Keep the main conversation

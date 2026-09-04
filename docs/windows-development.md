@@ -65,8 +65,8 @@ git config --local wsl.windowsCheckout 'D:/Project/openagent'
 git config --local wsl.windowsRemote wsl-source
 ```
 
-After each WSL commit, the hook checks that the Windows checkout is clean and
-fast-forwards it from the same branch. If Windows has local changes, the
+After each WSL commit or merge, the hook checks that the Windows checkout is
+clean and fast-forwards it from the same branch. If Windows has local changes, the
 checkout cannot fast-forward, or `git.exe` is unavailable, the WSL commit is
 kept and the hook prints a warning. Install the repository hooks with
 `bun install` if `.githooks` is not active yet. Keep `node_modules`, `target`,

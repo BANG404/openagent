@@ -243,7 +243,7 @@
       {recentWorkspaces}
       tauriAvailable
       memorySyncing={false}
-      checkpointFlowAvailable={false}
+      conversationDetailsAvailable={false}
       checkpointFlowPanelCollapsed={true}
       onPickWorkspace={() => selectWorkspace("C:\\Projects\\new-project")}
       onPickWsl={() => selectWorkspace(recentWorkspaces[2].path)}

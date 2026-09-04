@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { CheckpointFlow } from "$lib/checkpointFlow";
+  import type { FileChange } from "$lib/types";
   import {
     CHECKPOINT_FLOW_PANEL_MAX_WIDTH,
     CHECKPOINT_FLOW_PANEL_MIN_WIDTH,
@@ -9,9 +10,13 @@
 
   let {
     flow,
+    changes,
+    onRevert,
     collapsed = $bindable(true),
   }: {
-    flow: CheckpointFlow;
+    flow: CheckpointFlow | null;
+    changes: FileChange[];
+    onRevert: (changeId: string) => Promise<void>;
     collapsed?: boolean;
   } = $props();
 
@@ -73,4 +78,12 @@
   }
 </script>
 
-<CheckpointFlowStatus {flow} {width} {collapsed} {resizing} onResizeStart={startResize} />
+<CheckpointFlowStatus
+  {flow}
+  {changes}
+  {onRevert}
+  {width}
+  {collapsed}
+  {resizing}
+  onResizeStart={startResize}
+/>

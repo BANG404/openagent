@@ -164,7 +164,10 @@ ephemeral test keypair and never require the production private key.
 The Release workflow first runs all frontend, Rust, embedding, sandbox, and
 Harness qualification, then performs the authoritative product compilation for
 the exact release SHA on every supported target and promotes those same
-artifacts without rebuilding them. Each platform matrix entry exports a
+artifacts without rebuilding them. Each platform matrix entry compiles the
+lightweight Tauri application once, then uses the existing compiled outputs to
+bundle the full first-install variant without rerunning `beforeBuildCommand`.
+Each platform matrix entry exports a
 dedicated Runtime sidecar target while the native and full bundles run. This
 target takes precedence over Tauri's host-oriented environment variables, so
 cross-compilation prepares the target-named sidecar instead of the runner

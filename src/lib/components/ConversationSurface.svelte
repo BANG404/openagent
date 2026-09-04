@@ -23,7 +23,6 @@
   import { showToast } from "$lib/toast";
   import ChatQueue from "./ChatQueue.svelte";
   import CheckpointFlowPanelHost from "./CheckpointFlowPanelHost.svelte";
-  import FileChangeBanner from "./FileChangeBanner.svelte";
   import FollowUpSuggestions from "./FollowUpSuggestions.svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import MessageInput, { type SlashCommand } from "./MessageInput.svelte";
@@ -239,9 +238,6 @@
         {#if view.mainContentLoading}
           <LoadingSkeleton variant="composer" label={$t("loadingContent")} />
         {:else}
-          {#if view.fileChanges.length > 0}
-            <FileChangeBanner changes={view.fileChanges} onRevert={actions.revertFileChange} />
-          {/if}
           {#if view.activeConvId}
             <ChatQueue
               items={view.queuedMessages}
@@ -309,9 +305,11 @@
       {/if}
     </div>
   </div>
-  {#if view.checkpointFlow}
+  {#if view.checkpointFlow || view.fileChanges.length > 0}
     <CheckpointFlowPanelHost
       flow={view.checkpointFlow}
+      changes={view.fileChanges}
+      onRevert={actions.revertFileChange}
       bind:collapsed={checkpointFlowPanelCollapsed}
     />
   {/if}

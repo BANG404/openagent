@@ -20,6 +20,7 @@
   import ReasoningEffortSelect from "./ReasoningEffortSelect.svelte";
   import WorkspaceSwitcher from "./WorkspaceSwitcher.svelte";
   import { applySlashCommandSelection } from "./slashCommandSelection";
+  import { segmentComposerTokens } from "./composerTokenHighlights";
   import { t } from "$lib/i18n";
   import { showToast } from "$lib/toast";
 
@@ -158,12 +159,14 @@
   }: Props = $props();
 
   let textareaEl = $state<HTMLTextAreaElement | null>(null);
+  let inputHighlightsEl = $state<HTMLDivElement | null>(null);
   let composerEl = $state<HTMLElement | null>(null);
   let browserFileInput = $state<HTMLInputElement | null>(null);
   let wasDisabled = $state(false);
   const hasComposerContent = $derived(
     Boolean(value.trim() || attachments.length || contexts.length),
   );
+  const highlightedInputSegments = $derived(segmentComposerTokens(value));
   const streamingPrimaryTitle = $derived(
     hasComposerContent ? sendTitle : isPaused ? resumeTitle : pauseTitle,
   );
@@ -509,6 +512,12 @@
     element.style.height = `${Math.min(Math.max(element.scrollHeight, minHeight), 200)}px`;
   }
 
+  function syncInputHighlightScroll(element: HTMLTextAreaElement | null = textareaEl) {
+    if (!element || !inputHighlightsEl) return;
+    inputHighlightsEl.scrollTop = element.scrollTop;
+    inputHighlightsEl.scrollLeft = element.scrollLeft;
+  }
+
   $effect(() => {
     const draftValue = value;
     void tick().then(() => {
@@ -839,6 +848,7 @@
   function handleInput(e: Event) {
     const el = e.target as HTMLTextAreaElement;
     resizeTextarea(el);
+    syncInputHighlightScroll(el);
     syncPaletteFromCaret();
   }
 
@@ -900,22 +910,32 @@
         {/each}
       </div>
     {/if}
-    <textarea
-      class="input"
-      rows="1"
-      {placeholder}
-      bind:value
-      bind:this={textareaEl}
-      onkeydown={handleKeydown}
-      oninput={handleInput}
-      onpaste={handlePaste}
-      onselect={handleSelect}
-      onclick={handleSelect}
-      onblur={() => {
-        // Defer so the mousedown on a palette row still fires.
-        setTimeout(() => closePalette(), 100);
-      }}
-      {disabled}></textarea>
+    <div class="composer-input-stack">
+      <div class="input input-highlights" bind:this={inputHighlightsEl} aria-hidden="true">
+        {#each highlightedInputSegments as segment, index (index)}
+          {#if segment.highlighted}
+            <span class="composer-token">{segment.text}</span>
+          {:else}{segment.text}{/if}
+        {/each}<span class="input-highlights-end">&#8203;</span>
+      </div>
+      <textarea
+        class="input input-editor"
+        rows="1"
+        {placeholder}
+        bind:value
+        bind:this={textareaEl}
+        onkeydown={handleKeydown}
+        oninput={handleInput}
+        onscroll={(event) => syncInputHighlightScroll(event.currentTarget)}
+        onpaste={handlePaste}
+        onselect={handleSelect}
+        onclick={handleSelect}
+        onblur={() => {
+          // Defer so the mousedown on a palette row still fires.
+          setTimeout(() => closePalette(), 100);
+        }}
+        {disabled}></textarea>
+    </div>
     {#if showAttachments || showModelSelector || showReasoningEffort || showApprovalMode || showWorkspaceSwitcher}
       <div class="composer-toolbar">
         {#if showAttachments}<Tooltip text={$t("attachFiles")}>
@@ -1110,6 +1130,10 @@
     padding-right: 54px;
   }
 
+  .composer-input-stack {
+    position: relative;
+  }
+
   .composer-streaming.composer-disabled {
     opacity: 1;
   }
@@ -1145,6 +1169,46 @@
     min-height: 58px;
     max-height: 200px;
     overflow-y: auto;
+  }
+
+  .input-highlights {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    pointer-events: none;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    overflow-y: auto;
+    scrollbar-color: transparent transparent;
+  }
+
+  .input-highlights::-webkit-scrollbar {
+    visibility: hidden;
+  }
+
+  .input-editor {
+    position: relative;
+    z-index: 1;
+    color: transparent;
+    caret-color: var(--text);
+    -webkit-text-fill-color: transparent;
+  }
+
+  .input-editor::placeholder {
+    color: var(--text-muted);
+    -webkit-text-fill-color: var(--text-muted);
+  }
+
+  .composer-token {
+    color: var(--primary);
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+
+  .input-highlights-end {
+    font-size: 0;
   }
 
   .input:focus {

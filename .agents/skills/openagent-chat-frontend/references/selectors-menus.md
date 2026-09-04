@@ -13,8 +13,8 @@
   separators are application primitives. Components own only their dimensions,
   content layout, and semantic exceptions; do not duplicate the shared state
   declarations in component styles.
-- Reuse the shared raised-surface geometry for the composer, file-change banner,
-  every desktop menu panel, command/mention palettes, floating text-selection
+- Reuse the shared raised-surface geometry for the composer, remote file-change
+  banner, every desktop menu panel, command/mention palettes, floating text-selection
   actions, and notifications so their hairline perimeter, 18px radius, 24px
   saturated blur, and compact, clearly edged elevation stay identical in both
   themes. Floating content uses the dedicated 90%-opaque theme fill so underlying
@@ -91,6 +91,11 @@
 - Keep the localized shared-composer placeholder concise while advertising the
   Enter and Shift+Enter keyboard behavior plus the `/` command and `@` mention
   palette triggers.
+- Style boundary-delimited `@` mention and `#` reference tokens in the composer
+  with the shared primary accent while preserving the submitted plain text.
+  Keep the native textarea as the editable and accessible control; any visual
+  token layer must match its wrapping and scroll position without changing
+  caret, selection, IME, draft restoration, or palette behavior.
 - Keep an empty composer at its CSS single-row height. During startup and draft
   restoration, do not derive an empty textarea's height from `scrollHeight`:
   WebView2 can report a stale expanded value. Measure and clamp only non-empty

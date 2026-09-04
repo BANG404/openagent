@@ -12,7 +12,7 @@
     recentWorkspaces,
     tauriAvailable,
     memorySyncing,
-    checkpointFlowAvailable,
+    conversationDetailsAvailable,
     checkpointFlowPanelCollapsed,
     onPickWorkspace,
     onPickWsl,
@@ -33,7 +33,7 @@
     recentWorkspaces: RecentWorkspace[];
     tauriAvailable: boolean;
     memorySyncing: boolean;
-    checkpointFlowAvailable: boolean;
+    conversationDetailsAvailable: boolean;
     checkpointFlowPanelCollapsed: boolean;
     onPickWorkspace: () => void | Promise<void>;
     onPickWsl: () => void | Promise<void>;
@@ -95,7 +95,7 @@
 
   <div class="title-actions">
     {#if memorySyncing}<span class="sync-dot" aria-label={$t("syncing")}></span>{/if}
-    {#if checkpointFlowAvailable}
+    {#if conversationDetailsAvailable}
       <CheckpointFlowToggleButton
         collapsed={checkpointFlowPanelCollapsed}
         onToggle={onToggleCheckpointFlowPanel}

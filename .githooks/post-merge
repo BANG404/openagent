@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+# A merge does not invoke post-commit, but it can advance the checkout.
+exec "$(dirname "$0")/post-commit"
