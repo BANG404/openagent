@@ -36,6 +36,7 @@ All notable changes to this project will be documented in this file.
 
 ### Miscellaneous
 - **sdk**: Update pinned revision
+- **sdk**: Update pinned revision
 
 ## [0.54.0-beta.1] - 2026-09-02
 
