@@ -200,12 +200,9 @@
         <strong>{$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}</strong>
         <span>{flow.objective}</span>
       </span>
+      <span class="flow-count">{progress.completed}/{progress.total}</span>
     </header>
     <div class="flow-overview">
-      <div class="overview-row">
-        <span class="flow-status {flow.status}">{statusLabel(flow.status)}</span>
-        <span class="flow-count">{progress.completed}/{progress.total}</span>
-      </div>
       <div
         class="progress-track"
         aria-label={$t("checkpointFlowProgress")}
@@ -471,24 +468,16 @@
     white-space: nowrap;
   }
   .flow-overview {
-    display: grid;
-    gap: 8px;
-    padding: 10px;
+    padding: 4px 10px 10px;
     border-bottom: 1px solid var(--border);
   }
-  .overview-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
   .flow-count {
+    flex: 0 0 auto;
     font:
       500 11px/1.4 "JetBrains Mono",
       monospace;
     color: var(--text-muted);
   }
-  .flow-status,
   .item-status {
     display: inline-flex;
     flex: 0 0 auto;
@@ -504,19 +493,9 @@
     color: var(--text-muted);
     background: var(--surface2);
   }
-  .flow-status.running,
   .item-status.in_progress {
     color: var(--primary);
     background: color-mix(in srgb, var(--primary) 11%, transparent);
-  }
-  .flow-status.completed {
-    color: #18794e;
-    background: color-mix(in srgb, #18794e 11%, transparent);
-  }
-  .flow-status.failed,
-  .flow-status.blocked {
-    color: #b42318;
-    background: color-mix(in srgb, #b42318 10%, transparent);
   }
   .progress-track {
     height: 4px;

@@ -151,6 +151,9 @@
   the trailing end of the shared title bar, use it for both expansion and collapse,
   and collapse the panel to a zero-width, non-interactive track using the same
   180ms width curve as the conversation sidebar.
+  The status panel header uses the concise `Goal` or `Graph` kind label, its
+  objective beneath it, and a right-aligned completed/total count; retain the
+  progress track below the header without a duplicate flow-status badge.
   Place the expanded panel as a full-height card beside the conversation card in
   the workspace flex container. Keep a narrow transparent gap between these two
   sibling cards while its persisted width reduces the conversation track. Give
