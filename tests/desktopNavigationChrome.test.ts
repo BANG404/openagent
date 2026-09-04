@@ -355,10 +355,21 @@ describe("desktop navigation chrome", () => {
   test("controls the checkpoint flow panel from the trailing title bar", async () => {
     const route = await readFile(routeUrl, "utf8");
     const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
+    const conversationSurface = await readFile(
+      new URL("ConversationSurface.svelte", componentsUrl),
+      "utf8",
+    );
     const panel = await readFile(new URL("CheckpointFlowStatus.svelte", componentsUrl), "utf8");
     const panelShell = panel.match(/\.flow-panel\s*{([^}]*)}/s)?.[1];
 
     expect(route).toContain("bind:checkpointFlowPanelCollapsed");
+    expect(route).toContain(
+      "conversationDetailsAvailable={Boolean(activeConvId && !settingsOpen)}",
+    );
+    expect(route).toContain(
+      "if (!currentCheckpointFlow && key) checkpointFlowPanelCollapsed = false",
+    );
+    expect(conversationSurface).toContain("{#if view.activeConvId}");
     expect(route).toContain("shouldAutoOpenCheckpointFlowPanel(previous, next.flow)");
     expect(titleBar).toContain("<CheckpointFlowToggleButton");
     expect(titleBar.indexOf("<CheckpointFlowToggleButton")).toBeLessThan(

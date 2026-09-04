@@ -770,7 +770,7 @@
         : null;
     if (key === fileChangesPanelSelectionKey) return;
     fileChangesPanelSelectionKey = key;
-    if (!currentCheckpointFlow) checkpointFlowPanelCollapsed = !key;
+    if (!currentCheckpointFlow && key) checkpointFlowPanelCollapsed = false;
   });
 
   async function loadMessagesForConv(
@@ -4984,9 +4984,7 @@
         {selectedRoleKey}
         {tauriAvailable}
         memorySyncing={isMemorySyncing}
-        conversationDetailsAvailable={Boolean(
-          (currentCheckpointFlow || currentFileChanges.length > 0) && !settingsOpen,
-        )}
+        conversationDetailsAvailable={Boolean(activeConvId && !settingsOpen)}
         {checkpointFlowPanelCollapsed}
         onPickWorkspace={pickWorkspace}
         onPickWsl={pickWslWorkspace}

@@ -143,6 +143,7 @@
   $effect(() => {
     if (activePanel === "status" && !flow && changes.length > 0) activePanel = "files";
     if (activePanel === "files" && changes.length === 0 && flow) activePanel = "status";
+    if (!flow && changes.length === 0) activePanel = "status";
   });
 
   function statusLabel(status: string): string {
@@ -324,6 +325,10 @@
     </div>
   {:else if !collapsed && activePanel === "files"}
     <FileChangePanel {changes} {onRevert} />
+  {:else if !collapsed}
+    <div class="flow-body">
+      <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>
+    </div>
   {/if}
 </aside>
 

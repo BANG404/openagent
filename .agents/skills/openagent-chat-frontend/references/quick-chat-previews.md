@@ -210,7 +210,9 @@
   composer-preferences save queue, light/dark, and Chinese/English checks
   addressable without a native runtime. The `-empty` parameter exposes the
   centered Graph planning state, while `-files-only` removes Goal/Graph to
-  exercise the file-only panel directly.
+  exercise the file-only panel directly. The `-no-details` parameter removes
+  both kinds of data so the persistent toggle and expanded empty state remain
+  directly verifiable.
 - Keep the development-only `book-mode-preview` query available with long,
   process-bearing fixture content and consecutive ordinary tools that exercise
   grouped tool-call rendering. Its `-theme` and `-locale` query parameters must

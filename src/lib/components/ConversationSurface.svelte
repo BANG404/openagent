@@ -305,7 +305,7 @@
       {/if}
     </div>
   </div>
-  {#if view.checkpointFlow || view.fileChanges.length > 0}
+  {#if view.activeConvId}
     <CheckpointFlowPanelHost
       flow={view.checkpointFlow}
       changes={view.fileChanges}

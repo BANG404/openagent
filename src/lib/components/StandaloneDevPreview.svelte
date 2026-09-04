@@ -1104,8 +1104,11 @@
       </div>
     </section>
     <CheckpointFlowStatus
-      flow={query.has("checkpoint-flow-preview-files-only") ? null : checkpointFlow}
-      changes={checkpointPanelChanges}
+      flow={query.has("checkpoint-flow-preview-files-only") ||
+      query.has("checkpoint-flow-preview-no-details")
+        ? null
+        : checkpointFlow}
+      changes={query.has("checkpoint-flow-preview-no-details") ? [] : checkpointPanelChanges}
       width={panelWidth}
       collapsed={panelCollapsed}
       resizing={panelResizing}

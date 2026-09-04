@@ -142,7 +142,12 @@
   successful but stale refresh cannot remove the Files entry or its title-bar toggle. Its
   top-level Status and Files tabs preserve one
   full-height body, and the Files page uses horizontally scrollable file tabs
-  with one line-numbered diff and revert action for the selected file. Wrap diff
+  with one line-numbered diff and revert action for the selected file. Keep the
+  title-bar toggle and collapsed panel host available for every selected
+  conversation, independent of whether Goal or file-change data is currently
+  observable. An expanded panel without either kind of data shows a stable empty
+  state, and a temporary empty file projection must not collapse it.
+  Wrap diff
   content inside the available panel width while keeping both line-number columns
   fixed, so resizing the panel never requires horizontal scrolling to read a
   line. Render a newly created text file from its stored content as all-added
