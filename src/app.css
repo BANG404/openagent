@@ -232,9 +232,14 @@
     background: transparent;
   }
 
-  html.native-window-material .conversation-stage,
-  html.native-window-material .flow-panel {
+  html.native-window-material .conversation-stage {
     background: var(--bg);
+  }
+
+  html.native-window-material .flow-panel {
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
   html.native-window-material .conversation-stage::before {

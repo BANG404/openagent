@@ -311,8 +311,6 @@
     overflow: hidden;
     border-radius: 12px;
     background: var(--surface);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
     transition:
       width 180ms cubic-bezier(0.16, 1, 0.3, 1),
       min-width 180ms cubic-bezier(0.16, 1, 0.3, 1),

@@ -144,11 +144,12 @@
   Place the expanded panel as a full-height card beside the conversation card in
   the workspace flex container. Keep a narrow transparent gap between these two
   sibling cards while its persisted width reduces the conversation track. Give
-  both cards the same radius, neutral surface, and translucent material treatment,
-  with no perimeter border or shadow. Keep the composer's bottom readability fade
-  inside the conversation card, but do not add an ambient color or streaming glow
-  behind the composer. Keep the main conversation workspace shadowless in both
-  themes. Give the ordinary composer the standard Mica card surface and blur
+  both cards the same radius and neutral surface, with no perimeter border or shadow.
+  Keep the status panel surface opaque even when the surrounding conversation canvas
+  uses native material, so workspace content never shows through it. Keep the
+  composer's bottom readability fade inside the conversation card, but do not add an
+  ambient color or streaming glow behind the composer. Keep the main conversation
+  workspace shadowless in both themes. Give the ordinary composer the standard Mica card surface and blur
   without a colored state shadow. Use
   the ordinary composer a low-contrast neutral hairline and a two-layer,
   short-falloff neutral shadow so its edge stays softly legible without looking

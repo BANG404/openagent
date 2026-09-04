@@ -110,17 +110,22 @@ describe("desktop navigation chrome", () => {
     expect(workspaceSwitcher).toContain("interactive-control workspace-btn");
   });
 
-  test("keeps native window canvases at roughly seventy percent transparency", async () => {
+  test("keeps native canvases transparent while the flow panel stays opaque", async () => {
     const appCss = await readFile(appCssUrl, "utf8");
     const route = await readFile(routeUrl, "utf8");
+    const flowPanel = await readFile(new URL("CheckpointFlowStatus.svelte", componentsUrl), "utf8");
     const nativeMaterialTokens = appCss.match(/html\.native-window-material\s*{([^}]*)}/s)?.[1];
 
     expect(nativeMaterialTokens).toContain("--bg: rgba(245, 245, 247, 0.3)");
     expect(nativeMaterialTokens).toContain("--app-chrome-bg: rgba(245, 245, 247, 0.3)");
     expect(nativeMaterialTokens).toContain("--sidebar-bg: rgba(245, 245, 247, 0.3)");
     expect(appCss).toMatch(
-      /html\.native-window-material \.conversation-stage,[^}]*\.flow-panel\s*{[^}]*background: var\(--bg\);/s,
+      /html\.native-window-material \.conversation-stage\s*{[^}]*background: var\(--bg\);/s,
     );
+    expect(appCss).toMatch(
+      /html\.native-window-material \.flow-panel\s*{[^}]*background: var\(--surface\);[^}]*backdrop-filter: none;/s,
+    );
+    expect(flowPanel).not.toContain("backdrop-filter");
     expect(route).toMatch(/\.app\s*{[^}]*background: transparent;/s);
 
     const settings = await readFile(new URL("SettingsView.svelte", componentsUrl), "utf8");
