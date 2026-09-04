@@ -379,12 +379,14 @@ describe("desktop navigation chrome", () => {
 
     expect(route).toContain("bind:checkpointFlowPanelCollapsed");
     expect(route).toContain(
-      "conversationDetailsAvailable={Boolean(activeConvId && !settingsOpen)}",
+      "activeConvId && !settingsOpen && (currentCheckpointFlow || currentFileChanges.length > 0)",
     );
     expect(route).toContain(
       "if (!currentCheckpointFlow && key) checkpointFlowPanelCollapsed = false",
     );
-    expect(conversationSurface).toContain("{#if view.activeConvId}");
+    expect(conversationSurface).toContain(
+      "{#if view.activeConvId && (view.checkpointFlow || view.fileChanges.length > 0)}",
+    );
     expect(route).toContain("shouldAutoOpenCheckpointFlowPanel(previous, next.flow)");
     expect(titleBar).toContain("<CheckpointFlowToggleButton");
     expect(titleBar.indexOf("<CheckpointFlowToggleButton")).toBeLessThan(

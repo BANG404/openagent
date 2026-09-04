@@ -4984,7 +4984,9 @@
         {selectedRoleKey}
         {tauriAvailable}
         memorySyncing={isMemorySyncing}
-        conversationDetailsAvailable={Boolean(activeConvId && !settingsOpen)}
+        conversationDetailsAvailable={Boolean(
+          activeConvId && !settingsOpen && (currentCheckpointFlow || currentFileChanges.length > 0),
+        )}
         {checkpointFlowPanelCollapsed}
         onPickWorkspace={pickWorkspace}
         onPickWsl={pickWslWorkspace}

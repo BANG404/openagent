@@ -1068,11 +1068,13 @@
   <main class="checkpoint-flow-preview-stage">
     <div class="conversation-input-fade" aria-hidden="true"></div>
     <header class="checkpoint-flow-preview-titlebar">
-      <span>{$t("conversationDetails")}</span>
-      <CheckpointFlowToggleButton
-        collapsed={panelCollapsed}
-        onToggle={() => (panelCollapsed = !panelCollapsed)}
-      />
+      {#if !query.has("checkpoint-flow-preview-no-details")}
+        <span>{$t("conversationDetails")}</span>
+        <CheckpointFlowToggleButton
+          collapsed={panelCollapsed}
+          onToggle={() => (panelCollapsed = !panelCollapsed)}
+        />
+      {/if}
     </header>
     <section class="checkpoint-flow-preview-chat">
       <div class="checkpoint-flow-preview-messages">
@@ -1103,18 +1105,17 @@
         />
       </div>
     </section>
-    <CheckpointFlowStatus
-      flow={query.has("checkpoint-flow-preview-files-only") ||
-      query.has("checkpoint-flow-preview-no-details")
-        ? null
-        : checkpointFlow}
-      changes={query.has("checkpoint-flow-preview-no-details") ? [] : checkpointPanelChanges}
-      width={panelWidth}
-      collapsed={panelCollapsed}
-      resizing={panelResizing}
-      onRevert={async () => {}}
-      onResizeStart={startPanelResize}
-    />
+    {#if !query.has("checkpoint-flow-preview-no-details")}
+      <CheckpointFlowStatus
+        flow={query.has("checkpoint-flow-preview-files-only") ? null : checkpointFlow}
+        changes={checkpointPanelChanges}
+        width={panelWidth}
+        collapsed={panelCollapsed}
+        resizing={panelResizing}
+        onRevert={async () => {}}
+        onResizeStart={startPanelResize}
+      />
+    {/if}
   </main>
 {:else if preview === "follow-up-suggestions"}
   <main class="follow-up-suggestions-preview-stage">
