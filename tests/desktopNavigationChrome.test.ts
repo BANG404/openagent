@@ -34,7 +34,8 @@ describe("desktop navigation chrome", () => {
     expect(route).toContain('detectWindowPlatform() !== "linux"');
   });
 
-  test("keeps primary actions below the role and Settings at the sidebar bottom", async () => {
+  test("keeps navigation beside the role, primary actions below it, and Settings at the bottom", async () => {
+    const route = await readFile(routeUrl, "utf8");
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
     const resizeHandle = await readFile(
       new URL("SidebarResizeHandle.svelte", componentsUrl),
@@ -42,6 +43,9 @@ describe("desktop navigation chrome", () => {
     );
 
     expect(sidebar.indexOf("<RoleSelector")).toBeLessThan(
+      sidebar.indexOf("<SidebarHistoryControls"),
+    );
+    expect(sidebar.indexOf("<SidebarHistoryControls")).toBeLessThan(
       sidebar.indexOf("<SidebarPrimaryActions"),
     );
     expect(sidebar.indexOf("<SidebarPrimaryActions")).toBeLessThan(
@@ -51,6 +55,15 @@ describe("desktop navigation chrome", () => {
       sidebar.indexOf("<SidebarSettingsAction"),
     );
     expect(sidebar).toContain("onNew={() => void onNew()}");
+    expect(sidebar).toContain('src="/app-icon.png"');
+    expect(sidebar).not.toContain("SidebarCollapseButton");
+    expect(sidebar).not.toContain("openagent.sidebar.collapsed");
+    expect(sidebar).toContain(".sidebar-role :global(.role-selector-trigger.header)");
+    expect(sidebar).toMatch(/\.sidebar-role\s*{[^}]*justify-content: space-between;/s);
+    expect(sidebar).not.toContain("class:collapsed");
+    expect(sidebar).not.toContain("{#if !collapsed}");
+    expect(route).not.toContain("sidebarCollapsed");
+    expect(route).not.toContain("openagent.sidebar.collapsed");
     expect(resizeHandle).toMatch(/\.sidebar-resize-shell\s*{[^}]*top: 40px;/s);
   });
 
@@ -73,8 +86,8 @@ describe("desktop navigation chrome", () => {
     expect(titleBar).toContain("background: var(--app-chrome-bg)");
     expect(sidebar).not.toContain("border-right:");
     expect(titleBar).not.toContain("border-bottom:");
-    expect(titleBar).toMatch(/\.title-bar-menu\s*{[^}]*margin-left: 100px;/s);
-    expect(titleBar).toMatch(/\.title-bar\.macos \.title-bar-menu\s*{[^}]*margin-left: 176px;/s);
+    expect(titleBar).toMatch(/\.title-bar-menu\s*{[^}]*margin-left: 48px;/s);
+    expect(titleBar).toMatch(/\.title-bar\.macos \.title-bar-menu\s*{[^}]*margin-left: 124px;/s);
     expect(settingsAction).not.toContain("border-top:");
     const conversationWorkspace = conversationSurface.match(
       /\.conversation-workspace\s*{([^}]*)}/s,

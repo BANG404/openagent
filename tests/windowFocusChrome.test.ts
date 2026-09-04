@@ -76,7 +76,9 @@ describe("window focus chrome", () => {
       /fn show_desktop_window[\s\S]*?window\.set_focus\(\)[\s\S]*?window\.emit\(DESKTOP_WINDOW_ACTIVATED_EVENT/,
     );
     expect(sidebar).toContain("class:window-inactive={!windowFocused}");
-    expect(sidebar).toMatch(/\.sidebar\.window-inactive \.sidebar-top \{\s*opacity: 0\.55;/);
+    expect(sidebar).toMatch(
+      /\.sidebar\.window-inactive \.sidebar-top,[\s\S]*?\.sidebar\.window-inactive \.sidebar-role \{\s*opacity: 0\.55;/,
+    );
     expect(historyControls).toMatch(
       /button:disabled \{\s*color: color-mix\(in srgb, var\(--text-muted\) 62%, transparent\);/,
     );

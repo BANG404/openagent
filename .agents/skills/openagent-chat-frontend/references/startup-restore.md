@@ -140,9 +140,9 @@
   the currently selected workspace list. Desktop menu action labels are not
   selectable text, while editable fields inside menu panels retain ordinary
   text selection.
-- Keep the expanded conversation sidebar resizable from its trailing edge between
+- Keep the conversation sidebar permanently expanded and resizable from its trailing edge between
   220px and 360px so row labels and trailing actions cannot overlap. Persist the
-  chosen width across collapse and reload, keep the default at that lower bound,
+  chosen width across reload, keep the default at that lower bound,
   and normalize narrower saved values when they load. Disable width animation
   while dragging, and expose the same bounds to keyboard users.
   Size every project and Recent conversation title from the live space remaining
@@ -151,14 +151,17 @@
   sidebar or neighboring row controls change width.
   The resize hit target and active indicator begin below the shared title bar so
   a sidebar drag never draws a separator through application chrome.
-- Keep the expanded sidebar's role trigger above Projects and size it to its
+- Keep the sidebar's role trigger above Projects and size it to its
   visible role name without a redundant caret. Keep the full-width new-conversation
   and global conversation-search actions immediately below it; the new action
   uses the window's selected workspace, while project-row actions may explicitly
   select another workspace first. Retain Settings as the sole bottom navigation
   action. Keep the back and forward
-  controls fixed beside the sidebar-collapse button in the shared top chrome.
-  On macOS, reserve the native traffic-light footprint before those controls;
+  controls right-aligned in the same row as the sidebar role trigger. Keep the
+  application icon in the leading slot of the shared top chrome; it is branding,
+  not an interactive sidebar-collapse control.
+  On macOS, reserve the native traffic-light footprint before the application
+  icon and title-bar menu;
   on Windows, keep minimize, maximize/restore, and close at the trailing edge
   with platform-standard hit targets and close affordance. Tie history controls
   to the window's real destination history: conversations, the

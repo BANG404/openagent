@@ -5,7 +5,6 @@
 
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import RoleSelector from "$lib/components/RoleSelector.svelte";
-  import SidebarCollapseButton from "$lib/components/SidebarCollapseButton.svelte";
   import SidebarHistoryControls from "$lib/components/SidebarHistoryControls.svelte";
   import SidebarPrimaryActions from "$lib/components/SidebarPrimaryActions.svelte";
   import SidebarResizeHandle from "$lib/components/SidebarResizeHandle.svelte";
@@ -14,7 +13,6 @@
   import { t } from "$lib/i18n";
 
   let {
-    collapsed = $bindable(),
     roles,
     selectedRoleKey,
     canGoBack,
@@ -53,7 +51,6 @@
     platformOverride,
     windowFocused,
   }: {
-    collapsed: boolean;
     roles: AgentRole[];
     selectedRoleKey: string;
     canGoBack: boolean;
@@ -93,16 +90,10 @@
     windowFocused: boolean;
   } = $props();
 
-  const collapsedStorageKey = "openagent.sidebar.collapsed";
   let platform = $derived(platformOverride ?? detectWindowPlatform());
   let width = $state(loadSidebarWidth());
   let resizing = $state(false);
   let searchOpen = $state(false);
-
-  function toggle(): void {
-    collapsed = !collapsed;
-    window.localStorage.setItem(collapsedStorageKey, String(collapsed));
-  }
 
   function changeRole(role: string): void {
     searchOpen = false;
@@ -121,68 +112,65 @@
 
 <aside
   class="sidebar"
-  class:collapsed
   class:resizing
   class:macos={platform === "macos"}
   class:window-inactive={!windowFocused}
   style:--sidebar-width={`${width}px`}
 >
   <div class="sidebar-top" data-tauri-drag-region>
-    <SidebarCollapseButton {collapsed} onToggle={toggle} />
-    <SidebarHistoryControls
-      {canGoBack}
-      {canGoForward}
-      onBack={() => void onBack()}
-      onForward={() => void onForward()}
-    />
+    <img class="sidebar-app-icon" src="/app-icon.png" alt="OpenAgent" draggable="false" />
   </div>
-  {#if !collapsed}
-    <div class="sidebar-content">
-      <div class="sidebar-role">
-        <RoleSelector value={selectedRoleKey} {roles} header onChange={changeRole} />
-      </div>
-      <SidebarPrimaryActions bind:searchOpen {searchQuery} onNew={() => void onNew()} {onSearch} />
-      {#if loading}
-        <LoadingSkeleton variant="sidebar" rows={8} label={$t("loadingContent")} />
-      {:else}
-        <SidebarWorkspaceBrowser
-          {workspacePath}
-          {workspaceSwitchTarget}
-          {selectedRoleKey}
-          {recentWorkspaces}
-          {pinnedProjectPaths}
-          {searchQuery}
-          {conversations}
-          {recentConversations}
-          {activeConversationId}
-          {streamingConversationIds}
-          {hasMore}
-          {loadingMore}
-          {loadingRecentConversations}
-          searchActive={searchOpen}
-          onNewProjectConversation={(path) => void onNewProjectConversation(path)}
-          {onLoadProjectConversations}
-          onLoadMore={() => void onLoadMore()}
-          onSelect={(id) => void onSelect(id)}
-          onOpenConversation={openConversation}
-          {onTogglePin}
-          {onDelete}
-          onSelectWorkspace={(path) => void onSelectWorkspace(path)}
-          {onToggleProjectPin}
-          onOpenProjectFolder={(path) => void onOpenProjectFolder(path)}
-          onRemoveProject={(path) => void onRemoveProject(path)}
-        />
-      {/if}
-      <SidebarSettingsAction active={settingsOpen} onToggle={() => void onToggleSettings()} />
+  <div class="sidebar-content">
+    <div class="sidebar-role">
+      <RoleSelector value={selectedRoleKey} {roles} header onChange={changeRole} />
+      <SidebarHistoryControls
+        {canGoBack}
+        {canGoForward}
+        onBack={() => void onBack()}
+        onForward={() => void onForward()}
+      />
     </div>
-    <SidebarResizeHandle
-      {width}
-      ariaLabel={$t("resizeSidebar")}
-      onResize={(next) => (width = next)}
-      onResizeStateChange={(next) => (resizing = next)}
-      onResizeEnd={saveSidebarWidth}
-    />
-  {/if}
+    <SidebarPrimaryActions bind:searchOpen {searchQuery} onNew={() => void onNew()} {onSearch} />
+    {#if loading}
+      <LoadingSkeleton variant="sidebar" rows={8} label={$t("loadingContent")} />
+    {:else}
+      <SidebarWorkspaceBrowser
+        {workspacePath}
+        {workspaceSwitchTarget}
+        {selectedRoleKey}
+        {recentWorkspaces}
+        {pinnedProjectPaths}
+        {searchQuery}
+        {conversations}
+        {recentConversations}
+        {activeConversationId}
+        {streamingConversationIds}
+        {hasMore}
+        {loadingMore}
+        {loadingRecentConversations}
+        searchActive={searchOpen}
+        onNewProjectConversation={(path) => void onNewProjectConversation(path)}
+        {onLoadProjectConversations}
+        onLoadMore={() => void onLoadMore()}
+        onSelect={(id) => void onSelect(id)}
+        onOpenConversation={openConversation}
+        {onTogglePin}
+        {onDelete}
+        onSelectWorkspace={(path) => void onSelectWorkspace(path)}
+        {onToggleProjectPin}
+        onOpenProjectFolder={(path) => void onOpenProjectFolder(path)}
+        onRemoveProject={(path) => void onRemoveProject(path)}
+      />
+    {/if}
+    <SidebarSettingsAction active={settingsOpen} onToggle={() => void onToggleSettings()} />
+  </div>
+  <SidebarResizeHandle
+    {width}
+    ariaLabel={$t("resizeSidebar")}
+    onResize={(next) => (width = next)}
+    onResizeStateChange={(next) => (resizing = next)}
+    onResizeEnd={saveSidebarWidth}
+  />
 </aside>
 
 <style>
@@ -200,12 +188,6 @@
     transition: width 180ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .sidebar.collapsed {
-    width: 0;
-    padding-top: 0;
-    background: transparent;
-  }
-
   .sidebar.resizing {
     transition: none;
   }
@@ -218,13 +200,13 @@
     height: 40px;
     display: flex;
     align-items: center;
-    gap: 1px;
     padding: 0 4px 0 6px;
     box-sizing: border-box;
     transition: opacity 120ms ease;
   }
 
-  .sidebar.window-inactive .sidebar-top {
+  .sidebar.window-inactive .sidebar-top,
+  .sidebar.window-inactive .sidebar-role {
     opacity: 0.55;
   }
 
@@ -232,10 +214,12 @@
     left: 76px;
   }
 
-  .sidebar-top :global(.sidebar-collapse-button) {
-    width: 34px;
-    height: 32px;
-    flex-basis: 34px;
+  .sidebar-app-icon {
+    width: 24px;
+    height: 24px;
+    margin-left: 5px;
+    object-fit: contain;
+    pointer-events: none;
   }
 
   .sidebar-content {
@@ -247,11 +231,17 @@
 
   .sidebar-role {
     flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
     padding: 5px 8px 1px;
+    transition: opacity 120ms ease;
   }
 
-  .sidebar-role :global(.role-selector) {
-    max-width: 100%;
+  .sidebar-role :global(.role-selector-trigger.header) {
+    min-width: 0;
+    max-width: calc(100% - 62px);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -259,7 +249,8 @@
       transition: none;
     }
 
-    .sidebar-top {
+    .sidebar-top,
+    .sidebar-role {
       transition: none;
     }
   }

@@ -320,10 +320,6 @@
   let sidebarLoadingMoreConversations = $derived(
     conversationSearchQuery.trim() ? loadingMoreSearchConversations : loadingMoreConversations,
   );
-  let sidebarCollapsed = $state(
-    typeof window !== "undefined" &&
-      window.localStorage.getItem("openagent.sidebar.collapsed") === "true",
-  );
   // Per-conversation transient stream state is owned independently from the
   // durable conversation/checkpoint projection.
   const chatStreams = new ChatStreamState();
@@ -4816,15 +4812,9 @@
   {:else if isQuickChatSurface}
     <QuickChatSurface preview={isQuickChatPreview} />
   {:else}
-    <div
-      class="app"
-      class:sidebar-collapsed={sidebarCollapsed}
-      aria-busy={workspaceLoading}
-      inert={workspaceLoading}
-    >
+    <div class="app" aria-busy={workspaceLoading} inert={workspaceLoading}>
       <!-- ─── Sidebar ─────────────────────────────────────────────────────────────── -->
       <DesktopSidebar
-        bind:collapsed={sidebarCollapsed}
         roles={agentRoles}
         {selectedRoleKey}
         {canGoBack}
@@ -4902,7 +4892,7 @@
           />
         </div>
       {:else}
-        <div class="main" class:sidebar-collapsed={sidebarCollapsed}>
+        <div class="main">
           <ConversationSurface
             view={conversationSurfaceView}
             actions={conversationSurfaceActions}

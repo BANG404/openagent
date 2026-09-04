@@ -122,12 +122,12 @@
 
   .title-bar-menu {
     height: 100%;
-    margin-left: 100px;
+    margin-left: 48px;
     flex: 0 0 auto;
   }
 
   .title-bar.macos .title-bar-menu {
-    margin-left: 176px;
+    margin-left: 124px;
   }
 
   .mac-window-controls {

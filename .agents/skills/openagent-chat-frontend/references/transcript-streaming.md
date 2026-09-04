@@ -1,7 +1,7 @@
 # Transcript and streaming
 
 - Keep the route as the desktop composition and runtime-coordination boundary.
-  The desktop sidebar owns its width, resize gesture, collapse persistence, and
+  The permanently expanded desktop sidebar owns its width, resize gesture, and
   conversation navigation chrome; the shared title bar owns application menus,
   sync, and window chrome across chat and Settings. The title bar renders File,
   Edit, and Help only; do not restore the removed Configure menu or its Memory,
@@ -9,7 +9,7 @@
   workspace names and Git branches so the
   remaining drag region stays visually quiet. The route owns the native
   window-focus state and passes that same value to both top-chrome segments and
-  the conversation surface, so the sidebar collapse/history controls and
+  the conversation surface, so the sidebar application icon, role/history row, and
   title-bar content dim and restore together without changing their shared
   native window material or geometry. When that state transitions from inactive
   to active while the conversation composer is mounted, return keyboard focus

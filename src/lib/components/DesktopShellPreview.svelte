@@ -13,7 +13,6 @@
   import MessageInput from "./MessageInput.svelte";
 
   const query = new URLSearchParams(window.location.search);
-  let collapsed = $state(false);
   let selectedRoleKey = $state("openagent");
   let activeConversationId = $state<string | null>(
     query.has("desktop-shell-preview-existing") ? "openagent-1" : null,
@@ -142,7 +141,6 @@
 
 <div class="desktop-shell-preview">
   <DesktopSidebar
-    bind:collapsed
     {roles}
     {selectedRoleKey}
     canGoBack={false}
