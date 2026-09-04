@@ -2,6 +2,7 @@
   import { DropdownMenu } from "bits-ui";
   import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
   import { t } from "$lib/i18n";
+  import type { SettingsNav, SettingsWindowKind } from "$lib/settingsWindows";
   import type { AgentRole, RecentWorkspace } from "$lib/types";
   import type { WindowPlatform } from "$lib/windowPlatform";
   import { isWslWorkspacePath } from "$lib/workspacePath";
@@ -29,6 +30,7 @@
     onSelectWorkspace,
     onOpenWorkspaceLocation,
     onOpenSettings,
+    onOpenSettingsWindow,
     onCreateRole,
     onConfigureRole,
     onOpenAbout,
@@ -47,6 +49,7 @@
     onSelectWorkspace: (path: string) => void;
     onOpenWorkspaceLocation: () => void;
     onOpenSettings: () => void;
+    onOpenSettingsWindow: (kind: SettingsWindowKind, section?: SettingsNav) => void;
     onCreateRole: () => void;
     onConfigureRole: (role: AgentRole) => void;
     onOpenAbout: () => void;
@@ -172,11 +175,15 @@
           ? "application-file-menu"
           : key === "e"
             ? "application-edit-menu"
-            : key === "r"
+            : key === "a"
               ? "application-role-menu"
-              : key === "h"
-                ? "application-help-menu"
-                : null;
+              : key === "i"
+                ? "application-integrations-menu"
+                : key === "u"
+                  ? "application-automation-menu"
+                  : key === "h"
+                    ? "application-help-menu"
+                    : null;
       if (!triggerId) return;
       if (key === "e") captureEditContext();
       runShortcut(event, () => {
@@ -372,8 +379,8 @@
   </DropdownMenu.Root>
 
   <DropdownMenu.Root>
-    <DropdownMenu.Trigger id="application-role-menu" class="application-menu-trigger" accesskey="r"
-      >{$t("rolesTitle")}</DropdownMenu.Trigger
+    <DropdownMenu.Trigger id="application-role-menu" class="application-menu-trigger" accesskey="a"
+      >{$t("agentMenu")}</DropdownMenu.Trigger
     >
     <DropdownMenu.Portal>
       <DropdownMenu.Content
@@ -391,6 +398,83 @@
         >
           {$t("configureRole")}
         </DropdownMenu.Item>
+        <DropdownMenu.Separator class="application-menu-separator" />
+        <DropdownMenu.Item
+          class="application-menu-item"
+          onSelect={() => onOpenSettingsWindow("models", "providers")}
+        >
+          {$t("modelsWindowTitle")}…
+        </DropdownMenu.Item>
+        <DropdownMenu.Item
+          class="application-menu-item"
+          onSelect={() => onOpenSettingsWindow("agent", "execution")}
+        >
+          {$t("executionAndPermissions")}…
+        </DropdownMenu.Item>
+        <DropdownMenu.Item
+          class="application-menu-item"
+          onSelect={() => onOpenSettingsWindow("agent", "agents")}
+        >
+          {$t("flashAgents")}…
+        </DropdownMenu.Item>
+        <DropdownMenu.Item
+          class="application-menu-item"
+          onSelect={() => onOpenSettingsWindow("memory", "memory")}
+        >
+          {$t("memoryManagement")}…
+        </DropdownMenu.Item>
+      </DropdownMenu.Content>
+    </DropdownMenu.Portal>
+  </DropdownMenu.Root>
+
+  <DropdownMenu.Root>
+    <DropdownMenu.Trigger
+      id="application-integrations-menu"
+      class="application-menu-trigger"
+      accesskey="i">{$t("integrationsMenu")}</DropdownMenu.Trigger
+    >
+    <DropdownMenu.Portal>
+      <DropdownMenu.Content
+        class="desktop-menu-panel application-menu-content"
+        sideOffset={2}
+        align="start"
+      >
+        <DropdownMenu.Item
+          class="application-menu-item"
+          onSelect={() => onOpenSettingsWindow("integrations", "channels")}
+          >{$t("channels")}…</DropdownMenu.Item
+        >
+        <DropdownMenu.Item
+          class="application-menu-item"
+          onSelect={() => onOpenSettingsWindow("integrations", "extensions")}
+          >{$t("extensions")}…</DropdownMenu.Item
+        >
+        <DropdownMenu.Item
+          class="application-menu-item"
+          onSelect={() => onOpenSettingsWindow("integrations", "plugins")}
+          >{$t("agentPlugins")}…</DropdownMenu.Item
+        >
+      </DropdownMenu.Content>
+    </DropdownMenu.Portal>
+  </DropdownMenu.Root>
+
+  <DropdownMenu.Root>
+    <DropdownMenu.Trigger
+      id="application-automation-menu"
+      class="application-menu-trigger"
+      accesskey="u">{$t("automationMenu")}</DropdownMenu.Trigger
+    >
+    <DropdownMenu.Portal>
+      <DropdownMenu.Content
+        class="desktop-menu-panel application-menu-content"
+        sideOffset={2}
+        align="start"
+      >
+        <DropdownMenu.Item
+          class="application-menu-item"
+          onSelect={() => onOpenSettingsWindow("automation", "hooks")}
+          >{$t("scheduledHooks")}…</DropdownMenu.Item
+        >
       </DropdownMenu.Content>
     </DropdownMenu.Portal>
   </DropdownMenu.Root>

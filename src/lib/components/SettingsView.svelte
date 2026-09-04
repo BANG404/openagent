@@ -48,18 +48,8 @@
   import SettingsStatusToggle from "./ui/SettingsStatusToggle.svelte";
   import PermissionSettings from "./PermissionSettings.svelte";
   import AgentPluginsSettings from "./AgentPluginsSettings.svelte";
+  import type { SettingsNav } from "$lib/settingsWindows";
 
-  type SettingsNav =
-    | "general"
-    | "channels"
-    | "providers"
-    | "defaults"
-    | "agents"
-    | "memory"
-    | "hooks"
-    | "plugins"
-    | "extensions"
-    | "about";
   type StandardChannelKind = "feishu" | "telegram" | "qq" | "discord" | "slack";
   type ChannelSettingsNav = StandardChannelKind | "wechat" | "gateway";
   type ProviderStatus = {
@@ -132,6 +122,7 @@
     config,
     workspacePath,
     initialNav,
+    sections,
     onSave,
     onOpenConversation,
     onThemePreview,
@@ -139,10 +130,29 @@
     config: AppConfig | null;
     workspacePath: string;
     initialNav?: SettingsNav;
+    sections?: SettingsNav[];
     onSave: (config: AppConfig, baseConfig?: AppConfig) => Promise<AppConfig>;
     onOpenConversation: (conversationId: string) => Promise<void>;
     onThemePreview?: (theme: string) => void;
   } = $props();
+
+  const visibleSections = $derived(
+    new Set(
+      sections ?? [
+        "general",
+        "channels",
+        "providers",
+        "defaults",
+        "execution",
+        "agents",
+        "memory",
+        "hooks",
+        "plugins",
+        "extensions",
+        "about",
+      ],
+    ),
+  );
 
   const fallbackConfig: AppConfig = {
     providers: [],
@@ -507,30 +517,40 @@
       autostartReady = true;
       return;
     }
-    refreshHooks().catch(() => {});
-    refreshHookRoles().catch(() => {});
-    refreshRemoteGateway().catch(() => {});
-    refreshChannelStatuses().catch(() => {});
-    refreshWechatChannel().catch(() => {});
-    wechatStatusTimer = setInterval(() => {
+    if (visibleSections.has("hooks")) {
+      refreshHooks().catch(() => {});
+      refreshHookRoles().catch(() => {});
+    }
+    if (visibleSections.has("channels")) {
+      refreshRemoteGateway().catch(() => {});
       refreshChannelStatuses().catch(() => {});
       refreshWechatChannel().catch(() => {});
-    }, 1500);
-    refreshChatgptAuthStatus().catch(() => {});
-    const unlistenRemotePairingCode = listen("remote-gateway-pairing-code-rotated", () => {
-      refreshRemoteGateway().catch(() => {});
-    });
-    isEnabled()
-      .then((enabled) => {
-        lastAutostartTarget = enabled;
-        draftConfig.launch_on_startup = enabled;
-      })
-      .catch((err) => {
-        autostartStatus = `${err}`;
-      })
-      .finally(() => {
-        autostartReady = true;
-      });
+      wechatStatusTimer = setInterval(() => {
+        refreshChannelStatuses().catch(() => {});
+        refreshWechatChannel().catch(() => {});
+      }, 1500);
+    }
+    if (visibleSections.has("providers")) refreshChatgptAuthStatus().catch(() => {});
+    const unlistenRemotePairingCode = visibleSections.has("channels")
+      ? listen("remote-gateway-pairing-code-rotated", () => {
+          refreshRemoteGateway().catch(() => {});
+        })
+      : Promise.resolve(() => {});
+    if (visibleSections.has("general")) {
+      isEnabled()
+        .then((enabled) => {
+          lastAutostartTarget = enabled;
+          draftConfig.launch_on_startup = enabled;
+        })
+        .catch((err) => {
+          autostartStatus = `${err}`;
+        })
+        .finally(() => {
+          autostartReady = true;
+        });
+    } else {
+      autostartReady = true;
+    }
     return () => {
       void unlistenRemotePairingCode.then((dispose) => dispose());
       if (remoteCopyTimer) clearTimeout(remoteCopyTimer);
@@ -1430,177 +1450,223 @@
 
 <svelte:window onkeydown={handleQuickShortcutKeydown} />
 
-<div class="application-settings-scope settings-panel">
-  <Tabs.Root value="general" orientation="vertical" activationMode="manual" class="settings-body">
+<div
+  class="application-settings-scope settings-panel"
+  class:single-section={visibleSections.size === 1}
+>
+  <Tabs.Root
+    value={initialNav ?? sections?.[0] ?? "general"}
+    orientation="vertical"
+    activationMode="manual"
+    class="settings-body"
+  >
     <Tabs.List class="settings-nav-col">
       <div class="settings-nav-items">
-        <Tabs.Trigger value="general" class="settings-nav-item">
-          <svg
-            class="nav-icon"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="8" cy="8" r="2.4" />
-            <path
-              d="M8 1.8v1.4M8 12.8v1.4M3.6 3.6l1 1M11.4 11.4l1 1M1.8 8h1.4M12.8 8h1.4M3.6 12.4l1-1M11.4 4.6l1-1"
-            />
-          </svg>
-          {$t("general")}
-        </Tabs.Trigger>
-        <Tabs.Trigger value="channels" class="settings-nav-item">
-          <svg
-            class="nav-icon"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M3 4.2h10v7.6H3z" />
-            <path d="m5.2 6.4 2.1 1.7a1.1 1.1 0 0 0 1.4 0l2.1-1.7" />
-            <path d="M5 2.2v2M11 2.2v2M5 11.8v2M11 11.8v2" />
-          </svg>
-          {$t("channels")}
-        </Tabs.Trigger>
-        <Tabs.Trigger value="providers" class="settings-nav-item">
-          <svg
-            class="nav-icon"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="2.5" y="3" width="11" height="3.5" rx="1" />
-            <rect x="2.5" y="9.5" width="11" height="3.5" rx="1" />
-            <path d="M5 4.75h.01M5 11.25h.01M8 6.5v3" />
-          </svg>
-          {$t("providers")}
-        </Tabs.Trigger>
-        <Tabs.Trigger value="defaults" class="settings-nav-item">
-          <svg
-            class="nav-icon"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path
-              d="M8 2.2l1.7 3.5 3.8.6-2.8 2.7.7 3.8L8 11l-3.4 1.8.7-3.8-2.8-2.7 3.8-.6L8 2.2z"
-            />
-          </svg>
-          {$t("defaultModels")}
-        </Tabs.Trigger>
-        <Tabs.Trigger value="agents" class="settings-nav-item">
-          <svg
-            class="nav-icon"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M4.2 4.2h7.6v5.2H8.7L6 12v-2.6H4.2z" />
-            <path d="M6 6.2h4M6 8h2.6" />
-          </svg>
-          {$t("flashAgents")}
-        </Tabs.Trigger>
-        <Tabs.Trigger value="memory" class="settings-nav-item">
-          <svg
-            class="nav-icon"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <ellipse cx="8" cy="3.5" rx="5" ry="1.8" />
-            <path d="M3 3.5v6.8c0 1 2.2 1.8 5 1.8s5-.8 5-1.8V3.5" />
-            <path d="M3 7c0 1 2.2 1.8 5 1.8s5-.8 5-1.8" />
-          </svg>
-          {$t("memoryManagement")}
-        </Tabs.Trigger>
-        <Tabs.Trigger value="extensions" class="settings-nav-item">
-          <svg
-            class="nav-icon"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M6 2.5v3M10 2.5v3M4.5 5.5h7v2.8a3.5 3.5 0 0 1-7 0V5.5zM8 11.8v1.7" />
-          </svg>
-          {$t("extensions")}
-        </Tabs.Trigger>
-        <Tabs.Trigger value="plugins" class="settings-nav-item">
-          <svg
-            class="nav-icon"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M6.2 2.5h3.6v2.2h2.2v3.6H9.8v2.2H6.2V8.3H4V4.7h2.2V2.5Z" />
-            <path d="M8 10.5v3" />
-          </svg>
-          {$t("agentPlugins")}
-        </Tabs.Trigger>
-        <Tabs.Trigger value="hooks" class="settings-nav-item">
-          <svg
-            class="nav-icon"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="8" cy="8" r="5.5" />
-            <path d="M8 4.8V8l2.2 1.4" />
-          </svg>
-          {$t("hooks")}
-        </Tabs.Trigger>
+        {#if visibleSections.has("general")}
+          <Tabs.Trigger value="general" class="settings-nav-item">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="8" cy="8" r="2.4" />
+              <path
+                d="M8 1.8v1.4M8 12.8v1.4M3.6 3.6l1 1M11.4 11.4l1 1M1.8 8h1.4M12.8 8h1.4M3.6 12.4l1-1M11.4 4.6l1-1"
+              />
+            </svg>
+            {$t("general")}
+          </Tabs.Trigger>
+        {/if}
+        {#if visibleSections.has("channels")}
+          <Tabs.Trigger value="channels" class="settings-nav-item">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 4.2h10v7.6H3z" />
+              <path d="m5.2 6.4 2.1 1.7a1.1 1.1 0 0 0 1.4 0l2.1-1.7" />
+              <path d="M5 2.2v2M11 2.2v2M5 11.8v2M11 11.8v2" />
+            </svg>
+            {$t("channels")}
+          </Tabs.Trigger>
+        {/if}
+        {#if visibleSections.has("providers")}
+          <Tabs.Trigger value="providers" class="settings-nav-item">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="2.5" y="3" width="11" height="3.5" rx="1" />
+              <rect x="2.5" y="9.5" width="11" height="3.5" rx="1" />
+              <path d="M5 4.75h.01M5 11.25h.01M8 6.5v3" />
+            </svg>
+            {$t("providers")}
+          </Tabs.Trigger>
+        {/if}
+        {#if visibleSections.has("defaults")}
+          <Tabs.Trigger value="defaults" class="settings-nav-item">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M8 2.2l1.7 3.5 3.8.6-2.8 2.7.7 3.8L8 11l-3.4 1.8.7-3.8-2.8-2.7 3.8-.6L8 2.2z"
+              />
+            </svg>
+            {$t("defaultModels")}
+          </Tabs.Trigger>
+        {/if}
+        {#if visibleSections.has("execution")}
+          <Tabs.Trigger value="execution" class="settings-nav-item">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M8 1.8 13 4.2v3.5c0 3.1-2 5.4-5 6.5-3-1.1-5-3.4-5-6.5V4.2L8 1.8Z" />
+              <path d="m5.8 8 1.4 1.4 3-3" />
+            </svg>
+            {$t("executionAndPermissions")}
+          </Tabs.Trigger>
+        {/if}
+        {#if visibleSections.has("agents")}
+          <Tabs.Trigger value="agents" class="settings-nav-item">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M4.2 4.2h7.6v5.2H8.7L6 12v-2.6H4.2z" />
+              <path d="M6 6.2h4M6 8h2.6" />
+            </svg>
+            {$t("flashAgents")}
+          </Tabs.Trigger>
+        {/if}
+        {#if visibleSections.has("memory")}
+          <Tabs.Trigger value="memory" class="settings-nav-item">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <ellipse cx="8" cy="3.5" rx="5" ry="1.8" />
+              <path d="M3 3.5v6.8c0 1 2.2 1.8 5 1.8s5-.8 5-1.8V3.5" />
+              <path d="M3 7c0 1 2.2 1.8 5 1.8s5-.8 5-1.8" />
+            </svg>
+            {$t("memoryManagement")}
+          </Tabs.Trigger>
+        {/if}
+        {#if visibleSections.has("extensions")}
+          <Tabs.Trigger value="extensions" class="settings-nav-item">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 2.5v3M10 2.5v3M4.5 5.5h7v2.8a3.5 3.5 0 0 1-7 0V5.5zM8 11.8v1.7" />
+            </svg>
+            {$t("extensions")}
+          </Tabs.Trigger>
+        {/if}
+        {#if visibleSections.has("plugins")}
+          <Tabs.Trigger value="plugins" class="settings-nav-item">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6.2 2.5h3.6v2.2h2.2v3.6H9.8v2.2H6.2V8.3H4V4.7h2.2V2.5Z" />
+              <path d="M8 10.5v3" />
+            </svg>
+            {$t("agentPlugins")}
+          </Tabs.Trigger>
+        {/if}
+        {#if visibleSections.has("hooks")}
+          <Tabs.Trigger value="hooks" class="settings-nav-item">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="8" cy="8" r="5.5" />
+              <path d="M8 4.8V8l2.2 1.4" />
+            </svg>
+            {$t("hooks")}
+          </Tabs.Trigger>
+        {/if}
       </div>
       <div class="settings-nav-bottom">
-        <Tabs.Trigger value="about" class="settings-nav-item">
-          <svg
-            class="nav-icon"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="8" cy="8" r="5.5" />
-            <path d="M8 7.5v3.2M8 5.2h.01" />
-          </svg>
-          {$t("about")}
-        </Tabs.Trigger>
+        {#if visibleSections.has("about")}
+          <Tabs.Trigger value="about" class="settings-nav-item">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="8" cy="8" r="5.5" />
+              <path d="M8 7.5v3.2M8 5.2h.01" />
+            </svg>
+            {$t("about")}
+          </Tabs.Trigger>
+        {/if}
       </div>
     </Tabs.List>
 
@@ -1740,50 +1806,6 @@
           {/if}
         </section>
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t("approvalMode")}</h4>
-          <div class="application-settings-surface settings-card">
-            <div class="settings-card-row">
-              <span class="settings-card-copy">
-                <span class="label-text"
-                  >{$t(approvalModeDescriptionKey[draftConfig.approval_mode])}</span
-                >
-                <span class="detail-hint">{$t("approvalPermissionIndependent")}</span>
-              </span>
-              <div class="settings-card-control">
-                <Select
-                  bind:value={draftConfig.approval_mode}
-                  items={[
-                    {
-                      value: "manual",
-                      label: $t("approvalModeManual"),
-                      description: $t("approvalModeManualDescription"),
-                    },
-                    {
-                      value: "auto",
-                      label: $t("approvalModeAuto"),
-                      description: $t("approvalModeAutoDescription"),
-                    },
-                    {
-                      value: "off",
-                      label: $t("approvalModeOff"),
-                      description: $t("approvalModeOffDescription"),
-                    },
-                  ]}
-                  ariaLabel={$t("approvalMode")}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-        <section class="detail-section">
-          <h4 class="detail-section-title">{$t("executionPermissions")}</h4>
-          <p class="detail-section-intro">{$t("executionPermissionsDescription")}</p>
-          <PermissionSettings
-            profile={permissionProfile}
-            onProfileChange={(profile) => (draftConfig.permission_profile = profile)}
-          />
-        </section>
-        <section class="detail-section">
           <h4 class="detail-section-title">{$t("privacyDiagnostics")}</h4>
           <div class="application-settings-surface startup-row">
             <div class="startup-copy">
@@ -1844,6 +1866,55 @@
               />
             </label>
           </div>
+        </section>
+      </div>
+    </Tabs.Content>
+
+    <Tabs.Content value="execution" class="settings-tab-panel">
+      <div class="settings-content-col">
+        <section class="detail-section">
+          <h4 class="detail-section-title">{$t("approvalMode")}</h4>
+          <div class="application-settings-surface settings-card">
+            <div class="settings-card-row">
+              <span class="settings-card-copy">
+                <span class="label-text"
+                  >{$t(approvalModeDescriptionKey[draftConfig.approval_mode])}</span
+                >
+                <span class="detail-hint">{$t("approvalPermissionIndependent")}</span>
+              </span>
+              <div class="settings-card-control">
+                <Select
+                  bind:value={draftConfig.approval_mode}
+                  items={[
+                    {
+                      value: "manual",
+                      label: $t("approvalModeManual"),
+                      description: $t("approvalModeManualDescription"),
+                    },
+                    {
+                      value: "auto",
+                      label: $t("approvalModeAuto"),
+                      description: $t("approvalModeAutoDescription"),
+                    },
+                    {
+                      value: "off",
+                      label: $t("approvalModeOff"),
+                      description: $t("approvalModeOffDescription"),
+                    },
+                  ]}
+                  ariaLabel={$t("approvalMode")}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="detail-section">
+          <h4 class="detail-section-title">{$t("executionPermissions")}</h4>
+          <p class="detail-section-intro">{$t("executionPermissionsDescription")}</p>
+          <PermissionSettings
+            profile={permissionProfile}
+            onProfileChange={(profile) => (draftConfig.permission_profile = profile)}
+          />
         </section>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("agentExecution")}</h4>
@@ -3748,6 +3819,10 @@
     background: transparent;
     border-right: 0;
     padding: 12px 8px;
+  }
+
+  .settings-panel.single-section :global(.settings-nav-col) {
+    display: none;
   }
 
   .settings-nav-items {

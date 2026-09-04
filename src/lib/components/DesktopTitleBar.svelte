@@ -2,6 +2,7 @@
   import { invoke } from "$lib/openagent/tauriClient";
   import { t } from "$lib/i18n";
   import type { AgentRole, RecentWorkspace } from "$lib/types";
+  import type { SettingsNav, SettingsWindowKind } from "$lib/settingsWindows";
   import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
   import ApplicationMenuBar from "$lib/components/ApplicationMenuBar.svelte";
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
@@ -22,6 +23,7 @@
     onNewConversation,
     onNewWindow,
     onOpenSettings,
+    onOpenSettingsWindow,
     onCreateRole,
     onConfigureRole,
     onOpenAbout,
@@ -47,6 +49,7 @@
     onNewConversation: () => void | Promise<void>;
     onNewWindow: () => void | Promise<void>;
     onOpenSettings: () => void | Promise<void>;
+    onOpenSettingsWindow: (kind: SettingsWindowKind, section?: SettingsNav) => void | Promise<void>;
     onCreateRole: () => void;
     onConfigureRole: (role: AgentRole) => void;
     onOpenAbout: () => void | Promise<void>;
@@ -94,6 +97,7 @@
       onSelectWorkspace={(path) => void onSelectWorkspace(path)}
       onOpenWorkspaceLocation={() => void openWorkspaceLocation()}
       onOpenSettings={() => void onOpenSettings()}
+      onOpenSettingsWindow={(kind, section) => void onOpenSettingsWindow(kind, section)}
       {onCreateRole}
       {onConfigureRole}
       onOpenAbout={() => void onOpenAbout()}

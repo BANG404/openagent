@@ -6,12 +6,19 @@
   shortcut registration. Development preview surfaces own their fixtures and
   query-specific theme/locale initialization so preview-only state never joins
   the durable conversation runtime.
-- Open main-window Settings as one centered modal above the unchanged chat
-  shell. Preserve the complete settings navigation inside that modal, trap
-  focus through the dialog primitive, and return to the same chat state on
-  close instead of replacing the main content region. Give the dialog one
+- Open main-window General Settings as one centered modal above the unchanged
+  chat shell. Keep only ordinary appearance, launcher, startup, diagnostics,
+  and presentation preferences in that modal, trap focus through the dialog
+  primitive, and return to the same chat state on close instead of replacing
+  the main content region. Model, Agent execution, integration, memory,
+  automation, and About domains open from the application menu in independently
+  focusable singleton utility windows. Reopening a domain focuses its existing
+  window and may select a requested section. Give the General dialog one
   90%-opaque theme surface with saturated backdrop blur, and keep its nested
   settings panel transparent so chat content cannot compete with settings text.
+  Keep the General overlay below notifications and Settings-owned secondary
+  dialogs so model configuration, destructive confirmation, and feedback never
+  render behind it.
 - The saved-role editor is a separate centered dialog opened from the Role
   application menu. It edits the role system prompt and optional skill/MCP associations;
   empty associations preserve the full resource set, while non-empty

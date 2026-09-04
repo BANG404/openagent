@@ -309,6 +309,12 @@ fn frontend_window_query(label: &str) -> &'static str {
         "onboarding" => "?onboarding-window=1",
         "quick-chat" => "?quick-chat-window=1",
         "debug" => "?dev-inspector=1",
+        "settings-models" => "?settings-window=models",
+        "settings-agent" => "?settings-window=agent",
+        "settings-integrations" => "?settings-window=integrations",
+        "settings-memory" => "?settings-window=memory",
+        "settings-automation" => "?settings-window=automation",
+        "settings-about" => "?settings-window=about",
         _ => "",
     }
 }
@@ -2190,6 +2196,91 @@ fn reveal_main_window(
     window.set_focus().map_err(|error| error.to_string())
 }
 
+struct SettingsWindowSpec {
+    label: &'static str,
+    title: &'static str,
+    default_section: &'static str,
+    sections: &'static [&'static str],
+}
+
+fn settings_window_spec(kind: &str) -> Option<SettingsWindowSpec> {
+    match kind {
+        "models" => Some(SettingsWindowSpec {
+            label: "settings-models",
+            title: "OpenAgent Models",
+            default_section: "providers",
+            sections: &["providers", "defaults"],
+        }),
+        "agent" => Some(SettingsWindowSpec {
+            label: "settings-agent",
+            title: "OpenAgent Agent Configuration",
+            default_section: "execution",
+            sections: &["execution", "agents"],
+        }),
+        "integrations" => Some(SettingsWindowSpec {
+            label: "settings-integrations",
+            title: "OpenAgent Integrations",
+            default_section: "channels",
+            sections: &["channels", "extensions", "plugins"],
+        }),
+        "memory" => Some(SettingsWindowSpec {
+            label: "settings-memory",
+            title: "OpenAgent Memory",
+            default_section: "memory",
+            sections: &["memory"],
+        }),
+        "automation" => Some(SettingsWindowSpec {
+            label: "settings-automation",
+            title: "OpenAgent Automation",
+            default_section: "hooks",
+            sections: &["hooks"],
+        }),
+        "about" => Some(SettingsWindowSpec {
+            label: "settings-about",
+            title: "About OpenAgent",
+            default_section: "about",
+            sections: &["about"],
+        }),
+        _ => None,
+    }
+}
+
+#[tauri::command]
+fn open_settings_window(
+    app: tauri::AppHandle,
+    manager: State<'_, FrontendResourceManager>,
+    kind: String,
+    section: Option<String>,
+) -> Result<(), String> {
+    let spec = settings_window_spec(&kind)
+        .ok_or_else(|| format!("Unknown settings window kind: {kind}"))?;
+    let section = section
+        .filter(|value| spec.sections.contains(&value.as_str()))
+        .unwrap_or_else(|| spec.default_section.to_string());
+
+    if let Some(window) = app.get_webview_window(spec.label) {
+        window
+            .emit("settings-section-requested", &section)
+            .map_err(|error| error.to_string())?;
+        window.unminimize().map_err(|error| error.to_string())?;
+        window.show().map_err(|error| error.to_string())?;
+        return window.set_focus().map_err(|error| error.to_string());
+    }
+
+    let query = format!("?settings-window={kind}&settings-section={section}");
+    let window =
+        tauri::WebviewWindowBuilder::new(&app, spec.label, product_webview_url(&manager, &query)?)
+            .title(spec.title)
+            .inner_size(980.0, 720.0)
+            .min_inner_size(720.0, 520.0)
+            .transparent(!cfg!(target_os = "linux"))
+            .center()
+            .build()
+            .map_err(|error| error.to_string())?;
+    apply_native_window_material(&window);
+    Ok(())
+}
+
 #[tauri::command]
 #[cfg(feature = "embedded-runtime")]
 async fn get_remote_gateway_status() -> Result<RemoteGatewayStatus, String> {
@@ -3175,6 +3266,7 @@ fn run_with_mode(agent_server: bool) {
         is_desktop_window_active,
         reveal_main_window,
         reveal_onboarding_window,
+        open_settings_window,
     ]);
     #[cfg(not(feature = "embedded-runtime"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
@@ -3202,6 +3294,7 @@ fn run_with_mode(agent_server: bool) {
         is_desktop_window_active,
         reveal_main_window,
         reveal_onboarding_window,
+        open_settings_window,
     ]);
     builder
         .run(context)
@@ -3217,6 +3310,21 @@ fn run_with_mode(agent_server: bool) {
 mod tests {
     use super::*;
     use std::path::Path;
+
+    #[test]
+    fn settings_window_kinds_use_fixed_labels_and_sections() {
+        let models = settings_window_spec("models").expect("models window");
+        assert_eq!(models.label, "settings-models");
+        assert_eq!(models.default_section, "providers");
+        assert!(models.sections.contains(&"defaults"));
+
+        let integrations = settings_window_spec("integrations").expect("integrations window");
+        assert_eq!(integrations.label, "settings-integrations");
+        assert!(integrations.sections.contains(&"channels"));
+        assert!(integrations.sections.contains(&"extensions"));
+        assert!(integrations.sections.contains(&"plugins"));
+        assert!(settings_window_spec("arbitrary").is_none());
+    }
 
     #[test]
     fn persistence_transition_warning_names_scope_and_backup_paths() {

@@ -74,6 +74,7 @@
   import OnboardingFlow from "$lib/components/OnboardingFlow.svelte";
   import type { SlashCommand } from "$lib/components/MessageInput.svelte";
   import QuickChatSurface from "$lib/components/QuickChatSurface.svelte";
+  import SettingsWindowSurface from "$lib/components/SettingsWindowSurface.svelte";
   import StandaloneDevPreview from "$lib/components/StandaloneDevPreview.svelte";
   import WorkspaceDialogs from "$lib/components/WorkspaceDialogs.svelte";
   import DesktopSidebar from "$lib/components/DesktopSidebar.svelte";
@@ -149,6 +150,12 @@
     type AppNavigationHistory,
     type AppNavigationLocation,
   } from "$lib/navigationHistory";
+  import {
+    openSettingsWindow,
+    parseSettingsWindowKind,
+    type SettingsNav,
+    type SettingsWindowKind,
+  } from "$lib/settingsWindows";
   import type {
     ChatMessage,
     Conversation,
@@ -196,6 +203,9 @@
   const isMcpSettingsPreview = devQuery?.has("mcp-settings-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isOnboardingWindow = runtimeQuery?.has("onboarding-window") === true;
+  const settingsWindowKind = parseSettingsWindowKind(runtimeQuery?.get("settings-window") ?? null);
+  const settingsWindowInitialSection = runtimeQuery?.get("settings-section") ?? null;
+  const isSettingsWindow = settingsWindowKind !== null;
   const isOnboardingSurface = isOnboardingWindow || isOnboardingPreview;
   const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
   const onboardingPreviewTheme =
@@ -384,6 +394,7 @@
     | "channels"
     | "providers"
     | "defaults"
+    | "execution"
     | "agents"
     | "memory"
     | "hooks"
@@ -1970,7 +1981,8 @@
   });
 
   onMount(() => {
-    if (isDevInspectorWindow || standaloneDevPreview || isOnboardingSurface) return;
+    if (isDevInspectorWindow || standaloneDevPreview || isOnboardingSurface || isSettingsWindow)
+      return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const syncSystemTheme = () => {
       if ((config?.theme ?? "system") === "system") applyTheme("system");
@@ -1981,6 +1993,7 @@
 
   onMount(async () => {
     if (isDevInspectorWindow || standaloneDevPreview) return;
+    if (isSettingsWindow) return;
     if (isQuickChatSurface) {
       return;
     }
@@ -2406,6 +2419,9 @@
           }
         })
         .catch((error) => console.error("Failed to apply reloaded settings:", error));
+    });
+    register<{ conversationId: string }>("settings-open-conversation", (event) => {
+      void openHookConversation(event.payload.conversationId);
     });
     register("settings-reload-failed", () => {
       showToast({
@@ -3386,7 +3402,7 @@
   async function newConversation() {
     if (composerPreferences.modelOptions.length === 0) {
       showToast({ title: $t("modelSetupRequired"), variant: "error" });
-      openSettings("providers");
+      void openManagementWindow("models", "providers");
       return;
     }
     const newConversationSurfaceVisible =
@@ -3569,7 +3585,7 @@
     }
     if (!model || !composerPreferences.modelOptions.some((option) => option.value === model)) {
       showToast({ title: $t("modelSetupRequired"), variant: "error" });
-      openSettings("providers");
+      void openManagementWindow("models", "providers");
       return;
     }
 
@@ -4571,6 +4587,19 @@
     settingsOpen = true;
   }
 
+  async function openManagementWindow(
+    kind: SettingsWindowKind,
+    section?: SettingsNav,
+  ): Promise<void> {
+    if (!tauriAvailable) {
+      await openSettings(section);
+      return;
+    }
+    await openSettingsWindow(kind, section).catch((error) => {
+      showToast({ title: $t("settingsSaveFailed"), description: String(error), variant: "error" });
+    });
+  }
+
   function closeSettings() {
     settingsOpen = false;
     settingsInitialNav = undefined;
@@ -4718,7 +4747,7 @@
       case "new":
         return () => newConversation();
       case "model":
-        return () => openSettings("defaults");
+        return () => openManagementWindow("models", "defaults");
       case "compact":
         return () => {
           void compactCurrentConversation();
@@ -4738,7 +4767,7 @@
       case "new_conversation":
         return () => newConversation();
       case "open_model_settings":
-        return () => openSettings("defaults");
+        return () => openManagementWindow("models", "defaults");
       case "open_settings":
         return () => openSettings();
       default:
@@ -4808,7 +4837,7 @@
     cancelUserInput,
     clearQueuedMessages,
     commitEdit,
-    configureModels: () => openSettings("providers"),
+    configureModels: () => openManagementWindow("models", "providers"),
     finishStreamCompletionTailAnchor,
     handleMessagesScroll,
     markProgrammaticTailPin,
@@ -4842,7 +4871,13 @@
   }
 
   onMount(() => {
-    if (isDevInspectorWindow || standaloneDevPreview || isQuickChatSurface || isOnboardingSurface)
+    if (
+      isDevInspectorWindow ||
+      standaloneDevPreview ||
+      isQuickChatSurface ||
+      isOnboardingSurface ||
+      isSettingsWindow
+    )
       return;
 
     let disposed = false;
@@ -4900,6 +4935,7 @@
   }
 
   onMount(() => {
+    if (isSettingsWindow) return;
     return () => {
       void disposeQuickChatShortcut();
     };
@@ -4913,6 +4949,11 @@
     <DevInspector />
   {:else if standaloneDevPreview}
     <StandaloneDevPreview preview={standaloneDevPreview} />
+  {:else if settingsWindowKind}
+    <SettingsWindowSurface
+      kind={settingsWindowKind}
+      initialSection={settingsWindowInitialSection}
+    />
   {:else if isOnboardingSurface}
     {#if config}
       <OnboardingFlow
@@ -4996,9 +5037,10 @@
         onNewConversation={newConversation}
         onNewWindow={createNewWindow}
         onOpenSettings={() => openSettings()}
+        onOpenSettingsWindow={openManagementWindow}
         onCreateRole={() => void openRoleEditor(null)}
         onConfigureRole={(role) => void openRoleEditor(role)}
-        onOpenAbout={() => openSettings("about")}
+        onOpenAbout={() => openManagementWindow("about", "about")}
         onQuit={quitApp}
         onToggleCheckpointFlowPanel={() =>
           (checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed)}
@@ -5046,6 +5088,13 @@
                 {config}
                 {workspacePath}
                 initialNav={settingsInitialNav}
+                sections={!tauriAvailable ||
+                isChannelsSettingsPreview ||
+                isAgentsSettingsPreview ||
+                isAgentPluginsSettingsPreview ||
+                isMcpSettingsPreview
+                  ? undefined
+                  : ["general"]}
                 onSave={saveSettings}
                 onOpenConversation={openHookConversation}
                 onThemePreview={applyTheme}
@@ -5120,7 +5169,7 @@
   :global(.settings-dialog-overlay) {
     position: fixed;
     inset: 0;
-    z-index: 900;
+    z-index: 80;
     background: rgba(0, 0, 0, 0.28);
     backdrop-filter: blur(5px);
   }
@@ -5129,7 +5178,7 @@
     position: fixed;
     top: 50%;
     left: 50%;
-    z-index: 901;
+    z-index: 81;
     width: min(1080px, calc(100vw - 48px));
     height: min(760px, calc(100vh - 48px));
     display: flex;
