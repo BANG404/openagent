@@ -3126,7 +3126,7 @@
     </Tabs.Content>
 
     <Tabs.Content value="agents" class="settings-tab-panel">
-      <div class="settings-content-col agents-settings-content">
+      <div class="settings-content-col">
         <header class="agents-settings-intro">
           <h3>{$t("flashAgents")}</h3>
           <p>{$t("flashAgentsDescription")}</p>
@@ -4711,10 +4711,6 @@
     padding-inline: max(24px, calc((100% - 680px) / 2));
   }
 
-  .agents-settings-content {
-    padding-inline: max(24px, calc((100% - 820px) / 2));
-  }
-
   .agents-settings-intro {
     margin-bottom: 28px;
   }
@@ -5485,10 +5481,6 @@
     .settings-card-row {
       grid-template-columns: 1fr;
       gap: 10px;
-    }
-
-    .agents-settings-content {
-      padding-inline: 18px;
     }
 
     .flash-task-inline-setting {
