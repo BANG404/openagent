@@ -5,10 +5,14 @@ import path from "node:path";
 
 import {
   runtimeServerDevWatchTargets,
-  runtimeServerReloadStampPath,
   startRuntimeServerDevWatcher,
-  writeRuntimeServerReloadStamp,
 } from "./dev-with-runtime-server.mjs";
+import {
+  runtimeServerPendingStampPath,
+  runtimeServerReloadStampPath,
+  writeRuntimeServerPendingStamp,
+  writeRuntimeServerReloadStamp,
+} from "./runtime-server-dev-signals.mjs";
 
 test("watches only Runtime server source inputs before requesting a Tauri reload", () => {
   const targets = runtimeServerDevWatchTargets("C:/openagent");
@@ -36,7 +40,24 @@ test("writes the reload signal only after a server build is ready", async () => 
   }
 });
 
-test("rebuilds changed Runtime sources before emitting the reload stamp", async () => {
+test("writes a pending signal without requesting a Tauri reload", async () => {
+  const repositoryRoot = await mkdtemp(path.join(os.tmpdir(), "openagent-runtime-watch-"));
+  try {
+    const stamp = await writeRuntimeServerPendingStamp(repositoryRoot, {
+      revision: 8,
+      updatedAt: "2026-08-30T12:00:00.000Z",
+    });
+    expect(stamp).toBe(runtimeServerPendingStampPath(repositoryRoot));
+    expect(JSON.parse(await readFile(stamp, "utf8"))).toEqual({
+      revision: 8,
+      updatedAt: "2026-08-30T12:00:00.000Z",
+    });
+  } finally {
+    await rm(repositoryRoot, { recursive: true, force: true });
+  }
+});
+
+test("rebuilds changed Runtime sources before emitting the pending stamp", async () => {
   const repositoryRoot = await mkdtemp(path.join(os.tmpdir(), "openagent-runtime-watch-"));
   const rustRoot = path.join(repositoryRoot, "sdk", "rust");
   await mkdir(rustRoot, { recursive: true });
@@ -52,7 +73,7 @@ test("rebuilds changed Runtime sources before emitting the reload stamp", async 
   });
   try {
     await writeFile(path.join(rustRoot, "changed.rs"), "fn changed() {}\n");
-    const stampPath = runtimeServerReloadStampPath(repositoryRoot);
+    const stampPath = runtimeServerPendingStampPath(repositoryRoot);
     let stamp;
     for (let attempt = 0; attempt < 100 && !stamp; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 25));
@@ -64,6 +85,9 @@ test("rebuilds changed Runtime sources before emitting the reload stamp", async 
     }
     expect(builds).toBe(1);
     expect(stamp?.revision).toBe(1);
+    await expect(
+      readFile(runtimeServerReloadStampPath(repositoryRoot), "utf8"),
+    ).rejects.toHaveProperty("code", "ENOENT");
   } finally {
     watcher.close();
     await rm(repositoryRoot, { recursive: true, force: true });

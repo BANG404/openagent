@@ -1,4 +1,5 @@
 import { invoke } from "$lib/openagent/tauriClient";
+import { isTauri } from "@tauri-apps/api/core";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
 import { get, readonly, writable } from "svelte/store";
@@ -46,6 +47,50 @@ type ComponentUpdateGate = {
   ready: boolean;
   active_count: number;
 };
+
+type DevComponentUpdateKind = "frontend" | "runtime";
+
+function installTauriDevUpdateBarrier(): void {
+  const hot = import.meta.hot;
+  if (!import.meta.env.DEV || !hot || typeof window === "undefined" || !isTauri()) return;
+
+  const pending = new Set<DevComponentUpdateKind>();
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
+  let requesting = false;
+
+  const requestReload = async () => {
+    if (requesting || pending.size === 0) return;
+    requesting = true;
+    try {
+      const gate = await invoke<ComponentUpdateGate>("begin_component_update");
+      if (!gate.ready) {
+        retryTimer = setTimeout(() => void requestReload(), 1000);
+        return;
+      }
+      const kind = pending.has("runtime") ? "runtime" : "frontend";
+      pending.clear();
+      hot.send("openagent:component-update-ready", { kind });
+    } catch {
+      retryTimer = setTimeout(() => void requestReload(), 1000);
+    } finally {
+      requesting = false;
+    }
+  };
+
+  const onPending = ({ kind }: { kind: DevComponentUpdateKind }) => {
+    pending.add(kind);
+    void requestReload();
+  };
+
+  void invoke("end_component_update").catch(() => {});
+  hot.on("openagent:component-update-pending", onPending);
+  hot.dispose(() => {
+    hot.off("openagent:component-update-pending", onPending);
+    if (retryTimer !== null) clearTimeout(retryTimer);
+  });
+}
+
+installTauriDevUpdateBarrier();
 
 async function checkForRuntimeResourceUpdate(): Promise<PreparedRuntimeResource | null> {
   if (import.meta.env.DEV) return null;
