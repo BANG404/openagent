@@ -66,6 +66,7 @@
     "@tauri-apps/plugin-updater": "^2.10.1",
     "bits-ui": "^2.18.1",
     "echarts": "^6.1.0",
+    "fzstd": "^0.1.1",
     "html-to-image": "^1.11.13",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

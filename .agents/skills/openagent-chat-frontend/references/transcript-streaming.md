@@ -138,7 +138,10 @@
   conversation; those file changes must not render above the composer. Its
   top-level Status and Files tabs preserve one
   full-height body, and the Files page uses horizontally scrollable file tabs
-  with one line-numbered diff and revert action for the selected file. A newly
+  with one line-numbered diff and revert action for the selected file. Render a
+  newly created text file from its stored content as all-added lines, and keep
+  the path, change kind, and revert action from overlapping as the panel width
+  changes. A newly
   created Goal or Graph automatically opens the panel, including flows created
   by slash commands or tools. File-only activity also opens it so removing the
   composer banner does not hide new edits. Selecting an existing flow starts

@@ -127,7 +127,7 @@
       operation: "write",
       old_patch: null,
       old_content_z: null,
-      new_content_z: null,
+      new_content_z: [40, 181, 47, 253, 32, 4, 33, 0, 0, 97, 10, 98, 10],
       new_hash: null,
       seq: 3,
       created_at: 3,

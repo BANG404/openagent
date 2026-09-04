@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
+  import { fileChangeDiffLines } from "$lib/fileChangeDiff";
   import type { FileChange } from "$lib/types";
   import Tooltip from "./Tooltip.svelte";
 
@@ -11,17 +12,10 @@
     onRevert: (changeId: string) => Promise<void>;
   } = $props();
 
-  type DiffLine = {
-    type: "add" | "remove" | "context";
-    text: string;
-    oldLine?: number;
-    newLine?: number;
-  };
-
   let selectedId = $state<string | null>(null);
   let revertingIds = $state(new Set<string>());
   let selectedChange = $derived(changes.find((change) => change.id === selectedId) ?? changes[0]);
-  let diffLines = $derived(selectedChange?.old_patch ? parseDiff(selectedChange.old_patch) : []);
+  let diffLines = $derived(fileChangeDiffLines(selectedChange));
 
   $effect(() => {
     if (!changes.some((change) => change.id === selectedId)) selectedId = changes[0]?.id ?? null;
@@ -29,50 +23,6 @@
 
   function filename(path: string): string {
     return path.split(/[/\\]/).filter(Boolean).at(-1) ?? path;
-  }
-
-  function parseDiff(patch: string): DiffLine[] {
-    let oldLine = 0;
-    let newLine = 0;
-    const lines: DiffLine[] = [];
-    const source = patch.split("\n");
-    for (let index = 0; index < source.length; index += 1) {
-      const line = source[index];
-      const header = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line);
-      if (header) {
-        // Stored patches run new -> old. Swap the hunk counters for forward display.
-        oldLine = Number(header[2]);
-        newLine = Number(header[1]);
-        continue;
-      }
-      if (line.startsWith("+++") || line.startsWith("---")) continue;
-      if (line.startsWith("+") || line.startsWith("-")) {
-        const changed: string[] = [];
-        while (
-          index < source.length &&
-          (source[index].startsWith("+") || source[index].startsWith("-")) &&
-          !source[index].startsWith("+++") &&
-          !source[index].startsWith("---")
-        ) {
-          changed.push(source[index]);
-          index += 1;
-        }
-        index -= 1;
-        for (const changedLine of changed.filter((item) => item.startsWith("+"))) {
-          lines.push({ type: "remove", text: `-${changedLine.slice(1)}`, oldLine });
-          oldLine += 1;
-        }
-        for (const changedLine of changed.filter((item) => item.startsWith("-"))) {
-          lines.push({ type: "add", text: `+${changedLine.slice(1)}`, newLine });
-          newLine += 1;
-        }
-        continue;
-      }
-      lines.push({ type: "context", text: line, oldLine, newLine });
-      oldLine += 1;
-      newLine += 1;
-    }
-    return lines;
   }
 
   async function handleRevert(id: string): Promise<void> {
@@ -118,7 +68,9 @@
   {#if selectedChange}
     <div class="file-toolbar">
       <Tooltip text={selectedChange.path}>
-        <span class="file-path">{selectedChange.path}</span>
+        {#snippet trigger(props)}
+          <span {...props} class="file-path">{selectedChange.path}</span>
+        {/snippet}
       </Tooltip>
       <span class="change-kind">
         {$t(selectedChange.old_patch === null ? "fileChangeCreated" : "fileChangeEdited")}
@@ -181,6 +133,7 @@
     min-height: 0;
     flex: 1;
     flex-direction: column;
+    container-type: inline-size;
   }
   .file-tabs {
     display: flex;
@@ -257,7 +210,11 @@
   }
   .file-toolbar {
     display: flex;
+    box-sizing: border-box;
+    width: 100%;
     min-height: 39px;
+    min-width: 0;
+    overflow: hidden;
     align-items: center;
     gap: 7px;
     padding: 0 8px 0 11px;
@@ -266,7 +223,7 @@
   .file-path {
     overflow: hidden;
     min-width: 0;
-    flex: 1;
+    flex: 1 1 0;
     color: var(--text-muted);
     font:
       400 10px/1.4 "JetBrains Mono",
@@ -378,5 +335,10 @@
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-width: 1.2;
+  }
+  @container (max-width: 220px) {
+    .change-kind {
+      display: none;
+    }
   }
 </style>
