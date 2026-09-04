@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "openagent",
-  "version": "0.55.1-beta.1",
+  "version": "0.56.0-beta.1",
   "identifier": "com.iumm.openagent",
   "build": {
     "beforeDevCommand": "bun run prepare:linux-sandbox:dev && bun run prepare:windows-sandbox:dev && bun run dev:tauri",
