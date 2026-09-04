@@ -564,7 +564,10 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           OPENAGENT_RUNTIME_TARGET: ${{ matrix.sidecar_target }}
           OPENAGENT_LOGS_INGEST_TOKEN: ${{ secrets.OPENAGENT_LOGS_INGEST_TOKEN }}
-        run: bun run tauri:build:full -- ${{ matrix.args }}
+        # The lightweight build already compiled the app, frontend, runtime,
+        # and sidecars. Bundle the full installer from those existing outputs;
+        # running `tauri build` here would repeat beforeBuildCommand.
+        run: bun run tauri:bundle -- --config src-tauri/tauri.full.conf.json ${{ matrix.args }}
 
       - name: Stage full first-install candidate
         if: needs.detect.outputs.native_shell == 'true'
@@ -594,6 +597,11 @@ jobs:
           path: ${{ runner.temp }}/native-release/*
           if-no-files-found: error
           retention-days: 7
+
+      - name: Report compiler cache statistics
+        if: always()
+        shell: bash
+        run: sccache --show-stats || true
 
       - name: Build Microsoft Store package
         if: >-
