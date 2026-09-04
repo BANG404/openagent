@@ -122,12 +122,12 @@
 
   .title-bar-menu {
     height: 100%;
-    margin-left: 39px;
+    margin-left: calc(var(--role-sidebar-width, 0px) + 39px);
     flex: 0 0 auto;
   }
 
   .title-bar.macos .title-bar-menu {
-    margin-left: 124px;
+    margin-left: calc(var(--role-sidebar-width, 0px) + 124px);
   }
 
   .mac-window-controls {

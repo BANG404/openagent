@@ -23,7 +23,7 @@
   import { checkForAppUpdate } from "$lib/appUpdater";
   import { AgentCompletionNotifier } from "$lib/agentCompletionNotification";
   import { chatTaskUsagesByCheckpoint } from "$lib/cacheUsage";
-  import { Tooltip as TooltipPrimitive } from "bits-ui";
+  import { Dialog, Tooltip as TooltipPrimitive } from "bits-ui";
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme, createNativeThemeSynchronizer, type AppTheme } from "$lib/appTheme";
   import { ComposerPreferences } from "$lib/composerPreferences.svelte";
@@ -77,6 +77,8 @@
   import StandaloneDevPreview from "$lib/components/StandaloneDevPreview.svelte";
   import WorkspaceDialogs from "$lib/components/WorkspaceDialogs.svelte";
   import DesktopSidebar from "$lib/components/DesktopSidebar.svelte";
+  import RoleSidebar from "$lib/components/RoleSidebar.svelte";
+  import RoleEditorDialog from "$lib/components/RoleEditorDialog.svelte";
   import DesktopTitleBar from "$lib/components/DesktopTitleBar.svelte";
   import ConversationSurface from "$lib/components/ConversationSurface.svelte";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
@@ -153,6 +155,7 @@
     UserInputRequest,
     ChatAttachment,
     AgentRole,
+    SkillMetadata,
     StartupBootstrap,
     StartupConversationBundle,
     WslDistribution,
@@ -362,6 +365,11 @@
   let config = $state<AppConfig | null>(null);
   let isMemorySyncing = $state(false);
   let settingsOpen = $state(false);
+  let roleEditorOpen = $state(false);
+  let roleEditorRole = $state<AgentRole | null>(null);
+  let roleEditorSkills = $state<SkillMetadata[]>([]);
+  let roleEditorResourcesLoading = $state(false);
+  let roleEditorSaving = $state(false);
   let settingsInitialNav = $state<
     | "general"
     | "channels"
@@ -1645,6 +1653,64 @@
     });
     if (selectedRoleKey !== defaultRoleKey && !seen.has(selectedRoleKey)) {
       selectedRoleKey = defaultRoleKey;
+    }
+  }
+
+  async function openRoleEditor(role: AgentRole | null): Promise<void> {
+    roleEditorRole = role;
+    roleEditorOpen = true;
+    roleEditorResourcesLoading = true;
+    try {
+      roleEditorSkills = tauriAvailable
+        ? ((await openAgent.invokeProduct("list_skills", {}).catch(() => [])) as SkillMetadata[])
+        : [];
+    } finally {
+      roleEditorResourcesLoading = false;
+    }
+  }
+
+  async function saveRoleEditor(draft: {
+    id: string | null;
+    scope: "global" | "local";
+    name: string;
+    description: string;
+    skillIds: string[];
+    mcpServerIds: string[];
+  }): Promise<void> {
+    roleEditorSaving = true;
+    try {
+      const saved = await openAgent.invokeProduct("save_agent_role", {
+        id: draft.id,
+        scope: draft.scope,
+        name: draft.name,
+        description: draft.description,
+        skillIds: draft.skillIds,
+        mcpServerIds: draft.mcpServerIds,
+      });
+      await loadAvailableRoles();
+      roleEditorOpen = false;
+      if (!draft.id) await activateNewConversationSurface(saved.id);
+      showToast({ title: $t("roleSaved"), variant: "success" });
+    } catch (error) {
+      showToast({ title: $t("settingsSaveFailed"), description: String(error), variant: "error" });
+    } finally {
+      roleEditorSaving = false;
+    }
+  }
+
+  async function deleteRoleEditor(role: AgentRole): Promise<void> {
+    const message = $t("deleteRoleConfirm").replace("{name}", role.name);
+    if (!confirm(message)) return;
+    roleEditorSaving = true;
+    try {
+      await openAgent.invokeProduct("delete_agent_role", { id: role.id });
+      roleEditorOpen = false;
+      await loadAvailableRoles();
+      if (selectedRoleKey === role.id) await activateNewConversationSurface(defaultRoleKey);
+    } catch (error) {
+      showToast({ title: $t("settingsSaveFailed"), description: String(error), variant: "error" });
+    } finally {
+      roleEditorSaving = false;
     }
   }
 
@@ -4813,9 +4879,18 @@
     <QuickChatSurface preview={isQuickChatPreview} />
   {:else}
     <div class="app" aria-busy={workspaceLoading} inert={workspaceLoading}>
+      <RoleSidebar
+        roles={agentRoles}
+        {selectedRoleKey}
+        {settingsOpen}
+        {windowFocused}
+        onRoleChange={changeConversationRole}
+        onCreateRole={() => void openRoleEditor(null)}
+        onEditRole={(role) => void openRoleEditor(role)}
+        onOpenSettings={() => (settingsOpen ? closeSettings() : openSettings())}
+      />
       <!-- ─── Sidebar ─────────────────────────────────────────────────────────────── -->
       <DesktopSidebar
-        roles={agentRoles}
         {selectedRoleKey}
         {canGoBack}
         {canGoForward}
@@ -4832,8 +4907,6 @@
         loadingMore={sidebarLoadingMoreConversations}
         {loadingRecentConversations}
         loading={initialLoading}
-        {settingsOpen}
-        onRoleChange={changeConversationRole}
         onBack={() => navigateHistory(-1)}
         onForward={() => navigateHistory(1)}
         onNew={newConversation}
@@ -4852,7 +4925,6 @@
         onToggleProjectPin={toggleProjectPin}
         onOpenProjectFolder={openProjectFolder}
         onRemoveProject={removeProject}
-        onToggleSettings={() => (settingsOpen ? closeSettings() : openSettings())}
         {windowFocused}
       />
 
@@ -4880,32 +4952,64 @@
         {windowFocused}
       />
 
-      {#if settingsOpen && SettingsView}
-        <div class="feature-main">
-          <SettingsView
-            {config}
-            {workspacePath}
-            initialNav={settingsInitialNav}
-            onSave={saveSettings}
-            onOpenConversation={openHookConversation}
-            onThemePreview={applyTheme}
-          />
-        </div>
-      {:else}
-        <div class="main">
-          <ConversationSurface
-            view={conversationSurfaceView}
-            actions={conversationSurfaceActions}
-            {composerPreferences}
-            bind:messagesElement={messagesEl}
-            bind:inputAreaHeight
-            bind:checkpointFlowPanelCollapsed
-            composerDraft={activeComposerDraft}
-            focusRequest={composerFocusRequest}
-          />
-        </div>
-      {/if}
+      <div class="main">
+        <ConversationSurface
+          view={conversationSurfaceView}
+          actions={conversationSurfaceActions}
+          {composerPreferences}
+          bind:messagesElement={messagesEl}
+          bind:inputAreaHeight
+          bind:checkpointFlowPanelCollapsed
+          composerDraft={activeComposerDraft}
+          focusRequest={composerFocusRequest}
+        />
+      </div>
     </div>
+
+    <Dialog.Root
+      open={settingsOpen}
+      onOpenChange={(open) => {
+        if (open) settingsOpen = true;
+        else closeSettings();
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Overlay class="settings-dialog-overlay" />
+        <Dialog.Content class="settings-dialog" aria-label={$t("settingsTitle")}>
+          <header class="settings-dialog-header">
+            <Dialog.Title class="settings-dialog-title">{$t("settingsTitle")}</Dialog.Title>
+            <Dialog.Close class="settings-dialog-close" aria-label={$t("close")}>
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="m4 4 8 8M12 4l-8 8" />
+              </svg>
+            </Dialog.Close>
+          </header>
+          <div class="settings-dialog-body">
+            {#if SettingsView}
+              <SettingsView
+                {config}
+                {workspacePath}
+                initialNav={settingsInitialNav}
+                onSave={saveSettings}
+                onOpenConversation={openHookConversation}
+                onThemePreview={applyTheme}
+              />
+            {/if}
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+
+    <RoleEditorDialog
+      bind:open={roleEditorOpen}
+      role={roleEditorRole}
+      skills={roleEditorSkills}
+      mcpServers={config?.mcp.servers ?? []}
+      loadingResources={roleEditorResourcesLoading}
+      saving={roleEditorSaving}
+      onSave={saveRoleEditor}
+      onDelete={deleteRoleEditor}
+    />
   {/if}
 
   <Toast />
@@ -4938,6 +5042,7 @@
   }
 
   .app {
+    --role-sidebar-width: 52px;
     display: flex;
     height: 100vh;
     overflow: hidden;
@@ -4957,12 +5062,84 @@
     overflow: hidden;
   }
 
-  .feature-main {
-    min-width: 0;
+  :global(.settings-dialog-overlay) {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    background: rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(5px);
+  }
+
+  :global(.settings-dialog) {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 901;
+    width: min(1080px, calc(100vw - 48px));
+    height: min(760px, calc(100vh - 48px));
+    display: flex;
+    flex-direction: column;
+    transform: translate(-50%, -50%);
+    overflow: hidden;
+    border: 1px solid var(--mica-border);
+    border-radius: 8px;
+    background: var(--bg);
+    box-shadow: var(--raised-shadow);
+    color: var(--text);
+    outline: none;
+  }
+
+  :global(.settings-dialog-title) {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .settings-dialog-header {
+    height: 40px;
+    flex: 0 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px 0 16px;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--mica-divider);
+  }
+
+  .settings-dialog-body {
+    min-height: 0;
     flex: 1;
     display: flex;
-    padding-top: var(--desktop-titlebar-height);
-    box-sizing: border-box;
-    overflow: hidden;
+  }
+
+  :global(.settings-dialog-close) {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    outline: none;
+  }
+
+  :global(.settings-dialog-close:hover),
+  :global(.settings-dialog-close:focus-visible) {
+    background: var(--interactive-state-bg);
+    color: var(--text);
+  }
+
+  :global(.settings-dialog-close:focus-visible) {
+    box-shadow: var(--focus-ring);
+  }
+
+  :global(.settings-dialog-close svg) {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
   }
 </style>

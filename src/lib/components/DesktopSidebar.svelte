@@ -1,19 +1,16 @@
 <script lang="ts">
-  import type { AgentRole, Conversation, RecentWorkspace } from "$lib/types";
+  import type { Conversation, RecentWorkspace } from "$lib/types";
   import { loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
   import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
 
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
-  import RoleSelector from "$lib/components/RoleSelector.svelte";
   import SidebarHistoryControls from "$lib/components/SidebarHistoryControls.svelte";
   import SidebarPrimaryActions from "$lib/components/SidebarPrimaryActions.svelte";
   import SidebarResizeHandle from "$lib/components/SidebarResizeHandle.svelte";
-  import SidebarSettingsAction from "$lib/components/SidebarSettingsAction.svelte";
   import SidebarWorkspaceBrowser from "$lib/components/SidebarWorkspaceBrowser.svelte";
   import { t } from "$lib/i18n";
 
   let {
-    roles,
     selectedRoleKey,
     canGoBack,
     canGoForward,
@@ -30,8 +27,6 @@
     loadingMore,
     loadingRecentConversations,
     loading,
-    settingsOpen,
-    onRoleChange,
     onBack,
     onForward,
     onNew,
@@ -47,11 +42,9 @@
     onToggleProjectPin,
     onOpenProjectFolder,
     onRemoveProject,
-    onToggleSettings,
     platformOverride,
     windowFocused,
   }: {
-    roles: AgentRole[];
     selectedRoleKey: string;
     canGoBack: boolean;
     canGoForward: boolean;
@@ -68,8 +61,6 @@
     loadingMore: boolean;
     loadingRecentConversations: boolean;
     loading: boolean;
-    settingsOpen: boolean;
-    onRoleChange: (role: string) => void | Promise<void>;
     onBack: () => void | Promise<void>;
     onForward: () => void | Promise<void>;
     onNew: () => void | Promise<void>;
@@ -85,7 +76,6 @@
     onToggleProjectPin: (path: string) => void;
     onOpenProjectFolder: (path: string) => void | Promise<void>;
     onRemoveProject: (path: string) => void | Promise<void>;
-    onToggleSettings: () => void | Promise<void>;
     platformOverride?: WindowPlatform;
     windowFocused: boolean;
   } = $props();
@@ -94,12 +84,6 @@
   let width = $state(loadSidebarWidth());
   let resizing = $state(false);
   let searchOpen = $state(false);
-
-  function changeRole(role: string): void {
-    searchOpen = false;
-    onSearch("");
-    void onRoleChange(role);
-  }
 
   function openConversation(conversation: Conversation): void {
     if (searchOpen) {
@@ -121,8 +105,7 @@
     <img class="sidebar-app-icon" src="/app-icon.png" alt="OpenAgent" draggable="false" />
   </div>
   <div class="sidebar-content">
-    <div class="sidebar-role">
-      <RoleSelector value={selectedRoleKey} {roles} header onChange={changeRole} />
+    <div class="sidebar-history">
       <SidebarHistoryControls
         {canGoBack}
         {canGoForward}
@@ -162,7 +145,6 @@
         onRemoveProject={(path) => void onRemoveProject(path)}
       />
     {/if}
-    <SidebarSettingsAction active={settingsOpen} onToggle={() => void onToggleSettings()} />
   </div>
   <SidebarResizeHandle
     {width}
@@ -195,7 +177,7 @@
   .sidebar-top {
     position: fixed;
     top: 0;
-    left: 0;
+    left: var(--role-sidebar-width);
     z-index: 11;
     height: var(--desktop-titlebar-height);
     display: flex;
@@ -206,12 +188,12 @@
   }
 
   .sidebar.window-inactive .sidebar-top,
-  .sidebar.window-inactive .sidebar-role {
+  .sidebar.window-inactive .sidebar-history {
     opacity: 0.55;
   }
 
   .sidebar.macos .sidebar-top {
-    left: 76px;
+    left: calc(var(--role-sidebar-width) + 76px);
   }
 
   .sidebar-app-icon {
@@ -229,19 +211,13 @@
     flex-direction: column;
   }
 
-  .sidebar-role {
+  .sidebar-history {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 4px;
+    justify-content: flex-end;
     padding: 5px 8px 1px;
     transition: opacity 120ms ease;
-  }
-
-  .sidebar-role :global(.role-selector-trigger.header) {
-    min-width: 0;
-    max-width: calc(100% - 62px);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -250,7 +226,7 @@
     }
 
     .sidebar-top,
-    .sidebar-role {
+    .sidebar-history {
       transition: none;
     }
   }
