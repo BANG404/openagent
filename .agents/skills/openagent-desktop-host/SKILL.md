@@ -35,6 +35,11 @@ binary, and exclusive durable-state ownership.
   candidate, and restart the previous verified launch on failure. Release
   desktop startup must use that supervised process as the only durable-state
   Runtime; the packaged server is a fallback binary, not a concurrent writer.
+- Component activation must acquire the Runtime's graceful update barrier before
+  replacing a Runtime, reloading product WebViews, or restarting the desktop
+  shell. Never cancel active Agent work for an update. Defer activation when the
+  bounded wait cannot drain naturally, and release the barrier after failure or
+  a confirmed frontend-only reload.
 - Keep the supervised Runtime Bearer token in Rust. WebViews send only bounded
   `/api` method/path/body requests through the host proxy, while Rust attaches
   authentication and relays the Runtime SSE bus to existing Tauri event names.

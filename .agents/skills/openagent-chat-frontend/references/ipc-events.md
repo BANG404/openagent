@@ -36,7 +36,11 @@
 - Application update checks expose one shared `idle`/`checking`/`installing`
   state to every desktop surface. Manual checks must disable duplicate input,
   show visible progress, apply a finite timeout, surface localized success or
-  failure feedback, and always return to a retryable state after errors.
+  failure feedback, and always return to a retryable state after errors. Before
+  activating any Runtime, frontend, or desktop-shell component, acquire the
+  Runtime-owned graceful update barrier. An active Agent must defer the update
+  without cancellation; a failed update or confirmed frontend-only reload must
+  release the barrier.
 - Keep Rust event payloads aligned with `src/lib/types.ts`.
 - Keep the global toast renderer inside the shared tooltip provider. Toast
   descriptions use the tooltip primitive for truncated detail, so rendering a

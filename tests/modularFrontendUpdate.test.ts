@@ -24,6 +24,9 @@ test("production update checks aggregate Runtime and Shell updates", () => {
   expect(updater).toContain("await updates.shell.install()");
   expect(updater).not.toContain("downloadAndInstall");
   expect(updater).toContain('translate("updateAll")');
+  expect(updater).toContain('invoke<ComponentUpdateGate>("begin_component_update")');
+  expect(updater).toContain('invoke("end_component_update")');
+  expect(updater).toContain('translate("updateDeferredActiveAgent")');
 });
 
 test("versioned WebViews confirm activation through the host handshake", () => {
@@ -32,4 +35,11 @@ test("versioned WebViews confirm activation through the host handshake", () => {
   expect(host).toContain("rollback_pending().await");
   expect(host).toContain("Duration::from_secs(15)");
   expect(host).toContain("openagent-ui://localhost/");
+});
+
+test("component activation waits for active agents without cancelling them", () => {
+  expect(host).toContain("drain_supervised_runtime(supervisor.inner(), false)");
+  expect(host).not.toContain('body: Some("{\\"cancel\\":true}".to_string())');
+  expect(host).toContain('path: "/api/desktop/resume".to_string()');
+  expect(host).toContain("frontend activation requires an active component update barrier");
 });

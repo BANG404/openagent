@@ -57,17 +57,21 @@ public desktop adapters so contributors can build and extend the shell without
 receiving the private Runtime implementation. Agent execution, providers,
 prompts, persistence, and Runtime-owned state machines remain in the private SDK.
 
-The Runtime now exposes a Bearer-only drain barrier that blocks new HTTP writes,
-optionally cancels active conversations, and waits for authoritative run guards
-to release. The thin host keeps an installed candidate in Rust-owned pending
-state, so a WebView cannot select an arbitrary executable. In external mode the
-activation transaction drains the old process, stops the event relay, starts and
-probes the candidate, validates a durable desktop bootstrap, reconnects SSE, and
-only then commits `active.json`. Candidate startup, bootstrap, reconnect, or
-selection-commit failure restores the previous launch specification and emits a
-generic rollback reason without exposing the process token or user data. Runtime
-version comparison uses the active resource or supervised process version, not
-the independently versioned Tauri application.
+The Runtime exposes a Bearer-only component-update barrier that blocks new HTTP
+writes before waiting for authoritative run guards to release. Product component
+updates never cancel an active Agent execution: when the bounded graceful wait
+expires, activation is deferred and the user may retry after the run finishes.
+The barrier covers Runtime, frontend, and desktop-shell activation as one update
+sequence, and frontend-only or failed updates explicitly release it. The thin
+host keeps an installed candidate in Rust-owned pending state, so a WebView
+cannot select an arbitrary executable. In external mode the activation
+transaction stops the event relay, starts and probes the candidate, validates a
+durable desktop bootstrap, reconnects SSE, and only then commits `active.json`.
+Candidate startup, bootstrap, reconnect, or selection-commit failure restores
+the previous launch specification and emits a generic rollback reason without
+exposing the process token or user data. Runtime version comparison uses the
+active resource or supervised process version, not the independently versioned
+Tauri application.
 
 The supervised server accepts that process-scoped Bearer token for its typed
 product `/api` routes, exposes a Bearer-only complete desktop startup bootstrap,
