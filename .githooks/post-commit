@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+# Keep the Windows checkout current without making Windows changes part of the
+# WSL commit. A failed sync must not turn a successful commit into a failure.
+set -u
+
+windows_checkout="$(git config --local --get wsl.windowsCheckout || true)"
+if [ -z "$windows_checkout" ]; then
+  exit 0
+fi
+
+windows_remote="$(git config --local --get wsl.windowsRemote || true)"
+if [ -z "$windows_remote" ]; then
+  windows_remote="wsl-source"
+fi
+
+branch="$(git branch --show-current)"
+if [ -z "$branch" ]; then
+  printf '%s\n' 'WSL-to-Windows sync skipped: detached HEAD.' >&2
+  exit 0
+fi
+
+if ! command -v git.exe >/dev/null 2>&1; then
+  printf '%s\n' 'WSL-to-Windows sync skipped: git.exe is unavailable.' >&2
+  exit 0
+fi
+
+git_env=(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE)
+if ! windows_status="$("${git_env[@]}" git.exe -C "$windows_checkout" status --porcelain 2>&1)"; then
+  printf 'WSL-to-Windows sync skipped: cannot inspect %s.\n%s\n' "$windows_checkout" "$windows_status" >&2
+  exit 0
+fi
+
+if [ -n "$windows_status" ]; then
+  printf 'WSL-to-Windows sync skipped: Windows checkout has local changes (%s).\n' "$windows_checkout" >&2
+  exit 0
+fi
+
+if ! "${git_env[@]}" git.exe -C "$windows_checkout" pull --ff-only "$windows_remote" "$branch"; then
+  printf 'WSL-to-Windows sync skipped: %s cannot fast-forward from %s/%s.\n' "$windows_checkout" "$windows_remote" "$branch" >&2
+fi
+
+exit 0

@@ -46,3 +46,28 @@ checkout for the MSVC target.
 The runtime also bounds and incrementally drains terminal output, so high-output
 commands such as `cargo check` do not accumulate unbounded foreground output or
 repeatedly copy a full background output buffer.
+
+## Syncing commits from WSL
+
+The WSL checkout and the native Windows checkout should remain separate Git
+working trees. Configure the existing Windows checkout as a local source remote
+from WSL once. Replace `Ubuntu` if the distribution has another name:
+
+```powershell
+cd D:\Project\openagent
+git remote add wsl-source "\\wsl.localhost\Ubuntu\home\iumm\projects\openagent"
+```
+
+Then configure the WSL checkout to run the repository's `post-commit` hook:
+
+```bash
+git config --local wsl.windowsCheckout 'D:/Project/openagent'
+git config --local wsl.windowsRemote wsl-source
+```
+
+After each WSL commit, the hook checks that the Windows checkout is clean and
+fast-forwards it from the same branch. If Windows has local changes, the
+checkout cannot fast-forward, or `git.exe` is unavailable, the WSL commit is
+kept and the hook prints a warning. Install the repository hooks with
+`bun install` if `.githooks` is not active yet. Keep `node_modules`, `target`,
+and other generated directories native to each operating system.
