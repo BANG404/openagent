@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.55.1-beta.1] - 2026-09-04
+
+### Bug Fixes
+- **updater**: Grant complete update permissions
+
 ## [0.55.0-beta.1] - 2026-09-04
 
 ### Features
