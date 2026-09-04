@@ -135,22 +135,29 @@
   asynchronous refreshes so an older checkpoint cannot replace a newer live
   Goal or Graph state. The resizable right-side conversation-details panel owns
   both this status and branch-scoped file changes in the ordinary desktop
-  conversation; those file changes must not render above the composer. Its
+  conversation; those file changes must not render above the composer. Keep live
+  file changes visible through terminal reconciliation until the matching durable
+  records are observable; a successful but stale refresh must not remove the Files
+  entry or its title-bar toggle. Its
   top-level Status and Files tabs preserve one
   full-height body, and the Files page uses horizontally scrollable file tabs
-  with one line-numbered diff and revert action for the selected file. Render a
-  newly created text file from its stored content as all-added lines, and keep
-  the path, change kind, and revert action from overlapping as the panel width
-  changes. A newly
+  with one line-numbered diff and revert action for the selected file. Wrap diff
+  content inside the available panel width while keeping both line-number columns
+  fixed, so resizing the panel never requires horizontal scrolling to read a
+  line. Render a newly created text file from its stored content as all-added
+  lines, and keep the path, change kind, and revert action from overlapping as
+  the panel width changes. A newly
   created Goal or Graph automatically opens the panel, including flows created
   by slash commands or tools. File-only activity also opens it so removing the
-  composer banner does not hide new edits. Selecting an existing flow starts
-  collapsed, while a user's expand or collapse choice survives later
-  checkpoints for that same selected flow.
-  Keep the single panel toggle at
-  the trailing end of the shared title bar, use it for both expansion and collapse,
-  and collapse the panel to a zero-width, non-interactive track using the same
-  180ms width curve as the conversation sidebar.
+  composer banner does not hide new edits. Selecting an existing flow preserves
+  the user's saved expand or collapse choice, and later checkpoints for that
+  selected flow must not reset it.
+  Persist the panel's expanded or collapsed state and its chosen width across
+  reloads. Newly created Goal, Graph, or file activity may still open it. Keep
+  the single panel toggle at the trailing end of the shared title bar, use it
+  for both expansion and collapse, and collapse the panel to a zero-width,
+  non-interactive track using the same 180ms width curve as the conversation
+  sidebar.
   The status panel header uses the concise `Goal` or `Graph` kind label, its
   objective beneath it, and a right-aligned completed/total count; retain the
   progress track below the header without a duplicate flow-status badge.

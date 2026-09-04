@@ -6,7 +6,25 @@ import {
   CHECKPOINT_FLOW_PANEL_MIN_WIDTH,
   checkpointFlowPanelMaximum,
   clampCheckpointFlowPanelWidth,
+  loadCheckpointFlowPanelCollapsed,
+  loadCheckpointFlowPanelWidth,
+  saveCheckpointFlowPanelCollapsed,
+  saveCheckpointFlowPanelWidth,
 } from "../src/lib/checkpointFlowPanelSizing";
+
+function memoryStorage(): Storage {
+  const values = new Map<string, string>();
+  return {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key),
+    clear: () => values.clear(),
+    key: (index) => [...values.keys()][index] ?? null,
+    get length() {
+      return values.size;
+    },
+  };
+}
 
 describe("checkpoint flow panel sizing", () => {
   test("caps the panel against its conversation container instead of the window", () => {
@@ -25,5 +43,16 @@ describe("checkpoint flow panel sizing", () => {
     expect(clampCheckpointFlowPanelWidth(320, 400)).toBe(
       400 * CHECKPOINT_FLOW_PANEL_MAX_CONTAINER_RATIO,
     );
+  });
+
+  test("persists the panel width and expanded state", () => {
+    const storage = memoryStorage();
+    expect(loadCheckpointFlowPanelCollapsed(storage)).toBe(true);
+
+    saveCheckpointFlowPanelWidth(storage, 417.4);
+    saveCheckpointFlowPanelCollapsed(storage, false);
+
+    expect(loadCheckpointFlowPanelWidth(storage)).toBe(417);
+    expect(loadCheckpointFlowPanelCollapsed(storage)).toBe(false);
   });
 });

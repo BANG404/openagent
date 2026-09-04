@@ -278,21 +278,19 @@
     background: color-mix(in srgb, var(--surface) 88%, var(--bg));
   }
   .diff-table {
-    display: table;
-    min-width: 100%;
+    width: 100%;
     padding: 8px 0;
   }
   .diff-row {
-    display: table-row;
+    display: grid;
+    grid-template-columns: 34px 34px minmax(0, 1fr);
     color: var(--text-muted);
     font:
       400 11px/1.55 "JetBrains Mono",
       monospace;
   }
   .diff-row > * {
-    display: table-cell;
     box-sizing: border-box;
-    white-space: pre;
   }
   .line-number {
     width: 34px;
@@ -303,10 +301,12 @@
     user-select: none;
   }
   .diff-row code {
-    width: 100%;
+    min-width: 0;
     padding: 0 10px;
     color: inherit;
     font: inherit;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
   }
   .diff-row.add {
     background: color-mix(in srgb, #18794e 12%, transparent);

@@ -2,9 +2,9 @@
   import type { CheckpointFlow } from "$lib/checkpointFlow";
   import type { FileChange } from "$lib/types";
   import {
-    CHECKPOINT_FLOW_PANEL_MAX_WIDTH,
-    CHECKPOINT_FLOW_PANEL_MIN_WIDTH,
     clampCheckpointFlowPanelWidth,
+    loadCheckpointFlowPanelWidth,
+    saveCheckpointFlowPanelWidth,
   } from "$lib/checkpointFlowPanelSizing";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
 
@@ -20,17 +20,8 @@
     collapsed?: boolean;
   } = $props();
 
-  const storageKey = "openagent.checkpoint-flow-panel-width";
   let width = $state(
-    typeof window === "undefined"
-      ? 320
-      : Math.min(
-          CHECKPOINT_FLOW_PANEL_MAX_WIDTH,
-          Math.max(
-            CHECKPOINT_FLOW_PANEL_MIN_WIDTH,
-            Number(window.localStorage.getItem(storageKey)) || 320,
-          ),
-        ),
+    typeof window === "undefined" ? 320 : loadCheckpointFlowPanelWidth(window.localStorage),
   );
   let resizing = $state(false);
 
@@ -69,7 +60,7 @@
       document.documentElement.style.cursor = previousCursor;
       document.documentElement.style.userSelect = previousUserSelect;
       resizing = false;
-      window.localStorage.setItem(storageKey, String(Math.round(width)));
+      saveCheckpointFlowPanelWidth(window.localStorage, width);
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onEnd);
