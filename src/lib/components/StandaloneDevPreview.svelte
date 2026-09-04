@@ -1671,25 +1671,18 @@
     height: 100vh;
     box-sizing: border-box;
     overflow: hidden;
-    padding-top: 48px;
+    padding: 56px 8px 8px;
     background: var(--bg);
-  }
-  .checkpoint-flow-preview-stage::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 3;
-    background: color-mix(in srgb, var(--bg) 62%, transparent);
-    backdrop-filter: blur(24px) saturate(1.28);
-    pointer-events: none;
   }
   .checkpoint-flow-preview-chat {
     position: relative;
-    z-index: 4;
     display: flex;
     min-width: 0;
     flex: 1;
     flex-direction: column;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--surface);
   }
   .checkpoint-flow-preview-titlebar {
     position: absolute;
@@ -1739,8 +1732,7 @@
     width: min(760px, 100%);
     margin: 0 auto;
   }
-  .checkpoint-flow-preview-stage :global(.composer),
-  .checkpoint-flow-preview-stage :global(.flow-panel) {
+  .checkpoint-flow-preview-stage :global(.composer) {
     background: var(--mica-surface);
     backdrop-filter: blur(24px) saturate(1.28);
   }

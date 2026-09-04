@@ -154,13 +154,13 @@
 </script>
 
 <div class="conversation-workspace" style:--input-area-height={`${inputAreaHeight}px`}>
-  <div
-    class="conversation-input-fade"
-    class:conversation-input-fade-streaming={view.isStreaming}
-    class:conversation-input-fade-hidden={view.newConversationLayout}
-    aria-hidden="true"
-  ></div>
   <div class="conversation-stage">
+    <div
+      class="conversation-input-fade"
+      class:conversation-input-fade-streaming={view.isStreaming}
+      class:conversation-input-fade-hidden={view.newConversationLayout}
+      aria-hidden="true"
+    ></div>
     {#if !view.tauriAvailable}
       <div class="runtime-banner">{view.browserModeNotice}</div>
     {/if}
@@ -320,40 +320,42 @@
 <style>
   .conversation-workspace {
     position: relative;
-    isolation: isolate;
     display: flex;
     min-width: 0;
     min-height: 0;
     flex: 1;
     margin: 40px 8px 8px;
     overflow: hidden;
-    border-radius: 12px;
-    background: var(--surface);
-  }
-
-  .conversation-workspace::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 3;
-    background: color-mix(in srgb, var(--surface) 72%, transparent);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    pointer-events: none;
+    background: transparent;
   }
 
   .conversation-stage {
     position: relative;
-    z-index: 4;
+    isolation: isolate;
     display: flex;
     min-width: 0;
     min-height: 0;
     flex: 1;
     flex-direction: column;
     overflow: hidden;
+    border-radius: 12px;
+    background: var(--surface);
+  }
+
+  .conversation-stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
+    pointer-events: none;
   }
 
   .runtime-banner {
+    position: relative;
+    z-index: 1;
     padding: 10px 16px;
     background: rgba(245, 158, 11, 0.12);
     border-bottom: 1px solid rgba(245, 158, 11, 0.24);
@@ -499,8 +501,7 @@
     }
   }
 
-  .conversation-workspace :global(.composer),
-  .conversation-workspace :global(.flow-panel) {
+  .conversation-workspace :global(.composer) {
     background: var(--mica-surface);
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);

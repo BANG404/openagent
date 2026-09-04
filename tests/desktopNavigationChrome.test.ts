@@ -79,10 +79,13 @@ describe("desktop navigation chrome", () => {
     const conversationWorkspace = conversationSurface.match(
       /\.conversation-workspace\s*{([^}]*)}/s,
     )?.[1];
+    const conversationStage = conversationSurface.match(/\.conversation-stage\s*{([^}]*)}/s)?.[1];
     expect(conversationWorkspace).toContain("margin: 40px 8px 8px");
-    expect(conversationWorkspace).toContain("border-radius: 12px");
-    expect(conversationWorkspace).toContain("background: var(--surface)");
+    expect(conversationWorkspace).toContain("background: transparent");
     expect(conversationWorkspace).not.toContain("box-shadow");
+    expect(conversationStage).toContain("border-radius: 12px");
+    expect(conversationStage).toContain("background: var(--surface)");
+    expect(conversationStage).not.toContain("box-shadow");
     expect(titleBar).not.toContain("workspace-environment");
     expect(titleBar).not.toContain("workspace-name");
     expect(titleBar).not.toContain("branch-name");
@@ -103,7 +106,7 @@ describe("desktop navigation chrome", () => {
     expect(nativeMaterialTokens).toContain("--app-chrome-bg: rgba(245, 245, 247, 0.3)");
     expect(nativeMaterialTokens).toContain("--sidebar-bg: rgba(245, 245, 247, 0.3)");
     expect(appCss).toMatch(
-      /html\.native-window-material \.conversation-workspace\s*{[^}]*background: var\(--bg\);/s,
+      /html\.native-window-material \.conversation-stage,[^}]*\.flow-panel\s*{[^}]*background: var\(--bg\);/s,
     );
     expect(route).toMatch(/\.app\s*{[^}]*background: transparent;/s);
 
@@ -322,6 +325,7 @@ describe("desktop navigation chrome", () => {
     const route = await readFile(routeUrl, "utf8");
     const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
     const panel = await readFile(new URL("CheckpointFlowStatus.svelte", componentsUrl), "utf8");
+    const panelShell = panel.match(/\.flow-panel\s*{([^}]*)}/s)?.[1];
 
     expect(route).toContain("bind:checkpointFlowPanelCollapsed");
     expect(route).toContain("shouldAutoOpenCheckpointFlowPanel(previous, next.flow)");
@@ -335,5 +339,9 @@ describe("desktop navigation chrome", () => {
     expect(panel).toContain("width 180ms cubic-bezier(0.16, 1, 0.3, 1)");
     expect(panel).toContain("width: 0;");
     expect(panel).not.toContain("display: none;");
+    expect(panelShell).toContain("margin-left: 8px");
+    expect(panelShell).toContain("border-radius: 12px");
+    expect(panelShell).not.toContain("border:");
+    expect(panelShell).not.toContain("box-shadow:");
   });
 });

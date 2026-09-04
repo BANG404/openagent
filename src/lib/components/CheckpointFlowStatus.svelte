@@ -299,38 +299,32 @@
 
 <style>
   .flow-panel {
-    --flow-panel-inset: 12px;
-    --flow-panel-top-inset: 12px;
-    --flow-panel-bottom-inset: 12px;
     position: relative;
     z-index: 12;
     display: flex;
-    width: min(var(--flow-panel-width), 45%, calc(100% - 24px));
-    min-width: min(260px, 45%, calc(100% - 24px));
-    max-width: min(520px, 45%, calc(100% - 24px));
+    width: min(var(--flow-panel-width), 45%, calc(100% - 8px));
+    min-width: min(260px, 45%, calc(100% - 8px));
+    max-width: min(520px, 45%, calc(100% - 8px));
     flex: 0 0 auto;
     flex-direction: column;
-    margin: var(--flow-panel-top-inset) var(--flow-panel-inset) var(--flow-panel-bottom-inset) 0;
+    margin-left: 8px;
     overflow: hidden;
-    border: 1px solid var(--mica-border);
-    border-radius: 14px;
-    background: transparent;
-    box-shadow: var(--mica-shadow);
+    border-radius: 12px;
+    background: var(--surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
     transition:
       width 180ms cubic-bezier(0.16, 1, 0.3, 1),
       min-width 180ms cubic-bezier(0.16, 1, 0.3, 1),
       max-width 180ms cubic-bezier(0.16, 1, 0.3, 1),
       margin 180ms cubic-bezier(0.16, 1, 0.3, 1),
-      border-width 180ms cubic-bezier(0.16, 1, 0.3, 1),
       opacity 120ms ease;
   }
   .flow-panel.collapsed {
     width: 0;
     min-width: 0;
     max-width: 0;
-    margin-right: 0;
-    border-width: 0;
-    box-shadow: none;
+    margin-left: 0;
     opacity: 0;
     pointer-events: none;
   }
@@ -682,15 +676,10 @@
   }
 
   @media (max-width: 760px) {
-    .flow-panel {
-      --flow-panel-inset: 8px;
-      --flow-panel-top-inset: 8px;
-      --flow-panel-bottom-inset: 8px;
-    }
     .flow-panel:not(.collapsed) {
-      width: min(var(--flow-panel-width), 45%, calc(100% - 16px));
-      min-width: min(260px, 45%, calc(100% - 16px));
-      max-width: min(420px, 45%, calc(100% - 16px));
+      width: min(var(--flow-panel-width), 45%, calc(100% - 8px));
+      min-width: min(260px, 45%, calc(100% - 8px));
+      max-width: min(420px, 45%, calc(100% - 8px));
     }
   }
 

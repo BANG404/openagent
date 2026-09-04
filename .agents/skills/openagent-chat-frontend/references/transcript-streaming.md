@@ -141,23 +141,20 @@
   the trailing end of the shared title bar, use it for both expansion and collapse,
   and collapse the panel to a zero-width, non-interactive track using the same
   180ms width curve as the conversation sidebar.
-  Place the expanded panel
-  as a full-height inset card inside the conversation workspace's flex container,
-  using the same translucent Mica material as the conversation surface so it stays
-  visually continuous while its persisted width reduces the conversation track.
-  Paint one neutral translucent Mica background on that shared workspace. Keep
-  the composer's bottom readability fade there rather than inside the
-  conversation-only track, but do not add an ambient color or streaming glow
+  Place the expanded panel as a full-height card beside the conversation card in
+  the workspace flex container. Keep a narrow transparent gap between these two
+  sibling cards while its persisted width reduces the conversation track. Give
+  both cards the same radius, neutral surface, and translucent material treatment,
+  with no perimeter border or shadow. Keep the composer's bottom readability fade
+  inside the conversation card, but do not add an ambient color or streaming glow
   behind the composer. Keep the main conversation workspace shadowless in both
-  themes. Give both the ordinary composer and expanded panel the
-  same standard Mica card surface and blur without a colored state shadow. Use
+  themes. Give the ordinary composer the standard Mica card surface and blur
+  without a colored state shadow. Use
   the ordinary composer a low-contrast neutral hairline and a two-layer,
   short-falloff neutral shadow so its edge stays softly legible without looking
   like a floating panel. Keep that perimeter quieter than floating menus in both
   themes without weakening the shared elevation of other input surfaces.
-  Retain the expanded panel's card border, radius, and shadow; its surface must
-  use the same composition as the composer rather than an independently tinted
-  backdrop. Do not retain a clickable edge peek, collapsed layout track, or a
+  Do not retain a clickable edge peek, collapsed layout track, or a
   second collapse control inside the panel. Keep the expanded header free of
   decorative Goal or Graph kind glyphs. Center an otherwise empty planning state
   in the available panel body.

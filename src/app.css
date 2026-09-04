@@ -232,11 +232,12 @@
     background: transparent;
   }
 
-  html.native-window-material .conversation-workspace {
+  html.native-window-material .conversation-stage,
+  html.native-window-material .flow-panel {
     background: var(--bg);
   }
 
-  html.native-window-material .conversation-workspace::before {
+  html.native-window-material .conversation-stage::before {
     background: transparent;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
