@@ -920,9 +920,19 @@ async fn save_agent_role(
     scope: String,
     name: String,
     description: String,
+    skill_ids: Vec<String>,
+    mcp_server_ids: Vec<String>,
 ) -> Result<AgentRole, String> {
-    openagent_runtime::commands::save_agent_role(runtime.state(), id, scope, name, description)
-        .await
+    openagent_runtime::commands::save_agent_role(
+        runtime.state(),
+        id,
+        scope,
+        name,
+        description,
+        skill_ids,
+        mcp_server_ids,
+    )
+    .await
 }
 
 #[tauri::command]

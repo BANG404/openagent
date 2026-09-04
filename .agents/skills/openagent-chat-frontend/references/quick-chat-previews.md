@@ -6,6 +6,14 @@
   shortcut registration. Development preview surfaces own their fixtures and
   query-specific theme/locale initialization so preview-only state never joins
   the durable conversation runtime.
+- Open main-window Settings as one centered modal above the unchanged chat
+  shell. Preserve the complete settings navigation inside that modal, trap
+  focus through the dialog primitive, and return to the same chat state on
+  close instead of replacing the main content region.
+- The saved-role editor is a separate centered dialog opened from the role
+  rail. It edits the role system prompt and optional skill/MCP associations;
+  empty associations preserve the full resource set, while non-empty
+  associations narrow the resources exposed to that role.
 - The Raycast-style quick chat is a dedicated, workspace-neutral Tauri window,
   not a presentation mode of `main` and not a second chat client. It owns no
   transcript. The primary process owns its shortcut and launcher lifecycle,

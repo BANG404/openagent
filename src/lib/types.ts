@@ -370,6 +370,8 @@ export interface AgentRole {
   scope: string;
   name: string;
   description: string;
+  skill_ids: string[];
+  mcp_server_ids: string[];
   usage_count: number;
   created_at: number;
   updated_at: number;

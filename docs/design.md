@@ -7,6 +7,7 @@ Density is unusually low even by contemporary SaaS standards. Each tile occupies
 Store and shop surfaces retain the same chassis but switch modes. The product configurator (iPhone 17 Pro, accessories grid) introduces a tight grid of white utility cards at `{rounded.lg}` (18px) radius with a thin border, paired with a persistent thin sub-nav strip. The environment page leans darker and more editorial. Across all five surfaces the typographic system, spacing rhythm, and the single blue accent are consistent — this is one design language expressed at different volumes.
 
 **Key Characteristics:**
+
 - Photography-first presentation; UI recedes so the product can speak.
 - Alternating full-bleed tile sections: white/parchment ↔ near-black, with the color change itself acting as the section divider.
 - Single blue accent (`{colors.primary}` — #0066cc) carries every interactive element. No second brand color exists.
@@ -100,9 +101,13 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   Both sections collapse independently. Project-name search temporarily ranks
   matching projects ahead of the remaining list, while Recent conversations
   remains a bounded newest-first projection in the sidebar's ordinary scroll flow.
-  Its role selector sits above full-width new-conversation and search actions.
+  A narrow role rail sits to the left of the conversation sidebar; selecting a
+  role filters conversation history and exposes its dedicated new-conversation
+  context. The conversation sidebar begins with full-width new-conversation and
+  search actions rather than duplicating role selection.
   The new action uses the workspace already selected by the current window.
-  Settings remains fixed at the sidebar bottom. Conversation search spans all
+  Settings is the fixed bottom action in the role rail and opens a centered
+  dialog over the mounted chat shell. Conversation search spans all
   workspaces and roles only while its field retains focus; leaving search
   restores Projects and Recent conversations. Opening a result switches the
   current window to that conversation's workspace. A current-window project
@@ -130,11 +135,13 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 > **Source pages analyzed:** homepage, environment, store, iPhone 17 Pro buy page, accessories index. The color system is identical across all five surfaces; only the surface-mode mix differs.
 
 ### Brand & Accent
+
 - **Action Blue** (`{colors.primary}` — #0066cc): The single brand-level interactive color. All text links, all blue pill CTAs ("Learn more", "Buy"), and the focus ring root. This is Apple's quiet but universal "click me" signal. Press state shifts to a slightly darker variant via the active scale transform rather than a hex change.
 - **Focus Blue** (`{colors.primary-focus}` — #0071e3): A marginally brighter sibling of Action Blue, reserved for the keyboard focus ring on buttons (`outline: 2px solid`).
 - **Sky Link Blue** (`{colors.primary-on-dark}` — #2997ff): A brighter blue used on dark surfaces for in-copy links and inline callouts, where Action Blue would disappear against the tile background.
 
 ### Surface
+
 - **Pure White** (`{colors.canvas}` — #ffffff): The dominant canvas. Content, utility cards, store tiles, configurator grids.
 - **Parchment** (`{colors.canvas-parchment}` — #f5f5f7): The signature Apple off-white. Used for alternating light tiles, footer region, and the default page canvas in store utility sections. Just different enough from white to create rhythm.
 - **Pearl Button** (`{colors.surface-pearl}` — #fafafc): A near-white used as the fill for secondary "ghost" buttons — lighter than the parchment canvas so the button still reads as a button against `{colors.canvas-parchment}`.
@@ -145,6 +152,7 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 - **Translucent Chip Gray** (`{colors.surface-chip-translucent}` — #d2d2d7): The base hex of the translucent gray chip used over photography for circular control buttons. In production, applied at ~64% alpha as `rgba(210, 210, 215, 0.64)`.
 
 ### Text
+
 - **Near-Black Ink** (`{colors.ink}` — #1d1d1f): The voice of every headline, every body paragraph, and the dark utility button's fill. Chosen instead of pure black to keep the page feeling photographic rather than printed.
 - **Body** (`{colors.body}` — #1d1d1f): Same hex as ink — Apple uses one near-black tone for all text on light surfaces.
 - **Body On Dark** (`{colors.body-on-dark}` — #ffffff): All text on dark tiles and on the global nav bar.
@@ -153,42 +161,46 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 - **Ink Muted 48** (`{colors.ink-muted-48}` — #7a7a7a): Disabled button text and legal fine-print.
 
 ### Hairlines & Borders
+
 - **Divider Soft** (`{colors.divider-soft}` — #f0f0f0): The "border" tone on secondary buttons — functions as a ring shadow rather than a hard line. In production, often applied as `rgba(0, 0, 0, 0.04)`.
 - **Hairline** (`{colors.hairline}` — #e0e0e0): The 1px hairline border on store utility cards and configurator chips.
 
 ### Brand Gradient
+
 **No decorative gradients.** Atmospheric depth on product photography (the iPhone 17 Pro camera plate, the Apple Watch bands, AirPods reflections) is inherent to the imagery, not a CSS gradient overlay. The environment page's hero uses photographic atmosphere (mountain vista at dawn) but no gradient tokens are defined. Apple is the rare luxury-brand site with zero gradient-based design tokens.
 
 ### Application Conversation Surfaces
+
 The desktop and remote conversational surfaces do not introduce a second brand palette. Use the active theme canvas for the conversation, neutral Mica for raised controls, and neutral fades where content must remain readable behind the bottom composer. Colored ambient gradients, composer glows, and streaming shadows are not part of the chat surface treatment.
 
 ## Typography
 
 ### Font Family
+
 - **Display**: `SF Pro Display, system-ui, -apple-system, sans-serif` — Apple's proprietary display face, optimized for sizes ≥ 19px. Defines the voice of every headline.
 - **Body / UI**: `SF Pro Text, system-ui, -apple-system, sans-serif` — the text-optimized variant used for body copy, captions, buttons, and links below 20px.
 - **OpenType features**: `font-variant-numeric: numerator` is enabled on numeric links (pricing tables, spec sheets). Display sizes rely on tight tracking rather than contextual ligatures.
 
 ### Hierarchy
 
-| Token | Size | Weight | Line Height | Letter Spacing | Use |
-|---|---|---|---|---|---|
-| `{typography.hero-display}` | 56px | 600 | 1.07 | -0.28px | Hero headline; the signature "Apple tight" tracking |
-| `{typography.display-lg}` | 40px | 600 | 1.10 | 0 | Tile headlines atop every product tile |
-| `{typography.display-md}` | 34px | 600 | 1.47 | -0.374px | Section heads (SF Pro Text at display proportions) |
-| `{typography.lead}` | 28px | 400 | 1.14 | 0.196px | Product tile subcopy |
-| `{typography.lead-airy}` | 24px | 300 | 1.5 | 0 | Environment-page lead paragraphs (the rare weight 300) |
-| `{typography.tagline}` | 21px | 600 | 1.19 | 0.231px | Sub-tile tagline; sub-nav category name |
-| `{typography.body-strong}` | 17px | 600 | 1.24 | -0.374px | Inline strong emphasis |
-| `{typography.body}` | 17px | 400 | 1.47 | -0.374px | Default paragraph |
-| `{typography.dense-link}` | 17px | 400 | 2.41 | 0 | Footer / store utility link lists (relaxed leading) |
-| `{typography.caption}` | 14px | 400 | 1.43 | -0.224px | Secondary captions, button text |
-| `{typography.caption-strong}` | 14px | 600 | 1.29 | -0.224px | Emphasized captions |
-| `{typography.button-large}` | 18px | 300 | 1.0 | 0 | Store hero CTAs (the rare weight 300) |
-| `{typography.button-utility}` | 14px | 400 | 1.29 | -0.224px | Utility/nav button labels |
-| `{typography.fine-print}` | 12px | 400 | 1.0 | -0.12px | Fine-print, footer body |
-| `{typography.micro-legal}` | 10px | 400 | 1.3 | -0.08px | Micro legal disclaimers |
-| `{typography.nav-link}` | 12px | 400 | 1.0 | -0.12px | Global nav menu items |
+| Token                         | Size | Weight | Line Height | Letter Spacing | Use                                                    |
+| ----------------------------- | ---- | ------ | ----------- | -------------- | ------------------------------------------------------ |
+| `{typography.hero-display}`   | 56px | 600    | 1.07        | -0.28px        | Hero headline; the signature "Apple tight" tracking    |
+| `{typography.display-lg}`     | 40px | 600    | 1.10        | 0              | Tile headlines atop every product tile                 |
+| `{typography.display-md}`     | 34px | 600    | 1.47        | -0.374px       | Section heads (SF Pro Text at display proportions)     |
+| `{typography.lead}`           | 28px | 400    | 1.14        | 0.196px        | Product tile subcopy                                   |
+| `{typography.lead-airy}`      | 24px | 300    | 1.5         | 0              | Environment-page lead paragraphs (the rare weight 300) |
+| `{typography.tagline}`        | 21px | 600    | 1.19        | 0.231px        | Sub-tile tagline; sub-nav category name                |
+| `{typography.body-strong}`    | 17px | 600    | 1.24        | -0.374px       | Inline strong emphasis                                 |
+| `{typography.body}`           | 17px | 400    | 1.47        | -0.374px       | Default paragraph                                      |
+| `{typography.dense-link}`     | 17px | 400    | 2.41        | 0              | Footer / store utility link lists (relaxed leading)    |
+| `{typography.caption}`        | 14px | 400    | 1.43        | -0.224px       | Secondary captions, button text                        |
+| `{typography.caption-strong}` | 14px | 600    | 1.29        | -0.224px       | Emphasized captions                                    |
+| `{typography.button-large}`   | 18px | 300    | 1.0         | 0              | Store hero CTAs (the rare weight 300)                  |
+| `{typography.button-utility}` | 14px | 400    | 1.29        | -0.224px       | Utility/nav button labels                              |
+| `{typography.fine-print}`     | 12px | 400    | 1.0         | -0.12px        | Fine-print, footer body                                |
+| `{typography.micro-legal}`    | 10px | 400    | 1.3         | -0.08px        | Micro legal disclaimers                                |
+| `{typography.nav-link}`       | 12px | 400    | 1.0         | -0.12px        | Global nav menu items                                  |
 
 ### Principles
 
@@ -200,6 +212,7 @@ The desktop and remote conversational surfaces do not introduce a second brand p
 - **Weight 500 is deliberately absent.** The ladder is 300 / 400 / 600 / 700. Mid-weight readings always use 600.
 
 ### Note on Font Substitutes
+
 SF Pro is Apple's proprietary system font. When building off-system:
 
 - Use `system-ui, -apple-system, BlinkMacSystemFont` as the first stack entry — on macOS/iOS/Safari this resolves to the real SF Pro.
@@ -210,6 +223,7 @@ SF Pro is Apple's proprietary system font. When building off-system:
 ## Layout
 
 ### Spacing System
+
 - **Base unit:** 8px. Sub-base values (2, 4, 5, 6, 7) are used for tight typographic adjustments; structural layout snaps to 8/12/16/20/24.
 - **Tokens:** `{spacing.xxs}` 4px · `{spacing.xs}` 8px · `{spacing.sm}` 12px · `{spacing.md}` 17px · `{spacing.lg}` 24px · `{spacing.xl}` 32px · `{spacing.xxl}` 48px · `{spacing.section}` 80px.
 - **Section vertical padding:** `{spacing.section}` (80px) inside a product tile; tiles stack edge-to-edge with 0 gap (the color change provides the break).
@@ -218,28 +232,31 @@ SF Pro is Apple's proprietary system font. When building off-system:
 - **Universal rhythm constants:** the 17px body line-height multiplier (~25px line) and 21px tagline size show up on every analyzed page.
 
 ### Grid & Container
+
 - **Max content width:** ~980px on text-heavy sections (environment), ~1440px on product grids (store, accessories), full-bleed for product tiles (homepage).
 - **Column patterns:** 3 to 5 column utility card grid on store/accessories; 2-column side-by-side tiles on homepage occasional sections; single-column centered stack on product tile heroes.
 - **Gutters:** 20–24px between cards in a utility grid.
 
 ### Whitespace Philosophy
+
 Apple's whitespace is the product's pedestal. Every tile begins with at least 64px of air above its headline and 48–64px below. Product renders are never crowded; the nearest content to a product image is at least 40px away. The footer is the only area that breaks this — there, Apple goes deliberately dense to make the full information architecture visible at a glance.
 
 ## Elevation & Depth
 
-| Level | Treatment | Use |
-|---|---|---|
-| Flat | No shadow, no border | Full-bleed tiles, global nav, footer, body sections |
-| Soft hairline | 1px `rgba(0, 0, 0, 0.08)` border | Utility cards, sub-nav frosted-glass separator |
-| Backdrop blur | `backdrop-filter: blur(N)` on Parchment 80% | Sub-nav and the iPhone buy floating sticky bar |
-| Product shadow | `rgba(0, 0, 0, 0.22) 3px 5px 30px 0` | Product renders resting on a surface (the only true "shadow" in the system) |
-| Application control | `var(--control-shadow)` with no outer border | Filled inputs, selectors, composer, reusable cards, segmented controls |
-| Application Mica | Translucent theme tint, 24px backdrop blur, subtle inner highlight | Quiet grouped settings whose canvas should remain perceptible |
-| Application overlay | `var(--raised-shadow)` with no outer border | Dialogs, menus, dropdowns, palettes, toasts, floating previews |
+| Level               | Treatment                                                          | Use                                                                         |
+| ------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Flat                | No shadow, no border                                               | Full-bleed tiles, global nav, footer, body sections                         |
+| Soft hairline       | 1px `rgba(0, 0, 0, 0.08)` border                                   | Utility cards, sub-nav frosted-glass separator                              |
+| Backdrop blur       | `backdrop-filter: blur(N)` on Parchment 80%                        | Sub-nav and the iPhone buy floating sticky bar                              |
+| Product shadow      | `rgba(0, 0, 0, 0.22) 3px 5px 30px 0`                               | Product renders resting on a surface (the only true "shadow" in the system) |
+| Application control | `var(--control-shadow)` with no outer border                       | Filled inputs, selectors, composer, reusable cards, segmented controls      |
+| Application Mica    | Translucent theme tint, 24px backdrop blur, subtle inner highlight | Quiet grouped settings whose canvas should remain perceptible               |
+| Application overlay | `var(--raised-shadow)` with no outer border                        | Dialogs, menus, dropdowns, palettes, toasts, floating previews              |
 
 **Shadow philosophy.** On the product-marketing surfaces, Apple uses **exactly one** drop-shadow, and it is applied to photographic product imagery. The desktop application adds a restrained functional exception: a filled interactive surface must not also carry an outer border. Use `--control-shadow` for controls and embedded reusable cards, and `--raised-shadow` for floating layers. Borders remain appropriate for separators, table grids, selection/focus rings, validation, and other state-bearing marks.
 
 ### Decorative Depth
+
 - **Atmospheric imagery** on the environment page (photographic vista) supplies mood; no CSS gradient involved.
 - **Edge-to-edge tile alternation** creates rhythm without borders or shadows — the color change itself is the divider.
 - **Backdrop-filter blur** on `{component.sub-nav-frosted}` and `{component.floating-sticky-bar}` creates a "floating over content" effect that's functional, not decorative.
@@ -252,17 +269,18 @@ Conversation canvases, new-conversation states, and composer backgrounds use onl
 
 ### Border Radius Scale
 
-| Token | Value | Use |
-|---|---|---|
-| `{rounded.none}` | 0px | Full-bleed product tiles (no corner rounding) |
-| `{rounded.xs}` | 5px | Inline links when styled as subtle chips (rare) |
-| `{rounded.sm}` | 8px | Dark utility buttons (Sign In, Bag), inline card imagery |
-| `{rounded.md}` | 11px | White Pearl Button capsules |
-| `{rounded.lg}` | 18px | Store utility cards, accessories grid cards |
-| `{rounded.pill}` | 9999px | Primary blue pill CTAs, sub-nav buy button, configurator option chips, search input — the signature Apple pill |
-| `{rounded.full}` | 9999px / 50% | Circular control chips floating over photography |
+| Token            | Value        | Use                                                                                                            |
+| ---------------- | ------------ | -------------------------------------------------------------------------------------------------------------- |
+| `{rounded.none}` | 0px          | Full-bleed product tiles (no corner rounding)                                                                  |
+| `{rounded.xs}`   | 5px          | Inline links when styled as subtle chips (rare)                                                                |
+| `{rounded.sm}`   | 8px          | Dark utility buttons (Sign In, Bag), inline card imagery                                                       |
+| `{rounded.md}`   | 11px         | White Pearl Button capsules                                                                                    |
+| `{rounded.lg}`   | 18px         | Store utility cards, accessories grid cards                                                                    |
+| `{rounded.pill}` | 9999px       | Primary blue pill CTAs, sub-nav buy button, configurator option chips, search input — the signature Apple pill |
+| `{rounded.full}` | 9999px / 50% | Circular control chips floating over photography                                                               |
 
 ### Photography Geometry
+
 - **Hero imagery**: full-bleed, 21:9 or taller on the homepage; 16:9 on environment and shop pages. Product renders are photographic-realistic, often shot on a tinted surface that becomes the tile background.
 - **Product renders**: PNG/WebP with transparency; rest on a surface tile and pick up the system shadow.
 - **Accessory grid**: square 1:1 crops at `{rounded.lg}` (18px) radius, light neutral backgrounds, product centered with 20–40px internal padding.
@@ -280,6 +298,7 @@ Conversation canvases, new-conversation states, and composer backgrounds use onl
 ### Buttons
 
 **`button-primary`** — The signature Apple action. Background `{colors.primary}` (Action Blue #0066cc), text `{colors.on-primary}` in `{typography.body}` (SF Pro Text 17px / 400), rounded `{rounded.pill}` (full pill — capsule-shaped), padding 11px × 22px. The full-pill radius IS the brand action signal.
+
 - Active state: `{component.button-primary-active}` — `transform: scale(0.95)` (the system-wide micro-interaction).
 - Focus state: `{component.button-primary-focus}` — 2px solid `{colors.primary-focus}` outline.
 
@@ -347,11 +366,11 @@ Search inputs inside raised selector menus are the compact exception: they stay 
 
 **`application-popup-list-sizing`** — Every application-owned popup list—including menus, context menus, selects, comboboxes, command palettes, submenus, and editor dropdowns—sizes to its currently visible items instead of reserving space for its maximum item count. Short and filtered result sets must leave no trailing empty area. Cap the floating surface at the lesser of its configured maximum and the live space available inside the window or visual viewport, preserving an 8px viewport inset; when the items exceed that cap, only the item viewport scrolls while any search, header, or footer region remains stable. Recalculate the available space while the popup is open whenever the window or visual viewport resizes or scrolls, the anchor changes size or position, or filtering changes the visible item count. Opening, filtering, or keyboard navigation must not move the trigger or underlying layout, and fixed-height popup lists are not permitted. Platform-native selects may delegate these constraints to the operating system.
 
-**`application-list-stack`** — Persistent navigation and collection lists use the same 3px vertical separation between adjacent interactive rows as floating menus whenever hover or focus applies a filled background. The parent list owns the gap through `--list-item-stack-gap`; do not rely on state-specific margins or allow rounded hover fills to touch. Selection follows the menu-row grammar and relies on the row's ordinary neutral fill without adding a left rail. On entry, refresh, scope change, or deletion, a navigation or detail list whose current selection is missing selects its first available item; an empty-state placeholder is reserved for lists that actually have no items or for an explicit create flow. Single-line application-sidebar actions, conversation rows, and settings navigation share the compact list-row tokens: 30px height, 13px type on an 18px line, 10px horizontal padding, an 8px content gap, and a 7px radius. The permanently expanded application sidebar remains resizable. Its workspace role selector above the full-width new-conversation and search actions is a distinct selector control: its trigger follows the visible role name instead of filling the row and omits a redundant caret, while its popup uses a 240px minimum width so role names and descriptions have more room than the trigger while still respecting the application popup viewport inset. Back and forward controls are right-aligned in that same role row and traverse the actual window destination history across conversations, the new-conversation surface, and Settings; a new destination reached after going back clears the abandoned forward branch, and deleting a conversation removes its stale destinations. The shared top chrome uses the application icon as its non-interactive leading mark instead of a sidebar-collapse action. Settings is the sole fixed bottom action. The sidebar resize target begins below the shared top chrome and never paints its active indicator through the menu bar. Descriptive draft, queue, and inspector rows may grow to fit their content while retaining the shared stack gap.
+**`application-list-stack`** — Persistent navigation and collection lists use the same 3px vertical separation between adjacent interactive rows as floating menus whenever hover or focus applies a filled background. The parent list owns the gap through `--list-item-stack-gap`; do not rely on state-specific margins or allow rounded hover fills to touch. Selection follows the menu-row grammar and relies on the row's ordinary neutral fill without adding a left rail. On entry, refresh, scope change, or deletion, a navigation or detail list whose current selection is missing selects its first available item; an empty-state placeholder is reserved for lists that actually have no items or for an explicit create flow. Single-line application-sidebar actions, conversation rows, and settings navigation share the compact list-row tokens: 30px height, 13px type on an 18px line, 10px horizontal padding, an 8px content gap, and a 7px radius. The permanently expanded application sidebar remains resizable. A fixed 52px role rail sits to its left and owns role selection, creation, editing, and the sole persistent Settings action. Saved roles use compact initials below the default OpenAgent role; editing a role opens one dialog for its scope, name, system prompt, Skills, and MCP associations. Back and forward controls remain in the conversation sidebar header and traverse the actual window destination history across conversations and the new-conversation surface; a new destination reached after going back clears the abandoned forward branch, and deleting a conversation removes its stale destinations. The shared top chrome uses the application icon as its non-interactive leading mark instead of a sidebar-collapse action. The sidebar resize target begins below the shared top chrome and never paints its active indicator through the menu bar. Descriptive draft, queue, and inspector rows may grow to fit their content while retaining the shared stack gap.
 
-**`application-settings-surface`** — Keep the existing application sidebar, shared application menu/title bar, and settings navigation visible together. Opening settings without an explicit destination selects the first navigation item, General; contextual entry points may still select their requested section. Both ordinary settings pages and the rightmost provider/detail pane remain full-width scroll owners so their scrollbars stay against the outer edge, while symmetric responsive inline padding limits each inner settings track to 680px on wide windows. This same track applies to standalone settings content such as Agent Plugins; do not cap its responsive gutter at a fixed maximum or put `max-width` on a scrolling element itself. Empty right-detail placeholders sit directly on the pane canvas without a filled background, radius, or shadow; only their inner content alignment and spacing distinguish the empty state. Settings rests on one continuous native-material canvas: the top-level feature surface applies the theme tint once, while its navigation columns, detail panes, toolbars, and empty states remain transparent. Controls and interaction states may retain their own surfaces, but nested layout regions must not stack the translucent theme tint or add perimeter dividers. Settings never adds independent window controls and sizes itself to the space below the shared title bar rather than to the viewport. Channel, model-provider, and MCP detail headings share one compact status-and-enable control: a status-dot pill followed by a labeled switch pill, both on the secondary surface. MCP details render discovered tools as ordinary divided Mica rows with the complete tool name and one trailing switch; this list belongs below connection testing so disabling a tool reads as capability policy rather than a transport setting. Settings collection panes use the model-provider list's 256px width and row geometry so moving between settings areas does not shift the information hierarchy. Model-provider and MCP collection rows use the shared neutral interaction fill on hover and selection without an additional rail or selected text treatment. Their compact filter affordances stay transparent at rest and reveal the shared neutral fill only while interactive; collection-footer add actions use the ordinary theme-aware control material instead of a primary accent pill. Onboarding reuses the same application Select triggers and floating menu grammar as Settings for language, theme, provider, and default-model choices.
+**`application-settings-surface`** — Settings opens as a centered, viewport-bounded dialog over the unchanged application shell, with a compact dialog title bar and one close action that cannot overlap the content. Opening settings without an explicit destination selects the first navigation item, General; contextual entry points may still select their requested section. Both ordinary settings pages and the rightmost provider/detail pane remain full-width scroll owners so their scrollbars stay against the outer edge, while symmetric responsive inline padding limits each inner settings track to 680px on wide windows. This same track applies to standalone settings content such as Agent Plugins; do not cap its responsive gutter at a fixed maximum or put `max-width` on a scrolling element itself. Empty right-detail placeholders sit directly on the pane canvas without a filled background, radius, or shadow; only their inner content alignment and spacing distinguish the empty state. Settings rests on one continuous native-material canvas: the top-level feature surface applies the theme tint once, while its navigation columns, detail panes, toolbars, and empty states remain transparent. Controls and interaction states may retain their own surfaces, but nested layout regions must not stack the translucent theme tint or add perimeter dividers. Settings does not replace or unmount chat state and never adds independent native window controls. Channel, model-provider, and MCP detail headings share one compact status-and-enable control: a status-dot pill followed by a labeled switch pill, both on the secondary surface. MCP details render discovered tools as ordinary divided Mica rows with the complete tool name and one trailing switch; this list belongs below connection testing so disabling a tool reads as capability policy rather than a transport setting. Settings collection panes use the model-provider list's 256px width and row geometry so moving between settings areas does not shift the information hierarchy. Model-provider and MCP collection rows use the shared neutral interaction fill on hover and selection without an additional rail or selected text treatment. Their compact filter affordances stay transparent at rest and reveal the shared neutral fill only while interactive; collection-footer add actions use the ordinary theme-aware control material instead of a primary accent pill. Onboarding reuses the same application Select triggers and floating menu grammar as Settings for language, theme, provider, and default-model choices.
 
-**`application-menu-bar`** — File, Edit, and Help share the compact desktop menu scale and remain available on every ordinary application surface. The removed Configure menu and its Memory, Roles, and Skills management views must not be rendered or exposed through shortcuts. Access keys, arrow navigation, and platform-labeled accelerators invoke the same actions as pointer selection. Edit preserves the focused editable context for Undo, Redo, Cut, Copy, Paste, Delete, and Select All; Help exposes the shared updater state and disables duplicate checks. Workspace and conversation navigation always reuse the current window. File -> New window immediately creates an independent window for the current workspace without opening a folder picker; targeted workspace and conversation navigation still reuses the registered workspace process. File also exposes Close Window (`Ctrl/⌘+W`) using the normal window-close behavior and Quit (`Ctrl/⌘+Q`) using the native application-exit command. Disabled back and forward controls retain enough contrast in both themes to remain visibly present in the sidebar role row. When the native window loses focus, keep the full-width top chrome background, divider, geometry, and menu availability unchanged while reducing the opacity of its application icon, sidebar role/history row, menu labels, centered workspace identity, status actions, and window controls; restoring focus returns them to full opacity from the same shell-owned focus state. Keep `desktop-shell-preview-focused=false` available to verify the inactive top chrome without native window state.
+**`application-menu-bar`** — File, Edit, and Help share the compact desktop menu scale and remain available on every ordinary application surface. The removed Configure menu and its Memory and Skills management views must not be rendered or exposed through shortcuts; role management belongs exclusively to the role-rail editor. Access keys, arrow navigation, and platform-labeled accelerators invoke the same actions as pointer selection. Edit preserves the focused editable context for Undo, Redo, Cut, Copy, Paste, Delete, and Select All; Help exposes the shared updater state and disables duplicate checks. Workspace and conversation navigation always reuse the current window. File -> New window immediately creates an independent window for the current workspace without opening a folder picker; targeted workspace and conversation navigation still reuses the registered workspace process. File also exposes Close Window (`Ctrl/⌘+W`) using the normal window-close behavior and Quit (`Ctrl/⌘+Q`) using the native application-exit command. Disabled back and forward controls retain enough contrast in both themes to remain visibly present in the conversation sidebar header. When the native window loses focus, keep the full-width top chrome background, divider, geometry, and menu availability unchanged while reducing the opacity of its application icon, role rail, sidebar history controls, menu labels, centered workspace identity, status actions, and window controls; restoring focus returns them to full opacity from the same shell-owned focus state. Keep `desktop-shell-preview-focused=false` available to verify the inactive top chrome without native window state.
 
 On Linux, including WSLg, the window manager owns the main window's outer frame,
 resize edge, and minimize/maximize/close controls; the application menu bar stays
@@ -477,6 +496,7 @@ Error and validation states were not surfaced in the analyzed pages.
 ## Do's and Don'ts
 
 ### Do
+
 - Use `{colors.primary}` (Action Blue #0066cc) for every interactive element — links, pill CTAs, focus signals — and nothing else. The single accent is non-negotiable.
 - Set headlines in `{typography.hero-display}` or `{typography.display-lg}` with negative letter-spacing (`-0.28 → -0.374px`) to get the signature "Apple tight" cadence.
 - Run body copy at `{typography.body}` (17px / 400 / 1.47 / -0.374px) — not 16px. The extra pixel defines the brand's reading pace.
@@ -488,6 +508,7 @@ Error and validation states were not surfaced in the analyzed pages.
 - Keep the global nav `{colors.surface-black}` (true black) — it's the only place pure black appears on most pages.
 
 ### Don't
+
 - Don't introduce a second accent color; every "click me" signal is `{colors.primary}` (Action Blue).
 - Don't add ad-hoc shadows to marketing cards, buttons, or text. Desktop-application controls and floating surfaces must use `--control-shadow` or `--raised-shadow`, never a one-off shadow.
 - Don't combine a filled application surface with a neutral perimeter border; use surface contrast and the shared shadow tokens instead.
@@ -502,25 +523,27 @@ Error and validation states were not surfaced in the analyzed pages.
 
 ### Breakpoints
 
-| Name | Width | Key Changes |
-|---|---|---|
-| Small phone | ≤ 419px | Single-column tiles; sub-nav collapses to category name + primary CTA only; hero typography drops to 28px |
-| Phone | 420–640px | Single-column stack; product renders scale to 80% of tile width; hero h1 drops to 34px |
-| Large phone | 641–735px | Tiles transition to tighter padding (48px vertical vs 80px); fine-print wraps |
-| Tablet portrait | 736–833px | Global nav collapses to hamburger; sub-nav hides category chips, keeps primary CTA |
-| Tablet landscape | 834–1023px | Global nav returns fully expanded; 3-column utility grids become 2-column |
-| Small desktop | 1024–1068px | Product tiles use 2/3 width with margin gutters; hero h1 stays at 40px |
-| Desktop | 1069–1440px | Full layout; 4–5 column store grids; 1440px content max |
-| Wide desktop | ≥ 1441px | Content locks at 1440px, margins absorb extra width |
+| Name             | Width       | Key Changes                                                                                               |
+| ---------------- | ----------- | --------------------------------------------------------------------------------------------------------- |
+| Small phone      | ≤ 419px     | Single-column tiles; sub-nav collapses to category name + primary CTA only; hero typography drops to 28px |
+| Phone            | 420–640px   | Single-column stack; product renders scale to 80% of tile width; hero h1 drops to 34px                    |
+| Large phone      | 641–735px   | Tiles transition to tighter padding (48px vertical vs 80px); fine-print wraps                             |
+| Tablet portrait  | 736–833px   | Global nav collapses to hamburger; sub-nav hides category chips, keeps primary CTA                        |
+| Tablet landscape | 834–1023px  | Global nav returns fully expanded; 3-column utility grids become 2-column                                 |
+| Small desktop    | 1024–1068px | Product tiles use 2/3 width with margin gutters; hero h1 stays at 40px                                    |
+| Desktop          | 1069–1440px | Full layout; 4–5 column store grids; 1440px content max                                                   |
+| Wide desktop     | ≥ 1441px    | Content locks at 1440px, margins absorb extra width                                                       |
 
 The structural breakpoints that matter for agents: 1440px (content lock), 1068px (small-desktop), 833px (tablet landscape switch), 734px (tablet portrait), 640px (phone), 480px (small phone).
 
 ### Touch Targets
+
 - Minimum 44 × 44px. `{component.button-primary}` lands at ~44 × 100px (with the full-pill radius making the visible hit area more generous than the label suggests).
 - `{component.button-icon-circular}` is exactly 44 × 44px.
 - Global nav utility links are smaller (~32 × 80px) — they deliberately sit at a tighter target because they're precision desktop actions, and the mobile hamburger replaces them at ≤ 833px.
 
 ### Collapsing Strategy
+
 - **Global nav**: full horizontal link row on desktop → collapses to Apple logo + hamburger + bag icon at 834px and below.
 - **Sub-nav**: category name + inline links + primary CTA → category name + primary CTA only at mobile; inline links move into a hamburger tray.
 - **Product tiles**: stack from 2-column to 1-column at 834px; vertical padding tightens from 80px → 48px at small-phone.
@@ -528,6 +551,7 @@ The structural breakpoints that matter for agents: 1440px (content lock), 1068px
 - **Hero typography**: `{typography.hero-display}` (56px) → `{typography.display-lg}` (40px) at 1068px → 34px at 640px → 28px at 419px.
 
 ### Image Behavior
+
 - All product imagery uses responsive `srcset` with breakpoint-matched crops.
 - Hero photography may switch art direction at mobile (e.g., the environment page's vista crops to a taller aspect ratio on mobile, framing the subject differently).
 - Product renders maintain their 1:1 or 4:3 aspect ratios across breakpoints; only scale changes.

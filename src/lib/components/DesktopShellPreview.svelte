@@ -10,6 +10,8 @@
   } from "$lib/types";
   import type { WindowPlatform } from "$lib/windowPlatform";
   import DesktopSidebar from "./DesktopSidebar.svelte";
+  import RoleSidebar from "./RoleSidebar.svelte";
+  import RoleEditorDialog from "./RoleEditorDialog.svelte";
   import DesktopTitleBar from "./DesktopTitleBar.svelte";
   import MessageInput from "./MessageInput.svelte";
 
@@ -24,6 +26,8 @@
   let attachments = $state<ChatAttachment[]>([]);
   let approvalMode = $state<ApprovalMode>("auto");
   let settingsOpen = $state(false);
+  let roleEditorOpen = $state(false);
+  let roleEditorRole = $state<AgentRole | null>(null);
   let searchQuery = $state("");
   const requestedPlatform = query.get("desktop-shell-preview-platform");
   const platformOverride: WindowPlatform | undefined =
@@ -40,6 +44,8 @@
       scope: "local",
       name: "Reviewer",
       description: "Review implementation changes",
+      skill_ids: ["local:playwright"],
+      mcp_server_ids: ["browser-tools"],
       usage_count: 3,
       created_at: 1,
       updated_at: 2,
@@ -146,8 +152,27 @@
 </script>
 
 <div class="desktop-shell-preview">
-  <DesktopSidebar
+  <RoleSidebar
     {roles}
+    {selectedRoleKey}
+    {settingsOpen}
+    {windowFocused}
+    onRoleChange={(role) => {
+      selectedRoleKey = role;
+    }}
+    onCreateRole={() => {
+      roleEditorRole = null;
+      roleEditorOpen = true;
+    }}
+    onEditRole={(role) => {
+      roleEditorRole = role;
+      roleEditorOpen = true;
+    }}
+    onOpenSettings={() => {
+      settingsOpen = !settingsOpen;
+    }}
+  />
+  <DesktopSidebar
     {selectedRoleKey}
     canGoBack={false}
     canGoForward={false}
@@ -164,10 +189,6 @@
     loadingMore={false}
     loadingRecentConversations={false}
     loading={false}
-    {settingsOpen}
-    onRoleChange={(role) => {
-      selectedRoleKey = role;
-    }}
     onBack={() => {}}
     onForward={() => {}}
     onNew={() => {
@@ -212,9 +233,6 @@
     onRemoveProject={(path) => {
       recentWorkspaces = recentWorkspaces.filter((item) => item.path !== path);
       pinnedProjectPaths = pinnedProjectPaths.filter((item) => item !== path);
-    }}
-    onToggleSettings={() => {
-      settingsOpen = !settingsOpen;
     }}
     {platformOverride}
     {windowFocused}
@@ -290,8 +308,52 @@
   </section>
 </div>
 
+<RoleEditorDialog
+  bind:open={roleEditorOpen}
+  role={roleEditorRole}
+  skills={[
+    {
+      name: "Playwright",
+      description: "Browser automation and visual verification",
+      dir_name: "playwright",
+      path: "C:\\Projects\\openagent\\.agents\\skills\\playwright",
+      scope: "local",
+    },
+    {
+      name: "Release checks",
+      description: "Qualify release artifacts and workflows",
+      dir_name: "release-checks",
+      path: "C:\\Users\\dev\\.agents\\skills\\release-checks",
+      scope: "global",
+    },
+  ]}
+  mcpServers={[
+    {
+      id: "browser-tools",
+      name: "Browser tools",
+      enabled: true,
+      transport: "stdio",
+      url: "",
+      bearer_token: "",
+      headers: {},
+      command: "bunx",
+      args: [],
+      env: {},
+    },
+  ]}
+  loadingResources={false}
+  saving={false}
+  onSave={() => {
+    roleEditorOpen = false;
+  }}
+  onDelete={() => {
+    roleEditorOpen = false;
+  }}
+/>
+
 <style>
   .desktop-shell-preview {
+    --role-sidebar-width: 52px;
     display: flex;
     width: 100vw;
     height: 100vh;
