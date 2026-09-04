@@ -1,5 +1,6 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { addDevUrlConfigArgument, findAvailableLoopbackPort } from "../scripts/tauri-dev-port.mjs";
 import {
   addCargoTargetDirectoryArgument,
@@ -91,4 +92,19 @@ describe("Tauri development target isolation", () => {
       "C:\\Users\\example\\AppData\\Local\\OpenAgent\\dev-targets",
     );
   });
+});
+
+test("Tauri development defers frontend and Runtime reloads through the component barrier", () => {
+  const vite = readFileSync("vite.config.js", "utf8");
+  const updater = readFileSync("src/lib/appUpdater.ts", "utf8");
+  const runtimeWatcher = readFileSync("scripts/dev-with-runtime-server.mjs", "utf8");
+
+  expect(vite).toContain('event: "openagent:component-update-pending"');
+  expect(vite).toContain('server.ws.on("openagent:component-update-ready"');
+  expect(updater).toContain('hot.on("openagent:component-update-pending"');
+  expect(updater).toContain('invoke<ComponentUpdateGate>("begin_component_update")');
+  expect(runtimeWatcher).toContain("writeRuntimeServerPendingStamp(repositoryRoot");
+  expect(runtimeWatcher).not.toContain(
+    "writeRuntimeServerReloadStamp(repositoryRoot, { revision });",
+  );
 });

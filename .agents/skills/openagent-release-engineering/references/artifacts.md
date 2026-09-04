@@ -94,7 +94,9 @@
   prepares and supervises the debug Runtime sidecar by default; keep embedded
   composition as an explicit diagnostic command rather than a silent fallback.
   Watch private Runtime Rust and Cargo inputs through the development command,
-  finish rebuilding and staging changed server bytes before signaling Tauri to
-  reload, and never let Tauri's direct source watcher restart against a stale
-  sidecar. A failed server build keeps the current process running and retries on
-  the next source change.
+  finish rebuilding and staging changed server bytes before signaling a pending
+  update. In Tauri development, defer both frontend HMR and the final Tauri reload
+  stamp through the Runtime-owned graceful update barrier so an active Agent is
+  never cancelled by source refresh. Never let Tauri's direct source watcher
+  restart against a stale sidecar. A failed server build keeps the current
+  process running and retries on the next source change.

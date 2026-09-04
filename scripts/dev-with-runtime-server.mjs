@@ -1,11 +1,15 @@
 import { watch } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { prepareRuntimeServer } from "./prepare-runtime-server.mjs";
+import {
+  runtimeServerPendingStampPath,
+  writeRuntimeServerPendingStamp,
+} from "./runtime-server-dev-signals.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const rebuildDelayMs = 250;
@@ -16,20 +20,6 @@ export function runtimeServerDevWatchTargets(repositoryRoot = root) {
     { path: path.join(repositoryRoot, "sdk", "Cargo.toml"), recursive: false },
     { path: path.join(repositoryRoot, "sdk", "Cargo.lock"), recursive: false },
   ];
-}
-
-export function runtimeServerReloadStampPath(repositoryRoot = root) {
-  return path.join(repositoryRoot, "src-tauri", "runtime-server-watch", "revision.json");
-}
-
-export async function writeRuntimeServerReloadStamp(
-  repositoryRoot = root,
-  { revision, updatedAt = new Date().toISOString() },
-) {
-  const stamp = runtimeServerReloadStampPath(repositoryRoot);
-  await mkdir(path.dirname(stamp), { recursive: true });
-  await writeFile(stamp, `${JSON.stringify({ revision, updatedAt })}\n`);
-  return stamp;
 }
 
 export function startRuntimeServerDevWatcher({
@@ -57,9 +47,9 @@ export function startRuntimeServerDevWatcher({
         const result = await prepare();
         if (result.changed) {
           revision += 1;
-          const stamp = await writeRuntimeServerReloadStamp(repositoryRoot, { revision });
+          const stamp = await writeRuntimeServerPendingStamp(repositoryRoot, { revision });
           console.log(
-            `[runtime-server] Prepared new server bytes; requested Tauri reload via ${stamp}.`,
+            `[runtime-server] Prepared new server bytes; waiting for the Runtime update barrier via ${stamp}.`,
           );
         } else {
           console.log("[runtime-server] Rebuild completed without a server byte change.");
@@ -91,7 +81,7 @@ export function startRuntimeServerDevWatcher({
 
 async function main() {
   await prepareRuntimeServer({ profile: "dev" });
-  await mkdir(path.dirname(runtimeServerReloadStampPath(root)), { recursive: true });
+  await mkdir(path.dirname(runtimeServerPendingStampPath(root)), { recursive: true });
   const runtimeWatcher = startRuntimeServerDevWatcher();
   const vite = spawn(process.execPath, ["run", "dev"], {
     cwd: root,
