@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.56.1-beta.1] - 2026-09-04
+
+### Bug Fixes
+- **chat**: Retain flow details without progress bar
+- **chat**: Hide completed flow details
+- **chat**: Hide empty conversation details
+
 ## [0.56.0-beta.1] - 2026-09-04
 
 ### Features
