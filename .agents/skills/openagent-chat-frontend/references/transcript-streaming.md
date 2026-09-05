@@ -25,12 +25,10 @@
   focus. A targeted workspace request reissues the
   focus request after its conversation navigation settles so an atomic switch
   cannot leave focus attached to the previously visible composer.
-  The ordinary Tauri shell must keep its
-  WebView, shared chrome, feature canvases, and conversation workspace at one
-  consistent 30%-opaque theme tint over the Rust-owned Mica/Acrylic/Blur or
-  macOS Vibrancy effect, leaving roughly 70% of the native material visible.
-  Paint the conversation stage with that canvas tint directly; do not place a
-  surface-colored pseudo-element or white veil over the main transcript.
+  The ordinary Tauri shell keeps its shared chrome at a 30%-opaque theme tint
+  over the Rust-owned Mica/Acrylic/Blur or macOS Vibrancy effect. Keep the
+  conversation stage transparent so the main transcript adds no independent
+  tint, surface-colored pseudo-element, or white veil over that material.
   Linux has no Rust-owned native material, so the route must not add the
   `native-window-material` class on Linux; otherwise the body becomes
   transparent and the WebView's default gray background leaks through the
@@ -192,9 +190,9 @@
   leading edge, with both indicators sharing the same width, interaction opacity,
   and vertical extent below the title bar.
   Keep the details panel surface opaque even when the surrounding conversation canvas
-  uses native material, so workspace content never shows through it. Keep the
-  composer's bottom readability fade inside the conversation card, but do not add an
-  ambient color or streaming glow behind the composer. Keep the main conversation
+  uses native material, so workspace content never shows through it. Do not
+  place a readability fade, ambient color, or streaming glow behind the
+  composer. Keep the main conversation
   workspace shadowless in both themes. Give the ordinary composer the standard Mica card surface and blur
   without a colored state shadow. Use
   the ordinary composer a low-contrast neutral hairline and a two-layer,

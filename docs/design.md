@@ -175,7 +175,7 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 
 ### Application Conversation Surfaces
 
-The desktop and remote conversational surfaces do not introduce a second brand palette. Use the active theme canvas for the conversation, neutral Mica for raised controls, and neutral fades where content must remain readable behind the bottom composer. Colored ambient gradients, composer glows, and streaming shadows are not part of the chat surface treatment.
+The desktop and remote conversational surfaces do not introduce a second brand palette. Keep the conversation stage transparent and use neutral Mica only for raised controls. Do not place a fade, ambient gradient, glow, or streaming shadow behind the bottom composer.
 
 ## Typography
 
@@ -267,7 +267,7 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 
 ### Application Chat Depth
 
-Conversation canvases, new-conversation states, and composer backgrounds use only neutral theme surfaces. The main conversation stage paints the application background directly, without a white surface veil, so native window material remains visible through its theme tint. Keep the bottom readability fade behind a bottom-anchored composer, but do not add colored radial fields, animated ambient glows, or colored streaming shadows. Streaming state belongs to the primary action and status indicators rather than the composer perimeter.
+Conversation canvases, new-conversation states, and composer backgrounds use only neutral theme surfaces. The main conversation stage remains transparent, without its own tint or a white surface veil, so native window material remains continuous behind the transcript. Do not place a readability fade, colored radial field, animated ambient glow, or colored streaming shadow behind the composer. Streaming state belongs to the primary action and status indicators rather than the composer perimeter.
 
 ## Shapes
 

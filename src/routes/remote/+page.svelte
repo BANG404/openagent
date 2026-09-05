@@ -1659,17 +1659,6 @@
     padding-bottom: 16px;
     pointer-events: none;
   }
-  .input-area::before {
-    position: absolute;
-    z-index: 0;
-    inset: -48px 0 0;
-    background: linear-gradient(to top, var(--bg) 0%, var(--bg) 60%, transparent 100%);
-    content: "";
-    pointer-events: none;
-  }
-  .input-area-new-conversation::before {
-    opacity: 0;
-  }
   .input-area-new-conversation {
     top: calc(50% - 10px);
     bottom: auto;

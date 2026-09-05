@@ -1080,7 +1080,6 @@
   </main>
 {:else if preview === "checkpoint-flow"}
   <main class="checkpoint-flow-preview-stage">
-    <div class="conversation-input-fade" aria-hidden="true"></div>
     <header class="checkpoint-flow-preview-titlebar">
       {#if checkpointFlowPreviewHasDetails}
         <span>{$t("conversationDetails")}</span>
@@ -1810,14 +1809,6 @@
   .reasoning-effort-preview-card code {
     color: var(--text-muted);
     font-size: 12px;
-  }
-  .conversation-input-fade {
-    position: absolute;
-    inset: auto 0 0;
-    z-index: 1;
-    height: 168px;
-    background: linear-gradient(to top, var(--bg) 0%, var(--bg) 60%, transparent 100%);
-    pointer-events: none;
   }
   @media (max-width: 760px) {
     .follow-up-suggestions-preview-stage {

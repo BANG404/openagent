@@ -221,6 +221,8 @@
   both kinds of data so complete omission of the panel and its title-bar entry
   remains directly verifiable. The `-completed` parameter retains a completed
   flow projection without file changes and must keep that flow inspectable.
+  Mirror the production conversation's transparent composer surroundings; do
+  not add a bottom readability fade to this preview.
 - Keep the development-only `book-mode-preview` query available with long,
   process-bearing fixture content and consecutive ordinary tools that exercise
   grouped tool-call rendering. Its `-theme` and `-locale` query parameters must

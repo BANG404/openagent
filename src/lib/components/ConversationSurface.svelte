@@ -152,14 +152,8 @@
   }
 </script>
 
-<div class="conversation-workspace" style:--input-area-height={`${inputAreaHeight}px`}>
+<div class="conversation-workspace">
   <div class="conversation-stage">
-    <div
-      class="conversation-input-fade"
-      class:conversation-input-fade-streaming={view.isStreaming}
-      class:conversation-input-fade-hidden={view.newConversationLayout}
-      aria-hidden="true"
-    ></div>
     {#if !view.tauriAvailable}
       <div class="runtime-banner">{view.browserModeNotice}</div>
     {/if}
@@ -337,7 +331,7 @@
     flex-direction: column;
     overflow: hidden;
     border-radius: 12px;
-    background: var(--bg);
+    background: transparent;
   }
 
   .runtime-banner {
@@ -374,50 +368,6 @@
     pointer-events: none;
   }
 
-  .conversation-input-fade {
-    position: absolute;
-    inset: auto 0 0;
-    z-index: 1;
-    height: calc(var(--input-area-height, 120px) + 48px);
-    background: linear-gradient(to top, var(--surface) 0%, var(--surface) 60%, transparent 100%);
-    opacity: 1;
-    pointer-events: none;
-    transition: opacity 420ms ease;
-  }
-
-  .conversation-input-fade::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    bottom: -26px;
-    width: min(calc(100% + 24px), 988px);
-    height: 90px;
-    z-index: 1;
-    background: linear-gradient(
-      to top,
-      rgba(245, 245, 247, 0.82),
-      rgba(245, 245, 247, 0.08) 72%,
-      transparent
-    );
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent 0%,
-      #000 10%,
-      #000 90%,
-      transparent 100%
-    );
-    mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
-    pointer-events: none;
-    transform: translateX(-50%);
-    transition:
-      background 1.2s cubic-bezier(0.16, 1, 0.3, 1),
-      opacity 420ms ease;
-  }
-
-  .conversation-input-fade-hidden {
-    opacity: 0;
-  }
-
   .input-area-new-conversation {
     top: calc(50% + 14px);
     bottom: auto;
@@ -427,24 +377,6 @@
 
   .input-area-new-conversation-without-suggestions {
     top: calc(50% - 10px);
-  }
-
-  .conversation-input-fade-streaming::after {
-    background: linear-gradient(
-      to top,
-      rgba(245, 245, 247, 0.62),
-      rgba(245, 245, 247, 0.04) 72%,
-      transparent
-    );
-  }
-
-  :global(html.dark) .conversation-input-fade::after {
-    background: linear-gradient(
-      to top,
-      rgba(15, 17, 23, 0.76),
-      rgba(15, 17, 23, 0.08) 72%,
-      transparent
-    );
   }
 
   .input-inner {
@@ -466,26 +398,6 @@
 
   .input-area-new-conversation .input-inner :global(.composer-copy) {
     min-height: 99px;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .input-area::after {
-      background: linear-gradient(
-        to top,
-        rgba(15, 17, 23, 0.76),
-        rgba(15, 17, 23, 0.08) 72%,
-        transparent
-      );
-    }
-
-    :global(html.light) .input-area::after {
-      background: linear-gradient(
-        to top,
-        rgba(245, 245, 247, 0.82),
-        rgba(245, 245, 247, 0.08) 72%,
-        transparent
-      );
-    }
   }
 
   .conversation-workspace :global(.composer) {

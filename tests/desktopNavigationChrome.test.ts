@@ -7,6 +7,19 @@ const componentsUrl = new URL("../src/lib/components/", import.meta.url);
 const appCssUrl = new URL("../src/app.css", import.meta.url);
 
 describe("desktop navigation chrome", () => {
+  test("keeps every conversation composer free of backdrop fades", async () => {
+    const [conversationSurface, standalonePreview, remoteRoute] = await Promise.all([
+      readFile(new URL("ConversationSurface.svelte", componentsUrl), "utf8"),
+      readFile(new URL("StandaloneDevPreview.svelte", componentsUrl), "utf8"),
+      readFile(new URL("../src/routes/remote/+page.svelte", import.meta.url), "utf8"),
+    ]);
+
+    expect(conversationSurface).not.toContain("conversation-input-fade");
+    expect(conversationSurface).not.toContain(".input-area::after");
+    expect(standalonePreview).not.toContain("conversation-input-fade");
+    expect(remoteRoute).not.toContain(".input-area::before");
+  });
+
   test("keeps one shared title bar above every ordinary desktop surface", async () => {
     const route = await readFile(routeUrl, "utf8");
 
@@ -122,7 +135,7 @@ describe("desktop navigation chrome", () => {
     expect(conversationWorkspace).toContain("background: transparent");
     expect(conversationWorkspace).not.toContain("box-shadow");
     expect(conversationStage).toContain("border-radius: 12px");
-    expect(conversationStage).toContain("background: var(--bg)");
+    expect(conversationStage).toContain("background: transparent");
     expect(conversationSurface).not.toContain(".conversation-stage::before");
     expect(conversationStage).not.toContain("box-shadow");
     expect(titleBar).not.toContain("workspace-environment");
