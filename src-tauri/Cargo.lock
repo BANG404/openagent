@@ -7604,7 +7604,7 @@ dependencies = [
 
 [[package]]
 name = "openagent"
-version = "0.56.1-beta.2"
+version = "0.57.0-beta.1"
 dependencies = [
  "anyhow",
  "async-trait",

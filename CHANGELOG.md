@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.57.0-beta.1] - 2026-09-05
+
+### Features
+- **desktop**: Open settings and roles in utility windows
+- **chat**: Configure recent compaction timeline
+- **settings**: Split management into native windows
+
+### Bug Fixes
+- **graph**: Finish child cancellation
+- **chat**: Count write content lines in tool badge
+- **chat**: Keep composer clear of transcript scrollbar
+- **ui**: Rename Chinese agent menu to run
+- **chat**: Add space between footer and next message
+- **chat**: Space assistant footer metadata
+- **desktop**: Remove native window theme tint
+- **desktop**: Expose native role window material
+- **chat**: Restore gray component surfaces
+- **ui**: Unify conversation surface colors
+- **desktop**: Make main shell transparent
+- **desktop**: Fit settings windows to content
+- **chat**: Remove composer backdrop fades
+- **chat**: Remove opaque conversation veil
+- **desktop**: Avoid settings WebView deadlock
+- **menubar**: Exclude interactive items from title bar drag region
+- **titlebar**: Remove drag region from menu container
+- **sidebar**: Hide child conversations from recents
+- **sdk**: Recover context limit failures
+- **sdk**: Update per-request retry behavior
+- **chat**: Stream graph node starts
+- **chat**: Distinguish pending graph nodes
+- **dev**: Defer hot reload during agent runs
+- **settings**: Align Flash task content width
+- **chat**: Clarify checkpoint graph layout
+- **updater**: Defer component activation during agent runs
+
+### Miscellaneous
+- **sdk**: Update pinned revision
+
 ## [0.56.1-beta.2] - 2026-09-04
 
 ## [0.56.1-beta.1] - 2026-09-04
