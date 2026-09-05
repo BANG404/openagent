@@ -7,11 +7,11 @@
   Acrylic and Blur fallbacks; macOS uses the Tauri-compatible
   `window-vibrancy` integration. Linux uses an opaque WebView inside
   its native window-manager frame.
-- Main, onboarding, feature, conversation, Settings, and role-editor canvases share a
-  30%-opaque theme tint where native material is available. Content
-  controls remain surfaced; quick chat, browser previews, and
-  development inspector windows keep their intentional separate
-  backgrounds.
+- Main, onboarding, feature, Settings, and role-editor window canvases remain
+  fully transparent where native material is available; do not overlay a
+  theme-color tint. Content controls and the inset conversation stage remain
+  surfaced; quick chat, browser previews, and development inspector windows
+  keep their intentional separate backgrounds.
 - Serialize native theme requests and, when returning to the system
   theme, clear the native override before resolving the WebView media
   preference so both layers use the same palette. Treat `docs/design.md`

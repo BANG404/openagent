@@ -63,8 +63,9 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   an actionable retry in the same card. A configured installation that needs
   resource repair opens directly on this final step instead of repeating model-
   provider configuration.
-  The title bar and sidebar remain fully transparent over the native window
-  material: Windows prefers Mica with Acrylic and Blur fallbacks, while macOS
+  Every native window canvas, including onboarding, Settings, and role editing,
+  remains fully transparent over the native window material without a theme-
+  color tint: Windows prefers Mica with Acrylic and Blur fallbacks, while macOS
   uses Vibrancy. The inset conversation stage uses the opaque theme surface so
   its light appearance is consistently white. Content-bearing controls and
   cards retain their own surfaces. Browser previews use the same conversation

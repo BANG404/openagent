@@ -218,7 +218,7 @@
     height: 100vh;
     display: flex;
     overflow: hidden;
-    background: color-mix(in srgb, var(--bg) 30%, transparent);
+    background: transparent;
     color: var(--text);
   }
 

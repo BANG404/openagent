@@ -189,31 +189,11 @@
     --component-neutral-bg: #f4f4f5;
   }
 
-  /* Keep roughly 70% of the native material visible below a readable theme tint. */
+  /* Let Rust-owned Mica, Acrylic, Blur, or Vibrancy provide the native canvas. */
   html.native-window-material {
-    --bg: rgba(245, 245, 247, 0.3);
-    --app-chrome-bg: rgba(245, 245, 247, 0.3);
-    --sidebar-bg: rgba(245, 245, 247, 0.3);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    html.native-window-material {
-      --bg: rgba(15, 17, 23, 0.3);
-      --app-chrome-bg: rgba(15, 17, 23, 0.3);
-      --sidebar-bg: rgba(15, 17, 23, 0.3);
-    }
-  }
-
-  html.dark.native-window-material {
-    --bg: rgba(15, 17, 23, 0.3);
-    --app-chrome-bg: rgba(15, 17, 23, 0.3);
-    --sidebar-bg: rgba(15, 17, 23, 0.3);
-  }
-
-  html.light.native-window-material {
-    --bg: rgba(245, 245, 247, 0.3);
-    --app-chrome-bg: rgba(245, 245, 247, 0.3);
-    --sidebar-bg: rgba(245, 245, 247, 0.3);
+    --bg: transparent;
+    --app-chrome-bg: transparent;
+    --sidebar-bg: transparent;
   }
 
   * {

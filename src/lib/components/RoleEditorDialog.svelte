@@ -329,7 +329,7 @@
     transform: none;
     border: 0;
     border-radius: 0;
-    background: color-mix(in srgb, var(--bg) 30%, transparent);
+    background: transparent;
     box-shadow: none;
     backdrop-filter: none;
   }

@@ -155,9 +155,9 @@ describe("desktop navigation chrome", () => {
     const flowPanel = await readFile(new URL("CheckpointFlowStatus.svelte", componentsUrl), "utf8");
     const nativeMaterialTokens = appCss.match(/html\.native-window-material\s*{([^}]*)}/s)?.[1];
 
-    expect(nativeMaterialTokens).toContain("--bg: rgba(245, 245, 247, 0.3)");
-    expect(nativeMaterialTokens).toContain("--app-chrome-bg: rgba(245, 245, 247, 0.3)");
-    expect(nativeMaterialTokens).toContain("--sidebar-bg: rgba(245, 245, 247, 0.3)");
+    expect(nativeMaterialTokens).toContain("--bg: transparent");
+    expect(nativeMaterialTokens).toContain("--app-chrome-bg: transparent");
+    expect(nativeMaterialTokens).toContain("--sidebar-bg: transparent");
     expect(appCss).toMatch(
       /html\.native-window-material \.flow-panel-surface\s*{[^}]*background: var\(--surface\);[^}]*backdrop-filter: none;/s,
     );
