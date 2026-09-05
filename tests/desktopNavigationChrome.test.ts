@@ -338,7 +338,7 @@ describe("desktop navigation chrome", () => {
     expect(workspaceBrowser).toContain("projectsCollapsed");
     expect(workspaceBrowser).toContain("recentsCollapsed");
     expect(workspaceBrowser).toContain("projectSearchRank");
-    expect(workspaceBrowser).toContain(".slice(0, 20)");
+    expect(workspaceBrowser).toContain("recentSidebarConversations(recentConversations)");
     expect(workspaceBrowser).not.toContain("IntersectionObserver");
     expect(workspaceBrowser).not.toMatch(/\.recent-conversations\s*{[^}]*overflow-y:/s);
   });

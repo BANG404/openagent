@@ -77,6 +77,12 @@ export function mergeRecentConversationRefresh(
   return sortRecentConversations([...refreshedById.values()]).slice(0, recentConversationLimit);
 }
 
+export function recentSidebarConversations(conversations: Conversation[]): Conversation[] {
+  return sortRecentConversations(
+    conversations.filter((conversation) => !conversation.parentConvId),
+  ).slice(0, recentConversationLimit);
+}
+
 export function removeProjectConversationSnapshot(
   previous: ProjectConversationSnapshots,
   workspacePath: string,

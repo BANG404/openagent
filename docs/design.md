@@ -77,7 +77,9 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   directly against the title bar's lower edge, with 8px side and bottom gutters
   and compact, clearly edged elevation instead of shell divider lines.
   The sidebar groups workspace-owned conversations under Projects and shows one
-  cross-workspace, newest-first Recent conversations list for the selected role.
+  cross-workspace, newest-first Recent conversations list of top-level chats for
+  the selected role. Child conversations remain in their project hierarchy and
+  do not appear as separate Recent entries.
   Project groups retain their persisted first-save order across workspace
   selection changes, with pinned groups kept ahead without otherwise changing
   order. Projects does not impose a fixed item cap: every available persisted or

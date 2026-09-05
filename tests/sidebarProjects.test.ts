@@ -9,6 +9,7 @@ import {
   promoteRecentConversation,
   projectConversationPageSize,
   projectsInPersistedOrder,
+  recentSidebarConversations,
   refreshProjectConversationSnapshot,
   removeProjectConversationSnapshot,
   togglePinnedProjectPath,
@@ -109,6 +110,34 @@ describe("sidebar project order", () => {
       optimistic,
       other,
     ]);
+  });
+
+  test("shows only top-level conversations in the bounded recent projection", () => {
+    const conversations = Array.from({ length: 22 }, (_, index) => ({
+      id: `top-${index}`,
+      title: `top ${index}`,
+      workspace: "C:/project",
+      messages: [],
+      createdAt: index,
+      updatedAt: index,
+    }));
+    const child = {
+      ...conversations[0],
+      id: "child",
+      title: "child",
+      parentConvId: "top-21",
+      updatedAt: 100,
+    };
+
+    const projected = recentSidebarConversations([child, ...conversations]);
+
+    expect(projected).toHaveLength(20);
+    expect(projected.map((conversation) => conversation.id)).toEqual(
+      conversations
+        .slice(2)
+        .reverse()
+        .map((conversation) => conversation.id),
+    );
   });
 
   test("keeps one conversation-list component mounted for every project", async () => {
@@ -252,7 +281,7 @@ describe("sidebar project order", () => {
     const recentsStart = source.indexOf("let allRecentConversations");
     const recentsProjection = source.slice(recentsStart, source.indexOf("let projectEntries"));
 
-    expect(recentsProjection).toContain("[...recentConversations]");
+    expect(recentsProjection).toContain("recentSidebarConversations(recentConversations)");
     expect(recentsProjection).not.toContain("conversations.map");
     expect(recentsProjection).not.toContain("for (const item of conversations)");
   });

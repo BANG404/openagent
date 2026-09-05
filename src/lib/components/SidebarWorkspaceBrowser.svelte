@@ -5,6 +5,7 @@
   import {
     projectRowSelection,
     projectsInPersistedOrder,
+    recentSidebarConversations,
     refreshProjectConversationSnapshot,
     removeProjectConversationSnapshot,
     updateProjectConversationSnapshots,
@@ -106,11 +107,7 @@
 
   let projectConversationSnapshots = $derived(conversationSnapshotsByRole[selectedRoleKey] ?? {});
 
-  let allRecentConversations = $derived(
-    [...recentConversations]
-      .sort((a, b) => b.updatedAt - a.updatedAt || b.id.localeCompare(a.id))
-      .slice(0, 20),
-  );
+  let allRecentConversations = $derived(recentSidebarConversations(recentConversations));
 
   let projectEntries = $derived.by(() => {
     const pinnedPaths = new Set(pinnedProjectPaths);

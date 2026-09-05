@@ -113,7 +113,8 @@
   delegated role, Goal, and Graph conversations. Indent each child title beyond
   its parent title and increase that inset at every deeper active-branch level.
   Recent conversations is one newest-first projection of the 20 most recently
-  updated conversations across workspace metadata for the selected role. Keep
+  updated top-level conversations across workspace metadata for the selected role;
+  child conversations appear only inside their owning project hierarchy. Keep
   that projection independent from the selected workspace's conversation page,
   and retain the loaded role snapshot during a same-role background refresh so
   workspace switching only updates keyed rows in place. Keep it in the sidebar's
