@@ -303,7 +303,9 @@
   sidebar row width. The native transcript scrollbar follows the application-wide
   activity treatment: reveal it during scrolling or pointer movement in the
   scroller, then hide its thumb after the shared idle delay without collapsing
-  the reserved gutter. The
+  the reserved gutter. Restrict the overlaid composer area's pointer hit testing
+  to its rendered controls; transparent layout padding must pass pointer input
+  through so the scrollbar remains draggable beside the composer. The
   application viewport must not become a second scroll container: keep
   `html`/`body` overflow locked and contain transcript overscroll so wheel or
   touch input at either boundary cannot chain into an outer scrollbar. User
