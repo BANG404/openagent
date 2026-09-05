@@ -530,18 +530,27 @@
     line-height: 28px;
     cursor: default;
     outline: none;
+    /* Keep top-menu interactive children outside the title-bar drag region
+       so Windows WebView2 does not eat the click that opens the dropdown
+       and freeze the window mid-drag in dev mode. */
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
   }
 
   :global(.application-menu-content) {
     min-width: 230px;
     max-width: min(460px, calc(100vw - 24px));
     z-index: 240;
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
   }
 
   :global(.application-menu-item) {
     justify-content: space-between;
     gap: 24px;
     cursor: default;
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
   }
 
   :global(.application-menu-shortcut) {
