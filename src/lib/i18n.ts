@@ -25,7 +25,7 @@ const zh = {
   applicationMenu: "应用程序菜单",
   fileMenu: "文件",
   editMenu: "编辑",
-  agentMenu: "Agent",
+  agentMenu: "运行",
   integrationsMenu: "集成",
   automationMenu: "自动化",
   helpMenu: "帮助",
