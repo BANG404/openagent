@@ -52,7 +52,8 @@
   and focus it instead of constructing another WebView. Window
   construction remains a native host responsibility; each Settings
   WebView reloads and saves configuration through the shared SDK
-  contract.
+  contract. Dispatch on-demand WebView construction through an async Tauri
+  command so Windows WebView2 initialization cannot block its own UI thread.
 
 ## Platform window conventions
 

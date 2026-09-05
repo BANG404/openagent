@@ -227,7 +227,7 @@ describe("desktop navigation chrome", () => {
     expect(settings).toMatch(
       /if \(visibleSections\.has\("channels"\)\) \{[\s\S]*?wechatStatusTimer = setInterval/,
     );
-    expect(host).toContain("fn open_settings_window(");
+    expect(host).toContain("async fn open_settings_window(");
     expect(host).toContain("if let Some(window) = app.get_webview_window(spec.label)");
     expect(host).toMatch(/window\s*\.emit\("settings-section-requested", &section\)/s);
   });

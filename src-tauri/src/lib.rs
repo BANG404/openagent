@@ -2357,7 +2357,7 @@ fn settings_window_spec(kind: &str) -> Option<SettingsWindowSpec> {
 }
 
 #[tauri::command]
-fn open_settings_window(
+async fn open_settings_window(
     app: tauri::AppHandle,
     manager: State<'_, FrontendResourceManager>,
     kind: String,
