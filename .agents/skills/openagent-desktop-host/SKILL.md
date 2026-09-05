@@ -7,186 +7,30 @@ metadata:
 
 # OpenAgent desktop host
 
-Keep `src-tauri` a product adapter over the private SDK, not a second runtime.
-Read `sdk/AGENTS.md` before changing the SDK side of any boundary.
-Do not load replaceable Rust dynamic libraries. Runtime extraction uses a
-verified, supervised process with a versioned transport contract, fallback
-binary, and exclusive durable-state ownership.
+Keep `src-tauri` a product adapter over the private SDK, not a second
+runtime. Read `sdk/AGENTS.md` before changing the SDK side of any
+boundary. Do not load replaceable Rust dynamic libraries. Runtime
+extraction uses a verified, supervised process with a versioned transport
+contract, fallback binary, and exclusive durable-state ownership.
 
-## Ownership
+## Read the right reference
 
-- Use `openagent-app` only for product bootstrap and `openagent-runtime` for
-  execution APIs.
-- Keep Rust host code limited to thin binary entry points, Tauri builder,
-  command and event adapters, desktop capabilities, build configuration, and
-  packaging metadata.
-- Ordinary frontend input goes through the shared SDK client. Do not duplicate
-  flow selection, slash-command parsing, configuration ownership, database
-  operations, or runtime state machines in the host.
-- The supervised desktop server keeps the complete Harness `/v1` router and
-  adds the product `/api` router through `--desktop-api`. Both surfaces must
-  execute in that one server process; do not introduce an embedded or parallel
-  agent Runtime for desktop Harness behavior.
-- Change IPC contracts atomically across the SDK contract or adapter, public
-  frontend types, and every caller.
-- A replaceable Runtime supervisor must accept only compatible loopback
-  readiness records, authenticate health probes with a process-scoped token,
-  stop the old child through its private control pipe before starting a
-  candidate, and restart the previous verified launch on failure. Release
-  desktop startup must use that supervised process as the only durable-state
-  Runtime; the packaged server is a fallback binary, not a concurrent writer.
-- Component activation must acquire the Runtime's graceful update barrier before
-  replacing a Runtime, reloading product WebViews, or restarting the desktop
-  shell. Never cancel active Agent work for an update. Defer activation when the
-  bounded wait cannot drain naturally, and release the barrier after failure or
-  a confirmed frontend-only reload.
-- Keep the supervised Runtime Bearer token in Rust. WebViews send only bounded
-  `/api` method/path/body requests through the host proxy, while Rust attaches
-  authentication and relays the Runtime SSE bus to existing Tauri event names.
-  A lagged or disconnected SSE stream must stop live delivery and request a
-  durable frontend resync before a new stream is started.
-- Rewrite Runtime media and HTML asset URLs to the host-owned
-  `openagent-runtime` protocol. Permit only GET/HEAD requests for bounded media
-  and HTML asset paths, preserve byte-range response headers, and attach the
-  process token only in Rust. Resolve workspace paths in the Runtime before the
-  host invokes the native opener. Native open requests must select the active
-  Runtime mode at runtime: ordinary debug and release shells use the supervised
-  Runtime proxy, while the explicit embedded diagnostic uses its managed
-  Runtime state. Do not select this boundary with compile-time debug cfgs.
-- Serve replaceable frontend versions only through the host-owned
-  `openagent-ui` protocol. Activation must atomically retain the previous
-  selection, reload every product WebView with the candidate version, require
-  a mounted-frontend confirmation, and fall back to the embedded frontend when
-  no verified previous selection exists.
+Open only the references that own the affected behavior:
 
-## Startup and windows
+- Runtime supervisor, IPC contracts, and asset protocols:
+  [references/ownership.md](references/ownership.md)
+- Startup, single instance, activation, and window management:
+  [references/startup-windows.md](references/startup-windows.md)
+- Native material, theme tint, and debug automation:
+  [references/native-material.md](references/native-material.md)
+- Native-shell verification routing:
+  [references/native-verification.md](references/native-verification.md)
 
-- Register single-instance enforcement as the first Tauri plugin for ordinary
-  primary launches. A repeated launch restores, shows, and focuses the existing
-  main window. If the setup window is currently visible for first-run
-  configuration or embedding-resource repair, restore that instead; its pre-
-  created but hidden WebView stays closed only when configuration and the local
-  resource are both ready. After any successful programmatic `set_focus`, including
-  repeated launch and registered-workspace navigation, emit
-  `desktop-window-activated` to the target WebView because Windows may not deliver
-  a distinct focus-changed callback. The main WebView consumes both signals as new
-  composer-focus requests, including activation events that arrive without a
-  preceding blur callback. `tauri-plugin-pilot` enables Tauri's unstable
-  multi-WebView path, so Windows native-shell dependencies must retain the
-  upstream fix for tauri-apps/tauri#15624: when the top-level window regains
-  focus through Alt+Tab, Tauri restores the last focused WebView through its
-  WebView2 controller. Keep the merged upstream revision pinned until a stable
-  Tauri release includes that fix. Do not replace it with an application-level
-  delayed `SetFocus` callback; the runtime must update its focus state and move
-  focus synchronously with the native window event.
-- Exclude headless agent-server and SDK-owned
-  `--openagent-workspace-window` processes from that guard; dedicated workspace
-  processes are part of the multi-workspace contract.
-- File -> New window launches an independent copy of the current workspace
-  immediately. Keep that explicit duplicate detached from the SDK's registered
-  workspace route so targeted navigation continues to focus the canonical
-  workspace process.
-- Switching the workspace in the current shell is an in-place product
-  operation, including when the Tauri WebView uses the supervised server
-  Runtime. Only the explicit New window command may spawn a second process.
-- Keep embedding resource status, seed/download preparation, verification,
-  progress events, and live model loading in the supervised server. Tauri may
-  resolve and pass a packaged seed directory, proxy the finite operations, and
-  project Runtime events; it must not restart the server to load a prepared model.
-- In ordinary Tauri development, rebuild and stage the debug server before
-  requesting a host reload when SDK Runtime sources change. Do not watch those
-  sources directly from Tauri because that can relaunch the host with the previous
-  sidecar bytes and leave frontend/server operations out of sync.
-- The system tray, its Show action, and its Quit action are native host
-  responsibilities and must not depend on a WebView JavaScript channel. Quit
-  is registered on the application-level native menu event path, immediately
-  records the one-way quitting state, hides every application window and the tray,
-  and starts an independent bounded exit watchdog before asynchronous cleanup.
-  Stop the supervised Runtime before the Runtime event proxy, bound both waits,
-  and signal every parent-controlled workspace process before cleanup begins. Each
-  child must use the same native quit path so its own Runtime drains, while EOF on
-  the private parent-control pipe also closes descendants after an abnormal parent
-  exit. Reap bounded child processes before flushing tracing and performing Tauri
-  cleanup. Do not keep the product window visible while cleanup drains, or rely on
-  an exit request, an unbounded async task, or supervisor destruction after the
-  Tauri event loop: tray or window lifecycle handlers can retain the host or leave
-  desktop and server processes alive.
-- A supervised external Runtime receives the host process's exact workspace
-  navigation context: optional conversation ID, optional message ID, and the
-  explicit-new-conversation flag. Preserve those fields across Runtime resource
-  reload and rollback. The host must not broaden the Runtime's startup workspace
-  authorization to make cross-workspace navigation succeed.
-- Reveal a dedicated workspace window's main shell as soon as Tauri setup owns
-  the runtime host. Let the frontend's layout-stable loading state remain
-  visible while startup bootstrap restores durable conversation data.
-- Tauri's synchronous `setup` callback is not a Tokio worker. Enter
-  `tauri::async_runtime` before SDK lifecycle calls that spawn Tokio tasks.
-- Run SDK-owned persisted-data compatibility inspection before runtime and
-  WebView construction. The desktop may collect native confirmation, but the
-  host must not duplicate inspection, backup, reset, or migration operations.
-- Pre-create the centered onboarding window at its fixed 960 × 640px product
-  geometry. Keep it non-resizable and non-maximizable so every setup step uses
-  the same verified canvas while dense form content scrolls inside the WebView.
-- Create Settings management windows on demand with fixed domain labels. Each
-  domain is a modeless singleton: repeated application-menu requests select the
-  requested section, restore the existing window, and focus it instead of
-  constructing another WebView. Window construction remains a native host
-  responsibility; each Settings WebView reloads and saves configuration through
-  the shared SDK contract.
-- Create the Linux main window as an opaque, natively decorated window so the
-  compositor, including WSLg, owns its outer frame and resize edge. Keep custom
-  window controls out of the Linux WebView; Windows and macOS retain the
-  frameless product chrome and platform-specific controls.
-- On Windows, determine completion-notification activity by resolving the
-  foreground and Tauri HWNDs through `GA_ROOTOWNER`, with current-process
-  ownership as the native-dialog fallback. Do not require exact HWND equality:
-  WebView2 may activate a child HWND, including one hosted by its subprocess,
-  while the product window is visibly foreground. Other platforms retain
-  Tauri's native window-focus query.
+## Verification
 
-## Native material
-
-On Windows and macOS, ordinary main and onboarding WebViews remain transparent
-over Rust-owned native material. Windows uses Mica with Acrylic and Blur
-fallbacks; macOS uses the Tauri-compatible `window-vibrancy` integration. Linux
-uses an opaque WebView inside its native window-manager frame. Main, onboarding,
-feature, and conversation canvases share a 30%-opaque theme tint where native
-material is available. Content controls remain surfaced; quick chat, browser
-previews, and development inspector windows keep their intentional separate
-backgrounds. Serialize native theme requests and,
-when returning to the system theme, clear the native override before resolving
-the WebView media preference so both layers use the same palette. Treat
-`docs/design.md` as the visual source of truth.
-
-## Debug automation
-
-Ordinary `bun tauri dev` startup must use the prepared debug
-`openagent-server` through the same supervisor, authenticated proxy, Runtime
-asset protocol, and SSE resync path as release startup. Keep embedded Runtime
-composition behind the explicit `bun run tauri:dev:embedded` diagnostic command;
-that command alone enables the `embedded-runtime` Cargo feature. Keep the feature
-disabled by default so ordinary debug and release shell binaries do not retain
-the embedded Runtime bootstrap or product command adapter in their linked image.
-external startup failure must remain visible instead of selecting it
-automatically. Both modes use the isolated development data root unless
-`OPENAGENT_HOME` explicitly selects a task fixture.
-
-Keep `tauri-plugin-pilot` registered after the single-instance plugin. Its
-named-pipe bridge and injected WebView instrumentation are available by default
-in debug builds for native-shell verification; the plugin remains a no-op in
-release builds. Retain `pilot:default` only on the existing desktop capability
-that covers application-owned windows.
-
-## Verification routing
-
-Keep host Rust warning-free: native quality treats compiler and Clippy warnings
-as errors, so behavior-preserving refactors must use the idioms required by the
-configured toolchain. When a toolchain update introduces a style-only lint,
-adopt the current Rust expression or borrowing form instead of suppressing the
-warning.
-
-For behavior involving the real shell, native material, OS theme, title bar,
-focus, or window geometry, read and follow
-[references/native-verification.md](references/native-verification.md).
-If the behavior is completely reproducible in a browser, use the workspace
-`playwright` skill instead.
+Keep host Rust warning-free: native quality treats compiler and Clippy
+warnings as errors, so behavior-preserving refactors must use the idioms
+required by the configured toolchain. When a toolchain update introduces a
+style-only lint, adopt the current expression or borrowing form instead of
+suppressing the warning. Use the workspace `playwright` skill when the
+behavior is completely reproducible in a browser.
