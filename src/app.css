@@ -237,18 +237,8 @@
     background: transparent;
   }
 
-  html.native-window-material .conversation-stage {
-    background: var(--bg);
-  }
-
   html.native-window-material .flow-panel-surface {
     background: var(--surface);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-
-  html.native-window-material .conversation-stage::before {
-    background: transparent;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }

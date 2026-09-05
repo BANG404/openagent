@@ -29,6 +29,8 @@
   WebView, shared chrome, feature canvases, and conversation workspace at one
   consistent 30%-opaque theme tint over the Rust-owned Mica/Acrylic/Blur or
   macOS Vibrancy effect, leaving roughly 70% of the native material visible.
+  Paint the conversation stage with that canvas tint directly; do not place a
+  surface-colored pseudo-element or white veil over the main transcript.
   Linux has no Rust-owned native material, so the route must not add the
   `native-window-material` class on Linux; otherwise the body becomes
   transparent and the WebView's default gray background leaks through the

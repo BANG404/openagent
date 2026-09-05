@@ -122,7 +122,8 @@ describe("desktop navigation chrome", () => {
     expect(conversationWorkspace).toContain("background: transparent");
     expect(conversationWorkspace).not.toContain("box-shadow");
     expect(conversationStage).toContain("border-radius: 12px");
-    expect(conversationStage).toContain("background: var(--surface)");
+    expect(conversationStage).toContain("background: var(--bg)");
+    expect(conversationSurface).not.toContain(".conversation-stage::before");
     expect(conversationStage).not.toContain("box-shadow");
     expect(titleBar).not.toContain("workspace-environment");
     expect(titleBar).not.toContain("workspace-name");
@@ -144,9 +145,6 @@ describe("desktop navigation chrome", () => {
     expect(nativeMaterialTokens).toContain("--bg: rgba(245, 245, 247, 0.3)");
     expect(nativeMaterialTokens).toContain("--app-chrome-bg: rgba(245, 245, 247, 0.3)");
     expect(nativeMaterialTokens).toContain("--sidebar-bg: rgba(245, 245, 247, 0.3)");
-    expect(appCss).toMatch(
-      /html\.native-window-material \.conversation-stage\s*{[^}]*background: var\(--bg\);/s,
-    );
     expect(appCss).toMatch(
       /html\.native-window-material \.flow-panel-surface\s*{[^}]*background: var\(--surface\);[^}]*backdrop-filter: none;/s,
     );

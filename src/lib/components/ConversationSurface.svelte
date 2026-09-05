@@ -337,18 +337,7 @@
     flex-direction: column;
     overflow: hidden;
     border-radius: 12px;
-    background: var(--surface);
-  }
-
-  .conversation-stage::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    background: color-mix(in srgb, var(--surface) 72%, transparent);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
-    pointer-events: none;
+    background: var(--bg);
   }
 
   .runtime-banner {

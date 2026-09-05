@@ -267,7 +267,7 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 
 ### Application Chat Depth
 
-Conversation canvases, new-conversation states, and composer backgrounds use only neutral theme surfaces. Keep the bottom readability fade behind a bottom-anchored composer, but do not add colored radial fields, animated ambient glows, or colored streaming shadows. Streaming state belongs to the primary action and status indicators rather than the composer perimeter.
+Conversation canvases, new-conversation states, and composer backgrounds use only neutral theme surfaces. The main conversation stage paints the application background directly, without a white surface veil, so native window material remains visible through its theme tint. Keep the bottom readability fade behind a bottom-anchored composer, but do not add colored radial fields, animated ambient glows, or colored streaming shadows. Streaming state belongs to the primary action and status indicators rather than the composer perimeter.
 
 ## Shapes
 
