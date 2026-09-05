@@ -1,7 +1,7 @@
-# Delivery modes: Direct, OWT, OPR publish
+# Delivery modes: Direct and OWT
 
-Read the procedure that matches the selected prefix. Each procedure owns its
-steps, commit rules, preflight expectations, and handoff to the next mode.
+Read the procedure that matches the selected mode. Each procedure owns its
+steps, commit rules, preflight expectations, and cleanup rules.
 
 ## Direct local mode: edit and commit on the local default branch
 
@@ -143,45 +143,3 @@ to launch multiple ordinary OWT deliveries concurrently. Read
 before using it. Do not combine that launcher with the sealed-batch
 coordinator: every launched child follows the complete ordinary OWT
 workflow and integrates its own result.
-
-## OPR mode: synchronize local commits through a PR
-
-OPR owns publication but stops before CI, merge, and cleanup. Keep task
-history off the default branch so a later squash merge cannot leave that
-branch both ahead of and behind its remote.
-
-### Select the OPR source
-
-- For a new `OPR <task>` with a clean, synchronized default worktree, create
-  a unique sibling worktree and `agent/<task-slug>` branch from
-  `origin/<default>`. Implement, verify, and commit there by following `OWT`
-  mode's task-worktree steps, but do not fast-forward it into the local
-  default branch. Do not switch or change the upstream of the default
-  branch.
-- If the matching ready PR already exists, resume its dedicated task
-  worktree or recreate one from its local or remote task branch. Never
-  merge the PR branch back into the default worktree merely to update it.
-- When the message is only `OPR`, or the intended commits already exist on
-  the default branch, use the parking procedure in
-  [references/opr-reconcile.md](references/opr-reconcile.md). Do not create
-  another implementation change or empty commit.
-- If the default branch and its remote have already diverged because an
-  earlier OPR was squash-merged, use the deterministic reconciler in
-  [references/opr-reconcile.md](references/opr-reconcile.md). Never run
-  pull, merge, or an ad hoc rebase, and never resolve a content conflict
-  by silently preferring the remote version.
-
-### Publish and stop
-
-1. Push the dedicated task branch without force and create or update a ready
-   PR to the remote default. Describe behavior, boundaries, documentation,
-   local preflight, and checks deferred to CI.
-2. Leave the task worktree and local branch available for review follow-up.
-   Stop without waiting for CI, merging, or cleanup.
-3. Report the PR URL, local and remote task branch, pushed head SHA,
-   included commits, default-worktree synchronization, and current check
-   state. Never present pending CI as successful delivery.
-4. After the PR is later confirmed merged, a separate cleanup may remove
-   its clean dedicated worktree and local task branch. Fetch and
-   fast-forward the already-clean default worktree; never merge the squash
-   result into preserved pre-squash commits.

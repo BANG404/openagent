@@ -41,7 +41,7 @@ describe("Codex exec OWT batch launcher", () => {
     expect(() =>
       parseArguments(["--task", "OWT valid", "--task", "not OWT", "--max-concurrency", "0"]),
     ).toThrow("positive integer");
-    expect(() => parseArguments(["--task", "OWT valid", "--task", "OPR wrong mode"])).toThrow(
+    expect(() => parseArguments(["--task", "OWT valid", "--task", "Direct wrong mode"])).toThrow(
       "must start with an OWT",
     );
   });

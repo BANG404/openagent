@@ -130,7 +130,6 @@ layout-stable skeleton.
 Every repository-changing task uses `deliver-via-pr`. With no prefix, edit the
 existing local `master`, run preflight, and create focused local commits without
 branching or pushing. `OWT` selects an isolated local worktree that is later
-fast-forwarded into local `master`; `OPR` publishes a ready PR and stops; `ORPR`
-publishes, administrator-merges, and cleans up. The skill owns the exact
-reconciliation, preservation, CI, and cleanup rules. Explicit user instructions
-that alter a delivery stage take precedence.
+fast-forwarded into local `master`. The skill owns the exact reconciliation,
+preservation, CI, and cleanup rules. Explicit user instructions that alter a
+delivery stage take precedence.

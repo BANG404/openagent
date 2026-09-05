@@ -60,23 +60,16 @@ private SDK gitlink.
   branch or worktree and did not push; `OWT` created verified commits in an
   isolated worktree, fast-forwarded them into the local default branch, cleaned
   up its task worktree and branch, and did not push; private SDK commits were
-  pushed directly to `main`; `OPR` has a ready PR on a preserved task branch
-  while the default worktree equals its remote; `ORPR` has an
-  administrator-bypassed confirmed merge.
-- `OPR` retains its dedicated task branch or worktree for later review follow-up
-  and stops before cleanup. Its reconciler may rewrite only a verified linear
-  unpublished tail onto the remote default after preserving the original head,
-  and may align the default branch only after the remote branch and ready PR
-  match exactly. Direct local mode commits only intended paths or clearly owned
-  hunks and preserves unrelated staged and working changes, including separable
-  changes in the same file, in place. `OWT` bases its temporary task
-  branch on the committed local default `HEAD`, merges later committed
-  default-branch descendants into the task branch, reruns preflight after every
-  such integration, and retries until the default branch can fast-forward. Its
+  pushed directly to `main`.
+- Direct local mode commits only intended paths or clearly owned hunks and
+  preserves unrelated staged and working changes, including separable changes
+  in the same file, in place. `OWT` bases its temporary task branch on the
+  committed local default `HEAD`, merges later committed default-branch
+  descendants into the task branch, reruns preflight after every such
+  integration, and retries until the default branch can fast-forward. Its
   recorded local default `HEAD` remains authoritative regardless of remote
   divergence; it never reconciles remote history, absorbs unrelated working
   changes, or continues through real conflicts or non-linear local ancestry. A
   sealed batch of OWT tasks uses only its explicit manifest for membership,
   elects one final ready agent to validate the combined integration tree, and
   retains its completion record after safe worktree cleanup.
-  `ORPR` completes remote-branch, task-worktree, and merged local-branch cleanup.
