@@ -37,6 +37,7 @@
   let stageElement: HTMLElement;
   const appWindow = getCurrentWindow();
   const windowTitleKeys: Record<SettingsWindowKind, TranslationKeys> = {
+    general: "settingsTitle",
     models: "modelsWindowTitle",
     agent: "agentWindowTitle",
     integrations: "integrationsWindowTitle",

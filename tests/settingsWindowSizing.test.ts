@@ -9,6 +9,10 @@ import {
 
 describe("settings utility window sizing", () => {
   test("uses compact domain widths for short content", () => {
+    expect(resolveSettingsWindowSize("general", 640, 1440, 900)).toEqual({
+      width: 920,
+      height: 640,
+    });
     expect(resolveSettingsWindowSize("about", 460, 1440, 900)).toEqual({
       width: 680,
       height: 460,

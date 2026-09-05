@@ -74,6 +74,7 @@
   import OnboardingFlow from "$lib/components/OnboardingFlow.svelte";
   import type { SlashCommand } from "$lib/components/MessageInput.svelte";
   import QuickChatSurface from "$lib/components/QuickChatSurface.svelte";
+  import RoleEditorWindowSurface from "$lib/components/RoleEditorWindowSurface.svelte";
   import SettingsWindowSurface from "$lib/components/SettingsWindowSurface.svelte";
   import StandaloneDevPreview from "$lib/components/StandaloneDevPreview.svelte";
   import WorkspaceDialogs from "$lib/components/WorkspaceDialogs.svelte";
@@ -156,6 +157,7 @@
     type SettingsNav,
     type SettingsWindowKind,
   } from "$lib/settingsWindows";
+  import { openRoleEditorWindow, type AgentRolesChangedEvent } from "$lib/roleEditorWindow";
   import type {
     ChatMessage,
     Conversation,
@@ -203,6 +205,7 @@
   const isMcpSettingsPreview = devQuery?.has("mcp-settings-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isOnboardingWindow = runtimeQuery?.has("onboarding-window") === true;
+  const isRoleEditorWindow = runtimeQuery?.has("role-editor-window") === true;
   const settingsWindowKind = parseSettingsWindowKind(runtimeQuery?.get("settings-window") ?? null);
   const settingsWindowInitialSection = runtimeQuery?.get("settings-section") ?? null;
   const isSettingsWindow = settingsWindowKind !== null;
@@ -1721,6 +1724,16 @@
   }
 
   async function openRoleEditor(role: AgentRole | null): Promise<void> {
+    if (tauriAvailable) {
+      await openRoleEditorWindow(role?.id).catch((error) => {
+        showToast({
+          title: $t("settingsSaveFailed"),
+          description: String(error),
+          variant: "error",
+        });
+      });
+      return;
+    }
     roleEditorRole = role;
     roleEditorOpen = true;
     roleEditorResourcesLoading = true;
@@ -1982,7 +1995,13 @@
   });
 
   onMount(() => {
-    if (isDevInspectorWindow || standaloneDevPreview || isOnboardingSurface || isSettingsWindow)
+    if (
+      isDevInspectorWindow ||
+      standaloneDevPreview ||
+      isOnboardingSurface ||
+      isSettingsWindow ||
+      isRoleEditorWindow
+    )
       return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const syncSystemTheme = () => {
@@ -1994,7 +2013,7 @@
 
   onMount(async () => {
     if (isDevInspectorWindow || standaloneDevPreview) return;
-    if (isSettingsWindow) return;
+    if (isSettingsWindow || isRoleEditorWindow) return;
     if (isQuickChatSurface) {
       return;
     }
@@ -2420,6 +2439,16 @@
           }
         })
         .catch((error) => console.error("Failed to apply reloaded settings:", error));
+    });
+    register<AgentRolesChangedEvent>("agent-roles-changed", (event) => {
+      void loadAvailableRoles().then(async () => {
+        if (event.payload.requesterLabel !== getCurrentWindow().label) return;
+        if (event.payload.deleted && selectedRoleKey === event.payload.roleId) {
+          await activateNewConversationSurface(defaultRoleKey);
+        } else if (event.payload.created && event.payload.roleId) {
+          await activateNewConversationSurface(event.payload.roleId);
+        }
+      });
     });
     register<{ conversationId: string }>("settings-open-conversation", (event) => {
       void openHookConversation(event.payload.conversationId);
@@ -4877,7 +4906,8 @@
       standaloneDevPreview ||
       isQuickChatSurface ||
       isOnboardingSurface ||
-      isSettingsWindow
+      isSettingsWindow ||
+      isRoleEditorWindow
     )
       return;
 
@@ -4936,7 +4966,7 @@
   }
 
   onMount(() => {
-    if (isSettingsWindow) return;
+    if (isSettingsWindow || isRoleEditorWindow) return;
     return () => {
       void disposeQuickChatShortcut();
     };
@@ -4955,6 +4985,8 @@
       kind={settingsWindowKind}
       initialSection={settingsWindowInitialSection}
     />
+  {:else if isRoleEditorWindow}
+    <RoleEditorWindowSurface />
   {:else if isOnboardingSurface}
     {#if config}
       <OnboardingFlow
@@ -5037,7 +5069,7 @@
         onSelectWorkspace={requestWorkspace}
         onNewConversation={newConversation}
         onNewWindow={createNewWindow}
-        onOpenSettings={() => openSettings()}
+        onOpenSettings={() => openManagementWindow("general", "general")}
         onOpenSettingsWindow={openManagementWindow}
         onCreateRole={() => void openRoleEditor(null)}
         onConfigureRole={(role) => void openRoleEditor(role)}

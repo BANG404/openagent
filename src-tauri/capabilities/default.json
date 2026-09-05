@@ -7,6 +7,8 @@
     "debug",
     "quick-chat",
     "onboarding",
+    "role-editor",
+    "settings-general",
     "settings-models",
     "settings-agent",
     "settings-integrations",

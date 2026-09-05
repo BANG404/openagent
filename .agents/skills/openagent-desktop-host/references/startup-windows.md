@@ -40,13 +40,14 @@
   but the host must not duplicate inspection, backup, reset, or
   migration operations.
 
-## Workspace window and on-demand Settings
+## Workspace and on-demand utility windows
 
 - Reveal a dedicated workspace window's main shell as soon as Tauri
   setup owns the runtime host. Let the frontend's layout-stable loading
   state remain visible while startup bootstrap restores durable
   conversation data.
-- Create Settings management windows on demand with fixed domain labels.
+- Create Settings management windows on demand with fixed domain labels,
+  including General Settings.
   Each domain is a modeless singleton: repeated application-menu
   requests select the requested section, restore the existing window,
   and focus it instead of constructing another WebView. Window
@@ -60,6 +61,11 @@
   result to the current monitor work area and keep excess content scrolling
   inside the settings pane; center only the initial fitted size so later
   section changes do not discard a user-moved window position.
+- Create the role editor on demand as one modeless singleton utility window.
+  Repeated create or edit requests retarget, restore, and focus the existing
+  WebView. The editor owns role/resource loading and writes through the shared
+  SDK contract, then broadcasts a role-list refresh while identifying the
+  requesting workspace window for selection changes.
 
 ## Platform window conventions
 

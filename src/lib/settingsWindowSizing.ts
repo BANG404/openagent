@@ -5,6 +5,7 @@ export const SETTINGS_WINDOW_MIN_HEIGHT = 400;
 export const SETTINGS_WINDOW_MAX_HEIGHT = 820;
 
 const SETTINGS_WINDOW_WIDTHS: Record<SettingsWindowKind, number> = {
+  general: 920,
   models: 980,
   agent: 920,
   integrations: 980,
