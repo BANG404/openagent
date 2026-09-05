@@ -1527,7 +1527,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 6px;
+    margin: 6px 0 10px;
   }
   .msg-footer-row .ts {
     margin-top: 0;
