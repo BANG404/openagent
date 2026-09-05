@@ -103,6 +103,7 @@ describe("context compaction config", () => {
     const normalized = normalizeConfigShape({} as AppConfig);
 
     expect(normalized.context_compaction_threshold).toBe(200_000);
+    expect(normalized.context_compaction_recent_message_count).toBe(5);
   });
 
   test("preserves an explicitly configured summary threshold", () => {
@@ -111,6 +112,21 @@ describe("context compaction config", () => {
     } as AppConfig);
 
     expect(normalized.context_compaction_threshold).toBe(48_000);
+  });
+
+  test("normalizes the configured recent checkpoint timeline count", () => {
+    expect(
+      normalizeConfigShape({ context_compaction_recent_message_count: 12.8 } as AppConfig)
+        .context_compaction_recent_message_count,
+    ).toBe(12);
+    expect(
+      normalizeConfigShape({ context_compaction_recent_message_count: 99 } as AppConfig)
+        .context_compaction_recent_message_count,
+    ).toBe(20);
+    expect(
+      normalizeConfigShape({ context_compaction_recent_message_count: -1 } as AppConfig)
+        .context_compaction_recent_message_count,
+    ).toBe(0);
   });
 });
 

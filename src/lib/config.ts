@@ -64,6 +64,12 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
   const contextCompactionThreshold = Number.isFinite(requestedCompactionThreshold)
     ? Math.min(1_000_000, Math.max(1_000, Math.floor(requestedCompactionThreshold)))
     : 200_000;
+  const requestedCompactionRecentMessageCount = Number(
+    input.context_compaction_recent_message_count,
+  );
+  const contextCompactionRecentMessageCount = Number.isFinite(requestedCompactionRecentMessageCount)
+    ? Math.min(20, Math.max(0, Math.floor(requestedCompactionRecentMessageCount)))
+    : 5;
   const requestedRetryCount = Number(input.model_retry?.retry_count);
   const retryCount = Number.isFinite(requestedRetryCount)
     ? Math.min(10, Math.max(0, Math.floor(requestedRetryCount)))
@@ -201,6 +207,7 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
     context_compaction_enabled: input.context_compaction_enabled ?? true,
     context_compaction_threshold: contextCompactionThreshold,
     context_compaction_prompt: input.context_compaction_prompt ?? "",
+    context_compaction_recent_message_count: contextCompactionRecentMessageCount,
     memory_retrieval_enabled: input.memory_retrieval_enabled ?? false,
     model_retry: {
       retry_count: retryCount,

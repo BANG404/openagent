@@ -645,6 +645,7 @@ export interface AppConfig {
   context_compaction_enabled: boolean;
   context_compaction_threshold: number;
   context_compaction_prompt: string;
+  context_compaction_recent_message_count: number;
   memory_retrieval_enabled: boolean;
   providers: ProviderConfig[];
   defaults: DefaultModelsConfig;

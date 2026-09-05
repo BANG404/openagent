@@ -358,8 +358,13 @@ const zh = {
   agentMaxTurns: "最大轮次",
   agentMaxTurnsHint: "设置单次处理最多允许的模型与工具调用轮次。",
   contextCompaction: "自动总结对话上下文",
-  contextCompactionHint: "达到阈值后仅压缩 checkpoint 中的模型消息；界面仍保留完整对话。",
+  contextCompactionHint:
+    "达到阈值后压缩 checkpoint 中的模型消息，并附带近期执行时间线；界面仍保留完整对话。",
   contextCompactionThreshold: "总结阈值（近似 token）",
+  contextCompactionThresholdHint: "达到此上下文规模后启动 Flash 压缩。",
+  contextCompactionRecentMessageCount: "近期时间线条数",
+  contextCompactionRecentMessageCountHint:
+    "保留最新的用户消息、tool call 和 assistant 文本；设为 0 时不附加。",
   htmlPreview: "HTML 预览",
   htmlPreviewFixedHeight: "固定窗口高度",
   htmlPreviewFixedHeightHint: "设置内嵌 HTML 预览窗口的固定高度，范围为 160–1200 像素。",
@@ -1270,8 +1275,12 @@ const en: Translations = {
   agentMaxTurnsHint: "Sets the maximum number of model and tool-call turns allowed in one run.",
   contextCompaction: "Automatically summarize context",
   contextCompactionHint:
-    "After the threshold, only checkpoint model messages are compacted; the full visible conversation is preserved.",
+    "After the threshold, checkpoint model messages are compacted with a recent execution timeline; the full visible conversation is preserved.",
   contextCompactionThreshold: "Summary threshold (approx. tokens)",
+  contextCompactionThresholdHint: "Starts Flash compaction at this approximate context size.",
+  contextCompactionRecentMessageCount: "Recent timeline entries",
+  contextCompactionRecentMessageCountHint:
+    "Keeps the newest user messages, tool calls, and assistant text; set to 0 to omit it.",
   htmlPreview: "HTML Preview",
   htmlPreviewFixedHeight: "Fixed window height",
   htmlPreviewFixedHeightHint:

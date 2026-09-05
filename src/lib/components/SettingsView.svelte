@@ -192,6 +192,7 @@
     context_compaction_enabled: true,
     context_compaction_threshold: 200000,
     context_compaction_prompt: "",
+    context_compaction_recent_message_count: 5,
     memory_retrieval_enabled: false,
     html_preview: {
       fixed_height: 480,
@@ -3241,7 +3242,10 @@
                 />
               </div>
               <label class="flash-task-inline-setting">
-                <span>{$t("contextCompactionThreshold")}</span>
+                <span class="flash-task-inline-copy">
+                  <strong>{$t("contextCompactionThreshold")}</strong>
+                  <small>{$t("contextCompactionThresholdHint")}</small>
+                </span>
                 <input
                   type="number"
                   class="detail-input compaction-threshold-input"
@@ -3250,6 +3254,21 @@
                   step="1000"
                   disabled={!draftConfig.context_compaction_enabled}
                   bind:value={draftConfig.context_compaction_threshold}
+                />
+              </label>
+              <label class="flash-task-inline-setting">
+                <span class="flash-task-inline-copy">
+                  <strong>{$t("contextCompactionRecentMessageCount")}</strong>
+                  <small>{$t("contextCompactionRecentMessageCountHint")}</small>
+                </span>
+                <input
+                  type="number"
+                  class="detail-input compaction-recent-count-input"
+                  min="0"
+                  max="20"
+                  step="1"
+                  disabled={!draftConfig.context_compaction_enabled}
+                  bind:value={draftConfig.context_compaction_recent_message_count}
                 />
               </label>
               <details
@@ -4698,6 +4717,11 @@
     max-width: 100%;
   }
 
+  .compaction-recent-count-input {
+    width: 96px;
+    max-width: 100%;
+  }
+
   .detail-content,
   .settings-content-col {
     flex: 1;
@@ -4937,6 +4961,25 @@
   .flash-task-inline-setting .detail-input {
     margin: 0;
     border-color: var(--mica-divider);
+  }
+
+  .flash-task-inline-copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .flash-task-inline-copy strong {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .flash-task-inline-copy small {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.4;
   }
 
   .flash-task-custom {

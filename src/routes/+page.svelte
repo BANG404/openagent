@@ -548,6 +548,7 @@
     context_compaction_enabled: true,
     context_compaction_threshold: 200000,
     context_compaction_prompt: "",
+    context_compaction_recent_message_count: 5,
     html_preview: {
       fixed_height: 480,
     },
