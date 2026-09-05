@@ -1536,7 +1536,7 @@
   .msg-actions {
     display: flex;
     gap: 6px;
-    margin-inline-end: 4px;
+    margin-inline-end: 12px;
   }
   .run-timing,
   .cache-usage {
