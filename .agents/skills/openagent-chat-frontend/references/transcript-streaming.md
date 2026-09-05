@@ -186,6 +186,11 @@
   complete live Graph snapshot emitted when a runnable batch is marked started
   immediately, so each active node changes from pending to running before its
   child stream produces output or reaches a terminal state.
+  Stopping a parent Graph must let every already-started child conversation
+  persist and emit its own cancelled terminal state before the runtime releases
+  the Graph node task set. Keep those child terminal events authoritative for
+  their transcripts; the parent's cancelled flow projection cannot substitute
+  for a missing child checkpoint.
   Place the expanded panel as a full-height card beside the conversation card in
   the workspace flex container. Keep a narrow transparent gap between these two
   sibling cards while its persisted width reduces the conversation track. Give
