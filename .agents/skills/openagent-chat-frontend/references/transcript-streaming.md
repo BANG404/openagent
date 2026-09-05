@@ -25,16 +25,16 @@
   focus. A targeted workspace request reissues the
   focus request after its conversation navigation settles so an atomic switch
   cannot leave focus attached to the previously visible composer.
-  The ordinary Tauri shell keeps its shared chrome at a 30%-opaque theme tint
-  over the Rust-owned Mica/Acrylic/Blur or macOS Vibrancy effect. Keep the
-  conversation stage transparent so the main transcript adds no independent
-  tint, surface-colored pseudo-element, or white veil over that material.
+  Keep the ordinary Tauri shell's title bar, sidebar, and conversation stage
+  transparent over the Rust-owned Mica/Acrylic/Blur or macOS Vibrancy effect.
+  The main window must not add an independent tint, surface-colored
+  pseudo-element, or white veil over that material.
   Linux has no Rust-owned native material, so the route must not add the
   `native-window-material` class on Linux; otherwise the body becomes
   transparent and the WebView's default gray background leaks through the
-  tinted chrome. On Linux the chrome and canvas keep the opaque theme
-  background while still sharing the same component geometry and surface
-  tokens as the other platforms. Content-bearing controls and cards paint
+  shell. On Linux the transparent shell reveals the opaque theme background
+  owned by the page while still sharing the same component geometry and
+  surface tokens as the other platforms. Content-bearing controls and cards paint
   their own surfaces. Browser previews retain the opaque theme canvas, and
   the quick-chat transparent stage keeps its separate contract. Serialize
   native theme changes so rapid Settings previews cannot complete out of

@@ -185,10 +185,10 @@
   conversation labels and their show-more action with the project name after its
   folder icon. The workspace role selector at the top of the sidebar remains a
   distinct selector control.
-- Paint the sidebar and complete shared title bar with one opaque application-
-  chrome background in both themes. Preserve the operating system's native
-  window outline, rounded corners, and shadow around that web content. Keep the
-  two chrome segments visually continuous without a border between them or
+- Keep the sidebar and complete shared title bar fully transparent in both
+  themes. Preserve the operating system's native window outline, rounded
+  corners, and shadow around that web content. Keep the two chrome segments
+  visually continuous without a border between them or
   beneath the title bar. Present chat as its own clipped, rounded canvas directly
   against the title bar's lower edge, with 8px gutters at the sides and bottom
   plus compact, clearly edged elevation; use that spatial layer rather than
@@ -213,10 +213,9 @@
   rings, which expand outside each control boundary instead of inset.
 - Let the conversation shell own the custom title-bar clearance. Keep the
   ordinary transcript's own top inset compact so it does not stack a second
-  header-sized gap above the first message or debug context. Tint the translucent
-  conversation-canvas veil from the shared application background in both themes
-  so neutral regions match the title bar. Reserve Mica for raised chat controls
-  such as the composer and flow panel.
+  header-sized gap above the first message or debug context. Do not add a
+  conversation-canvas veil or tint; reserve Mica for raised chat controls such
+  as the composer and flow panel.
 - An explicitly empty durable active-conversation marker restores the centered
   new-conversation surface, even when older conversations exist. Never fall
   back to the newest conversation.

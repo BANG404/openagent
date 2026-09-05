@@ -108,9 +108,9 @@ describe("desktop navigation chrome", () => {
     expect(appCss).toContain("--column-resize-hit-width: 8px");
     expect(appCss).toContain("--column-resize-indicator-width: 2px");
     expect(appCss).toContain("--column-resize-indicator-opacity: 0.7");
-    expect(sidebar).toContain("background: var(--app-chrome-bg)");
+    expect(sidebar).toMatch(/\.sidebar\s*{[^}]*background: transparent;/s);
     expect(sidebar).toContain("padding-top: var(--desktop-titlebar-height)");
-    expect(titleBar).toContain("background: var(--app-chrome-bg)");
+    expect(titleBar).toMatch(/\.title-bar\s*{[^}]*background: transparent;/s);
     expect(titleBar).toContain("height: var(--desktop-titlebar-height)");
     expect(sidebar).not.toContain("border-right:");
     expect(titleBar).not.toContain("border-bottom:");

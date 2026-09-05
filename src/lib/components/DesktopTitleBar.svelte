@@ -132,7 +132,7 @@
     align-items: center;
     height: var(--desktop-titlebar-height);
     box-sizing: border-box;
-    background: var(--app-chrome-bg);
+    background: transparent;
     user-select: none;
   }
 

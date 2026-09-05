@@ -86,7 +86,7 @@ describe("window focus chrome", () => {
     expect(titleBar).toMatch(
       /\.title-bar\.window-inactive \.title-bar-menu,[\s\S]*?opacity: 0\.55;/,
     );
-    expect(titleBar).toContain("background: var(--app-chrome-bg)");
+    expect(titleBar).toMatch(/\.title-bar\s*{[^}]*background: transparent;/s);
     expect(preview).toContain('query.get("desktop-shell-preview-focused") !== "false"');
     expect(preview.match(/\{windowFocused\}/g)).toHaveLength(2);
   });
