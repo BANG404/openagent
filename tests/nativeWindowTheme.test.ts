@@ -13,6 +13,10 @@ describe("native window theme", () => {
       new URL("../src/lib/components/OnboardingFlow.svelte", import.meta.url),
       "utf8",
     );
+    const roleEditor = await readFile(
+      new URL("../src/lib/components/RoleEditorDialog.svelte", import.meta.url),
+      "utf8",
+    );
     const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
     const cargo = await readFile(new URL("../src-tauri/Cargo.toml", import.meta.url), "utf8");
     const capability = JSON.parse(
@@ -26,6 +30,10 @@ describe("native window theme", () => {
     expect(settings).toContain("else applyDocumentTheme(theme);");
     expect(onboarding).toContain("if (onThemePreview) onThemePreview(theme);");
     expect(onboarding).toContain("else applyDocumentTheme(theme);");
+    expect(roleEditor).toMatch(
+      /\.role-editor-window\)\s*{[^}]*background: color-mix\(in srgb, var\(--bg\) 30%, transparent\);[^}]*backdrop-filter: none;/s,
+    );
+    expect(roleEditor).toContain(".role-editor-dialog:not(.role-editor-window)");
     expect(capability.permissions).toContain("core:window:allow-set-theme");
     expect(capability.permissions).toContain("pilot:default");
     expect(cargo).toContain('tauri-plugin-pilot = "=0.7.2"');

@@ -329,7 +329,9 @@
     transform: none;
     border: 0;
     border-radius: 0;
+    background: color-mix(in srgb, var(--bg) 30%, transparent);
     box-shadow: none;
+    backdrop-filter: none;
   }
 
   .role-editor-header,
@@ -668,7 +670,7 @@
   }
 
   @media (max-width: 820px) {
-    :global(.role-editor-dialog) {
+    :global(.role-editor-dialog:not(.role-editor-window)) {
       width: calc(100vw - 24px);
       height: calc(100vh - 24px);
     }

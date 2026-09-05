@@ -7,7 +7,7 @@
   Acrylic and Blur fallbacks; macOS uses the Tauri-compatible
   `window-vibrancy` integration. Linux uses an opaque WebView inside
   its native window-manager frame.
-- Main, onboarding, feature, and conversation canvases share a
+- Main, onboarding, feature, conversation, Settings, and role-editor canvases share a
   30%-opaque theme tint where native material is available. Content
   controls remain surfaced; quick chat, browser previews, and
   development inspector windows keep their intentional separate
