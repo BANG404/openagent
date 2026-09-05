@@ -7,7 +7,8 @@ metadata:
 
 # OpenAgent persistence
 
-Read `docs/configuration.md` before editing. It is the public source of truth for
+Use `openagent-configuration` to route to the smallest configuration reference
+before editing. `docs/configuration.md` remains the public source of truth for
 paths, schemas, save and reload behavior, compatibility windows, permissions,
 and user-visible transitions. Read `sdk/AGENTS.md` before changing SDK-owned
 implementation.

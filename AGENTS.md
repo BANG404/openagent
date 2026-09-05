@@ -23,6 +23,14 @@ Read every applicable owner before changing files:
 | Workflows, releases, CI classification, helper packaging, bundle qualification | `.agents/skills/openagent-release-engineering/SKILL.md` |
 | Browser-reproducible UI verification | `.agents/skills/playwright/SKILL.md` |
 | Product design and component language | `docs/design.md` |
+| Configuration and durable-data agent routing | `.agents/skills/openagent-configuration/` |
+| Design-system agent routing and DESIGN.md format | `.agents/skills/openagent-design-system/` |
+| Messaging channels and remote gateway | `.agents/skills/openagent-channel-integrations/` |
+| Agent Plugin package behavior | `.agents/skills/openagent-plugin-development/` |
+| Public Harness client and server protocol | `.agents/skills/openagent-harness-sdk/` |
+| Modular frontend, Runtime, and shell updates | `.agents/skills/openagent-update-delivery/` |
+| Embedding resource provenance and activation | `.agents/skills/openagent-embedding-resources/` |
+| Windows development environment | `.agents/skills/openagent-windows-development/` |
 | Private SDK changes | `sdk/AGENTS.md` and every skill it requires |
 
 Treat implementation and agent-facing documentation as one change. Identify
