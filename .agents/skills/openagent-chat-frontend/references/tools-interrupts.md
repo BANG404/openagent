@@ -31,6 +31,10 @@
   rendered diff rows. Large Agent edits must end with a neutral omission marker
   instead of allocating an unbounded preview or mounting enough transcript DOM
   nodes to terminate the desktop WebView.
+- For a successful `write_file`, derive both the collapsed result badge and the
+  expanded metadata count from the complete `content` argument. The tool's
+  typically single-line success message is status output, not the number of
+  lines written.
 - Keep `ask_user`, approvals, HTML previews, and other dedicated tools outside
   ordinary grouping.
 - Batched approval cards remain independently clickable. Optimistically resolve

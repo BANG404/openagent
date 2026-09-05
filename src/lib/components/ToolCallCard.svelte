@@ -6,6 +6,7 @@
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t } from "$lib/i18n";
   import { buildReplacementDiff } from "$lib/toolCallDiff";
+  import { countTextLines, formatTextLineCount } from "$lib/toolCallPresentation";
   import { shouldDisplayToolCall, toolCallStatus, type ToolCallItem } from "$lib/toolCallGroups";
   import Tooltip from "./Tooltip.svelte";
   import ToolApprovalActions from "./ToolApprovalActions.svelte";
@@ -106,12 +107,17 @@
                 : "toolStatusWaiting",
     ),
   );
-  const resultSummary = $derived.by(() =>
-    status === "success" ? summarizeResult(name, resultText) : "",
-  );
   const writeContent = $derived(getString(parsedArgs, "content"));
   const oldString = $derived(getString(parsedArgs, "old_string"));
   const newString = $derived(getString(parsedArgs, "new_string"));
+  const writeLineSummary = $derived(formatTextLineCount(writeContent));
+  const resultSummary = $derived.by(() =>
+    status === "success"
+      ? name === "write_file"
+        ? writeLineSummary
+        : summarizeResult(name, resultText)
+      : "",
+  );
   const editDiff = $derived(buildReplacementDiff(oldString, newString));
   const readPreviewLines = $derived(parseReadResult(resultText));
   const globResults = $derived(parseStringArrayResult(resultText));
@@ -135,15 +141,6 @@
     const parts = path.split(/[/\\]/).filter(Boolean);
     if (parts.length <= 3) return path;
     return "..." + parts.slice(-3).join("/");
-  }
-
-  function lineCount(text: string): number {
-    if (!text) return 0;
-    let count = 1;
-    for (let index = 0; index < text.length; index += 1) {
-      if (text.charCodeAt(index) === 10) count += 1;
-    }
-    return count;
   }
 
   function trimPreview(text: string, max = 2400): string {
@@ -383,14 +380,13 @@
             {:else if name === "write_file"}
               <div class="meta-row">
                 <span>new file</span>
-                <span>{lineCount(writeContent)} line{lineCount(writeContent) === 1 ? "" : "s"}</span
-                >
+                <span>{writeLineSummary}</span>
               </div>
               <pre class="code-block">{trimPreview(writeContent)}</pre>
             {:else if name === "edit_file"}
               <div class="meta-row">
                 <span>{getBool(parsedArgs, "replace_all") ? "replace all" : "replace one"}</span>
-                <span>{lineCount(oldString)} -> {lineCount(newString)} lines</span>
+                <span>{countTextLines(oldString)} -> {countTextLines(newString)} lines</span>
               </div>
               <div class="diff-view">
                 {#each editDiff as line, index (`${line.type}-${index}`)}

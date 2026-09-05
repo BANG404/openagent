@@ -168,6 +168,10 @@
     old_string: Array.from({ length: 2_000 }, (_, index) => `old line ${index}`).join("\n"),
     new_string: Array.from({ length: 2_000 }, (_, index) => `new line ${index}`).join("\n"),
   });
+  const toolWriteArgs = JSON.stringify({
+    file_path: "docs/multi-line-spec.md",
+    content: ["# Specification", "", "First requirement.", "Second requirement."].join("\n"),
+  });
   let mermaidFinalized = $state(false);
   let streamingMessagesElement = $state<HTMLElement | null>(null);
   let streamingFollowTail = $state(true);
@@ -947,6 +951,14 @@
 {:else if preview === "tool-diff"}
   <main class="tool-diff-preview-stage">
     <section class="tool-diff-preview-stack" aria-label="Large Agent edit preview">
+      <ToolCallCard
+        name="write_file"
+        args={toolWriteArgs}
+        result="File written successfully"
+        expanded={true}
+        argHint="multi-line-spec.md"
+        onToggle={() => {}}
+      />
       <ToolCallCard
         name="edit_file"
         args={toolDiffArgs}
