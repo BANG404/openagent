@@ -48,8 +48,8 @@
   derive it from the current text color at 8% opacity so the fill remains
   visible over canvas, sidebar, and native Mica surfaces. Static conversation
   components instead use the centralized Tailwind `bg-conversation-component`
-  theme color: it follows the white conversation surface in light mode and uses
-  the `#27272a` component fill in dark mode. Selected rows use the
+  theme color: it uses the fixed `#f4f4f5` fill over the white conversation
+  surface in light mode and the `#27272a` component fill in dark mode. Selected rows use the
   interaction fill without a decorative left rail, stronger fill, checkmark, or selected text color. GPUI
   preserves the same row geometry, selected fill, selection semantics,
   accessibility state, and interactions. Primary and destructive actions retain

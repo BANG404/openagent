@@ -28,10 +28,11 @@
   Keep the ordinary Tauri shell's title bar and sidebar transparent over the
   Rust-owned Mica/Acrylic/Blur or macOS Vibrancy effect. Paint the inset
   conversation stage with the Tailwind `bg-conversation-surface` theme color,
-  so the light-theme transcript canvas and its component-neutral content are
-  consistently white instead of showing the gray native material. Keep its
-  value centralized in `src/app.css`; do not add another tint or pseudo-element
-  over it.
+  so the light-theme transcript canvas is consistently white instead of showing
+  the gray native material. Keep that canvas distinct from the fixed gray
+  component surface used by user messages and other transcript cards. Centralize
+  both values in `src/app.css`; do not add another tint or pseudo-element over
+  the canvas.
   Linux has no Rust-owned native material, so the route must not add the
   `native-window-material` class on Linux; otherwise the body becomes
   transparent and the WebView's default gray background leaks through the

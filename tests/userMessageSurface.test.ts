@@ -8,12 +8,12 @@ const sharedSurfaceComponents = [
   "../src/lib/components/RetryAttempt.svelte",
 ];
 
-test("maps transcript-owned light surfaces to white and keeps the dark surface", async () => {
+test("keeps transcript-owned components gray in both themes", async () => {
   const appCss = await readFile(new URL("../src/app.css", import.meta.url), "utf8");
   expect(appCss).toContain("--color-conversation-surface: var(--conversation-surface);");
   expect(appCss).toContain("--color-conversation-component: var(--component-neutral-bg);");
   expect(appCss.match(/--conversation-surface: var\(--surface\);/g)).toHaveLength(2);
-  expect(appCss.match(/--component-neutral-bg: var\(--conversation-surface\);/g)).toHaveLength(2);
+  expect(appCss.match(/--component-neutral-bg: #f4f4f5;/g)).toHaveLength(2);
   expect(appCss.match(/--component-neutral-bg: #27272a;/g)).toHaveLength(2);
   expect(appCss).toContain("--user-message-bg: var(--component-neutral-bg);");
 
