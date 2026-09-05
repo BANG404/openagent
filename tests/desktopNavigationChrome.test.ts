@@ -20,6 +20,19 @@ describe("desktop navigation chrome", () => {
     expect(remoteRoute).not.toContain(".input-area::before");
   });
 
+  test("keeps transparent composer padding from blocking the transcript scrollbar", async () => {
+    const conversationSurface = await readFile(
+      new URL("ConversationSurface.svelte", componentsUrl),
+      "utf8",
+    );
+    const inputInner = conversationSurface.match(/\.input-inner\s*{([^}]*)}/s)?.[1];
+
+    expect(inputInner).toContain("pointer-events: none");
+    expect(conversationSurface).toMatch(
+      /\.input-inner\s*>\s*:global\(\*\)\s*{[^}]*pointer-events: auto;/s,
+    );
+  });
+
   test("keeps one shared title bar above every ordinary desktop surface", async () => {
     const route = await readFile(routeUrl, "utf8");
 

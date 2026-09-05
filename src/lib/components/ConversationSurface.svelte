@@ -384,6 +384,10 @@
     max-width: 900px;
     margin: 0 auto;
     padding: 0 32px;
+    pointer-events: none;
+  }
+
+  .input-inner > :global(*) {
     pointer-events: auto;
   }
 
