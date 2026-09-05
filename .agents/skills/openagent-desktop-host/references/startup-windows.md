@@ -54,6 +54,12 @@
   WebView reloads and saves configuration through the shared SDK
   contract. Dispatch on-demand WebView construction through an async Tauri
   command so Windows WebView2 initialization cannot block its own UI thread.
+- Give each Settings domain a compact content-appropriate initial geometry.
+  After the WebView renders, fit the native window to the active section's
+  measured content, including localized and dynamically added rows. Bound the
+  result to the current monitor work area and keep excess content scrolling
+  inside the settings pane; center only the initial fitted size so later
+  section changes do not discard a user-moved window position.
 
 ## Platform window conventions
 

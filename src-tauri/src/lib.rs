@@ -2312,6 +2312,8 @@ struct SettingsWindowSpec {
     title: &'static str,
     default_section: &'static str,
     sections: &'static [&'static str],
+    initial_width: f64,
+    initial_height: f64,
 }
 
 fn settings_window_spec(kind: &str) -> Option<SettingsWindowSpec> {
@@ -2321,36 +2323,48 @@ fn settings_window_spec(kind: &str) -> Option<SettingsWindowSpec> {
             title: "OpenAgent Models",
             default_section: "providers",
             sections: &["providers", "defaults"],
+            initial_width: 980.0,
+            initial_height: 680.0,
         }),
         "agent" => Some(SettingsWindowSpec {
             label: "settings-agent",
             title: "OpenAgent Agent Configuration",
             default_section: "execution",
             sections: &["execution", "agents"],
+            initial_width: 920.0,
+            initial_height: 680.0,
         }),
         "integrations" => Some(SettingsWindowSpec {
             label: "settings-integrations",
             title: "OpenAgent Integrations",
             default_section: "channels",
             sections: &["channels", "extensions", "plugins"],
+            initial_width: 980.0,
+            initial_height: 680.0,
         }),
         "memory" => Some(SettingsWindowSpec {
             label: "settings-memory",
             title: "OpenAgent Memory",
             default_section: "memory",
             sections: &["memory"],
+            initial_width: 780.0,
+            initial_height: 560.0,
         }),
         "automation" => Some(SettingsWindowSpec {
             label: "settings-automation",
             title: "OpenAgent Automation",
             default_section: "hooks",
             sections: &["hooks"],
+            initial_width: 900.0,
+            initial_height: 640.0,
         }),
         "about" => Some(SettingsWindowSpec {
             label: "settings-about",
             title: "About OpenAgent",
             default_section: "about",
             sections: &["about"],
+            initial_width: 680.0,
+            initial_height: 480.0,
         }),
         _ => None,
     }
@@ -2382,8 +2396,8 @@ async fn open_settings_window(
     let window =
         tauri::WebviewWindowBuilder::new(&app, spec.label, product_webview_url(&manager, &query)?)
             .title(spec.title)
-            .inner_size(980.0, 720.0)
-            .min_inner_size(720.0, 520.0)
+            .inner_size(spec.initial_width, spec.initial_height)
+            .min_inner_size(640.0, 400.0)
             .transparent(!cfg!(target_os = "linux"))
             .center()
             .build()
@@ -3431,6 +3445,10 @@ mod tests {
         let models = settings_window_spec("models").expect("models window");
         assert_eq!(models.label, "settings-models");
         assert_eq!(models.default_section, "providers");
+        assert_eq!(
+            (models.initial_width, models.initial_height),
+            (980.0, 680.0)
+        );
         assert!(models.sections.contains(&"defaults"));
 
         let integrations = settings_window_spec("integrations").expect("integrations window");
@@ -3438,6 +3456,8 @@ mod tests {
         assert!(integrations.sections.contains(&"channels"));
         assert!(integrations.sections.contains(&"extensions"));
         assert!(integrations.sections.contains(&"plugins"));
+        let about = settings_window_spec("about").expect("about window");
+        assert_eq!((about.initial_width, about.initial_height), (680.0, 480.0));
         assert!(settings_window_spec("arbitrary").is_none());
     }
 
