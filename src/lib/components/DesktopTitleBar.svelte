@@ -84,7 +84,7 @@
     </div>
   {/if}
 
-  <div class="title-bar-menu" data-tauri-drag-region>
+  <div class="title-bar-menu">
     <ApplicationMenuBar
       {recentWorkspaces}
       {workspacePath}
