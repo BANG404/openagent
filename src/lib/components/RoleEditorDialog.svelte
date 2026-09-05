@@ -19,6 +19,8 @@
     mcpServers,
     loadingResources,
     saving,
+    presentation = "dialog",
+    onClose = () => {},
     onSave,
     onDelete,
   }: {
@@ -28,6 +30,8 @@
     mcpServers: McpServerConfig[];
     loadingResources: boolean;
     saving: boolean;
+    presentation?: "dialog" | "window";
+    onClose?: () => void | Promise<void>;
     onSave: (draft: RoleDraft) => void | Promise<void>;
     onDelete: (role: AgentRole) => void | Promise<void>;
   } = $props();
@@ -97,182 +101,196 @@
   }
 </script>
 
-<Dialog.Root bind:open>
-  <Dialog.Portal>
-    <Dialog.Overlay class="role-editor-overlay" />
-    <Dialog.Content class="role-editor-dialog" aria-busy={saving}>
-      <header class="role-editor-header">
-        <div>
-          <Dialog.Title>{role ? $t("editRole") : $t("newRole")}</Dialog.Title>
-          <Dialog.Description>{$t("roleEditorDescription")}</Dialog.Description>
-        </div>
-        <Dialog.Close class="icon-button" aria-label={$t("close")}>
-          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"
-            ><path d="m4 4 8 8M12 4l-8 8" /></svg
-          >
-        </Dialog.Close>
-      </header>
+{#snippet editorContent()}
+  <header class="role-editor-header">
+    <div>
+      {#if presentation === "dialog"}
+        <Dialog.Title>{role ? $t("editRole") : $t("newRole")}</Dialog.Title>
+        <Dialog.Description>{$t("roleEditorDescription")}</Dialog.Description>
+      {:else}
+        <h1>{role ? $t("editRole") : $t("newRole")}</h1>
+        <p>{$t("roleEditorDescription")}</p>
+      {/if}
+    </div>
+    {#if presentation === "dialog"}
+      <Dialog.Close class="icon-button" aria-label={$t("close")}>
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" /></svg
+        >
+      </Dialog.Close>
+    {/if}
+  </header>
 
-      <div class="role-editor-body">
-        <section class="role-details">
-          <div class="role-fields">
-            <label>
-              <span>{$t("roleName")}</span>
-              <input bind:value={name} placeholder={$t("roleNamePlaceholder")} autocomplete="off" />
-            </label>
-            <fieldset class="scope-field" disabled={Boolean(role)}>
-              <legend>{$t("scope")}</legend>
-              <div class="scope-options">
-                <label
-                  ><input type="radio" bind:group={scope} value="local" />{$t("projectTab")}</label
-                >
-                <label
-                  ><input type="radio" bind:group={scope} value="global" />{$t("globalTab")}</label
-                >
-              </div>
-            </fieldset>
+  <div class="role-editor-body">
+    <section class="role-details">
+      <div class="role-fields">
+        <label>
+          <span>{$t("roleName")}</span>
+          <input bind:value={name} placeholder={$t("roleNamePlaceholder")} autocomplete="off" />
+        </label>
+        <fieldset class="scope-field" disabled={Boolean(role)}>
+          <legend>{$t("scope")}</legend>
+          <div class="scope-options">
+            <label><input type="radio" bind:group={scope} value="local" />{$t("projectTab")}</label>
+            <label><input type="radio" bind:group={scope} value="global" />{$t("globalTab")}</label>
           </div>
-
-          <label class="prompt-field">
-            <span>{$t("roleSystemPrompt")}</span>
-            <textarea bind:value={description} placeholder={$t("roleDescriptionPlaceholder")}
-            ></textarea>
-            <small>{$t("roleDescriptionHint")}</small>
-          </label>
-        </section>
-
-        <section class="resource-section">
-          <div class="resource-heading">
-            <div>
-              <h3>{$t("roleResources")}</h3>
-              <p>{$t("roleResourcesHint")}</p>
-            </div>
-          </div>
-          {#if loadingResources}
-            <div class="resource-loading" role="status">{$t("loadingContent")}</div>
-          {:else}
-            <div class="resource-columns">
-              <div class="resource-column">
-                <h4>{$t("skills")}</h4>
-                <div class="resource-browser">
-                  <div class="desktop-menu-search-wrap resource-search">
-                    <svg
-                      class="desktop-menu-search-icon"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      aria-hidden="true"
-                    >
-                      <circle cx="7" cy="7" r="4.25" />
-                      <path d="m10.25 10.25 3 3" />
-                    </svg>
-                    <input
-                      class="desktop-menu-search-input"
-                      type="search"
-                      bind:value={skillQuery}
-                      placeholder={$t("searchSkills")}
-                      aria-label={$t("searchSkills")}
-                    />
-                  </div>
-                  <div class="resource-list">
-                    {#each filteredSkills as skill (skillId(skill))}
-                      <label class="resource-row">
-                        <input
-                          type="checkbox"
-                          checked={skillIds.includes(skillId(skill))}
-                          onchange={(event) =>
-                            (skillIds = toggle(
-                              skillIds,
-                              skillId(skill),
-                              event.currentTarget.checked,
-                            ))}
-                        />
-                        <span><strong>{skill.name}</strong><small>{skill.description}</small></span>
-                      </label>
-                    {:else}
-                      <p class="resource-empty">
-                        {skillQuery ? $t("noMatchingSkills") : $t("noSkills")}
-                      </p>
-                    {/each}
-                  </div>
-                </div>
-              </div>
-              <div class="resource-column">
-                <h4>{$t("mcpServers")}</h4>
-                <div class="resource-browser">
-                  <div class="desktop-menu-search-wrap resource-search">
-                    <svg
-                      class="desktop-menu-search-icon"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      aria-hidden="true"
-                    >
-                      <circle cx="7" cy="7" r="4.25" />
-                      <path d="m10.25 10.25 3 3" />
-                    </svg>
-                    <input
-                      class="desktop-menu-search-input"
-                      type="search"
-                      bind:value={mcpServerQuery}
-                      placeholder={$t("searchMcpServers")}
-                      aria-label={$t("searchMcpServers")}
-                    />
-                  </div>
-                  <div class="resource-list">
-                    {#each filteredMcpServers as server (server.id)}
-                      <label class="resource-row">
-                        <input
-                          type="checkbox"
-                          checked={mcpServerIds.includes(server.id)}
-                          onchange={(event) =>
-                            (mcpServerIds = toggle(
-                              mcpServerIds,
-                              server.id,
-                              event.currentTarget.checked,
-                            ))}
-                        />
-                        <span><strong>{server.name}</strong><small>{server.transport}</small></span>
-                      </label>
-                    {:else}
-                      <p class="resource-empty">
-                        {mcpServerQuery ? $t("noMatchingMcpServers") : $t("noMcpServers")}
-                      </p>
-                    {/each}
-                  </div>
-                </div>
-              </div>
-            </div>
-          {/if}
-        </section>
+        </fieldset>
       </div>
 
-      <footer class="role-editor-actions">
+      <label class="prompt-field">
+        <span>{$t("roleSystemPrompt")}</span>
+        <textarea bind:value={description} placeholder={$t("roleDescriptionPlaceholder")}
+        ></textarea>
+        <small>{$t("roleDescriptionHint")}</small>
+      </label>
+    </section>
+
+    <section class="resource-section">
+      <div class="resource-heading">
         <div>
-          {#if role}
-            <button
-              class="danger-button"
-              type="button"
-              disabled={saving}
-              onclick={() => void onDelete(role)}
-            >
-              {$t("deleteRole")}
-            </button>
-          {/if}
+          <h3>{$t("roleResources")}</h3>
+          <p>{$t("roleResourcesHint")}</p>
         </div>
-        <div class="primary-actions">
-          <Dialog.Close class="quiet-button" disabled={saving}>{$t("cancel")}</Dialog.Close>
-          <button
-            class="primary-button"
-            type="button"
-            disabled={saving || !name.trim() || !description.trim()}
-            onclick={submit}
-          >
-            {saving ? $t("savingRole") : $t("save")}
-          </button>
+      </div>
+      {#if loadingResources}
+        <div class="resource-loading" role="status">{$t("loadingContent")}</div>
+      {:else}
+        <div class="resource-columns">
+          <div class="resource-column">
+            <h4>{$t("skills")}</h4>
+            <div class="resource-browser">
+              <div class="desktop-menu-search-wrap resource-search">
+                <svg
+                  class="desktop-menu-search-icon"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle cx="7" cy="7" r="4.25" />
+                  <path d="m10.25 10.25 3 3" />
+                </svg>
+                <input
+                  class="desktop-menu-search-input"
+                  type="search"
+                  bind:value={skillQuery}
+                  placeholder={$t("searchSkills")}
+                  aria-label={$t("searchSkills")}
+                />
+              </div>
+              <div class="resource-list">
+                {#each filteredSkills as skill (skillId(skill))}
+                  <label class="resource-row">
+                    <input
+                      type="checkbox"
+                      checked={skillIds.includes(skillId(skill))}
+                      onchange={(event) =>
+                        (skillIds = toggle(skillIds, skillId(skill), event.currentTarget.checked))}
+                    />
+                    <span><strong>{skill.name}</strong><small>{skill.description}</small></span>
+                  </label>
+                {:else}
+                  <p class="resource-empty">
+                    {skillQuery ? $t("noMatchingSkills") : $t("noSkills")}
+                  </p>
+                {/each}
+              </div>
+            </div>
+          </div>
+          <div class="resource-column">
+            <h4>{$t("mcpServers")}</h4>
+            <div class="resource-browser">
+              <div class="desktop-menu-search-wrap resource-search">
+                <svg
+                  class="desktop-menu-search-icon"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle cx="7" cy="7" r="4.25" />
+                  <path d="m10.25 10.25 3 3" />
+                </svg>
+                <input
+                  class="desktop-menu-search-input"
+                  type="search"
+                  bind:value={mcpServerQuery}
+                  placeholder={$t("searchMcpServers")}
+                  aria-label={$t("searchMcpServers")}
+                />
+              </div>
+              <div class="resource-list">
+                {#each filteredMcpServers as server (server.id)}
+                  <label class="resource-row">
+                    <input
+                      type="checkbox"
+                      checked={mcpServerIds.includes(server.id)}
+                      onchange={(event) =>
+                        (mcpServerIds = toggle(
+                          mcpServerIds,
+                          server.id,
+                          event.currentTarget.checked,
+                        ))}
+                    />
+                    <span><strong>{server.name}</strong><small>{server.transport}</small></span>
+                  </label>
+                {:else}
+                  <p class="resource-empty">
+                    {mcpServerQuery ? $t("noMatchingMcpServers") : $t("noMcpServers")}
+                  </p>
+                {/each}
+              </div>
+            </div>
+          </div>
         </div>
-      </footer>
-    </Dialog.Content>
-  </Dialog.Portal>
-</Dialog.Root>
+      {/if}
+    </section>
+  </div>
+
+  <footer class="role-editor-actions">
+    <div>
+      {#if role}
+        <button
+          class="danger-button"
+          type="button"
+          disabled={saving}
+          onclick={() => void onDelete(role)}
+        >
+          {$t("deleteRole")}
+        </button>
+      {/if}
+    </div>
+    <div class="primary-actions">
+      {#if presentation === "dialog"}
+        <Dialog.Close class="quiet-button" disabled={saving}>{$t("cancel")}</Dialog.Close>
+      {:else}
+        <button class="quiet-button" type="button" disabled={saving} onclick={onClose}
+          >{$t("cancel")}</button
+        >
+      {/if}
+      <button
+        class="primary-button"
+        type="button"
+        disabled={saving || !name.trim() || !description.trim()}
+        onclick={submit}
+      >
+        {saving ? $t("savingRole") : $t("save")}
+      </button>
+    </div>
+  </footer>
+{/snippet}
+
+{#if presentation === "window"}
+  <main class="role-editor-dialog role-editor-window" aria-busy={saving}>
+    {@render editorContent()}
+  </main>
+{:else}
+  <Dialog.Root bind:open>
+    <Dialog.Portal>
+      <Dialog.Overlay class="role-editor-overlay" />
+      <Dialog.Content class="role-editor-dialog" aria-busy={saving}>
+        {@render editorContent()}
+      </Dialog.Content>
+    </Dialog.Portal>
+  </Dialog.Root>
+{/if}
 
 <style>
   :global(.role-editor-overlay) {
@@ -304,6 +322,16 @@
     outline: none;
   }
 
+  :global(.role-editor-window) {
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    transform: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
   .role-editor-header,
   .role-editor-actions {
     flex: 0 0 auto;
@@ -317,7 +345,8 @@
     border-bottom: 1px solid var(--mica-divider);
   }
 
-  .role-editor-header :global(h2) {
+  .role-editor-header :global(h2),
+  .role-editor-header h1 {
     margin: 0;
     font-size: 15px;
     font-weight: 600;

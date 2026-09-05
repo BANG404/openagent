@@ -316,6 +316,8 @@ fn frontend_window_query(label: &str) -> &'static str {
         "onboarding" => "?onboarding-window=1",
         "quick-chat" => "?quick-chat-window=1",
         "debug" => "?dev-inspector=1",
+        "role-editor" => "?role-editor-window=1",
+        "settings-general" => "?settings-window=general",
         "settings-models" => "?settings-window=models",
         "settings-agent" => "?settings-window=agent",
         "settings-integrations" => "?settings-window=integrations",
@@ -2318,6 +2320,14 @@ struct SettingsWindowSpec {
 
 fn settings_window_spec(kind: &str) -> Option<SettingsWindowSpec> {
     match kind {
+        "general" => Some(SettingsWindowSpec {
+            label: "settings-general",
+            title: "OpenAgent Settings",
+            default_section: "general",
+            sections: &["general"],
+            initial_width: 920.0,
+            initial_height: 680.0,
+        }),
         "models" => Some(SettingsWindowSpec {
             label: "settings-models",
             title: "OpenAgent Models",
@@ -2368,6 +2378,57 @@ fn settings_window_spec(kind: &str) -> Option<SettingsWindowSpec> {
         }),
         _ => None,
     }
+}
+
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RoleEditorRequest {
+    role_id: Option<String>,
+    requester_label: String,
+}
+
+#[tauri::command]
+async fn open_role_editor_window(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    manager: State<'_, FrontendResourceManager>,
+    role_id: Option<String>,
+) -> Result<(), String> {
+    let request = RoleEditorRequest {
+        role_id,
+        requester_label: window.label().to_string(),
+    };
+    if let Some(editor) = app.get_webview_window("role-editor") {
+        editor
+            .emit("role-editor-requested", &request)
+            .map_err(|error| error.to_string())?;
+        editor.unminimize().map_err(|error| error.to_string())?;
+        editor.show().map_err(|error| error.to_string())?;
+        return editor.set_focus().map_err(|error| error.to_string());
+    }
+
+    let role_id = request.role_id.as_deref().unwrap_or_default();
+    let role_id =
+        percent_encoding::utf8_percent_encode(role_id, percent_encoding::NON_ALPHANUMERIC);
+    let requester = percent_encoding::utf8_percent_encode(
+        &request.requester_label,
+        percent_encoding::NON_ALPHANUMERIC,
+    );
+    let query = format!("?role-editor-window=1&role-id={role_id}&requester-label={requester}");
+    let editor = tauri::WebviewWindowBuilder::new(
+        &app,
+        "role-editor",
+        product_webview_url(&manager, &query)?,
+    )
+    .title("OpenAgent Role")
+    .inner_size(1040.0, 680.0)
+    .min_inner_size(760.0, 500.0)
+    .transparent(!cfg!(target_os = "linux"))
+    .center()
+    .build()
+    .map_err(|error| error.to_string())?;
+    apply_native_window_material(&editor);
+    Ok(())
 }
 
 #[tauri::command]
@@ -3393,6 +3454,7 @@ fn run_with_mode(agent_server: bool) {
         is_desktop_window_active,
         reveal_main_window,
         reveal_onboarding_window,
+        open_role_editor_window,
         open_settings_window,
     ]);
     #[cfg(not(feature = "embedded-runtime"))]
@@ -3423,6 +3485,7 @@ fn run_with_mode(agent_server: bool) {
         is_desktop_window_active,
         reveal_main_window,
         reveal_onboarding_window,
+        open_role_editor_window,
         open_settings_window,
     ]);
     builder
@@ -3442,6 +3505,10 @@ mod tests {
 
     #[test]
     fn settings_window_kinds_use_fixed_labels_and_sections() {
+        let general = settings_window_spec("general").expect("general settings window");
+        assert_eq!(general.label, "settings-general");
+        assert_eq!(general.sections, &["general"]);
+
         let models = settings_window_spec("models").expect("models window");
         assert_eq!(models.label, "settings-models");
         assert_eq!(models.default_section, "providers");
@@ -3459,6 +3526,18 @@ mod tests {
         let about = settings_window_spec("about").expect("about window");
         assert_eq!((about.initial_width, about.initial_height), (680.0, 480.0));
         assert!(settings_window_spec("arbitrary").is_none());
+    }
+
+    #[test]
+    fn utility_windows_restore_their_surface_routes() {
+        assert_eq!(
+            frontend_window_query("settings-general"),
+            "?settings-window=general"
+        );
+        assert_eq!(
+            frontend_window_query("role-editor"),
+            "?role-editor-window=1"
+        );
     }
 
     #[test]

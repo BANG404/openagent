@@ -14,9 +14,10 @@ export type SettingsNav =
   | "about";
 
 export type SettingsWindowKind =
-  "models" | "agent" | "integrations" | "memory" | "automation" | "about";
+  "general" | "models" | "agent" | "integrations" | "memory" | "automation" | "about";
 
 export const settingsWindowSections: Record<SettingsWindowKind, SettingsNav[]> = {
+  general: ["general"],
   models: ["providers", "defaults"],
   agent: ["execution", "agents"],
   integrations: ["channels", "extensions", "plugins"],
