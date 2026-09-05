@@ -153,7 +153,7 @@
 </script>
 
 <div class="conversation-workspace">
-  <div class="conversation-stage">
+  <div class="conversation-stage bg-conversation-surface">
     {#if !view.tauriAvailable}
       <div class="runtime-banner">{view.browserModeNotice}</div>
     {/if}
@@ -331,7 +331,6 @@
     flex-direction: column;
     overflow: hidden;
     border-radius: 12px;
-    background: transparent;
   }
 
   .runtime-banner {

@@ -1,12 +1,18 @@
 @import "tailwindcss" source("./");
 @source "../node_modules/svelte-streamdown/**/*";
 
+@theme inline {
+  --color-conversation-surface: var(--conversation-surface);
+  --color-conversation-component: var(--component-neutral-bg);
+}
+
 @layer base {
   /* Light mode default */
   :root {
     color-scheme: light;
     --bg: #f5f5f7;
-    --component-neutral-bg: #f4f4f5;
+    --conversation-surface: var(--surface);
+    --component-neutral-bg: var(--conversation-surface);
     --user-message-bg: var(--component-neutral-bg);
     --app-chrome-bg: var(--bg);
     --desktop-titlebar-height: 35px;
@@ -179,7 +185,8 @@
       0 4px 12px rgba(31, 35, 48, 0.06);
     --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
     --focus-ring: 0 0 0 1px var(--primary);
-    --component-neutral-bg: #f4f4f5;
+    --conversation-surface: var(--surface);
+    --component-neutral-bg: var(--conversation-surface);
   }
 
   /* Keep roughly 70% of the native material visible below a readable theme tint. */

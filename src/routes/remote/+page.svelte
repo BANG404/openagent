@@ -1106,7 +1106,7 @@
         {/if}
       </aside>
 
-      <section class="main" class:sidebar-collapsed={sidebarCollapsed}>
+      <section class="main bg-conversation-surface" class:sidebar-collapsed={sidebarCollapsed}>
         <header class="title-bar">
           <div class="title-bar-left">
             <Select

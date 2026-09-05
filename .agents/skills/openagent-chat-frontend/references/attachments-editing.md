@@ -50,11 +50,11 @@
   the assistant record's owning checkpoint.
 - Paint durable, editable, and loading-skeleton user-message bubbles with the
   shared `--user-message-bg` token, which maps to the fixed theme-aware
-  `--component-neutral-bg` used by assistant-rendered cards. Use that fill for
-  every attachment-card variant as well; attachment thumbnails and controls
-  must not introduce a white base. Keep user-input cards and summaries in their
-  compact transparent grammar, and keep grouped tool calls on the transcript canvas:
-  the summary is its own outlined button and
+  `--component-neutral-bg` used by assistant-rendered cards. The light-theme
+  component surface is white, while dark mode retains its dark counterpart.
+  Use that fill for every attachment-card variant as well. Keep user-input
+  cards and summaries in their compact transparent grammar, and keep grouped
+  tool calls on the transcript canvas: the summary is its own outlined button and
   expanded ordinary tool cards retain transparent backgrounds without a shared
   group background or enclosing perimeter.
 - Collapse long user-message text by a fixed number of complete rendered lines

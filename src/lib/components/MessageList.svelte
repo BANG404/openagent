@@ -877,7 +877,7 @@
             {#if editingMsgId === msg.id}
               <textarea
                 bind:this={editingTextarea}
-                class="user-content-edit"
+                class="user-content-edit bg-conversation-component"
                 value={editingText}
                 readonly={isStreaming}
                 oninput={(e) => {
@@ -897,7 +897,7 @@
                 {#snippet trigger(props)}
                   <div
                     {...props}
-                    class="user-content"
+                    class="user-content bg-conversation-component"
                     class:collapsed={isUserMessageCollapsed(msg)}
                     role="button"
                     tabindex="0"
@@ -930,7 +930,10 @@
                 {/snippet}
               </Tooltip>
             {:else}
-              <div class="user-content readonly" class:collapsed={isUserMessageCollapsed(msg)}>
+              <div
+                class="user-content readonly bg-conversation-component"
+                class:collapsed={isUserMessageCollapsed(msg)}
+              >
                 <span class="user-content-text">{msg.content}</span>
               </div>
             {/if}
@@ -1301,7 +1304,6 @@
     width: auto;
     max-width: 100%;
     box-sizing: border-box;
-    background: var(--user-message-bg);
     border: 0;
     border-radius: 18px;
     padding: 9px 14px;
@@ -1331,7 +1333,6 @@
     padding: 9px 14px;
     border: 0;
     border-radius: 18px;
-    background: var(--user-message-bg);
     color: var(--text);
     font-size: 14px;
     line-height: 1.47;

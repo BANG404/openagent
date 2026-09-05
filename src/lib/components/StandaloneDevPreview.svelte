@@ -1225,7 +1225,7 @@
     />
   </main>
 {:else if preview === "quote-context"}
-  <main class="quote-context-preview-stage">
+  <main class="quote-context-preview-stage bg-conversation-surface">
     <section class="quote-context-preview-messages" bind:this={quoteMessagesElement}>
       <MessageList
         messages={quoteMessages}
@@ -1310,7 +1310,10 @@
     </section>
   </main>
 {:else if preview === "runtime-notice"}
-  <main class="runtime-notice-preview-stage" bind:this={runtimeNoticeMessagesElement}>
+  <main
+    class="runtime-notice-preview-stage bg-conversation-surface"
+    bind:this={runtimeNoticeMessagesElement}
+  >
     <section class="runtime-notice-preview-messages">
       <MessageList
         messages={runtimeNoticeMessages}
@@ -1352,7 +1355,7 @@
     </section>
   </main>
 {:else if preview === "cache-usage"}
-  <main class="cache-usage-preview-stage">
+  <main class="cache-usage-preview-stage bg-conversation-surface">
     <section class="cache-usage-preview-messages">
       <MessageList
         messages={cacheUsageMessages}
@@ -1384,7 +1387,7 @@
   </main>
 {:else if preview === "streaming-transcript"}
   <main
-    class="streaming-transcript-preview-stage"
+    class="streaming-transcript-preview-stage bg-conversation-surface"
     class:following-tail={streamingFollowTail}
     bind:this={streamingMessagesElement}
     onscroll={updateStreamingFollowTail}
@@ -1418,7 +1421,10 @@
     />
   </main>
 {:else if preview === "mermaid-finalization"}
-  <main class="mermaid-finalization-preview-stage" bind:this={mermaidFinalizationMessagesElement}>
+  <main
+    class="mermaid-finalization-preview-stage bg-conversation-surface"
+    bind:this={mermaidFinalizationMessagesElement}
+  >
     <button
       type="button"
       class="mermaid-finalization-control"
@@ -1581,7 +1587,6 @@
     display: flex;
     min-height: 100vh;
     flex-direction: column;
-    background: var(--bg);
   }
   .quote-context-preview-messages {
     min-height: 0;
@@ -1623,7 +1628,6 @@
   .cache-usage-preview-stage {
     min-height: 100vh;
     padding: 24px;
-    background: var(--bg);
   }
   .cache-usage-preview-messages {
     width: min(900px, 100%);
@@ -1634,7 +1638,6 @@
     overflow-x: clip;
     overflow-y: auto;
     overscroll-behavior-y: contain;
-    background: var(--bg);
     scrollbar-gutter: stable;
   }
   .mermaid-finalization-preview-stage {
@@ -1643,7 +1646,6 @@
     overflow-x: clip;
     overflow-y: auto;
     padding-top: 52px;
-    background: var(--bg);
     scrollbar-gutter: stable;
   }
   .mermaid-finalization-control {

@@ -47,8 +47,9 @@
   theme-aware `--interactive-state-bg` for hover, open, and selected states;
   derive it from the current text color at 8% opacity so the fill remains
   visible over canvas, sidebar, and native Mica surfaces. Static conversation
-  components instead use `--component-neutral-bg`, with the shadcn neutral
-  palette's `#f4f4f5` light fill and `#27272a` dark fill. Selected rows use the
+  components instead use the centralized Tailwind `bg-conversation-component`
+  theme color: it follows the white conversation surface in light mode and uses
+  the `#27272a` component fill in dark mode. Selected rows use the
   interaction fill without a decorative left rail, stronger fill, checkmark, or selected text color. GPUI
   preserves the same row geometry, selected fill, selection semantics,
   accessibility state, and interactions. Primary and destructive actions retain

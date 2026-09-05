@@ -8,9 +8,12 @@ const sharedSurfaceComponents = [
   "../src/lib/components/RetryAttempt.svelte",
 ];
 
-test("keeps transcript-owned user surfaces on the fixed component-neutral fill", async () => {
+test("maps transcript-owned light surfaces to white and keeps the dark surface", async () => {
   const appCss = await readFile(new URL("../src/app.css", import.meta.url), "utf8");
-  expect(appCss.match(/--component-neutral-bg: #f4f4f5;/g)).toHaveLength(2);
+  expect(appCss).toContain("--color-conversation-surface: var(--conversation-surface);");
+  expect(appCss).toContain("--color-conversation-component: var(--component-neutral-bg);");
+  expect(appCss.match(/--conversation-surface: var\(--surface\);/g)).toHaveLength(2);
+  expect(appCss.match(/--component-neutral-bg: var\(--conversation-surface\);/g)).toHaveLength(2);
   expect(appCss.match(/--component-neutral-bg: #27272a;/g)).toHaveLength(2);
   expect(appCss).toContain("--user-message-bg: var(--component-neutral-bg);");
 
@@ -20,9 +23,23 @@ test("keeps transcript-owned user surfaces on the fixed component-neutral fill",
   for (const source of sources) {
     expect(source).toContain("var(--user-message-bg)");
   }
+  const messageList = sources[1];
+  expect(messageList.match(/bg-conversation-component/g)).toHaveLength(3);
 });
 
-test("keeps every attachment card off the white surface", async () => {
+test("keeps desktop, remote, and preview conversation canvases on the theme surface", async () => {
+  const [desktop, remote, preview] = await Promise.all([
+    readFile(new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url), "utf8"),
+    readFile(new URL("../src/routes/remote/+page.svelte", import.meta.url), "utf8"),
+    readFile(new URL("../src/lib/components/StandaloneDevPreview.svelte", import.meta.url), "utf8"),
+  ]);
+
+  expect(desktop).toContain('class="conversation-stage bg-conversation-surface"');
+  expect(remote).toContain('class="main bg-conversation-surface"');
+  expect(preview).toContain('class="streaming-transcript-preview-stage bg-conversation-surface"');
+});
+
+test("keeps every attachment card on the shared component surface", async () => {
   const source = await readFile(
     new URL("../src/lib/components/AttachmentPreview.svelte", import.meta.url),
     "utf8",

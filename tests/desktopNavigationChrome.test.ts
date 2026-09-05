@@ -135,7 +135,7 @@ describe("desktop navigation chrome", () => {
     expect(conversationWorkspace).toContain("background: transparent");
     expect(conversationWorkspace).not.toContain("box-shadow");
     expect(conversationStage).toContain("border-radius: 12px");
-    expect(conversationStage).toContain("background: transparent");
+    expect(conversationSurface).toContain('class="conversation-stage bg-conversation-surface"');
     expect(conversationSurface).not.toContain(".conversation-stage::before");
     expect(conversationStage).not.toContain("box-shadow");
     expect(titleBar).not.toContain("workspace-environment");
