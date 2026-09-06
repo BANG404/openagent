@@ -15,7 +15,10 @@ two verification routes:
 - Release workflow calls, nightly schedules, and manual dispatches force every
   module through complete qualification: frontend production build and bundle
   budgets, Windows/macOS native compilation, embedding runtime tests, and
-  Harness integration. Full runs never consume prior fast coverage.
+  Harness integration. Full runs never consume prior fast coverage. Frontend
+  bundle budgets resolve both direct Vite manifest entries and source modules
+  emitted through a manifest entry's dynamic imports, so code splitting does
+  not fail a valid budget target before size measurement.
 - Workflow-router and shared dependency changes still conservatively select
   every affected module; the verification tier controls whether those modules
   use their quick or complete checks.

@@ -2,6 +2,7 @@ import { readFile, stat } from "node:fs/promises";
 import { gzipSync } from "node:zlib";
 import path from "node:path";
 import process from "node:process";
+import { requireManifestEntry } from "./bundle-manifest.mjs";
 
 const workspace = process.cwd();
 const clientRoot = path.join(workspace, ".svelte-kit", "output", "client");
@@ -19,12 +20,6 @@ async function assetSize(root, file) {
 
 function formatKiB(bytes) {
   return `${(bytes / 1024).toFixed(1)} KiB`;
-}
-
-function requireManifestEntry(manifest, key) {
-  const entry = manifest[key];
-  if (!entry?.file) throw new Error(`Missing Vite manifest entry: ${key}`);
-  return entry;
 }
 
 const [clientManifest, serverManifest, clientApp] = await Promise.all([
