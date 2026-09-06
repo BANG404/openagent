@@ -1,5 +1,10 @@
 ## Save and reload behavior
 
+Provider model entries may persist `model_vision_enabled` flags. Missing flags
+are normalized to disabled; only an enabled model receives image input and the
+`view_image` tool in its provider request. Removing or renaming a model also
+removes or migrates its vision flag.
+
 Settings changes are debounced briefly in the UI. Every backend configuration
 mutation then acquires both a process-local ordering lock and a cross-process
 `config.lock`, rereads the latest file, normalizes the result, and replaces

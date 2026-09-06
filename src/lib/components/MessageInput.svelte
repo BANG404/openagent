@@ -73,6 +73,7 @@
     loadMentionItems?: (query: string) => Promise<PaletteItem[]>;
     showGlobalDraftsInMentions?: boolean;
     showAttachments?: boolean;
+    allowImageAttachments?: boolean;
     attachmentDisplay?: "cards" | "strip";
     showModelSelector?: boolean;
     showReasoningEffort?: boolean;
@@ -128,6 +129,7 @@
     loadMentionItems,
     showGlobalDraftsInMentions = true,
     showAttachments = true,
+    allowImageAttachments = false,
     attachmentDisplay = "cards",
     showModelSelector = true,
     showReasoningEffort = false,
@@ -409,6 +411,9 @@
 
   function isSupportedAttachment(name: string): boolean {
     const extension = name.split(".").pop()?.toLowerCase() ?? "";
+    if (!allowImageAttachments && ["png", "jpg", "jpeg", "gif", "webp"].includes(extension)) {
+      return false;
+    }
     return supportedAttachmentExtensions.has(extension);
   }
 

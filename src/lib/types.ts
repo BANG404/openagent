@@ -482,6 +482,8 @@ export interface ProviderConfig {
   model_reasoning_efforts: Record<string, ReasoningEffort>;
   /** Models explicitly configured to accept OpenAI-compatible reasoning effort. */
   model_reasoning_effort_enabled?: Record<string, boolean>;
+  /** Models explicitly enabled for image input and the view_image tool. */
+  model_vision_enabled?: Record<string, boolean>;
 }
 
 export interface DefaultModelBinding {

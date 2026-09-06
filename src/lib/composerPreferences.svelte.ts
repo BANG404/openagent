@@ -58,6 +58,13 @@ export class ComposerPreferences {
     );
   }
 
+  get selectedModelSupportsVision(): boolean {
+    const binding = decodeModelBinding(this.selectedModel);
+    return Boolean(
+      binding && this.selectedProvider?.model_vision_enabled?.[binding.model] === true,
+    );
+  }
+
   syncFromConfig(): void {
     const config = this.dependencies.getConfig();
     if (!config) return;

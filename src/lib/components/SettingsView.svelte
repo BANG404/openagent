@@ -276,6 +276,7 @@
   let modelConfigName = $state("");
   let modelConfigThreshold = $state<string | number | undefined>("");
   let modelConfigSupportsReasoningEffort = $state(false);
+  let modelConfigSupportsVision = $state(false);
   let autostartReady = $state(false);
   let autostartSyncing = $state(false);
   let autostartStatus = $state("");
@@ -928,6 +929,7 @@
     modelConfigSupportsReasoningEffort =
       provider.provider === "chatgpt" ||
       provider.model_reasoning_effort_enabled?.[modelName] === true;
+    modelConfigSupportsVision = provider.model_vision_enabled?.[modelName] === true;
     modelConfigDialogOpen = true;
   }
 
@@ -947,6 +949,13 @@
       delete model_reasoning_efforts[modelName];
       provider.model_reasoning_efforts = model_reasoning_efforts;
     }
+  }
+
+  function setModelVisionSupport(provider: ProviderConfig, modelName: string, enabled: boolean) {
+    const model_vision_enabled = { ...(provider.model_vision_enabled ?? {}) };
+    if (enabled) model_vision_enabled[modelName] = true;
+    else delete model_vision_enabled[modelName];
+    provider.model_vision_enabled = model_vision_enabled;
   }
 
   function modelConfigUsesResponsesReasoning() {
@@ -1007,10 +1016,16 @@
       delete model_reasoning_effort_enabled[previousName];
       if (enabled) model_reasoning_effort_enabled[nextName] = true;
       provider.model_reasoning_effort_enabled = model_reasoning_effort_enabled;
+      const visionEnabled = provider.model_vision_enabled?.[previousName] === true;
+      const model_vision_enabled = { ...(provider.model_vision_enabled ?? {}) };
+      delete model_vision_enabled[previousName];
+      if (visionEnabled) model_vision_enabled[nextName] = true;
+      provider.model_vision_enabled = model_vision_enabled;
     }
 
     setModelCompactionThreshold(provider, nextName, modelConfigThreshold);
     setModelReasoningEffortSupport(provider, nextName, modelConfigSupportsReasoningEffort);
+    setModelVisionSupport(provider, nextName, modelConfigSupportsVision);
     modelConfigDialogOpen = false;
   }
 
@@ -1032,6 +1047,9 @@
     const model_reasoning_effort_enabled = { ...(provider.model_reasoning_effort_enabled ?? {}) };
     delete model_reasoning_effort_enabled[modelName];
     provider.model_reasoning_effort_enabled = model_reasoning_effort_enabled;
+    const model_vision_enabled = { ...(provider.model_vision_enabled ?? {}) };
+    delete model_vision_enabled[modelName];
+    provider.model_vision_enabled = model_vision_enabled;
     repairDefaultModelBindings();
   }
 
@@ -3791,6 +3809,14 @@
           <span>
             <span class="label-text">{$t("modelSupportsReasoningEffort")}</span>
             <span class="field-hint">{$t("modelSupportsReasoningEffortHint")}</span>
+          </span>
+        </label>
+
+        <label class="reasoning-support-field">
+          <input type="checkbox" bind:checked={modelConfigSupportsVision} />
+          <span>
+            <span class="label-text">{$t("modelSupportsVision")}</span>
+            <span class="field-hint">{$t("modelSupportsVisionHint")}</span>
           </span>
         </label>
       </div>

@@ -425,6 +425,8 @@ const zh = {
   modelCompactionThresholdRange: "触发压缩上下文大小必须在 1,000 到 1,000,000 之间",
   modelSupportsReasoningEffort: "支持推理强度",
   modelSupportsReasoningEffortHint: "启用后，服务会通过 reasoning_effort 发送所选推理强度。",
+  modelSupportsVision: "支持视觉多模态",
+  modelSupportsVisionHint: "启用后可发送图片附件，并向模型提供 view_image 工具。默认关闭。",
   deleteNode: "删除节点",
   deleteNodeDesc: "不会影响其它已保存的服务商配置。",
   atLeastOneProvider: "至少需要保留一个服务节点",
@@ -1352,6 +1354,9 @@ const en: Translations = {
   modelSupportsReasoningEffort: "Supports reasoning effort",
   modelSupportsReasoningEffortHint:
     "When enabled, the provider receives the selected reasoning_effort field.",
+  modelSupportsVision: "Supports visual multimodality",
+  modelSupportsVisionHint:
+    "When enabled, image attachments and the view_image tool are available. Off by default.",
   deleteNode: "Delete Node",
   deleteNodeDesc: "Will not affect other saved provider configs.",
   atLeastOneProvider: "At least one provider is required.",

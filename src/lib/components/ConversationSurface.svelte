@@ -267,6 +267,7 @@
             onConfigureModels={actions.configureModels}
             onModelChange={composerPreferences.handleModelChange}
             showReasoningEffort={composerPreferences.selectedModelSupportsReasoning}
+            allowImageAttachments={composerPreferences.selectedModelSupportsVision}
             reasoningEffort={composerPreferences.selectedReasoningEffort}
             onReasoningEffortChange={composerPreferences.handleReasoningEffortChange}
             showApprovalMode

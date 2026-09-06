@@ -100,12 +100,18 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
         ([model, enabled]) => configuredModels.has(model) && enabled === true,
       ),
     ) as Record<string, boolean>;
+    const model_vision_enabled = Object.fromEntries(
+      Object.entries(provider.model_vision_enabled ?? {}).filter(
+        ([model, enabled]) => configuredModels.has(model) && enabled === true,
+      ),
+    ) as Record<string, boolean>;
     return {
       ...provider,
       models: provider.models ?? [],
       model_context_compaction_thresholds,
       model_reasoning_efforts,
       model_reasoning_effort_enabled,
+      model_vision_enabled,
     };
   });
   const defaults = input.defaults ?? {

@@ -1,5 +1,10 @@
 # Attachments and editing
 
+Image attachments are offered by the composer only when the selected model's
+visual multimodality setting is enabled. Text and document attachments remain
+available independently; the runtime enforces the same model capability when
+building the provider request.
+
 - Text selected inside an assistant answer exposes one compact, localized
   `Add to chat` floating action. Adding it creates a structured `quote` context
   tied to the source assistant message, moves focus to the shared composer, and
