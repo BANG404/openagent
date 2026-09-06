@@ -142,6 +142,7 @@
       name={item.name}
       args={item.args}
       result={item.result}
+      images={item.images}
       {expanded}
       argHint={toolArgHint(item.args)}
       approval={item.approval}

@@ -8,6 +8,7 @@ import { normalizeCheckpointFlow, type CheckpointFlow } from "./checkpointFlow";
 import { isUnansweredToolResult, toolCallStatus } from "./toolCallGroups";
 import type {
   ChatMessage,
+  ChatToolImage,
   CheckpointMetadataFields,
   CheckpointMessage,
   CheckpointTurnMetadata,
@@ -238,6 +239,7 @@ function recordToMessage(
         name: "tool_result",
         args: JSON.stringify({ tool_use_id: part.tool_use_id ?? "" }),
         result: toolResultText(part.content),
+        images: toolResultImages(part.content),
       });
     } else if (part.type === "runtime_error" || part.type === "runtime_interrupted") {
       derivedItems.push({
@@ -281,7 +283,12 @@ export function checkpointRecordsToMessages(
         const toolUseId = String(part.tool_use_id ?? "");
         return (
           Boolean(toolUseId) &&
-          attachPersistedToolResult(messages, toolUseId, toolResultText(part.content))
+          attachPersistedToolResult(
+            messages,
+            toolUseId,
+            toolResultText(part.content),
+            toolResultImages(part.content),
+          )
         );
       })
     )
@@ -325,10 +332,29 @@ function toolResultText(content: unknown): string {
     .join("\n");
 }
 
+function toolResultImages(content: unknown): ChatToolImage[] {
+  if (!Array.isArray(content)) return [];
+  return content.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const value = item as Record<string, unknown>;
+    if (value.type !== "image" || !value.data || typeof value.data !== "object") return [];
+    const data = value.data as Record<string, unknown>;
+    if (data.type !== "base64" || typeof data.value !== "string") return [];
+    const mediaType =
+      typeof value.media_type === "string"
+        ? value.media_type.includes("/")
+          ? value.media_type
+          : `image/${value.media_type === "jpeg" ? "jpeg" : value.media_type}`
+        : "image/png";
+    return [{ src: `data:${mediaType};base64,${data.value}`, mimeType: mediaType }];
+  });
+}
+
 function attachPersistedToolResult(
   messages: ChatMessage[],
   toolUseId: string,
   result: string,
+  images: ChatToolImage[] = [],
 ): boolean {
   for (let messageIndex = messages.length - 1; messageIndex >= 0; messageIndex--) {
     const message = messages[messageIndex];
@@ -356,7 +382,12 @@ function attachPersistedToolResult(
                   : ("answered" as const),
           }
         : undefined;
-      items[itemIndex] = { ...item, result, approval };
+      items[itemIndex] = {
+        ...item,
+        result,
+        images: images.length > 0 ? images : item.images,
+        approval,
+      };
     } else if (item.type === "user_input") {
       const response = parsePersistedUserInputResponse(result);
       const unanswered = isUnansweredToolResult(result);
@@ -446,6 +477,7 @@ export function buildTreeFromCheckpoints(
               node.timelineMessages,
               toolUseId,
               toolResultText(part.content),
+              toolResultImages(part.content),
             )
           );
         })

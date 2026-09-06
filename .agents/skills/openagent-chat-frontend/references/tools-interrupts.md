@@ -19,6 +19,11 @@
   by live tool events: preserve text, serialize JSON values, and represent image
   results without exposing encoded bytes. Structured tool output must not become
   a successful but blank card after finalization, reload, or branch switching.
+- `view_image` ToolResult image blocks remain image content during checkpoint
+  hydration. Render them as bounded previews in the expanded tool card, while
+  keeping the textual result concise (`[image]`) and never printing base64 in
+  transcript text. The same card grammar applies to `exec_command`,
+  `write_stdin`, and `apply_patch`.
 - Group consecutive ordinary ToolCalls into one collapsed summary row with
   independently expandable calls.
 - Keep ordinary and enhanced file/search tool cards, grouped tool summaries,

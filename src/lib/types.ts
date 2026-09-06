@@ -13,6 +13,11 @@ export interface ChatAttachment {
   previewUrl?: string;
 }
 
+export interface ChatToolImage {
+  src: string;
+  mimeType: string;
+}
+
 export type UserMessageContext = {
   type: "quote";
   text: string;
@@ -32,6 +37,7 @@ export type StreamItem =
       name: string;
       args: string;
       result?: string;
+      images?: ChatToolImage[];
       /** Provider tool-use id, retained so restored checkpoints can join results. */
       toolUseId?: string;
       approval?: {

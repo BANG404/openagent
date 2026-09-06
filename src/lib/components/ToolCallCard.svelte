@@ -2,7 +2,7 @@
   import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
   import HtmlPreview from "$lib/streamdown/components/Html.svelte";
   import MermaidToolPreview from "./MermaidToolPreview.svelte";
-  import type { HtmlPreviewConfig, UserInputRequest } from "$lib/types";
+  import type { ChatToolImage, HtmlPreviewConfig, UserInputRequest } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t } from "$lib/i18n";
   import { buildReplacementDiff } from "$lib/toolCallDiff";
@@ -15,6 +15,7 @@
     name: string;
     args: string;
     result: string | undefined;
+    images?: ChatToolImage[];
     expanded: boolean;
     argHint: string;
     htmlPreviewConfig?: HtmlPreviewConfig;
@@ -38,6 +39,7 @@
     name,
     args,
     result,
+    images = [],
     expanded,
     argHint,
     htmlPreviewConfig,
@@ -49,7 +51,16 @@
     onToggle,
   }: Props = $props();
 
-  const focusedTools = new Set(["read_file", "write_file", "edit_file", "glob", "grep"]);
+  const focusedTools = new Set([
+    "exec_command",
+    "apply_patch",
+    "view_image",
+    "read_file",
+    "write_file",
+    "edit_file",
+    "glob",
+    "grep",
+  ]);
 
   const parsedArgs = $derived.by((): JsonObject | null => {
     try {
@@ -79,7 +90,11 @@
         ? $t("searchRolesTool")
         : name,
   );
-  const filePath = $derived(getString(parsedArgs, "file_path") || getString(parsedArgs, "path"));
+  const filePath = $derived(
+    getString(parsedArgs, "file_path") ||
+      getString(parsedArgs, "path") ||
+      getString(parsedArgs, "workdir"),
+  );
   const pattern = $derived(getString(parsedArgs, "pattern"));
   const globFilter = $derived(getString(parsedArgs, "glob"));
   const resultText = $derived(result ?? "");
@@ -443,6 +458,19 @@
               {:else if result !== undefined}
                 <pre class="code-block">{trimPreview(result)}</pre>
               {/if}
+            {:else}
+              {#if args}<pre class="tool-args">{args}</pre>{/if}
+              {#if result !== undefined}<pre class="tool-result">{trimPreview(result)}</pre>{/if}
+            {/if}
+            {#if images.length > 0}
+              <div class="tool-image-results">
+                {#each images as image (image.src)}
+                  <img
+                    src={image.src}
+                    alt={name === "view_image" ? "Viewed workspace image" : "Tool result image"}
+                  />
+                {/each}
+              </div>
             {/if}
           </div>
         {:else}
@@ -451,6 +479,16 @@
           {/if}
           {#if result !== undefined}
             <div class="tool-result">{result.slice(0, 500)}{result.length > 500 ? "..." : ""}</div>
+          {/if}
+          {#if images.length > 0}
+            <div class="tool-image-results">
+              {#each images as image (image.src)}
+                <img
+                  src={image.src}
+                  alt={name === "view_image" ? "Viewed workspace image" : "Tool result image"}
+                />
+              {/each}
+            </div>
           {/if}
         {/if}
       {/if}
@@ -722,6 +760,23 @@
 
   .tool-result {
     color: var(--text-muted);
+  }
+
+  .tool-image-results {
+    display: grid;
+    gap: 8px;
+    padding: 8px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+
+  .tool-image-results img {
+    display: block;
+    max-width: 100%;
+    max-height: 420px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: var(--surface);
   }
 
   .result-row,

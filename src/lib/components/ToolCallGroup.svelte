@@ -160,6 +160,7 @@
             name={item.name}
             args={item.args}
             result={item.result}
+            images={item.images}
             expanded={expandedCalls.has(index)}
             argHint={toolArgHint(item.args)}
             approval={item.approval}
