@@ -49,10 +49,14 @@
   sibling approval that is still queued or running. Apply the same behavior to
   desktop and remote transcript projections.
 - Render `render_mermaid` as a standalone transcript row from ToolCall source and
-  restore it from the matching durable ToolResult. Defer `render_html` and
+  restore it from the matching durable ToolResult. Defer `render_web` and
   `render_mermaid` previews until their successful ToolResult arrives; never
-  mount pending or failed render previews. Apply the same failed-result hiding
-  rule to ordinary tools.
+  mount pending or failed render previews. `render_web` accepts exactly one
+  local HTML path or HTTP(S) URL. Keep remote pages interactive inside the
+  sandbox, expose fullscreen and system-browser actions, and retain local-only
+  copy and PNG actions because cross-origin pages cannot be inspected reliably.
+  A remote site's CSP or X-Frame-Options may reject embedding. Apply the same
+  failed-result hiding rule to ordinary tools.
 - Return a Mermaid renderer result through the shared SDK client with the
   request's owning conversation ID. The production Runtime is routed and
   cannot resolve a direct interrupt response from its request ID alone.

@@ -249,7 +249,7 @@
   partition mounted at one stable template location across that status
   transition: revealing the process disclosure may hide its process children,
   but must not remount final rich output such as Mermaid or HTML previews.
-- Treat the first `render_html` or `render_mermaid` call as the process-disclosure
+- Treat the first `render_web` or `render_mermaid` call as the process-disclosure
   boundary: keep that render and every later record outside the collapsed work
   details, including later tools and reasoning. Before that boundary,
   `update_goal` behaves like an ordinary tool and remains eligible for grouping

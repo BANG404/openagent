@@ -54,7 +54,7 @@ describe("tool-call grouping", () => {
       { ...call("write_file"), approval },
       call("grep"),
       call("update_goal"),
-      call("render_html"),
+      call("render_web"),
       call("render_mermaid"),
     ]);
 
@@ -91,7 +91,7 @@ describe("tool-call grouping", () => {
       { type: "text", content: "updating goal" },
       call("update_goal", "updated"),
       { type: "thinking", content: "prepare preview" },
-      call("render_html", '{"ok":true}'),
+      call("render_web", '{"ok":true}'),
       call("read_file", "contents"),
       { type: "thinking", content: "inspect preview" },
       { type: "text", content: "final answer" },
@@ -190,13 +190,11 @@ describe("tool-call grouping", () => {
   });
 
   test("hides every failed tool and shows non-render tools in other states", () => {
-    expect(shouldDisplayToolCall(call("render_html", "Error: invalid document"), false)).toBe(
-      false,
-    );
+    expect(shouldDisplayToolCall(call("render_web", "Error: invalid document"), false)).toBe(false);
     expect(shouldDisplayToolCall(call("render_mermaid", '{"ok":false}'), false)).toBe(false);
-    expect(shouldDisplayToolCall(call("render_html"), true)).toBe(false);
+    expect(shouldDisplayToolCall(call("render_web"), true)).toBe(false);
     expect(shouldDisplayToolCall(call("render_mermaid"), false)).toBe(false);
-    expect(shouldDisplayToolCall(call("render_html", '{"ok":true}'), false)).toBe(true);
+    expect(shouldDisplayToolCall(call("render_web", '{"ok":true}'), false)).toBe(true);
     expect(shouldDisplayToolCall(call("render_mermaid", '{"ok":true}'), false)).toBe(true);
     expect(shouldDisplayToolCall(call("read_file", "Error: unavailable"), false)).toBe(false);
     expect(shouldDisplayToolCall(call("read_file"), false)).toBe(true);

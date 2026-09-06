@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
   import { showToast } from "$lib/toast";
-  import { tr } from "$lib/i18n";
+  import { t, tr } from "$lib/i18n";
   import ScrollArea from "$lib/components/ui/ScrollArea.svelte";
   import Tooltip from "$lib/components/Tooltip.svelte";
   import type { HtmlPreviewConfig } from "$lib/types";
@@ -21,22 +21,26 @@
   } = $props();
 
   let frame: HTMLIFrameElement | null = $state(null);
+  let card: HTMLDivElement | null = $state(null);
   let resizeObs: ResizeObserver | null = null;
   let resizeTimer: number | null = null;
   let measuring = false;
   let expanded = $state(false);
+  let fullscreen = $state(false);
   let frameHeight = $state(480);
   let busy = $state<"copy" | "png" | "open" | null>(null);
   let rawFileCode = $state("");
   let assetBaseUrl = $state("");
   let loadError = $state("");
   let loadSeq = 0;
+  let expandedMessageRecord: HTMLElement | null = null;
   const capabilities = useOpenAgentUiCapabilities();
 
   const title = $derived(
-    typeof args.title === "string" && args.title.trim() ? args.title : "HTML display",
+    typeof args.title === "string" && args.title.trim() ? args.title : $t("webPreviewDefaultTitle"),
   );
   const path = $derived(typeof args.path === "string" ? args.path.trim() : "");
+  const url = $derived(typeof args.url === "string" ? args.url.trim() : "");
   const code = $derived(
     rawFileCode ? injectHtmlPreviewBase(rawFileCode, assetBaseUrl, isDark ? "dark" : "light") : "",
   );
@@ -46,6 +50,19 @@
     return Math.min(Math.max(value, 160), 1200);
   });
   const displayHeight = $derived(expanded ? Math.max(frameHeight, fixedHeight) : fixedHeight);
+  const viewportHeight = $derived(fullscreen ? "100%" : `${displayHeight}px`);
+  const iframeHeight = $derived(fullscreen ? "100%" : `${frameHeight}px`);
+  const iframeSandbox = $derived.by(() => {
+    if (!url) return "allow-same-origin";
+    try {
+      const sameOrigin = new URL(url).origin === window.location.origin;
+      return sameOrigin
+        ? "allow-forms allow-scripts"
+        : "allow-forms allow-same-origin allow-scripts";
+    } catch {
+      return "allow-forms allow-scripts";
+    }
+  });
 
   function safeFilename(ext: "png"): string {
     const base =
@@ -174,6 +191,43 @@
     }
   }
 
+  async function openWebsite() {
+    if (!url || busy) return;
+    busy = "open";
+    try {
+      await capabilities.openUrl(url);
+    } catch (err) {
+      showToast({
+        title: tr("webPreviewOpenFailed"),
+        description:
+          typeof err === "string" ? err : ((err as { message?: string })?.message ?? String(err)),
+        variant: "error",
+      });
+    } finally {
+      busy = null;
+    }
+  }
+
+  function exitFullscreen() {
+    if (!fullscreen || !card) return;
+    fullscreen = false;
+    card.removeAttribute("data-web-preview-fullscreen");
+    expandedMessageRecord?.removeAttribute("data-web-preview-expanded");
+    expandedMessageRecord = null;
+  }
+
+  function toggleFullscreen() {
+    if (!card) return;
+    if (fullscreen) {
+      exitFullscreen();
+      return;
+    }
+    expandedMessageRecord = card.closest<HTMLElement>(".message-record");
+    expandedMessageRecord?.setAttribute("data-web-preview-expanded", "");
+    card.setAttribute("data-web-preview-fullscreen", "");
+    fullscreen = true;
+  }
+
   function measureFrame() {
     if (measuring) return;
     if (!frame) return;
@@ -222,8 +276,17 @@
   }
 
   onDestroy(() => {
+    exitFullscreen();
     resizeObs?.disconnect();
     if (resizeTimer !== null) window.clearTimeout(resizeTimer);
+  });
+
+  onMount(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") exitFullscreen();
+    };
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
   });
 
   $effect(() => {
@@ -235,7 +298,7 @@
     expanded = false;
     frameHeight = fixedHeight;
 
-    if (!currentPath) return;
+    if (!currentPath || url) return;
 
     capabilities
       .readHtmlPreview(currentPath)
@@ -252,36 +315,28 @@
   });
 </script>
 
-<div class="html-card">
+<div class="html-card" class:fullscreen bind:this={card}>
   {#if loadError}
     <div class="empty error">{loadError}</div>
-  {:else if code}
+  {:else if code || url}
     <div class="actions" aria-label={title}>
-      <Tooltip text={expanded ? "Use fixed height" : "Expand to content"}>
+      <Tooltip text={fullscreen ? $t("webPreviewExitFullscreen") : $t("webPreviewFullscreen")}>
         {#snippet trigger(props)}
           <button
             {...props}
             type="button"
-            onclick={() => {
-              expanded = !expanded;
-              if (expanded) measureFrame();
-            }}
-            aria-label={expanded ? "Use fixed height" : "Expand to content"}
+            onclick={toggleFullscreen}
+            aria-label={fullscreen ? $t("webPreviewExitFullscreen") : $t("webPreviewFullscreen")}
           >
-            {#if expanded}
+            {#if fullscreen}
               <svg
                 viewBox="0 0 16 16"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
                 aria-hidden="true"
               >
-                <path d="M5.25 2.75v3h-3" />
-                <path d="M2.75 5.75 6 2.5" />
-                <path d="M10.75 13.25v-3h3" />
-                <path d="M13.25 10.25 10 13.5" />
+                <path d="M6 2.5V6H2.5M10 13.5V10h3.5M2.75 5.75 6 2.5M13.25 10.25 10 13.5" />
               </svg>
             {:else}
               <svg
@@ -289,28 +344,100 @@
                 fill="none"
                 stroke="currentColor"
                 stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
                 aria-hidden="true"
               >
-                <path d="M6 2.5H2.5V6" />
-                <path d="M2.75 2.75 6.25 6.25" />
-                <path d="M10 13.5h3.5V10" />
-                <path d="M13.25 13.25 9.75 9.75" />
+                <path d="M6 2.5H2.5V6M10 13.5h3.5V10M2.75 2.75 6 6M13.25 13.25 10 10" />
               </svg>
             {/if}
           </button>
         {/snippet}
       </Tooltip>
+      {#if url}
+        <Tooltip text={$t("webPreviewOpenExternal")}>
+          {#snippet trigger(props)}
+            <button
+              {...props}
+              type="button"
+              onclick={openWebsite}
+              disabled={busy !== null}
+              aria-label={$t("webPreviewOpenExternal")}
+            >
+              {#if busy === "open"}
+                <span class="busy-dot"></span>
+              {:else}
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  aria-hidden="true"
+                >
+                  <path d="M9 2.75h4.25V7M8.25 7.75 13 3" />
+                  <path
+                    d="M6.75 4H4.25A1.25 1.25 0 0 0 3 5.25v6.5A1.25 1.25 0 0 0 4.25 13h6.5A1.25 1.25 0 0 0 12 11.75V9.25"
+                  />
+                </svg>
+              {/if}
+            </button>
+          {/snippet}
+        </Tooltip>
+      {/if}
+      {#if !url}
+        <Tooltip text={expanded ? "Use fixed height" : "Expand to content"}>
+          {#snippet trigger(props)}
+            <button
+              {...props}
+              type="button"
+              onclick={() => {
+                expanded = !expanded;
+                if (expanded) measureFrame();
+              }}
+              aria-label={expanded ? "Use fixed height" : "Expand to content"}
+            >
+              {#if expanded}
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5.25 2.75v3h-3" />
+                  <path d="M2.75 5.75 6 2.5" />
+                  <path d="M10.75 13.25v-3h3" />
+                  <path d="M13.25 10.25 10 13.5" />
+                </svg>
+              {:else}
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M6 2.5H2.5V6" />
+                  <path d="M2.75 2.75 6.25 6.25" />
+                  <path d="M10 13.5h3.5V10" />
+                  <path d="M13.25 13.25 9.75 9.75" />
+                </svg>
+              {/if}
+            </button>
+          {/snippet}
+        </Tooltip>
+      {/if}
       {#if path}
-        <Tooltip text="Open HTML file">
+        <Tooltip text={$t("webPreviewOpenFile")}>
           {#snippet trigger(props)}
             <button
               {...props}
               type="button"
               onclick={openHtmlFile}
               disabled={busy !== null}
-              aria-label="Open HTML file"
+              aria-label={$t("webPreviewOpenFile")}
             >
               {#if busy === "open"}
                 <span class="busy-dot"></span>
@@ -335,83 +462,86 @@
           {/snippet}
         </Tooltip>
       {/if}
-      <Tooltip text="Copy text">
-        {#snippet trigger(props)}
-          <button
-            {...props}
-            type="button"
-            onclick={copyHtml}
-            disabled={busy !== null}
-            aria-label="Copy text"
-          >
-            {#if busy === "copy"}
-              <span class="busy-dot"></span>
-            {:else}
-              <svg
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <rect x="5.25" y="4.25" width="7" height="9" rx="1.25" />
-                <path
-                  d="M3.75 11.25h-.5A1.25 1.25 0 0 1 2 10V3.25A1.25 1.25 0 0 1 3.25 2h5.5A1.25 1.25 0 0 1 10 3.25v.5"
-                />
-              </svg>
-            {/if}
-          </button>
-        {/snippet}
-      </Tooltip>
-      <Tooltip text="Download image">
-        {#snippet trigger(props)}
-          <button
-            {...props}
-            type="button"
-            onclick={downloadImage}
-            disabled={busy !== null}
-            aria-label="Download image"
-          >
-            {#if busy === "png"}
-              <span class="busy-dot"></span>
-            {:else}
-              <svg
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M8 2.5v7" />
-                <path d="M5.25 7.25 8 10l2.75-2.75" />
-                <path d="M3 12.75h10" />
-              </svg>
-            {/if}
-          </button>
-        {/snippet}
-      </Tooltip>
+      {#if !url}
+        <Tooltip text="Copy text">
+          {#snippet trigger(props)}
+            <button
+              {...props}
+              type="button"
+              onclick={copyHtml}
+              disabled={busy !== null}
+              aria-label="Copy text"
+            >
+              {#if busy === "copy"}
+                <span class="busy-dot"></span>
+              {:else}
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="5.25" y="4.25" width="7" height="9" rx="1.25" />
+                  <path
+                    d="M3.75 11.25h-.5A1.25 1.25 0 0 1 2 10V3.25A1.25 1.25 0 0 1 3.25 2h5.5A1.25 1.25 0 0 1 10 3.25v.5"
+                  />
+                </svg>
+              {/if}
+            </button>
+          {/snippet}
+        </Tooltip>
+        <Tooltip text="Download image">
+          {#snippet trigger(props)}
+            <button
+              {...props}
+              type="button"
+              onclick={downloadImage}
+              disabled={busy !== null}
+              aria-label="Download image"
+            >
+              {#if busy === "png"}
+                <span class="busy-dot"></span>
+              {:else}
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M8 2.5v7" />
+                  <path d="M5.25 7.25 8 10l2.75-2.75" />
+                  <path d="M3 12.75h10" />
+                </svg>
+              {/if}
+            </button>
+          {/snippet}
+        </Tooltip>
+      {/if}
     </div>
-    <ScrollArea class="preview-scroll-area" height={`${displayHeight}px`}>
+    <ScrollArea class="preview-scroll-area" height={viewportHeight}>
       <iframe
         bind:this={frame}
         class="preview"
         {title}
-        srcdoc={code}
-        sandbox="allow-same-origin"
+        src={url || undefined}
+        srcdoc={url ? undefined : code}
+        sandbox={iframeSandbox}
         referrerpolicy="no-referrer"
-        scrolling="no"
+        scrolling={url ? "auto" : "no"}
         onload={handleLoad}
-        style:height={`${frameHeight}px`}
+        style:height={iframeHeight}
       ></iframe>
     </ScrollArea>
   {:else if path}
-    <div class="empty">Loading HTML file...</div>
+    <div class="empty">{$t("webPreviewLoadingFile")}</div>
   {:else}
-    <div class="empty">No HTML content.</div>
+    <div class="empty">{$t("webPreviewNoSource")}</div>
   {/if}
 </div>
 
@@ -426,6 +556,31 @@
     border-radius: 8px;
     background: var(--surface);
     color: var(--text);
+  }
+
+  .html-card.fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 16px;
+    border: 0;
+    border-radius: 0;
+    box-sizing: border-box;
+  }
+
+  .html-card.fullscreen .actions {
+    top: 22px;
+    right: 22px;
+    opacity: 1;
+  }
+
+  .html-card.fullscreen :global(.preview-scroll-area),
+  .html-card.fullscreen :global(.preview-scroll-area .ui-scroll-area-viewport),
+  .html-card.fullscreen .preview {
+    border-radius: 0;
   }
 
   .actions {
@@ -520,6 +675,17 @@
 
   .empty.error {
     color: #ef4444;
+  }
+
+  @media (hover: none), (max-width: 640px) {
+    .actions {
+      opacity: 1;
+    }
+
+    .actions button {
+      width: 44px;
+      height: 44px;
+    }
   }
 
   @keyframes pulse {

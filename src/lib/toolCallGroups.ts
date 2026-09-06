@@ -292,6 +292,6 @@ export function toolCallStatus(item: ToolCallItem, showRunning: boolean): ToolCa
 export function shouldDisplayToolCall(item: ToolCallItem, showRunning: boolean): boolean {
   const status = toolCallStatus(item, showRunning);
   if (status === "failed") return false;
-  const isRenderPreview = item.name === "render_html" || item.name === "render_mermaid";
+  const isRenderPreview = item.name === "render_web" || item.name === "render_mermaid";
   return !isRenderPreview || status === "success";
 }

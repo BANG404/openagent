@@ -63,7 +63,7 @@
   });
 
   const htmlArgs = $derived.by(() => {
-    if (name !== "render_html") return null;
+    if (name !== "render_web") return null;
     return parsedArgs;
   });
   const mermaidArgs = $derived.by(() => {

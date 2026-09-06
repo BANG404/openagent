@@ -46,7 +46,7 @@
   - [Progressive Skill discovery](#progressive-skill-discovery)
 - [Interactive prompts with `ask_user`](#interactive-prompts-with-ask_user)
 - [AGUI — Inline Interactive Components](#agui--inline-interactive-components)
-- [HTML Preview via Tool Call (`render_html`)](#html-preview-via-tool-call-render_html)
+- [Web Preview via Tool Call (`render_web`)](#web-preview-via-tool-call-render_web)
 - [Memory file format](#memory-file-format)
 - [Agent memory controls](#agent-memory-controls)
 - [Architecture at a glance](#architecture-at-a-glance)
@@ -81,7 +81,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 ### Interactive output
 
 - **AGUI — Inline Interactive Components** — The agent can embed file and URL capsules, ECharts visualisations, source-line previews, and image/video media directly in its prose — all rendered live by the streamdown engine.
-- **HTML Preview via Tool Call (`render_html`)** — The agent executes a dedicated `render_html` tool to display sandboxed native HTML previews (mockup pages, layouts, visual components) directly in the conversation stream, with fixed-height or expanded display modes and PNG export.
+- **Web Preview via Tool Call (`render_web`)** — The agent can display a local HTML file or an interactive HTTP(S) website directly in the conversation stream, enter fullscreen, or open remote pages in the system browser. Local files retain copy and PNG export actions.
 - **Validated Mermaid Rendering** — A dedicated render tool validates Mermaid source before presenting the diagram, while keeping the source available and supporting fullscreen inspection.
 
 ### Tools and integrations
@@ -308,11 +308,11 @@ Multi-series charts use `series: [{name, data}, ...]`.
 
 ---
 
-<a id="html-preview-via-tool-call-render_html"></a>
+<a id="web-preview-via-tool-call-render_web"></a>
 
-## HTML Preview via Tool Call (`render_html`)
+## Web Preview via Tool Call (`render_web`)
 
-Instead of writing inline component tags, the agent can execute a dedicated `render_html` tool to display sandboxed HTML previews (such as mockup pages, layouts, or visual components) directly in the conversation stream. The rendered frame uses the HTML as provided without injecting app theme styles, supports a fixed-height window or expanded content height, and includes best-effort PNG download.
+Instead of writing inline component tags, the agent can execute `render_web` with either a workspace `.html`/`.htm` path or an HTTP(S) URL. Local files resolve sibling assets through the workspace-scoped preview protocol and support copy and best-effort PNG export. Remote websites keep scripts and forms interactive inside the sandbox, support fullscreen display and a system-browser shortcut, and may still refuse iframe embedding through their own CSP or `X-Frame-Options` policy.
 
 ---
 

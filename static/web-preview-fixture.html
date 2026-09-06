@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Interactive web preview fixture</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, sans-serif;
+      }
+      body {
+        display: grid;
+        min-height: 100vh;
+        margin: 0;
+        place-items: center;
+        background: Canvas;
+        color: CanvasText;
+      }
+      main {
+        width: min(520px, calc(100% - 48px));
+      }
+      button {
+        min-height: 44px;
+        padding: 0 18px;
+        border: 0;
+        border-radius: 8px;
+        background: #0066cc;
+        color: white;
+        font: inherit;
+        cursor: pointer;
+      }
+      output {
+        margin-left: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Interactive website</h1>
+      <p>This page is loaded from an address and remains interactive inside OpenAgent.</p>
+      <button id="increment" type="button">Increment</button>
+      <output id="count">0</output>
+    </main>
+    <script>
+      const count = document.querySelector("#count");
+      document.querySelector("#increment").addEventListener("click", () => {
+        count.textContent = String(Number(count.textContent) + 1);
+      });
+    </script>
+  </body>
+</html>
