@@ -6,7 +6,7 @@
   import SettingsView from "$lib/components/SettingsView.svelte";
   import { applyDocumentTheme, createNativeThemeSynchronizer } from "$lib/appTheme";
   import { normalizeConfigShape } from "$lib/config";
-  import { emit, invoke, listen } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent, emit, invoke, listen } from "$lib/openagent/tauriClient";
   import {
     settingsWindowSection,
     settingsWindowSections,
@@ -64,8 +64,11 @@
 
   async function loadSurface(): Promise<void> {
     const [loadedConfig, workspace] = await Promise.all([
-      invoke<AppConfig>("get_settings"),
-      invoke<WorkspaceContext>("get_workspace_context").catch(() => null),
+      desktopOpenAgent.invokeProduct("get_settings", {}).then((value) => value as AppConfig),
+      desktopOpenAgent
+        .invokeProduct("get_workspace_context", {})
+        .then((value) => value as WorkspaceContext)
+        .catch(() => null),
     ]);
     applyConfig(loadedConfig);
     workspacePath = workspace?.path ?? "";
@@ -74,10 +77,10 @@
 
   async function saveSettings(next: AppConfig, baseConfig?: AppConfig): Promise<AppConfig> {
     const snapshot = normalizeConfigShape(next);
-    const saved = await invoke<AppConfig>("save_settings", {
+    const saved = (await desktopOpenAgent.invokeProduct("save_settings", {
       config: snapshot,
       baseConfig: normalizeConfigShape(baseConfig ?? config ?? snapshot),
-    });
+    })) as AppConfig;
     const normalized = applyConfig(saved);
     await emit("settings-changed");
     return structuredClone(normalized);

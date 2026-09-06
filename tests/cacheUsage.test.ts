@@ -231,7 +231,8 @@ describe("completed-turn cache usage", () => {
 
     expect(routeSource).toContain("if (!tauriAvailable) return;");
     expect(routeSource).not.toContain("if (!isDebugBuild || !tauriAvailable) return;");
-    expect(routeSource).toContain('invoke<ChatTaskUsage[]>("get_chat_task_usages", { convId })');
+    expect(routeSource).toContain('openAgent.invokeProduct("get_chat_task_usages", { convId })');
+    expect(routeSource).not.toContain('invoke<ChatTaskUsage[]>("get_chat_task_usages"');
     expect(routeSource).not.toContain('invoke<TaskTrace[]>("get_task_traces")');
     expect(messageListSource).toContain("if (!message.checkpointId) return null;");
     expect(messageListSource).not.toContain("if (!devMode || !message.checkpointId) return null;");

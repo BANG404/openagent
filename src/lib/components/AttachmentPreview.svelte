@@ -1,6 +1,6 @@
 <script lang="ts">
   import { isTauri } from "@tauri-apps/api/core";
-  import { invoke } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent } from "$lib/openagent/tauriClient";
   import { Dialog } from "bits-ui";
   import { tick } from "svelte";
   import {
@@ -65,7 +65,7 @@
     if (!request) {
       request = loadPreview
         ? loadPreview(locator, name)
-        : invoke<PreviewPayload>("read_attachment_preview", { locator, name });
+        : desktopOpenAgent.invokeProduct("read_attachment_preview", { locator, name });
       previewCache.set(key, request);
     }
     request

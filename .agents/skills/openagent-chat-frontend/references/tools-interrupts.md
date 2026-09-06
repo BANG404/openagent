@@ -53,6 +53,9 @@
   `render_mermaid` previews until their successful ToolResult arrives; never
   mount pending or failed render previews. Apply the same failed-result hiding
   rule to ordinary tools.
+- Return a Mermaid renderer result through the shared SDK client with the
+  request's owning conversation ID. The production Runtime is routed and
+  cannot resolve a direct interrupt response from its request ID alone.
 - During an active stream, the empty composer's primary action pauses output;
   once paused it resumes output, unless a draft or attachment is present, in
   which case it remains the send action. Sending a queued follow-up from the

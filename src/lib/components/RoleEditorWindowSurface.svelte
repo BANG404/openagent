@@ -4,7 +4,7 @@
   import { applyDocumentTheme, createNativeThemeSynchronizer } from "$lib/appTheme";
   import { normalizeConfigShape } from "$lib/config";
   import { setLocale, t, type Locale } from "$lib/i18n";
-  import { emit, invoke, listen } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent, emit, listen } from "$lib/openagent/tauriClient";
   import {
     parseRoleEditorRequest,
     type AgentRolesChangedEvent,
@@ -53,10 +53,13 @@
     loadError = "";
     try {
       const [nextConfig, nextSkills, localRoles, globalRoles] = await Promise.all([
-        invoke<AppConfig>("get_settings"),
-        invoke<SkillMetadata[]>("list_skills").catch(() => []),
-        invoke<AgentRole[]>("list_agent_roles", { scope: "local" }).catch(() => []),
-        invoke<AgentRole[]>("list_agent_roles", { scope: "global" }).catch(() => []),
+        desktopOpenAgent.invokeProduct("get_settings", {}).then((value) => value as AppConfig),
+        desktopOpenAgent
+          .invokeProduct("list_skills", {})
+          .then((value) => value as SkillMetadata[])
+          .catch(() => []),
+        desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "local" }).catch(() => []),
+        desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "global" }).catch(() => []),
       ]);
       applyConfig(nextConfig);
       skills = nextSkills;
@@ -84,7 +87,7 @@
   async function saveRole(draft: RoleDraft): Promise<void> {
     saving = true;
     try {
-      const saved = await invoke<AgentRole>("save_agent_role", {
+      const saved = await desktopOpenAgent.invokeProduct("save_agent_role", {
         id: draft.id,
         scope: draft.scope,
         name: draft.name,
@@ -105,7 +108,7 @@
     if (!confirm($t("deleteRoleConfirm").replace("{name}", target.name))) return;
     saving = true;
     try {
-      await invoke("delete_agent_role", { id: target.id });
+      await desktopOpenAgent.invokeProduct("delete_agent_role", { id: target.id });
       await notifyRoleChange(target.id, false, true);
       await appWindow.close();
     } catch (error) {
@@ -125,7 +128,9 @@
     }).then((stop) => (disposed ? stop() : (stopRequests = stop)));
     void listen("settings-changed", () => {
       if (!disposed) {
-        void invoke<AppConfig>("get_settings")
+        void desktopOpenAgent
+          .invokeProduct("get_settings", {})
+          .then((value) => value as AppConfig)
           .then(applyConfig)
           .catch((error) => (loadError = String(error)));
       }

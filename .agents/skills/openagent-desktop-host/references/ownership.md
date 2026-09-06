@@ -20,6 +20,10 @@ the host.
   embedded or parallel agent Runtime for desktop Harness behavior.
 - Change IPC contracts atomically across the SDK contract or adapter,
   public frontend types, and every caller.
+- Route every Runtime-owned frontend operation through the shared SDK client.
+  Direct Tauri `invoke` calls are reserved for commands registered by the thin
+  production host, and the typed desktop-operation list must stay identical to
+  the supervised Runtime's HTTP dispatch surface.
 
 ## Replaceable Runtime supervisor
 

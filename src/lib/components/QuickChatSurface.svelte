@@ -9,7 +9,7 @@
   import { applyDocumentTheme } from "$lib/appTheme";
   import { initI18n, t, type Locale } from "$lib/i18n";
   import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
-  import { invoke, listen } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent, listen } from "$lib/openagent/tauriClient";
   import {
     loadQuickChatPreferences,
     resolveQuickChatModel,
@@ -109,9 +109,9 @@
       selectedRole = defaultRoleKey;
       return;
     }
-    roles = await invoke<AgentRole[]>("list_agent_roles_for_workspace", { workspace }).catch(
-      () => [],
-    );
+    roles = await desktopOpenAgent
+      .invokeProduct("list_agent_roles_for_workspace", { workspace })
+      .catch(() => []);
     if (selectedRole !== defaultRoleKey && !roles.some((role) => role.id === selectedRole)) {
       selectedRole = defaultRoleKey;
     }
@@ -125,7 +125,9 @@
       await initI18n(previewLocale);
       return;
     }
-    config = normalizeConfigShape(await invoke<AppConfig>("get_settings"));
+    config = normalizeConfigShape(
+      (await desktopOpenAgent.invokeProduct("get_settings", {})) as AppConfig,
+    );
     recentWorkspaces = config.recent_workspaces ?? [];
     applyDocumentTheme(config.theme ?? "system");
     await initI18n(config.language);
@@ -210,12 +212,14 @@
     focusArmed = false;
     focusSuppressed = true;
     try {
-      await invoke<string>("submit_quick_chat", {
-        workspace: selectedWorkspace,
-        text: text.trim() || $t("attachmentOnlyPrompt"),
-        attachments: attachments.map((attachment) => attachment.path),
-        modelBinding: decodeModelBinding(selectedModel),
-        roleId: selectedRole === defaultRoleKey ? null : selectedRole,
+      await desktopOpenAgent.invokeProduct("submit_quick_chat", {
+        request: {
+          workspace: selectedWorkspace,
+          text: text.trim() || $t("attachmentOnlyPrompt"),
+          attachments: attachments.map((attachment) => attachment.path),
+          modelBinding: decodeModelBinding(selectedModel),
+          roleId: selectedRole === defaultRoleKey ? null : selectedRole,
+        },
       });
       inputText = "";
       inputAttachments = [];

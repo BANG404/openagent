@@ -148,7 +148,7 @@ describe("conversation transition rendering", () => {
     );
 
     expect(dispatchSource.indexOf("messages: [...priorMessages, userMsg]")).toBeLessThan(
-      dispatchSource.indexOf('await invoke("create_conversation"'),
+      dispatchSource.indexOf('.invokeProduct("create_conversation", pendingConversationCreation)'),
     );
     expect(surfaceSource).toContain("showNewConversationContext={false}");
     expect(messageListSource).toContain("showAwaitingStreamOutput");

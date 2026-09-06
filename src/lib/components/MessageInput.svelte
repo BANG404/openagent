@@ -1,6 +1,6 @@
 <script lang="ts">
   import { isTauri } from "@tauri-apps/api/core";
-  import { invoke } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent } from "$lib/openagent/tauriClient";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { onMount, tick } from "svelte";
   import type {
@@ -455,7 +455,7 @@
         .filter(({ file, name }) => file.size <= maxAttachmentBytes && isSupportedAttachment(name))
         .map(async ({ file, name }) => {
           const contentBase64 = await fileToBase64(file);
-          return invoke<string>("save_pasted_attachment", { name, contentBase64 });
+          return desktopOpenAgent.invokeProduct("save_pasted_attachment", { name, contentBase64 });
         }),
     );
     const paths = results.flatMap((result) =>
@@ -649,12 +649,18 @@
   function loadMentionCatalog(): Promise<MentionCatalog> {
     if (!mentionCatalogPromise) {
       mentionCatalogPromise = Promise.all([
-        invoke<DraftCategoryEntry[]>("list_project_drafts", { scope: "local" }).catch(() => []),
+        desktopOpenAgent
+          .invokeProduct("list_project_drafts", { scope: "local" })
+          .then((value) => value as DraftCategoryEntry[])
+          .catch(() => []),
         showGlobalDraftsInMentions
-          ? invoke<DraftCategoryEntry[]>("list_project_drafts", { scope: "global" }).catch(() => [])
+          ? desktopOpenAgent
+              .invokeProduct("list_project_drafts", { scope: "global" })
+              .then((value) => value as DraftCategoryEntry[])
+              .catch(() => [])
           : Promise.resolve([]),
-        invoke<AgentRole[]>("list_agent_roles", { scope: "local" }).catch(() => []),
-        invoke<AgentRole[]>("list_agent_roles", { scope: "global" }).catch(() => []),
+        desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "local" }).catch(() => []),
+        desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "global" }).catch(() => []),
       ]).then(([projectDrafts, globalDrafts, projectRoles, globalRoles]) => ({
         projectDrafts,
         globalDrafts,
@@ -680,7 +686,7 @@
         return;
       }
       const [files, catalog] = await Promise.all([
-        invoke<string[]>("list_workspace_files", { query }).catch(() => []),
+        desktopOpenAgent.invokeProduct("list_workspace_files", { query }).catch(() => []),
         loadMentionCatalog(),
       ]);
       if (seq !== mentionFetchSeq) return;

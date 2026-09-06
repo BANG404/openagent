@@ -423,7 +423,9 @@ describe("desktop navigation chrome", () => {
       route.indexOf("workspacePath = path"),
     );
     expect(route).toContain("restoreActiveConversation = true");
-    expect(route).toContain("restoreActiveConversation\n        ? invoke<string | null>");
+    expect(route).toContain(
+      'restoreActiveConversation\n        ? openAgent.invokeProduct("get_active_conv_id"',
+    );
   });
 
   test("exposes keyboard edit commands and the shared update check", async () => {

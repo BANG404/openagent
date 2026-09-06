@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invoke, listen } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent, invoke, listen } from "$lib/openagent/tauriClient";
   import { isTauri } from "@tauri-apps/api/core";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
@@ -561,15 +561,24 @@
   });
 
   async function refreshRemoteGateway() {
-    remoteGatewayStatus = await invoke<RemoteGatewayStatus>("get_remote_gateway_status");
+    remoteGatewayStatus = (await desktopOpenAgent.invokeProduct(
+      "get_remote_gateway_status",
+      {},
+    )) as RemoteGatewayStatus;
   }
 
   async function refreshWechatChannel() {
-    wechatChannelStatus = await invoke<WechatChannelStatus>("get_wechat_channel_status");
+    wechatChannelStatus = (await desktopOpenAgent.invokeProduct(
+      "get_wechat_channel_status",
+      {},
+    )) as WechatChannelStatus;
   }
 
   async function refreshChannelStatuses() {
-    const statuses = await invoke<ChannelStatus[]>("get_channel_statuses");
+    const statuses = (await desktopOpenAgent.invokeProduct(
+      "get_channel_statuses",
+      {},
+    )) as ChannelStatus[];
     channelStatuses = Object.fromEntries(statuses.map((status) => [status.channel, status]));
   }
 
@@ -584,7 +593,7 @@
     wechatChannelBusy = true;
     wechatChannelMessage = "";
     try {
-      await invoke("reset_wechat_channel");
+      await desktopOpenAgent.invokeProduct("reset_wechat_channel", {});
       await refreshWechatChannel();
     } catch (error) {
       wechatChannelMessage = `${error}`;
@@ -605,7 +614,10 @@
     remoteGatewayBusy = true;
     remoteGatewayMessage = "";
     try {
-      const pairing_code = await invoke<string>("rotate_remote_gateway_pairing_code");
+      const pairing_code = await desktopOpenAgent.invokeProduct(
+        "rotate_remote_gateway_pairing_code",
+        {},
+      );
       if (remoteGatewayStatus) remoteGatewayStatus = { ...remoteGatewayStatus, pairing_code };
     } catch (error) {
       remoteGatewayMessage = `${error}`;
@@ -746,7 +758,7 @@
   }
 
   async function refreshChatgptAuthStatus() {
-    chatgptOAuthAuthenticated = await invoke<boolean>("get_chatgpt_auth_status");
+    chatgptOAuthAuthenticated = await desktopOpenAgent.invokeProduct("get_chatgpt_auth_status", {});
   }
 
   async function logoutChatgpt(id: string) {
@@ -755,7 +767,7 @@
       [id]: { tone: "loading", message: $t("signingOutChatgpt") },
     };
     try {
-      await invoke<boolean>("logout_chatgpt");
+      await desktopOpenAgent.invokeProduct("logout_chatgpt", {});
       chatgptOAuthAuthenticated = false;
       providerStatus = {
         ...providerStatus,
@@ -775,9 +787,9 @@
     };
 
     try {
-      const result = await invoke<ProviderProbeResult>("test_provider_connection", {
+      const result = (await desktopOpenAgent.invokeProduct("test_provider_connection", {
         request: { provider: $state.snapshot(provider) },
-      });
+      })) as ProviderProbeResult;
       const normalizedModels = Array.from(
         new Set(result.models.map((model) => model.trim()).filter(Boolean)),
       ).sort();
@@ -803,7 +815,7 @@
     if (!provider) return;
     modelLoading = { ...modelLoading, [id]: true };
     try {
-      const models = await invoke<string[]>("fetch_provider_models", {
+      const models = await desktopOpenAgent.invokeProduct("fetch_provider_models", {
         request: { provider: $state.snapshot(provider) },
       });
       const enabled = applyFetchedProviderModels(
@@ -847,7 +859,7 @@
       [id]: { tone: "loading", message: $t("checkingConnection") },
     };
     try {
-      const models = await invoke<string[]>("fetch_provider_models", {
+      const models = await desktopOpenAgent.invokeProduct("fetch_provider_models", {
         request: { provider: $state.snapshot(provider) },
       });
       const normalizedModels = Array.from(
@@ -1127,9 +1139,9 @@
     if (notReady) return;
     mcpTestStatus = { ...mcpTestStatus, [id]: { tone: "testing", message: $t("mcpTesting") } };
     try {
-      const result = await invoke<McpProbeResult>("test_mcp_server", {
+      const result = (await desktopOpenAgent.invokeProduct("test_mcp_server", {
         server: $state.snapshot(server),
-      });
+      })) as McpProbeResult;
       mcpDiscoveredTools = {
         ...mcpDiscoveredTools,
         [id]: [...new Set(result.tools)].sort((left, right) => left.localeCompare(right)),
@@ -1169,9 +1181,9 @@
 
     mcpTestStatus = { ...mcpTestStatus, [id]: { tone: "testing", message: $t("mcpTesting") } };
     try {
-      const result = await invoke<McpProbeResult>("test_mcp_server", {
+      const result = (await desktopOpenAgent.invokeProduct("test_mcp_server", {
         server: $state.snapshot(server),
-      });
+      })) as McpProbeResult;
       mcpDiscoveredTools = {
         ...mcpDiscoveredTools,
         [id]: [...new Set(result.tools)].sort((left, right) => left.localeCompare(right)),
@@ -1248,16 +1260,17 @@
   });
 
   async function refreshHooks() {
-    const definitions = await invoke<
-      { record: Omit<ScheduledChatHook, "args">; args: ScheduleChatHookArgs }[]
-    >("list_scheduled_chat_hooks");
+    const definitions = (await desktopOpenAgent.invokeProduct("list_scheduled_chat_hooks", {})) as {
+      record: Omit<ScheduledChatHook, "args">;
+      args: ScheduleChatHookArgs;
+    }[];
     scheduledHooks = definitions.map(({ record, args }) => ({ ...record, args }));
   }
 
   async function refreshHookRoles() {
     const [localRoles, globalRoles] = await Promise.all([
-      invoke<AgentRole[]>("list_agent_roles", { scope: "local" }).catch(() => []),
-      invoke<AgentRole[]>("list_agent_roles", { scope: "global" }).catch(() => []),
+      desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "local" }).catch(() => []),
+      desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "global" }).catch(() => []),
     ]);
     const seen = new Set<string>();
     hookRoles = [...localRoles, ...globalRoles].filter((role) => {
@@ -1279,7 +1292,7 @@
   }
 
   async function cancelHook(id: string) {
-    await invoke("cancel_scheduled_chat_hook", { id });
+    await desktopOpenAgent.invokeProduct("cancel_scheduled_chat_hook", { id });
     if (editingHookId === id) resetHookEditor();
     await refreshHooks();
   }
@@ -1347,8 +1360,11 @@
     if (!args) return;
     try {
       hookStatus = editingHookId
-        ? await invoke<string>("update_scheduled_chat_hook", { id: editingHookId, args })
-        : await invoke<string>("schedule_chat_hook", { args });
+        ? await desktopOpenAgent.invokeProduct("update_scheduled_chat_hook", {
+            id: editingHookId,
+            args,
+          })
+        : await desktopOpenAgent.invokeProduct("schedule_chat_hook", { args });
       resetHookEditor();
       await refreshHooks();
     } catch (err: unknown) {
@@ -1368,7 +1384,9 @@
     memoryBusy = true;
     memoryStatus = "";
     try {
-      const content = await invoke<string>("export_memory_backup", { scope: memoryScope });
+      const content = await desktopOpenAgent.invokeProduct("export_memory_backup", {
+        scope: memoryScope,
+      });
       const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
       const filename = `openagent-memory-${memoryScope}-${stamp}.json`;
       const savedPath = await invoke<string>("save_download_file", {
@@ -1400,10 +1418,11 @@
     memoryStatus = "";
     try {
       const content = await invoke<string>("read_text_file", { path: selected });
-      const result = await invoke<{
-        user_memory_imported: boolean;
-        agent_memories_imported: number;
-      }>("import_memory_backup", { scope: memoryScope, content, replace });
+      const result = await desktopOpenAgent.invokeProduct("import_memory_backup", {
+        scope: memoryScope,
+        content,
+        replace,
+      });
       memoryStatus = `${tr("memoryImported")} ${result.agent_memories_imported} ${tr("memoryAgentEntries")}`;
     } catch (err: unknown) {
       memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
@@ -1429,7 +1448,7 @@
     memoryBusy = true;
     memoryStatus = "";
     try {
-      await invoke("clear_memory", { scope: memoryScope });
+      await desktopOpenAgent.invokeProduct("clear_memory", { scope: memoryScope });
       memoryStatus = tr("memoryCleared");
       memoryClearCloseHandled = true;
       memoryClearDialogOpen = false;

@@ -1,5 +1,5 @@
 import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
-import { invoke } from "$lib/openagent/tauriClient";
+import { desktopOpenAgent } from "$lib/openagent/tauriClient";
 import { showToast } from "$lib/toast";
 import { tr } from "$lib/i18n";
 import type { AppConfig, ApprovalMode, DefaultModelBinding, ReasoningEffort } from "$lib/types";
@@ -98,9 +98,9 @@ export class ComposerPreferences {
     if (!this.dependencies.tauriAvailable) return;
     this.#defaultModelSaveQueue = this.#defaultModelSaveQueue.then(async () => {
       try {
-        const saved = await invoke<DefaultModelBinding>("set_default_chat_model", {
+        const saved = (await desktopOpenAgent.invokeProduct("set_default_chat_model", {
           binding: requestedBinding,
-        });
+        })) as DefaultModelBinding;
         if (this.selectedModel === value) this.#updateDefaultChatModel(saved);
       } catch (error) {
         console.error("Failed to save default chat model:", error);
@@ -139,11 +139,11 @@ export class ComposerPreferences {
     const requestedModel = this.selectedModel;
     this.#reasoningEffortSaveQueue = this.#reasoningEffortSaveQueue.then(async () => {
       try {
-        const saved = await invoke<ReasoningEffort>("set_model_reasoning_effort", {
+        const saved = (await desktopOpenAgent.invokeProduct("set_model_reasoning_effort", {
           providerId: binding.providerId,
           model: binding.model,
           effort,
-        });
+        })) as ReasoningEffort;
         if (this.selectedModel === requestedModel) {
           this.#updateReasoningEffort(binding.providerId, binding.model, saved);
         }

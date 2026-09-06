@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invoke } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent } from "$lib/openagent/tauriClient";
   import { isTauri } from "@tauri-apps/api/core";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { onMount } from "svelte";
@@ -48,7 +48,10 @@
     }
     loading = true;
     try {
-      plugins = await invoke<AgentPluginSummary[]>("list_agent_plugins");
+      plugins = (await desktopOpenAgent.invokeProduct(
+        "list_agent_plugins",
+        {},
+      )) as AgentPluginSummary[];
     } catch (error) {
       showMessage("error", `${tr("agentPluginsLoadFailed")}: ${String(error)}`);
     } finally {
@@ -68,9 +71,9 @@
     busy = "install";
     message = "";
     try {
-      const installed = await invoke<AgentPluginSummary>("install_agent_plugin", {
+      const installed = (await desktopOpenAgent.invokeProduct("install_agent_plugin", {
         sourcePath: selected,
-      });
+      })) as AgentPluginSummary;
       await loadPlugins();
       showMessage("success", `${tr("agentPluginInstalled")}: ${installed.name}`);
     } catch (error) {
@@ -86,7 +89,7 @@
     busy = plugin.id;
     message = "";
     try {
-      await invoke("uninstall_agent_plugin", { id: plugin.id });
+      await desktopOpenAgent.invokeProduct("uninstall_agent_plugin", { id: plugin.id });
       await loadPlugins();
       showMessage("success", `${tr("agentPluginUninstalled")}: ${plugin.name}`);
     } catch (error) {
@@ -99,7 +102,7 @@
   async function openPluginFolder(plugin: AgentPluginSummary) {
     if (!isTauri()) return;
     try {
-      await invoke("open_path", { path: plugin.path });
+      await desktopOpenAgent.openWorkspacePath(plugin.path);
     } catch (error) {
       showMessage("error", String(error));
     }

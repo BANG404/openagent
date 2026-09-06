@@ -42,7 +42,11 @@ const desktopCapabilities: OpenAgentUiCapabilities = {
       title: tr("selectOriginalAttachment"),
     });
     if (typeof selected !== "string") return false;
-    await invoke("repair_attachment_blob", { blobId, name, path: selected });
+    await desktopOpenAgent.invokeProduct("repair_attachment_blob", {
+      blobId,
+      name,
+      path: selected,
+    });
     return true;
   },
   async saveDownloadFile(filename, content, encoding) {

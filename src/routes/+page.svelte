@@ -178,16 +178,8 @@
     GoalRunUpdatedEvent,
     UserMessageContext,
     CheckpointTurnStatus,
-    ChatTaskUsage,
     TaskTokenUsage,
   } from "$lib/types";
-
-  type EmbeddingResourceStatus = {
-    state: "ready" | "missing" | "corrupt";
-    model_id: string;
-    version: string;
-    total_bytes: number;
-  };
 
   const runtimeQuery =
     typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
@@ -480,7 +472,7 @@
     const version = (taskUsageRefreshVersions.get(convId) ?? 0) + 1;
     taskUsageRefreshVersions.set(convId, version);
     try {
-      const taskUsages = await invoke<ChatTaskUsage[]>("get_chat_task_usages", { convId });
+      const taskUsages = await openAgent.invokeProduct("get_chat_task_usages", { convId });
       if (taskUsageRefreshVersions.get(convId) !== version) return;
       taskUsagesByConversation = {
         ...taskUsagesByConversation,
@@ -620,10 +612,12 @@
 
   async function syncChatQueuePending(convId: string) {
     if (!tauriAvailable) return;
-    await invoke("set_chat_queue_pending", {
-      convId,
-      pending: (queuedChatMessages[convId]?.length ?? 0) > 0,
-    }).catch(() => {});
+    await openAgent
+      .invokeProduct("set_chat_queue_pending", {
+        convId,
+        pending: (queuedChatMessages[convId]?.length ?? 0) > 0,
+      })
+      .catch(() => {});
   }
 
   function removeQueuedMessage(convId: string, index: number) {
@@ -807,10 +801,12 @@
     try {
       const [checkpoints, savedTip, branches] = await Promise.all([
         fetchRenderableCheckpoints(convId),
-        invoke<string | null>("get_active_branch_tip", { convId }).catch(() => null),
-        invoke<Array<{ id: string; head_checkpoint_id: string | null }>>("get_branches", {
-          convId,
-        }).catch(() => []),
+        openAgent.invokeProduct("get_active_branch_tip", { convId }).catch(() => null),
+        openAgent
+          .invokeProduct("get_branches", {
+            convId,
+          })
+          .catch(() => []),
       ]);
       await hydrateConversation(
         convId,
@@ -1108,10 +1104,12 @@
     const tipCheckpoint = [...path]
       .reverse()
       .find((m) => m.role === "assistant" && m.checkpointId)?.checkpointId;
-    await invoke("restore_agent_history", {
-      convId,
-      checkpointId: tipCheckpoint ?? null,
-    }).catch((e) => console.warn("restore_agent_history failed", e));
+    await openAgent
+      .invokeProduct("restore_agent_history", {
+        convId,
+        checkpointId: tipCheckpoint ?? null,
+      })
+      .catch((e) => console.warn("restore_agent_history failed", e));
   }
 
   async function ensureActiveBranch(
@@ -1124,10 +1122,7 @@
       return activeBranchIds[convId];
     }
     if (forkedFromCheckpointId === undefined) {
-      const branches = await invoke<Array<{ id: string; head_checkpoint_id: string | null }>>(
-        "get_branches",
-        { convId },
-      ).catch(() => []);
+      const branches = await openAgent.invokeProduct("get_branches", { convId }).catch(() => []);
       const tip = [...(convTrees[convId] ? computeActivePath(convTrees[convId]) : [])]
         .reverse()
         .find((message) => message.role === "assistant" && message.checkpointId)?.checkpointId;
@@ -1139,7 +1134,7 @@
     }
     const id = crypto.randomUUID();
     const parentBranchId = activeBranchIds[convId] ?? null;
-    await invoke("create_branch", {
+    await openAgent.invokeProduct("create_branch", {
       id,
       convId,
       parentBranchId,
@@ -1416,7 +1411,7 @@
       resendAttachments = await Promise.all(
         sourceAttachments.map(async (attachment) => {
           if (!attachment.path.startsWith("sha256:")) return attachment;
-          const path = await invoke<string>("materialize_attachment_blob", {
+          const path = await openAgent.invokeProduct("materialize_attachment_blob", {
             blobId: attachment.path,
             name: attachment.name,
           });
@@ -1443,7 +1438,7 @@
 
     if (!(await externalRuntimeTransport)) {
       try {
-        await invoke("rollback_to_checkpoint", { convId, checkpointId });
+        await openAgent.invokeProduct("rollback_to_checkpoint", { convId, checkpointId });
       } catch {
         return;
       }
@@ -1456,7 +1451,9 @@
       const allChanges = fileChangesPerConv[convId] ?? [];
       const toRevert = allChanges.filter((fc) => rolledBackCps.has(fc.checkpoint_id));
       for (const change of [...toRevert].reverse()) {
-        await invoke("revert_file_change_keep", { changeId: change.id }).catch(() => {});
+        await openAgent
+          .invokeProduct("revert_file_change_keep", { changeId: change.id })
+          .catch(() => {});
       }
     }
 
@@ -1481,10 +1478,12 @@
       restoringSurface = "conversation";
       activeConvId = convId;
       cacheRestoreSurface("conversation", convId);
-      invoke("set_active_conversation", {
-        convId,
-        workspace: workspacePath || "",
-      }).catch(() => {});
+      openAgent
+        .invokeProduct("set_active_conversation", {
+          convId,
+          workspace: workspacePath || "",
+        })
+        .catch(() => {});
     }
     await sendMessage();
   }
@@ -1542,22 +1541,28 @@
 
       // Unwind source-only edits in reverse, then apply target-only edits forward.
       for (const change of [...toRevert].reverse()) {
-        await invoke("revert_file_change_keep", { changeId: change.id }).catch((e) => {
-          console.warn("revert_file_change_keep failed", change.path, e);
-        });
+        await openAgent
+          .invokeProduct("revert_file_change_keep", { changeId: change.id })
+          .catch((e) => {
+            console.warn("revert_file_change_keep failed", change.path, e);
+          });
       }
       for (const change of toApply) {
-        await invoke("apply_file_change_forward", { changeId: change.id }).catch((e) => {
-          console.warn("apply_file_change_forward failed", change.path, e);
-        });
+        await openAgent
+          .invokeProduct("apply_file_change_forward", { changeId: change.id })
+          .catch((e) => {
+            console.warn("apply_file_change_forward failed", change.path, e);
+          });
       }
 
       // Restore the agent's in-memory history to the tip of the newly-active path
       // so the next message continues from where the user is now looking.
-      await invoke("restore_agent_history", {
-        convId,
-        checkpointId: targetTipCheckpoint,
-      }).catch((e) => console.warn("restore_agent_history failed", e));
+      await openAgent
+        .invokeProduct("restore_agent_history", {
+          convId,
+          checkpointId: targetTipCheckpoint,
+        })
+        .catch((e) => console.warn("restore_agent_history failed", e));
     }
 
     let branchMessages = computeActivePath(updatedTree);
@@ -1580,15 +1585,12 @@
       }
     }
     const savedTip = getActiveTipNode(updatedTree)?.ckId;
-    if (tauriAvailable) {
+    if (tauriAvailable && savedTip) {
       // Do not expose an approval card until its durable selected tip and
       // branch id are aligned. The resume command uses these values to reject
       // approvals aimed at a different branch.
-      await invoke("set_active_branch_tip", { convId, checkpointId: savedTip });
-      const branches = await invoke<Array<{ id: string; head_checkpoint_id: string | null }>>(
-        "get_branches",
-        { convId },
-      ).catch(() => []);
+      await openAgent.invokeProduct("set_active_branch_tip", { convId, checkpointId: savedTip });
+      const branches = await openAgent.invokeProduct("get_branches", { convId }).catch(() => []);
       const branch = branches.find((item) => item.head_checkpoint_id === savedTip);
       const nextActiveBranchIds = { ...activeBranchIds };
       if (branch) nextActiveBranchIds[convId] = branch.id;
@@ -1709,8 +1711,8 @@
       return;
     }
     const [localRoles, globalRoles] = await Promise.all([
-      invoke<AgentRole[]>("list_agent_roles", { scope: "local" }).catch(() => []),
-      invoke<AgentRole[]>("list_agent_roles", { scope: "global" }).catch(() => []),
+      openAgent.invokeProduct("list_agent_roles", { scope: "local" }).catch(() => []),
+      openAgent.invokeProduct("list_agent_roles", { scope: "global" }).catch(() => []),
     ]);
     const seen = new Set<string>();
     agentRoles = [...localRoles, ...globalRoles].filter((role) => {
@@ -1793,9 +1795,11 @@
 
   async function loadAvailableRolesForWorkspace(path: string): Promise<AgentRole[]> {
     if (!tauriAvailable) return [];
-    const roles = await invoke<AgentRole[]>("list_agent_roles_for_workspace", {
-      workspace: path,
-    }).catch(() => []);
+    const roles = await openAgent
+      .invokeProduct("list_agent_roles_for_workspace", {
+        workspace: path,
+      })
+      .catch(() => []);
     const seen = new Set<string>();
     return [
       ...roles.filter((role) => role.scope !== "global"),
@@ -2079,9 +2083,9 @@
     } catch (error) {
       console.error("Failed to apply startup bootstrap:", error);
       if (tauriAvailable) {
-        launchContext = await invoke<typeof launchContext>("get_workspace_launch_context").catch(
-          () => null,
-        );
+        launchContext = (await openAgent
+          .invokeProduct("get_workspace_launch_context", {})
+          .catch(() => null)) as typeof launchContext;
         await loadSettings();
         if (launchContext?.workspace) workspacePath = launchContext.workspace;
         await loadWorkspace();
@@ -2103,9 +2107,8 @@
     } finally {
       let embeddingResourceReady = !tauriAvailable;
       if (tauriAvailable) {
-        embeddingResourceReady = await invoke<EmbeddingResourceStatus>(
-          "get_embedding_resource_status",
-        )
+        embeddingResourceReady = await openAgent
+          .invokeProduct("get_embedding_resource_status", {})
           .then((resource) => resource.state === "ready")
           .catch(() => false);
       }
@@ -2408,13 +2411,14 @@
       })().catch((error) => console.error("Failed to finish onboarding handoff:", error));
     });
     register("settings-changed", () => {
-      void invoke<AppConfig>("get_settings")
+      void openAgent
+        .invokeProduct("get_settings", {})
         .then((reloaded) => {
           const previousAutostart = config?.launch_on_startup ?? false;
           const previousShortcut = normalizeQuickChatShortcut(
             config?.quick_chat_shortcut ?? DEFAULT_QUICK_CHAT_SHORTCUT,
           );
-          const next = normalizeConfigShape(reloaded);
+          const next = normalizeConfigShape(reloaded as AppConfig);
           const nextShortcut = normalizeQuickChatShortcut(next.quick_chat_shortcut);
           config = structuredClone(next);
           applyTheme(config.theme ?? "system");
@@ -2596,10 +2600,12 @@
         }
         activeConvId = conv_id;
         cacheRestoreSurface("conversation", conv_id);
-        invoke("set_active_conversation", {
-          convId: conv_id,
-          workspace: workspacePath || "",
-        }).catch(() => {});
+        openAgent
+          .invokeProduct("set_active_conversation", {
+            convId: conv_id,
+            workspace: workspacePath || "",
+          })
+          .catch(() => {});
       }
     });
 
@@ -2687,7 +2693,7 @@
     if (!isDevInspectorWindow) {
       register<{
         request_id: string;
-        conv_id?: string | null;
+        conv_id: string;
         title?: string | null;
         source: string;
       }>("chat-mermaid-render-request", (e) => {
@@ -2695,6 +2701,7 @@
         void renderMermaidToolResult(request.source, mermaidConfig)
           .then((renderResult) =>
             openAgent.submitInterruptResponse({
+              convId: request.conv_id,
               interruptId: request.request_id,
               response: JSON.stringify(renderResult),
             }),
@@ -3257,7 +3264,7 @@
         workspacePath = await homeDir();
         await addToRecentWorkspaces(workspacePath);
       }
-      workspace = await invoke<WorkspaceContext>("get_workspace_context");
+      workspace = (await openAgent.invokeProduct("get_workspace_context", {})) as WorkspaceContext;
     } catch {}
   }
 
@@ -3338,7 +3345,9 @@
     }
 
     try {
-      config = normalizeConfigShape(await invoke<AppConfig>("get_settings"));
+      config = normalizeConfigShape(
+        (await openAgent.invokeProduct("get_settings", {})) as AppConfig,
+      );
       applyTheme(config.theme ?? "system");
       await initI18n(config.language);
       if (config.workspace) workspacePath = config.workspace;
@@ -3353,7 +3362,7 @@
 
     setInterval(async () => {
       try {
-        const next = await invoke<boolean>("get_memory_status");
+        const next = await openAgent.invokeProduct("get_memory_status", {});
         isMemorySyncing = next;
       } catch {}
     }, 2000);
@@ -3427,10 +3436,12 @@
       await Promise.all([reloadRoleConversations(), refreshRecentConversations()]);
     }
     if (tauriAvailable) {
-      await invoke("set_active_conversation", {
-        convId: null,
-        workspace: workspacePath || "",
-      }).catch(() => {});
+      await openAgent
+        .invokeProduct("set_active_conversation", {
+          convId: null,
+          workspace: workspacePath || "",
+        })
+        .catch(() => {});
     }
   }
 
@@ -3449,9 +3460,9 @@
 
   async function restoreWorkspaceConversation(path: string) {
     const savedActiveId = tauriAvailable
-      ? await invoke<string | null>("get_active_conv_id", { workspace: path || "" }).catch(
-          () => null,
-        )
+      ? await openAgent
+          .invokeProduct("get_active_conv_id", { workspace: path || "" })
+          .catch(() => null)
       : null;
     let target = savedActiveId
       ? conversations.find((conversation) => conversation.id === savedActiveId)
@@ -3471,7 +3482,9 @@
     activeConvId = null;
     cacheRestoreSurface("new-conversation", null, path);
     if (tauriAvailable) {
-      invoke("set_active_conversation", { convId: null, workspace: path || "" }).catch(() => {});
+      openAgent
+        .invokeProduct("set_active_conversation", { convId: null, workspace: path || "" })
+        .catch(() => {});
     }
   }
 
@@ -3493,9 +3506,9 @@
     activeConvId = id;
     cacheRestoreSurface("conversation", id);
     if (tauriAvailable)
-      invoke("set_active_conversation", { convId: id, workspace: workspacePath || "" }).catch(
-        () => {},
-      );
+      openAgent
+        .invokeProduct("set_active_conversation", { convId: id, workspace: workspacePath || "" })
+        .catch(() => {});
     await Promise.all([loadMessagesForConv(id), loadFileChangesForConv(id)]);
     await scrollToBottom();
   }
@@ -3522,7 +3535,7 @@
     // This prevents a terminal checkpoint from being created after local state is removed.
     if (chatStreams.streamingConversationIds[id]) {
       if (tauriAvailable) {
-        await invoke("cancel_chat_message", { convId: id }).catch(() => {});
+        await openAgent.invokeProduct("cancel_chat_message", { convId: id }).catch(() => {});
       }
       const { [id]: _s, ...rs } = chatStreams.streamingConversationIds;
       const { [id]: _i, ...ri } = chatStreams.itemsByConversation;
@@ -3578,7 +3591,7 @@
       (location) => location.conversationId === id,
     );
     loadedConvIds.delete(id);
-    invoke("delete_conversation", { convId: id }).catch(() => {});
+    openAgent.invokeProduct("delete_conversation", { convId: id }).catch(() => {});
     if (activeConvId === id) {
       if (conversations.length > 0) {
         switchConversation(conversations[0].id);
@@ -3600,7 +3613,9 @@
     if (idx !== -1) {
       const newPinned = !conversations[idx].pinned;
       conversations[idx] = { ...conversations[idx], pinned: newPinned };
-      invoke("update_conversation", { convId: id, patch: { pinned: newPinned } }).catch(() => {});
+      openAgent
+        .invokeProduct("update_conversation", { convId: id, patch: { pinned: newPinned } })
+        .catch(() => {});
     }
   }
 
@@ -3712,20 +3727,24 @@
     // active-but-empty conversation would otherwise render the new-conversation
     // prompt between the centered composer and the live transcript.
     if (pendingConversationCreation) {
-      await invoke("create_conversation", pendingConversationCreation).catch(() => {});
+      await openAgent
+        .invokeProduct("create_conversation", pendingConversationCreation)
+        .catch(() => {});
     }
 
     // The user message is persisted atomically in the resulting checkpoint.
     // Update conversation title in SQLite on first user message
     if (isFirstUserMsg && newTitle) {
-      await invoke("update_conversation", {
-        convId,
-        patch: {
-          title: newTitle,
-          title_source: "fallback",
-          updated_at: Math.floor(Date.now() / 1000),
-        },
-      }).catch(() => {});
+      await openAgent
+        .invokeProduct("update_conversation", {
+          convId,
+          patch: {
+            title: newTitle,
+            title_source: "fallback",
+            updated_at: Math.floor(Date.now() / 1000),
+          },
+        })
+        .catch(() => {});
     }
 
     const assistantMsgId = crypto.randomUUID();
@@ -3967,7 +3986,7 @@
     // Saving the partial response can be queued behind earlier stream writes.
     // Do not make that queue delay the cancellation signal.
     void persistStreamDraft(activeConvId, true).catch(() => {});
-    await invoke("cancel_chat_message", { convId: activeConvId }).catch(() => {});
+    await openAgent.invokeProduct("cancel_chat_message", { convId: activeConvId }).catch(() => {});
   }
 
   async function setStreamPaused(convId: string, paused: boolean) {
@@ -4165,7 +4184,7 @@
     const [roles, durableActiveId, preparedNewConversationSuggestions] = await Promise.all([
       loadAvailableRolesForWorkspace(path),
       restoreActiveConversation
-        ? invoke<string | null>("get_active_conv_id", { workspace: path || "" }).catch(() => null)
+        ? openAgent.invokeProduct("get_active_conv_id", { workspace: path || "" }).catch(() => null)
         : Promise.resolve(null),
       loadNewConversationSuggestions(path, config?.language ?? "zh"),
     ]);
@@ -4204,12 +4223,14 @@
     const activeConversation = activeConversationId
       ? await Promise.all([
           fetchRenderableCheckpoints(activeConversationId),
-          invoke<string | null>("get_active_branch_tip", { convId: activeConversationId }).catch(
-            () => null,
-          ),
-          invoke<StartupConversationBundle["branches"]>("get_branches", {
-            convId: activeConversationId,
-          }).catch(() => []),
+          openAgent
+            .invokeProduct("get_active_branch_tip", { convId: activeConversationId })
+            .catch(() => null),
+          openAgent
+            .invokeProduct("get_branches", {
+              convId: activeConversationId,
+            })
+            .catch(() => []),
           fetchFileChanges(activeConversationId),
         ]).then(([checkpoints, activeBranchTip, branches, fileChanges]) => ({
           checkpoints,
@@ -4353,10 +4374,12 @@
         }
         if (activeConvId === target.conversationId) {
           window.localStorage.setItem(roleSelectionStorageKey(path), selectedRoleKey);
-          await invoke("set_active_conversation", {
-            convId: activeConvId,
-            workspace: path || "",
-          }).catch(() => {});
+          await openAgent
+            .invokeProduct("set_active_conversation", {
+              convId: activeConvId,
+              workspace: path || "",
+            })
+            .catch(() => {});
         }
         await scrollToBottom();
       } else if (tauriAvailable) {
@@ -4432,7 +4455,9 @@
     const recents = [...next];
     workspacePrefsSaveQueue = workspacePrefsSaveQueue
       .catch(() => {})
-      .then(() => invoke("save_workspace_prefs", { workspace, recentWorkspaces: recents }))
+      .then(() =>
+        openAgent.invokeProduct("save_workspace_prefs", { workspace, recentWorkspaces: recents }),
+      )
       .then(() => {});
     await workspacePrefsSaveQueue.catch(() => {});
   }
@@ -4669,11 +4694,11 @@
         await replaceQuickChatShortcut(nextShortcut);
       }
       if (tauriAvailable) {
-        const saved = await invoke<AppConfig>("save_settings", {
+        const saved = await openAgent.invokeProduct("save_settings", {
           config: snapshot,
           baseConfig: normalizeConfigShape(baseConfig ?? config ?? snapshot),
         });
-        savedSnapshot = normalizeConfigShape(saved);
+        savedSnapshot = normalizeConfigShape(saved as AppConfig);
       }
       config = structuredClone(savedSnapshot);
       applyTheme(config.theme ?? "system");

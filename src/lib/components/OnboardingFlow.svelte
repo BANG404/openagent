@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { isTauri } from "@tauri-apps/api/core";
-  import { invoke, listen } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent, listen } from "$lib/openagent/tauriClient";
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
   import type { AppConfig, DefaultModelBinding } from "$lib/types";
@@ -75,12 +75,12 @@
     embeddingPreparing = true;
     embeddingError = "";
     try {
-      embeddingStatus = await invoke<EmbeddingResourceStatus>("prepare_embedding_resource");
+      embeddingStatus = await desktopOpenAgent.invokeProduct("prepare_embedding_resource", {});
     } catch (error) {
       embeddingError = `${error}`;
-      embeddingStatus = await invoke<EmbeddingResourceStatus>(
-        "get_embedding_resource_status",
-      ).catch(() => embeddingStatus);
+      embeddingStatus = await desktopOpenAgent
+        .invokeProduct("get_embedding_resource_status", {})
+        .catch(() => embeddingStatus);
     } finally {
       embeddingPreparing = false;
     }
@@ -307,7 +307,7 @@
     connectionStatus = "loading";
     connectionMessage = "";
     try {
-      const models = await invoke<string[]>("fetch_provider_models", {
+      const models = await desktopOpenAgent.invokeProduct("fetch_provider_models", {
         request: { provider: $state.snapshot(selectedProvider) },
       });
       const normalized = Array.from(
@@ -359,7 +359,7 @@
     saveError = "";
     try {
       const currentResource = isTauri()
-        ? await invoke<EmbeddingResourceStatus>("get_embedding_resource_status")
+        ? await desktopOpenAgent.invokeProduct("get_embedding_resource_status", {})
         : embeddingStatus;
       if (currentResource?.state !== "ready") {
         throw new Error(embeddingError || copy.embeddingPreparing);

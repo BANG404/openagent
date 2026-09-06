@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invoke } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent, invoke } from "$lib/openagent/tauriClient";
   import { getVersion } from "@tauri-apps/api/app";
   import { emit } from "$lib/openagent/tauriClient";
   import { check } from "@tauri-apps/plugin-updater";
@@ -280,8 +280,10 @@
     error = null;
     try {
       [conversations, taskTraces] = await Promise.all([
-        invoke<ConversationMeta[]>("get_conversations", { workspace: null }),
-        invoke<TaskTrace[]>("get_task_traces"),
+        desktopOpenAgent
+          .invokeProduct("get_conversations", { workspace: null })
+          .then((value) => value as ConversationMeta[]),
+        desktopOpenAgent.invokeProduct("get_task_traces", {}).then((value) => value as TaskTrace[]),
       ]);
     } catch (cause) {
       error = String(cause);
@@ -310,7 +312,10 @@
     disconnecting = true;
     disconnectStatus = "Disconnecting active model request…";
     try {
-      const conversationIds = await invoke<string[]>("debug_disconnect_model_requests");
+      const conversationIds = (await desktopOpenAgent.invokeProduct(
+        "debug_disconnect_model_requests",
+        {},
+      )) as string[];
       disconnectStatus = `Disconnected ${conversationIds.length} request${conversationIds.length === 1 ? "" : "s"}. Normal error and retry handling now owns the request.`;
     } catch (cause) {
       disconnectStatus = String(cause);
@@ -323,7 +328,10 @@
     creatingCompactionDiagnostic = true;
     compactionDiagnosticStatus = "Creating diagnostic conversation and starting the agent...";
     try {
-      const convId = await invoke<string>("debug_create_context_compaction_diagnostic");
+      const convId = (await desktopOpenAgent.invokeProduct(
+        "debug_create_context_compaction_diagnostic",
+        {},
+      )) as string;
       compactionDiagnosticStatus =
         "Conversation created. Refreshing its live checkpoint and provider-request trajectory...";
       await loadConversations();

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invoke } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent } from "$lib/openagent/tauriClient";
   import { onMount } from "svelte";
   import InspectorJsonValue from "$lib/components/InspectorJsonValue.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
@@ -89,7 +89,10 @@
     loading = true;
     error = null;
     try {
-      overview = await invoke<Overview>("inspector_database_overview");
+      overview = (await desktopOpenAgent.invokeProduct(
+        "inspector_database_overview",
+        {},
+      )) as Overview;
       const savedTable = readSavedTable(overview.path);
       const nextTable =
         savedTable && overview.tables.some((table) => table.name === savedTable)
@@ -112,14 +115,14 @@
     loading = true;
     error = null;
     try {
-      const data = await invoke<TableData>("inspector_table_data", {
+      const data = (await desktopOpenAgent.invokeProduct("inspector_table_data", {
         tableName: selectedTable,
         search: activeSearch || null,
         sortColumn,
         sortDirection: sortColumn ? sortDirection : null,
         offset,
         limit: PAGE_SIZE,
-      });
+      })) as TableData;
       tableData = data;
       if (data.sort_column && data.sort_direction) {
         sortColumn = data.sort_column;
