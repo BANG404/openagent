@@ -130,6 +130,12 @@ describe("CI module classification", () => {
       nativeQuality: true,
       nativePlatform: true,
     });
+    expect(classifyChangedModules(["scripts/stage-release-runtime.mjs"])).toEqual({
+      ...nothing,
+      automation: true,
+      nativeQuality: true,
+      nativePlatform: true,
+    });
   });
 
   test("runs frontend checks when signed frontend packaging changes", () => {

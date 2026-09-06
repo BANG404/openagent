@@ -3,27 +3,29 @@
 The direct release commit changes `.github/release.json`, so its push starts the
 Release workflow. It accepts Beta markers only from `master`, RC markers only
 from `release/rc/*`, and Stable markers only from `release/stable/*`, validates
-metadata and source integrity, then starts the complete reusable CI suite, SDK
-release orchestration, and selected release candidate builds concurrently for
-that exact SHA. Candidate builds have no release-side effects: they upload only
-run-scoped Actions artifacts. Only a successful full result, successful SDK
-resolution, and every selected candidate allow the workflow to create the
+metadata and source integrity, then starts the complete reusable CI suite and
+SDK release orchestration concurrently for that exact SHA. The SDK path builds
+each selected Runtime target once; native candidates wait for its staged,
+release-qualified binaries and package those exact bytes as Tauri sidecars.
+Candidate builds have no release-side effects: they upload only run-scoped
+Actions artifacts. Only a successful full result, successful SDK resolution,
+and every selected candidate allow the workflow to create the
 annotated tag. The detection checkout includes complete tag history because
 release metadata validation resolves `previousTag` against local immutable tag
 refs.
 
-In parallel with desktop qualification and candidate builds, the workflow
-resolves the exact `sdk` gitlink and validates and reuses the corresponding
-independent SDK release when available;
-otherwise it explicitly dispatches current private `main` SDK CI with the immutable
-commit SHA, waits for the resulting full public qualification status, and only
-then dispatches private SDK release preparation for that immutable SHA. The host
-tracks the preparation workflow through completion before accepting its tag,
-stages and validates its private manifest, and defers every public SDK side
-effect until the desktop draft is complete. Final SDK publication uses current
-private `main` automation with the resulting `sdk-v*` tag as an explicit input,
-then checks out and verifies the immutable source. Its public-host reader token is restricted to the explicit
-host repository and inherits the dispatcher App installation permissions;
+In parallel with desktop qualification, the workflow resolves the exact `sdk`
+gitlink and validates and reuses the corresponding independent SDK release when
+available; otherwise it explicitly dispatches current private `main` SDK CI
+with the immutable commit SHA, waits for the resulting full public qualification
+status, and only then dispatches private SDK release preparation for that
+immutable SHA. The host tracks the preparation workflow through completion
+before accepting its tag, stages and validates its private Runtime candidate,
+and defers every public SDK side effect until the desktop draft is complete.
+Final SDK publication uses current private `main` automation with the resulting
+`sdk-v*` tag as an explicit input, then checks out and verifies the immutable
+source. Its public-host reader token is restricted to the explicit host
+repository and inherits the dispatcher App installation permissions;
 publication must not request a narrower permission override that can disagree
 with the installed grant. Private npm publication uses npm Trusted Publishing
 from a dedicated GitHub-hosted job with job-scoped `id-token: write`; it retains
@@ -36,10 +38,10 @@ dist-tag instead of attempting a separately authenticated dist-tag update. The
 host tracks those exact child workflow runs,
 reports their URLs when they fail, and waits for full SDK qualification plus a
 published manifest whose `sdk_sha` and protocol range match. It does not rely on
-a tag pushed by `GITHUB_TOKEN` to trigger another workflow. Any failure stops desktop
-tagging and publication; already-built private candidates simply expire with
-the workflow run. A
-published desktop release includes `openagent-desktop-manifest.json`, recording
+a tag pushed by `GITHUB_TOKEN` to trigger another workflow. Any failure stops
+desktop tagging and publication; already-built private candidates simply expire
+with the workflow run. A published desktop release includes
+`openagent-desktop-manifest.json`, recording
 the desktop version and tag, SDK version, tag and source SHA, protocol range,
 and exact host compatibility mapping. This orchestration uses the dedicated
 `OPENAGENT_SDK_RELEASE_TOKEN`; private source checkout uses the CI reporter
@@ -47,32 +49,35 @@ App's short-lived, read-only installation token over HTTPS.
 
 Candidate construction and publication are separate phases:
 
-1. concurrently qualify the desktop SHA, stage or reuse its pinned SDK release,
-   and build every selected platform candidate;
-2. store Runtime, frontend, lightweight Tauri, full first-install, and Store
+1. concurrently qualify the desktop SHA and stage or reuse its pinned SDK
+   release, including the exact Runtime binaries and manifest;
+2. verify the staged SDK SHA, artifact names, sizes, and SHA-256 values, then
+   package those bytes into every selected native candidate without rebuilding
+   or retesting the Runtime;
+3. store Runtime, frontend, lightweight Tauri, full first-install, and Store
    candidates only as run-scoped Actions artifacts;
-3. bind each native candidate manifest to the exact desktop SHA, SDK gitlink
+4. bind each native candidate manifest to the exact desktop SHA, SDK gitlink
    SHA, target, byte sizes, and SHA-256 values;
    macOS updater archives and signatures include `aarch64` or `x64` in their
    staged asset names so the two candidate artifacts can be merged without
    overwriting one architecture with the other;
-4. after every gate succeeds, create the immutable tag and create or reuse the
+5. after every gate succeeds, create the immutable tag and create or reuse the
    draft GitHub Release; draft creation must explicitly continue past skipped
    jobs for unselected components while still requiring successful detection
    and tagging, so frontend-only and Runtime-only releases reach publication;
-5. download and verify every selected candidate, upload its existing bytes, and
+6. download and verify every selected candidate, upload its existing bytes, and
    generate one combined `latest.json` from the four verified native targets;
-6. submit the Store package only after the same gate, publish the staged SDK
+7. submit the Store package only after the same gate, publish the staged SDK
    release, upload the desktop-to-SDK mapping, and generate the GitHub Release
    body from the current changelog section and the assets actually attached to
    the draft;
-7. publish the desktop draft only after its release body contains the exact
+8. publish the desktop draft only after its release body contains the exact
    previous-tag comparison and every expected user-facing installer shortcut;
-8. update fixed component channels and, for native-shell prereleases only, the
+9. update fixed component channels and, for native-shell prereleases only, the
    fixed Beta or RC `latest.json`;
-9. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published
-   prerelease SHA when applicable;
-10. deploy the release landing page with the published tag.
+10. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published
+    prerelease SHA when applicable;
+11. deploy the release landing page with the published tag.
 
 The published GitHub Release body embeds only the current version's generated
 `CHANGELOG.md` section, links the exact `previousTag...tag` comparison, and
@@ -164,13 +169,12 @@ discovery or an interactive password prompt. Local integration tests use an
 ephemeral test keypair and never require the production private key.
 
 The Release workflow first runs all frontend, Rust, embedding, sandbox, and
-Harness qualification, then performs the authoritative product compilation for
-the exact release SHA on every supported target and promotes those same
-artifacts without rebuilding them. Each platform matrix entry compiles the
+Harness qualification. Public SDK CI performs the authoritative Runtime
+compilation for the exact immutable SDK release source on every supported
+target. SDK staging carries those binaries and their manifest into the desktop
+run; each platform matrix entry verifies the SDK SHA, target, size, and SHA-256,
+then places the selected binary under Tauri's target-named `externalBin` path.
+The Tauri `beforeBuildCommand` requires the prebuilt sidecar in release CI and
+must not compile the private Runtime again. Each platform entry compiles the
 lightweight Tauri application once, then uses the existing compiled outputs to
 bundle the full first-install variant without rerunning `beforeBuildCommand`.
-Each platform matrix entry exports a
-dedicated Runtime sidecar target while the native and full bundles run. This
-target takes precedence over Tauri's host-oriented environment variables, so
-cross-compilation prepares the target-named sidecar instead of the runner
-host's sidecar.

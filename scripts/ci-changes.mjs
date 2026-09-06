@@ -63,9 +63,12 @@ export function classifyChangedModules(files, forceAll = false) {
     ["src-tauri/Cargo.toml", "src-tauri/Cargo.lock", "src-tauri/build.rs"].includes(file),
   );
   const runtimePackagingChanged = normalized.some((file) =>
-    ["scripts/prepare-runtime-server.mjs", "scripts/prepare-runtime-server.test.mjs"].includes(
-      file,
-    ),
+    [
+      "scripts/prepare-runtime-server.mjs",
+      "scripts/prepare-runtime-server.test.mjs",
+      "scripts/stage-release-runtime.mjs",
+      "scripts/stage-release-runtime.test.mjs",
+    ].includes(file),
   );
   const frontendPackagingChanged = normalized.some((file) =>
     ["scripts/frontend-artifacts.mjs", "scripts/frontend-artifacts.test.mjs"].includes(file),

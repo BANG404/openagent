@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -53,8 +53,8 @@ export function sdkReleaseWorkflowTitle(tag, operation) {
   return `${verb} SDK Release ${tag}`;
 }
 
-export function sdkReleaseManifestArtifact(tag) {
-  return `sdk-release-manifest-${tag}`;
+export function sdkReleaseCandidateArtifact(tag) {
+  return `sdk-release-candidate-${tag}`;
 }
 
 export function selectDispatchedWorkflowRun(runs, sdkSha, dispatchedAt, displayTitle = null) {
@@ -104,7 +104,7 @@ export function sdkReleaseVersionInvocation(sdkDirectory, sdkSha) {
   };
 }
 
-async function publishedRelease(repository, plan) {
+async function publishedRelease(repository, plan, artifactsDirectory = null) {
   let isDraft;
   try {
     isDraft = run("gh", [
@@ -138,16 +138,19 @@ async function publishedRelease(repository, plan) {
     throw new Error(`${plan.tag} points to ${taggedSha}, not ${plan.releaseSha}`);
   }
 
-  const directory = await mkdtemp(join(tmpdir(), "openagent-sdk-release-"));
+  const directory = artifactsDirectory ?? (await mkdtemp(join(tmpdir(), "openagent-sdk-release-")));
   try {
+    await mkdir(directory, { recursive: true });
+    const patterns = artifactsDirectory
+      ? ["openagent-sdk-manifest.json", "openagent-server-*"]
+      : ["openagent-sdk-manifest.json"];
     run("gh", [
       "release",
       "download",
       plan.tag,
       "--repo",
       repository,
-      "--pattern",
-      "openagent-sdk-manifest.json",
+      ...patterns.flatMap((pattern) => ["--pattern", pattern]),
       "--dir",
       directory,
     ]);
@@ -156,13 +159,14 @@ async function publishedRelease(repository, plan) {
     );
     return validateSdkManifest(manifest, plan);
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    if (!artifactsDirectory) await rm(directory, { recursive: true, force: true });
   }
 }
 
-async function stagedReleaseManifest(repository, plan, runId) {
-  const directory = await mkdtemp(join(tmpdir(), "openagent-sdk-stage-"));
+async function stagedReleaseManifest(repository, plan, runId, artifactsDirectory = null) {
+  const directory = artifactsDirectory ?? (await mkdtemp(join(tmpdir(), "openagent-sdk-stage-")));
   try {
+    await mkdir(directory, { recursive: true });
     run("gh", [
       "run",
       "download",
@@ -170,7 +174,7 @@ async function stagedReleaseManifest(repository, plan, runId) {
       "--repo",
       repository,
       "--name",
-      sdkReleaseManifestArtifact(plan.tag),
+      sdkReleaseCandidateArtifact(plan.tag),
       "--dir",
       directory,
     ]);
@@ -179,7 +183,7 @@ async function stagedReleaseManifest(repository, plan, runId) {
     );
     return validateSdkManifest(manifest, plan);
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    if (!artifactsDirectory) await rm(directory, { recursive: true, force: true });
   }
 }
 
@@ -319,18 +323,20 @@ async function main() {
   const repository = value("--repository");
   const output = value("--output");
   const mode = value("--mode");
+  const artifactsDirectory = value("--artifacts-dir");
   if (
     !sdkDirectory ||
     !sdkSha ||
     !hostVersion ||
     !repository ||
     !output ||
-    !["stage", "publish"].includes(mode)
+    !["stage", "publish"].includes(mode) ||
+    (mode === "stage" && !artifactsDirectory)
   ) {
     throw new Error(
       "Usage: ensure-sdk-release.mjs --sdk-dir <dir> --sdk-sha <sha> " +
         "--host-version <version> --repository <owner/repo> --output <github-output> " +
-        "--mode <stage|publish>",
+        "--mode <stage|publish> [--artifacts-dir <dir>]",
     );
   }
 
@@ -339,7 +345,7 @@ async function main() {
   report(
     `Resolved SDK ${sdkSha} to ${plan.tag} at release source ${plan.releaseSha}; release required: ${plan.releaseRequired}.`,
   );
-  let manifest = await publishedRelease(repository, plan);
+  let manifest = await publishedRelease(repository, plan, artifactsDirectory);
   if (manifest) report(`Reusing published SDK release ${plan.tag}.`);
   if (!manifest && mode === "stage") {
     const ciTitle = `SDK CI ${plan.releaseSha}`;
@@ -411,8 +417,13 @@ async function main() {
     if (stagedRun.conclusion !== "success") {
       throw new Error(`${stagedRun.workflow} failed while staging ${plan.tag}: ${stagedRun.url}`);
     }
-    manifest = await stagedReleaseManifest(repository, plan, stagedRun.databaseId);
-    report(`Private SDK release manifest ${plan.tag} is staged.`);
+    manifest = await stagedReleaseManifest(
+      repository,
+      plan,
+      stagedRun.databaseId,
+      artifactsDirectory,
+    );
+    report(`Private SDK Runtime candidate ${plan.tag} is staged.`);
   }
   if (!manifest && mode === "publish") {
     await waitForSdkTag(repository, plan);

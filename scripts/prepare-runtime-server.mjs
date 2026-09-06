@@ -1,4 +1,4 @@
-import { chmod, mkdir, writeFile } from "node:fs/promises";
+import { chmod, mkdir, stat, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
@@ -73,6 +73,15 @@ export function runtimeServerPaths({ repositoryRoot, targetTriple, profile }) {
   };
 }
 
+export async function requirePreparedRuntimeServer(paths) {
+  const metadata = await stat(paths.destination).catch(() => null);
+  if (!metadata?.isFile() || metadata.size === 0) {
+    throw new Error(`Release-qualified Runtime sidecar is missing: ${paths.destination}`);
+  }
+  console.log(`Reused release-qualified Runtime server for ${paths.targetTriple}.`);
+  return { ...paths, changed: false };
+}
+
 export async function prepareRuntimeServer({ profile = "dev", targetTriple } = {}) {
   const cargo = process.env.CARGO ?? "cargo";
   const resolvedTarget =
@@ -85,6 +94,9 @@ export async function prepareRuntimeServer({ profile = "dev", targetTriple } = {
     targetTriple: resolvedTarget,
     profile,
   });
+  if (process.env.OPENAGENT_RUNTIME_SERVER_PREBUILT === "1") {
+    return requirePreparedRuntimeServer({ ...paths, targetTriple: resolvedTarget });
+  }
   const cargoArguments = [
     "build",
     "--locked",
