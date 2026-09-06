@@ -97,10 +97,9 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: |
-            ./src-tauri -> target
-            ./sdk -> target
-          cache-targets: false
+          workspaces: ./src-tauri -> target
+          shared-key: public-host-linux
+          cache-targets: true
 
       - name: Prepare pinned Linux sandbox helper
         shell: bash
@@ -187,11 +186,9 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: |
-            ./src-tauri -> target
-            ./sdk -> target
+          workspaces: ./src-tauri -> target
           shared-key: platform-${{ matrix.cache_key }}
-          cache-targets: false
+          cache-targets: true
 
       - name: Build pinned Windows sandbox helpers
         if: runner.os == 'Windows'
@@ -213,7 +210,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $env:CARGO_TARGET_DIR = (Resolve-Path "src-tauri\target").Path
+          $env:CARGO_TARGET_DIR = (Resolve-Path "sdk\target").Path
           $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
           cargo test --manifest-path sdk/Cargo.toml -p openagent-server restricted_token_writes_workspace_and_blocks_outside_and_metadata *>> $log
           if ($LASTEXITCODE -ne 0) {
@@ -236,7 +233,7 @@ jobs:
             Write-Error "Windows Firewall profiles could not be enabled for the sandbox boundary test."
             exit 1
           }
-          $env:CARGO_TARGET_DIR = (Resolve-Path "src-tauri\target").Path
+          $env:CARGO_TARGET_DIR = (Resolve-Path "sdk\target").Path
           $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
           $tests = @(
             "elevated_offline_account_firewall_blocks_non_loopback_network_access",
@@ -362,7 +359,9 @@ jobs:
           cache-targets: false
 
       - name: Exercise bundled embedding model
-        run: cargo test --manifest-path src-tauri/Cargo.toml bundled_embedding_model_runs_offline
+        env:
+          CARGO_TARGET_DIR: sdk/target/embedded-host
+        run: cargo test --manifest-path src-tauri/Cargo.toml --features embedded-runtime bundled_embedding_model_runs_offline
 
   harness:
     name: Harness contract

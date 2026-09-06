@@ -95,12 +95,21 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("runs-on: windows-2025");
     expect(releaseWorkflow).toContain("runner_os: macOS");
     expect(releaseWorkflow).not.toContain("matrix.platform");
-    expect(releaseWorkflow).toContain("cache-targets: false");
-    expect(prepareReleaseWorkflow).toContain("runs-on: ubuntu-24.04");
-    expect(nativeCargoManifest).toContain('openagent-app = { path = "../sdk/rust/openagent-app" }');
-    expect(nativeCargoManifest).toContain(
-      'openagent-runtime = { path = "../sdk/rust/openagent-runtime" }',
+    expect(releaseWorkflow).toContain(
+      "shared-key: public-host-release-${{ matrix.runtime_target }}",
     );
+    expect(prepareReleaseWorkflow).toContain("runs-on: ubuntu-24.04");
+    expect(nativeCargoManifest).toContain(
+      'openagent-app = { path = "../sdk/rust/openagent-app", optional = true }',
+    );
+    expect(nativeCargoManifest).toContain(
+      'openagent-runtime = { path = "../sdk/rust/openagent-runtime", optional = true }',
+    );
+    expect(nativeWorkflow).toContain("shared-key: public-host-linux");
+    expect(nativeWorkflow).toContain("cache-targets: true");
+    expect(nativeWorkflow).toContain("CARGO_TARGET_DIR: sdk/target/embedded-host");
+    expect(sdkWorkflow).toContain("shared-key: public-sdk-host-dependencies");
+    expect(releaseWorkflow).toContain("cache-targets: true");
     expect(privateRunnerCompose).toContain("./state/sccache:/var/cache/openagent-sccache");
     expect(privateRunnerCompose).not.toContain("sccache-storage:");
     expect(privateRunnerCompose).not.toContain("passnat-cache:");
@@ -340,7 +349,9 @@ describe("release CI verification", () => {
       releaseWorkflow.match(/OPENAGENT_RUNTIME_TARGET: \$\{\{ matrix\.sidecar_target \}\}/g),
     ).toHaveLength(2);
     expect(releaseWorkflow).not.toContain("TAURI_ENV_ARCH:");
-    expect(releaseWorkflow).toContain("cache-targets: false");
+    expect(releaseWorkflow).toContain(
+      "shared-key: public-host-release-${{ matrix.runtime_target }}",
+    );
   });
 
   test("publishes qualified SDK development artifacts for external debugging", () => {

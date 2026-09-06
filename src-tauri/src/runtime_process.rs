@@ -11,6 +11,7 @@ use tokio::sync::Mutex;
 const READY_TIMEOUT: Duration = Duration::from_secs(15);
 const HEALTH_TIMEOUT: Duration = Duration::from_secs(5);
 const TOKEN_ENV: &str = "OPENAGENT_DESKTOP_RUNTIME_TOKEN";
+pub const DESKTOP_RUNTIME_PROTOCOL_VERSION: u32 = 2;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RuntimeLaunchSpec {

@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -33,11 +34,47 @@ const cargoManifest = readFileSync(resolve(repositoryRoot, "src-tauri", "Cargo.t
 if (!cargoManifest.includes('path = "src/lib.rs"')) {
   throw new Error("The host Cargo library target must compile from the Tauri adapter");
 }
-if (!cargoManifest.includes('openagent-app = { path = "../sdk/rust/openagent-app" }')) {
-  throw new Error("The Tauri adapter must depend on the private SDK application crate");
+for (const crate of ["openagent-app", "openagent-protocol", "openagent-runtime"]) {
+  if (!cargoManifest.includes(`${crate} = { path = "../sdk/rust/${crate}", optional = true }`)) {
+    throw new Error(`${crate} must be optional and reserved for embedded Runtime diagnostics`);
+  }
 }
-if (!cargoManifest.includes('openagent-runtime = { path = "../sdk/rust/openagent-runtime" }')) {
-  throw new Error("The Tauri adapter must depend on the private SDK runtime crate");
+if (
+  !cargoManifest.includes(
+    'embedded-runtime = ["dep:openagent-app", "dep:openagent-protocol", "dep:openagent-runtime"]',
+  )
+) {
+  throw new Error("The embedded Runtime feature must explicitly own every private SDK dependency");
+}
+
+const cargoTree = spawnSync(
+  process.env.CARGO ?? "cargo",
+  ["tree", "--manifest-path", "src-tauri/Cargo.toml", "-p", "openagent", "-e", "normal"],
+  { cwd: repositoryRoot, encoding: "utf8" },
+);
+if (cargoTree.status !== 0) {
+  throw new Error("Could not verify the default Tauri dependency graph");
+}
+for (const crate of ["openagent-app", "openagent-protocol", "openagent-runtime"]) {
+  if (new RegExp(`(?:^|\\n)[^\\n]*\\b${crate.replace("-", "\\-")} v`).test(cargoTree.stdout)) {
+    throw new Error(`Default Tauri dependency graph contains private crate ${crate}`);
+  }
+}
+
+const sdkProtocolSource = readFileSync(
+  resolve(repositoryRoot, "sdk", "rust", "openagent-protocol", "src", "lib.rs"),
+  "utf8",
+);
+const hostProtocolSource = readFileSync(
+  resolve(repositoryRoot, "src-tauri", "src", "runtime_process.rs"),
+  "utf8",
+);
+const sdkProtocol = sdkProtocolSource.match(/pub const SDK_PROTOCOL_VERSION: u32 = (\d+);/)?.[1];
+const hostProtocol = hostProtocolSource.match(
+  /pub const DESKTOP_RUNTIME_PROTOCOL_VERSION: u32 = (\d+);/,
+)?.[1];
+if (!sdkProtocol || sdkProtocol !== hostProtocol) {
+  throw new Error("The public desktop Runtime protocol version must match the pinned SDK");
 }
 
 const requiredRuntimeSources = [

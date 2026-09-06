@@ -12,4 +12,7 @@ Standalone browser development retains ordinary Vite HMR. This ordering also
 prevents a hot frontend or host from connecting to a stale sidecar that lacks a
 newly added desktop operation. A failed server build leaves the currently
 running development process intact and the next source change retries. The
-explicit embedded diagnostic command does not use this sidecar path.
+explicit embedded diagnostic command does not use this sidecar path. Runtime,
+embedded diagnostic, and sandbox-helper compilation stays under `sdk/target`;
+the ordinary Tauri host uses `src-tauri/target` so its public compiler output can
+be cached independently.

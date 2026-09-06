@@ -2,22 +2,8 @@
 use openagent_app::bootstrap_development_runtime as bootstrap_product_runtime;
 #[cfg(all(not(debug_assertions), feature = "embedded-runtime"))]
 use openagent_app::bootstrap_runtime as bootstrap_product_runtime;
-use openagent_app::{
-    apply_persistence_transition, ExternalRuntimeLaunch, InstalledRuntimeResource,
-    PersistenceTransitionPlan, RuntimeResourceManager, RuntimeResourceSource,
-};
 #[cfg(feature = "embedded-runtime")]
 use openagent_app::{load_embedding_model, EmbeddingResourceManager};
-#[cfg(debug_assertions)]
-use openagent_app::{
-    pending_development_persistence_transition as pending_product_persistence_transition,
-    prepare_development_external_runtime_launch as prepare_product_external_runtime_launch,
-};
-#[cfg(not(debug_assertions))]
-use openagent_app::{
-    pending_persistence_transition as pending_product_persistence_transition,
-    prepare_external_runtime_launch as prepare_product_external_runtime_launch,
-};
 #[cfg(feature = "embedded-runtime")]
 use openagent_runtime::checkpoint::{
     BranchMeta, ChatTaskUsage, CheckpointMeta, ConvPatch, ConversationMeta, FileChange,
@@ -25,10 +11,6 @@ use openagent_runtime::checkpoint::{
 };
 #[cfg(feature = "embedded-runtime")]
 use openagent_runtime::commands::*;
-use openagent_runtime::commands::{
-    finish_child_workspace_window_shutdown, is_parent_controlled_workspace_window_process,
-    is_workspace_window_process, request_child_workspace_window_shutdown,
-};
 #[cfg(feature = "embedded-runtime")]
 use openagent_runtime::config::{
     Config, DefaultModelBinding, McpServerConfig, ReasoningEffort, RecentWorkspace,
@@ -46,7 +28,6 @@ use openagent_runtime::state::{
 };
 #[cfg(feature = "embedded-runtime")]
 use openagent_runtime::tools::ScheduleChatHookArgs;
-use openagent_runtime::tracing_setup;
 #[cfg(feature = "embedded-runtime")]
 use openagent_runtime::{
     html_preview_protocol, mcp, tools, AgentInputRequest, ChatModelBinding, CommandSpec,
@@ -57,15 +38,26 @@ use std::sync::Arc;
 use tauri::{path::BaseDirectory, Emitter, Manager, State};
 
 pub mod frontend_resource;
+pub mod local_capabilities;
 pub mod runtime_asset_protocol;
 pub mod runtime_process;
+pub mod runtime_resource;
 pub mod runtime_transport;
+pub mod workspace_process;
+pub mod wsl;
 
 use frontend_resource::{
     FrontendResourceManager, FrontendResourceSource, InstalledFrontendResource,
 };
-use runtime_process::{RuntimeLaunchSpec, RuntimeProcessSupervisor};
+use runtime_process::{
+    RuntimeLaunchSpec, RuntimeProcessSupervisor, DESKTOP_RUNTIME_PROTOCOL_VERSION,
+};
+use runtime_resource::{InstalledRuntimeResource, RuntimeResourceManager, RuntimeResourceSource};
 use runtime_transport::{RuntimeEventProxy, RuntimeProxyRequest, RuntimeProxyResponse};
+use workspace_process::{
+    finish_child_workspace_window_shutdown, is_parent_controlled_workspace_window_process,
+    is_workspace_window_process, request_child_workspace_window_shutdown,
+};
 
 #[derive(serde::Serialize)]
 struct PreparedFrontendResource {
@@ -120,13 +112,86 @@ const DESKTOP_CHILD_PROCESS_GRACE_TIMEOUT: std::time::Duration =
     std::time::Duration::from_millis(1500);
 const DESKTOP_CHILD_PROCESS_STOP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 
+fn init_host_tracing(#[cfg(feature = "embedded-runtime")] runtime: Option<&Arc<OpenAgentRuntime>>) {
+    #[cfg(feature = "embedded-runtime")]
+    {
+        tauri::async_runtime::block_on(async {
+            let diagnostic_logs_enabled = if let Some(runtime) = runtime {
+                runtime
+                    .state()
+                    .config
+                    .lock()
+                    .await
+                    .diagnostic_log_collection_enabled
+            } else {
+                openagent_runtime::config::load_config()
+                    .map(|config| config.diagnostic_log_collection_enabled)
+                    .unwrap_or(true)
+            };
+            openagent_runtime::tracing_setup::set_diagnostic_log_collection_enabled(
+                diagnostic_logs_enabled,
+            );
+            openagent_runtime::tracing_setup::init_tracing_with_service_version(env!(
+                "CARGO_PKG_VERSION"
+            ));
+        });
+    }
+    #[cfg(not(feature = "embedded-runtime"))]
+    {
+        let _ = tracing_subscriber::fmt()
+            .with_ansi(false)
+            .with_max_level(tracing::Level::INFO)
+            .try_init();
+    }
+}
+
+fn shutdown_host_tracing() {
+    #[cfg(feature = "embedded-runtime")]
+    openagent_runtime::tracing_setup::shutdown_tracing();
+}
+
 struct HostRuntimeBootstrap {
     initial_locale: String,
+    data_dir: std::path::PathBuf,
     #[cfg(feature = "embedded-runtime")]
     runtime: Option<Arc<OpenAgentRuntime>>,
     #[cfg(feature = "embedded-runtime")]
     html_preview_roots: HtmlPreviewRoots,
     external_launch: Option<ExternalRuntimeLaunch>,
+}
+
+#[derive(Clone, Debug, serde::Deserialize)]
+struct ExternalRuntimeLaunch {
+    openagent_home: std::path::PathBuf,
+    workspace: std::path::PathBuf,
+    conversation_id: Option<String>,
+    message_id: Option<String>,
+    new_conversation: bool,
+    initial_locale: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct PersistenceTransitionPlan {
+    data_dir: std::path::PathBuf,
+    backup_dir: std::path::PathBuf,
+    reset_config: bool,
+    reset_conversations: bool,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct DesktopBootstrapResponse {
+    schema_version: u32,
+    status: String,
+    launch: Option<ExternalRuntimeLaunch>,
+    transition: Option<PersistenceTransitionPlan>,
+    backup_dir: Option<std::path::PathBuf>,
+}
+
+enum DesktopBootstrapStatus {
+    Ready(ExternalRuntimeLaunch),
+    TransitionRequired(PersistenceTransitionPlan),
+    TransitionApplied(std::path::PathBuf),
+    NoTransition,
 }
 
 #[cfg(feature = "embedded-runtime")]
@@ -180,7 +245,10 @@ fn desktop_runtime_mode(agent_server: bool) -> anyhow::Result<DesktopRuntimeMode
     Ok(DesktopRuntimeMode::External)
 }
 
-fn prepare_host_runtime(agent_server: bool) -> anyhow::Result<HostRuntimeBootstrap> {
+fn prepare_host_runtime(
+    agent_server: bool,
+    external_launch: Option<ExternalRuntimeLaunch>,
+) -> anyhow::Result<HostRuntimeBootstrap> {
     match desktop_runtime_mode(agent_server)? {
         #[cfg(feature = "embedded-runtime")]
         DesktopRuntimeMode::Embedded => {
@@ -191,15 +259,19 @@ fn prepare_host_runtime(agent_server: bool) -> anyhow::Result<HostRuntimeBootstr
             } = bootstrap_product_runtime(agent_server)?;
             Ok(HostRuntimeBootstrap {
                 initial_locale,
+                data_dir: openagent_runtime::config::config_dir(),
                 runtime: Some(runtime),
                 html_preview_roots,
                 external_launch: None,
             })
         }
         DesktopRuntimeMode::External => {
-            let launch = prepare_product_external_runtime_launch()?;
+            let launch = external_launch.ok_or_else(|| {
+                anyhow::anyhow!("external Runtime launch inputs were not prepared")
+            })?;
             Ok(HostRuntimeBootstrap {
                 initial_locale: launch.initial_locale.clone(),
+                data_dir: launch.openagent_home.clone(),
                 #[cfg(feature = "embedded-runtime")]
                 runtime: None,
                 #[cfg(feature = "embedded-runtime")]
@@ -212,7 +284,10 @@ fn prepare_host_runtime(agent_server: bool) -> anyhow::Result<HostRuntimeBootstr
 
 #[cfg(all(test, debug_assertions))]
 mod runtime_mode_tests {
-    use super::{parse_development_runtime_mode, DesktopRuntimeMode};
+    use super::{
+        parse_desktop_bootstrap_response, parse_development_runtime_mode, DesktopBootstrapStatus,
+        DesktopRuntimeMode,
+    };
 
     #[test]
     fn development_desktop_defaults_to_external_runtime() {
@@ -237,6 +312,33 @@ mod runtime_mode_tests {
         assert!(parse_development_runtime_mode(Some("embedded")).is_err());
         assert!(parse_development_runtime_mode(Some("fallback")).is_err());
     }
+
+    #[test]
+    fn parses_versioned_external_runtime_launch_inputs() {
+        let response = parse_desktop_bootstrap_response(
+            br#"{"schema_version":1,"status":"ready","launch":{"openagent_home":"/tmp/openagent","workspace":"/tmp","conversation_id":null,"message_id":null,"new_conversation":false,"initial_locale":"zh"}}"#,
+        )
+        .unwrap();
+        let DesktopBootstrapStatus::Ready(launch) = response else {
+            panic!("expected ready bootstrap status");
+        };
+        assert_eq!(
+            launch.openagent_home,
+            std::path::Path::new("/tmp/openagent")
+        );
+        assert_eq!(launch.initial_locale, "zh");
+    }
+
+    #[test]
+    fn rejects_unknown_bootstrap_schema_versions() {
+        let error =
+            parse_desktop_bootstrap_response(br#"{"schema_version":2,"status":"no_transition"}"#)
+                .err()
+                .unwrap();
+        assert!(error
+            .to_string()
+            .contains("Unsupported Runtime bootstrap schema version 2"));
+    }
 }
 
 const EMBEDDING_MODEL_RESOURCE_PATH: &str = "models/all-MiniLM-L6-v2-q";
@@ -253,19 +355,19 @@ fn modular_update_channel() -> &'static str {
     }
 }
 
-fn runtime_resource_manager() -> RuntimeResourceManager {
+fn runtime_resource_manager(openagent_home: std::path::PathBuf) -> RuntimeResourceManager {
     let manifest_url = format!(
         "https://github.com/BANG404/openagent/releases/download/runtime-{}/openagent-sdk-manifest.json",
         modular_update_channel()
     );
     RuntimeResourceManager::new(
-        openagent_runtime::config::config_dir(),
+        openagent_home,
         RuntimeResourceSource {
             signature_url: format!("{manifest_url}.sig"),
             manifest_url,
             public_key: UPDATE_PUBLIC_KEY.to_string(),
         },
-        openagent_protocol::SDK_PROTOCOL_VERSION,
+        DESKTOP_RUNTIME_PROTOCOL_VERSION,
     )
 }
 
@@ -277,13 +379,15 @@ fn runtime_update_available(candidate: &str, baseline: &str) -> Result<bool, Str
     Ok(candidate > baseline)
 }
 
-fn frontend_resource_manager() -> Result<FrontendResourceManager, String> {
+fn frontend_resource_manager(
+    openagent_home: std::path::PathBuf,
+) -> Result<FrontendResourceManager, String> {
     let manifest_url = format!(
         "https://github.com/BANG404/openagent/releases/download/frontend-{}/openagent-frontend-manifest.json",
         modular_update_channel()
     );
     FrontendResourceManager::new(
-        openagent_runtime::config::config_dir(),
+        openagent_home,
         FrontendResourceSource {
             signature_url: format!("{manifest_url}.sig"),
             manifest_url,
@@ -1703,7 +1807,7 @@ async fn resolve_workspace_media_source(
 
 #[tauri::command]
 async fn read_text_file(path: String) -> Result<String, String> {
-    openagent_runtime::commands::read_text_file(path).await
+    local_capabilities::read_text_file(path).await
 }
 
 #[tauri::command]
@@ -1712,7 +1816,7 @@ async fn save_download_file(
     content: String,
     encoding: Option<String>,
 ) -> Result<String, String> {
-    openagent_runtime::commands::save_download_file(filename, content, encoding).await
+    local_capabilities::save_download_file(filename, content, encoding).await
 }
 
 #[cfg(feature = "embedded-runtime")]
@@ -1742,7 +1846,7 @@ async fn test_mcp_server(server: McpServerConfig) -> Result<mcp::McpProbeResult,
 
 #[tauri::command]
 fn get_system_locale() -> String {
-    openagent_runtime::commands::get_system_locale()
+    local_capabilities::system_locale()
 }
 
 #[cfg(feature = "embedded-runtime")]
@@ -2102,7 +2206,7 @@ async fn finish_desktop_quit(app: tauri::AppHandle) {
             tracing::warn!("timed out stopping child workspace processes during quit");
         }
     }
-    tracing_setup::shutdown_tracing();
+    shutdown_host_tracing();
     app.cleanup_before_exit();
     std::process::exit(0)
 }
@@ -2480,23 +2584,21 @@ async fn rotate_remote_gateway_pairing_code() -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn list_wsl_distributions() -> Result<Vec<openagent_runtime::wsl::WslDistribution>, String> {
-    openagent_runtime::commands::list_wsl_distributions().await
+async fn list_wsl_distributions() -> Result<Vec<wsl::WslDistribution>, String> {
+    wsl::list_distributions().await
 }
 
 #[tauri::command]
-async fn get_wsl_home(
-    distribution: String,
-) -> Result<openagent_runtime::wsl::WslWorkspaceTarget, String> {
-    openagent_runtime::commands::get_wsl_home(distribution).await
+async fn get_wsl_home(distribution: String) -> Result<wsl::WslWorkspaceTarget, String> {
+    wsl::resolve_home(&distribution).await
 }
 
 #[tauri::command]
 async fn resolve_wsl_workspace(
     distribution: String,
     linux_path: String,
-) -> Result<openagent_runtime::wsl::WslWorkspaceTarget, String> {
-    openagent_runtime::commands::resolve_wsl_workspace(distribution, linux_path).await
+) -> Result<wsl::WslWorkspaceTarget, String> {
+    wsl::resolve_workspace(&distribution, &linux_path).await
 }
 
 #[tauri::command]
@@ -2537,18 +2639,12 @@ async fn open_workspace_window(
     message_id: Option<String>,
     new_conversation: bool,
 ) -> Result<(), String> {
-    openagent_runtime::commands::open_workspace_window(
-        path,
-        conversation_id,
-        message_id,
-        new_conversation,
-    )
-    .await
+    workspace_process::open_workspace_window(path, conversation_id, message_id, new_conversation)
 }
 
 #[tauri::command]
 fn create_workspace_window(path: String) -> Result<(), String> {
-    openagent_runtime::commands::create_workspace_window(path)
+    workspace_process::create_workspace_window(path)
 }
 
 #[tauri::command]
@@ -2723,25 +2819,96 @@ fn confirm_persistence_transition(plan: &PersistenceTransitionPlan) -> bool {
     )
 }
 
-fn prepare_interactive_persistence() -> anyhow::Result<bool> {
-    let Some(plan) = pending_product_persistence_transition()? else {
-        return Ok(true);
+fn run_desktop_bootstrap_command(command: &str) -> anyhow::Result<DesktopBootstrapStatus> {
+    let binary = packaged_runtime_binary().map_err(anyhow::Error::msg)?;
+    let mut process = std::process::Command::new(&binary);
+    process.arg("--desktop-bootstrap").arg(command);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        process.creation_flags(0x0800_0000);
+    }
+    let output = process.output().map_err(|error| {
+        anyhow::anyhow!(
+            "Failed to run Runtime bootstrap helper {}: {error}",
+            binary.display()
+        )
+    })?;
+    if !output.status.success() {
+        let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        anyhow::bail!(
+            "Runtime bootstrap helper failed{}",
+            if detail.is_empty() {
+                String::new()
+            } else {
+                format!(": {detail}")
+            }
+        );
+    }
+    parse_desktop_bootstrap_response(&output.stdout)
+}
+
+fn parse_desktop_bootstrap_response(bytes: &[u8]) -> anyhow::Result<DesktopBootstrapStatus> {
+    let response: DesktopBootstrapResponse = serde_json::from_slice(bytes)
+        .map_err(|error| anyhow::anyhow!("Runtime bootstrap response was invalid: {error}"))?;
+    if response.schema_version != 1 {
+        anyhow::bail!(
+            "Unsupported Runtime bootstrap schema version {}",
+            response.schema_version
+        );
+    }
+    match response.status.as_str() {
+        "ready" => response
+            .launch
+            .map(DesktopBootstrapStatus::Ready)
+            .ok_or_else(|| anyhow::anyhow!("Runtime bootstrap omitted launch inputs")),
+        "transition_required" => response
+            .transition
+            .map(DesktopBootstrapStatus::TransitionRequired)
+            .ok_or_else(|| anyhow::anyhow!("Runtime bootstrap omitted transition details")),
+        "transition_applied" => response
+            .backup_dir
+            .map(DesktopBootstrapStatus::TransitionApplied)
+            .ok_or_else(|| anyhow::anyhow!("Runtime bootstrap omitted the backup path")),
+        "no_transition" => Ok(DesktopBootstrapStatus::NoTransition),
+        status => anyhow::bail!("Unsupported Runtime bootstrap status {status}"),
+    }
+}
+
+fn prepare_interactive_persistence() -> anyhow::Result<Option<ExternalRuntimeLaunch>> {
+    let plan = match run_desktop_bootstrap_command("inspect")? {
+        DesktopBootstrapStatus::Ready(launch) => return Ok(Some(launch)),
+        DesktopBootstrapStatus::TransitionRequired(plan) => plan,
+        DesktopBootstrapStatus::TransitionApplied(_) | DesktopBootstrapStatus::NoTransition => {
+            anyhow::bail!("Runtime bootstrap inspect returned an invalid status")
+        }
     };
     if !confirm_persistence_transition(&plan) {
-        return Ok(false);
+        return Ok(None);
     }
-    let backup_dir = apply_persistence_transition(&plan)?;
-    rfd::MessageDialog::new()
-        .set_level(rfd::MessageLevel::Info)
-        .set_title("OpenAgent 备份完成 / Backup complete")
-        .set_description(format!(
-            "旧数据已保存到：\n{}\n\nOpenAgent 将使用新的兼容配置继续启动。\n\nThe previous data was saved to:\n{}\n\nOpenAgent will now continue with fresh compatible data.",
-            backup_dir.display(),
-            backup_dir.display()
-        ))
-        .set_buttons(rfd::MessageButtons::Ok)
-        .show();
-    Ok(true)
+    let backup_dir = match run_desktop_bootstrap_command("apply-transition")? {
+        DesktopBootstrapStatus::TransitionApplied(path) => Some(path),
+        DesktopBootstrapStatus::NoTransition => None,
+        DesktopBootstrapStatus::Ready(_) | DesktopBootstrapStatus::TransitionRequired(_) => {
+            anyhow::bail!("Runtime bootstrap transition returned an invalid status")
+        }
+    };
+    if let Some(backup_dir) = backup_dir {
+        rfd::MessageDialog::new()
+            .set_level(rfd::MessageLevel::Info)
+            .set_title("OpenAgent 备份完成 / Backup complete")
+            .set_description(format!(
+                "旧数据已保存到：\n{}\n\nOpenAgent 将使用新的兼容配置继续启动。\n\nThe previous data was saved to:\n{}\n\nOpenAgent will now continue with fresh compatible data.",
+                backup_dir.display(),
+                backup_dir.display()
+            ))
+            .set_buttons(rfd::MessageButtons::Ok)
+            .show();
+    }
+    match run_desktop_bootstrap_command("inspect")? {
+        DesktopBootstrapStatus::Ready(launch) => Ok(Some(launch)),
+        _ => anyhow::bail!("Runtime bootstrap did not become ready after data transition"),
+    }
 }
 
 fn should_enforce_single_instance(agent_server: bool, is_workspace_window: bool) -> bool {
@@ -2890,10 +3057,10 @@ mod single_instance_tests {
 }
 
 fn run_with_mode(agent_server: bool) {
-    if !agent_server {
+    let external_launch = if !agent_server {
         match prepare_interactive_persistence() {
-            Ok(true) => {}
-            Ok(false) => return,
+            Ok(Some(launch)) => Some(launch),
+            Ok(None) => return,
             Err(error) => {
                 rfd::MessageDialog::new()
                     .set_level(rfd::MessageLevel::Error)
@@ -2906,32 +3073,35 @@ fn run_with_mode(agent_server: bool) {
                 panic!("Failed to prepare OpenAgent persistence transition: {error:#}");
             }
         }
-    }
+    } else {
+        None
+    };
     let startup_started_at = std::time::Instant::now();
     let is_workspace_window = is_workspace_window_process();
     let HostRuntimeBootstrap {
         initial_locale,
+        data_dir,
         #[cfg(feature = "embedded-runtime")]
         runtime,
         #[cfg(feature = "embedded-runtime")]
         html_preview_roots,
         external_launch,
-    } = prepare_host_runtime(agent_server)
+    } = prepare_host_runtime(agent_server, external_launch)
         .unwrap_or_else(|error| panic!("Failed to initialize OpenAgent runtime: {error:#}"));
 
     #[cfg(feature = "embedded-runtime")]
     let protocol_roots = html_preview_roots;
-    let frontend_manager = frontend_resource_manager()
+    let frontend_manager = frontend_resource_manager(data_dir.clone())
         .unwrap_or_else(|error| panic!("Failed to initialize frontend resources: {error}"));
     let frontend_protocol_root = frontend_manager.asset_root();
     let startup_frontend_manager = frontend_manager.clone();
     let runtime_supervisor = Arc::new(
-        RuntimeProcessSupervisor::new(openagent_protocol::SDK_PROTOCOL_VERSION)
+        RuntimeProcessSupervisor::new(DESKTOP_RUNTIME_PROTOCOL_VERSION)
             .unwrap_or_else(|error| panic!("Failed to initialize Runtime supervisor: {error}")),
     );
     let startup_runtime_supervisor = runtime_supervisor.clone();
     let protocol_runtime_supervisor = runtime_supervisor.clone();
-    let runtime_manager = runtime_resource_manager();
+    let runtime_manager = runtime_resource_manager(data_dir);
     let startup_runtime_manager = runtime_manager.clone();
     let builder = tauri::Builder::default();
 
@@ -3067,30 +3237,10 @@ fn run_with_mode(agent_server: bool) {
                 install_parent_shutdown_monitor(app.handle().clone());
             }
 
-            // init_tracing() spawns a background Tokio task (batch exporter). The
-            // .setup() callback runs on the main thread which is not a Tokio worker
-            // thread, so we use block_on to enter the runtime context before calling it.
-            tauri::async_runtime::block_on(async {
+            init_host_tracing(
                 #[cfg(feature = "embedded-runtime")]
-                let diagnostic_logs_enabled = if let Some(runtime) = runtime.as_ref() {
-                    runtime
-                        .state()
-                        .config
-                        .lock()
-                        .await
-                        .diagnostic_log_collection_enabled
-                } else {
-                    openagent_runtime::config::load_config()
-                        .map(|config| config.diagnostic_log_collection_enabled)
-                        .unwrap_or(true)
-                };
-                #[cfg(not(feature = "embedded-runtime"))]
-                let diagnostic_logs_enabled = openagent_runtime::config::load_config()
-                    .map(|config| config.diagnostic_log_collection_enabled)
-                    .unwrap_or(true);
-                tracing_setup::set_diagnostic_log_collection_enabled(diagnostic_logs_enabled);
-                tracing_setup::init_tracing_with_service_version(env!("CARGO_PKG_VERSION"));
-            });
+                runtime.as_ref(),
+            );
             tracing::info!(
                 target: "openagent::startup",
                 elapsed_ms = startup_started_at.elapsed().as_millis() as u64,
@@ -3492,10 +3642,7 @@ fn run_with_mode(agent_server: bool) {
         .run(context)
         .expect("error while running tauri application");
 
-    // Flush remaining spans before the process exits. Must be called here while
-    // tauri::async_runtime (a global Tokio runtime) is still alive, because the
-    // BatchSpanProcessor needs an async context to export the final HTTP batch.
-    tracing_setup::shutdown_tracing();
+    shutdown_host_tracing();
 }
 
 #[cfg(test)]

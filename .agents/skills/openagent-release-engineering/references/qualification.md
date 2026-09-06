@@ -18,12 +18,12 @@
   failed candidate advances to a new commit and tag; never move the old tag or
   bypass its failed gate.
 - Treat the private SDK gitlink as release-relevant input. Private SDK output
-  must not leak into public logs or public caches; keep GitHub Rust caches at
-  `cache-targets: false` and do not configure a compiler cache. The Tauri host
-  directly links private SDK crates, so its target directory is private-derived
-  even when the Runtime sidecar is compiled separately. Release Runtime
-  artifacts may leave public jobs only through the documented exact-run
-  publication path.
+  must not leak into public logs or public caches, and do not configure a
+  compiler cache. Compile Runtime servers, embedded diagnostics, and sandbox
+  helpers cold under `sdk/target` with `cache-targets: false`. The ordinary
+  Tauri graph must contain no private SDK crates, so only its separate
+  `src-tauri/target` may use GitHub target caching. Release Runtime artifacts
+  may leave public jobs only through the documented exact-run publication path.
 - An unpublished prerelease refresh may advance only to a descendant source,
   broaden its component selection, and regenerate its current changelog
   section. Keep its version, tag, channel, older changelog history, and already

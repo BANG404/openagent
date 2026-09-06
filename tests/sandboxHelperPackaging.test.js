@@ -53,6 +53,12 @@ describe("sandbox helper packaging", () => {
     expect(linuxHelper).toContain('target.name === "bwrap"');
   });
 
+  test("keeps private sandbox compiler output outside the public Tauri target", () => {
+    expect(linuxHelper).toContain('targetDirectory = path.join(root, "sdk", "target")');
+    expect(windowsHelper).toContain('argument("--target-dir", path.join("sdk", "target"))');
+    expect(nativeWorkflow).toContain('$env:CARGO_TARGET_DIR = (Resolve-Path "sdk\\target").Path');
+  });
+
   test("packages Windows helpers only in the NSIS Windows bundle", () => {
     expect(baseTauriConfig.bundle.resources).not.toHaveProperty("resources/codex-resources/");
     expect(windowsTauriConfig.bundle.targets).toEqual(["nsis"]);
@@ -63,7 +69,14 @@ describe("sandbox helper packaging", () => {
 
   test("keeps embedded Runtime code out of ordinary desktop binaries", () => {
     expect(cargoManifest).toContain("default = []");
-    expect(cargoManifest).toContain("embedded-runtime = []");
+    expect(cargoManifest).toContain(
+      'embedded-runtime = ["dep:openagent-app", "dep:openagent-protocol", "dep:openagent-runtime"]',
+    );
+    for (const dependency of ["openagent-app", "openagent-protocol", "openagent-runtime"]) {
+      expect(cargoManifest).toContain(
+        `${dependency} = { path = "../sdk/rust/${dependency}", optional = true }`,
+      );
+    }
     expect(cargoManifest).toContain('required-features = ["embedded-runtime"]');
     expect(tauriLauncher).toContain('arguments_.push("--features", "embedded-runtime")');
     expect(packageManifest.scripts["dev:agent-server"]).toContain("--features embedded-runtime");

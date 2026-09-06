@@ -40,10 +40,7 @@ if (!new Set(["dev", "release"]).has(requestedProfile)) {
   throw new Error(`Unsupported Cargo profile: ${requestedProfile}`);
 }
 const profileDirectory = requestedProfile === "dev" ? "debug" : "release";
-const targetDirectory = path.resolve(
-  root,
-  argument("--target-dir", path.join("src-tauri", "target")),
-);
+const targetDirectory = path.resolve(root, argument("--target-dir", path.join("sdk", "target")));
 const cargo = process.env.CARGO ?? "cargo";
 
 const metadata = JSON.parse(

@@ -90,15 +90,12 @@ revision and report the aggregate `Public SDK CI` commit status. Because
 workflow logs are public, SDK command output is suppressed. The cross-repository
 status reporter sends JSON payloads directly to the GitHub REST API, so SDK jobs
 do not depend on a preinstalled GitHub CLI. Ordinary build
-outputs are never uploaded, and public GitHub caches never contain Rust target
-or compiler output. GitHub Rust caches retain only Cargo registry and Git
-dependency data with `cache-targets: false`; every Rust target is compiled cold
-on its hosted runner. This applies to Tauri as well as the standalone Runtime
-server because the public host directly links private `openagent-app` and
-`openagent-runtime` crates. A Tauri target cache would therefore contain
-private-SDK-derived compiler objects even when the Runtime sidecar is built
-separately. Release and development Runtime jobs may upload only their
-documented short-lived distribution artifacts. The hosted workflows do not
+outputs are never uploaded. Runtime servers, embedded diagnostics, and sandbox
+helpers compile cold into `sdk/target`; their Rust caches use
+`cache-targets: false`. The ordinary Tauri dependency graph contains no private
+SDK crate and compiles into the separate `src-tauri/target`, which may use
+GitHub target caching. Release and development Runtime jobs may upload only
+their documented short-lived distribution artifacts. Hosted workflows do not
 configure a compiler cache.
 
 Windows Harness Rust compilation runs under PowerShell so the MSVC linker takes
@@ -164,9 +161,10 @@ it waits across repositories, including workflow name, run URL, status, and the
 immutable SDK revision or tag; it never forwards private SDK command output into
 the public release log. GitHub's
 failed-job rerun therefore repeats only failed capabilities and the aggregate
-status. Dependency caches may hold
-Cargo registry/git data and Bun's public package downloads, but every Rust cache
-must set `cache-targets: false`; private target or compiler outputs remain
-forbidden in public caches. A host-repository SDK gitlink update still selects
+status. Dependency caches may hold Cargo registry/git data, Bun's public package
+downloads, and ordinary Tauri target output after the default dependency graph
+passes the private-SDK boundary check. Every SDK, server, embedded diagnostic,
+and sandbox-helper Rust cache must set `cache-targets: false`; private target or
+compiler outputs remain forbidden in public caches. A host-repository SDK gitlink update still selects
 every public consumer capability because that repository cannot infer the
 private path delta from the gitlink alone.

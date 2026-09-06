@@ -16,6 +16,14 @@ binaries exclude the embedded Runtime bootstrap and command adapter. Set `OPENAG
 explicitly when a development run should use a specific fixture or deliberately
 share another root.
 
+Before constructing the desktop shell, the packaged `openagent-server` runs a
+short-lived, versioned bootstrap command. It inspects configuration and database
+compatibility inside the private SDK, returns locale and launch inputs as JSON,
+and exits. When a destructive transition is required, Tauri presents the user
+confirmation and asks that command to perform the backup and reset before it
+starts the long-lived supervised server. The ordinary Tauri binary therefore
+does not link the private SDK Rust crates.
+
 In ordinary debug and release desktop builds, one supervised external Runtime
 is the sole writer for `OPENAGENT_HOME`. The Tauri host does not construct a
 second embedded Runtime against the same root. A packaged Runtime binary is retained only as a

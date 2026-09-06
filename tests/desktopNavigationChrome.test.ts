@@ -302,7 +302,7 @@ describe("desktop navigation chrome", () => {
   test("bounds native quit cleanup and keeps an independent process-exit watchdog", async () => {
     const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
     const workspace = await readFile(
-      new URL("../sdk/rust/openagent-runtime/src/commands/workspace.rs", import.meta.url),
+      new URL("../src-tauri/src/workspace_process.rs", import.meta.url),
       "utf8",
     );
     const quit = host.slice(
@@ -313,7 +313,7 @@ describe("desktop navigation chrome", () => {
     expect(quit).toContain("timeout(DESKTOP_RUNTIME_STOP_TIMEOUT, supervisor.stop())");
     expect(quit).toContain("timeout(DESKTOP_EVENT_PROXY_STOP_TIMEOUT, proxy.stop())");
     expect(quit).toContain("finish_child_workspace_window_shutdown");
-    expect(quit).toContain("tracing_setup::shutdown_tracing()");
+    expect(quit).toContain("shutdown_host_tracing()");
     expect(quit).toContain("app.cleanup_before_exit()");
     expect(quit).toContain("std::process::exit(0)");
     expect(quit).toContain("openagent-quit-watchdog");

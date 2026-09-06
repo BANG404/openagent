@@ -458,7 +458,8 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: ./src-tauri -> target
-          cache-targets: false
+          shared-key: public-host-release-${{ matrix.runtime_target }}
+          cache-targets: true
 
       - uses: oven-sh/setup-bun@v2
         with:

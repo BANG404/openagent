@@ -22,6 +22,10 @@ frontend transport remains pinned source and is not published as
 - Tauri starts the same server with `--desktop-api`. That adds the authenticated
   product `/api` surface without removing the complete Harness `/v1` routes;
   both surfaces execute through the one supervised Runtime process.
+- Before starting that process, Tauri invokes the packaged server's versioned
+  desktop-bootstrap command to inspect private persistence compatibility and
+  obtain behavior-free launch inputs. This short-lived command never starts a
+  Runtime or opens the conversation database as a concurrent writer.
 
 ## TypeScript usage
 

@@ -9,8 +9,11 @@ the host.
 
 ## Runtime and SDK roles
 
-- Use `openagent-app` only for product bootstrap and `openagent-runtime`
-  for execution APIs.
+- Ordinary host builds must not link private SDK Rust crates. Compile and stage
+  `openagent-server` first, then use its versioned desktop-bootstrap JSON command
+  for compatibility inspection, confirmed persistence transitions, locale, and
+  launch inputs. Private Rust dependencies are allowed only behind the explicit
+  `embedded-runtime` diagnostic feature.
 - The supervised desktop server keeps the complete Harness `/v1` router
   and adds the product `/api` router through `--desktop-api`. Both
   surfaces must execute in that one server process; do not introduce an
@@ -20,6 +23,8 @@ the host.
 
 ## Replaceable Runtime supervisor
 
+- Keep signed Runtime download, installation, activation selection, desktop
+  process spawning, and other OS-local capabilities in public host modules.
 - Accept only compatible loopback readiness records and authenticate
   health probes with a process-scoped token.
 - Stop the old child through its private control pipe before starting a
