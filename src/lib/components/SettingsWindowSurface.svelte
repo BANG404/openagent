@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { onMount, tick, untrack } from "svelte";
-  import { LogicalSize } from "@tauri-apps/api/dpi";
-  import { currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
+  import { onMount, untrack } from "svelte";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import SettingsView from "$lib/components/SettingsView.svelte";
   import { applyDocumentTheme, createNativeThemeSynchronizer } from "$lib/appTheme";
@@ -13,10 +12,6 @@
     type SettingsNav,
     type SettingsWindowKind,
   } from "$lib/settingsWindows";
-  import {
-    measureSettingsWindowContent,
-    resolveSettingsWindowSize,
-  } from "$lib/settingsWindowSizing";
   import { setLocale, t, type Locale, type TranslationKeys } from "$lib/i18n";
   import type { AppConfig, WorkspaceContext } from "$lib/types";
 
@@ -93,11 +88,6 @@
 
   onMount(() => {
     let disposed = false;
-    let resizeFrame = 0;
-    let resizeSequence = 0;
-    let centeredAfterInitialFit = false;
-    let fittingWindow = false;
-    let fitRequested = false;
     let stopSettings: (() => void) | undefined;
     let stopSectionRequests: (() => void) | undefined;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -105,79 +95,6 @@
       if ((config?.theme ?? "system") === "system") void synchronizeNativeTheme("system");
     };
     media.addEventListener("change", syncSystemTheme);
-
-    const fitWindowToContent = async () => {
-      if (!config) return;
-      if (fittingWindow) {
-        fitRequested = true;
-        return;
-      }
-      fittingWindow = true;
-      fitRequested = false;
-      const sequence = ++resizeSequence;
-      try {
-        await tick();
-        const [monitor, scaleFactor, innerSize] = await Promise.all([
-          currentMonitor(),
-          appWindow.scaleFactor(),
-          appWindow.innerSize(),
-        ]);
-        if (disposed || sequence !== resizeSequence) return;
-
-        const availableWidth = monitor ? monitor.workArea.size.width / monitor.scaleFactor : 1280;
-        const availableHeight = monitor ? monitor.workArea.size.height / monitor.scaleFactor : 800;
-        const target = resolveSettingsWindowSize(
-          kind,
-          measureSettingsWindowContent(stageElement),
-          availableWidth,
-          availableHeight,
-        );
-        const currentWidth = innerSize.width / scaleFactor;
-        const currentHeight = innerSize.height / scaleFactor;
-        const initialFit = !centeredAfterInitialFit;
-        const targetWidth = initialFit ? target.width : currentWidth;
-        centeredAfterInitialFit = true;
-        if (Math.abs(currentWidth - targetWidth) < 1 && Math.abs(currentHeight - target.height) < 1) {
-          return;
-        }
-
-        await appWindow.setSize(new LogicalSize(targetWidth, target.height));
-        if (initialFit) await appWindow.center();
-      } finally {
-        fittingWindow = false;
-        if (fitRequested && !disposed) scheduleWindowFit();
-      }
-    };
-    const scheduleWindowFit = () => {
-      fitRequested = true;
-      cancelAnimationFrame(resizeFrame);
-      resizeFrame = requestAnimationFrame(() => {
-        void fitWindowToContent().catch((error) => {
-          console.warn("Failed to fit settings window to its content:", error);
-        });
-      });
-    };
-    const resizeObserver = new ResizeObserver(scheduleWindowFit);
-    const observeMeasuredContent = () => {
-      stageElement
-        .querySelectorAll<HTMLElement>(
-          ".settings-content-col > *, .detail-content > *, .plugins-settings > *, .provider-list > *, .channel-settings-list-items > *",
-        )
-        .forEach((element) => resizeObserver.observe(element));
-    };
-    const mutationObserver = new MutationObserver(() => {
-      observeMeasuredContent();
-      scheduleWindowFit();
-    });
-    mutationObserver.observe(stageElement, {
-      subtree: true,
-      childList: true,
-      characterData: true,
-      attributes: true,
-      attributeFilter: ["data-state", "open", "hidden"],
-    });
-    observeMeasuredContent();
-    scheduleWindowFit();
 
     void loadSurface().catch((error) => {
       if (!disposed) loadError = `${error}`;
@@ -199,9 +116,6 @@
 
     return () => {
       disposed = true;
-      cancelAnimationFrame(resizeFrame);
-      resizeObserver.disconnect();
-      mutationObserver.disconnect();
       stopSettings?.();
       stopSectionRequests?.();
       media.removeEventListener("change", syncSystemTheme);

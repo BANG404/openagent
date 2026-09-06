@@ -55,16 +55,13 @@
   WebView reloads and saves configuration through the shared SDK
   contract. Dispatch on-demand WebView construction through an async Tauri
   command so Windows WebView2 initialization cannot block its own UI thread.
-- Give each Settings domain a compact content-appropriate initial geometry.
-  After the WebView renders, fit the native window to the active section's
-  measured content, including localized and dynamically added rows. Bound the
-  result to the current monitor work area and keep excess content scrolling
-  inside the settings pane; center the initial fitted size relative to the
-  requesting workspace window so utility windows open with the main app,
-  rather than at an unrelated monitor location. Serialize content-fit updates
-  and coalesce observer notifications while a native resize is in flight so
-  repeated layout events cannot repeatedly recenter (or visibly bounce) the
-  window. Later section changes do not discard a user-moved window position.
+- Give each Settings domain a compact, fixed initial geometry appropriate to
+  its content. Keep excess content scrolling inside the settings pane; do not
+  resize or recenter the native window after the WebView renders, including
+  when localized or dynamically added rows change the layout. Center the
+  fixed-size window relative to the requesting workspace window only during
+  first creation, and preserve a user-moved position when reopening or
+  switching sections.
 - Create the role editor on demand as one modeless singleton utility window.
   Repeated create or edit requests retarget, restore, and focus the existing
   WebView. The editor owns role/resource loading and writes through the shared
