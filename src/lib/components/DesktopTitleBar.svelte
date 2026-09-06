@@ -75,8 +75,9 @@
 <header
   class="title-bar"
   class:macos={platform === "macos"}
+  class:windows={platform === "windows"}
   class:window-inactive={!windowFocused}
-  data-tauri-drag-region
+  data-tauri-drag-region={platform === "macos" ? "true" : undefined}
 >
   {#if platform === "macos"}
     <div class="mac-window-controls">
@@ -107,7 +108,11 @@
     />
   </div>
 
-  <div class="title-bar-drag-handle" data-tauri-drag-region aria-hidden="true"></div>
+  <div
+    class="title-bar-drag-handle"
+    data-tauri-drag-region={platform === "macos" ? "true" : undefined}
+    aria-hidden="true"
+  ></div>
 
   <div class="title-actions">
     {#if memorySyncing}<span class="sync-dot" aria-label={$t("syncing")}></span>{/if}
@@ -134,6 +139,15 @@
     box-sizing: border-box;
     background: transparent;
     user-select: none;
+  }
+
+  .title-bar.windows {
+    -webkit-app-region: drag;
+  }
+
+  .title-bar.windows .title-bar-menu,
+  .title-bar.windows .title-actions {
+    -webkit-app-region: no-drag;
   }
 
   .title-bar-menu {

@@ -78,6 +78,11 @@
   edge. Keep custom window controls out of the Linux WebView; Windows
   and macOS retain the frameless product chrome and platform-specific
   controls.
+- On Windows, expose the frameless main title bar through WebView2's native
+  drag region and mark menus and window controls as non-drag regions. Do not
+  replace native title-bar gestures with a JavaScript `start_dragging` call:
+  its mouse-down timing races double-click maximize and can restore only part
+  of the previous window geometry.
 - On Windows, determine completion-notification activity by resolving
   the foreground and Tauri HWNDs through `GA_ROOTOWNER`, with
   current-process ownership as the native-dialog fallback. Do not

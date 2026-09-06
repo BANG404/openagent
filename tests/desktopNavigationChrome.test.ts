@@ -60,6 +60,17 @@ describe("desktop navigation chrome", () => {
     expect(route).toContain('detectWindowPlatform() !== "linux"');
   });
 
+  test("delegates Windows title-bar gestures to the native drag region", async () => {
+    const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
+
+    expect(titleBar).toContain('class:windows={platform === "windows"}');
+    expect(titleBar.match(/data-tauri-drag-region=\{platform === "macos"/g)).toHaveLength(2);
+    expect(titleBar).toMatch(/\.title-bar\.windows\s*\{[^}]*-webkit-app-region: drag;/s);
+    expect(titleBar).toMatch(
+      /\.title-bar\.windows \.title-bar-menu,[\s\S]*?\.title-bar\.windows \.title-actions\s*\{[^}]*-webkit-app-region: no-drag;/,
+    );
+  });
+
   test("keeps role selection in the conversation sidebar and role editing in the menu", async () => {
     const route = await readFile(routeUrl, "utf8");
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
