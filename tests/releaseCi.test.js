@@ -29,6 +29,9 @@ const tauriConfig = JSON.parse(
 const fullTauriConfig = JSON.parse(
   readFileSync(new URL("../src-tauri/tauri.full.conf.json", import.meta.url), "utf8"),
 );
+const desktopCapability = JSON.parse(
+  readFileSync(new URL("../src-tauri/capabilities/default.json", import.meta.url), "utf8"),
+);
 const prHeadWorkflow = readFileSync(
   new URL("../.github/workflows/report-pr-head-ci.yml", import.meta.url),
   "utf8",
@@ -109,7 +112,10 @@ describe("release CI verification", () => {
     expect(nativeWorkflow).toContain("cache-targets: true");
     expect(nativeWorkflow).toContain("CARGO_TARGET_DIR: sdk/target/embedded-host");
     expect(sdkWorkflow).toContain("shared-key: public-sdk-host-dependencies");
-    expect(releaseWorkflow).toContain("cache-targets: true");
+    expect(releaseWorkflow).toContain(
+      "shared-key: public-host-release-${{ matrix.runtime_target }}",
+    );
+    expect(releaseWorkflow).toContain("cache-targets: false");
     expect(privateRunnerCompose).toContain("./state/sccache:/var/cache/openagent-sccache");
     expect(privateRunnerCompose).not.toContain("sccache-storage:");
     expect(privateRunnerCompose).not.toContain("passnat-cache:");
@@ -268,6 +274,9 @@ describe("release CI verification", () => {
     expect(buildJob).toContain("name: Download release-qualified SDK Runtime");
     expect(buildJob).toContain("scripts/stage-release-runtime.mjs");
     expect(buildJob).toContain('OPENAGENT_RUNTIME_SERVER_PREBUILT: "1"');
+    expect(buildJob).toContain("name: Verify Windows release executable");
+    expect(buildJob).toContain("VersionInfo.ProductVersion");
+    expect(desktopCapability.permissions).toContain("updater:default");
     expect(buildJob).not.toContain("name: Build runtime candidate");
     expect(buildJob).toContain("name: native-release-${{ matrix.runtime_target }}");
     expect(releaseWorkflow).toContain("publish-native-assets:");

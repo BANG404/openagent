@@ -462,7 +462,7 @@ jobs:
         with:
           workspaces: ./src-tauri -> target
           shared-key: public-host-release-${{ matrix.runtime_target }}
-          cache-targets: true
+          cache-targets: false
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -528,6 +528,18 @@ jobs:
         with:
           retryAttempts: 2
           args: ${{ matrix.args }}
+
+      - name: Verify Windows release executable
+        if: matrix.runner_os == 'Windows'
+        shell: pwsh
+        env:
+          EXPECTED_VERSION: ${{ needs.detect.outputs.version }}
+        run: |
+          $executable = Resolve-Path "src-tauri\target\release\openagent.exe"
+          $actualVersion = (Get-Item $executable).VersionInfo.ProductVersion
+          if ($actualVersion -ne $env:EXPECTED_VERSION) {
+            throw "Windows executable version mismatch: expected $env:EXPECTED_VERSION, found $actualVersion."
+          }
 
       - name: Stage lightweight release candidate
         shell: bash

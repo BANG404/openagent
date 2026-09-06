@@ -27,9 +27,13 @@
 - Build release candidates from the exact desktop SHA before creating its tag.
   Keep candidate installers private in run-scoped Actions artifacts, bind every
   platform manifest to the desktop and SDK SHAs, and verify all sizes and
-  SHA-256 values after download. Only the post-qualification gate may create the
-  immutable tag, upload assets, generate the combined `latest.json`, submit a
-  Store package, update fixed channels, or publish the GitHub Release.
+  SHA-256 values after download. Release jobs may cache Cargo dependencies but
+  must not restore `target/` outputs across candidate builds. Before staging a
+  Windows candidate, verify the compiled executable's product version; keep the
+  required split updater permissions selected through the structured desktop
+  capability. Only the post-qualification gate may create the immutable tag,
+  upload assets, generate the combined `latest.json`, submit a Store package,
+  update fixed channels, or publish the GitHub Release.
 - Treat SDK server releases as independent process resources for headless and
   third-party consumers. Keep their machine-readable manifest, target matrix,
   protocol range, byte sizes, and SHA-256 values aligned. Desktop release builds
