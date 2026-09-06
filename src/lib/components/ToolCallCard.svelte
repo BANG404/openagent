@@ -19,6 +19,7 @@
     expanded: boolean;
     argHint: string;
     htmlPreviewConfig?: HtmlPreviewConfig;
+    conversationId?: string;
     mermaidConfig?: MermaidConfig;
     showRunning?: boolean;
     approval?: {
@@ -43,6 +44,7 @@
     expanded,
     argHint,
     htmlPreviewConfig,
+    conversationId,
     mermaidConfig,
     showRunning = false,
     approval,
@@ -246,7 +248,7 @@
 {#if shouldDisplay}
   {#if htmlArgs}
     <div class="tool-html-preview">
-      <HtmlPreview args={htmlArgs} {htmlPreviewConfig} />
+      <HtmlPreview args={htmlArgs} {htmlPreviewConfig} {conversationId} />
     </div>
   {:else if mermaidArgs}
     <MermaidToolPreview args={mermaidArgs} {result} {mermaidConfig} />

@@ -14,6 +14,7 @@
     items: ToolCallItem[];
     isStreaming?: boolean;
     htmlPreviewConfig?: HtmlPreviewConfig;
+    conversationId?: string;
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
     onCancelUserInput: (requestId: string) => void;
   }
@@ -22,6 +23,7 @@
     items,
     isStreaming = false,
     htmlPreviewConfig,
+    conversationId,
     onSubmitUserInput,
     onCancelUserInput,
   }: Props = $props();
@@ -167,6 +169,7 @@
             onApprove={(requestId) => onSubmitUserInput(requestId, { approved: true })}
             onDeny={onCancelUserInput}
             {htmlPreviewConfig}
+            {conversationId}
             showRunning={isStreaming}
             onToggle={() => toggleCall(index)}
           />

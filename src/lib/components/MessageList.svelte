@@ -636,6 +636,7 @@
                   items={segment.items}
                   isStreaming={assistantIsStreaming}
                   {htmlPreviewConfig}
+                  conversationId={activeConvId ?? undefined}
                   {onSubmitUserInput}
                   {onCancelUserInput}
                 />
@@ -824,6 +825,7 @@
           <ToolCallGroup
             items={entry.items}
             {htmlPreviewConfig}
+            conversationId={activeConvId ?? undefined}
             {onSubmitUserInput}
             {onCancelUserInput}
           />

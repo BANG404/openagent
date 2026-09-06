@@ -152,6 +152,7 @@
       onApprove={(requestId) => onSubmitUserInput(requestId, { approved: true })}
       onDeny={onCancelUserInput}
       {htmlPreviewConfig}
+      {conversationId}
       {mermaidConfig}
       showRunning={isStreaming}
       onToggle={() => (expanded = !expanded)}
