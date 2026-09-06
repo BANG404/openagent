@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.57.0-beta.1] - 2026-09-05
+## [0.57.0-beta.1] - 2026-09-06
 
 ### Features
 - **desktop**: Open settings and roles in utility windows
@@ -36,6 +36,9 @@ All notable changes to this project will be documented in this file.
 - **settings**: Align Flash task content width
 - **chat**: Clarify checkpoint graph layout
 - **updater**: Defer component activation during agent runs
+
+### Refactoring
+- **native**: Isolate private runtime compilation
 
 ### Miscellaneous
 - **sdk**: Update pinned revision
