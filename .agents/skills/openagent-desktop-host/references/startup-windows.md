@@ -61,8 +61,10 @@
   result to the current monitor work area and keep excess content scrolling
   inside the settings pane; center the initial fitted size relative to the
   requesting workspace window so utility windows open with the main app,
-  rather than at an unrelated monitor location. Later section changes do not
-  discard a user-moved window position.
+  rather than at an unrelated monitor location. Serialize content-fit updates
+  and coalesce observer notifications while a native resize is in flight so
+  repeated layout events cannot repeatedly recenter (or visibly bounce) the
+  window. Later section changes do not discard a user-moved window position.
 - Create the role editor on demand as one modeless singleton utility window.
   Repeated create or edit requests retarget, restore, and focus the existing
   WebView. The editor owns role/resource loading and writes through the shared
