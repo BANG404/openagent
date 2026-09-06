@@ -73,6 +73,9 @@
   product geometry. Keep it non-resizable and non-maximizable so every
   setup step uses the same verified canvas while dense form content
   scrolls inside the WebView.
+- Keep the frameless onboarding WebView draggable through its dedicated top
+  drag region; leave the form and navigation content below that region so
+  controls remain ordinary non-dragging interactions.
 - Create the Linux main window as an opaque, natively decorated window
   so the compositor, including WSLg, owns its outer frame and resize
   edge. Keep custom window controls out of the Linux WebView; Windows

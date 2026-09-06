@@ -23,4 +23,13 @@ describe("onboarding completion", () => {
     expect(onboarding).not.toContain("localStorage");
     expect(onboardingFlow).toContain("workspace: workspacePath");
   });
+
+  test("keeps the frameless setup window draggable", async () => {
+    const onboardingFlow = await readFile(onboardingFlowUrl, "utf8");
+
+    expect(onboardingFlow).toContain(
+      '<div class="onboarding-drag-region" data-tauri-drag-region aria-hidden="true"></div>',
+    );
+    expect(onboardingFlow).toContain("-webkit-app-region: drag;");
+  });
 });
