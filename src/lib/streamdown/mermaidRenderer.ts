@@ -102,7 +102,10 @@ export function renderMermaidSvg(
     mermaid.initialize(defaultConfig(customConfig));
     renderSequence += 1;
     const uniqueId = `openagent-mermaid-${renderSequence}-${Date.now()}`;
-    const { svg } = await mermaid.render(uniqueId, normalizedSource);
+    const { svg } = await withTimeout(
+      mermaid.render(uniqueId, normalizedSource),
+      MERMAID_RENDER_TIMEOUT_MS,
+    );
     const dimensions = svgDimensions(svg);
     return {
       svg,
@@ -110,16 +113,14 @@ export function renderMermaidSvg(
       ...dimensions,
     };
   });
-  const timedRun = withTimeout(run, MERMAID_RENDER_TIMEOUT_MS);
-  renderQueue = timedRun.then(
+  // Keep the queue chained to the actual render operation. Starting the
+  // deadline before queued work runs lets a timeout release the next render
+  // while Mermaid is still mutating its global renderer state.
+  renderQueue = run.then(
     () => undefined,
     () => undefined,
   );
-  // Start the deadline before waiting for the queue or the Mermaid module
-  // import. The tool-side Runtime has a 20 second interrupt deadline, so a
-  // renderer timeout must include all frontend work and leave time to submit
-  // the structured failure response.
-  return timedRun;
+  return run;
 }
 
 function numericLocation(value: unknown): number | undefined {
