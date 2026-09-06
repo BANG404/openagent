@@ -32,6 +32,7 @@ export type MermaidToolFailure = Extract<MermaidToolResult, { ok: false }>;
 let mermaidModule: Promise<(typeof import("mermaid"))["default"]> | null = null;
 let renderQueue: Promise<void> = Promise.resolve();
 let renderSequence = 0;
+const MERMAID_RENDER_TIMEOUT_MS = 8_000;
 
 export function loadMermaid() {
   mermaidModule ??= import("mermaid").then((module) => module.default);
@@ -89,7 +90,14 @@ export function renderMermaidSvg(
     mermaid.initialize(defaultConfig(customConfig));
     renderSequence += 1;
     const uniqueId = `openagent-mermaid-${renderSequence}-${Date.now()}`;
-    const { svg } = await mermaid.render(uniqueId, normalizedSource);
+    const render = mermaid.render(uniqueId, normalizedSource);
+    const timeout = new Promise<never>((_, reject) => {
+      setTimeout(
+        () => reject(new Error(`Mermaid rendering timed out after ${MERMAID_RENDER_TIMEOUT_MS}ms`)),
+        MERMAID_RENDER_TIMEOUT_MS,
+      );
+    });
+    const { svg } = await Promise.race([render, timeout]);
     const dimensions = svgDimensions(svg);
     return {
       svg,

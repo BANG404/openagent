@@ -17,7 +17,7 @@ export interface OpenAgentUiCapabilities {
   openPath(path: string): Promise<void>;
   readTextSnippet(path: string, startLine: number, endLine: number): Promise<WorkspaceTextSnippet>;
   resolveMedia(path: string, kind: "image" | "video"): Promise<WorkspaceMediaSource>;
-  readHtmlPreview(path: string): Promise<HtmlPreviewFile>;
+  readHtmlPreview(path: string, convId?: string): Promise<HtmlPreviewFile>;
   repairAttachment(blobId: string, name: string): Promise<boolean>;
   saveDownloadFile(
     filename: string,
@@ -34,7 +34,7 @@ const desktopCapabilities: OpenAgentUiCapabilities = {
   readTextSnippet: (path, startLine, endLine) =>
     desktopOpenAgent.readWorkspaceTextSnippet(path, startLine, endLine),
   resolveMedia: (path, kind) => desktopOpenAgent.resolveWorkspaceMedia(path, kind),
-  readHtmlPreview: (path) => desktopOpenAgent.readHtmlPreview(path),
+  readHtmlPreview: (path, convId) => desktopOpenAgent.readHtmlPreview(path, convId),
   async repairAttachment(blobId, name) {
     const selected = await openDialog({
       multiple: false,
