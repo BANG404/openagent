@@ -460,14 +460,6 @@ jobs:
           workspaces: ./src-tauri -> target
           cache-targets: false
 
-      - uses: ./.github/actions/setup-private-sccache
-        with:
-          endpoint: ${{ vars.OPENAGENT_SCCACHE_ENDPOINT }}
-          bucket: ${{ vars.OPENAGENT_SCCACHE_BUCKET }}
-          access-key: ${{ secrets.OPENAGENT_SCCACHE_ACCESS_KEY }}
-          secret-key: ${{ secrets.OPENAGENT_SCCACHE_SECRET_KEY }}
-          key-prefix: openagent-host/v1
-
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
@@ -601,11 +593,6 @@ jobs:
           path: ${{ runner.temp }}/native-release/*
           if-no-files-found: error
           retention-days: 7
-
-      - name: Report compiler cache statistics
-        if: always()
-        shell: bash
-        run: sccache --show-stats || true
 
       - name: Build Microsoft Store package
         if: >-

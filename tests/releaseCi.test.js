@@ -38,11 +38,14 @@ const prepareReleaseWorkflow = readFileSync(
   "utf8",
 );
 const releaseScript = readFileSync(new URL("../scripts/release.mjs", import.meta.url), "utf8");
-const privateSccacheAction = readFileSync(
-  new URL("../.github/actions/setup-private-sccache/action.yml", import.meta.url),
+const privateRunnerCompose = readFileSync(
+  new URL("../scripts/ci/self-hosted-runner/compose.yaml", import.meta.url),
   "utf8",
 );
-
+const privateRunnerEnvironment = readFileSync(
+  new URL("../scripts/ci/self-hosted-runner/.env.example", import.meta.url),
+  "utf8",
+);
 describe("release CI verification", () => {
   test("reserves complete qualification for release, scheduled, and manual runs", () => {
     expect(ciWorkflow).toContain("workflow_call:");
@@ -68,56 +71,41 @@ describe("release CI verification", () => {
     );
   });
 
-  test("routes trusted compilation through GitHub-hosted runners and private sccache", () => {
+  test("keeps private compiler outputs out of public caches", () => {
     const trustedWorkflows = [nativeWorkflow, sdkWorkflow, releaseWorkflow, prepareReleaseWorkflow];
     for (const workflow of trustedWorkflows) {
       expect(workflow).not.toContain("self-hosted");
       expect(workflow).not.toContain("openagent-ci");
-      expect(workflow).not.toContain("cloudflare-sccache");
+      expect(workflow).not.toContain("sccache");
+      expect(workflow).not.toContain("RUSTC_WRAPPER");
     }
 
     expect(nativeWorkflow).toContain("runs-on: ubuntu-24.04");
     expect(nativeWorkflow).toContain("runner: '\"windows-2025\"'");
-    expect(nativeWorkflow).toContain("uses: ./.github/actions/setup-private-sccache");
+    expect(nativeWorkflow).toContain("cache-targets: false");
     expect(ciWorkflow).toContain(
       "github.event.pull_request.head.repo.full_name == github.repository",
     );
-    expect(ciWorkflow).toContain(
-      "OPENAGENT_SCCACHE_ACCESS_KEY: ${{ secrets.OPENAGENT_SCCACHE_ACCESS_KEY }}",
-    );
+    expect(ciWorkflow).not.toContain("OPENAGENT_SCCACHE");
     expect(sdkWorkflow).toContain("runs-on: ubuntu-24.04");
     expect(sdkWorkflow).toContain("runs-on: windows-2025");
     expect(sdkWorkflow).toContain("runs-on: macos-latest");
-    expect(sdkWorkflow).not.toContain("if: vars.OPENAGENT_SCCACHE_ENDPOINT != ''");
+    expect(sdkWorkflow).toContain("cache-targets: false");
     expect(releaseWorkflow).toContain("runs-on: ubuntu-24.04");
     expect(releaseWorkflow).toContain("runs-on: windows-2025");
     expect(releaseWorkflow).toContain("runner_os: macOS");
     expect(releaseWorkflow).not.toContain("matrix.platform");
+    expect(releaseWorkflow).toContain("cache-targets: false");
     expect(prepareReleaseWorkflow).toContain("runs-on: ubuntu-24.04");
-    expect(privateSccacheAction).toContain("SCCACHE_S3_KEY_PREFIX");
-    expect(privateSccacheAction).toContain("SCCACHE_IGNORE_SERVER_IO_ERROR=1");
-    expect(privateSccacheAction).toContain("sccache_server_port=34326");
-    expect(privateSccacheAction).toContain("TcpListener");
-    expect(privateSccacheAction).toContain("sccache --stop-server");
-    expect(privateSccacheAction).toContain("sccache --show-stats");
-    expect(privateSccacheAction).toContain("for sccache_attempt in 1 2 3");
-    expect(privateSccacheAction).toContain("sccache rustc -vV");
-    expect(privateSccacheAction).toContain(
-      "Private sccache did not start; continuing without compiler cache.",
+    expect(nativeCargoManifest).toContain('openagent-app = { path = "../sdk/rust/openagent-app" }');
+    expect(nativeCargoManifest).toContain(
+      'openagent-runtime = { path = "../sdk/rust/openagent-runtime" }',
     );
-    expect(privateSccacheAction).not.toContain("openagent-sccache-wrapper.cmd");
-    expect(privateSccacheAction).not.toContain("sccache --start-server");
-    expect(sdkWorkflow).toContain("sccache --stop-server");
-    expect(sdkWorkflow).toContain("sccache --show-stats");
-    expect(sdkWorkflow).toContain(
-      "Private sccache did not start; continuing without compiler cache.",
-    );
-    expect(sdkWorkflow).not.toContain("openagent-sccache-wrapper.cmd");
-    expect(sdkWorkflow).not.toContain("sccache --start-server");
-    expect(sdkWorkflow).toContain("sccache_server_port=34326");
-    expect(sdkWorkflow).toContain("TcpListener");
-    expect(privateSccacheAction).not.toContain("SCCACHE_NO_DAEMON");
-    expect(sdkWorkflow).not.toContain("SCCACHE_NO_DAEMON");
+    expect(privateRunnerCompose).toContain("./state/sccache:/var/cache/openagent-sccache");
+    expect(privateRunnerCompose).not.toContain("sccache-storage:");
+    expect(privateRunnerCompose).not.toContain("passnat-cache:");
+    expect(privateRunnerEnvironment).not.toContain("SCCACHE_");
+    expect(privateRunnerEnvironment).not.toContain("MINIO_");
   });
 
   test("checks out private SDK source with short-lived HTTPS app tokens", () => {

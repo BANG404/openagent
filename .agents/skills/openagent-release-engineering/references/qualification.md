@@ -19,9 +19,11 @@
   bypass its failed gate.
 - Treat the private SDK gitlink as release-relevant input. Private SDK output
   must not leak into public logs or public caches; keep GitHub Rust caches at
-  `cache-targets: false`. Compiler outputs may use only the authenticated
-  private sccache backend, and release Runtime artifacts may leave public jobs
-  only through the documented exact-run publication path.
+  `cache-targets: false` and do not configure a compiler cache. The Tauri host
+  directly links private SDK crates, so its target directory is private-derived
+  even when the Runtime sidecar is compiled separately. Release Runtime
+  artifacts may leave public jobs only through the documented exact-run
+  publication path.
 - An unpublished prerelease refresh may advance only to a descendant source,
   broaden its component selection, and regenerate its current changelog
   section. Keep its version, tag, channel, older changelog history, and already
@@ -31,21 +33,9 @@
   SSH port 22 or retain a long-lived deploy key for source checkout.
 - Route trusted Linux, Windows, and macOS native, Public SDK, release
   preparation, and release jobs exclusively to standard GitHub-hosted runners.
-  Keep the Cloudflare-to-MinIO compiler cache authenticated and treat it as an
-  optimization rather than a correctness dependency. Fork pull-request code
-  must not receive private SDK or sccache credentials.
-  Use the explicit CI-only sccache server port documented in the workflows on
-  Unix. Windows can reserve ports without a visible listener, so
-  select an available loopback port per job instead of relying on either the
-  default or a fixed replacement. Clear stale Unix server state and briefly
-  wait for release before exporting each job's cache settings. Unix compiler
-  invocations may auto-start the job-scoped background server. Windows compiler
-  invocations do the same on the selected per-job port; do not route rustc
-  through a batch wrapper because feature-heavy crates can exceed `cmd.exe`'s
-  command-line limit. Runner job cleanup owns the server process lifetime; do
-  not use
-  `SCCACHE_NO_DAEMON`, which keeps the server in the foreground and blocks
-  compiler clients.
+  Fork pull-request code must not receive private SDK credentials. Keep Rust
+  target output out of GitHub caches on every public-repository workflow;
+  dependency-only caching is the permitted shared cache boundary.
 - Keep embedded ShellCheck directives parser-compatible: put only supported
   directive syntax on the `# shellcheck` line and place any rationale in a
   separate comment. CI may use a newer `github-actionlint` and ShellCheck than

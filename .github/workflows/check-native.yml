@@ -31,10 +31,6 @@ on:
     secrets:
       OPENAGENT_CI_REPORTER_PRIVATE_KEY:
         required: true
-      OPENAGENT_SCCACHE_ACCESS_KEY:
-        required: true
-      OPENAGENT_SCCACHE_SECRET_KEY:
-        required: true
 
 permissions:
   contents: read
@@ -105,14 +101,6 @@ jobs:
             ./src-tauri -> target
             ./sdk -> target
           cache-targets: false
-
-      - uses: ./.github/actions/setup-private-sccache
-        with:
-          endpoint: ${{ vars.OPENAGENT_SCCACHE_ENDPOINT }}
-          bucket: ${{ vars.OPENAGENT_SCCACHE_BUCKET }}
-          access-key: ${{ secrets.OPENAGENT_SCCACHE_ACCESS_KEY }}
-          secret-key: ${{ secrets.OPENAGENT_SCCACHE_SECRET_KEY }}
-          key-prefix: openagent-host/v1
 
       - name: Prepare pinned Linux sandbox helper
         shell: bash
@@ -204,14 +192,6 @@ jobs:
             ./sdk -> target
           shared-key: platform-${{ matrix.cache_key }}
           cache-targets: false
-
-      - uses: ./.github/actions/setup-private-sccache
-        with:
-          endpoint: ${{ vars.OPENAGENT_SCCACHE_ENDPOINT }}
-          bucket: ${{ vars.OPENAGENT_SCCACHE_BUCKET }}
-          access-key: ${{ secrets.OPENAGENT_SCCACHE_ACCESS_KEY }}
-          secret-key: ${{ secrets.OPENAGENT_SCCACHE_SECRET_KEY }}
-          key-prefix: openagent-host/v1
 
       - name: Build pinned Windows sandbox helpers
         if: runner.os == 'Windows'
@@ -381,14 +361,6 @@ jobs:
           shared-key: embedding-${{ matrix.cache_key }}
           cache-targets: false
 
-      - uses: ./.github/actions/setup-private-sccache
-        with:
-          endpoint: ${{ vars.OPENAGENT_SCCACHE_ENDPOINT }}
-          bucket: ${{ vars.OPENAGENT_SCCACHE_BUCKET }}
-          access-key: ${{ secrets.OPENAGENT_SCCACHE_ACCESS_KEY }}
-          secret-key: ${{ secrets.OPENAGENT_SCCACHE_SECRET_KEY }}
-          key-prefix: openagent-host/v1
-
       - name: Exercise bundled embedding model
         run: cargo test --manifest-path src-tauri/Cargo.toml bundled_embedding_model_runs_offline
 
@@ -435,14 +407,6 @@ jobs:
           workspaces: ./sdk -> target
           shared-key: harness
           cache-targets: false
-
-      - uses: ./.github/actions/setup-private-sccache
-        with:
-          endpoint: ${{ vars.OPENAGENT_SCCACHE_ENDPOINT }}
-          bucket: ${{ vars.OPENAGENT_SCCACHE_BUCKET }}
-          access-key: ${{ secrets.OPENAGENT_SCCACHE_ACCESS_KEY }}
-          secret-key: ${{ secrets.OPENAGENT_SCCACHE_SECRET_KEY }}
-          key-prefix: openagent-host/v1
 
       - name: Verify harness OpenAPI contract
         run: bun run check:harness-openapi

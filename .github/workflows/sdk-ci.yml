@@ -207,69 +207,6 @@ jobs:
           workspaces: ./sdk -> target
           shared-key: public-sdk-dependencies
           cache-targets: false
-      - &install-private-sccache
-        name: Install private compiler cache client
-        uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
-        with:
-          version: v0.17.0
-          disable_annotations: true
-      - &configure-private-sccache
-        name: Configure private compiler cache
-        shell: bash
-        env:
-          SCCACHE_ACCESS_KEY: ${{ secrets.OPENAGENT_SCCACHE_ACCESS_KEY }}
-          SCCACHE_SECRET_KEY: ${{ secrets.OPENAGENT_SCCACHE_SECRET_KEY }}
-          SCCACHE_PRIVATE_BUCKET: ${{ vars.OPENAGENT_SCCACHE_BUCKET }}
-          SCCACHE_PRIVATE_ENDPOINT: ${{ vars.OPENAGENT_SCCACHE_ENDPOINT }}
-        run: |
-          if [[ -z "$SCCACHE_ACCESS_KEY" || -z "$SCCACHE_SECRET_KEY" \
-            || -z "$SCCACHE_PRIVATE_BUCKET" || -z "$SCCACHE_PRIVATE_ENDPOINT" ]]; then
-            echo "::error::Private sccache requires an endpoint, bucket, and scoped credentials."
-            exit 1
-          fi
-          export AWS_ACCESS_KEY_ID="$SCCACHE_ACCESS_KEY"
-          export AWS_SECRET_ACCESS_KEY="$SCCACHE_SECRET_KEY"
-          export SCCACHE_BUCKET="$SCCACHE_PRIVATE_BUCKET"
-          export SCCACHE_ENDPOINT="$SCCACHE_PRIVATE_ENDPOINT"
-          export SCCACHE_REGION=auto
-          export SCCACHE_S3_USE_SSL=true
-          export SCCACHE_S3_KEY_PREFIX=openagent-sdk/v1
-          export SCCACHE_IGNORE_SERVER_IO_ERROR=1
-          sccache_server_port=34326
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            sccache_server_port="$(
-              # shellcheck disable=SC2016
-              powershell.exe -NoProfile -NonInteractive -Command \
-                '$listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0); $listener.Start(); ([System.Net.IPEndPoint]$listener.LocalEndpoint).Port; $listener.Stop()'
-            )"
-            sccache_server_port="${sccache_server_port//$'\r'/}"
-            if [[ ! "$sccache_server_port" =~ ^[0-9]+$ ]]; then
-              echo "::error::Failed to select an available Windows sccache port."
-              exit 1
-            fi
-          else
-            export SCCACHE_SERVER_PORT="$sccache_server_port"
-            sccache --stop-server >/dev/null 2>&1 || true
-            sleep 1
-          fi
-          export SCCACHE_SERVER_PORT="$sccache_server_port"
-          {
-            echo "AWS_ACCESS_KEY_ID=$SCCACHE_ACCESS_KEY"
-            echo "AWS_SECRET_ACCESS_KEY=$SCCACHE_SECRET_KEY"
-            echo "SCCACHE_BUCKET=$SCCACHE_PRIVATE_BUCKET"
-            echo "SCCACHE_ENDPOINT=$SCCACHE_PRIVATE_ENDPOINT"
-            echo "SCCACHE_REGION=auto"
-            echo "SCCACHE_S3_USE_SSL=true"
-            echo "SCCACHE_S3_KEY_PREFIX=openagent-sdk/v1"
-            echo "SCCACHE_IGNORE_SERVER_IO_ERROR=1"
-            echo "SCCACHE_SERVER_PORT=$sccache_server_port"
-            echo "CARGO_INCREMENTAL=0"
-          } >> "$GITHUB_ENV"
-          if sccache --show-stats >/dev/null 2>&1; then
-            echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
-          else
-            echo "::warning::Private sccache did not start; continuing without compiler cache."
-          fi
       - name: Lint Rust workspace
         working-directory: sdk
         env:
@@ -314,8 +251,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
-      - *install-private-sccache
-      - *configure-private-sccache
       - name: Test Rust workspace
         working-directory: sdk
         env:
@@ -360,8 +295,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
-      - *install-private-sccache
-      - *configure-private-sccache
       - name: Install Linux process sandbox dependency
         run: |
           sudo apt-get update >/dev/null
@@ -406,8 +339,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
-      - *install-private-sccache
-      - *configure-private-sccache
       - name: Exercise the Seatbelt filesystem boundary
         working-directory: sdk
         env:
@@ -440,8 +371,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
-      - *install-private-sccache
-      - *configure-private-sccache
       - name: Enable Windows Firewall profiles
         shell: pwsh
         run: |
@@ -594,8 +523,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
-      - *install-private-sccache
-      - *configure-private-sccache
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.21
@@ -736,8 +663,6 @@ jobs:
           workspaces: ./host/src-tauri -> target
           shared-key: public-sdk-host-dependencies
           cache-targets: false
-      - *install-private-sccache
-      - *configure-private-sccache
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.21
@@ -920,8 +845,6 @@ jobs:
           sudo apt-get install -y binutils libcap-dev pkg-config >/dev/null
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
-      - *install-private-sccache
-      - *configure-private-sccache
       - name: Prepare pinned Linux sandbox helper
         if: matrix.runner_os == 'Linux'
         working-directory: sdk

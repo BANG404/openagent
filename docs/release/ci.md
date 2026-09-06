@@ -91,27 +91,19 @@ workflow logs are public, SDK command output is suppressed. The cross-repository
 status reporter sends JSON payloads directly to the GitHub REST API, so SDK jobs
 do not depend on a preinstalled GitHub CLI. Ordinary build
 outputs are never uploaded, and public GitHub caches never contain Rust target
-or compiler output. Authenticated sccache through the Cloudflare Tunnel to the
-private MinIO backend is the primary compiler-output cache for trusted host,
-SDK, and release compilation. GitHub Rust caches retain only dependency data
-with `cache-targets: false`. Release and development Runtime jobs may upload
-only their documented short-lived distribution artifacts. Later runs reuse
-private compiler objects, but cache availability and warmth are never
-correctness requirements. Cache setup retries a job-scoped daemon and a wrapped
-`rustc -vV` probe before exporting `RUSTC_WRAPPER`; after a failed attempt it
-stops the local daemon, then a final failure emits a public warning and compiles
-without sccache rather than failing qualification. Unix compiler jobs use the
-explicit CI-only sccache
-server port `34326`, clear stale state on that port, and wait briefly for its
-release. Windows may reserve a port without exposing a listener, so each Windows
-job asks the OS for an available loopback port instead of relying on either the
-default or a fixed replacement. Unix compiler invocations
-auto-start the job-scoped background server, and Windows compiler invocations do
-the same on the selected per-job port. Windows does not add a batch wrapper
-around rustc because feature-heavy crates can exceed `cmd.exe`'s command-line
-limit. Windows Harness Rust compilation runs under PowerShell so the MSVC linker
-takes precedence over Portable Git's unrelated `link.exe`; later Bun package
-steps may continue under Bash. Harness package-content verification uses
+or compiler output. GitHub Rust caches retain only Cargo registry and Git
+dependency data with `cache-targets: false`; every Rust target is compiled cold
+on its hosted runner. This applies to Tauri as well as the standalone Runtime
+server because the public host directly links private `openagent-app` and
+`openagent-runtime` crates. A Tauri target cache would therefore contain
+private-SDK-derived compiler objects even when the Runtime sidecar is built
+separately. Release and development Runtime jobs may upload only their
+documented short-lived distribution artifacts. The hosted workflows do not
+configure a compiler cache.
+
+Windows Harness Rust compilation runs under PowerShell so the MSVC linker takes
+precedence over Portable Git's unrelated `link.exe`; later Bun package steps
+may continue under Bash. Harness package-content verification uses
 `bun pm pack --dry-run`, keeping package verification on Bun. Runner job
 cleanup owns the resulting process lifetime. Windows sandbox helper discovery
 retries Cargo metadata resolution and reports metadata failures separately from

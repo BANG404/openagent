@@ -26,20 +26,6 @@ services:
     mem_limit: 4g
     cpus: 3
 
-  sccache-storage:
-    image: minio/minio@sha256:1dce27c494a16bae114774f1cec295493f3613142713130c2d22dd5696be6ad3
-    container_name: openagent-sccache-storage
-    restart: unless-stopped
-    command: server /data --address :9000 --console-address :9001
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    ports:
-      - 127.0.0.1:9190:9000
-      - 127.0.0.1:9191:9001
-    volumes:
-      - ./state/minio:/data
-
   passnat-ssh:
     image: debian:bookworm-slim
     container_name: openagent-passnat-ssh
@@ -50,16 +36,3 @@ services:
     volumes:
       - ${FRPC_BIN}:/usr/local/bin/frpc:ro
       - ./secrets/passnat-ssh.toml:/etc/frpc/passnat-ssh.toml:ro
-
-  passnat-cache:
-    image: debian:bookworm-slim
-    container_name: openagent-passnat-cache
-    restart: unless-stopped
-    network_mode: host
-    profiles: ["cache-tunnel"]
-    entrypoint: ["/usr/local/bin/frpc"]
-    command: ["-c", "/etc/frpc/passnat-cache.toml"]
-    volumes:
-      - ${FRPC_BIN}:/usr/local/bin/frpc:ro
-      - ./secrets/passnat-cache.toml:/etc/frpc/passnat-cache.toml:ro
-      - ./secrets/letsencrypt:/etc/letsencrypt:ro

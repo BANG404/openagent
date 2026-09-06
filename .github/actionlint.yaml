@@ -3,4 +3,3 @@ self-hosted-runner:
     - openagent-ci
     - linux-x64
     - windows-x64
-    - cloudflare-sccache
