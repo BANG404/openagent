@@ -116,6 +116,23 @@ fn position_utility_window(
         .map_err(|error| error.to_string())
 }
 
+/// Apply a saved utility-window geometry after its first-open placement.
+///
+/// The window-state plugin restores pre-created windows from its `on_window_ready`
+/// hook. Utility windows are created on demand, so they opt out of that automatic
+/// restore and apply the saved state after the requester-relative fallback has
+/// been calculated. With no saved state, `restore_state` records the fallback
+/// geometry and leaves the window where it was placed.
+fn restore_utility_window_state(window: &tauri::WebviewWindow) -> Result<(), String> {
+    if is_workspace_window_process() {
+        return Ok(());
+    }
+    use tauri_plugin_window_state::{StateFlags, WindowExt};
+    window
+        .restore_state(StateFlags::POSITION | StateFlags::SIZE | StateFlags::MAXIMIZED)
+        .map_err(|error| error.to_string())
+}
+
 const DESKTOP_WINDOW_ACTIVATED_EVENT: &str = "desktop-window-activated";
 #[cfg(desktop)]
 const DESKTOP_TRAY_ID: &str = "openagent-tray";
@@ -2524,7 +2541,6 @@ async fn open_role_editor_window(
         editor
             .emit("role-editor-requested", &request)
             .map_err(|error| error.to_string())?;
-        position_utility_window(&window, &editor)?;
         editor.unminimize().map_err(|error| error.to_string())?;
         editor.show().map_err(|error| error.to_string())?;
         return editor.set_focus().map_err(|error| error.to_string());
@@ -2547,9 +2563,11 @@ async fn open_role_editor_window(
     .inner_size(1040.0, 680.0)
     .min_inner_size(760.0, 500.0)
     .transparent(!cfg!(target_os = "linux"))
+    .skip_taskbar(true)
     .build()
     .map_err(|error| error.to_string())?;
     position_utility_window(&window, &editor)?;
+    restore_utility_window_state(&editor)?;
     apply_native_window_material(&editor);
     Ok(())
 }
@@ -2572,7 +2590,6 @@ async fn open_settings_window(
         window
             .emit("settings-section-requested", &section)
             .map_err(|error| error.to_string())?;
-        position_utility_window(&parent, &window)?;
         window.unminimize().map_err(|error| error.to_string())?;
         window.show().map_err(|error| error.to_string())?;
         return window.set_focus().map_err(|error| error.to_string());
@@ -2585,9 +2602,11 @@ async fn open_settings_window(
             .inner_size(spec.initial_width, spec.initial_height)
             .min_inner_size(640.0, 400.0)
             .transparent(!cfg!(target_os = "linux"))
+            .skip_taskbar(true)
             .build()
             .map_err(|error| error.to_string())?;
     position_utility_window(&parent, &window)?;
+    restore_utility_window_state(&window)?;
     apply_native_window_material(&window);
     Ok(())
 }
@@ -3146,6 +3165,34 @@ fn run_with_mode(agent_server: bool) {
                 }
             }
         }))
+    } else {
+        builder
+    };
+
+    // Persist the primary process's desktop geometry. On-demand utility
+    // windows opt out of the automatic ready-hook restore so their first-open
+    // placement remains relative to the requesting workspace; they explicitly
+    // restore saved state after that fallback has been calculated.
+    #[cfg(desktop)]
+    let builder = if should_enforce_single_instance(agent_server, is_workspace_window) {
+        builder.plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::POSITION
+                        | tauri_plugin_window_state::StateFlags::SIZE
+                        | tauri_plugin_window_state::StateFlags::MAXIMIZED,
+                )
+                .with_denylist(&["onboarding", "quick-chat", "debug"])
+                .skip_initial_state("role-editor")
+                .skip_initial_state("settings-general")
+                .skip_initial_state("settings-models")
+                .skip_initial_state("settings-agent")
+                .skip_initial_state("settings-integrations")
+                .skip_initial_state("settings-memory")
+                .skip_initial_state("settings-automation")
+                .skip_initial_state("settings-about")
+                .build(),
+        )
     } else {
         builder
     };

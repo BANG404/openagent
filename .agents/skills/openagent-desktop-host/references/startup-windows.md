@@ -70,6 +70,17 @@
   requesting workspace window for selection changes. Position the editor
   relative to that requesting workspace window on creation and restoration.
 
+- The primary desktop process registers `tauri-plugin-window-state` for the
+  main and on-demand utility window geometry. Onboarding, quick chat, and the
+  debug inspector are excluded because they have their own visibility or
+  positioning lifecycle. Utility windows skip the plugin's automatic
+  `on_window_ready` restore: they are first placed relative to the requesting
+  workspace, then an explicit restore applies a saved position/size when one
+  exists. Reopening an existing utility window must not recenter it. These
+  modeless utility windows skip the taskbar so Windows presents one OpenAgent
+  taskbar entry; they remain switchable through normal window activation and
+  Alt+Tab.
+
 ## Platform window conventions
 
 - Pre-create the centered onboarding window at its fixed 960 × 640px
