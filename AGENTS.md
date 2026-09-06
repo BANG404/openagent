@@ -14,6 +14,18 @@ skills; keep private SDK internals in the SDK repository.
 
 Read every applicable owner before changing files:
 
+| Intent | Starting skill |
+| --- | --- |
+| Understand repository structure and ownership | `.agents/skills/project-orientation/SKILL.md` |
+| Implement product behavior or subsystem changes | The matching `openagent-*` owner below |
+| Debug or inspect the real native desktop app | `.agents/skills/native-app-debugging/SKILL.md` |
+| Verify browser-visible behavior | `.agents/skills/playwright/SKILL.md` |
+| Deliver repository changes | `.agents/skills/deliver-via-pr/SKILL.md` |
+
+The `openagent-*` names below are implementation owners, not a single
+catch-all category. The starting skills above separate orientation, coding,
+debugging, verification, and delivery so agents can choose the right scope.
+
 | Scope | Source of truth |
 | --- | --- |
 | Repository delivery, documentation ownership, commits, worktrees, PRs, CI handoff | `.agents/skills/deliver-via-pr/SKILL.md` |
