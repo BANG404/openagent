@@ -35,7 +35,7 @@ use openagent_runtime::{
     SubmissionOutcome, SubmitInterruptResponseRequest, UserMessageContext,
 };
 use std::sync::Arc;
-use tauri::{path::BaseDirectory, Emitter, Manager, State};
+use tauri::{path::BaseDirectory, Emitter, Manager, PhysicalPosition, State};
 
 pub mod frontend_resource;
 pub mod local_capabilities;
@@ -96,6 +96,24 @@ struct RuntimeUpdateState {
 struct DesktopWindowState {
     startup_window_revealed: std::sync::atomic::AtomicBool,
     quitting: std::sync::atomic::AtomicBool,
+}
+
+/// Place a utility window centered over the window that requested it.
+///
+/// Window positions and outer sizes are physical pixels, so doing this after
+/// construction also keeps the calculation correct on mixed-DPI monitors.
+fn position_utility_window(
+    parent: &tauri::WebviewWindow,
+    child: &tauri::WebviewWindow,
+) -> Result<(), String> {
+    let parent_position = parent.outer_position().map_err(|error| error.to_string())?;
+    let parent_size = parent.outer_size().map_err(|error| error.to_string())?;
+    let child_size = child.outer_size().map_err(|error| error.to_string())?;
+    let x = parent_position.x + (parent_size.width as i32 - child_size.width as i32) / 2;
+    let y = parent_position.y + (parent_size.height as i32 - child_size.height as i32) / 2;
+    child
+        .set_position(PhysicalPosition::new(x, y))
+        .map_err(|error| error.to_string())
 }
 
 const DESKTOP_WINDOW_ACTIVATED_EVENT: &str = "desktop-window-activated";
@@ -2506,6 +2524,7 @@ async fn open_role_editor_window(
         editor
             .emit("role-editor-requested", &request)
             .map_err(|error| error.to_string())?;
+        position_utility_window(&window, &editor)?;
         editor.unminimize().map_err(|error| error.to_string())?;
         editor.show().map_err(|error| error.to_string())?;
         return editor.set_focus().map_err(|error| error.to_string());
@@ -2528,9 +2547,9 @@ async fn open_role_editor_window(
     .inner_size(1040.0, 680.0)
     .min_inner_size(760.0, 500.0)
     .transparent(!cfg!(target_os = "linux"))
-    .center()
     .build()
     .map_err(|error| error.to_string())?;
+    position_utility_window(&window, &editor)?;
     apply_native_window_material(&editor);
     Ok(())
 }
@@ -2538,6 +2557,7 @@ async fn open_role_editor_window(
 #[tauri::command]
 async fn open_settings_window(
     app: tauri::AppHandle,
+    parent: tauri::WebviewWindow,
     manager: State<'_, FrontendResourceManager>,
     kind: String,
     section: Option<String>,
@@ -2552,6 +2572,7 @@ async fn open_settings_window(
         window
             .emit("settings-section-requested", &section)
             .map_err(|error| error.to_string())?;
+        position_utility_window(&parent, &window)?;
         window.unminimize().map_err(|error| error.to_string())?;
         window.show().map_err(|error| error.to_string())?;
         return window.set_focus().map_err(|error| error.to_string());
@@ -2564,9 +2585,9 @@ async fn open_settings_window(
             .inner_size(spec.initial_width, spec.initial_height)
             .min_inner_size(640.0, 400.0)
             .transparent(!cfg!(target_os = "linux"))
-            .center()
             .build()
             .map_err(|error| error.to_string())?;
+    position_utility_window(&parent, &window)?;
     apply_native_window_material(&window);
     Ok(())
 }

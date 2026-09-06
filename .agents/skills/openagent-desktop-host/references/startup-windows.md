@@ -59,13 +59,16 @@
   After the WebView renders, fit the native window to the active section's
   measured content, including localized and dynamically added rows. Bound the
   result to the current monitor work area and keep excess content scrolling
-  inside the settings pane; center only the initial fitted size so later
-  section changes do not discard a user-moved window position.
+  inside the settings pane; center the initial fitted size relative to the
+  requesting workspace window so utility windows open with the main app,
+  rather than at an unrelated monitor location. Later section changes do not
+  discard a user-moved window position.
 - Create the role editor on demand as one modeless singleton utility window.
   Repeated create or edit requests retarget, restore, and focus the existing
   WebView. The editor owns role/resource loading and writes through the shared
   SDK contract, then broadcasts a role-list refresh while identifying the
-  requesting workspace window for selection changes.
+  requesting workspace window for selection changes. Position the editor
+  relative to that requesting workspace window on creation and restoration.
 
 ## Platform window conventions
 
@@ -73,6 +76,9 @@
   product geometry. Keep it non-resizable and non-maximizable so every
   setup step uses the same verified canvas while dense form content
   scrolls inside the WebView.
+- Keep the frameless onboarding WebView draggable through its dedicated top
+  drag region; leave the form and navigation content below that region so
+  controls remain ordinary non-dragging interactions.
 - Create the Linux main window as an opaque, natively decorated window
   so the compositor, including WSLg, owns its outer frame and resize
   edge. Keep custom window controls out of the Linux WebView; Windows

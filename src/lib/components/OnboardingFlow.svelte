@@ -381,6 +381,7 @@
 </script>
 
 <div class="application-settings-scope onboarding-panel">
+  <div class="onboarding-drag-region" data-tauri-drag-region aria-hidden="true"></div>
   <div class="onboarding-body">
     <aside class="onboarding-visual">
       <img
@@ -657,6 +658,7 @@
 
 <style>
   .onboarding-panel {
+    position: relative;
     display: flex;
     height: 100vh;
     flex: 1;
@@ -665,6 +667,13 @@
     overflow: hidden;
     background: var(--app-chrome-bg);
     color: var(--text);
+  }
+  .onboarding-drag-region {
+    position: absolute;
+    z-index: 2;
+    inset: 0 0 auto;
+    height: 32px;
+    -webkit-app-region: drag;
   }
   .onboarding-body {
     display: grid;
