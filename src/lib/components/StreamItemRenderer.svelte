@@ -233,6 +233,9 @@
   :global(.message-record[data-mermaid-expanded]) {
     content-visibility: visible;
   }
+  :global(.message-record[data-web-preview-expanded]) {
+    content-visibility: visible;
+  }
   .thinking-block {
     margin: 0 0 4px;
     border-left: 2px solid var(--border);

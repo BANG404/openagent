@@ -19,6 +19,7 @@ export type StandaloneDevPreview =
   | "streaming-transcript"
   | "tool-status"
   | "tool-diff"
+  | "web-preview"
   | "workspace-switcher";
 
 const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
@@ -42,6 +43,7 @@ const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
   ["streaming-transcript-preview", "streaming-transcript"],
   ["tool-status-preview", "tool-status"],
   ["tool-diff-preview", "tool-diff"],
+  ["web-preview-preview", "web-preview"],
   ["attachment-composer-preview", "attachment-composer"],
 ];
 

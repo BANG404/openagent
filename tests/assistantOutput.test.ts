@@ -34,7 +34,7 @@ describe("final assistant output", () => {
     expect(
       finalAssistantOutputStartIndex([
         { type: "thinking", content: "private reasoning" },
-        { type: "tool_call", name: "render_html", args: "{}", result: '{"ok":true}' },
+        { type: "tool_call", name: "render_web", args: "{}", result: '{"ok":true}' },
         { type: "text", content: "Final answer" },
         { type: "thinking", content: "presentation follow-up" },
         { type: "tool_call", name: "render_mermaid", args: "{}", result: '{"ok":true}' },

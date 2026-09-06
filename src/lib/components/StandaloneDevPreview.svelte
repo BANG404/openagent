@@ -969,6 +969,23 @@
       />
     </section>
   </main>
+{:else if preview === "web-preview"}
+  <main class="web-preview-stage">
+    <section class="web-preview-stack" aria-label="Web preview">
+      <ToolCallCard
+        name="render_web"
+        args={JSON.stringify({
+          url: `${window.location.origin}/web-preview-fixture.html`,
+          title: locale === "zh" ? "交互式网页" : "Interactive website",
+          height: 480,
+        })}
+        result="Rendered website in the chat UI"
+        expanded={false}
+        argHint="web-preview-fixture.html"
+        onToggle={() => {}}
+      />
+    </section>
+  </main>
 {:else if preview === "tool-status"}
   <main class="tool-status-preview-stage">
     <section class="tool-status-preview-stack" aria-label="Tool result status preview">
@@ -1800,6 +1817,16 @@
   }
   .command-palette-preview-stage :global(.input-wrapper) {
     width: 100%;
+  }
+  .web-preview-stage {
+    min-height: 100vh;
+    padding: 64px clamp(16px, 8vw, 120px);
+    box-sizing: border-box;
+    background: var(--bg);
+  }
+  .web-preview-stack {
+    width: min(920px, 100%);
+    margin: 0 auto;
   }
   .workspace-switcher-preview-stage :global(.workspace-btn) {
     background: var(--control-surface);
