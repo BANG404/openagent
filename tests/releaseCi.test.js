@@ -224,7 +224,7 @@ describe("release CI verification", () => {
     expect(prHeadWorkflow).toContain('-f sha="$CI_HEAD_SHA"');
   });
 
-  test("qualifies and builds immutable candidates in parallel before tagging", () => {
+  test("qualifies immutable candidates and reuses the staged SDK Runtime before tagging", () => {
     expect(prepareReleaseWorkflow).toContain("Require administrator push token");
     expect(prepareReleaseWorkflow).toContain(
       'git push origin "$release_sha:refs/heads/$RELEASE_BASE_BRANCH"',
@@ -258,12 +258,17 @@ describe("release CI verification", () => {
     expect(tagJob).toContain("- build");
     expect(tagJob).toContain("- runtime-components");
     expect(tagJob).toContain("- frontend-components");
-    expect(buildJob).toContain("needs: detect");
+    expect(buildJob).toContain("- detect");
+    expect(buildJob).toContain("- sdk-release");
     expect(buildJob).not.toContain("create-draft");
     expect(buildJob).not.toContain("tagName:");
     expect(buildJob).not.toContain("releaseDraft:");
     expect(buildJob).not.toContain("gh release upload");
     expect(buildJob).toContain("release-candidate-artifacts.mjs stage-tauri");
+    expect(buildJob).toContain("name: Download release-qualified SDK Runtime");
+    expect(buildJob).toContain("scripts/stage-release-runtime.mjs");
+    expect(buildJob).toContain('OPENAGENT_RUNTIME_SERVER_PREBUILT: "1"');
+    expect(buildJob).not.toContain("name: Build runtime candidate");
     expect(buildJob).toContain("name: native-release-${{ matrix.runtime_target }}");
     expect(releaseWorkflow).toContain("publish-native-assets:");
     expect(releaseWorkflow).toContain("release-candidate-artifacts.mjs publish");
@@ -335,16 +340,12 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain(
       "console.log(`native_shell=${components.nativeShell === true}`)",
     );
-    expect(releaseWorkflow).toContain(
-      "&& (needs.detect.outputs.native_shell == 'true' || needs.detect.outputs.runtime == 'true')",
-    );
-    expect(releaseWorkflow).toContain(
-      "id: tauri\n        if: needs.detect.outputs.native_shell == 'true'\n        uses: tauri-apps/tauri-action@v0",
-    );
-    expect(releaseWorkflow).toContain("name: Build runtime candidate");
-    expect(releaseWorkflow).toContain(
-      'bun scripts/prepare-runtime-server.mjs --profile release "${target_args[@]}"',
-    );
+    expect(releaseWorkflow).toContain("&& needs.detect.outputs.native_shell == 'true'");
+    expect(releaseWorkflow).toContain("id: tauri\n        uses: tauri-apps/tauri-action@v0");
+    expect(releaseWorkflow).not.toContain("name: Build runtime candidate");
+    expect(releaseWorkflow).toContain("name: Verify and stage runtime candidate");
+    expect(releaseWorkflow).toContain("name: pinned-sdk-runtime");
+    expect(releaseWorkflow).not.toContain("pattern: runtime-component-*");
     expect(
       releaseWorkflow.match(/OPENAGENT_RUNTIME_TARGET: \$\{\{ matrix\.sidecar_target \}\}/g),
     ).toHaveLength(2);

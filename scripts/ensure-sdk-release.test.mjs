@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   sdkReleaseVersionInvocation,
-  sdkReleaseManifestArtifact,
+  sdkReleaseCandidateArtifact,
   sdkReleaseWorkflowTitle,
   selectDispatchedWorkflowRun,
   selectSdkQualificationStatus,
@@ -53,7 +53,7 @@ describe("SDK release workflow orchestration", () => {
   test("names staged and public release runs independently", () => {
     expect(sdkReleaseWorkflowTitle("sdk-v0.2.1", "stage")).toBe("Stage SDK Release sdk-v0.2.1");
     expect(sdkReleaseWorkflowTitle("sdk-v0.2.1", "publish")).toBe("Publish SDK Release sdk-v0.2.1");
-    expect(sdkReleaseManifestArtifact("sdk-v0.2.1")).toBe("sdk-release-manifest-sdk-v0.2.1");
+    expect(sdkReleaseCandidateArtifact("sdk-v0.2.1")).toBe("sdk-release-candidate-sdk-v0.2.1");
   });
 
   test("renders safe progress metadata for tracked cross-repository runs", () => {
@@ -125,6 +125,8 @@ describe("SDK release workflow orchestration", () => {
   test("requires staged and published modes explicitly", () => {
     const source = readFileSync(new URL("./ensure-sdk-release.mjs", import.meta.url), "utf8");
     expect(source).toContain('!["stage", "publish"].includes(mode)');
+    expect(source).toContain('value("--artifacts-dir")');
+    expect(source).toContain('mode === "stage" && !artifactsDirectory');
     expect(source).toContain('"operation=stage"');
     expect(source).toContain('"operation=publish"');
     expect(source.indexOf('mode === "stage"')).toBeLessThan(source.indexOf('mode === "publish"'));

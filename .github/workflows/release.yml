@@ -272,7 +272,16 @@ jobs:
           --host-version "${{ needs.detect.outputs.version }}"
           --repository BANG404/openagent-sdk
           --output "$GITHUB_OUTPUT"
+          --artifacts-dir "$RUNNER_TEMP/sdk-runtime"
           --mode stage
+
+      - name: Upload release-qualified SDK Runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinned-sdk-runtime
+          path: ${{ runner.temp }}/sdk-runtime/*
+          if-no-files-found: error
+          retention-days: 7
 
   qualify:
     name: Complete release qualification
@@ -377,10 +386,12 @@ jobs:
 
   build:
     name: Build ${{ matrix.name }}
-    needs: detect
+    needs:
+      - detect
+      - sdk-release
     if: >-
       needs.detect.outputs.published != 'true'
-      && (needs.detect.outputs.native_shell == 'true' || needs.detect.outputs.runtime == 'true')
+      && needs.detect.outputs.native_shell == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -392,8 +403,6 @@ jobs:
             rust_target: aarch64-apple-darwin
             sidecar_target: aarch64-apple-darwin
             runtime_target: macos-arm64
-            runtime_sidecar: openagent-server-aarch64-apple-darwin
-            runtime_artifact: openagent-server-macos-arm64
           - name: macOS Intel
             runner: '"macos-latest"'
             runner_os: macOS
@@ -401,8 +410,6 @@ jobs:
             rust_target: x86_64-apple-darwin
             sidecar_target: x86_64-apple-darwin
             runtime_target: macos-x64
-            runtime_sidecar: openagent-server-x86_64-apple-darwin
-            runtime_artifact: openagent-server-macos-x64
           - name: Linux x64
             runner: '"ubuntu-24.04"'
             runner_os: Linux
@@ -410,8 +417,6 @@ jobs:
             rust_target: ""
             sidecar_target: x86_64-unknown-linux-gnu
             runtime_target: linux-x64
-            runtime_sidecar: openagent-server-x86_64-unknown-linux-gnu
-            runtime_artifact: openagent-server-linux-x64
           - name: Windows x64
             runner: '"windows-2025"'
             runner_os: Windows
@@ -419,8 +424,6 @@ jobs:
             rust_target: ""
             sidecar_target: x86_64-pc-windows-msvc
             runtime_target: windows-x64
-            runtime_sidecar: openagent-server-x86_64-pc-windows-msvc.exe
-            runtime_artifact: openagent-server-windows-x64.exe
     runs-on: ${{ fromJSON(matrix.runner) }}
     steps:
       - uses: actions/checkout@v7
@@ -473,8 +476,21 @@ jobs:
         uses: microsoft/setup-WinAppCli@v0.1
 
       - name: Install frontend dependencies
-        if: needs.detect.outputs.native_shell == 'true'
         run: bun install --frozen-lockfile
+
+      - name: Download release-qualified SDK Runtime
+        uses: actions/download-artifact@v4
+        with:
+          name: pinned-sdk-runtime
+          path: ${{ runner.temp }}/sdk-runtime
+
+      - name: Stage release-qualified Runtime sidecar
+        shell: bash
+        run: >-
+          node scripts/stage-release-runtime.mjs
+          --artifacts "$RUNNER_TEMP/sdk-runtime"
+          --sdk-sha "${{ needs.sdk-release.outputs.sdk_release_sha }}"
+          --tauri-target "${{ matrix.sidecar_target }}"
 
       - name: Install Linux dependencies
         if: matrix.runner_os == 'Linux'
@@ -491,7 +507,7 @@ jobs:
             pkg-config
 
       - name: Prepare pinned Linux sandbox helper
-        if: needs.detect.outputs.native_shell == 'true' && matrix.runner_os == 'Linux'
+        if: matrix.runner_os == 'Linux'
         shell: bash
         run: |
           if ! node scripts/prepare-linux-sandbox-helper.mjs --profile release --github-env >"$RUNNER_TEMP/linux-sandbox-helper-build.log" 2>&1; then
@@ -503,18 +519,17 @@ jobs:
       # release SHA. Pull-request and master CI validate source-level modules.
       - name: Build lightweight release candidate
         id: tauri
-        if: needs.detect.outputs.native_shell == 'true'
         uses: tauri-apps/tauri-action@v0
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           OPENAGENT_RUNTIME_TARGET: ${{ matrix.sidecar_target }}
+          OPENAGENT_RUNTIME_SERVER_PREBUILT: "1"
           OPENAGENT_LOGS_INGEST_TOKEN: ${{ secrets.OPENAGENT_LOGS_INGEST_TOKEN }}
         with:
           retryAttempts: 2
           args: ${{ matrix.args }}
 
       - name: Stage lightweight release candidate
-        if: needs.detect.outputs.native_shell == 'true'
         shell: bash
         env:
           TAURI_ARTIFACT_PATHS: ${{ steps.tauri.outputs.artifactPaths }}
@@ -523,40 +538,7 @@ jobs:
           --output "$RUNNER_TEMP/native-release"
           --target "${{ matrix.runtime_target }}"
 
-      - name: Build runtime candidate
-        if: needs.detect.outputs.runtime == 'true'
-        shell: bash
-        env:
-          RUST_TARGET: ${{ matrix.rust_target }}
-        run: |
-          target_args=()
-          if [[ -n "$RUST_TARGET" ]]; then
-            target_args+=(--target "$RUST_TARGET")
-          fi
-          bun scripts/prepare-runtime-server.mjs --profile release "${target_args[@]}"
-
-      - name: Stage runtime candidate
-        if: needs.detect.outputs.runtime == 'true'
-        shell: bash
-        env:
-          RUNTIME_SIDECAR: ${{ matrix.runtime_sidecar }}
-          RUNTIME_ARTIFACT: ${{ matrix.runtime_artifact }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/runtime-component"
-          cp "src-tauri/binaries/$RUNTIME_SIDECAR" \
-            "$RUNNER_TEMP/runtime-component/$RUNTIME_ARTIFACT"
-
-      - name: Upload runtime candidate
-        if: needs.detect.outputs.runtime == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: runtime-component-${{ matrix.runtime_target }}
-          path: ${{ runner.temp }}/runtime-component/${{ matrix.runtime_artifact }}
-          if-no-files-found: error
-          retention-days: 7
-
       - name: Build full first-install bundle
-        if: needs.detect.outputs.native_shell == 'true'
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           OPENAGENT_RUNTIME_TARGET: ${{ matrix.sidecar_target }}
@@ -724,41 +706,15 @@ jobs:
     name: Prepare signed runtime candidate
     needs:
       - detect
-      - build
       - sdk-release
     if: >-
       needs.detect.outputs.published != 'true'
       && needs.detect.outputs.runtime == 'true'
-      && needs.build.result == 'success'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.detect.outputs.sha }}
-
-      - name: Resolve pinned SDK revision
-        id: sdk
-        shell: bash
-        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
-
-      - name: Create private SDK read token
-        id: sdk-read-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
-          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
-          owner: BANG404
-          repositories: openagent-sdk
-          permission-contents: read
-
-      - name: Check out private SDK metadata
-        uses: actions/checkout@v7
-        with:
-          repository: BANG404/openagent-sdk
-          ref: ${{ steps.sdk.outputs.sha }}
-          path: sdk
-          token: ${{ steps.sdk-read-token.outputs.token }}
-          persist-credentials: false
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -767,30 +723,25 @@ jobs:
       - name: Install signing CLI
         run: bun install --frozen-lockfile
 
-      - name: Download runtime candidate binaries
+      - name: Download release-qualified SDK Runtime
         uses: actions/download-artifact@v4
         with:
-          pattern: runtime-component-*
-          path: runtime-components
-          merge-multiple: true
+          name: pinned-sdk-runtime
+          path: ${{ runner.temp }}/sdk-runtime
 
-      - name: Create and sign runtime manifest
+      - name: Verify and stage runtime candidate
+        shell: bash
+        run: >-
+          node scripts/stage-release-runtime.mjs
+          --artifacts "$RUNNER_TEMP/sdk-runtime"
+          --sdk-sha "${{ needs.sdk-release.outputs.sdk_release_sha }}"
+          --output runtime-components
+
+      - name: Sign runtime manifest
         shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
-          version="${{ needs.sdk-release.outputs.sdk_version }}"
-          protocol="$(sed -n 's/^pub const SDK_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' sdk/rust/openagent-protocol/src/lib.rs)"
-          if [[ -z "$version" || -z "$protocol" ]]; then
-            echo "Unable to resolve the pinned runtime version or protocol." >&2
-            exit 1
-          fi
-          node sdk/scripts/server-artifacts.mjs \
-            --artifacts runtime-components \
-            --output runtime-components/openagent-sdk-manifest.json \
-            --version "$version" \
-            --protocol "$protocol" \
-            --sdk-sha "${{ steps.sdk.outputs.sha }}"
           bun scripts/tauri.mjs signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "" \
             runtime-components/openagent-sdk-manifest.json
           test -s runtime-components/openagent-sdk-manifest.json.sig

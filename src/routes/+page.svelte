@@ -75,7 +75,6 @@
   import type { SlashCommand } from "$lib/components/MessageInput.svelte";
   import QuickChatSurface from "$lib/components/QuickChatSurface.svelte";
   import RoleEditorWindowSurface from "$lib/components/RoleEditorWindowSurface.svelte";
-  import SettingsWindowSurface from "$lib/components/SettingsWindowSurface.svelte";
   import StandaloneDevPreview from "$lib/components/StandaloneDevPreview.svelte";
   import WorkspaceDialogs from "$lib/components/WorkspaceDialogs.svelte";
   import DesktopSidebar from "$lib/components/DesktopSidebar.svelte";
@@ -410,6 +409,7 @@
   let navigationTransitioning = $state(false);
   let navigationCaptureDepth = $state(0);
   let SettingsView = $state<LazyViewComponent | null>(null);
+  let SettingsWindowSurface = $state<LazyViewComponent | null>(null);
   let workspacePath = $state("");
   let recentWorkspaces = $state<RecentWorkspace[]>([]);
   let pinnedProjectPaths = $state(
@@ -1985,6 +1985,11 @@
     if (!usesNativeWindowMaterial) return;
     document.documentElement.classList.add("native-window-material");
     return () => document.documentElement.classList.remove("native-window-material");
+  });
+
+  onMount(async () => {
+    if (!isSettingsWindow) return;
+    SettingsWindowSurface = (await import("$lib/components/SettingsWindowSurface.svelte")).default;
   });
 
   onMount(() => {
@@ -4981,10 +4986,16 @@
   {:else if standaloneDevPreview}
     <StandaloneDevPreview preview={standaloneDevPreview} />
   {:else if settingsWindowKind}
-    <SettingsWindowSurface
-      kind={settingsWindowKind}
-      initialSection={settingsWindowInitialSection}
-    />
+    {#if SettingsWindowSurface}
+      <SettingsWindowSurface
+        kind={settingsWindowKind}
+        initialSection={settingsWindowInitialSection}
+      />
+    {:else}
+      <div class="onboarding-loading">
+        <LoadingSkeleton variant="new-conversation" label={$t("loadingContent")} />
+      </div>
+    {/if}
   {:else if isRoleEditorWindow}
     <RoleEditorWindowSurface />
   {:else if isOnboardingSurface}

@@ -7,6 +7,7 @@ import {
   materializeRuntimeServerPlaceholder,
   parseRustHost,
   prepareRuntimeServer,
+  requirePreparedRuntimeServer,
   runtimeServerPaths,
   tauriTarget,
 } from "./prepare-runtime-server.mjs";
@@ -92,6 +93,29 @@ test("rejects targets that the release matrix cannot publish", () => {
       profile: "release",
     }),
   ).toThrow("no packaged runtime server");
+});
+
+test("requires non-empty staged bytes when release builds reuse a Runtime", async () => {
+  const repositoryRoot = await mkdtemp(path.join(os.tmpdir(), "openagent-prebuilt-runtime-"));
+  const paths = runtimeServerPaths({
+    repositoryRoot,
+    targetTriple: "x86_64-unknown-linux-gnu",
+    profile: "release",
+  });
+  await expect(
+    requirePreparedRuntimeServer({ ...paths, targetTriple: "x86_64-unknown-linux-gnu" }),
+  ).rejects.toThrow(/sidecar is missing/);
+  await writeFile(paths.destination, "runtime-bytes").catch(async (error) => {
+    if (error?.code !== "ENOENT") throw error;
+    await materializeRuntimeServerPlaceholder({
+      repositoryRoot,
+      targetTriple: "x86_64-unknown-linux-gnu",
+    });
+    await writeFile(paths.destination, "runtime-bytes");
+  });
+  expect(
+    await requirePreparedRuntimeServer({ ...paths, targetTriple: "x86_64-unknown-linux-gnu" }),
+  ).toEqual({ ...paths, targetTriple: "x86_64-unknown-linux-gnu", changed: false });
 });
 
 test("materializes a target-named placeholder without replacing real bytes", async () => {

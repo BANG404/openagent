@@ -36,12 +36,14 @@
   first resolve the exact SDK gitlink SHA and either reuse its newest valid
   ancestor release when no SDK Conventional Commit requires a bump, or trigger
   an immutable release tag on that exact SHA, explicitly dispatch current SDK CI
-  automation with the immutable SHA, and stage the exact manifest as a private
-  workflow artifact. A failed or mismatched staged manifest stops desktop
-  tagging. Publish the SDK tag only after every selected desktop candidate is
-  attached to the desktop draft and the remaining publication gates pass, then
-  publish the desktop draft. Never rely on a tag pushed by `GITHUB_TOKEN` to
-  trigger another workflow.
+  automation with the immutable SHA, and stage the exact manifest, Runtime
+  binaries, and checksums as one private workflow artifact. Tauri release jobs
+  must verify and reuse those exact binaries as their `externalBin` sidecars;
+  never compile the pinned Runtime a second time. A failed or mismatched staged
+  candidate stops desktop tagging. Publish the SDK tag only after every
+  selected desktop candidate is attached to the desktop draft and the remaining
+  publication gates pass, then publish the desktop draft. Never rely on a tag
+  pushed by `GITHUB_TOKEN` to trigger another workflow.
   Before publishing the desktop draft, generate its body from the exact current
   changelog section, `previousTag...tag` comparison, selected components, and
   the assets attached to that draft. Native-shell releases must expose each
