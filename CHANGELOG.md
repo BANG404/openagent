@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - **settings**: Split management into native windows
 
 ### Bug Fixes
+- **frontend**: Preserve settings bundle split
 - **graph**: Finish child cancellation
 - **chat**: Count write content lines in tool badge
 - **chat**: Keep composer clear of transcript scrollbar
@@ -38,6 +39,7 @@ All notable changes to this project will be documented in this file.
 - **updater**: Defer component activation during agent runs
 
 ### Refactoring
+- **release**: Reuse qualified sdk runtime
 - **native**: Isolate private runtime compilation
 
 ### Miscellaneous
