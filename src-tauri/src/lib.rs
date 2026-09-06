@@ -1142,6 +1142,7 @@ async fn resume_interrupted_chat(
 #[tauri::command]
 async fn submit_interrupt_response(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
+    conv_id: String,
     interrupt_id: String,
     response: String,
 ) -> Result<(), String> {
@@ -1149,6 +1150,7 @@ async fn submit_interrupt_response(
         .inner()
         .facade()
         .submit_interrupt_response(SubmitInterruptResponseRequest {
+            conv_id,
             interrupt_id,
             response,
         })

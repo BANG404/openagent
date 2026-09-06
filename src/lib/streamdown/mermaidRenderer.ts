@@ -32,19 +32,6 @@ export type MermaidToolFailure = Extract<MermaidToolResult, { ok: false }>;
 let mermaidModule: Promise<(typeof import("mermaid"))["default"]> | null = null;
 let renderQueue: Promise<void> = Promise.resolve();
 let renderSequence = 0;
-const MERMAID_RENDER_TIMEOUT_MS = 8_000;
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      reject(new Error(`Mermaid rendering timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-  });
-  return Promise.race([promise, timeout]).finally(() => {
-    if (timer !== undefined) clearTimeout(timer);
-  });
-}
 
 export function loadMermaid() {
   mermaidModule ??= import("mermaid").then((module) => module.default);
@@ -102,10 +89,7 @@ export function renderMermaidSvg(
     mermaid.initialize(defaultConfig(customConfig));
     renderSequence += 1;
     const uniqueId = `openagent-mermaid-${renderSequence}-${Date.now()}`;
-    const { svg } = await withTimeout(
-      mermaid.render(uniqueId, normalizedSource),
-      MERMAID_RENDER_TIMEOUT_MS,
-    );
+    const { svg } = await mermaid.render(uniqueId, normalizedSource);
     const dimensions = svgDimensions(svg);
     return {
       svg,
@@ -113,20 +97,11 @@ export function renderMermaidSvg(
       ...dimensions,
     };
   });
-  // Start the deadline before waiting for queued work or loading Mermaid. The
-  // Runtime has a shorter interrupt deadline than the render queue can
-  // tolerate when an earlier diagram is pathological, so the caller must
-  // receive a structured failure while the underlying operation remains
-  // serialized below.
-  const timedRun = withTimeout(run, MERMAID_RENDER_TIMEOUT_MS);
-  // Keep the queue chained to the actual render operation. Starting the
-  // deadline on `timedRun` would release the next render while Mermaid is
-  // still mutating its global renderer state after a caller has timed out.
   renderQueue = run.then(
     () => undefined,
     () => undefined,
   );
-  return timedRun;
+  return run;
 }
 
 function numericLocation(value: unknown): number | undefined {
