@@ -10,7 +10,9 @@
   in independently focusable singleton utility windows. Reopening a domain
   focuses its existing window and may select a requested section. Keep only
   ordinary appearance, launcher, startup, diagnostics, and presentation
-  preferences in General Settings. Each window loads and saves through the
+  preferences in General Settings. Load the settings-window surface lazily and
+  retain a layout-stable skeleton until it is ready so the main chat route does
+  not absorb the Settings bundle. Each window loads and saves through the
   shared settings contract without replacing or unmounting the chat shell.
 - The saved-role editor is a modeless singleton utility window opened from the
   Role application menu. Reopening it targets the requested saved role or a new
