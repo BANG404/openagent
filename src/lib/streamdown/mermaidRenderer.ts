@@ -34,6 +34,18 @@ let renderQueue: Promise<void> = Promise.resolve();
 let renderSequence = 0;
 const MERMAID_RENDER_TIMEOUT_MS = 8_000;
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`Mermaid rendering timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer);
+  });
+}
+
 export function loadMermaid() {
   mermaidModule ??= import("mermaid").then((module) => module.default);
   return mermaidModule;
@@ -90,14 +102,7 @@ export function renderMermaidSvg(
     mermaid.initialize(defaultConfig(customConfig));
     renderSequence += 1;
     const uniqueId = `openagent-mermaid-${renderSequence}-${Date.now()}`;
-    const render = mermaid.render(uniqueId, normalizedSource);
-    const timeout = new Promise<never>((_, reject) => {
-      setTimeout(
-        () => reject(new Error(`Mermaid rendering timed out after ${MERMAID_RENDER_TIMEOUT_MS}ms`)),
-        MERMAID_RENDER_TIMEOUT_MS,
-      );
-    });
-    const { svg } = await Promise.race([render, timeout]);
+    const { svg } = await mermaid.render(uniqueId, normalizedSource);
     const dimensions = svgDimensions(svg);
     return {
       svg,
@@ -105,11 +110,16 @@ export function renderMermaidSvg(
       ...dimensions,
     };
   });
-  renderQueue = run.then(
+  const timedRun = withTimeout(run, MERMAID_RENDER_TIMEOUT_MS);
+  renderQueue = timedRun.then(
     () => undefined,
     () => undefined,
   );
-  return run;
+  // Start the deadline before waiting for the queue or the Mermaid module
+  // import. The tool-side Runtime has a 20 second interrupt deadline, so a
+  // renderer timeout must include all frontend work and leave time to submit
+  // the structured failure response.
+  return timedRun;
 }
 
 function numericLocation(value: unknown): number | undefined {
