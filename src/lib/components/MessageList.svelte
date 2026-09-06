@@ -661,6 +661,7 @@
                 {shikiTheme}
                 {mermaidConfig}
                 {htmlPreviewConfig}
+                conversationId={activeConvId ?? undefined}
                 {onSubmitUserInput}
                 {onCancelUserInput}
               />

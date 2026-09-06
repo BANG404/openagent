@@ -31,6 +31,7 @@
     shikiTheme: string;
     mermaidConfig: MermaidConfig;
     htmlPreviewConfig?: HtmlPreviewConfig;
+    conversationId?: string;
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
     onCancelUserInput: (requestId: string) => void;
   }
@@ -47,6 +48,7 @@
     shikiTheme,
     mermaidConfig,
     htmlPreviewConfig,
+    conversationId,
     onSubmitUserInput,
     onCancelUserInput,
   }: Props = $props();
@@ -103,6 +105,7 @@
             token={token as ComponentToken}
             {htmlPreviewConfig}
             isDark={shikiTheme === "github-dark"}
+            {conversationId}
           />
         {/if}
       {/snippet}

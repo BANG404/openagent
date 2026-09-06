@@ -13,11 +13,13 @@
     args,
     htmlPreviewConfig,
     isDark = false,
+    conversationId,
   }: {
     args: Record<string, unknown>;
     rawArgs?: Array<[string, Value]>;
     htmlPreviewConfig?: HtmlPreviewConfig;
     isDark?: boolean;
+    conversationId?: string;
   } = $props();
 
   let frame: HTMLIFrameElement | null = $state(null);
@@ -301,7 +303,7 @@
     if (!currentPath || url) return;
 
     capabilities
-      .readHtmlPreview(currentPath)
+      .readHtmlPreview(currentPath, conversationId)
       .then((preview) => {
         if (seq !== loadSeq) return;
         rawFileCode = preview.content;

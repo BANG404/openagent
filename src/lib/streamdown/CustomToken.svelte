@@ -13,10 +13,12 @@
     token,
     htmlPreviewConfig,
     isDark = false,
+    conversationId,
   }: {
     token: ComponentToken;
     htmlPreviewConfig?: HtmlPreviewConfig;
     isDark?: boolean;
+    conversationId?: string;
   } = $props();
 
   const args = $derived(evalArgs(token.args));
@@ -35,7 +37,7 @@
 {:else if token.name === "Video"}
   <Media {args} rawArgs={token.args} kind="video" />
 {:else if token.name === "Html"}
-  <HtmlPreview {args} rawArgs={token.args} {htmlPreviewConfig} {isDark} />
+  <HtmlPreview {args} rawArgs={token.args} {htmlPreviewConfig} {isDark} {conversationId} />
 {:else}
   <!-- Unknown component: render the raw call so it's not silently swallowed. -->
   <code class="unknown-component">{token.raw}</code>
