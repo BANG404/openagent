@@ -3406,6 +3406,7 @@ fn run_with_mode(agent_server: bool) {
                 )
                 .title("OpenAgent Quick Chat")
                 .inner_size(856.0, 246.0)
+                .min_inner_size(760.0, 246.0)
                 .decorations(false)
                 .transparent(true)
                 .resizable(false)

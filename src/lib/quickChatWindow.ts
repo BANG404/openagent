@@ -15,10 +15,8 @@ import {
   QUICK_CHAT_FOCUS_INPUT_EVENT,
 } from "$lib/quickChatShortcut";
 
-// Keep the utility window at the same geometry for every open/close cycle.
-// The surface itself is capped at this height, so resizing to an expanded
-// height only causes the native window to move again when it is centered.
-export const QUICK_CHAT_SIZE = { width: 856, height: 246 } as const;
+export const QUICK_CHAT_COMPACT_SIZE = { width: 856, height: 246 } as const;
+export const QUICK_CHAT_EXPANDED_SIZE = { width: 856, height: 580 } as const;
 
 let registeredShortcut: string | null = null;
 let transition: Promise<void> = Promise.resolve();
@@ -36,8 +34,13 @@ async function getQuickChatWindow(): Promise<Window | null> {
 export async function showQuickChatWindow(): Promise<void> {
   const quickWindow = await getQuickChatWindow();
   if (!quickWindow) return;
-  await quickWindow.setSize(new LogicalSize(QUICK_CHAT_SIZE.width, QUICK_CHAT_SIZE.height));
+  await quickWindow.setSize(
+    new LogicalSize(QUICK_CHAT_COMPACT_SIZE.width, QUICK_CHAT_COMPACT_SIZE.height),
+  );
   const savedPosition = loadQuickChatWindowPosition(window.localStorage);
+  await quickWindow.setSize(
+    new LogicalSize(QUICK_CHAT_EXPANDED_SIZE.width, QUICK_CHAT_EXPANDED_SIZE.height),
+  );
   let restoredPosition = false;
   if (savedPosition) {
     try {
@@ -59,7 +62,13 @@ export async function showQuickChatWindow(): Promise<void> {
   }
   if (!restoredPosition) {
     clearQuickChatWindowPosition(window.localStorage);
+    await quickWindow.setSize(
+      new LogicalSize(QUICK_CHAT_COMPACT_SIZE.width, QUICK_CHAT_COMPACT_SIZE.height),
+    );
     await quickWindow.center();
+    await quickWindow.setSize(
+      new LogicalSize(QUICK_CHAT_EXPANDED_SIZE.width, QUICK_CHAT_EXPANDED_SIZE.height),
+    );
   }
   await quickWindow.unminimize().catch(() => {});
   await quickWindow.show();
@@ -71,6 +80,9 @@ export async function hideQuickChatWindow(): Promise<void> {
   const quickWindow = await getQuickChatWindow();
   if (!quickWindow) return;
   await quickWindow.hide();
+  await quickWindow
+    .setSize(new LogicalSize(QUICK_CHAT_COMPACT_SIZE.width, QUICK_CHAT_COMPACT_SIZE.height))
+    .catch(() => {});
 }
 
 function queueTransition(operation: () => Promise<void>): Promise<void> {
