@@ -64,9 +64,11 @@
   owning conversation ID through local HTML preview reads on every transport;
   supervised HTTP requests otherwise reject the preview as unscoped. Bound
   Mermaid rendering so malformed or pathological diagrams cannot hold the
-  transcript render queue indefinitely. The deadline starts before queue
-  waiting and Mermaid module loading, not only around `mermaid.render`, so an
-  automatic render result reaches the Runtime before its interrupt expires.
+  transcript render queue indefinitely. The caller deadline starts before
+  queue waiting and Mermaid module loading, not only around `mermaid.render`,
+  so an automatic render result reaches the Runtime before its interrupt
+  expires. Keep the queue chained to the underlying render Promise after a
+  caller timeout so a late Mermaid completion cannot overlap the next render.
   Apply the same failed-result hiding rule to ordinary tools.
 - Return a Mermaid renderer result through the shared SDK client with the
   request's owning conversation ID. The production Runtime is routed and

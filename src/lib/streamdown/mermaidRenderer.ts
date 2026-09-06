@@ -113,14 +113,20 @@ export function renderMermaidSvg(
       ...dimensions,
     };
   });
+  // Start the deadline before waiting for queued work or loading Mermaid. The
+  // Runtime has a shorter interrupt deadline than the render queue can
+  // tolerate when an earlier diagram is pathological, so the caller must
+  // receive a structured failure while the underlying operation remains
+  // serialized below.
+  const timedRun = withTimeout(run, MERMAID_RENDER_TIMEOUT_MS);
   // Keep the queue chained to the actual render operation. Starting the
-  // deadline before queued work runs lets a timeout release the next render
-  // while Mermaid is still mutating its global renderer state.
+  // deadline on `timedRun` would release the next render while Mermaid is
+  // still mutating its global renderer state after a caller has timed out.
   renderQueue = run.then(
     () => undefined,
     () => undefined,
   );
-  return run;
+  return timedRun;
 }
 
 function numericLocation(value: unknown): number | undefined {

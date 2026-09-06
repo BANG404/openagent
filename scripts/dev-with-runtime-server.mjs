@@ -83,7 +83,11 @@ async function main() {
   await prepareRuntimeServer({ profile: "dev" });
   await mkdir(path.dirname(runtimeServerPendingStampPath(root)), { recursive: true });
   const runtimeWatcher = startRuntimeServerDevWatcher();
-  const vite = spawn(process.execPath, ["run", "dev"], {
+  // Mermaid loads diagram definitions through Vite's optimized dynamic
+  // dependency chunks. Reusing an old `.vite` cache can leave those chunks
+  // returning `504 Outdated Optimize Dep` in a Tauri WebView, so rebuild the
+  // development dependency graph whenever the Tauri dev server starts.
+  const vite = spawn(process.execPath, ["run", "dev", "--", "--force"], {
     cwd: root,
     env: process.env,
     stdio: "inherit",
