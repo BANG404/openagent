@@ -42,13 +42,12 @@ discovery or an interactive password prompt. Local integration tests use an
 ephemeral test keypair and never require the production private key.
 
 The Release workflow first runs all frontend, Rust, embedding, sandbox, and
-Harness qualification, then performs the authoritative product compilation for
-the exact release SHA on every supported target and promotes those same
-artifacts without rebuilding them. Each platform matrix entry compiles the
+Harness qualification. Public SDK CI performs the authoritative Runtime
+compilation for the exact immutable SDK release source on every supported
+target. SDK staging carries those binaries and their manifest into the desktop
+run; each platform matrix entry verifies the SDK SHA, target, size, and SHA-256,
+then places the selected binary under Tauri's target-named `externalBin` path.
+The Tauri `beforeBuildCommand` requires the prebuilt sidecar in release CI and
+must not compile the private Runtime again. Each platform entry compiles the
 lightweight Tauri application once, then uses the existing compiled outputs to
 bundle the full first-install variant without rerunning `beforeBuildCommand`.
-Each platform matrix entry exports a
-dedicated Runtime sidecar target while the native and full bundles run. This
-target takes precedence over Tauri's host-oriented environment variables, so
-cross-compilation prepares the target-named sidecar instead of the runner
-host's sidecar.
