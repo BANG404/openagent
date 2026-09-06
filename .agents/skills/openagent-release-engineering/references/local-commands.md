@@ -31,10 +31,11 @@ the selected RC tag with `--promote-rc`:
 
 ```bash
 git switch -c release/rc/0.31.0 v0.31.0-beta.2
-git restore --source master -- .github/workflows scripts docs/release.md docs/release \
+git restore --source master -- .github/workflows scripts \
+  .agents/skills/openagent-release-engineering \
   tests/ciChanges.test.js tests/docsSync.test.js \
   tests/releaseCi.test.js tests/releaseVersion.test.js
-git add .github/workflows scripts docs/release.md docs/release \
+git add .github/workflows scripts .agents/skills/openagent-release-engineering \
   tests/ciChanges.test.js tests/docsSync.test.js \
   tests/releaseCi.test.js tests/releaseVersion.test.js
 git commit --allow-empty -m "chore(release): refresh promotion automation"

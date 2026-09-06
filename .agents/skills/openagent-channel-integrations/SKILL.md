@@ -7,12 +7,12 @@ metadata:
 
 # Channel integrations
 
-Read the matching public document only:
+Read only the matching reference:
 
 - Platform adapters, commands, peer state, and channel persistence:
-  [docs/channels.md](../../../docs/channels.md)
+  [messaging-channels.md](references/messaging-channels.md)
 - Paired browser gateway, sessions, CSRF, workspace allowlists, and SSE:
-  [docs/remote-gateway.md](../../../docs/remote-gateway.md)
+  [remote-gateway.md](references/remote-gateway.md)
 
 Adapters enter through the shared SDK runtime and must not create a second
 Agent loop or duplicate interrupt state. Keep desktop-only administration

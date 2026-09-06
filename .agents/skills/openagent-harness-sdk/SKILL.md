@@ -7,7 +7,7 @@ metadata:
 
 # Headless Harness SDK
 
-Read [docs/harness-sdk.md](../../../docs/harness-sdk.md) for the public client,
+Read [public-client.md](references/public-client.md) for the public client,
 security boundary, protocol compatibility, binary verification, reload, and
 licensing rules. The public TypeScript client is the only supported external
 client surface; private SDK crates and frontend transport stay unpublished.

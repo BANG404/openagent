@@ -8,10 +8,9 @@ metadata:
 # OpenAgent persistence
 
 Use `openagent-configuration` to route to the smallest configuration reference
-before editing. `docs/configuration.md` remains the public source of truth for
-paths, schemas, save and reload behavior, compatibility windows, permissions,
-and user-visible transitions. Read `sdk/AGENTS.md` before changing SDK-owned
-implementation.
+before editing. Its references own paths, schemas, save and reload behavior,
+compatibility windows, permissions, and user-visible transitions. Read
+`sdk/AGENTS.md` before changing SDK-owned implementation.
 
 ## Boundaries
 
@@ -46,7 +45,7 @@ When support ends, ship all of the following together:
 - a warning that identifies the affected data;
 - a concrete chance and instructions to save or back it up;
 - a durable backup before replacement;
-- version-boundary documentation in `docs/configuration.md`;
+- version-boundary documentation in the matching configuration reference;
 - coverage proving refusal, backup failure safety, consent, and scope isolation.
 
 Routine development uses `~/.openagent-dev`, never installed release state.

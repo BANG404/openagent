@@ -90,8 +90,8 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 - **First-class Dev Tools** — Built-in file, search, and terminal tools. Managed terminal sessions support interactive or long-running background processes.
 - **Independent Approval & Runtime Permissions** — Choose when tool calls pause for review separately from the managed filesystem and network sandbox.
 - **Skills System** — Drop a `SKILL.md` into `~/.agents/skills/` or `<workspace>/.agents/skills/`. Category-based progressive discovery keeps large global and project catalogs compact, with optional Flash classification for uncategorized Skills.
-- **Portable Agent Plugins** — Install Agent Plugins 1.0.0 packages from **Settings → Agent Plugins**, with isolated Agent Skill and stdio/Streamable HTTP MCP discovery. See [Agent Plugins](docs/agent-plugins.md).
-- **Messaging Channels** — Connect Feishu/Lark, Telegram, QQ, WeChat, Discord, or Slack from **Settings → Channels**. Each peer keeps its own workspace, model, role, and durable conversation, with commands for switching scope and replying to questions or approvals. See [Messaging channels](docs/channels.md).
+- **Portable Agent Plugins** — Install Agent Plugins 1.0.0 packages from **Settings → Agent Plugins**, with isolated Agent Skill and stdio/Streamable HTTP MCP discovery. See the [Agent Plugin reference](.agents/skills/openagent-plugin-development/references/package-format.md).
+- **Messaging Channels** — Connect Feishu/Lark, Telegram, QQ, WeChat, Discord, or Slack from **Settings → Channels**. Each peer keeps its own workspace, model, role, and durable conversation, with commands for switching scope and replying to questions or approvals. See the [channel integration skill](.agents/skills/openagent-channel-integrations/SKILL.md).
 - **Checkpoints & File-Change Rollback** — Every turn is a checkpoint with reverse diffs; undo a single file or rewind the whole agent.
 - **Pluggable LLMs & Multimodal** — Support multi-model selection and durable image, PDF, and text attachments with drag/paste, rich previews, checkpoint restoration, and branch editing across Anthropic, OpenAI, and compatible providers.
 
@@ -182,7 +182,7 @@ and GNU `strip` (usually provided by `binutils`).
 
 ## Configure your first provider
 
-On first launch OpenAgent creates `config.toml` in its cross-platform user data root (`~/.openagent` on Linux, macOS, and Windows). Set `OPENAGENT_HOME` to override the complete root. Open **Settings → Providers** and add a provider, or edit the file directly; valid external edits hot-reload. See [Configuration and application data](docs/configuration.md) for atomic-save, backup, migration, and conflict behavior. Until an available model is configured, the composer keeps sending disabled and provides a **Configure models** shortcut to Settings.
+On first launch OpenAgent creates `config.toml` in its cross-platform user data root (`~/.openagent` on Linux, macOS, and Windows). Set `OPENAGENT_HOME` to override the complete root. Open **Settings → Providers** and add a provider, or edit the file directly; valid external edits hot-reload. See the [configuration skill](.agents/skills/openagent-configuration/SKILL.md) for atomic-save, backup, migration, and conflict behavior. Until an available model is configured, the composer keeps sending disabled and provides a **Configure models** shortcut to Settings.
 
 ```toml
 config_version = 1
@@ -371,7 +371,7 @@ private submodule.
 │   └── lib/                  # Components, stores, streamdown, types
 ├── src-tauri/                # Tauri adapters, build config, and packaging
 ├── sdk/                      # Pinned private SDK Git submodule
-└── docs/                     # Public design, integration, and release docs
+└── .agents/skills/           # Focused architecture and contributor guidance
 ```
 
 ---
@@ -401,7 +401,7 @@ Contributions are very welcome — feature ideas, bug fixes, and docs improvemen
 3. Run `bun run check`, `bun run lint:actions`, and `cargo check --manifest-path src-tauri/Cargo.toml` before opening a PR.
 4. Open a PR — describe **why**, not just **what**.
 
-Project conventions live in [`AGENTS.md`](AGENTS.md); the UI/UX spec lives in [`docs/design.md`](docs/design.md).
+Project conventions live in [`AGENTS.md`](AGENTS.md); the UI/UX spec is routed by the [design-system skill](.agents/skills/openagent-design-system/SKILL.md).
 
 ---
 
@@ -414,7 +414,7 @@ disabled immediately in **Settings → General → Privacy & diagnostics**. Remo
 logs never include conversations, model output, tool arguments, configuration
 values, secrets, raw frontend error messages, or stack traces.
 
-![Privacy and diagnostics setting](docs/assets/diagnostic-log-collection-en.png)
+![Privacy and diagnostics setting](.agents/skills/openagent-configuration/assets/diagnostic-log-collection-en.png)
 
 Langfuse model tracing remains optional and separate from application logs.
 
@@ -461,13 +461,13 @@ For Anthropic, set `OPENAGENT_TEST_PROVIDER=anthropic` and provide `OPENAGENT_TE
 
 - [`AGENTS.md`](AGENTS.md) — Public host and frontend contributor guide
 - [`CHANGELOG.md`](CHANGELOG.md) — Full release history
-- [`docs/agent-plugins.md`](docs/agent-plugins.md) — Portable Agent Plugin installation, validation, components, and data boundaries
-- [`docs/channels.md`](docs/channels.md) — Messaging platform setup, scoped commands, interrupt replies, persistence, and security
-- [`docs/release.md`](docs/release.md) — Versioning, beta/RC/stable channels, and publishing workflow
-- [`docs/embedding-model.md`](docs/embedding-model.md) — Bundled model provenance, size, and verification
-- [`docs/harness-sdk.md`](docs/harness-sdk.md) — Headless third-party harness integration without publishing the core runtime
-- [`docs/modular-updates.md`](docs/modular-updates.md) — Frontend HMR, independent SDK binaries, process reloads, and the desktop extraction boundary
-- [`docs/design.md`](docs/design.md) — Apple-style design spec
+- [Agent Plugin skill](.agents/skills/openagent-plugin-development/SKILL.md) — installation, validation, components, and data boundaries
+- [Channel integration skill](.agents/skills/openagent-channel-integrations/SKILL.md) — platform setup, scoped commands, remote gateway, persistence, and security
+- [Release engineering skill](.agents/skills/openagent-release-engineering/SKILL.md) — versioning, beta/RC/stable channels, CI, and publishing
+- [Embedding resource skill](.agents/skills/openagent-embedding-resources/SKILL.md) — bundled model provenance, size, verification, and activation
+- [Harness SDK skill](.agents/skills/openagent-harness-sdk/SKILL.md) — headless third-party integration without publishing the core runtime
+- [Update delivery skill](.agents/skills/openagent-update-delivery/SKILL.md) — frontend HMR, independent Runtime binaries, reloads, and desktop boundaries
+- [Design-system skill](.agents/skills/openagent-design-system/SKILL.md) — visual language, components, responsiveness, and `DESIGN.md`
 - [Tauri docs](https://tauri.app/) · [SvelteKit docs](https://kit.svelte.dev/) · [rig (Rust LLM)](https://github.com/0xPlaygrounds/rig)
 
 ---

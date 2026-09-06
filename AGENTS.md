@@ -6,9 +6,9 @@ and `src-tauri` is a thin desktop host. The project is in active debugging; do
 not add compatibility paths unless the task explicitly requires them.
 
 Keep this file at or below 150 lines. It is a routing map and repository
-boundary, not a complete development manual. Put public product behavior and
-architecture in `docs/`, repeatable procedures and fragile subsystem invariants
-in workspace skills, and private SDK internals in the SDK repository.
+boundary, not a complete development manual. Put product behavior, architecture,
+repeatable procedures, and fragile subsystem invariants in focused workspace
+skills; keep private SDK internals in the SDK repository.
 
 ## Route the task before editing
 
@@ -22,7 +22,7 @@ Read every applicable owner before changing files:
 | Configuration, databases, memory, migrations, destructive data transitions | `.agents/skills/openagent-persistence/SKILL.md` |
 | Workflows, releases, CI classification, helper packaging, bundle qualification | `.agents/skills/openagent-release-engineering/SKILL.md` |
 | Browser-reproducible UI verification | `.agents/skills/playwright/SKILL.md` |
-| Product design and component language | `docs/design.md` |
+| Product design and component language | `.agents/skills/openagent-design-system/` |
 | Configuration and durable-data agent routing | `.agents/skills/openagent-configuration/` |
 | Design-system agent routing and DESIGN.md format | `.agents/skills/openagent-design-system/` |
 | Messaging channels and remote gateway | `.agents/skills/openagent-channel-integrations/` |
@@ -35,7 +35,7 @@ Read every applicable owner before changing files:
 
 Treat implementation and agent-facing documentation as one change. Identify
 the affected behavior or invariant and its primary owner before editing; do not
-duplicate the same detailed rule across this file, a skill, and `docs/`.
+duplicate the same detailed rule across this file, a skill, and README files.
 
 ## Commands and verification
 
@@ -86,7 +86,7 @@ state under `~/.openagent`.
   children; use a `children` snippet only when parameters require it.
 - Extend streamed Markdown, code, Mermaid, ECharts, or AGUI only through
   `src/lib/streamdown/`.
-- Follow `docs/design.md` and prefer Bits UI primitives.
+- Follow `.agents/skills/openagent-design-system/` and prefer Bits UI primitives.
 
 Frontends submit ordinary chat and slash-command input through the shared SDK
 client; do not parse commands or select flows in a host. IPC changes update the
@@ -97,7 +97,7 @@ normal product UI.
 ## Data and user safety
 
 The canonical locations and compatibility behavior live in
-`docs/configuration.md`. At a glance:
+`.agents/skills/openagent-configuration/`. At a glance:
 
 | Scope | Location |
 | --- | --- |
@@ -121,13 +121,13 @@ layout-stable skeleton.
 
 ## Change quality
 
-- Update the relevant `AGENTS.md`, `docs/*.md`, README, or workspace skill when
+- Update the relevant `AGENTS.md`, README, or workspace skill when
   logic changes. Document the resulting behavior, ownership boundary, failure
   mode, or verification procedure—not the edit history.
 - Tests prove behavior; they do not replace agent-facing documentation. Reject
   logic-only changes and stale instructions during review.
-- Keep repository-wide rules here, public subsystem architecture in `docs/`,
-  repeatable procedures in the triggering skill, and SDK internals in `sdk/`.
+- Keep repository-wide rules here, subsystem architecture and repeatable
+  procedures in the triggering skill, and SDK internals in `sdk/`.
 - Automation JavaScript is checked through the repository TypeScript config;
   add explicit JSDoc types where inference cannot establish safe boundaries.
 - Treat the private submodule revision as release-relevant source input.

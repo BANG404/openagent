@@ -130,7 +130,7 @@ jobs:
               git restore --source "$automation_sha" -- \
                 .github/workflows \
                 scripts \
-                docs/release.md \
+                .agents/skills/openagent-release-engineering \
                 tests/ciChanges.test.js \
                 tests/docsSync.test.js \
                 tests/releaseCi.test.js \
@@ -141,7 +141,7 @@ jobs:
               git add \
                 .github/workflows \
                 scripts \
-                docs/release.md \
+                .agents/skills/openagent-release-engineering \
                 tests/ciChanges.test.js \
                 tests/docsSync.test.js \
                 tests/releaseCi.test.js \

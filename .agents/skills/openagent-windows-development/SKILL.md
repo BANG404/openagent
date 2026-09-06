@@ -7,7 +7,7 @@ metadata:
 
 # Windows development
 
-Read [docs/windows-development.md](../../../docs/windows-development.md) for
+Read [setup-and-sync.md](references/setup-and-sync.md) for
 one-time setup, linker and filesystem rules, and WSL commit synchronization.
 Keep Windows source/build locations and synchronization steps aligned with the
 document; do not turn a local performance workaround into a product runtime

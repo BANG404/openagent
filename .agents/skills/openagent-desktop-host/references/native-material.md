@@ -14,8 +14,8 @@
   keep their intentional separate backgrounds.
 - Serialize native theme requests and, when returning to the system
   theme, clear the native override before resolving the WebView media
-  preference so both layers use the same palette. Treat `docs/design.md`
-  as the visual source of truth.
+  preference so both layers use the same palette. Treat
+  `openagent-design-system` as the visual source of truth.
 
 ## Debug automation
 

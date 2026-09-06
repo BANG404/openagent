@@ -26,7 +26,8 @@ Read only the references that own the affected behavior:
 Treat this skill and its references as the living source of truth for chat
 frontend behavior. Update the owning reference whenever a change alters a chat
 invariant, and delete superseded guidance instead of appending history. Update
-`docs/` as well when the public product or architecture contract changes.
+the closest owning skill reference as well when the product or architecture
+contract changes.
 
 Run `bun run check` and `bun run format:check`. For visible changes, verify
 light/dark themes, Chinese and English copy, streaming-to-durable finalization,

@@ -7,9 +7,7 @@ metadata:
 
 # OpenAgent configuration
 
-Route to the smallest reference that matches the change. The public contract
-is maintained in [docs/configuration.md](../../../docs/configuration.md); use
-the section map below instead of loading the whole document.
+Route to the smallest reference that matches the change:
 
 - Paths, durable files, migration, and startup transitions:
   [references/data-and-startup.md](references/data-and-startup.md)
@@ -22,5 +20,6 @@ the section map below instead of loading the whole document.
 - Software error collection and diagnostic privacy:
   [references/diagnostics.md](references/diagnostics.md)
 
-Keep durable-data ownership in the SDK and update the matching public section
-when the user-visible contract changes. Read `sdk/AGENTS.md` for SDK work.
+Screenshots used by the README live in `assets/`; they are output resources,
+not instructions. Keep durable-data ownership in the SDK and update the matching
+reference when behavior changes. Read `sdk/AGENTS.md` for SDK work.

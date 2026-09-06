@@ -91,8 +91,8 @@
 - **开箱即用的开发工具** — 内置文件、搜索与终端工具。受管终端会话支持交互式或长时间运行的后台进程。
 - **工具审批与工作区沙盒** — 可选择逐次人工审批、模型辅助审批、关闭审批，或仅针对文件与终端工具的工作区沙盒策略。
 - **技能系统（Skills）** — 将 `SKILL.md` 放入 `~/.agents/skills/` 或 `<workspace>/.agents/skills/`。基于分类的渐进发现让大型全局/项目技能目录保持紧凑，也可用 Flash 任务为未分类技能自动分组。
-- **可移植 Agent Plugins** — 在**设置 → Agent Plugins** 中安装 Agent Plugins 1.0.0 本地包，并独立发现其中的 Agent Skill 与 stdio/Streamable HTTP MCP 服务。详见 [Agent Plugins](docs/agent-plugins.md)。
-- **消息渠道** — 在**设置 → 渠道**中接入飞书/Lark、Telegram、QQ、微信、Discord 或 Slack。每个联系人都保有独立的工作区、模型、角色与持久对话，并可通过命令切换范围、回答问题或处理审批。详见[消息渠道](docs/channels.md)。
+- **可移植 Agent Plugins** — 在**设置 → Agent Plugins** 中安装 Agent Plugins 1.0.0 本地包，并独立发现其中的 Agent Skill 与 stdio/Streamable HTTP MCP 服务。详见 [Agent Plugin reference](.agents/skills/openagent-plugin-development/references/package-format.md)。
+- **消息渠道** — 在**设置 → 渠道**中接入飞书/Lark、Telegram、QQ、微信、Discord 或 Slack。每个联系人都保有独立的工作区、模型、角色与持久对话，并可通过命令切换范围、回答问题或处理审批。详见[渠道集成 Skill](.agents/skills/openagent-channel-integrations/SKILL.md)。
 - **检查点与文件回滚** — 每轮对话自动创建检查点并记录反向 diff，支持单文件还原或整轮回滚。
 - **多 LLM 与多模态支持** — 支持多模型选择，以及可持久恢复的图片、PDF 和文本附件；提供拖拽/粘贴、丰富预览、检查点恢复与分支编辑，适配 Anthropic、OpenAI 及各类兼容端点。
 
@@ -358,7 +358,7 @@ Agent 不再使用行内 AGUI 标签，而是可以通过调用内置的 `render
 │   └── lib/                  # 组件、状态、streamdown 渲染器、类型定义
 ├── src-tauri/                # Tauri 薄宿主、构建配置与打包元数据
 ├── sdk/                      # 固定版本的私有 SDK Git 子模块
-└── docs/                     # 公开设计、集成与发布文档
+└── .agents/skills/           # 细粒度架构与贡献指南
 ```
 
 ---
@@ -405,7 +405,7 @@ Agent 不再使用行内 AGUI 标签，而是可以通过调用内置的 `render
 3. 提交 PR 前运行 `bun run check`、`bun run lint:actions` 和 `cargo check --manifest-path src-tauri/Cargo.toml`。
 4. 在 PR 描述中说明**为什么**，而不仅是做了什么。
 
-项目约定详见 [`AGENTS.md`](AGENTS.md)；UI/UX 规范详见 [`docs/design.md`](docs/design.md)。
+项目约定详见 [`AGENTS.md`](AGENTS.md)；UI/UX 规范由[设计系统 Skill](.agents/skills/openagent-design-system/SKILL.md)路由。
 
 ---
 
@@ -416,7 +416,7 @@ OpenAgent 会在 `<OPENAGENT_HOME>/logs` 下按天写入结构化应用日志，
 **设置 → 通用 → 隐私与诊断**中即时关闭。远程日志不会包含对话、模型输出、工具参数、
 配置值、密钥、前端原始错误消息或堆栈。
 
-![隐私与诊断设置](docs/assets/diagnostic-log-collection-zh.png)
+![隐私与诊断设置](.agents/skills/openagent-configuration/assets/diagnostic-log-collection-zh.png)
 
 Langfuse 模型追踪与应用日志相互隔离，并保持可选：
 
@@ -436,12 +436,12 @@ LANGFUSE_HOST=https://cloud.langfuse.com
 
 - [`AGENTS.md`](AGENTS.md) — 公开宿主与前端贡献指南
 - [`CHANGELOG.md`](CHANGELOG.md) — 完整版本历史
-- [`docs/agent-plugins.md`](docs/agent-plugins.md) — 可移植 Agent Plugin 的安装、校验、组件与数据边界
-- [`docs/channels.md`](docs/channels.md) — 消息平台配置、范围切换命令、中断回复、持久化与安全说明
-- [`docs/release.md`](docs/release.md) — 版本规则、beta/RC/stable 渠道与发布流程
-- [`docs/embedding-model.md`](docs/embedding-model.md) — 随包模型的来源、大小与校验方式
-- [`docs/modular-updates.md`](docs/modular-updates.md) — 前端热更新、独立 SDK 二进制、进程重载与桌面端拆分边界
-- [`docs/design.md`](docs/design.md) — Apple 风格 UI 设计规范
+- [Agent Plugin Skill](.agents/skills/openagent-plugin-development/SKILL.md) — 安装、校验、组件与数据边界
+- [渠道集成 Skill](.agents/skills/openagent-channel-integrations/SKILL.md) — 平台配置、范围命令、远程网关、持久化与安全
+- [发布工程 Skill](.agents/skills/openagent-release-engineering/SKILL.md) — 版本规则、beta/RC/stable 渠道、CI 与发布
+- [Embedding 资源 Skill](.agents/skills/openagent-embedding-resources/SKILL.md) — 随包模型来源、大小、校验与激活
+- [更新交付 Skill](.agents/skills/openagent-update-delivery/SKILL.md) — 前端热更新、独立 Runtime 二进制、进程重载与桌面边界
+- [设计系统 Skill](.agents/skills/openagent-design-system/SKILL.md) — 视觉语言、组件、响应式行为与 `DESIGN.md`
 - [Tauri 文档](https://tauri.app/) · [SvelteKit 文档](https://kit.svelte.dev/) · [rig（Rust LLM 框架）](https://github.com/0xPlaygrounds/rig)
 
 ---

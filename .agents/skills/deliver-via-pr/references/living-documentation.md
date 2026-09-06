@@ -9,11 +9,11 @@ each behavior or invariant in one primary source of truth.
 | Change area | Primary documentation owner |
 | --- | --- |
 | Repository ownership, commands, safety, verification, or contribution policy | `AGENTS.md` |
-| Product behavior, architecture, integration contract, configuration, release, or design system | The matching file under `docs/`, plus a README when public setup or behavior changes |
-| Chat transcript, composer, tool rendering, streaming, reconciliation, restore, attachments, chat events, or streamed content | `.agents/skills/openagent-chat-frontend/`; update `docs/` only when the public product or architecture contract also changes |
-| Tauri host, native windows, single-instance behavior, IPC adapters, or native verification | `.agents/skills/openagent-desktop-host/`, plus `docs/design.md` for visible product behavior |
-| Configuration, databases, memory, schemas, migrations, backups, or data-transition UX | `.agents/skills/openagent-persistence/`, plus `docs/configuration.md` for the public contract |
-| CI classification, release workflows, Tauri bundles, sidecars, or pinned helper artifacts | `.agents/skills/openagent-release-engineering/`, plus `docs/release.md` for the public contract |
+| Product behavior, architecture, integration contract, configuration, release, or design system | The matching workspace skill and its focused references; update README only for public overview changes |
+| Chat transcript, composer, tool rendering, streaming, reconciliation, restore, attachments, chat events, or streamed content | `.agents/skills/openagent-chat-frontend/` |
+| Tauri host, native windows, single-instance behavior, IPC adapters, or native verification | `.agents/skills/openagent-desktop-host/`, plus `openagent-design-system` for visible behavior |
+| Configuration, databases, memory, schemas, migrations, backups, or data-transition UX | `.agents/skills/openagent-persistence/` and `openagent-configuration` |
+| CI classification, release workflows, Tauri bundles, sidecars, or pinned helper artifacts | `.agents/skills/openagent-release-engineering/` |
 | A repeatable agent procedure or fragile subsystem invariant | The workspace skill that must trigger for future work |
 | Repository-wide ownership, commands, safety, verification, or contribution policy | `AGENTS.md` |
 | Private SDK implementation | Follow `sdk/AGENTS.md` and update SDK-owned documentation in the SDK commit before updating the parent gitlink |
@@ -23,11 +23,10 @@ only when no existing owner fits. Keep skill bodies concise: place the core
 workflow in `SKILL.md`, deterministic execution in `scripts/`, detailed
 knowledge in `references/`, and output resources in `assets/`.
 
-Do not move public product documentation into a skill merely to reduce the
-`docs/` directory. Skills are agent procedures and operational context; public
-behavior and architecture must remain discoverable without triggering a skill.
-Never place private SDK internals or model-context diagnostics in this public
-repository.
+Keep each `SKILL.md` as a compact router. Put substantial schemas, contracts,
+examples, and conditional procedures in narrowly named references and link each
+one from its entrypoint. Never place private SDK internals or model-context
+diagnostics in this public repository.
 
 ## Documentation policy
 

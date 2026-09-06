@@ -185,11 +185,20 @@ describe("CI module classification", () => {
   });
 
   test("skips expensive modules for documentation-only changes", () => {
-    expect(classifyChangedModules(["README.md", "docs/design.md"])).toEqual(nothing);
+    expect(
+      classifyChangedModules([
+        "README.md",
+        ".agents/skills/openagent-design-system/references/colors.md",
+      ]),
+    ).toEqual(nothing);
   });
 
   test("routes modular release documentation through automation checks", () => {
-    expect(classifyChangedModules(["docs/release/publishing.md"])).toEqual({
+    expect(
+      classifyChangedModules([
+        ".agents/skills/openagent-release-engineering/references/publishing.md",
+      ]),
+    ).toEqual({
       ...nothing,
       automation: true,
     });

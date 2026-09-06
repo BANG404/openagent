@@ -7,8 +7,8 @@ metadata:
 
 # Agent Plugins
 
-Read [docs/agent-plugins.md](../../../docs/agent-plugins.md) for the portable
-format and product behavior. Keep package containment, component-level failure
+Read [package-format.md](references/package-format.md) for the portable format,
+installation behavior, and data layout. Keep package containment, component-level failure
 isolation, placeholder expansion, remote MCP origin rules, and separate
 `PLUGIN_DATA` persistence intact. Installation and trust policy belong to the
 client integration; the portable format does not imply a marketplace or an

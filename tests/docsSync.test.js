@@ -4,17 +4,27 @@ import { documentationSyncErrors } from "../scripts/check-docs-sync.mjs";
 
 describe("agent-facing documentation synchronization", () => {
   test("accepts documentation-only and test-only changes", () => {
-    expect(documentationSyncErrors(["docs/design.md"])).toEqual([]);
+    expect(documentationSyncErrors([".agents/skills/openagent-design-system/SKILL.md"])).toEqual(
+      [],
+    );
     expect(documentationSyncErrors(["tests/chatStream.test.ts"])).toEqual([]);
   });
 
   test("requires documentation for product logic", () => {
     expect(documentationSyncErrors(["src/lib/settingsConfig.ts"])).toHaveLength(1);
-    expect(documentationSyncErrors(["src/lib/settingsConfig.ts", "docs/design.md"])).toEqual([]);
+    expect(
+      documentationSyncErrors([
+        "src/lib/settingsConfig.ts",
+        ".agents/skills/openagent-configuration/references/save-and-reload.md",
+      ]),
+    ).toEqual([]);
   });
 
   test("requires the chat skill for mapped chat behavior", () => {
-    const errors = documentationSyncErrors(["src/lib/chatStream.ts", "docs/design.md"]);
+    const errors = documentationSyncErrors([
+      "src/lib/chatStream.ts",
+      ".agents/skills/openagent-design-system/references/inputs-and-forms.md",
+    ]);
 
     expect(errors).toEqual([
       "Chat frontend logic changed without Markdown under .agents/skills/openagent-chat-frontend/. Update the skill's current invariant in the same change.",
@@ -39,7 +49,12 @@ describe("agent-facing documentation synchronization", () => {
 
   test("requires documentation for automation logic", () => {
     expect(documentationSyncErrors(["scripts/release.mjs"])).toHaveLength(1);
-    expect(documentationSyncErrors(["scripts/release.mjs", "docs/release.md"])).toEqual([]);
+    expect(
+      documentationSyncErrors([
+        "scripts/release.mjs",
+        ".agents/skills/openagent-release-engineering/references/versioning.md",
+      ]),
+    ).toEqual([]);
   });
 
   test("treats manifests and embedded skills as living documentation inputs", () => {

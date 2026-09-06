@@ -16,9 +16,9 @@ steps, commit rules, preflight expectations, and cleanup rules.
    use automatic conflict isolation below. Stop for direction only when
    ownership cannot be separated reliably.
 3. Implement code, focused coverage, and agent-facing documentation together
-   in the default worktree. Keep public behavior in `docs/`, repeatable
-   procedures in the triggering skill, and private SDK internals in the SDK
-   repository.
+   in the default worktree. Keep behavior, architecture, and repeatable
+   procedures in the triggering workspace skill; keep private SDK internals in
+   the SDK repository. Use README files only for the public project overview.
 4. Do not manually run lint, test, check, build, or documentation commands
    that duplicate repository CI. Run implementation-time interactive checks,
    explicitly requested checks, and validators required by another skill.
@@ -90,9 +90,9 @@ worktree when ownership is already clear.
    release qualification, and do not change manifests or lockfiles as
    incidental setup.
 3. Implement code, focused coverage, and agent-facing documentation together
-   in the task worktree. Keep public behavior in `docs/`, repeatable
-   procedures in the triggering skill, and private SDK internals in the SDK
-   repository.
+   in the task worktree. Keep behavior, architecture, and repeatable procedures
+   in the triggering workspace skill; keep private SDK internals in the SDK
+   repository. Use README files only for the public project overview.
 4. Do not manually run lint, test, check, build, or documentation commands
    that duplicate repository CI. Run implementation-time interactive checks,
    explicitly requested checks, and validators required by another skill.

@@ -7,7 +7,7 @@ metadata:
 
 # Modular updates
 
-Read [docs/modular-updates.md](../../../docs/modular-updates.md) for the
+Read [component-updates.md](references/component-updates.md) for the
 development and published boundary matrix, Runtime supervisor contract,
 frontend activation, rollback, and third-party reload behavior.
 

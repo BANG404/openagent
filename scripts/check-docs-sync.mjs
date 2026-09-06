@@ -8,7 +8,6 @@ const AGENT_DOCUMENTATION = [
   /^AGENTS\.md$/,
   /^README(?:\.[^/]+)?\.md$/,
   /^CHANGELOG\.md$/,
-  /^docs\/.+\.md$/,
   /^\.agents\/skills\/[^/]+\/.+\.md$/,
   /^static\/skills\/[^/]+\/.+\.md$/,
 ];
@@ -68,7 +67,7 @@ export function documentationSyncErrors(files) {
 
   if (documentation.length === 0) {
     errors.push(
-      "Logic changed without agent-facing documentation. Update AGENTS.md, a relevant docs/*.md or README, or a workspace SKILL.md in the same change.",
+      "Logic changed without agent-facing documentation. Update AGENTS.md, README, or the relevant workspace SKILL.md/reference in the same change.",
     );
   }
 
