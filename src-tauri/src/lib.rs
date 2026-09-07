@@ -2566,6 +2566,7 @@ async fn open_role_editor_window(
     // room for the two-column resource browser. The body scrolls when the
     // available height is smaller than the full form.
     .inner_size(920.0, 600.0)
+    .max_inner_size(1040.0, 680.0)
     .min_inner_size(760.0, 500.0)
     .transparent(!cfg!(target_os = "linux"))
     .skip_taskbar(true)

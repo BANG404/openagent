@@ -593,6 +593,7 @@
   }
 
   .resource-row > span {
+    flex: 1 1 auto;
     min-width: 0;
     margin: 0;
   }
