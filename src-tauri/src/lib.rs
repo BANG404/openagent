@@ -2566,11 +2566,16 @@ async fn open_role_editor_window(
     .min_inner_size(760.0, 500.0)
     .transparent(!cfg!(target_os = "linux"))
     .skip_taskbar(true)
+    // Keep the utility window hidden until its requester-relative fallback
+    // and any persisted geometry have both been applied. Showing it during
+    // construction would expose the subsequent position changes as a jump.
+    .visible(false)
     .build()
     .map_err(|error| error.to_string())?;
     position_utility_window(&window, &editor)?;
     restore_utility_window_state(&editor)?;
     apply_native_window_material(&editor);
+    editor.show().map_err(|error| error.to_string())?;
     Ok(())
 }
 
@@ -2605,11 +2610,15 @@ async fn open_settings_window(
             .min_inner_size(640.0, 400.0)
             .transparent(!cfg!(target_os = "linux"))
             .skip_taskbar(true)
+            // Apply both placement steps while hidden so opening from the
+            // application menu produces a single stable location.
+            .visible(false)
             .build()
             .map_err(|error| error.to_string())?;
     position_utility_window(&parent, &window)?;
     restore_utility_window_state(&window)?;
     apply_native_window_material(&window);
+    window.show().map_err(|error| error.to_string())?;
     Ok(())
 }
 

@@ -62,6 +62,10 @@
   fixed-size window relative to the requesting workspace window only during
   first creation, and preserve a user-moved position when reopening or
   switching sections.
+- Keep on-demand utility windows hidden while applying requester-relative
+  placement and persisted geometry; reveal them only after both operations
+  complete so opening from the application menu does not visibly move the
+  window twice.
 - Create the role editor on demand as one modeless singleton utility window.
   Repeated create or edit requests retarget, restore, and focus the existing
   WebView. The editor owns role/resource loading and writes through the shared
