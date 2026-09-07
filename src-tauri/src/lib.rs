@@ -3040,6 +3040,27 @@ fn should_reveal_workspace_shell_early(agent_server: bool, is_workspace_window: 
     !agent_server && is_workspace_window
 }
 
+/// Give every desktop process the same Windows taskbar identity.
+///
+/// Workspace windows are intentionally separate processes. Without an
+/// explicit AppUserModelID, Windows can assign them different taskbar groups
+/// even though they use the same executable, which also prevents utility
+/// windows from appearing with their requesting workspace.
+#[cfg(windows)]
+fn set_windows_taskbar_app_id() {
+    use windows::core::PCWSTR;
+    use windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID;
+
+    let app_id: Vec<u16> = "com.iumm.openagent"
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
+    if let Err(error) = unsafe { SetCurrentProcessExplicitAppUserModelID(PCWSTR(app_id.as_ptr())) }
+    {
+        eprintln!("Failed to set Windows taskbar AppUserModelID: {error}");
+    }
+}
+
 fn packaged_runtime_binary() -> Result<std::path::PathBuf, String> {
     let executable = std::env::current_exe()
         .map_err(|error| format!("Failed to resolve desktop executable path: {error}"))?;
@@ -3174,6 +3195,9 @@ mod single_instance_tests {
 }
 
 fn run_with_mode(agent_server: bool) {
+    #[cfg(windows)]
+    set_windows_taskbar_app_id();
+
     let external_launch = if !agent_server {
         match prepare_interactive_persistence() {
             Ok(Some(launch)) => Some(launch),

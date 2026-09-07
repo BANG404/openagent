@@ -84,6 +84,9 @@
   transient/parent relationship elsewhere, and skip the taskbar, so Windows
   presents one OpenAgent taskbar entry; they remain switchable through normal
   window activation and Alt+Tab.
+- Every desktop process uses the same Windows AppUserModelID and GTK App ID;
+  this is required because workspace windows run in separate processes while
+  still belonging to one OpenAgent taskbar group.
 
 ## Platform window conventions
 
