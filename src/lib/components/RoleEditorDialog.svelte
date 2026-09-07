@@ -603,6 +603,9 @@
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .resource-row strong {
     white-space: nowrap;
   }
 
@@ -620,6 +623,9 @@
 
   .resource-row small {
     margin-top: 3px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
   }
 
   .resource-empty,
