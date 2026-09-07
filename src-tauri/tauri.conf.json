@@ -14,7 +14,7 @@
   },
   "app": {
     "macOSPrivateApi": true,
-    "enable-gtk-app-id": true,
+    "enableGTKAppId": true,
     "windows": [
       {
         "title": "openagent",
