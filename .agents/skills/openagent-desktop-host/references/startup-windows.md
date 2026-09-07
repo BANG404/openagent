@@ -87,6 +87,9 @@
 - Every desktop process uses the same Windows AppUserModelID and GTK App ID;
   this is required because workspace windows run in separate processes while
   still belonging to one OpenAgent taskbar group.
+- The development inspector also skips the taskbar; it remains available via
+  normal window activation and Alt+Tab without creating a second OpenAgent
+  taskbar entry during development.
 
 ## Platform window conventions
 

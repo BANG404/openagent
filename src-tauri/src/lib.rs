@@ -3476,6 +3476,10 @@ fn run_with_mode(agent_server: bool) {
                         .title("OpenAgent Dev Inspector")
                         .inner_size(980.0, 760.0)
                         .min_inner_size(720.0, 520.0)
+                        // The inspector is a development utility, not a
+                        // second application surface. Keep it out of the
+                        // taskbar just like Settings and Role windows.
+                        .skip_taskbar(true)
                         .build()?;
                     }
                 }
