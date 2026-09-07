@@ -35,7 +35,9 @@ use openagent_runtime::{
     SubmissionOutcome, SubmitInterruptResponseRequest, UserMessageContext,
 };
 use std::sync::Arc;
-use tauri::{path::BaseDirectory, Emitter, Manager, PhysicalPosition, State};
+use tauri::{
+    path::BaseDirectory, Emitter, LogicalSize, Manager, PhysicalPosition, Size, State,
+};
 
 pub mod frontend_resource;
 pub mod local_capabilities;
@@ -131,6 +133,27 @@ fn restore_utility_window_state(window: &tauri::WebviewWindow) -> Result<(), Str
     window
         .restore_state(StateFlags::POSITION | StateFlags::SIZE | StateFlags::MAXIMIZED)
         .map_err(|error| error.to_string())
+}
+
+/// Clamp restored utility geometry to the current monitor's logical work area.
+/// The window-state plugin can restore a size created on a larger or differently
+/// scaled display, so the builder's limits alone are not sufficient.
+fn constrain_role_editor_size(window: &tauri::WebviewWindow) -> Result<(), String> {
+    let Some(monitor) = window.current_monitor().map_err(|error| error.to_string())? else {
+        return Ok(());
+    };
+    let scale = monitor.scale_factor();
+    let max_width = (monitor.size().width as f64 / scale - 32.0).max(760.0);
+    let max_height = (monitor.size().height as f64 / scale - 48.0).max(440.0);
+    let current = window.inner_size().map_err(|error| error.to_string())?;
+    let width = (current.width as f64 / scale).min(max_width).max(760.0);
+    let height = (current.height as f64 / scale).min(max_height).max(440.0);
+    if width < current.width as f64 / scale || height < current.height as f64 / scale {
+        window
+            .set_size(Size::Logical(LogicalSize::new(width, height)))
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
 }
 
 const DESKTOP_WINDOW_ACTIVATED_EVENT: &str = "desktop-window-activated";
@@ -2593,6 +2616,7 @@ async fn open_role_editor_window(
     .map_err(|error| error.to_string())?;
     position_utility_window(&window, &editor)?;
     restore_utility_window_state(&editor)?;
+    constrain_role_editor_size(&editor)?;
     apply_native_window_material(&editor);
     editor.show().map_err(|error| error.to_string())?;
     Ok(())
