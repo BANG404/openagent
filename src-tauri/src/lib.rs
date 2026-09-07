@@ -2601,6 +2601,11 @@ async fn open_role_editor_window(
         "role-editor",
         product_webview_url(&manager, &query)?,
     )
+    // Make the utility an owned/transient window of the workspace that
+    // requested it. Besides keeping native z-order and minimize behavior,
+    // this makes Windows associate it with the workspace taskbar entry.
+    .parent(&window)
+    .map_err(|error| error.to_string())?
     .title("OpenAgent Role")
     // Keep the editor within a compact laptop work area while leaving enough
     // room for the two-column resource browser. The body scrolls when the
@@ -2650,6 +2655,10 @@ async fn open_settings_window(
     let query = format!("?settings-window={kind}&settings-section={section}");
     let window =
         tauri::WebviewWindowBuilder::new(&app, spec.label, product_webview_url(&manager, &query)?)
+            // Keep settings as an owned/transient utility of the requesting
+            // workspace so Windows groups it with the same taskbar entry.
+            .parent(&parent)
+            .map_err(|error| error.to_string())?
             .title(spec.title)
             .inner_size(spec.initial_width, spec.initial_height)
             .min_inner_size(640.0, 400.0)
