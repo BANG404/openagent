@@ -25,6 +25,8 @@
 
 **`dialog-action-quiet`** — A low-emphasis alternative action in application dialogs. It uses a transparent background, no border, muted text at 13px, and adopts the shared neutral interaction fill plus normal text color on hover. Use it for reversible choices such as “Switch this window” and “Cancel” beside a filled primary action; do not render those choices as bordered secondary buttons. Keep destructive actions visually separate from this quiet action and the primary confirmation.
 
+Dialog footers that pair Cancel with a primary confirmation use the same action hierarchy as the model-configuration dialog: a transparent muted Cancel action followed by the shared compact primary pill. Keep workspace-opening dialogs on this pattern so native-path workflows do not introduce a separate button grammar.
+
 **Settings actions** — Keep settings-page and onboarding actions on a compact 30px grammar with an icon and explicit semantic hierarchy. Creation actions use a content-sized primary blue pill instead of a full-width gray bar. Ordinary file, test, and navigation actions use an 8px shadowless filled control with the same restrained `--mica-divider` perimeter as Settings inputs; inline row-building actions use a shadowless blue text treatment. Destructive actions use a restrained danger-tinted fill and matching subtle perimeter, especially inside a grouped Settings card. Status text and switches remain flat and must not be wrapped in additional gray capsules.
 
 **`text-link`** — Inline body links in `{colors.primary}` (Action Blue). Underlined or non-underlined per context.

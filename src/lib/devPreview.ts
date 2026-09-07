@@ -20,6 +20,7 @@ export type StandaloneDevPreview =
   | "tool-status"
   | "tool-diff"
   | "web-preview"
+  | "wsl-workspace-dialog"
   | "workspace-switcher";
 
 const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
@@ -44,6 +45,7 @@ const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
   ["tool-status-preview", "tool-status"],
   ["tool-diff-preview", "tool-diff"],
   ["web-preview-preview", "web-preview"],
+  ["wsl-workspace-dialog-preview", "wsl-workspace-dialog"],
   ["attachment-composer-preview", "attachment-composer"],
 ];
 

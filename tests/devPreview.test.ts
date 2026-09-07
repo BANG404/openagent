@@ -90,6 +90,15 @@ describe("standalone development previews", () => {
     expect(previewParameterPrefix("compaction-status")).toBe("compaction-status-preview");
   });
 
+  test("exposes the WSL workspace dialog preview", () => {
+    expect(
+      resolveStandaloneDevPreview(new URLSearchParams("wsl-workspace-dialog-preview"), true),
+    ).toBe("wsl-workspace-dialog");
+    expect(previewParameterPrefix("wsl-workspace-dialog")).toBe("wsl-workspace-dialog-preview");
+    expect(previewSource).toContain('preview === "wsl-workspace-dialog"');
+    expect(previewSource).toContain("<WorkspaceDialogs");
+  });
+
   test("keeps the MCP settings tool-control preview wired to its fixture", async () => {
     const [route, settings] = await Promise.all([
       Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),

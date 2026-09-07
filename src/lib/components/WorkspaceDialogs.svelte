@@ -2,6 +2,7 @@
   import { Dialog } from "bits-ui";
   import { t } from "$lib/i18n";
   import type { WslDistribution } from "$lib/types";
+  import SettingsActionButton from "./ui/SettingsActionButton.svelte";
 
   let {
     wslPickerOpen = $bindable(),
@@ -86,15 +87,15 @@
           </div>
         {/if}
         <div class="dialog-actions">
-          <button class="dialog-action-quiet" type="button" onclick={() => (wslPickerOpen = false)}
+          <button class="wsl-dialog-cancel" type="button" onclick={() => (wslPickerOpen = false)}
             >{$t("cancel")}</button
           >
-          <button
-            class="btn-primary"
-            type="submit"
+          <SettingsActionButton
+            label={$t("wslOpen")}
+            tone="primary"
             disabled={wslPickerBusy || !wslDistribution || !wslLinuxPath.trim()}
-            >{$t("wslOpen")}</button
-          >
+            onclick={() => void onOpenWsl()}
+          />
         </div>
       </form>
     </Dialog.Content>
@@ -230,6 +231,23 @@
     color: var(--text);
   }
   :global(.dialog-action-quiet:focus-visible) {
+    border-radius: 3px;
+    box-shadow: var(--focus-ring);
+    outline: none;
+  }
+  .wsl-dialog-cancel {
+    padding: 6px 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .wsl-dialog-cancel:hover {
+    background: transparent;
+    color: var(--text);
+  }
+  .wsl-dialog-cancel:focus-visible {
     border-radius: 3px;
     box-shadow: var(--focus-ring);
     outline: none;

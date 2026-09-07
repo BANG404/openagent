@@ -29,6 +29,7 @@
     UserInputRequest,
     WorkspaceContext,
     UserMessageContext,
+    WslDistribution,
   } from "$lib/types";
 
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
@@ -48,6 +49,7 @@
   import ToolCallCard from "$lib/components/ToolCallCard.svelte";
   import UserInputForm from "$lib/components/UserInputForm.svelte";
   import UserInputSummary from "$lib/components/UserInputSummary.svelte";
+  import WorkspaceDialogs from "$lib/components/WorkspaceDialogs.svelte";
   import WorkspaceSwitcher from "$lib/components/WorkspaceSwitcher.svelte";
 
   let { preview }: { preview: StandaloneDevPreview } = $props();
@@ -156,6 +158,11 @@
   let selectedSuggestion = $state("");
   let pauseValue = $state("");
   let pauseAttachments = $state<ChatAttachment[]>([]);
+  let wslPreviewOpen = $state(true);
+  let wslPreviewError = $state("");
+  let wslPreviewDistribution = $state("Ubuntu-24.04");
+  let wslPreviewPath = $state("/home/developer/Projects/openagent");
+  const wslPreviewDistributions: WslDistribution[] = [{ name: "Ubuntu-24.04" }];
   let quoteValue = $state("");
   let quoteContexts = $state<UserMessageContext[]>([]);
   let quoteFocusRequest = $state(0);
@@ -930,6 +937,20 @@
 
 {#if preview === "desktop-shell"}
   <DesktopShellPreview />
+{:else if preview === "wsl-workspace-dialog"}
+  <WorkspaceDialogs
+    bind:wslPickerOpen={wslPreviewOpen}
+    wslPickerBusy={false}
+    bind:wslPickerError={wslPreviewError}
+    wslDistributions={wslPreviewDistributions}
+    bind:wslDistribution={wslPreviewDistribution}
+    bind:wslLinuxPath={wslPreviewPath}
+    onSelectDistribution={() => {}}
+    onBrowseWsl={() => {}}
+    onOpenWsl={() => {
+      wslPreviewOpen = false;
+    }}
+  />
 {:else if preview === "approval-queue"}
   <main class="approval-queue-preview-stage">
     <section class="approval-queue-preview-stack" aria-label="Approval queue preview">
