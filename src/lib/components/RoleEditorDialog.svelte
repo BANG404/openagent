@@ -334,6 +334,13 @@
     backdrop-filter: none;
   }
 
+  /* Native utility windows can be shorter than the preferred editor canvas.
+     Let the form itself scroll instead of allowing the footer or fields to be
+     clipped by the window frame. */
+  :global(.role-editor-window .role-editor-body) {
+    overflow-y: auto;
+  }
+
   .role-editor-header,
   .role-editor-actions {
     flex: 0 0 auto;

@@ -2562,7 +2562,10 @@ async fn open_role_editor_window(
         product_webview_url(&manager, &query)?,
     )
     .title("OpenAgent Role")
-    .inner_size(1040.0, 680.0)
+    // Keep the editor within a compact laptop work area while leaving enough
+    // room for the two-column resource browser. The body scrolls when the
+    // available height is smaller than the full form.
+    .inner_size(920.0, 600.0)
     .min_inner_size(760.0, 500.0)
     .transparent(!cfg!(target_os = "linux"))
     .skip_taskbar(true)
