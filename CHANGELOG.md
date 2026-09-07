@@ -10,6 +10,9 @@ All notable changes to this project will be documented in this file.
 - **chat**: Render interactive websites
 
 ### Bug Fixes
+- **native**: Use owned windows for Windows taskbar grouping
+- **native**: Group utility windows with main taskbar entry
+- **native**: Apply rustfmt to desktop host
 - Wrap role resource descriptions
 - Constrain reused role editor window
 - Clamp restored role editor size to monitor
