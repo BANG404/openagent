@@ -3,7 +3,9 @@
 Image attachments are offered by the composer only when the selected model's
 visual multimodality setting is enabled. Text and document attachments remain
 available independently; the runtime enforces the same model capability when
-building the provider request.
+building the provider request. Ordinary and Quick Chat composers resolve that
+capability from the same exact provider/model binding and update it after the
+latest configuration-change reload without remounting or clearing the draft.
 
 - Text selected inside an assistant answer exposes one compact, localized
   `Add to chat` floating action. Adding it creates a structured `quote` context

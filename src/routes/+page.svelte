@@ -47,6 +47,7 @@
     togglePinnedProjectPath,
   } from "$lib/sidebarProjects";
   import { t, tr, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
+  import { LatestRequest } from "$lib/latestRequest";
   import { showToast } from "$lib/toast";
   import { decodeModelBinding } from "$lib/modelBinding";
   import { DEFAULT_QUICK_CHAT_SHORTCUT, normalizeQuickChatShortcut } from "$lib/quickChatShortcut";
@@ -376,6 +377,7 @@
   let fileChangesPanelSelectionKey = $state<string | null>(null);
   let workspace = $state<WorkspaceContext | null>(null);
   let config = $state<AppConfig | null>(null);
+  const settingsRequests = new LatestRequest();
   let isMemorySyncing = $state(false);
   let settingsOpen = $state(false);
   let roleEditorOpen = $state(false);
@@ -601,7 +603,10 @@
   });
   const composerPreferences = new ComposerPreferences({
     getConfig: () => config,
-    setConfig: (next) => (config = next),
+    setConfig: (next) => {
+      settingsRequests.invalidate();
+      config = next;
+    },
     loadSettings,
     saveSettings,
     tauriAvailable,
@@ -2172,6 +2177,7 @@
   // ─── Global event listeners (set up once, route by conv_id) ──────────────────
 
   async function applyStartupBootstrap(bootstrap: StartupBootstrap) {
+    settingsRequests.invalidate();
     config = normalizeConfigShape(bootstrap.config);
     applyTheme(config.theme ?? "system");
     await initI18n(config.language);
@@ -2411,9 +2417,12 @@
       })().catch((error) => console.error("Failed to finish onboarding handoff:", error));
     });
     register("settings-changed", () => {
-      void openAgent
-        .invokeProduct("get_settings", {})
+      void settingsRequests
+        .resolve(() =>
+          openAgent.invokeProduct("get_settings", {}).then((value) => value as AppConfig),
+        )
         .then((reloaded) => {
+          if (!reloaded) return;
           const previousAutostart = config?.launch_on_startup ?? false;
           const previousShortcut = normalizeQuickChatShortcut(
             config?.quick_chat_shortcut ?? DEFAULT_QUICK_CHAT_SHORTCUT,
@@ -3345,9 +3354,11 @@
     }
 
     try {
-      config = normalizeConfigShape(
-        (await openAgent.invokeProduct("get_settings", {})) as AppConfig,
+      const loaded = await settingsRequests.resolve(() =>
+        openAgent.invokeProduct("get_settings", {}).then((value) => value as AppConfig),
       );
+      if (!loaded) return;
+      config = normalizeConfigShape(loaded);
       applyTheme(config.theme ?? "system");
       await initI18n(config.language);
       if (config.workspace) workspacePath = config.workspace;
@@ -4700,6 +4711,7 @@
         });
         savedSnapshot = normalizeConfigShape(saved as AppConfig);
       }
+      settingsRequests.invalidate();
       config = structuredClone(savedSnapshot);
       applyTheme(config.theme ?? "system");
       setLocale((config.language ?? "zh") as Locale);

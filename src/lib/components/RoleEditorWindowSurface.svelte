@@ -4,6 +4,7 @@
   import { applyDocumentTheme, createNativeThemeSynchronizer } from "$lib/appTheme";
   import { normalizeConfigShape } from "$lib/config";
   import { setLocale, t, type Locale } from "$lib/i18n";
+  import { LatestRequest } from "$lib/latestRequest";
   import { desktopOpenAgent, emit, listen } from "$lib/openagent/tauriClient";
   import {
     parseRoleEditorRequest,
@@ -32,6 +33,7 @@
   let saving = $state(false);
   let loadError = $state("");
   const appWindow = getCurrentWindow();
+  const settingsRequests = new LatestRequest();
   const synchronizeNativeTheme = createNativeThemeSynchronizer({
     applyWebTheme: applyDocumentTheme,
     setNativeTheme: (theme) => appWindow.setTheme(theme),
@@ -53,7 +55,9 @@
     loadError = "";
     try {
       const [nextConfig, nextSkills, localRoles, globalRoles] = await Promise.all([
-        desktopOpenAgent.invokeProduct("get_settings", {}).then((value) => value as AppConfig),
+        settingsRequests.resolve(() =>
+          desktopOpenAgent.invokeProduct("get_settings", {}).then((value) => value as AppConfig),
+        ),
         desktopOpenAgent
           .invokeProduct("list_skills", {})
           .then((value) => value as SkillMetadata[])
@@ -61,7 +65,7 @@
         desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "local" }).catch(() => []),
         desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "global" }).catch(() => []),
       ]);
-      applyConfig(nextConfig);
+      if (nextConfig) applyConfig(nextConfig);
       skills = nextSkills;
       role = nextRequest.roleId
         ? ([...localRoles, ...globalRoles].find((item) => item.id === nextRequest.roleId) ?? null)
@@ -128,10 +132,13 @@
     }).then((stop) => (disposed ? stop() : (stopRequests = stop)));
     void listen("settings-changed", () => {
       if (!disposed) {
-        void desktopOpenAgent
-          .invokeProduct("get_settings", {})
-          .then((value) => value as AppConfig)
-          .then(applyConfig)
+        void settingsRequests
+          .resolve(() =>
+            desktopOpenAgent.invokeProduct("get_settings", {}).then((value) => value as AppConfig),
+          )
+          .then((next) => {
+            if (next) applyConfig(next);
+          })
           .catch((error) => (loadError = String(error)));
       }
     }).then((stop) => (disposed ? stop() : (stopSettings = stop)));

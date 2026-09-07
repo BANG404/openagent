@@ -34,9 +34,10 @@
   displays the new streaming conversation there. The launcher must not mutate
   the primary window's active workspace, role, model default, or transcript.
   Reload launcher settings when configuration changes so enabled model options
-  stay current. Preserve the launcher's model while it remains available; if
-  it becomes unavailable, fall back to the configured default and then the
-  first available model. Every successful in-app settings save must emit the
+  and the selected model's image-attachment capability stay current. Preserve
+  the launcher's model while it remains available; if it becomes unavailable,
+  fall back to the configured default and then the first available model. Every
+  successful in-app settings save must emit the
   payload-free `settings-changed` notification after persistence, because the
   file watcher suppresses a reload for configuration already applied in memory;
   the hidden launcher reloads the local settings and reapplies its theme.

@@ -5,6 +5,7 @@
   import SettingsView from "$lib/components/SettingsView.svelte";
   import { applyDocumentTheme, createNativeThemeSynchronizer } from "$lib/appTheme";
   import { normalizeConfigShape } from "$lib/config";
+  import { LatestRequest } from "$lib/latestRequest";
   import { desktopOpenAgent, emit, invoke, listen } from "$lib/openagent/tauriClient";
   import {
     settingsWindowSection,
@@ -31,6 +32,7 @@
   let loadError = $state("");
   let stageElement: HTMLElement;
   const appWindow = getCurrentWindow();
+  const settingsRequests = new LatestRequest();
   const windowTitleKeys: Record<SettingsWindowKind, TranslationKeys> = {
     general: "settingsTitle",
     models: "modelsWindowTitle",
@@ -58,13 +60,18 @@
   }
 
   async function loadSurface(): Promise<void> {
-    const [loadedConfig, workspace] = await Promise.all([
-      desktopOpenAgent.invokeProduct("get_settings", {}).then((value) => value as AppConfig),
-      desktopOpenAgent
-        .invokeProduct("get_workspace_context", {})
-        .then((value) => value as WorkspaceContext)
-        .catch(() => null),
-    ]);
+    const loaded = await settingsRequests.resolve(async () => {
+      const [loadedConfig, workspace] = await Promise.all([
+        desktopOpenAgent.invokeProduct("get_settings", {}).then((value) => value as AppConfig),
+        desktopOpenAgent
+          .invokeProduct("get_workspace_context", {})
+          .then((value) => value as WorkspaceContext)
+          .catch(() => null),
+      ]);
+      return { loadedConfig, workspace };
+    });
+    if (!loaded) return;
+    const { loadedConfig, workspace } = loaded;
     applyConfig(loadedConfig);
     workspacePath = workspace?.path ?? "";
     loadError = "";
@@ -76,6 +83,7 @@
       config: snapshot,
       baseConfig: normalizeConfigShape(baseConfig ?? config ?? snapshot),
     })) as AppConfig;
+    settingsRequests.invalidate();
     const normalized = applyConfig(saved);
     await emit("settings-changed");
     return structuredClone(normalized);

@@ -152,6 +152,26 @@ describe("model reasoning effort config", () => {
   });
 });
 
+describe("model visual multimodality config", () => {
+  test("retains only configured models explicitly enabled for image input", () => {
+    const normalized = normalizeConfigShape({
+      providers: [
+        {
+          id: "test",
+          name: "Test",
+          provider: "openai",
+          enabled: true,
+          api_key: "",
+          models: ["vision", "ordinary"],
+          model_vision_enabled: { vision: true, ordinary: false, removed: true },
+        },
+      ],
+    } as unknown as AppConfig);
+
+    expect(normalized.providers[0].model_vision_enabled).toEqual({ vision: true });
+  });
+});
+
 describe("automatic memory retrieval config", () => {
   test("defaults older configuration payloads to agent-directed retrieval", () => {
     expect(normalizeConfigShape({} as AppConfig).memory_retrieval_enabled).toBe(false);

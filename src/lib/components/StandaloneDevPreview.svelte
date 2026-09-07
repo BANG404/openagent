@@ -1509,6 +1509,7 @@
       slashCommands={[]}
       enableMentions={false}
       showAttachments
+      allowImageAttachments
       showModelSelector={false}
       showStopButton={false}
       attachmentPreviewLoader={loadAttachment}

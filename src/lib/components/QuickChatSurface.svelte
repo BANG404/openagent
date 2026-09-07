@@ -8,7 +8,9 @@
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
   import { initI18n, t, type Locale } from "$lib/i18n";
+  import { LatestRequest } from "$lib/latestRequest";
   import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
+  import { modelSupportsVision } from "$lib/modelCapabilities";
   import { desktopOpenAgent, listen } from "$lib/openagent/tauriClient";
   import {
     loadQuickChatPreferences,
@@ -31,6 +33,7 @@
   const query = typeof window === "undefined" ? null : new URLSearchParams(window.location.search);
   const isQuickChatWindow = tauriAvailable && query?.has("quick-chat-window") === true;
   const appWindow = isQuickChatWindow ? getCurrentWindow() : null;
+  const settingsRequests = new LatestRequest();
   const previewTheme = query?.get("quick-chat-preview-theme");
   const previewLocale: Locale = query?.get("quick-chat-preview-locale") === "en" ? "en" : "zh";
   const browserModeNotice =
@@ -61,6 +64,7 @@
         })),
       ),
   );
+  let selectedModelSupportsVision = $derived(preview || modelSupportsVision(config, selectedModel));
   let roleOptions = $derived([
     {
       value: defaultRoleKey,
@@ -125,9 +129,11 @@
       await initI18n(previewLocale);
       return;
     }
-    config = normalizeConfigShape(
-      (await desktopOpenAgent.invokeProduct("get_settings", {})) as AppConfig,
+    const loaded = await settingsRequests.resolve(() =>
+      desktopOpenAgent.invokeProduct("get_settings", {}).then((value) => value as AppConfig),
     );
+    if (!loaded) return;
+    config = normalizeConfigShape(loaded);
     recentWorkspaces = config.recent_workspaces ?? [];
     applyDocumentTheme(config.theme ?? "system");
     await initI18n(config.language);
@@ -309,7 +315,11 @@
         })
       : null;
     const unlistenSettings = isQuickChatWindow
-      ? listen("settings-changed", () => void loadSettings(selectedModel).then(persistPreferences))
+      ? listen("settings-changed", () => {
+          void loadSettings(selectedModel)
+            .then(persistPreferences)
+            .catch((error) => console.error("Failed to reload quick-chat settings:", error));
+        })
       : null;
     const unlistenFocus = appWindow?.onFocusChanged(({ payload: focused }) => {
       if (focusSuppressed) return;
@@ -368,6 +378,7 @@
         slashCommands={[]}
         enableMentions={false}
         showAttachments
+        allowImageAttachments={selectedModelSupportsVision}
         attachmentDisplay="strip"
         showModelSelector={false}
         onUploadAttachments={preview ? uploadPreviewAttachments : undefined}

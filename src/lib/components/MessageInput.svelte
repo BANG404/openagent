@@ -23,6 +23,7 @@
   import { segmentComposerTokens } from "./composerTokenHighlights";
   import { t } from "$lib/i18n";
   import { showToast } from "$lib/toast";
+  import { attachmentNameSupported, selectableAttachmentExtensions } from "$lib/attachmentPolicy";
 
   export interface SlashCommand {
     id: string;
@@ -229,33 +230,10 @@
   const paletteComposerGap = 6;
   const paletteViewportInset = 8;
   const maxAttachmentBytes = 20 * 1024 * 1024;
-  const supportedAttachmentExtensions = new Set([
-    "png",
-    "jpg",
-    "jpeg",
-    "gif",
-    "webp",
-    "svg",
-    "pdf",
-    "txt",
-    "md",
-    "markdown",
-    "rtf",
-    "html",
-    "htm",
-    "css",
-    "csv",
-    "xml",
-    "js",
-    "jsx",
-    "ts",
-    "tsx",
-    "py",
-    "json",
-    "yaml",
-    "yml",
-    "toml",
-  ]);
+  const attachmentExtensions = $derived(selectableAttachmentExtensions(allowImageAttachments));
+  const browserAttachmentAccept = $derived(
+    attachmentExtensions.map((extension) => `.${extension}`).join(","),
+  );
 
   function attachmentKind(path: string): ChatAttachment["kind"] {
     return /\.(png|jpe?g|gif|webp)$/i.test(path) ? "image" : "document";
@@ -300,37 +278,22 @@
         filters: [
           {
             name: "Multimodal files",
-            extensions: [
-              "png",
-              "jpg",
-              "jpeg",
-              "gif",
-              "webp",
-              "svg",
-              "pdf",
-              "txt",
-              "md",
-              "markdown",
-              "rtf",
-              "html",
-              "css",
-              "csv",
-              "xml",
-              "js",
-              "jsx",
-              "ts",
-              "tsx",
-              "py",
-              "json",
-              "yaml",
-              "yml",
-              "toml",
-            ],
+            extensions: attachmentExtensions,
           },
         ],
       });
       const paths = typeof selected === "string" ? [selected] : (selected ?? []);
-      appendAttachments(paths);
+      const accepted = paths.filter((path) => isSupportedAttachment(path));
+      const unsupported = paths.find((path) => !isSupportedAttachment(path));
+      if (unsupported) {
+        const unsupportedName = unsupported.split(/[/\\]/).pop() ?? unsupported;
+        showToast({
+          title: $t("attachmentPasteFailed"),
+          description: `${unsupportedName}: ${$t("attachmentUnsupported")}`,
+          variant: "error",
+        });
+      }
+      appendAttachments(accepted);
     } finally {
       await onAttachmentPickerOpenChange?.(false);
     }
@@ -410,11 +373,7 @@
   }
 
   function isSupportedAttachment(name: string): boolean {
-    const extension = name.split(".").pop()?.toLowerCase() ?? "";
-    if (!allowImageAttachments && ["png", "jpg", "jpeg", "gif", "webp"].includes(extension)) {
-      return false;
-    }
-    return supportedAttachmentExtensions.has(extension);
+    return attachmentNameSupported(name, allowImageAttachments);
   }
 
   async function handlePaste(event: ClipboardEvent) {
@@ -875,7 +834,7 @@
       bind:this={browserFileInput}
       type="file"
       multiple
-      accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.pdf,.txt,.md,.markdown,.rtf,.html,.htm,.css,.csv,.xml,.js,.jsx,.ts,.tsx,.py,.json,.yaml,.yml,.toml"
+      accept={browserAttachmentAccept}
       onchange={handleBrowserFileSelection}
     />
   {/if}

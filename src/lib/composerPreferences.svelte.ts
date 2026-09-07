@@ -1,4 +1,5 @@
 import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
+import { modelSupportsVision } from "$lib/modelCapabilities";
 import { desktopOpenAgent } from "$lib/openagent/tauriClient";
 import { showToast } from "$lib/toast";
 import { tr } from "$lib/i18n";
@@ -59,10 +60,7 @@ export class ComposerPreferences {
   }
 
   get selectedModelSupportsVision(): boolean {
-    const binding = decodeModelBinding(this.selectedModel);
-    return Boolean(
-      binding && this.selectedProvider?.model_vision_enabled?.[binding.model] === true,
-    );
+    return modelSupportsVision(this.dependencies.getConfig(), this.selectedModel);
   }
 
   syncFromConfig(): void {

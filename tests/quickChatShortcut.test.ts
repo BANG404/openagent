@@ -54,7 +54,8 @@ describe("quick chat shortcut", () => {
 
     expect(saveSettingsSource).toContain('await emit("settings-changed").catch');
     expect(surfaceSource).toContain('listen("settings-changed"');
-    expect(surfaceSource).toContain("loadSettings(selectedModel).then(persistPreferences)");
+    expect(surfaceSource).toMatch(/loadSettings\(selectedModel\)\s*\.then\(persistPreferences\)/);
+    expect(surfaceSource).toContain("allowImageAttachments={selectedModelSupportsVision}");
   });
 
   test("normalizes missing and unsafe shortcuts to the default", () => {
