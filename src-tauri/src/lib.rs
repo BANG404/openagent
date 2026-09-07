@@ -2556,6 +2556,21 @@ async fn open_role_editor_window(
         percent_encoding::NON_ALPHANUMERIC,
     );
     let query = format!("?role-editor-window=1&role-id={role_id}&requester-label={requester}");
+    let (initial_width, initial_height, max_width, max_height) = window
+        .current_monitor()
+        .map_err(|error| error.to_string())?
+        .map(|monitor| {
+            let scale = monitor.scale_factor();
+            let width = monitor.size().width as f64 / scale;
+            let height = monitor.size().height as f64 / scale;
+            (
+                920.0_f64.min((width - 32.0).max(760.0)),
+                600.0_f64.min((height - 48.0).max(440.0)),
+                (width - 16.0).max(760.0),
+                (height - 24.0).max(440.0),
+            )
+        })
+        .unwrap_or((920.0, 600.0, 1040.0, 680.0));
     let editor = tauri::WebviewWindowBuilder::new(
         &app,
         "role-editor",
@@ -2565,9 +2580,9 @@ async fn open_role_editor_window(
     // Keep the editor within a compact laptop work area while leaving enough
     // room for the two-column resource browser. The body scrolls when the
     // available height is smaller than the full form.
-    .inner_size(920.0, 600.0)
-    .max_inner_size(1040.0, 680.0)
-    .min_inner_size(760.0, 500.0)
+    .inner_size(initial_width, initial_height)
+    .max_inner_size(max_width, max_height)
+    .min_inner_size(760.0, 440.0)
     .transparent(!cfg!(target_os = "linux"))
     .skip_taskbar(true)
     // Keep the utility window hidden until its requester-relative fallback
