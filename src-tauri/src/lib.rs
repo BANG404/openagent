@@ -2566,6 +2566,7 @@ async fn open_role_editor_window(
         editor
             .emit("role-editor-requested", &request)
             .map_err(|error| error.to_string())?;
+        constrain_role_editor_size(&editor)?;
         editor.unminimize().map_err(|error| error.to_string())?;
         editor.show().map_err(|error| error.to_string())?;
         return editor.set_focus().map_err(|error| error.to_string());
