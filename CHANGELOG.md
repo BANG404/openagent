@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.58.0-beta.1] - 2026-09-07
+
+### Features
+- **models**: Configure visual multimodality per model
+- **agent**: Streamline built-in tool surface
+- **chat**: Render interactive websites
+
+### Bug Fixes
+- Wrap role resource descriptions
+- Constrain reused role editor window
+- Clamp restored role editor size to monitor
+- Scale role editor window to display work area
+- Constrain restored role editor geometry
+- Fit role editor utility window on small screens
+- Reveal utility windows after positioning
+- **chat**: Route frontend render responses by conversation
+- **chat**: Refresh Mermaid dev rendering
+- **chat**: Serialize mermaid timeout handling
+- **chat**: Bound Mermaid request end-to-end
+- **settings**: Keep utility window geometry fixed
+- **quick-chat**: Keep popup geometry fixed
+- **chat**: Pass conversation id to html previews
+- **chat**: Scope rendered previews and bound mermaid
+- **checkpoint**: Prevent render timeout on cyclic ancestry
+- **desktop**: Prevent settings window bounce
+- Persist utility window geometry
+- **desktop**: Make onboarding window draggable
+- **desktop**: Position utility windows relative to parent
+- **desktop**: Update routed runtime contracts
+- **desktop**: Route Runtime operations through SDK client
+- **desktop**: Preserve Windows titlebar maximize
+
 ## [0.57.0-beta.1] - 2026-09-06
 
 ### Features
