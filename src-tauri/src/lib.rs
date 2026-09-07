@@ -2596,31 +2596,38 @@ async fn open_role_editor_window(
             )
         })
         .unwrap_or((920.0, 600.0, 1040.0, 680.0));
-    let editor = tauri::WebviewWindowBuilder::new(
+    let editor_builder = tauri::WebviewWindowBuilder::new(
         &app,
         "role-editor",
         product_webview_url(&manager, &query)?,
-    )
-    // Make the utility an owned/transient window of the workspace that
-    // requested it. Besides keeping native z-order and minimize behavior,
-    // this makes Windows associate it with the workspace taskbar entry.
-    .parent(&window)
-    .map_err(|error| error.to_string())?
-    .title("OpenAgent Role")
-    // Keep the editor within a compact laptop work area while leaving enough
-    // room for the two-column resource browser. The body scrolls when the
-    // available height is smaller than the full form.
-    .inner_size(initial_width, initial_height)
-    .max_inner_size(max_width, max_height)
-    .min_inner_size(760.0, 440.0)
-    .transparent(!cfg!(target_os = "linux"))
-    .skip_taskbar(true)
-    // Keep the utility window hidden until its requester-relative fallback
-    // and any persisted geometry have both been applied. Showing it during
-    // construction would expose the subsequent position changes as a jump.
-    .visible(false)
-    .build()
-    .map_err(|error| error.to_string())?;
+    );
+    // Windows needs an owned window (not a child window) for taskbar
+    // association. Other desktop platforms use their transient/child
+    // relationship API for the same utility-window behavior.
+    #[cfg(windows)]
+    let editor_builder = editor_builder
+        .owner(&window)
+        .map_err(|error| error.to_string())?;
+    #[cfg(not(windows))]
+    let editor_builder = editor_builder
+        .parent(&window)
+        .map_err(|error| error.to_string())?;
+    let editor = editor_builder
+        .title("OpenAgent Role")
+        // Keep the editor within a compact laptop work area while leaving enough
+        // room for the two-column resource browser. The body scrolls when the
+        // available height is smaller than the full form.
+        .inner_size(initial_width, initial_height)
+        .max_inner_size(max_width, max_height)
+        .min_inner_size(760.0, 440.0)
+        .transparent(!cfg!(target_os = "linux"))
+        .skip_taskbar(true)
+        // Keep the utility window hidden until its requester-relative fallback
+        // and any persisted geometry have both been applied. Showing it during
+        // construction would expose the subsequent position changes as a jump.
+        .visible(false)
+        .build()
+        .map_err(|error| error.to_string())?;
     position_utility_window(&window, &editor)?;
     restore_utility_window_state(&editor)?;
     constrain_role_editor_size(&editor)?;
@@ -2653,22 +2660,27 @@ async fn open_settings_window(
     }
 
     let query = format!("?settings-window={kind}&settings-section={section}");
-    let window =
-        tauri::WebviewWindowBuilder::new(&app, spec.label, product_webview_url(&manager, &query)?)
-            // Keep settings as an owned/transient utility of the requesting
-            // workspace so Windows groups it with the same taskbar entry.
-            .parent(&parent)
-            .map_err(|error| error.to_string())?
-            .title(spec.title)
-            .inner_size(spec.initial_width, spec.initial_height)
-            .min_inner_size(640.0, 400.0)
-            .transparent(!cfg!(target_os = "linux"))
-            .skip_taskbar(true)
-            // Apply both placement steps while hidden so opening from the
-            // application menu produces a single stable location.
-            .visible(false)
-            .build()
-            .map_err(|error| error.to_string())?;
+    let settings_builder =
+        tauri::WebviewWindowBuilder::new(&app, spec.label, product_webview_url(&manager, &query)?);
+    #[cfg(windows)]
+    let settings_builder = settings_builder
+        .owner(&parent)
+        .map_err(|error| error.to_string())?;
+    #[cfg(not(windows))]
+    let settings_builder = settings_builder
+        .parent(&parent)
+        .map_err(|error| error.to_string())?;
+    let window = settings_builder
+        .title(spec.title)
+        .inner_size(spec.initial_width, spec.initial_height)
+        .min_inner_size(640.0, 400.0)
+        .transparent(!cfg!(target_os = "linux"))
+        .skip_taskbar(true)
+        // Apply both placement steps while hidden so opening from the
+        // application menu produces a single stable location.
+        .visible(false)
+        .build()
+        .map_err(|error| error.to_string())?;
     position_utility_window(&parent, &window)?;
     restore_utility_window_state(&window)?;
     apply_native_window_material(&window);

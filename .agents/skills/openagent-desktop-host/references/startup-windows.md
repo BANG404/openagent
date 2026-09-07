@@ -80,9 +80,10 @@
   `on_window_ready` restore: they are first placed relative to the requesting
   workspace, then an explicit restore applies a saved position/size when one
   exists. Reopening an existing utility window must not recenter it. These
-  modeless utility windows are owned/transient children of the requesting
-  workspace and skip the taskbar, so Windows presents one OpenAgent taskbar
-  entry; they remain switchable through normal window activation and Alt+Tab.
+  modeless utility windows use a native owner on Windows and a
+  transient/parent relationship elsewhere, and skip the taskbar, so Windows
+  presents one OpenAgent taskbar entry; they remain switchable through normal
+  window activation and Alt+Tab.
 
 ## Platform window conventions
 
