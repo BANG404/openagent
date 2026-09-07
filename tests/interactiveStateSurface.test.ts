@@ -122,3 +122,17 @@ test("reuses shared controls across onboarding and settings collections", async 
   expect(workspaceBrowser.match(/class="desktop-menu-item project-menu-item/g)).toHaveLength(3);
   expect(workspaceBrowser).not.toContain(".project-menu-item[data-highlighted]");
 });
+
+test("reuses the shared Select for application-owned choice fields", async () => {
+  const sources = await Promise.all(
+    ["UserInputForm.svelte", "WorkspaceDialogs.svelte", "DevInspector.svelte"].map((file) =>
+      readFile(new URL(`../src/lib/components/${file}`, import.meta.url), "utf8"),
+    ),
+  );
+
+  for (const source of sources) {
+    expect(source).toContain("ui/Select.svelte");
+    expect(source).toContain("<Select");
+    expect(source).not.toContain("<select");
+  }
+});

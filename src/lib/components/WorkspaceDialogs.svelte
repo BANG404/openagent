@@ -3,6 +3,7 @@
   import { t } from "$lib/i18n";
   import type { WslDistribution } from "$lib/types";
   import SettingsActionButton from "./ui/SettingsActionButton.svelte";
+  import Select from "./ui/Select.svelte";
 
   let {
     wslPickerOpen = $bindable(),
@@ -47,18 +48,22 @@
           void onOpenWsl();
         }}
       >
-        <label class="wsl-field">
-          <span>{$t("wslDistribution")}</span>
-          <select
+        <div class="wsl-field">
+          <label for="wsl-distribution-select">{$t("wslDistribution")}</label>
+          <Select
+            id="wsl-distribution-select"
             bind:value={wslDistribution}
+            items={wslDistributions.map((distribution) => ({
+              value: distribution.name,
+              label: distribution.name,
+            }))}
             disabled={wslPickerBusy || wslDistributions.length === 0}
-            onchange={(event) => void onSelectDistribution(event.currentTarget.value)}
-          >
-            {#each wslDistributions as distribution (distribution.name)}
-              <option value={distribution.name}>{distribution.name}</option>
-            {/each}
-          </select>
-        </label>
+            ariaLabel={$t("wslDistribution")}
+            triggerClass="wsl-distribution-select"
+            contentAlign="start"
+            onValueChange={(value) => void onSelectDistribution(value)}
+          />
+        </div>
         <label class="wsl-field">
           <span>{$t("wslLinuxPath")}</span>
           <div class="wsl-path-row">
@@ -143,7 +148,6 @@
     font-size: 12px;
     font-weight: 600;
   }
-  :global(.wsl-field select),
   :global(.wsl-field input) {
     min-width: 0;
     height: 36px;
@@ -157,19 +161,18 @@
     font-weight: 400;
     box-shadow: var(--control-shadow);
   }
-  :global(.wsl-field select) {
-    padding: 0 10px;
+  :global(.ui-select-trigger.wsl-distribution-select) {
+    height: 36px;
+    font-weight: 400;
   }
   :global(.wsl-field input) {
     flex: 1;
     padding: 0 11px;
     font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   }
-  :global(.wsl-field select:focus),
   :global(.wsl-field input:focus) {
     box-shadow: var(--control-shadow), var(--focus-ring);
   }
-  :global(.wsl-field select:disabled),
   :global(.wsl-field input:disabled) {
     cursor: not-allowed;
     opacity: 0.55;

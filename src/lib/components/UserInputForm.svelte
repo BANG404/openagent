@@ -2,6 +2,7 @@
   import { untrack } from "svelte";
   import { t } from "$lib/i18n";
   import type { AskUserField, UserInputRequest } from "$lib/types";
+  import Select from "./ui/Select.svelte";
 
   interface Props {
     request: UserInputRequest;
@@ -175,17 +176,16 @@
               rows="3"
               oninput={(e) => (values[field.name] = e.currentTarget.value)}></textarea>
           {:else if field.type === "select"}
-            <select
+            <Select
               id={`f-${request.request_id}-${field.name}`}
-              class={inputCls(field)}
               value={String(values[field.name] ?? "")}
-              onchange={(e) => (values[field.name] = e.currentTarget.value)}
-            >
-              <option value="" disabled>—</option>
-              {#each field.options as option (option)}
-                <option value={option}>{option}</option>
-              {/each}
-            </select>
+              items={field.options.map((option) => ({ value: option, label: option }))}
+              placeholder="—"
+              ariaLabel={field.label}
+              triggerClass={fieldHasError(field) ? "ask-user-select-error" : ""}
+              contentAlign="start"
+              onValueChange={(value) => (values[field.name] = value)}
+            />
           {:else if field.type === "date"}
             <input
               id={`f-${request.request_id}-${field.name}`}
@@ -220,3 +220,9 @@
     </button>
   </div>
 </div>
+
+<style>
+  :global(.ui-select-trigger.ask-user-select-error) {
+    border-color: #ef4444;
+  }
+</style>

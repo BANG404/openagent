@@ -6,6 +6,7 @@
   import { onDestroy, onMount } from "svelte";
   import InspectorDatabase from "$lib/components/InspectorDatabase.svelte";
   import Tooltip from "$lib/components/Tooltip.svelte";
+  import Select from "$lib/components/ui/Select.svelte";
   import { showToast, updateToast } from "$lib/toast";
   import { summarizeCacheUsage } from "$lib/cacheUsage";
   import {
@@ -473,12 +474,19 @@
             <p class="eyebrow">LIVE REQUEST TRACES</p>
             <h2>Agent-entry messages</h2>
           </div>
-          <select bind:value={traceFilter} aria-label="Filter request session"
-            ><option value="all">All sessions</option>{#each sessions as session (session)}<option
-                value={session}
-                >Session {session === "legacy" ? "(legacy)" : session.slice(0, 8)}</option
-              >{/each}</select
-          >
+          <Select
+            bind:value={traceFilter}
+            items={[
+              { value: "all", label: "All sessions" },
+              ...sessions.map((session) => ({
+                value: session,
+                label: `Session ${session === "legacy" ? "(legacy)" : session.slice(0, 8)}`,
+              })),
+            ]}
+            ariaLabel="Filter request session"
+            triggerClass="inspector-session-select"
+            contentAlign="end"
+          />
         </div>
         <div class="conversation-list">
           {#each traces as trace (trace.id)}
@@ -911,6 +919,9 @@
     padding: 14px 15px;
     min-height: 58px;
     border-bottom: 1px solid var(--border);
+  }
+  :global(.ui-select-trigger.inspector-session-select) {
+    width: 160px;
   }
   .panel-heading > span,
   .trace-stats span,

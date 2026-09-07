@@ -8,6 +8,11 @@
   neighboring hover and selected fills visibly separate. Options with
   descriptions may grow vertically and use 11px secondary copy; do not
   compress them to the single-line height.
+- Route application-owned single-choice fields through the shared `Select`
+  component, including workspace dialogs, `ask_user` forms, and development
+  utilities. Preserve each field's validation and change callback at the
+  caller boundary; do not fall back to a browser-native `<select>` that forks
+  the menu surface, density, and keyboard behavior.
 - Keep reusable interaction and menu presentation in `src/app.css`: the shared
   hover/open/selected control fill, menu rows, search fields, empty states, and
   separators are application primitives. Components own only their dimensions,
