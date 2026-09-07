@@ -35,9 +35,7 @@ use openagent_runtime::{
     SubmissionOutcome, SubmitInterruptResponseRequest, UserMessageContext,
 };
 use std::sync::Arc;
-use tauri::{
-    path::BaseDirectory, Emitter, LogicalSize, Manager, PhysicalPosition, Size, State,
-};
+use tauri::{path::BaseDirectory, Emitter, LogicalSize, Manager, PhysicalPosition, Size, State};
 
 pub mod frontend_resource;
 pub mod local_capabilities;
@@ -139,7 +137,10 @@ fn restore_utility_window_state(window: &tauri::WebviewWindow) -> Result<(), Str
 /// The window-state plugin can restore a size created on a larger or differently
 /// scaled display, so the builder's limits alone are not sufficient.
 fn constrain_role_editor_size(window: &tauri::WebviewWindow) -> Result<(), String> {
-    let Some(monitor) = window.current_monitor().map_err(|error| error.to_string())? else {
+    let Some(monitor) = window
+        .current_monitor()
+        .map_err(|error| error.to_string())?
+    else {
         return Ok(());
     };
     let scale = monitor.scale_factor();

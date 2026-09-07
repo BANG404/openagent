@@ -34,3 +34,7 @@ required by the configured toolchain. When a toolchain update introduces a
 style-only lint, adopt the current expression or borrowing form instead of
 suppressing the warning. Use the workspace `playwright` skill when the
 behavior is completely reproducible in a browser.
+
+Run `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check` for every
+`src-tauri` change; the CI native-quality job rejects formatting drift before
+running its other Rust checks.
