@@ -135,4 +135,9 @@ test("reuses the shared Select for application-owned choice fields", async () =>
     expect(source).toContain("<Select");
     expect(source).not.toContain("<select");
   }
+
+  expect(sources[0]).toContain('"ask-user-select ask-user-select-error"');
+  expect(sources[0]).toMatch(
+    /\.ui-select-trigger\.ask-user-select\)[\s\S]*?background: var\(--bg\);[\s\S]*?box-shadow: none;/,
+  );
 });

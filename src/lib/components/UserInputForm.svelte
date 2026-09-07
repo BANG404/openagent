@@ -182,7 +182,9 @@
               items={field.options.map((option) => ({ value: option, label: option }))}
               placeholder="—"
               ariaLabel={field.label}
-              triggerClass={fieldHasError(field) ? "ask-user-select-error" : ""}
+              triggerClass={fieldHasError(field)
+                ? "ask-user-select ask-user-select-error"
+                : "ask-user-select"}
               contentAlign="start"
               onValueChange={(value) => (values[field.name] = value)}
             />
@@ -222,6 +224,26 @@
 </div>
 
 <style>
+  :global(.ui-select-trigger.ask-user-select) {
+    padding: 6px 9px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+    transition: border-color 120ms;
+  }
+  :global(.ui-select-trigger.ask-user-select:hover:not(:disabled)),
+  :global(.ui-select-trigger.ask-user-select[data-state="open"]) {
+    background: var(--bg);
+  }
+  :global(.ui-select-trigger.ask-user-select:focus),
+  :global(.ui-select-trigger.ask-user-select:focus-visible),
+  :global(.ui-select-trigger.ask-user-select[data-state="open"]) {
+    border-color: var(--primary);
+    box-shadow: none;
+  }
   :global(.ui-select-trigger.ask-user-select-error) {
     border-color: #ef4444;
   }

@@ -10,9 +10,11 @@
   compress them to the single-line height.
 - Route application-owned single-choice fields through the shared `Select`
   component, including workspace dialogs, `ask_user` forms, and development
-  utilities. Preserve each field's validation and change callback at the
-  caller boundary; do not fall back to a browser-native `<select>` that forks
-  the menu surface, density, and keyboard behavior.
+  utilities. Preserve each field's validation, change callback, and established
+  trigger treatment at the caller boundary; `ask_user` keeps the same compact
+  input styling as its neighboring fields while its popup uses the shared menu
+  surface. Do not fall back to a browser-native `<select>` that forks the menu
+  surface, density, and keyboard behavior.
 - Keep reusable interaction and menu presentation in `src/app.css`: the shared
   hover/open/selected control fill, menu rows, search fields, empty states, and
   separators are application primitives. Components own only their dimensions,
