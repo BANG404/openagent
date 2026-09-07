@@ -2596,38 +2596,26 @@ async fn open_role_editor_window(
             )
         })
         .unwrap_or((920.0, 600.0, 1040.0, 680.0));
-    let editor_builder = tauri::WebviewWindowBuilder::new(
+    let editor = tauri::WebviewWindowBuilder::new(
         &app,
         "role-editor",
         product_webview_url(&manager, &query)?,
-    );
-    // Windows needs an owned window (not a child window) for taskbar
-    // association. Other desktop platforms use their transient/child
-    // relationship API for the same utility-window behavior.
-    #[cfg(windows)]
-    let editor_builder = editor_builder
-        .owner(&window)
-        .map_err(|error| error.to_string())?;
-    #[cfg(not(windows))]
-    let editor_builder = editor_builder
-        .parent(&window)
-        .map_err(|error| error.to_string())?;
-    let editor = editor_builder
-        .title("OpenAgent Role")
-        // Keep the editor within a compact laptop work area while leaving enough
-        // room for the two-column resource browser. The body scrolls when the
-        // available height is smaller than the full form.
-        .inner_size(initial_width, initial_height)
-        .max_inner_size(max_width, max_height)
-        .min_inner_size(760.0, 440.0)
-        .transparent(!cfg!(target_os = "linux"))
-        .skip_taskbar(true)
-        // Keep the utility window hidden until its requester-relative fallback
-        // and any persisted geometry have both been applied. Showing it during
-        // construction would expose the subsequent position changes as a jump.
-        .visible(false)
-        .build()
-        .map_err(|error| error.to_string())?;
+    )
+    .title("OpenAgent Role")
+    // Keep the editor within a compact laptop work area while leaving enough
+    // room for the two-column resource browser. The body scrolls when the
+    // available height is smaller than the full form.
+    .inner_size(initial_width, initial_height)
+    .max_inner_size(max_width, max_height)
+    .min_inner_size(760.0, 440.0)
+    .transparent(!cfg!(target_os = "linux"))
+    .skip_taskbar(true)
+    // Keep the utility window hidden until its requester-relative fallback
+    // and any persisted geometry have both been applied. Showing it during
+    // construction would expose the subsequent position changes as a jump.
+    .visible(false)
+    .build()
+    .map_err(|error| error.to_string())?;
     position_utility_window(&window, &editor)?;
     restore_utility_window_state(&editor)?;
     constrain_role_editor_size(&editor)?;
@@ -2660,27 +2648,18 @@ async fn open_settings_window(
     }
 
     let query = format!("?settings-window={kind}&settings-section={section}");
-    let settings_builder =
-        tauri::WebviewWindowBuilder::new(&app, spec.label, product_webview_url(&manager, &query)?);
-    #[cfg(windows)]
-    let settings_builder = settings_builder
-        .owner(&parent)
-        .map_err(|error| error.to_string())?;
-    #[cfg(not(windows))]
-    let settings_builder = settings_builder
-        .parent(&parent)
-        .map_err(|error| error.to_string())?;
-    let window = settings_builder
-        .title(spec.title)
-        .inner_size(spec.initial_width, spec.initial_height)
-        .min_inner_size(640.0, 400.0)
-        .transparent(!cfg!(target_os = "linux"))
-        .skip_taskbar(true)
-        // Apply both placement steps while hidden so opening from the
-        // application menu produces a single stable location.
-        .visible(false)
-        .build()
-        .map_err(|error| error.to_string())?;
+    let window =
+        tauri::WebviewWindowBuilder::new(&app, spec.label, product_webview_url(&manager, &query)?)
+            .title(spec.title)
+            .inner_size(spec.initial_width, spec.initial_height)
+            .min_inner_size(640.0, 400.0)
+            .transparent(!cfg!(target_os = "linux"))
+            .skip_taskbar(true)
+            // Apply both placement steps while hidden so opening from the
+            // application menu produces a single stable location.
+            .visible(false)
+            .build()
+            .map_err(|error| error.to_string())?;
     position_utility_window(&parent, &window)?;
     restore_utility_window_state(&window)?;
     apply_native_window_material(&window);
@@ -3040,27 +3019,6 @@ fn should_reveal_workspace_shell_early(agent_server: bool, is_workspace_window: 
     !agent_server && is_workspace_window
 }
 
-/// Give every desktop process the same Windows taskbar identity.
-///
-/// Workspace windows are intentionally separate processes. Without an
-/// explicit AppUserModelID, Windows can assign them different taskbar groups
-/// even though they use the same executable, which also prevents utility
-/// windows from appearing with their requesting workspace.
-#[cfg(windows)]
-fn set_windows_taskbar_app_id() {
-    use windows::core::PCWSTR;
-    use windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID;
-
-    let app_id: Vec<u16> = "com.iumm.openagent"
-        .encode_utf16()
-        .chain(std::iter::once(0))
-        .collect();
-    if let Err(error) = unsafe { SetCurrentProcessExplicitAppUserModelID(PCWSTR(app_id.as_ptr())) }
-    {
-        eprintln!("Failed to set Windows taskbar AppUserModelID: {error}");
-    }
-}
-
 fn packaged_runtime_binary() -> Result<std::path::PathBuf, String> {
     let executable = std::env::current_exe()
         .map_err(|error| format!("Failed to resolve desktop executable path: {error}"))?;
@@ -3195,9 +3153,6 @@ mod single_instance_tests {
 }
 
 fn run_with_mode(agent_server: bool) {
-    #[cfg(windows)]
-    set_windows_taskbar_app_id();
-
     let external_launch = if !agent_server {
         match prepare_interactive_persistence() {
             Ok(Some(launch)) => Some(launch),
@@ -3476,10 +3431,6 @@ fn run_with_mode(agent_server: bool) {
                         .title("OpenAgent Dev Inspector")
                         .inner_size(980.0, 760.0)
                         .min_inner_size(720.0, 520.0)
-                        // The inspector is a development utility, not a
-                        // second application surface. Keep it out of the
-                        // taskbar just like Settings and Role windows.
-                        .skip_taskbar(true)
                         .build()?;
                     }
                 }

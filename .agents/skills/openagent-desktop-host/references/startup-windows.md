@@ -80,16 +80,9 @@
   `on_window_ready` restore: they are first placed relative to the requesting
   workspace, then an explicit restore applies a saved position/size when one
   exists. Reopening an existing utility window must not recenter it. These
-  modeless utility windows use a native owner on Windows and a
-  transient/parent relationship elsewhere, and skip the taskbar, so Windows
-  presents one OpenAgent taskbar entry; they remain switchable through normal
-  window activation and Alt+Tab.
-- Every desktop process uses the same Windows AppUserModelID and GTK App ID;
-  this is required because workspace windows run in separate processes while
-  still belonging to one OpenAgent taskbar group.
-- The development inspector also skips the taskbar; it remains available via
-  normal window activation and Alt+Tab without creating a second OpenAgent
-  taskbar entry during development.
+  modeless utility windows skip the taskbar so Windows presents one OpenAgent
+  taskbar entry; they remain switchable through normal window activation and
+  Alt+Tab.
 
 ## Platform window conventions
 
