@@ -5,6 +5,9 @@
 - Register single-instance enforcement as the first Tauri plugin for
   ordinary primary launches. A repeated launch restores, shows, and
   focuses the existing main window.
+- Application restart uses the same bounded Runtime, event-proxy, and child
+  workspace cleanup as tray Quit before requesting the Tauri restart. Do not
+  call the immediate restart path directly from an IPC command.
 - If the setup window is currently visible for first-run configuration or
   embedding-resource repair, restore that instead; its pre-created but
   hidden WebView stays closed only when configuration and the local

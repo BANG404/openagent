@@ -31,6 +31,10 @@ the host.
   process spawning, and other OS-local capabilities in public host modules.
 - Accept only compatible loopback readiness records and authenticate
   health probes with a process-scoped token.
+- On Windows, assign every supervised Runtime to a host-owned kill-on-close Job
+  Object before accepting readiness. The Runtime must also treat control-pipe
+  EOF as owner loss, so abnormal host exit cannot leave a primary server,
+  channel adapter, or durable-state writer behind.
 - Stop the old child through its private control pipe before starting a
   candidate, and restart the previous verified launch on failure.
 - Release desktop startup must use that supervised process as the only

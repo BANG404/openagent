@@ -2232,10 +2232,16 @@ async fn read_attachment_preview(
 
 #[tauri::command]
 fn restart_app(app: tauri::AppHandle) {
-    app.restart();
+    request_desktop_exit(app, DesktopExitAction::Restart);
 }
 
-async fn finish_desktop_quit(app: tauri::AppHandle) {
+#[derive(Clone, Copy)]
+enum DesktopExitAction {
+    Quit,
+    Restart,
+}
+
+async fn finish_desktop_exit(app: tauri::AppHandle, action: DesktopExitAction) {
     let supervisor = app.state::<Arc<RuntimeProcessSupervisor>>();
     match tokio::time::timeout(DESKTOP_RUNTIME_STOP_TIMEOUT, supervisor.stop()).await {
         Ok(Ok(())) => {}
@@ -2269,11 +2275,20 @@ async fn finish_desktop_quit(app: tauri::AppHandle) {
         }
     }
     shutdown_host_tracing();
-    app.cleanup_before_exit();
-    std::process::exit(0)
+    match action {
+        DesktopExitAction::Quit => {
+            app.cleanup_before_exit();
+            std::process::exit(0)
+        }
+        DesktopExitAction::Restart => app.request_restart(),
+    }
 }
 
 fn request_desktop_quit(app: tauri::AppHandle) {
+    request_desktop_exit(app, DesktopExitAction::Quit);
+}
+
+fn request_desktop_exit(app: tauri::AppHandle, action: DesktopExitAction) {
     if app
         .state::<DesktopWindowState>()
         .quitting
@@ -2282,7 +2297,11 @@ fn request_desktop_quit(app: tauri::AppHandle) {
         return;
     }
 
-    tracing::info!(target: "openagent::app", "desktop quit requested");
+    let action_name = match action {
+        DesktopExitAction::Quit => "quit",
+        DesktopExitAction::Restart => "restart",
+    };
+    tracing::info!(target: "openagent::app", action = action_name, "desktop exit requested");
     if let Err(error) = request_child_workspace_window_shutdown() {
         tracing::warn!(%error, "failed to signal child workspace processes during quit");
     }
@@ -2296,15 +2315,19 @@ fn request_desktop_quit(app: tauri::AppHandle) {
         }
     }
 
+    let watchdog_app = app.clone();
     std::thread::Builder::new()
         .name("openagent-quit-watchdog".to_string())
-        .spawn(|| {
+        .spawn(move || {
             std::thread::sleep(DESKTOP_QUIT_WATCHDOG_TIMEOUT);
-            std::process::exit(0);
+            match action {
+                DesktopExitAction::Quit => std::process::exit(0),
+                DesktopExitAction::Restart => watchdog_app.restart(),
+            }
         })
         .expect("failed to start desktop quit watchdog");
 
-    tauri::async_runtime::spawn(finish_desktop_quit(app));
+    tauri::async_runtime::spawn(finish_desktop_exit(app, action));
 }
 
 fn install_parent_shutdown_monitor(app: tauri::AppHandle) {

@@ -57,9 +57,67 @@ pub struct RuntimeProcessStatus {
 
 struct RunningRuntime {
     child: Child,
+    _lifetime_guard: RuntimeLifetimeGuard,
     spec: RuntimeLaunchSpec,
     token: String,
     ready: RuntimeReady,
+}
+
+#[cfg(windows)]
+struct RuntimeLifetimeGuard(windows::Win32::Foundation::HANDLE);
+
+#[cfg(windows)]
+unsafe impl Send for RuntimeLifetimeGuard {}
+
+#[cfg(windows)]
+unsafe impl Sync for RuntimeLifetimeGuard {}
+
+#[cfg(windows)]
+impl Drop for RuntimeLifetimeGuard {
+    fn drop(&mut self) {
+        let _ = unsafe { windows::Win32::Foundation::CloseHandle(self.0) };
+    }
+}
+
+#[cfg(not(windows))]
+struct RuntimeLifetimeGuard;
+
+#[cfg(windows)]
+fn supervise_runtime_lifetime(child: &Child) -> Result<RuntimeLifetimeGuard, String> {
+    use windows::Win32::Foundation::HANDLE;
+    use windows::Win32::System::JobObjects::{
+        AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
+        SetInformationJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    };
+
+    let job = unsafe { CreateJobObjectW(None, None) }
+        .map(RuntimeLifetimeGuard)
+        .map_err(|error| format!("failed to create Runtime lifecycle job: {error}"))?;
+    let mut limits = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
+    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    unsafe {
+        SetInformationJobObject(
+            job.0,
+            JobObjectExtendedLimitInformation,
+            &limits as *const _ as _,
+            std::mem::size_of_val(&limits) as u32,
+        )
+    }
+    .map_err(|error| format!("failed to configure Runtime lifecycle job: {error}"))?;
+    let process = HANDLE(
+        child
+            .raw_handle()
+            .ok_or_else(|| "Runtime process handle is unavailable".to_string())?,
+    );
+    unsafe { AssignProcessToJobObject(job.0, process) }
+        .map_err(|error| format!("failed to bind Runtime to desktop lifecycle: {error}"))?;
+    Ok(job)
+}
+
+#[cfg(not(windows))]
+fn supervise_runtime_lifetime(_child: &Child) -> Result<RuntimeLifetimeGuard, String> {
+    Ok(RuntimeLifetimeGuard)
 }
 
 #[derive(Clone, Debug)]
@@ -135,7 +193,7 @@ impl RuntimeProcessSupervisor {
     pub async fn stop(&self) -> Result<(), String> {
         let mut running = self.running.lock().await;
         if let Some(runtime) = running.take() {
-            stop_child(runtime.child).await?;
+            stop_runtime(runtime).await?;
         }
         Ok(())
     }
@@ -151,7 +209,7 @@ impl RuntimeProcessSupervisor {
         let previous = running.take();
         let previous_spec = previous.as_ref().map(|runtime| runtime.spec.clone());
         if let Some(previous) = previous {
-            stop_child(previous.child).await?;
+            stop_runtime(previous).await?;
         }
 
         match self.spawn_and_probe(candidate_spec).await {
@@ -206,6 +264,13 @@ impl RuntimeProcessSupervisor {
                 spec.binary_path.display()
             )
         })?;
+        let lifetime_guard = match supervise_runtime_lifetime(&child) {
+            Ok(guard) => guard,
+            Err(error) => {
+                let _ = stop_child(&mut child).await;
+                return Err(error);
+            }
+        };
         let stdout = child
             .stdout
             .take()
@@ -214,30 +279,31 @@ impl RuntimeProcessSupervisor {
         let line = match tokio::time::timeout(READY_TIMEOUT, lines.next_line()).await {
             Ok(Ok(Some(line))) => line,
             Ok(Ok(None)) => {
-                let _ = stop_child(child).await;
+                let _ = stop_child(&mut child).await;
                 return Err("Runtime exited before publishing readiness".to_string());
             }
             Ok(Err(error)) => {
-                let _ = stop_child(child).await;
+                let _ = stop_child(&mut child).await;
                 return Err(format!("failed to read Runtime readiness: {error}"));
             }
             Err(_) => {
-                let _ = stop_child(child).await;
+                let _ = stop_child(&mut child).await;
                 return Err("Runtime readiness timed out".to_string());
             }
         };
         let ready: RuntimeReady = serde_json::from_str(&line)
             .map_err(|error| format!("Runtime published invalid readiness JSON: {error}"))?;
         if let Err(error) = validate_ready(&ready, self.protocol_version) {
-            let _ = stop_child(child).await;
+            let _ = stop_child(&mut child).await;
             return Err(error);
         }
         if let Err(error) = self.probe_health(&ready, &token).await {
-            let _ = stop_child(child).await;
+            let _ = stop_child(&mut child).await;
             return Err(error);
         }
         Ok(RunningRuntime {
             child,
+            _lifetime_guard: lifetime_guard,
             spec,
             token,
             ready,
@@ -387,7 +453,13 @@ fn process_status(ready: &RuntimeReady) -> RuntimeProcessStatus {
     }
 }
 
-async fn stop_child(mut child: Child) -> Result<(), String> {
+async fn stop_runtime(mut runtime: RunningRuntime) -> Result<(), String> {
+    let result = stop_child(&mut runtime.child).await;
+    drop(runtime);
+    result
+}
+
+async fn stop_child(child: &mut Child) -> Result<(), String> {
     if child
         .try_wait()
         .map_err(|error| format!("failed to inspect Runtime process: {error}"))?
