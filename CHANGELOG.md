@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.59.0-beta.1] - 2026-09-08
+
+### Features
+- **settings**: Tailor utility window skeletons
+- **frontend**: Complete top menu shortcuts
+- **chat**: Link composer attachment references
+
 ## [0.58.1-beta.2] - 2026-09-08
 
 ## [0.58.1-beta.1] - 2026-09-07
