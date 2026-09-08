@@ -2471,10 +2471,7 @@ fn reveal_main_window(
     windows
         .startup_window_revealed
         .store(true, std::sync::atomic::Ordering::Release);
-    window.set_focus().map_err(|error| error.to_string())?;
-    window
-        .emit(DESKTOP_WINDOW_ACTIVATED_EVENT, ())
-        .map_err(|error| error.to_string())
+    window.set_focus().map_err(|error| error.to_string())
 }
 
 struct SettingsWindowSpec {
