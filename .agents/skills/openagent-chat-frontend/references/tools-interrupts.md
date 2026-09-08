@@ -24,6 +24,14 @@
   keeping the textual result concise (`[image]`) and never printing base64 in
   transcript text. The same card grammar applies to `exec_command`,
   `write_stdin`, and `apply_patch`.
+- Give the exposed filesystem tool set (`exec_command`, `write_stdin`,
+  `apply_patch`, and `view_image`) distinct call and result regions so the
+  command, continuation session, returned output, and inspected path remain
+  scannable. Project every `apply_patch` file operation into tabs backed by the
+  same bounded, line-numbered diff view as the conversation Files panel; retain
+  total addition and removal counts even when the rendered patch is truncated.
+  Do not restore focused renderers for the unexposed legacy `read_file`,
+  `write_file`, `edit_file`, `glob`, or `grep` tools.
 - Group consecutive ordinary ToolCalls into one collapsed summary row with
   independently expandable calls.
 - Keep ordinary and enhanced file/search tool cards, grouped tool summaries,

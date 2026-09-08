@@ -111,3 +111,17 @@ test("keeps grouped tool calls on the transcript canvas", async () => {
   expect(cardSource).toMatch(/\.tool-toggle\s*\{[^}]*min-height: 32px;/s);
   expect(cardSource).not.toContain("background: var(--user-message-bg);");
 });
+
+test("keeps focused tool rendering aligned with the exposed filesystem tools", async () => {
+  const source = await readFile(
+    new URL("../src/lib/components/ToolCallCard.svelte", import.meta.url),
+    "utf8",
+  );
+
+  expect(source).toContain(
+    'const focusedTools = new Set(["exec_command", "write_stdin", "apply_patch", "view_image"]);',
+  );
+  for (const legacyTool of ["read_file", "write_file", "edit_file", "glob", "grep"]) {
+    expect(source).not.toContain(`name === "${legacyTool}"`);
+  }
+});

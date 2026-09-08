@@ -5,9 +5,13 @@
   import type { ChatToolImage, HtmlPreviewConfig, UserInputRequest } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t } from "$lib/i18n";
-  import { buildReplacementDiff } from "$lib/toolCallDiff";
-  import { countTextLines, formatTextLineCount } from "$lib/toolCallPresentation";
+  import {
+    parseApplyPatchPreview,
+    summarizePatchChanges,
+    type ToolPatchFilePreview,
+  } from "$lib/toolCallPatch";
   import { shouldDisplayToolCall, toolCallStatus, type ToolCallItem } from "$lib/toolCallGroups";
+  import FileDiffView from "./FileDiffView.svelte";
   import Tooltip from "./Tooltip.svelte";
   import ToolApprovalActions from "./ToolApprovalActions.svelte";
 
@@ -33,7 +37,14 @@
   }
 
   type JsonObject = Record<string, unknown>;
-  type GrepMatch = { file: string; line: number; content: string };
+  type TerminalResult = {
+    output: string;
+    status?: string;
+    session_id?: string;
+    exit_code?: number;
+    truncated?: boolean;
+    temporary?: boolean;
+  };
   const capabilities = useOpenAgentUiCapabilities();
 
   let {
@@ -53,16 +64,7 @@
     onToggle,
   }: Props = $props();
 
-  const focusedTools = new Set([
-    "exec_command",
-    "apply_patch",
-    "view_image",
-    "read_file",
-    "write_file",
-    "edit_file",
-    "glob",
-    "grep",
-  ]);
+  const focusedTools = new Set(["exec_command", "write_stdin", "apply_patch", "view_image"]);
 
   const parsedArgs = $derived.by((): JsonObject | null => {
     try {
@@ -92,13 +94,6 @@
         ? $t("searchRolesTool")
         : name,
   );
-  const filePath = $derived(
-    getString(parsedArgs, "file_path") ||
-      getString(parsedArgs, "path") ||
-      getString(parsedArgs, "workdir"),
-  );
-  const pattern = $derived(getString(parsedArgs, "pattern"));
-  const globFilter = $derived(getString(parsedArgs, "glob"));
   const resultText = $derived(result ?? "");
   const status = $derived(
     toolCallStatus({ type: "tool_call", name, args, result } satisfies ToolCallItem, showRunning),
@@ -124,34 +119,44 @@
                 : "toolStatusWaiting",
     ),
   );
-  const writeContent = $derived(getString(parsedArgs, "content"));
-  const oldString = $derived(getString(parsedArgs, "old_string"));
-  const newString = $derived(getString(parsedArgs, "new_string"));
-  const writeLineSummary = $derived(formatTextLineCount(writeContent));
+  const patchText = $derived(getString(parsedArgs, "patch"));
+  const applyPatchPreviews = $derived(parseApplyPatchPreview(patchText));
+  const patchSummary = $derived(summarizePatchChanges(applyPatchPreviews));
+  const filePath = $derived(
+    getString(parsedArgs, "file_path") ||
+      getString(parsedArgs, "path") ||
+      getString(parsedArgs, "workdir") ||
+      applyPatchPreviews[0]?.path ||
+      "",
+  );
+  let selectedPatchPath = $state("");
+  const selectedPatch = $derived<ToolPatchFilePreview | undefined>(
+    applyPatchPreviews.find((preview) => preview.path === selectedPatchPath) ??
+      applyPatchPreviews[0],
+  );
+  const terminalResult = $derived(parseTerminalResult(resultText));
+  const command = $derived(getString(parsedArgs, "cmd"));
+  const sessionId = $derived(getString(parsedArgs, "session_id"));
+  const stdinChars = $derived(getString(parsedArgs, "chars"));
   const resultSummary = $derived.by(() =>
     status === "success"
-      ? name === "write_file"
-        ? writeLineSummary
-        : summarizeResult(name, resultText)
+      ? name === "apply_patch" && patchSummary.files > 0
+        ? `${patchSummary.files} ${$t(patchSummary.files === 1 ? "toolFile" : "toolFiles")} · +${patchSummary.additions} -${patchSummary.removals}`
+        : name === "exec_command" || name === "write_stdin"
+          ? summarizeTerminalResult(terminalResult)
+          : summarizeResult(resultText)
       : "",
   );
-  const editDiff = $derived(buildReplacementDiff(oldString, newString));
-  const readPreviewLines = $derived(parseReadResult(resultText));
-  const globResults = $derived(parseStringArrayResult(resultText));
-  const grepResults = $derived(parseGrepResult(resultText));
+
+  $effect(() => {
+    if (!applyPatchPreviews.some((preview) => preview.path === selectedPatchPath)) {
+      selectedPatchPath = applyPatchPreviews[0]?.path ?? "";
+    }
+  });
 
   function getString(obj: JsonObject | null, key: string): string {
     const value = obj?.[key];
     return typeof value === "string" ? value : "";
-  }
-
-  function getNumber(obj: JsonObject | null, key: string): number | null {
-    const value = obj?.[key];
-    return typeof value === "number" && Number.isFinite(value) ? value : null;
-  }
-
-  function getBool(obj: JsonObject | null, key: string): boolean {
-    return obj?.[key] === true;
   }
 
   function shortPath(path: string): string {
@@ -165,59 +170,49 @@
     return text.slice(0, max) + "\n...";
   }
 
-  function summarizeResult(toolName: string, text: string): string {
+  function summarizeResult(text: string): string {
     if (text === "") return "";
-    if (toolName === "glob") {
-      const files = parseStringArrayResult(text);
-      return files ? `${files.length} file${files.length === 1 ? "" : "s"}` : "";
-    }
-    if (toolName === "grep") {
-      const matches = parseGrepResult(text);
-      return matches ? `${matches.length} match${matches.length === 1 ? "" : "es"}` : "";
-    }
     const lines = text.split("\n").filter((line) => line.length > 0).length;
-    return `${lines} line${lines === 1 ? "" : "s"}`;
+    return `${lines} ${$t(lines === 1 ? "toolLine" : "toolLines")}`;
   }
 
-  function parseStringArrayResult(text: string): string[] | null {
+  function parseTerminalResult(text: string): TerminalResult | null {
     try {
       const parsed = JSON.parse(text);
-      return Array.isArray(parsed) && parsed.every((item) => typeof item === "string")
-        ? (parsed as string[])
-        : null;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+      const value = parsed as JsonObject;
+      if (typeof value.output !== "string") return null;
+      return {
+        output: value.output,
+        status: typeof value.status === "string" ? value.status : undefined,
+        session_id: typeof value.session_id === "string" ? value.session_id : undefined,
+        exit_code: typeof value.exit_code === "number" ? value.exit_code : undefined,
+        truncated: value.truncated === true,
+        temporary: value.temporary === true,
+      };
     } catch {
       return null;
     }
   }
 
-  function parseGrepResult(text: string): GrepMatch[] | null {
-    try {
-      const parsed = JSON.parse(text);
-      if (!Array.isArray(parsed)) return null;
-      const matches = parsed
-        .map((item) => {
-          if (!item || typeof item !== "object") return null;
-          const row = item as JsonObject;
-          const file = typeof row.file === "string" ? row.file : "";
-          const line = typeof row.line === "number" ? row.line : 0;
-          const content = typeof row.content === "string" ? row.content : "";
-          return file && line > 0 ? { file, line, content } : null;
-        })
-        .filter((item): item is GrepMatch => item !== null);
-      return matches;
-    } catch {
-      return null;
+  function summarizeTerminalResult(value: TerminalResult | null): string {
+    if (!value) return summarizeResult(resultText);
+    const outputLines = value.output.split("\n").filter(Boolean).length;
+    if (value.temporary) return value.session_id ? $t("toolTerminalRunning") : "";
+    if (value.exit_code !== undefined) {
+      return `${$t("toolTerminalExit")} ${value.exit_code}${outputLines ? ` · ${outputLines} ${$t(outputLines === 1 ? "toolLine" : "toolLines")}` : ""}`;
     }
+    return outputLines ? `${outputLines} ${$t(outputLines === 1 ? "toolLine" : "toolLines")}` : "";
   }
 
-  function parseReadResult(text: string): Array<{ line: string; content: string }> {
-    return text
-      .split("\n")
-      .slice(0, 220)
-      .map((line) => {
-        const match = /^(\d+)\|\s?(.*)$/.exec(line);
-        return match ? { line: match[1], content: match[2] } : { line: "", content: line };
-      });
+  function patchOperationLabel(operation: ToolPatchFilePreview["operation"]): string {
+    return $t(
+      operation === "add"
+        ? "toolPatchAdded"
+        : operation === "delete"
+          ? "toolPatchDeleted"
+          : "toolPatchUpdated",
+    );
   }
 
   async function openPath(path: string, event?: MouseEvent) {
@@ -263,10 +258,10 @@
         >
           <span class="tool-name">{displayName}</span>
           {#if isFocusedTool}
-            {#if filePath}
+            {#if filePath && name !== "apply_patch"}
               <span class="tool-arg-hint">{shortPath(filePath)}</span>
-            {:else if pattern}
-              <span class="tool-arg-hint">{pattern}</span>
+            {:else if getString(parsedArgs, "session_id")}
+              <span class="tool-arg-hint">{getString(parsedArgs, "session_id")}</span>
             {/if}
             {#if resultSummary}
               <span class="tool-result-pill">{resultSummary}</span>
@@ -313,7 +308,7 @@
             </svg>
           </span>
         </button>
-        {#if isFocusedTool && filePath}
+        {#if isFocusedTool && filePath && name !== "apply_patch"}
           <Tooltip text={$t("openContainingFolder")}>
             {#snippet trigger(props)}
               <button
@@ -351,7 +346,8 @@
       {#if expanded}
         {#if isFocusedTool}
           <div class="tool-detail">
-            {#if filePath}
+            <div class="detail-section-label">{$t("toolInvocation")}</div>
+            {#if filePath && name !== "apply_patch"}
               <Tooltip text={filePath}>
                 {#snippet trigger(props)}
                   <button
@@ -379,90 +375,99 @@
               </Tooltip>
             {/if}
 
-            {#if name === "read_file"}
-              <div class="meta-row">
-                <span>offset {getNumber(parsedArgs, "offset") ?? 0}</span>
-                <span>limit {getNumber(parsedArgs, "limit") ?? 2000}</span>
-              </div>
+            {#if name === "exec_command"}
+              <pre class="command-block"><span aria-hidden="true">$</span> {command}</pre>
+              {#if getString(parsedArgs, "shell")}
+                <div class="meta-row"><span>{getString(parsedArgs, "shell")}</span></div>
+              {/if}
               {#if result !== undefined}
-                <div class="code-table">
-                  {#each readPreviewLines as row (row.line)}
-                    <div class="code-row">
-                      <span class="line-no">{row.line}</span>
-                      <span class="line-content">{row.content}</span>
-                    </div>
-                  {/each}
+                <div class="detail-section-label result-label">{$t("toolResult")}</div>
+                <div class="meta-row">
+                  {#if terminalResult?.exit_code !== undefined}
+                    <span>{$t("toolTerminalExit")} {terminalResult.exit_code}</span>
+                  {/if}
+                  {#if terminalResult?.session_id}
+                    <span>{$t("toolTerminalSession")} {terminalResult.session_id}</span>
+                  {/if}
+                  {#if terminalResult?.truncated}<span>{$t("toolResultTruncated")}</span>{/if}
                 </div>
+                <pre class="terminal-output">{trimPreview(
+                    terminalResult?.output ?? resultText,
+                    12_000,
+                  )}</pre>
               {/if}
-            {:else if name === "write_file"}
+            {:else if name === "write_stdin"}
               <div class="meta-row">
-                <span>new file</span>
-                <span>{writeLineSummary}</span>
+                <span>{$t("toolTerminalSession")} {sessionId}</span>
+                <span>{stdinChars ? $t("toolTerminalInput") : $t("toolTerminalPoll")}</span>
               </div>
-              <pre class="code-block">{trimPreview(writeContent)}</pre>
-            {:else if name === "edit_file"}
-              <div class="meta-row">
-                <span>{getBool(parsedArgs, "replace_all") ? "replace all" : "replace one"}</span>
-                <span>{countTextLines(oldString)} -> {countTextLines(newString)} lines</span>
+              {#if stdinChars}<pre class="command-block">{stdinChars}</pre>{/if}
+              {#if result !== undefined}
+                <div class="detail-section-label result-label">{$t("toolResult")}</div>
+                <div class="meta-row">
+                  {#if terminalResult?.exit_code !== undefined}
+                    <span>{$t("toolTerminalExit")} {terminalResult.exit_code}</span>
+                  {/if}
+                  {#if terminalResult?.session_id}
+                    <span>{$t("toolTerminalSession")} {terminalResult.session_id}</span>
+                  {/if}
+                  {#if terminalResult?.truncated}<span>{$t("toolResultTruncated")}</span>{/if}
+                </div>
+                <pre class="terminal-output">{trimPreview(
+                    terminalResult?.output ?? resultText,
+                    12_000,
+                  )}</pre>
+              {/if}
+            {:else if name === "apply_patch"}
+              <div class="patch-summary">
+                <span
+                  >{patchSummary.files}
+                  {$t(patchSummary.files === 1 ? "toolFile" : "toolFiles")}</span
+                >
+                <span class="additions">+{patchSummary.additions}</span>
+                <span class="removals">-{patchSummary.removals}</span>
               </div>
-              <div class="diff-view">
-                {#each editDiff as line, index (`${line.type}-${index}`)}
-                  <div class="diff-line diff-{line.type}">{line.text}</div>
-                {/each}
-              </div>
-            {:else if name === "glob"}
-              <div class="meta-row">
-                <span>pattern {pattern}</span>
-                {#if filePath}<span>root {filePath}</span>{/if}
-              </div>
-              {#if globResults}
-                <div class="result-list">
-                  {#each globResults.slice(0, 100) as path, index (`${path}-${index}`)}
-                    <Tooltip text={path}>
+              <div class="detail-section-label changes-label">{$t("toolChanges")}</div>
+              {#if applyPatchPreviews.length > 0}
+                <div class="patch-tabs" role="tablist" aria-label={$t("toolAffectedFiles")}>
+                  {#each applyPatchPreviews as preview (preview.path)}
+                    <Tooltip text={preview.path} side="bottom">
                       {#snippet trigger(props)}
                         <button
                           {...props}
-                          class="result-row"
-                          onclick={(event) => openPath(path, event)}
+                          class="patch-tab"
+                          class:active={selectedPatch?.path === preview.path}
+                          type="button"
+                          role="tab"
+                          aria-selected={selectedPatch?.path === preview.path}
+                          onclick={() => (selectedPatchPath = preview.path)}
                         >
-                          <span class="result-path">{path}</span>
+                          <span class="patch-operation"
+                            >{patchOperationLabel(preview.operation)}</span
+                          >
+                          <span class="patch-path">{shortPath(preview.path)}</span>
                         </button>
                       {/snippet}
                     </Tooltip>
                   {/each}
                 </div>
-              {:else if result !== undefined}
-                <pre class="code-block">{trimPreview(result)}</pre>
+                {#if selectedPatch}
+                  <div class="tool-diff-host" role="tabpanel">
+                    <FileDiffView lines={selectedPatch.lines} compact />
+                  </div>
+                {/if}
+              {:else}
+                <pre class="code-block">{trimPreview(patchText, 12_000)}</pre>
               {/if}
-            {:else if name === "grep"}
-              <div class="meta-row">
-                <span>pattern {pattern}</span>
-                {#if globFilter}<span>glob {globFilter}</span>{/if}
-              </div>
-              {#if grepResults}
-                <div class="grep-list">
-                  {#each grepResults.slice(0, 100) as match, index (`${match.file}:${match.line}:${index}`)}
-                    <Tooltip text={`${match.file}:${match.line}`}>
-                      {#snippet trigger(props)}
-                        <button
-                          {...props}
-                          class="grep-row"
-                          onclick={(event) => openPath(match.file, event)}
-                        >
-                          <span class="grep-file">{shortPath(match.file)}</span>
-                          <span class="grep-line">{match.line}</span>
-                          <span class="grep-content">{match.content}</span>
-                        </button>
-                      {/snippet}
-                    </Tooltip>
-                  {/each}
-                </div>
-              {:else if result !== undefined}
-                <pre class="code-block">{trimPreview(result)}</pre>
+              {#if result !== undefined}
+                <div class="detail-section-label result-label">{$t("toolResult")}</div>
+                <pre class="tool-result result-output">{trimPreview(resultText)}</pre>
               {/if}
-            {:else}
-              {#if args}<pre class="tool-args">{args}</pre>{/if}
-              {#if result !== undefined}<pre class="tool-result">{trimPreview(result)}</pre>{/if}
+            {:else if name === "view_image"}
+              {#if result !== undefined && resultText && resultText !== "[image]"}
+                <div class="detail-section-label result-label">{$t("toolResult")}</div>
+                <pre class="tool-result result-output">{trimPreview(resultText)}</pre>
+              {/if}
             {/if}
             {#if images.length > 0}
               <div class="tool-image-results">
@@ -565,11 +570,8 @@
 
   .tool-result-pill {
     font-size: 10px;
-    color: var(--primary);
-    background: color-mix(in srgb, var(--primary) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
-    border-radius: 999px;
-    padding: 1px 6px;
+    color: var(--text-muted);
+    font-family: "JetBrains Mono", monospace;
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -670,9 +672,7 @@
     min-width: 0;
   }
 
-  .path-chip:hover,
-  .result-row:hover,
-  .grep-row:hover {
+  .path-chip:hover {
     border-color: var(--primary);
     background: var(--interactive-state-bg);
   }
@@ -688,6 +688,134 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .detail-section-label {
+    padding: 8px 10px 0;
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .result-label,
+  .changes-label {
+    border-top: 1px solid var(--border);
+  }
+
+  .command-block,
+  .terminal-output {
+    margin: 0;
+    padding: 7px 10px;
+    overflow: auto;
+    background: color-mix(in srgb, var(--surface) 88%, var(--bg));
+    color: var(--text);
+    font:
+      400 11px/1.55 "JetBrains Mono",
+      monospace;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  .command-block {
+    margin: 0 8px 8px;
+    border-radius: 6px;
+  }
+
+  .command-block span {
+    color: var(--text-muted);
+    user-select: none;
+  }
+
+  .terminal-output {
+    max-height: 280px;
+    border-top: 1px solid var(--border);
+  }
+
+  .patch-summary {
+    display: flex;
+    gap: 8px;
+    padding: 0 10px 8px;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+
+  .patch-summary .additions {
+    color: color-mix(in srgb, #18794e 85%, var(--text));
+  }
+
+  .patch-summary .removals {
+    color: color-mix(in srgb, #b42318 82%, var(--text));
+  }
+
+  .patch-tabs {
+    display: flex;
+    min-width: 0;
+    overflow-x: auto;
+    padding: 5px 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .patch-tab {
+    position: relative;
+    display: flex;
+    min-width: 120px;
+    max-width: 220px;
+    height: 33px;
+    flex: 1 0 136px;
+    align-items: center;
+    gap: 6px;
+    padding: 0 9px;
+    border: 0;
+    border-radius: 6px 6px 0 0;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 10px;
+  }
+
+  .patch-tab:hover,
+  .patch-tab:focus-visible {
+    background: var(--interactive-state-bg);
+    color: var(--text);
+    outline: none;
+  }
+
+  .patch-tab:focus-visible {
+    box-shadow: inset var(--focus-ring);
+  }
+
+  .patch-tab.active {
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .patch-tab.active::after {
+    position: absolute;
+    inset: auto 0 -1px;
+    height: 2px;
+    background: var(--primary);
+    content: "";
+  }
+
+  .patch-operation {
+    flex: 0 0 auto;
+    font-weight: 600;
+  }
+
+  .patch-path {
+    overflow: hidden;
+    min-width: 0;
+    flex: 1;
+    font-family: "JetBrains Mono", monospace;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tool-diff-host {
+    display: flex;
+    min-width: 0;
   }
 
   .meta-row {
@@ -711,39 +839,6 @@
     white-space: nowrap;
   }
 
-  .code-table,
-  .result-list,
-  .grep-list,
-  .diff-view {
-    max-height: 260px;
-    overflow: auto;
-    border-top: 1px solid var(--border);
-    background: var(--bg);
-  }
-
-  .code-row {
-    display: grid;
-    grid-template-columns: 46px minmax(0, 1fr);
-    font-family: "JetBrains Mono", monospace;
-    font-size: 11px;
-    line-height: 1.55;
-  }
-
-  .line-no {
-    color: var(--text-muted);
-    text-align: right;
-    padding: 0 8px;
-    border-right: 1px solid var(--border);
-    user-select: none;
-  }
-
-  .line-content {
-    color: var(--text);
-    padding: 0 10px;
-    white-space: pre;
-    min-width: 0;
-  }
-
   .code-block,
   .tool-args,
   .tool-result {
@@ -764,6 +859,10 @@
     color: var(--text-muted);
   }
 
+  .result-output {
+    max-height: 96px;
+  }
+
   .tool-image-results {
     display: grid;
     gap: 8px;
@@ -779,74 +878,6 @@
     object-fit: contain;
     border-radius: 6px;
     background: var(--surface);
-  }
-
-  .result-row,
-  .grep-row {
-    width: 100%;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    background: transparent;
-    color: var(--text);
-    cursor: pointer;
-    text-align: left;
-    font-family: "JetBrains Mono", monospace;
-    font-size: 11px;
-    min-width: 0;
-  }
-
-  .result-row {
-    display: block;
-    padding: 4px 10px;
-  }
-
-  .result-path {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .grep-row {
-    display: grid;
-    grid-template-columns: minmax(110px, 0.8fr) 44px minmax(0, 1.2fr);
-    gap: 8px;
-    padding: 4px 10px;
-    align-items: baseline;
-  }
-
-  .grep-file,
-  .grep-content {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .grep-line {
-    color: var(--text-muted);
-    text-align: right;
-  }
-
-  .diff-line {
-    padding: 0 10px;
-    white-space: pre;
-    font-family: "JetBrains Mono", monospace;
-    font-size: 11px;
-    line-height: 1.55;
-  }
-
-  .diff-add {
-    background: rgba(34, 197, 94, 0.1);
-    color: #16a34a;
-  }
-
-  .diff-remove {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-  }
-
-  .diff-context {
-    color: var(--text-muted);
   }
 
   .tool-html-preview {

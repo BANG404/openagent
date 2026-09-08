@@ -169,15 +169,31 @@
   let quoteMessagesElement = $state<HTMLElement | null>(null);
   let runtimeNoticeMessagesElement = $state<HTMLElement | null>(null);
   let mermaidFinalizationMessagesElement = $state<HTMLElement | null>(null);
-  let toolDiffExpanded = $state(false);
-  const toolDiffArgs = JSON.stringify({
-    file_path: "src/generated/large-agent-edit.html",
-    old_string: Array.from({ length: 2_000 }, (_, index) => `old line ${index}`).join("\n"),
-    new_string: Array.from({ length: 2_000 }, (_, index) => `new line ${index}`).join("\n"),
+  const toolPatchArgs = JSON.stringify({
+    patch: [
+      "*** Begin Patch",
+      "*** Update File: src/lib/components/ToolCallCard.svelte",
+      "@@",
+      '-  const focusedTools = new Set(["exec_command"]);',
+      '+  const focusedTools = new Set(["exec_command", "apply_patch"]);',
+      "*** Add File: docs/tool-rendering.md",
+      "+# Tool rendering",
+      "+",
+      "+Show calls, results, and file changes as separate regions.",
+      "*** End Patch",
+    ].join("\n"),
   });
-  const toolWriteArgs = JSON.stringify({
-    file_path: "docs/multi-line-spec.md",
-    content: ["# Specification", "", "First requirement.", "Second requirement."].join("\n"),
+  const toolExecArgs = JSON.stringify({
+    cmd: "rtk bun test tests/toolCallPatch.test.ts",
+    workdir: "/workspace/openagent",
+    yield_time_ms: 10_000,
+  });
+  const toolExecResult = JSON.stringify({
+    output: "2 pass\n0 fail\n",
+    status: "exited:0",
+    exit_code: 0,
+    truncated: false,
+    temporary: false,
   });
   let mermaidFinalized = $state(false);
   let streamingMessagesElement = $state<HTMLElement | null>(null);
@@ -973,20 +989,20 @@
   <main class="tool-diff-preview-stage">
     <section class="tool-diff-preview-stack" aria-label="Large Agent edit preview">
       <ToolCallCard
-        name="write_file"
-        args={toolWriteArgs}
-        result="File written successfully"
+        name="apply_patch"
+        args={toolPatchArgs}
+        result="Applied patch to 2 files: src/lib/components/ToolCallCard.svelte, docs/tool-rendering.md"
         expanded={true}
-        argHint="multi-line-spec.md"
+        argHint="2 files"
         onToggle={() => {}}
       />
       <ToolCallCard
-        name="edit_file"
-        args={toolDiffArgs}
-        result="updated"
-        expanded={toolDiffExpanded}
-        argHint="large-agent-edit.html"
-        onToggle={() => (toolDiffExpanded = !toolDiffExpanded)}
+        name="exec_command"
+        args={toolExecArgs}
+        result={toolExecResult}
+        expanded={true}
+        argHint="bun test"
+        onToggle={() => {}}
       />
     </section>
   </main>
