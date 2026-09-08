@@ -46,4 +46,29 @@ describe("composer token highlights", () => {
       { text: "@", highlighted: true },
     ]);
   });
+
+  test("styles a complete attachment reference as one path-backed token", () => {
+    expect(
+      segmentComposerTokens(
+        "Compare [Image #1] with [File #1]",
+        new Map([
+          ["[Image #1]", "C:/screenshots/example.png"],
+          ["[File #1]", "C:/notes/example.txt"],
+        ]),
+      ),
+    ).toEqual([
+      { text: "Compare ", highlighted: false },
+      {
+        text: "[Image #1]",
+        highlighted: true,
+        attachmentPath: "C:/screenshots/example.png",
+      },
+      { text: " with ", highlighted: false },
+      {
+        text: "[File #1]",
+        highlighted: true,
+        attachmentPath: "C:/notes/example.txt",
+      },
+    ]);
+  });
 });

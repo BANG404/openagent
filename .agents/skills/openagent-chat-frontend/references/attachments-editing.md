@@ -45,8 +45,13 @@ latest configuration-change reload without remounting or clearing the draft.
 - In the ordinary composer, render pending attachments as 112px preview cards in
   one horizontally scrollable row: preview image and supported text content,
   keep the filename anchored at the card foot, and keep the remove action at
-  the top-right. Quick chat retains its 28px single-line attachment strip
-  because its native window height is fixed.
+  the top-right. Also insert a path-backed, upload-order reference such as
+  `[Image #1]` or `[File #1]` into the editable text. Keep that label in the
+  attachment's composer metadata: deleting either the text reference or its
+  preview removes both and renumbers the later references of the same kind,
+  while draft switching, queueing, and failed-send restore preserve the
+  association. Quick chat retains its 28px single-line attachment strip because
+  its native window height is fixed.
 - Keep editable user messages discoverable without adding a second action
   target: the message bubble retains its accessible edit label and reveals a
   non-interactive pencil affordance on pointer hover or keyboard focus.

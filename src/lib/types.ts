@@ -9,6 +9,8 @@ export interface ChatAttachment {
   name: string;
   kind: "image" | "document";
   mimeType?: string;
+  /** Composer-only ordered label that associates editable text with this attachment. */
+  referenceLabel?: string;
   /** Browser-local preview used before an uploaded attachment becomes durable. */
   previewUrl?: string;
 }

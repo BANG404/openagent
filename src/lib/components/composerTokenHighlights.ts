@@ -1,6 +1,7 @@
 export interface ComposerTokenSegment {
   text: string;
   highlighted: boolean;
+  attachmentPath?: string;
 }
 
 function tokenEnd(value: string, start: number): number {
@@ -21,12 +22,30 @@ function tokenEnd(value: string, start: number): number {
   return value.length;
 }
 
-export function segmentComposerTokens(value: string): ComposerTokenSegment[] {
+export function segmentComposerTokens(
+  value: string,
+  attachmentReferences: ReadonlyMap<string, string> = new Map(),
+): ComposerTokenSegment[] {
   const segments: ComposerTokenSegment[] = [];
+  const referenceLabels = [...attachmentReferences.keys()].sort((a, b) => b.length - a.length);
   let plainStart = 0;
   let index = 0;
 
   while (index < value.length) {
+    const referenceLabel = referenceLabels.find((label) => value.startsWith(label, index));
+    if (referenceLabel) {
+      if (plainStart < index) {
+        segments.push({ text: value.slice(plainStart, index), highlighted: false });
+      }
+      segments.push({
+        text: referenceLabel,
+        highlighted: true,
+        attachmentPath: attachmentReferences.get(referenceLabel),
+      });
+      index += referenceLabel.length;
+      plainStart = index;
+      continue;
+    }
     const character = value[index];
     const isTokenStart =
       (character === "@" || character === "#") && (index === 0 || /\s/u.test(value[index - 1]));

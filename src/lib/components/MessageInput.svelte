@@ -24,6 +24,11 @@
   import { t } from "$lib/i18n";
   import { showToast } from "$lib/toast";
   import { attachmentNameSupported, selectableAttachmentExtensions } from "$lib/attachmentPolicy";
+  import {
+    attachmentsReferencedByText,
+    removeAttachmentReference,
+    synchronizeAttachmentReferences,
+  } from "$lib/composerAttachmentReferences";
 
   export interface SlashCommand {
     id: string;
@@ -166,10 +171,18 @@
   let composerEl = $state<HTMLElement | null>(null);
   let browserFileInput = $state<HTMLInputElement | null>(null);
   let wasDisabled = $state(false);
+  let referencedAttachmentPaths = new Set<string>();
   const hasComposerContent = $derived(
     Boolean(value.trim() || attachments.length || contexts.length),
   );
-  const highlightedInputSegments = $derived(segmentComposerTokens(value));
+  const attachmentReferencePaths = $derived.by(() => {
+    const references = new Map<string, string>();
+    for (const attachment of attachments) {
+      if (attachment.referenceLabel) references.set(attachment.referenceLabel, attachment.path);
+    }
+    return references;
+  });
+  const highlightedInputSegments = $derived(segmentComposerTokens(value, attachmentReferencePaths));
   const streamingPrimaryTitle = $derived(
     hasComposerContent ? sendTitle : isPaused ? resumeTitle : pauseTitle,
   );
@@ -253,15 +266,26 @@
           : (path.split(/[/\\]/).pop() ?? path),
         kind: attachmentKind(path),
       }));
-    attachments = [...attachments, ...added].slice(0, maxAttachments);
+    setAttachments([...attachments, ...added].slice(0, maxAttachments));
   }
 
   function appendAttachmentRecords(items: ChatAttachment[]) {
     const known = new Set(attachments.map((item) => item.path));
-    attachments = [...attachments, ...items.filter((item) => !known.has(item.path))].slice(
-      0,
-      maxAttachments,
+    setAttachments(
+      [...attachments, ...items.filter((item) => !known.has(item.path))].slice(0, maxAttachments),
     );
+  }
+
+  function setAttachments(nextAttachments: ChatAttachment[]) {
+    const synchronized = synchronizeAttachmentReferences(value, nextAttachments);
+    attachments = synchronized.attachments;
+    value = synchronized.value;
+    void tick().then(() => {
+      if (!textareaEl) return;
+      textareaEl.focus();
+      textareaEl.setSelectionRange(value.length, value.length);
+      resizeTextarea();
+    });
   }
 
   async function pickAttachments() {
@@ -442,8 +466,45 @@
   function removeAttachment(path: string) {
     const removed = attachments.find((item) => item.path === path);
     if (removed?.previewUrl?.startsWith("blob:")) URL.revokeObjectURL(removed.previewUrl);
-    attachments = attachments.filter((item) => item.path !== path);
+    const nextValue = removeAttachmentReference(value, removed?.referenceLabel);
+    const synchronized = synchronizeAttachmentReferences(
+      nextValue,
+      attachments.filter((item) => item.path !== path),
+    );
+    attachments = synchronized.attachments;
+    value = synchronized.value;
   }
+
+  $effect(() => {
+    const hasNewAttachment = attachments.some(
+      (attachment) => !referencedAttachmentPaths.has(attachment.path),
+    );
+    if (hasNewAttachment || attachments.some((attachment) => !attachment.referenceLabel)) {
+      const synchronized = synchronizeAttachmentReferences(value, attachments);
+      referencedAttachmentPaths = new Set(
+        synchronized.attachments.map((attachment) => attachment.path),
+      );
+      if (synchronized.attachments.some((attachment, index) => attachment !== attachments[index])) {
+        attachments = synchronized.attachments;
+      }
+      if (synchronized.value !== value) value = synchronized.value;
+      return;
+    }
+
+    const retainedAttachments = attachmentsReferencedByText(value, attachments);
+    const synchronized = synchronizeAttachmentReferences(value, retainedAttachments);
+    if (
+      synchronized.value !== value ||
+      synchronized.attachments.length !== attachments.length ||
+      synchronized.attachments.some((attachment, index) => attachment !== attachments[index])
+    ) {
+      attachments = synchronized.attachments;
+      value = synchronized.value;
+    }
+    referencedAttachmentPaths = new Set(
+      synchronized.attachments.map((attachment) => attachment.path),
+    );
+  });
 
   const slashPaletteItems = $derived.by<PaletteItem[]>(() => {
     if (paletteMode !== "slash") return [];
@@ -817,6 +878,17 @@
 
   function handleInput(e: Event) {
     const el = e.target as HTMLTextAreaElement;
+    value = el.value;
+    const retainedAttachments = attachmentsReferencedByText(el.value, attachments);
+    for (const attachment of attachments) {
+      if (!retainedAttachments.includes(attachment) && attachment.previewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(attachment.previewUrl);
+      }
+    }
+    const synchronized = synchronizeAttachmentReferences(el.value, retainedAttachments);
+    attachments = synchronized.attachments;
+    value = synchronized.value;
+    el.value = synchronized.value;
     resizeTextarea(el);
     syncInputHighlightScroll(el);
     syncPaletteFromCaret();
@@ -884,7 +956,11 @@
       <div class="input input-highlights" bind:this={inputHighlightsEl} aria-hidden="true">
         {#each highlightedInputSegments as segment, index (index)}
           {#if segment.highlighted}
-            <span class="composer-token">{segment.text}</span>
+            <span
+              class="composer-token"
+              class:composer-attachment-token={Boolean(segment.attachmentPath)}
+              data-attachment-path={segment.attachmentPath}>{segment.text}</span
+            >
           {:else}{segment.text}{/if}
         {/each}<span class="input-highlights-end">&#8203;</span>
       </div>
