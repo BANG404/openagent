@@ -1,13 +1,13 @@
 {
   "ready": true,
-  "version": "0.58.1-beta.2",
-  "tag": "v0.58.1-beta.2",
+  "version": "0.59.0-beta.1",
+  "tag": "v0.59.0-beta.1",
   "channel": "beta",
-  "sourceSha": "1a05bc79bad91a8f75ee5f3b59ba5ea47f795e2b",
-  "previousTag": "v0.58.1-beta.1",
+  "sourceSha": "878ae8f74d9de0cdf7dcd162c77f2fd086cca11d",
+  "previousTag": "v0.58.1-beta.2",
   "components": {
     "frontend": true,
-    "runtime": true,
-    "nativeShell": true
+    "runtime": false,
+    "nativeShell": false
   }
 }
