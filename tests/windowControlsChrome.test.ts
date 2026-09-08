@@ -32,7 +32,7 @@ describe("Windows window controls", () => {
     expect(source).toMatch(/\.onboarding-nav-item\s*{[^}]*border: 0;/s);
   });
 
-  test("keeps onboarding on one fixed Windows 11-style canvas", async () => {
+  test("keeps onboarding on one compact fixed Windows 11-style canvas", async () => {
     const [controls, onboarding, host] = await Promise.all([
       readFile(windowControlsUrl, "utf8"),
       readFile(onboardingFlowUrl, "utf8"),
@@ -44,11 +44,11 @@ describe("Windows window controls", () => {
     expect(onboarding).not.toContain("canMaximize");
     expect(onboarding).toContain("/assets/onboarding/openagent-workspace.png");
     expect(onboarding).toMatch(
-      /\.onboarding-body\s*{[^}]*grid-template-columns: 50% minmax\(0, 50%\);/s,
+      /\.onboarding-body\s*{[^}]*grid-template-columns: 40% minmax\(0, 60%\);/s,
     );
     expect(onboarding).toMatch(/\.step-content\s*{[^}]*margin-block: 8px;/s);
     expect(host).toMatch(
-      /"onboarding",[\s\S]*?\.inner_size\(960\.0, 640\.0\)[\s\S]*?\.resizable\(false\)[\s\S]*?\.maximizable\(false\)/,
+      /"onboarding",[\s\S]*?\.inner_size\(840\.0, 560\.0\)[\s\S]*?\.resizable\(false\)[\s\S]*?\.maximizable\(false\)/,
     );
   });
 });

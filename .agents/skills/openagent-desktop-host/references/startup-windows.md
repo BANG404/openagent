@@ -87,7 +87,7 @@
 
 ## Platform window conventions
 
-- Pre-create the centered onboarding window at its fixed 960 × 640px
+- Pre-create the centered onboarding window at its compact fixed 840 × 560px
   product geometry. Keep it non-resizable and non-maximizable so every
   setup step uses the same verified canvas while dense form content
   scrolls inside the WebView.

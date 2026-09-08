@@ -677,7 +677,7 @@
   }
   .onboarding-body {
     display: grid;
-    grid-template-columns: 50% minmax(0, 50%);
+    grid-template-columns: 40% minmax(0, 60%);
     min-width: 0;
     min-height: 0;
     flex: 1;
@@ -690,15 +690,15 @@
     align-items: center;
     box-sizing: border-box;
     min-width: 0;
-    padding: 46px 38px 28px;
+    padding: 40px 28px 24px;
     background: transparent;
   }
   .onboarding-illustration {
     display: block;
-    width: min(100%, 320px);
+    width: min(100%, 248px);
     height: auto;
-    margin: 72px auto 0;
-    filter: drop-shadow(0 18px 22px rgba(31, 76, 138, 0.12));
+    margin: 58px auto 0;
+    filter: drop-shadow(0 14px 18px rgba(31, 76, 138, 0.11));
     user-select: none;
     -webkit-user-drag: none;
   }
@@ -711,7 +711,7 @@
     text-align: center;
   }
   .onboarding-progress > p:first-child {
-    margin: 0 0 10px;
+    margin: 0 0 8px;
     color: var(--text-muted);
     font-size: 11px;
     letter-spacing: 0.02em;
@@ -720,15 +720,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
   }
   .onboarding-nav-item {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    min-width: 28px;
-    min-height: 28px;
+    width: 26px;
+    min-width: 26px;
+    min-height: 26px;
     padding: 0;
     border: 0;
     border-radius: 50%;
@@ -759,13 +759,13 @@
     color: var(--primary);
   }
   .onboarding-progress strong {
-    margin-top: 12px;
+    margin-top: 10px;
     font-size: 13px;
     font-weight: 600;
   }
   .nav-note {
-    max-width: 240px;
-    margin: 8px 0 0;
+    max-width: 220px;
+    margin: 6px 0 0;
     color: var(--text-muted);
     font-size: 11px;
     line-height: 1.5;
@@ -786,32 +786,32 @@
     min-height: 0;
     flex: 1;
     overflow-y: auto;
-    padding: 32px 50px 24px;
+    padding: 28px 40px 20px;
   }
   h1 {
-    margin: 0 0 12px;
-    font-size: 30px;
+    margin: 0 0 10px;
+    font-size: 28px;
     font-weight: 600;
     letter-spacing: -0.035em;
     line-height: 1.16;
   }
   .lead {
     max-width: 520px;
-    margin: 0 0 14px;
+    margin: 0 0 12px;
     color: var(--text-muted);
     font-size: 14px;
     line-height: 1.6;
   }
   .setup-description {
     max-width: 520px;
-    margin: 0 0 28px;
+    margin: 0 0 22px;
     color: var(--text);
     font-size: 13px;
     line-height: 1.6;
   }
   .workspace-card,
   .summary {
-    padding: 16px;
+    padding: 14px;
     border-radius: 8px;
     background: var(--mica-surface);
   }
@@ -848,7 +848,7 @@
   }
   .form-grid {
     display: grid;
-    gap: 20px;
+    gap: 16px;
   }
   .two {
     display: grid;
@@ -867,7 +867,7 @@
   .provider-tabs {
     display: flex;
     gap: 6px;
-    margin: -10px 0 20px;
+    margin: -6px 0 16px;
     overflow-x: auto;
   }
   .provider-tabs button {
@@ -956,7 +956,7 @@
     display: grid;
     gap: 10px;
     margin-top: 14px;
-    padding: 16px;
+    padding: 14px;
     border-radius: 8px;
     background: var(--mica-surface);
   }
@@ -999,6 +999,6 @@
     justify-content: space-between;
     gap: 12px;
     flex: none;
-    padding: 20px 48px 24px;
+    padding: 16px 38px 20px;
   }
 </style>

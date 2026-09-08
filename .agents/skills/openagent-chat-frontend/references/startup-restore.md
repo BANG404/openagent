@@ -37,16 +37,17 @@
   destroy the preloaded window so later inspector invocations reuse the same
   initialized instance. Keep its compact title bar free of a visible setup
   label and match the main application chrome height. Keep the onboarding
-  canvas fixed at 960 × 640px and omit its maximize affordance. Pair one quiet,
-  product-owned setup illustration with compact numbered progress controls in
-  the native-material column, then lead directly with the current step's
-  display heading inside the inset, borderless content canvas. The welcome step
-  must explain the product, summarize the upcoming configuration, and describe
-  how the workspace is used before asking a first-time user to continue. Dense
-  step content scrolls inside that form column without resizing the window; keep
-  its scrollbar flush with the trailing canvas edge while preserving the content
-  inset. Separate both columns through spacing and neutral selection fill instead
-  of divider lines. The right-side setup canvas and its nested summary cards use
+  canvas fixed at a compact 840 × 560px and omit its maximize affordance. Pair
+  one quiet, product-owned setup illustration and compact numbered progress
+  controls in a 40% native-material column with a wider 60% inset content
+  canvas, then lead directly with the current step's display heading. The
+  welcome step must explain the product, summarize the upcoming configuration,
+  and describe how the workspace is used before asking a first-time user to
+  continue. Dense step content scrolls inside that form column without resizing
+  the window; keep its scrollbar flush with the trailing canvas edge while
+  preserving the content inset. Separate both columns through spacing and
+  neutral selection fill instead of divider lines. The right-side setup canvas
+  and its nested summary cards use
   the same bordered, shadowless Mica surface as grouped Settings cards. Reuse the
   shared Settings action button for ordinary onboarding actions; its secondary
   treatment carries the same restrained divider-colored perimeter as Settings

@@ -3448,7 +3448,7 @@ fn run_with_mode(agent_server: bool) {
                         .map_err(std::io::Error::other)?,
                 )
                 .title("OpenAgent Setup")
-                .inner_size(960.0, 640.0)
+                .inner_size(840.0, 560.0)
                 .decorations(false)
                 .transparent(true)
                 .resizable(false)
