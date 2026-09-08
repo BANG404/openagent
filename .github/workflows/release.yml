@@ -850,9 +850,13 @@ jobs:
       - build
       - sdk-release
     if: >-
-      needs.create-draft.outputs.published != 'true'
-      && needs.detect.outputs.native_shell == 'true'
+      always()
+      && needs.detect.result == 'success'
+      && needs.create-draft.result == 'success'
       && needs.build.result == 'success'
+      && needs.sdk-release.result == 'success'
+      && needs.create-draft.outputs.published != 'true'
+      && needs.detect.outputs.native_shell == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -895,9 +899,12 @@ jobs:
       - create-draft
       - runtime-components
     if: >-
-      needs.create-draft.outputs.published != 'true'
-      && needs.detect.outputs.runtime == 'true'
+      always()
+      && needs.detect.result == 'success'
+      && needs.create-draft.result == 'success'
       && needs.runtime-components.result == 'success'
+      && needs.create-draft.outputs.published != 'true'
+      && needs.detect.outputs.runtime == 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Download signed runtime candidate
@@ -921,9 +928,12 @@ jobs:
       - create-draft
       - frontend-components
     if: >-
-      needs.create-draft.outputs.published != 'true'
-      && needs.detect.outputs.frontend == 'true'
+      always()
+      && needs.detect.result == 'success'
+      && needs.create-draft.result == 'success'
       && needs.frontend-components.result == 'success'
+      && needs.create-draft.outputs.published != 'true'
+      && needs.detect.outputs.frontend == 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Download signed frontend candidate
@@ -947,10 +957,13 @@ jobs:
       - create-draft
       - build
     if: >-
-      needs.detect.outputs.native_shell == 'true'
+      always()
+      && needs.detect.result == 'success'
+      && needs.create-draft.result == 'success'
+      && needs.build.result == 'success'
+      && needs.detect.outputs.native_shell == 'true'
       && needs.detect.outputs.prerelease != 'true'
       && needs.create-draft.outputs.published != 'true'
-      && needs.build.result == 'success'
     runs-on: windows-2025
     steps:
       - name: Download Microsoft Store package
@@ -1009,10 +1022,10 @@ jobs:
       && needs.detect.result == 'success'
       && needs.create-draft.result == 'success'
       && needs.sdk-release.result == 'success'
-      && (needs.publish-native-assets.result == 'success' || needs.publish-native-assets.result == 'skipped')
-      && (needs.publish-runtime-components.result == 'success' || needs.publish-runtime-components.result == 'skipped')
-      && (needs.publish-frontend-components.result == 'success' || needs.publish-frontend-components.result == 'skipped')
-      && (needs.publish-store.result == 'success' || needs.publish-store.result == 'skipped')
+      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.publish-native-assets.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.runtime != 'true' || needs.publish-runtime-components.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.frontend != 'true' || needs.publish-frontend-components.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.detect.outputs.prerelease == 'true' || needs.publish-store.result == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 95
     steps:
@@ -1067,10 +1080,10 @@ jobs:
       always()
       && needs.detect.result == 'success'
       && needs.create-draft.result == 'success'
-      && (needs.publish-native-assets.result == 'success' || needs.publish-native-assets.result == 'skipped')
-      && (needs.publish-runtime-components.result == 'success' || needs.publish-runtime-components.result == 'skipped')
-      && (needs.publish-frontend-components.result == 'success' || needs.publish-frontend-components.result == 'skipped')
-      && (needs.publish-store.result == 'success' || needs.publish-store.result == 'skipped')
+      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.publish-native-assets.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.runtime != 'true' || needs.publish-runtime-components.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.frontend != 'true' || needs.publish-frontend-components.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.detect.outputs.prerelease == 'true' || needs.publish-store.result == 'success')
       && needs.publish-sdk-release.result == 'success'
     runs-on: ubuntu-24.04
     steps:

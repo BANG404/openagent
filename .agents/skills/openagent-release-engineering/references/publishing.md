@@ -65,6 +65,10 @@ Candidate construction and publication are separate phases:
    draft GitHub Release; draft creation must explicitly continue past skipped
    jobs for unselected components while still requiring successful detection
    and tagging, so frontend-only and Runtime-only releases reach publication;
+   selected component publication jobs must likewise evaluate explicitly after
+   skipped non-selected ancestors, and a selected publisher that does not
+   succeed must block SDK and desktop publication rather than be treated as an
+   acceptable skip;
 6. download and verify every selected candidate, upload its existing bytes, and
    generate one combined `latest.json` from the four verified native targets;
 7. submit the Store package only after the same gate, publish the staged SDK

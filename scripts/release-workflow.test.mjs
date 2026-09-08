@@ -36,4 +36,49 @@ describe("release workflow publication gates", () => {
     expect(job).toContain("needs.detect.result == 'success'");
     expect(job).toContain("needs.tag.result == 'success'");
   });
+
+  test("selected publication jobs evaluate after skipped candidate ancestors", async () => {
+    /** @type {Array<[string, string, string]>} */
+    const jobs = [
+      ["publish-native-assets", "publish-runtime-components", "build"],
+      ["publish-runtime-components", "publish-frontend-components", "runtime-components"],
+      ["publish-frontend-components", "publish-store", "frontend-components"],
+      ["publish-store", "publish-sdk-release", "build"],
+    ];
+
+    for (const [jobName, nextJobName, candidateJob] of jobs) {
+      const job = await releaseJobSource(jobName, nextJobName);
+      expect(job).toContain("always()");
+      expect(job).toContain("needs.detect.result == 'success'");
+      expect(job).toContain("needs.create-draft.result == 'success'");
+      expect(job).toContain(`needs.${candidateJob}.result == 'success'`);
+    }
+  });
+
+  test("selected component publishers cannot be skipped before publication", async () => {
+    /** @type {Array<[string, string]>} */
+    const finalPublicationJobs = [
+      ["publish-sdk-release", "publish"],
+      ["publish", "archive-prerelease"],
+    ];
+
+    for (const [jobName, nextJobName] of finalPublicationJobs) {
+      const job = await releaseJobSource(jobName, nextJobName);
+      expect(job).toContain(
+        "needs.detect.outputs.native_shell != 'true' || needs.publish-native-assets.result == 'success'",
+      );
+      expect(job).toContain(
+        "needs.detect.outputs.runtime != 'true' || needs.publish-runtime-components.result == 'success'",
+      );
+      expect(job).toContain(
+        "needs.detect.outputs.frontend != 'true' || needs.publish-frontend-components.result == 'success'",
+      );
+      expect(job).not.toContain(
+        "needs.publish-frontend-components.result == 'success' || needs.publish-frontend-components.result == 'skipped'",
+      );
+      expect(job).toContain(
+        "needs.detect.outputs.prerelease == 'true' || needs.publish-store.result == 'success'",
+      );
+    }
+  });
 });
