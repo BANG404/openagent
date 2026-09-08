@@ -9,8 +9,9 @@
   embedding-resource repair, restore that instead; its pre-created but
   hidden WebView stays closed only when configuration and the local
   resource are both ready.
-- After any successful programmatic `set_focus`, including repeated
-  launch and registered-workspace navigation, emit
+- After any successful programmatic `set_focus`, including the first-run
+  handoff that reveals the main window, repeated launch, and
+  registered-workspace navigation, emit
   `desktop-window-activated` to the target WebView because Windows may
   not deliver a distinct focus-changed callback. The main WebView
   consumes both signals as new composer-focus requests, including
