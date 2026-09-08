@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.58.1-beta.2] - 2026-09-08
+
+## [0.58.1-beta.1] - 2026-09-07
+
+### Bug Fixes
+- **ui**: Preserve ask user field styling
+- **ui**: Unify application select fields
+- **ui**: Align WSL dialog actions
+- **config**: Refresh model capabilities after save
+- **native**: Hide dev inspector from taskbar
+- **tauri**: Use schema-supported GTK app ID key
+- **native**: Unify desktop taskbar application identity
+
 ## [0.58.0-beta.1] - 2026-09-07
 
 ### Features
