@@ -74,6 +74,19 @@
   const isMac =
     typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent ?? "");
   const primaryModifier = isMac ? "⌘" : "Ctrl";
+  const settingsShortcutTargets: Record<
+    string,
+    { kind: SettingsWindowKind; section: SettingsNav }
+  > = {
+    Digit1: { kind: "models", section: "providers" },
+    Digit2: { kind: "agent", section: "execution" },
+    Digit3: { kind: "agent", section: "agents" },
+    Digit4: { kind: "memory", section: "memory" },
+    Digit5: { kind: "integrations", section: "channels" },
+    Digit6: { kind: "integrations", section: "extensions" },
+    Digit7: { kind: "integrations", section: "plugins" },
+    Digit8: { kind: "automation", section: "hooks" },
+  };
 
   function isTextControl(element: Element | null): element is TextControl {
     return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
@@ -204,7 +217,10 @@
     else if (!event.shiftKey && key === "w") runShortcut(event, onCloseWindow);
     else if (!event.shiftKey && key === "q") runShortcut(event, onQuit);
     else if (!event.shiftKey && key === ",") runShortcut(event, onOpenSettings);
-    else if (event.shiftKey && key === "u") {
+    else if (event.shiftKey && settingsShortcutTargets[event.code]) {
+      const target = settingsShortcutTargets[event.code];
+      runShortcut(event, () => onOpenSettingsWindow(target.kind, target.section));
+    } else if (event.shiftKey && key === "u") {
       runShortcut(event, () => void checkForAppUpdate(true));
     }
   }
@@ -403,25 +419,33 @@
           class="application-menu-item"
           onSelect={() => onOpenSettingsWindow("models", "providers")}
         >
-          {$t("modelsWindowTitle")}…
+          <span>{$t("modelsWindowTitle")}…</span><span class="application-menu-shortcut"
+            >{primaryModifier}+Shift+1</span
+          >
         </DropdownMenu.Item>
         <DropdownMenu.Item
           class="application-menu-item"
           onSelect={() => onOpenSettingsWindow("agent", "execution")}
         >
-          {$t("executionAndPermissions")}…
+          <span>{$t("executionAndPermissions")}…</span><span class="application-menu-shortcut"
+            >{primaryModifier}+Shift+2</span
+          >
         </DropdownMenu.Item>
         <DropdownMenu.Item
           class="application-menu-item"
           onSelect={() => onOpenSettingsWindow("agent", "agents")}
         >
-          {$t("flashAgents")}…
+          <span>{$t("flashAgents")}…</span><span class="application-menu-shortcut"
+            >{primaryModifier}+Shift+3</span
+          >
         </DropdownMenu.Item>
         <DropdownMenu.Item
           class="application-menu-item"
           onSelect={() => onOpenSettingsWindow("memory", "memory")}
         >
-          {$t("memoryManagement")}…
+          <span>{$t("memoryManagement")}…</span><span class="application-menu-shortcut"
+            >{primaryModifier}+Shift+4</span
+          >
         </DropdownMenu.Item>
       </DropdownMenu.Content>
     </DropdownMenu.Portal>
@@ -442,17 +466,23 @@
         <DropdownMenu.Item
           class="application-menu-item"
           onSelect={() => onOpenSettingsWindow("integrations", "channels")}
-          >{$t("channels")}…</DropdownMenu.Item
+          ><span>{$t("channels")}…</span><span class="application-menu-shortcut"
+            >{primaryModifier}+Shift+5</span
+          ></DropdownMenu.Item
         >
         <DropdownMenu.Item
           class="application-menu-item"
           onSelect={() => onOpenSettingsWindow("integrations", "extensions")}
-          >{$t("extensions")}…</DropdownMenu.Item
+          ><span>{$t("extensions")}…</span><span class="application-menu-shortcut"
+            >{primaryModifier}+Shift+6</span
+          ></DropdownMenu.Item
         >
         <DropdownMenu.Item
           class="application-menu-item"
           onSelect={() => onOpenSettingsWindow("integrations", "plugins")}
-          >{$t("agentPlugins")}…</DropdownMenu.Item
+          ><span>{$t("agentPlugins")}…</span><span class="application-menu-shortcut"
+            >{primaryModifier}+Shift+7</span
+          ></DropdownMenu.Item
         >
       </DropdownMenu.Content>
     </DropdownMenu.Portal>
@@ -473,7 +503,9 @@
         <DropdownMenu.Item
           class="application-menu-item"
           onSelect={() => onOpenSettingsWindow("automation", "hooks")}
-          >{$t("scheduledHooks")}…</DropdownMenu.Item
+          ><span>{$t("scheduledHooks")}…</span><span class="application-menu-shortcut"
+            >{primaryModifier}+Shift+8</span
+          ></DropdownMenu.Item
         >
       </DropdownMenu.Content>
     </DropdownMenu.Portal>

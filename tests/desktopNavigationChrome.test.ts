@@ -438,6 +438,27 @@ describe("desktop navigation chrome", () => {
     expect(menu).toContain("event.altKey && !event.ctrlKey && !event.metaKey");
   });
 
+  test("exposes and routes shortcuts for every top-menu settings destination", async () => {
+    const menu = await readFile(new URL("ApplicationMenuBar.svelte", componentsUrl), "utf8");
+    const targets = [
+      ["Digit1", "models", "providers"],
+      ["Digit2", "agent", "execution"],
+      ["Digit3", "agent", "agents"],
+      ["Digit4", "memory", "memory"],
+      ["Digit5", "integrations", "channels"],
+      ["Digit6", "integrations", "extensions"],
+      ["Digit7", "integrations", "plugins"],
+      ["Digit8", "automation", "hooks"],
+    ];
+
+    for (const [code, kind, section] of targets) {
+      expect(menu).toContain(`${code}: { kind: "${kind}", section: "${section}" }`);
+      expect(menu).toContain(`{primaryModifier}+Shift+${code.slice(-1)}`);
+    }
+    expect(menu).toContain("settingsShortcutTargets[event.code]");
+    expect(menu).toContain("onOpenSettingsWindow(target.kind, target.section)");
+  });
+
   test("controls the checkpoint flow panel from the trailing title bar", async () => {
     const route = await readFile(routeUrl, "utf8");
     const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
