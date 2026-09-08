@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.59.1-beta.1] - 2026-09-08
+
+### Bug Fixes
+- **updater**: Enforce component compatibility ranges
+- **desktop**: Activate first-run window chrome
+- **updater**: Confirm hot frontend before mount
+
+### Miscellaneous
+- Preserve concurrent local changes
+
 ## [0.59.0-beta.1] - 2026-09-08
 
 ### Features
