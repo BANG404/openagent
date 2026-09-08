@@ -36,7 +36,10 @@
   navigation, and route global application shortcuts through the same actions
   as menu selection. Edit owns Undo, Redo, Cut, Copy, Paste, Delete, and Select
   All against the focused editable context; Help owns the shared, state-aware
-  application update check. A separate workspace process may be requested only
+  application update check. Settings-window entries use the contiguous primary
+  modifier + Shift + 1 through 8 sequence in their visible top-menu order, and
+  their keyboard routes target the same window and section as menu selection.
+  A separate workspace process may be requested only
   through File -> New window. Show WSL workspace-opening actions in the File
   menu and composer workspace switcher only on Windows; native folder opening
   remains available on every desktop platform.
