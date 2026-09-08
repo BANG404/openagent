@@ -41,7 +41,7 @@ pub struct FrontendArtifact {
 pub struct FrontendManifest {
     pub schema_version: u32,
     pub version: String,
-    pub protocol: FrontendProtocolRange,
+    pub compatibility: FrontendCompatibility,
     pub artifact: FrontendArtifact,
 }
 
@@ -49,6 +49,12 @@ pub struct FrontendManifest {
 pub struct FrontendProtocolRange {
     pub min: u32,
     pub max: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FrontendCompatibility {
+    pub shell: FrontendProtocolRange,
+    pub runtime: FrontendProtocolRange,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -72,7 +78,8 @@ pub struct FrontendResourceManager {
     root: FrontendAssetRoot,
     operation: Arc<Mutex<()>>,
     embedded_version: semver::Version,
-    host_protocol: u32,
+    shell_protocol: u32,
+    runtime_protocol: u32,
 }
 
 impl FrontendResourceManager {
@@ -80,7 +87,8 @@ impl FrontendResourceManager {
         openagent_home: PathBuf,
         source: FrontendResourceSource,
         embedded_version: &str,
-        host_protocol: u32,
+        shell_protocol: u32,
+        runtime_protocol: u32,
     ) -> Result<Self, String> {
         let manager = Self {
             resources_dir: openagent_home.join("resources").join("frontend"),
@@ -90,7 +98,8 @@ impl FrontendResourceManager {
             operation: Arc::new(Mutex::new(())),
             embedded_version: semver::Version::parse(embedded_version)
                 .map_err(|error| format!("embedded frontend version is invalid: {error}"))?,
-            host_protocol,
+            shell_protocol,
+            runtime_protocol,
         };
         manager.restore_startup_selection()?;
         Ok(manager)
@@ -140,7 +149,8 @@ impl FrontendResourceManager {
             &manifest_bytes,
             &signature_bytes,
             &self.source.public_key,
-            self.host_protocol,
+            self.shell_protocol,
+            self.runtime_protocol,
         )?;
         let version_dir = self.resources_dir.join(&manifest.version);
         if valid_frontend_root(&version_dir)
@@ -266,14 +276,16 @@ impl FrontendResourceManager {
             .is_some_and(|active| active.pending_confirmation)
         {
             self.rollback_pending_locked()?;
-        } else if let Some(active) = active {
-            if frontend_version_root(&self.resources_dir, &active.version).is_none() {
+        }
+        if let Some(active) = read_active(&self.resources_dir)? {
+            if self.verified_version_root(&active.version).is_none() {
                 let replacement = active.previous_version.and_then(|version| {
-                    frontend_version_root(&self.resources_dir, &version).map(|_| ActiveFrontend {
-                        version,
-                        previous_version: None,
-                        pending_confirmation: false,
-                    })
+                    self.verified_version_root(&version)
+                        .map(|_| ActiveFrontend {
+                            version,
+                            previous_version: None,
+                            pending_confirmation: false,
+                        })
                 });
                 match replacement {
                     Some(replacement) => write_active(&self.resources_dir, &replacement)?,
@@ -288,6 +300,21 @@ impl FrontendResourceManager {
             .write()
             .map_err(|_| "frontend asset root lock is poisoned".to_string())? = selected;
         Ok(())
+    }
+
+    fn verified_version_root(&self, version: &str) -> Option<PathBuf> {
+        let root = frontend_version_root(&self.resources_dir, version)?;
+        let manifest = std::fs::read(root.join(INSTALLED_MANIFEST_FILE)).ok()?;
+        let signature = std::fs::read(root.join(INSTALLED_SIGNATURE_FILE)).ok()?;
+        let manifest = verify_manifest(
+            &manifest,
+            &signature,
+            &self.source.public_key,
+            self.shell_protocol,
+            self.runtime_protocol,
+        )
+        .ok()?;
+        (manifest.version == version).then_some(root)
     }
 
     fn rollback_pending_locked(&self) -> Result<bool, String> {
@@ -361,7 +388,8 @@ fn verify_manifest(
     manifest_bytes: &[u8],
     signature_bytes: &[u8],
     public_key_text: &str,
-    host_protocol: u32,
+    shell_protocol: u32,
+    runtime_protocol: u32,
 ) -> Result<FrontendManifest, String> {
     let public_key = PublicKey::decode(public_key_text)
         .map_err(|error| format!("frontend signing public key is invalid: {error}"))?;
@@ -373,7 +401,7 @@ fn verify_manifest(
         .map_err(|error| format!("frontend manifest signature verification failed: {error}"))?;
     let manifest: FrontendManifest = serde_json::from_slice(manifest_bytes)
         .map_err(|error| format!("frontend manifest is invalid JSON: {error}"))?;
-    validate_manifest(&manifest, host_protocol)?;
+    validate_manifest(&manifest, shell_protocol, runtime_protocol)?;
     Ok(manifest)
 }
 
@@ -390,15 +418,24 @@ fn decode_signature_text(bytes: &[u8], label: &str) -> Result<String, String> {
     String::from_utf8(decoded).map_err(|_| format!("decoded {label} is not UTF-8"))
 }
 
-fn validate_manifest(manifest: &FrontendManifest, host_protocol: u32) -> Result<(), String> {
-    if manifest.schema_version != 1
+fn validate_manifest(
+    manifest: &FrontendManifest,
+    shell_protocol: u32,
+    runtime_protocol: u32,
+) -> Result<(), String> {
+    let shell = &manifest.compatibility.shell;
+    let runtime = &manifest.compatibility.runtime;
+    if manifest.schema_version != 2
         || !safe_version(&manifest.version)
         || semver::Version::parse(&manifest.version).is_err()
-        || manifest.protocol.min > manifest.protocol.max
-        || host_protocol < manifest.protocol.min
-        || host_protocol > manifest.protocol.max
+        || shell.min > shell.max
+        || shell_protocol < shell.min
+        || shell_protocol > shell.max
+        || runtime.min > runtime.max
+        || runtime_protocol < runtime.min
+        || runtime_protocol > runtime.max
     {
-        return Err("frontend manifest schema or version is invalid".to_string());
+        return Err("frontend manifest schema, version, or compatibility is invalid".to_string());
     }
     let artifact = &manifest.artifact;
     if Path::new(&artifact.file)
@@ -695,16 +732,17 @@ pub async fn serve(request: Request<Vec<u8>>, root: FrontendAssetRoot) -> Respon
 mod tests {
     use super::{
         extract_archive, requested_asset, safe_version, serve, validate_manifest, FrontendArtifact,
-        FrontendManifest, FrontendProtocolRange, FrontendResourceManager, FrontendResourceSource,
+        FrontendCompatibility, FrontendManifest, FrontendProtocolRange, FrontendResourceManager,
+        FrontendResourceSource,
     };
     use base64::{engine::general_purpose::STANDARD, Engine as _};
     use http::{Request, StatusCode};
     use std::io::{Read, Write};
     use std::net::TcpListener;
 
-    const TAURI_TEST_PUBLIC_KEY: &str = "untrusted comment: minisign public key: F3E2CE91678DD036\nRWQ20I1nkc7i86e8j0+Jk41TEAN1vbGE+xIhUYs28OcUGs7zKUI9YDWI\n";
-    const TAURI_FRONTEND_MANIFEST_BASE64: &str = "ewogICJzY2hlbWFfdmVyc2lvbiI6IDEsCiAgInZlcnNpb24iOiAiOS45LjktdGVzdC4xIiwKICAicHJvdG9jb2wiOiB7ICJtaW4iOiAxLCAibWF4IjogMSB9LAogICJhcnRpZmFjdCI6IHsKICAgICJmaWxlIjogIm9wZW5hZ2VudC1mcm9udGVuZC50YXIuZ3oiLAogICAgInNoYTI1NiI6ICI0NzhkMWVkMWRmY2UzMjlkNWMxNTA3NzQyZmNmNzY0NWYyMTg2ZTgwNWQ1MzJmMzkxZWU2ODQwZWZlYTlmYjRiIiwKICAgICJzaXplIjogMjMwLAogICAgInVucGFja2VkX3NpemUiOiAxMDksCiAgICAiZmlsZXMiOiAyCiAgfQp9Cg==";
-    const TAURI_FRONTEND_SIGNATURE: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRMjBJMW5rYzdpODN4dTlXd0dEck1jOUlZU3B3WHlLUVdPL2MxZW5ROWRFNFZ3b01oL0JVd052MjFKN3MzeFJLVnFrZzZ2RVo1MktKUnFnRFNQWjB4WlMrbi9YMy9WbHdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4MDA5ODI0CWZpbGU6b3BlbmFnZW50LWZyb250ZW5kLW1hbmlmZXN0Lmpzb24KYnJCK2Znam5qOXV6YlQ1MS9oS2xkYWNxbmFla3l1RCtvRzhubGJjRHlxUUZiUGRTakZBSzhnZ2hSeEFKVS9GdVZlbkVyY1lJaFN1Z2JJSy83M0o1RHc9PQo=";
+    const TAURI_TEST_PUBLIC_KEY: &str = "untrusted comment: minisign public key: 7CBE1AF59419A7FE\nRWT+pxmU9Rq+fKssw0IK819qdg0dYLmyMfQY72HLFKsQDFHXJumZByLI\n";
+    const TAURI_FRONTEND_MANIFEST_BASE64: &str = "ewogICJzY2hlbWFfdmVyc2lvbiI6IDIsCiAgInZlcnNpb24iOiAiOS45LjktdGVzdC4xIiwKICAiY29tcGF0aWJpbGl0eSI6IHsKICAgICJzaGVsbCI6IHsKICAgICAgIm1pbiI6IDEsCiAgICAgICJtYXgiOiAxCiAgICB9LAogICAgInJ1bnRpbWUiOiB7CiAgICAgICJtaW4iOiAyLAogICAgICAibWF4IjogMgogICAgfQogIH0sCiAgImFydGlmYWN0IjogewogICAgImZpbGUiOiAib3BlbmFnZW50LWZyb250ZW5kLnRhci5neiIsCiAgICAic2hhMjU2IjogIjQ3OGQxZWQxZGZjZTMyOWQ1YzE1MDc3NDJmY2Y3NjQ1ZjIxODZlODA1ZDUzMmYzOTFlZTY4NDBlZmVhOWZiNGIiLAogICAgInNpemUiOiAyMzAsCiAgICAidW5wYWNrZWRfc2l6ZSI6IDEwOSwKICAgICJmaWxlcyI6IDIKICB9Cn0K";
+    const TAURI_FRONTEND_SIGNATURE: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUK3B4bVU5UnErZk51czVoaDhrbzV2RU1MdC80UFAwYXpwS1ZRMmVrRjE3dWdLK29WY0JWMS9aQ09UbWIvZEUwSk1pZjByeXdaUVVrVSt2K1FwZ3hpbnlsVEV1dHJhQ2dJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4ODc1OTY4CWZpbGU6b3BlbmFnZW50LWZyb250ZW5kLW1hbmlmZXN0Lmpzb24KakExUUVEZ25XcDRtS3hjNXlqM3RUSkpiZXF3aEIzclk5QW9hVG9OUzRvdERzb2VzRDFPTTB4elk1QWNLaENvczEzZ0x1a1YvblBoNENrQlJDaERwQXc9PQo=";
     const TAURI_FRONTEND_ARCHIVE_BASE64: &str = "H4sIAEndkmoAA+3TQQuCMBQH8M59ivUF9K22dciCIBMvFmXQLTSXGqbiJui3z+oQeOkQFsV+h22wsb0H+8dpwCstkpek1xkAYIyh29xozwAYMMJ0SAiljIwpAoyHI9ZD0F1JT6WQXtGU8u497eZ+hDEIsqOsc45uf2BmPEY/C+qZiMOUB+hUZKnkabOIK1kW3NDvu4Z+P9r/dgPKWzwhuBS6l+faWXT0xqv8AyXt/LMxqPx/Qphkvpe4USy01dp05pbpuIetbTnm4rC09+5uY6IpkkXJJyrqiqIof+QKX/Na0QAMAAA=";
 
     fn serve_signed_frontend_fixture(archive: Vec<u8>) -> (String, std::thread::JoinHandle<()>) {
@@ -765,6 +803,7 @@ mod tests {
             },
             "1.0.0",
             1,
+            2,
         )
         .unwrap();
         let installed = manager.install_latest().await.unwrap();
@@ -792,6 +831,7 @@ mod tests {
             },
             "1.0.0",
             1,
+            2,
         )
         .unwrap();
         assert!(manager.install_latest().await.is_err());
@@ -804,9 +844,12 @@ mod tests {
     #[test]
     fn validates_bounded_frontend_manifests() {
         let manifest = FrontendManifest {
-            schema_version: 1,
+            schema_version: 2,
             version: "0.51.0-beta.2".to_string(),
-            protocol: FrontendProtocolRange { min: 1, max: 1 },
+            compatibility: FrontendCompatibility {
+                shell: FrontendProtocolRange { min: 1, max: 1 },
+                runtime: FrontendProtocolRange { min: 2, max: 2 },
+            },
             artifact: FrontendArtifact {
                 file: "openagent-frontend.tar.gz".to_string(),
                 sha256: "a".repeat(64),
@@ -815,7 +858,15 @@ mod tests {
                 files: 2,
             },
         };
-        assert!(validate_manifest(&manifest, 1).is_ok());
+        assert!(validate_manifest(&manifest, 1, 2).is_ok());
+
+        let mut incompatible = manifest.clone();
+        incompatible.compatibility.runtime = FrontendProtocolRange { min: 3, max: 4 };
+        assert!(validate_manifest(&incompatible, 1, 2).is_err());
+
+        incompatible = manifest;
+        incompatible.compatibility.shell = FrontendProtocolRange { min: 2, max: 2 };
+        assert!(validate_manifest(&incompatible, 1, 2).is_err());
     }
 
     #[test]
@@ -859,6 +910,7 @@ mod tests {
             },
             "0.50.0",
             1,
+            2,
         )
         .unwrap();
         manager.activate("1.0.0").await.unwrap();
@@ -875,19 +927,18 @@ mod tests {
     }
 
     #[test]
-    fn rejects_an_active_frontend_path_outside_the_resource_directory() {
+    fn rejects_an_unsigned_active_frontend_on_startup() {
         let home = std::env::temp_dir().join(format!(
             "openagent-frontend-active-path-{}",
             uuid::Uuid::new_v4()
         ));
         let resources = home.join("resources").join("frontend");
-        let escaped = home.join("escaped");
-        std::fs::create_dir_all(&resources).unwrap();
-        std::fs::create_dir_all(&escaped).unwrap();
-        std::fs::write(escaped.join("index.html"), b"outside").unwrap();
+        let unsigned = resources.join("1.0.0");
+        std::fs::create_dir_all(&unsigned).unwrap();
+        std::fs::write(unsigned.join("index.html"), b"unsigned").unwrap();
         std::fs::write(
             resources.join("active.json"),
-            br#"{"version":"../../escaped","previous_version":null,"pending_confirmation":false}"#,
+            br#"{"version":"1.0.0","previous_version":null,"pending_confirmation":false}"#,
         )
         .unwrap();
 
@@ -900,6 +951,7 @@ mod tests {
             },
             "0.50.0",
             1,
+            2,
         )
         .unwrap();
 

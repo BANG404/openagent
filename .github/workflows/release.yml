@@ -819,9 +819,10 @@ jobs:
           mkdir -p frontend-components
           tar --format=ustar -C build -czf frontend-components/openagent-frontend.tar.gz .
           version="$(node -p "require('./package.json').version")"
-          protocol="$(sed -n 's/^pub const FRONTEND_HOST_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' src-tauri/src/frontend_resource.rs)"
-          if [[ -z "$protocol" ]]; then
-            echo "Unable to resolve the frontend host protocol." >&2
+          shell_protocol="$(sed -n 's/^pub const FRONTEND_HOST_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' src-tauri/src/frontend_resource.rs)"
+          runtime_protocol="$(sed -n 's/^pub const SDK_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' sdk/rust/openagent-protocol/src/lib.rs)"
+          if [[ -z "$shell_protocol" || -z "$runtime_protocol" ]]; then
+            echo "Unable to resolve the frontend compatibility protocols." >&2
             exit 1
           fi
           node scripts/frontend-artifacts.mjs \
@@ -829,7 +830,8 @@ jobs:
             --assets build \
             --output frontend-components/openagent-frontend-manifest.json \
             --version "$version" \
-            --protocol "$protocol"
+            --shell-protocol "$shell_protocol" \
+            --runtime-protocol "$runtime_protocol"
           bun scripts/tauri.mjs signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "" \
             frontend-components/openagent-frontend-manifest.json
           test -s frontend-components/openagent-frontend-manifest.json.sig

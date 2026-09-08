@@ -28,13 +28,22 @@ export async function inspectFrontendAssets(root) {
   return { files, unpackedSize };
 }
 
-export async function createFrontendManifest({ archive, assets, version, protocolVersion }) {
+export async function createFrontendManifest({
+  archive,
+  assets,
+  version,
+  shellProtocolVersion,
+  runtimeProtocolVersion,
+}) {
   const archiveBytes = await readFile(archive);
   const { files, unpackedSize } = await inspectFrontendAssets(assets);
   return {
-    schema_version: 1,
+    schema_version: 2,
     version,
-    protocol: { min: protocolVersion, max: protocolVersion },
+    compatibility: {
+      shell: { min: shellProtocolVersion, max: shellProtocolVersion },
+      runtime: { min: runtimeProtocolVersion, max: runtimeProtocolVersion },
+    },
     artifact: {
       file: path.basename(archive),
       sha256: createHash("sha256").update(archiveBytes).digest("hex"),
@@ -55,17 +64,27 @@ async function main() {
   const assets = value("--assets");
   const output = value("--output");
   const version = value("--version");
-  const protocolVersion = Number(value("--protocol"));
-  if (!archive || !assets || !output || !version || !Number.isInteger(protocolVersion)) {
+  const shellProtocolVersion = Number(value("--shell-protocol"));
+  const runtimeProtocolVersion = Number(value("--runtime-protocol"));
+  if (
+    !archive ||
+    !assets ||
+    !output ||
+    !version ||
+    !Number.isInteger(shellProtocolVersion) ||
+    !Number.isInteger(runtimeProtocolVersion)
+  ) {
     throw new Error(
-      "Usage: frontend-artifacts.mjs --archive <file> --assets <dir> --output <file> --version <semver> --protocol <integer>",
+      "Usage: frontend-artifacts.mjs --archive <file> --assets <dir> --output <file> " +
+        "--version <semver> --shell-protocol <integer> --runtime-protocol <integer>",
     );
   }
   const manifest = await createFrontendManifest({
     archive,
     assets,
     version,
-    protocolVersion,
+    shellProtocolVersion,
+    runtimeProtocolVersion,
   });
   await writeFile(output, `${JSON.stringify(manifest, null, 2)}\n`);
 }

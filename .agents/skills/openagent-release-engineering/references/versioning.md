@@ -98,8 +98,9 @@ can be activated.
 Frontend-selected releases build the static frontend once, archive it as
 `openagent-frontend.tar.gz`, records its exact compressed and unpacked sizes,
 file count, and SHA-256 in `openagent-frontend-manifest.json`, and signs that
-manifest with the updater trust root. The manifest also binds the frontend to
-the compatible host protocol range. The archive, manifest, and signature are
+manifest with the updater trust root. Manifest schema 2 binds the frontend to
+independent compatible shell and Runtime protocol ranges; desktop SemVer is not
+used as a compatibility constraint. The archive, manifest, and signature are
 published through the fixed `frontend-beta`, `frontend-rc`, or
 `frontend-stable` channel. Desktop activation remains independent from the
 native installer: WebViews reload the verified resource and confirm startup,

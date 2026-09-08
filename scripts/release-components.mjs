@@ -105,6 +105,12 @@ export function classifyReleaseComponents(files, sdkFiles = null) {
     }
     if (file.startsWith("src-tauri/")) components.nativeShell = true;
     if (
+      file === "src-tauri/src/frontend_resource.rs" ||
+      file === "scripts/frontend-artifacts.mjs"
+    ) {
+      components.frontend = true;
+    }
+    if (
       file.startsWith("src/") ||
       file.startsWith("static/") ||
       file.startsWith("assets/") ||

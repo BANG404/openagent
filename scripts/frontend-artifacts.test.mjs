@@ -19,12 +19,16 @@ test("builds bounded metadata for a frontend archive", async () => {
       archive,
       assets,
       version: "0.51.0-beta.2",
-      protocolVersion: 1,
+      shellProtocolVersion: 1,
+      runtimeProtocolVersion: 2,
     });
 
-    expect(manifest.schema_version).toBe(1);
+    expect(manifest.schema_version).toBe(2);
     expect(manifest.version).toBe("0.51.0-beta.2");
-    expect(manifest.protocol).toEqual({ min: 1, max: 1 });
+    expect(manifest.compatibility).toEqual({
+      shell: { min: 1, max: 1 },
+      runtime: { min: 2, max: 2 },
+    });
     expect(manifest.artifact.file).toBe("openagent-frontend.tar.gz");
     expect(manifest.artifact.files).toBe(2);
     expect(manifest.artifact.unpacked_size).toBe(32);

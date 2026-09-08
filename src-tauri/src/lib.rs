@@ -454,6 +454,7 @@ fn frontend_resource_manager(
         },
         env!("CARGO_PKG_VERSION"),
         frontend_resource::FRONTEND_HOST_PROTOCOL_VERSION,
+        DESKTOP_RUNTIME_PROTOCOL_VERSION,
     )
 }
 

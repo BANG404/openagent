@@ -98,7 +98,8 @@ an unstable Rust ABI between the shell and SDK.
 A frontend-only production update uses a signed, versioned `tar.gz` bundle under
 `OPENAGENT_HOME/resources/frontend/<version>/`. The host verifies the detached
 Minisign signature before parsing the manifest, checks archive size and SHA-256,
-requires a compatible frontend-host protocol range, rejects traversal, links,
+requires separate compatible frontend-shell and frontend-Runtime protocol
+ranges, rejects traversal, links,
 unexpected entry types, and declared extraction-limit
 violations, then commits an immutable version directory. Activation atomically
 updates `active.json` and reloads every product WebView through the host-owned
@@ -111,6 +112,18 @@ the host restores the previous verified version or its embedded frontend. The
 embedded frontend always remains the final fallback. The outgoing frontend must
 not announce success after merely requesting WebView navigation; the confirmed
 replacement frontend owns the component-update completion notice.
+
+Treat application SemVer as an update identity, never as a compatibility
+contract. Each replaceable component declares protocol ranges for every live
+edge it consumes: Runtime manifests cover the shell/Runtime and Harness/Runtime
+transport, while frontend manifest schema 2 names both `compatibility.shell`
+and `compatibility.runtime`. The shell accepts a candidate only when its own
+protocol values fall inside every declared range. A frontend-shell contract
+change must select both `frontend` and `nativeShell` for release; changing the
+signed frontend manifest generator must select `frontend`. A shared Runtime
+protocol change flows through the pinned SDK protocol owner and selects both
+`frontend` and `runtime`, with native-shell qualification enforcing that the
+public shell constant matches it.
 
 ## Third-party development
 
