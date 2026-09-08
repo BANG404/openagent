@@ -6,6 +6,9 @@ available independently; the runtime enforces the same model capability when
 building the provider request. Ordinary and Quick Chat composers resolve that
 capability from the same exact provider/model binding and update it after the
 latest configuration-change reload without remounting or clearing the draft.
+Keep every composer unavailable until a replacement frontend's startup hook has
+confirmed activation and released the Runtime update barrier; attachment upload
+must never be offered while the Runtime is drained for component replacement.
 
 - Text selected inside an assistant answer exposes one compact, localized
   `Add to chat` floating action. Adding it creates a structured `quote` context

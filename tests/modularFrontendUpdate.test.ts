@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 
 const updater = readFileSync("src/lib/appUpdater.ts", "utf8");
 const route = readFileSync("src/routes/+page.svelte", "utf8");
+const clientHooks = readFileSync("src/hooks.client.ts", "utf8");
 const host = readFileSync("src-tauri/src/lib.rs", "utf8");
 
 test("production update checks stage and activate a verified frontend resource", () => {
@@ -30,8 +31,11 @@ test("production update checks aggregate Runtime and Shell updates", () => {
 });
 
 test("versioned WebViews confirm activation through the host handshake", () => {
-  expect(route).toContain('runtimeQuery?.get("frontend-version")');
-  expect(route).toContain('invoke("confirm_frontend_activation"');
+  expect(clientHooks).toContain('get("frontend-version")');
+  expect(clientHooks).toContain('invoke("confirm_frontend_activation"');
+  expect(clientHooks).toContain("confirmFrontendActivationWithRetry");
+  expect(route).toContain("frontendActivationWasConfirmed");
+  expect(updater).toContain("if (!updates.frontend)");
   expect(host).toContain("rollback_pending().await");
   expect(host).toContain("Duration::from_secs(15)");
   expect(host).toContain("openagent-ui://localhost/");

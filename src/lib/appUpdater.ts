@@ -167,13 +167,17 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
       await updates.shell.install();
     }
 
-    showToast({
-      title: translate("updateInstalled"),
-      description: updates.shell
-        ? translate("updateRestarting")
-        : translate("updateComponentsInstalled"),
-      durationMs: updates.shell ? 3000 : 5000,
-    });
+    // A replacement frontend owns the completion notice after its startup
+    // hook confirms activation and releases the Runtime write barrier.
+    if (!updates.frontend) {
+      showToast({
+        title: translate("updateInstalled"),
+        description: updates.shell
+          ? translate("updateRestarting")
+          : translate("updateComponentsInstalled"),
+        durationMs: updates.shell ? 3000 : 5000,
+      });
+    }
     if (updates.shell) await invoke("restart_app");
   } catch (error) {
     showToast({

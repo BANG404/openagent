@@ -102,10 +102,15 @@ requires a compatible frontend-host protocol range, rejects traversal, links,
 unexpected entry types, and declared extraction-limit
 violations, then commits an immutable version directory. Activation atomically
 updates `active.json` and reloads every product WebView through the host-owned
-`openagent-ui` protocol. The new frontend confirms its version after mounting;
-if it does not confirm within 15 seconds, or the process exits while confirmation
-is pending, the host restores the previous verified version or its embedded
-frontend. The embedded frontend always remains the final fallback.
+`openagent-ui` protocol. The new frontend confirms its version from the client
+startup hook before route components mount. Retry only transient confirmation
+failures within the bounded activation window, and do not expose interactive
+Runtime writes while the Runtime remains drained. If the frontend does not
+confirm within 15 seconds, or the process exits while confirmation is pending,
+the host restores the previous verified version or its embedded frontend. The
+embedded frontend always remains the final fallback. The outgoing frontend must
+not announce success after merely requesting WebView navigation; the confirmed
+replacement frontend owns the component-update completion notice.
 
 ## Third-party development
 

@@ -21,6 +21,7 @@
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import { installDownloadHook } from "$lib/downloadHook";
   import { checkForAppUpdate } from "$lib/appUpdater";
+  import { frontendActivationWasConfirmed } from "$lib/frontendActivation";
   import { AgentCompletionNotifier } from "$lib/agentCompletionNotification";
   import { chatTaskUsagesByCheckpoint } from "$lib/cacheUsage";
   import { Dialog, Tooltip as TooltipPrimitive } from "bits-ui";
@@ -2003,9 +2004,12 @@
 
   onMount(() => {
     if (!tauriAvailable || !frontendActivationVersion) return;
-    void invoke("confirm_frontend_activation", { version: frontendActivationVersion }).catch(
-      (error) => console.error("Failed to confirm frontend activation:", error),
-    );
+    if (!frontendActivationWasConfirmed(frontendActivationVersion)) return;
+    showToast({
+      title: $t("updateInstalled"),
+      description: $t("updateComponentsInstalled"),
+      durationMs: 5000,
+    });
   });
 
   onMount(() => {
