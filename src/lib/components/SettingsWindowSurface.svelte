@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
+  import SettingsWindowSkeleton from "$lib/components/SettingsWindowSkeleton.svelte";
   import SettingsView from "$lib/components/SettingsView.svelte";
   import { applyDocumentTheme, createNativeThemeSynchronizer } from "$lib/appTheme";
   import { normalizeConfigShape } from "$lib/config";
@@ -143,7 +143,11 @@
     />
   {:else}
     <div class="settings-window-loading">
-      <LoadingSkeleton variant="new-conversation" label={$t("loadingContent")} />
+      <SettingsWindowSkeleton
+        {kind}
+        initialSection={selectedSection}
+        label={$t("loadingContent")}
+      />
       {#if loadError}<p role="alert">{loadError}</p>{/if}
     </div>
   {/if}
@@ -160,13 +164,19 @@
   }
 
   .settings-window-loading {
-    width: min(560px, calc(100% - 48px));
-    margin: auto;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
   }
 
   .settings-window-loading p {
-    margin: 12px 0 0;
+    position: fixed;
+    right: 24px;
+    bottom: 18px;
+    left: 24px;
+    margin: 0;
     color: var(--danger);
     font-size: 12px;
+    text-align: center;
   }
 </style>
