@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.60.0-beta.1] - 2026-09-09
+
+### Features
+- **chat**: Clarify filesystem tool results
+- **onboarding**: Compact the setup window
+
+### Bug Fixes
+- **desktop**: Prevent orphaned runtime processes
+
 ## [0.59.1-beta.1] - 2026-09-08
 
 ### Bug Fixes
