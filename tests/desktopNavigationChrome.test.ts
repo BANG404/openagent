@@ -469,7 +469,7 @@ describe("desktop navigation chrome", () => {
     expect(menu).toContain("onOpenSettingsWindow(target.kind, target.section)");
   });
 
-  test("controls mutually exclusive right panels from the trailing title bar", async () => {
+  test("routes browser, details, and terminals through one responsive right sidebar", async () => {
     const route = await readFile(routeUrl, "utf8");
     const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
     const conversationSurface = await readFile(
@@ -478,20 +478,28 @@ describe("desktop navigation chrome", () => {
     );
     const panel = await readFile(new URL("CheckpointFlowStatus.svelte", componentsUrl), "utf8");
     const panelShell = panel.match(/\.flow-panel\s*{([^}]*)}/s)?.[1];
+    const collapsedPanelShell = panel.match(/\.flow-panel\.collapsed\s*{([^}]*)}/s)?.[1];
 
     expect(route).toContain("bind:checkpointFlowPanelCollapsed");
     expect(route).toContain("if (!currentCheckpointFlow && key) {");
-    expect(route).toContain("terminalPanelCollapsed = true");
+    expect(route).toContain('rightSidebarPanel = "files"');
+    expect(route).toContain('rightSidebarPanel = "status"');
+    expect(route).toContain('rightSidebarPanel = "terminal"');
     expect(route).toContain("checkpointFlow: currentCheckpointFlow ?? null");
     expect(conversationSurface).toContain("<CheckpointFlowPanelHost");
+    expect(conversationSurface).not.toContain("<BackgroundTerminalPanel");
     expect(conversationSurface).not.toContain("conversationDetailsAvailable(");
     expect(route).toContain("shouldAutoOpenCheckpointFlowPanel(previous, next.flow)");
     expect(titleBar).toContain("<CheckpointFlowToggleButton");
     expect(titleBar).not.toContain("{#if conversationDetailsAvailable}");
     expect(panel).toContain('activePanel === "browser"');
     expect(panel).toContain("<BrowserPanel />");
+    expect(panel).toContain('activePanel === "terminal"');
+    expect(panel).toContain("<BackgroundTerminalPanel");
     expect(titleBar).toContain("<BackgroundTerminalToggleButton");
-    expect(route).toContain("if (opening) checkpointFlowPanelCollapsed = true");
+    expect(route).toContain(
+      'terminalPanelCollapsed={checkpointFlowPanelCollapsed || rightSidebarPanel !== "terminal"}',
+    );
     expect(titleBar.indexOf("<CheckpointFlowToggleButton")).toBeLessThan(
       titleBar.lastIndexOf("<WindowControls {platform}"),
     );
@@ -505,7 +513,7 @@ describe("desktop navigation chrome", () => {
     );
     expect(panel).toContain("width 180ms cubic-bezier(0.16, 1, 0.3, 1)");
     expect(panel).toContain("width: 0;");
-    expect(panel).not.toContain("display: none;");
+    expect(collapsedPanelShell).not.toContain("display: none;");
     expect(panelShell).toContain("margin-left: var(--workspace-card-gap)");
     expect(panel).toMatch(
       /\.flow-panel-surface\s*{[^}]*border-radius: 12px;[^}]*background: var\(--surface\);/s,
@@ -519,6 +527,9 @@ describe("desktop navigation chrome", () => {
       /\.resize-handle::after\s*{[^}]*inset: 0 auto 0 3px;[^}]*width: var\(--column-resize-indicator-width\);/s,
     );
     expect(panel).toMatch(/\.graph-viewport\s*{[^}]*overflow-y: auto;/s);
+    expect(panel).toMatch(
+      /@media \(max-width: 900px\)[\s\S]*?\.flow-panel:not\(\.collapsed\)\s*{[^}]*position: fixed;[^}]*width: auto;[^}]*max-width: none;/s,
+    );
     expect(panel).not.toContain("graphScale");
     expect(panel).not.toContain("--graph-scale");
   });

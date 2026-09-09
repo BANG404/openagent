@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CheckpointFlow } from "$lib/checkpointFlow";
   import type { FileChange } from "$lib/types";
+  import type { RightSidebarPanel } from "$lib/rightSidebar";
   import {
     clampCheckpointFlowPanelWidth,
     loadCheckpointFlowPanelWidth,
@@ -13,11 +14,17 @@
     changes,
     onRevert,
     collapsed = $bindable(true),
+    activePanel = $bindable<RightSidebarPanel>("browser"),
+    terminalEnabled = false,
+    onTerminalSummaryChange = () => {},
   }: {
     flow: CheckpointFlow | null;
     changes: FileChange[];
     onRevert: (changeId: string) => Promise<void>;
     collapsed?: boolean;
+    activePanel?: RightSidebarPanel;
+    terminalEnabled?: boolean;
+    onTerminalSummaryChange?: (runningCount: number) => void;
   } = $props();
 
   let width = $state(
@@ -76,5 +83,8 @@
   {width}
   {collapsed}
   {resizing}
+  bind:activePanel
+  {terminalEnabled}
+  {onTerminalSummaryChange}
   onResizeStart={startResize}
 />

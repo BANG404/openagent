@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
   import { normalizeBrowserAddress } from "$lib/browserNavigation";
+  import { browserViewportScale } from "$lib/browserViewportScale";
   import { t } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
 
@@ -11,7 +13,10 @@
   let frameVersion = $state(0);
   let loading = $state(false);
   let addressError = $state(false);
+  let viewportElement = $state<HTMLDivElement | null>(null);
+  let viewportWidth = $state(0);
   const currentUrl = $derived(history[historyIndex] ?? "");
+  const pageScale = $derived(browserViewportScale(viewportWidth));
   const canGoBack = $derived(historyIndex > 0);
   const canGoForward = $derived(historyIndex >= 0 && historyIndex < history.length - 1);
 
@@ -48,6 +53,16 @@
   function openExternal(): void {
     if (currentUrl) void capabilities.openUrl(currentUrl);
   }
+
+  onMount(() => {
+    if (!viewportElement) return;
+    const observer = new ResizeObserver(([entry]) => {
+      viewportWidth = entry.contentRect.width;
+    });
+    observer.observe(viewportElement);
+    viewportWidth = viewportElement.clientWidth;
+    return () => observer.disconnect();
+  });
 </script>
 
 <section class="browser-panel" aria-label={$t("browserPanel")}>
@@ -123,7 +138,12 @@
     </Tooltip>
   </form>
 
-  <div class="browser-viewport" class:loading>
+  <div
+    class="browser-viewport"
+    class:loading
+    bind:this={viewportElement}
+    style:--browser-page-scale={pageScale}
+  >
     {#if currentUrl}
       {#key frameVersion}
         <iframe
@@ -155,6 +175,7 @@
     min-height: 0;
     flex: 1;
     flex-direction: column;
+    container-type: inline-size;
   }
   .browser-toolbar {
     display: flex;
@@ -267,10 +288,12 @@
     background: white;
   }
   iframe {
-    width: 100%;
-    height: 100%;
+    width: calc(100% / var(--browser-page-scale));
+    height: calc(100% / var(--browser-page-scale));
     border: 0;
     background: white;
+    transform: scale(var(--browser-page-scale));
+    transform-origin: top left;
   }
   .loading-bar {
     position: absolute;
@@ -311,6 +334,17 @@
     }
     100% {
       transform: translateX(250%);
+    }
+  }
+  @container (max-width: 280px) {
+    .browser-toolbar {
+      flex-wrap: wrap;
+    }
+    label {
+      flex-basis: calc(100% - 72px);
+    }
+    .browser-actions {
+      order: 2;
     }
   }
   @media (prefers-reduced-motion: reduce) {

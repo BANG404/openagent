@@ -46,7 +46,7 @@ describe("standalone development previews", () => {
       resolveStandaloneDevPreview(new URLSearchParams("background-terminals-preview"), true),
     ).toBe("background-terminals");
     expect(previewParameterPrefix("background-terminals")).toBe("background-terminals-preview");
-    expect(previewSource).toContain("<BackgroundTerminalPanel");
+    expect(previewSource).toContain("terminalPreviewSessions={backgroundTerminalPreviewSessions}");
   });
 
   test("exposes the bounded tool diff preview", () => {

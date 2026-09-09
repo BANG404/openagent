@@ -95,6 +95,7 @@
     saveCheckpointFlowPanelCollapsed,
   } from "$lib/checkpointFlowPanelSizing";
   import { retainUndurableFileChanges } from "$lib/fileChangeReconciliation";
+  import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
     ROOT_KEY,
@@ -372,7 +373,7 @@
   let checkpointFlowPanelCollapsed = $state(
     typeof window === "undefined" ? true : loadCheckpointFlowPanelCollapsed(window.localStorage),
   );
-  let terminalPanelCollapsed = $state(true);
+  let rightSidebarPanel = $state<RightSidebarPanel>("browser");
   let runningTerminalCount = $state(0);
   let checkpointFlowPanelSelectionKey = $state<string | null>(null);
   let checkpointFlowPanelAutoOpenKey = $state<string | null>(null);
@@ -715,7 +716,7 @@
     if (key === checkpointFlowPanelSelectionKey) return;
     checkpointFlowPanelSelectionKey = key;
     if (key === checkpointFlowPanelAutoOpenKey) {
-      terminalPanelCollapsed = true;
+      rightSidebarPanel = "status";
       checkpointFlowPanelCollapsed = false;
       checkpointFlowPanelAutoOpenKey = null;
     }
@@ -788,7 +789,7 @@
     if (key === fileChangesPanelSelectionKey) return;
     fileChangesPanelSelectionKey = key;
     if (!currentCheckpointFlow && key) {
-      terminalPanelCollapsed = true;
+      rightSidebarPanel = "files";
       checkpointFlowPanelCollapsed = false;
     }
   });
@@ -888,7 +889,7 @@
         activeBranchIds[convId] ?? null,
         next.flow,
       );
-      terminalPanelCollapsed = true;
+      rightSidebarPanel = "status";
       checkpointFlowPanelCollapsed = false;
     }
     liveCheckpointFlowProjections = { ...liveCheckpointFlowProjections, [convId]: next };
@@ -5116,8 +5117,9 @@
         {selectedRoleKey}
         {tauriAvailable}
         memorySyncing={isMemorySyncing}
-        {checkpointFlowPanelCollapsed}
-        {terminalPanelCollapsed}
+        checkpointFlowPanelCollapsed={checkpointFlowPanelCollapsed ||
+          rightSidebarPanel === "terminal"}
+        terminalPanelCollapsed={checkpointFlowPanelCollapsed || rightSidebarPanel !== "terminal"}
         {runningTerminalCount}
         onPickWorkspace={pickWorkspace}
         onPickWsl={pickWslWorkspace}
@@ -5131,14 +5133,24 @@
         onOpenAbout={() => openManagementWindow("about", "about")}
         onQuit={quitApp}
         onToggleCheckpointFlowPanel={() => {
-          const opening = checkpointFlowPanelCollapsed;
-          checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed;
-          if (opening) terminalPanelCollapsed = true;
+          if (!checkpointFlowPanelCollapsed && rightSidebarPanel !== "terminal") {
+            checkpointFlowPanelCollapsed = true;
+            return;
+          }
+          rightSidebarPanel = currentCheckpointFlow
+            ? "status"
+            : currentFileChanges.length > 0
+              ? "files"
+              : "browser";
+          checkpointFlowPanelCollapsed = false;
         }}
         onToggleTerminalPanel={() => {
-          const opening = terminalPanelCollapsed;
-          terminalPanelCollapsed = !terminalPanelCollapsed;
-          if (opening) checkpointFlowPanelCollapsed = true;
+          if (!checkpointFlowPanelCollapsed && rightSidebarPanel === "terminal") {
+            checkpointFlowPanelCollapsed = true;
+            return;
+          }
+          rightSidebarPanel = "terminal";
+          checkpointFlowPanelCollapsed = false;
         }}
         onMinimize={winMinimize}
         onMaximize={winMaximize}
@@ -5154,7 +5166,7 @@
           bind:messagesElement={messagesEl}
           bind:inputAreaHeight
           bind:checkpointFlowPanelCollapsed
-          bind:terminalPanelCollapsed
+          bind:rightSidebarPanel
           onTerminalSummaryChange={(count) => (runningTerminalCount = count)}
           composerDraft={activeComposerDraft}
           focusRequest={composerFocusRequest}

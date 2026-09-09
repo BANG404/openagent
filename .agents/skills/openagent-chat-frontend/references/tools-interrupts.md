@@ -77,7 +77,13 @@
   of conversation state. Its Browser tab accepts HTTP(S) addresses, maintains
   back/forward history for submitted addresses, refreshes the active page, and
   exposes an external-browser action. Sites may still reject iframe embedding
-  through CSP or X-Frame-Options.
+  through CSP or X-Frame-Options. Keep the browser and terminal in the same
+  tabbed sidebar. In compact windows, overlay that sidebar across the usable
+  application body instead of shrinking the transcript and sidebar content;
+  let the browser toolbar wrap when its own inline space is constrained. Render
+  embedded sites against a 1280px desktop canvas and scale that canvas down to
+  the available sidebar width so fixed-width cross-origin pages stay fully
+  visible without requiring page-owned responsive CSS.
 - During an active stream, the empty composer's primary action pauses output;
   once paused it resumes output, unless a draft or attachment is present, in
   which case it remains the send action. Sending a queued follow-up from the

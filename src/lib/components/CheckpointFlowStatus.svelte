@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick, untrack } from "svelte";
+  import { onMount, tick } from "svelte";
   import {
     checkpointFlowProgress,
     checkpointGraphLayers,
@@ -7,8 +7,11 @@
     type CheckpointGraphNodeStatus,
   } from "$lib/checkpointFlow";
   import type { FileChange } from "$lib/types";
+  import type { BackgroundTerminalSession } from "$lib/openagent";
+  import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { t } from "$lib/i18n";
   import BrowserPanel from "$lib/components/BrowserPanel.svelte";
+  import BackgroundTerminalPanel from "$lib/components/BackgroundTerminalPanel.svelte";
   import FileChangePanel from "$lib/components/FileChangePanel.svelte";
 
   interface Props {
@@ -19,12 +22,27 @@
     resizing: boolean;
     onResizeStart: (event: PointerEvent) => void;
     onRevert: (changeId: string) => Promise<void>;
+    activePanel?: RightSidebarPanel;
+    terminalEnabled?: boolean;
+    onTerminalSummaryChange?: (runningCount: number) => void;
+    terminalPreviewSessions?: BackgroundTerminalSession[] | null;
+    terminalPreviewOutputs?: Record<string, string>;
   }
 
-  let { flow, changes, width, collapsed, resizing, onResizeStart, onRevert }: Props = $props();
-  let activePanel = $state<"status" | "files" | "browser">(
-    untrack(() => (flow ? "status" : changes.length > 0 ? "files" : "browser")),
-  );
+  let {
+    flow,
+    changes,
+    width,
+    collapsed,
+    resizing,
+    onResizeStart,
+    onRevert,
+    activePanel = $bindable<RightSidebarPanel>("browser"),
+    terminalEnabled = false,
+    onTerminalSummaryChange = () => {},
+    terminalPreviewSessions = null,
+    terminalPreviewOutputs = {},
+  }: Props = $props();
   let progress = $derived(flow ? checkpointFlowProgress(flow) : { completed: 0, total: 0 });
   let graphLayers = $derived(flow?.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
   let graphViewport: HTMLDivElement | null = $state(null);
@@ -119,6 +137,7 @@
   $effect(() => {
     if (activePanel === "status" && !flow) activePanel = changes.length > 0 ? "files" : "browser";
     if (activePanel === "files" && changes.length === 0) activePanel = flow ? "status" : "browser";
+    if (activePanel === "terminal" && !terminalEnabled) activePanel = "browser";
   });
 
   function statusLabel(status: string): string {
@@ -176,6 +195,19 @@
           aria-current={activePanel === "browser" ? "page" : undefined}
           onclick={() => (activePanel = "browser")}>{$t("browserPanel")}</button
         >
+        {#if terminalEnabled}
+          <button
+            type="button"
+            class:active={activePanel === "terminal"}
+            aria-current={activePanel === "terminal" ? "page" : undefined}
+            onclick={() => (activePanel = "terminal")}
+          >
+            {$t("backgroundTerminals")}
+            {#if terminalPreviewSessions?.length}
+              <span>{terminalPreviewSessions.length}</span>
+            {/if}
+          </button>
+        {/if}
       </nav>
     {/if}
 
@@ -303,10 +335,19 @@
       <FileChangePanel {changes} {onRevert} />
     {:else if !collapsed && activePanel === "browser"}
       <BrowserPanel />
-    {:else if !collapsed}
+    {:else if !collapsed && activePanel !== "terminal"}
       <div class="flow-body">
         <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>
       </div>
+    {/if}
+    {#if terminalEnabled}
+      <BackgroundTerminalPanel
+        active={!collapsed && activePanel === "terminal"}
+        enabled={terminalEnabled}
+        onSummaryChange={onTerminalSummaryChange}
+        previewSessions={terminalPreviewSessions}
+        previewOutputs={terminalPreviewOutputs}
+      />
     {/if}
   </div>
 </aside>
@@ -721,11 +762,18 @@
     overflow-wrap: anywhere;
   }
 
-  @media (max-width: 760px) {
+  @media (max-width: 900px) {
     .flow-panel:not(.collapsed) {
-      width: min(var(--flow-panel-width), 45%, calc(100% - var(--workspace-card-gap)));
-      min-width: min(260px, 45%, calc(100% - var(--workspace-card-gap)));
-      max-width: min(420px, 45%, calc(100% - var(--workspace-card-gap)));
+      position: fixed;
+      inset: var(--desktop-titlebar-height) var(--workspace-card-gap) var(--workspace-card-gap);
+      width: auto;
+      min-width: 0;
+      max-width: none;
+      margin-left: 0;
+    }
+
+    .flow-panel:not(.collapsed) .resize-handle {
+      display: none;
     }
   }
 

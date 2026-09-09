@@ -13,6 +13,7 @@
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import { NEW_CONVERSATION_GREETING } from "$lib/newConversation";
   import type { BackgroundTerminalSession } from "$lib/openagent";
+  import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { defaultPermissionProfile, normalizeConfigShape } from "$lib/config";
   import { ComposerPreferences } from "$lib/composerPreferences.svelte";
   import type { WindowPlatform } from "$lib/windowPlatform";
@@ -35,7 +36,6 @@
 
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
   import BrowserPanel from "$lib/components/BrowserPanel.svelte";
-  import BackgroundTerminalPanel from "$lib/components/BackgroundTerminalPanel.svelte";
   import BackgroundTerminalToggleButton from "$lib/components/BackgroundTerminalToggleButton.svelte";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
@@ -74,6 +74,7 @@
 
   let attachmentValue = $state("");
   let backgroundTerminalPanelCollapsed = $state(false);
+  let backgroundTerminalActivePanel = $state<RightSidebarPanel>("terminal");
   let backgroundTerminalRunningCount = $state(2);
   let inputSurfaceValue = $state("");
   let inputSurfaceRole = $state("openagent");
@@ -1189,11 +1190,19 @@
         </div>
       </div>
     </section>
-    <BackgroundTerminalPanel
-      bind:collapsed={backgroundTerminalPanelCollapsed}
-      onSummaryChange={(count) => (backgroundTerminalRunningCount = count)}
-      previewSessions={backgroundTerminalPreviewSessions}
-      previewOutputs={backgroundTerminalPreviewOutputs}
+    <CheckpointFlowStatus
+      flow={null}
+      changes={[]}
+      width={panelWidth}
+      collapsed={backgroundTerminalPanelCollapsed}
+      resizing={false}
+      onResizeStart={startPanelResize}
+      onRevert={async () => {}}
+      bind:activePanel={backgroundTerminalActivePanel}
+      terminalEnabled
+      onTerminalSummaryChange={(count) => (backgroundTerminalRunningCount = count)}
+      terminalPreviewSessions={backgroundTerminalPreviewSessions}
+      terminalPreviewOutputs={backgroundTerminalPreviewOutputs}
     />
   </main>
 {:else if preview === "checkpoint-flow"}

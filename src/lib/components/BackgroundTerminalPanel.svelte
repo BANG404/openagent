@@ -7,13 +7,13 @@
   import Tooltip from "./Tooltip.svelte";
 
   let {
-    collapsed = $bindable(true),
+    active = true,
     enabled = true,
     onSummaryChange = () => {},
     previewSessions = null,
     previewOutputs = {},
   }: {
-    collapsed?: boolean;
+    active?: boolean;
     enabled?: boolean;
     onSummaryChange?: (runningCount: number) => void;
     previewSessions?: BackgroundTerminalSession[] | null;
@@ -97,7 +97,7 @@
   }
 
   async function readOutput(sessionId: string): Promise<void> {
-    if (collapsed || sessionId !== selectedSessionId || reading) return;
+    if (!active || sessionId !== selectedSessionId || reading) return;
     reading = true;
     try {
       if (previewSessions) {
@@ -135,13 +135,13 @@
     outputTruncated = false;
     outputError = null;
     confirmKillSessionId = null;
-    if (sessionId && !collapsed) await readOutput(sessionId);
+    if (sessionId && active) await readOutput(sessionId);
   }
 
   async function poll(): Promise<void> {
     const next = await refreshSessions();
     const selected = next.find((session) => session.session_id === selectedSessionId);
-    if (!collapsed && selected) await readOutput(selected.session_id);
+    if (active && selected) await readOutput(selected.session_id);
   }
 
   async function submitInput(): Promise<void> {
@@ -197,20 +197,19 @@
   });
 
   $effect(() => {
-    const sessionId = collapsed ? null : selectedSessionId;
+    const sessionId = active ? selectedSessionId : null;
     if (sessionId) void untrack(() => readOutput(sessionId));
   });
 </script>
 
-<aside
+<section
   id="background-terminal-panel"
   class="terminal-panel"
-  class:collapsed
   aria-label={$t("backgroundTerminals")}
-  aria-hidden={collapsed}
+  hidden={!active}
 >
   <div class="terminal-panel-surface">
-    {#if !collapsed}
+    {#if active}
       <header class="panel-header">
         <span>
           <strong>{$t("backgroundTerminals")}</strong>
@@ -231,20 +230,6 @@
               >
                 <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"
                   ><path d="M16 7a6.5 6.5 0 1 0 .1 5.8M16 3v4h-4" /></svg
-                >
-              </button>
-            {/snippet}
-          </Tooltip>
-          <Tooltip text={$t("close")}>
-            {#snippet trigger(props)}
-              <button
-                {...props}
-                type="button"
-                class="icon-button"
-                onclick={() => (collapsed = true)}
-              >
-                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"
-                  ><path d="m6 6 8 8m0-8-8 8" /></svg
                 >
               </button>
             {/snippet}
@@ -378,34 +363,19 @@
       {#if error}<p class="panel-error list-error" role="alert">{error}</p>{/if}
     {/if}
   </div>
-</aside>
+</section>
 
 <style>
   .terminal-panel {
-    position: relative;
-    z-index: 12;
     display: flex;
-    width: min(400px, 45%, calc(100% - var(--workspace-card-gap)));
-    min-width: min(300px, 45%, calc(100% - var(--workspace-card-gap)));
-    max-width: min(480px, 45%, calc(100% - var(--workspace-card-gap)));
-    flex: 0 0 auto;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
     flex-direction: column;
-    margin-left: var(--workspace-card-gap);
-    transition:
-      width 180ms cubic-bezier(0.16, 1, 0.3, 1),
-      min-width 180ms cubic-bezier(0.16, 1, 0.3, 1),
-      max-width 180ms cubic-bezier(0.16, 1, 0.3, 1),
-      margin 180ms cubic-bezier(0.16, 1, 0.3, 1),
-      opacity 120ms ease;
   }
 
-  .terminal-panel.collapsed {
-    width: 0;
-    min-width: 0;
-    max-width: 0;
-    margin-left: 0;
-    opacity: 0;
-    pointer-events: none;
+  .terminal-panel[hidden] {
+    display: none;
   }
 
   .terminal-panel-surface {
@@ -415,8 +385,6 @@
     flex: 1;
     flex-direction: column;
     overflow: hidden;
-    border-radius: 12px;
-    background: var(--surface);
   }
 
   .panel-header,
@@ -742,19 +710,5 @@
   .terminal-input button {
     background: var(--primary);
     color: white;
-  }
-
-  @media (max-width: 760px) {
-    .terminal-panel:not(.collapsed) {
-      width: min(400px, 48%, calc(100% - var(--workspace-card-gap)));
-      min-width: min(280px, 48%, calc(100% - var(--workspace-card-gap)));
-      max-width: min(400px, 48%, calc(100% - var(--workspace-card-gap)));
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .terminal-panel {
-      transition: none;
-    }
   }
 </style>

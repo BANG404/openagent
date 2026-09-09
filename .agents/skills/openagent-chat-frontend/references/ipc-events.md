@@ -17,9 +17,11 @@
   sessions, reads their bounded buffered output without waiting, writes to a
   running session's stdin, and terminates a selected session only after explicit
   confirmation. Poll through the typed SDK client; do not inspect operating-
-  system processes or duplicate terminal state in Tauri. Keep the terminal
-  panel mutually exclusive with conversation details so both right panels
-  cannot squeeze the transcript at once.
+  system processes or duplicate terminal state in Tauri. Keep terminals as a
+  tab in the shared right sidebar alongside status, files, and browser views.
+  The terminal view remains mounted while another tab is active so polling and
+  the running-session count stay current without creating a second panel that
+  can squeeze the transcript.
 - Transcript surfaces may derive cache utilization from persisted Rig usage
   only when `total_tokens - output_tokens` reconciles with either the
   inclusive-input or separately reported cache-token shape. The Inspector shows

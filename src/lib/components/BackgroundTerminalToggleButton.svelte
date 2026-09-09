@@ -24,7 +24,7 @@
       class:active={!collapsed}
       type="button"
       aria-label={$t(collapsed ? "backgroundTerminalsExpand" : "backgroundTerminalsCollapse")}
-      aria-controls="background-terminal-panel"
+      aria-controls="checkpoint-flow-panel"
       aria-expanded={!collapsed}
       onclick={onToggle}
     >
