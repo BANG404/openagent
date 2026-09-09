@@ -16,7 +16,6 @@
     collapsed = $bindable(true),
     activePanel = $bindable<RightSidebarPanel>("browser"),
     terminalEnabled = false,
-    onTerminalSummaryChange = () => {},
   }: {
     flow: CheckpointFlow | null;
     changes: FileChange[];
@@ -24,7 +23,6 @@
     collapsed?: boolean;
     activePanel?: RightSidebarPanel;
     terminalEnabled?: boolean;
-    onTerminalSummaryChange?: (runningCount: number) => void;
   } = $props();
 
   let width = $state(
@@ -85,6 +83,5 @@
   {resizing}
   bind:activePanel
   {terminalEnabled}
-  {onTerminalSummaryChange}
   onResizeStart={startResize}
 />

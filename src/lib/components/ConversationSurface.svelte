@@ -106,7 +106,6 @@
     inputAreaHeight = $bindable(120),
     checkpointFlowPanelCollapsed = $bindable(true),
     rightSidebarPanel = $bindable<RightSidebarPanel>("browser"),
-    onTerminalSummaryChange,
     composerDraft,
     focusRequest,
   }: {
@@ -117,7 +116,6 @@
     inputAreaHeight: number;
     checkpointFlowPanelCollapsed: boolean;
     rightSidebarPanel: RightSidebarPanel;
-    onTerminalSummaryChange: (runningCount: number) => void;
     composerDraft: ComposerDraft;
     focusRequest: number;
   } = $props();
@@ -312,7 +310,6 @@
     bind:collapsed={checkpointFlowPanelCollapsed}
     bind:activePanel={rightSidebarPanel}
     terminalEnabled={view.tauriAvailable}
-    {onTerminalSummaryChange}
   />
 </div>
 

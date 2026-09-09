@@ -484,7 +484,6 @@ describe("desktop navigation chrome", () => {
     expect(route).toContain("if (!currentCheckpointFlow && key) {");
     expect(route).toContain('rightSidebarPanel = "files"');
     expect(route).toContain('rightSidebarPanel = "status"');
-    expect(route).toContain('rightSidebarPanel = "terminal"');
     expect(route).toContain("checkpointFlow: currentCheckpointFlow ?? null");
     expect(conversationSurface).toContain("<CheckpointFlowPanelHost");
     expect(conversationSurface).not.toContain("<BackgroundTerminalPanel");
@@ -496,10 +495,9 @@ describe("desktop navigation chrome", () => {
     expect(panel).toContain("<BrowserPanel />");
     expect(panel).toContain('activePanel === "terminal"');
     expect(panel).toContain("<BackgroundTerminalPanel");
-    expect(titleBar).toContain("<BackgroundTerminalToggleButton");
-    expect(route).toContain(
-      'terminalPanelCollapsed={checkpointFlowPanelCollapsed || rightSidebarPanel !== "terminal"}',
-    );
+    expect(panel).toContain('onclick={() => (activePanel = "terminal")}');
+    expect(panel).toContain('$t("backgroundTerminals")');
+    expect(titleBar).not.toContain("BackgroundTerminalToggleButton");
     expect(titleBar.indexOf("<CheckpointFlowToggleButton")).toBeLessThan(
       titleBar.lastIndexOf("<WindowControls {platform}"),
     );

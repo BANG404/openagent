@@ -374,7 +374,6 @@
     typeof window === "undefined" ? true : loadCheckpointFlowPanelCollapsed(window.localStorage),
   );
   let rightSidebarPanel = $state<RightSidebarPanel>("browser");
-  let runningTerminalCount = $state(0);
   let checkpointFlowPanelSelectionKey = $state<string | null>(null);
   let checkpointFlowPanelAutoOpenKey = $state<string | null>(null);
   let fileChangesPanelSelectionKey = $state<string | null>(null);
@@ -5119,8 +5118,6 @@
         memorySyncing={isMemorySyncing}
         checkpointFlowPanelCollapsed={checkpointFlowPanelCollapsed ||
           rightSidebarPanel === "terminal"}
-        terminalPanelCollapsed={checkpointFlowPanelCollapsed || rightSidebarPanel !== "terminal"}
-        {runningTerminalCount}
         onPickWorkspace={pickWorkspace}
         onPickWsl={pickWslWorkspace}
         onSelectWorkspace={requestWorkspace}
@@ -5144,14 +5141,6 @@
               : "browser";
           checkpointFlowPanelCollapsed = false;
         }}
-        onToggleTerminalPanel={() => {
-          if (!checkpointFlowPanelCollapsed && rightSidebarPanel === "terminal") {
-            checkpointFlowPanelCollapsed = true;
-            return;
-          }
-          rightSidebarPanel = "terminal";
-          checkpointFlowPanelCollapsed = false;
-        }}
         onMinimize={winMinimize}
         onMaximize={winMaximize}
         onClose={winClose}
@@ -5167,7 +5156,6 @@
           bind:inputAreaHeight
           bind:checkpointFlowPanelCollapsed
           bind:rightSidebarPanel
-          onTerminalSummaryChange={(count) => (runningTerminalCount = count)}
           composerDraft={activeComposerDraft}
           focusRequest={composerFocusRequest}
         />
