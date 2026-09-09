@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.61.0-beta.1] - 2026-09-09
+
+### Features
+- **frontend**: Add sidebar browser
+- **chat**: Surface background terminals
+
+### Bug Fixes
+- **frontend**: Remove title bar terminal entry
+- **frontend**: Unify responsive right sidebar
+
+### Refactoring
+- **frontend**: Remove duplicate terminal sidebar entry
+
 ## [0.60.0-beta.1] - 2026-09-09
 
 ### Features
