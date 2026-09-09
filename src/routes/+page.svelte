@@ -373,6 +373,8 @@
   let checkpointFlowPanelCollapsed = $state(
     typeof window === "undefined" ? true : loadCheckpointFlowPanelCollapsed(window.localStorage),
   );
+  let terminalPanelCollapsed = $state(true);
+  let runningTerminalCount = $state(0);
   let checkpointFlowPanelSelectionKey = $state<string | null>(null);
   let checkpointFlowPanelAutoOpenKey = $state<string | null>(null);
   let fileChangesPanelSelectionKey = $state<string | null>(null);
@@ -714,6 +716,7 @@
     if (key === checkpointFlowPanelSelectionKey) return;
     checkpointFlowPanelSelectionKey = key;
     if (key === checkpointFlowPanelAutoOpenKey) {
+      terminalPanelCollapsed = true;
       checkpointFlowPanelCollapsed = false;
       checkpointFlowPanelAutoOpenKey = null;
     }
@@ -785,7 +788,10 @@
         : null;
     if (key === fileChangesPanelSelectionKey) return;
     fileChangesPanelSelectionKey = key;
-    if (!currentCheckpointFlow && key) checkpointFlowPanelCollapsed = false;
+    if (!currentCheckpointFlow && key) {
+      terminalPanelCollapsed = true;
+      checkpointFlowPanelCollapsed = false;
+    }
   });
 
   async function loadMessagesForConv(
@@ -883,6 +889,7 @@
         activeBranchIds[convId] ?? null,
         next.flow,
       );
+      terminalPanelCollapsed = true;
       checkpointFlowPanelCollapsed = false;
     }
     liveCheckpointFlowProjections = { ...liveCheckpointFlowProjections, [convId]: next };
@@ -5116,6 +5123,8 @@
           conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length),
         )}
         {checkpointFlowPanelCollapsed}
+        {terminalPanelCollapsed}
+        {runningTerminalCount}
         onPickWorkspace={pickWorkspace}
         onPickWsl={pickWslWorkspace}
         onSelectWorkspace={requestWorkspace}
@@ -5127,8 +5136,16 @@
         onConfigureRole={(role) => void openRoleEditor(role)}
         onOpenAbout={() => openManagementWindow("about", "about")}
         onQuit={quitApp}
-        onToggleCheckpointFlowPanel={() =>
-          (checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed)}
+        onToggleCheckpointFlowPanel={() => {
+          const opening = checkpointFlowPanelCollapsed;
+          checkpointFlowPanelCollapsed = !checkpointFlowPanelCollapsed;
+          if (opening) terminalPanelCollapsed = true;
+        }}
+        onToggleTerminalPanel={() => {
+          const opening = terminalPanelCollapsed;
+          terminalPanelCollapsed = !terminalPanelCollapsed;
+          if (opening) checkpointFlowPanelCollapsed = true;
+        }}
         onMinimize={winMinimize}
         onMaximize={winMaximize}
         onClose={winClose}
@@ -5143,6 +5160,8 @@
           bind:messagesElement={messagesEl}
           bind:inputAreaHeight
           bind:checkpointFlowPanelCollapsed
+          bind:terminalPanelCollapsed
+          onTerminalSummaryChange={(count) => (runningTerminalCount = count)}
           composerDraft={activeComposerDraft}
           focusRequest={composerFocusRequest}
         />

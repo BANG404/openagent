@@ -41,6 +41,14 @@ describe("standalone development previews", () => {
     expect(previewParameterPrefix("cache-usage")).toBe("cache-usage-preview");
   });
 
+  test("exposes the interactive background terminal preview", () => {
+    expect(
+      resolveStandaloneDevPreview(new URLSearchParams("background-terminals-preview"), true),
+    ).toBe("background-terminals");
+    expect(previewParameterPrefix("background-terminals")).toBe("background-terminals-preview");
+    expect(previewSource).toContain("<BackgroundTerminalPanel");
+  });
+
   test("exposes the bounded tool diff preview", () => {
     expect(resolveStandaloneDevPreview(new URLSearchParams("tool-diff-preview"), true)).toBe(
       "tool-diff",

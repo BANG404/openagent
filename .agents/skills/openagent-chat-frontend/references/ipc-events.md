@@ -12,6 +12,14 @@
   native/local capabilities; new unclassified commands must fail that audit.
   Keep development database and model-control commands confined to their
   dedicated Inspector surfaces.
+- Background terminal management is a Runtime-owned product operation. The
+  desktop right panel lists only the current workspace Runtime's in-memory
+  sessions, reads their bounded buffered output without waiting, writes to a
+  running session's stdin, and terminates a selected session only after explicit
+  confirmation. Poll through the typed SDK client; do not inspect operating-
+  system processes or duplicate terminal state in Tauri. Keep the terminal
+  panel mutually exclusive with conversation details so both right panels
+  cannot squeeze the transcript at once.
 - Transcript surfaces may derive cache utilization from persisted Rig usage
   only when `total_tokens - output_tokens` reconciles with either the
   inclusive-input or separately reported cache-token shape. The Inspector shows

@@ -12,6 +12,7 @@
   import { initI18n, t, type Locale } from "$lib/i18n";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import { NEW_CONVERSATION_GREETING } from "$lib/newConversation";
+  import type { BackgroundTerminalSession } from "$lib/openagent";
   import { defaultPermissionProfile, normalizeConfigShape } from "$lib/config";
   import { ComposerPreferences } from "$lib/composerPreferences.svelte";
   import type { WindowPlatform } from "$lib/windowPlatform";
@@ -33,6 +34,8 @@
   } from "$lib/types";
 
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
+  import BackgroundTerminalPanel from "$lib/components/BackgroundTerminalPanel.svelte";
+  import BackgroundTerminalToggleButton from "$lib/components/BackgroundTerminalToggleButton.svelte";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
   import CompactionStatus from "$lib/components/CompactionStatus.svelte";
@@ -69,6 +72,8 @@
   let streamingAwaitingOutput = $derived(query.has(`${prefix}-awaiting-output`));
 
   let attachmentValue = $state("");
+  let backgroundTerminalPanelCollapsed = $state(false);
+  let backgroundTerminalRunningCount = $state(2);
   let inputSurfaceValue = $state("");
   let inputSurfaceRole = $state("openagent");
   const inputSurfaceRoles: AgentRole[] = [
@@ -97,6 +102,36 @@
       last_used_at: 2,
     },
   ];
+  const backgroundTerminalPreviewSessions: BackgroundTerminalSession[] = [
+    {
+      session_id: "dev-server",
+      command: "bun run dev --host 0.0.0.0",
+      cwd: "/workspace/openagent",
+      started_at: Math.floor(Date.now() / 1000) - 248,
+      status: "running",
+    },
+    {
+      session_id: "watch-tests",
+      command: "bun test --watch",
+      cwd: "/workspace/openagent",
+      started_at: Math.floor(Date.now() / 1000) - 91,
+      status: "running",
+    },
+    {
+      session_id: "typecheck",
+      command: "bun run check",
+      cwd: "/workspace/openagent",
+      started_at: Math.floor(Date.now() / 1000) - 420,
+      status: "exited:0",
+    },
+  ];
+  const backgroundTerminalPreviewOutputs = {
+    "dev-server":
+      "$ bun run dev --host 0.0.0.0\n\n  VITE v6.4.3  ready in 412 ms\n\n  Local:   http://localhost:5173/\n  press h + enter to show help\n",
+    "watch-tests": "$ bun test --watch\n17 pass\nWatching for changes...\n",
+    typecheck:
+      "$ bun run check\n$ svelte-check --tsconfig ./tsconfig.json\n0 errors and 0 warnings\n",
+  };
   const checkpointPanelChanges: FileChange[] = [
     {
       id: "preview-file-change",
@@ -1142,6 +1177,33 @@
       onPickWsl={() => {}}
       onSelect={() => {}}
       {platformOverride}
+    />
+  </main>
+{:else if preview === "background-terminals"}
+  <main class="checkpoint-flow-preview-stage">
+    <header class="checkpoint-flow-preview-titlebar">
+      <span>OpenAgent</span>
+      <BackgroundTerminalToggleButton
+        collapsed={backgroundTerminalPanelCollapsed}
+        runningCount={backgroundTerminalRunningCount}
+        onToggle={() => (backgroundTerminalPanelCollapsed = !backgroundTerminalPanelCollapsed)}
+      />
+    </header>
+    <section class="checkpoint-flow-preview-chat">
+      <div class="checkpoint-flow-preview-messages">
+        <div class="checkpoint-flow-preview-user">
+          Keep the development server running while you verify the interface.
+        </div>
+        <div class="checkpoint-flow-preview-assistant">
+          The server and test watcher are running in the background.
+        </div>
+      </div>
+    </section>
+    <BackgroundTerminalPanel
+      bind:collapsed={backgroundTerminalPanelCollapsed}
+      onSummaryChange={(count) => (backgroundTerminalRunningCount = count)}
+      previewSessions={backgroundTerminalPreviewSessions}
+      previewOutputs={backgroundTerminalPreviewOutputs}
     />
   </main>
 {:else if preview === "checkpoint-flow"}
