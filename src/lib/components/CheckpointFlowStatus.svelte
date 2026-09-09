@@ -195,19 +195,6 @@
           aria-current={activePanel === "browser" ? "page" : undefined}
           onclick={() => (activePanel = "browser")}>{$t("browserPanel")}</button
         >
-        {#if terminalEnabled}
-          <button
-            type="button"
-            class:active={activePanel === "terminal"}
-            aria-current={activePanel === "terminal" ? "page" : undefined}
-            onclick={() => (activePanel = "terminal")}
-          >
-            {$t("backgroundTerminals")}
-            {#if terminalPreviewSessions?.length}
-              <span>{terminalPreviewSessions.length}</span>
-            {/if}
-          </button>
-        {/if}
       </nav>
     {/if}
 

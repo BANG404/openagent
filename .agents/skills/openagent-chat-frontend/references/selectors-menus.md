@@ -48,6 +48,10 @@
   `--desktop-titlebar-height` token. The desktop-shell browser preview accepts
   `desktop-shell-preview-platform=windows|macos|linux` so each platform's
   title-bar geometry remains directly verifiable.
+- Keep background terminals on their title-bar toggle as the single primary
+  entry point. The right conversation-details panel may render the terminal
+  surface after that action opens it, but must not add a second terminal tab to
+  its navigation.
 - Render those floating panels through the shared desktop menu surface, which
   consumes the conversation-input material while retaining the shared 6px menu
   inset. Keep component-specific width, height, scrolling, and item content,
