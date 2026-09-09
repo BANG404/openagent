@@ -21,6 +21,7 @@
   } from "$lib/types";
   import { t } from "$lib/i18n";
   import { showToast } from "$lib/toast";
+  import BackgroundTerminalPanel from "./BackgroundTerminalPanel.svelte";
   import ChatQueue from "./ChatQueue.svelte";
   import CheckpointFlowPanelHost from "./CheckpointFlowPanelHost.svelte";
   import FollowUpSuggestions from "./FollowUpSuggestions.svelte";
@@ -104,6 +105,8 @@
     messagesElement = $bindable(null),
     inputAreaHeight = $bindable(120),
     checkpointFlowPanelCollapsed = $bindable(true),
+    terminalPanelCollapsed = $bindable(true),
+    onTerminalSummaryChange,
     composerDraft,
     focusRequest,
   }: {
@@ -113,6 +116,8 @@
     messagesElement: HTMLElement | null;
     inputAreaHeight: number;
     checkpointFlowPanelCollapsed: boolean;
+    terminalPanelCollapsed: boolean;
+    onTerminalSummaryChange: (runningCount: number) => void;
     composerDraft: ComposerDraft;
     focusRequest: number;
   } = $props();
@@ -305,6 +310,11 @@
     changes={view.fileChanges}
     onRevert={actions.revertFileChange}
     bind:collapsed={checkpointFlowPanelCollapsed}
+  />
+  <BackgroundTerminalPanel
+    bind:collapsed={terminalPanelCollapsed}
+    enabled={view.tauriAvailable}
+    onSummaryChange={onTerminalSummaryChange}
   />
 </div>
 

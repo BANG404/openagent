@@ -5,6 +5,7 @@
   import type { SettingsNav, SettingsWindowKind } from "$lib/settingsWindows";
   import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
   import ApplicationMenuBar from "$lib/components/ApplicationMenuBar.svelte";
+  import BackgroundTerminalToggleButton from "$lib/components/BackgroundTerminalToggleButton.svelte";
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
   import WindowControls from "$lib/components/WindowControls.svelte";
 
@@ -16,6 +17,8 @@
     tauriAvailable,
     memorySyncing,
     checkpointFlowPanelCollapsed,
+    terminalPanelCollapsed = true,
+    runningTerminalCount = 0,
     onPickWorkspace,
     onPickWsl,
     onSelectWorkspace,
@@ -28,6 +31,7 @@
     onOpenAbout,
     onQuit,
     onToggleCheckpointFlowPanel,
+    onToggleTerminalPanel = () => {},
     onMinimize,
     onMaximize,
     onClose,
@@ -41,6 +45,8 @@
     tauriAvailable: boolean;
     memorySyncing: boolean;
     checkpointFlowPanelCollapsed: boolean;
+    terminalPanelCollapsed?: boolean;
+    runningTerminalCount?: number;
     onPickWorkspace: () => void | Promise<void>;
     onPickWsl: () => void | Promise<void>;
     onSelectWorkspace: (path: string) => void | Promise<void>;
@@ -53,6 +59,7 @@
     onOpenAbout: () => void | Promise<void>;
     onQuit: () => void;
     onToggleCheckpointFlowPanel: () => void;
+    onToggleTerminalPanel?: () => void;
     onMinimize: () => void;
     onMaximize: () => void | Promise<void>;
     onClose: () => void;
@@ -114,6 +121,13 @@
 
   <div class="title-actions">
     {#if memorySyncing}<span class="sync-dot" aria-label={$t("syncing")}></span>{/if}
+    {#if tauriAvailable}
+      <BackgroundTerminalToggleButton
+        collapsed={terminalPanelCollapsed}
+        runningCount={runningTerminalCount}
+        onToggle={onToggleTerminalPanel}
+      />
+    {/if}
     <CheckpointFlowToggleButton
       collapsed={checkpointFlowPanelCollapsed}
       onToggle={onToggleCheckpointFlowPanel}
@@ -190,7 +204,11 @@
   }
 
   .title-actions :global(.checkpoint-flow-toggle) {
-    margin: 0 6px;
+    margin: 0 6px 0 2px;
+  }
+
+  .title-actions :global(.terminal-toggle) {
+    margin-left: 6px;
   }
 
   .sync-dot {

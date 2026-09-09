@@ -469,7 +469,7 @@ describe("desktop navigation chrome", () => {
     expect(menu).toContain("onOpenSettingsWindow(target.kind, target.section)");
   });
 
-  test("controls the checkpoint flow panel from the trailing title bar", async () => {
+  test("controls mutually exclusive right panels from the trailing title bar", async () => {
     const route = await readFile(routeUrl, "utf8");
     const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
     const conversationSurface = await readFile(
@@ -480,9 +480,8 @@ describe("desktop navigation chrome", () => {
     const panelShell = panel.match(/\.flow-panel\s*{([^}]*)}/s)?.[1];
 
     expect(route).toContain("bind:checkpointFlowPanelCollapsed");
-    expect(route).toContain(
-      "if (!currentCheckpointFlow && key) checkpointFlowPanelCollapsed = false",
-    );
+    expect(route).toContain("if (!currentCheckpointFlow && key) {");
+    expect(route).toContain("terminalPanelCollapsed = true");
     expect(route).toContain("checkpointFlow: currentCheckpointFlow ?? null");
     expect(conversationSurface).toContain("<CheckpointFlowPanelHost");
     expect(conversationSurface).not.toContain("conversationDetailsAvailable(");
@@ -491,6 +490,8 @@ describe("desktop navigation chrome", () => {
     expect(titleBar).not.toContain("{#if conversationDetailsAvailable}");
     expect(panel).toContain('activePanel === "browser"');
     expect(panel).toContain("<BrowserPanel />");
+    expect(titleBar).toContain("<BackgroundTerminalToggleButton");
+    expect(route).toContain("if (opening) checkpointFlowPanelCollapsed = true");
     expect(titleBar.indexOf("<CheckpointFlowToggleButton")).toBeLessThan(
       titleBar.lastIndexOf("<WindowControls {platform}"),
     );
