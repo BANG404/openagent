@@ -48,8 +48,9 @@
   expanded metadata count from the complete `content` argument. The tool's
   typically single-line success message is status output, not the number of
   lines written.
-- Keep `ask_user`, approvals, HTML previews, and other dedicated tools outside
-  ordinary grouping.
+- Keep `ask_user`, approvals, Mermaid previews, and other dedicated tools
+  outside ordinary grouping. Historical `render_web` calls are ordinary tool
+  records; never mount their HTML or URL in the transcript.
 - Batched approval cards remain independently clickable. Optimistically resolve
   only the exact request ID that was clicked, reject duplicate responses for
   that same request, and leave sibling cards interactive while the runtime's
@@ -62,24 +63,21 @@
   sibling approval that is still queued or running. Apply the same behavior to
   desktop and remote transcript projections.
 - Render `render_mermaid` as a standalone transcript row from ToolCall source and
-  restore it from the matching durable ToolResult. Defer `render_web` and
-  `render_mermaid` previews until their successful ToolResult arrives; never
-  mount pending or failed render previews. `render_web` accepts exactly one
-  local HTML path or HTTP(S) URL. Keep remote pages interactive inside the
-  sandbox, expose fullscreen and system-browser actions, and retain local-only
-  copy and PNG actions because cross-origin pages cannot be inspected reliably.
-  A remote site's CSP or X-Frame-Options may reject embedding. Carry the
-  owning conversation ID through local HTML preview reads on every transport;
-  supervised HTTP requests otherwise reject the preview as unscoped. Keep
-  Mermaid renders serialized behind the underlying operation so the shared
-  engine is never used concurrently.
+  restore it from the matching durable ToolResult. Defer the preview until its
+  successful ToolResult arrives; never mount pending or failed render previews.
+  Keep Mermaid renders serialized behind the underlying operation so the
+  shared engine is never used concurrently.
   Apply the same failed-result hiding rule to ordinary tools.
 - Return a Mermaid renderer result through the shared SDK client with the
   request's owning conversation ID. The production Runtime is routed and
   resolves the live renderer channel inside that conversation, because the
   frontend request ID is ephemeral while remote snapshots expose the durable
-  tool-call ID. `render_web` remains an immediate validated preview and does
-  not use the interrupt channel.
+  tool-call ID.
+- Keep website navigation in the resizable desktop right sidebar, independent
+  of conversation state. Its Browser tab accepts HTTP(S) addresses, maintains
+  back/forward history for submitted addresses, refreshes the active page, and
+  exposes an external-browser action. Sites may still reject iframe embedding
+  through CSP or X-Frame-Options.
 - During an active stream, the empty composer's primary action pauses output;
   once paused it resumes output, unless a draft or attachment is present, in
   which case it remains the send action. Sending a queued follow-up from the

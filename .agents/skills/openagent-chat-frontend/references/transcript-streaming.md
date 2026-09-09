@@ -248,8 +248,8 @@
   it while the post-resume answer remains final output. Keep the process/final
   partition mounted at one stable template location across that status
   transition: revealing the process disclosure may hide its process children,
-  but must not remount final rich output such as Mermaid or HTML previews.
-- Treat the first `render_web` or `render_mermaid` call as the process-disclosure
+  but must not remount final rich output such as Mermaid previews.
+- Treat the first `render_mermaid` call as the process-disclosure
   boundary: keep that render and every later record outside the collapsed work
   details, including later tools and reasoning. Before that boundary,
   `update_goal` behaves like an ordinary tool and remains eligible for grouping
@@ -287,7 +287,7 @@
   the canonical defaults in that case.
   Fragment Markdown tables between rows instead of treating the whole table as
   one page-sized atom. Keep rich atomic embeds such as images, video, charts,
-  Mermaid, code, and HTML previews within the usable page height; preserve
+  Mermaid and code previews within the usable page height; preserve
   their native containment or internal scrolling rather than clipping content.
   Recalculate after embedded media loads as well as after resize or expansion.
   Coalesce resize, mutation, and media-load pagination requests into one

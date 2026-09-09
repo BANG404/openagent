@@ -1,6 +1,5 @@
 <script lang="ts">
   import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
-  import HtmlPreview from "$lib/streamdown/components/Html.svelte";
   import MermaidToolPreview from "./MermaidToolPreview.svelte";
   import type { ChatToolImage, HtmlPreviewConfig, UserInputRequest } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
@@ -54,8 +53,6 @@
     images = [],
     expanded,
     argHint,
-    htmlPreviewConfig,
-    conversationId,
     mermaidConfig,
     showRunning = false,
     approval,
@@ -77,10 +74,6 @@
     }
   });
 
-  const htmlArgs = $derived.by(() => {
-    if (name !== "render_web") return null;
-    return parsedArgs;
-  });
   const mermaidArgs = $derived.by(() => {
     if (name !== "render_mermaid") return null;
     return parsedArgs;
@@ -241,11 +234,7 @@
 </script>
 
 {#if shouldDisplay}
-  {#if htmlArgs}
-    <div class="tool-html-preview">
-      <HtmlPreview args={htmlArgs} {htmlPreviewConfig} {conversationId} />
-    </div>
-  {:else if mermaidArgs}
+  {#if mermaidArgs}
     <MermaidToolPreview args={mermaidArgs} {result} {mermaidConfig} />
   {:else}
     <div class="tool-call-card">
@@ -878,14 +867,6 @@
     object-fit: contain;
     border-radius: 6px;
     background: var(--surface);
-  }
-
-  .tool-html-preview {
-    margin: 6px 0;
-  }
-
-  .tool-html-preview :global(.html-card) {
-    margin: 0;
   }
 
   @keyframes pulse {

@@ -30,7 +30,7 @@ describe("final assistant output", () => {
     ).toBe(2);
   });
 
-  test("starts final output at the first render and includes every later record", () => {
+  test("starts final output at the first supported render and includes every later record", () => {
     expect(
       finalAssistantOutputStartIndex([
         { type: "thinking", content: "private reasoning" },
@@ -40,7 +40,7 @@ describe("final assistant output", () => {
         { type: "tool_call", name: "render_mermaid", args: "{}", result: '{"ok":true}' },
         { type: "tool_call", name: "update_goal", args: "{}", result: "updated" },
       ]),
-    ).toBe(1);
+    ).toBe(4);
   });
 
   test("uses plain message content when no structured items are present", () => {

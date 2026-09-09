@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
-  import { conversationDetailsAvailable, type CheckpointFlow } from "$lib/checkpointFlow";
+  import type { CheckpointFlow } from "$lib/checkpointFlow";
   import type { ConvTree } from "$lib/checkpointTree";
   import type { ComposerPreferences } from "$lib/composerPreferences.svelte";
   import type { ComposerDraft } from "$lib/composerDrafts";
@@ -300,14 +300,12 @@
       {/if}
     </div>
   </div>
-  {#if view.activeConvId && conversationDetailsAvailable(view.checkpointFlow, view.fileChanges.length)}
-    <CheckpointFlowPanelHost
-      flow={view.checkpointFlow}
-      changes={view.fileChanges}
-      onRevert={actions.revertFileChange}
-      bind:collapsed={checkpointFlowPanelCollapsed}
-    />
-  {/if}
+  <CheckpointFlowPanelHost
+    flow={view.checkpointFlow}
+    changes={view.fileChanges}
+    onRevert={actions.revertFileChange}
+    bind:collapsed={checkpointFlowPanelCollapsed}
+  />
 </div>
 
 <style>

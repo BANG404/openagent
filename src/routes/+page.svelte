@@ -85,7 +85,6 @@
   import ConversationSurface from "$lib/components/ConversationSurface.svelte";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import {
-    conversationDetailsAvailable,
     checkpointFlowPanelKey,
     shouldAutoOpenCheckpointFlowPanel,
     updateLiveCheckpointFlowProjection,
@@ -5110,11 +5109,6 @@
         {selectedRoleKey}
         {tauriAvailable}
         memorySyncing={isMemorySyncing}
-        conversationDetailsAvailable={Boolean(
-          activeConvId &&
-          !settingsOpen &&
-          conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length),
-        )}
         {checkpointFlowPanelCollapsed}
         onPickWorkspace={pickWorkspace}
         onPickWsl={pickWslWorkspace}

@@ -15,7 +15,6 @@
     selectedRoleKey,
     tauriAvailable,
     memorySyncing,
-    conversationDetailsAvailable,
     checkpointFlowPanelCollapsed,
     onPickWorkspace,
     onPickWsl,
@@ -41,7 +40,6 @@
     selectedRoleKey: string;
     tauriAvailable: boolean;
     memorySyncing: boolean;
-    conversationDetailsAvailable: boolean;
     checkpointFlowPanelCollapsed: boolean;
     onPickWorkspace: () => void | Promise<void>;
     onPickWsl: () => void | Promise<void>;
@@ -116,12 +114,10 @@
 
   <div class="title-actions">
     {#if memorySyncing}<span class="sync-dot" aria-label={$t("syncing")}></span>{/if}
-    {#if conversationDetailsAvailable}
-      <CheckpointFlowToggleButton
-        collapsed={checkpointFlowPanelCollapsed}
-        onToggle={onToggleCheckpointFlowPanel}
-      />
-    {/if}
+    <CheckpointFlowToggleButton
+      collapsed={checkpointFlowPanelCollapsed}
+      onToggle={onToggleCheckpointFlowPanel}
+    />
     {#if platform === "windows"}
       <WindowControls {platform} {onMinimize} {onMaximize} {onClose} />
     {/if}

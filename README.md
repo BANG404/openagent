@@ -46,7 +46,7 @@
   - [Progressive Skill discovery](#progressive-skill-discovery)
 - [Interactive prompts with `ask_user`](#interactive-prompts-with-ask_user)
 - [AGUI — Inline Interactive Components](#agui--inline-interactive-components)
-- [Web Preview via Tool Call (`render_web`)](#web-preview-via-tool-call-render_web)
+- [Sidebar browser](#sidebar-browser)
 - [Memory file format](#memory-file-format)
 - [Agent memory controls](#agent-memory-controls)
 - [Architecture at a glance](#architecture-at-a-glance)
@@ -81,7 +81,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 ### Interactive output
 
 - **AGUI — Inline Interactive Components** — The agent can embed file and URL capsules, ECharts visualisations, source-line previews, and image/video media directly in its prose — all rendered live by the streamdown engine.
-- **Web Preview via Tool Call (`render_web`)** — The agent can display a local HTML file or an interactive HTTP(S) website directly in the conversation stream, enter fullscreen, or open remote pages in the system browser. Local files retain copy and PNG export actions.
+- **Sidebar Browser** — Open the right sidebar to visit HTTP(S) websites with an address bar, back/forward navigation, refresh, and a system-browser shortcut without adding webpage tool cards to the transcript.
 - **Validated Mermaid Rendering** — A dedicated render tool validates Mermaid source before presenting the diagram, while keeping the source available and supporting fullscreen inspection.
 
 ### Tools and integrations
@@ -308,11 +308,9 @@ Multi-series charts use `series: [{name, data}, ...]`.
 
 ---
 
-<a id="web-preview-via-tool-call-render_web"></a>
+## Sidebar browser
 
-## Web Preview via Tool Call (`render_web`)
-
-Instead of writing inline component tags, the agent can execute `render_web` with either a workspace `.html`/`.htm` path or an HTTP(S) URL. Local files resolve sibling assets through the workspace-scoped preview protocol and support copy and best-effort PNG export. Remote websites keep scripts and forms interactive inside the sandbox, support fullscreen display and a system-browser shortcut, and may still refuse iframe embedding through their own CSP or `X-Frame-Options` policy.
+Open the right sidebar from the title bar and select **Browser**. Enter a hostname or HTTP(S) address to navigate inside the panel, use the browser controls to move through submitted addresses or refresh the current page, and open the same address in the system browser when needed. A website can still refuse embedded display through its CSP or `X-Frame-Options` policy.
 
 ---
 

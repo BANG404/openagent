@@ -58,16 +58,10 @@ describe("tool-call grouping", () => {
       call("render_mermaid"),
     ]);
 
-    expect(segments.map((segment) => segment.kind)).toEqual([
-      "item",
-      "item",
-      "tool_group",
-      "item",
-      "item",
-    ]);
+    expect(segments.map((segment) => segment.kind)).toEqual(["item", "item", "tool_group", "item"]);
     expect(segments[2]).toMatchObject({
       kind: "tool_group",
-      items: [{ name: "grep" }, { name: "update_goal" }],
+      items: [{ name: "grep" }, { name: "update_goal" }, { name: "render_web" }],
     });
   });
 
@@ -86,7 +80,7 @@ describe("tool-call grouping", () => {
     expect(partitioned.finalSegments.map((segment) => segment.startIndex)).toEqual([1, 2, 3, 4, 5]);
   });
 
-  test("folds Goal updates that occur before the first render", () => {
+  test("treats removed render tools as ordinary historical records", () => {
     const segments = groupStreamItems([
       { type: "text", content: "updating goal" },
       call("update_goal", "updated"),
@@ -98,8 +92,10 @@ describe("tool-call grouping", () => {
     ]);
 
     const partitioned = partitionAssistantSegments(segments, "completed");
-    expect(partitioned.processSegments.map((segment) => segment.startIndex)).toEqual([0, 1, 2]);
-    expect(partitioned.finalSegments.map((segment) => segment.startIndex)).toEqual([3, 4, 5, 6]);
+    expect(partitioned.processSegments.map((segment) => segment.startIndex)).toEqual([
+      0, 1, 2, 3, 5,
+    ]);
+    expect(partitioned.finalSegments.map((segment) => segment.startIndex)).toEqual([6]);
   });
 
   test("folds ordinary tools and every text message before the last one", () => {
@@ -192,7 +188,7 @@ describe("tool-call grouping", () => {
   test("hides every failed tool and shows non-render tools in other states", () => {
     expect(shouldDisplayToolCall(call("render_web", "Error: invalid document"), false)).toBe(false);
     expect(shouldDisplayToolCall(call("render_mermaid", '{"ok":false}'), false)).toBe(false);
-    expect(shouldDisplayToolCall(call("render_web"), true)).toBe(false);
+    expect(shouldDisplayToolCall(call("render_web"), true)).toBe(true);
     expect(shouldDisplayToolCall(call("render_mermaid"), false)).toBe(false);
     expect(shouldDisplayToolCall(call("render_web", '{"ok":true}'), false)).toBe(true);
     expect(shouldDisplayToolCall(call("render_mermaid", '{"ok":true}'), false)).toBe(true);

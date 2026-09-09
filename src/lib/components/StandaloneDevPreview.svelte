@@ -33,6 +33,7 @@
   } from "$lib/types";
 
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
+  import BrowserPanel from "$lib/components/BrowserPanel.svelte";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
   import CompactionStatus from "$lib/components/CompactionStatus.svelte";
@@ -1008,19 +1009,8 @@
   </main>
 {:else if preview === "web-preview"}
   <main class="web-preview-stage">
-    <section class="web-preview-stack" aria-label="Web preview">
-      <ToolCallCard
-        name="render_web"
-        args={JSON.stringify({
-          url: `${window.location.origin}/web-preview-fixture.html`,
-          title: locale === "zh" ? "交互式网页" : "Interactive website",
-          height: 480,
-        })}
-        result="Rendered website in the chat UI"
-        expanded={false}
-        argHint="web-preview-fixture.html"
-        onToggle={() => {}}
-      />
+    <section class="browser-preview-shell" aria-label="Browser panel preview">
+      <BrowserPanel />
     </section>
   </main>
 {:else if preview === "tool-status"}
@@ -1857,14 +1847,20 @@
     width: 100%;
   }
   .web-preview-stage {
+    display: grid;
+    place-items: center;
     min-height: 100vh;
-    padding: 64px clamp(16px, 8vw, 120px);
+    padding: 24px;
     box-sizing: border-box;
     background: var(--bg);
   }
-  .web-preview-stack {
-    width: min(920px, 100%);
-    margin: 0 auto;
+  .browser-preview-shell {
+    display: flex;
+    width: min(800px, 100%);
+    height: min(760px, calc(100vh - 48px));
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--surface);
   }
   .workspace-switcher-preview-stage :global(.workspace-btn) {
     background: var(--control-surface);

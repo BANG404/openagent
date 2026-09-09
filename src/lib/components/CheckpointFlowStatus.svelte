@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import {
     checkpointFlowProgress,
     checkpointGraphLayers,
@@ -8,6 +8,7 @@
   } from "$lib/checkpointFlow";
   import type { FileChange } from "$lib/types";
   import { t } from "$lib/i18n";
+  import BrowserPanel from "$lib/components/BrowserPanel.svelte";
   import FileChangePanel from "$lib/components/FileChangePanel.svelte";
 
   interface Props {
@@ -21,7 +22,9 @@
   }
 
   let { flow, changes, width, collapsed, resizing, onResizeStart, onRevert }: Props = $props();
-  let activePanel = $state<"status" | "files">("status");
+  let activePanel = $state<"status" | "files" | "browser">(
+    untrack(() => (flow ? "status" : changes.length > 0 ? "files" : "browser")),
+  );
   let progress = $derived(flow ? checkpointFlowProgress(flow) : { completed: 0, total: 0 });
   let graphLayers = $derived(flow?.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
   let graphViewport: HTMLDivElement | null = $state(null);
@@ -114,9 +117,8 @@
   });
 
   $effect(() => {
-    if (activePanel === "status" && !flow && changes.length > 0) activePanel = "files";
-    if (activePanel === "files" && changes.length === 0 && flow) activePanel = "status";
-    if (!flow && changes.length === 0) activePanel = "status";
+    if (activePanel === "status" && !flow) activePanel = changes.length > 0 ? "files" : "browser";
+    if (activePanel === "files" && changes.length === 0) activePanel = flow ? "status" : "browser";
   });
 
   function statusLabel(status: string): string {
@@ -168,6 +170,12 @@
             <span>{changes.length}</span>
           </button>
         {/if}
+        <button
+          type="button"
+          class:active={activePanel === "browser"}
+          aria-current={activePanel === "browser" ? "page" : undefined}
+          onclick={() => (activePanel = "browser")}>{$t("browserPanel")}</button
+        >
       </nav>
     {/if}
 
@@ -293,6 +301,8 @@
       </div>
     {:else if !collapsed && activePanel === "files"}
       <FileChangePanel {changes} {onRevert} />
+    {:else if !collapsed && activePanel === "browser"}
+      <BrowserPanel />
     {:else if !collapsed}
       <div class="flow-body">
         <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>
@@ -306,9 +316,9 @@
     position: relative;
     z-index: 12;
     display: flex;
-    width: min(var(--flow-panel-width), 45%, calc(100% - var(--workspace-card-gap)));
-    min-width: min(260px, 45%, calc(100% - var(--workspace-card-gap)));
-    max-width: min(520px, 45%, calc(100% - var(--workspace-card-gap)));
+    width: min(var(--flow-panel-width), 62%, calc(100% - var(--workspace-card-gap)));
+    min-width: min(260px, 62%, calc(100% - var(--workspace-card-gap)));
+    max-width: min(800px, 62%, calc(100% - var(--workspace-card-gap)));
     flex: 0 0 auto;
     flex-direction: column;
     margin-left: var(--workspace-card-gap);

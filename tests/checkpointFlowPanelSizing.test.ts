@@ -36,7 +36,7 @@ describe("checkpoint flow panel sizing", () => {
 
   test("retains the fixed bounds when the container has room", () => {
     expect(clampCheckpointFlowPanelWidth(200, 1600)).toBe(CHECKPOINT_FLOW_PANEL_MIN_WIDTH);
-    expect(clampCheckpointFlowPanelWidth(700, 1600)).toBe(CHECKPOINT_FLOW_PANEL_MAX_WIDTH);
+    expect(clampCheckpointFlowPanelWidth(900, 1600)).toBe(CHECKPOINT_FLOW_PANEL_MAX_WIDTH);
   });
 
   test("lets the panel shrink below its preferred minimum in a narrow container", () => {
