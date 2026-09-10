@@ -43,7 +43,8 @@ test("versioned WebViews confirm activation through the host handshake", () => {
   expect(updater).toContain("if (!updates.frontend)");
   expect(host).toContain("rollback_pending().await");
   expect(host).toContain("Duration::from_secs(15)");
-  expect(host).toContain("openagent-ui://localhost/");
+  expect(host).toContain('"http://openagent-ui.localhost/"');
+  expect(host).toContain('"openagent-ui://localhost/"');
   expect(host).toContain('stage = "confirmation_timed_out"');
   expect(host).toContain("manager.rollback_pending().await");
 });

@@ -495,12 +495,27 @@ fn frontend_resource_manager(
     )
 }
 
-fn external_frontend_url(query: &str, version: &str) -> Result<tauri::Url, String> {
+fn external_frontend_url_for_platform(
+    query: &str,
+    version: &str,
+    windows: bool,
+) -> Result<tauri::Url, String> {
+    // WebView2 rewrites registered custom protocols only while constructing a
+    // WebView. Runtime navigation must use the equivalent mapped origin.
+    let origin = if windows {
+        "http://openagent-ui.localhost/"
+    } else {
+        "openagent-ui://localhost/"
+    };
     let separator = if query.is_empty() { '?' } else { '&' };
     tauri::Url::parse(&format!(
-        "openagent-ui://localhost/{query}{separator}frontend-version={version}"
+        "{origin}{query}{separator}frontend-version={version}"
     ))
     .map_err(|error| format!("failed to build external frontend URL: {error}"))
+}
+
+fn external_frontend_url(query: &str, version: &str) -> Result<tauri::Url, String> {
+    external_frontend_url_for_platform(query, version, cfg!(target_os = "windows"))
 }
 
 fn embedded_frontend_url(query: &str) -> Result<tauri::Url, String> {
@@ -4150,6 +4165,32 @@ mod tests {
         assert_eq!(
             frontend_window_query("role-editor"),
             "?role-editor-window=1"
+        );
+    }
+
+    #[test]
+    fn external_frontend_urls_use_the_webview2_mapped_origin_on_windows() {
+        let main = external_frontend_url_for_platform("", "0.62.0-beta.1", true).unwrap();
+        assert_eq!(
+            main.as_str(),
+            "http://openagent-ui.localhost/?frontend-version=0.62.0-beta.1"
+        );
+
+        let settings =
+            external_frontend_url_for_platform("?settings-window=general", "0.62.0-beta.1", true)
+                .unwrap();
+        assert_eq!(
+            settings.as_str(),
+            "http://openagent-ui.localhost/?settings-window=general&frontend-version=0.62.0-beta.1"
+        );
+    }
+
+    #[test]
+    fn external_frontend_urls_keep_the_custom_scheme_off_windows() {
+        let url = external_frontend_url_for_platform("", "0.62.0-beta.1", false).unwrap();
+        assert_eq!(
+            url.as_str(),
+            "openagent-ui://localhost/?frontend-version=0.62.0-beta.1"
         );
     }
 

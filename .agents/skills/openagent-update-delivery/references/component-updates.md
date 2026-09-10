@@ -128,6 +128,11 @@ the host restores the previous verified version or its embedded frontend. The
 embedded frontend always remains the final fallback. The outgoing frontend must
 not announce success after merely requesting WebView navigation; the confirmed
 replacement frontend owns the component-update completion notice.
+On Windows, both initial resource loads and runtime navigation use WebView2's
+mapped `http://openagent-ui.localhost/` origin; passing the registered custom
+scheme directly to an existing WebView bypasses Wry's construction-time rewrite
+and cannot complete the activation handshake. Other platforms retain the
+registered `openagent-ui://localhost/` URL.
 
 Treat application SemVer as an update identity, never as a compatibility
 contract. Each replaceable component declares protocol ranges for every live
