@@ -13,26 +13,28 @@
   } = $props();
 
   let spec = $derived(settingsWindowSkeletonSpec(kind, initialSection));
+  let hasCollection = $derived(
+    spec.layout === "providers" || spec.layout === "channels" || spec.layout === "extensions",
+  );
   let contentGroups = $derived(
     spec.section === "general"
-      ? [4, 1, 1]
+      ? [5, 1, 1, 1]
       : spec.section === "execution"
-        ? [1, 3, 2]
+        ? [1, 4, 2]
         : spec.section === "defaults"
-          ? [2, 2]
+          ? [2, 1, 2, 1, 2]
           : spec.section === "memory"
-            ? [2, 2, 1]
-            : spec.section === "hooks"
-              ? [2, 3]
-              : [3, 2],
+            ? [1, 3, 1]
+            : [3, 2],
   );
 </script>
 
 <div
   class="settings-window-skeleton"
   class:with-navigation={spec.showNavigation}
-  class:collection={spec.layout === "collection"}
+  class:collection={hasCollection}
   class:about={spec.layout === "about"}
+  data-settings-skeleton-layout={spec.layout}
   data-settings-skeleton-kind={kind}
   data-settings-skeleton-section={spec.section}
   role="status"
@@ -52,7 +54,7 @@
     </aside>
   {/if}
 
-  {#if spec.layout === "collection"}
+  {#if hasCollection}
     <aside class="collection-skeleton" aria-hidden="true">
       {#if spec.section === "providers"}
         <div class="collection-toolbar">
@@ -85,17 +87,17 @@
       <span class="block about-link"></span>
       <span class="block about-action"></span>
     </main>
-  {:else if spec.layout === "collection"}
+  {:else if spec.layout === "providers"}
     <main class="detail-skeleton" aria-hidden="true">
       <div class="detail-heading">
         <span class="block detail-title"></span>
         <span class="block detail-toggle"></span>
       </div>
-      {#each Array(spec.section === "providers" ? 3 : 1) as _, groupIndex (groupIndex)}
+      {#each Array(3) as _, groupIndex (groupIndex)}
         <section class="detail-group">
           <span class="block group-title" style={`width:${96 + groupIndex * 12}px`}></span>
           <div class="application-settings-surface detail-card">
-            {#each Array(spec.section === "providers" ? 2 : 4) as _, rowIndex (rowIndex)}
+            {#each Array(groupIndex === 2 ? 3 : 2) as _, rowIndex (rowIndex)}
               <div class="detail-row">
                 <span class="block row-label" style={`width:${72 + (rowIndex % 2) * 24}px`}></span>
                 <span class="block row-control"></span>
@@ -103,6 +105,131 @@
             {/each}
           </div>
         </section>
+      {/each}
+    </main>
+  {:else if spec.layout === "channels"}
+    <main class="detail-skeleton channel-detail-skeleton" aria-hidden="true">
+      <div class="channel-heading">
+        <span class="channel-heading-copy">
+          <span class="block detail-title"></span>
+          <span class="block channel-subtitle"></span>
+        </span>
+        <span class="block detail-toggle"></span>
+      </div>
+      <section class="detail-group">
+        <div class="application-settings-surface channel-card">
+          {#each Array(4) as _, rowIndex (rowIndex)}
+            <div class="channel-field">
+              <span class="block row-label" style={`width:${82 + rowIndex * 9}px`}></span>
+              <span class="block row-control"></span>
+            </div>
+          {/each}
+        </div>
+      </section>
+    </main>
+  {:else if spec.layout === "extensions"}
+    <main class="detail-skeleton extension-detail-skeleton" aria-hidden="true">
+      <div class="detail-heading">
+        <span class="block detail-title"></span>
+        <span class="block detail-toggle"></span>
+      </div>
+      <section class="detail-group">
+        <span class="block group-title"></span>
+        <div class="extension-grid">
+          {#each Array(4) as _, rowIndex (rowIndex)}
+            <span class="extension-field">
+              <span class="block row-label" style={`width:${78 + rowIndex * 8}px`}></span>
+              <span class="block row-control"></span>
+            </span>
+          {/each}
+        </div>
+      </section>
+      <section class="detail-group">
+        <span class="block group-title"></span>
+        <div class="application-settings-surface tool-list">
+          {#each Array(3) as _, index (index)}
+            <span class="tool-row"
+              ><span class="block tool-name"></span><span class="block detail-toggle"></span></span
+            >
+          {/each}
+        </div>
+      </section>
+    </main>
+  {:else if spec.layout === "agents"}
+    <main class="content-skeleton agents-skeleton" aria-hidden="true">
+      <span class="block page-title"></span>
+      <span class="block page-intro"></span>
+      {#each Array(2) as _, groupIndex (groupIndex)}
+        <section class="content-group">
+          <span class="block group-title"></span>
+          <span class="block group-intro"></span>
+          <div class="application-settings-surface task-card">
+            {#each Array(groupIndex === 0 ? 4 : 3) as _, index (index)}
+              <span class="task-row">
+                <span class="content-copy"
+                  ><span class="block row-label"></span><span class="block row-description"
+                  ></span></span
+                >
+                <span class="block detail-toggle"></span>
+              </span>
+            {/each}
+          </div>
+        </section>
+      {/each}
+    </main>
+  {:else if spec.layout === "hooks"}
+    <main class="content-skeleton hooks-skeleton" aria-hidden="true">
+      <div class="section-heading">
+        <span class="block group-title"></span><span class="block small-action"></span>
+      </div>
+      <div class="hook-editor">
+        <span class="hook-message"
+          ><span class="block row-label"></span><span class="block textarea-control"></span></span
+        >
+        {#each Array(3) as _, index (index)}
+          <span class="hook-field"
+            ><span class="block row-label" style={`width:${76 + index * 12}px`}></span><span
+              class="block row-control"
+            ></span></span
+          >
+        {/each}
+      </div>
+      <span class="block primary-action"></span>
+      <section class="content-group hook-list-group">
+        <span class="block group-title"></span>
+        <div class="application-settings-surface hook-list">
+          {#each Array(3) as _, index (index)}
+            <span class="hook-row"
+              ><span class="content-copy"
+                ><span class="block row-label"></span><span class="block row-description"
+                ></span></span
+              ><span class="block small-action"></span></span
+            >
+          {/each}
+        </div>
+      </section>
+    </main>
+  {:else if spec.layout === "plugins"}
+    <main class="content-skeleton plugins-skeleton" aria-hidden="true">
+      <div class="plugins-heading">
+        <span class="content-copy"
+          ><span class="block page-title"></span><span class="block page-intro"></span></span
+        ><span class="block primary-action"></span>
+      </div>
+      <span class="application-settings-surface compatibility-note"
+        ><span class="block note-icon"></span><span class="block note-copy"></span></span
+      >
+      {#each Array(2) as _, index (index)}
+        <article class="application-settings-surface plugin-card">
+          <span class="block plugin-mark"></span>
+          <span class="content-copy"
+            ><span class="block row-label"></span><span class="block row-description"></span><span
+              class="plugin-tags"
+              ><span class="block tag"></span><span class="block tag short"></span></span
+            ></span
+          >
+          <span class="block small-action"></span>
+        </article>
       {/each}
     </main>
   {:else}
@@ -284,6 +411,89 @@
     margin-bottom: 20px;
   }
 
+  .channel-heading,
+  .section-heading,
+  .plugins-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .channel-heading {
+    min-height: 48px;
+    margin-bottom: 20px;
+  }
+
+  .channel-heading-copy {
+    display: grid;
+    gap: 8px;
+  }
+
+  .channel-subtitle,
+  .page-intro,
+  .group-intro {
+    width: 240px;
+    height: 8px;
+    opacity: 0.72;
+  }
+
+  .channel-card {
+    display: grid;
+    gap: 18px;
+    padding: 18px;
+  }
+
+  .channel-field,
+  .extension-field,
+  .hook-field,
+  .hook-message {
+    display: grid;
+    gap: 8px;
+  }
+
+  .extension-grid,
+  .hook-editor {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 16px;
+  }
+
+  .extension-field:nth-child(3),
+  .extension-field:nth-child(4),
+  .hook-message {
+    grid-column: 1 / -1;
+  }
+
+  .tool-list,
+  .task-card,
+  .hook-list {
+    overflow: hidden;
+  }
+
+  .tool-row,
+  .task-row,
+  .hook-row {
+    display: flex;
+    min-height: 54px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 10px 14px;
+    box-sizing: border-box;
+  }
+
+  .tool-row + .tool-row,
+  .task-row + .task-row,
+  .hook-row + .hook-row {
+    border-top: 1px solid var(--mica-divider);
+  }
+
+  .tool-name {
+    width: min(220px, 48%);
+    height: 9px;
+  }
+
   .detail-title {
     width: 112px;
     height: 15px;
@@ -340,6 +550,127 @@
 
   .content-skeleton {
     padding: 22px max(28px, calc((100% - 680px) / 2)) 40px;
+  }
+
+  .page-title {
+    width: 136px;
+    height: 16px;
+  }
+
+  .agents-skeleton > .page-intro {
+    width: min(420px, 72%);
+    margin-top: 10px;
+  }
+
+  .agents-skeleton .content-group:first-of-type {
+    margin-top: 28px;
+  }
+
+  .group-intro {
+    width: min(360px, 68%);
+    margin: -6px 0 14px;
+  }
+
+  .task-row {
+    min-height: 70px;
+  }
+
+  .task-row .row-label,
+  .hook-row .row-label,
+  .plugin-card .row-label {
+    width: 42%;
+  }
+
+  .section-heading {
+    height: 32px;
+    margin-bottom: 18px;
+  }
+
+  .small-action,
+  .primary-action {
+    width: 72px;
+    height: 30px;
+    flex: 0 0 auto;
+    border-radius: 6px;
+  }
+
+  .primary-action {
+    width: 104px;
+  }
+
+  .textarea-control {
+    height: 76px;
+    border-radius: 6px;
+  }
+
+  .hooks-skeleton > .primary-action {
+    margin-top: 14px;
+  }
+
+  .hook-list-group {
+    margin-top: 30px;
+  }
+
+  .plugins-heading {
+    margin-bottom: 18px;
+  }
+
+  .plugins-heading .page-intro {
+    width: min(380px, 64vw);
+  }
+
+  .compatibility-note {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+    padding: 10px 14px;
+    box-sizing: border-box;
+  }
+
+  .note-icon {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    border-radius: 5px;
+  }
+
+  .note-copy {
+    width: min(430px, 72%);
+    height: 9px;
+  }
+
+  .plugin-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    min-height: 118px;
+    margin-top: 16px;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  .plugin-mark {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 7px;
+  }
+
+  .plugin-tags {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .tag {
+    width: 92px;
+    height: 22px;
+    border-radius: 5px;
+  }
+
+  .tag.short {
+    width: 64px;
   }
 
   .content-control {
@@ -432,6 +763,17 @@
 
     .content-skeleton {
       padding-inline: 24px;
+    }
+
+    .extension-grid,
+    .hook-editor {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .extension-field:nth-child(3),
+    .extension-field:nth-child(4),
+    .hook-message {
+      grid-column: auto;
     }
   }
 

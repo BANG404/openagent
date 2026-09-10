@@ -19,6 +19,7 @@
 
   import Toast from "$lib/components/Toast.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
+  import SettingsWindowSkeleton from "$lib/components/SettingsWindowSkeleton.svelte";
   import { installDownloadHook } from "$lib/downloadHook";
   import { checkForAppUpdate } from "$lib/appUpdater";
   import { frontendActivationWasConfirmed } from "$lib/frontendActivation";
@@ -5039,8 +5040,12 @@
         initialSection={settingsWindowInitialSection}
       />
     {:else}
-      <div class="onboarding-loading">
-        <LoadingSkeleton variant="new-conversation" label={$t("loadingContent")} />
+      <div class="settings-route-loading">
+        <SettingsWindowSkeleton
+          kind={settingsWindowKind}
+          initialSection={settingsWindowInitialSection}
+          label={$t("loadingContent")}
+        />
       </div>
     {/if}
   {:else if isRoleEditorWindow}
@@ -5242,6 +5247,13 @@
 
   .onboarding-loading :global(.skeleton) {
     width: min(560px, 100%);
+  }
+
+  .settings-route-loading {
+    width: 100vw;
+    height: 100vh;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .app {

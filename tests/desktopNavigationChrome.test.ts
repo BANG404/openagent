@@ -252,6 +252,8 @@ describe("desktop navigation chrome", () => {
     const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
 
     expect(route).toContain("<SettingsWindowSurface");
+    expect(route).toContain("<SettingsWindowSkeleton");
+    expect(route).toContain("kind={settingsWindowKind}");
     expect(route).toContain("onOpenSettingsWindow={openManagementWindow}");
     expect(route).toContain(': ["general"]');
     expect(menu).toContain('onOpenSettingsWindow("models", "providers")');

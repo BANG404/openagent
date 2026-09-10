@@ -5,7 +5,7 @@ import {
   type SettingsWindowKind,
 } from "$lib/settingsWindows";
 
-export type SettingsWindowSkeletonLayout = "content" | "collection" | "about";
+export type SettingsWindowSkeletonLayout = SettingsNav;
 
 export interface SettingsWindowSkeletonSpec {
   section: SettingsNav;
@@ -13,8 +13,6 @@ export interface SettingsWindowSkeletonSpec {
   layout: SettingsWindowSkeletonLayout;
   showNavigation: boolean;
 }
-
-const collectionSections = new Set<SettingsNav>(["providers", "channels", "extensions"]);
 
 export function settingsWindowSkeletonSpec(
   kind: SettingsWindowKind,
@@ -25,8 +23,7 @@ export function settingsWindowSkeletonSpec(
   return {
     section,
     sections,
-    layout:
-      section === "about" ? "about" : collectionSections.has(section) ? "collection" : "content",
+    layout: section,
     showNavigation: sections.length > 1,
   };
 }

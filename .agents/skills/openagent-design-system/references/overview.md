@@ -22,8 +22,10 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   Settings utility-window loading states preserve the geometry of the requested
   destination: multi-section windows retain their 172px navigation column,
   provider/channel/MCP sections also retain the 256px collection column, and
-  single-section or About windows use their final content alignment. Do not use
-  a generic centered placeholder for these modeless windows.
+  single-section or About windows use their final content alignment. Each menu
+  destination keeps its own content silhouette: provider fields, channel
+  credentials, MCP tools, Agent task cards, plugins, schedules, and ordinary
+  settings rows must not collapse into one generic loading template.
 - **Settings enablement switches:** show the switch alone. Do not repeat its
   enabled or disabled state with adjacent text, dots, or labels; expose the
   control name through its accessible label.

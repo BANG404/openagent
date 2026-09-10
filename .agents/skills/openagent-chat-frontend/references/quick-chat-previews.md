@@ -12,8 +12,11 @@
   ordinary appearance, launcher, startup, diagnostics, and presentation
   preferences in General Settings. Load the settings-window surface lazily and
   retain a layout-stable skeleton until it is ready so the main chat route does
-  not absorb the Settings bundle. Each window loads and saves through the
-  shared settings contract without replacing or unmounting the chat shell.
+  not absorb the Settings bundle. The route-level lazy-import fallback and the
+  settings surface's configuration-loading state must use the same requested
+  domain and section silhouette; never flash the generic new-conversation
+  skeleton before a Settings window mounts. Each window loads and saves through
+  the shared settings contract without replacing or unmounting the chat shell.
 - The saved-role editor is a modeless singleton utility window opened from the
   Role application menu. Reopening it targets the requested saved role or a new
   role draft and focuses the existing window. It edits the role system prompt
