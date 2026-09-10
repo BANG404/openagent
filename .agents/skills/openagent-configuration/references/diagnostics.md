@@ -24,7 +24,7 @@ pipeline and are not application logs.
 Release builds receive the write-only ingestion credential from the
 `OPENAGENT_LOGS_INGEST_TOKEN` repository secret. Local builds may set the same
 environment variable and may override the default
-`https://openagentlogs.odn.cc/v1/logs` destination with
+`https://openagentlogs.ibat.ac.cn/v1/logs` destination with
 `OPENAGENT_LOGS_ENDPOINT`.
 
 The model-service list and default-model provider selectors show the configured
