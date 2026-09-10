@@ -238,6 +238,10 @@
   inside the same logical assistant turn. The turn-level process disclosure may
   contain several retries because automatic recovery must still produce one
   final Agent reply; never merge one attempt's nested stream items into another.
+  Persist each retry record as a UI-only checkpoint message immediately after
+  restoring the failed request boundary. A later success, terminal failure, or
+  cancellation during the retry delay must restore the same attempt output,
+  model, ordinal, and error without projecting that display record to a model.
 - Mount the turn-level process disclosure only after the logical Turn reaches
   the normally completed status, and default it closed. Running, interrupted,
   cancelled, and failed Turns render their records directly in source order,

@@ -17,6 +17,40 @@ const record = (overrides) => ({
 });
 
 describe("checkpoint record projection", () => {
+  test("restores a durable model retry with its failed attempt output", () => {
+    const [message] = checkpointRecordsToMessages(
+      [
+        record({
+          id: "retry-1",
+          items: JSON.stringify([
+            {
+              type: "retry",
+              items: [{ type: "thinking", content: "checking the response" }],
+              attempt: 1,
+              maxAttempts: 4,
+              model: "test-model",
+              error: "upstream disconnected",
+            },
+          ]),
+        }),
+      ],
+      "checkpoint-1",
+      "conversation-1",
+    );
+
+    expect(message.content).toBe("");
+    expect(message.items).toEqual([
+      {
+        type: "retry",
+        items: [{ type: "thinking", content: "checking the response" }],
+        attempt: 1,
+        maxAttempts: 4,
+        model: "test-model",
+        error: "upstream disconnected",
+      },
+    ]);
+  });
+
   test("preserves ordered reasoning and joins a persisted tool result", () => {
     const messages = checkpointRecordsToMessages(
       [
