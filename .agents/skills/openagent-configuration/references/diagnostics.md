@@ -6,6 +6,14 @@ application restart. Turning it off stops OTLP export while continuing to keep
 rotating local logs so the user can inspect or deliberately share them during
 support.
 
+The supervised Runtime writes `openagent.<date>.jsonl`; the thin desktop host
+writes `openagent-host.jsonl.<date>`, so the host and Runtime do not share a log
+writer. Multiple desktop host processes may append to the same host file for a
+given day. Each rolling log family retains at most 15 files. Host
+component-update records use fixed component/stage values and bounded
+version/error categories. Raw frontend errors, conversation IDs, and
+conversation content do not enter those lifecycle records.
+
 Remote diagnostics contain application version, operating system, architecture,
 severity, an allowlisted event name, component, and error type. They exclude
 conversation content, prompts, model output, tool arguments and results,

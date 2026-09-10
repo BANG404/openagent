@@ -4,6 +4,11 @@ import { check, type Update } from "@tauri-apps/plugin-updater";
 import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
 import { get, readonly, writable } from "svelte/store";
 import { appUpdateReleaseUrl } from "$lib/appUpdateRelease";
+import {
+  formatComponentVersionTransitions,
+  type ComponentVersionTransition,
+} from "$lib/appUpdateVersions";
+import { reportComponentUpdateEvent } from "$lib/frontendDiagnostics";
 import { t, type TranslationKeys } from "$lib/i18n";
 import {
   AppUpdateTimeoutError,
@@ -27,11 +32,13 @@ function describeError(error: unknown): string {
 
 type PreparedFrontendResource = {
   version: string;
+  current_version: string;
   update_available: boolean;
 };
 
 type PreparedRuntimeResource = {
   version: string;
+  current_version: string | null;
   target: string;
   update_available: boolean;
 };
@@ -110,6 +117,30 @@ async function checkForFrontendResourceUpdate(): Promise<PreparedFrontendResourc
   return candidate.update_available ? candidate : null;
 }
 
+async function downloadShellUpdate(shell: Update): Promise<void> {
+  const versions = { currentVersion: shell.currentVersion, candidateVersion: shell.version };
+  await reportComponentUpdateEvent("shell", "download_started", versions);
+  try {
+    await shell.download();
+    await reportComponentUpdateEvent("shell", "download_finished", versions);
+  } catch (error) {
+    await reportComponentUpdateEvent("shell", "download_failed", versions, error);
+    throw error;
+  }
+}
+
+async function installShellUpdate(shell: Update): Promise<void> {
+  const versions = { currentVersion: shell.currentVersion, candidateVersion: shell.version };
+  await reportComponentUpdateEvent("shell", "install_started", versions);
+  try {
+    await shell.install();
+    await reportComponentUpdateEvent("shell", "install_finished", versions);
+  } catch (error) {
+    await reportComponentUpdateEvent("shell", "install_failed", versions, error);
+    throw error;
+  }
+}
+
 async function installUpdates(updates: AvailableUpdates): Promise<void> {
   if (get(mutableAppUpdateState) !== "idle") return;
   mutableAppUpdateState.set("installing");
@@ -131,10 +162,10 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
       } catch {
         // A background download may fail after the notification is shown; retry
         // it when the user explicitly starts the update.
-        if (updates.shell) await updates.shell.download();
+        if (updates.shell) await downloadShellUpdate(updates.shell);
       }
     } else if (updates.shell) {
-      await updates.shell.download();
+      await downloadShellUpdate(updates.shell);
     }
     const gate = await invoke<ComponentUpdateGate>("begin_component_update");
     if (!gate.ready) {
@@ -164,7 +195,7 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
     }
     if (updates.shell) {
       updateToast(progressToastId, { description: translate("updateInstalling") });
-      await updates.shell.install();
+      await installShellUpdate(updates.shell);
     }
 
     // A replacement frontend owns the completion notice after its startup
@@ -178,7 +209,13 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
         durationMs: updates.shell ? 3000 : 5000,
       });
     }
-    if (updates.shell) await invoke("restart_app");
+    if (updates.shell) {
+      await reportComponentUpdateEvent("shell", "restart_requested", {
+        currentVersion: updates.shell.currentVersion,
+        candidateVersion: updates.shell.version,
+      });
+      await invoke("restart_app");
+    }
   } catch (error) {
     showToast({
       title: translate("updateFailed"),
@@ -216,7 +253,19 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
     } catch (error) {
       console.warn("[openagent] Frontend resource update check failed", error);
     }
-    const shell = await withAppUpdateTimeout(check());
+    await reportComponentUpdateEvent("shell", "check_started");
+    let shell: Update | null;
+    try {
+      shell = await withAppUpdateTimeout(check());
+      await reportComponentUpdateEvent(
+        "shell",
+        shell ? "check_available" : "check_current",
+        shell ? { currentVersion: shell.currentVersion, candidateVersion: shell.version } : {},
+      );
+    } catch (error) {
+      await reportComponentUpdateEvent("shell", "check_failed", {}, error);
+      throw error;
+    }
     if (!shell && !runtime && !frontend) {
       if (notifyWhenUpToDate) {
         showToast({
@@ -228,19 +277,39 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
       return;
     }
 
-    const shellDownload = shell ? shell.download() : null;
+    const shellDownload = shell ? downloadShellUpdate(shell) : null;
     if (shellDownload) void shellDownload.catch(() => {});
     const updates: AvailableUpdates = { runtime, frontend, shell, shellDownload };
     const releaseUrl = shell ? appUpdateReleaseUrl(shell.version) : undefined;
-    const components = [
-      shell ? translate("updateComponentShell") : null,
-      frontend ? translate("updateComponentFrontend") : null,
-      runtime ? translate("updateComponentRuntime") : null,
-    ]
-      .filter(Boolean)
-      .join(", ");
+    const componentVersionCandidates: Array<ComponentVersionTransition | null> = [
+      shell
+        ? {
+            label: translate("updateComponentShell"),
+            currentVersion: shell.currentVersion,
+            candidateVersion: shell.version,
+          }
+        : null,
+      frontend
+        ? {
+            label: translate("updateComponentFrontend"),
+            currentVersion: frontend.current_version,
+            candidateVersion: frontend.version,
+          }
+        : null,
+      runtime
+        ? {
+            label: translate("updateComponentRuntime"),
+            currentVersion: runtime.current_version,
+            candidateVersion: runtime.version,
+          }
+        : null,
+    ];
+    const componentVersions = componentVersionCandidates.filter(
+      (value): value is ComponentVersionTransition => value !== null,
+    );
+    const components = formatComponentVersionTransitions(componentVersions);
     showToast({
-      title: `${translate("updateAvailable")} ${shell?.version ?? frontend?.version ?? runtime?.version}`,
+      title: translate("updateAvailable"),
       description: `${translate("updateComponentsAvailable")}: ${components}`,
       durationMs: 0,
       link: releaseUrl

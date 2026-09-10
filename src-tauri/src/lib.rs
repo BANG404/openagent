@@ -36,6 +36,8 @@ use openagent_runtime::{
 };
 use std::sync::Arc;
 use tauri::{path::BaseDirectory, Emitter, LogicalSize, Manager, PhysicalPosition, Size, State};
+#[cfg(not(feature = "embedded-runtime"))]
+use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 pub mod frontend_resource;
 pub mod local_capabilities;
@@ -62,12 +64,14 @@ use workspace_process::{
 #[derive(serde::Serialize)]
 struct PreparedFrontendResource {
     version: String,
+    current_version: String,
     update_available: bool,
 }
 
 #[derive(serde::Serialize)]
 struct PreparedRuntimeResource {
     version: String,
+    current_version: Option<String>,
     target: String,
     update_available: bool,
 }
@@ -170,8 +174,13 @@ const DESKTOP_EVENT_PROXY_STOP_TIMEOUT: std::time::Duration = std::time::Duratio
 const DESKTOP_CHILD_PROCESS_GRACE_TIMEOUT: std::time::Duration =
     std::time::Duration::from_millis(1500);
 const DESKTOP_CHILD_PROCESS_STOP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
+#[cfg(not(feature = "embedded-runtime"))]
+const RETAINED_HOST_LOG_FILES: usize = 15;
 
-fn init_host_tracing(#[cfg(feature = "embedded-runtime")] runtime: Option<&Arc<OpenAgentRuntime>>) {
+fn init_host_tracing(
+    data_dir: &std::path::Path,
+    #[cfg(feature = "embedded-runtime")] runtime: Option<&Arc<OpenAgentRuntime>>,
+) {
     #[cfg(feature = "embedded-runtime")]
     {
         tauri::async_runtime::block_on(async {
@@ -197,9 +206,37 @@ fn init_host_tracing(#[cfg(feature = "embedded-runtime")] runtime: Option<&Arc<O
     }
     #[cfg(not(feature = "embedded-runtime"))]
     {
+        let logs_dir = data_dir.join("logs");
+        if let Err(error) = std::fs::create_dir_all(&logs_dir) {
+            eprintln!("failed to create host diagnostics directory: {error}");
+            let _ = tracing_subscriber::fmt()
+                .with_ansi(false)
+                .with_max_level(tracing::Level::INFO)
+                .try_init();
+            return;
+        }
+        let file = match tracing_appender::rolling::RollingFileAppender::builder()
+            .rotation(tracing_appender::rolling::Rotation::DAILY)
+            .filename_prefix("openagent-host.jsonl")
+            .max_log_files(RETAINED_HOST_LOG_FILES)
+            .build(logs_dir)
+        {
+            Ok(file) => file,
+            Err(error) => {
+                eprintln!("failed to initialize host diagnostics file: {error}");
+                let _ = tracing_subscriber::fmt()
+                    .with_ansi(false)
+                    .with_max_level(tracing::Level::INFO)
+                    .try_init();
+                return;
+            }
+        };
+        let writer = std::io::stderr.and(file);
         let _ = tracing_subscriber::fmt()
+            .json()
             .with_ansi(false)
             .with_max_level(tracing::Level::INFO)
+            .with_writer(writer)
             .try_init();
     }
 }
@@ -568,6 +605,12 @@ async fn prepare_runtime_resource(
     updates: State<'_, RuntimeUpdateState>,
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
 ) -> Result<PreparedRuntimeResource, String> {
+    tracing::info!(
+        target: "openagent::component_update",
+        component = "runtime",
+        stage = "check_started",
+        "checking signed Runtime component channel"
+    );
     let progress_app = app.clone();
     let candidate = manager
         .install_latest(move |progress| {
@@ -575,7 +618,17 @@ async fn prepare_runtime_resource(
                 tracing::warn!(%error, "failed to emit Runtime resource progress");
             }
         })
-        .await?;
+        .await
+        .map_err(|error| {
+            tracing::error!(
+                target: "openagent::component_update",
+                component = "runtime",
+                stage = "check_failed",
+                %error,
+                "Runtime component preparation failed"
+            );
+            error
+        })?;
     let active = manager.active_resource().await?;
     let running = supervisor.status().await;
     let baseline = active
@@ -586,9 +639,21 @@ async fn prepare_runtime_resource(
         .map(|baseline| runtime_update_available(&candidate.version, baseline))
         .transpose()?
         .unwrap_or(false);
+    let current_version = baseline.map(str::to_string);
+    tracing::info!(
+        target: "openagent::component_update",
+        component = "runtime",
+        stage = if update_available { "check_available" } else { "check_current" },
+        current_version = current_version.as_deref().unwrap_or("unknown"),
+        candidate_version = candidate.version,
+        target = candidate.target,
+        update_available,
+        "Runtime component check finished"
+    );
     *updates.pending.lock().await = update_available.then(|| candidate.clone());
     Ok(PreparedRuntimeResource {
         version: candidate.version,
+        current_version,
         target: candidate.target,
         update_available,
     })
@@ -719,6 +784,14 @@ async fn begin_component_update(
         });
     }
     let drain = drain_supervised_runtime(supervisor.inner(), false).await?;
+    tracing::info!(
+        target: "openagent::component_update",
+        component = "runtime",
+        stage = "barrier_finished",
+        ready = drain.drained,
+        active_count = drain.active_conversations.len(),
+        "component update barrier request finished"
+    );
     if drain.drained {
         *active = true;
     }
@@ -819,6 +892,14 @@ async fn activate_runtime_resource(
         .filter(|candidate| candidate.version == version && candidate.target == target)
         .cloned()
         .ok_or_else(|| "Runtime candidate is not the pending verified resource".to_string())?;
+    tracing::info!(
+        target: "openagent::component_update",
+        component = "runtime",
+        stage = "activation_started",
+        candidate_version = candidate.version,
+        target = candidate.target,
+        "Runtime component activation started"
+    );
     let previous_spec = supervisor
         .launch_spec()
         .await
@@ -836,6 +917,14 @@ async fn activate_runtime_resource(
         primary_desktop_services: previous_spec.primary_desktop_services,
     };
     if let Err(candidate_error) = supervisor.reload_after_drain(candidate_spec).await {
+        tracing::error!(
+            target: "openagent::component_update",
+            component = "runtime",
+            stage = "candidate_start_failed",
+            candidate_version = candidate.version,
+            %candidate_error,
+            "Runtime candidate failed to start; restoring the previous process"
+        );
         let recovery = reconnect_supervised_runtime(&app, supervisor.inner().clone(), &proxy).await;
         let _ = app.emit(
             "runtime-resource-rolled-back",
@@ -855,6 +944,14 @@ async fn activate_runtime_resource(
         Err(error) => Some(error),
     };
     if let Some(candidate_barrier_error) = candidate_barrier_error {
+        tracing::error!(
+            target: "openagent::component_update",
+            component = "runtime",
+            stage = "candidate_barrier_failed",
+            candidate_version = candidate.version,
+            error = %candidate_barrier_error,
+            "Runtime candidate failed its update barrier; rolling back"
+        );
         let rollback = restore_previous_runtime(
             &app,
             supervisor.inner().clone(),
@@ -875,6 +972,14 @@ async fn activate_runtime_resource(
     }
 
     if let Err(validation_error) = validate_supervised_runtime_bootstrap(supervisor.inner()).await {
+        tracing::error!(
+            target: "openagent::component_update",
+            component = "runtime",
+            stage = "candidate_bootstrap_failed",
+            candidate_version = candidate.version,
+            %validation_error,
+            "Runtime candidate failed bootstrap validation; rolling back"
+        );
         let rollback = restore_previous_runtime(
             &app,
             supervisor.inner().clone(),
@@ -897,6 +1002,14 @@ async fn activate_runtime_resource(
     let generation = match proxy.start(app.clone(), supervisor.inner().clone()).await {
         Ok(generation) => generation,
         Err(reconnect_error) => {
+            tracing::error!(
+                target: "openagent::component_update",
+                component = "runtime",
+                stage = "candidate_reconnect_failed",
+                candidate_version = candidate.version,
+                %reconnect_error,
+                "Runtime candidate event reconnect failed; rolling back"
+            );
             let rollback = restore_previous_runtime(
                 &app,
                 supervisor.inner().clone(),
@@ -918,6 +1031,14 @@ async fn activate_runtime_resource(
     };
 
     if let Err(activation_error) = manager.activate(&candidate).await {
+        tracing::error!(
+            target: "openagent::component_update",
+            component = "runtime",
+            stage = "selection_commit_failed",
+            candidate_version = candidate.version,
+            %activation_error,
+            "Runtime candidate selection commit failed; rolling back"
+        );
         let rollback =
             restore_previous_runtime(&app, supervisor.inner().clone(), &proxy, previous_spec).await;
         let _ = app.emit(
@@ -944,6 +1065,15 @@ async fn activate_runtime_resource(
     let _ = app.emit(
         "runtime-resync-required",
         serde_json::json!({ "generation": generation }),
+    );
+    tracing::info!(
+        target: "openagent::component_update",
+        component = "runtime",
+        stage = "activation_finished",
+        active_version = candidate.version,
+        target = candidate.target,
+        generation,
+        "Runtime component activation finished"
     );
     Ok(ActivatedRuntimeResource {
         version: candidate.version,
@@ -990,10 +1120,37 @@ async fn prepare_frontend_resource(
     if cfg!(debug_assertions) {
         return Err("production frontend resources are disabled in development builds".to_string());
     }
-    let InstalledFrontendResource { version, .. } = manager.install_latest().await?;
+    tracing::info!(
+        target: "openagent::component_update",
+        component = "frontend",
+        stage = "check_started",
+        "checking signed frontend component channel"
+    );
+    let InstalledFrontendResource { version, .. } =
+        manager.install_latest().await.map_err(|error| {
+            tracing::error!(
+                target: "openagent::component_update",
+                component = "frontend",
+                stage = "check_failed",
+                %error,
+                "frontend component preparation failed"
+            );
+            error
+        })?;
+    let current_version = manager.current_version();
     let update_available = manager.is_newer_than_active(&version)?;
+    tracing::info!(
+        target: "openagent::component_update",
+        component = "frontend",
+        stage = if update_available { "check_available" } else { "check_current" },
+        current_version,
+        candidate_version = version,
+        update_available,
+        "frontend component check finished"
+    );
     Ok(PreparedFrontendResource {
         version,
+        current_version,
         update_available,
     })
 }
@@ -1012,14 +1169,56 @@ async fn activate_frontend_resource(
     if !*updates.component_update_active.lock().await {
         return Err("frontend activation requires an active component update barrier".to_string());
     }
-    manager.activate(&version).await?;
-    navigate_frontend_windows(&app, Some(&version))?;
+    let diagnostic_version = component_update_version(Some(version.clone()))?
+        .expect("a supplied component version remains present after validation");
+    tracing::info!(
+        target: "openagent::component_update",
+        component = "frontend",
+        stage = "activation_started",
+        candidate_version = diagnostic_version,
+        "frontend component activation started"
+    );
+    manager.activate(&version).await.map_err(|error| {
+        tracing::error!(
+            target: "openagent::component_update",
+            component = "frontend",
+            stage = "selection_commit_failed",
+            candidate_version = diagnostic_version,
+            %error,
+            "frontend selection commit failed"
+        );
+        error
+    })?;
+    if let Err(error) = navigate_frontend_windows(&app, Some(&version)) {
+        tracing::error!(
+            target: "openagent::component_update",
+            component = "frontend",
+            stage = "navigation_failed",
+            candidate_version = diagnostic_version,
+            %error,
+            "frontend WebView navigation failed; rolling back the pending selection"
+        );
+        let rollback = manager.rollback_pending().await;
+        return Err(match rollback {
+            Ok(_) => error,
+            Err(rollback_error) => {
+                format!("{error}; frontend selection rollback failed: {rollback_error}")
+            }
+        });
+    }
     let rollback_manager = manager.inner().clone();
     let rollback_app = app.clone();
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_secs(15)).await;
         match rollback_manager.rollback_pending().await {
             Ok(true) => {
+                tracing::warn!(
+                    target: "openagent::component_update",
+                    component = "frontend",
+                    stage = "confirmation_timed_out",
+                    candidate_version = diagnostic_version,
+                    "frontend activation was not confirmed within the deadline; rolled back"
+                );
                 let version = rollback_manager.active_version();
                 if let Err(error) = navigate_frontend_windows(&rollback_app, version.as_deref()) {
                     tracing::error!(%error, "failed to display frontend rollback");
@@ -1046,8 +1245,35 @@ async fn confirm_frontend_activation(
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
     version: String,
 ) -> Result<(), String> {
-    manager.confirm(&version).await?;
-    release_component_update(updates.inner(), supervisor.inner()).await
+    let diagnostic_version = component_update_version(Some(version.clone()))?
+        .expect("a supplied component version remains present after validation");
+    tracing::info!(
+        target: "openagent::component_update",
+        component = "frontend",
+        stage = "confirmation_started",
+        candidate_version = diagnostic_version,
+        "frontend activation confirmation received"
+    );
+    manager.confirm(&version).await.map_err(|error| {
+        tracing::error!(
+            target: "openagent::component_update",
+            component = "frontend",
+            stage = "confirmation_failed",
+            candidate_version = diagnostic_version,
+            %error,
+            "frontend activation confirmation failed"
+        );
+        error
+    })?;
+    release_component_update(updates.inner(), supervisor.inner()).await?;
+    tracing::info!(
+        target: "openagent::component_update",
+        component = "frontend",
+        stage = "confirmation_finished",
+        active_version = diagnostic_version,
+        "frontend activation confirmed"
+    );
+    Ok(())
 }
 
 fn apply_native_window_material(window: &tauri::WebviewWindow) {
@@ -1311,6 +1537,84 @@ fn diagnostic_error_type(value: &str) -> &'static str {
         "undefined" => "undefined",
         _ => "unknown_error_type",
     }
+}
+
+fn component_update_name(value: &str) -> Result<&'static str, String> {
+    match value {
+        "shell" => Ok("shell"),
+        "runtime" => Ok("runtime"),
+        "frontend" => Ok("frontend"),
+        _ => Err("unknown component update diagnostic component".to_string()),
+    }
+}
+
+fn component_update_stage(value: &str) -> Result<&'static str, String> {
+    match value {
+        "check_started" => Ok("check_started"),
+        "check_available" => Ok("check_available"),
+        "check_current" => Ok("check_current"),
+        "check_failed" => Ok("check_failed"),
+        "download_started" => Ok("download_started"),
+        "download_finished" => Ok("download_finished"),
+        "download_failed" => Ok("download_failed"),
+        "install_started" => Ok("install_started"),
+        "install_finished" => Ok("install_finished"),
+        "install_failed" => Ok("install_failed"),
+        "confirmation_started" => Ok("confirmation_started"),
+        "confirmation_finished" => Ok("confirmation_finished"),
+        "confirmation_failed" => Ok("confirmation_failed"),
+        "restart_requested" => Ok("restart_requested"),
+        _ => Err("unknown component update diagnostic stage".to_string()),
+    }
+}
+
+fn component_update_version(value: Option<String>) -> Result<Option<String>, String> {
+    value
+        .map(|version| {
+            semver::Version::parse(&version)
+                .map(|parsed| parsed.to_string())
+                .map_err(|_| "component update diagnostic version is invalid".to_string())
+        })
+        .transpose()
+}
+
+#[tauri::command]
+fn report_component_update_event(
+    component: String,
+    stage: String,
+    current_version: Option<String>,
+    candidate_version: Option<String>,
+    error_kind: Option<String>,
+) -> Result<(), String> {
+    let component = component_update_name(&component)?;
+    let stage = component_update_stage(&stage)?;
+    let current_version = component_update_version(current_version)?;
+    let candidate_version = component_update_version(candidate_version)?;
+    let error_type = error_kind
+        .as_deref()
+        .map(diagnostic_error_type)
+        .unwrap_or("none");
+    if stage.ends_with("failed") {
+        tracing::error!(
+            target: "openagent::component_update",
+            component,
+            stage,
+            current_version = current_version.as_deref().unwrap_or("unknown"),
+            candidate_version = candidate_version.as_deref().unwrap_or("unknown"),
+            error_type,
+            "component update stage reported by the frontend failed"
+        );
+    } else {
+        tracing::info!(
+            target: "openagent::component_update",
+            component,
+            stage,
+            current_version = current_version.as_deref().unwrap_or("unknown"),
+            candidate_version = candidate_version.as_deref().unwrap_or("unknown"),
+            "component update stage reported by the frontend"
+        );
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -3212,6 +3516,19 @@ fn run_with_mode(agent_server: bool) {
     } = prepare_host_runtime(agent_server, external_launch)
         .unwrap_or_else(|error| panic!("Failed to initialize OpenAgent runtime: {error:#}"));
 
+    init_host_tracing(
+        &data_dir,
+        #[cfg(feature = "embedded-runtime")]
+        runtime.as_ref(),
+    );
+    tracing::info!(
+        target: "openagent::component_update",
+        component = "shell",
+        current_version = env!("CARGO_PKG_VERSION"),
+        channel = modular_update_channel(),
+        "desktop component identity initialized"
+    );
+
     #[cfg(feature = "embedded-runtime")]
     let protocol_roots = html_preview_roots;
     let frontend_manager = frontend_resource_manager(data_dir.clone())
@@ -3388,10 +3705,6 @@ fn run_with_mode(agent_server: bool) {
                 install_parent_shutdown_monitor(app.handle().clone());
             }
 
-            init_host_tracing(
-                #[cfg(feature = "embedded-runtime")]
-                runtime.as_ref(),
-            );
             tracing::info!(
                 target: "openagent::startup",
                 elapsed_ms = startup_started_at.elapsed().as_millis() as u64,
@@ -3633,6 +3946,7 @@ fn run_with_mode(agent_server: bool) {
         prepare_frontend_resource,
         activate_frontend_resource,
         confirm_frontend_activation,
+        report_component_update_event,
         save_settings,
         get_channel_statuses,
         get_wechat_channel_status,
@@ -3771,6 +4085,7 @@ fn run_with_mode(agent_server: bool) {
         prepare_frontend_resource,
         activate_frontend_resource,
         confirm_frontend_activation,
+        report_component_update_event,
         report_frontend_diagnostic,
         list_wsl_distributions,
         get_wsl_home,
@@ -3868,6 +4183,41 @@ mod tests {
             "unknown_component"
         );
         assert_eq!(diagnostic_error_type("secretError"), "unknown_error_type");
+    }
+
+    #[test]
+    fn component_update_diagnostic_fields_are_bounded() {
+        assert_eq!(component_update_name("shell"), Ok("shell"));
+        assert_eq!(component_update_name("runtime"), Ok("runtime"));
+        assert_eq!(component_update_name("frontend"), Ok("frontend"));
+        assert!(component_update_name("conversation-123").is_err());
+
+        for stage in [
+            "check_started",
+            "check_available",
+            "check_current",
+            "check_failed",
+            "download_started",
+            "download_finished",
+            "download_failed",
+            "install_started",
+            "install_finished",
+            "install_failed",
+            "confirmation_started",
+            "confirmation_finished",
+            "confirmation_failed",
+            "restart_requested",
+        ] {
+            assert_eq!(component_update_stage(stage), Ok(stage));
+        }
+        assert!(component_update_stage("raw user content").is_err());
+
+        assert_eq!(
+            component_update_version(Some("1.2.3-beta.1+build.7".to_string())),
+            Ok(Some("1.2.3-beta.1+build.7".to_string()))
+        );
+        assert_eq!(component_update_version(None), Ok(None));
+        assert!(component_update_version(Some("latest/private/path".to_string())).is_err());
     }
 
     #[cfg(windows)]

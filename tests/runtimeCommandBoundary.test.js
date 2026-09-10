@@ -26,6 +26,7 @@ const nativeCommands = new Set([
   "prepare_runtime_resource",
   "quit_app",
   "read_text_file",
+  "report_component_update_event",
   "report_frontend_diagnostic",
   "resolve_wsl_workspace",
   "restart_app",

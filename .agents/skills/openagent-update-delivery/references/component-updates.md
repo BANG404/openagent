@@ -30,6 +30,22 @@ reloads and confirms the frontend, then installs the shell and restarts the
 application. Component-only releases keep the same notification model without
 restarting the shell.
 
+Update notifications present each selected component as its own current-to-
+candidate version transition. The About surface labels the packaged application
+version as the desktop-shell version; it is not a composite product version and
+does not advance for frontend-only or Runtime-only releases.
+
+The desktop host writes local component-update lifecycle diagnostics to the
+daily `OPENAGENT_HOME/logs/openagent-host.jsonl.<date>` file. These records cover
+shell checks/download/install/restart, Runtime preparation and supervised
+activation/rollback, and frontend preparation/navigation/confirmation/timeout.
+The Runtime's ordinary `openagent.<date>.jsonl` log separately records the
+drain request, active-run count, bounded result, and resume transition. Keep
+component versions and fixed error categories in frontend-originated records;
+never record conversation identifiers, content, credentials, or raw frontend
+errors. Both rolling log families retain at most 15 files; multiple desktop host
+processes may append to the same host file for a given day.
+
 ## Desktop Runtime boundary
 
 Ordinary debug and release desktop builds use one supervised external
@@ -136,3 +152,20 @@ desktop-only capabilities or private runtime records.
 Reload is intentionally explicit. The caller finishes or cancels active runs,
 installs the verified version, and calls `reload(newBinaryPath)`. Durable state
 under the caller-selected `OPENAGENT_HOME` survives; in-memory work does not.
+
+## Development verification
+
+Use an isolated `OPENAGENT_HOME` with `bun tauri dev` to verify that the native
+shell starts, the supervised external `openagent-server` reaches its desktop
+bootstrap, and the Vite frontend mounts through the real WebView. Verify the
+host and Runtime log files separately. A frontend source edit must acquire and
+release the Runtime barrier before the full reload; an SDK Runtime source edit
+must rebuild and stage the sidecar before the pending stamp lets Tauri restart.
+
+Production signed-resource commands remain disabled in debug builds. Exercise
+their download, signature, version comparison, activation, confirmation, and
+rollback behavior with the host Rust integration fixtures, which serve locally
+signed frontend and Runtime manifests over loopback. Exercise shell aggregation
+and independent component-version presentation with frontend tests; do not
+point a development build at a production fixed channel merely to test update
+state.

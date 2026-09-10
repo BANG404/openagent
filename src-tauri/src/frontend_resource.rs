@@ -117,6 +117,11 @@ impl FrontendResourceManager {
             .map(|active| active.version)
     }
 
+    pub fn current_version(&self) -> String {
+        self.active_version()
+            .unwrap_or_else(|| self.embedded_version.to_string())
+    }
+
     pub fn is_newer_than_active(&self, version: &str) -> Result<bool, String> {
         let candidate = semver::Version::parse(version)
             .map_err(|error| format!("frontend version is invalid: {error}"))?;
@@ -275,6 +280,12 @@ impl FrontendResourceManager {
             .as_ref()
             .is_some_and(|active| active.pending_confirmation)
         {
+            tracing::warn!(
+                target: "openagent::component_update",
+                component = "frontend",
+                candidate_version = active.as_ref().map(|value| value.version.as_str()),
+                "rolling back a frontend activation left pending by the previous process"
+            );
             self.rollback_pending_locked()?;
         }
         if let Some(active) = read_active(&self.resources_dir)? {
@@ -289,7 +300,15 @@ impl FrontendResourceManager {
                 });
                 match replacement {
                     Some(replacement) => write_active(&self.resources_dir, &replacement)?,
-                    None => remove_active(&self.resources_dir)?,
+                    None => {
+                        tracing::warn!(
+                            target: "openagent::component_update",
+                            component = "frontend",
+                            candidate_version = active.version,
+                            "clearing an unverifiable active frontend selection"
+                        );
+                        remove_active(&self.resources_dir)?
+                    }
                 }
             }
         }
@@ -806,12 +825,14 @@ mod tests {
             2,
         )
         .unwrap();
+        assert_eq!(manager.current_version(), "1.0.0");
         let installed = manager.install_latest().await.unwrap();
         assert_eq!(installed.version, "9.9.9-test.1");
         assert!(installed.root.join("index.html").is_file());
         manager.activate(&installed.version).await.unwrap();
         manager.confirm(&installed.version).await.unwrap();
         assert_eq!(manager.active_version().as_deref(), Some("9.9.9-test.1"));
+        assert_eq!(manager.current_version(), "9.9.9-test.1");
         server.join().unwrap();
         std::fs::remove_dir_all(home).unwrap();
 

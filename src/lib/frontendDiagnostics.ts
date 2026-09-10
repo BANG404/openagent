@@ -10,6 +10,38 @@ function errorKind(value: unknown): string {
   return typeof value;
 }
 
+export type ComponentUpdateDiagnosticStage =
+  | "check_started"
+  | "check_available"
+  | "check_current"
+  | "check_failed"
+  | "download_started"
+  | "download_finished"
+  | "download_failed"
+  | "install_started"
+  | "install_finished"
+  | "install_failed"
+  | "confirmation_started"
+  | "confirmation_finished"
+  | "confirmation_failed"
+  | "restart_requested";
+
+export async function reportComponentUpdateEvent(
+  component: "shell" | "runtime" | "frontend",
+  stage: ComponentUpdateDiagnosticStage,
+  versions: { currentVersion?: string; candidateVersion?: string } = {},
+  error?: unknown,
+): Promise<void> {
+  if (typeof window === "undefined" || !isTauri()) return;
+  await invoke<void>("report_component_update_event", {
+    component,
+    stage,
+    currentVersion: versions.currentVersion,
+    candidateVersion: versions.candidateVersion,
+    errorKind: error === undefined ? undefined : errorKind(error),
+  }).catch(() => {});
+}
+
 export function reportFrontendDiagnostic(
   eventName: string,
   component: string,

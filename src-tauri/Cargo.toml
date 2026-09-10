@@ -79,7 +79,8 @@ tar = "0.4"
 tokio = { version = "1", features = ["io-util", "macros", "process", "rt", "sync", "time"] }
 tauri-plugin-i18n = "2"
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-appender = "0.2"
+tracing-subscriber = { version = "0.3", features = ["json"] }
 uuid = { version = "1", features = ["v4"] }
 rfd = { version = "0.16", default-features = false, features = ["common-controls-v6"] }
 tauri-plugin-notification = "2"
