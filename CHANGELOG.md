@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.62.0-beta.1] - 2026-09-10
+
+### Features
+- **settings**: Prefer OpenAI Responses API
+
+### Bug Fixes
+- **chat**: Restore model retry errors
+- **runtime**: Update image compaction estimate
+- **diagnostics**: Use tunnel log endpoint
+
 ## [0.61.1-beta.1] - 2026-09-10
 
 ### Bug Fixes
