@@ -26,6 +26,16 @@ if ! command -v git.exe >/dev/null 2>&1; then
 fi
 
 git_env=(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE)
+if ! windows_branch="$("${git_env[@]}" git.exe -C "$windows_checkout" symbolic-ref --quiet --short HEAD 2>/dev/null)"; then
+  printf 'WSL-to-Windows sync skipped: Windows checkout is not on a branch (%s).\n' "$windows_checkout" >&2
+  exit 0
+fi
+
+if [ "$windows_branch" != "$branch" ]; then
+  printf 'WSL-to-Windows sync skipped: branch mismatch (WSL: %s, Windows: %s).\n' "$branch" "$windows_branch" >&2
+  exit 0
+fi
+
 if ! windows_status="$("${git_env[@]}" git.exe -C "$windows_checkout" status --porcelain 2>&1)"; then
   printf 'WSL-to-Windows sync skipped: cannot inspect %s.\n%s\n' "$windows_checkout" "$windows_status" >&2
   exit 0
