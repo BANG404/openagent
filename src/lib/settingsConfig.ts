@@ -1,4 +1,10 @@
-import type { AppConfig, DefaultModelBinding, McpServerConfig, ProviderConfig } from "$lib/types";
+import type {
+  AppConfig,
+  DefaultModelBinding,
+  McpServerConfig,
+  OpenAiApiMode,
+  ProviderConfig,
+} from "$lib/types";
 import { providerCatalogEntry, providerDefaultBaseUrl } from "$lib/providerCatalog";
 
 export type RetryQueueKind = "chat_queue" | "flash_queue";
@@ -17,6 +23,7 @@ export function createProviderConfig(
     provider,
     api_key: "",
     base_url: "",
+    openai_api_mode: "responses",
     enabled: false,
     models: [],
     model_context_compaction_thresholds: {},
@@ -39,7 +46,35 @@ export function providerServiceName(provider: ProviderConfig): string {
 }
 
 export function providerConnectionFingerprint(provider: ProviderConfig): string {
-  return JSON.stringify([provider.provider, provider.api_key, provider.base_url]);
+  return JSON.stringify([
+    provider.provider,
+    provider.api_key,
+    provider.base_url,
+    provider.openai_api_mode,
+  ]);
+}
+
+export function normalizeOpenAiBaseUrl(baseUrl: string): string {
+  let base = baseUrl.trim().replace(/\/+$/, "");
+  if (!base) return "https://api.openai.com/v1";
+  for (const suffix of ["/chat/completions", "/responses", "/models"]) {
+    if (base.endsWith(suffix)) {
+      base = base.slice(0, -suffix.length).replace(/\/+$/, "");
+      break;
+    }
+  }
+  return base.endsWith("/v1") ? base : `${base}/v1`;
+}
+
+export function openAiRequestUrl(baseUrl: string, mode: OpenAiApiMode): string {
+  const suffix = mode === "chat_completions" ? "/chat/completions" : "/responses";
+  return `${normalizeOpenAiBaseUrl(baseUrl)}${suffix}`;
+}
+
+export function providerRequestUrl(provider: ProviderConfig): string {
+  const baseUrl = provider.base_url.trim() || providerDefaultBaseUrl(provider.provider);
+  if (provider.provider !== "openai") return baseUrl;
+  return openAiRequestUrl(baseUrl, provider.openai_api_mode ?? "responses");
 }
 
 export function mcpConnectionFingerprint(server: McpServerConfig): string {

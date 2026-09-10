@@ -469,6 +469,7 @@ export interface AgentConfig {
 }
 
 export type ReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max";
+export type OpenAiApiMode = "responses" | "chat_completions";
 
 export interface ProviderConfig {
   id: string;
@@ -476,6 +477,7 @@ export interface ProviderConfig {
   provider: ProviderType;
   api_key: string;
   base_url: string;
+  openai_api_mode: OpenAiApiMode;
   enabled: boolean;
   models: string[];
   /** Optional per-model thresholds; missing entries inherit the global value. */

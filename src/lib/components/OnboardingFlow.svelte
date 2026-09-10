@@ -5,7 +5,11 @@
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
   import type { AppConfig, DefaultModelBinding } from "$lib/types";
-  import { createProviderConfig, providerServiceName } from "$lib/settingsConfig";
+  import {
+    createProviderConfig,
+    providerRequestUrl,
+    providerServiceName,
+  } from "$lib/settingsConfig";
   import {
     PROVIDER_CATALOG,
     providerDefaultBaseUrl,
@@ -13,6 +17,7 @@
   } from "$lib/providerCatalog";
   import Tooltip from "./Tooltip.svelte";
   import Select from "./ui/Select.svelte";
+  import SegmentedControl from "./ui/SegmentedControl.svelte";
   import SettingsActionButton from "./ui/SettingsActionButton.svelte";
 
   let {
@@ -159,7 +164,11 @@
           addProvider: "Add service",
           providerName: "Service name (optional)",
           providerType: "Service type",
+          openAiApiMode: "OpenAI API mode",
+          responsesApi: "Responses",
+          chatCompletionsApi: "Chat Completions",
           baseUrl: "Base URL (optional)",
+          requestUrl: "Request URL",
           apiKey: "API key",
           optionalApiKey: "API key (optional)",
           oauthAccessToken: "Access token (optional; blank uses OAuth)",
@@ -213,7 +222,11 @@
           addProvider: "添加服务",
           providerName: "服务名称（可选）",
           providerType: "服务类型",
+          openAiApiMode: "OpenAI 接口模式",
+          responsesApi: "Responses",
+          chatCompletionsApi: "Chat Completions",
           baseUrl: "服务地址（可选）",
+          requestUrl: "请求地址",
           apiKey: "API Key",
           optionalApiKey: "API Key（可选）",
           oauthAccessToken: "访问令牌（可选；留空使用 OAuth）",
@@ -269,6 +282,10 @@
   let providerOptions = $derived(
     PROVIDER_CATALOG.map((entry) => ({ value: entry.value, label: entry.label })),
   );
+  let openAiApiModeOptions = $derived([
+    { value: "responses", label: copy.responsesApi },
+    { value: "chat_completions", label: copy.chatCompletionsApi },
+  ]);
   let canContinue = $derived(
     step < 2 ||
       (step === 2
@@ -296,6 +313,12 @@
     selectedProvider.enabled = false;
     connectionStatus = "idle";
     connectionMessage = "";
+  }
+
+  function setOpenAiApiMode(value: string) {
+    if (!selectedProvider || selectedProvider.provider !== "openai") return;
+    selectedProvider.openai_api_mode = value === "chat_completions" ? value : "responses";
+    resetConnection();
   }
 
   async function verifyProvider() {
@@ -510,7 +533,21 @@
                   placeholder={providerDefaultBaseUrl(selectedProvider.provider) ||
                     "https://your-resource.openai.azure.com"}
                 />
+                <small class="request-url-preview">
+                  {copy.requestUrl}: {providerRequestUrl(selectedProvider)}
+                </small>
               </label>
+              {#if selectedProvider.provider === "openai"}
+                <div class="api-mode-field">
+                  <span>{copy.openAiApiMode}</span>
+                  <SegmentedControl
+                    value={selectedProvider.openai_api_mode}
+                    items={openAiApiModeOptions}
+                    ariaLabel={copy.openAiApiMode}
+                    onValueChange={setOpenAiApiMode}
+                  />
+                </div>
+              {/if}
               <label>
                 <span>
                   {providerRequiresApiKey(selectedProvider.provider)
@@ -859,10 +896,21 @@
     display: grid;
     gap: 7px;
   }
-  .form-grid label > span {
+  .api-mode-field {
+    display: grid;
+    gap: 7px;
+  }
+  .form-grid label > span,
+  .api-mode-field > span {
     color: var(--text-muted);
     font-size: 12px;
     font-weight: 600;
+  }
+  .request-url-preview {
+    overflow-wrap: anywhere;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.45;
   }
   .provider-tabs {
     display: flex;

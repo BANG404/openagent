@@ -32,6 +32,7 @@
     createProviderConfig,
     mcpConnectionFingerprint,
     providerConnectionFingerprint,
+    providerRequestUrl,
     providerServiceName,
     repairModelBindings,
     replaceProviderModels,
@@ -42,6 +43,7 @@
   import { t, tr, setLocale, type Locale } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
   import Select from "./ui/Select.svelte";
+  import SegmentedControl from "./ui/SegmentedControl.svelte";
   import Switch from "./ui/Switch.svelte";
   import SettingsActionButton from "./ui/SettingsActionButton.svelte";
   import SettingsListInput from "./ui/SettingsListInput.svelte";
@@ -670,6 +672,10 @@
   let selectedProvider = $derived(
     selectedProviderIndex >= 0 ? draftConfig.providers[selectedProviderIndex] : null,
   );
+  let openAiApiModeOptions = $derived([
+    { value: "responses", label: $t("responsesApi") },
+    { value: "chat_completions", label: $t("chatCompletionsApi") },
+  ]);
 
   function ensureSelectedProvider() {
     if (draftConfig.providers.some((provider) => provider.id === selectedProviderId)) return;
@@ -744,7 +750,13 @@
   }
 
   function getProviderPreviewUrl(provider: ProviderConfig) {
-    return provider.base_url.trim() || providerDefaultBaseUrl(provider.provider);
+    return providerRequestUrl(provider);
+  }
+
+  function setOpenAiApiMode(value: string) {
+    if (!selectedProvider || selectedProvider.provider !== "openai") return;
+    selectedProvider.openai_api_mode = value === "chat_completions" ? value : "responses";
+    providerStatus = { ...providerStatus, [selectedProvider.id]: { tone: "idle", message: "" } };
   }
 
   function addManualModel(provider: ProviderConfig) {
@@ -2641,6 +2653,17 @@
 
             <section class="detail-section">
               <h4 class="detail-section-title">{$t("apiSettings")}</h4>
+              {#if selectedProvider.provider === "openai"}
+                <div class="detail-label">
+                  <span class="label-text">{$t("openAiApiMode")}</span>
+                  <SegmentedControl
+                    value={selectedProvider.openai_api_mode}
+                    items={openAiApiModeOptions}
+                    ariaLabel={$t("openAiApiMode")}
+                    onValueChange={setOpenAiApiMode}
+                  />
+                </div>
+              {/if}
               <div class="detail-label">
                 <span class="label-text">
                   {providerRequiresApiKey(selectedProvider.provider)
@@ -2680,7 +2703,9 @@
                   placeholder={providerDefaultBaseUrl(selectedProvider.provider) ||
                     "https://your-resource.openai.azure.com"}
                 />
-                <span class="base-url-preview">{getProviderPreviewUrl(selectedProvider)}</span>
+                <span class="base-url-preview">
+                  {$t("requestUrl")}: {getProviderPreviewUrl(selectedProvider)}
+                </span>
               </label>
               {#if getStatus(selectedProvider.id).message}
                 <div class="provider-status {getStatus(selectedProvider.id).tone}">
@@ -4135,6 +4160,11 @@
   .path-display {
     color: var(--text-muted);
     font-size: 12px;
+  }
+
+  .base-url-preview {
+    overflow-wrap: anywhere;
+    line-height: 1.45;
   }
 
   .provider-enabled-dot,

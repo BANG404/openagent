@@ -3,6 +3,7 @@ import type {
   ApprovalMode,
   HtmlPreviewConfig,
   McpServerConfig,
+  OpenAiApiMode,
   PermissionProfile,
   ReasoningEffort,
 } from "./types";
@@ -79,6 +80,8 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
     ? Math.min(60_000, Math.max(0, Math.floor(requestedRetryDelayMs)))
     : 30_000;
   const providers = (input.providers ?? []).map((provider) => {
+    const openai_api_mode: OpenAiApiMode =
+      provider.openai_api_mode === "chat_completions" ? "chat_completions" : "responses";
     const configuredModels = new Set(provider.models ?? []);
     const model_context_compaction_thresholds = Object.fromEntries(
       Object.entries(provider.model_context_compaction_thresholds ?? {})
@@ -107,6 +110,7 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
     ) as Record<string, boolean>;
     return {
       ...provider,
+      openai_api_mode,
       models: provider.models ?? [],
       model_context_compaction_thresholds,
       model_reasoning_efforts,

@@ -10,6 +10,28 @@ describe("configuration version", () => {
   });
 });
 
+describe("OpenAI API mode", () => {
+  test("defaults missing and invalid values to Responses", () => {
+    const missing = normalizeConfigShape({
+      providers: [{ provider: "openai", models: [] }],
+    } as unknown as AppConfig);
+    const invalid = normalizeConfigShape({
+      providers: [{ provider: "openai", openai_api_mode: "legacy", models: [] }],
+    } as unknown as AppConfig);
+
+    expect(missing.providers[0].openai_api_mode).toBe("responses");
+    expect(invalid.providers[0].openai_api_mode).toBe("responses");
+  });
+
+  test("preserves the Chat Completions fallback", () => {
+    const normalized = normalizeConfigShape({
+      providers: [{ provider: "openai", openai_api_mode: "chat_completions", models: [] }],
+    } as unknown as AppConfig);
+
+    expect(normalized.providers[0].openai_api_mode).toBe("chat_completions");
+  });
+});
+
 describe("removed web tools config", () => {
   test("drops legacy search and fetching fields from transport snapshots", () => {
     const normalized = normalizeConfigShape({

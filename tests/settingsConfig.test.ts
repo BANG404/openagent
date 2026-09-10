@@ -5,6 +5,9 @@ import {
   applyFetchedProviderModels,
   createProviderConfig,
   mcpConnectionFingerprint,
+  openAiRequestUrl,
+  providerConnectionFingerprint,
+  providerRequestUrl,
   providerServiceName,
   repairModelBindings,
   replaceProviderModels,
@@ -57,9 +60,31 @@ describe("settings config helpers", () => {
       id: "provider-id",
       name: "",
       provider: "anthropic",
+      openai_api_mode: "responses",
       enabled: false,
       models: [],
     });
+  });
+
+  test("builds the effective OpenAI endpoint while the base URL changes", () => {
+    expect(openAiRequestUrl("https://api.minimax.cn/v1", "responses")).toBe(
+      "https://api.minimax.cn/v1/responses",
+    );
+    expect(openAiRequestUrl("https://api.minimax.cn/v1/responses", "chat_completions")).toBe(
+      "https://api.minimax.cn/v1/chat/completions",
+    );
+
+    const item = createProviderConfig("openai", "minimax");
+    item.base_url = "https://api.minimax.cn/v1";
+    expect(providerRequestUrl(item)).toBe("https://api.minimax.cn/v1/responses");
+  });
+
+  test("includes the API mode in the connection fingerprint", () => {
+    const item = createProviderConfig("openai", "provider");
+    const responses = providerConnectionFingerprint(item);
+    item.openai_api_mode = "chat_completions";
+
+    expect(providerConnectionFingerprint(item)).not.toBe(responses);
   });
 
   test("derives an unnamed service from its effective request domain", () => {

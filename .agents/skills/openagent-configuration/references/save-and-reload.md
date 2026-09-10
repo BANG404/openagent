@@ -5,6 +5,13 @@ are normalized to disabled; only an enabled model receives image input and the
 `view_image` tool in its provider request. Removing or renaming a model also
 removes or migrates its vision flag.
 
+OpenAI provider entries persist `openai_api_mode`. Missing values normalize to
+`responses`; `chat_completions` is the explicit fallback for compatible
+services without Responses support. Settings and onboarding accept
+a host, API root, or complete OpenAI endpoint as `base_url` and continuously
+show the normalized final request URL beneath the input, including the selected
+`/responses` or `/chat/completions` suffix.
+
 Every successful in-app save publishes a payload-free configuration-change
 notification after persistence. Each open frontend surface then reloads through
 the local settings command and applies only its newest outstanding read. An
