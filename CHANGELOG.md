@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.61.1-beta.1] - 2026-09-10
+
+### Bug Fixes
+- **updater**: Diagnose component activation
+
 ## [0.61.0-beta.1] - 2026-09-09
 
 ### Features
