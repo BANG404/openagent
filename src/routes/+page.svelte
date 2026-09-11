@@ -1140,12 +1140,18 @@
       const input = content.input as { source?: unknown } | undefined;
       if (typeof input?.source !== "string" || !input.source.trim()) continue;
       handledMermaidInterrupts.add(requestId);
+      const assistantMessageId = checkpoint.data.messages.find(
+        (message) => message.role === "assistant",
+      )?.id;
+      if (!assistantMessageId) continue;
       void renderMermaidToolResult(input.source, mermaidConfig)
         .then((result) =>
-          openAgent.submitInterruptResponse({
+          openAgent.resumeInterrupt({
             convId,
             interruptId: requestId,
             response: JSON.stringify(result),
+            branchId: activeBranchIds[convId] ?? null,
+            assistantMessageId,
           }),
         )
         .catch((error) => {
