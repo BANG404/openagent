@@ -18,7 +18,8 @@
   running session's stdin, and terminates a selected session only after explicit
   confirmation. Poll through the typed SDK client; do not inspect operating-
   system processes or duplicate terminal state in Tauri. Keep terminals as a
-  tab in the shared right sidebar alongside status, files, and browser views.
+  tab in the shared right sidebar alongside status and file views. Show that
+  tab only while the Runtime reports at least one terminal session.
   The terminal view remains mounted while another tab is active so polling and
   the running-session count stay current without creating a second panel that
   can squeeze the transcript.

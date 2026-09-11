@@ -86,6 +86,7 @@
   import ConversationSurface from "$lib/components/ConversationSurface.svelte";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import {
+    conversationDetailsAvailable,
     checkpointFlowPanelKey,
     shouldAutoOpenCheckpointFlowPanel,
     updateLiveCheckpointFlowProjection,
@@ -374,7 +375,8 @@
   let checkpointFlowPanelCollapsed = $state(
     typeof window === "undefined" ? true : loadCheckpointFlowPanelCollapsed(window.localStorage),
   );
-  let rightSidebarPanel = $state<RightSidebarPanel>("browser");
+  let rightSidebarPanel = $state<RightSidebarPanel>("status");
+  let terminalSessionCount = $state(0);
   let checkpointFlowPanelSelectionKey = $state<string | null>(null);
   let checkpointFlowPanelAutoOpenKey = $state<string | null>(null);
   let fileChangesPanelSelectionKey = $state<string | null>(null);
@@ -779,6 +781,14 @@
       }
     }
     return Array.from(byPath.values());
+  });
+  let rightSidebarAvailable = $derived(
+    conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length) ||
+      terminalSessionCount > 0,
+  );
+
+  $effect(() => {
+    if (!rightSidebarAvailable) checkpointFlowPanelCollapsed = true;
   });
 
   $effect(() => {
@@ -5113,8 +5123,8 @@
         {selectedRoleKey}
         {tauriAvailable}
         memorySyncing={isMemorySyncing}
-        checkpointFlowPanelCollapsed={checkpointFlowPanelCollapsed ||
-          rightSidebarPanel === "terminal"}
+        {checkpointFlowPanelCollapsed}
+        {rightSidebarAvailable}
         onPickWorkspace={pickWorkspace}
         onPickWsl={pickWslWorkspace}
         onSelectWorkspace={requestWorkspace}
@@ -5127,7 +5137,7 @@
         onOpenAbout={() => openManagementWindow("about", "about")}
         onQuit={quitApp}
         onToggleCheckpointFlowPanel={() => {
-          if (!checkpointFlowPanelCollapsed && rightSidebarPanel !== "terminal") {
+          if (!checkpointFlowPanelCollapsed) {
             checkpointFlowPanelCollapsed = true;
             return;
           }
@@ -5135,7 +5145,9 @@
             ? "status"
             : currentFileChanges.length > 0
               ? "files"
-              : "browser";
+              : terminalSessionCount > 0
+                ? "terminal"
+                : "status";
           checkpointFlowPanelCollapsed = false;
         }}
         onMinimize={winMinimize}
@@ -5153,6 +5165,9 @@
           bind:inputAreaHeight
           bind:checkpointFlowPanelCollapsed
           bind:rightSidebarPanel
+          {terminalSessionCount}
+          onTerminalSummaryChange={(_runningCount, sessionCount) =>
+            (terminalSessionCount = sessionCount)}
           composerDraft={activeComposerDraft}
           focusRequest={composerFocusRequest}
         />

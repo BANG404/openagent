@@ -15,7 +15,7 @@
   }: {
     active?: boolean;
     enabled?: boolean;
-    onSummaryChange?: (runningCount: number) => void;
+    onSummaryChange?: (runningCount: number, sessionCount: number) => void;
     previewSessions?: BackgroundTerminalSession[] | null;
     previewOutputs?: Record<string, string>;
   } = $props();
@@ -60,7 +60,10 @@
     sessions = sessions.map((session) =>
       session.session_id === sessionId ? { ...session, status } : session,
     );
-    onSummaryChange(sessions.filter((session) => session.status === "running").length);
+    onSummaryChange(
+      sessions.filter((session) => session.status === "running").length,
+      sessions.length,
+    );
   }
 
   function boundOutput(value: string): string {
@@ -81,7 +84,7 @@
         : await openAgent.listBackgroundTerminals();
       sessions = next;
       error = null;
-      onSummaryChange(next.filter((session) => session.status === "running").length);
+      onSummaryChange(next.filter((session) => session.status === "running").length, next.length);
       if (!selectedSessionId || !next.some((session) => session.session_id === selectedSessionId)) {
         const preferred = next.find((session) => session.status === "running") ?? next[0] ?? null;
         await selectSession(preferred?.session_id ?? null);

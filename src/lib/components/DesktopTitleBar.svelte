@@ -16,6 +16,7 @@
     tauriAvailable,
     memorySyncing,
     checkpointFlowPanelCollapsed,
+    rightSidebarAvailable,
     onPickWorkspace,
     onPickWsl,
     onSelectWorkspace,
@@ -41,6 +42,7 @@
     tauriAvailable: boolean;
     memorySyncing: boolean;
     checkpointFlowPanelCollapsed: boolean;
+    rightSidebarAvailable: boolean;
     onPickWorkspace: () => void | Promise<void>;
     onPickWsl: () => void | Promise<void>;
     onSelectWorkspace: (path: string) => void | Promise<void>;
@@ -114,10 +116,12 @@
 
   <div class="title-actions">
     {#if memorySyncing}<span class="sync-dot" aria-label={$t("syncing")}></span>{/if}
-    <CheckpointFlowToggleButton
-      collapsed={checkpointFlowPanelCollapsed}
-      onToggle={onToggleCheckpointFlowPanel}
-    />
+    {#if rightSidebarAvailable}
+      <CheckpointFlowToggleButton
+        collapsed={checkpointFlowPanelCollapsed}
+        onToggle={onToggleCheckpointFlowPanel}
+      />
+    {/if}
     {#if platform === "windows"}
       <WindowControls {platform} {onMinimize} {onMaximize} {onClose} />
     {/if}
