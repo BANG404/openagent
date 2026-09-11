@@ -650,6 +650,35 @@ export interface ChannelConfig {
   slack?: SlackChannelConfig;
 }
 
+export type AutomationHookEvent =
+  | "session_start"
+  | "session_end"
+  | "user_prompt_submit"
+  | "subagent_start"
+  | "subagent_stop"
+  | "permission_request"
+  | "pre_compact"
+  | "post_compact"
+  | "stop"
+  | "interrupt"
+  | "before_model"
+  | "after_model"
+  | "before_tool"
+  | "after_tool";
+
+export type AutomationHookAction =
+  { type: "command"; command: string } | { type: "agent_message"; message: string };
+
+export interface AutomationHookConfig {
+  id: string;
+  name: string;
+  enabled: boolean;
+  event: AutomationHookEvent;
+  matcher: string;
+  timeout_secs: number;
+  action: AutomationHookAction;
+}
+
 export interface AppConfig {
   config_version?: number;
   agent_turn_limit_enabled: boolean;
@@ -663,6 +692,7 @@ export interface AppConfig {
   defaults: DefaultModelsConfig;
   model_retry: ModelRetryConfig;
   flash_agents: FlashAgentsConfig;
+  automation_hooks?: AutomationHookConfig[];
   approval_mode: ApprovalMode;
   permission_profile?: PermissionProfile;
   mcp: McpSettings;

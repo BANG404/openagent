@@ -19,9 +19,11 @@
   let {
     kind,
     initialSection,
+    previewConfig,
   }: {
     kind: SettingsWindowKind;
     initialSection?: string | null;
+    previewConfig?: AppConfig;
   } = $props();
 
   let config = $state<AppConfig | null>(null);
@@ -31,7 +33,7 @@
   );
   let loadError = $state("");
   let stageElement: HTMLElement;
-  const appWindow = getCurrentWindow();
+  const appWindow = previewConfig ? null : getCurrentWindow();
   const settingsRequests = new LatestRequest();
   const windowTitleKeys: Record<SettingsWindowKind, TranslationKeys> = {
     general: "settingsTitle",
@@ -42,20 +44,26 @@
     automation: "automationWindowTitle",
     about: "aboutWindowTitle",
   };
-  const synchronizeNativeTheme = createNativeThemeSynchronizer({
-    applyWebTheme: applyDocumentTheme,
-    setNativeTheme: (theme) => appWindow.setTheme(theme),
-    onResolvedTheme: () => {},
-    afterNativeThemeChange: () => new Promise((resolve) => setTimeout(resolve, 0)),
-    onError: (error) => console.warn("Failed to synchronize settings window theme:", error),
-  });
+  const synchronizeNativeTheme = appWindow
+    ? createNativeThemeSynchronizer({
+        applyWebTheme: applyDocumentTheme,
+        setNativeTheme: (theme) => appWindow.setTheme(theme),
+        onResolvedTheme: () => {},
+        afterNativeThemeChange: () => new Promise((resolve) => setTimeout(resolve, 0)),
+        onError: (error) => console.warn("Failed to synchronize settings window theme:", error),
+      })
+    : null;
 
   function applyConfig(next: AppConfig): AppConfig {
     const normalized = normalizeConfigShape(next);
     config = structuredClone(normalized);
     setLocale((normalized.language ?? "zh") as Locale);
-    void synchronizeNativeTheme(normalized.theme ?? "system");
-    void appWindow.setTitle($t(windowTitleKeys[kind]));
+    if (previewConfig) {
+      applyDocumentTheme(normalized.theme ?? "system");
+    } else {
+      void synchronizeNativeTheme?.(normalized.theme ?? "system");
+      void appWindow?.setTitle($t(windowTitleKeys[kind]));
+    }
     return normalized;
   }
 
@@ -79,6 +87,7 @@
 
   async function saveSettings(next: AppConfig, baseConfig?: AppConfig): Promise<AppConfig> {
     const snapshot = normalizeConfigShape(next);
+    if (previewConfig) return structuredClone(applyConfig(snapshot));
     const saved = (await desktopOpenAgent.invokeProduct("save_settings", {
       config: snapshot,
       baseConfig: normalizeConfigShape(baseConfig ?? config ?? snapshot),
@@ -95,12 +104,16 @@
   }
 
   onMount(() => {
+    if (previewConfig) {
+      applyConfig(previewConfig);
+      return;
+    }
     let disposed = false;
     let stopSettings: (() => void) | undefined;
     let stopSectionRequests: (() => void) | undefined;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const syncSystemTheme = () => {
-      if ((config?.theme ?? "system") === "system") void synchronizeNativeTheme("system");
+      if ((config?.theme ?? "system") === "system") void synchronizeNativeTheme?.("system");
     };
     media.addEventListener("change", syncSystemTheme);
 

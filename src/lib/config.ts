@@ -1,5 +1,6 @@
 import type {
   AppConfig,
+  AutomationHookConfig,
   ApprovalMode,
   HtmlPreviewConfig,
   McpServerConfig,
@@ -13,8 +14,9 @@ export type NormalizedMcpServerConfig = McpServerConfig & {
   disabled_tools: string[];
 };
 
-export type NormalizedAppConfig = Omit<AppConfig, "mcp"> & {
+export type NormalizedAppConfig = Omit<AppConfig, "mcp" | "automation_hooks"> & {
   mcp: { servers: NormalizedMcpServerConfig[] };
+  automation_hooks: AutomationHookConfig[];
 };
 
 function defaultHtmlPreview(): HtmlPreviewConfig {
@@ -192,6 +194,15 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
       prompt: input.flash_agents?.tool_approval?.prompt ?? "",
     },
   };
+  const automation_hooks = (input.automation_hooks ?? [])
+    .filter((hook) => hook?.id && hook.action)
+    .map((hook) => ({
+      ...hook,
+      name: hook.name ?? "",
+      enabled: hook.enabled ?? true,
+      matcher: hook.matcher ?? "",
+      timeout_secs: Math.min(300, Math.max(1, Math.floor(Number(hook.timeout_secs) || 30))),
+    }));
 
   return {
     ...normalizedInput,
@@ -271,6 +282,7 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
       },
     },
     flash_agents,
+    automation_hooks,
     providers,
     mcp,
     defaults: {

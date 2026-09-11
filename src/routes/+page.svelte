@@ -195,12 +195,15 @@
   const standaloneDevPreview = resolveStandaloneDevPreview(runtimeQuery, import.meta.env.DEV);
   const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
   const isAgentsSettingsPreview = devQuery?.has("agents-settings-preview") === true;
+  const isAutomationHooksPreview = devQuery?.has("automation-hooks-preview") === true;
   const isAgentPluginsSettingsPreview = devQuery?.has("agent-plugins-settings-preview") === true;
   const isMcpSettingsPreview = devQuery?.has("mcp-settings-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isOnboardingWindow = runtimeQuery?.has("onboarding-window") === true;
   const isRoleEditorWindow = runtimeQuery?.has("role-editor-window") === true;
-  const settingsWindowKind = parseSettingsWindowKind(runtimeQuery?.get("settings-window") ?? null);
+  const settingsWindowKind =
+    parseSettingsWindowKind(runtimeQuery?.get("settings-window") ?? null) ??
+    (isAutomationHooksPreview ? "automation" : null);
   const settingsWindowInitialSection = runtimeQuery?.get("settings-section") ?? null;
   const isSettingsWindow = settingsWindowKind !== null;
   const isOnboardingSurface = isOnboardingWindow || isOnboardingPreview;
@@ -239,6 +242,18 @@
     devQuery?.get("agents-settings-preview-locale") === "en"
       ? "en"
       : devQuery?.get("agents-settings-preview-locale") === "zh"
+        ? "zh"
+        : null;
+  const automationHooksPreviewTheme =
+    devQuery?.get("automation-hooks-preview-theme") === "dark"
+      ? "dark"
+      : devQuery?.get("automation-hooks-preview-theme") === "light"
+        ? "light"
+        : null;
+  const automationHooksPreviewLocale: Locale | null =
+    devQuery?.get("automation-hooks-preview-locale") === "en"
+      ? "en"
+      : devQuery?.get("automation-hooks-preview-locale") === "zh"
         ? "zh"
         : null;
   const agentPluginsSettingsPreviewTheme =
@@ -539,6 +554,7 @@
       hook: { enabled: true, prompt: "" },
       tool_approval: { enabled: false, prompt: "" },
     },
+    automation_hooks: [],
     approval_mode: "off",
     mcp: { servers: [] },
     theme: "system",
@@ -5038,6 +5054,24 @@
       <SettingsWindowSurface
         kind={settingsWindowKind}
         initialSection={settingsWindowInitialSection}
+        previewConfig={isAutomationHooksPreview
+          ? {
+              ...fallbackConfig,
+              theme: automationHooksPreviewTheme ?? fallbackConfig.theme,
+              language: automationHooksPreviewLocale ?? fallbackConfig.language,
+              automation_hooks: [
+                {
+                  id: "preview-post-tool",
+                  name: "Review changed files",
+                  enabled: true,
+                  event: "after_tool",
+                  matcher: "^(exec_command|apply_patch)$",
+                  timeout_secs: 30,
+                  action: { type: "command", command: "bun run check:changed-files" },
+                },
+              ],
+            }
+          : undefined}
       />
     {:else}
       <div class="settings-route-loading">

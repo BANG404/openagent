@@ -18,6 +18,13 @@ the local settings command and applies only its newest outstanding read. An
 authoritative save result invalidates older reads before it updates local state,
 so a delayed response cannot restore configuration from before that save.
 
+Lifecycle automation rules are part of the versioned configuration snapshot.
+They can run a terminal command or add an Agent message before or after a model
+or tool call, with an optional regular-expression tool matcher. Commands run in
+the active workspace under the current managed permission sandbox; their stdin
+is a structured event and successful stdout becomes bounded Agent context.
+Failures remain diagnostic and do not fail the conversation.
+
 Settings changes are debounced briefly in the UI. Every backend configuration
 mutation then acquires both a process-local ordering lock and a cross-process
 `config.lock`, rereads the latest file, normalizes the result, and replaces

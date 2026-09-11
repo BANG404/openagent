@@ -257,6 +257,11 @@
   instead of adding a second task switch. Use the standard Settings content
   width shared with Execution & Permissions; do not widen this page
   independently. Do not reintroduce gray fills on nested setting rows.
+- Keep the development-only `automation-hooks-preview` query as the direct,
+  interactive browser surface for lifecycle automation. Its `-theme` and
+  `-locale` parameters must keep rule creation and editing, command/message
+  action switching, tool matchers, enablement, responsive layout, light/dark
+  themes, and Chinese/English copy verifiable without a native Runtime.
 - Keep the development-only `agent-plugins-settings-preview` query as the direct
   browser surface for Settings → Agent Plugins. Its `-theme` and `-locale`
   parameters must keep Mica plugin cards, installed components, compatibility

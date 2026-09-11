@@ -5,7 +5,14 @@
   import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
   import { onMount, tick, untrack } from "svelte";
   import { ContextMenu, Dialog, Tabs } from "bits-ui";
-  import type { AgentRole, AppConfig, PermissionProfile, ProviderConfig } from "$lib/types";
+  import type {
+    AgentRole,
+    AppConfig,
+    AutomationHookConfig,
+    AutomationHookEvent,
+    PermissionProfile,
+    ProviderConfig,
+  } from "$lib/types";
   import {
     captureQuickChatShortcut,
     DEFAULT_QUICK_CHAT_SHORTCUT,
@@ -40,7 +47,7 @@
     settingsConfigChanged,
     type RetryQueueKind,
   } from "$lib/settingsConfig";
-  import { t, tr, setLocale, type Locale } from "$lib/i18n";
+  import { t, tr, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
   import Select from "./ui/Select.svelte";
   import SegmentedControl from "./ui/SegmentedControl.svelte";
@@ -176,6 +183,7 @@
       hook: { enabled: true, prompt: "" },
       tool_approval: { enabled: false, prompt: "" },
     },
+    automation_hooks: [],
     approval_mode: "off",
     mcp: { servers: [] },
     theme: "system",
@@ -251,6 +259,7 @@
       : {},
   );
   let selectedMcpId = $state<string | null>(null);
+  let automationHookDraft = $state<AutomationHookConfig | null>(null);
   let scheduledHooks = $state<ScheduledChatHook[]>([]);
   let hookMessage = $state("");
   let hookMode = $state<"delay" | "run_at" | "interval_minutes" | "daily" | "weekdays" | "weekly">(
@@ -685,6 +694,66 @@
   function ensureSelectedMcpServer() {
     if (draftConfig.mcp.servers.some((server) => server.id === selectedMcpId)) return;
     selectedMcpId = draftConfig.mcp.servers[0]?.id ?? null;
+  }
+
+  function automationHookEventLabel(event: AutomationHookEvent): string {
+    const keys: Record<AutomationHookEvent, TranslationKeys> = {
+      session_start: "automationHookSessionStart",
+      session_end: "automationHookSessionEnd",
+      user_prompt_submit: "automationHookUserPromptSubmit",
+      subagent_start: "automationHookSubagentStart",
+      subagent_stop: "automationHookSubagentStop",
+      permission_request: "automationHookPermissionRequest",
+      pre_compact: "automationHookPreCompact",
+      post_compact: "automationHookPostCompact",
+      stop: "automationHookStop",
+      interrupt: "automationHookInterrupt",
+      before_model: "automationHookBeforeModel",
+      after_model: "automationHookAfterModel",
+      before_tool: "automationHookBeforeTool",
+      after_tool: "automationHookAfterTool",
+    };
+    return $t(keys[event]);
+  }
+
+  function beginAutomationHook(hook?: AutomationHookConfig) {
+    automationHookDraft = hook
+      ? structuredClone(hook)
+      : {
+          id: crypto.randomUUID(),
+          name: "",
+          enabled: true,
+          event: "before_tool",
+          matcher: "",
+          timeout_secs: 30,
+          action: { type: "command", command: "" },
+        };
+  }
+
+  function setAutomationHookAction(type: "command" | "agent_message") {
+    if (!automationHookDraft || automationHookDraft.action.type === type) return;
+    automationHookDraft.action = type === "command" ? { type, command: "" } : { type, message: "" };
+  }
+
+  function saveAutomationHook() {
+    if (!automationHookDraft) return;
+    const actionText =
+      automationHookDraft.action.type === "command"
+        ? automationHookDraft.action.command
+        : automationHookDraft.action.message;
+    if (!automationHookDraft.name.trim() || !actionText.trim()) return;
+    const hook = structuredClone(automationHookDraft);
+    const index = draftConfig.automation_hooks.findIndex((item) => item.id === hook.id);
+    draftConfig.automation_hooks =
+      index < 0
+        ? [...draftConfig.automation_hooks, hook]
+        : draftConfig.automation_hooks.map((item) => (item.id === hook.id ? hook : item));
+    automationHookDraft = null;
+  }
+
+  function removeAutomationHook(id: string) {
+    draftConfig.automation_hooks = draftConfig.automation_hooks.filter((hook) => hook.id !== id);
+    if (automationHookDraft?.id === id) automationHookDraft = null;
   }
 
   function addProvider() {
@@ -2808,6 +2877,172 @@
 
     <Tabs.Content value="hooks" class="settings-tab-panel">
       <div class="settings-content-col">
+        <section class="detail-section">
+          <div class="detail-section-header">
+            <h4 class="detail-section-title">{$t("lifecycleAutomation")}</h4>
+            <SettingsActionButton
+              label={$t("addAutomationHook")}
+              icon="add"
+              tone="primary"
+              onclick={() => beginAutomationHook()}
+            />
+          </div>
+          <div class="application-settings-surface model-list-box">
+            {#if draftConfig.automation_hooks.length > 0}
+              {#each draftConfig.automation_hooks as hook (hook.id)}
+                <div class="hook-item automation-hook-item">
+                  <Switch
+                    checked={hook.enabled}
+                    ariaLabel={`${$t("automationHookEnabled")}: ${hook.name}`}
+                    onCheckedChange={(enabled) => {
+                      draftConfig.automation_hooks = draftConfig.automation_hooks.map((item) =>
+                        item.id === hook.id ? { ...item, enabled } : item,
+                      );
+                    }}
+                  />
+                  <div class="hook-main">
+                    <div class="model-name">{hook.name}</div>
+                    <div class="provider-item-url">
+                      {automationHookEventLabel(hook.event)}
+                      {#if hook.matcher}
+                        · {hook.matcher}{/if}
+                    </div>
+                    <div class="provider-item-url automation-hook-action-preview">
+                      {hook.action.type === "command" ? hook.action.command : hook.action.message}
+                    </div>
+                  </div>
+                  <div class="hook-actions">
+                    <SettingsActionButton
+                      label={$t("editHook")}
+                      tone="quiet"
+                      onclick={() => beginAutomationHook(hook)}
+                    />
+                    <SettingsActionButton
+                      label={$t("deleteAutomationHook")}
+                      icon="trash"
+                      tone="danger"
+                      onclick={() => removeAutomationHook(hook.id)}
+                    />
+                  </div>
+                </div>
+              {/each}
+            {:else}
+              <div class="model-list-empty">{$t("noAutomationHooks")}</div>
+            {/if}
+          </div>
+        </section>
+
+        {#if automationHookDraft}
+          <section class="detail-section automation-hook-editor">
+            <h4 class="detail-section-title">
+              {draftConfig.automation_hooks.some((hook) => hook.id === automationHookDraft?.id)
+                ? $t("editAutomationHook")
+                : $t("newAutomationHook")}
+            </h4>
+            <div class="detail-grid">
+              <label class="detail-label">
+                <span class="label-text">{$t("automationHookName")}</span>
+                <input
+                  class="detail-input"
+                  bind:value={automationHookDraft.name}
+                  placeholder={$t("automationHookNamePlaceholder")}
+                />
+              </label>
+              <div class="detail-label">
+                <span class="label-text">{$t("automationHookEvent")}</span>
+                <Select
+                  bind:value={automationHookDraft.event}
+                  items={[
+                    { value: "session_start", label: $t("automationHookSessionStart") },
+                    { value: "session_end", label: $t("automationHookSessionEnd") },
+                    { value: "user_prompt_submit", label: $t("automationHookUserPromptSubmit") },
+                    { value: "subagent_start", label: $t("automationHookSubagentStart") },
+                    { value: "subagent_stop", label: $t("automationHookSubagentStop") },
+                    { value: "permission_request", label: $t("automationHookPermissionRequest") },
+                    { value: "pre_compact", label: $t("automationHookPreCompact") },
+                    { value: "post_compact", label: $t("automationHookPostCompact") },
+                    { value: "stop", label: $t("automationHookStop") },
+                    { value: "interrupt", label: $t("automationHookInterrupt") },
+                    { value: "before_model", label: $t("automationHookBeforeModel") },
+                    { value: "after_model", label: $t("automationHookAfterModel") },
+                    { value: "before_tool", label: $t("automationHookBeforeTool") },
+                    { value: "after_tool", label: $t("automationHookAfterTool") },
+                  ]}
+                  ariaLabel={$t("automationHookEvent")}
+                />
+              </div>
+              {#if automationHookDraft.event === "before_tool" || automationHookDraft.event === "after_tool"}
+                <label class="detail-label">
+                  <span class="label-text">{$t("automationHookMatcher")}</span>
+                  <input
+                    class="detail-input"
+                    bind:value={automationHookDraft.matcher}
+                    placeholder="^(exec_command|apply_patch)$"
+                  />
+                </label>
+              {/if}
+              <label class="detail-label">
+                <span class="label-text">{$t("automationHookTimeout")}</span>
+                <input
+                  class="detail-input"
+                  type="number"
+                  min="1"
+                  max="300"
+                  bind:value={automationHookDraft.timeout_secs}
+                />
+              </label>
+              <div class="detail-label" style="grid-column: 1 / -1">
+                <span class="label-text">{$t("automationHookAction")}</span>
+                <SegmentedControl
+                  value={automationHookDraft.action.type}
+                  items={[
+                    { value: "command", label: $t("automationHookCommand") },
+                    { value: "agent_message", label: $t("automationHookAgentMessage") },
+                  ]}
+                  ariaLabel={$t("automationHookAction")}
+                  onValueChange={(value) =>
+                    setAutomationHookAction(value as "command" | "agent_message")}
+                />
+              </div>
+              {#if automationHookDraft.action.type === "command"}
+                <label class="detail-label" style="grid-column: 1 / -1">
+                  <span class="label-text">{$t("automationHookCommand")}</span>
+                  <textarea
+                    class="detail-input hook-textarea"
+                    bind:value={automationHookDraft.action.command}
+                    placeholder="bun run verify"></textarea>
+                </label>
+              {:else}
+                <label class="detail-label" style="grid-column: 1 / -1">
+                  <span class="label-text">{$t("automationHookAgentMessage")}</span>
+                  <textarea
+                    class="detail-input hook-textarea"
+                    bind:value={automationHookDraft.action.message}
+                    placeholder={$t("automationHookMessagePlaceholder")}></textarea>
+                </label>
+              {/if}
+            </div>
+            <div class="hook-editor-actions">
+              <SettingsActionButton
+                label={$t("saveHookChanges")}
+                tone="primary"
+                disabled={!automationHookDraft.name.trim() ||
+                  !(
+                    automationHookDraft.action.type === "command"
+                      ? automationHookDraft.action.command
+                      : automationHookDraft.action.message
+                  ).trim()}
+                onclick={saveAutomationHook}
+              />
+              <SettingsActionButton
+                label={$t("cancelEditHook")}
+                tone="quiet"
+                onclick={() => (automationHookDraft = null)}
+              />
+            </div>
+          </section>
+        {/if}
+
         <section class="detail-section">
           <div class="detail-section-header">
             <h4 class="detail-section-title">{$t("scheduledHooks")}</h4>
@@ -5246,6 +5481,28 @@
 
   .hook-item:last-child {
     border-bottom: none;
+  }
+
+  .automation-hook-item {
+    align-items: flex-start;
+  }
+
+  .automation-hook-action-preview {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .automation-hook-editor {
+    padding-top: 4px;
+  }
+
+  .hook-editor-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
   }
 
   .hook-main {
