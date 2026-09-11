@@ -1,1 +1,1 @@
-export type RightSidebarPanel = "status" | "files" | "browser" | "terminal";
+export type RightSidebarPanel = "status" | "files" | "terminal";

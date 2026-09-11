@@ -105,7 +105,9 @@
     messagesElement = $bindable(null),
     inputAreaHeight = $bindable(120),
     checkpointFlowPanelCollapsed = $bindable(true),
-    rightSidebarPanel = $bindable<RightSidebarPanel>("browser"),
+    rightSidebarPanel = $bindable<RightSidebarPanel>("status"),
+    terminalSessionCount,
+    onTerminalSummaryChange,
     composerDraft,
     focusRequest,
   }: {
@@ -116,6 +118,8 @@
     inputAreaHeight: number;
     checkpointFlowPanelCollapsed: boolean;
     rightSidebarPanel: RightSidebarPanel;
+    terminalSessionCount: number;
+    onTerminalSummaryChange: (runningCount: number, sessionCount: number) => void;
     composerDraft: ComposerDraft;
     focusRequest: number;
   } = $props();
@@ -310,6 +314,8 @@
     bind:collapsed={checkpointFlowPanelCollapsed}
     bind:activePanel={rightSidebarPanel}
     terminalEnabled={view.tauriAvailable}
+    terminalAvailable={terminalSessionCount > 0}
+    {onTerminalSummaryChange}
   />
 </div>
 

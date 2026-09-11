@@ -35,7 +35,6 @@
   } from "$lib/types";
 
   import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
-  import BrowserPanel from "$lib/components/BrowserPanel.svelte";
   import BackgroundTerminalToggleButton from "$lib/components/BackgroundTerminalToggleButton.svelte";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
@@ -1043,12 +1042,6 @@
       />
     </section>
   </main>
-{:else if preview === "web-preview"}
-  <main class="web-preview-stage">
-    <section class="browser-preview-shell" aria-label="Browser panel preview">
-      <BrowserPanel />
-    </section>
-  </main>
 {:else if preview === "tool-status"}
   <main class="tool-status-preview-stage">
     <section class="tool-status-preview-stack" aria-label="Tool result status preview">
@@ -1200,6 +1193,7 @@
       onRevert={async () => {}}
       bind:activePanel={backgroundTerminalActivePanel}
       terminalEnabled
+      terminalAvailable
       onTerminalSummaryChange={(count) => (backgroundTerminalRunningCount = count)}
       terminalPreviewSessions={backgroundTerminalPreviewSessions}
       terminalPreviewOutputs={backgroundTerminalPreviewOutputs}
@@ -1916,22 +1910,6 @@
   }
   .command-palette-preview-stage :global(.input-wrapper) {
     width: 100%;
-  }
-  .web-preview-stage {
-    display: grid;
-    place-items: center;
-    min-height: 100vh;
-    padding: 24px;
-    box-sizing: border-box;
-    background: var(--bg);
-  }
-  .browser-preview-shell {
-    display: flex;
-    width: min(800px, 100%);
-    height: min(760px, calc(100vh - 48px));
-    overflow: hidden;
-    border-radius: 12px;
-    background: var(--surface);
   }
   .workspace-switcher-preview-stage :global(.workspace-btn) {
     background: var(--control-surface);
