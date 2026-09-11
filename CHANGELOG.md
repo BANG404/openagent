@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [0.63.0-beta.1] - 2026-09-11
 
 ### Features
+- Add help menu log folder entry
 - Bind runtime releases to product identity
 - Expose product release identity
 - Update about information and plugin naming
@@ -15,6 +16,8 @@ All notable changes to this project will be documented in this file.
 - **frontend**: Remove right sidebar browser
 
 ### Bug Fixes
+- **runtime**: Keep structured benchmark backend streaming
+- Shorten log menu label
 - Continue Mermaid restore when queue is unavailable
 - Restore Mermaid results through desktop gateway
 - Queue Mermaid render results before resume
