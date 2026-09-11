@@ -156,10 +156,10 @@
   or file-change data is currently observable. A temporary empty file projection
   must not hide the panel while its matching live changes are still awaiting
   durable reconciliation.
-  Wrap diff
-  content inside the available panel width while keeping both line-number columns
-  fixed, so resizing the panel never requires horizontal scrolling to read a
-  line. Render a newly created text file from its stored content as all-added
+  Keep diff rows on a single monospace baseline with fixed dual line-number
+  gutters and a dedicated change-marker gutter; the diff viewport owns horizontal
+  scrolling for long source lines so indentation and code columns stay intact.
+  Render a newly created text file from its stored content as all-added
   lines, and keep the path, change kind, and revert action from overlapping as
   the panel width changes. A newly
   created Goal or Graph automatically opens the panel, including flows created
