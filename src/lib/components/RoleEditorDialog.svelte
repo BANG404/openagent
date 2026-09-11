@@ -52,7 +52,10 @@
       `${skill.name} ${skill.description} ${skill.dir_name}`.toLocaleLowerCase().includes(query),
     );
   });
-  let enabledMcpServers = $derived(mcpServers.filter((server) => server.enabled));
+  const builtinMcpServerIds = new Set(["cua-driver"]);
+  let enabledMcpServers = $derived(
+    mcpServers.filter((server) => server.enabled && !builtinMcpServerIds.has(server.id)),
+  );
   let filteredMcpServers = $derived.by(() => {
     const query = mcpServerQuery.trim().toLocaleLowerCase();
     if (!query) return enabledMcpServers;

@@ -268,7 +268,8 @@
   names, light/dark themes, and Chinese/English copy addressable without a
   native MCP server. The list contains only user-configured MCP services;
   built-in providers such as Cua Driver are managed from their owning plugin
-  surface and must not appear here.
+  surface and must not appear here. The same exclusion applies to the MCP
+  association column in the Agent Role editor.
 - The Plugins settings surface includes the built-in Cua Driver capability. It
   seeds an enabled stdio MCP entry on first configuration load, exposes a
   permission-mode select (unrestricted, bounded, or standard), and owns Cua
