@@ -327,6 +327,10 @@
   let draftConfig = $state<NormalizedAppConfig>(
     normalizeConfigShape(untrack(() => config) ?? fallbackConfig),
   );
+  const cuaDriverId = "cua-driver";
+  let userMcpServers = $derived(
+    draftConfig.mcp.servers.filter((server) => server.id !== cuaDriverId),
+  );
   let permissionProfile = $derived(draftConfig.permission_profile as PermissionProfile);
   let quickShortcutRecording = $state(false);
   let quickShortcutStatus = $state<{
@@ -375,7 +379,6 @@
   });
 
   type CuaPermissionMode = "standard" | "bounded" | "unrestricted";
-  const cuaDriverId = "cua-driver";
 
   function createCuaDriverServer(): NormalizedMcpServerConfig {
     return {
@@ -412,13 +415,6 @@
     server.env = { ...server.env, CUA_DRIVER_PERMISSION_MODE: mode };
     server.args = ["mcp", "--permission-mode", mode];
     if (mode === "unrestricted") server.args.push("--dangerously-bypass-approvals");
-  }
-
-  function openCuaTools() {
-    selectedMcpId = cuaDriverId;
-    document
-      .querySelector<HTMLButtonElement>('[data-tabs-trigger][data-value="extensions"]')
-      ?.click();
   }
 
   let cuaDriver = $derived(
@@ -770,8 +766,8 @@
   }
 
   function ensureSelectedMcpServer() {
-    if (draftConfig.mcp.servers.some((server) => server.id === selectedMcpId)) return;
-    selectedMcpId = draftConfig.mcp.servers[0]?.id ?? null;
+    if (userMcpServers.some((server) => server.id === selectedMcpId)) return;
+    selectedMcpId = userMcpServers[0]?.id ?? null;
   }
 
   function automationHookEventLabel(event: AutomationHookEvent): string {
@@ -1421,15 +1417,22 @@
     draftConfig.mcp.servers[idx].headers = { ...rest, [newKey]: val };
   }
 
-  let selectedMcpServer = $derived(
-    draftConfig.mcp.servers.find((s) => s.id === selectedMcpId) ?? null,
-  );
+  let selectedMcpServer = $derived(userMcpServers.find((s) => s.id === selectedMcpId) ?? null);
   let selectedMcpIndex = $derived(draftConfig.mcp.servers.findIndex((s) => s.id === selectedMcpId));
   const mcpDiscoveryFingerprints = new Map<string, string>();
 
   $effect(() => {
     const server = selectedMcpServer;
     if (!server?.enabled || !isTauri()) return;
+    const fingerprint = mcpConnectionFingerprint(server);
+    if (mcpDiscoveryFingerprints.get(server.id) === fingerprint) return;
+    mcpDiscoveryFingerprints.set(server.id, fingerprint);
+    untrack(() => void testMcpServer(server.id));
+  });
+
+  $effect(() => {
+    const server = cuaDriver;
+    if (!initializedFromConfig || !server.enabled || !isTauri()) return;
     const fingerprint = mcpConnectionFingerprint(server);
     if (mcpDiscoveryFingerprints.get(server.id) === fingerprint) return;
     mcpDiscoveryFingerprints.set(server.id, fingerprint);
@@ -2105,11 +2108,33 @@
               />
             </label>
             <div class="plugin-card-control">
-              <span class="label-text">{$t("pluginTools")}</span>
+              <div class="plugin-tools-heading">
+                <span class="label-text">{$t("pluginTools")}</span>
+                <SettingsActionButton
+                  label={$t("testMcpServer")}
+                  icon="test"
+                  tone="quiet"
+                  onclick={() => testMcpServer(cuaDriverId)}
+                  disabled={mcpTestStatus[cuaDriverId]?.tone === "testing"}
+                />
+              </div>
               <span class="detail-hint">{$t("pluginToolsHint")}</span>
-              <button class="btn-secondary btn-sm" onclick={openCuaTools}
-                >{$t("pluginManageTools")}</button
-              >
+              {#if (mcpDiscoveredTools[cuaDriverId] ?? []).length > 0}
+                <div class="application-settings-surface mcp-tool-list plugin-tool-list">
+                  {#each mcpDiscoveredTools[cuaDriverId] ?? [] as tool (tool)}
+                    <div class="mcp-tool-row">
+                      <code>{tool}</code>
+                      <Switch
+                        checked={!cuaDriver.disabled_tools.includes(tool)}
+                        onCheckedChange={(checked) => setMcpToolEnabled(cuaDriverId, tool, checked)}
+                        ariaLabel={`${$t("mcpToolEnabled")}: ${tool}`}
+                      />
+                    </div>
+                  {/each}
+                </div>
+              {:else}
+                <span class="detail-hint">{$t("pluginToolsEmpty")}</span>
+              {/if}
             </div>
           </div>
           {#if cuaPermissionMode(cuaDriver) === "unrestricted"}
@@ -3817,10 +3842,10 @@
     <Tabs.Content value="extensions" class="settings-tab-panel">
       <div class="settings-list-col">
         <div class="provider-list">
-          {#if draftConfig.mcp.servers.length === 0}
+          {#if userMcpServers.length === 0}
             <div class="provider-list-empty">{$t("noMcpServers")}</div>
           {:else}
-            {#each draftConfig.mcp.servers as server (server.id)}
+            {#each userMcpServers as server (server.id)}
               <ContextMenu.Root>
                 <ContextMenu.Trigger>
                   <button
@@ -5378,6 +5403,19 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 6px;
+  }
+
+  .plugin-tools-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .plugin-tool-list {
+    width: 100%;
+    margin-top: 4px;
   }
 
   .plugin-card-control .btn-secondary {

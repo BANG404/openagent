@@ -243,7 +243,7 @@ const zh = {
   pluginPermissionStandard: "标准权限",
   pluginTools: "可用工具",
   pluginToolsHint: "选择 Cua Driver 可以暴露给 Agent 的桌面操作。",
-  pluginManageTools: "管理工具",
+  pluginToolsEmpty: "点击测试连接以发现 Cua Driver 工具。",
   pluginUnrestrictedWarning:
     "完全权限允许 Agent 控制鼠标、键盘和桌面应用。请确认已授予系统所需权限。",
   about: "关于我们",
@@ -1226,7 +1226,7 @@ const en: Translations = {
   pluginPermissionStandard: "Standard",
   pluginTools: "Available tools",
   pluginToolsHint: "Choose which desktop actions Cua Driver exposes to the Agent.",
-  pluginManageTools: "Manage tools",
+  pluginToolsEmpty: "Test the connection to discover Cua Driver tools.",
   pluginUnrestrictedWarning:
     "Unrestricted mode lets the Agent control the mouse, keyboard, and desktop apps. Confirm that required system permissions are granted.",
   about: "About",

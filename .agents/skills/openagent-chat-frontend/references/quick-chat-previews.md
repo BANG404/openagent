@@ -266,11 +266,13 @@
   surface for Settings → Extensions → MCP. Its `-theme` and `-locale` query
   parameters must keep enabled and disabled tool switches, long wrapping tool
   names, light/dark themes, and Chinese/English copy addressable without a
-  native MCP server.
+  native MCP server. The list contains only user-configured MCP services;
+  built-in providers such as Cua Driver are managed from their owning plugin
+  surface and must not appear here.
 - The Plugins settings surface includes the built-in Cua Driver capability. It
   seeds an enabled stdio MCP entry on first configuration load, exposes a
-  permission-mode select (unrestricted, bounded, or standard), and routes the
-  tool-scope action to the ordinary MCP tool list. Keep the enable switch
+  permission-mode select (unrestricted, bounded, or standard), and owns Cua
+  connection testing and tool-scope switches directly. Keep the enable switch
   switch-only, show a localized warning for unrestricted mode, and preserve
   the two-column control layout down to a single column on narrow windows.
 - Settings action controls use one compact, shadowless semantic hierarchy:
