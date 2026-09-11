@@ -3,6 +3,7 @@
   "bundle": {
     "createUpdaterArtifacts": false,
     "resources": {
+      "resources/cua-driver/": "cua-driver/",
       "resources/models/all-MiniLM-L6-v2-q/": "models/all-MiniLM-L6-v2-q/"
     }
   }

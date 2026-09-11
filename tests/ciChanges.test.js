@@ -130,6 +130,18 @@ describe("CI module classification", () => {
       nativeQuality: true,
       nativePlatform: true,
     });
+    expect(classifyChangedModules(["scripts/prepare-cua-driver.mjs"])).toEqual({
+      ...nothing,
+      automation: true,
+      nativeQuality: true,
+      nativePlatform: true,
+    });
+    expect(classifyChangedModules(["scripts/prepare-cua-driver.test.mjs"])).toEqual({
+      ...nothing,
+      automation: true,
+      nativeQuality: true,
+      nativePlatform: true,
+    });
     expect(classifyChangedModules(["scripts/stage-release-runtime.mjs"])).toEqual({
       ...nothing,
       automation: true,

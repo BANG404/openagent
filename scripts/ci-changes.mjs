@@ -66,6 +66,8 @@ export function classifyChangedModules(files, forceAll = false) {
     [
       "scripts/prepare-runtime-server.mjs",
       "scripts/prepare-runtime-server.test.mjs",
+      "scripts/prepare-cua-driver.mjs",
+      "scripts/prepare-cua-driver.test.mjs",
       "scripts/stage-release-runtime.mjs",
       "scripts/stage-release-runtime.test.mjs",
     ].includes(file),

@@ -43,3 +43,13 @@ installs local directories and does not provide a marketplace or automatic
 update channel. Plugin subprocesses remain subject to the normal OpenAgent
 process and permission environment; package containment prevents package path
 escapes but is not itself a subprocess sandbox.
+
+The product-managed Cua Driver capability is intentionally separate from this
+portable package loader. Release builds stage the pinned upstream
+`trycua/cua` binary distribution as a verified Tauri resource, prepend that
+resource directory only for OpenAgent child processes, and keep exposing the
+driver through the reserved `cua-driver` stdio MCP entry. Do not turn that
+reserved entry into a user-installed Agent Plugin or fall back to an unrelated
+binary on `PATH` when the bundled resource is present. The build also derives a
+short-lived broad capability manifest from the pinned release's reviewed tool
+surface; the user's MCP `disabled_tools` selection can only narrow that surface.

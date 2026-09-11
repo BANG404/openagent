@@ -2,6 +2,7 @@
   "bundle": {
     "targets": ["nsis"],
     "resources": {
+      "resources/cua-driver/": "cua-driver/",
       "resources/codex-resources/": "codex-resources/"
     }
   }

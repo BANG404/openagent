@@ -3410,6 +3410,45 @@ fn packaged_runtime_binary() -> Result<std::path::PathBuf, String> {
     Ok(binary)
 }
 
+fn prepend_bundled_cua_driver_to_path(app: &tauri::AppHandle) -> Result<bool, String> {
+    let directory = app
+        .path()
+        .resolve("cua-driver", BaseDirectory::Resource)
+        .map_err(|error| format!("Failed to resolve bundled Cua Driver directory: {error}"))?;
+    if !directory.is_dir() {
+        tracing::debug!(
+            path = %directory.display(),
+            "bundled Cua Driver resource directory is unavailable"
+        );
+        return Ok(false);
+    }
+    #[cfg(windows)]
+    let binary = directory.join("cua-driver.exe");
+    #[cfg(not(windows))]
+    let binary = directory.join("cua-driver");
+    if !binary.is_file() {
+        tracing::warn!(
+            path = %binary.display(),
+            "bundled Cua Driver resource is unavailable"
+        );
+        return Ok(false);
+    }
+
+    let manifest = directory.join("openagent-capabilities.yaml");
+    if manifest.is_file() {
+        std::env::set_var("CUA_DRIVER_CAPABILITY_MANIFEST_FILE", &manifest);
+        std::env::set_var("CUA_DRIVER_CAPABILITY_MANIFEST_APPROVED", "1");
+    }
+
+    let current = std::env::var_os("PATH").unwrap_or_default();
+    let mut entries = vec![directory];
+    entries.extend(std::env::split_paths(&current));
+    let path = std::env::join_paths(entries)
+        .map_err(|error| format!("Failed to prepend bundled Cua Driver to PATH: {error}"))?;
+    std::env::set_var("PATH", path);
+    Ok(true)
+}
+
 async fn start_runtime_spec(
     supervisor: &RuntimeProcessSupervisor,
     spec: RuntimeLaunchSpec,
@@ -3742,6 +3781,7 @@ fn run_with_mode(agent_server: bool) {
         .manage(runtime_manager)
         .manage(frontend_manager)
         .setup(move |app| {
+            prepend_bundled_cua_driver_to_path(app.handle()).map_err(std::io::Error::other)?;
             if is_parent_controlled_workspace_window_process() {
                 install_parent_shutdown_monitor(app.handle().clone());
             }

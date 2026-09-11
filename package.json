@@ -20,6 +20,7 @@
     "prepare:linux-sandbox:release": "bun scripts/prepare-linux-sandbox-helper.mjs --profile release",
     "prepare:runtime-server:dev": "bun scripts/prepare-runtime-server.mjs --profile dev",
     "prepare:runtime-server:release": "bun scripts/prepare-runtime-server.mjs --profile release",
+    "prepare:cua-driver": "bun scripts/prepare-cua-driver.mjs",
     "prepare:windows-sandbox:dev": "bun scripts/prepare-windows-sandbox-helpers.mjs --profile dev",
     "prepare:windows-sandbox:release": "bun scripts/prepare-windows-sandbox-helpers.mjs --profile release",
     "build:pages": "bun scripts/build-pages.mjs",

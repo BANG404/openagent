@@ -311,9 +311,12 @@ describe("release CI verification", () => {
 
   test("publishes lightweight updater inputs and separate full first-install bundles", () => {
     expect(tauriConfig.bundle.createUpdaterArtifacts).toBe(true);
-    expect(tauriConfig.bundle.resources).toBeUndefined();
+    expect(tauriConfig.bundle.resources).toEqual({
+      "resources/cua-driver/": "cua-driver/",
+    });
     expect(fullTauriConfig.bundle.createUpdaterArtifacts).toBe(false);
     expect(fullTauriConfig.bundle.resources).toEqual({
+      "resources/cua-driver/": "cua-driver/",
       "resources/models/all-MiniLM-L6-v2-q/": "models/all-MiniLM-L6-v2-q/",
     });
     expect(releaseWorkflow).toContain("Build full first-install bundle");

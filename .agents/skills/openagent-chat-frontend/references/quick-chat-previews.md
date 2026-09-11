@@ -273,7 +273,9 @@
 - The Plugins settings surface includes the built-in Cua Driver capability. It
   seeds an enabled stdio MCP entry on first configuration load, exposes a
   permission-mode select (unrestricted, bounded, or standard), and owns Cua
-  connection testing and tool-scope switches directly. Keep the enable switch
+  connection testing and tool-scope switches directly. Release builds resolve
+  the reserved `cua-driver` command from OpenAgent's verified bundled resource;
+  development builds may still use an independently installed command. Keep the enable switch
   switch-only, show a localized warning for unrestricted mode, and preserve
   the two-column control layout down to a single column on narrow windows.
 - Settings action controls use one compact, shadowless semantic hierarchy:

@@ -15,6 +15,12 @@
   and produces NSIS plus updater artifacts, not WiX. Linux strips
   `codex-bwrap`, embeds its SHA-256 at release compilation, and packages those
   exact bytes through `externalBin`.
+- Bundle Cua Driver from the versioned `trycua/cua` release selected in
+  `scripts/prepare-cua-driver.mjs`. The build must choose the asset for the
+  exact Tauri target, verify its pinned SHA-256 before extraction, retain the
+  distribution's companion libraries and helpers, and package the resulting
+  directory as the `cua-driver` Tauri resource. Never fetch an unversioned
+  driver or trust release filenames without the pinned digest.
 - Use `bun run tauri:build` for release builds so generated helper digests reach
   Cargo. Keep the release Cargo profile size-oriented and audit installer size,
   not generated `target/` contents. The ordinary desktop build must leave the

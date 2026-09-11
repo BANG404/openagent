@@ -390,8 +390,11 @@
       bearer_token: "",
       headers: {},
       command: "cua-driver",
-      args: ["mcp", "--permission-mode", "unrestricted", "--dangerously-bypass-approvals"],
-      env: { CUA_DRIVER_PERMISSION_MODE: "unrestricted" },
+      args: ["mcp"],
+      env: {
+        CUA_DRIVER_PERMISSION_MODE: "unrestricted",
+        CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS: "1",
+      },
       cwd: "",
       disabled_tools: [],
     };
@@ -412,9 +415,11 @@
 
   function setCuaPermissionMode(mode: CuaPermissionMode) {
     const server = cuaServer();
-    server.env = { ...server.env, CUA_DRIVER_PERMISSION_MODE: mode };
-    server.args = ["mcp", "--permission-mode", mode];
-    if (mode === "unrestricted") server.args.push("--dangerously-bypass-approvals");
+    const env: Record<string, string> = { ...server.env, CUA_DRIVER_PERMISSION_MODE: mode };
+    if (mode === "unrestricted") env.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS = "1";
+    else delete env.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS;
+    server.env = env;
+    server.args = ["mcp"];
   }
 
   let cuaDriver = $derived(
@@ -424,8 +429,30 @@
   $effect(() => {
     if (!initializedFromConfig || cuaDefaultApplied) return;
     cuaDefaultApplied = true;
-    if (draftConfig.mcp.servers.some((server) => server.id === cuaDriverId)) return;
-    cuaServer();
+    const existing = draftConfig.mcp.servers.find((server) => server.id === cuaDriverId);
+    if (!existing) {
+      cuaServer();
+      queueMicrotask(() => saveDraftConfig().catch(console.error));
+      return;
+    }
+
+    // Cua Driver's permission flags belong to its launcher environment; the
+    // current upstream MCP client rejects them as command-line arguments.
+    // Normalize entries created by older OpenAgent builds before the next
+    // settings save so the bundled driver can start successfully.
+    const mode = cuaPermissionMode(existing);
+    const nextEnv: Record<string, string> = {
+      ...existing.env,
+      CUA_DRIVER_PERMISSION_MODE: mode,
+    };
+    if (mode === "unrestricted") nextEnv.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS = "1";
+    else delete nextEnv.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS;
+    const changed =
+      JSON.stringify(existing.args) !== JSON.stringify(["mcp"]) ||
+      JSON.stringify(existing.env) !== JSON.stringify(nextEnv);
+    if (!changed) return;
+    existing.args = ["mcp"];
+    existing.env = nextEnv;
     queueMicrotask(() => saveDraftConfig().catch(console.error));
   });
 
