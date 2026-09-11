@@ -524,7 +524,6 @@
           <span>{$t("scheduledHooks")}…</span>
           <span class="application-menu-shortcut">{primaryModifier}+Shift+9</span>
         </DropdownMenu.Item>
-        >
       </DropdownMenu.Content>
     </DropdownMenu.Portal>
   </DropdownMenu.Root>
