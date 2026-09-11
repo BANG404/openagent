@@ -55,8 +55,7 @@
   interface MentionCatalog {
     projectDrafts: DraftCategoryEntry[];
     globalDrafts: DraftCategoryEntry[];
-    projectRoles: AgentRole[];
-    globalRoles: AgentRole[];
+    roles: AgentRole[];
   }
 
   interface Props {
@@ -684,13 +683,11 @@
               .then((value) => value as DraftCategoryEntry[])
               .catch(() => [])
           : Promise.resolve([]),
-        desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "local" }).catch(() => []),
-        desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "global" }).catch(() => []),
-      ]).then(([projectDrafts, globalDrafts, projectRoles, globalRoles]) => ({
+        desktopOpenAgent.invokeProduct("list_agent_roles", {}).catch(() => []),
+      ]).then(([projectDrafts, globalDrafts, roles]) => ({
         projectDrafts,
         globalDrafts,
-        projectRoles,
-        globalRoles,
+        roles,
       }));
     }
     return mentionCatalogPromise;
@@ -740,7 +737,7 @@
         ...toDraftItems(catalog.projectDrafts, "项目"),
         ...toDraftItems(catalog.globalDrafts, "全局"),
       ];
-      const roleItems = [...catalog.projectRoles, ...catalog.globalRoles]
+      const roleItems = catalog.roles
         .filter((role, index, roles) => {
           const normalizedName = role.name.toLocaleLowerCase();
           return (

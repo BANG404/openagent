@@ -1367,12 +1367,9 @@
   }
 
   async function refreshHookRoles() {
-    const [localRoles, globalRoles] = await Promise.all([
-      desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "local" }).catch(() => []),
-      desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "global" }).catch(() => []),
-    ]);
+    const roles = await desktopOpenAgent.invokeProduct("list_agent_roles", {}).catch(() => []);
     const seen = new Set<string>();
-    hookRoles = [...localRoles, ...globalRoles].filter((role) => {
+    hookRoles = roles.filter((role) => {
       if (seen.has(role.id)) return false;
       seen.add(role.id);
       return true;

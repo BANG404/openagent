@@ -73,17 +73,12 @@
   resolves the live renderer channel inside that conversation, because the
   frontend request ID is ephemeral while remote snapshots expose the durable
   tool-call ID.
-- Keep website navigation in the resizable desktop right sidebar, independent
-  of conversation state. Its Browser tab accepts HTTP(S) addresses, maintains
-  back/forward history for submitted addresses, refreshes the active page, and
-  exposes an external-browser action. Sites may still reject iframe embedding
-  through CSP or X-Frame-Options. Keep the browser and terminal in the same
-  tabbed sidebar. In compact windows, overlay that sidebar across the usable
-  application body instead of shrinking the transcript and sidebar content;
-  let the browser toolbar wrap when its own inline space is constrained. Render
-  embedded sites against a 1280px desktop canvas and scale that canvas down to
-  the available sidebar width so fixed-width cross-origin pages stay fully
-  visible without requiring page-owned responsive CSS.
+- Keep status, file changes, and background terminals in the same resizable
+  desktop right sidebar. Show the sidebar and its title-bar entry only while at
+  least one of those views has content, and collapse it when the last available
+  view becomes empty. In compact windows, overlay the sidebar across the usable
+  application body instead of shrinking the transcript and sidebar content.
+  The right sidebar does not embed a general-purpose website browser.
 - During an active stream, the empty composer's primary action pauses output;
   once paused it resumes output, unless a draft or attachment is present, in
   which case it remains the send action. Sending a queued follow-up from the

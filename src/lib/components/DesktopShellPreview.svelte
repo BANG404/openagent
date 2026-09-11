@@ -39,10 +39,10 @@
   const roles: AgentRole[] = [
     {
       id: "reviewer",
-      scope: "local",
+      scope: "global",
       name: "Reviewer",
       description: "Review implementation changes",
-      skill_ids: ["local:playwright"],
+      skill_ids: ["global:playwright"],
       mcp_server_ids: ["browser-tools"],
       usage_count: 3,
       created_at: 1,
@@ -237,6 +237,7 @@
       tauriAvailable
       memorySyncing={false}
       checkpointFlowPanelCollapsed={true}
+      rightSidebarAvailable={true}
       onPickWorkspace={() => selectWorkspace("C:\\Projects\\new-project")}
       onPickWsl={() => selectWorkspace(recentWorkspaces[2].path)}
       onSelectWorkspace={selectWorkspace}

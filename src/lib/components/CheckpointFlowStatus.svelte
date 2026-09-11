@@ -10,7 +10,6 @@
   import type { BackgroundTerminalSession } from "$lib/openagent";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { t } from "$lib/i18n";
-  import BrowserPanel from "$lib/components/BrowserPanel.svelte";
   import BackgroundTerminalPanel from "$lib/components/BackgroundTerminalPanel.svelte";
   import FileChangePanel from "$lib/components/FileChangePanel.svelte";
 
@@ -24,7 +23,8 @@
     onRevert: (changeId: string) => Promise<void>;
     activePanel?: RightSidebarPanel;
     terminalEnabled?: boolean;
-    onTerminalSummaryChange?: (runningCount: number) => void;
+    terminalAvailable?: boolean;
+    onTerminalSummaryChange?: (runningCount: number, sessionCount: number) => void;
     terminalPreviewSessions?: BackgroundTerminalSession[] | null;
     terminalPreviewOutputs?: Record<string, string>;
   }
@@ -37,8 +37,9 @@
     resizing,
     onResizeStart,
     onRevert,
-    activePanel = $bindable<RightSidebarPanel>("browser"),
+    activePanel = $bindable<RightSidebarPanel>("status"),
     terminalEnabled = false,
+    terminalAvailable = false,
     onTerminalSummaryChange = () => {},
     terminalPreviewSessions = null,
     terminalPreviewOutputs = {},
@@ -135,9 +136,17 @@
   });
 
   $effect(() => {
-    if (activePanel === "status" && !flow) activePanel = changes.length > 0 ? "files" : "browser";
-    if (activePanel === "files" && changes.length === 0) activePanel = flow ? "status" : "browser";
-    if (activePanel === "terminal" && !terminalEnabled) activePanel = "browser";
+    if (activePanel === "status" && !flow) {
+      if (changes.length > 0) activePanel = "files";
+      else if (terminalAvailable) activePanel = "terminal";
+    }
+    if (activePanel === "files" && changes.length === 0) {
+      if (flow) activePanel = "status";
+      else if (terminalAvailable) activePanel = "terminal";
+    }
+    if (activePanel === "terminal" && !terminalAvailable) {
+      activePanel = flow ? "status" : changes.length > 0 ? "files" : "status";
+    }
   });
 
   function statusLabel(status: string): string {
@@ -189,13 +198,7 @@
             <span>{changes.length}</span>
           </button>
         {/if}
-        <button
-          type="button"
-          class:active={activePanel === "browser"}
-          aria-current={activePanel === "browser" ? "page" : undefined}
-          onclick={() => (activePanel = "browser")}>{$t("browserPanel")}</button
-        >
-        {#if terminalEnabled}
+        {#if terminalAvailable}
           <button
             type="button"
             class:active={activePanel === "terminal"}
@@ -333,8 +336,6 @@
       </div>
     {:else if !collapsed && activePanel === "files"}
       <FileChangePanel {changes} {onRevert} />
-    {:else if !collapsed && activePanel === "browser"}
-      <BrowserPanel />
     {:else if !collapsed && activePanel !== "terminal"}
       <div class="flow-body">
         <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>

@@ -1426,9 +1426,8 @@ async fn submit_interrupt_response(
 #[tauri::command]
 async fn list_agent_roles(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
-    scope: String,
 ) -> Result<Vec<AgentRole>, String> {
-    openagent_runtime::commands::list_agent_roles(runtime.state(), scope).await
+    openagent_runtime::commands::list_agent_roles(runtime.state()).await
 }
 
 #[tauri::command]
@@ -1443,7 +1442,6 @@ async fn list_agent_roles_for_workspace(
 async fn save_agent_role(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     id: Option<String>,
-    scope: String,
     name: String,
     description: String,
     skill_ids: Vec<String>,
@@ -1452,7 +1450,6 @@ async fn save_agent_role(
     openagent_runtime::commands::save_agent_role(
         runtime.state(),
         id,
-        scope,
         name,
         description,
         skill_ids,

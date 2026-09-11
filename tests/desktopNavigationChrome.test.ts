@@ -471,7 +471,7 @@ describe("desktop navigation chrome", () => {
     expect(menu).toContain("onOpenSettingsWindow(target.kind, target.section)");
   });
 
-  test("routes browser, details, and terminals through one responsive right sidebar", async () => {
+  test("shows the shared details and terminal sidebar only when it has content", async () => {
     const route = await readFile(routeUrl, "utf8");
     const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
     const conversationSurface = await readFile(
@@ -487,14 +487,16 @@ describe("desktop navigation chrome", () => {
     expect(route).toContain('rightSidebarPanel = "files"');
     expect(route).toContain('rightSidebarPanel = "status"');
     expect(route).toContain("checkpointFlow: currentCheckpointFlow ?? null");
+    expect(route).toContain("rightSidebarAvailable");
+    expect(route).toContain("if (!rightSidebarAvailable) checkpointFlowPanelCollapsed = true");
     expect(conversationSurface).toContain("<CheckpointFlowPanelHost");
     expect(conversationSurface).not.toContain("<BackgroundTerminalPanel");
     expect(conversationSurface).not.toContain("conversationDetailsAvailable(");
     expect(route).toContain("shouldAutoOpenCheckpointFlowPanel(previous, next.flow)");
     expect(titleBar).toContain("<CheckpointFlowToggleButton");
-    expect(titleBar).not.toContain("{#if conversationDetailsAvailable}");
-    expect(panel).toContain('activePanel === "browser"');
-    expect(panel).toContain("<BrowserPanel />");
+    expect(titleBar).toContain("{#if rightSidebarAvailable}");
+    expect(panel).not.toContain('activePanel === "browser"');
+    expect(panel).not.toContain("<BrowserPanel />");
     expect(panel).toContain('activePanel === "terminal"');
     expect(panel).toContain("<BackgroundTerminalPanel");
     expect(panel).toContain('onclick={() => (activePanel = "terminal")}');
