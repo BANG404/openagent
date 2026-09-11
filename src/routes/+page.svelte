@@ -1148,15 +1148,24 @@
       )?.id;
       if (!assistantMessageId) continue;
       void renderMermaidToolResult(input.source, mermaidConfig)
-        .then((result) =>
-          openAgent.resumeInterrupt({
+        .then(async (result) => {
+          const response = JSON.stringify(result);
+          // During durable restore there is usually no in-memory interrupt
+          // channel yet. Submit first so the runtime queues the frontend
+          // result; resuming then consumes it while advancing the checkpoint.
+          await openAgent.submitInterruptResponse({
             convId,
             interruptId: requestId,
-            response: JSON.stringify(result),
+            response,
+          });
+          await openAgent.resumeInterrupt({
+            convId,
+            interruptId: requestId,
+            response,
             branchId: activeBranchIds[convId] ?? null,
             assistantMessageId,
-          }),
-        )
+          });
+        })
         .catch((error) => {
           handledMermaidInterrupts.delete(requestId);
           console.warn("Failed to restore Mermaid render result", error);
