@@ -1,5 +1,21 @@
 # Versioning and channels
 
+## Product release identity
+
+The product release version is the user-facing OpenAgent version and is stored
+in the native package metadata (`CARGO_PKG_VERSION`, mirrored by
+`package.json` and `tauri.conf.json`). It identifies a qualified release
+combination; it does not replace component versions. Installed frontend and
+Runtime resources continue to track their own versions and may be updated or
+rolled back independently. The About view presents `OpenAgent <release>` and
+keeps the shell, frontend, and Runtime versions available as component detail.
+
+Release metadata must therefore be interpreted as a tuple: product release
+identity, selected component set, and the protocol compatibility constraints
+for that tuple. A component-only release may advance the release identity while
+leaving the packaged shell version unchanged; it must never use the product
+release number as a substitute for a component artifact version.
+
 Development commits and Beta release metadata land on `master`. Ordinary
 pushes never create a version or tag by themselves. Start `Prepare Release` and
 choose `beta`, `rc`, or `stable`. Beta is the default, uses the current `master` head,

@@ -61,6 +61,7 @@
   type StandardChannelKind = "feishu" | "telegram" | "qq" | "discord" | "slack";
   type ChannelSettingsNav = StandardChannelKind | "wechat" | "gateway";
   type ComponentVersions = {
+    release: string;
     shell: string;
     frontend: string;
     runtime: string | null;
@@ -168,6 +169,7 @@
   );
 
   let componentVersions = $state<ComponentVersions>({
+    release: "...",
     shell: "...",
     frontend: "...",
     runtime: null,
@@ -3968,7 +3970,7 @@
       <div class="settings-content-col">
         <div class="about-content">
           <img class="about-logo-img" src="/app-icon.png" alt="OpenAgent" />
-          <h3 class="about-app-name">OpenAgent</h3>
+          <h3 class="about-app-name">OpenAgent {componentVersions.release}</h3>
           <p class="about-version">
             {$t("aboutVersionShell")}
             {componentVersions.shell} ·

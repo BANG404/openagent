@@ -91,6 +91,8 @@ struct ComponentUpdateGate {
 
 #[derive(serde::Serialize)]
 struct ComponentVersions {
+    /// The user-facing product release identity.
+    release: String,
     shell: String,
     frontend: String,
     runtime: Option<String>,
@@ -102,6 +104,7 @@ async fn get_component_versions(
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
 ) -> Result<ComponentVersions, String> {
     Ok(ComponentVersions {
+        release: env!("CARGO_PKG_VERSION").to_string(),
         shell: env!("CARGO_PKG_VERSION").to_string(),
         frontend: manager.current_version(),
         runtime: supervisor.status().await.map(|status| status.version),
