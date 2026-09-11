@@ -41,6 +41,8 @@ pub struct RuntimeResourceProtocolRange {
 pub struct RuntimeResourceManifest {
     pub schema_version: u32,
     pub version: String,
+    #[serde(default)]
+    pub release_version: Option<String>,
     pub protocol: RuntimeResourceProtocolRange,
     pub artifacts: BTreeMap<String, RuntimeResourceArtifact>,
 }
@@ -54,6 +56,7 @@ pub struct RuntimeResourceProgress {
 #[derive(Clone, Debug, Serialize)]
 pub struct InstalledRuntimeResource {
     pub version: String,
+    pub release_version: Option<String>,
     pub target: String,
     pub binary_path: PathBuf,
     pub manifest_path: PathBuf,
@@ -560,6 +563,11 @@ fn validate_manifest(
     if !safe_version(&manifest.version) {
         return Err("runtime manifest version is unsafe".to_string());
     }
+    if let Some(release_version) = &manifest.release_version {
+        if !safe_version(release_version) || semver::Version::parse(release_version).is_err() {
+            return Err("runtime manifest release version is invalid".to_string());
+        }
+    }
     if manifest.protocol.min > manifest.protocol.max
         || protocol_version < manifest.protocol.min
         || protocol_version > manifest.protocol.max
@@ -617,6 +625,7 @@ fn installed_resource(
 ) -> InstalledRuntimeResource {
     InstalledRuntimeResource {
         version: manifest.version.clone(),
+        release_version: manifest.release_version.clone(),
         target: target.to_string(),
         binary_path: version_dir.join(&artifact.file),
         manifest_path: version_dir.join(MANIFEST_FILE),
@@ -895,6 +904,7 @@ y/rUw2y8/hOUYjZU71eHp/Wo1KZ40fGy2VJEDl34XMJM+TX48Ss/17u3IvIfbVR1FkZZSNCisQbuQY+b
         let mut manifest = RuntimeResourceManifest {
             schema_version: 1,
             version: "1.2.3".to_string(),
+            release_version: None,
             protocol: RuntimeResourceProtocolRange { min: 2, max: 2 },
             artifacts: BTreeMap::from([(
                 "windows-x64".to_string(),
@@ -942,6 +952,7 @@ y/rUw2y8/hOUYjZU71eHp/Wo1KZ40fGy2VJEDl34XMJM+TX48Ss/17u3IvIfbVR1FkZZSNCisQbuQY+b
         let manifest = RuntimeResourceManifest {
             schema_version: 1,
             version: "1.2.3".to_string(),
+            release_version: None,
             protocol: RuntimeResourceProtocolRange { min: 2, max: 2 },
             artifacts: BTreeMap::from([("windows-x64".to_string(), artifact.clone())]),
         };

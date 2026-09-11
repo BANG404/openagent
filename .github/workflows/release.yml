@@ -747,6 +747,7 @@ jobs:
           node scripts/stage-release-runtime.mjs
           --artifacts "$RUNNER_TEMP/sdk-runtime"
           --sdk-sha "${{ needs.sdk-release.outputs.sdk_release_sha }}"
+          --release-version "${{ needs.detect.outputs.version }}"
           --output runtime-components
 
       - name: Sign runtime manifest

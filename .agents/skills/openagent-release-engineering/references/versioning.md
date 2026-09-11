@@ -5,6 +5,8 @@
 The product release version is the user-facing OpenAgent version. An activated
 frontend resource is the source of this identity, allowing a frontend-only
 release to advance `OpenAgent <release>` without replacing the native shell;
+Runtime release candidates carry the same identity as `release_version`, so a
+Runtime-only release can advance it after successful activation;
 the packaged `CARGO_PKG_VERSION` is the fallback before an external frontend is
 active. It identifies a qualified release combination; it does not replace
 component versions. Installed frontend and Runtime resources continue to track

@@ -54,6 +54,21 @@ describe("release Runtime staging", () => {
     expect((await stat(destination)).mode & 0o111).not.toBe(0);
   });
 
+  test("stamps the product release identity into the Runtime manifest", async () => {
+    const artifactsDirectory = await fixture();
+    const outputDirectory = await mkdtemp(path.join(os.tmpdir(), "openagent-runtime-output-"));
+    await stageReleaseRuntime({
+      artifactsDirectory,
+      sdkSha,
+      releaseVersion: "0.63.0",
+      outputDirectory,
+    });
+    const manifest = JSON.parse(
+      await readFile(path.join(outputDirectory, "openagent-sdk-manifest.json"), "utf8"),
+    );
+    expect(manifest.release_version).toBe("0.63.0");
+  });
+
   test("rejects a binary whose bytes do not match the manifest", async () => {
     const artifactsDirectory = await fixture();
     await writeFile(path.join(artifactsDirectory, RELEASE_RUNTIME_ARTIFACTS["macos-x64"]), "bad");

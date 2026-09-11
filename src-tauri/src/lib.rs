@@ -101,19 +101,23 @@ struct ComponentVersions {
 #[tauri::command]
 async fn get_component_versions(
     manager: State<'_, FrontendResourceManager>,
+    runtime_manager: State<'_, RuntimeResourceManager>,
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
 ) -> Result<ComponentVersions, String> {
     let shell_version = env!("CARGO_PKG_VERSION").to_string();
     let frontend_version = manager.current_version();
+    let frontend_release = manager.active_version();
+    let runtime_release = runtime_manager
+        .active_resource()
+        .await?
+        .and_then(|resource| resource.release_version);
     Ok(ComponentVersions {
         // Frontend resource releases carry the product release version. This
         // lets a frontend-only release update the user-facing identity while
         // keeping the packaged shell version independent.
-        release: if frontend_version == "" {
-            shell_version.clone()
-        } else {
-            frontend_version.clone()
-        },
+        release: frontend_release
+            .or(runtime_release)
+            .unwrap_or_else(|| shell_version.clone()),
         shell: shell_version,
         frontend: frontend_version,
         runtime: supervisor.status().await.map(|status| status.version),

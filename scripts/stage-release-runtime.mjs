@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { chmod, copyFile, mkdir, readFile, stat } from "node:fs/promises";
+import { chmod, copyFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -72,11 +72,15 @@ export async function validateReleaseRuntime({ artifactsDirectory, sdkSha }) {
 export async function stageReleaseRuntime({
   artifactsDirectory,
   sdkSha,
+  releaseVersion,
   tauriTarget,
   outputDirectory,
   repositoryRoot = root,
 }) {
   const candidate = await validateReleaseRuntime({ artifactsDirectory, sdkSha });
+  if (releaseVersion) {
+    candidate.manifest.release_version = releaseVersion;
+  }
   if (tauriTarget) {
     const runtimeTarget = TAURI_RUNTIME_TARGETS[tauriTarget];
     if (!runtimeTarget) throw new Error(`Unsupported Tauri Runtime target: ${tauriTarget}.`);
@@ -93,10 +97,12 @@ export async function stageReleaseRuntime({
   }
   if (outputDirectory) {
     await mkdir(outputDirectory, { recursive: true });
-    await copyFile(
-      candidate.manifestPath,
-      path.join(outputDirectory, "openagent-sdk-manifest.json"),
-    );
+    const outputManifest = path.join(outputDirectory, "openagent-sdk-manifest.json");
+    if (releaseVersion) {
+      await writeFile(outputManifest, `${JSON.stringify(candidate.manifest, null, 2)}\n`);
+    } else {
+      await copyFile(candidate.manifestPath, outputManifest);
+    }
     for (const [target, file] of Object.entries(RELEASE_RUNTIME_ARTIFACTS)) {
       const destination = path.join(outputDirectory, file);
       await copyFile(candidate.sources[target], destination);
@@ -116,6 +122,7 @@ function value(name) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const artifactsDirectory = value("--artifacts");
   const sdkSha = value("--sdk-sha");
+  const releaseVersion = value("--release-version");
   if (!artifactsDirectory || !sdkSha) {
     throw new Error(
       "Usage: stage-release-runtime.mjs --artifacts <dir> --sdk-sha <sha> " +
@@ -125,6 +132,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   await stageReleaseRuntime({
     artifactsDirectory,
     sdkSha,
+    releaseVersion,
     tauriTarget: value("--tauri-target"),
     outputDirectory: value("--output"),
   });
