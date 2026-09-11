@@ -369,6 +369,11 @@
   // Prevent duplicate responses for one durable request without blocking
   // sibling approval cards. Rust serializes their conversation transitions.
   const userInputResolutions = new InterruptResolutionTracker();
+  // Resume commands for one interrupted turn must be serialized. The runtime
+  // also serializes them, but keeping the queue here prevents intermediate
+  // checkpoint events from rebuilding the visible transcript between clicks.
+  const approvalResumeQueues = new Map<string, Promise<void>>();
+  const deferredApprovalCheckpointIds = new Map<string, string>();
   // A live approval may be clicked before its run has emitted the terminal
   // interruption event. Resume only after that event has finalized the turn.
   const interruptTerminalHandoffs = new InterruptTerminalHandoff();
@@ -1264,43 +1269,58 @@
     // Optimistically remove only the clicked form. Other approval cards remain
     // interactive while their exact request IDs wait on the runtime queue.
     markUserInputResolved(convId, requestId, state, response);
-    try {
-      // The approval request event precedes the run's terminal event. Preserve
-      // the live assistant turn until `onInterrupted` has moved it into the
-      // durable transcript; otherwise initializing the resumed stream here
-      // erases the text and tool cards that the user just approved.
-      await terminalHandoff;
-      if (resolution.firstForConversation) {
-        chatStreams.startTiming(convId);
-        chatStreams.streamingConversationIds = {
-          ...chatStreams.streamingConversationIds,
-          [convId]: true,
-        };
-        // All approvals in this provider batch continue the same logical Turn.
-        // Initialize its resumed stream once while sibling responses queue in Rust.
-        chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: [] };
-        chatStreams.assistantMessageIds = {
-          ...chatStreams.assistantMessageIds,
-          [convId]: assistantMessageId,
-        };
-      }
-      await openAgent.resumeInterrupt({
-        convId,
-        interruptId: requestId,
-        response: JSON.stringify(response),
-        branchId: activeBranchIds[convId] ?? null,
-        assistantMessageId,
+    const previous = approvalResumeQueues.get(convId) ?? Promise.resolve();
+    const queued = previous
+      .catch(() => {})
+      .then(async () => {
+        try {
+          // The approval request event precedes the run's terminal event. Preserve
+          // the live assistant turn until `onInterrupted` has moved it into the
+          // durable transcript; otherwise initializing the resumed stream here
+          // erases the text and tool cards that the user just approved.
+          await terminalHandoff;
+          if (resolution.firstForConversation) {
+            chatStreams.startTiming(convId);
+            chatStreams.streamingConversationIds = {
+              ...chatStreams.streamingConversationIds,
+              [convId]: true,
+            };
+            // All approvals in this provider batch continue the same logical Turn.
+            // Initialize its resumed stream once while sibling responses queue in Rust.
+            chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: [] };
+            chatStreams.assistantMessageIds = {
+              ...chatStreams.assistantMessageIds,
+              [convId]: assistantMessageId,
+            };
+          }
+          await openAgent.resumeInterrupt({
+            convId,
+            interruptId: requestId,
+            response: JSON.stringify(response),
+            branchId: activeBranchIds[convId] ?? null,
+            assistantMessageId,
+          });
+          clearPendingInput(convId, requestId);
+        } catch (err) {
+          console.warn(errorLabel, err);
+          markUserInputResolved(convId, requestId, "pending", undefined);
+          if (!userInputResolutions.hasOtherInConversation(convId, requestId)) {
+            chatStreams.cleanup(convId);
+          }
+        } finally {
+          userInputResolutions.finish(requestId);
+        }
       });
-      clearPendingInput(convId, requestId);
-    } catch (err) {
-      console.warn(errorLabel, err);
-      markUserInputResolved(convId, requestId, "pending", undefined);
-      if (!userInputResolutions.hasOtherInConversation(convId, requestId)) {
-        chatStreams.cleanup(convId);
-      }
-    } finally {
-      userInputResolutions.finish(requestId);
-    }
+    approvalResumeQueues.set(convId, queued);
+    queued
+      .finally(() => {
+        if (approvalResumeQueues.get(convId) !== queued) return;
+        approvalResumeQueues.delete(convId);
+        const checkpointId = deferredApprovalCheckpointIds.get(convId);
+        deferredApprovalCheckpointIds.delete(convId);
+        if (checkpointId) void refreshLiveCheckpointTip(convId, checkpointId);
+      })
+      .catch(() => {});
   }
 
   function markUserInputResolved(
@@ -2882,7 +2902,14 @@
       },
       onCheckpoint: (conv_id, checkpoint_id) => {
         pendingCheckpointIds = { ...pendingCheckpointIds, [conv_id]: checkpoint_id };
-        void refreshLiveCheckpointTip(conv_id, checkpoint_id);
+        // During a batch approval, retain only the newest durable tip. Each
+        // intermediate checkpoint is valid, but hydrating it would replace the
+        // optimistic cards that are still waiting in the approval queue.
+        if (!approvalResumeQueues.has(conv_id)) {
+          void refreshLiveCheckpointTip(conv_id, checkpoint_id);
+        } else {
+          deferredApprovalCheckpointIds.set(conv_id, checkpoint_id);
+        }
         const location = findConversationLocation(conv_id);
         const visibleMessages = location?.conversations[location.index].messages;
         if (

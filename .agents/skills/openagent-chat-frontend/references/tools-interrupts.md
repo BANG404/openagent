@@ -55,6 +55,10 @@
   only the exact request ID that was clicked, reject duplicate responses for
   that same request, and leave sibling cards interactive while the runtime's
   per-conversation queue advances each response from the latest durable tip.
+  While that queue is non-empty, retain the newest `chat-checkpoint` ID without
+  rehydrating the transcript; refresh the selected durable tip once the queue
+  drains so intermediate snapshots cannot replace still-pending optimistic
+  cards.
   A live approval request arrives before its run's terminal interruption event;
   if the clicked request still belongs to the live stream, wait for that event
   to finalize the assistant turn before initializing the resumed stream. Never
