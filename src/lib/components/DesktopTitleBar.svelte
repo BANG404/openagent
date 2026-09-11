@@ -70,6 +70,13 @@
       console.warn("Failed to open workspace location", error);
     });
   }
+
+  async function openLogsFolder(): Promise<void> {
+    if (!tauriAvailable) return;
+    await invoke("open_logs_folder").catch((error) => {
+      console.warn("Failed to open logs folder", error);
+    });
+  }
 </script>
 
 <header
@@ -97,6 +104,7 @@
       onPickWsl={() => void onPickWsl()}
       onSelectWorkspace={(path) => void onSelectWorkspace(path)}
       onOpenWorkspaceLocation={() => void openWorkspaceLocation()}
+      onOpenLogsFolder={() => void openLogsFolder()}
       onOpenSettings={() => void onOpenSettings()}
       onOpenSettingsWindow={(kind, section) => void onOpenSettingsWindow(kind, section)}
       {onCreateRole}

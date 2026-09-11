@@ -17,6 +17,7 @@ const nativeCommands = new Set([
   "is_desktop_window_active",
   "list_wsl_distributions",
   "open_path",
+  "open_logs_folder",
   "open_role_editor_window",
   "open_settings_window",
   "open_workspace_window",

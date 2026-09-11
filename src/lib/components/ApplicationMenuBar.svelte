@@ -34,6 +34,7 @@
     onCreateRole,
     onConfigureRole,
     onOpenAbout,
+    onOpenLogsFolder,
     onCloseWindow,
     onQuit,
     platform,
@@ -53,6 +54,7 @@
     onCreateRole: () => void;
     onConfigureRole: (role: AgentRole) => void;
     onOpenAbout: () => void;
+    onOpenLogsFolder: () => void;
     onCloseWindow: () => void;
     onQuit: () => void;
     platform: WindowPlatform;
@@ -543,6 +545,9 @@
           <span class="application-menu-shortcut">{primaryModifier}+Shift+U</span>
         </DropdownMenu.Item>
         <DropdownMenu.Separator class="application-menu-separator" />
+        <DropdownMenu.Item class="application-menu-item" onSelect={onOpenLogsFolder}>
+          <span>{$t("openLogsFolder")}</span>
+        </DropdownMenu.Item>
         <DropdownMenu.Item class="application-menu-item" onSelect={onOpenAbout}>
           <span>{$t("about")}</span><span class="application-menu-shortcut">F1</span>
         </DropdownMenu.Item>

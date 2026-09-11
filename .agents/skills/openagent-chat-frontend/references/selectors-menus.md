@@ -43,6 +43,8 @@
   through File -> New window. Show WSL workspace-opening actions in the File
   menu and composer workspace switcher only on Windows; native folder opening
   remains available on every desktop platform.
+  Help includes an entry that opens the current desktop application's local
+  rotating log directory in the file manager.
 - Keep the application menu, platform window controls, sidebar top region,
   resize boundary, and main-content inset on the shared
   `--desktop-titlebar-height` token. The desktop-shell browser preview accepts

@@ -137,6 +137,9 @@ struct DesktopWindowState {
     quitting: std::sync::atomic::AtomicBool,
 }
 
+#[derive(Clone)]
+struct DesktopDataDir(std::path::PathBuf);
+
 /// Place a utility window centered over the window that requested it.
 ///
 /// Window positions and outer sizes are physical pixels, so doing this after
@@ -2157,6 +2160,21 @@ async fn open_path(
 }
 
 #[tauri::command]
+fn open_logs_folder(
+    app_handle: tauri::AppHandle,
+    data_dir: State<'_, DesktopDataDir>,
+) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+
+    let logs_dir = data_dir.0.join("logs");
+    std::fs::create_dir_all(&logs_dir).map_err(|error| error.to_string())?;
+    app_handle
+        .opener()
+        .open_path(logs_dir.to_string_lossy().into_owned(), None::<&str>)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 #[cfg(not(feature = "embedded-runtime"))]
 async fn open_path(
     path: String,
@@ -3580,6 +3598,7 @@ fn run_with_mode(agent_server: bool) {
         .unwrap_or_else(|error| panic!("Failed to initialize frontend resources: {error}"));
     let frontend_protocol_root = frontend_manager.asset_root();
     let startup_frontend_manager = frontend_manager.clone();
+    let desktop_data_dir = DesktopDataDir(data_dir.clone());
     let runtime_supervisor = Arc::new(
         RuntimeProcessSupervisor::new(DESKTOP_RUNTIME_PROTOCOL_VERSION)
             .unwrap_or_else(|error| panic!("Failed to initialize Runtime supervisor: {error}")),
@@ -3588,7 +3607,7 @@ fn run_with_mode(agent_server: bool) {
     let protocol_runtime_supervisor = runtime_supervisor.clone();
     let runtime_manager = runtime_resource_manager(data_dir);
     let startup_runtime_manager = runtime_manager.clone();
-    let builder = tauri::Builder::default();
+    let builder = tauri::Builder::default().manage(desktop_data_dir);
 
     // This must remain the first registered plugin. Ordinary desktop launches
     // share one primary process, while the SDK-owned workspace-window processes
@@ -4066,6 +4085,7 @@ fn run_with_mode(agent_server: bool) {
         delete_skill,
         get_skills_dir,
         open_path,
+        open_logs_folder,
         read_html_preview_file,
         read_text_file,
         read_workspace_text_snippet,
@@ -4140,6 +4160,7 @@ fn run_with_mode(agent_server: bool) {
         create_workspace_window,
         get_system_locale,
         open_path,
+        open_logs_folder,
         read_text_file,
         save_download_file,
         restart_app,
