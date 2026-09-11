@@ -3754,6 +3754,10 @@
         {@const server = draftConfig.mcp.servers[selectedMcpIndex]}
         {@const status = mcpTestStatus[server.id]}
         {@const discoveredTools = mcpDiscoveredTools[server.id] ?? []}
+        {@const serverReady =
+          server.transport === "http"
+            ? server.url.trim().length > 0
+            : server.command.trim().length > 0}
         <div class="settings-detail-col">
           <div class="detail-top-bar">
             <span class="detail-service-name">{server.name || "Unnamed Server"}</span>
@@ -3764,10 +3768,10 @@
               ariaLabel={$t("mcpEnabled")}
             />
           </div>
-          <div class="detail-content">
-            <section class="detail-section">
+          <div class="detail-content mcp-detail-content">
+            <section class="detail-section mcp-form-section">
               <h4 class="detail-section-title">{$t("basicInfo")}</h4>
-              <div class="detail-grid">
+              <div class="detail-grid mcp-detail-grid">
                 <label class="detail-label">
                   <span class="label-text">{$t("mcpServerName")}</span>
                   <input
@@ -3779,9 +3783,17 @@
               </div>
             </section>
 
-            <section class="detail-section">
-              <h4 class="detail-section-title">{$t("apiSettings")}</h4>
-              <div class="detail-grid">
+            <section class="detail-section mcp-form-section">
+              <div class="detail-section-header mcp-section-header">
+                <h4 class="detail-section-title">{$t("apiSettings")}</h4>
+                <SettingsActionButton
+                  label={status?.tone === "testing" ? $t("mcpTesting") : $t("testMcpServer")}
+                  icon="test"
+                  onclick={() => testMcpServer(server.id)}
+                  disabled={!serverReady || status?.tone === "testing"}
+                />
+              </div>
+              <div class="detail-grid mcp-detail-grid">
                 <div class="detail-label">
                   <span class="label-text">{$t("mcpTransport")}</span>
                   <Select
@@ -3812,8 +3824,16 @@
                       placeholder={$t("mcpBearerTokenPlaceholder")}
                     />
                   </label>
-                  <div class="detail-label" style="grid-column: 1 / -1">
-                    <span class="label-text">{$t("mcpHeaders")}</span>
+                  <div class="detail-label mcp-repeater">
+                    <div class="mcp-repeater-header">
+                      <span class="label-text">{$t("mcpHeaders")}</span>
+                      <SettingsActionButton
+                        label={$t("addHeader")}
+                        icon="add"
+                        tone="quiet"
+                        onclick={() => addHeader(selectedMcpIndex)}
+                      />
+                    </div>
                     {#each Object.entries(draftConfig.mcp.servers[selectedMcpIndex].headers) as [k] (k)}
                       <div class="env-row">
                         <input
@@ -3838,12 +3858,6 @@
                         >
                       </div>
                     {/each}
-                    <SettingsActionButton
-                      label={$t("addHeader")}
-                      icon="add"
-                      tone="quiet"
-                      onclick={() => addHeader(selectedMcpIndex)}
-                    />
                   </div>
                 {:else}
                   <label class="detail-label">
@@ -3867,8 +3881,16 @@
                     />
                   </label>
 
-                  <div class="detail-label" style="grid-column: 1 / -1">
-                    <span class="label-text">{$t("mcpEnvVars")}</span>
+                  <div class="detail-label mcp-repeater">
+                    <div class="mcp-repeater-header">
+                      <span class="label-text">{$t("mcpEnvVars")}</span>
+                      <SettingsActionButton
+                        label={$t("addEnvVar")}
+                        icon="add"
+                        tone="quiet"
+                        onclick={() => addEnvVar(selectedMcpIndex)}
+                      />
+                    </div>
                     {#each Object.entries(draftConfig.mcp.servers[selectedMcpIndex].env) as [k] (k)}
                       <div class="env-row">
                         <input
@@ -3889,24 +3911,10 @@
                         >
                       </div>
                     {/each}
-                    <SettingsActionButton
-                      label={$t("addEnvVar")}
-                      icon="add"
-                      tone="quiet"
-                      onclick={() => addEnvVar(selectedMcpIndex)}
-                    />
                   </div>
                 {/if}
               </div>
 
-              <div class="key-input-row mcp-test-actions">
-                <SettingsActionButton
-                  label={status?.tone === "testing" ? $t("mcpTesting") : $t("testMcpServer")}
-                  icon="test"
-                  onclick={() => testMcpServer(server.id)}
-                  disabled={status?.tone === "testing"}
-                />
-              </div>
               {#if status && status.tone !== "idle"}
                 <div
                   class="provider-status {status.tone === 'success'
@@ -3914,7 +3922,7 @@
                     : status.tone === 'error'
                       ? 'error'
                       : 'loading'}"
-                  style="margin-top:8px"
+                  style="margin-top:10px"
                 >
                   {status.message}
                 </div>
@@ -4477,11 +4485,6 @@
 
   .key-input-row .detail-input {
     flex: 1;
-  }
-
-  .mcp-test-actions {
-    justify-content: flex-end;
-    margin-top: 10px;
   }
 
   .mcp-tool-list {
@@ -5109,6 +5112,52 @@
     color: var(--text-muted);
     font-size: 12px;
     line-height: 1.5;
+  }
+
+  .mcp-detail-content {
+    padding-top: 12px;
+  }
+
+  .mcp-form-section {
+    margin-bottom: 20px;
+  }
+
+  .mcp-form-section .detail-section-title {
+    margin-bottom: 10px;
+  }
+
+  .mcp-section-header {
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .mcp-section-header .detail-section-title {
+    margin: 0;
+  }
+
+  .mcp-detail-grid {
+    gap: 12px 16px;
+  }
+
+  .mcp-detail-grid .detail-label {
+    gap: 6px;
+    margin: 0;
+  }
+
+  .mcp-repeater {
+    grid-column: 1 / -1;
+  }
+
+  .mcp-repeater-header {
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .mcp-repeater .env-row {
+    margin-top: 0;
   }
 
   .settings-card-row {
@@ -5879,6 +5928,9 @@
   }
 
   @media (max-width: 640px) {
+    .mcp-detail-grid {
+      grid-template-columns: 1fr;
+    }
     .settings-card-row {
       grid-template-columns: 1fr;
       gap: 10px;
