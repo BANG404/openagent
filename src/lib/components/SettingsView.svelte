@@ -3965,7 +3965,7 @@
       {:else}
         <div class="settings-detail-col">
           <div class="extensions-placeholder">
-            <span class="placeholder-icon">MCP</span>
+            <span class="placeholder-icon">{$t("extensions")}</span>
             <p>{$t("noMcpServersHint")}</p>
           </div>
         </div>
@@ -3978,8 +3978,13 @@
           <img class="about-logo-img" src="/app-icon.png" alt="OpenAgent" />
           <h3 class="about-app-name">OpenAgent</h3>
           <p class="about-version">{$t("aboutVersion")}</p>
-          <p class="about-desc">{$t("aboutDesc")}</p>
           <a class="about-contact" href="mailto:iumm@ibat.ac.cn">iumm@ibat.ac.cn</a>
+          <a
+            class="about-contact"
+            href="https://bang404.github.io/openagent/"
+            target="_blank"
+            rel="noreferrer">{$t("aboutWebsite")}</a
+          >
           <button
             class="btn-secondary btn-sm about-update-button"
             disabled={$appUpdateState !== "idle"}

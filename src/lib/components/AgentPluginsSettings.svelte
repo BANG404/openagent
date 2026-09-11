@@ -191,7 +191,9 @@
                   <span class="component-tag">Skill: {skill.name}</span>
                 {/each}
                 {#each plugin.mcp_servers as server (server.name)}
-                  <span class="component-tag">MCP: {server.name} ({server.transport})</span>
+                  <span class="component-tag"
+                    >{$t("agentPluginMcpServers")}: {server.name} ({server.transport})</span
+                  >
                 {/each}
               </div>
             {/if}
