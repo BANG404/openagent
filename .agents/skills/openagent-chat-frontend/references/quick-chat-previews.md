@@ -262,12 +262,6 @@
   `-locale` parameters must keep rule creation and editing, command/message
   action switching, tool matchers, enablement, responsive layout, light/dark
   themes, and Chinese/English copy verifiable without a native Runtime.
-- Keep the development-only `agent-plugins-settings-preview` query as the direct
-  browser surface for Settings → Agent Plugins. Its `-theme` and `-locale`
-  parameters must keep Mica plugin cards, installed components, compatibility
-  diagnostics, responsive layout, light/dark themes, and Chinese/English copy
-  addressable without native plugin state. Plugin cards and loading or empty
-  states must not use a flat secondary gray fill.
 - Keep the development-only `mcp-settings-preview` query as the direct browser
   surface for Settings → Extensions → MCP. Its `-theme` and `-locale` query
   parameters must keep enabled and disabled tool switches, long wrapping tool

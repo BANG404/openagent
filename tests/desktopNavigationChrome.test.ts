@@ -459,8 +459,8 @@ describe("desktop navigation chrome", () => {
       ["Digit4", "memory", "memory"],
       ["Digit5", "integrations", "channels"],
       ["Digit6", "integrations", "extensions"],
-      ["Digit7", "integrations", "plugins"],
-      ["Digit8", "automation", "hooks"],
+      ["Digit7", "automation", "lifecycle"],
+      ["Digit8", "automation", "schedules"],
     ];
 
     for (const [code, kind, section] of targets) {

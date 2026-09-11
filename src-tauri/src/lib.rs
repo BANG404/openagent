@@ -2875,7 +2875,7 @@ fn settings_window_spec(kind: &str) -> Option<SettingsWindowSpec> {
             label: "settings-integrations",
             title: "OpenAgent Integrations",
             default_section: "channels",
-            sections: &["channels", "extensions", "plugins"],
+            sections: &["channels", "extensions"],
             initial_width: 980.0,
             initial_height: 680.0,
         }),
@@ -4168,7 +4168,6 @@ mod tests {
         assert_eq!(integrations.label, "settings-integrations");
         assert!(integrations.sections.contains(&"channels"));
         assert!(integrations.sections.contains(&"extensions"));
-        assert!(integrations.sections.contains(&"plugins"));
         let about = settings_window_spec("about").expect("about window");
         assert_eq!((about.initial_width, about.initial_height), (680.0, 480.0));
         assert!(settings_window_spec("arbitrary").is_none());

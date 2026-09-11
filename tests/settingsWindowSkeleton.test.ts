@@ -35,9 +35,6 @@ describe("settings window skeleton layout", () => {
     expect(settingsWindowSkeletonSpec("agent", "agents")).toMatchObject({
       layout: "agents",
     });
-    expect(settingsWindowSkeletonSpec("integrations", "plugins")).toMatchObject({
-      layout: "plugins",
-    });
     expect(settingsWindowSkeletonSpec("automation", "hooks")).toMatchObject({
       layout: "hooks",
     });

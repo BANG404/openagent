@@ -1,10 +1,10 @@
 # Agent Plugins
 
 OpenAgent can load portable [Agent Plugins](https://agent-plugins.org/) version
-1.0.0 from local directories. Open **Settings → Agent Plugins** and choose a
-folder whose root contains `plugin.json`. Installation copies the validated
-package into the active `OPENAGENT_HOME`; the original folder is not used at
-runtime.
+1.0.0 packages whose root contains `plugin.json`. Validated packages are
+installed under the active `OPENAGENT_HOME`; the original folder is not used at
+runtime. The desktop Integrations settings surface does not provide a plugin
+installer or manager.
 
 OpenAgent implements both portable component types:
 

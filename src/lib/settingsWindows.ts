@@ -11,7 +11,6 @@ export type SettingsNav =
   | "hooks"
   | "lifecycle"
   | "schedules"
-  | "plugins"
   | "extensions"
   | "about";
 
@@ -22,7 +21,7 @@ export const settingsWindowSections: Record<SettingsWindowKind, SettingsNav[]> =
   general: ["general"],
   models: ["providers", "defaults"],
   agent: ["execution", "agents"],
-  integrations: ["channels", "extensions", "plugins"],
+  integrations: ["channels", "extensions"],
   memory: ["memory"],
   automation: ["lifecycle", "schedules"],
   about: ["about"],

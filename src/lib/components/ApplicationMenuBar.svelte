@@ -84,10 +84,9 @@
     Digit4: { kind: "memory", section: "memory" },
     Digit5: { kind: "integrations", section: "channels" },
     Digit6: { kind: "integrations", section: "extensions" },
-    Digit7: { kind: "integrations", section: "plugins" },
-    // Legacy shortcut target: Digit8: { kind: "automation", section: "hooks" }
-    Digit8: { kind: "automation", section: "lifecycle" },
-    Digit9: { kind: "automation", section: "schedules" },
+    // Legacy shortcut target: Digit7: { kind: "automation", section: "hooks" }
+    Digit7: { kind: "automation", section: "lifecycle" },
+    Digit8: { kind: "automation", section: "schedules" },
   };
 
   function isTextControl(element: Element | null): element is TextControl {
@@ -486,13 +485,6 @@
             >{primaryModifier}+Shift+6</span
           ></DropdownMenu.Item
         >
-        <DropdownMenu.Item
-          class="application-menu-item"
-          onSelect={() => onOpenSettingsWindow("integrations", "plugins")}
-          ><span>{$t("agentPlugins")}…</span><span class="application-menu-shortcut"
-            >{primaryModifier}+Shift+7</span
-          ></DropdownMenu.Item
-        >
       </DropdownMenu.Content>
     </DropdownMenu.Portal>
   </DropdownMenu.Root>
@@ -514,7 +506,7 @@
           class="application-menu-item"
           onSelect={() => onOpenSettingsWindow("automation", "lifecycle")}
           ><span>{$t("lifecycleAutomation")}…</span><span class="application-menu-shortcut"
-            >{primaryModifier}+Shift+8</span
+            >{primaryModifier}+Shift+7</span
           ></DropdownMenu.Item
         >
         <DropdownMenu.Item
@@ -522,7 +514,7 @@
           onSelect={() => onOpenSettingsWindow("automation", "schedules")}
         >
           <span>{$t("scheduledHooks")}…</span>
-          <span class="application-menu-shortcut">{primaryModifier}+Shift+9</span>
+          <span class="application-menu-shortcut">{primaryModifier}+Shift+8</span>
         </DropdownMenu.Item>
       </DropdownMenu.Content>
     </DropdownMenu.Portal>

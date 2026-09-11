@@ -580,18 +580,6 @@ export interface SkillMetadata {
   scope: "global" | "local" | `plugin:${string}`;
 }
 
-export interface AgentPluginSummary {
-  id: string;
-  name: string;
-  version: string | null;
-  description: string | null;
-  path: string;
-  skills: { name: string; description: string }[];
-  mcp_servers: { name: string; transport: "stdio" | "streamable-http" }[];
-  warnings: string[];
-  error: string | null;
-}
-
 export interface HtmlPreviewConfig {
   fixed_height: number;
 }

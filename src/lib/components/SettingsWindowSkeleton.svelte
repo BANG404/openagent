@@ -209,29 +209,6 @@
         </div>
       </section>
     </main>
-  {:else if spec.layout === "plugins"}
-    <main class="content-skeleton plugins-skeleton" aria-hidden="true">
-      <div class="plugins-heading">
-        <span class="content-copy"
-          ><span class="block page-title"></span><span class="block page-intro"></span></span
-        ><span class="block primary-action"></span>
-      </div>
-      <span class="application-settings-surface compatibility-note"
-        ><span class="block note-icon"></span><span class="block note-copy"></span></span
-      >
-      {#each Array(2) as _, index (index)}
-        <article class="application-settings-surface plugin-card">
-          <span class="block plugin-mark"></span>
-          <span class="content-copy"
-            ><span class="block row-label"></span><span class="block row-description"></span><span
-              class="plugin-tags"
-              ><span class="block tag"></span><span class="block tag short"></span></span
-            ></span
-          >
-          <span class="block small-action"></span>
-        </article>
-      {/each}
-    </main>
   {:else}
     <main class="content-skeleton" aria-hidden="true">
       {#each contentGroups as rowCount, groupIndex (groupIndex)}
@@ -412,8 +389,7 @@
   }
 
   .channel-heading,
-  .section-heading,
-  .plugins-heading {
+  .section-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -576,8 +552,7 @@
   }
 
   .task-row .row-label,
-  .hook-row .row-label,
-  .plugin-card .row-label {
+  .hook-row .row-label {
     width: 42%;
   }
 
@@ -609,68 +584,6 @@
 
   .hook-list-group {
     margin-top: 30px;
-  }
-
-  .plugins-heading {
-    margin-bottom: 18px;
-  }
-
-  .plugins-heading .page-intro {
-    width: min(380px, 64vw);
-  }
-
-  .compatibility-note {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 52px;
-    padding: 10px 14px;
-    box-sizing: border-box;
-  }
-
-  .note-icon {
-    width: 20px;
-    height: 20px;
-    flex: 0 0 20px;
-    border-radius: 5px;
-  }
-
-  .note-copy {
-    width: min(430px, 72%);
-    height: 9px;
-  }
-
-  .plugin-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    min-height: 118px;
-    margin-top: 16px;
-    padding: 16px;
-    box-sizing: border-box;
-  }
-
-  .plugin-mark {
-    width: 38px;
-    height: 38px;
-    flex: 0 0 38px;
-    border-radius: 7px;
-  }
-
-  .plugin-tags {
-    display: flex;
-    gap: 6px;
-    margin-top: 8px;
-  }
-
-  .tag {
-    width: 92px;
-    height: 22px;
-    border-radius: 5px;
-  }
-
-  .tag.short {
-    width: 64px;
   }
 
   .content-control {

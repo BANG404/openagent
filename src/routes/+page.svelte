@@ -197,7 +197,6 @@
   const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
   const isAgentsSettingsPreview = devQuery?.has("agents-settings-preview") === true;
   const isAutomationHooksPreview = devQuery?.has("automation-hooks-preview") === true;
-  const isAgentPluginsSettingsPreview = devQuery?.has("agent-plugins-settings-preview") === true;
   const isMcpSettingsPreview = devQuery?.has("mcp-settings-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isOnboardingWindow = runtimeQuery?.has("onboarding-window") === true;
@@ -255,18 +254,6 @@
     devQuery?.get("automation-hooks-preview-locale") === "en"
       ? "en"
       : devQuery?.get("automation-hooks-preview-locale") === "zh"
-        ? "zh"
-        : null;
-  const agentPluginsSettingsPreviewTheme =
-    devQuery?.get("agent-plugins-settings-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("agent-plugins-settings-preview-theme") === "light"
-        ? "light"
-        : null;
-  const agentPluginsSettingsPreviewLocale: Locale | null =
-    devQuery?.get("agent-plugins-settings-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("agent-plugins-settings-preview-locale") === "zh"
         ? "zh"
         : null;
   const mcpSettingsPreviewTheme =
@@ -415,7 +402,6 @@
     | "memory"
     | "lifecycle"
     | "schedules"
-    | "plugins"
     | "extensions"
     | "about"
     | undefined
@@ -679,7 +665,6 @@
       standaloneDevPreview !== null ||
       isChannelsSettingsPreview ||
       isAgentsSettingsPreview ||
-      isAgentPluginsSettingsPreview ||
       isMcpSettingsPreview ||
       initialLoading ||
       workspaceLoading ||
@@ -2096,20 +2081,13 @@
       } else {
         await loadSettings();
         await loadWorkspace();
-        if (
-          isChannelsSettingsPreview ||
-          isAgentsSettingsPreview ||
-          isAgentPluginsSettingsPreview ||
-          isMcpSettingsPreview
-        ) {
+        if (isChannelsSettingsPreview || isAgentsSettingsPreview || isMcpSettingsPreview) {
           SettingsView = (await import("$lib/components/SettingsView.svelte")).default;
           settingsInitialNav = isMcpSettingsPreview
             ? "extensions"
-            : isAgentPluginsSettingsPreview
-              ? "plugins"
-              : isAgentsSettingsPreview
-                ? "agents"
-                : "channels";
+            : isAgentsSettingsPreview
+              ? "agents"
+              : "channels";
           settingsOpen = true;
         }
         restoringSurface = "new-conversation";
@@ -2151,7 +2129,6 @@
         config &&
         !isChannelsSettingsPreview &&
         !isAgentsSettingsPreview &&
-        !isAgentPluginsSettingsPreview &&
         !isMcpSettingsPreview
       ) {
         requiresOnboarding = !config.onboarding_completed || !embeddingResourceReady;
@@ -3341,22 +3318,15 @@
           language: onboardingPreviewLocale ?? config.language,
         };
       }
-      if (
-        isChannelsSettingsPreview ||
-        isAgentsSettingsPreview ||
-        isAgentPluginsSettingsPreview ||
-        isMcpSettingsPreview
-      ) {
+      if (isChannelsSettingsPreview || isAgentsSettingsPreview || isMcpSettingsPreview) {
         config = {
           ...config,
           theme:
-            agentPluginsSettingsPreviewTheme ??
             mcpSettingsPreviewTheme ??
             agentsSettingsPreviewTheme ??
             channelsSettingsPreviewTheme ??
             config.theme,
           language:
-            agentPluginsSettingsPreviewLocale ??
             mcpSettingsPreviewLocale ??
             agentsSettingsPreviewLocale ??
             channelsSettingsPreviewLocale ??
@@ -3367,7 +3337,6 @@
         onboardingPreviewTheme ??
           channelsSettingsPreviewTheme ??
           agentsSettingsPreviewTheme ??
-          agentPluginsSettingsPreviewTheme ??
           mcpSettingsPreviewTheme ??
           config.theme ??
           "system",
@@ -3376,7 +3345,6 @@
         onboardingPreviewLocale ??
           channelsSettingsPreviewLocale ??
           agentsSettingsPreviewLocale ??
-          agentPluginsSettingsPreviewLocale ??
           mcpSettingsPreviewLocale ??
           config.language,
       );
@@ -5237,7 +5205,6 @@
                 sections={!tauriAvailable ||
                 isChannelsSettingsPreview ||
                 isAgentsSettingsPreview ||
-                isAgentPluginsSettingsPreview ||
                 isMcpSettingsPreview
                   ? undefined
                   : ["general"]}
