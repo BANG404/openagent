@@ -9,15 +9,21 @@
     lines: FileChangeDiffLine[];
     compact?: boolean;
   } = $props();
+
+  let singleLineNumbers = $derived(lines.every((line) => line.type !== "context"));
 </script>
 
 <div class="diff-viewport" class:compact>
   {#if lines.length > 0}
     <div class="diff-table">
       {#each lines as line, index (`${line.type}-${index}`)}
-        <div class="diff-row {line.type}">
-          <span class="line-number">{line.oldLine ?? ""}</span>
-          <span class="line-number">{line.newLine ?? ""}</span>
+        <div class="diff-row {line.type}" class:single-line-numbers={singleLineNumbers}>
+          {#if singleLineNumbers}
+            <span class="line-number">{line.newLine ?? line.oldLine ?? ""}</span>
+          {:else}
+            <span class="line-number">{line.oldLine ?? ""}</span>
+            <span class="line-number">{line.newLine ?? ""}</span>
+          {/if}
           <span class="line-marker" aria-hidden="true"
             >{line.type === "add" ? "+" : line.type === "remove" ? "−" : ""}</span
           >
@@ -85,6 +91,9 @@
     text-align: center;
     user-select: none;
   }
+  .diff-row.single-line-numbers {
+    grid-template-columns: 44px 24px minmax(0, 1fr);
+  }
   .diff-row code {
     min-width: 0;
     padding: 0 12px 0 4px;
@@ -93,12 +102,18 @@
     white-space: pre;
   }
   .diff-row.add {
-    background: color-mix(in srgb, #18794e 18%, transparent);
-    color: color-mix(in srgb, #18794e 88%, var(--text));
+    background: color-mix(in srgb, #18794e 24%, transparent);
+    color: var(--text);
   }
   .diff-row.remove {
-    background: color-mix(in srgb, #b42318 18%, transparent);
-    color: color-mix(in srgb, #b42318 86%, var(--text));
+    background: color-mix(in srgb, #b42318 24%, transparent);
+    color: var(--text);
+  }
+  .diff-row.add .line-marker {
+    color: color-mix(in srgb, #18794e 82%, var(--text));
+  }
+  .diff-row.remove .line-marker {
+    color: color-mix(in srgb, #b42318 82%, var(--text));
   }
   .diff-empty {
     display: grid;
