@@ -103,10 +103,19 @@ async fn get_component_versions(
     manager: State<'_, FrontendResourceManager>,
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
 ) -> Result<ComponentVersions, String> {
+    let shell_version = env!("CARGO_PKG_VERSION").to_string();
+    let frontend_version = manager.current_version();
     Ok(ComponentVersions {
-        release: env!("CARGO_PKG_VERSION").to_string(),
-        shell: env!("CARGO_PKG_VERSION").to_string(),
-        frontend: manager.current_version(),
+        // Frontend resource releases carry the product release version. This
+        // lets a frontend-only release update the user-facing identity while
+        // keeping the packaged shell version independent.
+        release: if frontend_version == "" {
+            shell_version.clone()
+        } else {
+            frontend_version.clone()
+        },
+        shell: shell_version,
+        frontend: frontend_version,
         runtime: supervisor.status().await.map(|status| status.version),
     })
 }

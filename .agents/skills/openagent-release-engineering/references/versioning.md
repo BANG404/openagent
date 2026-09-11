@@ -2,13 +2,15 @@
 
 ## Product release identity
 
-The product release version is the user-facing OpenAgent version and is stored
-in the native package metadata (`CARGO_PKG_VERSION`, mirrored by
-`package.json` and `tauri.conf.json`). It identifies a qualified release
-combination; it does not replace component versions. Installed frontend and
-Runtime resources continue to track their own versions and may be updated or
-rolled back independently. The About view presents `OpenAgent <release>` and
-keeps the shell, frontend, and Runtime versions available as component detail.
+The product release version is the user-facing OpenAgent version. An activated
+frontend resource is the source of this identity, allowing a frontend-only
+release to advance `OpenAgent <release>` without replacing the native shell;
+the packaged `CARGO_PKG_VERSION` is the fallback before an external frontend is
+active. It identifies a qualified release combination; it does not replace
+component versions. Installed frontend and Runtime resources continue to track
+their own versions and may be updated or rolled back independently. The About
+view presents `OpenAgent <release>` and keeps the shell, frontend, and Runtime
+versions available as component detail.
 
 Release metadata must therefore be interpreted as a tuple: product release
 identity, selected component set, and the protocol compatibility constraints

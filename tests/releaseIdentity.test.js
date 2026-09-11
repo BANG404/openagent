@@ -8,8 +8,9 @@ const settingsSource = readFileSync("src/lib/components/SettingsView.svelte", "u
 describe("product release identity", () => {
   test("exposes the packaged product version separately from component versions", () => {
     expect(hostSource).toContain("release: String");
-    expect(hostSource).toContain('release: env!("CARGO_PKG_VERSION").to_string()');
-    expect(hostSource).toContain('shell: env!("CARGO_PKG_VERSION").to_string()');
+    expect(hostSource).toContain('release: if frontend_version == ""');
+    expect(hostSource).toContain("let frontend_version = manager.current_version();");
+    expect(hostSource).toContain("shell: shell_version");
   });
 
   test("presents the product release before component details", () => {
