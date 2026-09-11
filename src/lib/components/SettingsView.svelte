@@ -163,6 +163,7 @@
         "lifecycle",
         "schedules",
         "extensions",
+        "plugins",
         "about",
       ],
     ),
@@ -1744,6 +1745,12 @@
             {$t("extensions")}
           </Tabs.Trigger>
         {/if}
+        {#if visibleSections.has("plugins")}
+          <Tabs.Trigger value="plugins" class="settings-nav-item">
+            <span class="nav-icon" aria-hidden="true">◈</span>
+            {$t("plugins")}
+          </Tabs.Trigger>
+        {/if}
         {#if visibleSections.has("lifecycle")}
           <Tabs.Trigger value="lifecycle" class="settings-nav-item">
             <svg
@@ -1998,6 +2005,46 @@
                 bind:value={draftConfig.html_preview.fixed_height}
               />
             </label>
+          </div>
+        </section>
+      </div>
+    </Tabs.Content>
+
+    <Tabs.Content value="plugins" class="settings-tab-panel">
+      <div class="settings-content-col">
+        <header class="agents-settings-intro">
+          <h3>{$t("plugins")}</h3>
+          <p>{$t("pluginDesktopControlDescription")}</p>
+        </header>
+        <section class="application-settings-surface settings-card">
+          <div class="settings-card-row">
+            <span class="settings-card-copy">
+              <span class="label-text">Cua Driver</span>
+              <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
+            </span>
+            <button
+              class="btn-secondary btn-sm"
+              onclick={() => {
+                if (draftConfig.mcp.servers.some((server) => server.id === "cua-driver")) return;
+                draftConfig.mcp.servers = [
+                  ...draftConfig.mcp.servers,
+                  {
+                    id: "cua-driver",
+                    name: "Cua Driver",
+                    enabled: true,
+                    transport: "stdio",
+                    url: "",
+                    bearer_token: "",
+                    headers: {},
+                    command: "cua-driver",
+                    args: ["mcp"],
+                    env: {},
+                    cwd: "",
+                    disabled_tools: [],
+                  },
+                ];
+              }}
+            >{$t("pluginConfigure")}</button>
           </div>
         </section>
       </div>
