@@ -1,6 +1,5 @@
 import { writable, derived, get } from "svelte/store";
 import { invoke, listen } from "$lib/openagent/tauriClient";
-import pkg from "../../package.json";
 
 export type Locale = "zh" | "en";
 
@@ -724,7 +723,10 @@ const zh = {
   toolApprovalApprove: "批准并继续",
   openContainingFolder: "打开所在文件夹",
   // About
-  aboutVersion: `前端 ${pkg.version} · Runtime server 0.1.1`,
+  aboutVersionShell: "桌面外壳",
+  aboutVersionFrontend: "前端",
+  aboutVersionRuntime: "Runtime server",
+  aboutVersionUnknown: "未知",
   aboutWebsite: "官网",
   checkForUpdates: "检查更新",
   checkingForUpdates: "正在检查…",
@@ -1733,7 +1735,10 @@ const en: Translations = {
   toolApprovalDeny: "Deny",
   toolApprovalApprove: "Approve and continue",
   openContainingFolder: "Open containing folder",
-  aboutVersion: `Frontend ${pkg.version} · Runtime server 0.1.1`,
+  aboutVersionShell: "Desktop shell",
+  aboutVersionFrontend: "Frontend",
+  aboutVersionRuntime: "Runtime server",
+  aboutVersionUnknown: "Unknown",
   aboutWebsite: "Website",
   checkForUpdates: "Check for updates",
   checkingForUpdates: "Checking…",

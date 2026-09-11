@@ -11,6 +11,7 @@ const nativeCommands = new Set([
   "end_component_update",
   "create_workspace_window",
   "get_embedding_resource_status",
+  "get_component_versions",
   "get_system_locale",
   "get_wsl_home",
   "is_desktop_window_active",

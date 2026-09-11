@@ -61,6 +61,11 @@
 
   type StandardChannelKind = "feishu" | "telegram" | "qq" | "discord" | "slack";
   type ChannelSettingsNav = StandardChannelKind | "wechat" | "gateway";
+  type ComponentVersions = {
+    shell: string;
+    frontend: string;
+    runtime: string | null;
+  };
   type ProviderStatus = {
     tone: "idle" | "loading" | "success" | "error";
     message: string;
@@ -163,6 +168,12 @@
       ],
     ),
   );
+
+  let componentVersions = $state<ComponentVersions>({
+    shell: "...",
+    frontend: "...",
+    runtime: null,
+  });
 
   const fallbackConfig: AppConfig = {
     providers: [],
@@ -531,6 +542,11 @@
       autostartReady = true;
       return;
     }
+    invoke<ComponentVersions>("get_component_versions")
+      .then((versions) => {
+        componentVersions = versions;
+      })
+      .catch(() => {});
     if (visibleSections.has("schedules")) {
       refreshHooks().catch(() => {});
       refreshHookRoles().catch(() => {});
@@ -3977,7 +3993,14 @@
         <div class="about-content">
           <img class="about-logo-img" src="/app-icon.png" alt="OpenAgent" />
           <h3 class="about-app-name">OpenAgent</h3>
-          <p class="about-version">{$t("aboutVersion")}</p>
+          <p class="about-version">
+            {$t("aboutVersionShell")}
+            {componentVersions.shell} ·
+            {$t("aboutVersionFrontend")}
+            {componentVersions.frontend} ·
+            {$t("aboutVersionRuntime")}
+            {componentVersions.runtime ?? $t("aboutVersionUnknown")}
+          </p>
           <a class="about-contact" href="mailto:iumm@ibat.ac.cn">iumm@ibat.ac.cn</a>
           <a
             class="about-contact"

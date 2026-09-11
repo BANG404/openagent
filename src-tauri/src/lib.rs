@@ -89,6 +89,25 @@ struct ComponentUpdateGate {
     active_count: usize,
 }
 
+#[derive(serde::Serialize)]
+struct ComponentVersions {
+    shell: String,
+    frontend: String,
+    runtime: Option<String>,
+}
+
+#[tauri::command]
+async fn get_component_versions(
+    manager: State<'_, FrontendResourceManager>,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+) -> Result<ComponentVersions, String> {
+    Ok(ComponentVersions {
+        shell: env!("CARGO_PKG_VERSION").to_string(),
+        frontend: manager.current_version(),
+        runtime: supervisor.status().await.map(|status| status.version),
+    })
+}
+
 #[derive(Default)]
 struct RuntimeUpdateState {
     pending: tokio::sync::Mutex<Option<InstalledRuntimeResource>>,
@@ -3945,6 +3964,7 @@ fn run_with_mode(agent_server: bool) {
     #[cfg(feature = "embedded-runtime")]
     let builder = builder.invoke_handler(tauri::generate_handler![
         get_settings,
+        get_component_versions,
         get_embedding_resource_status,
         prepare_embedding_resource,
         prepare_runtime_resource,
@@ -4086,6 +4106,7 @@ fn run_with_mode(agent_server: bool) {
     ]);
     #[cfg(not(feature = "embedded-runtime"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
+        get_component_versions,
         prepare_runtime_resource,
         begin_component_update,
         end_component_update,
