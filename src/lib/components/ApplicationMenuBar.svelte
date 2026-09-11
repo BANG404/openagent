@@ -87,6 +87,7 @@
     Digit7: { kind: "integrations", section: "plugins" },
     // Legacy shortcut target: Digit8: { kind: "automation", section: "hooks" }
     Digit8: { kind: "automation", section: "lifecycle" },
+    Digit9: { kind: "automation", section: "schedules" },
   };
 
   function isTextControl(element: Element | null): element is TextControl {
@@ -217,7 +218,10 @@
     else if (!event.shiftKey && key === "o") runShortcut(event, onPickWorkspace);
     else if (!event.shiftKey && key === "w") runShortcut(event, onCloseWindow);
     else if (!event.shiftKey && key === "q") runShortcut(event, onQuit);
-    else if (!event.shiftKey && key === ",") runShortcut(event, onOpenSettings);
+    else if (event.shiftKey && key === "r") runShortcut(event, onCreateRole);
+    else if (event.shiftKey && key === "e") {
+      if (selectedRole) runShortcut(event, () => onConfigureRole(selectedRole));
+    } else if (!event.shiftKey && key === ",") runShortcut(event, onOpenSettings);
     else if (event.shiftKey && settingsShortcutTargets[event.code]) {
       const target = settingsShortcutTargets[event.code];
       runShortcut(event, () => onOpenSettingsWindow(target.kind, target.section));
@@ -406,14 +410,18 @@
         align="start"
       >
         <DropdownMenu.Item class="application-menu-item" onSelect={onCreateRole}>
-          {$t("newRole")}
+          <span>{$t("newRole")}</span><span class="application-menu-shortcut"
+            >{primaryModifier}+Shift+R</span
+          >
         </DropdownMenu.Item>
         <DropdownMenu.Item
           class="application-menu-item"
           disabled={!selectedRole}
           onSelect={() => selectedRole && onConfigureRole(selectedRole)}
         >
-          {$t("configureRole")}
+          <span>{$t("configureRole")}</span><span class="application-menu-shortcut"
+            >{primaryModifier}+Shift+E</span
+          >
         </DropdownMenu.Item>
         <DropdownMenu.Separator class="application-menu-separator" />
         <DropdownMenu.Item
@@ -512,7 +520,10 @@
         <DropdownMenu.Item
           class="application-menu-item"
           onSelect={() => onOpenSettingsWindow("automation", "schedules")}
-          ><span>{$t("scheduledHooks")}…</span></DropdownMenu.Item
+        >
+          <span>{$t("scheduledHooks")}…</span>
+          <span class="application-menu-shortcut">{primaryModifier}+Shift+9</span>
+        </DropdownMenu.Item>
         >
       </DropdownMenu.Content>
     </DropdownMenu.Portal>
