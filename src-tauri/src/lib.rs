@@ -2046,29 +2046,6 @@ async fn list_skills(
 }
 
 #[tauri::command]
-async fn list_agent_plugins(
-    runtime: State<'_, Arc<OpenAgentRuntime>>,
-) -> Result<Vec<openagent_runtime::agent_plugins::AgentPluginSummary>, String> {
-    openagent_runtime::commands::list_agent_plugins(runtime.state()).await
-}
-
-#[tauri::command]
-async fn install_agent_plugin(
-    runtime: State<'_, Arc<OpenAgentRuntime>>,
-    source_path: String,
-) -> Result<openagent_runtime::agent_plugins::AgentPluginSummary, String> {
-    openagent_runtime::commands::install_agent_plugin(runtime.state(), source_path).await
-}
-
-#[tauri::command]
-async fn uninstall_agent_plugin(
-    runtime: State<'_, Arc<OpenAgentRuntime>>,
-    id: String,
-) -> Result<(), String> {
-    openagent_runtime::commands::uninstall_agent_plugin(runtime.state(), id).await
-}
-
-#[tauri::command]
 async fn get_skill_content(path: String) -> Result<String, String> {
     openagent_runtime::commands::get_skill_content(path).await
 }
@@ -4076,9 +4053,6 @@ fn run_with_mode(agent_server: bool) {
         save_design_document,
         get_system_locale,
         list_skills,
-        list_agent_plugins,
-        install_agent_plugin,
-        uninstall_agent_plugin,
         get_skill_content,
         save_skill_content,
         create_skill,
