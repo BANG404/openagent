@@ -2807,8 +2807,14 @@
       }>("chat-mermaid-render-request", (e) => {
         const request = e.payload;
         const cached = pendingMermaidResults.get(request.conv_id);
-        const result =
-          cached ?? renderMermaidToolResult(request.source, mermaidConfig).then(JSON.stringify);
+        if (cached) {
+          // The pre-render path already submitted this result before the
+          // runtime entered the tool. Do not submit it a second time when the
+          // runtime emits its normal request event.
+          pendingMermaidResults.delete(request.conv_id);
+          return;
+        }
+        const result = renderMermaidToolResult(request.source, mermaidConfig).then(JSON.stringify);
         pendingMermaidResults.delete(request.conv_id);
         void result
           .then((renderResult) =>
@@ -2950,6 +2956,19 @@
                 JSON.stringify(result),
               ),
             );
+            void pendingMermaidResults
+              .get(conv_id)
+              ?.then((response) =>
+                openAgent.submitInterruptResponse({
+                  convId: conv_id,
+                  interruptId: toolUseId,
+                  response,
+                }),
+              )
+              .catch((error) => {
+                pendingMermaidResults.delete(conv_id);
+                console.warn("Failed to submit pre-rendered Mermaid result", error);
+              });
           }
         }
         persistStreamDraft(conv_id).catch(() => {});
