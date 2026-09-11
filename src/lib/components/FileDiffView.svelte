@@ -60,8 +60,8 @@
     flex: 0 1 auto;
   }
   .diff-table {
-    width: 100%;
-    min-width: max-content;
+    width: max-content;
+    min-width: 100%;
     padding: 6px 0;
   }
   .diff-row {
