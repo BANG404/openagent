@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.63.0-beta.1] - 2026-09-11
+
+### Features
+- Update about information and plugin naming
+- Add automation and role shortcuts
+- Split automation lifecycle and scheduled tasks
+- **automation**: Add lifecycle hook configuration
+- **roles**: Limit roles to global scope
+- **frontend**: Remove right sidebar browser
+
+### Bug Fixes
+- **desktop**: Show utility windows in taskbar
+- **settings**: Show live component versions
+- Remove stray automation menu character
+
+### Refactoring
+- **integrations**: Remove Agent Plugins settings
+
 ## [0.62.1-beta.1] - 2026-09-10
 
 ### Bug Fixes
