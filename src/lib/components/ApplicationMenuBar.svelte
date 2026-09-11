@@ -85,7 +85,8 @@
     Digit5: { kind: "integrations", section: "channels" },
     Digit6: { kind: "integrations", section: "extensions" },
     Digit7: { kind: "integrations", section: "plugins" },
-    Digit8: { kind: "automation", section: "hooks" },
+    // Legacy shortcut target: Digit8: { kind: "automation", section: "hooks" }
+    Digit8: { kind: "automation", section: "lifecycle" },
   };
 
   function isTextControl(element: Element | null): element is TextControl {
@@ -500,12 +501,18 @@
         sideOffset={2}
         align="start"
       >
+        <!-- Legacy deep-link target: onOpenSettingsWindow("automation", "hooks") -->
         <DropdownMenu.Item
           class="application-menu-item"
-          onSelect={() => onOpenSettingsWindow("automation", "hooks")}
-          ><span>{$t("scheduledHooks")}…</span><span class="application-menu-shortcut"
+          onSelect={() => onOpenSettingsWindow("automation", "lifecycle")}
+          ><span>{$t("lifecycleAutomation")}…</span><span class="application-menu-shortcut"
             >{primaryModifier}+Shift+8</span
           ></DropdownMenu.Item
+        >
+        <DropdownMenu.Item
+          class="application-menu-item"
+          onSelect={() => onOpenSettingsWindow("automation", "schedules")}
+          ><span>{$t("scheduledHooks")}…</span></DropdownMenu.Item
         >
       </DropdownMenu.Content>
     </DropdownMenu.Portal>

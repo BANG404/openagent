@@ -177,7 +177,7 @@
         </section>
       {/each}
     </main>
-  {:else if spec.layout === "hooks"}
+  {:else if spec.layout === "lifecycle" || spec.layout === "schedules"}
     <main class="content-skeleton hooks-skeleton" aria-hidden="true">
       <div class="section-heading">
         <span class="block group-title"></span><span class="block small-action"></span>

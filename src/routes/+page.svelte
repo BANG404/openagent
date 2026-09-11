@@ -413,7 +413,8 @@
     | "execution"
     | "agents"
     | "memory"
-    | "hooks"
+    | "lifecycle"
+    | "schedules"
     | "plugins"
     | "extensions"
     | "about"
@@ -4691,11 +4692,12 @@
     kind: SettingsWindowKind,
     section?: SettingsNav,
   ): Promise<void> {
+    const resolvedSection = section === "hooks" ? "lifecycle" : section;
     if (!tauriAvailable) {
-      await openSettings(section);
+      await openSettings(resolvedSection);
       return;
     }
-    await openSettingsWindow(kind, section).catch((error) => {
+    await openSettingsWindow(kind, resolvedSection).catch((error) => {
       showToast({ title: $t("settingsSaveFailed"), description: String(error), variant: "error" });
     });
   }

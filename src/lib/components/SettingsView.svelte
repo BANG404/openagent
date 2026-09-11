@@ -155,7 +155,8 @@
         "execution",
         "agents",
         "memory",
-        "hooks",
+        "lifecycle",
+        "schedules",
         "plugins",
         "extensions",
         "about",
@@ -530,7 +531,7 @@
       autostartReady = true;
       return;
     }
-    if (visibleSections.has("hooks")) {
+    if (visibleSections.has("schedules")) {
       refreshHooks().catch(() => {});
       refreshHookRoles().catch(() => {});
     }
@@ -1745,8 +1746,8 @@
             {$t("agentPlugins")}
           </Tabs.Trigger>
         {/if}
-        {#if visibleSections.has("hooks")}
-          <Tabs.Trigger value="hooks" class="settings-nav-item">
+        {#if visibleSections.has("lifecycle")}
+          <Tabs.Trigger value="lifecycle" class="settings-nav-item">
             <svg
               class="nav-icon"
               viewBox="0 0 16 16"
@@ -1760,7 +1761,25 @@
               <circle cx="8" cy="8" r="5.5" />
               <path d="M8 4.8V8l2.2 1.4" />
             </svg>
-            {$t("hooks")}
+            {$t("lifecycleAutomation")}
+          </Tabs.Trigger>
+        {/if}
+        {#if visibleSections.has("schedules")}
+          <Tabs.Trigger value="schedules" class="settings-nav-item">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="8" cy="8" r="5.5" />
+              <path d="M8 4.8V8l2.2 1.4" />
+            </svg>
+            {$t("scheduledHooks")}
           </Tabs.Trigger>
         {/if}
       </div>
@@ -2872,7 +2891,7 @@
       {/if}
     </Tabs.Content>
 
-    <Tabs.Content value="hooks" class="settings-tab-panel">
+    <Tabs.Content value="lifecycle" class="settings-tab-panel">
       <div class="settings-content-col">
         <section class="detail-section">
           <div class="detail-section-header">
@@ -3039,7 +3058,11 @@
             </div>
           </section>
         {/if}
+      </div>
+    </Tabs.Content>
 
+    <Tabs.Content value="schedules" class="settings-tab-panel">
+      <div class="settings-content-col">
         <section class="detail-section">
           <div class="detail-section-header">
             <h4 class="detail-section-title">{$t("scheduledHooks")}</h4>

@@ -9,6 +9,8 @@ export type SettingsNav =
   | "agents"
   | "memory"
   | "hooks"
+  | "lifecycle"
+  | "schedules"
   | "plugins"
   | "extensions"
   | "about";
@@ -22,7 +24,7 @@ export const settingsWindowSections: Record<SettingsWindowKind, SettingsNav[]> =
   agent: ["execution", "agents"],
   integrations: ["channels", "extensions", "plugins"],
   memory: ["memory"],
-  automation: ["hooks"],
+  automation: ["lifecycle", "schedules"],
   about: ["about"],
 };
 
