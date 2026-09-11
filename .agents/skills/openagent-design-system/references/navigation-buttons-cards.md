@@ -29,6 +29,8 @@ Dialog footers that pair Cancel with a primary confirmation use the same action 
 
 **Settings actions** — Keep settings-page and onboarding actions on a compact 30px grammar with an icon and explicit semantic hierarchy. Creation actions use a content-sized primary blue pill instead of a full-width gray bar. Ordinary file, test, and navigation actions use an 8px shadowless filled control with the same restrained `--mica-divider` perimeter as Settings inputs; inline row-building actions use a shadowless blue text treatment. Destructive actions use a restrained danger-tinted fill and matching subtle perimeter, especially inside a grouped Settings card. Status text and switches remain flat and must not be wrapped in additional gray capsules.
 
+**Top-bar management windows** — Settings windows opened from the application menu share a compact typography rhythm: 13px body labels at 1.45 line-height, 12px supporting copy at 1.45, and 16px section headings at 1.35. Content columns use a 24px inset and 24px section rhythm; variants such as provider and channel lists may add their own structural columns but must retain these type tokens. Keep larger type limited to an intentional window-level heading, not individual settings rows.
+
 **`text-link`** — Inline body links in `{colors.primary}` (Action Blue). Underlined or non-underlined per context.
 
 **`text-link-on-dark`** — Inline body links on dark tiles in `{colors.primary-on-dark}` (Sky Link Blue #2997ff) — Action Blue would disappear against `{colors.surface-tile-1}`.

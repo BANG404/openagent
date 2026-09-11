@@ -4147,6 +4147,20 @@
 </Dialog.Root>
 
 <style>
+  /* All top-bar management windows share one compact type and spacing rhythm.
+     Individual controls may opt into a larger value (for example pairing
+     codes), but labels, hints, headings, and form fields use these tokens. */
+  .application-settings-scope {
+    --settings-body-size: 13px;
+    --settings-body-leading: 1.45;
+    --settings-hint-size: 12px;
+    --settings-hint-leading: 1.45;
+    --settings-heading-size: 16px;
+    --settings-heading-leading: 1.35;
+    font-size: var(--settings-body-size);
+    line-height: var(--settings-body-leading);
+  }
+
   .settings-panel {
     flex: 1;
     min-width: 0;
@@ -4157,8 +4171,9 @@
   }
 
   .detail-service-name {
-    font-size: 14px;
+    font-size: var(--settings-body-size);
     font-weight: 600;
+    line-height: var(--settings-body-leading);
     color: var(--text);
   }
 
@@ -4279,7 +4294,8 @@
     border-radius: 6px;
     padding: 6px 12px;
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--settings-body-size);
+    line-height: var(--settings-body-leading);
     outline: none;
     font-family: inherit;
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
@@ -4290,8 +4306,8 @@
   .detail-hint {
     margin: 6px 4px 0;
     color: var(--text-muted, #888);
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: var(--settings-hint-size);
+    line-height: var(--settings-hint-leading);
   }
 
   .filter-toggle {
@@ -4408,7 +4424,8 @@
 
   .provider-item-name {
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--settings-body-size);
+    line-height: var(--settings-body-leading);
     font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -4417,23 +4434,30 @@
 
   .provider-item-url {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--settings-hint-size);
+    line-height: var(--settings-hint-leading);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .label-text,
-  .base-url-preview,
+  .base-url-preview {
+    color: var(--text-muted);
+    font-size: var(--settings-body-size);
+    line-height: var(--settings-body-leading);
+  }
+
   .danger-copy,
   .path-display {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--settings-hint-size);
+    line-height: var(--settings-hint-leading);
   }
 
   .base-url-preview {
     overflow-wrap: anywhere;
-    line-height: 1.45;
+    line-height: var(--settings-body-leading);
   }
 
   .provider-enabled-dot,
@@ -4520,14 +4544,16 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    font-size: 14px;
+    font-size: var(--settings-body-size);
+    line-height: var(--settings-body-leading);
     margin-bottom: 2px;
   }
 
   .toggle-row {
     flex-direction: row;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--settings-hint-size);
+    line-height: var(--settings-hint-leading);
   }
 
   .startup-row {
@@ -4638,7 +4664,8 @@
   .remote-gateway-subtitle {
     margin: 4px 0 0;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--settings-hint-size);
+    line-height: var(--settings-hint-leading);
   }
 
   .wechat-channel-access {
@@ -4753,8 +4780,9 @@
 
   .remote-credential-label {
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: var(--settings-hint-size);
     font-weight: 500;
+    line-height: var(--settings-hint-leading);
   }
 
   .remote-credential-copy code {
@@ -4819,7 +4847,8 @@
     border-top: 1px solid var(--border);
     background: var(--surface2);
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: var(--settings-hint-size);
+    line-height: var(--settings-hint-leading);
   }
 
   .remote-security-note span {
@@ -4934,12 +4963,14 @@
   }
 
   .channel-settings-item-copy strong {
-    font-size: 13px;
+    font-size: var(--settings-body-size);
+    line-height: var(--settings-body-leading);
     font-weight: 500;
   }
   .channel-settings-item-copy span {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--settings-hint-size);
+    line-height: var(--settings-hint-leading);
   }
 
   .channel-settings-detail {
@@ -5066,7 +5097,7 @@
     flex: 1;
     min-width: 0;
     overflow-y: auto;
-    padding: 20px 24px;
+    padding: 24px;
   }
 
   .detail-content,
@@ -5081,37 +5112,38 @@
   .agents-settings-intro h3 {
     margin: 0;
     color: var(--text);
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 600;
     letter-spacing: -0.42px;
-    line-height: 1.25;
+    line-height: var(--settings-heading-leading);
   }
 
   .agents-settings-intro p {
     max-width: 640px;
     margin: 8px 0 0;
     color: var(--text-muted);
-    font-size: 13px;
-    line-height: 1.55;
+    font-size: var(--settings-body-size);
+    line-height: var(--settings-body-leading);
   }
 
   .detail-section {
-    margin-bottom: 28px;
+    margin-bottom: 24px;
   }
 
   .detail-section-title {
-    margin: 0 0 16px;
+    margin: 0 0 12px;
     color: var(--text);
-    font-size: 17px;
+    font-size: var(--settings-heading-size);
     font-weight: 600;
-    letter-spacing: -0.37px;
+    letter-spacing: -0.2px;
+    line-height: var(--settings-heading-leading);
   }
 
   .detail-section-intro {
     margin: -8px 0 14px;
     color: var(--text-muted);
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: var(--settings-hint-size);
+    line-height: var(--settings-hint-leading);
   }
 
   .mcp-detail-content {
@@ -5231,14 +5263,14 @@
     font-size: 15px;
     font-weight: 600;
     letter-spacing: -0.18px;
-    line-height: 1.35;
+    line-height: var(--settings-heading-leading);
   }
 
   .flash-task-group-heading p {
     margin: 4px 0 0;
     color: var(--text-muted);
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: var(--settings-hint-size);
+    line-height: var(--settings-hint-leading);
   }
 
   .flash-task-item {
@@ -5273,15 +5305,15 @@
     color: var(--text);
     font-size: 14px;
     font-weight: 600;
-    line-height: 1.4;
+    line-height: var(--settings-heading-leading);
   }
 
   .flash-task-copy p,
   .flash-task-suboption p {
     margin: 4px 0 0;
     color: var(--text-muted);
-    font-size: 12px;
-    line-height: 1.55;
+    font-size: var(--settings-hint-size);
+    line-height: var(--settings-hint-leading);
   }
 
   .flash-task-suboptions {
@@ -5322,7 +5354,7 @@
     color: var(--text);
     font-size: 13px;
     font-weight: 600;
-    line-height: 1.4;
+    line-height: var(--settings-heading-leading);
   }
 
   .flash-task-suboption :global(button) {
@@ -5755,8 +5787,8 @@
 
   .dialog-copy {
     color: var(--text);
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: var(--settings-body-size);
+    line-height: var(--settings-body-leading);
     margin: 0 0 12px;
   }
 
@@ -5788,8 +5820,8 @@
 
   .field-hint {
     color: var(--text-muted);
-    font-size: 12px;
-    line-height: 1.4;
+    font-size: var(--settings-hint-size);
+    line-height: var(--settings-hint-leading);
   }
 
   .reasoning-support-field {
@@ -5877,7 +5909,8 @@
 
   .content-col-title {
     margin: 0 0 24px;
-    font-size: 18px;
+    font-size: var(--settings-heading-size);
+    line-height: var(--settings-heading-leading);
   }
 
   .content-col-actions {
