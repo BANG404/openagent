@@ -7699,6 +7699,7 @@ dependencies = [
  "diffy",
  "dirs 5.0.1",
  "dotenvy",
+ "encoding_rs",
  "fastembed",
  "fs2",
  "futures",
