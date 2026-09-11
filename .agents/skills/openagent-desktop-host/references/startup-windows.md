@@ -84,9 +84,9 @@
   `on_window_ready` restore: they are first placed relative to the requesting
   workspace, then an explicit restore applies a saved position/size when one
   exists. Reopening an existing utility window must not recenter it. These
-  modeless utility windows skip the taskbar so Windows presents one OpenAgent
-  taskbar entry; they remain switchable through normal window activation and
-  Alt+Tab.
+  modeless utility windows participate in the taskbar. Windows groups their
+  buttons under the OpenAgent application identity, while each singleton remains
+  independently switchable and activatable.
 
 ## Platform window conventions
 
