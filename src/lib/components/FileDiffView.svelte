@@ -67,6 +67,7 @@
   .diff-row {
     display: grid;
     grid-template-columns: 44px 44px 24px minmax(0, 1fr);
+    width: 100%;
     min-height: 20px;
     color: var(--text-muted);
     font:
