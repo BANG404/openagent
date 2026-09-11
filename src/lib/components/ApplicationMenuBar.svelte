@@ -478,15 +478,19 @@
           onSelect={() => onOpenSettingsWindow("integrations", "channels")}
           ><span>{$t("channels")}…</span><span class="application-menu-shortcut"
             >{primaryModifier}+Shift+5</span
-          ></DropdownMenu.Item
-        >
+          ></DropdownMenu.Item>
         <DropdownMenu.Item
           class="application-menu-item"
           onSelect={() => onOpenSettingsWindow("integrations", "extensions")}
           ><span>{$t("extensions")}…</span><span class="application-menu-shortcut"
             >{primaryModifier}+Shift+6</span
-          ></DropdownMenu.Item
-        >
+          ></DropdownMenu.Item>
+        <DropdownMenu.Item
+          class="application-menu-item"
+          onSelect={() => onOpenSettingsWindow("integrations", "plugins")}
+          ><span>{$t("plugins")}…</span><span class="application-menu-shortcut"
+            >{primaryModifier}+Shift+7</span
+          ></DropdownMenu.Item>
       </DropdownMenu.Content>
     </DropdownMenu.Portal>
   </DropdownMenu.Root>

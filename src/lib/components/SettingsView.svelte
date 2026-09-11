@@ -163,6 +163,7 @@
         "lifecycle",
         "schedules",
         "extensions",
+        "plugins",
         "about",
       ],
     ),
@@ -336,6 +337,7 @@
   // Keep this guard as a second line of defence: a view initially mounted with
   // `config === null` must never autosave the empty fallback over providers.
   let initializedFromConfig = $state(false);
+  let cuaDefaultApplied = $state(false);
   let acceptedConfigFingerprint = JSON.stringify(
     normalizeConfigShape(untrack(() => config) ?? fallbackConfig),
   );
@@ -370,6 +372,65 @@
     acceptedConfigFingerprint = incomingFingerprint;
     ensureSelectedProvider();
     ensureSelectedMcpServer();
+  });
+
+  type CuaPermissionMode = "standard" | "bounded" | "unrestricted";
+  const cuaDriverId = "cua-driver";
+
+  function createCuaDriverServer(): NormalizedMcpServerConfig {
+    return {
+      id: cuaDriverId,
+      name: "Cua Driver",
+      enabled: true,
+      transport: "stdio",
+      url: "",
+      bearer_token: "",
+      headers: {},
+      command: "cua-driver",
+      args: ["mcp", "--permission-mode", "unrestricted", "--dangerously-bypass-approvals"],
+      env: { CUA_DRIVER_PERMISSION_MODE: "unrestricted" },
+      cwd: "",
+      disabled_tools: [],
+    };
+  }
+
+  function cuaServer(): NormalizedMcpServerConfig {
+    const existing = draftConfig.mcp.servers.find((server) => server.id === cuaDriverId);
+    if (existing) return existing;
+    const created = createCuaDriverServer();
+    draftConfig.mcp.servers = [created, ...draftConfig.mcp.servers];
+    return created;
+  }
+
+  function cuaPermissionMode(server: NormalizedMcpServerConfig): CuaPermissionMode {
+    const mode = server.env.CUA_DRIVER_PERMISSION_MODE;
+    return mode === "standard" || mode === "bounded" ? mode : "unrestricted";
+  }
+
+  function setCuaPermissionMode(mode: CuaPermissionMode) {
+    const server = cuaServer();
+    server.env = { ...server.env, CUA_DRIVER_PERMISSION_MODE: mode };
+    server.args = ["mcp", "--permission-mode", mode];
+    if (mode === "unrestricted") server.args.push("--dangerously-bypass-approvals");
+  }
+
+  function openCuaTools() {
+    selectedMcpId = cuaDriverId;
+    document
+      .querySelector<HTMLButtonElement>('[data-tabs-trigger][data-value="extensions"]')
+      ?.click();
+  }
+
+  let cuaDriver = $derived(
+    draftConfig.mcp.servers.find((server) => server.id === cuaDriverId) ?? createCuaDriverServer(),
+  );
+
+  $effect(() => {
+    if (!initializedFromConfig || cuaDefaultApplied) return;
+    cuaDefaultApplied = true;
+    if (draftConfig.mcp.servers.some((server) => server.id === cuaDriverId)) return;
+    cuaServer();
+    queueMicrotask(() => saveDraftConfig().catch(console.error));
   });
 
   function snapshotDraftConfig() {
@@ -1744,6 +1805,12 @@
             {$t("extensions")}
           </Tabs.Trigger>
         {/if}
+        {#if visibleSections.has("plugins")}
+          <Tabs.Trigger value="plugins" class="settings-nav-item">
+            <span class="nav-icon" aria-hidden="true">◈</span>
+            {$t("plugins")}
+          </Tabs.Trigger>
+        {/if}
         {#if visibleSections.has("lifecycle")}
           <Tabs.Trigger value="lifecycle" class="settings-nav-item">
             <svg
@@ -1999,6 +2066,55 @@
               />
             </label>
           </div>
+        </section>
+      </div>
+    </Tabs.Content>
+
+    <Tabs.Content value="plugins" class="settings-tab-panel">
+      <div class="settings-content-col">
+        <header class="agents-settings-intro">
+          <h3>{$t("plugins")}</h3>
+          <p>{$t("pluginDesktopControlDescription")}</p>
+        </header>
+        <section class="application-settings-surface settings-card">
+          <div class="settings-card-row plugin-card-header">
+            <span class="settings-card-copy">
+              <span class="label-text">Cua Driver</span>
+              <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
+            </span>
+            <Switch
+              checked={cuaDriver.enabled}
+              onCheckedChange={(enabled) => {
+                cuaDriver.enabled = enabled;
+              }}
+              ariaLabel={$t("pluginDesktopControl")}
+            />
+          </div>
+          <div class="plugin-card-grid">
+            <label class="detail-label">
+              <span class="label-text">{$t("pluginPermissionMode")}</span>
+              <Select
+                value={cuaPermissionMode(cuaDriver)}
+                onValueChange={(value) => setCuaPermissionMode(value as CuaPermissionMode)}
+                items={[
+                  { value: "unrestricted", label: $t("pluginPermissionUnrestricted") },
+                  { value: "bounded", label: $t("pluginPermissionBounded") },
+                  { value: "standard", label: $t("pluginPermissionStandard") },
+                ]}
+                ariaLabel={$t("pluginPermissionMode")}
+              />
+            </label>
+            <div class="plugin-card-control">
+              <span class="label-text">{$t("pluginTools")}</span>
+              <span class="detail-hint">{$t("pluginToolsHint")}</span>
+              <button class="btn-secondary btn-sm" onclick={openCuaTools}
+                >{$t("pluginManageTools")}</button
+              >
+            </div>
+          </div>
+          {#if cuaPermissionMode(cuaDriver) === "unrestricted"}
+            <p class="plugin-warning">{$t("pluginUnrestrictedWarning")}</p>
+          {/if}
         </section>
       </div>
     </Tabs.Content>
@@ -5245,6 +5361,39 @@
     margin-bottom: 12px;
   }
 
+  .plugin-card-header {
+    align-items: center;
+  }
+
+  .plugin-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    padding: 16px;
+    border-top: 1px solid var(--mica-divider);
+  }
+
+  .plugin-card-control {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .plugin-card-control .btn-secondary {
+    margin-top: 4px;
+  }
+
+  .plugin-warning {
+    margin: 0 16px 16px;
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--mica-divider));
+    border-radius: 8px;
+    color: var(--danger);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
   .detail-section-header .detail-section-title {
     margin: 0;
   }
@@ -5967,6 +6116,10 @@
     .settings-card-row {
       grid-template-columns: 1fr;
       gap: 10px;
+    }
+
+    .plugin-card-grid {
+      grid-template-columns: 1fr;
     }
 
     .flash-task-inline-setting {

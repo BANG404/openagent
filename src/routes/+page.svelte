@@ -415,6 +415,7 @@
     | "lifecycle"
     | "schedules"
     | "extensions"
+    | "plugins"
     | "about"
     | undefined
   >(undefined);
