@@ -69,6 +69,11 @@
 - Render `render_mermaid` as a standalone transcript row from ToolCall source and
   restore it from the matching durable ToolResult. Defer the preview until its
   successful ToolResult arrives; never mount pending or failed render previews.
+  `render_mermaid` is frontend-assisted and never an approval request. When an
+  interrupted checkpoint is restored with an unresolved Mermaid call, re-run the
+  renderer and submit its result through the owning conversation's interrupt
+  channel instead of projecting an approval button. Checkpoint hydration must
+  preserve optimistic sibling approval resolutions by request ID.
   Keep Mermaid renders serialized behind the underlying operation so the
   shared engine is never used concurrently.
   Apply the same failed-result hiding rule to ordinary tools.

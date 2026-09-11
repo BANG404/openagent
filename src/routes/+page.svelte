@@ -128,6 +128,7 @@
     appendThinkingChunk,
     appendToolCall,
     appendUserInput,
+    preserveResolvedUserInputs,
     attachToolResult,
     collapseStreamText,
     resolveUserInput,
@@ -377,6 +378,9 @@
   // A live approval may be clicked before its run has emitted the terminal
   // interruption event. Resume only after that event has finalized the turn.
   const interruptTerminalHandoffs = new InterruptTerminalHandoff();
+  // A restored render_mermaid request must be answered once even if its
+  // original frontend event was emitted while the transcript was mounting.
+  const handledMermaidInterrupts = new Set<string>();
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
   let checkpointFlowPanelCollapsed = $state(
@@ -940,6 +944,13 @@
       computeActivePath(tree),
       checkpoints,
     );
+    const tipMessage = [...computeActivePath(tree)]
+      .reverse()
+      .find((message) => message.role === "assistant" && message.checkpointId);
+    const tipCheckpoint = tipMessage
+      ? checkpoints.find((item) => item.meta.checkpoint_id === tipMessage.checkpointId)
+      : undefined;
+    if (tipCheckpoint) restoreMermaidRenderRequests(convId, tipCheckpoint);
     if (pendingProjection.pendingRequest) {
       pendingUserInputs = {
         ...pendingUserInputs,
@@ -950,13 +961,21 @@
     const idx = conversations.findIndex((conversation) => conversation.id === convId);
     if (idx !== -1) {
       const visible = conversations[idx].messages;
-      const msgs = chatStreams.streamingConversationIds[convId]
+      const hydrated = chatStreams.streamingConversationIds[convId]
         ? preserveStreamingMessagesDuringHydration(
             visible,
             hydratedMessages,
             pendingForkUserMessageIds[convId],
           )
         : preserveMessagesAddedDuringHydration(visible, hydratedMessages, messageIdsAtStart);
+      const msgs = hydrated.map((message, index) => {
+        const current = visible[index];
+        if (!current || current.id !== message.id || current.role !== message.role) return message;
+        return {
+          ...message,
+          items: preserveResolvedUserInputs(current.items ?? [], message.items ?? []),
+        };
+      });
       // A normal completed turn is already represented by the client-side
       // stream finalizer. Keep those message instances when only checkpoint
       // metadata changed so the visible transcript does not remount.
@@ -1073,6 +1092,7 @@
       .filter((content) => content.type === "tool_use" && !resolved.has(String(content.id)));
     return pending.flatMap((content) => {
       const toolUse = content as { id: string; name: string; input?: unknown };
+      if (toolUse.name === "render_mermaid") return [];
       if (toolUse.name === "ask_user") {
         const request = askUserRequestFromToolUse(toolUse as Record<string, unknown>, convId);
         return request ? [request] : [];
@@ -1097,6 +1117,42 @@
         },
       ];
     });
+  }
+
+  function restoreMermaidRenderRequests(
+    convId: string,
+    checkpoint: Awaited<ReturnType<typeof fetchRenderableCheckpoints>>[number],
+  ): void {
+    if (!tauriAvailable || isDevInspectorWindow || checkpoint.data.phase !== "interrupted") return;
+    const resolved = new Set(
+      checkpoint.data.messages
+        .filter((message) => message.role === "user")
+        .flatMap((message) => message.content)
+        .filter((content) => content.type === "tool_result")
+        .map((content) => String(content.tool_use_id)),
+    );
+    for (const content of checkpoint.data.messages.flatMap((message) =>
+      message.role === "assistant" ? message.content : [],
+    )) {
+      if (content.type !== "tool_use" || content.name !== "render_mermaid") continue;
+      const requestId = String(content.id);
+      if (resolved.has(requestId) || handledMermaidInterrupts.has(requestId)) continue;
+      const input = content.input as { source?: unknown } | undefined;
+      if (typeof input?.source !== "string" || !input.source.trim()) continue;
+      handledMermaidInterrupts.add(requestId);
+      void renderMermaidToolResult(input.source, mermaidConfig)
+        .then((result) =>
+          openAgent.submitInterruptResponse({
+            convId,
+            interruptId: requestId,
+            response: JSON.stringify(result),
+          }),
+        )
+        .catch((error) => {
+          handledMermaidInterrupts.delete(requestId);
+          console.warn("Failed to restore Mermaid render result", error);
+        });
+    }
   }
 
   /** Attach a follow-up approval to the already-finalized interrupted turn.
@@ -1621,6 +1677,13 @@
         branchMessages,
         checkpoints,
       );
+      const tipMessage = [...computeActivePath(updatedTree)]
+        .reverse()
+        .find((message) => message.role === "assistant" && message.checkpointId);
+      const tipCheckpoint = tipMessage
+        ? checkpoints.find((item) => item.meta.checkpoint_id === tipMessage.checkpointId)
+        : undefined;
+      if (tipCheckpoint) restoreMermaidRenderRequests(convId, tipCheckpoint);
       branchMessages = pendingProjection.messages;
       if (pendingProjection.pendingRequest) {
         pendingUserInputs = {

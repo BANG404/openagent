@@ -68,6 +68,12 @@ describe("background checkpoint reconciliation", () => {
 });
 
 describe("external conversation hydration", () => {
+  test("does not restore render_mermaid as a manual approval", async () => {
+    const pageSource = await readFile("src/routes/+page.svelte", "utf8");
+    expect(pageSource).toContain('if (toolUse.name === "render_mermaid") return [];');
+    expect(pageSource).toContain("restoreMermaidRenderRequests(convId, tipCheckpoint)");
+  });
+
   test("keeps a quick-chat user message that arrives during foreground hydration", () => {
     const externalUser = {
       id: "quick-user-1",

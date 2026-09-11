@@ -2987,7 +2987,6 @@ async fn open_role_editor_window(
     .max_inner_size(max_width, max_height)
     .min_inner_size(760.0, 440.0)
     .transparent(!cfg!(target_os = "linux"))
-    .skip_taskbar(true)
     // Keep the utility window hidden until its requester-relative fallback
     // and any persisted geometry have both been applied. Showing it during
     // construction would expose the subsequent position changes as a jump.
@@ -3032,7 +3031,6 @@ async fn open_settings_window(
             .inner_size(spec.initial_width, spec.initial_height)
             .min_inner_size(640.0, 400.0)
             .transparent(!cfg!(target_os = "linux"))
-            .skip_taskbar(true)
             // Apply both placement steps while hidden so opening from the
             // application menu produces a single stable location.
             .visible(false)
@@ -3854,7 +3852,6 @@ fn run_with_mode(agent_server: bool) {
                 .transparent(true)
                 .resizable(false)
                 .always_on_top(true)
-                .skip_taskbar(true)
                 .shadow(false)
                 .visible(false)
                 .build()?;

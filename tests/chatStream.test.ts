@@ -1,6 +1,11 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
-import { appendToolCall, appendUserInput, attachToolResult } from "../src/lib/chatStream";
+import {
+  appendToolCall,
+  appendUserInput,
+  attachToolResult,
+  preserveResolvedUserInputs,
+} from "../src/lib/chatStream";
 
 describe("tool stream correlation", () => {
   test("attaches out-of-order results by provider tool id", () => {
@@ -50,6 +55,26 @@ describe("tool stream correlation", () => {
       type: "tool_call",
       result: expect.any(String),
       approval: { state: "unanswered" },
+    });
+  });
+
+  test("preserves an optimistic sibling resolution during hydration", () => {
+    const request = { request_id: "call-1", conv_id: "conv-1", kind: "tool_approval", fields: [] };
+    const visible = appendUserInput(
+      appendToolCall([], "exec_command", { cmd: "one" }, "call-1"),
+      request,
+    );
+    const resolved = visible.map((item) =>
+      item.type === "tool_call"
+        ? { ...item, approval: { ...item.approval!, state: "answered" as const } }
+        : item,
+    );
+    const hydrated = appendUserInput(
+      appendToolCall([], "exec_command", { cmd: "one" }, "call-1"),
+      request,
+    );
+    expect(preserveResolvedUserInputs(resolved, hydrated)[0]).toMatchObject({
+      approval: { state: "answered" },
     });
   });
 });

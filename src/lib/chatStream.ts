@@ -178,6 +178,39 @@ export function resolveUserInput(
   });
 }
 
+/** Keep an optimistic approval resolution when checkpoint hydration races it. */
+export function preserveResolvedUserInputs(
+  visible: StreamItem[],
+  hydrated: StreamItem[],
+): StreamItem[] {
+  const resolved = new Map<string, Extract<StreamItem, { type: "tool_call" | "user_input" }>>();
+  for (const item of visible) {
+    if (item.type === "user_input" && item.state !== "pending") {
+      resolved.set(item.request.request_id, item);
+    } else if (item.type === "tool_call" && item.approval && item.approval.state !== "pending") {
+      resolved.set(item.approval.request.request_id, item);
+    }
+  }
+  if (resolved.size === 0) return hydrated;
+  return hydrated.map((item) => {
+    const requestId =
+      item.type === "user_input"
+        ? item.request.request_id
+        : item.type === "tool_call"
+          ? item.approval?.request.request_id
+          : undefined;
+    const previous = requestId ? resolved.get(requestId) : undefined;
+    if (!previous) return item;
+    if (item.type === "user_input" && previous.type === "user_input") {
+      return { ...item, state: previous.state, response: previous.response };
+    }
+    if (item.type === "tool_call" && previous.type === "tool_call" && item.approval) {
+      return { ...item, approval: previous.approval };
+    }
+    return item;
+  });
+}
+
 export function collapseStreamText(items: StreamItem[]): string {
   return items
     .filter((i): i is Extract<StreamItem, { type: "text" }> => i.type === "text")
