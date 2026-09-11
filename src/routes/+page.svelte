@@ -1153,11 +1153,13 @@
           // During durable restore there is usually no in-memory interrupt
           // channel yet. Submit first so the runtime queues the frontend
           // result; resuming then consumes it while advancing the checkpoint.
-          await openAgent.submitInterruptResponse({
-            convId,
-            interruptId: requestId,
-            response,
-          });
+          await openAgent
+            .submitInterruptResponse({ convId, interruptId: requestId, response })
+            .catch(() => {
+              // A restored checkpoint may not be present in the runtime's
+              // in-memory snapshot map yet; resume below can still resolve it
+              // from durable conversation memory.
+            });
           await openAgent.resumeInterrupt({
             convId,
             interruptId: requestId,
