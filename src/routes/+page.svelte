@@ -1168,7 +1168,10 @@
         })
         .catch((error) => {
           handledMermaidInterrupts.delete(requestId);
-          console.warn("Failed to restore Mermaid render result", error);
+          console.warn(
+            "Failed to restore Mermaid render result",
+            error instanceof Error ? error.message : String(error),
+          );
         });
     }
   }
