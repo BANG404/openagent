@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [0.63.0-beta.1] - 2026-09-11
 
 ### Features
+- Bind runtime releases to product identity
+- Expose product release identity
 - Update about information and plugin naming
 - Add automation and role shortcuts
 - Split automation lifecycle and scheduled tasks
@@ -13,12 +15,27 @@ All notable changes to this project will be documented in this file.
 - **frontend**: Remove right sidebar browser
 
 ### Bug Fixes
+- Continue Mermaid restore when queue is unavailable
+- Restore Mermaid results through desktop gateway
+- Queue Mermaid render results before resume
+- Persist early Mermaid results
+- Pre-render Mermaid tool calls
+- Restore Mermaid tool results durably
+- **frontend**: Queue batched approval resumes
+- Derive release identity from active frontend
+- **runtime**: Decode Windows console output
+- **chat**: Restore mermaid interrupts without approvals
 - **desktop**: Show utility windows in taskbar
 - **settings**: Show live component versions
 - Remove stray automation menu character
 
 ### Refactoring
 - **integrations**: Remove Agent Plugins settings
+
+### Miscellaneous
+- Update SDK Mermaid interrupt classification
+- Update runtime dependency lockfile
+- **sdk**: Update pinned runtime revision
 
 ## [0.62.1-beta.1] - 2026-09-10
 
