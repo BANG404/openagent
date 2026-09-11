@@ -16,7 +16,6 @@
 
   type RoleDraft = {
     id: string | null;
-    scope: "global" | "local";
     name: string;
     description: string;
     skillIds: string[];
@@ -54,7 +53,7 @@
     loadingResources = true;
     loadError = "";
     try {
-      const [nextConfig, nextSkills, localRoles, globalRoles] = await Promise.all([
+      const [nextConfig, nextSkills, roles] = await Promise.all([
         settingsRequests.resolve(() =>
           desktopOpenAgent.invokeProduct("get_settings", {}).then((value) => value as AppConfig),
         ),
@@ -62,13 +61,12 @@
           .invokeProduct("list_skills", {})
           .then((value) => value as SkillMetadata[])
           .catch(() => []),
-        desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "local" }).catch(() => []),
-        desktopOpenAgent.invokeProduct("list_agent_roles", { scope: "global" }).catch(() => []),
+        desktopOpenAgent.invokeProduct("list_agent_roles", {}).catch(() => []),
       ]);
       if (nextConfig) applyConfig(nextConfig);
       skills = nextSkills;
       role = nextRequest.roleId
-        ? ([...localRoles, ...globalRoles].find((item) => item.id === nextRequest.roleId) ?? null)
+        ? (roles.find((item) => item.id === nextRequest.roleId) ?? null)
         : null;
       if (nextRequest.roleId && !role) loadError = $t("roleNotFound");
       await appWindow.setTitle(nextRequest.roleId ? $t("editRole") : $t("newRole"));
@@ -93,7 +91,6 @@
     try {
       const saved = await desktopOpenAgent.invokeProduct("save_agent_role", {
         id: draft.id,
-        scope: draft.scope,
         name: draft.name,
         description: draft.description,
         skillIds: draft.skillIds,

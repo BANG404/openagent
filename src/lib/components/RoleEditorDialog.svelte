@@ -2,10 +2,10 @@
   import { Dialog } from "bits-ui";
   import type { AgentRole, McpServerConfig, SkillMetadata } from "$lib/types";
   import { t } from "$lib/i18n";
+  import { globalRoleSkillIds, globalRoleSkills } from "$lib/roleScope";
 
   type RoleDraft = {
     id: string | null;
-    scope: "global" | "local";
     name: string;
     description: string;
     skillIds: string[];
@@ -38,7 +38,6 @@
 
   let name = $state("");
   let description = $state("");
-  let scope = $state<"global" | "local">("local");
   let skillIds = $state<string[]>([]);
   let mcpServerIds = $state<string[]>([]);
   let skillQuery = $state("");
@@ -47,8 +46,9 @@
 
   let filteredSkills = $derived.by(() => {
     const query = skillQuery.trim().toLocaleLowerCase();
-    if (!query) return skills;
-    return skills.filter((skill) =>
+    const globalSkills = globalRoleSkills(skills);
+    if (!query) return globalSkills;
+    return globalSkills.filter((skill) =>
       `${skill.name} ${skill.description} ${skill.dir_name}`.toLocaleLowerCase().includes(query),
     );
   });
@@ -73,8 +73,7 @@
     initializedKey = key;
     name = role?.name ?? "";
     description = role?.description ?? "";
-    scope = role?.scope === "global" ? "global" : "local";
-    skillIds = [...(role?.skill_ids ?? [])];
+    skillIds = globalRoleSkillIds(role?.skill_ids ?? []);
     mcpServerIds = [...(role?.mcp_server_ids ?? [])];
     skillQuery = "";
     mcpServerQuery = "";
@@ -92,7 +91,6 @@
     if (!name.trim() || !description.trim() || saving) return;
     void onSave({
       id: role?.id ?? null,
-      scope,
       name: name.trim(),
       description: description.trim(),
       skillIds,
@@ -127,13 +125,6 @@
           <span>{$t("roleName")}</span>
           <input bind:value={name} placeholder={$t("roleNamePlaceholder")} autocomplete="off" />
         </label>
-        <fieldset class="scope-field" disabled={Boolean(role)}>
-          <legend>{$t("scope")}</legend>
-          <div class="scope-options">
-            <label><input type="radio" bind:group={scope} value="local" />{$t("projectTab")}</label>
-            <label><input type="radio" bind:group={scope} value="global" />{$t("globalTab")}</label>
-          </div>
-        </fieldset>
       </div>
 
       <label class="prompt-field">
@@ -422,9 +413,7 @@
   }
 
   .role-fields {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 148px;
-    gap: 14px;
+    display: block;
   }
 
   .prompt-field {
@@ -432,8 +421,7 @@
     margin-top: 18px;
   }
 
-  label > span,
-  legend {
+  label > span {
     display: block;
     margin-bottom: 7px;
     color: var(--text);
@@ -480,39 +468,6 @@
     color: var(--text-muted);
     font-size: 11px;
     line-height: 1.45;
-  }
-
-  .scope-field {
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    border: 0;
-  }
-
-  .scope-options {
-    height: 34px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-items: center;
-    padding: 2px;
-    box-sizing: border-box;
-    border-radius: 6px;
-    background: var(--control-surface);
-    border: 1px solid var(--mica-divider);
-  }
-
-  .scope-options label {
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    color: var(--text-muted);
-    font-size: 12px;
-  }
-
-  .scope-options input {
-    accent-color: var(--primary);
   }
 
   .resource-section h3,

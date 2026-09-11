@@ -81,7 +81,7 @@
   const inputSurfaceRoles: AgentRole[] = [
     {
       id: "reviewer",
-      scope: "local",
+      scope: "global",
       name: "Reviewer",
       description: "Review implementation changes",
       skill_ids: [],
@@ -93,7 +93,7 @@
     },
     {
       id: "developer",
-      scope: "local",
+      scope: "global",
       name: "Developer",
       description: "Build and debug product features",
       skill_ids: [],

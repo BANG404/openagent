@@ -1723,12 +1723,9 @@
       selectedRoleKey = defaultRoleKey;
       return;
     }
-    const [localRoles, globalRoles] = await Promise.all([
-      openAgent.invokeProduct("list_agent_roles", { scope: "local" }).catch(() => []),
-      openAgent.invokeProduct("list_agent_roles", { scope: "global" }).catch(() => []),
-    ]);
+    const roles = await openAgent.invokeProduct("list_agent_roles", {}).catch(() => []);
     const seen = new Set<string>();
-    agentRoles = [...localRoles, ...globalRoles].filter((role) => {
+    agentRoles = roles.filter((role) => {
       if (seen.has(role.id)) return false;
       seen.add(role.id);
       return true;
@@ -1763,7 +1760,6 @@
 
   async function saveRoleEditor(draft: {
     id: string | null;
-    scope: "global" | "local";
     name: string;
     description: string;
     skillIds: string[];
@@ -1773,7 +1769,6 @@
     try {
       const saved = await openAgent.invokeProduct("save_agent_role", {
         id: draft.id,
-        scope: draft.scope,
         name: draft.name,
         description: draft.description,
         skillIds: draft.skillIds,
@@ -1814,10 +1809,7 @@
       })
       .catch(() => []);
     const seen = new Set<string>();
-    return [
-      ...roles.filter((role) => role.scope !== "global"),
-      ...roles.filter((role) => role.scope === "global"),
-    ].filter((role) => {
+    return roles.filter((role) => {
       if (seen.has(role.id)) return false;
       seen.add(role.id);
       return true;

@@ -375,7 +375,7 @@ export interface AgentMemoryEntry {
 
 export interface AgentRole {
   id: string;
-  scope: string;
+  scope: "global";
   name: string;
   description: string;
   skill_ids: string[];
