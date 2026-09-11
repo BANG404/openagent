@@ -18,7 +18,14 @@
         <div class="diff-row {line.type}">
           <span class="line-number">{line.oldLine ?? ""}</span>
           <span class="line-number">{line.newLine ?? ""}</span>
-          <code>{line.text || " "}</code>
+          <span class="line-marker" aria-hidden="true"
+            >{line.type === "add" ? "+" : line.type === "remove" ? "−" : ""}</span
+          >
+          <code
+            >{line.type === "add" || line.type === "remove"
+              ? line.text.slice(1) || " "
+              : line.text || " "}</code
+          >
         </div>
       {/each}
     </div>
@@ -39,7 +46,8 @@
     min-height: 0;
     flex: 1;
     overflow: auto;
-    background: color-mix(in srgb, var(--surface) 88%, var(--bg));
+    background: var(--component-neutral-bg, color-mix(in srgb, var(--surface) 88%, var(--bg)));
+    color-scheme: light dark;
   }
   .diff-viewport.compact {
     max-height: 280px;
@@ -47,42 +55,50 @@
   }
   .diff-table {
     width: 100%;
-    padding: 8px 0;
+    min-width: max-content;
+    padding: 6px 0;
   }
   .diff-row {
     display: grid;
-    grid-template-columns: 34px 34px minmax(0, 1fr);
+    grid-template-columns: 44px 44px 24px minmax(0, 1fr);
+    min-height: 20px;
     color: var(--text-muted);
     font:
-      400 11px/1.55 "JetBrains Mono",
+      400 12px/20px "JetBrains Mono",
       monospace;
+    white-space: pre;
   }
   .diff-row > * {
     box-sizing: border-box;
   }
   .line-number {
-    width: 34px;
-    padding: 0 6px;
+    width: 44px;
+    padding: 0 8px;
     border-right: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
     color: color-mix(in srgb, var(--text-muted) 65%, transparent);
     text-align: right;
     user-select: none;
   }
+  .line-marker {
+    width: 24px;
+    color: color-mix(in srgb, currentColor 82%, transparent);
+    text-align: center;
+    user-select: none;
+  }
   .diff-row code {
     min-width: 0;
-    padding: 0 10px;
+    padding: 0 12px 0 4px;
     color: inherit;
     font: inherit;
-    overflow-wrap: anywhere;
-    white-space: pre-wrap;
+    white-space: pre;
   }
   .diff-row.add {
-    background: color-mix(in srgb, #18794e 12%, transparent);
-    color: color-mix(in srgb, #18794e 85%, var(--text));
+    background: color-mix(in srgb, #18794e 18%, transparent);
+    color: color-mix(in srgb, #18794e 88%, var(--text));
   }
   .diff-row.remove {
-    background: color-mix(in srgb, #b42318 11%, transparent);
-    color: color-mix(in srgb, #b42318 82%, var(--text));
+    background: color-mix(in srgb, #b42318 18%, transparent);
+    color: color-mix(in srgb, #b42318 86%, var(--text));
   }
   .diff-empty {
     display: grid;
