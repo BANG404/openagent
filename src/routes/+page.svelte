@@ -4811,12 +4811,11 @@
     kind: SettingsWindowKind,
     section?: SettingsNav,
   ): Promise<void> {
-    const resolvedSection = section === "hooks" ? "lifecycle" : section;
     if (!tauriAvailable) {
-      await openSettings(resolvedSection);
+      await openSettings(section);
       return;
     }
-    await openSettingsWindow(kind, resolvedSection).catch((error) => {
+    await openSettingsWindow(kind, section).catch((error) => {
       showToast({ title: $t("settingsSaveFailed"), description: String(error), variant: "error" });
     });
   }

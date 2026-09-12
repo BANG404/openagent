@@ -259,7 +259,8 @@ describe("desktop navigation chrome", () => {
     expect(menu).toContain('onOpenSettingsWindow("models", "providers")');
     expect(menu).toContain('onOpenSettingsWindow("agent", "execution")');
     expect(menu).toContain('onOpenSettingsWindow("integrations", "channels")');
-    expect(menu).toContain('onOpenSettingsWindow("automation", "hooks")');
+    expect(menu).toContain('onOpenSettingsWindow("automation", "lifecycle")');
+    expect(menu).toContain('onOpenSettingsWindow("automation", "schedules")');
     expect(settings).toContain('<Tabs.Content value="execution"');
     expect(settings).toMatch(
       /if \(visibleSections\.has\("channels"\)\) \{[\s\S]*?wechatStatusTimer = setInterval/,

@@ -2911,8 +2911,8 @@ fn settings_window_spec(kind: &str) -> Option<SettingsWindowSpec> {
         "automation" => Some(SettingsWindowSpec {
             label: "settings-automation",
             title: "OpenAgent Automation",
-            default_section: "hooks",
-            sections: &["hooks"],
+            default_section: "lifecycle",
+            sections: &["lifecycle", "schedules"],
             initial_width: 900.0,
             initial_height: 640.0,
         }),
@@ -4352,6 +4352,9 @@ mod tests {
         assert!(integrations.sections.contains(&"channels"));
         assert!(integrations.sections.contains(&"extensions"));
         assert!(integrations.sections.contains(&"plugins"));
+        let automation = settings_window_spec("automation").expect("automation window");
+        assert_eq!(automation.default_section, "lifecycle");
+        assert_eq!(automation.sections, &["lifecycle", "schedules"]);
         let about = settings_window_spec("about").expect("about window");
         assert_eq!((about.initial_width, about.initial_height), (680.0, 480.0));
         assert!(settings_window_spec("arbitrary").is_none());

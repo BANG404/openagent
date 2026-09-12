@@ -819,7 +819,7 @@
 
   function beginAutomationHook(hook?: AutomationHookConfig) {
     automationHookDraft = hook
-      ? structuredClone(hook)
+      ? structuredClone($state.snapshot(hook))
       : {
           id: crypto.randomUUID(),
           name: "",
@@ -843,7 +843,7 @@
         ? automationHookDraft.action.command
         : automationHookDraft.action.message;
     if (!automationHookDraft.name.trim() || !actionText.trim()) return;
-    const hook = structuredClone(automationHookDraft);
+    const hook = structuredClone($state.snapshot(automationHookDraft));
     const index = draftConfig.automation_hooks.findIndex((item) => item.id === hook.id);
     draftConfig.automation_hooks =
       index < 0
@@ -3214,7 +3214,7 @@
                       ? automationHookDraft.action.command
                       : automationHookDraft.action.message
                   ).trim()}
-                onclick={saveAutomationHook}
+                onclick={() => saveAutomationHook()}
               />
               <SettingsActionButton
                 label={$t("cancelEditHook")}

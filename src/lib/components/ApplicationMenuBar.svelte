@@ -86,7 +86,6 @@
     Digit4: { kind: "memory", section: "memory" },
     Digit5: { kind: "integrations", section: "channels" },
     Digit6: { kind: "integrations", section: "extensions" },
-    // Legacy shortcut target: Digit7: { kind: "automation", section: "hooks" }
     Digit7: { kind: "automation", section: "lifecycle" },
     Digit8: { kind: "automation", section: "schedules" },
   };
@@ -510,7 +509,6 @@
         sideOffset={2}
         align="start"
       >
-        <!-- Legacy deep-link target: onOpenSettingsWindow("automation", "hooks") -->
         <DropdownMenu.Item
           class="application-menu-item"
           onSelect={() => onOpenSettingsWindow("automation", "lifecycle")}

@@ -18,14 +18,6 @@ export function settingsWindowSkeletonSpec(
   kind: SettingsWindowKind,
   requestedSection?: string | null,
 ): SettingsWindowSkeletonSpec {
-  if (kind === "automation" && requestedSection === "hooks") {
-    return {
-      section: "hooks",
-      sections: settingsWindowSections[kind],
-      layout: "hooks",
-      showNavigation: true,
-    };
-  }
   const section = settingsWindowSection(kind, requestedSection);
   const sections = settingsWindowSections[kind];
   return {

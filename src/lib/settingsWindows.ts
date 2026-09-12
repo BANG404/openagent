@@ -8,7 +8,6 @@ export type SettingsNav =
   | "execution"
   | "agents"
   | "memory"
-  | "hooks"
   | "lifecycle"
   | "schedules"
   | "extensions"

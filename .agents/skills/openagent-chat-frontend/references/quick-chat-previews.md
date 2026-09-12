@@ -17,6 +17,9 @@
   domain and section silhouette; never flash the generic new-conversation
   skeleton before a Settings window mounts. Each window loads and saves through
   the shared settings contract without replacing or unmounting the chat shell.
+  The Automation utility window exposes the `lifecycle` and `schedules` sections;
+  its top-bar entries must preserve those requested sections when the window is
+  first created or focused again.
 - The saved-role editor is a modeless singleton utility window opened from the
   Role application menu. Reopening it targets the requested saved role or a new
   role draft and focuses the existing window. It edits the role system prompt
