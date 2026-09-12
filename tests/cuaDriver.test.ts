@@ -51,12 +51,13 @@ function configWithServers(servers: AppConfig["mcp"]["servers"]): AppConfig {
 }
 
 describe("Cua Driver configuration", () => {
-  test("uses direct MCP mode so the driver can be used by the generic MCP client", () => {
-    expect(createCuaDriverServer().args).toEqual([...CUA_DRIVER_ARGS]);
+  test("defaults to the supervised serve daemon with an MCP socket client", () => {
+    expect(createCuaDriverServer().args).toEqual(["mcp", "--socket", "openagent-cua-driver.sock"]);
     expect(createCuaDriverServer().env).toMatchObject({
       CUA_DRIVER_PERMISSION_MODE: "unrestricted",
       CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS: "1",
-      CUA_DRIVER_TRANSPORT_MODE: "direct",
+      CUA_DRIVER_TRANSPORT_MODE: "serve",
+      CUA_DRIVER_SERVE_SOCKET: "openagent-cua-driver.sock",
     });
   });
 

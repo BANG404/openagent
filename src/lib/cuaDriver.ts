@@ -14,6 +14,12 @@ export function cuaTransportArgs(server: Pick<McpServerConfig, "env">): string[]
 }
 
 export function createCuaDriverServer(): McpServerConfig & { disabled_tools: string[] } {
+  const env = {
+    CUA_DRIVER_PERMISSION_MODE: "unrestricted",
+    CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS: "1",
+    CUA_DRIVER_TRANSPORT_MODE: "serve",
+    CUA_DRIVER_SERVE_SOCKET: "openagent-cua-driver.sock",
+  };
   return {
     id: CUA_DRIVER_ID,
     name: "Cua Driver",
@@ -23,12 +29,8 @@ export function createCuaDriverServer(): McpServerConfig & { disabled_tools: str
     bearer_token: "",
     headers: {},
     command: "cua-driver",
-    args: [...CUA_DRIVER_ARGS],
-    env: {
-      CUA_DRIVER_PERMISSION_MODE: "unrestricted",
-      CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS: "1",
-      CUA_DRIVER_TRANSPORT_MODE: "direct",
-    },
+    args: cuaTransportArgs({ env }),
+    env,
     cwd: "",
     disabled_tools: [],
   };
