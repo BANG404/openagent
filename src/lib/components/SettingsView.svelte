@@ -2175,6 +2175,14 @@
                 />
                 <span class="detail-hint">{$t("pluginServeSocketHint")}</span>
               </label>
+              <div class="plugin-serve-summary" aria-live="polite">
+                <code
+                  >cua-driver serve --permission-mode {cuaPermissionMode(cuaDriver)} --socket {cuaDriver
+                    .env.CUA_DRIVER_SERVE_SOCKET || "…"}</code
+                >
+                <code>cua-driver mcp --socket {cuaDriver.env.CUA_DRIVER_SERVE_SOCKET || "…"}</code>
+                <span class="detail-hint">{$t("pluginServeManifestHint")}</span>
+              </div>
             {/if}
             <div class="plugin-card-control">
               <div class="plugin-tools-heading">
