@@ -246,7 +246,7 @@ impl FrontendResourceManager {
         Ok(())
     }
 
-    pub async fn confirm(&self, version: &str) -> Result<(), String> {
+    pub async fn confirm(&self, version: &str) -> Result<bool, String> {
         let _guard = self.operation.lock().await;
         let Some(mut active) = read_active(&self.resources_dir)? else {
             return Err("no external frontend is active".to_string());
@@ -257,10 +257,11 @@ impl FrontendResourceManager {
             );
         }
         if !active.pending_confirmation {
-            return Ok(());
+            return Ok(false);
         }
         active.pending_confirmation = false;
-        write_active(&self.resources_dir, &active)
+        write_active(&self.resources_dir, &active)?;
+        Ok(true)
     }
 
     pub async fn rollback_pending(&self) -> Result<bool, String> {
@@ -830,7 +831,8 @@ mod tests {
         assert_eq!(installed.version, "9.9.9-test.1");
         assert!(installed.root.join("index.html").is_file());
         manager.activate(&installed.version).await.unwrap();
-        manager.confirm(&installed.version).await.unwrap();
+        assert!(manager.confirm(&installed.version).await.unwrap());
+        assert!(!manager.confirm(&installed.version).await.unwrap());
         assert_eq!(manager.active_version().as_deref(), Some("9.9.9-test.1"));
         assert_eq!(manager.current_version(), "9.9.9-test.1");
         server.join().unwrap();

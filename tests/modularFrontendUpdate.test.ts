@@ -39,7 +39,7 @@ test("versioned WebViews confirm activation through the host handshake", () => {
   expect(clientHooks).toContain('invoke("confirm_frontend_activation"');
   expect(clientHooks).toContain("confirmFrontendActivationWithRetry");
   expect(clientHooks).toContain('reportComponentUpdateEvent("frontend", "confirmation_started"');
-  expect(route).toContain("frontendActivationWasConfirmed");
+  expect(route).toContain("frontendActivationShouldShowNotice");
   expect(updater).toContain("if (!updates.frontend)");
   expect(host).toContain("rollback_pending().await");
   expect(host).toContain("Duration::from_secs(15)");

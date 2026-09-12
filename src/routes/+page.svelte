@@ -22,7 +22,7 @@
   import SettingsWindowSkeleton from "$lib/components/SettingsWindowSkeleton.svelte";
   import { installDownloadHook } from "$lib/downloadHook";
   import { checkForAppUpdate } from "$lib/appUpdater";
-  import { frontendActivationWasConfirmed } from "$lib/frontendActivation";
+  import { frontendActivationShouldShowNotice } from "$lib/frontendActivation";
   import { AgentCompletionNotifier } from "$lib/agentCompletionNotification";
   import { chatTaskUsagesByCheckpoint } from "$lib/cacheUsage";
   import { Dialog, Tooltip as TooltipPrimitive } from "bits-ui";
@@ -2124,7 +2124,7 @@
 
   onMount(() => {
     if (!tauriAvailable || !frontendActivationVersion) return;
-    if (!frontendActivationWasConfirmed(frontendActivationVersion)) return;
+    if (!frontendActivationShouldShowNotice(frontendActivationVersion)) return;
     showToast({
       title: $t("updateInstalled"),
       description: $t("updateComponentsInstalled"),

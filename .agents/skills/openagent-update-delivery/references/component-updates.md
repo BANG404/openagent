@@ -30,6 +30,10 @@ reloads and confirms the frontend, then installs the shell and restarts the
 application. Component-only releases keep the same notification model without
 restarting the shell.
 
+After a frontend activation, the host's first WebView confirmation owns the
+completion notice. Other workspace and utility WebViews still confirm the
+active resource but must not display another completion notice.
+
 Update notifications present each selected component as its own current-to-
 candidate version transition. The About surface labels the packaged application
 version as the desktop-shell version; it is not a composite product version and

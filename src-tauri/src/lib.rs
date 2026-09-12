@@ -1307,7 +1307,7 @@ async fn confirm_frontend_activation(
     updates: State<'_, RuntimeUpdateState>,
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
     version: String,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     let diagnostic_version = component_update_version(Some(version.clone()))?
         .expect("a supplied component version remains present after validation");
     tracing::info!(
@@ -1317,7 +1317,7 @@ async fn confirm_frontend_activation(
         candidate_version = diagnostic_version,
         "frontend activation confirmation received"
     );
-    manager.confirm(&version).await.map_err(|error| {
+    let first_confirmation = manager.confirm(&version).await.map_err(|error| {
         tracing::error!(
             target: "openagent::component_update",
             component = "frontend",
@@ -1336,7 +1336,7 @@ async fn confirm_frontend_activation(
         active_version = diagnostic_version,
         "frontend activation confirmed"
     );
-    Ok(())
+    Ok(first_confirmation)
 }
 
 fn apply_native_window_material(window: &tauri::WebviewWindow) {
