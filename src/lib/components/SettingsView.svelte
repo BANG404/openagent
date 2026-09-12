@@ -2225,6 +2225,21 @@
                   ariaLabel={$t("pluginManifestDesktopDisplay")}
                 />
               </label>
+              <div class="plugin-manifest-fields">
+                {#each [["CUA_DRIVER_MANIFEST_APPS", "pluginManifestApps", "com.example.App or /usr/bin/app"], ["CUA_DRIVER_MANIFEST_ORIGINS", "pluginManifestOrigins", "https://example.com"], ["CUA_DRIVER_MANIFEST_READ_DIRS", "pluginManifestReadDirs", "/data/input"], ["CUA_DRIVER_MANIFEST_WRITE_DIRS", "pluginManifestWriteDirs", "/data/output"]] as [name, label, placeholder]}
+                  <label>
+                    <span>{$t(label as TranslationKeys)}</span>
+                    <textarea
+                      class="detail-input application-settings-control"
+                      rows="2"
+                      value={cuaDriver.env[name] ?? ""}
+                      {placeholder}
+                      oninput={(event) =>
+                        setCuaServeValue(name, (event.currentTarget as HTMLTextAreaElement).value)}
+                    ></textarea>
+                  </label>
+                {/each}
+              </div>
             </div>
             <label class="detail-label">
               <span class="label-text">{$t("pluginServeGrants")}</span>

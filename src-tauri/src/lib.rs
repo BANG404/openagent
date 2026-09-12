@@ -2310,10 +2310,37 @@ fn ensure_cua_driver_serve(servers: &[McpServerConfig]) -> Result<(), String> {
             if let Some(value) = server.env.get("CUA_DRIVER_MANIFEST_IDLE_TIMEOUT") {
                 manifest = manifest.replace("idle_timeout: 24h", &format!("idle_timeout: {value}"));
             }
-            if server.env.contains_key("CUA_DRIVER_MANIFEST_DESKTOP_DISPLAY") {
+                if server.env.contains_key("CUA_DRIVER_MANIFEST_DESKTOP_DISPLAY") {
                 let display = if flag("CUA_DRIVER_MANIFEST_DESKTOP_DISPLAY") { "true" } else { "false" };
-                manifest = manifest.replace("display: true", &format!("display: {display}"));
-            }
+                    manifest = manifest.replace("display: true", &format!("display: {display}"));
+                }
+                let values = |name: &str| {
+                    server.env.get(name).into_iter().flat_map(|value| value.lines()).map(str::trim).filter(|value| !value.is_empty()).collect::<Vec<_>>()
+                };
+                let mut resource_yaml = String::from("resources:\n");
+                let apps = values("CUA_DRIVER_MANIFEST_APPS");
+                if !apps.is_empty() {
+                    resource_yaml.push_str("  apps:\n");
+                    for app in apps {
+                        #[cfg(target_os = "macos")]
+                        resource_yaml.push_str(&format!("    - bundle_id: {}\n      launch: true\n      windows: all\n      terminate: driver_launched\n", serde_json::to_string(app).unwrap_or_default()));
+                        #[cfg(not(target_os = "macos"))]
+                        resource_yaml.push_str(&format!("    - executable: {}\n      launch: true\n      windows: all\n      terminate: driver_launched\n", serde_json::to_string(app).unwrap_or_default()));
+                    }
+                }
+                let origins = values("CUA_DRIVER_MANIFEST_ORIGINS");
+                if !origins.is_empty() {
+                    resource_yaml.push_str("  browser:\n    profiles:\n      - kind: isolated\n    origins:\n");
+                    for origin in origins { resource_yaml.push_str(&format!("      - {}\n", serde_json::to_string(origin).unwrap_or_default())); }
+                }
+                let reads = values("CUA_DRIVER_MANIFEST_READ_DIRS");
+                let writes = values("CUA_DRIVER_MANIFEST_WRITE_DIRS");
+                if !reads.is_empty() || !writes.is_empty() {
+                    resource_yaml.push_str("  files:\n");
+                    if !reads.is_empty() { resource_yaml.push_str("    read:\n"); for dir in reads { resource_yaml.push_str(&format!("      - dir: {}\n        recursive: true\n", serde_json::to_string(dir).unwrap_or_default())); } }
+                    if !writes.is_empty() { resource_yaml.push_str("    write:\n"); for dir in writes { resource_yaml.push_str(&format!("      - dir: {}\n        recursive: true\n", serde_json::to_string(dir).unwrap_or_default())); } }
+                }
+                manifest = manifest.replacen("resources:\n", &resource_yaml, 1);
             let generated = std::env::temp_dir().join("openagent-cua-capabilities.yaml");
             if std::fs::write(&generated, manifest).is_ok() {
                 args.extend(["--capability-manifest".to_owned(), generated.display().to_string()]);
