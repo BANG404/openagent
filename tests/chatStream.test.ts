@@ -4,10 +4,18 @@ import {
   appendToolCall,
   appendUserInput,
   attachToolResult,
+  initializeStreamItems,
   preserveResolvedUserInputs,
 } from "../src/lib/chatStream";
 
 describe("tool stream correlation", () => {
+  test("preserves a pending form received before run startup", () => {
+    const request = { request_id: "question-1", conv_id: "conv-1", kind: "ask_user", fields: [] };
+    const pending = appendUserInput([], request);
+    expect(initializeStreamItems(pending)).toEqual(pending);
+    expect(initializeStreamItems(undefined)).toEqual([]);
+  });
+
   test("attaches out-of-order results by provider tool id", () => {
     let items = appendToolCall([], "fetch", { url: "first" }, "call-1");
     items = appendToolCall(items, "fetch", { url: "second" }, "call-2");

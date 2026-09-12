@@ -25,9 +25,21 @@ export function summarizeCacheUsages(usages: readonly TaskTokenUsage[]): CacheUs
   for (const usage of usages) {
     const cached = usage.cached_input_tokens;
     const created = usage.cache_creation_input_tokens;
-    const providerInputTokens = usage.total_tokens - usage.output_tokens;
-    const inputIncludesCache = providerInputTokens === usage.input_tokens;
-    const inputSeparatesCache = providerInputTokens === usage.input_tokens + cached + created;
+    const separatelyReportedInput = usage.input_tokens + cached + created;
+    const reportedInput =
+      usage.total_tokens > usage.output_tokens ? usage.total_tokens - usage.output_tokens : 0;
+    const inputIncludesCache = reportedInput === usage.input_tokens;
+    const inputSeparatesCache = reportedInput === separatelyReportedInput;
+    // Some OpenAI-compatible Windows builds omit total_tokens while still
+    // returning cache counters. The component totals are enough to calculate
+    // a rate, so do not discard an observed hit when the aggregate is absent.
+    const providerInputTokens =
+      reportedInput > 0
+        ? reportedInput
+        : separatelyReportedInput > 0
+          ? separatelyReportedInput
+          : usage.input_tokens;
+    const totalsMissing = usage.total_tokens <= usage.output_tokens;
 
     cachedTokens += cached;
     writtenTokens += created;
@@ -36,7 +48,7 @@ export function summarizeCacheUsages(usages: readonly TaskTokenUsage[]): CacheUs
       providerInputTokens > 0 &&
       cached >= 0 &&
       created >= 0 &&
-      (inputIncludesCache || inputSeparatesCache);
+      (totalsMissing || inputIncludesCache || inputSeparatesCache);
   }
 
   if (cachedTokens === 0 && writtenTokens === 0) {

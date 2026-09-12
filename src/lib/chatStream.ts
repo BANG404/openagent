@@ -147,6 +147,11 @@ export function appendUserInput(items: StreamItem[], request: UserInputRequest):
   return [...items, { type: "user_input", request, state: "pending" }];
 }
 
+/** Keep events received before the run-start lifecycle event is projected. */
+export function initializeStreamItems(existing: StreamItem[] | undefined): StreamItem[] {
+  return existing ? [...existing] : [];
+}
+
 export function appendCompactionProgress(
   items: StreamItem[],
   stage: ContextCompactionStage,

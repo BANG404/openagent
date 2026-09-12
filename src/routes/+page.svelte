@@ -129,6 +129,7 @@
     appendThinkingChunk,
     appendToolCall,
     appendUserInput,
+    initializeStreamItems,
     preserveResolvedUserInputs,
     attachToolResult,
     collapseStreamText,
@@ -2370,7 +2371,14 @@
       chatStreams.streamingConversationIds[convId] &&
       chatStreams.assistantMessageIds[convId] === assistantMessageId;
     if (!isSameRun) {
-      chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [convId]: [] };
+      // Runtime events use independent listeners. An ask_user event can reach
+      // the local listener just before chat-run-started initializes the live
+      // stream. Preserve that request so the form is not erased by startup.
+      const pendingItems = initializeStreamItems(chatStreams.itemsByConversation[convId]);
+      chatStreams.itemsByConversation = {
+        ...chatStreams.itemsByConversation,
+        [convId]: pendingItems,
+      };
       chatStreams.assistantMessageIds = {
         ...chatStreams.assistantMessageIds,
         [convId]: assistantMessageId,

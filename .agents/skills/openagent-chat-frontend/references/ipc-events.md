@@ -37,7 +37,12 @@
   must restore each historical assistant response's owning checkpoint so one
   Turn never reuses the newest Turn's diagnostic usage. When cache counters are
   zero or provider totals cannot produce a valid hit rate, omit cache usage from
-  that footer.
+  that footer. A provider response that omits `total_tokens` but includes a
+  positive `input_tokens + cached_input_tokens + cache_creation_input_tokens`
+  total remains displayable using that separately reported input total. Also
+  preserve pending `ask_user` stream items when `chat-user-input-request`
+  races `chat-run-started`; Tauri listeners are independent and event order is
+  not a frontend initialization barrier.
 - In Tauri, selecting a different workspace or a conversation owned by another
   workspace prepares the target state and changes the current supervised Runtime
   with `set_workspace` before committing that state in the existing shell. The

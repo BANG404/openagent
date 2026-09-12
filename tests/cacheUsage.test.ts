@@ -110,6 +110,27 @@ describe("cache usage normalization", () => {
     ).toEqual({ kind: "unavailable", cachedTokens: 80, writtenTokens: 0 });
   });
 
+  test("uses separately reported input when total tokens are omitted", () => {
+    expect(
+      summarizeCacheUsage(
+        usage({
+          input_tokens: 0,
+          output_tokens: 256,
+          total_tokens: 0,
+          cached_input_tokens: 12_000,
+          cache_creation_input_tokens: 500,
+        }),
+      ),
+    ).toEqual({
+      kind: "available",
+      inputTokens: 12_500,
+      cachedTokens: 12_000,
+      writtenTokens: 500,
+      readRate: 12_000 / 12_500,
+      writeRate: 500 / 12_500,
+    });
+  });
+
   test("aggregates mixed provider accounting across one logical turn", () => {
     expect(
       summarizeCacheUsages([
