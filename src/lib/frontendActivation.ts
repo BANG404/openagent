@@ -1,4 +1,4 @@
-export type FrontendActivationConfirmer = (version: string) => Promise<void>;
+export type FrontendActivationConfirmer = (version: string) => Promise<boolean | void>;
 
 type FrontendActivationRetryOptions = {
   attempts?: number;
@@ -7,6 +7,7 @@ type FrontendActivationRetryOptions = {
 };
 
 let confirmedVersion: string | null = null;
+let noticeVersion: string | null = null;
 
 export async function confirmFrontendActivationWithRetry(
   version: string,
@@ -21,8 +22,9 @@ export async function confirmFrontendActivationWithRetry(
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
-      await confirm(version);
+      const shouldShowNotice = (await confirm(version)) !== false;
       confirmedVersion = version;
+      if (shouldShowNotice) noticeVersion = version;
       return;
     } catch (error) {
       lastError = error;
@@ -35,4 +37,8 @@ export async function confirmFrontendActivationWithRetry(
 
 export function frontendActivationWasConfirmed(version: string): boolean {
   return confirmedVersion === version;
+}
+
+export function frontendActivationShouldShowNotice(version: string): boolean {
+  return noticeVersion === version;
 }

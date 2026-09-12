@@ -50,8 +50,11 @@
   failure feedback, and always return to a retryable state after errors. Before
   activating any Runtime, frontend, or desktop-shell component, acquire the
   Runtime-owned graceful update barrier. An active Agent must defer the update
-  without cancellation; a failed update or confirmed frontend-only reload must
-  release the barrier.
+without cancellation; a failed update or confirmed frontend-only reload must
+release the barrier.
+- The first WebView to confirm a frontend activation owns the completion toast;
+  later workspace or utility windows still confirm the resource but do not
+  repeat that notice.
 - Keep Rust event payloads aligned with `src/lib/types.ts`.
 - Keep the global toast renderer inside the shared tooltip provider. Toast
   descriptions use the tooltip primitive for truncated detail, so rendering a
