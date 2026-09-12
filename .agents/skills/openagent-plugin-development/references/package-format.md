@@ -53,3 +53,8 @@ reserved entry into a user-installed Agent Plugin or fall back to an unrelated
 binary on `PATH` when the bundled resource is present. The build also derives a
 short-lived broad capability manifest from the pinned release's reviewed tool
 surface; the user's MCP `disabled_tools` selection can only narrow that surface.
+The Cua settings surface can instead use a supervised `serve` topology: OpenAgent
+starts `cua-driver serve` with the selected permission mode and socket, then
+connects the reserved MCP entry with `mcp --socket <socket>`. The daemon owns the
+desktop runtime; the MCP process remains a protocol client. Socket paths are
+local endpoints and are reused across settings refreshes.
