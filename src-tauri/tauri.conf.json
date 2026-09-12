@@ -4,7 +4,7 @@
   "version": "0.63.0-beta.1",
   "identifier": "com.iumm.openagent",
   "build": {
-    "beforeDevCommand": "bun run prepare:linux-sandbox:dev && bun run prepare:windows-sandbox:dev && bun run dev:tauri",
+    "beforeDevCommand": "bun run prepare:linux-sandbox:dev && bun run prepare:windows-sandbox:dev && bun run prepare:cua-driver && bun run dev:tauri",
     "beforeBuildCommand": "bun run prepare:linux-sandbox:release && bun run prepare:windows-sandbox:release && bun run prepare:runtime-server:release && bun run prepare:cua-driver && bun run build",
     "frontendDist": "../build",
     "removeUnusedCommands": true,
