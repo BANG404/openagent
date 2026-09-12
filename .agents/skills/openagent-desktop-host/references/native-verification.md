@@ -38,3 +38,9 @@ Start the debug app with the same isolated `OPENAGENT_HOME` and keep the
 resulting screenshots in a temporary directory via `BLACKBOX_ARTIFACT_DIR`.
 The wrapper refuses the installed `~/.openagent` data directory and restores
 the general theme and language after visual checks.
+
+The automation settings window treats its requested section as an initial
+selection, not a permanent controlled value. User tab changes must survive
+asynchronous role or hook refreshes and settings-window reloads; the black-box
+suite covers this through persistence reload followed by scheduled-hook
+creation.

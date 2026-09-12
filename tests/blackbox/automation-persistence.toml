@@ -1,0 +1,45 @@
+[scenario]
+name = "automation settings persistence"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "open lifecycle section for persistence"
+action = "click"
+target = "[role=tab][data-value=lifecycle]"
+
+[[step]]
+name = "start persistence hook"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] .detail-section-header button"
+
+[[step]]
+name = "fill persistence hook"
+action = "fill"
+target = "[role=tabpanel][data-value=lifecycle] input[placeholder='例如：工具执行后检查']"
+value = "Blackbox Persistence Hook"
+
+[[step]]
+name = "fill persistence command"
+action = "fill"
+target = "[role=tabpanel][data-value=lifecycle] textarea[placeholder='bun run verify']"
+value = "echo blackbox persistence"
+
+[[step]]
+name = "save persistence hook"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] .hook-editor-actions button:first-child"
+
+[[step]]
+name = "persistence hook is listed"
+action = "eval"
+script = '''(() => {
+  const text = document.querySelector("[role=tabpanel][data-value=lifecycle]")?.textContent ?? "";
+  if (!text.includes("Blackbox Persistence Hook")) throw new Error("persistence hook is not listed");
+  return true;
+})()'''
+
+[[step]]
+name = "wait for settings autosave"
+action = "eval"
+script = "new Promise((resolve) => setTimeout(resolve, 1000))"

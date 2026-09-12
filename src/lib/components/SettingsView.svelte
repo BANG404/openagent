@@ -234,6 +234,17 @@
   };
 
   let channelSettingsNav = $state<ChannelSettingsNav>("feishu");
+  let selectedSettingsSection = $state<SettingsNav>("general");
+  let initialSectionResolved = false;
+  let lastInitialNav: SettingsNav | undefined;
+  $effect(() => {
+    const nextInitialNav = initialNav;
+    const nextSection = nextInitialNav ?? sections?.[0] ?? "general";
+    if (initialSectionResolved && nextInitialNav === lastInitialNav) return;
+    initialSectionResolved = true;
+    lastInitialNav = nextInitialNav;
+    selectedSettingsSection = nextSection;
+  });
   // Contextual entry points can override the ordinary General default after
   // this dynamically loaded Tabs root has finished registering its triggers.
   $effect(() => {
@@ -241,6 +252,9 @@
     let innerFrame = 0;
     const outerFrame = requestAnimationFrame(() => {
       innerFrame = requestAnimationFrame(() => {
+        if (document.querySelector<HTMLButtonElement>("[data-tabs-trigger][data-state=active]")) {
+          return;
+        }
         document
           .querySelector<HTMLButtonElement>(`[data-tabs-trigger][data-value="${initialNav}"]`)
           ?.click();
@@ -1663,7 +1677,7 @@
   class:single-section={visibleSections.size === 1}
 >
   <Tabs.Root
-    value={initialNav ?? sections?.[0] ?? "general"}
+    bind:value={selectedSettingsSection}
     orientation="vertical"
     activationMode="manual"
     class="settings-body"

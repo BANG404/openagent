@@ -9,6 +9,12 @@ action = "click"
 target = "[role=tab][data-value=schedules]"
 
 [[step]]
+name = "schedules section is active"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules]:not([hidden])"
+timeout_ms = 10000
+
+[[step]]
 name = "select delay mode"
 action = "click"
 target = "[role=tabpanel][data-value=schedules] [aria-label='执行计划']"
@@ -19,19 +25,38 @@ action = "click"
 target = "[role=option][data-value=delay]"
 
 [[step]]
+name = "reject empty scheduled message"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] .key-input-row button:first-child"
+
+[[step]]
+name = "scheduled message validation is visible"
+action = "eval"
+script = '''(() => {
+  const text = document.querySelector("[role=tabpanel][data-value=schedules]")?.textContent ?? "";
+  if (!text.includes("消息内容不能为空")) throw new Error("empty schedule message was accepted");
+  return true;
+})()'''
+
+[[step]]
 name = "open execution role selector"
 action = "click"
 target = "[role=tabpanel][data-value=schedules] [aria-label='执行角色']"
 
 [[step]]
-name = "default OpenAgent role is available"
-action = "assert-exists"
-target = "[role=option][data-value=openagent]"
-
-[[step]]
 name = "keep the default execution role"
-action = "click"
-target = "[role=option][data-value=openagent]"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 5000;
+  let option = document.querySelector("[role=option][data-value=openagent]");
+  while (!(option instanceof HTMLElement) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    option = document.querySelector("[role=option][data-value=openagent]");
+  }
+  if (!(option instanceof HTMLElement)) throw new Error("default OpenAgent role disappeared before selection");
+  option.click();
+  return true;
+})()'''
 
 [[step]]
 name = "create delay schedule"
@@ -100,8 +125,18 @@ script = '''(() => {
 
 [[step]]
 name = "cancel edited delay schedule"
-action = "click"
-target = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 5000;
+  let button = document.querySelector("[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)");
+  while (!(button instanceof HTMLElement) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    button = document.querySelector("[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)");
+  }
+  if (!(button instanceof HTMLElement)) throw new Error("delay schedule cancel action disappeared");
+  button.click();
+  return true;
+})()'''
 
 [[step]]
 name = "delay schedule is removed"
@@ -145,13 +180,23 @@ timeout_ms = 10000
 [[step]]
 name = "exact-time schedule actions are ready"
 action = "wait"
-selector = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+selector = "[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)"
 timeout_ms = 10000
 
 [[step]]
 name = "cancel exact-time schedule"
-action = "click"
-target = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 5000;
+  let button = document.querySelector("[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)");
+  while (!(button instanceof HTMLElement) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    button = document.querySelector("[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)");
+  }
+  if (!(button instanceof HTMLElement)) throw new Error("exact-time schedule cancel action disappeared");
+  button.click();
+  return true;
+})()'''
 
 [[step]]
 name = "select interval mode"
@@ -188,13 +233,23 @@ timeout_ms = 10000
 [[step]]
 name = "interval schedule actions are ready"
 action = "wait"
-selector = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+selector = "[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)"
 timeout_ms = 10000
 
 [[step]]
 name = "cancel interval schedule"
-action = "click"
-target = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 5000;
+  let button = document.querySelector("[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)");
+  while (!(button instanceof HTMLElement) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    button = document.querySelector("[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)");
+  }
+  if (!(button instanceof HTMLElement)) throw new Error("interval schedule cancel action disappeared");
+  button.click();
+  return true;
+})()'''
 
 [[step]]
 name = "select daily mode"
@@ -231,13 +286,23 @@ timeout_ms = 10000
 [[step]]
 name = "daily schedule actions are ready"
 action = "wait"
-selector = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+selector = "[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)"
 timeout_ms = 10000
 
 [[step]]
 name = "cancel daily schedule"
-action = "click"
-target = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 5000;
+  let button = document.querySelector("[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)");
+  while (!(button instanceof HTMLElement) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    button = document.querySelector("[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)");
+  }
+  if (!(button instanceof HTMLElement)) throw new Error("daily schedule cancel action disappeared");
+  button.click();
+  return true;
+})()'''
 
 [[step]]
 name = "select weekdays mode"
@@ -274,13 +339,23 @@ timeout_ms = 10000
 [[step]]
 name = "weekdays schedule actions are ready"
 action = "wait"
-selector = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+selector = "[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)"
 timeout_ms = 10000
 
 [[step]]
 name = "cancel weekdays schedule"
-action = "click"
-target = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 5000;
+  let button = document.querySelector("[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)");
+  while (!(button instanceof HTMLElement) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    button = document.querySelector("[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)");
+  }
+  if (!(button instanceof HTMLElement)) throw new Error("weekdays schedule cancel action disappeared");
+  button.click();
+  return true;
+})()'''
 
 [[step]]
 name = "select weekly mode"
@@ -320,13 +395,23 @@ timeout_ms = 10000
 [[step]]
 name = "weekly schedule actions are ready"
 action = "wait"
-selector = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+selector = "[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)"
 timeout_ms = 10000
 
 [[step]]
 name = "cancel weekly schedule"
-action = "click"
-target = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 5000;
+  let button = document.querySelector("[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)");
+  while (!(button instanceof HTMLElement) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    button = document.querySelector("[role=tabpanel][data-value=schedules] .hook-actions button:nth-of-type(2)");
+  }
+  if (!(button instanceof HTMLElement)) throw new Error("weekly schedule cancel action disappeared");
+  button.click();
+  return true;
+})()'''
 
 [[step]]
 name = "all scheduled hooks are removed"

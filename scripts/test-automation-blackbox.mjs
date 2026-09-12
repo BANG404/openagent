@@ -48,7 +48,7 @@ function runScenario(scenario, windowLabel) {
 
 /** @param {string} script @param {string} windowLabel */
 function evaluate(script, windowLabel) {
-  pilot(["eval", script, "--window", windowLabel], windowLabel);
+  return pilot(["eval", script, "--window", windowLabel], windowLabel);
 }
 
 function waitForElement(selector, windowLabel) {
@@ -56,6 +56,22 @@ function waitForElement(selector, windowLabel) {
     ["wait", "--selector", selector, "--timeout", "10000", "--window", windowLabel],
     windowLabel,
   );
+}
+
+function waitForWindowReload(windowLabel) {
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    if (
+      evaluate(
+        'typeof window.__openagentBlackboxReloadPending === "undefined"',
+        windowLabel,
+      ).trim() === "true"
+    ) {
+      return;
+    }
+    spawnSync("sleep", ["0.1"]);
+  }
+  throw new Error(`settings window did not reload within the timeout for ${windowLabel}`);
 }
 
 function chooseGeneralOption(selector, value) {
@@ -105,19 +121,33 @@ function cleanupPanel(dataValue) {
     ["click", `[role=tab][data-value=${dataValue}]`, "--window", "settings-automation"],
     "settings-automation",
   );
-  evaluate(
-    `new Promise(async (resolve) => {
-      const panel = document.querySelector(${JSON.stringify(`[role=tabpanel][data-value=${dataValue}]`)});
-      for (;;) {
-        const cancel = panel?.querySelector(".hook-actions button:last-child");
-        if (!(cancel instanceof HTMLElement)) break;
-        cancel.click();
-        await new Promise((wait) => setTimeout(wait, 150));
-      }
-      resolve(true);
-    })`,
-    "settings-automation",
-  );
+  const actionSelector = `[role=tabpanel][data-value=${dataValue}] .hook-actions button:nth-of-type(2)`;
+  for (;;) {
+    const count = Number(
+      evaluate(
+        `document.querySelectorAll(${JSON.stringify(actionSelector)}).length`,
+        "settings-automation",
+      ).trim(),
+    );
+    if (!Number.isFinite(count) || count === 0) break;
+    pilot(["click", actionSelector, "--window", "settings-automation"], "settings-automation");
+    evaluate(
+      `new Promise((resolve, reject) => {
+        const deadline = Date.now() + 10000;
+        const check = () => {
+          if (document.querySelectorAll(${JSON.stringify(actionSelector)}).length < ${count}) {
+            resolve(true);
+          } else if (Date.now() >= deadline) {
+            reject(new Error("cleanup action did not remove its item"));
+          } else {
+            setTimeout(check, 100);
+          }
+        };
+        check();
+      })`,
+      "settings-automation",
+    );
+  }
 }
 
 function captureVisualState(theme, language) {
@@ -167,7 +197,27 @@ evaluate(
   '(() => { const active = [...document.querySelectorAll("[role=tabpanel]")].filter((panel) => !panel.hasAttribute("hidden")).map((panel) => panel.getAttribute("data-value")); if (!active.includes("lifecycle")) throw new Error("Ctrl+Shift+7 did not select lifecycle"); return active; })()',
   "settings-automation",
 );
+evaluate(
+  '(() => { window.dispatchEvent(new KeyboardEvent("keydown", {key: "8", code: "Digit8", ctrlKey: true, shiftKey: true, bubbles: true})); return true; })()',
+  "main",
+);
+evaluate(
+  '(() => { const active = [...document.querySelectorAll("[role=tabpanel]")].filter((panel) => !panel.hasAttribute("hidden")).map((panel) => panel.getAttribute("data-value")); if (!active.includes("schedules")) throw new Error("Ctrl+Shift+8 did not select schedules"); return active; })()',
+  "settings-automation",
+);
 runScenario("automation-lifecycle.toml", "settings-automation");
+runScenario("automation-persistence.toml", "settings-automation");
+evaluate(
+  "window.__openagentBlackboxReloadPending = true; setTimeout(() => location.reload(), 100); true",
+  "settings-automation",
+);
+waitForWindowReload("settings-automation");
+waitForElement("[role=tabpanel][data-value=lifecycle] .hook-item", "settings-automation");
+evaluate(
+  '(() => { const text = document.querySelector("[role=tabpanel][data-value=lifecycle]")?.textContent ?? ""; if (!text.includes("Blackbox Persistence Hook") || !text.includes("echo blackbox persistence")) throw new Error("saved lifecycle hook did not survive settings reload"); return true; })()',
+  "settings-automation",
+);
+cleanupPanel("lifecycle");
 runScenario("automation-schedules.toml", "settings-automation");
 
 try {

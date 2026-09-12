@@ -14,6 +14,64 @@ action = "click"
 target = "[role=tabpanel][data-value=lifecycle] .detail-section-header button"
 
 [[step]]
+name = "empty lifecycle hook cannot be saved"
+action = "eval"
+script = '''(() => {
+  const button = document.querySelector("[role=tabpanel][data-value=lifecycle] .hook-editor-actions button:first-child");
+  if (!(button instanceof HTMLButtonElement) || !button.disabled) throw new Error("empty hook save is not disabled");
+  return true;
+})()'''
+
+[[step]]
+name = "open lifecycle event options"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] [aria-label='触发事件']"
+
+[[step]]
+name = "all lifecycle event options are available"
+action = "eval"
+script = '''(() => {
+  const expected = [
+    "session_start", "session_end", "user_prompt_submit", "subagent_start",
+    "subagent_stop", "permission_request", "pre_compact", "post_compact",
+    "stop", "interrupt", "before_model", "after_model", "before_tool", "after_tool",
+  ];
+  const values = new Set([...document.querySelectorAll("[role=option][data-value]")].map((item) => item.getAttribute("data-value")));
+  const missing = expected.filter((value) => !values.has(value));
+  if (missing.length) throw new Error(`missing lifecycle events: ${missing.join(", ")}`);
+  return expected.length;
+})()'''
+
+[[step]]
+name = "choose non-tool lifecycle event"
+action = "click"
+target = "[role=option][data-value=session_start]"
+
+[[step]]
+name = "non-tool event hides tool matcher"
+action = "eval"
+script = '''(() => {
+  const matcher = document.querySelector("[role=tabpanel][data-value=lifecycle] input[placeholder='^(exec_command|apply_patch)$']");
+  if (matcher) throw new Error("tool matcher is visible for a non-tool event");
+  return true;
+})()'''
+
+[[step]]
+name = "choose before-tool lifecycle event"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] [aria-label='触发事件']"
+
+[[step]]
+name = "select before-tool event"
+action = "click"
+target = "[role=option][data-value=before_tool]"
+
+[[step]]
+name = "tool event shows matcher"
+action = "assert-exists"
+target = "[role=tabpanel][data-value=lifecycle] input[placeholder='^(exec_command|apply_patch)$']"
+
+[[step]]
 name = "fill lifecycle hook identity"
 action = "fill"
 target = "[role=tabpanel][data-value=lifecycle] input[placeholder='例如：工具执行后检查']"
