@@ -5,6 +5,7 @@ export type ToolPatchOperation = "add" | "update" | "delete";
 export type ToolPatchFilePreview = {
   path: string;
   operation: ToolPatchOperation;
+  movePath?: string;
   lines: FileChangeDiffLine[];
   additions: number;
   removals: number;
@@ -14,6 +15,10 @@ export const MAX_TOOL_PATCH_PREVIEW_LINES = 240;
 export const MAX_TOOL_PATCH_PREVIEW_CHARACTERS = 48_000;
 
 const operationHeader = /^\*\*\* (Add|Update|Delete) File: (.+)$/;
+
+function operationHeaderFromLine(value: string): RegExpExecArray | null {
+  return operationHeader.exec(value.trim());
+}
 
 function operationFromHeader(value: string): ToolPatchOperation {
   return value === "Add" ? "add" : value === "Delete" ? "delete" : "update";
@@ -77,7 +82,7 @@ export function parseApplyPatchPreview(patch: string): ToolPatchFilePreview[] {
   let index = source[0] === "*** Begin Patch" ? 1 : 0;
 
   while (index < source.length) {
-    const header = operationHeader.exec(source[index]);
+    const header = operationHeaderFromLine(source[index]);
     if (!header) {
       index += 1;
       continue;
@@ -88,13 +93,23 @@ export function parseApplyPatchPreview(patch: string): ToolPatchFilePreview[] {
     const body: string[] = [];
     while (
       index < source.length &&
-      source[index] !== "*** End Patch" &&
-      !operationHeader.test(source[index])
+      source[index].trim() !== "*** End Patch" &&
+      !(
+        operationHeaderFromLine(source[index]) &&
+        (operation !== "update" || !source[index].startsWith(" "))
+      )
     ) {
       body.push(source[index]);
       index += 1;
     }
-    previews.push({ path, operation, ...previewLines(operation, body) });
+    const moveLine = body.find((line) => line.trim().startsWith("*** Move to: "));
+    const movePath = moveLine?.trim().slice("*** Move to: ".length).trim();
+    previews.push({
+      path,
+      operation,
+      ...(movePath ? { movePath } : {}),
+      ...previewLines(operation, body),
+    });
   }
 
   return previews;
