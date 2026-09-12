@@ -57,7 +57,8 @@
   }
   .diff-viewport.compact {
     max-height: 280px;
-    flex: 0 1 auto;
+    width: 100%;
+    flex: 1 1 auto;
   }
   .diff-table {
     width: max-content;
