@@ -241,7 +241,8 @@ const zh = {
   pluginTransportServe: "Serve 守护进程 + MCP",
   pluginTransportDirect: "直接 MCP",
   pluginServeSocket: "Serve socket",
-  pluginServeSocketHint: "MCP 客户端通过此本地 socket 连接已运行的 cua-driver serve。",
+  pluginServeSocketHint:
+    "OpenAgent 会在内部启动 cua-driver serve，MCP 客户端通过此本地 socket 连接。",
   pluginServeManifestHint: "能力 manifest 由 OpenAgent 随绑定的 Cua Driver 资源管理并自动批准。",
   pluginPermissionMode: "权限模式",
   pluginPermissionUnrestricted: "完全权限",
@@ -1231,7 +1232,7 @@ const en: Translations = {
   pluginTransportDirect: "Direct MCP",
   pluginServeSocket: "Serve socket",
   pluginServeSocketHint:
-    "The MCP client connects to a running cua-driver serve through this local socket.",
+    "OpenAgent starts cua-driver serve internally; the MCP client connects through this local socket.",
   pluginServeManifestHint:
     "OpenAgent manages and approves the capability manifest bundled with Cua Driver.",
   pluginPermissionMode: "Permission mode",
