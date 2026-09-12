@@ -1,6 +1,6 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
-import { checkpointRecordsToMessages } from "../src/lib/checkpointTree";
+import { askUserRequestFromToolUse, checkpointRecordsToMessages } from "../src/lib/checkpointTree";
 
 const record = (overrides) => ({
   id: crypto.randomUUID(),
@@ -147,6 +147,91 @@ describe("checkpoint record projection", () => {
       state: "pending",
       request: { request_id: "question-1", conv_id: "conversation-1" },
     });
+  });
+
+  test("does not restore malformed ask_user arguments as a form", () => {
+    const malformedInput = {
+      fields: [
+        {
+          type: "select",
+          name: "scope",
+          label: "Scope",
+          options: [[[["nested option"]]]],
+        },
+      ],
+    };
+
+    expect(
+      askUserRequestFromToolUse({
+        id: "malformed-question",
+        name: "ask_user",
+        input: malformedInput,
+      }),
+    ).toBeNull();
+
+    const [message] = checkpointRecordsToMessages(
+      [
+        record({
+          content: [
+            { type: "tool_use", id: "malformed-question", name: "ask_user", input: malformedInput },
+          ],
+        }),
+        record({
+          role: "user",
+          content: [
+            {
+              type: "tool_result",
+              tool_use_id: "malformed-question",
+              content: [{ type: "text", text: "failed to parse tool arguments: invalid options" }],
+            },
+          ],
+        }),
+      ],
+      "checkpoint-1",
+      "conversation-1",
+    );
+
+    expect(message.items).toEqual([
+      {
+        type: "tool_call",
+        name: "ask_user",
+        args: JSON.stringify(malformedInput),
+        toolUseId: "malformed-question",
+        result: "failed to parse tool arguments: invalid options",
+      },
+    ]);
+    expect(message.items?.some((item) => item.type === "user_input")).toBe(false);
+  });
+
+  test("hides a failed result even when an ask_user form was already projected", () => {
+    const messages = checkpointRecordsToMessages(
+      [
+        record({
+          content: [
+            {
+              type: "tool_use",
+              id: "question-1",
+              name: "ask_user",
+              input: { fields: [{ type: "text", name: "answer", label: "Answer" }] },
+            },
+          ],
+        }),
+        record({
+          role: "user",
+          content: [
+            {
+              type: "tool_result",
+              tool_use_id: "question-1",
+              content: [{ type: "text", text: "failed to parse tool arguments: invalid field" }],
+            },
+          ],
+        }),
+      ],
+      "checkpoint-1",
+      "conversation-1",
+    );
+
+    expect(messages[0]?.items).toEqual([]);
   });
 
   test("restores quoted context separately from user-authored text", () => {

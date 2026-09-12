@@ -9,6 +9,11 @@
   instead of using the form is unanswered; an explicit form cancellation stays
   cancelled. Preserve those distinctions after streaming, reload, and branch
   switches.
+- Treat only schema-valid `ask_user` calls as form requests. Keep malformed or
+  failed `ask_user` calls in durable checkpoint history for provider recovery,
+  but hide them from the product transcript instead of showing an empty or
+  answered form summary. Apply this rule during both live projection and
+  checkpoint hydration.
 - Derive every tool's visible lifecycle from its matching ToolResult: no result
   is waiting outside an active stream and running during one, ordinary output
   is successful, a runtime patch for a user who continued the conversation is
