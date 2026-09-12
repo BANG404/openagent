@@ -4230,6 +4230,9 @@ fn run_with_mode(agent_server: bool) {
                 let config = state.config.lock().await.clone();
                 let servers =
                     openagent_runtime::commands::effective_mcp_servers(state, &config).await;
+                if let Err(error) = ensure_cua_driver_serve(&servers) {
+                    tracing::error!(target: "openagent::cua", %error, "failed to start configured Cua Driver serve daemon");
+                }
                 let mcp_handles = mcp::connect_mcp_servers(&servers);
                 *state.mcp_join_handles.lock().await = mcp_handles;
                 tracing::info!(
