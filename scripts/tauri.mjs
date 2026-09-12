@@ -6,6 +6,10 @@ import { fileURLToPath } from "node:url";
 
 import { addDevUrlConfigArgument, findAvailableLoopbackPort } from "./tauri-dev-port.mjs";
 import {
+  applyDevelopmentInstanceEnvironment,
+  parseDevelopmentInstanceArguments,
+} from "./tauri-dev-instance.mjs";
+import {
   addCargoTargetDirectoryArgument,
   resolveTauriDevTargetDirectory,
 } from "./tauri-dev-target.mjs";
@@ -16,6 +20,12 @@ await access(tauriCli);
 
 let arguments_ = process.argv.slice(2);
 const environment = { ...process.env };
+let developmentInstanceName;
+if (arguments_[0] === "dev") {
+  const parsed = parseDevelopmentInstanceArguments(arguments_);
+  arguments_ = parsed.arguments_;
+  developmentInstanceName = parsed.instanceName ?? environment.OPENAGENT_DEV_INSTANCE?.trim();
+}
 const embeddedRuntime = arguments_.includes("--embedded-runtime");
 if (embeddedRuntime) {
   if (arguments_[0] !== "dev") {
@@ -27,6 +37,13 @@ if (embeddedRuntime) {
   console.log("Using the explicit embedded development Runtime");
 }
 if (arguments_[0] === "dev") {
+  if (developmentInstanceName) {
+    Object.assign(
+      environment,
+      applyDevelopmentInstanceEnvironment(environment, developmentInstanceName),
+    );
+    console.log(`Starting isolated development instance "${environment.OPENAGENT_DEV_INSTANCE}"`);
+  }
   const port = await findAvailableLoopbackPort();
   environment.OPENAGENT_DEV_PORT = String(port);
   arguments_ = addDevUrlConfigArgument(arguments_, port);

@@ -3,6 +3,11 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { addDevUrlConfigArgument, findAvailableLoopbackPort } from "../scripts/tauri-dev-port.mjs";
 import {
+  applyDevelopmentInstanceEnvironment,
+  normalizeDevelopmentInstanceName,
+  parseDevelopmentInstanceArguments,
+} from "../scripts/tauri-dev-instance.mjs";
+import {
   addCargoTargetDirectoryArgument,
   defaultTauriDevTargetRoot,
   resolveTauriDevTargetDirectory,
@@ -33,6 +38,72 @@ describe("Tauri development port selection", () => {
       "--features",
       "fixture",
     ]);
+  });
+});
+
+describe("Tauri development multi-instance selection", () => {
+  test("removes the OpenAgent multi-instance option before invoking Tauri", () => {
+    expect(
+      parseDevelopmentInstanceArguments(["dev", "--multi-instance=agent-a", "--verbose"]),
+    ).toEqual({
+      arguments_: ["dev", "--verbose"],
+      instanceName: "agent-a",
+    });
+  });
+
+  test("keeps Cargo and application arguments after the runner delimiter", () => {
+    expect(
+      parseDevelopmentInstanceArguments([
+        "dev",
+        "--multi-instance",
+        "agent-a",
+        "--",
+        "--target-dir",
+        "/tmp/target",
+        "--",
+        "--openagent-workspace-window",
+      ]),
+    ).toEqual({
+      arguments_: [
+        "dev",
+        "--",
+        "--target-dir",
+        "/tmp/target",
+        "--",
+        "--openagent-workspace-window",
+      ],
+      instanceName: "agent-a",
+    });
+  });
+
+  test("normalizes instance names and isolates the default data root", () => {
+    expect(normalizeDevelopmentInstanceName("agent/a")).toBe("agent-a");
+    expect(
+      applyDevelopmentInstanceEnvironment({}, "agent-a", {
+        homeDirectory: "/home/example",
+      }),
+    ).toEqual({
+      OPENAGENT_DEV_MULTI_INSTANCE: "1",
+      OPENAGENT_DEV_INSTANCE: "agent-a",
+      OPENAGENT_HOME: "/home/example/.openagent-dev/instances/agent-a",
+    });
+  });
+
+  test("preserves an explicitly selected data root", () => {
+    expect(
+      applyDevelopmentInstanceEnvironment({ OPENAGENT_HOME: "/tmp/fixture" }, "agent-a", {
+        homeDirectory: "/home/example",
+      }).OPENAGENT_HOME,
+    ).toBe("/tmp/fixture");
+  });
+
+  test("rejects an unnamed or repeated multi-instance option", () => {
+    expect(() => parseDevelopmentInstanceArguments(["dev", "--multi-instance"])).toThrow(
+      "--multi-instance requires a non-empty instance name",
+    );
+    expect(() =>
+      parseDevelopmentInstanceArguments(["dev", "--multi-instance=a", "--multi-instance=b"]),
+    ).toThrow("--multi-instance may only be specified once");
   });
 });
 

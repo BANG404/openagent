@@ -166,13 +166,23 @@ fn position_utility_window(
 /// been calculated. With no saved state, `restore_state` records the fallback
 /// geometry and leaves the window where it was placed.
 fn restore_utility_window_state(window: &tauri::WebviewWindow) -> Result<(), String> {
-    if is_workspace_window_process() {
+    if !should_restore_utility_window_state(
+        is_workspace_window_process(),
+        is_development_multi_instance(),
+    ) {
         return Ok(());
     }
     use tauri_plugin_window_state::{StateFlags, WindowExt};
     window
         .restore_state(StateFlags::POSITION | StateFlags::SIZE | StateFlags::MAXIMIZED)
         .map_err(|error| error.to_string())
+}
+
+fn should_restore_utility_window_state(
+    is_workspace_window: bool,
+    development_multi_instance: bool,
+) -> bool {
+    !is_workspace_window && !development_multi_instance
 }
 
 /// Clamp restored utility geometry to the current monitor's logical work area.
@@ -3378,16 +3388,70 @@ fn prepare_interactive_persistence() -> anyhow::Result<Option<ExternalRuntimeLau
     }
 }
 
-fn should_enforce_single_instance(agent_server: bool, is_workspace_window: bool) -> bool {
-    !agent_server && !is_workspace_window
+fn is_development_multi_instance() -> bool {
+    cfg!(debug_assertions)
+        && std::env::var_os("OPENAGENT_DEV_MULTI_INSTANCE").is_some_and(|value| !value.is_empty())
 }
 
-fn should_install_desktop_tray(agent_server: bool, is_workspace_window: bool) -> bool {
-    !agent_server && !is_workspace_window
+fn should_enforce_single_instance(
+    agent_server: bool,
+    is_workspace_window: bool,
+    development_multi_instance: bool,
+) -> bool {
+    !agent_server && !is_workspace_window && !development_multi_instance
+}
+
+fn should_install_desktop_tray(
+    agent_server: bool,
+    is_workspace_window: bool,
+    development_multi_instance: bool,
+) -> bool {
+    !agent_server && !is_workspace_window && !development_multi_instance
+}
+
+fn should_install_desktop_integrations(
+    agent_server: bool,
+    development_multi_instance: bool,
+) -> bool {
+    !agent_server && !development_multi_instance
 }
 
 fn should_reveal_workspace_shell_early(agent_server: bool, is_workspace_window: bool) -> bool {
     !agent_server && is_workspace_window
+}
+
+fn should_start_primary_desktop_services(
+    agent_server: bool,
+    is_workspace_window: bool,
+    development_multi_instance: bool,
+) -> bool {
+    !agent_server && !is_workspace_window && !development_multi_instance
+}
+
+fn development_instance_identifier(instance_name: Option<&str>) -> String {
+    let instance_name = instance_name
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("instance");
+    let normalized: String = instance_name
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | '.') {
+                character
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    let normalized = normalized.trim_matches('-');
+    format!(
+        "com.iumm.openagent.dev.{}",
+        if normalized.is_empty() {
+            "instance"
+        } else {
+            normalized
+        }
+    )
 }
 
 fn packaged_runtime_binary() -> Result<std::path::PathBuf, String> {
@@ -3530,22 +3594,33 @@ fn single_instance_window_label(onboarding_visible: bool) -> &'static str {
 #[cfg(test)]
 mod single_instance_tests {
     use super::{
-        should_enforce_single_instance, should_install_desktop_tray,
-        should_reveal_workspace_shell_early, single_instance_window_label,
+        development_instance_identifier, should_enforce_single_instance,
+        should_install_desktop_integrations, should_install_desktop_tray,
+        should_restore_utility_window_state, should_reveal_workspace_shell_early,
+        should_start_primary_desktop_services, single_instance_window_label,
     };
 
     #[test]
     fn only_regular_desktop_launches_share_the_primary_instance() {
-        assert!(should_enforce_single_instance(false, false));
-        assert!(!should_enforce_single_instance(false, true));
-        assert!(!should_enforce_single_instance(true, false));
+        assert!(should_enforce_single_instance(false, false, false));
+        assert!(!should_enforce_single_instance(false, false, true));
+        assert!(!should_enforce_single_instance(false, true, false));
+        assert!(!should_enforce_single_instance(true, false, false));
     }
 
     #[test]
     fn only_the_primary_desktop_process_owns_the_tray() {
-        assert!(should_install_desktop_tray(false, false));
-        assert!(!should_install_desktop_tray(false, true));
-        assert!(!should_install_desktop_tray(true, false));
+        assert!(should_install_desktop_tray(false, false, false));
+        assert!(!should_install_desktop_tray(false, false, true));
+        assert!(!should_install_desktop_tray(false, true, false));
+        assert!(!should_install_desktop_tray(true, false, false));
+    }
+
+    #[test]
+    fn multi_instance_mode_does_not_register_global_desktop_integrations() {
+        assert!(should_install_desktop_integrations(false, false));
+        assert!(!should_install_desktop_integrations(false, true));
+        assert!(!should_install_desktop_integrations(true, false));
     }
 
     #[test]
@@ -3559,6 +3634,37 @@ mod single_instance_tests {
     fn repeated_launch_restores_main_when_onboarding_is_hidden() {
         assert_eq!(single_instance_window_label(false), "main");
         assert_eq!(single_instance_window_label(true), "onboarding");
+    }
+
+    #[test]
+    fn multi_instance_runtime_does_not_start_primary_desktop_services() {
+        assert!(should_start_primary_desktop_services(false, false, false));
+        assert!(!should_start_primary_desktop_services(false, false, true));
+        assert!(!should_start_primary_desktop_services(false, true, false));
+        assert!(!should_start_primary_desktop_services(true, false, false));
+    }
+
+    #[test]
+    fn multi_instance_mode_does_not_restore_shared_utility_geometry() {
+        assert!(should_restore_utility_window_state(false, false));
+        assert!(!should_restore_utility_window_state(false, true));
+        assert!(!should_restore_utility_window_state(true, false));
+    }
+
+    #[test]
+    fn development_instance_names_are_scoped_to_the_pilot_identifier() {
+        assert_eq!(
+            development_instance_identifier(Some("agent-a")),
+            "com.iumm.openagent.dev.agent-a"
+        );
+        assert_eq!(
+            development_instance_identifier(Some("agent/a")),
+            "com.iumm.openagent.dev.agent-a"
+        );
+        assert_eq!(
+            development_instance_identifier(Some("  ")),
+            "com.iumm.openagent.dev.instance"
+        );
     }
 }
 
@@ -3584,6 +3690,7 @@ fn run_with_mode(agent_server: bool) {
     };
     let startup_started_at = std::time::Instant::now();
     let is_workspace_window = is_workspace_window_process();
+    let development_multi_instance = is_development_multi_instance();
     let HostRuntimeBootstrap {
         initial_locale,
         data_dir,
@@ -3625,11 +3732,15 @@ fn run_with_mode(agent_server: bool) {
     let startup_runtime_manager = runtime_manager.clone();
     let builder = tauri::Builder::default().manage(desktop_data_dir);
 
-    // This must remain the first registered plugin. Ordinary desktop launches
-    // share one primary process, while the SDK-owned workspace-window processes
-    // and the headless agent server keep their intentionally separate lifecycles.
+    // This must remain the first registered plugin for ordinary desktop
+    // launches. Explicit debug multi-instance runs skip it so each named
+    // automation fixture can own an independent process.
     #[cfg(desktop)]
-    let builder = if should_enforce_single_instance(agent_server, is_workspace_window) {
+    let builder = if should_enforce_single_instance(
+        agent_server,
+        is_workspace_window,
+        development_multi_instance,
+    ) {
         builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             let onboarding_visible = app
                 .get_webview_window("onboarding")
@@ -3654,7 +3765,11 @@ fn run_with_mode(agent_server: bool) {
     // placement remains relative to the requesting workspace; they explicitly
     // restore saved state after that fallback has been calculated.
     #[cfg(desktop)]
-    let builder = if should_enforce_single_instance(agent_server, is_workspace_window) {
+    let builder = if should_enforce_single_instance(
+        agent_server,
+        is_workspace_window,
+        development_multi_instance,
+    ) {
         builder.plugin(
             tauri_plugin_window_state::Builder::default()
                 .with_state_flags(
@@ -3682,7 +3797,11 @@ fn run_with_mode(agent_server: bool) {
     let builder = builder.plugin(tauri_plugin_pilot::init());
 
     #[cfg(desktop)]
-    let builder = if should_install_desktop_tray(agent_server, is_workspace_window) {
+    let builder = if should_install_desktop_tray(
+        agent_server,
+        is_workspace_window,
+        development_multi_instance,
+    ) {
         builder.on_menu_event(|app, event| handle_desktop_menu_event(app, &event))
     } else {
         builder
@@ -3720,30 +3839,34 @@ fn run_with_mode(agent_server: bool) {
         .plugin(tauri_plugin_i18n::init(Some(initial_locale)));
 
     #[cfg(desktop)]
-    let builder = if agent_server {
-        builder
-    } else {
+    let builder = if should_install_desktop_integrations(agent_server, development_multi_instance) {
         builder.plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
+    } else {
+        builder
     };
 
     #[cfg(desktop)]
-    let builder = if agent_server {
-        builder
-    } else {
+    let builder = if should_install_desktop_integrations(agent_server, development_multi_instance) {
         builder.plugin(tauri_plugin_updater::Builder::new().build())
+    } else {
+        builder
     };
 
     #[cfg(desktop)]
-    let builder = if agent_server {
-        builder
-    } else {
+    let builder = if should_install_desktop_integrations(agent_server, development_multi_instance) {
         builder.plugin(tauri_plugin_global_shortcut::Builder::new().build())
+    } else {
+        builder
     };
 
     let mut context = tauri::generate_context!();
+    if development_multi_instance {
+        let instance_name = std::env::var("OPENAGENT_DEV_INSTANCE").ok();
+        context.config_mut().identifier = development_instance_identifier(instance_name.as_deref());
+    }
     if agent_server {
         context.config_mut().app.windows.clear();
     }
@@ -3798,19 +3921,31 @@ fn run_with_mode(agent_server: bool) {
                     startup_runtime_supervisor.clone(),
                     &startup_runtime_manager,
                     launch,
-                    !is_workspace_window,
+                    should_start_primary_desktop_services(
+                        agent_server,
+                        is_workspace_window,
+                        development_multi_instance,
+                    ),
                 ))
                 .map_err(std::io::Error::other)?;
             }
 
             #[cfg(desktop)]
-            if should_install_desktop_tray(agent_server, is_workspace_window) {
+            if should_install_desktop_tray(
+                agent_server,
+                is_workspace_window,
+                development_multi_instance,
+            ) {
                 install_desktop_tray(app)?;
             }
 
             if let Some(window) = app.get_webview_window("main") {
                 apply_native_window_material(&window);
-                if should_install_desktop_tray(agent_server, is_workspace_window) {
+                if should_install_desktop_tray(
+                    agent_server,
+                    is_workspace_window,
+                    development_multi_instance,
+                ) {
                     let close_window = window.clone();
                     window.on_window_event(move |event| {
                         if let tauri::WindowEvent::CloseRequested { api, .. } = event {

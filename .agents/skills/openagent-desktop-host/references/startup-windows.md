@@ -5,6 +5,17 @@
 - Register single-instance enforcement as the first Tauri plugin for
   ordinary primary launches. A repeated launch restores, shows, and
   focuses the existing main window.
+- `bun tauri dev --multi-instance=<name>` is the supported debug-only mode for
+  running several independently automated desktop instances. The launcher
+  assigns each named instance its own default `OPENAGENT_HOME` beneath
+  `~/.openagent-dev/instances/` (an explicit `OPENAGENT_HOME` remains in
+  control), and the host derives a matching Tauri/Pilot identifier. This mode
+  skips single-instance enforcement, tray/window-state sharing, global
+  desktop integrations, and primary desktop services so fixed global services
+  cannot make sibling test fixtures contend. Give every automated agent a
+  distinct name and use the matching Pilot socket/registry entry. When
+  `OPENAGENT_HOME` is supplied explicitly, it must also be distinct per
+  fixture. Release builds never enable this mode.
 - Application restart uses the same bounded Runtime, event-proxy, and child
   workspace cleanup as tray Quit before requesting the Tauri restart. Do not
   call the immediate restart path directly from an IPC command.
