@@ -32,7 +32,6 @@
     cuaTransportArgs,
     createCuaDriverServer,
     type CuaPermissionMode,
-    type CuaTransportMode,
   } from "$lib/cuaDriver";
   import {
     PROVIDER_CATALOG,
@@ -413,21 +412,32 @@
     return mode === "standard" || mode === "bounded" ? mode : "unrestricted";
   }
 
-  function cuaTransportMode(server: NormalizedMcpServerConfig): CuaTransportMode {
-    return server.env.CUA_DRIVER_TRANSPORT_MODE === "serve" ? "serve" : "direct";
-  }
-
-  function setCuaTransportMode(mode: CuaTransportMode) {
-    const server = cuaServer();
-    server.env = { ...server.env, CUA_DRIVER_TRANSPORT_MODE: mode };
-    server.args = cuaTransportArgs(server);
-  }
-
   function setCuaServeSocket(socket: string) {
     const server = cuaServer();
     const env = { ...server.env, [CUA_DRIVER_SERVE_SOCKET_ENV]: socket };
     server.env = env;
     server.args = cuaTransportArgs(server);
+  }
+
+  function cuaServeFlag(name: string): boolean {
+    const value = cuaServer().env[name];
+    return value === "1" || value?.toLowerCase() === "true";
+  }
+
+  function setCuaServeFlag(name: string, enabled: boolean) {
+    const server = cuaServer();
+    const env = { ...server.env };
+    if (enabled) env[name] = "1";
+    else delete env[name];
+    server.env = env;
+  }
+
+  function setCuaServeValue(name: string, value: string) {
+    const server = cuaServer();
+    const env = { ...server.env };
+    if (value.trim()) env[name] = value;
+    else delete env[name];
+    server.env = env;
   }
 
   function setCuaPermissionMode(mode: CuaPermissionMode) {
@@ -461,7 +471,10 @@
     const nextEnv: Record<string, string> = {
       ...existing.env,
       CUA_DRIVER_PERMISSION_MODE: mode,
+      CUA_DRIVER_SERVE_SOCKET:
+        existing.env.CUA_DRIVER_SERVE_SOCKET?.trim() || "openagent-cua-driver.sock",
     };
+    delete nextEnv.CUA_DRIVER_TRANSPORT_MODE;
     if (mode === "unrestricted") nextEnv.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS = "1";
     else delete nextEnv.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS;
     const changed =
@@ -2138,18 +2151,10 @@
             />
           </div>
           <div class="plugin-card-grid">
-            <label class="detail-label">
+            <div class="detail-label">
               <span class="label-text">{$t("pluginTransport")}</span>
-              <Select
-                value={cuaTransportMode(cuaDriver)}
-                onValueChange={(value) => setCuaTransportMode(value as CuaTransportMode)}
-                items={[
-                  { value: "serve", label: $t("pluginTransportServe") },
-                  { value: "direct", label: $t("pluginTransportDirect") },
-                ]}
-                ariaLabel={$t("pluginTransport")}
-              />
-            </label>
+              <span class="detail-hint">{$t("pluginTransportServe")}</span>
+            </div>
             <label class="detail-label">
               <span class="label-text">{$t("pluginPermissionMode")}</span>
               <Select
@@ -2163,27 +2168,63 @@
                 ariaLabel={$t("pluginPermissionMode")}
               />
             </label>
-            {#if cuaTransportMode(cuaDriver) === "serve"}
-              <label class="detail-label plugin-serve-socket">
-                <span class="label-text">{$t("pluginServeSocket")}</span>
-                <input
-                  class="detail-input application-settings-control"
-                  value={cuaDriver.env.CUA_DRIVER_SERVE_SOCKET ?? ""}
-                  placeholder="/tmp/cua-driver.sock"
-                  oninput={(event) =>
-                    setCuaServeSocket((event.currentTarget as HTMLInputElement).value)}
-                />
-                <span class="detail-hint">{$t("pluginServeSocketHint")}</span>
-              </label>
-              <div class="plugin-serve-summary" aria-live="polite">
-                <code
-                  >cua-driver serve --permission-mode {cuaPermissionMode(cuaDriver)} --socket {cuaDriver
-                    .env.CUA_DRIVER_SERVE_SOCKET || "…"}</code
-                >
-                <code>cua-driver mcp --socket {cuaDriver.env.CUA_DRIVER_SERVE_SOCKET || "…"}</code>
-                <span class="detail-hint">{$t("pluginServeManifestHint")}</span>
-              </div>
-            {/if}
+            <label class="detail-label plugin-serve-socket">
+              <span class="label-text">{$t("pluginServeSocket")}</span>
+              <input
+                class="detail-input application-settings-control"
+                value={cuaDriver.env.CUA_DRIVER_SERVE_SOCKET ?? ""}
+                placeholder="/tmp/cua-driver.sock"
+                oninput={(event) =>
+                  setCuaServeSocket((event.currentTarget as HTMLInputElement).value)}
+              />
+              <span class="detail-hint">{$t("pluginServeSocketHint")}</span>
+            </label>
+            <div class="plugin-serve-summary" aria-live="polite">
+              <code
+                >cua-driver serve --permission-mode {cuaPermissionMode(cuaDriver)} --socket {cuaDriver
+                  .env.CUA_DRIVER_SERVE_SOCKET || "…"}</code
+              >
+              <code>cua-driver mcp --socket {cuaDriver.env.CUA_DRIVER_SERVE_SOCKET || "…"}</code>
+              <span class="detail-hint">{$t("pluginServeManifestHint")}</span>
+            </div>
+            <label class="detail-label">
+              <span class="label-text">{$t("pluginServeManifest")}</span>
+              <input
+                class="detail-input application-settings-control"
+                value={cuaDriver.env.CUA_DRIVER_SERVE_CAPABILITY_MANIFEST ?? ""}
+                placeholder="(bundled manifest)"
+                oninput={(event) =>
+                  setCuaServeValue(
+                    "CUA_DRIVER_SERVE_CAPABILITY_MANIFEST",
+                    (event.currentTarget as HTMLInputElement).value,
+                  )}
+              />
+            </label>
+            <label class="detail-label">
+              <span class="label-text">{$t("pluginServeGrants")}</span>
+              <input
+                class="detail-input application-settings-control"
+                value={cuaDriver.env.CUA_DRIVER_SERVE_GRANTS ?? ""}
+                placeholder="existing-profile, …"
+                oninput={(event) =>
+                  setCuaServeValue(
+                    "CUA_DRIVER_SERVE_GRANTS",
+                    (event.currentTarget as HTMLInputElement).value,
+                  )}
+              />
+            </label>
+            <div class="plugin-serve-flags">
+              {#each [["CUA_DRIVER_SERVE_APPROVE_CAPABILITY_MANIFEST", "pluginServeApproveManifest"], ["CUA_DRIVER_SERVE_NO_PERMISSIONS_GATE", "pluginServeNoPermissionsGate"], ["CUA_DRIVER_SERVE_CLAUDE_CODE_COMPAT", "pluginServeClaudeCompat"], ["CUA_DRIVER_SERVE_EXPERIMENTAL_HISTORY", "pluginServeExperimentalHistory"]] as [name, label]}
+                <label class="plugin-serve-flag">
+                  <span class="label-text">{$t(label as TranslationKeys)}</span>
+                  <Switch
+                    checked={cuaServeFlag(name)}
+                    onCheckedChange={(checked) => setCuaServeFlag(name, checked)}
+                    ariaLabel={$t(label as TranslationKeys)}
+                  />
+                </label>
+              {/each}
+            </div>
             <div class="plugin-card-control">
               <div class="plugin-tools-heading">
                 <span class="label-text">{$t("pluginTools")}</span>

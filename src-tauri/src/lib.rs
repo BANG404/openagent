@@ -2294,8 +2294,23 @@ fn ensure_cua_driver_serve(servers: &[McpServerConfig]) -> Result<(), String> {
         .map(String::as_str)
         .unwrap_or("standard");
     let command = if server.command.trim().is_empty() { "cua-driver" } else { server.command.trim() };
+    let mut args = vec!["serve".to_owned(), "--permission-mode".to_owned(), mode.to_owned(), "--socket".to_owned(), socket.to_owned()];
+    let flag = |name: &str| server.env.get(name).map(|value| value == "1" || value.eq_ignore_ascii_case("true")).unwrap_or(false);
+    if flag("CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS") { args.push("--dangerously-bypass-approvals".to_owned()); }
+    if flag("CUA_DRIVER_SERVE_NO_PERMISSIONS_GATE") { args.push("--no-permissions-gate".to_owned()); }
+    if flag("CUA_DRIVER_SERVE_APPROVE_CAPABILITY_MANIFEST") { args.push("--approve-capability-manifest".to_owned()); }
+    if flag("CUA_DRIVER_SERVE_CLAUDE_CODE_COMPAT") { args.push("--claude-code-computer-use-compat".to_owned()); }
+    if flag("CUA_DRIVER_SERVE_EXPERIMENTAL_HISTORY") { args.push("--experimental-history".to_owned()); }
+    if let Some(path) = server.env.get("CUA_DRIVER_SERVE_CAPABILITY_MANIFEST").map(String::trim).filter(|v| !v.is_empty()) {
+        args.extend(["--capability-manifest".to_owned(), path.to_owned()]);
+    }
+    if let Some(grants) = server.env.get("CUA_DRIVER_SERVE_GRANTS") {
+        for grant in grants.split(',').map(str::trim).filter(|v| !v.is_empty()) {
+            args.extend(["--grant".to_owned(), grant.to_owned()]);
+        }
+    }
     let spawned = Command::new(command)
-        .args(["serve", "--permission-mode", mode, "--socket", socket])
+        .args(args)
         .envs(server.env.iter())
         .stdin(Stdio::null())
         .stdout(Stdio::null())

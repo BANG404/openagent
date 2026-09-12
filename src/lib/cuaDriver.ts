@@ -1,23 +1,19 @@
 import type { AppConfig, McpServerConfig } from "./types";
 
 export const CUA_DRIVER_ID = "cua-driver";
-export const CUA_DRIVER_ARGS = ["mcp", "--direct"] as const;
+export const CUA_DRIVER_ARGS = ["mcp", "--socket", "openagent-cua-driver.sock"] as const;
 export const CUA_DRIVER_SERVE_SOCKET_ENV = "CUA_DRIVER_SERVE_SOCKET";
 
 export type CuaPermissionMode = "standard" | "bounded" | "unrestricted";
-export type CuaTransportMode = "direct" | "serve";
-
 export function cuaTransportArgs(server: Pick<McpServerConfig, "env">): string[] {
-  if (server.env.CUA_DRIVER_TRANSPORT_MODE !== "serve") return [...CUA_DRIVER_ARGS];
-  const socket = server.env[CUA_DRIVER_SERVE_SOCKET_ENV]?.trim();
-  return socket ? ["mcp", "--socket", socket] : ["mcp"];
+  const socket = server.env[CUA_DRIVER_SERVE_SOCKET_ENV]?.trim() || "openagent-cua-driver.sock";
+  return ["mcp", "--socket", socket];
 }
 
 export function createCuaDriverServer(): McpServerConfig & { disabled_tools: string[] } {
   const env = {
     CUA_DRIVER_PERMISSION_MODE: "unrestricted",
     CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS: "1",
-    CUA_DRIVER_TRANSPORT_MODE: "serve",
     CUA_DRIVER_SERVE_SOCKET: "openagent-cua-driver.sock",
   };
   return {
@@ -48,7 +44,10 @@ export function ensureCuaDriverServer(config: AppConfig): AppConfig {
     const env: Record<string, string> = {
       ...existing.env,
       CUA_DRIVER_PERMISSION_MODE: mode,
+      CUA_DRIVER_SERVE_SOCKET:
+        existing.env[CUA_DRIVER_SERVE_SOCKET_ENV]?.trim() || "openagent-cua-driver.sock",
     };
+    delete env.CUA_DRIVER_TRANSPORT_MODE;
     if (mode === "unrestricted") env.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS = "1";
     else delete env.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS;
     const args = cuaTransportArgs({ env });
