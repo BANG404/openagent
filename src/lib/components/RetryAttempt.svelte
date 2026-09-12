@@ -7,7 +7,7 @@
   import { chatMarkdownTheme } from "$lib/streamdown/chatMarkdownTheme";
   import { customExtensions } from "$lib/streamdown/extensions";
   import type { ComponentToken } from "$lib/streamdown/extensions";
-  import type { HtmlPreviewConfig, StreamItem } from "$lib/types";
+  import type { FileChange, HtmlPreviewConfig, StreamItem } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t } from "$lib/i18n";
   import ToolCallCard from "./ToolCallCard.svelte";
@@ -24,6 +24,7 @@
     shikiTheme: string;
     mermaidConfig: MermaidConfig;
     htmlPreviewConfig?: HtmlPreviewConfig;
+    fileChanges?: FileChange[];
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
     onCancelUserInput: (requestId: string) => void;
   }
@@ -33,6 +34,7 @@
     shikiTheme,
     mermaidConfig,
     htmlPreviewConfig,
+    fileChanges = [],
     onSubmitUserInput,
     onCancelUserInput,
   }: Props = $props();
@@ -66,6 +68,7 @@
         <ToolCallGroup
           items={segment.items}
           {htmlPreviewConfig}
+          {fileChanges}
           {onSubmitUserInput}
           {onCancelUserInput}
         />
@@ -108,6 +111,7 @@
             onApprove={(requestId) => onSubmitUserInput(requestId, { approved: true })}
             onDeny={onCancelUserInput}
             {htmlPreviewConfig}
+            {fileChanges}
             {mermaidConfig}
             onToggle={() => toggleToolCall(idx)}
           />

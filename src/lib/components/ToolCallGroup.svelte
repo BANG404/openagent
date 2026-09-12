@@ -6,7 +6,7 @@
     type ToolCallItem,
     type ToolCallStatus,
   } from "$lib/toolCallGroups";
-  import type { HtmlPreviewConfig } from "$lib/types";
+  import type { FileChange, HtmlPreviewConfig } from "$lib/types";
   import ToolCallCard from "./ToolCallCard.svelte";
   import Tooltip from "./Tooltip.svelte";
 
@@ -15,6 +15,7 @@
     isStreaming?: boolean;
     htmlPreviewConfig?: HtmlPreviewConfig;
     conversationId?: string;
+    fileChanges?: FileChange[];
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
     onCancelUserInput: (requestId: string) => void;
   }
@@ -24,6 +25,7 @@
     isStreaming = false,
     htmlPreviewConfig,
     conversationId,
+    fileChanges = [],
     onSubmitUserInput,
     onCancelUserInput,
   }: Props = $props();
@@ -170,6 +172,7 @@
             onDeny={onCancelUserInput}
             {htmlPreviewConfig}
             {conversationId}
+            {fileChanges}
             showRunning={isStreaming}
             onToggle={() => toggleCall(index)}
           />

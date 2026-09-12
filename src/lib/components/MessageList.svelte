@@ -23,6 +23,7 @@
   import type {
     ChatAttachment,
     ChatMessage,
+    FileChange,
     HtmlPreviewConfig,
     StreamItem,
     TaskTokenUsage,
@@ -55,6 +56,7 @@
     activeConvId: string | null;
     activeBranchId: string | null;
     debugMode: boolean;
+    fileChanges?: FileChange[];
     taskUsagesByCheckpointId?: Record<string, TaskTokenUsage[]>;
     activeTree: ConvTree | undefined;
     paddingBottom: number;
@@ -106,6 +108,7 @@
     activeConvId,
     activeBranchId,
     debugMode,
+    fileChanges = [],
     taskUsagesByCheckpointId = {},
     activeTree,
     paddingBottom,
@@ -637,6 +640,7 @@
                   isStreaming={assistantIsStreaming}
                   {htmlPreviewConfig}
                   conversationId={activeConvId ?? undefined}
+                  {fileChanges}
                   {onSubmitUserInput}
                   {onCancelUserInput}
                 />
@@ -663,6 +667,7 @@
                 {mermaidConfig}
                 {htmlPreviewConfig}
                 conversationId={activeConvId ?? undefined}
+                {fileChanges}
                 {onSubmitUserInput}
                 {onCancelUserInput}
               />
@@ -826,6 +831,7 @@
             items={entry.items}
             {htmlPreviewConfig}
             conversationId={activeConvId ?? undefined}
+            {fileChanges}
             {onSubmitUserInput}
             {onCancelUserInput}
           />
