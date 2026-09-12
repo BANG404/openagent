@@ -51,6 +51,7 @@
   import { t, tr, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import { LatestRequest } from "$lib/latestRequest";
   import { showToast } from "$lib/toast";
+  import { ensureCuaDriverServer } from "$lib/cuaDriver";
   import { decodeModelBinding } from "$lib/modelBinding";
   import { DEFAULT_QUICK_CHAT_SHORTCUT, normalizeQuickChatShortcut } from "$lib/quickChatShortcut";
   import {
@@ -2293,6 +2294,13 @@
   async function applyStartupBootstrap(bootstrap: StartupBootstrap) {
     settingsRequests.invalidate();
     config = normalizeConfigShape(bootstrap.config);
+    const configWithCuaDriver = ensureCuaDriverServer(config);
+    if (configWithCuaDriver !== config) {
+      // Runtime startup connects the persisted MCP list before this surface is
+      // mounted. Persist the product-managed entry here so the first chat turn
+      // can use Cua Driver without requiring a visit to Settings first.
+      await saveSettings(configWithCuaDriver, bootstrap.config, false);
+    }
     applyTheme(config.theme ?? "system");
     await initI18n(config.language);
     workspacePath = bootstrap.workspace_path;

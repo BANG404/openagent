@@ -27,6 +27,12 @@
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
   import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
   import {
+    CUA_DRIVER_ARGS,
+    CUA_DRIVER_ID,
+    createCuaDriverServer,
+    type CuaPermissionMode,
+  } from "$lib/cuaDriver";
+  import {
     PROVIDER_CATALOG,
     providerCatalogEntry,
     providerDefaultBaseUrl,
@@ -327,7 +333,7 @@
   let draftConfig = $state<NormalizedAppConfig>(
     normalizeConfigShape(untrack(() => config) ?? fallbackConfig),
   );
-  const cuaDriverId = "cua-driver";
+  const cuaDriverId = CUA_DRIVER_ID;
   let userMcpServers = $derived(
     draftConfig.mcp.servers.filter((server) => server.id !== cuaDriverId),
   );
@@ -378,28 +384,6 @@
     ensureSelectedMcpServer();
   });
 
-  type CuaPermissionMode = "standard" | "bounded" | "unrestricted";
-
-  function createCuaDriverServer(): NormalizedMcpServerConfig {
-    return {
-      id: cuaDriverId,
-      name: "Cua Driver",
-      enabled: true,
-      transport: "stdio",
-      url: "",
-      bearer_token: "",
-      headers: {},
-      command: "cua-driver",
-      args: ["mcp"],
-      env: {
-        CUA_DRIVER_PERMISSION_MODE: "unrestricted",
-        CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS: "1",
-      },
-      cwd: "",
-      disabled_tools: [],
-    };
-  }
-
   function cuaServer(): NormalizedMcpServerConfig {
     const existing = draftConfig.mcp.servers.find((server) => server.id === cuaDriverId);
     if (existing) return existing;
@@ -419,7 +403,7 @@
     if (mode === "unrestricted") env.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS = "1";
     else delete env.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS;
     server.env = env;
-    server.args = ["mcp"];
+    server.args = [...CUA_DRIVER_ARGS];
   }
 
   let cuaDriver = $derived(
@@ -448,10 +432,10 @@
     if (mode === "unrestricted") nextEnv.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS = "1";
     else delete nextEnv.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS;
     const changed =
-      JSON.stringify(existing.args) !== JSON.stringify(["mcp"]) ||
+      JSON.stringify(existing.args) !== JSON.stringify(CUA_DRIVER_ARGS) ||
       JSON.stringify(existing.env) !== JSON.stringify(nextEnv);
     if (!changed) return;
-    existing.args = ["mcp"];
+    existing.args = [...CUA_DRIVER_ARGS];
     existing.env = nextEnv;
     queueMicrotask(() => saveDraftConfig().catch(console.error));
   });
