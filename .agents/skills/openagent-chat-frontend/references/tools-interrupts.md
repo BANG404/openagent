@@ -30,6 +30,9 @@
   scannable. Project every `apply_patch` file operation into tabs backed by the
   same bounded, line-numbered diff view as the conversation Files panel; retain
   total addition and removal counts even when the rendered patch is truncated.
+  A standard `Delete File` header has no body, so hydrate its tab from the
+  matching pre-delete `FileChange` snapshot; number every deleted source line
+  from 1 and count the complete file even when the rendered preview is bounded.
   Do not restore focused renderers for the unexposed legacy `read_file`,
   `write_file`, `edit_file`, `glob`, or `grep` tools.
 - Group consecutive ordinary ToolCalls into one collapsed summary row with

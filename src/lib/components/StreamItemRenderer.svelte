@@ -10,7 +10,7 @@
   import MessageDivider from "./MessageDivider.svelte";
   import CompactionStatus from "./CompactionStatus.svelte";
   import { t } from "$lib/i18n";
-  import type { HtmlPreviewConfig, StreamItem } from "$lib/types";
+  import type { FileChange, HtmlPreviewConfig, StreamItem } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { customExtensions, type ComponentToken } from "$lib/streamdown/extensions";
   import { chatMarkdownTheme } from "$lib/streamdown/chatMarkdownTheme";
@@ -32,6 +32,7 @@
     mermaidConfig: MermaidConfig;
     htmlPreviewConfig?: HtmlPreviewConfig;
     conversationId?: string;
+    fileChanges?: FileChange[];
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
     onCancelUserInput: (requestId: string) => void;
   }
@@ -49,6 +50,7 @@
     mermaidConfig,
     htmlPreviewConfig,
     conversationId,
+    fileChanges = [],
     onSubmitUserInput,
     onCancelUserInput,
   }: Props = $props();
@@ -153,6 +155,7 @@
       onDeny={onCancelUserInput}
       {htmlPreviewConfig}
       {conversationId}
+      {fileChanges}
       {mermaidConfig}
       showRunning={isStreaming}
       onToggle={() => (expanded = !expanded)}
@@ -182,6 +185,7 @@
   >
     <RetryAttempt
       {item}
+      {fileChanges}
       {shikiTheme}
       {mermaidConfig}
       {htmlPreviewConfig}

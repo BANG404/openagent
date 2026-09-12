@@ -2,9 +2,11 @@
   import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
   import MermaidToolPreview from "./MermaidToolPreview.svelte";
   import type { ChatToolImage, HtmlPreviewConfig, UserInputRequest } from "$lib/types";
+  import type { FileChange } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t } from "$lib/i18n";
   import {
+    applyFileChangeSnapshotsToPatchPreviews,
     parseApplyPatchPreview,
     summarizePatchChanges,
     type ToolPatchFilePreview,
@@ -23,6 +25,7 @@
     argHint: string;
     htmlPreviewConfig?: HtmlPreviewConfig;
     conversationId?: string;
+    fileChanges?: FileChange[];
     mermaidConfig?: MermaidConfig;
     showRunning?: boolean;
     approval?: {
@@ -59,6 +62,7 @@
     onApprove,
     onDeny,
     onToggle,
+    fileChanges = [],
   }: Props = $props();
 
   const focusedTools = new Set(["exec_command", "write_stdin", "apply_patch", "view_image"]);
@@ -113,7 +117,9 @@
     ),
   );
   const patchText = $derived(getString(parsedArgs, "patch"));
-  const applyPatchPreviews = $derived(parseApplyPatchPreview(patchText));
+  const applyPatchPreviews = $derived(
+    applyFileChangeSnapshotsToPatchPreviews(parseApplyPatchPreview(patchText), fileChanges),
+  );
   const patchSummary = $derived(summarizePatchChanges(applyPatchPreviews));
   const filePath = $derived(
     getString(parsedArgs, "file_path") ||

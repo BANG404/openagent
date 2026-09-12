@@ -1176,6 +1176,7 @@
               activeConvId={conversation?.conv_id ?? null}
               {activeBranchId}
               debugMode={false}
+              fileChanges={currentFileChanges}
               {activeTree}
               paddingBottom={inputAreaHeight + 24}
               showApiKeyWarn={remoteModels.length === 0}

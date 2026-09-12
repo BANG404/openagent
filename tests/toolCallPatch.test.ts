@@ -2,6 +2,7 @@
 import { expect, test } from "bun:test";
 import {
   MAX_TOOL_PATCH_PREVIEW_LINES,
+  applyFileChangeSnapshotsToPatchPreviews,
   parseApplyPatchPreview,
   summarizePatchChanges,
 } from "../src/lib/toolCallPatch";
@@ -62,4 +63,40 @@ test("bounds apply_patch previews while retaining complete change counts", () =>
   expect(preview.lines).toHaveLength(MAX_TOOL_PATCH_PREVIEW_LINES);
   expect(preview.lines.at(-1)).toEqual({ type: "context", text: "..." });
   expect(preview.additions).toBe(MAX_TOOL_PATCH_PREVIEW_LINES * 2);
+});
+
+test("numbers every line in a delete patch body", () => {
+  const [preview] = parseApplyPatchPreview(
+    ["*** Begin Patch", "*** Delete File: docs/old.md", "-first", "-second", "*** End Patch"].join(
+      "\n",
+    ),
+  );
+
+  expect(preview).toMatchObject({ additions: 0, removals: 2 });
+  expect(preview.lines).toEqual([
+    { type: "remove", text: "-first", oldLine: 1 },
+    { type: "remove", text: "-second", oldLine: 2 },
+  ]);
+});
+
+test("hydrates bodyless delete previews from the pre-delete file snapshot", () => {
+  const [preview] = parseApplyPatchPreview(
+    ["*** Begin Patch", "*** Delete File: docs/old.md", "*** End Patch"].join("\n"),
+  );
+  const hydrated = applyFileChangeSnapshotsToPatchPreviews(
+    [preview],
+    [
+      {
+        path: "/workspace/docs/old.md",
+        old_patch: "@@ -1,0 +1,3 @@\n+first\n+second\n+third",
+      },
+    ],
+  );
+
+  expect(hydrated[0]).toMatchObject({ additions: 0, removals: 3 });
+  expect(hydrated[0].lines).toEqual([
+    { type: "remove", text: "-first", oldLine: 1 },
+    { type: "remove", text: "-second", oldLine: 2 },
+    { type: "remove", text: "-third", oldLine: 3 },
+  ]);
 });

@@ -1,4 +1,5 @@
-import type { FileChangeDiffLine } from "./fileChangeDiff";
+import { fileChangeDiffLines, type FileChangeDiffLine } from "./fileChangeDiff";
+import type { FileChange } from "./types";
 
 export type ToolPatchOperation = "add" | "update" | "delete";
 
@@ -31,7 +32,7 @@ function previewLines(
   const lines: FileChangeDiffLine[] = [];
   let additions = 0;
   let removals = 0;
-  let oldLine: number | undefined;
+  let oldLine: number | undefined = operation === "delete" ? 1 : undefined;
   let newLine: number | undefined = operation === "add" ? 1 : undefined;
   let characters = 0;
   let omitted = false;
@@ -74,6 +75,67 @@ function previewLines(
 
   if (omitted) lines.push({ type: "context", text: "..." });
   return { lines, additions, removals };
+}
+
+function boundedPreviewLines(source: FileChangeDiffLine[]): FileChangeDiffLine[] {
+  const lines: FileChangeDiffLine[] = [];
+  let characters = 0;
+  let omitted = false;
+
+  for (const line of source) {
+    characters += line.text.length;
+    if (
+      lines.length >= MAX_TOOL_PATCH_PREVIEW_LINES - 1 ||
+      characters > MAX_TOOL_PATCH_PREVIEW_CHARACTERS
+    ) {
+      omitted = true;
+      continue;
+    }
+    lines.push(line);
+  }
+
+  if (omitted) lines.push({ type: "context", text: "..." });
+  return lines;
+}
+
+function normalizedPath(path: string): string {
+  return path
+    .replaceAll("\\", "/")
+    .replace(/^\.\/+/, "")
+    .replace(/\/+$/, "");
+}
+
+function matchesFileChangePath(changePath: string, patchPath: string): boolean {
+  const change = normalizedPath(changePath);
+  const patch = normalizedPath(patchPath);
+  if (!change || !patch) return false;
+  return change === patch || change.endsWith(`/${patch}`) || patch.endsWith(`/${change}`);
+}
+
+/**
+ * Fill standard Delete File previews from the runtime's pre-delete snapshot.
+ * Codex-compatible delete headers do not include the deleted file body.
+ */
+export function applyFileChangeSnapshotsToPatchPreviews(
+  previews: ToolPatchFilePreview[],
+  changes: FileChange[],
+): ToolPatchFilePreview[] {
+  return previews.map((preview) => {
+    if (preview.operation !== "delete" || preview.lines.length > 0) return preview;
+    const change = changes.find(
+      (candidate) =>
+        candidate.old_patch !== null && matchesFileChangePath(candidate.path, preview.path),
+    );
+    if (!change) return preview;
+
+    const sourceLines = fileChangeDiffLines(change);
+    return {
+      ...preview,
+      lines: boundedPreviewLines(sourceLines),
+      additions: sourceLines.filter((line) => line.type === "add").length,
+      removals: sourceLines.filter((line) => line.type === "remove").length,
+    };
+  });
 }
 
 export function parseApplyPatchPreview(patch: string): ToolPatchFilePreview[] {

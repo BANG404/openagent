@@ -188,6 +188,7 @@
           activeConvId={view.activeConvId}
           activeBranchId={view.activeBranchId}
           debugMode={view.debugMode}
+          fileChanges={view.fileChanges}
           taskUsagesByCheckpointId={view.taskUsagesByCheckpointId}
           activeTree={view.activeTree}
           paddingBottom={inputAreaHeight + 24}
