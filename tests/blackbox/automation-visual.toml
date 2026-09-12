@@ -1,0 +1,19 @@
+[scenario]
+name = "automation surface visual state"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "lifecycle surface remains available in the selected locale and theme"
+action = "assert-exists"
+target = "[role=tabpanel][data-value=lifecycle]"
+
+[[step]]
+name = "lifecycle editor entry remains visible"
+action = "assert-exists"
+target = "[role=tabpanel][data-value=lifecycle] .detail-section-header button"
+
+[[step]]
+name = "schedule surface remains available in the selected locale and theme"
+action = "assert-exists"
+target = "[role=tabpanel][data-value=schedules]"

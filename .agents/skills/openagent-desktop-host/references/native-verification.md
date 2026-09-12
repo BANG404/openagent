@@ -20,3 +20,21 @@ Use browser verification only when native-window state is outside the
 acceptance criteria. Do not substitute another browser control surface for the
 workspace `playwright` skill, and do not create repository-root artifact
 directories.
+
+## Automation top-bar black-box coverage
+
+The committed `tests/blackbox/automation-*.toml` scenarios drive the real
+Automation utility window through `tauri-pilot`. Run them through the repository
+wrapper so the lifecycle Hook editor, all six scheduled-hook modes, menu entries,
+shortcuts, cleanup actions, and locale/theme states are covered together:
+
+```bash
+OPENAGENT_HOME=/tmp/openagent-blackbox-fixture \
+TAURI_PILOT_SOCKET=/run/user/1000/tauri-pilot-<instance>.sock \
+bun run test:blackbox:automation
+```
+
+Start the debug app with the same isolated `OPENAGENT_HOME` and keep the
+resulting screenshots in a temporary directory via `BLACKBOX_ARTIFACT_DIR`.
+The wrapper refuses the installed `~/.openagent` data directory and restores
+the general theme and language after visual checks.

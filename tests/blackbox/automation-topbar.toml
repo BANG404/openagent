@@ -1,0 +1,86 @@
+[scenario]
+name = "automation top-bar entries and shortcuts"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "Alt+U opens the automation menu"
+action = "eval"
+script = '''(async () => {
+  const trigger = document.querySelector("#application-automation-menu");
+  if (!(trigger instanceof HTMLElement)) throw new Error("automation menu trigger is missing");
+  window.dispatchEvent(new KeyboardEvent("keydown", {
+    key: "u",
+    code: "KeyU",
+    altKey: true,
+    bubbles: true,
+  }));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  if (trigger.getAttribute("aria-expanded") !== "true") {
+    throw new Error("Alt+U did not open the automation menu");
+  }
+  return true;
+})()'''
+
+[[step]]
+name = "menu exposes both automation destinations"
+action = "eval"
+script = '''(() => {
+  const items = [...document.querySelectorAll("[role=menuitem]")];
+  if (items.length !== 2) throw new Error(`expected 2 automation menu items, got ${items.length}`);
+  const text = items.map((item) => item.textContent?.replace(/\s+/g, " ").trim()).join(" | ");
+  if (!text.includes("生命周期自动化") && !text.includes("Lifecycle automation")) {
+    throw new Error(`lifecycle entry is missing: ${text}`);
+  }
+  if (!text.includes("配置定时任务") && !text.includes("Schedule Hook")) {
+    throw new Error(`schedule entry is missing: ${text}`);
+  }
+  return text;
+})()'''
+
+[[step]]
+name = "lifecycle menu entry opens the lifecycle destination"
+action = "click"
+target = "[role=menuitem]"
+
+[[step]]
+name = "schedule menu entry opens the schedules destination"
+action = "eval"
+script = '''(async () => {
+  const trigger = document.querySelector("#application-automation-menu");
+  if (!(trigger instanceof HTMLElement)) throw new Error("automation menu trigger is missing");
+  trigger.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const items = [...document.querySelectorAll("[role=menuitem]")];
+  if (items.length !== 2) throw new Error(`expected 2 automation menu items, got ${items.length}`);
+  items[1].click();
+  return true;
+})()'''
+
+[[step]]
+name = "Ctrl+Shift+7 requests lifecycle automation"
+action = "eval"
+script = '''(() => {
+  window.dispatchEvent(new KeyboardEvent("keydown", {
+    key: "7",
+    code: "Digit7",
+    ctrlKey: true,
+    shiftKey: true,
+    bubbles: true,
+  }));
+  return true;
+})()'''
+
+[[step]]
+name = "Ctrl+Shift+8 requests scheduled hooks"
+action = "eval"
+script = '''(() => {
+  window.dispatchEvent(new KeyboardEvent("keydown", {
+    key: "8",
+    code: "Digit8",
+    ctrlKey: true,
+    shiftKey: true,
+    bubbles: true,
+  }));
+  return true;
+})()'''

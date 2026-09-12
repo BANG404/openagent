@@ -1,0 +1,336 @@
+[scenario]
+name = "automation scheduled hooks"
+fail_fast = true
+global_timeout_ms = 120000
+
+[[step]]
+name = "open schedules section"
+action = "click"
+target = "[role=tab][data-value=schedules]"
+
+[[step]]
+name = "select delay mode"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] [aria-label='执行计划']"
+
+[[step]]
+name = "choose delay mode"
+action = "click"
+target = "[role=option][data-value=delay]"
+
+[[step]]
+name = "open execution role selector"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] [aria-label='执行角色']"
+
+[[step]]
+name = "default OpenAgent role is available"
+action = "assert-exists"
+target = "[role=option][data-value=openagent]"
+
+[[step]]
+name = "keep the default execution role"
+action = "click"
+target = "[role=option][data-value=openagent]"
+
+[[step]]
+name = "create delay schedule"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector("[role=tabpanel][data-value=schedules]");
+  const message = panel?.querySelector("textarea[placeholder='任务触发时发送给 AI 的消息']");
+  const delay = panel?.querySelector("input[type=number]");
+  if (!(message instanceof HTMLTextAreaElement) || !(delay instanceof HTMLInputElement)) throw new Error("delay controls are missing");
+  message.value = "Blackbox schedule delay";
+  message.dispatchEvent(new Event("input", {bubbles: true}));
+  delay.value = "1";
+  delay.dispatchEvent(new Event("input", {bubbles: true}));
+  panel?.querySelector(".key-input-row button:first-child")?.click();
+  return true;
+})()'''
+
+[[step]]
+name = "delay schedule is listed"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-item"
+timeout_ms = 10000
+
+[[step]]
+name = "refresh scheduled hook list"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] .detail-section-header button"
+
+[[step]]
+name = "edit delay schedule"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] .hook-actions button:first-child"
+
+[[step]]
+name = "edited schedule restores its message"
+action = "assert-value"
+target = "[role=tabpanel][data-value=schedules] textarea[placeholder='任务触发时发送给 AI 的消息']"
+expected = "Blackbox schedule delay"
+
+[[step]]
+name = "save edited delay schedule"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector("[role=tabpanel][data-value=schedules]");
+  const message = panel?.querySelector("textarea[placeholder='任务触发时发送给 AI 的消息']");
+  if (!(message instanceof HTMLTextAreaElement)) throw new Error("schedule message is missing");
+  message.value = "Blackbox schedule delay edited";
+  message.dispatchEvent(new Event("input", {bubbles: true}));
+  panel?.querySelector(".key-input-row button:first-child")?.click();
+  return true;
+})()'''
+
+[[step]]
+name = "wait for edited schedule refresh"
+action = "eval"
+script = "new Promise((resolve) => setTimeout(resolve, 500))"
+
+[[step]]
+name = "edited delay schedule is visible"
+action = "eval"
+script = '''(() => {
+  const text = document.querySelector("[role=tabpanel][data-value=schedules]")?.textContent ?? "";
+  if (!text.includes("Blackbox schedule delay edited")) throw new Error("edited schedule is not visible");
+  return true;
+})()'''
+
+[[step]]
+name = "cancel edited delay schedule"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+
+[[step]]
+name = "delay schedule is removed"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-item"
+gone = true
+timeout_ms = 10000
+
+[[step]]
+name = "select exact-time mode"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] [aria-label='执行计划']"
+
+[[step]]
+name = "choose exact-time mode"
+action = "click"
+target = "[role=option][data-value=run_at]"
+
+[[step]]
+name = "create exact-time schedule"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector("[role=tabpanel][data-value=schedules]");
+  const message = panel?.querySelector("textarea[placeholder='任务触发时发送给 AI 的消息']");
+  const runAt = panel?.querySelector("input[placeholder='2026-06-17 18:30']");
+  if (!(message instanceof HTMLTextAreaElement) || !(runAt instanceof HTMLInputElement)) throw new Error("exact-time controls are missing");
+  message.value = "Blackbox schedule exact time";
+  message.dispatchEvent(new Event("input", {bubbles: true}));
+  runAt.value = "2099-12-31 23:59";
+  runAt.dispatchEvent(new Event("input", {bubbles: true}));
+  panel?.querySelector(".key-input-row button:first-child")?.click();
+  return true;
+})()'''
+
+[[step]]
+name = "exact-time schedule is listed"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-item"
+timeout_ms = 10000
+
+[[step]]
+name = "exact-time schedule actions are ready"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+timeout_ms = 10000
+
+[[step]]
+name = "cancel exact-time schedule"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+
+[[step]]
+name = "select interval mode"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] [aria-label='执行计划']"
+
+[[step]]
+name = "choose interval mode"
+action = "click"
+target = "[role=option][data-value=interval_minutes]"
+
+[[step]]
+name = "create interval schedule"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector("[role=tabpanel][data-value=schedules]");
+  const message = panel?.querySelector("textarea[placeholder='任务触发时发送给 AI 的消息']");
+  const interval = panel?.querySelector("input[type=number]");
+  if (!(message instanceof HTMLTextAreaElement) || !(interval instanceof HTMLInputElement)) throw new Error("interval controls are missing");
+  message.value = "Blackbox schedule interval";
+  message.dispatchEvent(new Event("input", {bubbles: true}));
+  interval.value = "2";
+  interval.dispatchEvent(new Event("input", {bubbles: true}));
+  panel?.querySelector(".key-input-row button:first-child")?.click();
+  return true;
+})()'''
+
+[[step]]
+name = "interval schedule is listed"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-item"
+timeout_ms = 10000
+
+[[step]]
+name = "interval schedule actions are ready"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+timeout_ms = 10000
+
+[[step]]
+name = "cancel interval schedule"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+
+[[step]]
+name = "select daily mode"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] [aria-label='执行计划']"
+
+[[step]]
+name = "choose daily mode"
+action = "click"
+target = "[role=option][data-value=daily]"
+
+[[step]]
+name = "create daily schedule"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector("[role=tabpanel][data-value=schedules]");
+  const message = panel?.querySelector("textarea[placeholder='任务触发时发送给 AI 的消息']");
+  const time = panel?.querySelector("input[placeholder='09:00']");
+  if (!(message instanceof HTMLTextAreaElement) || !(time instanceof HTMLInputElement)) throw new Error("daily controls are missing");
+  message.value = "Blackbox schedule daily";
+  message.dispatchEvent(new Event("input", {bubbles: true}));
+  time.value = "09:15";
+  time.dispatchEvent(new Event("input", {bubbles: true}));
+  panel?.querySelector(".key-input-row button:first-child")?.click();
+  return true;
+})()'''
+
+[[step]]
+name = "daily schedule is listed"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-item"
+timeout_ms = 10000
+
+[[step]]
+name = "daily schedule actions are ready"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+timeout_ms = 10000
+
+[[step]]
+name = "cancel daily schedule"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+
+[[step]]
+name = "select weekdays mode"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] [aria-label='执行计划']"
+
+[[step]]
+name = "choose weekdays mode"
+action = "click"
+target = "[role=option][data-value=weekdays]"
+
+[[step]]
+name = "create weekdays schedule"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector("[role=tabpanel][data-value=schedules]");
+  const message = panel?.querySelector("textarea[placeholder='任务触发时发送给 AI 的消息']");
+  const time = panel?.querySelector("input[placeholder='09:00']");
+  if (!(message instanceof HTMLTextAreaElement) || !(time instanceof HTMLInputElement)) throw new Error("weekday controls are missing");
+  message.value = "Blackbox schedule weekdays";
+  message.dispatchEvent(new Event("input", {bubbles: true}));
+  time.value = "10:20";
+  time.dispatchEvent(new Event("input", {bubbles: true}));
+  panel?.querySelector(".key-input-row button:first-child")?.click();
+  return true;
+})()'''
+
+[[step]]
+name = "weekdays schedule is listed"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-item"
+timeout_ms = 10000
+
+[[step]]
+name = "weekdays schedule actions are ready"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+timeout_ms = 10000
+
+[[step]]
+name = "cancel weekdays schedule"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+
+[[step]]
+name = "select weekly mode"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] [aria-label='执行计划']"
+
+[[step]]
+name = "choose weekly mode"
+action = "click"
+target = "[role=option][data-value=weekly]"
+
+[[step]]
+name = "create weekly schedule"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector("[role=tabpanel][data-value=schedules]");
+  const message = panel?.querySelector("textarea[placeholder='任务触发时发送给 AI 的消息']");
+  const time = panel?.querySelector("input[placeholder='09:00']");
+  const weekdays = panel?.querySelector("input[placeholder='mon,wed,fri']");
+  if (!(message instanceof HTMLTextAreaElement) || !(time instanceof HTMLInputElement) || !(weekdays instanceof HTMLInputElement)) throw new Error("weekly controls are missing");
+  message.value = "Blackbox schedule weekly";
+  message.dispatchEvent(new Event("input", {bubbles: true}));
+  time.value = "11:30";
+  time.dispatchEvent(new Event("input", {bubbles: true}));
+  weekdays.value = "mon,wed,fri";
+  weekdays.dispatchEvent(new Event("input", {bubbles: true}));
+  panel?.querySelector(".key-input-row button:first-child")?.click();
+  return true;
+})()'''
+
+[[step]]
+name = "weekly schedule is listed"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-item"
+timeout_ms = 10000
+
+[[step]]
+name = "weekly schedule actions are ready"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+timeout_ms = 10000
+
+[[step]]
+name = "cancel weekly schedule"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+
+[[step]]
+name = "all scheduled hooks are removed"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-item"
+gone = true
+timeout_ms = 10000

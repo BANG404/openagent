@@ -30,6 +30,7 @@
     "format": "prettier --write src tests scripts .github *.json *.js",
     "format:check": "prettier --check src tests scripts .github *.json *.js",
     "test": "bun test",
+    "test:blackbox:automation": "bun scripts/test-automation-blackbox.mjs",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:agent-runtime": "cargo test --manifest-path sdk/rust/openagent-runtime/Cargo.toml",
     "test:harness-integration": "bun scripts/test-harness-integration.mjs",

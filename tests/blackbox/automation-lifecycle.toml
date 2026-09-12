@@ -1,0 +1,172 @@
+[scenario]
+name = "automation lifecycle hooks"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "open lifecycle section"
+action = "click"
+target = "[role=tab][data-value=lifecycle]"
+
+[[step]]
+name = "start a new lifecycle hook"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] .detail-section-header button"
+
+[[step]]
+name = "fill lifecycle hook identity"
+action = "fill"
+target = "[role=tabpanel][data-value=lifecycle] input[placeholder='例如：工具执行后检查']"
+value = "Blackbox Lifecycle Hook"
+
+[[step]]
+name = "select after-tool event"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] [aria-label='触发事件']"
+
+[[step]]
+name = "choose after-tool event"
+action = "click"
+target = "[role=option][data-value=after_tool]"
+
+[[step]]
+name = "set tool matcher"
+action = "fill"
+target = "[role=tabpanel][data-value=lifecycle] input[placeholder='^(exec_command|apply_patch)$']"
+value = "^blackbox_tool$"
+
+[[step]]
+name = "set hook timeout"
+action = "fill"
+target = "[role=tabpanel][data-value=lifecycle] input[type=number]"
+value = "15"
+
+[[step]]
+name = "switch from command to agent message"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] [role=radiogroup] button:nth-child(2)"
+
+[[step]]
+name = "fill agent message"
+action = "fill"
+target = "[role=tabpanel][data-value=lifecycle] textarea[placeholder='发送到当前 Agent 上下文的消息']"
+value = "Blackbox agent message"
+
+[[step]]
+name = "save agent-message hook"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] .hook-editor-actions button:first-child"
+
+[[step]]
+name = "saved hook is visible"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector("[role=tabpanel][data-value=lifecycle]");
+  const text = panel?.textContent ?? "";
+  if (!text.includes("Blackbox Lifecycle Hook")) throw new Error("saved hook is not visible");
+  if (!text.includes("Blackbox agent message")) throw new Error("agent message was not saved");
+  return true;
+})()'''
+
+[[step]]
+name = "edit saved hook"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] .hook-actions button:first-child"
+
+[[step]]
+name = "edited hook keeps its name"
+action = "assert-value"
+target = "[role=tabpanel][data-value=lifecycle] .automation-hook-editor input[placeholder='例如：工具执行后检查']"
+expected = "Blackbox Lifecycle Hook"
+
+[[step]]
+name = "switch back to terminal command"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] [role=radiogroup] button:first-child"
+
+[[step]]
+name = "fill edited command"
+action = "fill"
+target = "[role=tabpanel][data-value=lifecycle] textarea[placeholder='bun run verify']"
+value = "echo blackbox edited"
+
+[[step]]
+name = "save edited command hook"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] .hook-editor-actions button:first-child"
+
+[[step]]
+name = "edited command is visible"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector("[role=tabpanel][data-value=lifecycle]");
+  const text = panel?.textContent ?? "";
+  if (!text.includes("echo blackbox edited")) throw new Error("edited command was not saved");
+  return true;
+})()'''
+
+[[step]]
+name = "disable lifecycle hook"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] [role=switch][aria-label='启用生命周期 Hook: Blackbox Lifecycle Hook']"
+
+[[step]]
+name = "disabled state is reflected"
+action = "eval"
+script = '''(() => {
+  const toggle = document.querySelector("[role=tabpanel][data-value=lifecycle] [role=switch][aria-label='启用生命周期 Hook: Blackbox Lifecycle Hook']");
+  if (toggle?.getAttribute("aria-checked") !== "false") throw new Error("hook did not disable");
+  return true;
+})()'''
+
+[[step]]
+name = "re-enable lifecycle hook"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] [role=switch][aria-label='启用生命周期 Hook: Blackbox Lifecycle Hook']"
+
+[[step]]
+name = "enabled state is reflected"
+action = "eval"
+script = '''(() => {
+  const toggle = document.querySelector("[role=tabpanel][data-value=lifecycle] [role=switch][aria-label='启用生命周期 Hook: Blackbox Lifecycle Hook']");
+  if (toggle?.getAttribute("aria-checked") !== "true") throw new Error("hook did not re-enable");
+  return true;
+})()'''
+
+[[step]]
+name = "open editor for cancel-save coverage"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] .hook-actions button:first-child"
+
+[[step]]
+name = "change draft without saving"
+action = "fill"
+target = "[role=tabpanel][data-value=lifecycle] .automation-hook-editor input[placeholder='例如：工具执行后检查']"
+value = "Should Not Persist"
+
+[[step]]
+name = "cancel lifecycle edit"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] .hook-editor-actions button:last-child"
+
+[[step]]
+name = "cancelled draft is not persisted"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector("[role=tabpanel][data-value=lifecycle]");
+  const text = panel?.textContent ?? "";
+  if (!text.includes("Blackbox Lifecycle Hook")) throw new Error("original hook disappeared after cancel");
+  if (text.includes("Should Not Persist")) throw new Error("cancelled draft was persisted");
+  return true;
+})()'''
+
+[[step]]
+name = "delete lifecycle hook"
+action = "click"
+target = "[role=tabpanel][data-value=lifecycle] .hook-actions button:last-child"
+
+[[step]]
+name = "lifecycle hook list is empty"
+action = "assert-text"
+target = "[role=tabpanel][data-value=lifecycle] .model-list-empty"
+expected = "暂无生命周期 Hook"
