@@ -126,30 +126,56 @@ function isHiddenCheckpointRecord(record: CheckpointMessage): boolean {
   );
 }
 
-function normalizeAskUserOptions(options: unknown): unknown {
-  if (!Array.isArray(options)) return options;
-  return options.flatMap((option) => {
-    if (typeof option === "string") return [option];
-    if (!option || typeof option !== "object" || Array.isArray(option)) return [];
+function normalizeAskUserOptions(options: unknown): string[] | null {
+  if (!Array.isArray(options)) return null;
+  const normalized: string[] = [];
+  for (const option of options) {
+    if (typeof option === "string") {
+      normalized.push(option);
+      continue;
+    }
+    if (!option || typeof option !== "object" || Array.isArray(option)) return null;
     const record = option as Record<string, unknown>;
-    const value =
-      typeof record.value === "string"
-        ? record.value
-        : typeof record.label === "string"
-          ? record.label
-          : null;
-    return value === null ? [] : [value];
-  });
+    const value = [record.value, record.label, record.text].find(
+      (candidate): candidate is string => typeof candidate === "string",
+    );
+    if (value === undefined) return null;
+    normalized.push(value);
+  }
+  return normalized;
 }
 
-function normalizeAskUserFields(fields: unknown): unknown {
-  if (!Array.isArray(fields)) return fields;
-  return fields.map((field) => {
-    if (!field || typeof field !== "object" || Array.isArray(field)) return field;
+function normalizeAskUserFields(fields: unknown): Record<string, unknown>[] | null {
+  if (!Array.isArray(fields) || fields.length === 0) return null;
+  const normalized: Record<string, unknown>[] = [];
+  for (const field of fields) {
+    if (!field || typeof field !== "object" || Array.isArray(field)) return null;
     const record = field as Record<string, unknown>;
-    if (record.type !== "select" && record.type !== "checkbox_group") return field;
-    return { ...record, options: normalizeAskUserOptions(record.options) };
-  });
+    if (
+      typeof record.type !== "string" ||
+      typeof record.name !== "string" ||
+      typeof record.label !== "string"
+    ) {
+      return null;
+    }
+    if (record.type === "select" || record.type === "checkbox_group") {
+      const options = normalizeAskUserOptions(record.options);
+      if (options === null) return null;
+      normalized.push({ ...record, options });
+      continue;
+    }
+    if (
+      record.type !== "text" &&
+      record.type !== "textarea" &&
+      record.type !== "checkbox" &&
+      record.type !== "date" &&
+      record.type !== "confirm"
+    ) {
+      return null;
+    }
+    normalized.push(record);
+  }
+  return normalized;
 }
 
 export function askUserRequestFromToolUse(
@@ -170,9 +196,9 @@ export function askUserRequestFromToolUse(
     conv_id: convId,
     kind: "ask_user" as const,
   };
-  request.fields = normalizeAskUserFields(request.fields);
-  return request.request_id && Array.isArray(request.fields)
-    ? (request as unknown as UserInputRequest)
+  const fields = normalizeAskUserFields(request.fields);
+  return request.request_id && fields
+    ? ({ ...request, fields } as unknown as UserInputRequest)
     : null;
 }
 
@@ -389,6 +415,14 @@ function attachPersistedToolResult(
         approval,
       };
     } else if (item.type === "user_input") {
+      if (
+        toolCallStatus({ type: "tool_call", name: "ask_user", args: "{}", result }, false) ===
+        "failed"
+      ) {
+        items.splice(itemIndex, 1);
+        messages[messageIndex] = { ...message, items };
+        return true;
+      }
       const response = parsePersistedUserInputResponse(result);
       const unanswered = isUnansweredToolResult(result);
       const cancelled = Boolean(
