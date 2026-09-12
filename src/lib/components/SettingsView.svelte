@@ -2187,19 +2187,45 @@
               <code>cua-driver mcp --socket {cuaDriver.env.CUA_DRIVER_SERVE_SOCKET || "…"}</code>
               <span class="detail-hint">{$t("pluginServeManifestHint")}</span>
             </div>
-            <label class="detail-label">
+            <div class="detail-label plugin-manifest-editor">
               <span class="label-text">{$t("pluginServeManifest")}</span>
-              <input
-                class="detail-input application-settings-control"
-                value={cuaDriver.env.CUA_DRIVER_SERVE_CAPABILITY_MANIFEST ?? ""}
-                placeholder="(bundled manifest)"
-                oninput={(event) =>
-                  setCuaServeValue(
-                    "CUA_DRIVER_SERVE_CAPABILITY_MANIFEST",
-                    (event.currentTarget as HTMLInputElement).value,
-                  )}
-              />
-            </label>
+              <span class="detail-hint">{$t("pluginServeManifestVisualHint")}</span>
+              <div class="plugin-manifest-fields">
+                <label>
+                  <span>{$t("pluginManifestExpires")}</span>
+                  <input
+                    class="detail-input application-settings-control"
+                    value={cuaDriver.env.CUA_DRIVER_MANIFEST_EXPIRES_AFTER ?? "24h"}
+                    oninput={(event) =>
+                      setCuaServeValue(
+                        "CUA_DRIVER_MANIFEST_EXPIRES_AFTER",
+                        (event.currentTarget as HTMLInputElement).value,
+                      )}
+                  />
+                </label>
+                <label>
+                  <span>{$t("pluginManifestIdleTimeout")}</span>
+                  <input
+                    class="detail-input application-settings-control"
+                    value={cuaDriver.env.CUA_DRIVER_MANIFEST_IDLE_TIMEOUT ?? "24h"}
+                    oninput={(event) =>
+                      setCuaServeValue(
+                        "CUA_DRIVER_MANIFEST_IDLE_TIMEOUT",
+                        (event.currentTarget as HTMLInputElement).value,
+                      )}
+                  />
+                </label>
+              </div>
+              <label class="plugin-serve-flag">
+                <span>{$t("pluginManifestDesktopDisplay")}</span>
+                <Switch
+                  checked={cuaServeFlag("CUA_DRIVER_MANIFEST_DESKTOP_DISPLAY")}
+                  onCheckedChange={(checked) =>
+                    setCuaServeFlag("CUA_DRIVER_MANIFEST_DESKTOP_DISPLAY", checked)}
+                  ariaLabel={$t("pluginManifestDesktopDisplay")}
+                />
+              </label>
+            </div>
             <label class="detail-label">
               <span class="label-text">{$t("pluginServeGrants")}</span>
               <input
@@ -5514,6 +5540,46 @@
     gap: 16px;
     padding: 16px;
     border-top: 1px solid var(--mica-divider);
+  }
+
+  .plugin-serve-summary,
+  .plugin-manifest-editor,
+  .plugin-serve-flags {
+    grid-column: 1 / -1;
+  }
+
+  .plugin-serve-summary {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--control-fill);
+  }
+
+  .plugin-serve-summary code {
+    overflow-wrap: anywhere;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .plugin-manifest-fields,
+  .plugin-serve-flags {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .plugin-manifest-fields label,
+  .plugin-serve-flag {
+    display: grid;
+    gap: 6px;
+  }
+
+  .plugin-serve-flag {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
   }
 
   .plugin-card-control {

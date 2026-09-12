@@ -2301,6 +2301,26 @@ fn ensure_cua_driver_serve(servers: &[McpServerConfig]) -> Result<(), String> {
     if flag("CUA_DRIVER_SERVE_APPROVE_CAPABILITY_MANIFEST") { args.push("--approve-capability-manifest".to_owned()); }
     if flag("CUA_DRIVER_SERVE_CLAUDE_CODE_COMPAT") { args.push("--claude-code-computer-use-compat".to_owned()); }
     if flag("CUA_DRIVER_SERVE_EXPERIMENTAL_HISTORY") { args.push("--experimental-history".to_owned()); }
+    if !server.env.contains_key("CUA_DRIVER_SERVE_CAPABILITY_MANIFEST") {
+    if let Some(source) = std::env::var_os("CUA_DRIVER_CAPABILITY_MANIFEST_FILE") {
+        if let Ok(mut manifest) = std::fs::read_to_string(&source) {
+            if let Some(value) = server.env.get("CUA_DRIVER_MANIFEST_EXPIRES_AFTER") {
+                manifest = manifest.replace("expires_after: 24h", &format!("expires_after: {value}"));
+            }
+            if let Some(value) = server.env.get("CUA_DRIVER_MANIFEST_IDLE_TIMEOUT") {
+                manifest = manifest.replace("idle_timeout: 24h", &format!("idle_timeout: {value}"));
+            }
+            if server.env.contains_key("CUA_DRIVER_MANIFEST_DESKTOP_DISPLAY") {
+                let display = if flag("CUA_DRIVER_MANIFEST_DESKTOP_DISPLAY") { "true" } else { "false" };
+                manifest = manifest.replace("display: true", &format!("display: {display}"));
+            }
+            let generated = std::env::temp_dir().join("openagent-cua-capabilities.yaml");
+            if std::fs::write(&generated, manifest).is_ok() {
+                args.extend(["--capability-manifest".to_owned(), generated.display().to_string()]);
+            }
+        }
+    }
+    }
     if let Some(path) = server.env.get("CUA_DRIVER_SERVE_CAPABILITY_MANIFEST").map(String::trim).filter(|v| !v.is_empty()) {
         args.extend(["--capability-manifest".to_owned(), path.to_owned()]);
     }

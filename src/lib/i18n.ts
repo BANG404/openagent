@@ -244,6 +244,11 @@ const zh = {
     "OpenAgent 会在内部启动 cua-driver serve，MCP 客户端通过此本地 socket 连接。",
   pluginServeManifestHint: "能力 manifest 由 OpenAgent 随绑定的 Cua Driver 资源管理并自动批准。",
   pluginServeManifest: "Capability manifest 路径",
+  pluginServeManifestVisualHint:
+    "无需手写 YAML；以下设置由 OpenAgent 生成并应用到本次 Serve 会话。",
+  pluginManifestExpires: "有效期",
+  pluginManifestIdleTimeout: "空闲超时",
+  pluginManifestDesktopDisplay: "允许全屏桌面访问",
   pluginServeGrants: "启动授权（逗号分隔）",
   pluginServeApproveManifest: "批准 manifest",
   pluginServeNoPermissionsGate: "跳过系统权限门",
@@ -1240,6 +1245,11 @@ const en: Translations = {
   pluginServeManifestHint:
     "OpenAgent manages and approves the capability manifest bundled with Cua Driver.",
   pluginServeManifest: "Capability manifest path",
+  pluginServeManifestVisualHint:
+    "No YAML editing required; OpenAgent generates and applies these settings to the Serve session.",
+  pluginManifestExpires: "Expires after",
+  pluginManifestIdleTimeout: "Idle timeout",
+  pluginManifestDesktopDisplay: "Allow full-desktop access",
   pluginServeGrants: "Launch grants (comma-separated)",
   pluginServeApproveManifest: "Approve manifest",
   pluginServeNoPermissionsGate: "Skip system permission gate",
