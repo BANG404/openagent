@@ -60,15 +60,15 @@
     flex: 0 1 auto;
   }
   .diff-table {
-    width: 100%;
-    min-width: 0;
+    width: max-content;
+    min-width: 100%;
     padding: 6px 0;
   }
   .diff-row {
     display: grid;
     grid-template-columns: 44px 44px 24px minmax(0, 1fr);
-    width: max-content;
-    min-width: 100%;
+    width: 100%;
+    min-width: 0;
     min-height: 20px;
     color: var(--text-muted);
     font:
