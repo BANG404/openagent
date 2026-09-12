@@ -2,9 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.63.0-beta.1] - 2026-09-11
+## [0.63.0-beta.1] - 2026-09-12
 
 ### Features
+- **onboarding**: Redesign welcome screen
+- **dev**: Support isolated Tauri multi-instance runs
+- **frontend**: Preview codex apply patch moves
+- **cua**: Bundle verified Cua Driver resources
+- **frontend**: Keep Cua controls out of user MCP list
+- **frontend**: Add configurable Cua Driver plugin
+- **ui**: Refine diff line presentation
+- Add Cua Driver plugin configuration entry
+- **settings**: Compact MCP server form
 - Add help menu log folder entry
 - Bind runtime releases to product identity
 - Expose product release identity
@@ -16,6 +25,23 @@ All notable changes to this project will be documented in this file.
 - **frontend**: Remove right sidebar browser
 
 ### Bug Fixes
+- **chat**: Hide failed ask user forms
+- **automation**: Repair automation settings navigation
+- **cua**: Configure bundled driver before runtime bootstrap
+- **cua**: Use direct MCP mode and seed startup entry
+- **chat**: Show deleted file lines in patch previews
+- **cua**: Prepare driver during development startup
+- **runtime**: Align apply patch tool
+- **ui**: Fill compact diff viewport width
+- Open plugins settings section
+- **ui**: Keep diff background full width
+- **ui**: Stabilize diff row sizing
+- **ui**: Force diff row width
+- **ui**: Stretch diff rows across viewport
+- **ui**: Tighten pure diff gutters
+- **frontend**: Hide built-in Cua from MCP assignments
+- Align SDK Flash qualification fixtures
+- Advance SDK runtime qualification fix
 - **runtime**: Keep structured benchmark backend streaming
 - Shorten log menu label
 - Continue Mermaid restore when queue is unavailable
@@ -33,9 +59,20 @@ All notable changes to this project will be documented in this file.
 - Remove stray automation menu character
 
 ### Refactoring
+- Remove agent plugin commands
 - **integrations**: Remove Agent Plugins settings
 
+### Testing
+- **automation**: Complete native coverage
+- **automation**: Add native black-box coverage
+
+### Styling
+- **frontend**: Format application menu items
+- **settings**: Unify top-bar window typography
+
 ### Miscellaneous
+- **sdk**: Update runtime checkpoint fix
+- Update SDK runtime for approval recovery
 - Update SDK Mermaid interrupt classification
 - Update runtime dependency lockfile
 - **sdk**: Update pinned runtime revision
