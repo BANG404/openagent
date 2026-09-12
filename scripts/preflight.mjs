@@ -84,6 +84,7 @@ export function buildPreflightCommands(modules) {
     add("rust-format", "Rust formatting", "bun", ["run", "format:rust:check"]);
   }
   if (modules.nativeQuality || modules.nativePlatform) {
+    add("cua-driver", "Cua Driver resources", "bun", ["run", "prepare:cua-driver"]);
     add("rust-check", "Host-platform Rust compile check", "cargo", [
       "check",
       "--manifest-path",

@@ -1,9 +1,11 @@
 # Host and helper artifacts
 
 - Native CI that compiles Tauri without the frontend build must materialize the
-  configured `frontendDist` and target-named placeholders for configured
-  `externalBin` resources; frontend qualification and release component builds
-  own the production bytes.
+  configured `frontendDist`, target-named placeholders for configured
+  `externalBin` resources, and generated configured bundle resources such as
+  the Cua Driver before invoking Cargo; frontend qualification and release
+  component builds own the production bytes. Tauri build scripts validate these
+  resource paths even when native CI is only checking Rust targets.
   Keep direct native-dialog dependencies from enabling a Linux backend that
   conflicts with the backend selected by `tauri-plugin-dialog`.
 - Build platform sandbox helpers from the Codex revision pinned by the SDK.

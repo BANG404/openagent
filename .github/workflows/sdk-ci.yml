@@ -658,6 +658,9 @@ jobs:
       - name: Materialize Runtime sidecar for Tauri macros
         working-directory: host
         run: node scripts/prepare-runtime-server.mjs --placeholder
+      - name: Materialize Cua Driver for Tauri macros
+        working-directory: host
+        run: node scripts/prepare-cua-driver.mjs
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: ./host/src-tauri -> target
