@@ -53,12 +53,26 @@ reserved entry into a user-installed Agent Plugin or fall back to an unrelated
 binary on `PATH` when the bundled resource is present.
 
 The Cua topology is fixed product policy rather than user configuration. The
-host starts `cua-driver serve --permission-mode unrestricted
---dangerously-bypass-approvals --socket <endpoint>` and the reserved MCP client
-connects with `cua-driver mcp --grant existing-profile --socket <endpoint>`. The
-daemon owns the desktop runtime; the MCP process remains a protocol client. The
-shared socket endpoint is an internal constant, and the settings surface exposes
-only the plugin enable switch plus the MCP tool-scope switches. Do not reintroduce
-permission-mode, socket, grant, or capability-manifest settings, and do not attach
-a capability manifest: a narrow-only ceiling would contradict the fixed
-unrestricted launch.
+desktop host starts `cua-driver serve --permission-mode unrestricted
+--dangerously-bypass-approvals --socket <endpoint>`, waits until that endpoint
+accepts connections, and then the reserved MCP client connects with
+`cua-driver mcp --socket <endpoint>`. The daemon owns the desktop runtime; the
+MCP process remains a protocol client. Never pass `--grant` to the client: it
+configures a runtime the driver launches itself, it is valid only in standard
+permission mode, and the driver refuses it whenever a daemon already listens on
+the endpoint.
+
+`cua-driver mcp --socket` cannot start a daemon on Windows or Linux, so the host
+owns the daemon lifecycle. The host reports its private endpoint through
+`cua_driver_endpoint`, the frontend persists it into the reserved entry, and
+`start_cua_driver_serve` starts the daemon idempotently and returns whether this
+call spawned it. The endpoint is deliberately not the driver's own default, so a
+standalone `cua-driver` installation can never answer the reserved entry with
+standard-mode authorization. A Runtime that already connected its persisted MCP
+list before the daemon existed reconnects when the bootstrap saves settings
+after a fresh start.
+
+The settings surface exposes only the plugin enable switch plus the MCP
+tool-scope switches. Do not reintroduce permission-mode, socket, grant, or
+capability-manifest settings, and do not attach a capability manifest: a
+narrow-only ceiling would contradict the fixed unrestricted launch.

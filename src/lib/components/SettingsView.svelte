@@ -29,10 +29,11 @@
   import {
     CUA_DRIVER_COMMAND,
     CUA_DRIVER_ID,
-    CUA_DRIVER_MCP_ARGS,
     createCuaDriverServer,
+    cuaDriverMcpArgs,
     isCuaDriverServerCurrent,
   } from "$lib/cuaDriver";
+  import { cuaDriverEndpoint, startCuaDriverDaemon } from "$lib/openagent/cuaDriverHost";
   import {
     PROVIDER_CATALOG,
     providerCatalogEntry,
@@ -404,34 +405,39 @@
   }
 
   function setCuaDriverEnabled(enabled: boolean) {
+    if (enabled) void startCuaDriverDaemon();
     const existing = findCuaDriverServer();
     if (existing) {
       existing.enabled = enabled;
       return;
     }
-    const created = createCuaDriverServer();
+    const created = createCuaDriverServer(cuaDriverEndpoint());
     created.enabled = enabled;
     draftConfig.mcp.servers = [created, ...draftConfig.mcp.servers];
   }
 
-  let cuaDriver = $derived(findCuaDriverServer() ?? createCuaDriverServer());
+  let cuaDriver = $derived(findCuaDriverServer() ?? createCuaDriverServer(cuaDriverEndpoint()));
 
   $effect(() => {
     if (!initializedFromConfig || cuaDefaultApplied) return;
+    const endpoint = cuaDriverEndpoint();
+    // The desktop host owns the reserved endpoint, so an unresolved endpoint
+    // means this surface cannot build the fixed launch shape yet.
+    if (!endpoint) return;
     cuaDefaultApplied = true;
     const existing = findCuaDriverServer();
     if (!existing) {
-      draftConfig.mcp.servers = [createCuaDriverServer(), ...draftConfig.mcp.servers];
+      draftConfig.mcp.servers = [createCuaDriverServer(endpoint), ...draftConfig.mcp.servers];
       queueMicrotask(() => saveDraftConfig().catch(console.error));
       return;
     }
-    if (isCuaDriverServerCurrent(existing)) return;
+    if (isCuaDriverServerCurrent(existing, endpoint)) return;
     // Entries written by older OpenAgent builds carried a permission mode, a
     // user-selected socket, and manifest overrides. The launch topology is
     // fixed product policy now, so normalize the reserved entry before the
     // next settings save.
     existing.command = CUA_DRIVER_COMMAND;
-    existing.args = [...CUA_DRIVER_MCP_ARGS];
+    existing.args = cuaDriverMcpArgs(endpoint);
     existing.env = {};
     queueMicrotask(() => saveDraftConfig().catch(console.error));
   });
@@ -1317,6 +1323,9 @@
     if (!server) return;
     const notReady = server.transport === "http" ? !server.url.trim() : !server.command.trim();
     if (notReady) return;
+    // The reserved entry is only a client; its daemon has to accept
+    // connections before the probe can attach to the shared endpoint.
+    if (id === cuaDriverId) await startCuaDriverDaemon();
     mcpTestStatus = { ...mcpTestStatus, [id]: { tone: "testing", message: $t("mcpTesting") } };
     try {
       const result = (await desktopOpenAgent.invokeProduct("test_mcp_server", {

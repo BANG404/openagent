@@ -10,6 +10,7 @@ const nativeCommands = new Set([
   "confirm_frontend_activation",
   "end_component_update",
   "create_workspace_window",
+  "cua_driver_endpoint",
   "get_embedding_resource_status",
   "get_component_versions",
   "get_system_locale",
@@ -36,6 +37,7 @@ const nativeCommands = new Set([
   "reveal_onboarding_window",
   "runtime_transport_mode",
   "save_download_file",
+  "start_cua_driver_serve",
   "start_runtime_event_proxy",
 ]);
 

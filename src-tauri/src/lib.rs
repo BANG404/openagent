@@ -2252,51 +2252,16 @@ async fn save_mcp_servers(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     servers: Vec<McpServerConfig>,
 ) -> Result<(), String> {
-    ensure_cua_driver_serve(&servers)?;
+    if servers.iter().any(|server| server.id == "cua-driver" && server.enabled) {
+        ensure_cua_driver_serve()?;
+    }
     openagent_runtime::commands::save_mcp_servers(runtime.state(), servers).await
-}
-
-/// Keep the product-managed Cua daemon alive whenever the reserved entry is
-/// enabled. The MCP entry remains a client; this child owns the desktop runtime
-/// and its immutable unrestricted authorization state.
-fn ensure_cua_driver_serve(servers: &[McpServerConfig]) -> Result<(), String> {
-    use std::process::{Child, Command, Stdio};
-    use std::sync::{Mutex, OnceLock};
-    static CHILD: OnceLock<Mutex<Option<Child>>> = OnceLock::new();
-    let Some(server) = servers.iter().find(|s| s.id == "cua-driver" && s.enabled) else {
-        return Ok(());
-    };
-    let args = cua_driver_serve_args(&server.args);
-    let socket = args.last().cloned().unwrap_or_default();
-    let state = CHILD.get_or_init(|| Mutex::new(None));
-    let mut child = state.lock().map_err(|_| "Cua Driver serve state is unavailable".to_string())?;
-    if let Some(existing) = child.as_mut() {
-        if existing.try_wait().map_err(|error| format!("Cua Driver serve status failed: {error}"))?.is_none() {
-            return Ok(());
-        }
-        *child = None;
-    }
-    // A daemon may have been started by a previous OpenAgent process. Reuse
-    // its endpoint rather than racing a second listener onto the same socket.
-    if std::path::Path::new(&socket).exists() {
-        return Ok(());
-    }
-    let command = if server.command.trim().is_empty() { "cua-driver" } else { server.command.trim() };
-    let spawned = Command::new(command)
-        .args(args)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|error| format!("Failed to start Cua Driver serve: {error}"))?;
-    *child = Some(spawned);
-    Ok(())
 }
 
 #[tauri::command]
 async fn test_mcp_server(server: McpServerConfig) -> Result<mcp::McpProbeResult, String> {
     if server.id == "cua-driver" && server.enabled {
-        ensure_cua_driver_serve(std::slice::from_ref(&server))?;
+        ensure_cua_driver_serve()?;
     }
     openagent_runtime::commands::test_mcp_server(server).await
 }
@@ -3515,33 +3480,176 @@ fn packaged_runtime_binary() -> Result<std::path::PathBuf, String> {
     Ok(binary)
 }
 
-/// Socket endpoint shared by the product-managed Cua Driver daemon and its
-/// reserved MCP client entry. It is product policy, not a user setting, so both
-/// processes always agree on the same local endpoint.
-#[cfg(any(feature = "embedded-runtime", test))]
-const CUA_DRIVER_SOCKET: &str = "openagent-cua-driver.sock";
+/// Private endpoint shared by the product-managed Cua Driver daemon and its
+/// reserved MCP client entry, in the shape each platform expects: a named pipe
+/// on Windows and a filesystem path elsewhere.
+///
+/// It is deliberately not the driver's own default endpoint. A standalone
+/// `cua-driver` installation owns that one, and attaching the reserved entry to
+/// a standard-mode daemon would silently replace the unrestricted contract of
+/// this plugin. It is product policy rather than a user setting, so the host
+/// reports the same value to both the daemon and the persisted MCP entry.
+fn cua_driver_endpoint_path() -> String {
+    #[cfg(windows)]
+    {
+        r"\\.\pipe\openagent-cua-driver".to_owned()
+    }
+    #[cfg(not(windows))]
+    {
+        let home = std::env::var_os("HOME")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| std::path::PathBuf::from("/tmp"));
+        #[cfg(target_os = "macos")]
+        let directory = home.join("Library").join("Caches").join("openagent");
+        #[cfg(not(target_os = "macos"))]
+        let directory = home.join(".cache").join("openagent");
+        directory
+            .join("cua-driver.sock")
+            .to_string_lossy()
+            .into_owned()
+    }
+}
 
-/// Build the fixed `cua-driver serve` command line for the reserved entry.
-/// The reserved MCP client always proxies with `mcp --grant existing-profile
-/// --socket <endpoint>`, so the daemon must bind that same endpoint.
-#[cfg(any(feature = "embedded-runtime", test))]
-fn cua_driver_serve_args(entry_args: &[String]) -> Vec<String> {
-    let socket = entry_args
-        .iter()
-        .position(|arg| arg == "--socket")
-        .and_then(|index| entry_args.get(index + 1))
-        .map(String::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .unwrap_or(CUA_DRIVER_SOCKET);
-    vec![
-        "serve".to_owned(),
-        "--permission-mode".to_owned(),
-        "unrestricted".to_owned(),
-        "--dangerously-bypass-approvals".to_owned(),
-        "--socket".to_owned(),
-        socket.to_owned(),
+/// The fixed `cua-driver serve` command line. Permission mode, socket, grants,
+/// and capability manifests are product policy: the daemon always runs
+/// unrestricted on the product's private endpoint, so no per-user input is
+/// involved.
+fn cua_driver_serve_args() -> Vec<String> {
+    [
+        "serve",
+        "--permission-mode",
+        "unrestricted",
+        "--dangerously-bypass-approvals",
+        "--socket",
     ]
+    .into_iter()
+    .map(str::to_owned)
+    .chain(std::iter::once(cua_driver_endpoint_path()))
+    .collect()
+}
+
+/// How long the host waits for a freshly spawned daemon to accept connections.
+const CUA_DRIVER_STARTUP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
+
+/// Whether a daemon is accepting connections on the reserved endpoint.
+///
+/// Readiness is a connection attempt rather than a filesystem check: the
+/// reserved MCP client attaches immediately after this returns, and the driver
+/// binds its listener after it has created the socket path.
+#[cfg(unix)]
+fn cua_driver_endpoint_is_ready(endpoint: &str) -> bool {
+    std::os::unix::net::UnixStream::connect(endpoint).is_ok()
+}
+
+#[cfg(windows)]
+fn cua_driver_endpoint_is_ready(endpoint: &str) -> bool {
+    std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(endpoint)
+        .is_ok()
+}
+
+#[cfg(not(any(unix, windows)))]
+fn cua_driver_endpoint_is_ready(endpoint: &str) -> bool {
+    std::path::Path::new(endpoint).exists()
+}
+
+fn wait_for_cua_driver_endpoint(
+    child: &mut std::process::Child,
+    endpoint: &str,
+) -> Result<(), String> {
+    let deadline = std::time::Instant::now() + CUA_DRIVER_STARTUP_TIMEOUT;
+    loop {
+        if cua_driver_endpoint_is_ready(endpoint) {
+            return Ok(());
+        }
+        if let Some(status) = child
+            .try_wait()
+            .map_err(|error| format!("Cua Driver serve status failed: {error}"))?
+        {
+            return Err(format!(
+                "Cua Driver serve exited before listening on {endpoint}: {status}"
+            ));
+        }
+        if std::time::Instant::now() >= deadline {
+            return Err(format!(
+                "Cua Driver serve did not listen on {endpoint} within {}s",
+                CUA_DRIVER_STARTUP_TIMEOUT.as_secs()
+            ));
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+}
+
+/// Start the product-managed Cua Driver daemon unless one is already listening
+/// on the reserved endpoint, and wait until it accepts connections.
+///
+/// The daemon owns the unrestricted desktop runtime; the reserved MCP entry is
+/// only a client that attaches to the same endpoint. Returns whether this
+/// process spawned the daemon, which tells the caller that a Runtime that
+/// already connected its persisted MCP list before this call has to reconnect.
+///
+/// The ordinary desktop architecture connects MCP servers in the supervised
+/// Runtime process, so the host cannot rely on the embedded-runtime bootstrap to
+/// start this daemon; the frontend asks the host while the entry is enabled.
+fn ensure_cua_driver_serve() -> Result<bool, String> {
+    use std::process::{Child, Command, Stdio};
+    use std::sync::{Mutex, OnceLock};
+    static CHILD: OnceLock<Mutex<Option<Child>>> = OnceLock::new();
+    let endpoint = cua_driver_endpoint_path();
+    let state = CHILD.get_or_init(|| Mutex::new(None));
+    let mut child = state
+        .lock()
+        .map_err(|_| "Cua Driver serve state is unavailable".to_string())?;
+    if let Some(existing) = child.as_mut() {
+        if existing
+            .try_wait()
+            .map_err(|error| format!("Cua Driver serve status failed: {error}"))?
+            .is_none()
+        {
+            return Ok(false);
+        }
+        *child = None;
+    }
+    // Another OpenAgent process, or a previous run of this one, may already own
+    // the endpoint. Reuse it: binding a second listener would unlink the live
+    // socket out from under the Runtime that is connected to it.
+    if cua_driver_endpoint_is_ready(&endpoint) {
+        return Ok(false);
+    }
+    let mut spawned = Command::new("cua-driver")
+        .args(cua_driver_serve_args())
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|error| format!("Failed to start Cua Driver serve: {error}"))?;
+    if let Err(error) = wait_for_cua_driver_endpoint(&mut spawned, &endpoint) {
+        let _ = spawned.kill();
+        let _ = spawned.wait();
+        return Err(error);
+    }
+    *child = Some(spawned);
+    Ok(true)
+}
+
+/// Report the private endpoint the reserved MCP entry must attach to. The
+/// frontend persists it into the reserved entry, so both the daemon and its
+/// client always agree on one host-owned value.
+#[tauri::command]
+fn cua_driver_endpoint() -> String {
+    cua_driver_endpoint_path()
+}
+
+/// Ask the desktop host to start the bundled Cua Driver daemon for the reserved
+/// entry and wait until it is accepting connections. Returns whether this call
+/// spawned the daemon.
+#[tauri::command]
+async fn start_cua_driver_serve() -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(ensure_cua_driver_serve)
+        .await
+        .map_err(|error| format!("Cua Driver startup task failed: {error}"))?
 }
 
 fn cua_driver_binary_name() -> &'static str {
@@ -4240,8 +4348,10 @@ fn run_with_mode(agent_server: bool) {
                 let config = state.config.lock().await.clone();
                 let servers =
                     openagent_runtime::commands::effective_mcp_servers(state, &config).await;
-                if let Err(error) = ensure_cua_driver_serve(&servers) {
-                    tracing::error!(target: "openagent::cua", %error, "failed to start configured Cua Driver serve daemon");
+                if servers.iter().any(|server| server.id == "cua-driver" && server.enabled) {
+                    if let Err(error) = ensure_cua_driver_serve() {
+                        tracing::error!(target: "openagent::cua", %error, "failed to start configured Cua Driver serve daemon");
+                    }
                 }
                 let mcp_handles = mcp::connect_mcp_servers(&servers);
                 *state.mcp_join_handles.lock().await = mcp_handles;
@@ -4275,6 +4385,8 @@ fn run_with_mode(agent_server: bool) {
     #[cfg(feature = "embedded-runtime")]
     let builder = builder.invoke_handler(tauri::generate_handler![
         get_settings,
+        start_cua_driver_serve,
+        cua_driver_endpoint,
         get_component_versions,
         get_embedding_resource_status,
         prepare_embedding_resource,
@@ -4415,6 +4527,8 @@ fn run_with_mode(agent_server: bool) {
     ]);
     #[cfg(not(feature = "embedded-runtime"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
+        start_cua_driver_serve,
+        cua_driver_endpoint,
         get_component_versions,
         prepare_runtime_resource,
         begin_component_update,
@@ -4479,34 +4593,32 @@ mod tests {
     }
 
     #[test]
-    fn cua_driver_serve_uses_fixed_unrestricted_flags_and_shared_socket() {
-        let entry: Vec<String> = [
-            "mcp",
-            "--grant",
-            "existing-profile",
-            "--socket",
-            "/tmp/custom.sock",
-        ]
-        .into_iter()
-        .map(str::to_owned)
-        .collect();
+    fn cua_driver_serve_uses_fixed_unrestricted_flags_and_private_endpoint() {
+        let endpoint = cua_driver_endpoint_path();
         assert_eq!(
-            cua_driver_serve_args(&entry),
+            cua_driver_serve_args(),
             vec![
                 "serve",
                 "--permission-mode",
                 "unrestricted",
                 "--dangerously-bypass-approvals",
                 "--socket",
-                "/tmp/custom.sock",
+                endpoint.as_str(),
             ]
         );
-
-        let legacy: Vec<String> = ["mcp"].into_iter().map(str::to_owned).collect();
-        assert_eq!(
-            cua_driver_serve_args(&legacy).last().map(String::as_str),
-            Some(CUA_DRIVER_SOCKET)
-        );
+        #[cfg(windows)]
+        assert_eq!(endpoint, r"\\.\pipe\openagent-cua-driver");
+        #[cfg(unix)]
+        {
+            assert!(
+                endpoint.starts_with('/'),
+                "endpoint must be absolute: {endpoint}"
+            );
+            assert!(
+                endpoint.ends_with("/openagent/cua-driver.sock"),
+                "endpoint must stay private to OpenAgent: {endpoint}"
+            );
+        }
     }
 
     #[test]

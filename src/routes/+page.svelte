@@ -51,7 +51,8 @@
   import { t, tr, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import { LatestRequest } from "$lib/latestRequest";
   import { showToast } from "$lib/toast";
-  import { ensureCuaDriverServer } from "$lib/cuaDriver";
+  import { ensureCuaDriverServer, isCuaDriverEnabled } from "$lib/cuaDriver";
+  import { hydrateCuaDriverEndpoint, startCuaDriverDaemon } from "$lib/openagent/cuaDriverHost";
   import { decodeModelBinding } from "$lib/modelBinding";
   import { DEFAULT_QUICK_CHAT_SHORTCUT, normalizeQuickChatShortcut } from "$lib/quickChatShortcut";
   import {
@@ -2295,11 +2296,19 @@
   async function applyStartupBootstrap(bootstrap: StartupBootstrap) {
     settingsRequests.invalidate();
     config = normalizeConfigShape(bootstrap.config);
-    const configWithCuaDriver = ensureCuaDriverServer(config);
-    if (configWithCuaDriver !== config) {
+    const cuaDriverEndpoint = await hydrateCuaDriverEndpoint();
+    const configWithCuaDriver = ensureCuaDriverServer(config, cuaDriverEndpoint);
+    // The reserved MCP entry is a client of the daemon the desktop host owns.
+    // Start it first so the Runtime can connect the remaining MCP list.
+    const cuaDriverDaemonStarted = isCuaDriverEnabled(configWithCuaDriver)
+      ? await startCuaDriverDaemon()
+      : false;
+    if (configWithCuaDriver !== config || cuaDriverDaemonStarted) {
       // Runtime startup connects the persisted MCP list before this surface is
-      // mounted. Persist the product-managed entry here so the first chat turn
-      // can use Cua Driver without requiring a visit to Settings first.
+      // mounted, so persist the product-managed entry here: the first chat turn
+      // can use Cua Driver without requiring a visit to Settings first, and a
+      // Runtime that already failed to attach reconnects now that the daemon
+      // accepts connections.
       await saveSettings(configWithCuaDriver, bootstrap.config, false);
     }
     applyTheme(config.theme ?? "system");

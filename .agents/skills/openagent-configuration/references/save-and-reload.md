@@ -61,11 +61,14 @@ temporarily disappear and later return.
 
 The product-managed Cua Driver entry is seeded and normalized during the first
 desktop startup bootstrap, before the first chat turn. Its reserved stdio
-command is the fixed `mcp --grant existing-profile --socket <endpoint>` proxy
-onto the host-owned `serve` daemon, so normalization only restores that fixed
-command and clears legacy permission, socket, and manifest overrides. Settings
-exposes only the plugin enable switch and the disabled-tool list; permission
-mode, socket, and grants are not user-configurable.
+command is the fixed `mcp --socket <endpoint>` proxy onto the host-owned `serve`
+daemon, where `<endpoint>` is the private endpoint the host reports through
+`cua_driver_endpoint`; normalization restores that command with the current
+endpoint and clears legacy permission, socket, grant, and manifest overrides.
+The bootstrap also starts the daemon before saving, because the Runtime connects
+the persisted MCP list before this surface exists and the reserved client cannot
+start a daemon itself. Settings exposes only the plugin enable switch and the
+disabled-tool list; permission mode, socket, and grants are not user-configurable.
 
 Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
