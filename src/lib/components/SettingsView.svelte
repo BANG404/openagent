@@ -27,10 +27,12 @@
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
   import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
   import {
-    CUA_DRIVER_ARGS,
     CUA_DRIVER_ID,
+    CUA_DRIVER_SERVE_SOCKET_ENV,
+    cuaTransportArgs,
     createCuaDriverServer,
     type CuaPermissionMode,
+    type CuaTransportMode,
   } from "$lib/cuaDriver";
   import {
     PROVIDER_CATALOG,
@@ -411,13 +413,30 @@
     return mode === "standard" || mode === "bounded" ? mode : "unrestricted";
   }
 
+  function cuaTransportMode(server: NormalizedMcpServerConfig): CuaTransportMode {
+    return server.env.CUA_DRIVER_TRANSPORT_MODE === "serve" ? "serve" : "direct";
+  }
+
+  function setCuaTransportMode(mode: CuaTransportMode) {
+    const server = cuaServer();
+    server.env = { ...server.env, CUA_DRIVER_TRANSPORT_MODE: mode };
+    server.args = cuaTransportArgs(server);
+  }
+
+  function setCuaServeSocket(socket: string) {
+    const server = cuaServer();
+    const env = { ...server.env, [CUA_DRIVER_SERVE_SOCKET_ENV]: socket };
+    server.env = env;
+    server.args = cuaTransportArgs(server);
+  }
+
   function setCuaPermissionMode(mode: CuaPermissionMode) {
     const server = cuaServer();
     const env: Record<string, string> = { ...server.env, CUA_DRIVER_PERMISSION_MODE: mode };
     if (mode === "unrestricted") env.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS = "1";
     else delete env.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS;
     server.env = env;
-    server.args = [...CUA_DRIVER_ARGS];
+    server.args = cuaTransportArgs(server);
   }
 
   let cuaDriver = $derived(
@@ -446,10 +465,10 @@
     if (mode === "unrestricted") nextEnv.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS = "1";
     else delete nextEnv.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS;
     const changed =
-      JSON.stringify(existing.args) !== JSON.stringify(CUA_DRIVER_ARGS) ||
+      JSON.stringify(existing.args) !== JSON.stringify(cuaTransportArgs({ env: nextEnv })) ||
       JSON.stringify(existing.env) !== JSON.stringify(nextEnv);
     if (!changed) return;
-    existing.args = [...CUA_DRIVER_ARGS];
+    existing.args = cuaTransportArgs({ env: nextEnv });
     existing.env = nextEnv;
     queueMicrotask(() => saveDraftConfig().catch(console.error));
   });
@@ -2120,6 +2139,18 @@
           </div>
           <div class="plugin-card-grid">
             <label class="detail-label">
+              <span class="label-text">{$t("pluginTransport")}</span>
+              <Select
+                value={cuaTransportMode(cuaDriver)}
+                onValueChange={(value) => setCuaTransportMode(value as CuaTransportMode)}
+                items={[
+                  { value: "serve", label: $t("pluginTransportServe") },
+                  { value: "direct", label: $t("pluginTransportDirect") },
+                ]}
+                ariaLabel={$t("pluginTransport")}
+              />
+            </label>
+            <label class="detail-label">
               <span class="label-text">{$t("pluginPermissionMode")}</span>
               <Select
                 value={cuaPermissionMode(cuaDriver)}
@@ -2132,6 +2163,19 @@
                 ariaLabel={$t("pluginPermissionMode")}
               />
             </label>
+            {#if cuaTransportMode(cuaDriver) === "serve"}
+              <label class="detail-label plugin-serve-socket">
+                <span class="label-text">{$t("pluginServeSocket")}</span>
+                <input
+                  class="detail-input application-settings-control"
+                  value={cuaDriver.env.CUA_DRIVER_SERVE_SOCKET ?? ""}
+                  placeholder="/tmp/cua-driver.sock"
+                  oninput={(event) =>
+                    setCuaServeSocket((event.currentTarget as HTMLInputElement).value)}
+                />
+                <span class="detail-hint">{$t("pluginServeSocketHint")}</span>
+              </label>
+            {/if}
             <div class="plugin-card-control">
               <div class="plugin-tools-heading">
                 <span class="label-text">{$t("pluginTools")}</span>

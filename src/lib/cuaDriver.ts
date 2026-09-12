@@ -2,8 +2,16 @@ import type { AppConfig, McpServerConfig } from "./types";
 
 export const CUA_DRIVER_ID = "cua-driver";
 export const CUA_DRIVER_ARGS = ["mcp", "--direct"] as const;
+export const CUA_DRIVER_SERVE_SOCKET_ENV = "CUA_DRIVER_SERVE_SOCKET";
 
 export type CuaPermissionMode = "standard" | "bounded" | "unrestricted";
+export type CuaTransportMode = "direct" | "serve";
+
+export function cuaTransportArgs(server: Pick<McpServerConfig, "env">): string[] {
+  if (server.env.CUA_DRIVER_TRANSPORT_MODE !== "serve") return [...CUA_DRIVER_ARGS];
+  const socket = server.env[CUA_DRIVER_SERVE_SOCKET_ENV]?.trim();
+  return socket ? ["mcp", "--socket", socket] : ["mcp"];
+}
 
 export function createCuaDriverServer(): McpServerConfig & { disabled_tools: string[] } {
   return {
@@ -19,6 +27,7 @@ export function createCuaDriverServer(): McpServerConfig & { disabled_tools: str
     env: {
       CUA_DRIVER_PERMISSION_MODE: "unrestricted",
       CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS: "1",
+      CUA_DRIVER_TRANSPORT_MODE: "direct",
     },
     cwd: "",
     disabled_tools: [],
@@ -40,7 +49,7 @@ export function ensureCuaDriverServer(config: AppConfig): AppConfig {
     };
     if (mode === "unrestricted") env.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS = "1";
     else delete env.CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS;
-    const args = [...CUA_DRIVER_ARGS];
+    const args = cuaTransportArgs({ env });
     if (
       JSON.stringify(existing.args) === JSON.stringify(args) &&
       JSON.stringify(existing.env) === JSON.stringify(env)

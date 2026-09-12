@@ -2252,11 +2252,65 @@ async fn save_mcp_servers(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     servers: Vec<McpServerConfig>,
 ) -> Result<(), String> {
+    ensure_cua_driver_serve(&servers)?;
     openagent_runtime::commands::save_mcp_servers(runtime.state(), servers).await
+}
+
+/// Keep the product-managed Cua daemon alive when the plugin is configured to
+/// use the `serve` + `mcp --socket` topology. The MCP entry remains a client;
+/// this child owns the desktop runtime and its immutable authorization state.
+fn ensure_cua_driver_serve(servers: &[McpServerConfig]) -> Result<(), String> {
+    use std::process::{Child, Command, Stdio};
+    use std::sync::{Mutex, OnceLock};
+    static CHILD: OnceLock<Mutex<Option<Child>>> = OnceLock::new();
+    let Some(server) = servers.iter().find(|s| s.id == "cua-driver" && s.enabled) else {
+        return Ok(());
+    };
+    if server.env.get("CUA_DRIVER_TRANSPORT_MODE").map(String::as_str) != Some("serve") {
+        return Ok(());
+    }
+    let socket = server
+        .env
+        .get("CUA_DRIVER_SERVE_SOCKET")
+        .map(String::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "Cua Driver serve mode requires a socket path".to_string())?;
+    let state = CHILD.get_or_init(|| Mutex::new(None));
+    let mut child = state.lock().map_err(|_| "Cua Driver serve state is unavailable".to_string())?;
+    if let Some(existing) = child.as_mut() {
+        if existing.try_wait().map_err(|error| format!("Cua Driver serve status failed: {error}"))?.is_none() {
+            return Ok(());
+        }
+        *child = None;
+    }
+    // A daemon may have been started by a previous OpenAgent process. Reuse
+    // its endpoint rather than racing a second listener onto the same socket.
+    if std::path::Path::new(socket).exists() {
+        return Ok(());
+    }
+    let mode = server
+        .env
+        .get("CUA_DRIVER_PERMISSION_MODE")
+        .map(String::as_str)
+        .unwrap_or("standard");
+    let command = if server.command.trim().is_empty() { "cua-driver" } else { server.command.trim() };
+    let spawned = Command::new(command)
+        .args(["serve", "--permission-mode", mode, "--socket", socket])
+        .envs(server.env.iter())
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|error| format!("Failed to start Cua Driver serve: {error}"))?;
+    *child = Some(spawned);
+    Ok(())
 }
 
 #[tauri::command]
 async fn test_mcp_server(server: McpServerConfig) -> Result<mcp::McpProbeResult, String> {
+    if server.id == "cua-driver" && server.enabled {
+        ensure_cua_driver_serve(std::slice::from_ref(&server))?;
+    }
     openagent_runtime::commands::test_mcp_server(server).await
 }
 

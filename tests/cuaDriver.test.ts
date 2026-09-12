@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   CUA_DRIVER_ARGS,
   CUA_DRIVER_ID,
+  cuaTransportArgs,
   createCuaDriverServer,
   ensureCuaDriverServer,
 } from "../src/lib/cuaDriver";
@@ -55,7 +56,17 @@ describe("Cua Driver configuration", () => {
     expect(createCuaDriverServer().env).toMatchObject({
       CUA_DRIVER_PERMISSION_MODE: "unrestricted",
       CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS: "1",
+      CUA_DRIVER_TRANSPORT_MODE: "direct",
     });
+  });
+
+  test("builds an MCP socket client command for the serve transport", () => {
+    expect(
+      cuaTransportArgs({
+        env: { CUA_DRIVER_TRANSPORT_MODE: "serve", CUA_DRIVER_SERVE_SOCKET: "/tmp/cua.sock" },
+      }),
+    ).toEqual(["mcp", "--socket", "/tmp/cua.sock"]);
+    expect(cuaTransportArgs({ env: { CUA_DRIVER_TRANSPORT_MODE: "serve" } })).toEqual(["mcp"]);
   });
 
   test("seeds and upgrades the reserved entry without changing user MCP servers", () => {
