@@ -59,6 +59,10 @@
   WebView reloads and saves configuration through the shared SDK
   contract. Dispatch on-demand WebView construction through an async Tauri
   command so Windows WebView2 initialization cannot block its own UI thread.
+- The Integrations window owns the Channels, Extensions, and Plugins sections.
+  Keep all three section names in the host's domain allowlist so application
+  menu requests open the selected section instead of silently falling back to
+  Channels.
 - Give each Settings domain a compact, fixed initial geometry appropriate to
   its content. Keep excess content scrolling inside the settings pane; do not
   resize or recenter the native window after the WebView renders, including
