@@ -19,7 +19,6 @@ const scriptPath = fileURLToPath(import.meta.url);
 const root = path.resolve(path.dirname(scriptPath), "..");
 
 export const CUA_DRIVER_VERSION = "0.28.0";
-const capabilityManifestRevision = "1";
 const releaseTag = `cua-driver-rs-v${CUA_DRIVER_VERSION}`;
 const releaseRoot = `https://github.com/trycua/cua/releases/download/${releaseTag}`;
 
@@ -66,86 +65,6 @@ function run(command, args) {
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} failed with exit code ${result.status}`);
   }
-}
-
-const cuaDriverTools = [
-  "bring_to_front",
-  "browser_click",
-  "browser_dialog",
-  "browser_download",
-  "browser_navigate",
-  "browser_pointer",
-  "browser_prepare",
-  "browser_set_input_files",
-  "browser_type",
-  "check_for_update",
-  "check_permissions",
-  "click",
-  "clipboard_read",
-  "clipboard_write",
-  "double_click",
-  "drag",
-  "end_session",
-  "escalate_session",
-  "get_accessibility_tree",
-  "get_agent_cursor_state",
-  "get_browser_state",
-  "get_config",
-  "get_cursor_position",
-  "get_desktop_state",
-  "get_recording_state",
-  "get_screen_size",
-  "get_session",
-  "get_session_state",
-  "get_window_state",
-  "health_report",
-  "hotkey",
-  "install_ffmpeg",
-  "invoke_menu",
-  "kill_app",
-  "launch_app",
-  "list_apps",
-  "list_sessions",
-  "list_windows",
-  "mouse_button_down",
-  "mouse_button_up",
-  "mouse_drag",
-  "move_cursor",
-  "page",
-  "parallel_mouse_drag",
-  "press_key",
-  "replay_trajectory",
-  "right_click",
-  "scroll",
-  "set_agent_cursor_enabled",
-  "set_agent_cursor_motion",
-  "set_agent_cursor_theme",
-  "set_config",
-  "set_value",
-  "set_window_frame",
-  "start_recording",
-  "start_session",
-  "stop_recording",
-  "type_text",
-  "verify_state",
-  "zoom",
-];
-
-function capabilityManifest(toolNames) {
-  return [
-    "version: 3",
-    "expires_after: 24h",
-    "idle_timeout: 24h",
-    "",
-    "allow:",
-    "  tools:",
-    ...toolNames.map((name) => `    - ${name}`),
-    "",
-    "resources:",
-    "  desktop:",
-    "    display: true",
-    "",
-  ].join("\n");
 }
 
 function rustHost() {
@@ -197,14 +116,11 @@ async function existingResourceMatches(destination, asset) {
       destination,
       asset.targetTriple.includes("windows") ? "cua-driver.exe" : "cua-driver",
     );
-    const manifest = path.join(destination, "openagent-capabilities.yaml");
     return (
       metadata.version === CUA_DRIVER_VERSION &&
-      metadata.capabilityManifestRevision === capabilityManifestRevision &&
       metadata.asset === asset.name &&
       metadata.sha256 === asset.sha256 &&
-      (await stat(binary)).isFile() &&
-      (await stat(manifest)).isFile()
+      (await stat(binary)).isFile()
     );
   } catch {
     return false;
@@ -272,10 +188,6 @@ export async function prepareCuaDriver({ repositoryRoot = root, targetTriple } =
     }
     const bundleRoot = path.dirname(binary);
     if (!resolvedTarget.includes("windows")) await chmod(binary, 0o755);
-    await writeFile(
-      path.join(bundleRoot, "openagent-capabilities.yaml"),
-      capabilityManifest(cuaDriverTools),
-    );
 
     await rm(destination, { recursive: true, force: true });
     await mkdir(path.dirname(destination), { recursive: true });
@@ -285,7 +197,6 @@ export async function prepareCuaDriver({ repositoryRoot = root, targetTriple } =
         {
           repository: "https://github.com/trycua/cua",
           version: CUA_DRIVER_VERSION,
-          capabilityManifestRevision,
           target: resolvedTarget,
           asset: asset.name,
           sha256: asset.sha256,

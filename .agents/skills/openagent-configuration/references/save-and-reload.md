@@ -61,9 +61,11 @@ temporarily disappear and later return.
 
 The product-managed Cua Driver entry is seeded and normalized during the first
 desktop startup bootstrap, before the first chat turn. Its reserved stdio
-command uses the driver's direct MCP mode so the generic MCP client can discover
-and call tools without Cua-specific per-request metadata; Settings can still
-change its permission mode and disabled-tool list.
+command is the fixed `mcp --grant existing-profile --socket <endpoint>` proxy
+onto the host-owned `serve` daemon, so normalization only restores that fixed
+command and clears legacy permission, socket, and manifest overrides. Settings
+exposes only the plugin enable switch and the disabled-tool list; permission
+mode, socket, and grants are not user-configurable.
 
 Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account

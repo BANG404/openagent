@@ -2256,9 +2256,9 @@ async fn save_mcp_servers(
     openagent_runtime::commands::save_mcp_servers(runtime.state(), servers).await
 }
 
-/// Keep the product-managed Cua daemon alive when the plugin is configured to
-/// use the `serve` + `mcp --socket` topology. The MCP entry remains a client;
-/// this child owns the desktop runtime and its immutable authorization state.
+/// Keep the product-managed Cua daemon alive whenever the reserved entry is
+/// enabled. The MCP entry remains a client; this child owns the desktop runtime
+/// and its immutable unrestricted authorization state.
 fn ensure_cua_driver_serve(servers: &[McpServerConfig]) -> Result<(), String> {
     use std::process::{Child, Command, Stdio};
     use std::sync::{Mutex, OnceLock};
@@ -2266,15 +2266,8 @@ fn ensure_cua_driver_serve(servers: &[McpServerConfig]) -> Result<(), String> {
     let Some(server) = servers.iter().find(|s| s.id == "cua-driver" && s.enabled) else {
         return Ok(());
     };
-    if server.env.get("CUA_DRIVER_TRANSPORT_MODE").map(String::as_str) != Some("serve") {
-        return Ok(());
-    }
-    let socket = server
-        .env
-        .get("CUA_DRIVER_SERVE_SOCKET")
-        .map(String::trim)
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| "Cua Driver serve mode requires a socket path".to_string())?;
+    let args = cua_driver_serve_args(&server.args);
+    let socket = args.last().cloned().unwrap_or_default();
     let state = CHILD.get_or_init(|| Mutex::new(None));
     let mut child = state.lock().map_err(|_| "Cua Driver serve state is unavailable".to_string())?;
     if let Some(existing) = child.as_mut() {
@@ -2285,80 +2278,12 @@ fn ensure_cua_driver_serve(servers: &[McpServerConfig]) -> Result<(), String> {
     }
     // A daemon may have been started by a previous OpenAgent process. Reuse
     // its endpoint rather than racing a second listener onto the same socket.
-    if std::path::Path::new(socket).exists() {
+    if std::path::Path::new(&socket).exists() {
         return Ok(());
     }
-    let mode = server
-        .env
-        .get("CUA_DRIVER_PERMISSION_MODE")
-        .map(String::as_str)
-        .unwrap_or("standard");
     let command = if server.command.trim().is_empty() { "cua-driver" } else { server.command.trim() };
-    let mut args = vec!["serve".to_owned(), "--permission-mode".to_owned(), mode.to_owned(), "--socket".to_owned(), socket.to_owned()];
-    let flag = |name: &str| server.env.get(name).map(|value| value == "1" || value.eq_ignore_ascii_case("true")).unwrap_or(false);
-    if flag("CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS") { args.push("--dangerously-bypass-approvals".to_owned()); }
-    if flag("CUA_DRIVER_SERVE_NO_PERMISSIONS_GATE") { args.push("--no-permissions-gate".to_owned()); }
-    if flag("CUA_DRIVER_SERVE_APPROVE_CAPABILITY_MANIFEST") { args.push("--approve-capability-manifest".to_owned()); }
-    if flag("CUA_DRIVER_SERVE_CLAUDE_CODE_COMPAT") { args.push("--claude-code-computer-use-compat".to_owned()); }
-    if flag("CUA_DRIVER_SERVE_EXPERIMENTAL_HISTORY") { args.push("--experimental-history".to_owned()); }
-    if !server.env.contains_key("CUA_DRIVER_SERVE_CAPABILITY_MANIFEST") {
-    if let Some(source) = std::env::var_os("CUA_DRIVER_CAPABILITY_MANIFEST_FILE") {
-        if let Ok(mut manifest) = std::fs::read_to_string(&source) {
-            if let Some(value) = server.env.get("CUA_DRIVER_MANIFEST_EXPIRES_AFTER") {
-                manifest = manifest.replace("expires_after: 24h", &format!("expires_after: {value}"));
-            }
-            if let Some(value) = server.env.get("CUA_DRIVER_MANIFEST_IDLE_TIMEOUT") {
-                manifest = manifest.replace("idle_timeout: 24h", &format!("idle_timeout: {value}"));
-            }
-                if server.env.contains_key("CUA_DRIVER_MANIFEST_DESKTOP_DISPLAY") {
-                let display = if flag("CUA_DRIVER_MANIFEST_DESKTOP_DISPLAY") { "true" } else { "false" };
-                    manifest = manifest.replace("display: true", &format!("display: {display}"));
-                }
-                let values = |name: &str| {
-                    server.env.get(name).into_iter().flat_map(|value| value.lines()).map(str::trim).filter(|value| !value.is_empty()).collect::<Vec<_>>()
-                };
-                let mut resource_yaml = String::from("resources:\n");
-                let apps = values("CUA_DRIVER_MANIFEST_APPS");
-                if !apps.is_empty() {
-                    resource_yaml.push_str("  apps:\n");
-                    for app in apps {
-                        #[cfg(target_os = "macos")]
-                        resource_yaml.push_str(&format!("    - bundle_id: {}\n      launch: true\n      windows: all\n      terminate: driver_launched\n", serde_json::to_string(app).unwrap_or_default()));
-                        #[cfg(not(target_os = "macos"))]
-                        resource_yaml.push_str(&format!("    - executable: {}\n      launch: true\n      windows: all\n      terminate: driver_launched\n", serde_json::to_string(app).unwrap_or_default()));
-                    }
-                }
-                let origins = values("CUA_DRIVER_MANIFEST_ORIGINS");
-                if !origins.is_empty() {
-                    resource_yaml.push_str("  browser:\n    profiles:\n      - kind: isolated\n    origins:\n");
-                    for origin in origins { resource_yaml.push_str(&format!("      - {}\n", serde_json::to_string(origin).unwrap_or_default())); }
-                }
-                let reads = values("CUA_DRIVER_MANIFEST_READ_DIRS");
-                let writes = values("CUA_DRIVER_MANIFEST_WRITE_DIRS");
-                if !reads.is_empty() || !writes.is_empty() {
-                    resource_yaml.push_str("  files:\n");
-                    if !reads.is_empty() { resource_yaml.push_str("    read:\n"); for dir in reads { resource_yaml.push_str(&format!("      - dir: {}\n        recursive: true\n", serde_json::to_string(dir).unwrap_or_default())); } }
-                    if !writes.is_empty() { resource_yaml.push_str("    write:\n"); for dir in writes { resource_yaml.push_str(&format!("      - dir: {}\n        recursive: true\n", serde_json::to_string(dir).unwrap_or_default())); } }
-                }
-                manifest = manifest.replacen("resources:\n", &resource_yaml, 1);
-            let generated = std::env::temp_dir().join("openagent-cua-capabilities.yaml");
-            if std::fs::write(&generated, manifest).is_ok() {
-                args.extend(["--capability-manifest".to_owned(), generated.display().to_string()]);
-            }
-        }
-    }
-    }
-    if let Some(path) = server.env.get("CUA_DRIVER_SERVE_CAPABILITY_MANIFEST").map(String::trim).filter(|v| !v.is_empty()) {
-        args.extend(["--capability-manifest".to_owned(), path.to_owned()]);
-    }
-    if let Some(grants) = server.env.get("CUA_DRIVER_SERVE_GRANTS") {
-        for grant in grants.split(',').map(str::trim).filter(|v| !v.is_empty()) {
-            args.extend(["--grant".to_owned(), grant.to_owned()]);
-        }
-    }
     let spawned = Command::new(command)
         .args(args)
-        .envs(server.env.iter())
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -3590,6 +3515,35 @@ fn packaged_runtime_binary() -> Result<std::path::PathBuf, String> {
     Ok(binary)
 }
 
+/// Socket endpoint shared by the product-managed Cua Driver daemon and its
+/// reserved MCP client entry. It is product policy, not a user setting, so both
+/// processes always agree on the same local endpoint.
+#[cfg(any(feature = "embedded-runtime", test))]
+const CUA_DRIVER_SOCKET: &str = "openagent-cua-driver.sock";
+
+/// Build the fixed `cua-driver serve` command line for the reserved entry.
+/// The reserved MCP client always proxies with `mcp --grant existing-profile
+/// --socket <endpoint>`, so the daemon must bind that same endpoint.
+#[cfg(any(feature = "embedded-runtime", test))]
+fn cua_driver_serve_args(entry_args: &[String]) -> Vec<String> {
+    let socket = entry_args
+        .iter()
+        .position(|arg| arg == "--socket")
+        .and_then(|index| entry_args.get(index + 1))
+        .map(String::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or(CUA_DRIVER_SOCKET);
+    vec![
+        "serve".to_owned(),
+        "--permission-mode".to_owned(),
+        "unrestricted".to_owned(),
+        "--dangerously-bypass-approvals".to_owned(),
+        "--socket".to_owned(),
+        socket.to_owned(),
+    ]
+}
+
 fn cua_driver_binary_name() -> &'static str {
     #[cfg(windows)]
     {
@@ -3616,12 +3570,6 @@ fn first_valid_cua_driver_directory(
 fn prepend_cua_driver_directory_to_path(directory: std::path::PathBuf) -> Result<bool, String> {
     if !is_valid_cua_driver_directory(&directory) {
         return Ok(false);
-    }
-
-    let manifest = directory.join("openagent-capabilities.yaml");
-    if manifest.is_file() {
-        std::env::set_var("CUA_DRIVER_CAPABILITY_MANIFEST_FILE", &manifest);
-        std::env::set_var("CUA_DRIVER_CAPABILITY_MANIFEST_APPROVED", "1");
     }
 
     let current = std::env::var_os("PATH").unwrap_or_default();
@@ -4528,6 +4476,37 @@ mod tests {
             Some(valid.clone())
         );
         std::fs::remove_dir_all(root).expect("remove Cua Driver fixture");
+    }
+
+    #[test]
+    fn cua_driver_serve_uses_fixed_unrestricted_flags_and_shared_socket() {
+        let entry: Vec<String> = [
+            "mcp",
+            "--grant",
+            "existing-profile",
+            "--socket",
+            "/tmp/custom.sock",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect();
+        assert_eq!(
+            cua_driver_serve_args(&entry),
+            vec![
+                "serve",
+                "--permission-mode",
+                "unrestricted",
+                "--dangerously-bypass-approvals",
+                "--socket",
+                "/tmp/custom.sock",
+            ]
+        );
+
+        let legacy: Vec<String> = ["mcp"].into_iter().map(str::to_owned).collect();
+        assert_eq!(
+            cua_driver_serve_args(&legacy).last().map(String::as_str),
+            Some(CUA_DRIVER_SOCKET)
+        );
     }
 
     #[test]

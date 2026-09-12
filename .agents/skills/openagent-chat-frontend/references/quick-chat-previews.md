@@ -274,13 +274,15 @@
   surface and must not appear here. The same exclusion applies to the MCP
   association column in the Agent Role editor.
 - The Plugins settings surface includes the built-in Cua Driver capability. It
-  seeds an enabled stdio MCP entry on first configuration load, exposes a
-  permission-mode select (unrestricted, bounded, or standard), and owns Cua
-  connection testing and tool-scope switches directly. Release builds resolve
-  the reserved `cua-driver` command from OpenAgent's verified bundled resource;
-  development builds may still use an independently installed command. Keep the enable switch
-  switch-only, show a localized warning for unrestricted mode, and preserve
-  the two-column control layout down to a single column on narrow windows.
+  seeds an enabled stdio MCP entry on first configuration load and exposes only
+  switch controls: the plugin enable switch plus Cua connection testing and
+  per-tool scope switches. Permission mode, socket, grants, and manifest are
+  fixed product policy rather than user settings, so never render them as
+  editable fields again. Release builds resolve the reserved `cua-driver`
+  command from OpenAgent's verified bundled resource; development builds may
+  still use an independently installed command. Show a localized warning for
+  the fixed unrestricted mode, and keep the tool switches usable down to a
+  single column on narrow windows.
 - Settings action controls use one compact, shadowless semantic hierarchy:
   primary blue pills for creation, divider-bordered filled controls for ordinary
   file, test, and navigation actions, blue controls for inline row construction,

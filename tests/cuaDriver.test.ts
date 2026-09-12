@@ -1,11 +1,13 @@
 // @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
 import {
-  CUA_DRIVER_ARGS,
+  CUA_DRIVER_COMMAND,
   CUA_DRIVER_ID,
-  cuaTransportArgs,
+  CUA_DRIVER_MCP_ARGS,
+  CUA_DRIVER_SOCKET,
   createCuaDriverServer,
   ensureCuaDriverServer,
+  isCuaDriverServerCurrent,
 } from "../src/lib/cuaDriver";
 import type { AppConfig } from "../src/lib/types";
 
@@ -51,29 +53,37 @@ function configWithServers(servers: AppConfig["mcp"]["servers"]): AppConfig {
 }
 
 describe("Cua Driver configuration", () => {
-  test("defaults to the supervised serve daemon with an MCP socket client", () => {
-    expect(createCuaDriverServer().args).toEqual(["mcp", "--socket", "openagent-cua-driver.sock"]);
-    expect(createCuaDriverServer().env).toMatchObject({
-      CUA_DRIVER_PERMISSION_MODE: "unrestricted",
-      CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS: "1",
-      CUA_DRIVER_SERVE_SOCKET: "openagent-cua-driver.sock",
-    });
-  });
-
-  test("builds an MCP socket client command for the serve transport", () => {
-    expect(
-      cuaTransportArgs({
-        env: { CUA_DRIVER_TRANSPORT_MODE: "serve", CUA_DRIVER_SERVE_SOCKET: "/tmp/cua.sock" },
-      }),
-    ).toEqual(["mcp", "--socket", "/tmp/cua.sock"]);
-    expect(cuaTransportArgs({ env: { CUA_DRIVER_TRANSPORT_MODE: "direct" } })).toEqual([
+  test("uses the fixed unrestricted serve topology for the reserved MCP entry", () => {
+    const server = createCuaDriverServer();
+    expect(server.command).toBe(CUA_DRIVER_COMMAND);
+    expect(server.args).toEqual([
       "mcp",
+      "--grant",
+      "existing-profile",
       "--socket",
-      "openagent-cua-driver.sock",
+      CUA_DRIVER_SOCKET,
     ]);
+    expect(server.env).toEqual({});
+    expect(server.disabled_tools).toEqual([]);
   });
 
-  test("seeds and upgrades the reserved entry without changing user MCP servers", () => {
+  test("recognizes only the current fixed launch shape", () => {
+    expect(isCuaDriverServerCurrent(createCuaDriverServer())).toBe(true);
+    expect(
+      isCuaDriverServerCurrent({
+        ...createCuaDriverServer(),
+        env: { CUA_DRIVER_PERMISSION_MODE: "standard" },
+      }),
+    ).toBe(false);
+    expect(
+      isCuaDriverServerCurrent({
+        ...createCuaDriverServer(),
+        args: ["mcp", "--socket", "/tmp/cua.sock"],
+      }),
+    ).toBe(false);
+  });
+
+  test("seeds the reserved entry without changing user MCP servers", () => {
     const userServer = {
       id: "user-mcp",
       name: "User MCP",
@@ -89,17 +99,46 @@ describe("Cua Driver configuration", () => {
     };
     const seeded = ensureCuaDriverServer(configWithServers([userServer]));
     expect(seeded.mcp.servers.map((server) => server.id)).toEqual([CUA_DRIVER_ID, "user-mcp"]);
+    expect(seeded.mcp.servers[0]).toEqual(createCuaDriverServer());
 
+    const current = configWithServers([createCuaDriverServer(), userServer]);
+    expect(ensureCuaDriverServer(current)).toBe(current);
+  });
+
+  test("drops legacy permission, socket, and manifest overrides", () => {
+    const userServer = {
+      id: "user-mcp",
+      name: "User MCP",
+      enabled: true,
+      transport: "http" as const,
+      url: "https://mcp.example.test",
+      bearer_token: "",
+      headers: {},
+      command: "",
+      args: [],
+      env: {},
+      disabled_tools: [],
+    };
     const legacy = {
       ...createCuaDriverServer(),
-      args: ["mcp"],
-      env: { CUA_DRIVER_PERMISSION_MODE: "bounded" },
+      enabled: false,
+      args: ["mcp", "--socket", "/tmp/legacy.sock"],
+      env: {
+        CUA_DRIVER_TRANSPORT_MODE: "serve",
+        CUA_DRIVER_PERMISSION_MODE: "bounded",
+        CUA_DRIVER_SERVE_SOCKET: "/tmp/legacy.sock",
+        CUA_DRIVER_MANIFEST_APPS: "com.example.App",
+      },
+      disabled_tools: ["kill_app"],
     };
     const upgraded = ensureCuaDriverServer(configWithServers([legacy, userServer]));
-    expect(upgraded.mcp.servers[0].args).toEqual([...CUA_DRIVER_ARGS]);
-    expect(upgraded.mcp.servers[0].env).toEqual({
-      CUA_DRIVER_PERMISSION_MODE: "bounded",
-      CUA_DRIVER_SERVE_SOCKET: "openagent-cua-driver.sock",
+    expect(upgraded.mcp.servers[0]).toMatchObject({
+      id: CUA_DRIVER_ID,
+      enabled: false,
+      command: CUA_DRIVER_COMMAND,
+      args: [...CUA_DRIVER_MCP_ARGS],
+      env: {},
+      disabled_tools: ["kill_app"],
     });
     expect(upgraded.mcp.servers[1]).toEqual(userServer);
   });
