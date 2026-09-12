@@ -59,6 +59,12 @@ connection. MCP `tools/list_changed` updates are reflected on the next Agent
 turn while preserving configured disabled names, including names that
 temporarily disappear and later return.
 
+The product-managed Cua Driver entry is seeded and normalized during the first
+desktop startup bootstrap, before the first chat turn. Its reserved stdio
+command uses the driver's direct MCP mode so the generic MCP client can discover
+and call tools without Cua-specific per-request metadata; Settings can still
+change its permission mode and disabled-tool list.
+
 Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
 permissions and do not commit it to source control.

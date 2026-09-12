@@ -3474,27 +3474,31 @@ fn packaged_runtime_binary() -> Result<std::path::PathBuf, String> {
     Ok(binary)
 }
 
-fn prepend_bundled_cua_driver_to_path(app: &tauri::AppHandle) -> Result<bool, String> {
-    let directory = app
-        .path()
-        .resolve("cua-driver", BaseDirectory::Resource)
-        .map_err(|error| format!("Failed to resolve bundled Cua Driver directory: {error}"))?;
-    if !directory.is_dir() {
-        tracing::debug!(
-            path = %directory.display(),
-            "bundled Cua Driver resource directory is unavailable"
-        );
-        return Ok(false);
-    }
+fn cua_driver_binary_name() -> &'static str {
     #[cfg(windows)]
-    let binary = directory.join("cua-driver.exe");
+    {
+        "cua-driver.exe"
+    }
     #[cfg(not(windows))]
-    let binary = directory.join("cua-driver");
-    if !binary.is_file() {
-        tracing::warn!(
-            path = %binary.display(),
-            "bundled Cua Driver resource is unavailable"
-        );
+    {
+        "cua-driver"
+    }
+}
+
+fn is_valid_cua_driver_directory(directory: &std::path::Path) -> bool {
+    directory.is_dir() && directory.join(cua_driver_binary_name()).is_file()
+}
+
+fn first_valid_cua_driver_directory(
+    candidates: impl IntoIterator<Item = std::path::PathBuf>,
+) -> Option<std::path::PathBuf> {
+    candidates
+        .into_iter()
+        .find(|directory| is_valid_cua_driver_directory(directory))
+}
+
+fn prepend_cua_driver_directory_to_path(directory: std::path::PathBuf) -> Result<bool, String> {
+    if !is_valid_cua_driver_directory(&directory) {
         return Ok(false);
     }
 
@@ -3505,12 +3509,66 @@ fn prepend_bundled_cua_driver_to_path(app: &tauri::AppHandle) -> Result<bool, St
     }
 
     let current = std::env::var_os("PATH").unwrap_or_default();
-    let mut entries = vec![directory];
-    entries.extend(std::env::split_paths(&current));
+    let mut entries: Vec<_> = std::env::split_paths(&current).collect();
+    if entries.first() != Some(&directory) {
+        entries.insert(0, directory.clone());
+    }
     let path = std::env::join_paths(entries)
         .map_err(|error| format!("Failed to prepend bundled Cua Driver to PATH: {error}"))?;
     std::env::set_var("PATH", path);
+    tracing::debug!(path = %directory.display(), "bundled Cua Driver path configured");
     Ok(true)
+}
+
+#[cfg(debug_assertions)]
+fn development_cua_driver_directory() -> Option<std::path::PathBuf> {
+    let mut candidates = vec![
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join("cua-driver"),
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("debug")
+            .join("cua-driver"),
+    ];
+    if let Ok(executable) = std::env::current_exe() {
+        if let Some(parent) = executable.parent() {
+            candidates.insert(0, parent.join("cua-driver"));
+        }
+    }
+    first_valid_cua_driver_directory(candidates)
+}
+
+#[cfg(debug_assertions)]
+fn prepend_development_cua_driver_to_path() -> Result<bool, String> {
+    let Some(directory) = development_cua_driver_directory() else {
+        tracing::debug!("bundled Cua Driver development resource is unavailable");
+        return Ok(false);
+    };
+    prepend_cua_driver_directory_to_path(directory)
+}
+
+#[cfg(not(debug_assertions))]
+fn prepend_development_cua_driver_to_path() -> Result<bool, String> {
+    Ok(false)
+}
+
+fn prepend_bundled_cua_driver_to_path(app: &tauri::AppHandle) -> Result<bool, String> {
+    let resource = app.path().resolve("cua-driver", BaseDirectory::Resource);
+    let mut candidates = Vec::new();
+    if let Ok(directory) = resource {
+        candidates.push(directory);
+    }
+    #[cfg(debug_assertions)]
+    if let Some(directory) = development_cua_driver_directory() {
+        candidates.push(directory);
+    }
+
+    let Some(directory) = first_valid_cua_driver_directory(candidates) else {
+        tracing::debug!("bundled Cua Driver resource directory is unavailable");
+        return Ok(false);
+    };
+    prepend_cua_driver_directory_to_path(directory)
 }
 
 async fn start_runtime_spec(
@@ -3669,6 +3727,8 @@ mod single_instance_tests {
 }
 
 fn run_with_mode(agent_server: bool) {
+    prepend_development_cua_driver_to_path()
+        .unwrap_or_else(|error| panic!("Failed to configure bundled Cua Driver: {error}"));
     let external_launch = if !agent_server {
         match prepare_interactive_persistence() {
             Ok(Some(launch)) => Some(launch),
@@ -4331,6 +4391,25 @@ fn run_with_mode(agent_server: bool) {
 mod tests {
     use super::*;
     use std::path::Path;
+
+    #[test]
+    fn bundled_cua_driver_selection_skips_missing_candidates() {
+        let root = std::env::temp_dir().join(format!(
+            "openagent-cua-driver-test-{}",
+            uuid::Uuid::new_v4()
+        ));
+        let missing = root.join("missing");
+        let valid = root.join("valid");
+        std::fs::create_dir_all(&valid).expect("create Cua Driver fixture");
+        std::fs::write(valid.join(cua_driver_binary_name()), b"fixture")
+            .expect("write Cua Driver fixture");
+
+        assert_eq!(
+            first_valid_cua_driver_directory([missing, valid.clone()]),
+            Some(valid.clone())
+        );
+        std::fs::remove_dir_all(root).expect("remove Cua Driver fixture");
+    }
 
     #[test]
     fn settings_window_kinds_use_fixed_labels_and_sections() {
