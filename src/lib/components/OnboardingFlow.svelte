@@ -15,7 +15,6 @@
     providerDefaultBaseUrl,
     providerRequiresApiKey,
   } from "$lib/providerCatalog";
-  import Tooltip from "./Tooltip.svelte";
   import Select from "./ui/Select.svelte";
   import SegmentedControl from "./ui/SegmentedControl.svelte";
   import SettingsActionButton from "./ui/SettingsActionButton.svelte";
@@ -142,11 +141,34 @@
       ? {
           steps: ["Welcome", "Preferences", "Model service", "Default models", "Ready"],
           stepProgress: "Step {current} of {total}",
+          brandTagline: "A calm place to build",
           welcomeTitle: "Welcome to OpenAgent",
+          welcomeEyebrow: "Your workspace, with an agent",
           welcomeBody:
             "OpenAgent is a desktop AI agent that can understand projects, edit files, and carry out tasks in the workspace you choose.",
           setupBody:
             "This guide will set your preferences, connect a model service, and choose the models OpenAgent uses. You can change everything later in Settings.",
+          welcomeFeatures: [
+            {
+              title: "Work in context",
+              body: "OpenAgent stays grounded in the files and commands of your project.",
+            },
+            {
+              title: "Keep momentum",
+              body: "Describe a goal and let the agent plan, execute, and explain each step.",
+            },
+            {
+              title: "Stay in control",
+              body: "You choose the workspace and keep your credentials on this device.",
+            },
+          ],
+          stepDescriptions: [
+            "Tell us how you work",
+            "Set your preferences",
+            "Connect your AI service",
+            "Pick your defaults",
+            "Start building",
+          ],
           workspace: "Current workspace",
           workspaceDescription:
             "The workspace is the folder where OpenAgent reads files, runs commands, and keeps project context.",
@@ -201,11 +223,34 @@
       : {
           steps: ["欢迎", "偏好", "模型服务", "默认模型", "完成"],
           stepProgress: "第 {current} 步，共 {total} 步",
+          brandTagline: "专注创作的工作空间",
           welcomeTitle: "欢迎使用 OpenAgent",
+          welcomeEyebrow: "让 Agent 在你的工作区工作",
           welcomeBody:
             "OpenAgent 是一款桌面 AI Agent，可以在你选择的工作区中理解项目、编辑文件并执行任务。",
           setupBody:
             "接下来将设置界面偏好、连接模型服务并选择 OpenAgent 使用的默认模型；这些配置之后都可以在设置中修改。",
+          welcomeFeatures: [
+            {
+              title: "理解项目上下文",
+              body: "OpenAgent 会围绕你项目中的文件和命令展开工作。",
+            },
+            {
+              title: "保持工作节奏",
+              body: "描述一个目标，让 Agent 规划、执行并解释每一步。",
+            },
+            {
+              title: "始终由你掌控",
+              body: "工作区由你选择，模型凭据也只保存在此设备。",
+            },
+          ],
+          stepDescriptions: [
+            "先了解你的工作方式",
+            "设置界面偏好",
+            "连接 AI 服务",
+            "选择默认模型",
+            "开始创作",
+          ],
           workspace: "当前工作区",
           workspaceDescription: "工作区是 OpenAgent 读取文件、执行命令并保留项目上下文的文件夹。",
           noWorkspace: "尚未选择工作区",
@@ -407,25 +452,31 @@
   <div class="onboarding-drag-region" data-tauri-drag-region aria-hidden="true"></div>
   <div class="onboarding-body">
     <aside class="onboarding-visual">
-      <img
-        class="onboarding-illustration"
-        src="/assets/onboarding/openagent-workspace.png"
-        alt=""
-        aria-hidden="true"
-      />
+      <div class="onboarding-brand">
+        <img class="onboarding-brand-icon" src="/app-icon.png" alt="" aria-hidden="true" />
+        <div>
+          <strong>OpenAgent</strong>
+          <span>{copy.brandTagline}</span>
+        </div>
+      </div>
       <div class="onboarding-progress">
-        <p>
-          {copy.stepProgress
-            .replace("{current}", String(step + 1))
-            .replace("{total}", String(copy.steps.length))}
-        </p>
+        <div class="progress-heading">
+          <p>
+            {copy.stepProgress
+              .replace("{current}", String(step + 1))
+              .replace("{total}", String(copy.steps.length))}
+          </p>
+          <span>{String(step + 1).padStart(2, "0")}</span>
+        </div>
         <nav aria-label={draft.language === "en" ? "Setup steps" : "设置步骤"}>
           {#each copy.steps as label, index (index)}
-            <Tooltip text={label} side="top">
+            <div
+              class="onboarding-step"
+              class:active={index === step}
+              class:complete={index < step}
+            >
               <button
                 class="onboarding-nav-item"
-                class:active={index === step}
-                class:complete={index < step}
                 aria-current={index === step ? "step" : undefined}
                 aria-label={`${index + 1}. ${label}`}
                 disabled={index > step}
@@ -435,20 +486,35 @@
               >
                 <span aria-hidden="true">{index + 1}</span>
               </button>
-            </Tooltip>
+              <div class="onboarding-step-copy">
+                <strong>{label}</strong>
+                {#if index === step}<small>{copy.stepDescriptions[index]}</small>{/if}
+              </div>
+            </div>
           {/each}
         </nav>
-        <strong>{copy.steps[step]}</strong>
-        <p class="nav-note">{copy.credentialNote}</p>
       </div>
+      <p class="nav-note">{copy.credentialNote}</p>
     </aside>
 
     <main class="application-settings-surface step-content" aria-label={copy.steps[step]}>
-      <div class="step-scroll">
+      <div class="step-scroll" class:welcome-scroll={step === 0}>
         {#if step === 0}
-          <h1>{copy.welcomeTitle}</h1>
+          <p class="welcome-eyebrow">{copy.welcomeEyebrow}</p>
+          <h1 class="welcome-title">{copy.welcomeTitle}</h1>
           <p class="lead">{copy.welcomeBody}</p>
           <p class="setup-description">{copy.setupBody}</p>
+          <div class="welcome-features">
+            {#each copy.welcomeFeatures as feature, index (feature.title)}
+              <div class="welcome-feature">
+                <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                <div>
+                  <strong>{feature.title}</strong>
+                  <p>{feature.body}</p>
+                </div>
+              </div>
+            {/each}
+          </div>
           <div class="application-settings-surface workspace-card">
             <div>
               <span>{copy.workspace}</span>
@@ -714,7 +780,7 @@
   }
   .onboarding-body {
     display: grid;
-    grid-template-columns: 40% minmax(0, 60%);
+    grid-template-columns: 34% minmax(0, 66%);
     min-width: 0;
     min-height: 0;
     flex: 1;
@@ -724,54 +790,96 @@
   .onboarding-visual {
     display: flex;
     flex-direction: column;
-    align-items: center;
     box-sizing: border-box;
     min-width: 0;
-    padding: 40px 28px 24px;
+    padding: 42px 30px 24px;
     background: transparent;
   }
-  .onboarding-illustration {
+  .onboarding-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .onboarding-brand-icon {
     display: block;
-    width: min(100%, 248px);
-    height: auto;
-    margin: 58px auto 0;
-    filter: drop-shadow(0 14px 18px rgba(31, 76, 138, 0.11));
-    user-select: none;
-    -webkit-user-drag: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    object-fit: cover;
+  }
+  .onboarding-brand div {
+    display: grid;
+    gap: 2px;
+  }
+  .onboarding-brand strong {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .onboarding-brand span:not(.brand-mark) {
+    color: var(--text-muted);
+    font-size: 10px;
   }
   .onboarding-progress {
-    display: flex;
     width: 100%;
-    margin-top: auto;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+    margin: auto 0 0;
   }
-  .onboarding-progress > p:first-child {
-    margin: 0 0 8px;
+  .progress-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .progress-heading p {
+    margin: 0;
     color: var(--text-muted);
     font-size: 11px;
     letter-spacing: 0.02em;
   }
+  .progress-heading > span {
+    color: var(--primary);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.06em;
+  }
   .onboarding-progress nav {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
+    display: grid;
+    gap: 2px;
+  }
+  .onboarding-step {
+    position: relative;
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    min-height: 42px;
+  }
+  .onboarding-step:not(:last-child)::after {
+    position: absolute;
+    top: 28px;
+    left: 13px;
+    width: 2px;
+    height: 16px;
+    background: var(--mica-divider);
+    content: "";
+  }
+  .onboarding-step.complete:not(:last-child)::after {
+    background: color-mix(in srgb, var(--primary) 48%, var(--mica-divider));
   }
   .onboarding-nav-item {
-    display: flex;
+    position: relative;
+    z-index: 1;
+    display: grid;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    min-width: 26px;
-    min-height: 26px;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
     padding: 0;
-    border: 0;
+    border: 1px solid var(--mica-divider);
     border-radius: 50%;
-    background: var(--surface);
+    background: var(--mica-surface);
     color: var(--text-muted);
-    box-shadow: var(--control-shadow);
     cursor: pointer;
     font: inherit;
     font-size: 11px;
@@ -780,29 +888,41 @@
     background: var(--interactive-state-bg);
     color: var(--text);
   }
-  .onboarding-nav-item.active {
+  .onboarding-step.active .onboarding-nav-item {
     background: var(--primary);
+    border-color: var(--primary);
     color: #fff;
-    box-shadow:
-      var(--control-shadow),
-      0 0 0 2px color-mix(in srgb, var(--primary) 16%, transparent);
     font-weight: 600;
   }
   .onboarding-nav-item:disabled {
     cursor: default;
     opacity: 0.55;
   }
-  .onboarding-nav-item.complete {
+  .onboarding-step.complete .onboarding-nav-item {
     color: var(--primary);
   }
-  .onboarding-progress strong {
-    margin-top: 10px;
+  .onboarding-step-copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    padding-top: 3px;
+  }
+  .onboarding-step-copy strong {
     font-size: 13px;
     font-weight: 600;
   }
+  .onboarding-step:not(.active) .onboarding-step-copy strong {
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+  .onboarding-step-copy small {
+    color: var(--text-muted);
+    font-size: 10px;
+    line-height: 1.45;
+  }
   .nav-note {
-    max-width: 220px;
-    margin: 6px 0 0;
+    max-width: 210px;
+    margin: 32px 0 0;
     color: var(--text-muted);
     font-size: 11px;
     line-height: 1.5;
@@ -825,12 +945,38 @@
     overflow-y: auto;
     padding: 28px 40px 20px;
   }
+  .step-scroll.welcome-scroll {
+    overflow-y: hidden;
+    padding-bottom: 0;
+  }
+  .welcome-scroll .setup-description {
+    margin-bottom: 14px;
+  }
+  .welcome-scroll .welcome-features {
+    gap: 7px;
+    margin-bottom: 10px;
+  }
   h1 {
     margin: 0 0 10px;
     font-size: 28px;
     font-weight: 600;
     letter-spacing: -0.035em;
     line-height: 1.16;
+  }
+  .welcome-eyebrow {
+    margin: 0 0 9px;
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .welcome-title {
+    max-width: 430px;
+    margin-bottom: 12px;
+    font-size: 32px;
+    letter-spacing: -0.045em;
+    line-height: 1.1;
   }
   .lead {
     max-width: 520px;
@@ -845,6 +991,36 @@
     color: var(--text);
     font-size: 13px;
     line-height: 1.6;
+  }
+  .welcome-features {
+    display: grid;
+    gap: 10px;
+    margin: 0 0 20px;
+  }
+  .welcome-feature {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+  }
+  .welcome-feature > span {
+    padding-top: 1px;
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .welcome-feature strong {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .welcome-feature p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.45;
   }
   .workspace-card,
   .summary {
@@ -1048,5 +1224,94 @@
     gap: 12px;
     flex: none;
     padding: 16px 38px 20px;
+  }
+
+  @media (max-width: 700px) {
+    .onboarding-body {
+      grid-template-columns: 1fr;
+      padding: 4px;
+      overflow-y: auto;
+    }
+    .onboarding-visual {
+      padding: 36px 24px 0;
+    }
+    .onboarding-progress {
+      margin-top: 24px;
+    }
+    .onboarding-progress nav {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .onboarding-step {
+      display: flex;
+      min-height: 0;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      text-align: center;
+    }
+    .onboarding-step::after {
+      display: none;
+    }
+    .onboarding-step-copy {
+      padding-top: 0;
+    }
+    .onboarding-step-copy strong {
+      overflow: hidden;
+      max-width: 100%;
+      font-size: 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .onboarding-step-copy small {
+      display: none;
+    }
+    .nav-note {
+      max-width: none;
+      margin: 18px 0 12px;
+    }
+    .step-content {
+      margin-block: 4px;
+    }
+    .step-scroll {
+      padding: 24px 24px 20px;
+    }
+    footer {
+      padding: 14px 24px 16px;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .onboarding-brand span:not(.brand-mark),
+    .onboarding-step-copy {
+      display: none;
+    }
+    .onboarding-visual {
+      padding-inline: 18px;
+    }
+    .onboarding-progress {
+      margin-top: 18px;
+    }
+    .onboarding-step {
+      display: grid;
+      place-items: center;
+    }
+    .welcome-title {
+      font-size: 28px;
+    }
+    .two {
+      grid-template-columns: 1fr;
+    }
+    footer,
+    .workspace-card,
+    .connection-row {
+      align-items: stretch;
+    }
+    footer {
+      gap: 8px;
+    }
+    footer :global(.settings-action) {
+      flex: 1;
+    }
   }
 </style>

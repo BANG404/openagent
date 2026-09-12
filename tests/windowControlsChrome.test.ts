@@ -29,7 +29,9 @@ describe("Windows window controls", () => {
     expect(source).not.toContain("WindowControls");
     expect(source).not.toContain("onboarding-header");
     expect(source).toMatch(/\.onboarding-visual\s*{[^}]*background: transparent;/s);
-    expect(source).toMatch(/\.onboarding-nav-item\s*{[^}]*border: 0;/s);
+    expect(source).toMatch(
+      /\.onboarding-nav-item\s*{[^}]*border: 1px solid var\(--mica-divider\);/s,
+    );
   });
 
   test("keeps onboarding on one compact fixed Windows 11-style canvas", async () => {
@@ -42,9 +44,11 @@ describe("Windows window controls", () => {
     expect(controls).toContain("canMaximize = true");
     expect(controls).toContain("{#if canMaximize}");
     expect(onboarding).not.toContain("canMaximize");
-    expect(onboarding).toContain("/assets/onboarding/openagent-workspace.png");
+    expect(onboarding).not.toContain("onboarding-illustration");
+    expect(onboarding).toContain('class="onboarding-brand"');
+    expect(onboarding).toContain('src="/app-icon.png"');
     expect(onboarding).toMatch(
-      /\.onboarding-body\s*{[^}]*grid-template-columns: 40% minmax\(0, 60%\);/s,
+      /\.onboarding-body\s*{[^}]*grid-template-columns: 34% minmax\(0, 66%\);/s,
     );
     expect(onboarding).toMatch(/\.step-content\s*{[^}]*margin-block: 8px;/s);
     expect(host).toMatch(

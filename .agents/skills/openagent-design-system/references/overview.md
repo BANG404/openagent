@@ -51,9 +51,9 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   onboarding window omits the custom title bar and window controls so its setup
   body fills the complete frameless canvas. The centered onboarding window is a
   compact, fixed, non-maximizable 840 × 560px canvas. Its Windows 11
-  OOBE-inspired body uses a quiet 40% illustration and numbered progress rail
-  beside a wider 60% setup canvas, preserving confident heading scale and fixed
-  footer actions without leaving oversized empty regions.
+  OOBE-inspired body uses a quiet, image-free 34% brand and numbered progress
+  rail beside a wider 66% setup canvas, preserving confident heading scale and
+  fixed footer actions without leaving oversized empty regions.
   The welcome step first explains
   what OpenAgent does, what the setup will configure, and how the selected
   workspace scopes file and command activity, so a first-time user can make an

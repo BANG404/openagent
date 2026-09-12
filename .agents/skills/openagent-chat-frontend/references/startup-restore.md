@@ -38,9 +38,9 @@
   initialized instance. Keep its compact title bar free of a visible setup
   label and match the main application chrome height. Keep the onboarding
   canvas fixed at a compact 840 × 560px and omit its maximize affordance. Pair
-  one quiet, product-owned setup illustration and compact numbered progress
-  controls in a 40% native-material column with a wider 60% inset content
-  canvas, then lead directly with the current step's display heading. The
+  a quiet, image-free brand and compact numbered progress rail in a 34%
+  native-material column with a wider 66% inset content canvas, then lead
+  directly with the current step's display heading. The
   welcome step must explain the product, summarize the upcoming configuration,
   and describe how the workspace is used before asking a first-time user to
   continue. Dense step content scrolls inside that form column without resizing
