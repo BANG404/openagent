@@ -46,8 +46,9 @@ escapes but is not itself a subprocess sandbox.
 
 The product-managed Cua Driver capability is intentionally separate from this
 portable package loader. Release builds stage the pinned upstream
-`trycua/cua` binary distribution as a verified Tauri resource, prepend that
-resource directory only for OpenAgent child processes, and keep exposing the
+`trycua/cua` binary distribution as a verified Tauri resource, copy that
+resource into the product's per-user cache before the daemon starts, prepend
+the staged copy only for OpenAgent child processes, and keep exposing the
 driver through the reserved `cua-driver` stdio MCP entry. Do not turn that
 reserved entry into a user-installed Agent Plugin or fall back to an unrelated
 binary on `PATH` when the bundled resource is present.

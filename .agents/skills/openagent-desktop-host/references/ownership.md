@@ -41,6 +41,18 @@ the host.
   durable-state Runtime; the packaged server is a fallback binary, not a
   concurrent writer.
 
+## Bundled Cua Driver daemon
+
+- Stage the pinned Cua Driver release into the product's per-user cache
+  (`<cache>/openagent/cua-driver/<release-digest>/`) and start the daemon from
+  there, never from the bundled resource directory. That directory belongs to
+  the build and the installer: a development rebuild rewrites it in place, and
+  writing to the file a live daemon is executing fails with `ETXTBSY` on Unix
+  and with a sharing violation on Windows.
+- Stop the daemon this process spawned on every product exit path, including
+  the quit watchdog that force-exits a hung shutdown. A daemon another
+  OpenAgent process owns is never this process's to stop.
+
 ## Activation and update barrier
 
 - Component activation must acquire the Runtime's graceful update barrier
