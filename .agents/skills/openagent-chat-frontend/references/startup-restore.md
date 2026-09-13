@@ -74,6 +74,18 @@
   fast response never paints a one-frame waiting status.
 - Keep the main window hidden until the bootstrap snapshot is applied; retain
   the failure watchdog.
+- A component update replaces the frontend bundle under the running shell, so
+  the first startup snapshot can lose that race with the WebView swap. Retry
+  that snapshot once before degrading. Never leave the shell running without
+  the Runtime event subscription, because live events are the transcript's only
+  projection of a Turn: a shell that misses it shows no running Turn and no
+  terminal state, and only an application restart used to heal that. When the
+  snapshot still fails, restore workspace and conversation state through the
+  product API first and then subscribe anyway, so the durable restore cannot
+  resurrect a stale Turn. Report the failed snapshot, a failed data-only
+  restore, and a failed subscription as allowlisted frontend diagnostics; a
+  console error alone leaves the host log unable to distinguish a dead frontend
+  from an unreachable Runtime.
 - Use transcript-shaped and composer skeletons during history loading. A new
   conversation's greeting and composer skeletons belong to the same measured
   centered stack so their placeholders cannot overlap. Skeleton user bubbles

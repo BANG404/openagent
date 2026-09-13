@@ -1554,6 +1554,9 @@ fn diagnostic_event_name(value: &str) -> &'static str {
         "frontend_uncaught_error" => "frontend_uncaught_error",
         "frontend_unhandled_rejection" => "frontend_unhandled_rejection",
         "settings_save_failed" => "settings_save_failed",
+        "startup_bootstrap_failed" => "startup_bootstrap_failed",
+        "startup_restore_failed" => "startup_restore_failed",
+        "startup_event_delivery_failed" => "startup_event_delivery_failed",
         _ => "unknown_event",
     }
 }
@@ -1562,6 +1565,7 @@ fn diagnostic_component(value: &str) -> &'static str {
     match value {
         "window" => "window",
         "SettingsView" => "SettingsView",
+        "page-shell" => "page-shell",
         _ => "unknown_component",
     }
 }
@@ -4949,6 +4953,19 @@ mod tests {
             "frontend_uncaught_error"
         );
         assert_eq!(diagnostic_component("SettingsView"), "SettingsView");
+        assert_eq!(
+            diagnostic_event_name("startup_bootstrap_failed"),
+            "startup_bootstrap_failed"
+        );
+        assert_eq!(
+            diagnostic_event_name("startup_restore_failed"),
+            "startup_restore_failed"
+        );
+        assert_eq!(
+            diagnostic_event_name("startup_event_delivery_failed"),
+            "startup_event_delivery_failed"
+        );
+        assert_eq!(diagnostic_component("page-shell"), "page-shell");
         assert_eq!(diagnostic_error_type("TypeError"), "TypeError");
         assert_eq!(diagnostic_event_name("raw user message"), "unknown_event");
         assert_eq!(

@@ -23,6 +23,7 @@
   import { installDownloadHook } from "$lib/downloadHook";
   import { checkForAppUpdate } from "$lib/appUpdater";
   import { frontendActivationShouldShowNotice } from "$lib/frontendActivation";
+  import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
   import { AgentCompletionNotifier } from "$lib/agentCompletionNotification";
   import { chatTaskUsagesByCheckpoint } from "$lib/cacheUsage";
   import { Dialog, Tooltip as TooltipPrimitive } from "bits-ui";
@@ -2181,6 +2182,13 @@
     return () => media.removeEventListener("change", syncSystemTheme);
   });
 
+  // A component update installs the frontend bundle under the running shell, so
+  // the first startup snapshot can lose that race with the swap. Retry it once
+  // before degrading: a shell that never subscribes to Runtime events shows no
+  // running Turn, and only an application restart used to heal it.
+  const STARTUP_SNAPSHOT_RETRY_DELAY_MS = 400;
+  const delay = (durationMs: number) => new Promise((resolve) => setTimeout(resolve, durationMs));
+
   onMount(async () => {
     if (isDevInspectorWindow || standaloneDevPreview) return;
     if (isSettingsWindow || isRoleEditorWindow) return;
@@ -2202,23 +2210,43 @@
     let bootstrapReadyAt = mountedAt;
     let startupApplied = false;
     let requiresOnboarding = false;
+    let eventDeliveryInstalled = false;
+
+    // Live Runtime events are a lossy projection. Restore the complete durable
+    // snapshot before subscribing so startup and resync never reconstruct state
+    // from partial event delivery. Registration stays single-attempt because
+    // running it again would duplicate every Tauri listener, so a failure is
+    // reported through the host diagnostics instead of leaving a shell that
+    // shows no running Turn silent about why.
+    const installRuntimeEventDelivery = async () => {
+      if (!tauriAvailable || eventDeliveryInstalled) return;
+      eventDeliveryInstalled = true;
+      try {
+        await setupGlobalEventListeners();
+      } catch (error) {
+        console.error("Failed to subscribe to Runtime events:", error);
+        reportFrontendDiagnostic("startup_event_delivery_failed", "page-shell", error);
+      }
+    };
+
+    const applyStartupSnapshot = async () => {
+      const bootstrap = await openAgent.getStartupBootstrap<StartupBootstrap>();
+      bootstrapReadyAt = performance.now();
+      await applyStartupBootstrap(bootstrap);
+      await installRuntimeEventDelivery();
+      startupApplied = true;
+      installDownloadHook();
+      if (launchContext?.conversation_id) {
+        await revealMemorySource(launchContext.conversation_id, launchContext.message_id ?? "");
+      }
+    };
+
     try {
       // Seed isDarkTheme before settings load so shikiTheme is correct from first render
       isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
       if (tauriAvailable) {
-        const bootstrap = await openAgent.getStartupBootstrap<StartupBootstrap>();
-        bootstrapReadyAt = performance.now();
-        await applyStartupBootstrap(bootstrap);
-        // Live Runtime events are a lossy projection. Restore the complete
-        // durable snapshot before subscribing so startup and resync never
-        // reconstruct state from partial event delivery.
-        await setupGlobalEventListeners();
-        startupApplied = true;
-        installDownloadHook();
-        if (launchContext?.conversation_id) {
-          await revealMemorySource(launchContext.conversation_id, launchContext.message_id ?? "");
-        }
+        await applyStartupSnapshot();
       } else {
         await loadSettings();
         await loadWorkspace();
@@ -2236,27 +2264,25 @@
       }
     } catch (error) {
       console.error("Failed to apply startup bootstrap:", error);
+      reportFrontendDiagnostic("startup_bootstrap_failed", "page-shell", error);
       if (tauriAvailable) {
-        launchContext = (await openAgent
-          .invokeProduct("get_workspace_launch_context", {})
-          .catch(() => null)) as typeof launchContext;
-        await loadSettings();
-        if (launchContext?.workspace) workspacePath = launchContext.workspace;
-        await loadWorkspace();
-        selectedRoleKey = storedRoleSelection(workspacePath);
-        await loadAvailableRoles();
-        const page = await fetchConversationPage(
-          workspacePath || null,
-          null,
-          30,
-          null,
-          true,
-          selectedRoleId,
-        );
-        conversations = page.conversations;
-        conversationNextCursor = page.nextCursor;
-        await restoreWorkspaceConversation(workspacePath);
-        void refreshRecentConversations();
+        try {
+          await delay(STARTUP_SNAPSHOT_RETRY_DELAY_MS);
+          await applyStartupSnapshot();
+        } catch (retryError) {
+          console.error("Failed to apply startup bootstrap after retry:", retryError);
+          reportFrontendDiagnostic("startup_bootstrap_failed", "page-shell", retryError);
+          // A failure here must not skip the subscription below, which is the
+          // only live projection the degraded shell has left.
+          await restoreStartupFallback().catch((restoreError) => {
+            console.error("Failed to restore startup state:", restoreError);
+            reportFrontendDiagnostic("startup_restore_failed", "page-shell", restoreError);
+          });
+        }
+        // Runtime events are the transcript's only live projection of a Turn, so
+        // a degraded startup still subscribes. The fallback restore above
+        // re-reads durable state first, so this cannot resurrect a stale Turn.
+        await installRuntimeEventDelivery();
       }
     } finally {
       let embeddingResourceReady = !tauriAvailable;
@@ -2321,6 +2347,32 @@
       }
     }
   });
+
+  // Data-only restore for a startup snapshot that never arrived. It re-reads
+  // workspace and conversation state through the product API, so the shell
+  // stays usable while the Runtime event projection is the only missing layer.
+  async function restoreStartupFallback() {
+    launchContext = (await openAgent
+      .invokeProduct("get_workspace_launch_context", {})
+      .catch(() => null)) as typeof launchContext;
+    await loadSettings();
+    if (launchContext?.workspace) workspacePath = launchContext.workspace;
+    await loadWorkspace();
+    selectedRoleKey = storedRoleSelection(workspacePath);
+    await loadAvailableRoles();
+    const page = await fetchConversationPage(
+      workspacePath || null,
+      null,
+      30,
+      null,
+      true,
+      selectedRoleId,
+    );
+    conversations = page.conversations;
+    conversationNextCursor = page.nextCursor;
+    await restoreWorkspaceConversation(workspacePath);
+    void refreshRecentConversations();
+  }
 
   // ─── Global event listeners (set up once, route by conv_id) ──────────────────
 
