@@ -10,6 +10,10 @@ metadata:
 Keep streaming and durable turns as two representations of the same logical
 transcript. Avoid remounts and UI state loss during reconciliation.
 
+The delayed "awaiting stream output" status must remain mounted while a turn is
+waiting. Intermediate model/tool rounds may replace the stream message ID;
+those updates must not restart the delay or make the status flash.
+
 Read only the references that own the affected behavior:
 
 - Cross-host boundaries and bootstrap ordering: [product-host-contract.md](references/product-host-contract.md)
