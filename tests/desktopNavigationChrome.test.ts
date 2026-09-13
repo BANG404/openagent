@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const routeUrl = new URL("../src/routes/+page.svelte", import.meta.url);
 const componentsUrl = new URL("../src/lib/components/", import.meta.url);
+const fullscreenSurfaceUrl = new URL("FullscreenSurface.svelte", componentsUrl);
 const appCssUrl = new URL("../src/app.css", import.meta.url);
 
 describe("desktop navigation chrome", () => {
@@ -37,7 +38,7 @@ describe("desktop navigation chrome", () => {
     const route = await readFile(routeUrl, "utf8");
 
     expect(route.match(/<DesktopTitleBar\b/g)).toHaveLength(1);
-    expect(route.indexOf("<DesktopTitleBar")).toBeLessThan(route.indexOf("<Dialog.Root"));
+    expect(route.indexOf("<DesktopTitleBar")).toBeLessThan(route.indexOf("<FullscreenSurface"));
 
     for (const component of ["SettingsView.svelte"]) {
       const source = await readFile(new URL(component, componentsUrl), "utf8");
@@ -192,9 +193,11 @@ describe("desktop navigation chrome", () => {
     const onboarding = await readFile(new URL("OnboardingFlow.svelte", componentsUrl), "utf8");
 
     expect(settings).toMatch(/\.settings-panel\s*{[^}]*background: transparent;/s);
-    expect(route).toMatch(
-      /\.settings-dialog\)\s*{[^}]*background: var\(--floating-surface\);[^}]*backdrop-filter: blur\(24px\) saturate\(1\.5\);/s,
+    const fullscreenSurface = await readFile(fullscreenSurfaceUrl, "utf8");
+    expect(fullscreenSurface).toMatch(
+      /\.fullscreen-surface\)\s*{[^}]*background: var\(--surface\);/s,
     );
+    expect(fullscreenSurface).not.toContain("backdrop-filter");
     expect(onboarding).toContain('class="application-settings-surface step-content"');
     expect(onboarding).toMatch(/\.step-content\s*{[^}]*background: var\(--mica-surface\);/s);
 
@@ -245,17 +248,32 @@ describe("desktop navigation chrome", () => {
     expect(appCss).not.toContain("@mdxeditor/editor");
   });
 
-  test("routes settings domains to singleton utility windows", async () => {
+  test("renders every settings domain as an in-window fullscreen surface", async () => {
     const route = await readFile(routeUrl, "utf8");
     const menu = await readFile(new URL("ApplicationMenuBar.svelte", componentsUrl), "utf8");
     const settings = await readFile(new URL("SettingsView.svelte", componentsUrl), "utf8");
+    const fullscreenSurface = await readFile(fullscreenSurfaceUrl, "utf8");
     const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
 
-    expect(route).toContain("<SettingsWindowSurface");
+    // The application menu never constructs another application window.
+    expect(route).not.toContain("openSettingsWindow");
+    expect(route).not.toContain("openRoleEditorWindow");
+    expect(route).toContain("onOpenSettingsWindow={openManagementSurface}");
+    expect(route).toContain("<FullscreenSurface");
+    expect(route).toContain(
+      "title={settingsSurface ? $t(settingsWindowTitles[settingsSurface.kind])",
+    );
+    expect(route).toContain("sections={settingsSurfaceSections}");
+    expect(route).toContain("{#key settingsSurface.kind}");
     expect(route).toContain("<SettingsWindowSkeleton");
+    expect(route).toContain("roleEditorOpen = true");
+
+    // The host still owns the standalone utility-window WebView route.
+    expect(route).toContain("<SettingsWindowSurface");
     expect(route).toContain("kind={settingsWindowKind}");
-    expect(route).toContain("onOpenSettingsWindow={openManagementWindow}");
-    expect(route).toContain(': ["general"]');
+    expect(fullscreenSurface).toMatch(
+      /\.fullscreen-surface\)\s*{[^}]*position: fixed;[^}]*inset: 0;[^}]*z-index: 81;/s,
+    );
     expect(menu).toContain('onOpenSettingsWindow("models", "providers")');
     expect(menu).toContain('onOpenSettingsWindow("agent", "execution")');
     expect(menu).toContain('onOpenSettingsWindow("integrations", "channels")');
@@ -271,12 +289,12 @@ describe("desktop navigation chrome", () => {
   });
 
   test("keeps settings below notifications and nested configuration dialogs", async () => {
-    const route = await readFile(routeUrl, "utf8");
     const toast = await readFile(new URL("Toast.svelte", componentsUrl), "utf8");
     const dialogs = await readFile(new URL("WorkspaceDialogs.svelte", componentsUrl), "utf8");
+    const fullscreenSurface = await readFile(fullscreenSurfaceUrl, "utf8");
 
-    expect(route).toMatch(/\.settings-dialog-overlay\)\s*{[^}]*z-index: 80;/s);
-    expect(route).toMatch(/\.settings-dialog\)\s*{[^}]*z-index: 81;/s);
+    expect(fullscreenSurface).toMatch(/\.fullscreen-surface-backdrop\)\s*{[^}]*z-index: 80;/s);
+    expect(fullscreenSurface).toMatch(/\.fullscreen-surface\)\s*{[^}]*z-index: 81;/s);
     expect(dialogs).toMatch(/\.dialog-overlay\)\s*{[^}]*z-index: 100;/s);
     expect(dialogs).toMatch(/\.dialog\)\s*{[^}]*z-index: 101;/s);
     expect(toast).toMatch(/\.toast-stack\s*{[^}]*z-index: 900;/s);

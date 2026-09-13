@@ -4,6 +4,10 @@ import { readFile } from "node:fs/promises";
 
 const bookReaderUrl = new URL("../src/lib/components/AgentBookReader.svelte", import.meta.url);
 const mermaidUrl = new URL("../src/lib/streamdown/Mermaid.svelte", import.meta.url);
+const fullscreenSurfaceUrl = new URL(
+  "../src/lib/components/FullscreenSurface.svelte",
+  import.meta.url,
+);
 
 describe("fullscreen window drag regions", () => {
   test("keeps an explicit drag target above book content and outside its controls", async () => {
@@ -32,5 +36,24 @@ describe("fullscreen window drag regions", () => {
     expect(source).toContain('[data-streamdown-mermaid][data-expanded="true"]');
     expect(source).toMatch(/\.mermaid-window-edge-drag-region,\s*\.mermaid-window-drag-region/);
     expect(source).toMatch(/\.mermaid-window-edge-drag-region\s*{[^}]*height: 16px;/s);
+  });
+
+  test("keeps an in-window fullscreen surface draggable with its own window controls", async () => {
+    const source = await readFile(fullscreenSurfaceUrl, "utf8");
+
+    expect(source).toMatch(
+      /class="fullscreen-surface-chrome"\s+data-tauri-drag-region=\{platform === "macos" \? "true" : undefined\}/,
+    );
+    expect(source).toMatch(
+      /class="fullscreen-surface-drag-region"\s+data-tauri-drag-region=\{platform === "macos" \? "true" : undefined\}/,
+    );
+    expect(source).toMatch(
+      /\.fullscreen-surface\[data-window-platform="windows"\] \.fullscreen-surface-chrome\)\s*\{[^}]*-webkit-app-region: drag;/s,
+    );
+    expect(source).toMatch(
+      /\.fullscreen-surface\[data-window-platform="windows"\] \.fullscreen-surface-close\),[\s\S]*?-webkit-app-region: no-drag;/s,
+    );
+    expect(source).toMatch(/\.fullscreen-surface-mac-controls\)\s*\{[^}]*height: 27px;/s);
+    expect(source.match(/<WindowControls /g)).toHaveLength(2);
   });
 });

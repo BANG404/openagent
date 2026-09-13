@@ -11,11 +11,13 @@ import {
 const location = (
   surface: AppNavigationLocation["surface"],
   conversationId: string | null,
+  settingsDestination: string | null = null,
 ): AppNavigationLocation => ({
   workspacePath: "C:\\workspace",
   surface,
   conversationId,
   roleKey: "openagent",
+  settingsDestination,
 });
 
 describe("application navigation history", () => {
@@ -30,6 +32,26 @@ describe("application navigation history", () => {
 
     const forward = backward && moveNavigationHistory(backward.history, 1);
     expect(forward?.location).toEqual(location("chat", "two"));
+  });
+
+  test("records each in-window management surface as its own destination", () => {
+    let history = createNavigationHistory();
+    history = recordNavigationLocation(history, location("chat", "one"));
+    history = recordNavigationLocation(
+      history,
+      location("settings", "one", "models\u0000providers"),
+    );
+    history = recordNavigationLocation(
+      history,
+      location("settings", "one", "integrations\u0000channels"),
+    );
+    expect(history.entries).toHaveLength(3);
+
+    const backward = moveNavigationHistory(history, -1);
+    expect(backward?.location.settingsDestination).toBe("models\u0000providers");
+
+    const forward = backward && moveNavigationHistory(backward.history, 1);
+    expect(forward?.location.settingsDestination).toBe("integrations\u0000channels");
   });
 
   test("does not record the same destination twice", () => {

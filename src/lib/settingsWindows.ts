@@ -1,4 +1,4 @@
-import { invoke } from "$lib/openagent/tauriClient";
+import type { TranslationKeys } from "$lib/i18n";
 
 export type SettingsNav =
   | "general"
@@ -27,6 +27,16 @@ export const settingsWindowSections: Record<SettingsWindowKind, SettingsNav[]> =
   about: ["about"],
 };
 
+export const settingsWindowTitles: Record<SettingsWindowKind, TranslationKeys> = {
+  general: "settingsTitle",
+  models: "modelsWindowTitle",
+  agent: "agentWindowTitle",
+  integrations: "integrationsWindowTitle",
+  memory: "memoryManagement",
+  automation: "automationWindowTitle",
+  about: "aboutWindowTitle",
+};
+
 export function parseSettingsWindowKind(value: string | null): SettingsWindowKind | null {
   return value && value in settingsWindowSections ? (value as SettingsWindowKind) : null;
 }
@@ -39,6 +49,21 @@ export function settingsWindowSection(
   return sections.includes(requested as SettingsNav) ? (requested as SettingsNav) : sections[0];
 }
 
-export function openSettingsWindow(kind: SettingsWindowKind, section?: SettingsNav): Promise<void> {
-  return invoke("open_settings_window", { kind, section });
+/**
+ * Navigation history keeps an opaque destination key so back and forward
+ * restore the exact in-window management surface instead of a generic one.
+ */
+export function settingsSurfaceKey(
+  destination: { kind: SettingsWindowKind; section: SettingsNav } | null,
+): string | null {
+  return destination ? `${destination.kind}\u0000${destination.section}` : null;
+}
+
+export function parseSettingsDestination(value: string | null | undefined): {
+  kind: SettingsWindowKind;
+  section: SettingsNav;
+} {
+  const [kind, section] = (value ?? "").split("\u0000");
+  const resolvedKind = parseSettingsWindowKind(kind ?? null) ?? "general";
+  return { kind: resolvedKind, section: settingsWindowSection(resolvedKind, section) };
 }

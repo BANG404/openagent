@@ -26,7 +26,7 @@
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
   import { AgentCompletionNotifier } from "$lib/agentCompletionNotification";
   import { chatTaskUsagesByCheckpoint } from "$lib/cacheUsage";
-  import { Dialog, Tooltip as TooltipPrimitive } from "bits-ui";
+  import { Tooltip as TooltipPrimitive } from "bits-ui";
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme, createNativeThemeSynchronizer, type AppTheme } from "$lib/appTheme";
   import { ComposerPreferences } from "$lib/composerPreferences.svelte";
@@ -84,6 +84,7 @@
   import StandaloneDevPreview from "$lib/components/StandaloneDevPreview.svelte";
   import WorkspaceDialogs from "$lib/components/WorkspaceDialogs.svelte";
   import DesktopSidebar from "$lib/components/DesktopSidebar.svelte";
+  import FullscreenSurface from "$lib/components/FullscreenSurface.svelte";
   import RoleEditorDialog from "$lib/components/RoleEditorDialog.svelte";
   import DesktopTitleBar from "$lib/components/DesktopTitleBar.svelte";
   import ConversationSurface from "$lib/components/ConversationSurface.svelte";
@@ -161,12 +162,16 @@
     type AppNavigationLocation,
   } from "$lib/navigationHistory";
   import {
-    openSettingsWindow,
+    parseSettingsDestination,
     parseSettingsWindowKind,
+    settingsSurfaceKey,
+    settingsWindowSection,
+    settingsWindowSections,
+    settingsWindowTitles,
     type SettingsNav,
     type SettingsWindowKind,
   } from "$lib/settingsWindows";
-  import { openRoleEditorWindow, type AgentRolesChangedEvent } from "$lib/roleEditorWindow";
+  import type { AgentRolesChangedEvent } from "$lib/roleEditorWindow";
   import type {
     ChatMessage,
     Conversation,
@@ -204,6 +209,13 @@
   const isAgentsSettingsPreview = devQuery?.has("agents-settings-preview") === true;
   const isAutomationHooksPreview = devQuery?.has("automation-hooks-preview") === true;
   const isMcpSettingsPreview = devQuery?.has("mcp-settings-preview") === true;
+  const settingsPreviewSection: SettingsNav | null = isMcpSettingsPreview
+    ? "extensions"
+    : isAgentsSettingsPreview
+      ? "agents"
+      : isChannelsSettingsPreview
+        ? "channels"
+        : null;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isOnboardingWindow = runtimeQuery?.has("onboarding-window") === true;
   const isRoleEditorWindow = runtimeQuery?.has("role-editor-window") === true;
@@ -405,27 +417,24 @@
   let config = $state<AppConfig | null>(null);
   const settingsRequests = new LatestRequest();
   let isMemorySyncing = $state(false);
-  let settingsOpen = $state(false);
+  type SettingsSurfaceDestination = {
+    kind: SettingsWindowKind;
+    section: SettingsNav;
+    /** Development previews render every section instead of one domain. */
+    everySection: boolean;
+  };
+  let settingsSurface = $state<SettingsSurfaceDestination | null>(null);
+  const settingsOpen = $derived(settingsSurface !== null);
+  const settingsSurfaceSections = $derived(
+    settingsSurface === null || settingsSurface.everySection
+      ? undefined
+      : settingsWindowSections[settingsSurface.kind],
+  );
   let roleEditorOpen = $state(false);
   let roleEditorRole = $state<AgentRole | null>(null);
   let roleEditorSkills = $state<SkillMetadata[]>([]);
   let roleEditorResourcesLoading = $state(false);
   let roleEditorSaving = $state(false);
-  let settingsInitialNav = $state<
-    | "general"
-    | "channels"
-    | "providers"
-    | "defaults"
-    | "execution"
-    | "agents"
-    | "memory"
-    | "lifecycle"
-    | "schedules"
-    | "extensions"
-    | "plugins"
-    | "about"
-    | undefined
-  >(undefined);
   let navigationHistory = $state<AppNavigationHistory>(createNavigationHistory());
   let navigationTransitioning = $state(false);
   let navigationCaptureDepth = $state(0);
@@ -668,6 +677,7 @@
     surface: settingsOpen ? "settings" : "chat",
     conversationId: activeConvId,
     roleKey: selectedRoleKey,
+    settingsDestination: settingsSurfaceKey(settingsSurface),
   }));
   let canGoBack = $derived(
     !navigationTransitioning && navigationCaptureDepth === 0 && navigationHistory.index > 0,
@@ -1890,16 +1900,6 @@
   }
 
   async function openRoleEditor(role: AgentRole | null): Promise<void> {
-    if (tauriAvailable) {
-      await openRoleEditorWindow(role?.id).catch((error) => {
-        showToast({
-          title: $t("settingsSaveFailed"),
-          description: String(error),
-          variant: "error",
-        });
-      });
-      return;
-    }
     roleEditorRole = role;
     roleEditorOpen = true;
     roleEditorResourcesLoading = true;
@@ -2250,14 +2250,13 @@
       } else {
         await loadSettings();
         await loadWorkspace();
-        if (isChannelsSettingsPreview || isAgentsSettingsPreview || isMcpSettingsPreview) {
+        if (settingsPreviewSection) {
           SettingsView = (await import("$lib/components/SettingsView.svelte")).default;
-          settingsInitialNav = isMcpSettingsPreview
-            ? "extensions"
-            : isAgentsSettingsPreview
-              ? "agents"
-              : "channels";
-          settingsOpen = true;
+          settingsSurface = {
+            kind: settingsPreviewSection === "agents" ? "agent" : "integrations",
+            section: settingsPreviewSection,
+            everySection: true,
+          };
         }
         restoringSurface = "new-conversation";
         activeConvId = null;
@@ -3716,7 +3715,7 @@
   async function newConversation() {
     if (composerPreferences.modelOptions.length === 0) {
       showToast({ title: $t("modelSetupRequired"), variant: "error" });
-      void openManagementWindow("models", "providers");
+      void openManagementSurface("models", "providers");
       return;
     }
     const newConversationSurfaceVisible =
@@ -3903,7 +3902,7 @@
     }
     if (!model || !composerPreferences.modelOptions.some((option) => option.value === model)) {
       showToast({ title: $t("modelSetupRequired"), variant: "error" });
-      void openManagementWindow("models", "providers");
+      void openManagementSurface("models", "providers");
       return;
     }
 
@@ -4903,34 +4902,31 @@
 
   // ─── Settings ────────────────────────────────────────────────────────────────
 
-  async function openSettings(initialNav?: typeof settingsInitialNav) {
+  async function openManagementSurface(
+    kind: SettingsWindowKind,
+    section?: SettingsNav,
+  ): Promise<void> {
+    // Reveal the requested domain immediately so its layout-stable skeleton
+    // covers the whole window while the lazily imported surface loads.
+    settingsSurface = {
+      kind,
+      section: settingsWindowSection(kind, section),
+      everySection: false,
+    };
     // SettingsView autosaves its draft on unmount. Do not create it with the
     // empty fallback while the persisted configuration is still loading.
     if (!config) {
       await loadSettings();
-      if (!config) return;
+      if (!config) {
+        closeSettings();
+        return;
+      }
     }
     SettingsView ??= (await import("$lib/components/SettingsView.svelte")).default;
-    settingsInitialNav = initialNav;
-    settingsOpen = true;
-  }
-
-  async function openManagementWindow(
-    kind: SettingsWindowKind,
-    section?: SettingsNav,
-  ): Promise<void> {
-    if (!tauriAvailable) {
-      await openSettings(section);
-      return;
-    }
-    await openSettingsWindow(kind, section).catch((error) => {
-      showToast({ title: $t("settingsSaveFailed"), description: String(error), variant: "error" });
-    });
   }
 
   function closeSettings() {
-    settingsOpen = false;
-    settingsInitialNav = undefined;
+    settingsSurface = null;
     if (config) setLocale((config.language ?? "zh") as Locale);
   }
 
@@ -5015,9 +5011,11 @@
     }
 
     switch (location.surface) {
-      case "settings":
-        await openSettings();
+      case "settings": {
+        const destination = parseSettingsDestination(location.settingsDestination);
+        await openManagementSurface(destination.kind, destination.section);
         break;
+      }
       case "chat":
         break;
     }
@@ -5076,7 +5074,7 @@
       case "new":
         return () => newConversation();
       case "model":
-        return () => openManagementWindow("models", "defaults");
+        return () => openManagementSurface("models", "defaults");
       case "compact":
         return () => {
           void compactCurrentConversation();
@@ -5085,7 +5083,7 @@
       case "graph":
         return null;
       case "settings":
-        return () => openSettings();
+        return () => openManagementSurface("general", "general");
       default:
         return null;
     }
@@ -5096,9 +5094,9 @@
       case "new_conversation":
         return () => newConversation();
       case "open_model_settings":
-        return () => openManagementWindow("models", "defaults");
+        return () => openManagementSurface("models", "defaults");
       case "open_settings":
-        return () => openSettings();
+        return () => openManagementSurface("general", "general");
       default:
         return null;
     }
@@ -5166,7 +5164,7 @@
     cancelUserInput,
     clearQueuedMessages,
     commitEdit,
-    configureModels: () => openManagementWindow("models", "providers"),
+    configureModels: () => openManagementSurface("models", "providers"),
     finishStreamCompletionTailAnchor,
     handleMessagesScroll,
     markProgrammaticTailPin,
@@ -5392,11 +5390,11 @@
         onSelectWorkspace={requestWorkspace}
         onNewConversation={newConversation}
         onNewWindow={createNewWindow}
-        onOpenSettings={() => openManagementWindow("general", "general")}
-        onOpenSettingsWindow={openManagementWindow}
+        onOpenSettings={() => openManagementSurface("general", "general")}
+        onOpenSettingsWindow={openManagementSurface}
         onCreateRole={() => void openRoleEditor(null)}
         onConfigureRole={(role) => void openRoleEditor(role)}
-        onOpenAbout={() => openManagementWindow("about", "about")}
+        onOpenAbout={() => openManagementSurface("about", "about")}
         onQuit={quitApp}
         onToggleCheckpointFlowPanel={() => {
           if (!checkpointFlowPanelCollapsed) {
@@ -5438,45 +5436,40 @@
       </div>
     </div>
 
-    <Dialog.Root
+    <FullscreenSurface
       open={settingsOpen}
-      onOpenChange={(open) => {
-        if (open) settingsOpen = true;
-        else closeSettings();
-      }}
+      title={settingsSurface ? $t(settingsWindowTitles[settingsSurface.kind]) : ""}
+      onMinimize={winMinimize}
+      onMaximize={winMaximize}
+      onCloseWindow={winClose}
+      onClose={closeSettings}
     >
-      <Dialog.Portal>
-        <Dialog.Overlay class="settings-dialog-overlay" />
-        <Dialog.Content class="settings-dialog" aria-label={$t("settingsTitle")}>
-          <header class="settings-dialog-header">
-            <Dialog.Title class="settings-dialog-title">{$t("settingsTitle")}</Dialog.Title>
-            <Dialog.Close class="settings-dialog-close" aria-label={$t("close")}>
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="m4 4 8 8M12 4l-8 8" />
-              </svg>
-            </Dialog.Close>
-          </header>
-          <div class="settings-dialog-body">
-            {#if SettingsView}
-              <SettingsView
-                {config}
-                {workspacePath}
-                initialNav={settingsInitialNav}
-                sections={!tauriAvailable ||
-                isChannelsSettingsPreview ||
-                isAgentsSettingsPreview ||
-                isMcpSettingsPreview
-                  ? undefined
-                  : ["general"]}
-                onSave={saveSettings}
-                onOpenConversation={openHookConversation}
-                onThemePreview={applyTheme}
-              />
-            {/if}
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      {#if settingsSurface}
+        <!-- Every domain keeps its own SettingsView instance so abandoning one
+             domain autosaves its draft instead of leaking it into the next.
+             SettingsView must not mount before the persisted configuration
+             arrives: its unmount autosave would persist the empty fallback. -->
+        {#key settingsSurface.kind}
+          {#if SettingsView && config}
+            <SettingsView
+              {config}
+              {workspacePath}
+              initialNav={settingsSurface.section}
+              sections={settingsSurfaceSections}
+              onSave={saveSettings}
+              onOpenConversation={openHookConversation}
+              onThemePreview={applyTheme}
+            />
+          {:else}
+            <SettingsWindowSkeleton
+              kind={settingsSurface.kind}
+              initialSection={settingsSurface.section}
+              label={$t("loadingContent")}
+            />
+          {/if}
+        {/key}
+      {/if}
+    </FullscreenSurface>
 
     <RoleEditorDialog
       bind:open={roleEditorOpen}
@@ -5544,88 +5537,5 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-  }
-
-  :global(.settings-dialog-overlay) {
-    position: fixed;
-    inset: 0;
-    z-index: 80;
-    background: rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(5px);
-  }
-
-  :global(.settings-dialog) {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    z-index: 81;
-    width: min(1080px, calc(100vw - 48px));
-    height: min(760px, calc(100vh - 48px));
-    display: flex;
-    flex-direction: column;
-    transform: translate(-50%, -50%);
-    overflow: hidden;
-    border: 1px solid var(--mica-border);
-    border-radius: 8px;
-    background: var(--floating-surface);
-    box-shadow: var(--raised-shadow);
-    color: var(--text);
-    outline: none;
-    -webkit-backdrop-filter: blur(24px) saturate(1.5);
-    backdrop-filter: blur(24px) saturate(1.5);
-  }
-
-  :global(.settings-dialog-title) {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  .settings-dialog-header {
-    height: 40px;
-    flex: 0 0 40px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 10px 0 16px;
-    box-sizing: border-box;
-    border-bottom: 1px solid var(--mica-divider);
-  }
-
-  .settings-dialog-body {
-    min-height: 0;
-    flex: 1;
-    display: flex;
-  }
-
-  :global(.settings-dialog-close) {
-    width: 30px;
-    height: 30px;
-    display: grid;
-    place-items: center;
-    border: 0;
-    border-radius: 7px;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    outline: none;
-  }
-
-  :global(.settings-dialog-close:hover),
-  :global(.settings-dialog-close:focus-visible) {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-
-  :global(.settings-dialog-close:focus-visible) {
-    box-shadow: var(--focus-ring);
-  }
-
-  :global(.settings-dialog-close svg) {
-    width: 16px;
-    height: 16px;
-    stroke: currentColor;
-    stroke-width: 1.5;
-    stroke-linecap: round;
   }
 </style>

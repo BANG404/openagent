@@ -5,6 +5,8 @@ export interface AppNavigationLocation {
   surface: AppNavigationSurface;
   conversationId: string | null;
   roleKey: string;
+  /** Opaque management-surface destination; only meaningful for `settings`. */
+  settingsDestination?: string | null;
 }
 
 export interface AppNavigationHistory {
@@ -22,6 +24,7 @@ function navigationLocationKey(location: AppNavigationLocation): string {
     location.surface,
     location.conversationId ?? "",
     location.roleKey,
+    location.settingsDestination ?? "",
   ].join("\u0000");
 }
 

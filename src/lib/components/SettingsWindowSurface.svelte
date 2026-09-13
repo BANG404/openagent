@@ -10,10 +10,11 @@
   import {
     settingsWindowSection,
     settingsWindowSections,
+    settingsWindowTitles,
     type SettingsNav,
     type SettingsWindowKind,
   } from "$lib/settingsWindows";
-  import { setLocale, t, type Locale, type TranslationKeys } from "$lib/i18n";
+  import { setLocale, t, type Locale } from "$lib/i18n";
   import type { AppConfig, WorkspaceContext } from "$lib/types";
 
   let {
@@ -35,15 +36,6 @@
   let stageElement: HTMLElement;
   const appWindow = previewConfig ? null : getCurrentWindow();
   const settingsRequests = new LatestRequest();
-  const windowTitleKeys: Record<SettingsWindowKind, TranslationKeys> = {
-    general: "settingsTitle",
-    models: "modelsWindowTitle",
-    agent: "agentWindowTitle",
-    integrations: "integrationsWindowTitle",
-    memory: "memoryManagement",
-    automation: "automationWindowTitle",
-    about: "aboutWindowTitle",
-  };
   const synchronizeNativeTheme = appWindow
     ? createNativeThemeSynchronizer({
         applyWebTheme: applyDocumentTheme,
@@ -62,7 +54,7 @@
       applyDocumentTheme(normalized.theme ?? "system");
     } else {
       void synchronizeNativeTheme?.(normalized.theme ?? "system");
-      void appWindow?.setTitle($t(windowTitleKeys[kind]));
+      void appWindow?.setTitle($t(settingsWindowTitles[kind]));
     }
     return normalized;
   }
