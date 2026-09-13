@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.64.0-beta.1] - 2026-09-12
+## [0.64.0-beta.1] - 2026-09-13
 
 ### Features
 - **cua**: Generate scoped manifests from settings
@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - **cua**: Support serve daemon and socket MCP mode
 
 ### Bug Fixes
+- **native**: Satisfy clippy doc comment lint
 - **chat**: Share the OpenAI compatibility layer with built-in Responses providers
 - **chat**: Restore tool call arguments from OpenAI-compatible providers
 - **cua**: Start the reserved daemon from a staged copy
