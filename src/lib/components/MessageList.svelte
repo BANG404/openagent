@@ -228,14 +228,16 @@
   // output. Delay the generic waiting label so a short persistence or stream
   // connection interval cannot paint it for only one or two frames.
   $effect(() => {
-    activeConvId;
-    currentStreamMessageId;
     if (!isStreaming || !isAwaitingStreamOutput) {
       showAwaitingStreamOutput = false;
       return;
     }
 
-    showAwaitingStreamOutput = false;
+    // Keep the label (and its DOM node) stable while a request is waiting.
+    // Stream message IDs can change between model/tool rounds; restarting the
+    // delay for each ID made the status flash on and off throughout a turn.
+    if (showAwaitingStreamOutput) return;
+
     const timer = setTimeout(() => {
       showAwaitingStreamOutput = true;
     }, 250);
