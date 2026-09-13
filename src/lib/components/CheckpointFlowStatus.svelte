@@ -24,6 +24,7 @@
     activePanel?: RightSidebarPanel;
     terminalEnabled?: boolean;
     terminalAvailable?: boolean;
+    terminalScopeKey?: string;
     onTerminalSummaryChange?: (runningCount: number, sessionCount: number) => void;
     terminalPreviewSessions?: BackgroundTerminalSession[] | null;
     terminalPreviewOutputs?: Record<string, string>;
@@ -40,6 +41,7 @@
     activePanel = $bindable<RightSidebarPanel>("status"),
     terminalEnabled = false,
     terminalAvailable = false,
+    terminalScopeKey = "default",
     onTerminalSummaryChange = () => {},
     terminalPreviewSessions = null,
     terminalPreviewOutputs = {},
@@ -345,6 +347,7 @@
       <BackgroundTerminalPanel
         active={!collapsed && activePanel === "terminal"}
         enabled={terminalEnabled}
+        scopeKey={terminalScopeKey}
         onSummaryChange={onTerminalSummaryChange}
         previewSessions={terminalPreviewSessions}
         previewOutputs={terminalPreviewOutputs}

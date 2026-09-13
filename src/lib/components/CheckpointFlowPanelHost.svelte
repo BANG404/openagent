@@ -17,6 +17,7 @@
     activePanel = $bindable<RightSidebarPanel>("status"),
     terminalEnabled = false,
     terminalAvailable = false,
+    terminalScopeKey = "default",
     onTerminalSummaryChange = () => {},
   }: {
     flow: CheckpointFlow | null;
@@ -26,6 +27,7 @@
     activePanel?: RightSidebarPanel;
     terminalEnabled?: boolean;
     terminalAvailable?: boolean;
+    terminalScopeKey?: string;
     onTerminalSummaryChange?: (runningCount: number, sessionCount: number) => void;
   } = $props();
 
@@ -88,6 +90,7 @@
   bind:activePanel
   {terminalEnabled}
   {terminalAvailable}
+  {terminalScopeKey}
   {onTerminalSummaryChange}
   onResizeStart={startResize}
 />

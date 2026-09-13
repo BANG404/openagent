@@ -316,6 +316,7 @@
     bind:activePanel={rightSidebarPanel}
     terminalEnabled={view.tauriAvailable}
     terminalAvailable={terminalSessionCount > 0}
+    terminalScopeKey={`${view.activeConvId ?? "new"}:${view.activeBranchId ?? "root"}`}
     {onTerminalSummaryChange}
   />
 </div>

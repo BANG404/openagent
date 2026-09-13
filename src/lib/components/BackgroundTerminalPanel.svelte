@@ -9,12 +9,15 @@
   let {
     active = true,
     enabled = true,
+    scopeKey = "default",
     onSummaryChange = () => {},
     previewSessions = null,
     previewOutputs = {},
   }: {
     active?: boolean;
     enabled?: boolean;
+    /** Conversation + branch identity; panel state is retained per scope. */
+    scopeKey?: string;
     onSummaryChange?: (runningCount: number, sessionCount: number) => void;
     previewSessions?: BackgroundTerminalSession[] | null;
     previewOutputs?: Record<string, string>;
@@ -38,6 +41,42 @@
   const previewStatuses: Record<string, string> = {};
   let previewOutputBySession = $state(untrack(() => ({ ...previewOutputs })));
   const maxRenderedOutputChars = 512 * 1024;
+
+  type PanelSnapshot = {
+    sessions: BackgroundTerminalSession[];
+    selectedSessionId: string | null;
+    expandedSessionId: string | null;
+    output: string;
+    outputCursor: number;
+    outputTruncated: boolean;
+    previewOutputBySession: Record<string, string>;
+  };
+  const snapshots = new Map<string, PanelSnapshot>();
+  let currentScopeKey = $state<string | null>(null);
+
+  function saveSnapshot(key: string): void {
+    snapshots.set(key, {
+      sessions,
+      selectedSessionId,
+      expandedSessionId,
+      output,
+      outputCursor,
+      outputTruncated,
+      previewOutputBySession: { ...previewOutputBySession },
+    });
+  }
+
+  function restoreSnapshot(key: string): void {
+    const snapshot = snapshots.get(key);
+    if (!snapshot) return;
+    sessions = snapshot.sessions;
+    selectedSessionId = snapshot.selectedSessionId;
+    expandedSessionId = snapshot.expandedSessionId;
+    output = snapshot.output;
+    outputCursor = snapshot.outputCursor;
+    outputTruncated = snapshot.outputTruncated;
+    previewOutputBySession = { ...snapshot.previewOutputBySession };
+  }
 
   let selectedSession = $derived(
     sessions.find((session) => session.session_id === selectedSessionId) ?? null,
@@ -76,6 +115,7 @@
   async function refreshSessions(): Promise<BackgroundTerminalSession[]> {
     if (refreshing) return sessions;
     refreshing = true;
+    const requestScopeKey = scopeKey;
     try {
       const next = previewSessions
         ? previewSessions.map((session) => ({
@@ -83,6 +123,7 @@
             status: previewStatuses[session.session_id] ?? session.status,
           }))
         : await openAgent.listBackgroundTerminals();
+      if (requestScopeKey !== scopeKey) return sessions;
       sessions = next;
       error = null;
       onSummaryChange(next.filter((session) => session.status === "running").length, next.length);
@@ -208,6 +249,23 @@
     void poll();
     const interval = window.setInterval(() => void poll(), 1500);
     return () => window.clearInterval(interval);
+  });
+
+  $effect(() => {
+    if (scopeKey === currentScopeKey) return;
+    const previousScopeKey = currentScopeKey;
+    if (previousScopeKey !== null) saveSnapshot(previousScopeKey);
+    currentScopeKey = scopeKey;
+    restoreSnapshot(scopeKey);
+    selectedSessionId =
+      selectedSessionId && sessions.some((session) => session.session_id === selectedSessionId)
+        ? selectedSessionId
+        : null;
+    expandedSessionId =
+      expandedSessionId && sessions.some((session) => session.session_id === expandedSessionId)
+        ? expandedSessionId
+        : null;
+    if (previousScopeKey !== null) void poll();
   });
 
   $effect(() => {
