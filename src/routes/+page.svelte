@@ -98,6 +98,7 @@
     loadCheckpointFlowPanelCollapsed,
     saveCheckpointFlowPanelCollapsed,
   } from "$lib/checkpointFlowPanelSizing";
+  import { conversationBranchScopeKey, RightSidebarScopeStore } from "$lib/sidebarPanelScope";
   import { retainUndurableFileChanges } from "$lib/fileChangeReconciliation";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
@@ -389,9 +390,11 @@
   const pendingMermaidResults = new Map<string, Promise<string>>();
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
-  let checkpointFlowPanelCollapsed = $state(
-    typeof window === "undefined" ? true : loadCheckpointFlowPanelCollapsed(window.localStorage),
-  );
+  // The persisted preference is the default for a conversation branch the
+  // session has not visited yet; each visited scope then remembers its own.
+  const rightSidebarCollapsedDefault =
+    typeof window === "undefined" ? true : loadCheckpointFlowPanelCollapsed(window.localStorage);
+  let checkpointFlowPanelCollapsed = $state(rightSidebarCollapsedDefault);
   let rightSidebarPanel = $state<RightSidebarPanel>("status");
   let terminalSessionCount = $state(0);
   let checkpointFlowPanelSelectionKey = $state<string | null>(null);
@@ -805,15 +808,43 @@
       terminalSessionCount > 0,
   );
 
+  // Every right-sidebar view is scoped to the active conversation branch. The
+  // optimistic branch selection leads the durable branch tip (the same value
+  // used to send messages), so the sidebar follows it rather than the
+  // transcript's fetched tip, which lags behind a fork.
+  let rightSidebarConversationId = $derived(activeConvId);
+  let rightSidebarBranchId = $derived(
+    activeConvId ? (activeBranchIds[activeConvId] ?? null) : null,
+  );
+  let rightSidebarScopeKey = $derived(
+    conversationBranchScopeKey(rightSidebarConversationId, rightSidebarBranchId),
+  );
+  const rightSidebarScopes = new RightSidebarScopeStore();
+  let currentRightSidebarScopeKey = $state<string | null>(null);
+
   $effect(() => {
     if (!rightSidebarAvailable) checkpointFlowPanelCollapsed = true;
   });
 
   $effect(() => {
-    const key =
-      activeConvId && currentFileChanges.length > 0
-        ? `${activeConvId}:${activeBranchIds[activeConvId] ?? "root"}`
-        : null;
+    const scopeKey = rightSidebarScopeKey;
+    if (scopeKey === currentRightSidebarScopeKey) return;
+    const previousScopeKey = currentRightSidebarScopeKey;
+    currentRightSidebarScopeKey = scopeKey;
+    // The first scope keeps the persisted default instead of recording one.
+    if (previousScopeKey === null) return;
+    const restored = rightSidebarScopes.switchScope(
+      previousScopeKey,
+      { panel: rightSidebarPanel, collapsed: checkpointFlowPanelCollapsed },
+      scopeKey,
+      { panel: "status", collapsed: rightSidebarCollapsedDefault },
+    );
+    rightSidebarPanel = restored.panel;
+    checkpointFlowPanelCollapsed = restored.collapsed;
+  });
+
+  $effect(() => {
+    const key = activeConvId && currentFileChanges.length > 0 ? rightSidebarScopeKey : null;
     if (key === fileChangesPanelSelectionKey) return;
     fileChangesPanelSelectionKey = key;
     if (!currentCheckpointFlow && key) {
@@ -5347,6 +5378,8 @@
           {terminalSessionCount}
           onTerminalSummaryChange={(_runningCount, sessionCount) =>
             (terminalSessionCount = sessionCount)}
+          {rightSidebarConversationId}
+          {rightSidebarBranchId}
           composerDraft={activeComposerDraft}
           focusRequest={composerFocusRequest}
         />

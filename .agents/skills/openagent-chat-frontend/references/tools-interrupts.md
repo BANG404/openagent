@@ -106,9 +106,22 @@
   expanding a row reveals that session's live output and controls inline,
   collapsing it leaves the other session headings available. Keep one expanded
   session at a time and preserve polling/input/stop behavior while switching
-  or collapsing rows. Retain the selected session, expanded row, and output
-  cursor independently for each conversation branch so switching branches
-  cannot overwrite another branch's terminal panel record.
+  or collapsing rows. The Runtime attributes every session it starts to the
+  conversation and branch that owned the turn, and the panel shows only the
+  active conversation branch's own sessions. Retain the selected session,
+  expanded row, and output cursor independently for each conversation branch
+  so switching branches cannot overwrite another branch's terminal panel
+  record, and reset the panel to an empty scope instead of leaving the previous
+  scope's sessions on screen until the next poll. Apply the same per-branch
+  retention to every right-sidebar view: the selected tab and collapsed state
+  are part of the scope, not app-global state. A session whose owning branch is
+  unknown — a `/graph` background run, or any caller with no branch context —
+  stays visible in every branch of its conversation, because hiding a running
+  process would make it unreachable; only a session that positively belongs to
+  another conversation or another branch is hidden. This panel's buttons keep
+  their resting size on press instead of using the system-wide
+  `transform: scale(0.95)`, because scaling a control inside the accordion
+  reshuffles the row under the pointer.
 - During an active stream, the empty composer's primary action pauses output;
   once paused it resumes output, unless a draft or attachment is present, in
   which case it remains the send action. Sending a queued follow-up from the

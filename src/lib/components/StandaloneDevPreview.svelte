@@ -103,6 +103,10 @@
       last_used_at: 2,
     },
   ];
+  // The preview drives both scope controls so the fixtures stay visible
+  // while the branch-scoped terminal panel is exercised by hand.
+  const previewTerminalConvId = "background-terminals-preview";
+  const previewTerminalBranchId = "preview-branch";
   const backgroundTerminalPreviewSessions: BackgroundTerminalSession[] = [
     {
       session_id: "dev-server",
@@ -110,6 +114,8 @@
       cwd: "/workspace/openagent",
       started_at: Math.floor(Date.now() / 1000) - 248,
       status: "running",
+      conv_id: previewTerminalConvId,
+      branch_id: previewTerminalBranchId,
     },
     {
       session_id: "watch-tests",
@@ -117,6 +123,8 @@
       cwd: "/workspace/openagent",
       started_at: Math.floor(Date.now() / 1000) - 91,
       status: "running",
+      conv_id: previewTerminalConvId,
+      branch_id: previewTerminalBranchId,
     },
     {
       session_id: "typecheck",
@@ -124,6 +132,8 @@
       cwd: "/workspace/openagent",
       started_at: Math.floor(Date.now() / 1000) - 420,
       status: "exited:0",
+      conv_id: previewTerminalConvId,
+      branch_id: previewTerminalBranchId,
     },
   ];
   const backgroundTerminalPreviewOutputs = {
@@ -1227,6 +1237,8 @@
       bind:activePanel={backgroundTerminalActivePanel}
       terminalEnabled
       terminalAvailable
+      terminalConversationId={previewTerminalConvId}
+      terminalBranchId={previewTerminalBranchId}
       onTerminalSummaryChange={(count) => (backgroundTerminalRunningCount = count)}
       terminalPreviewSessions={backgroundTerminalPreviewSessions}
       terminalPreviewOutputs={backgroundTerminalPreviewOutputs}

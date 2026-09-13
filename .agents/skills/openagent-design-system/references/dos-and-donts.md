@@ -9,7 +9,7 @@
 - Reserve `{rounded.pill}` for the primary blue CTA and any other element that should read as an "action" (configurator chips, search input, sticky bar CTA).
 - On marketing surfaces, apply the single product-shadow (`rgba(0, 0, 0, 0.22) 3px 5px 30px`) only to product renders. In the desktop application, use only the shared control and raised shadow tokens for functional surface separation.
 - In the desktop application, remove perimeter borders from components that already have a distinct filled background. Preserve borders only when they communicate structure or state.
-- Use `transform: scale(0.95)` as the active/press state on ordinary action buttons. Keep select and dropdown triggers at their resting scale so opening a menu does not resize the control.
+- Use `transform: scale(0.95)` as the active/press state on ordinary action buttons. Keep select and dropdown triggers at their resting scale so opening a menu does not resize the control. The background-terminal panel is the one exception: its buttons sit inside an accordion, where scaling a control reshuffles the row under the pointer, so they signal press by deepening the hover fill and keep their resting size.
 - Keep the global nav `{colors.surface-black}` (true black) — it's the only place pure black appears on most pages.
 
 ### Don't

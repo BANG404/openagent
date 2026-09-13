@@ -536,4 +536,46 @@ describe("desktop navigation chrome", () => {
     expect(panel).not.toContain("graphScale");
     expect(panel).not.toContain("--graph-scale");
   });
+
+  test("scopes every right sidebar view to the active conversation branch", async () => {
+    const route = await readFile(routeUrl, "utf8");
+    const panel = await readFile(new URL("CheckpointFlowStatus.svelte", componentsUrl), "utf8");
+    const panelHost = await readFile(
+      new URL("CheckpointFlowPanelHost.svelte", componentsUrl),
+      "utf8",
+    );
+    const terminal = await readFile(
+      new URL("BackgroundTerminalPanel.svelte", componentsUrl),
+      "utf8",
+    );
+
+    // One canonical scope key drives the tab, the collapse state, and the
+    // file-changes auto-open, so no two sidebar views can disagree.
+    expect(route).toContain(
+      "conversationBranchScopeKey(rightSidebarConversationId, rightSidebarBranchId)",
+    );
+    expect(route).toContain("rightSidebarScopes.switchScope(");
+    expect(route).not.toContain('`${activeConvId}:${activeBranchIds[activeConvId] ?? "root"}`');
+    // The optimistic branch selection leads the transcript's fetched tip.
+    expect(route).toContain("activeBranchIds[activeConvId] ?? null");
+    expect(route).toContain("{rightSidebarConversationId}");
+    expect(route).toContain("{rightSidebarBranchId}");
+    expect(panelHost).toContain("{terminalConversationId}");
+    expect(panelHost).toContain("{terminalBranchId}");
+    expect(panel).toContain("conversationId={terminalConversationId}");
+    expect(panel).toContain("branchId={terminalBranchId}");
+    // The list is filtered before it reaches the panel's own state.
+    expect(terminal).toContain("terminalSessionInScope(session, conversationId, branchId)");
+    expect(terminal).toContain("const next = listed.filter(");
+    // An unseen scope starts from the mount seed instead of inheriting the
+    // scope that was on screen.
+    expect(terminal).toContain("if (snapshot) {");
+    expect(terminal).toContain("sessions = initialSessions;");
+    expect(terminal).toContain("previewOutputBySession = { ...initialPreviewOutputBySession };");
+    // The panel's buttons keep their resting size on press, and still signal
+    // the press by deepening the fill they already carry.
+    expect(terminal).not.toContain("scale(0.95)");
+    expect(terminal).toContain(".session-row:active:not(:disabled)");
+    expect(terminal).toContain(".confirm-kill:active:not(:disabled)");
+  });
 });

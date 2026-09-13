@@ -108,6 +108,8 @@
     rightSidebarPanel = $bindable<RightSidebarPanel>("status"),
     terminalSessionCount,
     onTerminalSummaryChange,
+    rightSidebarConversationId = view.activeConvId,
+    rightSidebarBranchId = view.activeBranchId,
     composerDraft,
     focusRequest,
   }: {
@@ -120,6 +122,9 @@
     rightSidebarPanel: RightSidebarPanel;
     terminalSessionCount: number;
     onTerminalSummaryChange: (runningCount: number, sessionCount: number) => void;
+    /** Scope for every right-sidebar view; defaults to the transcript's own view. */
+    rightSidebarConversationId?: string | null;
+    rightSidebarBranchId?: string | null;
     composerDraft: ComposerDraft;
     focusRequest: number;
   } = $props();
@@ -316,7 +321,8 @@
     bind:activePanel={rightSidebarPanel}
     terminalEnabled={view.tauriAvailable}
     terminalAvailable={terminalSessionCount > 0}
-    terminalScopeKey={`${view.activeConvId ?? "new"}:${view.activeBranchId ?? "root"}`}
+    terminalConversationId={rightSidebarConversationId}
+    terminalBranchId={rightSidebarBranchId}
     {onTerminalSummaryChange}
   />
 </div>

@@ -17,9 +17,12 @@
   sessions, reads their bounded buffered output without waiting, writes to a
   running session's stdin, and terminates a selected session only after explicit
   confirmation. Poll through the typed SDK client; do not inspect operating-
-  system processes or duplicate terminal state in Tauri. Keep terminals as a
+  system processes or duplicate terminal state in Tauri. Each session reports
+  its owning conversation and branch, and the panel keeps only the sessions of
+  the active conversation branch; a session whose owner is unknown stays
+  visible everywhere rather than becoming unreachable. Keep terminals as a
   tab in the shared right sidebar alongside status and file views. Show that
-  tab only while the Runtime reports at least one terminal session.
+  tab only while the Runtime reports at least one session in the active scope.
   The terminal view remains mounted while another tab is active so polling and
   the running-session count stay current without creating a second panel that
   can squeeze the transcript.

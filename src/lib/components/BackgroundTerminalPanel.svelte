@@ -3,27 +3,36 @@
   import { desktopOpenAgent as openAgent } from "$lib/openagent/tauriClient";
   import type { BackgroundTerminalSession } from "$lib/openagent";
   import { t } from "$lib/i18n";
+  import { conversationBranchScopeKey, terminalSessionInScope } from "$lib/sidebarPanelScope";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import Tooltip from "./Tooltip.svelte";
 
   let {
     active = true,
     enabled = true,
-    scopeKey = "default",
+    conversationId = null,
+    branchId = null,
     onSummaryChange = () => {},
     previewSessions = null,
     previewOutputs = {},
   }: {
     active?: boolean;
     enabled?: boolean;
-    /** Conversation + branch identity; panel state is retained per scope. */
-    scopeKey?: string;
+    /** Owning conversation; the panel lists only that conversation's sessions. */
+    conversationId?: string | null;
+    /** Owning branch; panel state is also retained separately per branch. */
+    branchId?: string | null;
     onSummaryChange?: (runningCount: number, sessionCount: number) => void;
     previewSessions?: BackgroundTerminalSession[] | null;
     previewOutputs?: Record<string, string>;
   } = $props();
 
+  const scopeKey = $derived(conversationBranchScopeKey(conversationId, branchId));
+
   let sessions = $state<BackgroundTerminalSession[]>(untrack(() => previewSessions ?? []));
+  // Mount-time seed for a scope that has no record yet. The values come from
+  // props, so a reset restores them instead of blanking the panel.
+  const initialSessions = untrack(() => previewSessions ?? []);
   let selectedSessionId = $state<string | null>(null);
   let expandedSessionId = $state<string | null>(null);
   let output = $state("");
@@ -40,6 +49,7 @@
   let outputElement = $state<HTMLElement | null>(null);
   const previewStatuses: Record<string, string> = {};
   let previewOutputBySession = $state(untrack(() => ({ ...previewOutputs })));
+  const initialPreviewOutputBySession = untrack(() => ({ ...previewOutputs }));
   const maxRenderedOutputChars = 512 * 1024;
 
   type PanelSnapshot = {
@@ -68,14 +78,29 @@
 
   function restoreSnapshot(key: string): void {
     const snapshot = snapshots.get(key);
-    if (!snapshot) return;
-    sessions = snapshot.sessions;
-    selectedSessionId = snapshot.selectedSessionId;
-    expandedSessionId = snapshot.expandedSessionId;
-    output = snapshot.output;
-    outputCursor = snapshot.outputCursor;
-    outputTruncated = snapshot.outputTruncated;
-    previewOutputBySession = { ...snapshot.previewOutputBySession };
+    if (snapshot) {
+      sessions = snapshot.sessions;
+      selectedSessionId = snapshot.selectedSessionId;
+      expandedSessionId = snapshot.expandedSessionId;
+      output = snapshot.output;
+      outputCursor = snapshot.outputCursor;
+      outputTruncated = snapshot.outputTruncated;
+      previewOutputBySession = { ...snapshot.previewOutputBySession };
+      return;
+    }
+    // An unseen scope starts from the mount-time seed rather than inheriting
+    // the scope that was on screen; the next poll fills it with this scope's
+    // own sessions.
+    sessions = initialSessions;
+    selectedSessionId = null;
+    expandedSessionId = null;
+    output = "";
+    outputCursor = 0;
+    outputTruncated = false;
+    previewOutputBySession = { ...initialPreviewOutputBySession };
+    error = null;
+    outputError = null;
+    confirmKillSessionId = null;
   }
 
   let selectedSession = $derived(
@@ -117,13 +142,18 @@
     refreshing = true;
     const requestScopeKey = scopeKey;
     try {
-      const next = previewSessions
+      const listed = previewSessions
         ? previewSessions.map((session) => ({
             ...session,
             status: previewStatuses[session.session_id] ?? session.status,
           }))
         : await openAgent.listBackgroundTerminals();
       if (requestScopeKey !== scopeKey) return sessions;
+      // The runtime lists every session in the app process; only the active
+      // conversation branch's own sessions belong in this panel.
+      const next = listed.filter((session) =>
+        terminalSessionInScope(session, conversationId, branchId),
+      );
       sessions = next;
       error = null;
       onSummaryChange(next.filter((session) => session.status === "running").length, next.length);
@@ -541,8 +571,25 @@
     box-shadow: var(--focus-ring);
   }
 
-  button:active:not(:disabled) {
-    transform: scale(0.95);
+  /* This panel's buttons keep their resting size on press: the session rows
+     are an accordion, and scaling a control reshuffled the row under the
+     pointer. Press still has to read as a press, so every button deepens the
+     fill it already carries — twice the shared hover opacity for the
+     transparent ones, a stronger tint of its own hue for the filled one. */
+  .session-row:active:not(:disabled),
+  .icon-button:active:not(:disabled),
+  .cancel-kill:active:not(:disabled),
+  .kill-button:active:not(:disabled),
+  .terminal-input button:active:not(:disabled) {
+    background: color-mix(
+      in srgb,
+      var(--text) calc(var(--interactive-state-opacity) * 2),
+      transparent
+    );
+  }
+
+  .confirm-kill:active:not(:disabled) {
+    background: color-mix(in srgb, var(--danger) 20%, transparent);
   }
 
   button:disabled {
