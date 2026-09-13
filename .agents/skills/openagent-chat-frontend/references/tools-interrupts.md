@@ -101,6 +101,12 @@
   view becomes empty. In compact windows, overlay the sidebar across the usable
   application body instead of shrinking the transcript and sidebar content.
   The right sidebar does not embed a general-purpose website browser.
+- Present background terminal sessions as an accordion: each session row is a
+  disclosure heading with its command, working directory, time, and status;
+  expanding a row reveals that session's live output and controls inline,
+  collapsing it leaves the other session headings available. Keep one expanded
+  session at a time and preserve polling/input/stop behavior while switching
+  or collapsing rows.
 - During an active stream, the empty composer's primary action pauses output;
   once paused it resumes output, unless a draft or attachment is present, in
   which case it remains the send action. Sending a queued follow-up from the

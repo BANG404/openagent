@@ -22,6 +22,7 @@
 
   let sessions = $state<BackgroundTerminalSession[]>(untrack(() => previewSessions ?? []));
   let selectedSessionId = $state<string | null>(null);
+  let expandedSessionId = $state<string | null>(null);
   let output = $state("");
   let outputCursor = $state(0);
   let outputTruncated = $state(false);
@@ -88,6 +89,7 @@
       if (!selectedSessionId || !next.some((session) => session.session_id === selectedSessionId)) {
         const preferred = next.find((session) => session.status === "running") ?? next[0] ?? null;
         await selectSession(preferred?.session_id ?? null);
+        expandedSessionId = preferred?.session_id ?? null;
       }
       return next;
     } catch (cause) {
@@ -139,6 +141,15 @@
     outputError = null;
     confirmKillSessionId = null;
     if (sessionId && active) await readOutput(sessionId);
+  }
+
+  async function toggleSession(sessionId: string): Promise<void> {
+    if (expandedSessionId === sessionId) {
+      expandedSessionId = null;
+      return;
+    }
+    await selectSession(sessionId);
+    expandedSessionId = sessionId;
   }
 
   async function poll(): Promise<void> {
@@ -253,115 +264,126 @@
       {:else}
         <div class="session-list" aria-label={$t("backgroundTerminalSessions")}>
           {#each sessions as session (session.session_id)}
-            <button
-              type="button"
-              class="session-row"
-              class:selected={session.session_id === selectedSessionId}
-              onclick={() => void selectSession(session.session_id)}
-            >
-              <span
-                class="status-dot"
-                class:running={session.status === "running"}
-                aria-hidden="true"
-              ></span>
-              <span class="session-copy">
-                <strong>{session.command}</strong>
-                <Tooltip text={session.cwd}>
-                  {#snippet trigger(props)}
-                    <small {...props}>{session.cwd}</small>
-                  {/snippet}
-                </Tooltip>
-              </span>
-              <span class="session-meta">
-                <small
-                  >{new Date(session.started_at * 1000).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}</small
-                >
-                <span class:running={session.status === "running"}
-                  >{statusLabel(session.status)}</span
-                >
-              </span>
-            </button>
-          {/each}
-        </div>
-
-        {#if selectedSession}
-          <section class="terminal-detail">
-            <header class="terminal-toolbar">
-              <Tooltip text={selectedSession.command}>
-                {#snippet trigger(props)}
-                  <span {...props}>{selectedSession.command}</span>
-                {/snippet}
-              </Tooltip>
-              {#if isRunning(selectedSession)}
-                {#if confirmKillSessionId === selectedSession.session_id}
-                  <button
-                    type="button"
-                    class="cancel-kill"
-                    onclick={() => (confirmKillSessionId = null)}>{$t("cancel")}</button
-                  >
-                  <button
-                    type="button"
-                    class="confirm-kill"
-                    onclick={() => void killSession(selectedSession!.session_id)}
-                    disabled={submitting}>{$t("backgroundTerminalConfirmStop")}</button
-                  >
-                {:else}
-                  <Tooltip text={$t("backgroundTerminalStop")}>
+            <article class="session-item" class:expanded={session.session_id === expandedSessionId}>
+              <button
+                type="button"
+                class="session-row"
+                class:selected={session.session_id === selectedSessionId}
+                aria-expanded={session.session_id === expandedSessionId}
+                onclick={() => void toggleSession(session.session_id)}
+              >
+                <span
+                  class="status-dot"
+                  class:running={session.status === "running"}
+                  aria-hidden="true"
+                ></span>
+                <span class="session-copy">
+                  <strong>{session.command}</strong>
+                  <Tooltip text={session.cwd}>
                     {#snippet trigger(props)}
-                      <button
-                        {...props}
-                        type="button"
-                        class="kill-button"
-                        onclick={() => void killSession(selectedSession!.session_id)}
-                      >
-                        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"
-                          ><rect x="6" y="6" width="8" height="8" rx="1" /></svg
-                        >
-                      </button>
+                      <small {...props}>{session.cwd}</small>
                     {/snippet}
                   </Tooltip>
-                {/if}
+                </span>
+                <span class="session-meta">
+                  <small
+                    >{new Date(session.started_at * 1000).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}</small
+                  >
+                  <span class:running={session.status === "running"}
+                    >{statusLabel(session.status)}</span
+                  >
+                </span>
+                <svg class="session-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="m7 8 3 3 3-3" />
+                </svg>
+              </button>
+
+              {#if expandedSessionId === session.session_id && selectedSession}
+                <section class="terminal-detail">
+                  <header class="terminal-toolbar">
+                    <Tooltip text={selectedSession.command}>
+                      {#snippet trigger(props)}
+                        <span {...props}>{selectedSession.command}</span>
+                      {/snippet}
+                    </Tooltip>
+                    {#if isRunning(selectedSession)}
+                      {#if confirmKillSessionId === selectedSession.session_id}
+                        <button
+                          type="button"
+                          class="cancel-kill"
+                          onclick={() => (confirmKillSessionId = null)}>{$t("cancel")}</button
+                        >
+                        <button
+                          type="button"
+                          class="confirm-kill"
+                          onclick={() => void killSession(selectedSession!.session_id)}
+                          disabled={submitting}>{$t("backgroundTerminalConfirmStop")}</button
+                        >
+                      {:else}
+                        <Tooltip text={$t("backgroundTerminalStop")}>
+                          {#snippet trigger(props)}
+                            <button
+                              {...props}
+                              type="button"
+                              class="kill-button"
+                              onclick={() => void killSession(selectedSession!.session_id)}
+                            >
+                              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"
+                                ><rect x="6" y="6" width="8" height="8" rx="1" /></svg
+                              >
+                            </button>
+                          {/snippet}
+                        </Tooltip>
+                      {/if}
+                    {/if}
+                  </header>
+                  {#if outputTruncated}<p class="truncated-notice">
+                      {$t("backgroundTerminalOutputTruncated")}
+                    </p>{/if}
+                  <div
+                    class="terminal-output"
+                    bind:this={outputElement}
+                    role="log"
+                    aria-live="polite"
+                  >
+                    {output || $t("backgroundTerminalWaitingOutput")}
+                  </div>
+                  {#if outputError}<p class="panel-error" role="alert">{outputError}</p>{/if}
+                  {#if isRunning(selectedSession)}
+                    <form
+                      class="terminal-input"
+                      onsubmit={(event) => {
+                        event.preventDefault();
+                        void submitInput();
+                      }}
+                    >
+                      <input
+                        bind:value={input}
+                        aria-label={$t("backgroundTerminalInput")}
+                        placeholder={$t("backgroundTerminalInputPlaceholder")}
+                        autocomplete="off"
+                        spellcheck="false"
+                        disabled={submitting}
+                      />
+                      <Tooltip text={$t("send")}>
+                        {#snippet trigger(props)}
+                          <button {...props} type="submit" disabled={!input || submitting}>
+                            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"
+                              ><path d="M4 10h11m-4-4 4 4-4 4" /></svg
+                            >
+                          </button>
+                        {/snippet}
+                      </Tooltip>
+                    </form>
+                  {/if}
+                </section>
               {/if}
-            </header>
-            {#if outputTruncated}<p class="truncated-notice">
-                {$t("backgroundTerminalOutputTruncated")}
-              </p>{/if}
-            <div class="terminal-output" bind:this={outputElement} role="log" aria-live="polite">
-              {output || $t("backgroundTerminalWaitingOutput")}
-            </div>
-            {#if outputError}<p class="panel-error" role="alert">{outputError}</p>{/if}
-            {#if isRunning(selectedSession)}
-              <form
-                class="terminal-input"
-                onsubmit={(event) => {
-                  event.preventDefault();
-                  void submitInput();
-                }}
-              >
-                <input
-                  bind:value={input}
-                  aria-label={$t("backgroundTerminalInput")}
-                  placeholder={$t("backgroundTerminalInputPlaceholder")}
-                  autocomplete="off"
-                  spellcheck="false"
-                  disabled={submitting}
-                />
-                <Tooltip text={$t("send")}>
-                  {#snippet trigger(props)}
-                    <button {...props} type="submit" disabled={!input || submitting}>
-                      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"
-                        ><path d="M4 10h11m-4-4 4 4-4 4" /></svg
-                      >
-                    </button>
-                  {/snippet}
-                </Tooltip>
-              </form>
-            {/if}
-          </section>
-        {/if}
+            </article>
+          {/each}
+        </div>
       {/if}
       {#if error}<p class="panel-error list-error" role="alert">{error}</p>{/if}
     {/if}
@@ -511,10 +533,21 @@
   }
 
   .session-list {
-    max-height: 36%;
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
     overflow-y: auto;
-    padding: 6px;
+    scrollbar-gutter: stable;
+  }
+
+  .session-item {
+    flex: 0 0 auto;
     border-bottom: 1px solid var(--border);
+  }
+
+  .session-item.expanded {
+    background: color-mix(in srgb, var(--component-neutral-bg) 45%, transparent);
   }
 
   .session-row {
@@ -533,14 +566,26 @@
     cursor: pointer;
   }
 
-  .session-row + .session-row {
-    margin-top: 2px;
+  .session-item:first-child .session-row {
+    padding-top: 10px;
   }
 
   .session-row:hover,
   .session-row:focus-visible,
   .session-row.selected {
     background: var(--interactive-state-bg);
+  }
+
+  .session-chevron {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    color: var(--text-muted);
+    transition: transform 150ms ease;
+  }
+
+  .session-item.expanded .session-chevron {
+    transform: rotate(180deg);
   }
 
   .status-dot {
@@ -603,8 +648,20 @@
   .terminal-detail {
     display: flex;
     min-height: 0;
-    flex: 1;
+    max-height: min(440px, 58vh);
     flex-direction: column;
+    animation: terminal-detail-in 150ms ease-out;
+  }
+
+  @keyframes terminal-detail-in {
+    from {
+      opacity: 0;
+      transform: translateY(-3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .terminal-toolbar {
@@ -650,7 +707,9 @@
 
   .terminal-output {
     min-height: 0;
-    flex: 1;
+    min-height: 150px;
+    max-height: 280px;
+    flex: 1 1 auto;
     margin: 0;
     padding: 12px;
     overflow: auto;
@@ -713,5 +772,13 @@
   .terminal-input button {
     background: var(--primary);
     color: white;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .session-chevron,
+    .terminal-detail {
+      animation: none;
+      transition: none;
+    }
   }
 </style>
