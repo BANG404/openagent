@@ -41,53 +41,76 @@ function pilot(args, windowLabel) {
   return result.stdout;
 }
 
-/** @param {string} scenario @param {string} windowLabel */
-function runScenario(scenario, windowLabel) {
+/**
+ * Every management surface now renders inside the requesting window, so the
+ * whole suite drives the single main window instead of separate utility
+ * windows.
+ */
+const windowLabel = "main";
+
+/** @param {string} scenario */
+function runScenario(scenario) {
   pilot(["run", join(scenarioRoot, scenario), "--window", windowLabel], windowLabel);
 }
 
-/** @param {string} script @param {string} windowLabel */
-function evaluate(script, windowLabel) {
+/** @param {string} script */
+function evaluate(script) {
   return pilot(["eval", script, "--window", windowLabel], windowLabel);
 }
 
-function waitForElement(selector, windowLabel) {
+function waitForElement(selector) {
   pilot(
     ["wait", "--selector", selector, "--timeout", "10000", "--window", windowLabel],
     windowLabel,
   );
 }
 
-function waitForWindowReload(windowLabel) {
+function waitForWindowReload() {
   const deadline = Date.now() + 10000;
   while (Date.now() < deadline) {
     if (
-      evaluate(
-        'typeof window.__openagentBlackboxReloadPending === "undefined"',
-        windowLabel,
-      ).trim() === "true"
+      evaluate('typeof window.__openagentBlackboxReloadPending === "undefined"').trim() === "true"
     ) {
       return;
     }
     spawnSync("sleep", ["0.1"]);
   }
-  throw new Error(`settings window did not reload within the timeout for ${windowLabel}`);
+  throw new Error(`main window did not reload within the timeout for ${windowLabel}`);
+}
+
+/**
+ * @param {string} key
+ * @param {string} code
+ * @param {{ ctrlKey?: boolean, shiftKey?: boolean }} modifiers
+ */
+function dispatchShortcut(key, code, modifiers = {}) {
+  const flags = Object.entries(modifiers)
+    .map(([flag, enabled]) => `${flag}: ${enabled ? "true" : "false"}`)
+    .join(", ");
+  evaluate(
+    `(() => { window.dispatchEvent(new KeyboardEvent("keydown", {key: ${JSON.stringify(
+      key,
+    )}, code: ${JSON.stringify(code)}, ${flags}, bubbles: true})); return true; })()`,
+  );
+}
+
+function openGeneralSurface() {
+  dispatchShortcut(",", "Comma", { ctrlKey: true });
+  waitForElement('[role=tabpanel][data-value="general"] .settings-card-row:nth-child(1) button');
+}
+
+function openAutomationSurface() {
+  dispatchShortcut("7", "Digit7", { ctrlKey: true, shiftKey: true });
+  waitForElement("[role=tab][data-value=lifecycle]");
 }
 
 function chooseGeneralOption(selector, value) {
-  pilot(["click", selector, "--window", "settings-general"], "settings-general");
-  pilot(
-    ["click", `[role=option][data-value=${value}]`, "--window", "settings-general"],
-    "settings-general",
-  );
+  pilot(["click", selector, "--window", windowLabel], windowLabel);
+  pilot(["click", `[role=option][data-value=${value}]`, "--window", windowLabel], windowLabel);
 }
 
 function setVisualState(theme, language) {
-  waitForElement(
-    '[role=tabpanel][data-value="general"] .settings-card-row:nth-child(1) button',
-    "settings-general",
-  );
-  waitForElement("[role=tab][data-value=lifecycle]", "settings-automation");
+  openGeneralSurface();
   chooseGeneralOption(
     '[role=tabpanel][data-value="general"] .settings-card-row:nth-child(1) button',
     theme,
@@ -96,6 +119,7 @@ function setVisualState(theme, language) {
     '[role=tabpanel][data-value="general"] .settings-card-row:nth-child(2) button',
     language,
   );
+  openAutomationSurface();
   const expected = language === "en" ? "Lifecycle automation" : "生命周期自动化";
   evaluate(
     `new Promise((resolve, reject) => {
@@ -112,25 +136,18 @@ function setVisualState(theme, language) {
       };
       check();
     })`,
-    "settings-automation",
   );
 }
 
 function cleanupPanel(dataValue) {
-  pilot(
-    ["click", `[role=tab][data-value=${dataValue}]`, "--window", "settings-automation"],
-    "settings-automation",
-  );
+  pilot(["click", `[role=tab][data-value=${dataValue}]`, "--window", windowLabel], windowLabel);
   const actionSelector = `[role=tabpanel][data-value=${dataValue}] .hook-actions button:nth-of-type(2)`;
   for (;;) {
     const count = Number(
-      evaluate(
-        `document.querySelectorAll(${JSON.stringify(actionSelector)}).length`,
-        "settings-automation",
-      ).trim(),
+      evaluate(`document.querySelectorAll(${JSON.stringify(actionSelector)}).length`).trim(),
     );
     if (!Number.isFinite(count) || count === 0) break;
-    pilot(["click", actionSelector, "--window", "settings-automation"], "settings-automation");
+    pilot(["click", actionSelector, "--window", windowLabel], windowLabel);
     evaluate(
       `new Promise((resolve, reject) => {
         const deadline = Date.now() + 10000;
@@ -145,7 +162,6 @@ function cleanupPanel(dataValue) {
         };
         check();
       })`,
-      "settings-automation",
     );
   }
 }
@@ -164,67 +180,66 @@ function captureVisualState(theme, language) {
       if (!text.includes(expected)) throw new Error("expected locale text is missing: " + expected);
       return true;
     })()`,
-    "settings-automation",
   );
-  runScenario("automation-visual.toml", "settings-automation");
+  runScenario("automation-visual.toml");
   const artifact = join(artifactRoot, `automation-${theme}-${language}.png`);
-  pilot(["screenshot", artifact, "--window", "settings-automation"], "settings-automation");
+  pilot(["screenshot", artifact, "--window", windowLabel], windowLabel);
   process.stderr.write(`black-box screenshot: ${artifact}\n`);
 }
 
+/**
+ * The automation surface keeps its requested section as an initial selection,
+ * so read the visible panels back from the in-window fullscreen surface only.
+ *
+ * @param {string} section
+ * @param {string} reason
+ */
+function expectActiveSection(section, reason) {
+  const active = evaluate(
+    '(() => { const panels = [...document.querySelectorAll(".fullscreen-surface [role=tabpanel]")].filter((panel) => !panel.hasAttribute("hidden")); return panels.map((panel) => panel.getAttribute("data-value")).filter(Boolean).join(","); })()',
+  )
+    .trim()
+    .split(",")
+    .filter(Boolean);
+  if (!active.includes(section)) {
+    throw new Error(`${reason} (active sections: ${active.join(", ") || "none"})`);
+  }
+}
+
 pilot(["ping"], undefined);
-evaluate(
-  '(() => { window.dispatchEvent(new KeyboardEvent("keydown", {key: ",", code: "Comma", ctrlKey: true, bubbles: true})); return true; })()',
-  "main",
-);
-evaluate(
-  '(() => { window.dispatchEvent(new KeyboardEvent("keydown", {key: "7", code: "Digit7", ctrlKey: true, shiftKey: true, bubbles: true})); return true; })()',
-  "main",
-);
+openAutomationSurface();
 setVisualState("system", "zh");
 cleanupPanel("lifecycle");
 cleanupPanel("schedules");
-runScenario("automation-topbar.toml", "main");
-evaluate(
-  '(() => { const active = [...document.querySelectorAll("[role=tabpanel]")].filter((panel) => !panel.hasAttribute("hidden")).map((panel) => panel.getAttribute("data-value")); if (!active.includes("schedules")) throw new Error("schedule menu entry did not select schedules"); return active; })()',
-  "settings-automation",
-);
-evaluate(
-  '(() => { window.dispatchEvent(new KeyboardEvent("keydown", {key: "7", code: "Digit7", ctrlKey: true, shiftKey: true, bubbles: true})); return true; })()',
-  "main",
-);
-evaluate(
-  '(() => { const active = [...document.querySelectorAll("[role=tabpanel]")].filter((panel) => !panel.hasAttribute("hidden")).map((panel) => panel.getAttribute("data-value")); if (!active.includes("lifecycle")) throw new Error("Ctrl+Shift+7 did not select lifecycle"); return active; })()',
-  "settings-automation",
-);
-evaluate(
-  '(() => { window.dispatchEvent(new KeyboardEvent("keydown", {key: "8", code: "Digit8", ctrlKey: true, shiftKey: true, bubbles: true})); return true; })()',
-  "main",
-);
-evaluate(
-  '(() => { const active = [...document.querySelectorAll("[role=tabpanel]")].filter((panel) => !panel.hasAttribute("hidden")).map((panel) => panel.getAttribute("data-value")); if (!active.includes("schedules")) throw new Error("Ctrl+Shift+8 did not select schedules"); return active; })()',
-  "settings-automation",
-);
-runScenario("automation-lifecycle.toml", "settings-automation");
-runScenario("automation-persistence.toml", "settings-automation");
+runScenario("automation-topbar.toml");
+expectActiveSection("schedules", "schedule menu entry did not select schedules");
+dispatchShortcut("7", "Digit7", { ctrlKey: true, shiftKey: true });
+expectActiveSection("lifecycle", "Ctrl+Shift+7 did not select lifecycle");
+dispatchShortcut("8", "Digit8", { ctrlKey: true, shiftKey: true });
+expectActiveSection("schedules", "Ctrl+Shift+8 did not select schedules");
+runScenario("automation-lifecycle.toml");
+runScenario("automation-persistence.toml");
+// Reload the whole window so the saved hook must come back from durable
+// configuration instead of from the mounted surface's in-memory draft.
 evaluate(
   "window.__openagentBlackboxReloadPending = true; setTimeout(() => location.reload(), 100); true",
-  "settings-automation",
 );
-waitForWindowReload("settings-automation");
-waitForElement("[role=tabpanel][data-value=lifecycle] .hook-item", "settings-automation");
+waitForWindowReload();
+waitForElement("#application-automation-menu");
+openAutomationSurface();
+waitForElement("[role=tabpanel][data-value=lifecycle] .hook-item");
 evaluate(
-  '(() => { const text = document.querySelector("[role=tabpanel][data-value=lifecycle]")?.textContent ?? ""; if (!text.includes("Blackbox Persistence Hook") || !text.includes("echo blackbox persistence")) throw new Error("saved lifecycle hook did not survive settings reload"); return true; })()',
-  "settings-automation",
+  '(() => { const text = document.querySelector("[role=tabpanel][data-value=lifecycle]")?.textContent ?? ""; if (!text.includes("Blackbox Persistence Hook") || !text.includes("echo blackbox persistence")) throw new Error("saved lifecycle hook did not survive the window reload"); return true; })()',
 );
 cleanupPanel("lifecycle");
-runScenario("automation-schedules.toml", "settings-automation");
+runScenario("automation-schedules.toml");
 
 try {
   captureVisualState("light", "en");
   captureVisualState("dark", "en");
   captureVisualState("system", "zh");
 } finally {
+  openGeneralSurface();
   chooseGeneralOption(
     '[role=tabpanel][data-value="general"] .settings-card-row:nth-child(2) button',
     "zh",
