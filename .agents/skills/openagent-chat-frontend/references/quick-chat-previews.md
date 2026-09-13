@@ -7,28 +7,34 @@
   query-specific theme/locale initialization so preview-only state never joins
   the durable conversation runtime.
 - Open General Settings and every management domain from the application menu
-  in independently focusable singleton utility windows. Reopening a domain
-  focuses its existing window and may select a requested section. Keep only
-  ordinary appearance, launcher, startup, diagnostics, and presentation
-  preferences in General Settings. Load the settings-window surface lazily and
-  retain a layout-stable skeleton until it is ready so the main chat route does
-  not absorb the Settings bundle. The route-level lazy-import fallback and the
-  settings surface's configuration-loading state must use the same requested
-  domain and section silhouette; never flash the generic new-conversation
-  skeleton before a Settings window mounts. Each window loads and saves through
-  the shared settings contract without replacing or unmounting the chat shell.
-  The Automation utility window exposes the `lifecycle` and `schedules` sections;
-  its top-bar entries must preserve those requested sections when the window is
-  first created or focused again.
-- The saved-role editor is a modeless singleton utility window opened from the
-  Role application menu. Reopening it targets the requested saved role or a new
-  role draft and focuses the existing window. It edits the role system prompt
-  and optional skill/MCP associations; after a save or deletion, every workspace
-  window refreshes its role list while only the requesting window adopts a newly
-  created role or falls back from a deleted active role. Browser-only desktop
-  previews may retain the centered dialog presentation for direct UI verification;
-  empty associations preserve the full resource set, while non-empty
-  associations narrow the resources exposed to that role.
+  as an in-window fullscreen surface in the requesting window; menu entries and
+  their shortcuts never construct another application window. Reopening a domain
+  replaces the mounted surface and selects the requested section, and each domain
+  owns its own settings instance so abandoning one autosaves its draft instead of
+  leaking it into the next. Keep only ordinary appearance, launcher, startup,
+  diagnostics, and presentation preferences in General Settings. Load the settings
+  surface lazily and retain the requested domain's layout-stable skeleton until
+  both the surface bundle and the persisted configuration are ready, so the main
+  chat route does not absorb the Settings bundle and never flashes the generic
+  new-conversation skeleton. Never mount the settings view with the empty
+  fallback configuration: its unmount autosave would persist that fallback. The
+  surface saves through the shared settings contract without replacing or
+  unmounting the chat shell, and window history records the requested domain and
+  section so back and forward restore the same surface. The Automation domain
+  exposes the `lifecycle` and `schedules` sections; its top-bar entries must
+  preserve those requested sections when the surface reopens. The host still owns
+  the standalone `?settings-window=` utility WebView and its section-request
+  event for windows the native side constructs itself.
+- The saved-role editor opens from the Role application menu as an in-window
+  dialog in the requesting window instead of a separate utility window.
+  Reopening it targets the requested saved role or a new role draft. It edits the
+  role system prompt and optional skill/MCP associations; after a save or
+  deletion the window refreshes its role list, adopts a newly created role, or
+  falls back from a deleted active role. Empty associations preserve the full
+  resource set, while non-empty associations narrow the resources exposed to that
+  role. The host still owns the standalone `?role-editor-window=` WebView, and the
+  `agent-roles-changed` broadcast keeps every other window's role list current
+  when such an editor saves or deletes a role.
 - The Raycast-style quick chat is a dedicated, workspace-neutral Tauri window,
   not a presentation mode of `main` and not a second chat client. It owns no
   transcript. The primary process owns its shortcut and launcher lifecycle,

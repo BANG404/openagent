@@ -24,9 +24,11 @@ directories.
 ## Automation top-bar black-box coverage
 
 The committed `tests/blackbox/automation-*.toml` scenarios drive the real
-Automation utility window through `tauri-pilot`. Run them through the repository
-wrapper so the lifecycle Hook editor, all six scheduled-hook modes, menu entries,
-shortcuts, cleanup actions, and locale/theme states are covered together:
+Automation surface inside the main window through `tauri-pilot`; the wrapper
+opens it with the same top-bar shortcuts the product uses and never constructs a
+utility window. Run them through the repository wrapper so the lifecycle Hook
+editor, all six scheduled-hook modes, menu entries, shortcuts, cleanup actions,
+and locale/theme states are covered together:
 
 ```bash
 OPENAGENT_HOME=/tmp/openagent-blackbox-fixture \
@@ -39,8 +41,8 @@ resulting screenshots in a temporary directory via `BLACKBOX_ARTIFACT_DIR`.
 The wrapper refuses the installed `~/.openagent` data directory and restores
 the general theme and language after visual checks.
 
-The automation settings window treats its requested section as an initial
-selection, not a permanent controlled value. User tab changes must survive
-asynchronous role or hook refreshes and settings-window reloads; the black-box
-suite covers this through persistence reload followed by scheduled-hook
-creation.
+The Automation surface treats its requested section as an initial selection,
+not a permanent controlled value. User tab changes must survive asynchronous
+role or hook refreshes; the black-box suite covers durable persistence by
+reloading the whole main window, reopening Automation, and only then asserting
+that the saved hook returned and creating a scheduled hook.

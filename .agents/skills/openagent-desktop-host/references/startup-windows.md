@@ -61,19 +61,23 @@
   setup owns the runtime host. Let the frontend's layout-stable loading
   state remain visible while startup bootstrap restores durable
   conversation data.
-- Create Settings management windows on demand with fixed domain labels,
-  including General Settings.
-  Each domain is a modeless singleton: repeated application-menu
-  requests select the requested section, restore the existing window,
-  and focus it instead of constructing another WebView. Window
-  construction remains a native host responsibility; each Settings
-  WebView reloads and saves configuration through the shared SDK
-  contract. Dispatch on-demand WebView construction through an async Tauri
-  command so Windows WebView2 initialization cannot block its own UI thread.
-- The Integrations window owns the Channels, Extensions, and Plugins sections.
-  Keep all three section names in the host's domain allowlist so application
-  menu requests open the selected section instead of silently falling back to
-  Channels.
+- Render Settings management domains and the saved-role editor inside the
+  requesting window. Application-menu activation and its shortcuts must not
+  construct another WebView; the frontend owns that fullscreen surface, its
+  domain sections, and the window chrome it paints while covering the shared
+  title bar.
+- Keep on-demand utility-window construction a native host responsibility for
+  the standalone `?settings-window=` and `?role-editor-window=` WebViews the host
+  creates itself, with fixed domain labels including General Settings. Each
+  domain is a modeless singleton: repeated requests select the requested
+  section, restore the existing window, and focus it instead of constructing
+  another WebView. Each Settings WebView reloads and saves configuration through
+  the shared SDK contract. Dispatch on-demand WebView construction through an
+  async Tauri command so Windows WebView2 initialization cannot block its own UI
+  thread.
+- The Integrations domain owns the Channels, Extensions, and Plugins sections.
+  Keep all three section names in the host's domain allowlist so a request
+  selects the requested section instead of silently falling back to Channels.
 - Give each Settings domain a compact, fixed initial geometry appropriate to
   its content. Keep excess content scrolling inside the settings pane; do not
   resize or recenter the native window after the WebView renders, including
@@ -85,9 +89,9 @@
   placement and persisted geometry; reveal them only after both operations
   complete so opening from the application menu does not visibly move the
   window twice.
-- Create the role editor on demand as one modeless singleton utility window.
-  Repeated create or edit requests retarget, restore, and focus the existing
-  WebView. The editor owns role/resource loading and writes through the shared
+- When the host does construct the role editor, create it on demand as one
+  modeless singleton utility window. Repeated create or edit requests retarget,
+  restore, and focus the existing WebView. The editor owns role/resource loading and writes through the shared
   SDK contract, then broadcasts a role-list refresh while identifying the
   requesting workspace window for selection changes. Position the editor
   relative to that requesting workspace window on creation and restoration.
