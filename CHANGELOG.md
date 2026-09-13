@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.65.0-beta.1] - 2026-09-13
+
+### Features
+- Present background terminals as accordion
+- **chat**: Collapse a thinking record once a later record follows it
+
+### Bug Fixes
+- **chat**: Retain terminal panel state per branch
+- **chat**: Stabilize awaiting output indicator
+- **chat**: Keep a terminal working directory out of the file path surface
+
 ## [0.64.0-beta.1] - 2026-09-13
 
 ### Features
