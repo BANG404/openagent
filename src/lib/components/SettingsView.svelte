@@ -25,6 +25,7 @@
   } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
+  import { frontendBuildLabel } from "$lib/frontendBuild";
   import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
   import {
     CUA_DRIVER_COMMAND,
@@ -71,7 +72,6 @@
   type ComponentVersions = {
     release: string;
     shell: string;
-    frontend: string;
     runtime: string | null;
   };
   type ProviderStatus = {
@@ -180,7 +180,6 @@
   let componentVersions = $state<ComponentVersions>({
     release: "...",
     shell: "...",
-    frontend: "...",
     runtime: null,
   });
 
@@ -4123,7 +4122,7 @@
             {$t("aboutVersionShell")}
             {componentVersions.shell} ·
             {$t("aboutVersionFrontend")}
-            {componentVersions.frontend} ·
+            {frontendBuildLabel || $t("aboutVersionUnknown")} ·
             {$t("aboutVersionRuntime")}
             {componentVersions.runtime ?? $t("aboutVersionUnknown")}
           </p>

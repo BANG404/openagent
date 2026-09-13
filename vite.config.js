@@ -4,6 +4,10 @@ import tailwindcss from "@tailwindcss/vite";
 import { readFile } from "node:fs/promises";
 
 import {
+  FRONTEND_BUILD_DEFINE,
+  frontendBuildIdentity,
+} from "./scripts/frontend-build-identity.mjs";
+import {
   runtimeServerPendingStampPath,
   writeRuntimeServerReloadStamp,
 } from "./scripts/runtime-server-dev-signals.mjs";
@@ -61,6 +65,12 @@ function tauriRuntimeUpdateBarrier() {
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [tailwindcss(), sveltekit(), ...(devPort !== 0 ? [tauriRuntimeUpdateBarrier()] : [])],
+
+  // Stamp the bundle with the frontend's own build identity so About reports
+  // the frontend that is running rather than the shell version it shipped with.
+  define: {
+    [FRONTEND_BUILD_DEFINE]: JSON.stringify(frontendBuildIdentity().label),
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

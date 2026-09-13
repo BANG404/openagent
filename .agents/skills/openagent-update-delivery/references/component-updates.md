@@ -35,9 +35,13 @@ completion notice. Other workspace and utility WebViews still confirm the
 active resource but must not display another completion notice.
 
 Update notifications present each selected component as its own current-to-
-candidate version transition. The About surface labels the packaged application
-version as the desktop-shell version; it is not a composite product version and
-does not advance for frontend-only or Runtime-only releases.
+candidate version transition. The About surface reports the product release
+headline, the packaged shell version, the frontend build identity, and the
+Runtime release identity as separate values; none of them is a composite
+product version. The frontend line, for example, is not the shell version: the
+frontend has no version axis of its own, because a product release advances
+`package.json` in lockstep with the shell, so the build identity is what
+distinguishes one frontend build from another.
 
 The desktop host writes local component-update lifecycle diagnostics to the
 daily `OPENAGENT_HOME/logs/openagent-host.jsonl.<date>` file. These records cover
@@ -93,6 +97,15 @@ exposing the process token or user data. Runtime version comparison uses the
 active resource or supervised process version, not the independently versioned
 Tauri application.
 
+The About Runtime line reports a release identity rather than the supervised
+process's crate version. It prefers the active Runtime resource's
+`release_version`, then that resource's own `version`, and finally the packaged
+shell release the bundled sidecar ships inside, and it is absent while no
+Runtime runs. The process record cannot serve as that identity: `openagent-server`
+reports the crate version of the binary it was built from, and the packaged
+sidecar is built from an unstamped SDK checkout, so every product release would
+otherwise report the same Runtime version.
+
 The supervised server accepts that process-scoped Bearer token for its typed
 product `/api` routes, exposes a Bearer-only complete desktop startup bootstrap,
 and projects the transport-neutral Runtime event bus through authenticated
@@ -138,6 +151,18 @@ scheme directly to an existing WebView bypasses Wry's construction-time rewrite
 and cannot complete the activation handshake. Other platforms retain the
 registered `openagent-ui://localhost/` URL.
 
+Every frontend bundle carries its own build identity, stamped by
+`scripts/frontend-build-identity.mjs` and `vite.config.js` as the
+`__OPENAGENT_FRONTEND_BUILD__` global in `<product version>+<abbreviated
+revision>` form. About reads that value from the running bundle, so an embedded
+frontend, an installed resource, and a development bundle each report the code
+that is executing instead of the shell version they shipped with; a frontend
+resource install changes the reported identity as soon as the new bundle loads.
+The revision is resolved once per Vite run and falls back to the bare product
+version when the build has no Git repository, so do not derive a frontend
+version in the host: `get_component_versions` reports only the product release,
+shell, and Runtime identities.
+
 Treat application SemVer as an update identity, never as a compatibility
 contract. Each replaceable component declares protocol ranges for every live
 edge it consumes: Runtime manifests cover the shell/Runtime and Harness/Runtime
@@ -177,4 +202,7 @@ rollback behavior with the host Rust integration fixtures, which serve locally
 signed frontend and Runtime manifests over loopback. Exercise shell aggregation
 and independent component-version presentation with frontend tests; do not
 point a development build at a production fixed channel merely to test update
-state.
+state. About composes three host-reported identities with the build identity
+stamped into the running bundle, so a development run must show the
+working-tree revision on the frontend line and the shell version on the shell
+line.

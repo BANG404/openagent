@@ -93,9 +93,33 @@ struct ComponentUpdateGate {
 struct ComponentVersions {
     /// The user-facing product release identity.
     release: String,
+    /// The packaged desktop shell identity.
     shell: String,
-    frontend: String,
+    /// The Runtime release identity, present only while the Runtime runs. The
+    /// frontend reports its own build identity from the running bundle.
     runtime: Option<String>,
+}
+
+/// Resolve the Runtime identity the About surface reports.
+///
+/// The supervised process only reports the crate version of the binary it runs,
+/// and that is not a release identity: the packaged sidecar is built from an
+/// unstamped SDK checkout, so every product release ships a Runtime that reports
+/// the same crate version. The signed Runtime resource that delivers modular
+/// Runtime updates publishes the product release version instead, so About
+/// prefers that identity, then the resource's own version, and finally the
+/// packaged shell release that the bundled sidecar ships inside.
+fn runtime_release_identity(
+    active: Option<&InstalledRuntimeResource>,
+    shell_version: &str,
+) -> String {
+    let Some(resource) = active else {
+        return shell_version.to_string();
+    };
+    resource
+        .release_version
+        .clone()
+        .unwrap_or_else(|| resource.version.clone())
 }
 
 #[tauri::command]
@@ -105,12 +129,11 @@ async fn get_component_versions(
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
 ) -> Result<ComponentVersions, String> {
     let shell_version = env!("CARGO_PKG_VERSION").to_string();
-    let frontend_version = manager.current_version();
     let frontend_release = manager.active_version();
-    let runtime_release = runtime_manager
-        .active_resource()
-        .await?
-        .and_then(|resource| resource.release_version);
+    let active_runtime = runtime_manager.active_resource().await?;
+    let runtime_release = active_runtime
+        .as_ref()
+        .and_then(|resource| resource.release_version.clone());
     Ok(ComponentVersions {
         // Frontend resource releases carry the product release version. This
         // lets a frontend-only release update the user-facing identity while
@@ -118,9 +141,11 @@ async fn get_component_versions(
         release: frontend_release
             .or(runtime_release)
             .unwrap_or_else(|| shell_version.clone()),
-        shell: shell_version,
-        frontend: frontend_version,
-        runtime: supervisor.status().await.map(|status| status.version),
+        shell: shell_version.clone(),
+        runtime: supervisor
+            .status()
+            .await
+            .map(|_| runtime_release_identity(active_runtime.as_ref(), &shell_version)),
     })
 }
 
@@ -1173,6 +1198,53 @@ mod modular_runtime_update_tests {
         let mut invalid = valid;
         invalid.as_object_mut().unwrap().remove("conversations");
         assert!(validate_runtime_bootstrap(&invalid).is_err());
+    }
+}
+
+#[cfg(test)]
+mod runtime_identity_tests {
+    use super::{runtime_release_identity, InstalledRuntimeResource};
+    use std::path::PathBuf;
+
+    fn resource(version: &str, release_version: Option<&str>) -> InstalledRuntimeResource {
+        InstalledRuntimeResource {
+            version: version.to_string(),
+            release_version: release_version.map(str::to_string),
+            target: "test-target".to_string(),
+            binary_path: PathBuf::from("openagent-server"),
+            manifest_path: PathBuf::from("openagent-sdk-manifest.json"),
+            signature_path: PathBuf::from("openagent-sdk-manifest.json.sig"),
+            protocol_min: 1,
+            protocol_max: 1,
+            size: 0,
+            sha256: String::new(),
+        }
+    }
+
+    #[test]
+    fn identity_prefers_the_product_release_of_the_active_resource() {
+        let installed = resource("1.4.0", Some("0.66.0"));
+        assert_eq!(
+            runtime_release_identity(Some(&installed), "0.65.1-beta.1"),
+            "0.66.0"
+        );
+    }
+
+    #[test]
+    fn identity_falls_back_to_the_resource_version() {
+        let installed = resource("1.4.0", None);
+        assert_eq!(
+            runtime_release_identity(Some(&installed), "0.65.1-beta.1"),
+            "1.4.0"
+        );
+    }
+
+    #[test]
+    fn identity_falls_back_to_the_packaged_shell_release() {
+        assert_eq!(
+            runtime_release_identity(None, "0.65.1-beta.1"),
+            "0.65.1-beta.1"
+        );
     }
 }
 
@@ -3629,11 +3701,23 @@ fn ensure_cua_driver_serve() -> Result<bool, String> {
     if cua_driver_endpoint_is_ready(&endpoint) {
         return Ok(false);
     }
-    let mut spawned = Command::new("cua-driver")
+    let mut daemon = Command::new("cua-driver");
+    daemon
         .args(cua_driver_serve_args())
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stderr(Stdio::null());
+    // The release host is a `windows`-subsystem process without a console, so a
+    // console-subsystem daemon created without CREATE_NO_WINDOW allocates its
+    // own visible terminal window beside the product window. Startup starts this
+    // daemon whenever the reserved entry is enabled, so the flag keeps it out of
+    // every packaged launch.
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        daemon.creation_flags(0x0800_0000);
+    }
+    let mut spawned = daemon
         .spawn()
         .map_err(|error| format!("Failed to start Cua Driver serve: {error}"))?;
     if let Err(error) = wait_for_cua_driver_endpoint(&mut spawned, &endpoint) {

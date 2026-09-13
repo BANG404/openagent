@@ -10,9 +10,21 @@ describe("product release identity", () => {
     expect(hostSource).toContain("release: String");
     expect(hostSource).toContain("let frontend_release = manager.active_version();");
     expect(hostSource).toContain("release: frontend_release");
-    expect(hostSource).toContain("let frontend_version = manager.current_version();");
     expect(hostSource).toContain("resource.release_version");
     expect(hostSource).toContain("shell: shell_version");
+  });
+
+  test("reports the Runtime release identity instead of its crate version", () => {
+    expect(hostSource).toContain("fn runtime_release_identity(");
+    expect(hostSource).toContain("let active_runtime = runtime_manager.active_resource().await?;");
+    expect(hostSource).toContain(
+      "runtime_release_identity(active_runtime.as_ref(), &shell_version)",
+    );
+    expect(hostSource).not.toContain("status.version");
+  });
+
+  test("keeps the frontend identity out of the host", () => {
+    expect(hostSource).not.toContain("frontend: frontend_version");
   });
 
   test("presents the product release before component details", () => {
@@ -21,5 +33,6 @@ describe("product release identity", () => {
     );
     expect(settingsSource).toContain('{$t("aboutVersionFrontend")}');
     expect(settingsSource).toContain('{$t("aboutVersionRuntime")}');
+    expect(settingsSource).toContain('{frontendBuildLabel || $t("aboutVersionUnknown")}');
   });
 });
