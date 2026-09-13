@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.64.0-beta.1] - 2026-09-12
+
+### Features
+- **cua**: Generate scoped manifests from settings
+- **cua**: Visualize capability manifest controls
+- **cua**: Require internal serve and socket MCP
+- **cua**: Default plugin to supervised serve transport
+- **cua**: Show serve and MCP command details
+- **cua**: Support serve daemon and socket MCP mode
+
+### Bug Fixes
+- **chat**: Share the OpenAI compatibility layer with built-in Responses providers
+- **chat**: Restore tool call arguments from OpenAI-compatible providers
+- **cua**: Start the reserved daemon from a staged copy
+- **cua**: Start the reserved daemon from the host and attach without --grant
+- **chat**: Restore cache usage from OpenAI-compatible providers
+- **cua**: Start serve daemon during MCP bootstrap
+- **chat**: Preserve ask-user forms and cache usage
+- Avoid duplicate frontend update toasts
+
+### Refactoring
+- **cua**: Fix unrestricted serve topology and trim plugin settings
+
+### Documentation
+- **cua**: Clarify internal serve startup
+
 ## [0.63.0-beta.1] - 2026-09-12
 
 ### Features
