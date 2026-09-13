@@ -70,6 +70,14 @@ the host.
   Tauri event names.
 - A lagged or disconnected SSE stream must stop live delivery and request
   a durable frontend resync before a new stream is started.
+- Record every WebView product request the host refuses or cannot deliver as a
+  warning with the method, a route label built only from the fixed Runtime
+  route words, and a bounded failure class. Dynamic path segments hold
+  conversation identifiers and workspace paths, and the underlying delivery
+  error embeds the resolved Runtime URL, so neither the raw path nor the raw
+  error belongs in the host log. This record is what separates a shell that
+  never asked the Runtime for its startup snapshot from a Runtime that could
+  not answer it.
 
 ## Asset protocols and native opener
 

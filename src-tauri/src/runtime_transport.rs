@@ -145,8 +145,125 @@ pub async fn proxy_webview_runtime_request(
     supervisor: &RuntimeProcessSupervisor,
     request: RuntimeProxyRequest,
 ) -> Result<RuntimeProxyResponse, String> {
-    validate_webview_product_request(&request)?;
-    proxy_runtime_request(supervisor, request).await
+    let method = request.method.clone();
+    let route = proxy_route_label(&request.path);
+    if let Err(error) = validate_webview_product_request(&request) {
+        tracing::warn!(
+            method = %method,
+            route = %route,
+            %error,
+            "WebView Runtime request was rejected before proxying"
+        );
+        return Err(error);
+    }
+    match proxy_runtime_request(supervisor, request).await {
+        Ok(response) => Ok(response),
+        Err(error) => {
+            tracing::warn!(
+                method = %method,
+                route = %route,
+                failure = proxy_delivery_failure(&error),
+                "WebView Runtime request was not delivered"
+            );
+            Err(error)
+        }
+    }
+}
+
+const ROUTE_SEGMENT_LIMIT: usize = 8;
+
+/// Name the Runtime route a WebView request failed on without carrying data.
+/// Dynamic segments hold conversation identifiers and workspace paths, so only
+/// the fixed route words survive; anything else collapses to a placeholder, and
+/// an over-long path degrades to a single unrecognized label.
+fn proxy_route_label(path: &str) -> String {
+    let path = path
+        .split(['?', '#'])
+        .next()
+        .unwrap_or_default()
+        .trim_end_matches('/');
+    let segments = path
+        .split('/')
+        .filter(|segment| !segment.is_empty())
+        .collect::<Vec<_>>();
+    if segments.is_empty() {
+        return "/".to_string();
+    }
+    if segments.len() > ROUTE_SEGMENT_LIMIT {
+        return "/{unrecognized}".to_string();
+    }
+    let named = segments
+        .into_iter()
+        .map(|segment| {
+            if is_static_route_segment(segment) {
+                segment
+            } else {
+                "{id}"
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("/");
+    format!("/{named}")
+}
+
+fn is_static_route_segment(segment: &str) -> bool {
+    matches!(
+        segment,
+        "api"
+            | "desktop"
+            | "bootstrap"
+            | "session"
+            | "workspaces"
+            | "models"
+            | "commands"
+            | "preferences"
+            | "roles"
+            | "files"
+            | "conversations"
+            | "history"
+            | "attachments"
+            | "pair"
+            | "operations"
+            | "active-tip"
+            | "fork-runs"
+            | "cancel"
+            | "runs"
+            | "stream"
+            | "pause"
+            | "memory-retrieval"
+            | "skip"
+            | "interrupts"
+            | "response"
+            | "file-changes"
+            | "revert"
+            | "workspace"
+            | "open"
+            | "text-snippet"
+            | "media"
+            | "html-preview"
+    )
+}
+
+/// The delivery error can embed the resolved Runtime URL, which carries
+/// conversation and workspace identifiers. The host log keeps only a bounded
+/// class, because an unreachable Runtime is what makes a silent shell look like
+/// a server failure.
+fn proxy_delivery_failure(error: &str) -> &'static str {
+    if error == "Runtime process is not running" {
+        "runtime_not_running"
+    } else if error.starts_with("Runtime request failed") {
+        "runtime_unreachable"
+    } else if error.starts_with("Runtime request body exceeds") {
+        "runtime_request_too_large"
+    } else if error.starts_with("Runtime response body failed") {
+        "runtime_stream_interrupted"
+    } else if error.starts_with("Runtime response body exceeds") {
+        "runtime_response_too_large"
+    } else if error.starts_with("Runtime response body was not valid UTF-8") {
+        "runtime_response_not_utf8"
+    } else {
+        "runtime_delivery_failed"
+    }
 }
 
 pub async fn proxy_runtime_asset_request(
@@ -432,9 +549,9 @@ fn parse_sse_frame(frame: &[u8]) -> Result<Option<(String, String)>, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        find_sse_frame, parse_method, parse_sse_frame, proxy_runtime_asset_connection,
-        resolve_api_url, validate_runtime_asset_request, validate_webview_product_request,
-        RuntimeProxyRequest,
+        find_sse_frame, parse_method, parse_sse_frame, proxy_delivery_failure, proxy_route_label,
+        proxy_runtime_asset_connection, resolve_api_url, validate_runtime_asset_request,
+        validate_webview_product_request, RuntimeProxyRequest,
     };
     use crate::runtime_process::RuntimeConnection;
     use reqwest::{Method, Url};
@@ -593,6 +710,127 @@ mod tests {
         }
         assert!(
             requests[0].contains("range: bytes=1-3") || requests[0].contains("Range: bytes=1-3")
+        );
+    }
+
+    #[test]
+    fn webview_proxy_failures_record_only_bounded_route_labels() {
+        for (path, expected) in [
+            ("/api/desktop/bootstrap", "/api/desktop/bootstrap"),
+            ("/api/session", "/api/session"),
+            ("/api/workspaces", "/api/workspaces"),
+            ("/api/models", "/api/models"),
+            ("/api/commands", "/api/commands"),
+            ("/api/preferences", "/api/preferences"),
+            ("/api/pair", "/api/pair"),
+            ("/api/desktop/operations", "/api/desktop/operations"),
+            (
+                "/api/workspaces/workspace-1/roles",
+                "/api/workspaces/{id}/roles",
+            ),
+            (
+                "/api/workspaces/workspace-1/files?query=src",
+                "/api/workspaces/{id}/files",
+            ),
+            (
+                "/api/workspaces/workspace-1/conversations",
+                "/api/workspaces/{id}/conversations",
+            ),
+            ("/api/conversations/conv-1", "/api/conversations/{id}"),
+            (
+                "/api/conversations/conv-1/history",
+                "/api/conversations/{id}/history",
+            ),
+            ("/api/attachments/attachment-1", "/api/attachments/{id}"),
+            (
+                "/api/conversations/conv-1/active-tip",
+                "/api/conversations/{id}/active-tip",
+            ),
+            (
+                "/api/conversations/conv-1/fork-runs",
+                "/api/conversations/{id}/fork-runs",
+            ),
+            (
+                "/api/conversations/conv-1/cancel",
+                "/api/conversations/{id}/cancel",
+            ),
+            (
+                "/api/conversations/conv-1/runs",
+                "/api/conversations/{id}/runs",
+            ),
+            (
+                "/api/conversations/conv-1/stream/pause",
+                "/api/conversations/{id}/stream/pause",
+            ),
+            (
+                "/api/conversations/conv-1/memory-retrieval/skip",
+                "/api/conversations/{id}/memory-retrieval/skip",
+            ),
+            (
+                "/api/conversations/conv-1/interrupts/interrupt-1",
+                "/api/conversations/{id}/interrupts/{id}",
+            ),
+            (
+                "/api/conversations/conv-1/interrupts/interrupt-1/response",
+                "/api/conversations/{id}/interrupts/{id}/response",
+            ),
+            (
+                "/api/conversations/conv-1/file-changes/change-1/revert",
+                "/api/conversations/{id}/file-changes/{id}/revert",
+            ),
+            (
+                "/api/conversations/conv-1/workspace/open",
+                "/api/conversations/{id}/workspace/open",
+            ),
+            (
+                "/api/conversations/conv-1/workspace/text-snippet",
+                "/api/conversations/{id}/workspace/text-snippet",
+            ),
+            (
+                "/api/conversations/conv-1/workspace/media",
+                "/api/conversations/{id}/workspace/media",
+            ),
+            (
+                "/api/conversations/conv-1/workspace/html-preview",
+                "/api/conversations/{id}/workspace/html-preview",
+            ),
+            ("", "/"),
+            ("/", "/"),
+            (
+                "/api/conversations/conv-1/unknown/1/2/3/4/5",
+                "/{unrecognized}",
+            ),
+        ] {
+            assert_eq!(proxy_route_label(path), expected, "{path}");
+        }
+
+        // The underlying delivery error embeds the resolved Runtime URL, which
+        // carries the same identifiers the route label removes.
+        assert_eq!(
+            proxy_delivery_failure("Runtime process is not running"),
+            "runtime_not_running"
+        );
+        assert_eq!(
+            proxy_delivery_failure(
+                "Runtime request failed: error sending request for url (http://127.0.0.1:43123/api/conversations/conv-1/runs)"
+            ),
+            "runtime_unreachable"
+        );
+        assert_eq!(
+            proxy_delivery_failure("Runtime response body exceeds the desktop proxy limit"),
+            "runtime_response_too_large"
+        );
+        assert_eq!(
+            proxy_delivery_failure("Runtime response body was not valid UTF-8"),
+            "runtime_response_not_utf8"
+        );
+        assert_eq!(
+            proxy_delivery_failure("Runtime response body failed: connection reset"),
+            "runtime_stream_interrupted"
+        );
+        assert_eq!(
+            proxy_delivery_failure("unexpected"),
+            "runtime_delivery_failed"
         );
     }
 
