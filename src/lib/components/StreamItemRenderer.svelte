@@ -27,7 +27,7 @@
     isLastText?: boolean;
     debugCheckpointId?: string;
     isStreaming?: boolean;
-    initialThinkingOpen?: boolean;
+    thinkingOpen?: boolean;
     shikiTheme: string;
     mermaidConfig: MermaidConfig;
     htmlPreviewConfig?: HtmlPreviewConfig;
@@ -45,7 +45,7 @@
     isLastText = false,
     debugCheckpointId,
     isStreaming = false,
-    initialThinkingOpen = false,
+    thinkingOpen = false,
     shikiTheme,
     mermaidConfig,
     htmlPreviewConfig,
@@ -56,11 +56,16 @@
   }: Props = $props();
 
   let expanded = $state(false);
-  let thinkingOpen = $state(false);
+  let thinkingExpanded = $state(false);
+  let thinkingToggled = $state(false);
   const capabilities = useOpenAgentUiCapabilities();
 
+  // The transcript owns the auto-collapse rule while a turn produces records:
+  // a thinking block closes as soon as a later record follows it. A reader
+  // toggle is the only thing that overrides that rule for good.
   $effect.pre(() => {
-    if (initialThinkingOpen || isStreaming) thinkingOpen = true;
+    if (thinkingToggled) return;
+    thinkingExpanded = thinkingOpen;
   });
 
   function toolArgHint(args: string): string {
@@ -126,15 +131,16 @@
     <button
       type="button"
       class="thinking-summary"
-      aria-expanded={thinkingOpen}
+      aria-expanded={thinkingExpanded}
       onclick={() => {
-        thinkingOpen = !thinkingOpen;
+        thinkingToggled = true;
+        thinkingExpanded = !thinkingExpanded;
       }}
     >
-      <span class="thinking-marker" aria-hidden="true">{thinkingOpen ? "▾" : "▸"}</span>
+      <span class="thinking-marker" aria-hidden="true">{thinkingExpanded ? "▾" : "▸"}</span>
       <span>Thinking</span>
     </button>
-    {#if thinkingOpen}<pre>{renderThinkingContent(item.content)}</pre>{/if}
+    {#if thinkingExpanded}<pre>{renderThinkingContent(item.content)}</pre>{/if}
   </div>
 {:else if item.type === "tool_call"}
   <div

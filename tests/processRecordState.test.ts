@@ -4,6 +4,7 @@ import {
   assistantTurnStatus,
   latestTurnMetadata,
   shouldShowProcessRecords,
+  thinkingRecordOpen,
 } from "../src/lib/processRecordState";
 import type { ChatMessage, CheckpointTurnStatus } from "../src/lib/types";
 
@@ -55,5 +56,28 @@ describe("process record state", () => {
     expect(shouldShowProcessRecords("interrupted", 1)).toBe(false);
     expect(shouldShowProcessRecords("cancelled", 1)).toBe(false);
     expect(shouldShowProcessRecords("failed", 1)).toBe(false);
+  });
+});
+
+describe("thinking record disclosure", () => {
+  test("keeps only the trailing record of a running turn open", () => {
+    expect(thinkingRecordOpen(true, "running", false)).toBe(true);
+    expect(thinkingRecordOpen(false, "running", false)).toBe(false);
+  });
+
+  test("collapses every record once the turn is no longer producing output", () => {
+    for (const status of ["completed", "failed", "cancelled"] as const) {
+      expect(thinkingRecordOpen(true, status, false)).toBe(false);
+      expect(thinkingRecordOpen(false, status, false)).toBe(false);
+    }
+  });
+
+  test("keeps an interrupted turn's trailing record open", () => {
+    expect(thinkingRecordOpen(true, "interrupted", false)).toBe(true);
+    expect(thinkingRecordOpen(false, "interrupted", false)).toBe(false);
+  });
+
+  test("honors the record the live stream left open across finalization", () => {
+    expect(thinkingRecordOpen(false, "completed", true)).toBe(true);
   });
 });

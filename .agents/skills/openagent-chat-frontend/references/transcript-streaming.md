@@ -236,6 +236,14 @@
 - Finalization updates the existing row instead of replacing its DOM subtree,
   preserving open thinking sections. Restored historical thinking starts
   collapsed.
+- Thinking follows an auto-collapse rule instead of staying open for the whole
+  turn: only the trailing record of a turn that can still append records
+  (`running`, or `interrupted` and therefore resumable) is expanded, and a
+  block closes as soon as any later rendered record follows it. An explicit
+  reader toggle overrides the rule for that block's remaining lifetime, so a
+  collapsed record never reopens on its own. Carry only the record the live
+  stream left open across finalization; records that already collapsed during
+  streaming must not reopen when the live row hands off to its durable row.
 - Keep every failed model attempt as its own ordered retry record and divider
   inside the same logical assistant turn. The turn-level process disclosure may
   contain several retries because automatic recovery must still produce one

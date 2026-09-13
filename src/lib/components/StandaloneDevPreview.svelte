@@ -664,8 +664,20 @@
       },
     );
   }
+  // The live turn also demonstrates the thinking auto-collapse rule: the
+  // trailing thinking record stays expanded until the interval starts emitting
+  // the text that follows it, which collapses the block.
+  let streamingThinkingDone = $state(false);
+  const streamingThinking = $derived<StreamItem>({
+    type: "thinking",
+    content:
+      locale === "zh"
+        ? "先确认补丁解析器的边界，再决定怎么写这条记录。"
+        : "Check the patch parser boundaries before writing this record.",
+  });
   let streamingItems = $derived<StreamItem[]>([
-    { type: "text", content: streamingText },
+    ...(streamingAwaitingOutput ? [] : [streamingThinking]),
+    ...(streamingThinkingDone ? [{ type: "text" as const, content: streamingText }] : []),
     ...(streamingAwaitingOutput
       ? [
           {
@@ -978,6 +990,10 @@
     let chunk = 0;
     const timer = window.setInterval(() => {
       chunk += 1;
+      if (!streamingThinkingDone) {
+        if (chunk > 18) streamingThinkingDone = true;
+        return;
+      }
       const separator = chunk % 12 === 0 ? "\n\n" : " ";
       streamingText += `${separator}streamed chunk ${chunk}`;
       if (chunk >= 480) window.clearInterval(timer);

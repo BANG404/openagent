@@ -18,6 +18,7 @@
     assistantTurnStatus,
     latestTurnMetadata,
     shouldShowProcessRecords,
+    thinkingRecordOpen,
   } from "$lib/processRecordState";
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
   import type {
@@ -161,7 +162,7 @@
   let removedContextKeys = $state(new Set<string>());
   let editingTextarea = $state<HTMLTextAreaElement | null>(null);
   let expandedUserMessageIds = $state(new Set<string>());
-  let streamedOpenThinkingItemKeys = $state(new Set<string>());
+  let streamedOpenThinkingItemKey = $state<string | null>(null);
   let copiedAssistantMessageId = $state<string | null>(null);
   let readingTurnKey = $state<string | null>(null);
   let showAwaitingStreamOutput = $state(false);
@@ -398,22 +399,18 @@
   }
 
   // A live row and its finalized durable message intentionally share the same
-  // assistant ID. Capture its open thinking blocks by stable item key, but do
-  // not let toggle events from the outgoing live DOM mutate this handoff
-  // snapshot. The durable component consumes it only as its initial state.
+  // assistant ID. Capture the thinking record the stream leaves open — the
+  // trailing one — by stable item key, but do not let toggle events from the
+  // outgoing live DOM mutate this handoff snapshot. The durable component
+  // consumes it only as its initial state, so records that already collapsed
+  // during streaming must not reopen when the live row hands off.
   $effect(() => {
     if (!isStreaming || !currentStreamMessageId) return;
-    const next = new Set(streamedOpenThinkingItemKeys);
-    let changed = false;
-    for (const segment of currentSegments) {
-      if (segment.kind !== "item" || segment.item.type !== "thinking") continue;
-      const itemKey = `${currentStreamMessageId}-${segment.startIndex}`;
-      if (!next.has(itemKey)) {
-        next.add(itemKey);
-        changed = true;
-      }
-    }
-    if (changed) streamedOpenThinkingItemKeys = next;
+    const trailing = currentSegments.at(-1);
+    streamedOpenThinkingItemKey =
+      trailing?.kind === "item" && trailing.item.type === "thinking"
+        ? `${currentStreamMessageId}-${trailing.startIndex}`
+        : null;
   });
 
   function formatDuration(milliseconds: number) {
@@ -629,7 +626,7 @@
           ? (followUpSuggestionsByMessageId[turnSuggestionHostMessageId] ?? [])
           : []}
         {#snippet renderAssistantSegments(segments: StreamItemSegment[])}
-          {#each segments as segment (`${entry.key}-${segment.startIndex}`)}
+          {#each segments as segment, segmentIndex (`${entry.key}-${segment.startIndex}`)}
             {#if segment.kind === "tool_group"}
               <div
                 class="stream-item message-record"
@@ -661,8 +658,11 @@
                 debugCheckpointId={debugMode && isRerunnable
                   ? assistantMsg?.checkpointId
                   : undefined}
-                initialThinkingOpen={turnStatus !== "completed" ||
-                  streamedOpenThinkingItemKeys.has(`${entry.key}-${segment.startIndex}`)}
+                thinkingOpen={thinkingRecordOpen(
+                  segmentIndex === segments.length - 1,
+                  turnStatus,
+                  streamedOpenThinkingItemKey === `${entry.key}-${segment.startIndex}`,
+                )}
                 {shikiTheme}
                 {mermaidConfig}
                 {htmlPreviewConfig}
