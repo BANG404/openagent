@@ -3701,11 +3701,23 @@ fn ensure_cua_driver_serve() -> Result<bool, String> {
     if cua_driver_endpoint_is_ready(&endpoint) {
         return Ok(false);
     }
-    let mut spawned = Command::new("cua-driver")
+    let mut daemon = Command::new("cua-driver");
+    daemon
         .args(cua_driver_serve_args())
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stderr(Stdio::null());
+    // The release host is a `windows`-subsystem process without a console, so a
+    // console-subsystem daemon created without CREATE_NO_WINDOW allocates its
+    // own visible terminal window beside the product window. Startup starts this
+    // daemon whenever the reserved entry is enabled, so the flag keeps it out of
+    // every packaged launch.
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        daemon.creation_flags(0x0800_0000);
+    }
+    let mut spawned = daemon
         .spawn()
         .map_err(|error| format!("Failed to start Cua Driver serve: {error}"))?;
     if let Err(error) = wait_for_cua_driver_endpoint(&mut spawned, &endpoint) {

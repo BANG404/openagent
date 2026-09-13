@@ -17,7 +17,8 @@ contract, fallback binary, and exclusive durable-state ownership.
 
 Open only the references that own the affected behavior:
 
-- Runtime supervisor, IPC contracts, and asset protocols:
+- Runtime supervisor, IPC contracts, asset protocols, and the Windows
+  child-process console policy:
   [references/ownership.md](references/ownership.md)
 - Startup, single instance, activation, and window management:
   [references/startup-windows.md](references/startup-windows.md)
