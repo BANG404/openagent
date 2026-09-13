@@ -3595,7 +3595,6 @@ fn wait_for_cua_driver_endpoint(
 /// The ordinary desktop architecture connects MCP servers in the supervised
 /// Runtime process, so the host cannot rely on the embedded-runtime bootstrap to
 /// start this daemon; the frontend asks the host while the entry is enabled.
-
 /// The daemon this process started, if any.
 ///
 /// A previous OpenAgent process, or another window's process, may own the

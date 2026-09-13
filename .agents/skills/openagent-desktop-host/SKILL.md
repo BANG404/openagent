@@ -38,3 +38,8 @@ behavior is completely reproducible in a browser.
 Run `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check` for every
 `src-tauri` change; the CI native-quality job rejects formatting drift before
 running its other Rust checks.
+
+Keep rustdoc comments contiguous with the item they document. In particular,
+do not leave a blank line between a `///` block and its following declaration,
+because Clippy treats that spacing as `empty_line_after_doc_comments` when
+warnings are denied.
