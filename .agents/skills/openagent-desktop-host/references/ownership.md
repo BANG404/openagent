@@ -53,6 +53,20 @@ the host.
   the quit watchdog that force-exits a hung shutdown. A daemon another
   OpenAgent process owns is never this process's to stop.
 
+## Windows child-process console policy
+
+- Create every host-spawned child with `CREATE_NO_WINDOW` (`0x0800_0000`) on
+  Windows. The release host is a `windows`-subsystem process that owns no
+  console, so a console-subsystem child created without the flag allocates a
+  new visible terminal window beside the product window.
+- The policy covers the supervised Runtime, the desktop-bootstrap helper, child
+  workspace windows, `wsl.exe` probes, and the Cua Driver daemon. Startup starts
+  that daemon whenever the reserved MCP entry is enabled, so one unflagged spawn
+  puts a terminal window in every production launch.
+- `bun tauri dev` hides an omission because the development host already owns a
+  console for the child to inherit; confirm a new spawn site in a packaged
+  Windows build.
+
 ## Activation and update barrier
 
 - Component activation must acquire the Runtime's graceful update barrier
