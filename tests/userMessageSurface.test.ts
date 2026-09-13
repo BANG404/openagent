@@ -125,3 +125,15 @@ test("keeps focused tool rendering aligned with the exposed filesystem tools", a
     expect(source).not.toContain(`name === "${legacyTool}"`);
   }
 });
+
+test("keeps a terminal working directory out of the file-path surface", async () => {
+  const source = await readFile(
+    new URL("../src/lib/components/ToolCallCard.svelte", import.meta.url),
+    "utf8",
+  );
+
+  // The exposed path chip opens an inspected file, so a terminal call's
+  // `workdir` must never feed it, the header hint, or the folder action.
+  expect(source).not.toContain('"workdir"');
+  expect(source).toContain('<span class="tool-arg-hint">{command}</span>');
+});

@@ -121,10 +121,11 @@
     applyFileChangeSnapshotsToPatchPreviews(parseApplyPatchPreview(patchText), fileChanges),
   );
   const patchSummary = $derived(summarizePatchChanges(applyPatchPreviews));
+  // A terminal call's `workdir` is context, never an inspected path: it must
+  // not become the file-path chip, the header hint, or the open-folder action.
   const filePath = $derived(
     getString(parsedArgs, "file_path") ||
       getString(parsedArgs, "path") ||
-      getString(parsedArgs, "workdir") ||
       applyPatchPreviews[0]?.path ||
       "",
   );
@@ -253,7 +254,9 @@
         >
           <span class="tool-name">{displayName}</span>
           {#if isFocusedTool}
-            {#if filePath && name !== "apply_patch"}
+            {#if name === "exec_command" && command}
+              <span class="tool-arg-hint">{command}</span>
+            {:else if filePath && name !== "apply_patch"}
               <span class="tool-arg-hint">{shortPath(filePath)}</span>
             {:else if getString(parsedArgs, "session_id")}
               <span class="tool-arg-hint">{getString(parsedArgs, "session_id")}</span>

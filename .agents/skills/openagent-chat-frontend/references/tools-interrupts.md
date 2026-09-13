@@ -32,7 +32,10 @@
 - Give the exposed filesystem tool set (`exec_command`, `write_stdin`,
   `apply_patch`, and `view_image`) distinct call and result regions so the
   command, continuation session, returned output, and inspected path remain
-  scannable. Project every `apply_patch` file operation into tabs backed by the
+  scannable. Only an inspected path earns the interactive path chip, the header
+  path hint, and the open-folder action; a terminal call's working directory is
+  command context and must not be rendered as any of them. Keep the terminal
+  card's header hint on the command itself. Project every `apply_patch` file operation into tabs backed by the
   same bounded, line-numbered diff view as the conversation Files panel; retain
   total addition and removal counts even when the rendered patch is truncated.
   A standard `Delete File` header has no body, so hydrate its tab from the
