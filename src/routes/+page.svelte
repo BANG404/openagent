@@ -5507,16 +5507,31 @@
       {/if}
     </FullscreenSurface>
 
-    <RoleEditorDialog
-      bind:open={roleEditorOpen}
-      role={roleEditorRole}
-      skills={roleEditorSkills}
-      mcpServers={config?.mcp.servers ?? []}
-      loadingResources={roleEditorResourcesLoading}
-      saving={roleEditorSaving}
-      onSave={saveRoleEditor}
-      onDelete={deleteRoleEditor}
-    />
+    <FullscreenSurface
+      open={roleEditorOpen}
+      title={roleEditorRole ? $t("editRole") : $t("newRole")}
+      onMinimize={winMinimize}
+      onMaximize={winMaximize}
+      onCloseWindow={winClose}
+      onClose={() => {
+        roleEditorOpen = false;
+      }}
+    >
+      <RoleEditorDialog
+        open={roleEditorOpen}
+        role={roleEditorRole}
+        skills={roleEditorSkills}
+        mcpServers={config?.mcp.servers ?? []}
+        loadingResources={roleEditorResourcesLoading}
+        saving={roleEditorSaving}
+        presentation="window"
+        onClose={() => {
+          roleEditorOpen = false;
+        }}
+        onSave={saveRoleEditor}
+        onDelete={deleteRoleEditor}
+      />
+    </FullscreenSurface>
   {/if}
 
   <Toast />
