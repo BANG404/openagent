@@ -492,7 +492,14 @@
   let shikiTheme = $derived(isDarkTheme ? "github-dark" : "github-light");
   let mermaidConfig = $derived(mermaidConfigFor(isDarkTheme));
   let messagesEl = $state<HTMLElement | null>(null);
-  let followStreamToBottom = $state(true);
+  // The transcript viewport is shared by conversations, but whether a stream
+  // should pin it to the tail belongs to the conversation being viewed. Keep
+  // this state keyed so switching away from one streaming conversation cannot
+  // make another conversation inherit its follow behavior.
+  let followStreamToBottomByConversation = $state<Record<string, boolean>>({});
+  let followStreamToBottom = $derived(
+    activeConvId ? (followStreamToBottomByConversation[activeConvId] ?? true) : true,
+  );
   let programmaticBottomScrollUntil = 0;
   let bottomScrollRunId = 0;
   let bottomScrollRaf: number | null = null;
@@ -4327,12 +4334,20 @@
     );
   }
 
+  function setFollowStreamToBottom(value: boolean, convId = activeConvId) {
+    if (!convId) return;
+    followStreamToBottomByConversation = {
+      ...followStreamToBottomByConversation,
+      [convId]: value,
+    };
+  }
+
   function handleMessagesScroll() {
     if (Date.now() < programmaticBottomScrollUntil) {
-      followStreamToBottom = true;
+      setFollowStreamToBottom(true);
       return;
     }
-    followStreamToBottom = isMessagesScrolledToBottom();
+    setFollowStreamToBottom(isMessagesScrolledToBottom());
   }
 
   function markProgrammaticTailPin() {
@@ -4345,7 +4360,7 @@
     bottomScrollRunId += 1;
     programmaticBottomScrollUntil = 0;
     streamCompletionTailAnchor = null;
-    followStreamToBottom = false;
+    setFollowStreamToBottom(false);
     if (bottomScrollRaf !== null) {
       cancelAnimationFrame(bottomScrollRaf);
       bottomScrollRaf = null;
@@ -4357,7 +4372,7 @@
     const el = messagesEl;
     if (!el) return;
 
-    followStreamToBottom = true;
+    setFollowStreamToBottom(true);
     const runId = ++bottomScrollRunId;
 
     if (behavior !== "smooth") {
@@ -4392,7 +4407,7 @@
     ) {
       return;
     }
-    followStreamToBottom = true;
+    setFollowStreamToBottom(true, convId);
     programmaticBottomScrollUntil = Date.now() + 600;
     streamCompletionTailAnchor = {
       convId,
@@ -4405,7 +4420,7 @@
     if (!anchor || anchor.token !== token || anchor.convId !== activeConvId) return;
     streamCompletionTailAnchor = null;
     programmaticBottomScrollUntil = 0;
-    followStreamToBottom = true;
+    setFollowStreamToBottom(true, anchor.convId);
   }
 
   onMount(() => {
