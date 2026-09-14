@@ -50,6 +50,10 @@
   `--desktop-titlebar-height` token. The desktop-shell browser preview accepts
   `desktop-shell-preview-platform=windows|macos|linux` so each platform's
   title-bar geometry remains directly verifiable.
+- Open role creation and editing from the application menu on the shared
+  `FullscreenSurface` management-window chrome. The role editor content fills
+  that surface below its title bar so its close, drag, theme, and platform
+  window-control behavior stays aligned with Settings windows.
 - Keep background terminals on the right conversation-details panel as their
   single primary entry point. Do not add a duplicate terminal toggle to the
   desktop title bar.

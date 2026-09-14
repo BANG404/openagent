@@ -317,9 +317,11 @@
   }
 
   :global(.role-editor-window) {
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
     transform: none;
     border: 0;
     border-radius: 0;
