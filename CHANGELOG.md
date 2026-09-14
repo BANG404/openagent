@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.66.0-beta.1] - 2026-09-13
+
+### Features
+- **frontend**: Render management surfaces fullscreen in-window
+
+### Bug Fixes
+- **host**: Report release identities for the frontend and Runtime versions
+- **host**: Keep the Cua Driver daemon console hidden on Windows
+
 ## [0.65.1-beta.1] - 2026-09-13
 
 ### Bug Fixes

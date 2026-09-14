@@ -38,7 +38,7 @@ describe("fullscreen window drag regions", () => {
     expect(source).toMatch(/\.mermaid-window-edge-drag-region\s*{[^}]*height: 16px;/s);
   });
 
-  test("keeps an in-window fullscreen surface draggable with its own window controls", async () => {
+  test("keeps an in-window fullscreen surface draggable through its own chrome", async () => {
     const source = await readFile(fullscreenSurfaceUrl, "utf8");
 
     expect(source).toMatch(
@@ -51,9 +51,18 @@ describe("fullscreen window drag regions", () => {
       /\.fullscreen-surface\[data-window-platform="windows"\] \.fullscreen-surface-chrome\)\s*\{[^}]*-webkit-app-region: drag;/s,
     );
     expect(source).toMatch(
-      /\.fullscreen-surface\[data-window-platform="windows"\] \.fullscreen-surface-close\),[\s\S]*?-webkit-app-region: no-drag;/s,
+      /\.fullscreen-surface\[data-window-platform="windows"\] \.fullscreen-surface-close\)\s*\{[^}]*-webkit-app-region: no-drag;/s,
     );
     expect(source).toMatch(/\.fullscreen-surface-mac-controls\)\s*\{[^}]*height: 27px;/s);
-    expect(source.match(/<WindowControls /g)).toHaveLength(2);
+    expect(source.match(/<WindowControls /g)).toHaveLength(1);
+  });
+
+  test("leaves Windows without a window-management group beside the surface close", async () => {
+    const source = await readFile(fullscreenSurfaceUrl, "utf8");
+
+    expect(source).not.toMatch(/\{#if platform === "windows"\}/);
+    expect(source).toMatch(
+      /\{#if platform === "macos"\}[\s\S]*?<WindowControls [\s\S]*?\{\/if\}[\s\S]*?fullscreen-surface-close/,
+    );
   });
 });
