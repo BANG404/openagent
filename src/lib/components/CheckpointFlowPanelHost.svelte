@@ -13,7 +13,7 @@
     flow,
     changes,
     onRevert,
-    collapsed = $bindable(true),
+    collapsed = true,
     activePanel = $bindable<RightSidebarPanel>("status"),
     terminalEnabled = false,
     terminalAvailable = false,

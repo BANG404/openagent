@@ -172,8 +172,13 @@
   composer banner does not hide new edits. Selecting an existing flow preserves
   the user's saved expand or collapse choice, and later checkpoints for that
   selected flow must not reset it.
-  Persist the panel's expanded or collapsed state and its chosen width across
-  reloads. Newly created Goal, Graph, or file activity may still open it. Keep
+  Persist the user's explicit panel choice and its width across reloads, while
+  an automatic open stays session state for the conversation branch it
+  happened in and never becomes the default for a branch the session has not
+  visited. An availability collapse is drawn, not chosen: it leaves the branch's
+  own request intact, so when one of its views has content again the branch the
+  user had expanded reopens without another click. Newly created Goal, Graph, or
+  file activity may still open it. Keep
   the single panel toggle at the trailing end of the shared title bar, use it
   for both expansion and collapse, and collapse the panel to a zero-width,
   non-interactive track using the same 180ms width curve as the conversation

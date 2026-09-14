@@ -100,7 +100,11 @@
     loadCheckpointFlowPanelCollapsed,
     saveCheckpointFlowPanelCollapsed,
   } from "$lib/checkpointFlowPanelSizing";
-  import { conversationBranchScopeKey, RightSidebarScopeStore } from "$lib/sidebarPanelScope";
+  import {
+    conversationBranchScopeKey,
+    effectiveRightSidebarCollapsed,
+    RightSidebarScopeStore,
+  } from "$lib/sidebarPanelScope";
   import { retainUndurableFileChanges } from "$lib/fileChangeReconciliation";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
@@ -403,11 +407,16 @@
   const pendingMermaidResults = new Map<string, Promise<string>>();
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
-  // The persisted preference is the default for a conversation branch the
-  // session has not visited yet; each visited scope then remembers its own.
-  const rightSidebarCollapsedDefault =
+  // The user's explicit choice, written only by the title-bar toggle. It is the
+  // starting state for this session and the default for a conversation branch
+  // the session has not visited yet; each visited scope then remembers its own.
+  const rightSidebarPreferenceDefault =
     typeof window === "undefined" ? true : loadCheckpointFlowPanelCollapsed(window.localStorage);
-  let checkpointFlowPanelCollapsed = $state(rightSidebarCollapsedDefault);
+  let rightSidebarPreference = $state(rightSidebarPreferenceDefault);
+  // What the user (or an automatic open) asked for. The panel the desktop
+  // renders projects this against availability, so a branch whose last view
+  // empties collapses without anything having to write state again.
+  let rightSidebarCollapseRequested = $state(rightSidebarPreferenceDefault);
   let rightSidebarPanel = $state<RightSidebarPanel>("status");
   let terminalSessionCount = $state(0);
   let checkpointFlowPanelSelectionKey = $state<string | null>(null);
@@ -758,14 +767,11 @@
     checkpointFlowPanelSelectionKey = key;
     if (key === checkpointFlowPanelAutoOpenKey) {
       rightSidebarPanel = "status";
-      checkpointFlowPanelCollapsed = false;
+      rightSidebarCollapseRequested = false;
       checkpointFlowPanelAutoOpenKey = null;
     }
   });
 
-  $effect(() => {
-    saveCheckpointFlowPanelCollapsed(window.localStorage, checkpointFlowPanelCollapsed);
-  });
   const compactionOnlyConvIds = new Set<string>();
   const compactionProgressRevisions = new Map<string, number>();
   let workspacePrefsSaveQueue: Promise<void> = Promise.resolve();
@@ -825,6 +831,12 @@
     conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length) ||
       terminalSessionCount > 0,
   );
+  // The one value the title bar and the sidebar render. Deriving it keeps the
+  // "no views, no panel" invariant true at every moment, including the flush
+  // in which a scope switch restores the incoming scope's request.
+  let checkpointFlowPanelCollapsed = $derived(
+    effectiveRightSidebarCollapsed(rightSidebarCollapseRequested, rightSidebarAvailable),
+  );
 
   // Every right-sidebar view is scoped to the active conversation branch. The
   // optimistic branch selection leads the durable branch tip (the same value
@@ -841,10 +853,6 @@
   let currentRightSidebarScopeKey = $state<string | null>(null);
 
   $effect(() => {
-    if (!rightSidebarAvailable) checkpointFlowPanelCollapsed = true;
-  });
-
-  $effect(() => {
     const scopeKey = rightSidebarScopeKey;
     if (scopeKey === currentRightSidebarScopeKey) return;
     const previousScopeKey = currentRightSidebarScopeKey;
@@ -853,12 +861,12 @@
     if (previousScopeKey === null) return;
     const restored = rightSidebarScopes.switchScope(
       previousScopeKey,
-      { panel: rightSidebarPanel, collapsed: checkpointFlowPanelCollapsed },
+      { panel: rightSidebarPanel, collapsed: rightSidebarCollapseRequested },
       scopeKey,
-      { panel: "status", collapsed: rightSidebarCollapsedDefault },
+      { panel: "status", collapsed: rightSidebarPreference },
     );
     rightSidebarPanel = restored.panel;
-    checkpointFlowPanelCollapsed = restored.collapsed;
+    rightSidebarCollapseRequested = restored.collapsed;
   });
 
   $effect(() => {
@@ -867,7 +875,7 @@
     fileChangesPanelSelectionKey = key;
     if (!currentCheckpointFlow && key) {
       rightSidebarPanel = "files";
-      checkpointFlowPanelCollapsed = false;
+      rightSidebarCollapseRequested = false;
     }
   });
 
@@ -967,7 +975,7 @@
         next.flow,
       );
       rightSidebarPanel = "status";
-      checkpointFlowPanelCollapsed = false;
+      rightSidebarCollapseRequested = false;
     }
     liveCheckpointFlowProjections = { ...liveCheckpointFlowProjections, [convId]: next };
   }
@@ -5420,18 +5428,23 @@
         onOpenAbout={() => openManagementSurface("about", "about")}
         onQuit={quitApp}
         onToggleCheckpointFlowPanel={() => {
-          if (!checkpointFlowPanelCollapsed) {
-            checkpointFlowPanelCollapsed = true;
-            return;
+          // The title-bar toggle is the only writer of the preference that
+          // seeds every branch the session has not visited; automatic opens
+          // stay session state for the branch they happened in.
+          if (!rightSidebarCollapseRequested) {
+            rightSidebarCollapseRequested = true;
+          } else {
+            rightSidebarPanel = currentCheckpointFlow
+              ? "status"
+              : currentFileChanges.length > 0
+                ? "files"
+                : terminalSessionCount > 0
+                  ? "terminal"
+                  : "status";
+            rightSidebarCollapseRequested = false;
           }
-          rightSidebarPanel = currentCheckpointFlow
-            ? "status"
-            : currentFileChanges.length > 0
-              ? "files"
-              : terminalSessionCount > 0
-                ? "terminal"
-                : "status";
-          checkpointFlowPanelCollapsed = false;
+          rightSidebarPreference = rightSidebarCollapseRequested;
+          saveCheckpointFlowPanelCollapsed(window.localStorage, rightSidebarPreference);
         }}
         onMinimize={winMinimize}
         onMaximize={winMaximize}
@@ -5446,7 +5459,7 @@
           {composerPreferences}
           bind:messagesElement={messagesEl}
           bind:inputAreaHeight
-          bind:checkpointFlowPanelCollapsed
+          {checkpointFlowPanelCollapsed}
           bind:rightSidebarPanel
           {terminalSessionCount}
           onTerminalSummaryChange={(_runningCount, sessionCount) =>

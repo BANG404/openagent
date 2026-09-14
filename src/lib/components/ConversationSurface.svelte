@@ -104,7 +104,7 @@
     composerPreferences,
     messagesElement = $bindable(null),
     inputAreaHeight = $bindable(120),
-    checkpointFlowPanelCollapsed = $bindable(true),
+    checkpointFlowPanelCollapsed = true,
     rightSidebarPanel = $bindable<RightSidebarPanel>("status"),
     terminalSessionCount,
     onTerminalSummaryChange,
@@ -317,7 +317,7 @@
     flow={view.checkpointFlow}
     changes={view.fileChanges}
     onRevert={actions.revertFileChange}
-    bind:collapsed={checkpointFlowPanelCollapsed}
+    collapsed={checkpointFlowPanelCollapsed}
     bind:activePanel={rightSidebarPanel}
     terminalEnabled={view.tauriAvailable}
     terminalAvailable={terminalSessionCount > 0}

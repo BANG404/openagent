@@ -508,14 +508,38 @@ describe("desktop navigation chrome", () => {
     const panelShell = panel.match(/\.flow-panel\s*{([^}]*)}/s)?.[1];
     const collapsedPanelShell = panel.match(/\.flow-panel\.collapsed\s*{([^}]*)}/s)?.[1];
 
-    expect(route).toContain("bind:checkpointFlowPanelCollapsed");
+    // The visible collapse state is a projection of the requested state
+    // against availability, so an empty panel cannot stay open no matter how
+    // effects interleave.
+    expect(route).toMatch(/\$derived\(\s*effectiveRightSidebarCollapsed\(/);
+    expect(route).not.toContain("bind:checkpointFlowPanelCollapsed");
+    expect(route).not.toContain("if (!rightSidebarAvailable) checkpointFlowPanelCollapsed = true");
+    // Only the declaration may assign the rendered value. Svelte compiles an
+    // assignment to a `$derived` into a plain set that silently overwrites the
+    // cached value instead of failing, so nothing else guards it.
+    expect(route.match(/checkpointFlowPanelCollapsed\s*=/g)).toEqual([
+      "checkpointFlowPanelCollapsed =",
+    ]);
+    // The scope record keeps the request, never the projected collapse:
+    // recording the projection would persist an availability collapse as the
+    // user's choice for that branch.
+    expect(route).toContain("collapsed: rightSidebarCollapseRequested");
+    expect(route).not.toContain("collapsed: checkpointFlowPanelCollapsed");
+    // The preference has exactly two assignment sites: its declaration and the
+    // title-bar toggle. An automatic open that writes it becomes the default
+    // for every branch the session has not visited.
+    expect(route.match(/rightSidebarPreference\s*=/g)).toHaveLength(2);
+    expect(route).toContain(
+      "saveCheckpointFlowPanelCollapsed(window.localStorage, rightSidebarPreference)",
+    );
     expect(route).toContain("if (!currentCheckpointFlow && key) {");
     expect(route).toContain('rightSidebarPanel = "files"');
     expect(route).toContain('rightSidebarPanel = "status"');
     expect(route).toContain("checkpointFlow: currentCheckpointFlow ?? null");
     expect(route).toContain("rightSidebarAvailable");
-    expect(route).toContain("if (!rightSidebarAvailable) checkpointFlowPanelCollapsed = true");
     expect(conversationSurface).toContain("<CheckpointFlowPanelHost");
+    expect(conversationSurface).toContain("collapsed={checkpointFlowPanelCollapsed}");
+    expect(conversationSurface).not.toContain("checkpointFlowPanelCollapsed = $bindable(");
     expect(conversationSurface).not.toContain("<BackgroundTerminalPanel");
     expect(conversationSurface).not.toContain("conversationDetailsAvailable(");
     expect(route).toContain("shouldAutoOpenCheckpointFlowPanel(previous, next.flow)");

@@ -102,7 +102,12 @@
 - Keep status, file changes, and background terminals in the same resizable
   desktop right sidebar. Show the sidebar and its title-bar entry only while at
   least one of those views has content, and collapse it when the last available
-  view becomes empty. In compact windows, overlay the sidebar across the usable
+  view becomes empty. Make that rule structural rather than dependent on effect
+  ordering: the rendered collapse state is the active branch's own request
+  projected against availability, so no scope switch, restore, or automatic
+  open can leave an expanded panel with nothing to show — which would also be
+  unclosable, since the title-bar entry disappears with the same views. In
+  compact windows, overlay the sidebar across the usable
   application body instead of shrinking the transcript and sidebar content.
   The right sidebar does not embed a general-purpose website browser.
 - Present background terminal sessions as an accordion: each session row is a
@@ -117,12 +122,13 @@
   so switching branches cannot overwrite another branch's terminal panel
   record, and reset the panel to an empty scope instead of leaving the previous
   scope's sessions on screen until the next poll. Apply the same per-branch
-  retention to every right-sidebar view: the selected tab and collapsed state
-  are part of the scope, not app-global state. A session whose owning branch is
-  unknown — a `/graph` background run, or any caller with no branch context —
-  stays visible in every branch of its conversation, because hiding a running
-  process would make it unreachable; only a session that positively belongs to
-  another conversation or another branch is hidden. This panel's buttons keep
+  retention to every right-sidebar view: the selected tab and the branch's own
+  collapse request are part of the scope, not app-global state. A session whose
+  owning branch is unknown — a `/graph` background run, or any caller with no
+  branch context — stays visible in every branch of its conversation, because
+  hiding a running process would make it unreachable; only a session that
+  positively belongs to another conversation or another branch is hidden. This
+  panel's buttons keep
   their resting size on press instead of using the system-wide
   `transform: scale(0.95)`, because scaling a control inside the accordion
   reshuffles the row under the pointer.
