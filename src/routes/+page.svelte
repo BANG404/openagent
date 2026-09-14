@@ -1142,37 +1142,45 @@
         .filter((content) => content.type === "tool_result")
         .map((content) => String(content.tool_use_id)),
     );
+    // An interrupted checkpoint can contain several tool calls from one
+    // provider turn. Only the first unresolved call is currently waiting for
+    // input; later calls have not run yet and must not be presented as
+    // approvals. This matters when the model emits ask_user alongside an
+    // ordinary tool: restoring every unresolved call incorrectly creates an
+    // approval card for the sibling tool even when approval mode is off.
     const pending = checkpoint.data.messages
       .filter((message) => message.role === "assistant")
       .flatMap((message) => message.content)
-      .filter((content) => content.type === "tool_use" && !resolved.has(String(content.id)));
-    return pending.flatMap((content) => {
-      const toolUse = content as { id: string; name: string; input?: unknown };
-      if (toolUse.name === "render_mermaid") return [];
-      if (toolUse.name === "ask_user") {
-        const request = askUserRequestFromToolUse(toolUse as Record<string, unknown>, convId);
-        return request ? [request] : [];
-      }
-      return [
-        {
-          request_id: toolUse.id,
-          conv_id: convId,
-          kind: "tool_approval" as const,
-          title: "Approve tool call",
-          description: `Review the exact tool call before allowing it:\n\n${toolUse.name}\n${JSON.stringify(toolUse.input, null, 2)}`,
-          fields: [
+      .find((content) => content.type === "tool_use" && !resolved.has(String(content.id)));
+    return pending
+      ? [pending].flatMap((content) => {
+          const toolUse = content as { id: string; name: string; input?: unknown };
+          if (toolUse.name === "render_mermaid") return [];
+          if (toolUse.name === "ask_user") {
+            const request = askUserRequestFromToolUse(toolUse as Record<string, unknown>, convId);
+            return request ? [request] : [];
+          }
+          return [
             {
-              type: "confirm" as const,
-              name: "approved",
-              label: "Approve this tool call once",
-              default: false,
+              request_id: toolUse.id,
+              conv_id: convId,
+              kind: "tool_approval" as const,
+              title: "Approve tool call",
+              description: `Review the exact tool call before allowing it:\n\n${toolUse.name}\n${JSON.stringify(toolUse.input, null, 2)}`,
+              fields: [
+                {
+                  type: "confirm" as const,
+                  name: "approved",
+                  label: "Approve this tool call once",
+                  default: false,
+                },
+              ],
+              submit_label: "Approve and continue",
+              cancel_label: "Deny",
             },
-          ],
-          submit_label: "Approve and continue",
-          cancel_label: "Deny",
-        },
-      ];
-    });
+          ];
+        })
+      : [];
   }
 
   function restoreMermaidRenderRequests(

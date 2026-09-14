@@ -86,7 +86,11 @@
   becomes the matching durable ToolResult instead of projecting an approval
   button. Other unresolved calls in the same batch retain their own approval
   lifecycle. Checkpoint hydration must
-  preserve optimistic sibling approval resolutions by request ID.
+  preserve optimistic sibling approval resolutions by request ID. When an
+  interrupted checkpoint contains multiple unresolved tool calls, only the
+  first call in execution order is awaiting input; later siblings stay hidden
+  until the runtime advances to them. This prevents an `ask_user` call from
+  making a sibling tool look like an approval request.
   Keep Mermaid renders serialized behind the underlying operation so the
   shared engine is never used concurrently.
   Apply the same failed-result hiding rule to ordinary tools.
