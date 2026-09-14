@@ -36,10 +36,9 @@
     width: 100%;
     min-height: 36px;
     padding: 2px;
-    border: 1px solid var(--mica-border);
+    border: 1px solid var(--mica-divider);
     border-radius: 7px;
     background: var(--control-surface);
-    box-shadow: var(--control-shadow);
   }
 
   button {
@@ -63,7 +62,6 @@
   button.active {
     background: var(--surface);
     color: var(--text);
-    box-shadow: var(--control-shadow);
     font-weight: 600;
   }
 
