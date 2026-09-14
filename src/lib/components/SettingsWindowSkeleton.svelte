@@ -81,7 +81,6 @@
     <main class="about-skeleton" aria-hidden="true">
       <span class="block about-logo"></span>
       <span class="block about-title"></span>
-      <span class="block about-version"></span>
       <span class="block about-description"></span>
       <span class="block about-description short"></span>
       <span class="block about-link"></span>
@@ -611,11 +610,6 @@
   .about-title {
     width: 120px;
     height: 14px;
-  }
-
-  .about-version {
-    width: 132px;
-    height: 10px;
   }
 
   .about-description {

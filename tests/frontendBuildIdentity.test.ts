@@ -13,7 +13,6 @@ import {
 } from "../scripts/frontend-build-identity.mjs";
 
 const buildModule = readFileSync("src/lib/frontendBuild.ts", "utf8");
-const settingsSource = readFileSync("src/lib/components/SettingsView.svelte", "utf8");
 const viteConfig = readFileSync("vite.config.js", "utf8");
 
 describe("frontend build identity", () => {
@@ -41,11 +40,10 @@ describe("frontend build identity", () => {
     }
   });
 
-  test("stamps the running bundle and presents it as the frontend version", () => {
+  test("stamps the running bundle through the Vite define", () => {
     expect(viteConfig).toContain("FRONTEND_BUILD_DEFINE");
     expect(viteConfig).toContain("frontendBuildIdentity().label");
     expect(buildModule).toContain(FRONTEND_BUILD_DEFINE);
     expect(FRONTEND_BUILD_DEFINE).toBe("__OPENAGENT_FRONTEND_BUILD__");
-    expect(settingsSource).toContain('import { frontendBuildLabel } from "$lib/frontendBuild";');
   });
 });

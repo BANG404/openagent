@@ -27,12 +27,11 @@ describe("product release identity", () => {
     expect(hostSource).not.toContain("frontend: frontend_version");
   });
 
-  test("presents the product release before component details", () => {
+  test("presents the product release without built-in component versions", () => {
     expect(settingsSource).toContain(
       '<h3 class="about-app-name">OpenAgent {componentVersions.release}</h3>',
     );
-    expect(settingsSource).toContain('{$t("aboutVersionFrontend")}');
-    expect(settingsSource).toContain('{$t("aboutVersionRuntime")}');
-    expect(settingsSource).toContain('{frontendBuildLabel || $t("aboutVersionUnknown")}');
+    expect(settingsSource).not.toContain("aboutVersion");
+    expect(settingsSource).not.toContain("frontendBuildLabel");
   });
 });

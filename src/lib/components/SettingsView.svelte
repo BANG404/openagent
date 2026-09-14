@@ -25,7 +25,6 @@
   } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
-  import { frontendBuildLabel } from "$lib/frontendBuild";
   import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
   import {
     CUA_DRIVER_COMMAND,
@@ -4118,14 +4117,6 @@
         <div class="about-content">
           <img class="about-logo-img" src="/app-icon.png" alt="OpenAgent" />
           <h3 class="about-app-name">OpenAgent {componentVersions.release}</h3>
-          <p class="about-version">
-            {$t("aboutVersionShell")}
-            {componentVersions.shell} ·
-            {$t("aboutVersionFrontend")}
-            {frontendBuildLabel || $t("aboutVersionUnknown")} ·
-            {$t("aboutVersionRuntime")}
-            {componentVersions.runtime ?? $t("aboutVersionUnknown")}
-          </p>
           <a class="about-contact" href="mailto:iumm@ibat.ac.cn">iumm@ibat.ac.cn</a>
           <a
             class="about-contact"

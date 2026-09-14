@@ -11,8 +11,9 @@ the packaged `CARGO_PKG_VERSION` is the fallback before an external frontend is
 active. It identifies a qualified release combination; it does not replace
 component versions. Installed frontend and Runtime resources continue to track
 their own versions and may be updated or rolled back independently. The About
-view presents `OpenAgent <release>` and keeps the shell, frontend, and Runtime
-versions available as component detail.
+view presents `OpenAgent <release>` only; the shell, frontend, and Runtime
+identities stay host-reported component detail that the product UI does not
+render.
 
 Release metadata must therefore be interpreted as a tuple: product release
 identity, selected component set, and the protocol compatibility constraints

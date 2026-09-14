@@ -3,10 +3,10 @@
  *
  * `vite.config.js` replaces `__OPENAGENT_FRONTEND_BUILD__` with the frontend
  * product version and the abbreviated revision of the checkout the bundle was
- * built from. Reading it from the running bundle keeps the About surface
- * honest: an embedded frontend, an installed frontend resource, and a
- * development bundle each report the code that is actually executing instead of
- * the desktop shell version they happen to ship with.
+ * built from, so an embedded frontend, an installed frontend resource, and a
+ * development bundle each identify the code that is actually executing instead
+ * of the desktop shell version they happen to ship with. No product surface
+ * presents this identity: the About view shows only the product release.
  *
  * The revision is fixed when the Vite server starts, so a long-running
  * development server keeps reporting the revision it was started from.

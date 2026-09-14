@@ -96,17 +96,18 @@ struct ComponentVersions {
     /// The packaged desktop shell identity.
     shell: String,
     /// The Runtime release identity, present only while the Runtime runs. The
-    /// frontend reports its own build identity from the running bundle.
+    /// host never derives a frontend version: the running bundle identifies
+    /// itself.
     runtime: Option<String>,
 }
 
-/// Resolve the Runtime identity the About surface reports.
+/// Resolve the Runtime release identity reported as component detail.
 ///
 /// The supervised process only reports the crate version of the binary it runs,
 /// and that is not a release identity: the packaged sidecar is built from an
 /// unstamped SDK checkout, so every product release ships a Runtime that reports
 /// the same crate version. The signed Runtime resource that delivers modular
-/// Runtime updates publishes the product release version instead, so About
+/// Runtime updates publishes the product release version instead, so this
 /// prefers that identity, then the resource's own version, and finally the
 /// packaged shell release that the bundled sidecar ships inside.
 fn runtime_release_identity(
