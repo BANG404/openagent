@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.66.2-beta.1] - 2026-09-14
+
+### Bug Fixes
+- **frontend**: Keep an empty right sidebar from staying open
+- Avoid phantom approvals after ask user interrupt
+- **runtime**: Give delegated roles plugin capabilities
+- Isolate transcript tail following by conversation
+
 ## [0.66.1-beta.1] - 2026-09-14
 
 ### Bug Fixes
