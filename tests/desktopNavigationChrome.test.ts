@@ -274,6 +274,13 @@ describe("desktop navigation chrome", () => {
     expect(fullscreenSurface).toMatch(
       /\.fullscreen-surface\)\s*{[^}]*position: fixed;[^}]*inset: 0;[^}]*z-index: 81;/s,
     );
+    // The surface, not its close action, takes the initial focus: a focused
+    // tooltip trigger would open its label over a pointer that never got there.
+    expect(fullscreenSurface).toMatch(
+      /onOpenAutoFocus=\{\(event\) => \{\s*event\.preventDefault\(\);\s*surfaceElement\?\.focus\(\);/,
+    );
+    expect(fullscreenSurface).toMatch(/class="fullscreen-surface"\s+data-window-platform/);
+    expect(fullscreenSurface).toContain("tabindex={-1}");
     expect(menu).toContain('onOpenSettingsWindow("models", "providers")');
     expect(menu).toContain('onOpenSettingsWindow("agent", "execution")');
     expect(menu).toContain('onOpenSettingsWindow("integrations", "channels")');

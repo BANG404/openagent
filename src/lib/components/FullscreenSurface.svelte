@@ -27,6 +27,7 @@
   } = $props();
 
   let platform = $derived(platformOverride ?? detectWindowPlatform());
+  let surfaceElement = $state<HTMLElement | null>(null);
 </script>
 
 <Dialog.Root
@@ -37,7 +38,22 @@
 >
   <Dialog.Portal>
     <Dialog.Overlay class="fullscreen-surface-backdrop" />
-    <Dialog.Content class="fullscreen-surface" data-window-platform={platform} aria-label={title}>
+    <!-- The dialog focuses its first tabbable control on open, which is the
+         close action. Tooltips open on focus as well as hover, so that lands the
+         "close" tooltip on a pointer that never went there. The surface itself
+         takes the initial focus instead, and the close action keeps it for
+         keyboard traversal. -->
+    <Dialog.Content
+      class="fullscreen-surface"
+      data-window-platform={platform}
+      aria-label={title}
+      tabindex={-1}
+      bind:ref={surfaceElement}
+      onOpenAutoFocus={(event) => {
+        event.preventDefault();
+        surfaceElement?.focus();
+      }}
+    >
       <header
         class="fullscreen-surface-chrome"
         data-tauri-drag-region={platform === "macos" ? "true" : undefined}
