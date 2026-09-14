@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.66.1-beta.1] - 2026-09-14
+
+### Bug Fixes
+- **frontend**: Focus the in-window surface instead of its close action
+- **frontend**: Present only the product release in About
+- **frontend**: Omit Windows window controls from the in-window surface
+
 ## [0.66.0-beta.1] - 2026-09-13
 
 ### Features
