@@ -53,6 +53,10 @@
           data-tauri-drag-region={platform === "macos" ? "true" : undefined}
           aria-hidden="true"
         ></div>
+        <!-- Windows carries no window-management group here: trailing
+             minimize/maximize/close would place the destructive window close
+             against the routine surface close. Only macOS keeps its controls,
+             which sit at the leading edge away from this close action. -->
         <Tooltip text={$t("close")}>
           {#snippet trigger(props)}
             <Dialog.Close {...props} class="fullscreen-surface-close" aria-label={$t("close")}>
@@ -62,11 +66,6 @@
             </Dialog.Close>
           {/snippet}
         </Tooltip>
-        {#if platform === "windows"}
-          <div class="fullscreen-surface-window-controls">
-            <WindowControls {platform} {onMinimize} {onMaximize} onClose={onCloseWindow} />
-          </div>
-        {/if}
       </header>
       <div class="fullscreen-surface-body">
         {@render children()}
@@ -125,8 +124,7 @@
     -webkit-app-region: drag;
   }
 
-  :global(.fullscreen-surface[data-window-platform="windows"] .fullscreen-surface-close),
-  :global(.fullscreen-surface[data-window-platform="windows"] .fullscreen-surface-window-controls) {
+  :global(.fullscreen-surface[data-window-platform="windows"] .fullscreen-surface-close) {
     -webkit-app-region: no-drag;
   }
 
