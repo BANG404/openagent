@@ -2308,10 +2308,19 @@
       }
     } finally {
       let embeddingResourceReady = !tauriAvailable;
+      let embeddingResourceStatusKnown = !tauriAvailable;
+      const mainWindowWasVisible = tauriAvailable
+        ? await getCurrentWindow()
+            .isVisible()
+            .catch(() => false)
+        : false;
       if (tauriAvailable) {
         embeddingResourceReady = await openAgent
           .invokeProduct("get_embedding_resource_status", {})
-          .then((resource) => resource.state === "ready")
+          .then((resource) => {
+            embeddingResourceStatusKnown = true;
+            return resource.state === "ready";
+          })
           .catch(() => false);
       }
       if (
@@ -2320,7 +2329,14 @@
         !isAgentsSettingsPreview &&
         !isMcpSettingsPreview
       ) {
-        requiresOnboarding = !config.onboarding_completed || !embeddingResourceReady;
+        // A Runtime restart can briefly make the resource-status IPC unavailable
+        // while Vite HMR remounts this shell. Treat that as unknown so a reload
+        // of an already configured app cannot reveal the hidden onboarding
+        // window; an explicit non-ready status still opens the repair flow.
+        requiresOnboarding =
+          !config.onboarding_completed ||
+          (embeddingResourceStatusKnown && !embeddingResourceReady) ||
+          (!embeddingResourceStatusKnown && !mainWindowWasVisible);
       }
       const uiReadyAt = performance.now();
       initialLoading = false;

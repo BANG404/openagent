@@ -14,9 +14,9 @@ describe("onboarding completion", () => {
       readFile(onboardingFlowUrl, "utf8"),
     ]);
 
-    expect(route).toContain(
-      "requiresOnboarding = !config.onboarding_completed || !embeddingResourceReady;",
-    );
+    expect(route).toContain("embeddingResourceStatusKnown");
+    expect(route).toContain("!embeddingResourceStatusKnown && !mainWindowWasVisible");
+    expect(route).toContain("embeddingResourceStatusKnown && !embeddingResourceReady");
     expect(route).toContain('"get_embedding_resource_status"');
     expect(route).not.toContain("hasLegacyOnboardingCompletion");
     expect(route).not.toContain("clearLegacyOnboardingCompletion");

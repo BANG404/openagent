@@ -25,6 +25,13 @@
   versioned config beneath `OPENAGENT_HOME`, but keep the main shell hidden
   until the resource is verified. A configured repair opens directly on the
   final resource step without rewriting settings.
+- During a frontend HMR remount, Runtime resource-status IPC may be briefly
+  unavailable while the supervised sidecar reconnects. Treat an unavailable
+  status as unknown when the already-revealed main shell is reloading; only an
+  explicit non-ready status may reveal the onboarding repair window in that
+  case. A still-hidden first startup keeps the conservative onboarding path,
+  and first-run configuration (`onboarding_completed` is false) always reveals
+  onboarding.
 - Render first-run onboarding in its own undecorated Tauri window while the main
   window remains hidden. Completing the flow hands the selected workspace back
   to the already-bootstrapped main window before revealing it. The development
