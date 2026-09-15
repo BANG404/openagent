@@ -245,7 +245,7 @@ When that Skill is available, the agent receives an explicit reminder to use it 
 Open **Roles** in the sidebar to create and manage specialized workflows such as a code reviewer, release manager, or research assistant. A role contains a stable name plus the responsibilities, boundaries, workflow, and delivery standards appended to the delegated agent's system prompt.
 
 - Roles are global and reusable in every workspace.
-- Role-specific Skill associations can select only globally installed Skills.
+- Role-specific Skill and MCP associations are exhaustive: a role runs with the global Skills and MCP servers you select for it, and with none of them until you select any. Project Skills and plugin capabilities such as Cua Driver stay available to every role. Each resource column selects or clears all of its listed rows at once.
 - The main agent can create a role on first dispatch, find saved roles by name or responsibility, and reuse them in child conversations. The Roles panel shows usage count and last-used time.
 
 ### Progressive Skill discovery

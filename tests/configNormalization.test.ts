@@ -95,6 +95,23 @@ describe("MCP tool policy config", () => {
 
     expect(normalized.mcp.servers[0].disabled_tools).toEqual(["alpha", "beta"]);
   });
+
+  test("marks the reserved plugin entry as plugin owned on every load", () => {
+    const normalized = normalizeConfigShape({
+      mcp: { servers: [{ id: "cua-driver" }, { id: "user-server" }] },
+    } as unknown as AppConfig);
+
+    expect(normalized.mcp.servers[0].plugin_owned).toBe(true);
+    expect(normalized.mcp.servers[1].plugin_owned).toBe(false);
+  });
+
+  test("preserves plugin ownership recorded by the runtime", () => {
+    const normalized = normalizeConfigShape({
+      mcp: { servers: [{ id: "user-server", plugin_owned: true }] },
+    } as unknown as AppConfig);
+
+    expect(normalized.mcp.servers[0].plugin_owned).toBe(true);
+  });
 });
 
 describe("model retry config", () => {

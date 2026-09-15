@@ -328,6 +328,13 @@
       path: "C:\\Users\\dev\\.agents\\skills\\release-checks",
       scope: "global",
     },
+    {
+      name: "Design review",
+      description: "Review component language and visual consistency",
+      dir_name: "design-review",
+      path: "C:\\Users\\dev\\.agents\\skills\\design-review",
+      scope: "global",
+    },
   ]}
   mcpServers={[
     {
@@ -339,6 +346,18 @@
       bearer_token: "",
       headers: {},
       command: "bunx",
+      args: [],
+      env: {},
+    },
+    {
+      id: "docs-index",
+      name: "Docs index",
+      enabled: true,
+      transport: "http",
+      url: "https://docs.example.com/mcp",
+      bearer_token: "",
+      headers: {},
+      command: "",
       args: [],
       env: {},
     },

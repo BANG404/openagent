@@ -85,6 +85,13 @@
   its search field and overflow scrolling, and inner controls use flat bordered
   surfaces rather than nested elevation. Saved roles have one global scope, so
   the editor has no scope selector and offers only global Skills for association.
+  Both columns are exhaustive allowlists: associating nothing runs the role with
+  no global Skill and no user MCP server. Workspace Skills and plugin-owned MCP
+  servers are the agent capability surface rather than a role selection, so they
+  stay available to every role and the editor neither lists them as choices nor
+  narrows them. Each column header carries the compact quiet select-all action
+  beside its title, toggling to clear once every listed row is selected; it acts
+  on the rows currently listed, so an active search narrows the bulk action.
   Both hosted presentations already name the role—the shared management surface
   in its chrome and the utility window in its native title bar—so the editor
   content starts directly with its fields instead of repeating a title,

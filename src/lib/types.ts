@@ -568,6 +568,12 @@ export interface McpServerConfig {
   env: Record<string, string>;
   cwd?: string;
   disabled_tools?: string[];
+  /**
+   * The entry is owned by a plugin surface rather than the user's own MCP
+   * integration list, so Agent Role narrowing keeps it for every role.
+   * Portable Agent Plugins also namespace their id with `plugin:`.
+   */
+  plugin_owned?: boolean;
 }
 
 export interface McpSettings {

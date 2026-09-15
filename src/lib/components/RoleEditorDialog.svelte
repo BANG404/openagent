@@ -2,7 +2,14 @@
   import { Dialog } from "bits-ui";
   import type { AgentRole, McpServerConfig, SkillMetadata } from "$lib/types";
   import { t } from "$lib/i18n";
-  import { globalRoleSkillIds, globalRoleSkills } from "$lib/roleScope";
+  import {
+    globalRoleSkillIds,
+    globalRoleSkills,
+    hasAllSelected,
+    setAllSelected,
+    toggleSelection,
+  } from "$lib/roleScope";
+  import SettingsActionButton from "$lib/components/ui/SettingsActionButton.svelte";
 
   type RoleDraft = {
     id: string | null;
@@ -66,6 +73,14 @@
     );
   });
 
+  // The two columns are exhaustive allowlists, so each one offers a bulk action
+  // over exactly the rows currently listed. An active search narrows the action
+  // to the visible rows and leaves the rest of the selection untouched.
+  let listedSkillIds = $derived(filteredSkills.map(skillId));
+  let listedMcpServerIds = $derived(filteredMcpServers.map((server) => server.id));
+  let allSkillsSelected = $derived(hasAllSelected(skillIds, listedSkillIds));
+  let allMcpServersSelected = $derived(hasAllSelected(mcpServerIds, listedMcpServerIds));
+
   $effect(() => {
     if (!open) {
       initializedKey = "";
@@ -84,10 +99,6 @@
 
   function skillId(skill: SkillMetadata): string {
     return `${skill.scope}:${skill.dir_name}`;
-  }
-
-  function toggle(list: string[], value: string, checked: boolean): string[] {
-    return checked ? [...new Set([...list, value])] : list.filter((item) => item !== value);
   }
 
   function submit(): void {
@@ -149,7 +160,16 @@
       {:else}
         <div class="resource-columns">
           <div class="resource-column">
-            <h4>{$t("skills")}</h4>
+            <div class="resource-column-header">
+              <h4>{$t("skills")}</h4>
+              <SettingsActionButton
+                tone="quiet"
+                label={allSkillsSelected ? $t("roleClearSelection") : $t("roleSelectAll")}
+                disabled={listedSkillIds.length === 0}
+                onclick={() =>
+                  (skillIds = setAllSelected(skillIds, listedSkillIds, !allSkillsSelected))}
+              />
+            </div>
             <div class="resource-browser">
               <div class="desktop-menu-search-wrap resource-search">
                 <svg
@@ -176,7 +196,11 @@
                       type="checkbox"
                       checked={skillIds.includes(skillId(skill))}
                       onchange={(event) =>
-                        (skillIds = toggle(skillIds, skillId(skill), event.currentTarget.checked))}
+                        (skillIds = toggleSelection(
+                          skillIds,
+                          skillId(skill),
+                          event.currentTarget.checked,
+                        ))}
                     />
                     <span><strong>{skill.name}</strong><small>{skill.description}</small></span>
                   </label>
@@ -189,7 +213,20 @@
             </div>
           </div>
           <div class="resource-column">
-            <h4>{$t("mcpServers")}</h4>
+            <div class="resource-column-header">
+              <h4>{$t("mcpServers")}</h4>
+              <SettingsActionButton
+                tone="quiet"
+                label={allMcpServersSelected ? $t("roleClearSelection") : $t("roleSelectAll")}
+                disabled={listedMcpServerIds.length === 0}
+                onclick={() =>
+                  (mcpServerIds = setAllSelected(
+                    mcpServerIds,
+                    listedMcpServerIds,
+                    !allMcpServersSelected,
+                  ))}
+              />
+            </div>
             <div class="resource-browser">
               <div class="desktop-menu-search-wrap resource-search">
                 <svg
@@ -216,7 +253,7 @@
                       type="checkbox"
                       checked={mcpServerIds.includes(server.id)}
                       onchange={(event) =>
-                        (mcpServerIds = toggle(
+                        (mcpServerIds = toggleSelection(
                           mcpServerIds,
                           server.id,
                           event.currentTarget.checked,
@@ -491,6 +528,28 @@
   .resource-column h4 {
     padding: 0 2px 8px;
     font-size: 12px;
+  }
+
+  /* The bulk action shares the title row, so the row owns the heading's
+     spacing and the button only aligns to it. */
+  .resource-column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 2px 8px;
+  }
+
+  .resource-column-header h4 {
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .resource-column-header :global(.settings-action) {
+    flex: 0 0 auto;
   }
 
   .resource-columns {

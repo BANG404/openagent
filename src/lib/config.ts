@@ -8,6 +8,7 @@ import type {
   PermissionProfile,
   ReasoningEffort,
 } from "./types";
+import { isPluginOwnedMcpServerId } from "./cuaDriver";
 import { normalizeQuickChatShortcut } from "./quickChatShortcut";
 
 export type NormalizedMcpServerConfig = McpServerConfig & {
@@ -141,6 +142,10 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
       return {
         ...defaults,
         ...s,
+        // The reserved entry is plugin-owned by identity, so the invariant holds
+        // on every load path even for configurations written before the flag
+        // existed; a flag the runtime already recorded stays as it is.
+        plugin_owned: s.plugin_owned === true || isPluginOwnedMcpServerId(s.id),
         disabled_tools: [
           ...new Set((s.disabled_tools ?? []).map((tool) => tool.trim()).filter(Boolean)),
         ].sort((left, right) => left.localeCompare(right)),
