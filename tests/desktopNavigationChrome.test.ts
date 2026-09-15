@@ -135,6 +135,7 @@ describe("desktop navigation chrome", () => {
     expect(appCss).toContain("--column-resize-indicator-opacity: 0.7");
     expect(sidebar).toMatch(/\.sidebar\s*{[^}]*background: transparent;/s);
     expect(sidebar).toContain("padding-top: var(--desktop-titlebar-height)");
+    expect(sidebar).toContain('{#if platform !== "macos"}');
     expect(titleBar).toMatch(/\.title-bar\s*{[^}]*background: transparent;/s);
     expect(titleBar).toContain("height: var(--desktop-titlebar-height)");
     expect(sidebar).not.toContain("border-right:");
@@ -183,6 +184,11 @@ describe("desktop navigation chrome", () => {
     expect(nativeMaterialTokens).toContain("--bg: transparent");
     expect(nativeMaterialTokens).toContain("--app-chrome-bg: transparent");
     expect(nativeMaterialTokens).toContain("--sidebar-bg: transparent");
+    expect(appCss).toMatch(
+      /html\.macos-window,\s*html\.macos-window body\s*{[^}]*border-radius: 12px;[^}]*overflow: hidden;/s,
+    );
+    expect(appCss).toMatch(/html\.macos-window body\s*{[^}]*clip-path: inset\(0 round 12px\);/s);
+    expect(route).toContain('document.documentElement.classList.add("macos-window")');
     expect(appCss).toMatch(
       /html\.native-window-material \.flow-panel-surface\s*{[^}]*background: var\(--surface\);[^}]*backdrop-filter: none;/s,
     );

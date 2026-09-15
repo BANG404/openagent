@@ -213,6 +213,12 @@
   against the title bar's lower edge, with 8px gutters at the sides and bottom
   plus compact, clearly edged elevation; use that spatial layer rather than
   shell divider lines to separate conversation from navigation.
+- On real macOS Tauri windows, apply the `macos-window` document class and clip
+  the transparent WebView perimeter to a 12px radius. Keep this outer mask out
+  of browser previews and non-macOS shells so the native material remains
+  responsible for the window canvas.
+- The macOS title chrome keeps the traffic-light controls and menu spacing but
+  omits the sidebar application icon; Windows and Linux retain that icon.
 - Use the theme canvas for the workspace surface. Keep the new-conversation
   greeting and composer, as well as the bottom-anchored composer, on neutral
   theme surfaces without an ambient color field or animated glow. On a new

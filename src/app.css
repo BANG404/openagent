@@ -224,6 +224,19 @@
     background: transparent;
   }
 
+  /* Tauri's transparent macOS WebView does not inherit AppKit's window mask.
+     Clip the web content to the same quiet 12px radius as the native window
+     outline so transparent title chrome and content share one Apple-style edge. */
+  html.macos-window,
+  html.macos-window body {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  html.macos-window body {
+    clip-path: inset(0 round 12px);
+  }
+
   html.native-window-material .flow-panel-surface {
     background: var(--surface);
     -webkit-backdrop-filter: none;

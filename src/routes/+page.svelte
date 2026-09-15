@@ -2173,6 +2173,12 @@
     return () => document.documentElement.classList.remove("native-window-material");
   });
 
+  onMount(() => {
+    if (!tauriAvailable || detectWindowPlatform() !== "macos") return;
+    document.documentElement.classList.add("macos-window");
+    return () => document.documentElement.classList.remove("macos-window");
+  });
+
   onMount(async () => {
     if (!isSettingsWindow) return;
     SettingsWindowSurface = (await import("$lib/components/SettingsWindowSurface.svelte")).default;

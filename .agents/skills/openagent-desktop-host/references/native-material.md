@@ -12,6 +12,10 @@
   theme-color tint. Content controls and the inset conversation stage remain
   surfaced; quick chat, browser previews, and development inspector windows
   keep their intentional separate backgrounds.
+- On macOS, the frontend clips transparent Tauri window content to a 12px outer
+  radius (`macos-window`) so AppKit's native rounded outline is continuous
+  across the title chrome and WebView. Keep this platform class scoped to real
+  Tauri windows; browser previews and non-macOS shells must remain unchanged.
 - Serialize native theme requests and, when returning to the system
   theme, clear the native override before resolving the WebView media
   preference so both layers use the same palette. Treat

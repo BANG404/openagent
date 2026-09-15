@@ -78,6 +78,9 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   surface because they have no native material.
   The operating system retains the native window outline, rounded corners, and
   exterior shadow.
+  On macOS, transparent Tauri WebViews clip their outer content to a 12px
+  radius so the title chrome and native outline retain the same Apple-style
+  window edge.
   Do not draw a border between those two chrome segments or beneath the title
   bar. Separate chat from navigation through an inset rounded conversation canvas
   directly against the title bar's lower edge, with 8px side and bottom gutters

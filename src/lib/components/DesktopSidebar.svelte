@@ -113,7 +113,9 @@
   style:--sidebar-width={`${width}px`}
 >
   <div class="sidebar-top" data-tauri-drag-region>
-    <img class="sidebar-app-icon" src="/app-icon.png" alt="OpenAgent" draggable="false" />
+    {#if platform !== "macos"}
+      <img class="sidebar-app-icon" src="/app-icon.png" alt="OpenAgent" draggable="false" />
+    {/if}
   </div>
   <div class="sidebar-content">
     <div class="sidebar-role">
