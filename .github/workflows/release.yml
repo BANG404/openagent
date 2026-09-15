@@ -169,6 +169,8 @@ jobs:
           AZURE_AD_APPLICATION_CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
           AZURE_AD_APPLICATION_SECRET: ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
           AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          WINDOWS_CODESIGN_PFX_BASE64: ${{ secrets.WINDOWS_CODESIGN_PFX_BASE64 }}
+          WINDOWS_CODESIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PFX_PASSWORD }}
           SELLER_ID: ${{ secrets.SELLER_ID }}
           MS_STORE_APP_ID: ${{ vars.MS_STORE_APP_ID }}
           MS_STORE_PACKAGE_IDENTITY_NAME: ${{ vars.MS_STORE_PACKAGE_IDENTITY_NAME }}
@@ -186,6 +188,15 @@ jobs:
           if [[ -z "$OPENAGENT_SDK_RELEASE_TOKEN" ]]; then
             echo "Repository secret OPENAGENT_SDK_RELEASE_TOKEN is required." >&2
             exit 1
+          fi
+
+          if [[ "$NATIVE_SHELL" == "true" ]]; then
+            for name in WINDOWS_CODESIGN_PFX_BASE64 WINDOWS_CODESIGN_PFX_PASSWORD; do
+              if [[ -z "${!name}" ]]; then
+                echo "Repository secret $name is required for signed Windows Runtime binaries." >&2
+                exit 1
+              fi
+            done
           fi
 
           if [[ "$PRERELEASE" == "false" && "$NATIVE_SHELL" == "true" ]]; then
@@ -491,6 +502,38 @@ jobs:
           --artifacts "$RUNNER_TEMP/sdk-runtime"
           --sdk-sha "${{ needs.sdk-release.outputs.sdk_release_sha }}"
           --tauri-target "${{ matrix.sidecar_target }}"
+
+      - name: Authenticode-sign Windows Runtime sidecar
+        if: matrix.runner_os == 'Windows'
+        shell: pwsh
+        env:
+          WINDOWS_CODESIGN_PFX_BASE64: ${{ secrets.WINDOWS_CODESIGN_PFX_BASE64 }}
+          WINDOWS_CODESIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PFX_PASSWORD }}
+        run: |
+          $sidecars = @(Get-ChildItem "src-tauri\binaries\openagent-server-*.exe" -File)
+          if ($sidecars.Count -ne 1) {
+            throw "Expected exactly one Windows Runtime sidecar, found $($sidecars.Count)."
+          }
+          $pfxPath = Join-Path $env:RUNNER_TEMP "openagent-codesign.pfx"
+          try {
+            [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:WINDOWS_CODESIGN_PFX_BASE64))
+            $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+              Sort-Object FullName -Descending | Select-Object -First 1
+            if ($null -eq $signtool) {
+              throw "Windows SDK signtool.exe was not found on the runner."
+            }
+            & $signtool.FullName sign /fd SHA256 /f $pfxPath /p $env:WINDOWS_CODESIGN_PFX_PASSWORD `
+              /tr http://timestamp.digicert.com /td SHA256 $sidecars[0].FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "Authenticode signing of openagent-server.exe failed."
+            }
+            & $signtool.FullName verify /pa /q $sidecars[0].FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "Authenticode verification of openagent-server.exe failed."
+            }
+          } finally {
+            Remove-Item -LiteralPath $pfxPath -Force -ErrorAction SilentlyContinue
+          }
 
       - name: Install Linux dependencies
         if: matrix.runner_os == 'Linux'

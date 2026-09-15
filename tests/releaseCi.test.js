@@ -280,6 +280,10 @@ describe("release CI verification", () => {
     expect(buildJob).toContain('OPENAGENT_RUNTIME_SERVER_PREBUILT: "1"');
     expect(buildJob).toContain("name: Verify Windows release executable");
     expect(buildJob).toContain("VersionInfo.ProductVersion");
+    expect(buildJob).toContain("name: Authenticode-sign Windows Runtime sidecar");
+    expect(buildJob).toContain("WINDOWS_CODESIGN_PFX_BASE64");
+    expect(buildJob).toContain("signtool.exe");
+    expect(buildJob).toContain("verify /pa /q");
     expect(desktopCapability.permissions).toContain("updater:default");
     expect(buildJob).not.toContain("name: Build runtime candidate");
     expect(buildJob).toContain("name: native-release-${{ matrix.runtime_target }}");
