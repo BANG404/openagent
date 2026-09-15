@@ -4797,8 +4797,18 @@ fn run_with_mode(agent_server: bool) {
         open_settings_window,
     ]);
     builder
-        .run(context)
-        .expect("error while running tauri application");
+        .build(context)
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            #[cfg(target_os = "macos")]
+            if matches!(event, tauri::RunEvent::Reopen { .. }) {
+                // macOS sends Reopen when the Dock icon is clicked after the
+                // frameless window was hidden with its close control.
+                show_desktop_window(app);
+            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (app, event);
+        });
 
     shutdown_host_tracing();
 }

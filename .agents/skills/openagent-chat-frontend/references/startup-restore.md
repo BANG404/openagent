@@ -219,6 +219,9 @@
   responsible for the window canvas.
 - The macOS title chrome keeps the traffic-light controls and menu spacing but
   omits the sidebar application icon; Windows and Linux retain that icon.
+- Bind macOS `⌘W` to the current-window close action, matching the native close
+  control's hide-for-Dock-reactivation behavior; `⌘Q` remains the explicit quit
+  shortcut.
 - Use the theme canvas for the workspace surface. Keep the new-conversation
   greeting and composer, as well as the bottom-anchored composer, on neutral
   theme surfaces without an ambient color field or animated glow. On a new

@@ -136,6 +136,10 @@ describe("desktop navigation chrome", () => {
     expect(sidebar).toMatch(/\.sidebar\s*{[^}]*background: transparent;/s);
     expect(sidebar).toContain("padding-top: var(--desktop-titlebar-height)");
     expect(sidebar).toContain('{#if platform !== "macos"}');
+    const menuBar = await readFile(new URL("ApplicationMenuBar.svelte", componentsUrl), "utf8");
+    expect(menuBar).toContain('key === "w") runShortcut(event, onCloseWindow)');
+    const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    expect(host).toContain("tauri::RunEvent::Reopen");
     expect(titleBar).toMatch(/\.title-bar\s*{[^}]*background: transparent;/s);
     expect(titleBar).toContain("height: var(--desktop-titlebar-height)");
     expect(sidebar).not.toContain("border-right:");

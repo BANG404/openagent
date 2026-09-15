@@ -30,6 +30,10 @@
   not deliver a distinct focus-changed callback. The main WebView
   consumes both signals as new composer-focus requests, including
   activation events that arrive without a preceding blur callback.
+- On macOS, handle Tauri's `RunEvent::Reopen` by restoring, showing, and
+  focusing the primary window. The frameless close control hides the window
+  without quitting, so Dock activation must provide the corresponding restore
+  path.
 
 ## Pilot plugin and upstream pin
 
