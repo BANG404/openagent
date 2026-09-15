@@ -85,6 +85,11 @@
   its search field and overflow scrolling, and inner controls use flat bordered
   surfaces rather than nested elevation. Saved roles have one global scope, so
   the editor has no scope selector and offers only global Skills for association.
+  Both hosted presentations already name the role—the shared management surface
+  in its chrome and the utility window in its native title bar—so the editor
+  content starts directly with its fields instead of repeating a title,
+  description, or divider header; only the dialog presentation, which the
+  desktop-shell preview renders without host chrome, keeps its own header.
 - Keep the new-conversation composer's workspace switcher beside approval mode
   and focused on open-folder actions. Hide it once an existing workspace-owned
   conversation is active; the Projects section remains the visible workspace

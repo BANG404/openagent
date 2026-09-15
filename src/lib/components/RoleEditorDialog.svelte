@@ -103,23 +103,22 @@
 </script>
 
 {#snippet editorContent()}
-  <header class="role-editor-header">
-    <div>
-      {#if presentation === "dialog"}
+  <!-- Both window presentations already name the role: the shared management
+       surface paints the title in its chrome and the standalone utility window
+       paints it in its native title bar. Only the dialog presentation, which
+       the desktop-shell preview renders without host chrome, keeps a header. -->
+  {#if presentation === "dialog"}
+    <header class="role-editor-header">
+      <div>
         <Dialog.Title>{role ? $t("editRole") : $t("newRole")}</Dialog.Title>
         <Dialog.Description>{$t("roleEditorDescription")}</Dialog.Description>
-      {:else}
-        <h1>{role ? $t("editRole") : $t("newRole")}</h1>
-        <p>{$t("roleEditorDescription")}</p>
-      {/if}
-    </div>
-    {#if presentation === "dialog"}
+      </div>
       <Dialog.Close class="icon-button" aria-label={$t("close")}>
         <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" /></svg
         >
       </Dialog.Close>
-    {/if}
-  </header>
+    </header>
+  {/if}
 
   <div class="role-editor-body">
     <section class="role-details">
@@ -355,8 +354,7 @@
     border-bottom: 1px solid var(--mica-divider);
   }
 
-  .role-editor-header :global(h2),
-  .role-editor-header h1 {
+  .role-editor-header :global(h2) {
     margin: 0;
     font-size: 15px;
     font-weight: 600;
