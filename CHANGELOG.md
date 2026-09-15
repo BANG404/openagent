@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.66.3-beta.1] - 2026-09-15
+
+### Bug Fixes
+- **chat**: Release transcript tail follow on user scroll
+- Reset native role editor positioning
+- **frontend**: Align role editor window chrome
+- Expose plugin tools to every role
+- **ui**: Remove segmented control shadows
+
 ## [0.66.2-beta.1] - 2026-09-14
 
 ### Bug Fixes
