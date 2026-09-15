@@ -637,7 +637,6 @@
       }, 1500);
     }
     if (visibleSections.has("providers")) refreshChatgptAuthStatus().catch(() => {});
-    if (visibleSections.has("memory")) refreshMemory().catch(() => {});
     const unlistenRemotePairingCode = visibleSections.has("channels")
       ? listen("remote-gateway-pairing-code-rotated", () => {
           refreshRemoteGateway().catch(() => {});
