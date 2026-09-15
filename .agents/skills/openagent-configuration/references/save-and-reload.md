@@ -70,6 +70,14 @@ the persisted MCP list before this surface exists and the reserved client cannot
 start a daemon itself. Settings exposes only the plugin enable switch and the
 disabled-tool list; permission mode, socket, and grants are not user-configurable.
 
+The Memory Management surface reads and writes the SDK-owned global
+`memory.md` or workspace `.agents/memory.md` file through the product command
+boundary. It lists Agent-extracted memories from the selected database scope,
+supports full-text filtering, source-conversation navigation, and individual
+deletion. Scope changes reload both views; a missing workspace disables project
+memory actions without falling back to global data. Manual extraction is
+asynchronous and refreshes the list after the runtime accepts the task.
+
 Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
 permissions and do not commit it to source control.

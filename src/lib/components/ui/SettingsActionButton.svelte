@@ -10,7 +10,16 @@
     onclick,
   }: {
     label: string;
-    icon?: "add" | "download" | "merge" | "replace" | "test" | "trash";
+    icon?:
+      | "add"
+      | "download"
+      | "merge"
+      | "replace"
+      | "test"
+      | "trash"
+      | "refresh"
+      | "sparkles"
+      | "check";
     tone?: "primary" | "secondary" | "quiet" | "danger";
     fullWidth?: boolean;
     disabled?: boolean;
@@ -39,6 +48,14 @@
         <path
           d="M6 2.75v3.5L3.5 11a1.5 1.5 0 0 0 1.32 2.25h6.36A1.5 1.5 0 0 0 12.5 11L10 6.25v-3.5M5.25 8.5h5.5M5 2.75h6"
         />
+      {:else if icon === "refresh"}
+        <path d="M12.5 5.75A5 5 0 1 0 13 9M12.5 2.75v3h-3" />
+      {:else if icon === "sparkles"}
+        <path
+          d="m8 2 1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3ZM12.5 9.5l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5.5-1.5Z"
+        />
+      {:else if icon === "check"}
+        <path d="m3.25 8.25 3 3 6.5-6.5" />
       {:else}
         <path d="M3.5 4.5h9M6.25 2.75h3.5M5 4.5l.5 8.75h5L11 4.5M6.75 7v3.75M9.25 7v3.75" />
       {/if}

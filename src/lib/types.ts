@@ -369,6 +369,9 @@ export interface AgentMemoryEntry {
   content: string;
   created_at: number;
   updated_at: number;
+  last_accessed_at?: number;
+  last_confirmed_at?: number;
+  status?: string;
   source_conv_id: string | null;
   source_message_id: string | null;
 }

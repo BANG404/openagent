@@ -6,6 +6,7 @@
   import { onMount, tick, untrack } from "svelte";
   import { ContextMenu, Dialog, Tabs } from "bits-ui";
   import type {
+    AgentMemoryEntry,
     AgentRole,
     AppConfig,
     AutomationHookConfig,
@@ -309,6 +310,13 @@
   let editingHookId = $state<string | null>(null);
   let editingHookConversationId = $state<string | null>(null);
   let memoryScope = $state<"global" | "local">("global");
+  let memoryUserContent = $state("");
+  let memoryAgentEntries = $state<AgentMemoryEntry[]>([]);
+  let memoryAgentSearch = $state("");
+  let memoryLoading = $state(false);
+  let memorySaving = $state(false);
+  let memoryExtracting = $state(false);
+  let memoryRequestSeq = 0;
   let memoryStatus = $state("");
   let memoryBusy = $state(false);
   let memoryClearDialogOpen = $state(false);
@@ -629,6 +637,7 @@
       }, 1500);
     }
     if (visibleSections.has("providers")) refreshChatgptAuthStatus().catch(() => {});
+    if (visibleSections.has("memory")) refreshMemory().catch(() => {});
     const unlistenRemotePairingCode = visibleSections.has("channels")
       ? listen("remote-gateway-pairing-code-rotated", () => {
           refreshRemoteGateway().catch(() => {});
@@ -655,6 +664,122 @@
       if (wechatStatusTimer) clearInterval(wechatStatusTimer);
       saveDraftConfig().catch(console.error);
     };
+  });
+
+  function memoryAgentScope(scope = memoryScope): string | null {
+    if (scope === "global") return "global";
+    return workspacePath || null;
+  }
+
+  async function refreshMemory(scope = memoryScope, query = memoryAgentSearch) {
+    if (!isTauri() || !memoryScopeAvailable()) {
+      memoryUserContent = "";
+      memoryAgentEntries = [];
+      return;
+    }
+    const agentScope = memoryAgentScope(scope);
+    if (!agentScope) return;
+    const requestSeq = ++memoryRequestSeq;
+    memoryLoading = true;
+    try {
+      const [userMemory, agentMemories] = await Promise.all([
+        desktopOpenAgent.invokeProduct("get_memory", { scope }),
+        desktopOpenAgent.invokeProduct("get_agent_memories", {
+          scope: agentScope,
+          query: query.trim() || null,
+        }),
+      ]);
+      if (requestSeq !== memoryRequestSeq) return;
+      memoryUserContent = userMemory;
+      memoryAgentEntries = agentMemories;
+    } catch (err: unknown) {
+      if (requestSeq === memoryRequestSeq) memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
+    } finally {
+      if (requestSeq === memoryRequestSeq) memoryLoading = false;
+    }
+  }
+
+  async function refreshAgentMemories() {
+    if (!isTauri() || !memoryScopeAvailable()) {
+      memoryAgentEntries = [];
+      return;
+    }
+    const agentScope = memoryAgentScope();
+    if (!agentScope) return;
+    const requestSeq = ++memoryRequestSeq;
+    memoryLoading = true;
+    try {
+      const entries = await desktopOpenAgent.invokeProduct("get_agent_memories", {
+        scope: agentScope,
+        query: memoryAgentSearch.trim() || null,
+      });
+      if (requestSeq === memoryRequestSeq) memoryAgentEntries = entries;
+    } catch (err: unknown) {
+      if (requestSeq === memoryRequestSeq) memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
+    } finally {
+      if (requestSeq === memoryRequestSeq) memoryLoading = false;
+    }
+  }
+
+  async function saveUserMemory() {
+    if (!memoryScopeAvailable()) {
+      memoryStatus = tr("memoryNoWorkspace");
+      return;
+    }
+    memorySaving = true;
+    memoryStatus = "";
+    try {
+      await desktopOpenAgent.invokeProduct("save_memory", {
+        scope: memoryScope,
+        content: memoryUserContent,
+      });
+      memoryStatus = tr("memorySaveSuccess");
+    } catch (err: unknown) {
+      memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
+    } finally {
+      memorySaving = false;
+    }
+  }
+
+  async function extractMemory() {
+    memoryExtracting = true;
+    memoryStatus = "";
+    try {
+      await desktopOpenAgent.invokeProduct("trigger_memory_agent", { convId: null });
+      memoryStatus = tr("memoryExtractStarted");
+      window.setTimeout(() => refreshMemory().catch(() => {}), 1200);
+    } catch (err: unknown) {
+      memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
+    } finally {
+      memoryExtracting = false;
+    }
+  }
+
+  async function removeAgentMemory(entry: AgentMemoryEntry) {
+    if (!window.confirm(tr("memoryDeleteConfirm"))) return;
+    memoryBusy = true;
+    memoryStatus = "";
+    try {
+      await desktopOpenAgent.invokeProduct("delete_agent_memory", { id: entry.id });
+      memoryAgentEntries = memoryAgentEntries.filter((item) => item.id !== entry.id);
+    } catch (err: unknown) {
+      memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
+    } finally {
+      memoryBusy = false;
+    }
+  }
+
+  function formatMemoryDate(timestamp: number): string {
+    return new Intl.DateTimeFormat(draftConfig.language === "en" ? "en-US" : "zh-CN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(timestamp * 1000));
+  }
+
+  $effect(() => {
+    const scope = memoryScope;
+    void scope;
+    if (visibleSections.has("memory") && isTauri()) refreshMemory(scope, "").catch(() => {});
   });
 
   async function refreshRemoteGateway() {
@@ -1615,6 +1740,7 @@
         replace,
       });
       memoryStatus = `${tr("memoryImported")} ${result.agent_memories_imported} ${tr("memoryAgentEntries")}`;
+      await refreshMemory();
     } catch (err: unknown) {
       memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
     } finally {
@@ -1641,6 +1767,7 @@
     try {
       await desktopOpenAgent.invokeProduct("clear_memory", { scope: memoryScope });
       memoryStatus = tr("memoryCleared");
+      await refreshMemory();
       memoryClearCloseHandled = true;
       memoryClearDialogOpen = false;
       memoryClearInput = "";
@@ -2692,7 +2819,28 @@
     <Tabs.Content value="memory" class="settings-tab-panel">
       <div class="settings-content-col">
         <section class="detail-section">
-          <h4 class="detail-section-title">{$t("memoryManagement")}</h4>
+          <div class="detail-section-header">
+            <div>
+              <h4 class="detail-section-title">{$t("memoryManagement")}</h4>
+              <p class="detail-section-intro">{$t("memoryManagementHint")}</p>
+            </div>
+            <div class="memory-heading-actions">
+              <SettingsActionButton
+                label={$t("memoryRefresh")}
+                icon="refresh"
+                tone="quiet"
+                onclick={() => refreshMemory()}
+                disabled={memoryLoading || memoryBusy}
+              />
+              <SettingsActionButton
+                label={$t("memoryExtractNow")}
+                icon="sparkles"
+                tone="primary"
+                onclick={extractMemory}
+                disabled={memoryExtracting || memoryBusy}
+              />
+            </div>
+          </div>
           <div class="detail-label">
             <span class="label-text">{$t("scope")}</span>
             <Select
@@ -2707,6 +2855,85 @@
               <p class="detail-hint">{$t("memoryNoWorkspace")}</p>
             {:else}
               <p class="detail-hint">{$t("memoryManagementHint")}</p>
+            {/if}
+          </div>
+        </section>
+
+        <section class="detail-section">
+          <div class="detail-section-header">
+            <div>
+              <h4 class="detail-section-title">{$t("userMemory")}</h4>
+              <p class="detail-section-intro">{$t("memoryEditHint")}</p>
+            </div>
+            <SettingsActionButton
+              label={$t("save")}
+              icon="check"
+              tone="primary"
+              onclick={saveUserMemory}
+              disabled={memorySaving || memoryLoading || memoryBusy || !memoryScopeAvailable()}
+            />
+          </div>
+          <textarea
+            class="detail-input memory-editor"
+            bind:value={memoryUserContent}
+            disabled={memoryLoading || !memoryScopeAvailable()}
+            aria-label={$t("userMemory")}
+            placeholder={$t("memoryEditHint")}></textarea>
+        </section>
+
+        <section class="detail-section">
+          <div class="detail-section-header">
+            <div>
+              <h4 class="detail-section-title">{$t("agentMemory")}</h4>
+              <p class="detail-section-intro">{$t("agentMemoryHint")}</p>
+            </div>
+            <span class="memory-count"
+              >{$t("memoryAgentCount").replace("{count}", String(memoryAgentEntries.length))}</span
+            >
+          </div>
+          <input
+            class="detail-input memory-search"
+            bind:value={memoryAgentSearch}
+            oninput={() => refreshAgentMemories().catch(() => {})}
+            placeholder={$t("memorySearchPlaceholder")}
+            aria-label={$t("memorySearchPlaceholder")}
+          />
+          <div class="memory-agent-list">
+            {#if memoryLoading}
+              <div class="model-list-empty">{$t("loadingContent")}</div>
+            {:else if memoryAgentEntries.length === 0}
+              <div class="model-list-empty">{$t("agentMemoryEmpty")}</div>
+            {:else}
+              {#each memoryAgentEntries as entry (entry.id)}
+                <article class="memory-agent-item">
+                  <p class="memory-agent-content">{entry.content}</p>
+                  <div class="memory-agent-meta">
+                    <span
+                      >{$t("memoryUpdatedAt").replace(
+                        "{date}",
+                        formatMemoryDate(entry.updated_at),
+                      )}</span
+                    >
+                    {#if entry.source_conv_id}
+                      <button
+                        class="memory-source-button"
+                        type="button"
+                        onclick={() => onOpenConversation(entry.source_conv_id!)}
+                        >{$t("memorySource")}</button
+                      >
+                    {:else}
+                      <span>{$t("memoryNoSource")}</span>
+                    {/if}
+                    <SettingsActionButton
+                      label={$t("deleteMemory")}
+                      icon="trash"
+                      tone="danger"
+                      onclick={() => removeAgentMemory(entry)}
+                      disabled={memoryBusy}
+                    />
+                  </div>
+                </article>
+              {/each}
             {/if}
           </div>
         </section>
@@ -5943,6 +6170,89 @@
     border-radius: 10px;
     padding: 12px;
     background: var(--surface2);
+  }
+
+  .memory-heading-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .memory-editor {
+    display: block;
+    width: 100%;
+    min-height: 180px;
+    resize: vertical;
+    line-height: 1.55;
+  }
+
+  .memory-search {
+    display: block;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+
+  .memory-count {
+    flex: 0 0 auto;
+    color: var(--text-muted);
+    font-size: var(--settings-hint-size);
+  }
+
+  .memory-agent-list {
+    border: 1px solid var(--mica-divider);
+    border-radius: 10px;
+    background: var(--mica-surface);
+    overflow: hidden;
+  }
+
+  .memory-agent-item {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid var(--mica-divider);
+  }
+
+  .memory-agent-item:last-child {
+    border-bottom: 0;
+  }
+
+  .memory-agent-content {
+    margin: 0;
+    color: var(--text);
+    font-size: var(--settings-body-size);
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .memory-agent-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: var(--settings-hint-size);
+  }
+
+  .memory-source-button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--primary);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .memory-source-button:hover {
+    text-decoration: underline;
+  }
+
+  .memory-source-button:focus-visible {
+    outline: none;
+    border-radius: 4px;
+    box-shadow: var(--focus-ring);
   }
 
   .provider-status.success {
