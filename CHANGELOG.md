@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.67.0-beta.1] - 2026-09-15
+
+### Features
+- **frontend**: Make role resource selection exhaustive with select all
+- **frontend**: Add memory management editor
+
+### Bug Fixes
+- **frontend**: Drop the duplicate role editor header
+- **frontend**: Keep settings section headings clear of header actions
+- **frontend**: Avoid duplicate memory refresh
+- **frontend**: Preserve onboarding state across HMR
+
 ## [0.66.3-beta.1] - 2026-09-15
 
 ### Bug Fixes
