@@ -2819,7 +2819,7 @@
       <div class="settings-content-col">
         <section class="detail-section">
           <div class="detail-section-header">
-            <div>
+            <div class="detail-section-heading">
               <h4 class="detail-section-title">{$t("memoryManagement")}</h4>
               <p class="detail-section-intro">{$t("memoryManagementHint")}</p>
             </div>
@@ -2860,7 +2860,7 @@
 
         <section class="detail-section">
           <div class="detail-section-header">
-            <div>
+            <div class="detail-section-heading">
               <h4 class="detail-section-title">{$t("userMemory")}</h4>
               <p class="detail-section-intro">{$t("memoryEditHint")}</p>
             </div>
@@ -2882,7 +2882,7 @@
 
         <section class="detail-section">
           <div class="detail-section-header">
-            <div>
+            <div class="detail-section-heading">
               <h4 class="detail-section-title">{$t("agentMemory")}</h4>
               <p class="detail-section-intro">{$t("agentMemoryHint")}</p>
             </div>
@@ -5644,6 +5644,16 @@
   }
 
   .detail-section-header .detail-section-title {
+    margin: 0;
+  }
+
+  .detail-section-heading {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+  }
+
+  .detail-section-heading .detail-section-intro {
     margin: 0;
   }
 
