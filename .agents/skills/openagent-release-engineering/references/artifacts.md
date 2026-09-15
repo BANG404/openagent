@@ -13,14 +13,6 @@
   mix library, setup-helper, and command-runner revisions. Keep any compiler
   warning override narrowly scoped to that third-party helper build; native
   host and SDK warnings remain errors.
-- Windows native releases must Authenticode-sign the bundled
-  `openagent-server.exe` sidecar before Tauri bundles it. The updater package's
-  Minisign signature does not establish a Windows publisher identity for that
-  child process; without Authenticode, replacing the sidecar can make Windows
-  Firewall treat every release as a new program and prompt again. The release
-  workflow requires `WINDOWS_CODESIGN_PFX_BASE64` and
-  `WINDOWS_CODESIGN_PFX_PASSWORD`, signs with SHA-256 plus a trusted timestamp,
-  and verifies the signature before packaging.
 - Windows bundles both sandbox helpers only through the Windows Tauri config
   and produces NSIS plus updater artifacts, not WiX. Linux strips
   `codex-bwrap`, embeds its SHA-256 at release compilation, and packages those
