@@ -318,6 +318,11 @@
 
   :global(.role-editor-window) {
     position: relative;
+    /* The window surface participates in normal document flow. Clear the
+       centered dialog offsets above so a native utility window is not shifted
+       by half of its own width. */
+    top: auto;
+    left: auto;
     width: 100%;
     height: 100%;
     min-width: 0;
