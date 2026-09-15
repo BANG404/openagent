@@ -293,6 +293,10 @@
       : {},
   );
   let selectedMcpId = $state<string | null>(null);
+  // Keep a newly added, incomplete MCP row local until its connection details
+  // are usable. Otherwise normalization or a concurrent reload can replace it
+  // before the user has finished entering the URL/command.
+  let pendingMcpServerIds = $state(new Set<string>());
   let automationHookDraft = $state<AutomationHookConfig | null>(null);
   let scheduledHooks = $state<ScheduledChatHook[]>([]);
   let hookMessage = $state("");
@@ -494,6 +498,11 @@
     }
     if (!initializedFromConfig) return Promise.resolve();
     const snapshot = snapshotDraftConfig();
+    const incompletePendingMcp = snapshot.mcp.servers.some((server) => {
+      if (!pendingMcpServerIds.has(server.id)) return false;
+      return server.transport === "http" ? !server.url.trim() : !server.command.trim();
+    });
+    if (incompletePendingMcp) return Promise.resolve();
     if (!settingsConfigChanged(snapshot, acceptedConfigFingerprint)) return Promise.resolve();
     const baseConfig = JSON.parse(acceptedConfigFingerprint) as AppConfig;
     pendingSave = pendingSave
@@ -508,6 +517,7 @@
           suppressNextAutoSave = true;
           draftConfig = rebased;
           acceptedConfigFingerprint = JSON.stringify(saved);
+          for (const server of edited.mcp.servers) pendingMcpServerIds.delete(server.id);
           ensureSelectedProvider();
           ensureSelectedMcpServer();
         } catch (error) {
@@ -518,6 +528,11 @@
             suppressNextAutoSave = true;
             draftConfig = latest;
             acceptedConfigFingerprint = JSON.stringify(latest);
+            for (const id of pendingMcpServerIds) {
+              if (!latest.mcp.servers.some((server) => server.id === id)) {
+                pendingMcpServerIds.delete(id);
+              }
+            }
             ensureSelectedProvider();
             ensureSelectedMcpServer();
           }
@@ -1430,11 +1445,13 @@
       disabled_tools: [],
     };
     draftConfig.mcp.servers = [...draftConfig.mcp.servers, server];
+    pendingMcpServerIds.add(server.id);
     selectedMcpId = server.id;
   }
 
   function removeMcpServer(id: string) {
     draftConfig.mcp.servers = draftConfig.mcp.servers.filter((s) => s.id !== id);
+    pendingMcpServerIds.delete(id);
     if (selectedMcpId === id) {
       selectedMcpId = draftConfig.mcp.servers[0]?.id ?? null;
     }

@@ -37,6 +37,12 @@ Independent changes from another window or direct file edit are merged. If both
 writers changed the same field differently, saving is rejected and the latest
 saved configuration is reloaded instead of silently overwriting either value.
 
+New MCP rows are initially incomplete drafts. The settings surface keeps an
+incomplete row local until its HTTP URL or stdio command is present; this avoids
+backend normalization or a concurrent configuration reload replacing the row
+while the user is still entering its connection details. Once configured, the
+row participates in the normal debounced save and conflict handling.
+
 Running desktop and standalone processes inspect `config.toml` every 750 ms.
 A valid external edit updates the in-memory runtime, refreshes configuration-
 derived tools, and updates open desktop surfaces. Invalid TOML or a removed file
