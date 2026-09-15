@@ -4359,10 +4359,10 @@
   }
 
   function handleMessagesScroll() {
-    if (Date.now() < programmaticBottomScrollUntil) {
-      setFollowStreamToBottom(true);
-      return;
-    }
+    // A scroll event can arrive after a programmatic pin even when the user
+    // initiated it (wheel/touch/pointer handlers run before the scroll event).
+    // Always derive intent from the actual viewport position so a small upward
+    // gesture immediately releases tail following instead of being pulled back.
     setFollowStreamToBottom(isMessagesScrolledToBottom());
   }
 
@@ -5166,7 +5166,9 @@
     taskUsagesByCheckpointId: activeConvId ? (taskUsagesByConversation[activeConvId] ?? {}) : {},
     fileChanges: currentFileChanges,
     followUpSuggestionsByMessageId,
-    followTail: followStreamToBottom,
+    // Tail following is a streaming affordance only. Once the response is
+    // durable, the transcript must remain where the reader left it.
+    followTail: isCurrentStreaming && followStreamToBottom,
     isAwaitingStreamOutput: isCurrentAwaitingStreamOutput,
     isPaused: isCurrentStreamPaused,
     isStreaming: isCurrentStreaming,
