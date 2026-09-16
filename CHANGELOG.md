@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.68.1-beta.1] - 2026-09-16
+
+### Bug Fixes
+- **runtime**: Answer an unavailable tool call instead of failing the run
+
+### Refactoring
+- **runtime**: Stop narrowing tools on poll rounds
+
 ## [0.68.0-beta.1] - 2026-09-15
 
 ### Features
