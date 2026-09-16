@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.69.1-beta.1] - 2026-09-16
+
+### Bug Fixes
+- **cua-driver**: Attach the reserved MCP client in embedded mode
+- **desktop-host**: Bind long-lived children to the host process lifetime
+
 ## [0.69.0-beta.1] - 2026-09-16
 
 ### Features
