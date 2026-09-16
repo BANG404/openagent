@@ -18,34 +18,34 @@ import { fileURLToPath } from "node:url";
 const scriptPath = fileURLToPath(import.meta.url);
 const root = path.resolve(path.dirname(scriptPath), "..");
 
-export const CUA_DRIVER_VERSION = "0.28.0";
+export const CUA_DRIVER_VERSION = "0.28.2";
 const releaseTag = `cua-driver-rs-v${CUA_DRIVER_VERSION}`;
 const releaseRoot = `https://github.com/trycua/cua/releases/download/${releaseTag}`;
 
 const releaseAssets = {
   "aarch64-apple-darwin": {
     name: `cua-driver-rs-${CUA_DRIVER_VERSION}-darwin-arm64.tar.gz`,
-    sha256: "82ea1801a5a800b2e46199e8b88694e8bba5670fd533c63a32766c753300d4d6",
+    sha256: "818ddefa0fa8ba2ec9cba837c7aa634a4b064221c748752cf49c5b08e2c94e8c",
   },
   "x86_64-apple-darwin": {
     name: `cua-driver-rs-${CUA_DRIVER_VERSION}-darwin-x86_64.tar.gz`,
-    sha256: "d758a7d45df89dbf849f01011d6e88591449face9277707d9dc749345343442d",
+    sha256: "9e00cc92480a8f3d32bbcb7cb45cbc42293b7bd13c1808f5047f1f73a8b64f24",
   },
   "aarch64-unknown-linux-gnu": {
     name: `cua-driver-rs-${CUA_DRIVER_VERSION}-linux-arm64-binary.tar.gz`,
-    sha256: "6f687c3eadcc47e0f8cc25cf74f996bf0d55ddc7839154df7bff44bbb7c35c6f",
+    sha256: "55e8a32839a4ac369a773df4dac87b345bd4567779221ade4a5e39223a45a2e8",
   },
   "x86_64-unknown-linux-gnu": {
     name: `cua-driver-rs-${CUA_DRIVER_VERSION}-linux-x86_64-binary.tar.gz`,
-    sha256: "120cd7f40340c5e012422aca393932767e228c224dd8b9df2124ca29c5e48226",
+    sha256: "a1d99fd04bb4927ef5ffdbe60eb91ed8b51a2bab60e10fc604a75bd59ce69c3e",
   },
   "aarch64-pc-windows-msvc": {
     name: `cua-driver-rs-${CUA_DRIVER_VERSION}-windows-arm64-binary.zip`,
-    sha256: "d8059fa1e963169258e5086029c7d0627bb76bd91703f040aff5286b0cd1b1f5",
+    sha256: "578b88ff2dd56f06eb7e984d73aaf5e76f59c6fde9542c967d6a30d00213c680",
   },
   "x86_64-pc-windows-msvc": {
     name: `cua-driver-rs-${CUA_DRIVER_VERSION}-windows-x86_64-binary.zip`,
-    sha256: "9db2096df8d80da4e73ffb797947dcdfab2a362faddd9d1b77682c77aace5aa9",
+    sha256: "1f4bfceeab64cb7f56be7aad774c3dc2d2910d1427e4be1d79939c706e8029ba",
   },
 };
 
