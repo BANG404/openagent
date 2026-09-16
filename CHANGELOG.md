@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.69.0-beta.1] - 2026-09-16
+
+### Features
+- Update runtime for user environment metadata
+- **frontend**: Unify top-bar settings window surface
+
+### Miscellaneous
+- **sdk**: Update submodule for apply_patch helper cleanup
+
 ## [0.68.1-beta.1] - 2026-09-16
 
 ### Bug Fixes
