@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.68.0-beta.1] - 2026-09-15
+
+### Features
+- **macOS**: Round window edges and simplify chrome
+
+### Bug Fixes
+- **macOS**: Restore hidden windows from Dock
+- **settings**: Preserve incomplete MCP drafts
+
 ## [0.67.0-beta.1] - 2026-09-15
 
 ### Features
