@@ -118,8 +118,9 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   actions follow directly below it.
   The new action uses the workspace already selected by the current window.
   General Settings, model, Agent, integration, memory, automation, and About
-  management open from the application menu in modeless singleton utility
-  windows. The sidebar has
+  management open from the application menu in a centered, resizable in-window
+  settings surface with a compact default size and an explicit expanded state.
+  Direct utility-window routes remain modeless singleton windows. The sidebar has
   no persistent Settings action. Conversation search spans all
   workspaces and roles only while its field retains focus; leaving search
   restores Projects and Recent conversations. Opening a result switches the

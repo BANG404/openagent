@@ -207,7 +207,7 @@ describe("desktop navigation chrome", () => {
     expect(fullscreenSurface).toMatch(
       /\.fullscreen-surface\)\s*{[^}]*background: var\(--surface\);/s,
     );
-    expect(fullscreenSurface).not.toContain("backdrop-filter");
+    expect(fullscreenSurface).toContain("backdrop-filter: blur(2px)");
     expect(onboarding).toContain('class="application-settings-surface step-content"');
     expect(onboarding).toMatch(/\.step-content\s*{[^}]*background: var\(--mica-surface\);/s);
 
@@ -282,14 +282,24 @@ describe("desktop navigation chrome", () => {
     expect(route).toContain("<SettingsWindowSurface");
     expect(route).toContain("kind={settingsWindowKind}");
     expect(fullscreenSurface).toMatch(
-      /\.fullscreen-surface\)\s*{[^}]*position: fixed;[^}]*inset: 0;[^}]*z-index: 81;/s,
+      /\.fullscreen-surface\)\s*{[^}]*position: fixed;[^}]*top: 50%;[^}]*left: 50%;[^}]*transform: translate\(-50%, -50%\);[^}]*z-index: 81;/s,
+    );
+    expect(fullscreenSurface).toMatch(
+      /\.fullscreen-surface\)\s*{[^}]*width: min\(780px, calc\(100vw - 32px\)\);[^}]*height: min\(560px, calc\(100vh - 48px\)\);[^}]*resize: both;/s,
+    );
+    expect(fullscreenSurface).toMatch(/\.fullscreen-surface\.expanded\)\s*{[^}]*inset: 16px;/s);
+    expect(fullscreenSurface).toContain(
+      'aria-label={expanded ? $t("restoreWindow") : $t("maximizeWindow")}',
     );
     // The surface, not its close action, takes the initial focus: a focused
     // tooltip trigger would open its label over a pointer that never got there.
     expect(fullscreenSurface).toMatch(
       /onOpenAutoFocus=\{\(event\) => \{\s*event\.preventDefault\(\);\s*surfaceElement\?\.focus\(\);/,
     );
-    expect(fullscreenSurface).toMatch(/class="fullscreen-surface"\s+data-window-platform/);
+    expect(fullscreenSurface).toContain(
+      'class={expanded ? "fullscreen-surface expanded" : "fullscreen-surface"}',
+    );
+    expect(fullscreenSurface).toContain("data-window-platform={platform}");
     expect(fullscreenSurface).toContain("tabindex={-1}");
     expect(menu).toContain('onOpenSettingsWindow("models", "providers")');
     expect(menu).toContain('onOpenSettingsWindow("agent", "execution")');
@@ -310,7 +320,9 @@ describe("desktop navigation chrome", () => {
     const dialogs = await readFile(new URL("WorkspaceDialogs.svelte", componentsUrl), "utf8");
     const fullscreenSurface = await readFile(fullscreenSurfaceUrl, "utf8");
 
-    expect(fullscreenSurface).toMatch(/\.fullscreen-surface-backdrop\)\s*{[^}]*z-index: 80;/s);
+    expect(fullscreenSurface).toMatch(
+      /\.fullscreen-surface-backdrop\)\s*{[^}]*z-index: 80;[^}]*background: color-mix\(in srgb, var\(--bg\) 42%, transparent\);/s,
+    );
     expect(fullscreenSurface).toMatch(/\.fullscreen-surface\)\s*{[^}]*z-index: 81;/s);
     expect(dialogs).toMatch(/\.dialog-overlay\)\s*{[^}]*z-index: 100;/s);
     expect(dialogs).toMatch(/\.dialog\)\s*{[^}]*z-index: 101;/s);
