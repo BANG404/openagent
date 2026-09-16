@@ -366,6 +366,10 @@ describe("desktop navigation chrome", () => {
       new URL("../src-tauri/src/runtime_process.rs", import.meta.url),
       "utf8",
     );
+    const processLifetime = await readFile(
+      new URL("../src-tauri/src/process_lifetime.rs", import.meta.url),
+      "utf8",
+    );
     const workspace = await readFile(
       new URL("../src-tauri/src/workspace_process.rs", import.meta.url),
       "utf8",
@@ -391,13 +395,36 @@ describe("desktop navigation chrome", () => {
     expect(host).toContain("request_child_workspace_window_shutdown()");
     expect(host).toContain("openagent-parent-shutdown-monitor");
     expect(host).toContain("is_parent_controlled_workspace_window_process()");
-    expect(runtimeProcess).toContain("JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE");
-    expect(runtimeProcess).toContain("AssignProcessToJobObject(job.0, process)");
     expect(runtimeProcess).toContain("let result = stop_child(&mut runtime.child).await");
     expect(runtimeProcess).toContain("drop(runtime)");
     expect(workspace).toContain(".arg(PARENT_CONTROLLED_WORKSPACE_WINDOW_ARG)");
     expect(workspace).toContain(".stdin(Stdio::piped())");
     expect(workspace).toContain('stdin.write_all(b"shutdown\\n")');
+
+    // Both long-lived children outlive every Rust exit path — a force-kill,
+    // `panic = "abort"`, a logoff — so the kernel, not `Drop`, has to own them.
+    // They bind through one module so neither can silently lose that guarantee.
+    expect(processLifetime).toContain("JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE");
+    expect(processLifetime).toContain("AssignProcessToJobObject(job.0, process)");
+    expect(runtimeProcess).toContain('bind_tokio_child("Runtime", &child)');
+    expect(host).toContain('bind_std_child("Cua Driver", &spawned)');
+
+    // The Cua Driver daemon mirrors the Runtime's control-pipe contract: the
+    // host holds its stdin open, and the daemon treats EOF as "my owner is
+    // gone". Holding that pipe is what makes the guarantee cross-platform.
+    const spawnCua = host.slice(
+      host.indexOf("fn spawn_cua_driver_daemon"),
+      host.indexOf("fn ensure_cua_driver_serve"),
+    );
+    expect(spawnCua).toContain(".stdin(Stdio::piped())");
+    expect(spawnCua).toContain(".stdin.take()");
+    expect(host).toContain("_stdin: std::process::ChildStdin");
+    expect(host).toContain('"serve",\n        "--embedded"');
+    expect(host).toContain('"--parent-liveness-stdio"');
+
+    // Tauri's own exit event is the only cleanup a non-primary window process
+    // reaches, so a daemon started there must not outlive it.
+    expect(host).toContain("tauri::RunEvent::Exit => stop_cua_driver_serve()");
   });
 
   test("keeps the system tray and its actions in the native host", async () => {

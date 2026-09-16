@@ -41,6 +41,7 @@ use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 pub mod frontend_resource;
 pub mod local_capabilities;
+pub mod process_lifetime;
 pub mod runtime_asset_protocol;
 pub mod runtime_process;
 pub mod runtime_resource;
@@ -3593,12 +3594,21 @@ fn cua_driver_endpoint_path() -> String {
 /// and capability manifests are product policy: the daemon always runs
 /// unrestricted on the product's private endpoint, so no per-user input is
 /// involved.
+///
+/// `--embedded` and `--parent-liveness-stdio` are the driver's embedding
+/// contract. Embedded mode keeps the driver inside this product's authorization
+/// identity: it never prompts and never relaunches itself as the standalone app.
+/// The liveness flag makes the daemon treat EOF on its own stdin as loss of the
+/// desktop host, which is the same control-pipe contract the supervised Runtime
+/// speaks, and the only one that also works on macOS and Linux.
 fn cua_driver_serve_args() -> Vec<String> {
     [
         "serve",
+        "--embedded",
         "--permission-mode",
         "unrestricted",
         "--dangerously-bypass-approvals",
+        "--parent-liveness-stdio",
         "--socket",
     ]
     .into_iter()
@@ -3607,8 +3617,36 @@ fn cua_driver_serve_args() -> Vec<String> {
     .collect()
 }
 
+/// Bundle identifier of the installed app that owns the daemon, as pinned in
+/// `tauri.conf.json`. The driver echoes it in `check_permissions` and compares it
+/// with the bundle identity macOS resolves for the daemon's parent, so it has to
+/// be the installed app's identifier rather than a development instance's
+/// rewritten one.
+const CUA_DRIVER_HOST_BUNDLE_ID: &str = "com.iumm.openagent";
+
+/// Environment of the embedded daemon launch.
+///
+/// The permission values repeat the command line because the driver documents an
+/// explicit two-part environment contract for unrestricted embedding and refuses
+/// contradictory values; repeating the same value is not a contradiction.
+fn cua_driver_serve_environment() -> [(&'static str, &'static str); 5] {
+    [
+        ("CUA_DRIVER_EMBEDDED", "1"),
+        ("CUA_DRIVER_PERMISSION_MODE", "unrestricted"),
+        ("CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS", "1"),
+        ("CUA_DRIVER_PARENT_LIVENESS_STDIN", "1"),
+        ("CUA_DRIVER_HOST_BUNDLE_ID", CUA_DRIVER_HOST_BUNDLE_ID),
+    ]
+}
+
 /// How long the host waits for a freshly spawned daemon to accept connections.
 const CUA_DRIVER_STARTUP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
+
+/// How long the host waits for a daemon to act on a shutdown request.
+const CUA_DRIVER_STOP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// How long the host waits for its own daemon to exit before it kills it.
+const CUA_DRIVER_SHUTDOWN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 
 /// Whether a daemon is accepting connections on the reserved endpoint.
 ///
@@ -3661,53 +3699,249 @@ fn wait_for_cua_driver_endpoint(
     }
 }
 
-/// Start the product-managed Cua Driver daemon unless one is already listening
-/// on the reserved endpoint, and wait until it accepts connections.
-///
-/// The daemon owns the unrestricted desktop runtime; the reserved MCP entry is
-/// only a client that attaches to the same endpoint. Returns whether this
-/// process spawned the daemon, which tells the caller that a Runtime that
-/// already connected its persisted MCP list before this call has to reconnect.
-///
-/// The ordinary desktop architecture connects MCP servers in the supervised
-/// Runtime process, so the host cannot rely on the embedded-runtime bootstrap to
-/// start this daemon; the frontend asks the host while the entry is enabled.
-/// The daemon this process started, if any.
-///
-/// A previous OpenAgent process, or another window's process, may own the
-/// endpoint instead; that daemon is never this process's to stop.
-static CUA_DRIVER_SERVE_CHILD: std::sync::OnceLock<std::sync::Mutex<Option<std::process::Child>>> =
-    std::sync::OnceLock::new();
+/// Path of the advisory lock that records which process owns the reserved
+/// endpoint. It lives beside the staged releases so one cache directory answers
+/// both "which driver is this" and "who is serving it".
+fn cua_driver_owner_lock_path() -> Option<std::path::PathBuf> {
+    cua_driver_staging_root().map(|root| root.join("owner").join("daemon.lock"))
+}
 
-fn ensure_cua_driver_serve() -> Result<bool, String> {
-    use std::process::{Command, Stdio};
-    let endpoint = cua_driver_endpoint_path();
-    let state = CUA_DRIVER_SERVE_CHILD.get_or_init(|| std::sync::Mutex::new(None));
-    let mut child = state
-        .lock()
-        .map_err(|_| "Cua Driver serve state is unavailable".to_string())?;
-    if let Some(existing) = child.as_mut() {
-        if existing
-            .try_wait()
-            .map_err(|error| format!("Cua Driver serve status failed: {error}"))?
-            .is_none()
-        {
-            return Ok(false);
+/// Who owns the reserved endpoint, as far as this process can tell.
+enum CuaDriverOwnership {
+    /// This process owns the endpoint and may start or stop its daemon.
+    Owned(std::fs::File),
+    /// A live process owns the endpoint; its daemon is never this one's to stop.
+    Held,
+    /// The per-user cache is unavailable, so ownership cannot be recorded.
+    Untracked,
+}
+
+/// Take ownership of the reserved endpoint, or report who else holds it.
+///
+/// The lock is an OS file lock rather than a written-down process id, so it
+/// disappears with the process that holds it: a lock that can be taken while the
+/// endpoint still answers is proof that the daemon behind it outlived its owner.
+/// Binding a second listener is never an option — the driver unlinks the live
+/// socket when it binds — so this lock is also what serializes concurrent
+/// window processes that start at the same time.
+fn acquire_cua_driver_ownership() -> Result<CuaDriverOwnership, String> {
+    use std::io::{Seek, SeekFrom, Write};
+
+    let Some(path) = cua_driver_owner_lock_path() else {
+        tracing::debug!(
+            "per-user cache directory is unavailable; the Cua Driver daemon cannot be tracked"
+        );
+        return Ok(CuaDriverOwnership::Untracked);
+    };
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|error| format!("Failed to create {}: {error}", parent.display()))?;
+    }
+    let mut lock = std::fs::OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .truncate(false)
+        .open(&path)
+        .map_err(|error| format!("Failed to open {}: {error}", path.display()))?;
+    match lock.try_lock() {
+        Ok(()) => {}
+        Err(std::fs::TryLockError::WouldBlock) => return Ok(CuaDriverOwnership::Held),
+        Err(std::fs::TryLockError::Error(error)) => {
+            return Err(format!("Failed to lock {}: {error}", path.display()));
         }
-        *child = None;
     }
-    // Another OpenAgent process, or a previous run of this one, may already own
-    // the endpoint. Reuse it: binding a second listener would unlink the live
-    // socket out from under the Runtime that is connected to it.
-    if cua_driver_endpoint_is_ready(&endpoint) {
-        return Ok(false);
+    // The record is diagnostics; the lock is the authority. A stale record from
+    // an earlier owner must not fail the launch.
+    let record = serde_json::json!({
+        "pid": std::process::id(),
+        "endpoint": cua_driver_endpoint_path(),
+        "bundle_id": CUA_DRIVER_HOST_BUNDLE_ID,
+        "started_at": std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|elapsed| elapsed.as_secs())
+            .unwrap_or_default(),
+    });
+    let _ = lock
+        .seek(SeekFrom::Start(0))
+        .and_then(|_| lock.set_len(0))
+        .and_then(|()| write!(lock, "{record}"))
+        .and_then(|()| lock.flush());
+    Ok(CuaDriverOwnership::Owned(lock))
+}
+
+/// What this process must do about the reserved endpoint.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CuaDriverPlan {
+    /// Stop the daemon that outlived its owner, then start a fresh one.
+    ReclaimThenServe,
+    /// Nothing answers on the endpoint: start a daemon and own it.
+    Serve,
+    /// A daemon already answers and it is not this process's to replace.
+    Adopt,
+    /// Another live process owns the endpoint and is still starting its daemon.
+    AwaitPeer,
+}
+
+/// The ownership rule, as one decision. Replacing a live peer's daemon would
+/// take the endpoint away from a process that is still using it, and leaving an
+/// orphan in place would serve a superseded release forever, so every cell is
+/// deliberate.
+fn plan_cua_driver_launch(ownership: &CuaDriverOwnership, endpoint_ready: bool) -> CuaDriverPlan {
+    match (ownership, endpoint_ready) {
+        // Whatever answers here outlived its owner: the lock was free.
+        (CuaDriverOwnership::Owned(_), true) => CuaDriverPlan::ReclaimThenServe,
+        (CuaDriverOwnership::Owned(_), false) => CuaDriverPlan::Serve,
+        // A live process holds the lock, so its daemon is never stopped; only a
+        // peer that has not finished starting needs waiting on.
+        (CuaDriverOwnership::Held, true) => CuaDriverPlan::Adopt,
+        (CuaDriverOwnership::Held, false) => CuaDriverPlan::AwaitPeer,
+        // Without a cache directory there is nowhere to record ownership, and a
+        // daemon that cannot be told apart from a peer's is never stopped.
+        (CuaDriverOwnership::Untracked, true) => CuaDriverPlan::Adopt,
+        (CuaDriverOwnership::Untracked, false) => CuaDriverPlan::Serve,
     }
-    let mut daemon = Command::new("cua-driver");
-    daemon
-        .args(cua_driver_serve_args())
+}
+
+/// Ask the daemon behind `endpoint` to shut down.
+///
+/// The request goes to the endpoint rather than to a process id, so a daemon
+/// this product does not own — the standalone installation on its own endpoint —
+/// can never be hit by it.
+fn cua_driver_stop_daemon(endpoint: &str) -> Result<std::process::ExitStatus, String> {
+    use std::process::{Command, Stdio};
+
+    let mut command = Command::new("cua-driver");
+    command
+        .args(["stop", "--socket", endpoint])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x0800_0000);
+    }
+    let mut stopping = command
+        .spawn()
+        .map_err(|error| format!("Failed to stop the Cua Driver daemon: {error}"))?;
+    let deadline = std::time::Instant::now() + CUA_DRIVER_STOP_TIMEOUT;
+    loop {
+        match stopping.try_wait() {
+            Ok(Some(status)) => return Ok(status),
+            Ok(None) if std::time::Instant::now() < deadline => {
+                std::thread::sleep(std::time::Duration::from_millis(25));
+            }
+            Ok(None) => {
+                let _ = stopping.kill();
+                let _ = stopping.wait();
+                return Err(format!(
+                    "Cua Driver stop on {endpoint} did not finish within {}s",
+                    CUA_DRIVER_STOP_TIMEOUT.as_secs()
+                ));
+            }
+            Err(error) => return Err(format!("Cua Driver stop status failed: {error}")),
+        }
+    }
+}
+
+/// Whether the endpoint still accepts connections after a shutdown request.
+fn wait_for_cua_driver_endpoint_release(endpoint: &str) -> Result<(), String> {
+    let deadline = std::time::Instant::now() + CUA_DRIVER_STOP_TIMEOUT;
+    while cua_driver_endpoint_is_ready(endpoint) {
+        if std::time::Instant::now() >= deadline {
+            return Err(format!(
+                "a Cua Driver daemon still answers on {endpoint} after {}s",
+                CUA_DRIVER_STOP_TIMEOUT.as_secs()
+            ));
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
+    Ok(())
+}
+
+/// Stop the daemon that answers on an endpoint no live process owns, and wait for
+/// the endpoint to go quiet.
+///
+/// Reclaiming matters because such a daemon serves whatever release started it:
+/// left alone it would keep serving an older driver, and it is exactly the
+/// process a previous crash or force-kill leaves behind.
+fn reclaim_orphaned_cua_driver_daemon(endpoint: &str) -> Result<(), String> {
+    tracing::info!(
+        %endpoint,
+        "reclaiming a Cua Driver daemon whose owning process is gone"
+    );
+    let status = cua_driver_stop_daemon(endpoint)?;
+    tracing::debug!(%endpoint, %status, "asked the orphaned Cua Driver daemon to exit");
+    wait_for_cua_driver_endpoint_release(endpoint).map_err(|error| {
+        format!("{error}; refusing to bind a second listener to the live endpoint")
+    })
+}
+
+/// Forward the daemon's diagnostics into the host log.
+///
+/// The embedded contract has failures the host has to be able to see — a refused
+/// permission mode, an endpoint already in use — and the daemon reports them on
+/// stderr. The pipe must also be drained, or a chatty daemon blocks on a full
+/// pipe buffer.
+fn forward_cua_driver_stderr(stderr: Option<std::process::ChildStderr>) {
+    use std::io::BufRead;
+
+    let Some(stderr) = stderr else {
+        return;
+    };
+    let reader = std::thread::Builder::new()
+        .name("cua-driver-stderr".to_string())
+        .spawn(move || {
+            for line in std::io::BufReader::new(stderr)
+                .lines()
+                .map_while(Result::ok)
+            {
+                if !line.trim().is_empty() {
+                    tracing::debug!(target: "openagent::cua-driver", "{line}");
+                }
+            }
+        });
+    if let Err(error) = reader {
+        tracing::debug!(%error, "failed to observe Cua Driver diagnostics");
+    }
+}
+
+/// The Cua Driver daemon this process started.
+///
+/// Every field is load-bearing for its lifetime: `child` is the process this
+/// host may stop, `_stdin` is held open but never written so that this process's
+/// death closes the pipe the driver watches, `_lifetime` is the kernel job that
+/// covers the paths where no Rust `Drop` runs, and `_owner` is the lock that
+/// marks this process as the endpoint's owner.
+struct CuaDriverDaemon {
+    child: std::process::Child,
+    _stdin: std::process::ChildStdin,
+    _lifetime: crate::process_lifetime::HostLifetimeGuard,
+    _owner: Option<std::fs::File>,
+}
+
+/// The daemon this process started, if any.
+static CUA_DRIVER_SERVE_CHILD: std::sync::OnceLock<std::sync::Mutex<Option<CuaDriverDaemon>>> =
+    std::sync::OnceLock::new();
+
+/// Spawn the daemon on an endpoint this process owns and wait until it listens.
+///
+/// The caller stores the result while it still holds the serve state lock, so
+/// this function must not reach for that lock itself.
+fn spawn_cua_driver_daemon(
+    endpoint: &str,
+    owner: Option<std::fs::File>,
+) -> Result<CuaDriverDaemon, String> {
+    use std::process::{Command, Stdio};
+
+    let mut command = Command::new("cua-driver");
+    command
+        .args(cua_driver_serve_args())
+        .envs(cua_driver_serve_environment())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped());
     // The release host is a `windows`-subsystem process without a console, so a
     // console-subsystem daemon created without CREATE_NO_WINDOW allocates its
     // own visible terminal window beside the product window. Startup starts this
@@ -3716,18 +3950,167 @@ fn ensure_cua_driver_serve() -> Result<bool, String> {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
-        daemon.creation_flags(0x0800_0000);
+        command.creation_flags(0x0800_0000);
     }
-    let mut spawned = daemon
+    let mut spawned = command
         .spawn()
         .map_err(|error| format!("Failed to start Cua Driver serve: {error}"))?;
-    if let Err(error) = wait_for_cua_driver_endpoint(&mut spawned, &endpoint) {
+    let Some(stdin) = spawned.stdin.take() else {
+        let _ = spawned.kill();
+        let _ = spawned.wait();
+        return Err("Cua Driver serve did not expose its liveness pipe".to_string());
+    };
+    let lifetime = match crate::process_lifetime::bind_std_child("Cua Driver", &spawned) {
+        Ok(lifetime) => lifetime,
+        Err(error) => {
+            let _ = spawned.kill();
+            let _ = spawned.wait();
+            return Err(error);
+        }
+    };
+    forward_cua_driver_stderr(spawned.stderr.take());
+    if let Err(error) = wait_for_cua_driver_endpoint(&mut spawned, endpoint) {
         let _ = spawned.kill();
         let _ = spawned.wait();
         return Err(error);
     }
-    *child = Some(spawned);
-    Ok(true)
+    Ok(CuaDriverDaemon {
+        child: spawned,
+        _stdin: stdin,
+        _lifetime: lifetime,
+        _owner: owner,
+    })
+}
+
+/// Start the product-managed Cua Driver daemon unless one is already listening
+/// on the reserved endpoint, and wait until it accepts connections.
+///
+/// The daemon owns the unrestricted desktop runtime; the reserved MCP entry is
+/// only a client that attaches to the same endpoint. Returns whether the
+/// endpoint is newly available to the caller, which tells a Runtime that already
+/// connected its persisted MCP list before this call that it has to reconnect.
+///
+/// The ordinary desktop architecture connects MCP servers in the supervised
+/// Runtime process, so the host cannot rely on the embedded-runtime bootstrap to
+/// start this daemon; the frontend asks the host while the entry is enabled.
+///
+/// Endpoint ownership decides what this process may do, and every window process
+/// reaches the same endpoint; `plan_cua_driver_launch` is that rule.
+fn ensure_cua_driver_serve() -> Result<bool, String> {
+    let endpoint = cua_driver_endpoint_path();
+    let state = CUA_DRIVER_SERVE_CHILD.get_or_init(|| std::sync::Mutex::new(None));
+    let mut daemon = state
+        .lock()
+        .map_err(|_| "Cua Driver serve state is unavailable".to_string())?;
+    if let Some(existing) = daemon.as_mut() {
+        if existing
+            .child
+            .try_wait()
+            .map_err(|error| format!("Cua Driver serve status failed: {error}"))?
+            .is_none()
+        {
+            return Ok(false);
+        }
+        // The daemon exited on its own: release its pipe, job, and lock before
+        // deciding what the endpoint needs now.
+        *daemon = None;
+    }
+    let ownership = acquire_cua_driver_ownership()?;
+    let plan = plan_cua_driver_launch(&ownership, cua_driver_endpoint_is_ready(&endpoint));
+    let owner = match ownership {
+        CuaDriverOwnership::Owned(owner) => Some(owner),
+        CuaDriverOwnership::Held | CuaDriverOwnership::Untracked => None,
+    };
+    match plan {
+        CuaDriverPlan::ReclaimThenServe => {
+            reclaim_orphaned_cua_driver_daemon(&endpoint)?;
+            *daemon = Some(spawn_cua_driver_daemon(&endpoint, owner)?);
+            Ok(true)
+        }
+        CuaDriverPlan::Serve => {
+            *daemon = Some(spawn_cua_driver_daemon(&endpoint, owner)?);
+            Ok(true)
+        }
+        CuaDriverPlan::AwaitPeer => {
+            // Wait for the peer's daemon instead of racing it with a second
+            // listener; the endpoint is new to the caller either way.
+            wait_for_cua_driver_endpoint_ready(&endpoint)?;
+            Ok(true)
+        }
+        CuaDriverPlan::Adopt => Ok(false),
+    }
+}
+
+/// Stop the daemon this process started.
+///
+/// The reserved endpoint must not outlive the product that owns it: a daemon
+/// left behind would keep answering the next launch with the release it was
+/// started from. Every product exit path stops it, including the quit watchdog
+/// that force-exits a hung shutdown and Tauri's own exit event, which is the only
+/// cleanup a non-primary window process reaches.
+///
+/// A daemon another process owns is never this process's to stop.
+fn stop_cua_driver_serve() {
+    let Some(state) = CUA_DRIVER_SERVE_CHILD.get() else {
+        return;
+    };
+    let Ok(mut state) = state.lock() else {
+        tracing::warn!("Cua Driver serve state is unavailable during shutdown");
+        return;
+    };
+    let Some(mut daemon) = state.take() else {
+        return;
+    };
+    // Ask the driver to shut down first, so it can tear down its overlay and
+    // sessions, then close the liveness pipe. EOF on that pipe is the driver's
+    // own "the host is gone" signal and the one path that still works when the
+    // daemon cannot answer the endpoint.
+    if let Err(error) = cua_driver_stop_daemon(&cua_driver_endpoint_path()) {
+        tracing::debug!(%error, "Cua Driver stop request failed during shutdown");
+    }
+    drop(daemon._stdin);
+    if wait_for_cua_driver_exit(&mut daemon.child, CUA_DRIVER_SHUTDOWN_TIMEOUT) {
+        return;
+    }
+    if let Err(error) = daemon.child.kill() {
+        tracing::debug!(%error, "Cua Driver serve had already stopped");
+    }
+    if let Err(error) = daemon.child.wait() {
+        tracing::warn!(%error, "failed to reap the Cua Driver serve process");
+    }
+}
+
+/// Wait for a stopping daemon to exit on its own, and report whether it did.
+fn wait_for_cua_driver_exit(child: &mut std::process::Child, timeout: std::time::Duration) -> bool {
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => return true,
+            Ok(None) if std::time::Instant::now() < deadline => {
+                std::thread::sleep(std::time::Duration::from_millis(25));
+            }
+            Ok(None) => return false,
+            Err(error) => {
+                tracing::debug!(%error, "Cua Driver serve exit status failed");
+                return false;
+            }
+        }
+    }
+}
+
+/// Wait for another process's daemon to start listening on `endpoint`.
+fn wait_for_cua_driver_endpoint_ready(endpoint: &str) -> Result<(), String> {
+    let deadline = std::time::Instant::now() + CUA_DRIVER_STARTUP_TIMEOUT;
+    while !cua_driver_endpoint_is_ready(endpoint) {
+        if std::time::Instant::now() >= deadline {
+            return Err(format!(
+                "another process did not start a Cua Driver daemon on {endpoint} within {}s",
+                CUA_DRIVER_STARTUP_TIMEOUT.as_secs()
+            ));
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
+    Ok(())
 }
 
 /// Report the private endpoint the reserved MCP entry must attach to. The
@@ -3746,31 +4129,6 @@ async fn start_cua_driver_serve() -> Result<bool, String> {
     tauri::async_runtime::spawn_blocking(ensure_cua_driver_serve)
         .await
         .map_err(|error| format!("Cua Driver startup task failed: {error}"))?
-}
-
-/// Stop the daemon this process started.
-///
-/// The reserved endpoint must not outlive the product that owns it: a daemon
-/// left behind would keep answering the next launch with the release it was
-/// started from. Every product exit path stops it, including the quit watchdog
-/// that force-exits a hung shutdown.
-fn stop_cua_driver_serve() {
-    let Some(state) = CUA_DRIVER_SERVE_CHILD.get() else {
-        return;
-    };
-    let Ok(mut child) = state.lock() else {
-        tracing::warn!("Cua Driver serve state is unavailable during shutdown");
-        return;
-    };
-    let Some(mut child) = child.take() else {
-        return;
-    };
-    if let Err(error) = child.kill() {
-        tracing::debug!(%error, "Cua Driver serve had already stopped");
-    }
-    if let Err(error) = child.wait() {
-        tracing::warn!(%error, "failed to reap the Cua Driver serve process");
-    }
 }
 
 fn cua_driver_binary_name() -> &'static str {
@@ -3830,21 +4188,73 @@ fn copy_directory_tree(
     Ok(())
 }
 
-/// Remove staged releases other than the current one.
+/// Marker files an earlier build wrote into the cache root itself.
 ///
-/// Best effort: another OpenAgent process may still be serving a driver from
-/// its own staged copy, which no platform has to let this process delete.
-fn prune_staged_cua_driver_releases(root: &std::path::Path, current: &str) {
+/// They are named here because they are not part of the driver bundle, so the
+/// bundle listing cannot identify them.
+const CUA_DRIVER_LEGACY_ROOT_FILES: [&str; 3] = [
+    "openagent-capabilities.json",
+    "openagent-capabilities.yaml",
+    "openagent-resource.json",
+];
+
+/// Whether a directory name is one of the digest keys this layout stages under.
+fn is_cua_driver_release_key(name: &str) -> bool {
+    name.len() == 64 && name.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+/// Remove staged releases other than the current one, and the flat artifacts an
+/// earlier layout left behind in the cache root.
+///
+/// Best effort: another OpenAgent process may still be serving a driver from its
+/// own staged copy, which no platform has to let this process delete.
+///
+/// Only two shapes are removed: release directories that are not the current
+/// digest, and root-level files the bundled release also contains — the pre-digest
+/// layout copied the bundle straight into the root, where pruning directories
+/// alone left it behind forever. Everything else stays: a concurrent stage's
+/// temporary directory, the owner lock directory, and any directory whose name is
+/// not a release digest.
+fn prune_staged_cua_driver_releases(
+    root: &std::path::Path,
+    current: &str,
+    bundled: &std::path::Path,
+) {
     let Ok(entries) = std::fs::read_dir(root) else {
         return;
     };
+    let legacy: std::collections::HashSet<std::ffi::OsString> = std::fs::read_dir(bundled)
+        .map(|entries| {
+            entries
+                .flatten()
+                .map(|entry| entry.file_name())
+                .collect::<std::collections::HashSet<_>>()
+        })
+        .unwrap_or_default();
     for entry in entries.flatten() {
         let name = entry.file_name();
         // Leave a concurrent stage's temporary directory alone.
-        if name == current || name.to_string_lossy().starts_with('.') {
+        if name.to_string_lossy().starts_with('.') {
             continue;
         }
-        let _ = std::fs::remove_dir_all(entry.path());
+        let path = entry.path();
+        let superseded_release = path.is_dir()
+            && name.to_string_lossy() != current
+            && is_cua_driver_release_key(&name.to_string_lossy());
+        let legacy_root_file = path.is_file()
+            && (legacy.contains(&name)
+                || CUA_DRIVER_LEGACY_ROOT_FILES
+                    .iter()
+                    .any(|legacy_name| name == *legacy_name));
+        if !superseded_release && !legacy_root_file {
+            continue;
+        }
+        tracing::debug!(path = %path.display(), "removing a stale staged Cua Driver");
+        if path.is_dir() {
+            let _ = std::fs::remove_dir_all(&path);
+        } else {
+            let _ = std::fs::remove_file(&path);
+        }
     }
 }
 
@@ -3884,7 +4294,7 @@ fn stage_cua_driver_release(
             staged.display()
         ));
     }
-    prune_staged_cua_driver_releases(root, &key);
+    prune_staged_cua_driver_releases(root, &key, directory);
     Ok(staged)
 }
 
@@ -4800,14 +5210,23 @@ fn run_with_mode(agent_server: bool) {
         .build(context)
         .expect("error while building tauri application")
         .run(|app, event| {
-            #[cfg(target_os = "macos")]
-            if matches!(event, tauri::RunEvent::Reopen { .. }) {
-                // macOS sends Reopen when the Dock icon is clicked after the
-                // frameless window was hidden with its close control.
-                show_desktop_window(app);
+            match event {
+                #[cfg(target_os = "macos")]
+                tauri::RunEvent::Reopen { .. } => {
+                    // macOS sends Reopen when the Dock icon is clicked after the
+                    // frameless window was hidden with its close control.
+                    show_desktop_window(app);
+                }
+                // Every process that is not the primary one leaves through
+                // Tauri's default exit path, which never reaches the product quit
+                // path: this is the only cleanup a workspace window, quick chat,
+                // onboarding, settings, or development instance process runs, and
+                // the daemon it started must not outlive it.
+                tauri::RunEvent::Exit => stop_cua_driver_serve(),
+                _ => {}
             }
             #[cfg(not(target_os = "macos"))]
-            let _ = (app, event);
+            let _ = app;
         });
 
     shutdown_host_tracing();
@@ -4844,9 +5263,11 @@ mod tests {
             cua_driver_serve_args(),
             vec![
                 "serve",
+                "--embedded",
                 "--permission-mode",
                 "unrestricted",
                 "--dangerously-bypass-approvals",
+                "--parent-liveness-stdio",
                 "--socket",
                 endpoint.as_str(),
             ]
@@ -4864,6 +5285,132 @@ mod tests {
                 "endpoint must stay private to OpenAgent: {endpoint}"
             );
         }
+    }
+
+    /// The daemon has to be told twice that it is embedded and unrestricted: the
+    /// command line carries the flags the host starts it with, and the
+    /// environment carries the same values for the driver's two-part embedding
+    /// contract, which refuses contradictory values.
+    #[test]
+    fn cua_driver_serve_environment_matches_the_embedded_contract() {
+        let environment = cua_driver_serve_environment()
+            .into_iter()
+            .collect::<Vec<_>>();
+        assert_eq!(
+            environment,
+            vec![
+                ("CUA_DRIVER_EMBEDDED", "1"),
+                ("CUA_DRIVER_PERMISSION_MODE", "unrestricted"),
+                ("CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS", "1"),
+                ("CUA_DRIVER_PARENT_LIVENESS_STDIN", "1"),
+                ("CUA_DRIVER_HOST_BUNDLE_ID", CUA_DRIVER_HOST_BUNDLE_ID),
+            ]
+        );
+    }
+
+    /// Every cell of the ownership rule. The two cells that decide safety are the
+    /// peer's: a live owner's daemon is never reclaimed — only a lock this
+    /// process took, beside a daemon that still answers, may be stopped — and a
+    /// peer that has not finished starting is waited on rather than raced.
+    #[test]
+    fn cua_driver_launch_plan_never_replaces_a_live_peers_daemon() {
+        let owned = CuaDriverOwnership::Owned(tempfile::tempfile().expect("owner lock stand-in"));
+        let held = CuaDriverOwnership::Held;
+        let untracked = CuaDriverOwnership::Untracked;
+
+        assert_eq!(
+            plan_cua_driver_launch(&owned, true),
+            CuaDriverPlan::ReclaimThenServe
+        );
+        assert_eq!(plan_cua_driver_launch(&owned, false), CuaDriverPlan::Serve);
+        assert_eq!(plan_cua_driver_launch(&held, true), CuaDriverPlan::Adopt);
+        assert_eq!(
+            plan_cua_driver_launch(&held, false),
+            CuaDriverPlan::AwaitPeer
+        );
+        assert_eq!(
+            plan_cua_driver_launch(&untracked, true),
+            CuaDriverPlan::Adopt
+        );
+        assert_eq!(
+            plan_cua_driver_launch(&untracked, false),
+            CuaDriverPlan::Serve
+        );
+    }
+
+    /// The bundle identifier is an advisory label the driver compares with the
+    /// bundle identity macOS resolves for the host, so it has to be the installed
+    /// app's identifier rather than a development instance's rewritten one.
+    #[test]
+    fn cua_driver_host_bundle_id_matches_the_tauri_identifier() {
+        let configuration = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tauri.conf.json"),
+        )
+        .expect("read tauri.conf.json");
+        let configuration: serde_json::Value =
+            serde_json::from_str(&configuration).expect("parse tauri.conf.json");
+        assert_eq!(
+            configuration
+                .get("identifier")
+                .and_then(|value| value.as_str()),
+            Some(CUA_DRIVER_HOST_BUNDLE_ID)
+        );
+    }
+
+    /// The owner lock is what tells a live peer's daemon apart from one whose
+    /// owner is gone, so it has to disappear with the process that holds it.
+    #[test]
+    fn cua_driver_ownership_is_exclusive_per_process_and_released_on_drop() {
+        use std::fs::TryLockError;
+
+        let path = std::env::temp_dir().join(format!(
+            "openagent-cua-owner-test-{}/daemon.lock",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(path.parent().expect("owner lock parent"))
+            .expect("create owner lock directory");
+
+        let owner = std::fs::OpenOptions::new()
+            .create(true)
+            .read(true)
+            .write(true)
+            .open(&path)
+            .expect("open owner lock");
+        owner.try_lock().expect("first lock succeeds");
+
+        // A second handle stands in for the next OpenAgent process.
+        let contender = std::fs::OpenOptions::new()
+            .create(true)
+            .read(true)
+            .write(true)
+            .open(&path)
+            .expect("open owner lock again");
+        assert!(matches!(
+            contender.try_lock(),
+            Err(TryLockError::WouldBlock)
+        ));
+
+        drop(owner);
+        contender
+            .try_lock()
+            .expect("the lock is free once its owner is gone");
+
+        drop(contender);
+        std::fs::remove_dir_all(path.parent().expect("owner lock parent"))
+            .expect("remove owner lock fixture");
+    }
+
+    #[test]
+    fn cua_driver_release_directories_are_digest_keyed() {
+        assert!(is_cua_driver_release_key(
+            "120cd7f40340c5e012422aca393932767e228c224dd8b9df2124ca29c5e48226"
+        ));
+        assert!(!is_cua_driver_release_key("120cd7f4"));
+        assert!(!is_cua_driver_release_key("owner"));
+        assert!(!is_cua_driver_release_key("previous-release"));
+        assert!(!is_cua_driver_release_key(
+            "120cd7f40340c5e012422aca393932767e228c224dd8b9df2124ca29c5e4822z"
+        ));
     }
 
     #[test]
@@ -4933,29 +5480,75 @@ mod tests {
         std::fs::remove_dir_all(root).expect("remove Cua Driver stage fixture");
     }
 
+    /// Pruning removes exactly two shapes: a release directory staged under a
+    /// digest other than the current one, and the flat artifacts the pre-digest
+    /// layout copied into the cache root. Everything else in the root — a
+    /// concurrent stage's temporary directory, the owner lock directory, a
+    /// foreign file, or a directory that is not a release digest — is not ours
+    /// to delete.
     #[test]
-    fn staging_cua_driver_prunes_other_releases() {
+    fn staging_cua_driver_prunes_superseded_releases_and_flat_artifacts() {
         let root =
             std::env::temp_dir().join(format!("openagent-cua-prune-test-{}", uuid::Uuid::new_v4()));
         let bundle = root.join("bundle");
         let cache = root.join("cache");
-        std::fs::create_dir_all(&bundle).expect("create Cua Driver bundle");
+        std::fs::create_dir_all(bundle.join("wayland-helper")).expect("create Cua Driver bundle");
         std::fs::write(bundle.join(cua_driver_binary_name()), b"fixture")
             .expect("write Cua Driver fixture");
+        std::fs::write(bundle.join("wayland-helper").join("helper"), b"helper")
+            .expect("write Cua Driver helper fixture");
+        let current = "120cd7f40340c5e012422aca393932767e228c224dd8b9df2124ca29c5e48226";
         std::fs::write(
             bundle.join("openagent-resource.json"),
-            r#"{"sha256":"120cd7f40340c5e012422aca393932767e228c224dd8b9df2124ca29c5e48226"}"#,
+            format!(r#"{{"sha256":"{current}"}}"#),
         )
         .expect("write Cua Driver marker");
-        let previous = cache.join("previous-release");
-        let concurrent = cache.join(".current.4242");
-        std::fs::create_dir_all(&previous).expect("create previous Cua Driver release");
+
+        let superseded = cache.join("ab".repeat(32));
+        let concurrent = cache.join(format!(".{current}.4242"));
+        let owner = cache.join("owner");
+        let foreign_directory = cache.join("previous-release");
+        std::fs::create_dir_all(&superseded).expect("create superseded Cua Driver release");
         std::fs::create_dir_all(&concurrent).expect("create concurrent Cua Driver stage");
+        std::fs::create_dir_all(&owner).expect("create Cua Driver owner directory");
+        std::fs::create_dir_all(&foreign_directory).expect("create foreign Cua Driver directory");
+        std::fs::write(owner.join("daemon.lock"), b"").expect("write Cua Driver owner lock");
+        // The flat layout copied the bundle straight into the cache root, so
+        // pruning directories alone left these behind across every upgrade.
+        for flat in [
+            cua_driver_binary_name(),
+            "openagent-resource.json",
+            "openagent-capabilities.yaml",
+        ] {
+            std::fs::write(cache.join(flat), b"legacy").expect("write flat Cua Driver artifact");
+        }
+        std::fs::write(cache.join("notes.txt"), b"mine").expect("write foreign Cua Driver file");
 
-        stage_cua_driver_release(&bundle, &cache).expect("stage bundled Cua Driver");
+        let staged = stage_cua_driver_release(&bundle, &cache).expect("stage bundled Cua Driver");
 
-        assert!(!previous.exists());
-        assert!(concurrent.exists());
+        assert_eq!(staged, cache.join(current));
+        assert!(!superseded.exists());
+        for flat in [
+            cua_driver_binary_name(),
+            "openagent-resource.json",
+            "openagent-capabilities.yaml",
+        ] {
+            assert!(!cache.join(flat).exists(), "{flat} survived pruning");
+        }
+        assert!(concurrent.exists(), "a concurrent stage must survive");
+        assert!(
+            owner.join("daemon.lock").is_file(),
+            "the owner lock must survive"
+        );
+        assert!(
+            foreign_directory.exists(),
+            "a directory that is not a release digest must survive"
+        );
+        assert!(
+            cache.join("notes.txt").is_file(),
+            "a foreign file must survive"
+        );
+        assert!(staged.join("wayland-helper").join("helper").is_file());
         std::fs::remove_dir_all(root).expect("remove Cua Driver prune fixture");
     }
 

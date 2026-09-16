@@ -57,67 +57,10 @@ pub struct RuntimeProcessStatus {
 
 struct RunningRuntime {
     child: Child,
-    _lifetime_guard: RuntimeLifetimeGuard,
+    _lifetime_guard: crate::process_lifetime::HostLifetimeGuard,
     spec: RuntimeLaunchSpec,
     token: String,
     ready: RuntimeReady,
-}
-
-#[cfg(windows)]
-struct RuntimeLifetimeGuard(windows::Win32::Foundation::HANDLE);
-
-#[cfg(windows)]
-unsafe impl Send for RuntimeLifetimeGuard {}
-
-#[cfg(windows)]
-unsafe impl Sync for RuntimeLifetimeGuard {}
-
-#[cfg(windows)]
-impl Drop for RuntimeLifetimeGuard {
-    fn drop(&mut self) {
-        let _ = unsafe { windows::Win32::Foundation::CloseHandle(self.0) };
-    }
-}
-
-#[cfg(not(windows))]
-struct RuntimeLifetimeGuard;
-
-#[cfg(windows)]
-fn supervise_runtime_lifetime(child: &Child) -> Result<RuntimeLifetimeGuard, String> {
-    use windows::Win32::Foundation::HANDLE;
-    use windows::Win32::System::JobObjects::{
-        AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
-        SetInformationJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
-    };
-
-    let job = unsafe { CreateJobObjectW(None, None) }
-        .map(RuntimeLifetimeGuard)
-        .map_err(|error| format!("failed to create Runtime lifecycle job: {error}"))?;
-    let mut limits = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
-    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-    unsafe {
-        SetInformationJobObject(
-            job.0,
-            JobObjectExtendedLimitInformation,
-            &limits as *const _ as _,
-            std::mem::size_of_val(&limits) as u32,
-        )
-    }
-    .map_err(|error| format!("failed to configure Runtime lifecycle job: {error}"))?;
-    let process = HANDLE(
-        child
-            .raw_handle()
-            .ok_or_else(|| "Runtime process handle is unavailable".to_string())?,
-    );
-    unsafe { AssignProcessToJobObject(job.0, process) }
-        .map_err(|error| format!("failed to bind Runtime to desktop lifecycle: {error}"))?;
-    Ok(job)
-}
-
-#[cfg(not(windows))]
-fn supervise_runtime_lifetime(_child: &Child) -> Result<RuntimeLifetimeGuard, String> {
-    Ok(RuntimeLifetimeGuard)
 }
 
 #[derive(Clone, Debug)]
@@ -264,7 +207,7 @@ impl RuntimeProcessSupervisor {
                 spec.binary_path.display()
             )
         })?;
-        let lifetime_guard = match supervise_runtime_lifetime(&child) {
+        let lifetime_guard = match crate::process_lifetime::bind_tokio_child("Runtime", &child) {
             Ok(guard) => guard,
             Err(error) => {
                 let _ = stop_child(&mut child).await;
