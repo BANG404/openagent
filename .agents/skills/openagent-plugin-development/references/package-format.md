@@ -54,14 +54,21 @@ reserved entry into a user-installed Agent Plugin or fall back to an unrelated
 binary on `PATH` when the bundled resource is present.
 
 The Cua topology is fixed product policy rather than user configuration. The
-desktop host starts `cua-driver serve --permission-mode unrestricted
---dangerously-bypass-approvals --socket <endpoint>`, waits until that endpoint
-accepts connections, and then the reserved MCP client connects with
-`cua-driver mcp --socket <endpoint>`. The daemon owns the desktop runtime; the
-MCP process remains a protocol client. Never pass `--grant` to the client: it
-configures a runtime the driver launches itself, it is valid only in standard
-permission mode, and the driver refuses it whenever a daemon already listens on
-the endpoint.
+desktop host starts `cua-driver serve --embedded --permission-mode unrestricted
+--dangerously-bypass-approvals --parent-liveness-stdio --socket <endpoint>`,
+waits until that endpoint accepts connections, and then the reserved MCP client
+connects with `cua-driver mcp --embedded --socket <endpoint>`. The daemon owns
+the desktop runtime; the MCP process remains a protocol client. Never pass
+`--grant` to the client: it configures a runtime the driver launches itself, it
+is valid only in standard permission mode, and the driver refuses it whenever a
+daemon already listens on the endpoint.
+
+Both `--embedded` flags are lifetime contracts, not cosmetics. The daemon's
+makes it stay inside the host's process tree instead of relaunching itself as a
+standalone app; the client's makes an unreachable endpoint a hard failure
+instead of a reason to start a standalone Cua app whose lifetime belongs to
+nobody. `--parent-liveness-stdio` makes the daemon exit on stdin EOF, so the
+host holding that pipe is what guarantees the daemon cannot outlive it.
 
 `cua-driver mcp --socket` cannot start a daemon on Windows or Linux, so the host
 owns the daemon lifecycle. The host reports its private endpoint through

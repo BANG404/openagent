@@ -76,7 +76,7 @@ describe("Cua Driver configuration", () => {
   test("attaches the reserved entry to the host endpoint without authorization flags", () => {
     const server = createCuaDriverServer(ENDPOINT);
     expect(server.command).toBe(CUA_DRIVER_COMMAND);
-    expect(server.args).toEqual(["mcp", "--socket", ENDPOINT]);
+    expect(server.args).toEqual(["mcp", "--embedded", "--socket", ENDPOINT]);
     expect(cuaDriverMcpArgs(ENDPOINT)).not.toContain("--grant");
     expect(server.env).toEqual({});
     expect(server.disabled_tools).toEqual([]);
@@ -106,6 +106,14 @@ describe("Cua Driver configuration", () => {
           ...createCuaDriverServer(ENDPOINT),
           args: ["mcp", "--grant", "existing-profile", "--socket", ENDPOINT],
         },
+        ENDPOINT,
+      ),
+    ).toBe(false);
+    // Without `--embedded` the client would start a standalone Cua app whenever
+    // the endpoint is unreachable, which is the leak this shape prevents.
+    expect(
+      isCuaDriverServerCurrent(
+        { ...createCuaDriverServer(ENDPOINT), args: ["mcp", "--socket", ENDPOINT] },
         ENDPOINT,
       ),
     ).toBe(false);
@@ -142,6 +150,8 @@ describe("Cua Driver configuration", () => {
     const legacy = {
       ...createCuaDriverServer(ENDPOINT),
       enabled: false,
+      // The shape this entry had before the embedded contract: no `--embedded`,
+      // so the client could launch a standalone Cua app on its own.
       args: ["mcp", "--grant", "existing-profile", "--socket", "openagent-cua-driver.sock"],
       env: {
         CUA_DRIVER_TRANSPORT_MODE: "serve",
@@ -156,7 +166,7 @@ describe("Cua Driver configuration", () => {
       id: CUA_DRIVER_ID,
       enabled: false,
       command: CUA_DRIVER_COMMAND,
-      args: ["mcp", "--socket", ENDPOINT],
+      args: ["mcp", "--embedded", "--socket", ENDPOINT],
       env: {},
       disabled_tools: ["kill_app"],
     });

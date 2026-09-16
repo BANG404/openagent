@@ -7,13 +7,16 @@ export const CUA_DRIVER_COMMAND = "cua-driver";
  * The fixed MCP client arguments for the reserved entry.
  *
  * The client attaches to the daemon the desktop host starts on its own private
- * endpoint, which the host reports through `cua_driver_endpoint`. `--grant`
- * cannot appear here: it configures a runtime that the driver launches itself,
- * it is valid only in standard permission mode, and the driver rejects it
- * outright when a daemon is already listening on the endpoint.
+ * endpoint, which the host reports through `cua_driver_endpoint`. `--embedded`
+ * makes that attachment a hard requirement: without it the client treats an
+ * unreachable endpoint as "no daemon yet" and starts a standalone Cua app of
+ * its own, whose lifetime belongs to nobody and outlives this product. `--grant`
+ * cannot appear here either: it configures a runtime that the driver launches
+ * itself, it is valid only in standard permission mode, and the driver rejects
+ * it outright when a daemon is already listening on the endpoint.
  */
 export function cuaDriverMcpArgs(endpoint: string): string[] {
-  return ["mcp", "--socket", endpoint];
+  return ["mcp", "--embedded", "--socket", endpoint];
 }
 
 /**
