@@ -28,6 +28,11 @@
 
   let platform = $derived(platformOverride ?? detectWindowPlatform());
   let surfaceElement = $state<HTMLElement | null>(null);
+  let expanded = $state(false);
+
+  $effect(() => {
+    if (!open) expanded = false;
+  });
 </script>
 
 <Dialog.Root
@@ -44,7 +49,7 @@
          takes the initial focus instead, and the close action keeps it for
          keyboard traversal. -->
     <Dialog.Content
-      class="fullscreen-surface"
+      class={expanded ? "fullscreen-surface expanded" : "fullscreen-surface"}
       data-window-platform={platform}
       aria-label={title}
       tabindex={-1}
@@ -69,6 +74,30 @@
           data-tauri-drag-region={platform === "macos" ? "true" : undefined}
           aria-hidden="true"
         ></div>
+        <Tooltip text={expanded ? $t("restoreWindow") : $t("maximizeWindow")}>
+          {#snippet trigger(props)}
+            <button
+              {...props}
+              type="button"
+              class="fullscreen-surface-expand"
+              aria-label={expanded ? $t("restoreWindow") : $t("maximizeWindow")}
+              onclick={(event) => {
+                event.stopPropagation();
+                expanded = !expanded;
+              }}
+            >
+              {#if expanded}
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M5.5 5.5H3v2.5M10.5 10.5H13V8M3 8l3.5-3.5M13 8l-3.5 3.5" />
+                </svg>
+              {:else}
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M3.5 6.5v-3h3M12.5 9.5v3h-3M6.5 3.5 3.5 6.5M9.5 12.5l3-3" />
+                </svg>
+              {/if}
+            </button>
+          {/snippet}
+        </Tooltip>
         <!-- Windows carries no window-management group here: trailing
              minimize/maximize/close would place the destructive window close
              against the routine surface close. Only macOS keeps its controls,
@@ -91,31 +120,54 @@
 </Dialog.Root>
 
 <style>
-  /* A fullscreen surface replaces the whole window canvas, so it keeps the
-     shared settings layering: nested configuration dialogs and toasts stay
-     above it while it covers the application title bar and chat shell. */
+  /* The management surface keeps the application visible around a compact,
+     centered settings window. Nested configuration dialogs and toasts stay
+     above it while the backdrop keeps the chat shell inactive. */
   :global(.fullscreen-surface-backdrop) {
     position: fixed;
     inset: 0;
     z-index: 80;
-    background: var(--surface);
+    background: color-mix(in srgb, var(--bg) 42%, transparent);
+    backdrop-filter: blur(2px);
   }
 
   :global(.fullscreen-surface) {
     position: fixed;
-    inset: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     z-index: 81;
     display: flex;
     flex-direction: column;
-    width: 100vw;
-    height: 100vh;
+    width: min(780px, calc(100vw - 32px));
+    height: min(560px, calc(100vh - 48px));
+    min-width: min(640px, calc(100vw - 32px));
+    min-height: min(400px, calc(100vh - 48px));
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 32px);
     box-sizing: border-box;
     padding: 0;
-    border: 0;
-    border-radius: 0;
+    overflow: hidden;
+    resize: both;
+    border: 1px solid var(--mica-divider);
+    border-radius: 12px;
     background: var(--surface);
     color: var(--text);
+    box-shadow: var(--raised-shadow);
     outline: none;
+  }
+
+  :global(.fullscreen-surface.expanded) {
+    inset: 16px;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    max-height: none;
+    transform: none;
+    resize: none;
+    border-radius: 8px;
   }
 
   :global(.fullscreen-surface-chrome) {
@@ -144,6 +196,10 @@
     -webkit-app-region: no-drag;
   }
 
+  :global(.fullscreen-surface[data-window-platform="windows"] .fullscreen-surface-expand) {
+    -webkit-app-region: no-drag;
+  }
+
   :global(.fullscreen-surface-mac-controls) {
     position: absolute;
     top: 4px;
@@ -162,6 +218,39 @@
     flex: 1 1 auto;
     align-self: stretch;
     min-width: 24px;
+  }
+
+  :global(.fullscreen-surface-expand) {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    flex: none;
+    place-items: center;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    outline: none;
+  }
+
+  :global(.fullscreen-surface-expand:hover),
+  :global(.fullscreen-surface-expand:focus-visible) {
+    background: var(--interactive-state-bg);
+    color: var(--text);
+  }
+
+  :global(.fullscreen-surface-expand:focus-visible) {
+    box-shadow: var(--focus-ring);
+  }
+
+  :global(.fullscreen-surface-expand svg) {
+    width: 15px;
+    height: 15px;
+    stroke: currentColor;
+    stroke-width: 1.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   :global(.fullscreen-surface-title) {
