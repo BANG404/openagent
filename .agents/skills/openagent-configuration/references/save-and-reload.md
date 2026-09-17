@@ -84,6 +84,13 @@ deletion. Scope changes reload both views; a missing workspace disables project
 memory actions without falling back to global data. Manual extraction is
 asynchronous and refreshes the list after the runtime accepts the task.
 
+The user-written content of each scope's file is injected into the chat system
+prompt as its own memory section: global memory in every conversation, project
+memory only while that workspace is active, each capped and omitted entirely
+when the file is missing or blank. Agent-extracted memories do not travel that
+way; a recalled entry is carried on the triggering user message as untrusted
+context.
+
 Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
 permissions and do not commit it to source control.

@@ -327,14 +327,16 @@ Memory files have **two zones**. The Memory Agent only writes below the marker c
 <!-- Memory Agent only operates below this comment -->
 ```
 
-- Global memory → `~/.openagent/memory.md` (every conversation)
-- Local memory → `<workspace>/.agents/memory.md` (workspace-scoped)
+- Global memory → `~/.openagent/memory.md` (injected into the system prompt of every conversation)
+- Local memory → `<workspace>/.agents/memory.md` (injected only while that workspace is active)
+
+The user-written content of each file reaches the chat agent as its own system-prompt section, so what you write there is standing context in every affected turn. A missing or blank file adds no section, and an oversized one is capped.
 
 ## Agent memory controls
 
 Open **Settings → Flash Tasks → Memory Task** to configure the long-term-memory workflow:
 
-- **Automatic agent memory retrieval** is disabled by default, leaving the chat agent to decide when a turn needs the `search_agent_memory` tool. Enabling it adds a preflight to every turn that uses the Flash model to turn the current message into a focused query, retrieves relevant structured memory, and adds the results to the chat agent's system prompt.
+- **Automatic agent memory retrieval** is disabled by default, leaving the chat agent to decide when a turn needs the `search_agent_memory` tool. Enabling it adds a preflight to every turn that uses the Flash model to turn the current message into a focused query, retrieves relevant structured memory, and carries the results on the triggering user message as explicitly untrusted context rather than in the system prompt.
 
 Disabling the Memory Agent stops its post-conversation extraction task; automatic retrieval remains independently configurable. New conversations use fixed localized greeting copy and never generate it from memory.
 
