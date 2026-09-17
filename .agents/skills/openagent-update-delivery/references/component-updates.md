@@ -30,10 +30,19 @@ reloads and confirms the frontend, then installs the shell and restarts the
 application. Component-only releases keep the same notification model without
 restarting the shell.
 
-The shell installer, not the host, ends the process: on Windows the updater
-plugin launches NSIS and terminates the application inside `install()`, so no
-statement after that call runs and the component-update records it would have
-written are recovered by the next process instead.
+The shell step begins with a preparation command that re-acquires the barrier —
+an in-process frontend confirmation releases it, so the Runtime must be drained
+again before it is stopped — and then runs the same bounded child teardown the
+ordinary exit path uses. No restart happens during preparation; it only makes
+the process safe to end, and an undrainable Runtime defers the whole update
+before anything is torn down. This ordering exists because the shell installer,
+not the host, ends the process: on Windows the updater plugin launches NSIS and
+terminates the application inside `install()`, so no statement after that call
+runs and the component-update records it would have written are recovered by
+the next process instead. Preparation is therefore also why a prepared handoff
+is completed by the restart request that follows it rather than treated as a
+second exit, and why a failure after preparation is answered with that restart
+instead of an in-place retry.
 
 After a frontend activation, the host's first WebView confirmation owns the
 completion notice. Other workspace and utility WebViews still confirm the

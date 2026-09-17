@@ -27,7 +27,7 @@ test("production update checks aggregate Runtime and Shell updates", () => {
   expect(updater).toContain("formatComponentVersionTransitions");
   expect(updater).toContain('title: translate("updateAvailable")');
   expect(updater).toContain("const shellDownload = shell ? downloadShellUpdate(shell) : null");
-  expect(updater).toContain("await installShellUpdate(updates.shell)");
+  expect(updater).not.toContain("installShellUpdate");
   expect(updater).not.toContain("downloadAndInstall");
   expect(updater).toContain('translate("updateAll")');
   expect(updater).toContain('invoke<ComponentUpdateGate>("begin_component_update")');
@@ -76,12 +76,51 @@ test("components activate in the documented order within one barrier", () => {
     'invoke<ComponentUpdateGate>("begin_component_update")',
     'invoke("activate_runtime_resource"',
     'invoke<void>("activate_frontend_resource"',
+    'invoke<boolean>("begin_shell_install")',
+    "await shell.install()",
+    'invoke("restart_app")',
   ].map((step) => {
     const at = updater.indexOf(step);
     expect(at).toBeGreaterThanOrEqual(0);
     return at;
   });
   expect(order).toEqual([...order].sort((left, right) => left - right));
+});
+
+test("the shell installer runs after the host has prepared the exit", () => {
+  // `install()` ends the process on Windows, so every step that depends on
+  // this host being alive has to precede it.
+  const prepared = updater.indexOf('await invoke<boolean>("begin_shell_install")');
+  const install = updater.indexOf("await shell.install()");
+  expect(prepared).toBeGreaterThanOrEqual(0);
+  expect(install).toBeGreaterThan(prepared);
+
+  expect(updater).toContain("shellInstallPrepared = true");
+  expect(updater).toContain("if (shellInstallPrepared) {");
+  expect(updater).toContain("!frontendActivationCommitted && !shellInstallPrepared");
+
+  // An unready Runtime defers before anything is torn down.
+  expect(updater.indexOf("if (!prepared) {")).toBeLessThan(install);
+  expect(updater.indexOf("if (!prepared) {")).toBeGreaterThan(
+    updater.indexOf('"begin_shell_install"'),
+  );
+
+  expect(host).toContain("async fn begin_shell_install(");
+  expect(host).toContain('stage = "install_prepared"');
+  expect(host).toContain("acquire_component_update_barrier(updates.inner(), supervisor.inner())");
+
+  // Preparation does the bounded teardown and never restarts anything.
+  const begin = host.indexOf("async fn begin_shell_install(");
+  expect(begin).toBeGreaterThanOrEqual(0);
+  const command = host.slice(begin, host.indexOf("\n}\n", begin) + 2);
+  expect(command).toContain("stop_desktop_children(&app).await");
+  expect(command).toContain("hide_desktop_surfaces(&app)");
+  expect(command).not.toContain("request_desktop_exit");
+
+  // The exit that follows completes the prepared work instead of repeating it.
+  expect(host).toContain("DesktopExitStep::Complete");
+  expect(host).toContain("advance_desktop_exit_phase()");
+  expect(host).toContain("DesktopExitPhase::ShellInstallPrepared");
 });
 
 test("component lifecycle diagnostics cover shell, Runtime, and frontend stages", () => {

@@ -375,7 +375,7 @@ describe("desktop navigation chrome", () => {
       "utf8",
     );
     const exit = host.slice(
-      host.indexOf("async fn finish_desktop_exit"),
+      host.indexOf("fn hide_desktop_surfaces"),
       host.indexOf("#[tauri::command]\nasync fn quit_app"),
     );
 
@@ -391,6 +391,14 @@ describe("desktop navigation chrome", () => {
     expect(exit).toContain("for window in app.webview_windows().values()");
     expect(exit).toContain("window.hide()");
     expect(exit.indexOf("supervisor.stop()")).toBeLessThan(exit.indexOf("proxy.stop()"));
+
+    // The bounded teardown is shared with the shell install preparation, which
+    // stops the same children without restarting, so both paths reach it
+    // through the same idempotent helper.
+    expect(host).toContain("async fn stop_desktop_children(app: &tauri::AppHandle)");
+    expect(exit).toContain("stop_desktop_children(&app).await");
+    expect(exit).toContain("if step == DesktopExitStep::Start");
+    expect(exit).toContain("advance_desktop_exit_phase()");
     expect(host).toContain("request_desktop_exit(app, DesktopExitAction::Restart)");
     expect(host).toContain("request_child_workspace_window_shutdown()");
     expect(host).toContain("openagent-parent-shutdown-monitor");

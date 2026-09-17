@@ -19,6 +19,13 @@
 - Application restart uses the same bounded Runtime, event-proxy, and child
   workspace cleanup as tray Quit before requesting the Tauri restart. Do not
   call the immediate restart path directly from an IPC command.
+- `begin_shell_install` runs that same bounded cleanup without restarting, and
+  never restarts anything itself: the shell installer ends the process, so the
+  host has to be made safe to lose before it is handed over. The exit phases
+  then distinguish the two cases — an exit request that follows a preparation
+  completes the teardown already done instead of repeating it, while a repeated
+  request during an exit is ignored. Keep the teardown idempotent, because both
+  phase paths reach it.
 - If the setup window is currently visible for first-run configuration or
   embedding-resource repair, restore that instead; its pre-created but
   hidden WebView stays closed only when configuration and the local

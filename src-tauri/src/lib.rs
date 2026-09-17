@@ -158,10 +158,100 @@ struct RuntimeUpdateState {
     component_update_active: tokio::sync::Mutex<bool>,
 }
 
+/// How far this process has advanced toward ending itself.
+///
+/// The shell installer, not the host, ends the process, so the bounded
+/// teardown has to run before it is handed the application. That splits one
+/// exit into a preparation and a completion, both reached through ordinary
+/// commands.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum DesktopExitPhase {
+    Running,
+    ShellInstallPrepared,
+    Exiting,
+}
+
+/// What an exit request still has to do, given how far the process already got.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum DesktopExitStep {
+    /// Nothing was prepared, so run the bounded teardown now.
+    Start,
+    /// A shell install already stopped the children and hid the windows, so
+    /// only the watchdog and the exit itself remain.
+    Complete,
+    /// An exit is already under way; a repeated request must not race it.
+    Ignore,
+}
+
+impl DesktopExitPhase {
+    fn from_bits(bits: u8) -> Self {
+        match bits {
+            1 => Self::ShellInstallPrepared,
+            2 => Self::Exiting,
+            _ => Self::Running,
+        }
+    }
+
+    fn bits(self) -> u8 {
+        match self {
+            Self::Running => 0,
+            Self::ShellInstallPrepared => 1,
+            Self::Exiting => 2,
+        }
+    }
+}
+
 #[derive(Default)]
 struct DesktopWindowState {
     startup_window_revealed: std::sync::atomic::AtomicBool,
-    quitting: std::sync::atomic::AtomicBool,
+    desktop_exit: std::sync::atomic::AtomicU8,
+}
+
+impl DesktopWindowState {
+    #[cfg(test)]
+    fn desktop_exit_phase(&self) -> DesktopExitPhase {
+        DesktopExitPhase::from_bits(self.desktop_exit.load(std::sync::atomic::Ordering::Acquire))
+    }
+
+    /// Record that the bounded teardown has run and the process may now be
+    /// ended by the shell installer.
+    fn prepare_shell_install(&self) -> Result<(), String> {
+        self.desktop_exit
+            .compare_exchange(
+                DesktopExitPhase::Running.bits(),
+                DesktopExitPhase::ShellInstallPrepared.bits(),
+                std::sync::atomic::Ordering::AcqRel,
+                std::sync::atomic::Ordering::Acquire,
+            )
+            .map(|_| ())
+            .map_err(|phase| {
+                format!(
+                    "cannot prepare a shell install while the desktop is in the {:?} exit phase",
+                    DesktopExitPhase::from_bits(phase)
+                )
+            })
+    }
+
+    /// Claim the exit and report what the caller still has to do.
+    fn advance_desktop_exit_phase(&self) -> DesktopExitStep {
+        let mut current = self.desktop_exit.load(std::sync::atomic::Ordering::Acquire);
+        loop {
+            let step = match DesktopExitPhase::from_bits(current) {
+                DesktopExitPhase::Running => DesktopExitStep::Start,
+                DesktopExitPhase::ShellInstallPrepared => DesktopExitStep::Complete,
+                DesktopExitPhase::Exiting => return DesktopExitStep::Ignore,
+            };
+            match self.desktop_exit.compare_exchange_weak(
+                current,
+                DesktopExitPhase::Exiting.bits(),
+                std::sync::atomic::Ordering::AcqRel,
+                std::sync::atomic::Ordering::Acquire,
+            ) {
+                Ok(_) => return step,
+                Err(observed) => current = observed,
+            }
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -860,10 +950,14 @@ async fn resume_supervised_runtime(supervisor: &RuntimeProcessSupervisor) -> Res
     Ok(())
 }
 
-#[tauri::command]
-async fn begin_component_update(
-    updates: State<'_, RuntimeUpdateState>,
-    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+/// Drain the Runtime and take its write barrier, or report why it is not ready.
+///
+/// Shared by ordinary component activation and by the shell install
+/// preparation: a frontend confirmation releases the barrier, so the shell
+/// step has to acquire it again rather than inherit it.
+async fn acquire_component_update_barrier(
+    updates: &RuntimeUpdateState,
+    supervisor: &RuntimeProcessSupervisor,
 ) -> Result<ComponentUpdateGate, String> {
     let _lifecycle = updates.lifecycle.lock().await;
     let mut active = updates.component_update_active.lock().await;
@@ -873,7 +967,7 @@ async fn begin_component_update(
             active_count: 0,
         });
     }
-    let drain = drain_supervised_runtime(supervisor.inner(), false).await?;
+    let drain = drain_supervised_runtime(supervisor, false).await?;
     tracing::info!(
         target: "openagent::component_update",
         component = "runtime",
@@ -889,6 +983,14 @@ async fn begin_component_update(
         ready: drain.drained,
         active_count: drain.active_conversations.len(),
     })
+}
+
+#[tauri::command]
+async fn begin_component_update(
+    updates: State<'_, RuntimeUpdateState>,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+) -> Result<ComponentUpdateGate, String> {
+    acquire_component_update_barrier(updates.inner(), supervisor.inner()).await
 }
 
 #[tauri::command]
@@ -2701,13 +2803,64 @@ fn restart_app(app: tauri::AppHandle) {
     request_desktop_exit(app, DesktopExitAction::Restart);
 }
 
+/// Make the process safe for a shell installer that will end it.
+///
+/// On Windows the updater plugin terminates the application inside
+/// `install()`, so nothing after that call can run and the bounded teardown
+/// has to happen before it. This never restarts anything: it reports `false`
+/// while the Runtime still has active work, and the caller defers the update
+/// as it does for every other component.
+#[tauri::command]
+async fn begin_shell_install(
+    app: tauri::AppHandle,
+    updates: State<'_, RuntimeUpdateState>,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+) -> Result<bool, String> {
+    let gate = acquire_component_update_barrier(updates.inner(), supervisor.inner()).await?;
+    if !gate.ready {
+        return Ok(false);
+    }
+    app.state::<DesktopWindowState>().prepare_shell_install()?;
+    tracing::info!(
+        target: "openagent::component_update",
+        component = "shell",
+        stage = "install_prepared",
+        "shell install preparation stopped the desktop's children"
+    );
+    if let Err(error) = request_child_workspace_window_shutdown() {
+        tracing::warn!(%error, "failed to signal child workspace processes before the shell install");
+    }
+    hide_desktop_surfaces(&app);
+    stop_desktop_children(&app).await;
+    Ok(true)
+}
+
 #[derive(Clone, Copy)]
 enum DesktopExitAction {
     Quit,
     Restart,
 }
 
-async fn finish_desktop_exit(app: tauri::AppHandle, action: DesktopExitAction) {
+/// Hide every surface the user could still interact with while the process
+/// winds down. Shared by the ordinary exit path and by the shell install
+/// preparation, which hands the application to an installer.
+fn hide_desktop_surfaces(app: &tauri::AppHandle) {
+    #[cfg(desktop)]
+    {
+        if let Some(tray) = app.tray_by_id(DESKTOP_TRAY_ID) {
+            let _ = tray.set_visible(false);
+        }
+        for window in app.webview_windows().values() {
+            let _ = window.hide();
+        }
+    }
+}
+
+/// Stop everything the host owns that outlives its windows: the supervised
+/// Runtime, the event proxy, child workspace processes, and the Cua Driver
+/// daemon. Every step is bounded and idempotent, so a shell install may run
+/// this before an exit request runs it again.
+async fn stop_desktop_children(app: &tauri::AppHandle) {
     let supervisor = app.state::<Arc<RuntimeProcessSupervisor>>();
     match tokio::time::timeout(DESKTOP_RUNTIME_STOP_TIMEOUT, supervisor.stop()).await {
         Ok(Ok(())) => {}
@@ -2741,6 +2894,16 @@ async fn finish_desktop_exit(app: tauri::AppHandle, action: DesktopExitAction) {
         }
     }
     stop_cua_driver_serve();
+}
+
+async fn finish_desktop_exit(
+    app: tauri::AppHandle,
+    action: DesktopExitAction,
+    step: DesktopExitStep,
+) {
+    if step == DesktopExitStep::Start {
+        stop_desktop_children(&app).await;
+    }
     shutdown_host_tracing();
     match action {
         DesktopExitAction::Quit => {
@@ -2751,37 +2914,8 @@ async fn finish_desktop_exit(app: tauri::AppHandle, action: DesktopExitAction) {
     }
 }
 
-fn request_desktop_quit(app: tauri::AppHandle) {
-    request_desktop_exit(app, DesktopExitAction::Quit);
-}
-
-fn request_desktop_exit(app: tauri::AppHandle, action: DesktopExitAction) {
-    if app
-        .state::<DesktopWindowState>()
-        .quitting
-        .swap(true, std::sync::atomic::Ordering::AcqRel)
-    {
-        return;
-    }
-
-    let action_name = match action {
-        DesktopExitAction::Quit => "quit",
-        DesktopExitAction::Restart => "restart",
-    };
-    tracing::info!(target: "openagent::app", action = action_name, "desktop exit requested");
-    if let Err(error) = request_child_workspace_window_shutdown() {
-        tracing::warn!(%error, "failed to signal child workspace processes during quit");
-    }
-    #[cfg(desktop)]
-    {
-        if let Some(tray) = app.tray_by_id(DESKTOP_TRAY_ID) {
-            let _ = tray.set_visible(false);
-        }
-        for window in app.webview_windows().values() {
-            let _ = window.hide();
-        }
-    }
-
+/// Exit without waiting for the bounded teardown to finish.
+fn arm_desktop_exit_watchdog(app: &tauri::AppHandle, action: DesktopExitAction) {
     let watchdog_app = app.clone();
     std::thread::Builder::new()
         .name("openagent-quit-watchdog".to_string())
@@ -2794,8 +2928,41 @@ fn request_desktop_exit(app: tauri::AppHandle, action: DesktopExitAction) {
             }
         })
         .expect("failed to start desktop quit watchdog");
+}
 
-    tauri::async_runtime::spawn(finish_desktop_exit(app, action));
+fn request_desktop_quit(app: tauri::AppHandle) {
+    request_desktop_exit(app, DesktopExitAction::Quit);
+}
+
+fn request_desktop_exit(app: tauri::AppHandle, action: DesktopExitAction) {
+    let step = app
+        .state::<DesktopWindowState>()
+        .advance_desktop_exit_phase();
+    if step == DesktopExitStep::Ignore {
+        return;
+    }
+
+    let action_name = match action {
+        DesktopExitAction::Quit => "quit",
+        DesktopExitAction::Restart => "restart",
+    };
+    tracing::info!(
+        target: "openagent::app",
+        action = action_name,
+        prepared = step == DesktopExitStep::Complete,
+        "desktop exit requested"
+    );
+    // A shell install already signalled the child windows and hid the
+    // surfaces; repeating either is harmless but would only delay the exit.
+    if step == DesktopExitStep::Start {
+        if let Err(error) = request_child_workspace_window_shutdown() {
+            tracing::warn!(%error, "failed to signal child workspace processes during quit");
+        }
+        hide_desktop_surfaces(&app);
+    }
+
+    arm_desktop_exit_watchdog(&app, action);
+    tauri::async_runtime::spawn(finish_desktop_exit(app, action, step));
 }
 
 fn install_parent_shutdown_monitor(app: tauri::AppHandle) {
@@ -5205,6 +5372,7 @@ fn run_with_mode(agent_server: bool) {
         repair_attachment_blob_content,
         read_attachment_preview,
         restart_app,
+        begin_shell_install,
         quit_app,
         is_desktop_window_active,
         reveal_main_window,
@@ -5241,6 +5409,7 @@ fn run_with_mode(agent_server: bool) {
         read_text_file,
         save_download_file,
         restart_app,
+        begin_shell_install,
         quit_app,
         is_desktop_window_active,
         reveal_main_window,
@@ -5278,6 +5447,39 @@ fn run_with_mode(agent_server: bool) {
 mod tests {
     use super::*;
     use std::path::Path;
+
+    #[test]
+    fn shell_install_preparation_hands_the_exit_to_the_restart_request() {
+        let state = DesktopWindowState::default();
+        assert_eq!(state.desktop_exit_phase(), DesktopExitPhase::Running);
+
+        // Preparation stops the children; it never restarts anything.
+        state
+            .prepare_shell_install()
+            .expect("prepare shell install");
+        assert_eq!(
+            state.desktop_exit_phase(),
+            DesktopExitPhase::ShellInstallPrepared
+        );
+        assert!(state.prepare_shell_install().is_err());
+
+        // The exit that follows completes the work preparation already did
+        // instead of tearing the children down a second time.
+        assert_eq!(
+            state.advance_desktop_exit_phase(),
+            DesktopExitStep::Complete
+        );
+        assert_eq!(state.advance_desktop_exit_phase(), DesktopExitStep::Ignore);
+        assert!(state.prepare_shell_install().is_err());
+    }
+
+    #[test]
+    fn desktop_exit_requests_are_idempotent() {
+        let state = DesktopWindowState::default();
+        assert_eq!(state.advance_desktop_exit_phase(), DesktopExitStep::Start);
+        assert_eq!(state.advance_desktop_exit_phase(), DesktopExitStep::Ignore);
+        assert_eq!(state.desktop_exit_phase(), DesktopExitPhase::Exiting);
+    }
 
     #[test]
     fn bundled_cua_driver_selection_skips_missing_candidates() {

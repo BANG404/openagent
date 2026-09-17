@@ -7,6 +7,7 @@ const nativeCommands = new Set([
   "activate_frontend_resource",
   "activate_runtime_resource",
   "begin_component_update",
+  "begin_shell_install",
   "confirm_frontend_activation",
   "end_component_update",
   "create_workspace_window",

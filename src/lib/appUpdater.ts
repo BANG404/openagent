@@ -129,18 +129,6 @@ async function downloadShellUpdate(shell: Update): Promise<void> {
   }
 }
 
-async function installShellUpdate(shell: Update): Promise<void> {
-  const versions = { currentVersion: shell.currentVersion, candidateVersion: shell.version };
-  await reportComponentUpdateEvent("shell", "install_started", versions);
-  try {
-    await shell.install();
-    await reportComponentUpdateEvent("shell", "install_finished", versions);
-  } catch (error) {
-    await reportComponentUpdateEvent("shell", "install_failed", versions, error);
-    throw error;
-  }
-}
-
 async function installUpdates(updates: AvailableUpdates): Promise<void> {
   if (get(mutableAppUpdateState) !== "idle") return;
   mutableAppUpdateState.set("installing");
@@ -148,6 +136,7 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
   let progressToastId: number | null = null;
   let componentUpdateStarted = false;
   let frontendActivationCommitted = false;
+  let shellInstallPrepared = false;
 
   try {
     progressToastId = showToast({
@@ -194,29 +183,69 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
       frontendActivationCommitted = true;
     }
     if (updates.shell) {
+      const shell = updates.shell;
+      const shellVersions = {
+        currentVersion: shell.currentVersion,
+        candidateVersion: shell.version,
+      };
       updateToast(progressToastId, { description: translate("updateInstalling") });
-      await installShellUpdate(updates.shell);
+      // The host stops the Runtime and hides every surface here, because the
+      // installer ends this process from inside `install()`. An unready
+      // Runtime defers the update before anything is torn down.
+      const prepared = await invoke<boolean>("begin_shell_install");
+      if (!prepared) {
+        showToast({
+          title: translate("updateDeferred"),
+          description: translate("updateDeferredActiveAgent"),
+          durationMs: 5000,
+        });
+        return;
+      }
+      shellInstallPrepared = true;
+      await reportComponentUpdateEvent("shell", "install_started", shellVersions);
+      // Preparation already stopped the Runtime, so this process is not
+      // coming back: either the installer replaces it or the restart below
+      // does. A replacement frontend owns the completion notice after its
+      // startup hook confirms activation; otherwise this is the last thing
+      // the user sees.
+      await reportComponentUpdateEvent("shell", "restart_requested", shellVersions);
+      if (!updates.frontend) {
+        showToast({
+          title: translate("updateInstalled"),
+          description: translate("updateRestarting"),
+          durationMs: 3000,
+        });
+      }
+      try {
+        // On Windows this does not return: the installer replaces the process.
+        await shell.install();
+        await reportComponentUpdateEvent("shell", "install_finished", shellVersions);
+      } catch (error) {
+        await reportComponentUpdateEvent("shell", "install_failed", shellVersions, error);
+        throw error;
+      }
+      await invoke("restart_app");
+      return;
     }
 
     // A replacement frontend owns the completion notice after its startup
     // hook confirms activation and releases the Runtime write barrier.
-    if (!updates.frontend) {
-      showToast({
-        title: translate("updateInstalled"),
-        description: updates.shell
-          ? translate("updateRestarting")
-          : translate("updateComponentsInstalled"),
-        durationMs: updates.shell ? 3000 : 5000,
-      });
-    }
-    if (updates.shell) {
-      await reportComponentUpdateEvent("shell", "restart_requested", {
-        currentVersion: updates.shell.currentVersion,
-        candidateVersion: updates.shell.version,
-      });
-      await invoke("restart_app");
-    }
+    showToast({
+      title: translate("updateInstalled"),
+      description: translate("updateComponentsInstalled"),
+      durationMs: 5000,
+    });
   } catch (error) {
+    if (shellInstallPrepared) {
+      // The Runtime is already stopped and the windows are hidden, so the
+      // only way back to a usable desktop is the restart that was pending.
+      // The failure itself is already recorded against the step that hit it.
+      console.warn("[openagent] Shell install failed after preparation; restarting", error);
+      await invoke("restart_app").catch((restartError) =>
+        console.error("[openagent] Failed to restart after the shell install", restartError),
+      );
+      return;
+    }
     showToast({
       title: translate("updateFailed"),
       description: describeError(error),
@@ -224,7 +253,7 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
       durationMs: 8000,
     });
   } finally {
-    if (componentUpdateStarted && !frontendActivationCommitted) {
+    if (componentUpdateStarted && !frontendActivationCommitted && !shellInstallPrepared) {
       await invoke("end_component_update").catch((error) =>
         console.warn("[openagent] Failed to release component update barrier", error),
       );

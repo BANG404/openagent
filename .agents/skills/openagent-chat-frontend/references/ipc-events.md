@@ -58,8 +58,14 @@
   failure feedback, and always return to a retryable state after errors. Before
   activating any Runtime, frontend, or desktop-shell component, acquire the
   Runtime-owned graceful update barrier. An active Agent must defer the update
-without cancellation; a failed update or confirmed frontend-only reload must
-release the barrier.
+  without cancellation; a failed update or confirmed frontend-only reload must
+  release the barrier.
+- A shell handoff is the one update step that cannot return to a retryable
+  state: the host stops the Runtime and hides every surface before the
+  installer runs, so a failure after that point is recovered by restarting the
+  pending restart rather than by retrying in place. Show the failure type only
+  for steps that failed before the handoff, and never leave a deferred shell
+  update holding the barrier.
 - The first WebView to confirm a frontend activation owns the completion toast;
   later workspace or utility windows still confirm the resource but do not
   repeat that notice.
