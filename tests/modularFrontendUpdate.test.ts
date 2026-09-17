@@ -6,6 +6,7 @@ const updater = readFileSync("src/lib/appUpdater.ts", "utf8");
 const route = readFileSync("src/routes/+page.svelte", "utf8");
 const clientHooks = readFileSync("src/hooks.client.ts", "utf8");
 const host = readFileSync("src-tauri/src/lib.rs", "utf8");
+const hostResources = readFileSync("src-tauri/src/frontend_resource.rs", "utf8");
 
 test("production update checks stage and activate a verified frontend resource", () => {
   expect(updater).toContain('invoke<PreparedFrontendResource>("prepare_frontend_resource")');
@@ -41,12 +42,46 @@ test("versioned WebViews confirm activation through the host handshake", () => {
   expect(clientHooks).toContain('reportComponentUpdateEvent("frontend", "confirmation_started"');
   expect(route).toContain("frontendActivationShouldShowNotice");
   expect(updater).toContain("if (!updates.frontend)");
-  expect(host).toContain("rollback_pending().await");
+  expect(host).toContain("rollback_pending(&candidate_version).await");
   expect(host).toContain("Duration::from_secs(15)");
   expect(host).toContain('"http://openagent-ui.localhost/"');
   expect(host).toContain('"openagent-ui://localhost/"');
-  expect(host).toContain('stage = "confirmation_timed_out"');
-  expect(host).toContain("manager.rollback_pending().await");
+  // An in-process activation and a startup continuation share one deadline
+  // helper and are told apart only by the stage they pass to it.
+  expect(host).toContain('"confirmation_timed_out",');
+  expect(host).toContain("manager.rollback_pending(&version).await");
+});
+
+test("a pending frontend activation survives the process that armed it", () => {
+  // The shell installer ends the host process inside `install()`, so a frontend
+  // activation is routinely left pending. Rolling it back at startup is what
+  // re-offered the update on the next launch.
+  expect(hostResources).toContain('stage = "pending_confirmation_restored"');
+  expect(hostResources).not.toContain(
+    "rolling back a frontend activation left pending by the previous process",
+  );
+  expect(hostResources).toContain("active.pending_confirmation || active.version != version");
+  expect(host).toContain("startup_frontend_manager.pending_confirmation_version()");
+  expect(host).toContain('"startup_confirmation_timed_out"');
+  expect(host).toContain("arm_frontend_confirmation_deadline(");
+
+  // The startup deadline is armed after the windows it expects to confirm exist.
+  expect(host.indexOf("startup_frontend_manager.pending_confirmation_version()")).toBeLessThan(
+    host.indexOf('"startup_confirmation_timed_out"'),
+  );
+});
+
+test("components activate in the documented order within one barrier", () => {
+  const order = [
+    'invoke<ComponentUpdateGate>("begin_component_update")',
+    'invoke("activate_runtime_resource"',
+    'invoke<void>("activate_frontend_resource"',
+  ].map((step) => {
+    const at = updater.indexOf(step);
+    expect(at).toBeGreaterThanOrEqual(0);
+    return at;
+  });
+  expect(order).toEqual([...order].sort((left, right) => left - right));
 });
 
 test("component lifecycle diagnostics cover shell, Runtime, and frontend stages", () => {

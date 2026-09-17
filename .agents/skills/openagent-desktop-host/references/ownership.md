@@ -124,6 +124,10 @@ the host.
 - Never cancel active Agent work for an update. Defer activation when the
   bounded wait cannot drain naturally, and release the barrier after
   failure or a confirmed frontend-only reload.
+- The barrier is process state, not durable state. A host process that starts
+  after a previous one died mid-update holds no barrier, so its startup
+  confirmation deadline rolls a selection back and re-navigates only; it must
+  not release or resume anything on the way.
 
 ## Authenticated proxy and SSE bus
 
@@ -164,3 +168,8 @@ the host.
   selection, reload every product WebView with the candidate version,
   require a mounted-frontend confirmation, and fall back to the embedded
   frontend when no verified previous selection exists.
+- A selection left pending by a process that died is continued, not discarded:
+  the next process verifies it, serves it, and gives it its own confirmation
+  deadline. Discarding it on sight left the frontend behind the Runtime and
+  shell that had already updated and re-offered the same update on every
+  launch.

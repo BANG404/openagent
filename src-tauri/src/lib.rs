@@ -1292,6 +1292,55 @@ async fn prepare_frontend_resource(
     })
 }
 
+/// How long a reloaded frontend has to confirm its own activation.
+const FRONTEND_CONFIRMATION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(15);
+
+/// Roll an unconfirmed frontend activation back, re-navigate this process's
+/// windows, and release this process's Runtime barrier if it still holds one.
+///
+/// Armed by an in-process activation and by startup for a selection the
+/// previous process left pending. `rollback_pending` matches the candidate
+/// version, so a deadline that outlives its activation cannot discard a newer
+/// selection, and a fresh process that never acquired the barrier releases
+/// nothing.
+fn arm_frontend_confirmation_deadline(
+    app: tauri::AppHandle,
+    manager: FrontendResourceManager,
+    candidate_version: String,
+    stage: &'static str,
+) {
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(FRONTEND_CONFIRMATION_DEADLINE).await;
+        match manager.rollback_pending(&candidate_version).await {
+            Ok(true) => {
+                tracing::warn!(
+                    target: "openagent::component_update",
+                    component = "frontend",
+                    stage,
+                    candidate_version = candidate_version.as_str(),
+                    "frontend activation was not confirmed within the deadline; rolled back"
+                );
+                let version = manager.active_version();
+                if let Err(error) = navigate_frontend_windows(&app, version.as_deref()) {
+                    tracing::error!(%error, "failed to display frontend rollback");
+                }
+                let updates = app.state::<RuntimeUpdateState>();
+                let supervisor = app.state::<Arc<RuntimeProcessSupervisor>>();
+                if let Err(error) =
+                    release_component_update(updates.inner(), supervisor.inner()).await
+                {
+                    tracing::error!(
+                        %error,
+                        "failed to release frontend update barrier after rollback"
+                    );
+                }
+            }
+            Ok(false) => {}
+            Err(error) => tracing::error!(%error, "failed to roll back unconfirmed frontend"),
+        }
+    });
+}
+
 #[tauri::command]
 async fn activate_frontend_resource(
     app: tauri::AppHandle,
@@ -1335,7 +1384,7 @@ async fn activate_frontend_resource(
             %error,
             "frontend WebView navigation failed; rolling back the pending selection"
         );
-        let rollback = manager.rollback_pending().await;
+        let rollback = manager.rollback_pending(&version).await;
         return Err(match rollback {
             Ok(_) => error,
             Err(rollback_error) => {
@@ -1343,35 +1392,12 @@ async fn activate_frontend_resource(
             }
         });
     }
-    let rollback_manager = manager.inner().clone();
-    let rollback_app = app.clone();
-    tauri::async_runtime::spawn(async move {
-        tokio::time::sleep(std::time::Duration::from_secs(15)).await;
-        match rollback_manager.rollback_pending().await {
-            Ok(true) => {
-                tracing::warn!(
-                    target: "openagent::component_update",
-                    component = "frontend",
-                    stage = "confirmation_timed_out",
-                    candidate_version = diagnostic_version,
-                    "frontend activation was not confirmed within the deadline; rolled back"
-                );
-                let version = rollback_manager.active_version();
-                if let Err(error) = navigate_frontend_windows(&rollback_app, version.as_deref()) {
-                    tracing::error!(%error, "failed to display frontend rollback");
-                }
-                let updates = rollback_app.state::<RuntimeUpdateState>();
-                let supervisor = rollback_app.state::<Arc<RuntimeProcessSupervisor>>();
-                if let Err(error) =
-                    release_component_update(updates.inner(), supervisor.inner()).await
-                {
-                    tracing::error!(%error, "failed to release frontend update barrier after rollback");
-                }
-            }
-            Ok(false) => {}
-            Err(error) => tracing::error!(%error, "failed to roll back unconfirmed frontend"),
-        }
-    });
+    arm_frontend_confirmation_deadline(
+        app,
+        manager.inner().clone(),
+        version,
+        "confirmation_timed_out",
+    );
     Ok(())
 }
 
@@ -4903,6 +4929,22 @@ fn run_with_mode(agent_server: bool) {
                 .shadow(false)
                 .visible(false)
                 .build()?;
+            }
+
+            // A previous process that ended with a frontend activation pending —
+            // the shell installer replacing it is the ordinary case — did not
+            // disprove that candidate, so this process serves it. Give it the
+            // same deadline an in-process activation gets, now that the windows
+            // that will confirm it exist.
+            if !cfg!(debug_assertions) {
+                if let Some(pending) = startup_frontend_manager.pending_confirmation_version() {
+                    arm_frontend_confirmation_deadline(
+                        app.handle().clone(),
+                        startup_frontend_manager.clone(),
+                        pending,
+                        "startup_confirmation_timed_out",
+                    );
+                }
             }
 
             if should_reveal_workspace_shell_early(agent_server, is_workspace_window) {

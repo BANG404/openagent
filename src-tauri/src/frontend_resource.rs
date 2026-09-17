@@ -122,6 +122,19 @@ impl FrontendResourceManager {
             .unwrap_or_else(|| self.embedded_version.to_string())
     }
 
+    /// The version a previous process selected but never saw confirmed.
+    ///
+    /// `restore_startup_selection` has already removed or replaced an
+    /// unverifiable selection, so this is a candidate the host can serve and
+    /// wait for confirmation on.
+    pub fn pending_confirmation_version(&self) -> Option<String> {
+        read_active(&self.resources_dir)
+            .ok()
+            .flatten()
+            .filter(|active| active.pending_confirmation)
+            .map(|active| active.version)
+    }
+
     pub fn is_newer_than_active(&self, version: &str) -> Result<bool, String> {
         let candidate = semver::Version::parse(version)
             .map_err(|error| format!("frontend version is invalid: {error}"))?;
@@ -264,9 +277,14 @@ impl FrontendResourceManager {
         Ok(true)
     }
 
-    pub async fn rollback_pending(&self) -> Result<bool, String> {
+    /// Roll back only the candidate this deadline armed for.
+    ///
+    /// A deadline outlives the activation it was armed for. Matching the
+    /// candidate version keeps a stale one from discarding a newer selection,
+    /// and keeps concurrent processes agreeing on the same `active.json`.
+    pub async fn rollback_pending(&self, version: &str) -> Result<bool, String> {
         let _guard = self.operation.lock().await;
-        self.rollback_pending_locked()
+        self.rollback_pending_locked(version)
     }
 
     fn restore_startup_selection(&self) -> Result<(), String> {
@@ -277,17 +295,24 @@ impl FrontendResourceManager {
                 None
             }
         };
-        if active
+        // A process that exits with an activation pending — the shell installer
+        // replacing it is the ordinary case — did not disprove the candidate.
+        // Serve it and let this process confirm it inside the same deadline an
+        // in-process activation gets; rolling back here is what re-offered the
+        // update on every launch. The verification below still decides whether
+        // this candidate can be served at all.
+        if let Some(pending) = active
             .as_ref()
-            .is_some_and(|active| active.pending_confirmation)
+            .filter(|active| active.pending_confirmation)
+            .map(|active| active.version.as_str())
         {
-            tracing::warn!(
+            tracing::info!(
                 target: "openagent::component_update",
                 component = "frontend",
-                candidate_version = active.as_ref().map(|value| value.version.as_str()),
-                "rolling back a frontend activation left pending by the previous process"
+                stage = "pending_confirmation_restored",
+                candidate_version = pending,
+                "serving the frontend activation left pending by the previous process"
             );
-            self.rollback_pending_locked()?;
         }
         if let Some(active) = read_active(&self.resources_dir)? {
             if self.verified_version_root(&active.version).is_none() {
@@ -337,11 +362,11 @@ impl FrontendResourceManager {
         (manifest.version == version).then_some(root)
     }
 
-    fn rollback_pending_locked(&self) -> Result<bool, String> {
+    fn rollback_pending_locked(&self, version: &str) -> Result<bool, String> {
         let Some(active) = read_active(&self.resources_dir)? else {
             return Ok(false);
         };
-        if !active.pending_confirmation {
+        if !active.pending_confirmation || active.version != version {
             return Ok(false);
         }
         let replacement = active.previous_version.and_then(|version| {
@@ -940,12 +965,154 @@ mod tests {
         manager.confirm("1.0.0").await.unwrap();
         manager.activate("1.1.0").await.unwrap();
 
-        assert!(manager.rollback_pending().await.unwrap());
+        assert!(manager.rollback_pending("1.1.0").await.unwrap());
         assert_eq!(manager.active_version().as_deref(), Some("1.0.0"));
         assert_eq!(
             manager.asset_root().read().unwrap().as_deref(),
             Some(resources.join("1.0.0").as_path())
         );
+        std::fs::remove_dir_all(home).unwrap();
+    }
+
+    #[tokio::test]
+    async fn ignores_a_stale_rollback_for_a_superseded_pending_activation() {
+        let home = std::env::temp_dir().join(format!(
+            "openagent-frontend-stale-rollback-{}",
+            uuid::Uuid::new_v4()
+        ));
+        let resources = home.join("resources").join("frontend");
+        for version in ["1.0.0", "1.1.0"] {
+            let root = resources.join(version);
+            std::fs::create_dir_all(&root).unwrap();
+            std::fs::write(root.join("index.html"), version).unwrap();
+        }
+        let manager = FrontendResourceManager::new(
+            home.clone(),
+            FrontendResourceSource {
+                manifest_url: "https://example.invalid/manifest.json".to_string(),
+                signature_url: "https://example.invalid/manifest.json.sig".to_string(),
+                public_key: String::new(),
+            },
+            "0.50.0",
+            1,
+            2,
+        )
+        .unwrap();
+        manager.activate("1.0.0").await.unwrap();
+        manager.confirm("1.0.0").await.unwrap();
+        manager.activate("1.1.0").await.unwrap();
+
+        // A deadline that outlives the activation it was armed for must not
+        // discard the newer pending selection.
+        assert!(!manager.rollback_pending("1.0.0").await.unwrap());
+        assert_eq!(manager.active_version().as_deref(), Some("1.1.0"));
+        std::fs::remove_dir_all(home).unwrap();
+    }
+
+    #[tokio::test]
+    async fn keeps_a_frontend_activation_left_pending_by_the_previous_process() {
+        let archive = STANDARD.decode(TAURI_FRONTEND_ARCHIVE_BASE64).unwrap();
+        let (origin, server) = serve_signed_frontend_fixture(archive);
+        let home = std::env::temp_dir().join(format!(
+            "openagent-frontend-pending-restart-{}",
+            uuid::Uuid::new_v4()
+        ));
+        let source = FrontendResourceSource {
+            manifest_url: format!("{origin}/openagent-frontend-manifest.json"),
+            signature_url: format!("{origin}/openagent-frontend-manifest.json.sig"),
+            public_key: TAURI_TEST_PUBLIC_KEY.to_string(),
+        };
+        let previous =
+            FrontendResourceManager::new(home.clone(), source.clone(), "1.0.0", 1, 2).unwrap();
+        let installed = previous.install_latest().await.unwrap();
+        previous.activate(&installed.version).await.unwrap();
+        let pending = previous.pending_confirmation_version();
+        assert_eq!(pending.as_deref(), Some("9.9.9-test.1"));
+        drop(previous);
+
+        // The process that replaces an interrupted one — the shell installer is
+        // the ordinary case — serves the candidate it never saw confirmed
+        // instead of rolling it back, which is what re-offered the update.
+        let restored = FrontendResourceManager::new(home.clone(), source, "1.0.0", 1, 2).unwrap();
+        assert_eq!(restored.pending_confirmation_version(), pending);
+        assert_eq!(restored.active_version().as_deref(), Some("9.9.9-test.1"));
+        assert_eq!(restored.current_version(), "9.9.9-test.1");
+        assert_eq!(
+            restored.asset_root().read().unwrap().as_deref(),
+            Some(installed.root.as_path())
+        );
+        server.join().unwrap();
+        std::fs::remove_dir_all(home).unwrap();
+    }
+
+    #[tokio::test]
+    async fn rolls_a_restored_pending_activation_back_to_the_embedded_frontend() {
+        let archive = STANDARD.decode(TAURI_FRONTEND_ARCHIVE_BASE64).unwrap();
+        let (origin, server) = serve_signed_frontend_fixture(archive);
+        let home = std::env::temp_dir().join(format!(
+            "openagent-frontend-pending-rollback-{}",
+            uuid::Uuid::new_v4()
+        ));
+        let source = FrontendResourceSource {
+            manifest_url: format!("{origin}/openagent-frontend-manifest.json"),
+            signature_url: format!("{origin}/openagent-frontend-manifest.json.sig"),
+            public_key: TAURI_TEST_PUBLIC_KEY.to_string(),
+        };
+        let previous =
+            FrontendResourceManager::new(home.clone(), source.clone(), "1.0.0", 1, 2).unwrap();
+        let installed = previous.install_latest().await.unwrap();
+        previous.activate(&installed.version).await.unwrap();
+        drop(previous);
+
+        // No earlier verified selection exists, so an unconfirmed continuation
+        // falls back to the embedded frontend.
+        let restored = FrontendResourceManager::new(home.clone(), source, "1.0.0", 1, 2).unwrap();
+        assert!(restored.rollback_pending("9.9.9-test.1").await.unwrap());
+        assert_eq!(restored.active_version(), None);
+        assert!(restored.asset_root().read().unwrap().is_none());
+        assert!(!home
+            .join("resources")
+            .join("frontend")
+            .join("active.json")
+            .exists());
+        server.join().unwrap();
+        std::fs::remove_dir_all(home).unwrap();
+    }
+
+    #[test]
+    fn rejects_an_unsigned_pending_frontend_activation_on_startup() {
+        let home = std::env::temp_dir().join(format!(
+            "openagent-frontend-pending-unsigned-{}",
+            uuid::Uuid::new_v4()
+        ));
+        let resources = home.join("resources").join("frontend");
+        let unsigned = resources.join("1.0.0");
+        std::fs::create_dir_all(&unsigned).unwrap();
+        std::fs::write(unsigned.join("index.html"), b"unsigned").unwrap();
+        std::fs::write(
+            resources.join("active.json"),
+            br#"{"version":"1.0.0","previous_version":null,"pending_confirmation":true}"#,
+        )
+        .unwrap();
+
+        let manager = FrontendResourceManager::new(
+            home.clone(),
+            FrontendResourceSource {
+                manifest_url: "https://example.invalid/manifest.json".to_string(),
+                signature_url: "https://example.invalid/manifest.json.sig".to_string(),
+                public_key: String::new(),
+            },
+            "0.50.0",
+            1,
+            2,
+        )
+        .unwrap();
+
+        // Continuation still never serves a candidate it cannot verify.
+        assert_eq!(manager.pending_confirmation_version(), None);
+        assert_eq!(manager.active_version(), None);
+        assert!(manager.asset_root().read().unwrap().is_none());
+        assert!(!resources.join("active.json").exists());
         std::fs::remove_dir_all(home).unwrap();
     }
 

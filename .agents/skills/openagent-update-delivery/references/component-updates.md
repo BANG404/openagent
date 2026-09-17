@@ -30,6 +30,11 @@ reloads and confirms the frontend, then installs the shell and restarts the
 application. Component-only releases keep the same notification model without
 restarting the shell.
 
+The shell installer, not the host, ends the process: on Windows the updater
+plugin launches NSIS and terminates the application inside `install()`, so no
+statement after that call runs and the component-update records it would have
+written are recovered by the next process instead.
+
 After a frontend activation, the host's first WebView confirmation owns the
 completion notice. Other workspace and utility WebViews still confirm the
 active resource but must not display another completion notice.
@@ -43,8 +48,11 @@ product UI does not render, and none of them is a composite product version.
 The desktop host writes local component-update lifecycle diagnostics to the
 daily `OPENAGENT_HOME/logs/openagent-host.jsonl.<date>` file. These records cover
 shell checks/download/install/restart, Runtime preparation and supervised
-activation/rollback, and frontend preparation/navigation/confirmation/timeout.
-The Runtime's ordinary `openagent.<date>.jsonl` log separately records the
+activation/rollback, and frontend
+preparation/navigation/restoration/confirmation/timeout. A continuation names
+the candidate it restored and the stage that armed its deadline, so a repeated
+update prompt can be traced to the record the interrupted process left. The
+Runtime's ordinary `openagent.<date>.jsonl` log separately records the
 drain request, active-run count, bounded result, and resume transition. Keep
 component versions and fixed error categories in frontend-originated records;
 never record conversation identifiers, content, credentials, or raw frontend
@@ -137,9 +145,23 @@ updates `active.json` and reloads every product WebView through the host-owned
 startup hook before route components mount. Retry only transient confirmation
 failures within the bounded activation window, and do not expose interactive
 Runtime writes while the Runtime remains drained. If the frontend does not
-confirm within 15 seconds, or the process exits while confirmation is pending,
-the host restores the previous verified version or its embedded frontend. The
-embedded frontend always remains the final fallback. The outgoing frontend must
+confirm within 15 seconds, the host restores the previous verified version or
+its embedded frontend, and the embedded frontend always remains the final
+fallback.
+
+A process that exits while a confirmation is pending did not disprove the
+candidate, and the shell installer replacing that process is the ordinary case,
+so the next process continues the activation instead of discarding it: it
+serves the pending candidate and arms the same 15-second deadline for it after
+the windows that will confirm it exist. A confirmation that arrives clears the
+marker and the deadline expires harmlessly; otherwise that process rolls the
+candidate back and re-navigates. Startup still verifies the selection before any
+WebView exists, so an unverifiable candidate is cleared first and never
+continued. Deadlines are scoped to the candidate version they were armed for, so
+a late one cannot discard a newer selection or fight another host process over
+the same `active.json`.
+
+The outgoing frontend must
 not announce success after merely requesting WebView navigation; the confirmed
 replacement frontend owns the component-update completion notice.
 On Windows, both initial resource loads and runtime navigation use WebView2's
@@ -196,11 +218,19 @@ release the Runtime barrier before the full reload; an SDK Runtime source edit
 must rebuild and stage the sidecar before the pending stamp lets Tauri restart.
 
 Production signed-resource commands remain disabled in debug builds. Exercise
-their download, signature, version comparison, activation, confirmation, and
-rollback behavior with the host Rust integration fixtures, which serve locally
-signed frontend and Runtime manifests over loopback. Exercise shell aggregation
-and independent component-version presentation with frontend tests; do not
-point a development build at a production fixed channel merely to test update
-state. About presents only the product release, so a development run must show
-the active frontend resource's release identity there, or the packaged shell
+their download, signature, version comparison, activation, confirmation,
+continuation, and rollback behavior with the host Rust integration fixtures,
+which serve locally signed frontend and Runtime manifests over loopback.
+Continuation is covered by activating a signed fixture, dropping the manager,
+and asserting that a second manager for the same home serves the same pending
+candidate and still refuses one it cannot verify. Because the resource commands
+are debug-disabled, the end-to-end path — a shell install ending the process
+mid-activation and the next process continuing it — is only reachable in a
+packaged build; drive it through an in-app update and assert that
+`openagent-host.jsonl.<date>` shows the restored candidate, its confirmation
+deadline, and no returning update prompt. Exercise shell aggregation and
+independent component-version presentation with frontend tests; do not point a
+development build at a production fixed channel merely to test update state.
+About presents only the product release, so a development run must show the
+active frontend resource's release identity there, or the packaged shell
 version while no external resource is active, and no component version line.
