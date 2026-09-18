@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.69.1-beta.1] - 2026-09-16
+
+### Bug Fixes
+- **cua-driver**: Attach the reserved MCP client in embedded mode
+- **desktop-host**: Bind long-lived children to the host process lifetime
+
 ## [0.69.0-beta.1] - 2026-09-16
 
 ### Features
