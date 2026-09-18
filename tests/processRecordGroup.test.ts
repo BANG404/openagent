@@ -100,14 +100,22 @@ describe("process record group", () => {
     expect(messageSource).not.toContain("estimateEntrySize");
   });
 
-  test("marks ResizeObserver tail pins as programmatic scrolls", async () => {
+  test("pins streamed transcript mutations immediately and after layout settles", async () => {
     const source = await readFile(transcriptListUrl, "utf8");
     const pageSource = await readFile(
       new URL("../src/routes/+page.svelte", import.meta.url),
       "utf8",
     );
 
-    expect(source).toContain("onTailPin?.();\n        scrollElement.scrollTop");
+    expect(source).toContain("function applyTailPin()");
+    expect(source).toMatch(
+      /function pinToTail\(\)\s*{\s*applyTailPin\(\);[\s\S]*requestAnimationFrame\(\(\) => {[\s\S]*applyTailPin\(\);/,
+    );
+    expect(source).toContain("const mutationObserver = new MutationObserver(pinToTail)");
+    expect(source).toContain(
+      "mutationObserver.observe(container, { childList: true, characterData: true, subtree: true })",
+    );
+    expect(source).toContain("onTailPin?.();\n    scrollElement.scrollTop");
     expect(pageSource).toContain("function markProgrammaticTailPin()");
     expect(pageSource).toContain("Date.now() + 120");
   });

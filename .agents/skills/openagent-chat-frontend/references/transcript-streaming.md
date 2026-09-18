@@ -59,6 +59,9 @@
   stream's automatic tail pin must not carry over to another conversation.
   Tail following is enabled only while that conversation is streaming; once a
   response is durable, transcript updates must not reposition the reader.
+  While following, pin synchronously when streamed DOM content mutates and
+  settle again on the next animation frame so a large render batch cannot leave
+  the viewport behind before its final layout height is observable.
   User wheel, touch, and pointer scrolling must immediately release tail
   following based on the actual viewport position, even if a programmatic pin
   was scheduled in the same frame.

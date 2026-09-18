@@ -36,15 +36,18 @@
     return new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   }
 
-  function pinToTail() {
+  function applyTailPin() {
     if (!scrollElement || !followTail) return;
+    onTailPin?.();
+    scrollElement.scrollTop = scrollElement.scrollHeight;
+  }
+
+  function pinToTail() {
+    applyTailPin();
     if (tailFollowFrame !== null) cancelAnimationFrame(tailFollowFrame);
     tailFollowFrame = requestAnimationFrame(() => {
       tailFollowFrame = null;
-      if (scrollElement && followTail) {
-        onTailPin?.();
-        scrollElement.scrollTop = scrollElement.scrollHeight;
-      }
+      applyTailPin();
     });
   }
 
@@ -65,9 +68,14 @@
     const shouldFollow = followTail;
     if (!container || !scrollElement || !shouldFollow) return;
     const observer = new ResizeObserver(pinToTail);
+    const mutationObserver = new MutationObserver(pinToTail);
     observer.observe(container);
+    mutationObserver.observe(container, { childList: true, characterData: true, subtree: true });
     pinToTail();
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      mutationObserver.disconnect();
+    };
   });
 
   async function settleTailAnchor(token: number) {
