@@ -96,12 +96,12 @@ describe("MCP tool policy config", () => {
     expect(normalized.mcp.servers[0].disabled_tools).toEqual(["alpha", "beta"]);
   });
 
-  test("marks the reserved plugin entry as plugin owned on every load", () => {
+  test("preserves a legacy reserved entry as the persisted migration base", () => {
     const normalized = normalizeConfigShape({
       mcp: { servers: [{ id: "cua-driver" }, { id: "user-server" }] },
     } as unknown as AppConfig);
 
-    expect(normalized.mcp.servers[0].plugin_owned).toBe(true);
+    expect(normalized.mcp.servers[0].plugin_owned).toBe(false);
     expect(normalized.mcp.servers[1].plugin_owned).toBe(false);
   });
 

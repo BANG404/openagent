@@ -449,6 +449,7 @@
     existing.command = CUA_DRIVER_COMMAND;
     existing.args = cuaDriverMcpArgs(endpoint);
     existing.env = {};
+    existing.plugin_owned = true;
     queueMicrotask(() => saveDraftConfig().catch(console.error));
   });
 
@@ -1579,15 +1580,6 @@
   $effect(() => {
     const server = selectedMcpServer;
     if (!server?.enabled || !isTauri()) return;
-    const fingerprint = mcpConnectionFingerprint(server);
-    if (mcpDiscoveryFingerprints.get(server.id) === fingerprint) return;
-    mcpDiscoveryFingerprints.set(server.id, fingerprint);
-    untrack(() => void testMcpServer(server.id));
-  });
-
-  $effect(() => {
-    const server = cuaDriver;
-    if (!initializedFromConfig || !server.enabled || !isTauri()) return;
     const fingerprint = mcpConnectionFingerprint(server);
     if (mcpDiscoveryFingerprints.get(server.id) === fingerprint) return;
     mcpDiscoveryFingerprints.set(server.id, fingerprint);

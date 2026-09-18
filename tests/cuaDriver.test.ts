@@ -117,6 +117,12 @@ describe("Cua Driver configuration", () => {
         ENDPOINT,
       ),
     ).toBe(false);
+    expect(
+      isCuaDriverServerCurrent(
+        { ...createCuaDriverServer(ENDPOINT), plugin_owned: false },
+        ENDPOINT,
+      ),
+    ).toBe(false);
     expect(isCuaDriverServerCurrent(createCuaDriverServer(ENDPOINT), "/tmp/other.sock")).toBe(
       false,
     );
@@ -145,6 +151,18 @@ describe("Cua Driver configuration", () => {
     ).toBe(false);
   });
 
+  test("repairs legacy ownership even when the embedded command is current", () => {
+    const legacy = { ...createCuaDriverServer(ENDPOINT), plugin_owned: false };
+    const config = configWithServers([legacy]);
+    const upgraded = ensureCuaDriverServer(config, ENDPOINT);
+
+    expect(upgraded).not.toBe(config);
+    expect(upgraded.mcp.servers[0]).toMatchObject({
+      args: ["mcp", "--embedded", "--socket", ENDPOINT],
+      plugin_owned: true,
+    });
+  });
+
   test("drops legacy permission, socket, manifest, and grant overrides", () => {
     const userServer = userMcpServer();
     const legacy = {
@@ -160,6 +178,7 @@ describe("Cua Driver configuration", () => {
         CUA_DRIVER_MANIFEST_APPS: "com.example.App",
       },
       disabled_tools: ["kill_app"],
+      plugin_owned: false,
     };
     const upgraded = ensureCuaDriverServer(configWithServers([legacy, userServer]), ENDPOINT);
     expect(upgraded.mcp.servers[0]).toMatchObject({
@@ -169,6 +188,7 @@ describe("Cua Driver configuration", () => {
       args: ["mcp", "--embedded", "--socket", ENDPOINT],
       env: {},
       disabled_tools: ["kill_app"],
+      plugin_owned: true,
     });
     expect(upgraded.mcp.servers[1]).toEqual(userServer);
   });

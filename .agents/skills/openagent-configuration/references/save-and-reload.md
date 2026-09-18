@@ -67,14 +67,19 @@ temporarily disappear and later return.
 
 The product-managed Cua Driver entry is seeded and normalized during the first
 desktop startup bootstrap, before the first chat turn. Its reserved stdio
-command is the fixed `mcp --socket <endpoint>` proxy onto the host-owned `serve`
-daemon, where `<endpoint>` is the private endpoint the host reports through
-`cua_driver_endpoint`; normalization restores that command with the current
-endpoint and clears legacy permission, socket, grant, and manifest overrides.
-The bootstrap also starts the daemon before saving, because the Runtime connects
-the persisted MCP list before this surface exists and the reserved client cannot
-start a daemon itself. Settings exposes only the plugin enable switch and the
-disabled-tool list; permission mode, socket, and grants are not user-configurable.
+command is the fixed `mcp --embedded --socket <endpoint>` proxy onto the
+host-owned `serve` daemon, where `<endpoint>` is the private endpoint the host
+reports through `cua_driver_endpoint`; normalization restores that command with
+the current endpoint, records plugin ownership, and clears legacy permission,
+socket, grant, and manifest overrides. Generic transport normalization preserves
+the persisted ownership value so an older entry remains the exact merge base
+while this product-owned migration is saved. The bootstrap also starts the
+daemon before saving, because the Runtime connects the persisted MCP list before
+this surface exists and the reserved client cannot start a daemon itself.
+Settings discovers Cua tools only when the user explicitly tests the connection;
+opening the plugin surface must not launch another probe. It exposes only the
+plugin enable switch and disabled-tool list; permission mode, socket, and grants
+are not user-configurable.
 
 The Memory Management surface reads and writes the SDK-owned global
 `memory.md` or workspace `.agents/memory.md` file through the product command

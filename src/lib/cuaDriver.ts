@@ -68,7 +68,8 @@ export function isCuaDriverServerCurrent(server: McpServerConfig, endpoint: stri
     server.command === CUA_DRIVER_COMMAND &&
     server.args.length === args.length &&
     server.args.every((arg, index) => arg === args[index]) &&
-    Object.keys(server.env).length === 0
+    Object.keys(server.env).length === 0 &&
+    server.plugin_owned === true
   );
 }
 
@@ -99,6 +100,7 @@ export function ensureCuaDriverServer(config: AppConfig, endpoint: string): AppC
               command: CUA_DRIVER_COMMAND,
               args: cuaDriverMcpArgs(endpoint),
               env: {},
+              plugin_owned: true,
             }
           : server,
       ),
