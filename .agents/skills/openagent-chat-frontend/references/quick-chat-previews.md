@@ -12,7 +12,8 @@
   replaces the mounted surface and selects the requested section, and each domain
   owns its own settings instance so abandoning one autosaves its draft instead of
   leaking it into the next. Keep only ordinary appearance, launcher, startup,
-  diagnostics, and presentation preferences in General Settings. Load the settings
+  diagnostics, and supported presentation preferences in General Settings.
+  HTML transcript previews are unsupported and have no General Settings controls. Load the settings
   surface lazily and retain the requested domain's layout-stable skeleton until
   both the surface bundle and the persisted configuration are ready, so the main
   chat route does not absorb the Settings bundle and never flashes the generic

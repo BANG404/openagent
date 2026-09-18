@@ -23,16 +23,16 @@ use openagent_runtime::conversation_memory::{
 use openagent_runtime::skills::SkillMetadata;
 #[cfg(feature = "embedded-runtime")]
 use openagent_runtime::state::{
-    EmbeddingResourceStatus, HtmlPreviewRoots, OpenAgentRuntime, RuntimeAsset, RuntimeHost,
+    EmbeddingResourceStatus, OpenAgentRuntime, RuntimeAsset, RuntimeHost,
     ScheduledChatHookDefinition,
 };
 #[cfg(feature = "embedded-runtime")]
 use openagent_runtime::tools::ScheduleChatHookArgs;
 #[cfg(feature = "embedded-runtime")]
 use openagent_runtime::{
-    html_preview_protocol, mcp, tools, AgentInputRequest, ChatModelBinding, CommandSpec,
-    CreateConversationRequest, InputError, ResolvedInput, ResumeInterruptRequest, RuntimeBootstrap,
-    SubmissionOutcome, SubmitInterruptResponseRequest, UserMessageContext,
+    mcp, tools, AgentInputRequest, ChatModelBinding, CommandSpec, CreateConversationRequest,
+    InputError, ResolvedInput, ResumeInterruptRequest, RuntimeBootstrap, SubmissionOutcome,
+    SubmitInterruptResponseRequest, UserMessageContext,
 };
 use std::sync::Arc;
 use tauri::{path::BaseDirectory, Emitter, LogicalSize, Manager, PhysicalPosition, Size, State};
@@ -416,8 +416,6 @@ struct HostRuntimeBootstrap {
     data_dir: std::path::PathBuf,
     #[cfg(feature = "embedded-runtime")]
     runtime: Option<Arc<OpenAgentRuntime>>,
-    #[cfg(feature = "embedded-runtime")]
-    html_preview_roots: HtmlPreviewRoots,
     external_launch: Option<ExternalRuntimeLaunch>,
 }
 
@@ -516,13 +514,11 @@ fn prepare_host_runtime(
             let RuntimeBootstrap {
                 initial_locale,
                 runtime,
-                html_preview_roots,
             } = bootstrap_product_runtime(agent_server)?;
             Ok(HostRuntimeBootstrap {
                 initial_locale,
                 data_dir: openagent_runtime::config::config_dir(),
                 runtime: Some(runtime),
-                html_preview_roots,
                 external_launch: None,
             })
         }
@@ -535,8 +531,6 @@ fn prepare_host_runtime(
                 data_dir: launch.openagent_home.clone(),
                 #[cfg(feature = "embedded-runtime")]
                 runtime: None,
-                #[cfg(feature = "embedded-runtime")]
-                html_preview_roots: Default::default(),
                 external_launch: Some(launch),
             })
         }
@@ -2385,14 +2379,6 @@ async fn open_path(
 
 #[cfg(feature = "embedded-runtime")]
 embedded_runtime_items! {
-
-#[tauri::command]
-async fn read_html_preview_file(
-    path: String,
-    runtime: State<'_, Arc<OpenAgentRuntime>>,
-) -> Result<HtmlPreviewFile, String> {
-    openagent_runtime::commands::read_html_preview_file(path, runtime.state()).await
-}
 
 #[tauri::command]
 async fn read_workspace_text_snippet(
@@ -4766,8 +4752,6 @@ fn run_with_mode(agent_server: bool) {
         data_dir,
         #[cfg(feature = "embedded-runtime")]
         runtime,
-        #[cfg(feature = "embedded-runtime")]
-        html_preview_roots,
         external_launch,
     } = prepare_host_runtime(agent_server, external_launch)
         .unwrap_or_else(|error| panic!("Failed to initialize OpenAgent runtime: {error:#}"));
@@ -4785,8 +4769,6 @@ fn run_with_mode(agent_server: bool) {
         "desktop component identity initialized"
     );
 
-    #[cfg(feature = "embedded-runtime")]
-    let protocol_roots = html_preview_roots;
     let frontend_manager = frontend_resource_manager(data_dir.clone())
         .unwrap_or_else(|error| panic!("Failed to initialize frontend resources: {error}"));
     let frontend_protocol_root = frontend_manager.asset_root();
@@ -4877,16 +4859,6 @@ fn run_with_mode(agent_server: bool) {
         builder
     };
 
-    #[cfg(feature = "embedded-runtime")]
-    let builder = builder.register_asynchronous_uri_scheme_protocol(
-        html_preview_protocol::SCHEME,
-        move |_context, request, responder| {
-            let roots = protocol_roots.clone();
-            tauri::async_runtime::spawn(async move {
-                responder.respond(html_preview_protocol::serve(request, roots).await);
-            });
-        },
-    );
     let builder = builder
         .register_asynchronous_uri_scheme_protocol(
             frontend_resource::FRONTEND_SCHEME,
@@ -5328,7 +5300,6 @@ fn run_with_mode(agent_server: bool) {
         get_skills_dir,
         open_path,
         open_logs_folder,
-        read_html_preview_file,
         read_text_file,
         read_workspace_text_snippet,
         resolve_workspace_media_source,

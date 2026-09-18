@@ -61,7 +61,10 @@
   lines written.
 - Keep `ask_user`, approvals, Mermaid previews, and other dedicated tools
   outside ordinary grouping. Historical `render_web` calls are ordinary tool
-  records; never mount their HTML or URL in the transcript.
+  records; never mount their HTML or URL in the transcript. AGUI `Html(...)`
+  is unsupported and renders through the ordinary unknown-component fallback.
+  Do not restore HTML-preview configuration, transport operations, asset
+  protocols, or a general-purpose browser sidebar.
 - Batched approval cards remain independently clickable. Optimistically resolve
   only the exact request ID that was clicked, reject duplicate responses for
   that same request, and leave sibling cards interactive while the runtime's

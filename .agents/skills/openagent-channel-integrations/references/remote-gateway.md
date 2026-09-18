@@ -50,11 +50,10 @@ marked `Secure`.
   streamed-content, approval, and `ask_user` components; the inline SPA
   bootstrap is authorized by an exact asset script hash rather than a broad
   inline-script exception. No CORS access is enabled.
-- Transcript file, media, and HTML operations are explicit SDK capabilities,
-  not arbitrary Tauri command forwarding. Every path is canonicalized beneath
-  the conversation's allowlisted workspace. Media uses authenticated,
-  expiring, opaque URLs with byte-range streaming; HTML preview resources use
-  a separate directory grant and traversal-safe relative paths.
+- Transcript file and media operations are explicit SDK capabilities, not
+  arbitrary Tauri command forwarding. Every path is canonicalized beneath the
+  conversation's allowlisted workspace. Media uses authenticated, expiring,
+  opaque URLs with byte-range streaming.
 - Missing durable attachment blobs can be repaired from the browser. Repair
   bodies are limited to 20 MB and stored only when the SHA-256 digest exactly
   matches the checkpoint locator.

@@ -224,9 +224,6 @@
     context_compaction_prompt: "",
     context_compaction_recent_message_count: 5,
     memory_retrieval_enabled: false,
-    html_preview: {
-      fixed_height: 480,
-    },
     remote_gateway: {
       enabled: false,
       allow_lan_access: false,
@@ -2198,25 +2195,6 @@
               bind:checked={draftConfig.mention_palette_show_global_drafts}
               ariaLabel={$t("showGlobalDraftsInMentions")}
             />
-          </div>
-        </section>
-        <section class="detail-section">
-          <h4 class="detail-section-title">{$t("htmlPreview")}</h4>
-          <div class="application-settings-surface settings-card">
-            <label class="settings-card-row">
-              <span class="settings-card-copy">
-                <span class="label-text">{$t("htmlPreviewFixedHeight")}</span>
-                <span class="detail-hint">{$t("htmlPreviewFixedHeightHint")}</span>
-              </span>
-              <input
-                type="number"
-                class="detail-input settings-card-number-input"
-                min="160"
-                max="1200"
-                step="20"
-                bind:value={draftConfig.html_preview.fixed_height}
-              />
-            </label>
           </div>
         </section>
       </div>

@@ -7,7 +7,7 @@
   import { chatMarkdownTheme } from "$lib/streamdown/chatMarkdownTheme";
   import { customExtensions } from "$lib/streamdown/extensions";
   import type { ComponentToken } from "$lib/streamdown/extensions";
-  import type { FileChange, HtmlPreviewConfig, StreamItem } from "$lib/types";
+  import type { FileChange, StreamItem } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t } from "$lib/i18n";
   import ToolCallCard from "./ToolCallCard.svelte";
@@ -23,7 +23,6 @@
     item: Extract<StreamItem, { type: "retry" }>;
     shikiTheme: string;
     mermaidConfig: MermaidConfig;
-    htmlPreviewConfig?: HtmlPreviewConfig;
     fileChanges?: FileChange[];
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
     onCancelUserInput: (requestId: string) => void;
@@ -33,7 +32,6 @@
     item,
     shikiTheme,
     mermaidConfig,
-    htmlPreviewConfig,
     fileChanges = [],
     onSubmitUserInput,
     onCancelUserInput,
@@ -67,7 +65,6 @@
       {#if segment.kind === "tool_group"}
         <ToolCallGroup
           items={segment.items}
-          {htmlPreviewConfig}
           {fileChanges}
           {onSubmitUserInput}
           {onCancelUserInput}
@@ -89,7 +86,6 @@
               {#if (token as ComponentToken).type === "component"}
                 <CustomToken
                   token={token as ComponentToken}
-                  {htmlPreviewConfig}
                   isDark={shikiTheme === "github-dark"}
                 />
               {/if}
@@ -110,7 +106,6 @@
             approval={attemptItem.approval}
             onApprove={(requestId) => onSubmitUserInput(requestId, { approved: true })}
             onDeny={onCancelUserInput}
-            {htmlPreviewConfig}
             {fileChanges}
             {mermaidConfig}
             onToggle={() => toggleToolCall(idx)}

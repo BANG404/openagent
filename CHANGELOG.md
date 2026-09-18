@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Removed
+- Remove the remaining HTML transcript preview renderer, settings, transport operations, and asset protocols after the earlier removal of `render_web` and the browser sidebar
+
+### Documentation
+- Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
+
 ## [0.69.0-beta.1] - 2026-09-16
 
 ### Features

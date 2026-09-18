@@ -56,6 +56,11 @@ Older `[web_search]` and `[fetch]` tables are ignored when loading configuration
 and disappear on the next successful settings save. Webpage search and fetching
 are not built-in Agent capabilities.
 
+The retired `[html_preview]` table follows the same read-and-discard rule. The
+product has no `render_web` tool, AGUI `Html(...)` renderer, browser sidebar, or
+HTML-preview setting; links are shared as `Url(...)` references and opened in
+the user's browser.
+
 Each native MCP server entry stores a `disabled_tools` list alongside its
 connection settings. Settings probes the server and displays every currently
 advertised tool with an individual enable switch. Disabled names remain visible

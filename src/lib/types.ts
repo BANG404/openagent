@@ -589,10 +589,6 @@ export interface SkillMetadata {
   scope: "global" | "local" | `plugin:${string}`;
 }
 
-export interface HtmlPreviewConfig {
-  fixed_height: number;
-}
-
 export interface RemoteGatewayConfig {
   enabled: boolean;
   allow_lan_access: boolean;
@@ -695,7 +691,6 @@ export interface AppConfig {
   mcp: McpSettings;
   theme: "system" | "light" | "dark";
   language: "zh" | "en";
-  html_preview: HtmlPreviewConfig;
   launch_on_startup: boolean;
   onboarding_completed?: boolean;
   diagnostic_log_collection_enabled: boolean;

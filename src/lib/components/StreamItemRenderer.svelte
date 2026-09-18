@@ -10,7 +10,7 @@
   import MessageDivider from "./MessageDivider.svelte";
   import CompactionStatus from "./CompactionStatus.svelte";
   import { t } from "$lib/i18n";
-  import type { FileChange, HtmlPreviewConfig, StreamItem } from "$lib/types";
+  import type { FileChange, StreamItem } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { customExtensions, type ComponentToken } from "$lib/streamdown/extensions";
   import { chatMarkdownTheme } from "$lib/streamdown/chatMarkdownTheme";
@@ -30,8 +30,6 @@
     thinkingOpen?: boolean;
     shikiTheme: string;
     mermaidConfig: MermaidConfig;
-    htmlPreviewConfig?: HtmlPreviewConfig;
-    conversationId?: string;
     fileChanges?: FileChange[];
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
     onCancelUserInput: (requestId: string) => void;
@@ -48,8 +46,6 @@
     thinkingOpen = false,
     shikiTheme,
     mermaidConfig,
-    htmlPreviewConfig,
-    conversationId,
     fileChanges = [],
     onSubmitUserInput,
     onCancelUserInput,
@@ -108,12 +104,7 @@
     >
       {#snippet children({ token })}
         {#if (token as ComponentToken).type === "component"}
-          <CustomToken
-            token={token as ComponentToken}
-            {htmlPreviewConfig}
-            isDark={shikiTheme === "github-dark"}
-            {conversationId}
-          />
+          <CustomToken token={token as ComponentToken} isDark={shikiTheme === "github-dark"} />
         {/if}
       {/snippet}
     </Streamdown>
@@ -159,8 +150,6 @@
       approval={item.approval}
       onApprove={(requestId) => onSubmitUserInput(requestId, { approved: true })}
       onDeny={onCancelUserInput}
-      {htmlPreviewConfig}
-      {conversationId}
       {fileChanges}
       {mermaidConfig}
       showRunning={isStreaming}
@@ -194,7 +183,6 @@
       {fileChanges}
       {shikiTheme}
       {mermaidConfig}
-      {htmlPreviewConfig}
       {onSubmitUserInput}
       {onCancelUserInput}
     />
@@ -246,9 +234,6 @@
     content-visibility: visible;
   }
   :global(.message-record[data-mermaid-expanded]) {
-    content-visibility: visible;
-  }
-  :global(.message-record[data-web-preview-expanded]) {
     content-visibility: visible;
   }
   .thinking-block {

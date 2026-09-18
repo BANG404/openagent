@@ -200,7 +200,6 @@
           showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(view.config)}
           shikiTheme={view.shikiTheme}
           mermaidConfig={view.mermaidConfig}
-          htmlPreviewConfig={view.config?.html_preview}
           messageLayout={view.config?.message_layout ?? "single"}
           messageDoubleColumnMinWidth={view.config?.message_double_column_min_width ?? 1200}
           bookModeFontSize={view.config?.book_mode_font_size ?? 17}

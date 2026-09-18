@@ -2,7 +2,6 @@ import type {
   AppConfig,
   AutomationHookConfig,
   ApprovalMode,
-  HtmlPreviewConfig,
   McpServerConfig,
   OpenAiApiMode,
   PermissionProfile,
@@ -18,12 +17,6 @@ export type NormalizedAppConfig = Omit<AppConfig, "mcp" | "automation_hooks"> & 
   mcp: { servers: NormalizedMcpServerConfig[] };
   automation_hooks: AutomationHookConfig[];
 };
-
-function defaultHtmlPreview(): HtmlPreviewConfig {
-  return {
-    fixed_height: 480,
-  };
-}
 
 export function defaultPermissionProfile(): PermissionProfile {
   return {
@@ -152,14 +145,6 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
     }),
   };
 
-  const requestedHtmlHeight = Number(input.html_preview?.fixed_height);
-  const html_preview: HtmlPreviewConfig = {
-    ...defaultHtmlPreview(),
-    ...(input.html_preview ?? {}),
-    fixed_height: Number.isFinite(requestedHtmlHeight)
-      ? Math.min(1200, Math.max(160, Math.floor(requestedHtmlHeight)))
-      : 480,
-  };
   const approval_mode: ApprovalMode = ["manual", "auto", "off"].includes(input.approval_mode)
     ? input.approval_mode
     : "off";
@@ -244,7 +229,6 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
         (binding) => binding.provider_id && binding.model,
       ),
     },
-    html_preview,
     remote_gateway: {
       enabled: input.remote_gateway?.enabled ?? false,
       allow_lan_access: input.remote_gateway?.allow_lan_access ?? false,

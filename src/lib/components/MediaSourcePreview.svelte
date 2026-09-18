@@ -32,9 +32,6 @@
       }
       throw new Error("Unsupported media preview fixture");
     },
-    async readHtmlPreview() {
-      return { content: "", assetBaseUrl: "" };
-    },
     async repairAttachment() {
       return false;
     },

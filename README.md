@@ -46,7 +46,7 @@
   - [Progressive Skill discovery](#progressive-skill-discovery)
 - [Interactive prompts with `ask_user`](#interactive-prompts-with-ask_user)
 - [AGUI — Inline Interactive Components](#agui--inline-interactive-components)
-- [Sidebar browser](#sidebar-browser)
+- [Current product boundaries](#current-product-boundaries)
 - [Memory file format](#memory-file-format)
 - [Agent memory controls](#agent-memory-controls)
 - [Architecture at a glance](#architecture-at-a-glance)
@@ -81,13 +81,14 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 ### Interactive output
 
 - **AGUI — Inline Interactive Components** — The agent can embed file and URL capsules, ECharts visualisations, source-line previews, and image/video media directly in its prose — all rendered live by the streamdown engine.
-- **Sidebar Browser** — Open the right sidebar to visit HTTP(S) websites with an address bar, back/forward navigation, refresh, and a system-browser shortcut without adding webpage tool cards to the transcript.
 - **Validated Mermaid Rendering** — A dedicated render tool validates Mermaid source before presenting the diagram, while keeping the source available and supporting fullscreen inspection.
 
 ### Tools and integrations
 
 - **MCP-Native** — Connect external MCP servers over HTTP or stdio; tools are injected into the agent at call time.
-- **First-class Dev Tools** — Built-in file, search, and terminal tools. Managed terminal sessions support interactive or long-running background processes.
+- **First-class Dev Tools** — Built-in patch, image-inspection, and terminal tools. Managed terminal sessions support interactive or long-running background processes.
+- **Desktop Automation** — The bundled Cua Driver runs as a host-supervised capability with product-owned permissions and per-tool controls in **Settings → Plugins**.
+- **Lifecycle Automation** — Run a sandboxed command or inject bounded Agent context around session, prompt, compaction, model, and tool events.
 - **Independent Approval & Runtime Permissions** — Choose when tool calls pause for review separately from the managed filesystem and network sandbox.
 - **Skills System** — Drop a `SKILL.md` into `~/.agents/skills/` or `<workspace>/.agents/skills/`. Category-based progressive discovery keeps large global and project catalogs compact, with optional Flash classification for uncategorized Skills.
 - **Messaging Channels** — Connect Feishu/Lark, Telegram, QQ, WeChat, Discord, or Slack from **Settings → Channels**. Each peer keeps its own workspace, model, role, and durable conversation, with commands for switching scope and replying to questions or approvals. See the [channel integration skill](.agents/skills/openagent-channel-integrations/SKILL.md).
@@ -98,6 +99,8 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 
 - **Context Compaction & Tree Conversations** — Automatically or manually compact long conversations into tree structures to save tokens, preserving history lineage via search-based message recall.
 - **Responsive Conversation History** — Search and paginate the sidebar, queue follow-up messages during a run, and navigate virtualized transcripts without loading the entire history into the DOM.
+- **In-window Management** — Settings, roles, automation, memory, skills, and other management surfaces open fullscreen inside the active window without replacing the chat shell.
+- **Background Terminal Inspection** — Follow conversation-scoped terminal sessions in an accordion beside Goal/Graph status and file changes.
 - **Scheduled Chat Hooks** — Define recurring or one-off tasks triggered in the background. Hooks are fully persistent, auto-restored on startup, and supported by system tray notifications.
 - **Project Drafts & Global/Local Scopes** — Keep drafts, memory, and skills scoped globally (in `~/.openagent`) or locally to your active workspace (in `.agents/`).
 - **DESIGN.md & MDX Editor** — Dedicated edit panel for `DESIGN.md` in your workspace, plus a rich markdown editor (MdxMarkdownEditor) integrated into memory and skill management.
@@ -307,9 +310,11 @@ Multi-series charts use `series: [{name, data}, ...]`.
 
 ---
 
-## Sidebar browser
+## Current product boundaries
 
-Open the right sidebar from the title bar and select **Browser**. Enter a hostname or HTTP(S) address to navigate inside the panel, use the browser controls to move through submitted addresses or refresh the current page, and open the same address in the system browser when needed. A website can still refuse embedded display through its CSP or `X-Frame-Options` policy.
+- OpenAgent does not provide built-in webpage search/fetching, `render_web`, AGUI `Html(...)`, an embedded browser sidebar, or HTML-preview settings. Agents share websites with `Url(...)`; users open those links in their browser. Browser automation belongs to Cua Driver or another explicitly configured MCP service.
+- The right conversation panel is contextual: it appears only for Goal/Graph status, file changes, or conversation-owned background terminals.
+- The former general Agent Plugins management surface is not exposed. Skills and user-configured MCP servers keep their dedicated settings, while the Plugins surface owns the bundled Cua Driver.
 
 ---
 

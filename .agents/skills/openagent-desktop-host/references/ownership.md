@@ -153,10 +153,10 @@ the host.
   embedded diagnostic can initialize MCP connections before Tauri `setup`.
   Tauri `Resource` resolution remains the packaged path; development startup
   may fall back to the source or debug resource directory.
-- Rewrite Runtime media and HTML asset URLs to the host-owned
-  `openagent-runtime` protocol. Permit only GET/HEAD requests for bounded
-  media and HTML asset paths, preserve byte-range response headers, and
-  attach the process token only in Rust.
+- Rewrite Runtime media asset URLs to the host-owned `openagent-runtime`
+  protocol. Permit only GET/HEAD requests for bounded media asset paths,
+  preserve byte-range response headers, and attach the process token only in
+  Rust.
 - Resolve workspace paths in the Runtime before the host invokes the
   native opener. Native open requests must select the active Runtime mode
   at runtime: ordinary debug and release shells use the supervised

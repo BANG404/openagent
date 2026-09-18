@@ -7,7 +7,7 @@
     partitionAssistantSegments,
     type StreamItemSegment,
   } from "$lib/toolCallGroups";
-  import type { CheckpointTurnStatus, HtmlPreviewConfig, StreamItem } from "$lib/types";
+  import type { CheckpointTurnStatus, StreamItem } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import ProcessRecordGroup from "./ProcessRecordGroup.svelte";
   import StreamItemRenderer from "./StreamItemRenderer.svelte";
@@ -25,7 +25,6 @@
     activeKey: string;
     shikiTheme: string;
     mermaidConfig: MermaidConfig;
-    htmlPreviewConfig?: HtmlPreviewConfig;
     fontSize?: number;
     onClose: () => void;
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
@@ -37,7 +36,6 @@
     activeKey,
     shikiTheme,
     mermaidConfig,
-    htmlPreviewConfig,
     fontSize = 17,
     onClose,
     onSubmitUserInput,
@@ -186,12 +184,7 @@
   {#each segments as segment (`book-${selectedTurn?.key}-${segment.startIndex}`)}
     {#if segment.kind === "tool_group"}
       <div class="book-record">
-        <ToolCallGroup
-          items={segment.items}
-          {htmlPreviewConfig}
-          {onSubmitUserInput}
-          {onCancelUserInput}
-        />
+        <ToolCallGroup items={segment.items} {onSubmitUserInput} {onCancelUserInput} />
       </div>
     {:else}
       <StreamItemRenderer
@@ -201,7 +194,6 @@
           !selectedTurn?.items.slice(segment.startIndex + 1).some((next) => next.type === "text")}
         {shikiTheme}
         {mermaidConfig}
-        {htmlPreviewConfig}
         {onSubmitUserInput}
         {onCancelUserInput}
       />

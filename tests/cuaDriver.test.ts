@@ -43,7 +43,6 @@ function configWithServers(servers: AppConfig["mcp"]["servers"]): AppConfig {
     mcp: { servers },
     theme: "system",
     language: "en",
-    html_preview: { fixed_height: 480 },
     launch_on_startup: false,
     diagnostic_log_collection_enabled: true,
     quick_chat_shortcut: "Ctrl+Shift+Space",

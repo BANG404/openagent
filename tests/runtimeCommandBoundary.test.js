@@ -107,7 +107,7 @@ describe("desktop command boundary", () => {
   test("resolves native open paths through the active desktop Runtime mode", () => {
     const host = readFileSync("src-tauri/src/lib.rs", "utf8");
     const start = host.indexOf("async fn resolve_desktop_open_path");
-    const end = host.indexOf("async fn read_html_preview_file", start);
+    const end = host.indexOf("async fn read_workspace_text_snippet", start);
     const openPathBoundary = host.slice(start, end);
 
     expect(start).toBeGreaterThanOrEqual(0);

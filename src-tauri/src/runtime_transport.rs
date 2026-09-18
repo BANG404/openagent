@@ -240,7 +240,6 @@ fn is_static_route_segment(segment: &str) -> bool {
             | "open"
             | "text-snippet"
             | "media"
-            | "html-preview"
     )
 }
 
@@ -344,8 +343,7 @@ fn validate_runtime_asset_request(method: &str, path: &str) -> Result<(), String
         .path_segments()
         .map(|segments| segments.collect::<Vec<_>>())
         .unwrap_or_default();
-    let allowed = matches!(segments.as_slice(), ["api", "media-assets", _])
-        || matches!(segments.as_slice(), ["api", "html-assets", _, _, ..]);
+    let allowed = matches!(segments.as_slice(), ["api", "media-assets", _]);
     if url.origin() != Url::parse("http://openagent.runtime").unwrap().origin()
         || !allowed
         || path.contains(['\r', '\n', '#'])
@@ -421,10 +419,6 @@ fn validate_webview_product_request(request: &RuntimeProxyRequest) -> Result<(),
             | (
                 Method::POST,
                 ["api", "conversations", _, "workspace", "media"]
-            )
-            | (
-                Method::POST,
-                ["api", "conversations", _, "workspace", "html-preview"]
             )
             | (Method::PATCH, ["api", "conversations", _])
             | (Method::DELETE, ["api", "conversations", _])
@@ -615,9 +609,7 @@ mod tests {
     #[test]
     fn runtime_asset_proxy_accepts_only_bounded_read_routes() {
         assert!(validate_runtime_asset_request("GET", "/api/media-assets/token").is_ok());
-        assert!(
-            validate_runtime_asset_request("HEAD", "/api/html-assets/token/assets/app.css").is_ok()
-        );
+        assert!(validate_runtime_asset_request("HEAD", "/api/media-assets/token").is_ok());
         assert!(validate_runtime_asset_request("POST", "/api/media-assets/token").is_err());
         assert!(validate_runtime_asset_request("GET", "/api/desktop/bootstrap").is_err());
         assert!(
@@ -631,7 +623,7 @@ mod tests {
         let address = listener.local_addr().unwrap();
         let (requests_tx, requests_rx) = mpsc::channel();
         let server = std::thread::spawn(move || {
-            for _ in 0..3 {
+            for _ in 0..2 {
                 let (mut stream, _) = listener.accept().unwrap();
                 let mut request = Vec::new();
                 let mut buffer = [0_u8; 1024];
@@ -647,7 +639,7 @@ mod tests {
                 let first_line = request.lines().next().unwrap_or_default();
                 let response = if first_line.starts_with("GET /api/media-assets/media-1") {
                     "HTTP/1.1 206 Partial Content\r\nContent-Type: image/png\r\nContent-Length: 3\r\nContent-Range: bytes 1-3/5\r\nAccept-Ranges: bytes\r\nConnection: close\r\n\r\nbcd"
-                } else if first_line.starts_with("HEAD /api/html-assets/html-1/assets/app.css") {
+                } else if first_line.starts_with("HEAD /api/media-assets/media-1") {
                     "HTTP/1.1 200 OK\r\nContent-Type: text/css\r\nContent-Length: 4\r\nAccept-Ranges: bytes\r\nConnection: close\r\n\r\n"
                 } else {
                     "HTTP/1.1 200 OK\r\nContent-Type: text/css\r\nContent-Length: 4\r\nConnection: close\r\n\r\nbody"
@@ -677,31 +669,16 @@ mod tests {
             .headers
             .contains(&("accept-ranges".to_string(), "bytes".to_string())));
 
-        let head = proxy_runtime_asset_connection(
-            &connection,
-            "HEAD",
-            "/api/html-assets/html-1/assets/app.css",
-            None,
-        )
-        .await
-        .unwrap();
+        let head =
+            proxy_runtime_asset_connection(&connection, "HEAD", "/api/media-assets/media-1", None)
+                .await
+                .unwrap();
         assert_eq!(head.status, 200);
         assert!(head.body.is_empty());
 
-        let nested = proxy_runtime_asset_connection(
-            &connection,
-            "GET",
-            "/api/html-assets/html-1/nested/theme.css",
-            None,
-        )
-        .await
-        .unwrap();
-        assert_eq!(nested.body, b"body");
-        assert!(!String::from_utf8_lossy(&nested.body).contains(&connection.token));
-
         server.join().unwrap();
         let requests = requests_rx.try_iter().collect::<Vec<_>>();
-        assert_eq!(requests.len(), 3);
+        assert_eq!(requests.len(), 2);
         for request in &requests {
             assert!(
                 request.contains("authorization: Bearer native-only-token")
@@ -789,10 +766,6 @@ mod tests {
             (
                 "/api/conversations/conv-1/workspace/media",
                 "/api/conversations/{id}/workspace/media",
-            ),
-            (
-                "/api/conversations/conv-1/workspace/html-preview",
-                "/api/conversations/{id}/workspace/html-preview",
             ),
             ("", "/"),
             ("/", "/"),

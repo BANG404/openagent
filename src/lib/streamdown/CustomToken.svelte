@@ -4,21 +4,15 @@
   import FileCard from "./components/File.svelte";
   import UrlCard from "./components/Url.svelte";
   import ChartCard from "./components/Chart.svelte";
-  import HtmlPreview from "./components/Html.svelte";
   import Media from "./components/Media.svelte";
   import Skeleton from "./components/Skeleton.svelte";
-  import type { HtmlPreviewConfig } from "$lib/types";
 
   let {
     token,
-    htmlPreviewConfig,
     isDark = false,
-    conversationId,
   }: {
     token: ComponentToken;
-    htmlPreviewConfig?: HtmlPreviewConfig;
     isDark?: boolean;
-    conversationId?: string;
   } = $props();
 
   const args = $derived(evalArgs(token.args));
@@ -36,8 +30,6 @@
   <Media {args} rawArgs={token.args} kind="image" />
 {:else if token.name === "Video"}
   <Media {args} rawArgs={token.args} kind="video" />
-{:else if token.name === "Html"}
-  <HtmlPreview {args} rawArgs={token.args} {htmlPreviewConfig} {isDark} {conversationId} />
 {:else}
   <!-- Unknown component: render the raw call so it's not silently swallowed. -->
   <code class="unknown-component">{token.raw}</code>

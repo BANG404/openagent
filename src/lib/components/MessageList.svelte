@@ -25,7 +25,6 @@
     ChatAttachment,
     ChatMessage,
     FileChange,
-    HtmlPreviewConfig,
     StreamItem,
     TaskTokenUsage,
     UserMessageContext,
@@ -64,7 +63,6 @@
     showApiKeyWarn: boolean;
     shikiTheme: string;
     mermaidConfig: MermaidConfig;
-    htmlPreviewConfig?: HtmlPreviewConfig;
     messageLayout?: "single" | "responsive_double";
     messageDoubleColumnMinWidth?: number;
     bookModeFontSize?: number;
@@ -116,7 +114,6 @@
     showApiKeyWarn,
     shikiTheme,
     mermaidConfig,
-    htmlPreviewConfig,
     messageLayout = "single",
     messageDoubleColumnMinWidth = 1200,
     bookModeFontSize = 17,
@@ -637,8 +634,6 @@
                 <ToolCallGroup
                   items={segment.items}
                   isStreaming={assistantIsStreaming}
-                  {htmlPreviewConfig}
-                  conversationId={activeConvId ?? undefined}
                   {fileChanges}
                   {onSubmitUserInput}
                   {onCancelUserInput}
@@ -667,8 +662,6 @@
                 )}
                 {shikiTheme}
                 {mermaidConfig}
-                {htmlPreviewConfig}
-                conversationId={activeConvId ?? undefined}
                 {fileChanges}
                 {onSubmitUserInput}
                 {onCancelUserInput}
@@ -831,8 +824,6 @@
         >
           <ToolCallGroup
             items={entry.items}
-            {htmlPreviewConfig}
-            conversationId={activeConvId ?? undefined}
             {fileChanges}
             {onSubmitUserInput}
             {onCancelUserInput}
@@ -1043,7 +1034,6 @@
     activeKey={readingTurnKey}
     {shikiTheme}
     {mermaidConfig}
-    {htmlPreviewConfig}
     fontSize={bookModeFontSize}
     onClose={() => (readingTurnKey = null)}
     {onSubmitUserInput}

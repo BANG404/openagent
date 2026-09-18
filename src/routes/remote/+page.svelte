@@ -160,7 +160,6 @@
     readTextSnippet: (path, startLine, endLine) =>
       client.readWorkspaceTextSnippet(path, startLine, endLine, activeConversationId()),
     resolveMedia: (path, kind) => client.resolveWorkspaceMedia(path, kind, activeConversationId()),
-    readHtmlPreview: (path) => client.readHtmlPreview(path, activeConversationId()),
     async repairAttachment(blobId, name) {
       const file = await selectBrowserFile();
       if (!file) return false;

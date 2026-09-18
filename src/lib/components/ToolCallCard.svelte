@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
   import MermaidToolPreview from "./MermaidToolPreview.svelte";
-  import type { ChatToolImage, HtmlPreviewConfig, UserInputRequest } from "$lib/types";
+  import type { ChatToolImage, UserInputRequest } from "$lib/types";
   import type { FileChange } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t } from "$lib/i18n";
@@ -23,8 +23,6 @@
     images?: ChatToolImage[];
     expanded: boolean;
     argHint: string;
-    htmlPreviewConfig?: HtmlPreviewConfig;
-    conversationId?: string;
     fileChanges?: FileChange[];
     mermaidConfig?: MermaidConfig;
     showRunning?: boolean;
