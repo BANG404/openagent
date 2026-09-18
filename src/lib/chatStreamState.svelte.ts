@@ -11,6 +11,7 @@ export class ChatStreamState {
   awaitingOutput = $state<Record<string, boolean>>({});
   memoryRetrievalStages = $state<Record<string, ChatMemoryRetrievalStage>>({});
   memoryRetrievalSkippable = $state<Record<string, boolean>>({});
+  recoveredConversationIds = $state<Record<string, boolean>>({});
 
   startTiming(conversationId: string, timestamp = Date.now()): void {
     this.clearAwaitingOutput(conversationId);
@@ -48,6 +49,7 @@ export class ChatStreamState {
     const { [conversationId]: _awaiting, ...restAwaiting } = this.awaitingOutput;
     const { [conversationId]: _stage, ...restStages } = this.memoryRetrievalStages;
     const { [conversationId]: _skippable, ...restSkippable } = this.memoryRetrievalSkippable;
+    const { [conversationId]: _recovered, ...restRecovered } = this.recoveredConversationIds;
     this.itemsByConversation = restItems;
     this.streamingConversationIds = restStreaming;
     this.pausedConversationIds = restPaused;
@@ -57,5 +59,6 @@ export class ChatStreamState {
     this.awaitingOutput = restAwaiting;
     this.memoryRetrievalStages = restStages;
     this.memoryRetrievalSkippable = restSkippable;
+    this.recoveredConversationIds = restRecovered;
   }
 }

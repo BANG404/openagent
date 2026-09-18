@@ -11,6 +11,8 @@ import {
   isCompactionBoundary,
   preserveMessagesAddedDuringHydration,
   preserveStreamingMessagesDuringHydration,
+  reconcileTerminalAssistantMessage,
+  terminalEventMatchesActiveStream,
 } from "../src/lib/checkpointTree";
 
 describe("model request activity", () => {
@@ -64,6 +66,62 @@ describe("background checkpoint reconciliation", () => {
         new Set(["user-1"]),
       ),
     ).toEqual([previousUser, queuedUser]);
+  });
+
+  test("reuses a terminal Turn hydrated before its cancellation event", () => {
+    const previousUser = message("user-1", "user", "first");
+    const queuedUser = message("user-2", "user", "queued");
+    const durableAssistant = {
+      ...message("assistant-1", "assistant", ""),
+      turn: { response_message_id: "assistant-1" },
+      items: [
+        { type: "tool_call", name: "list_apps", args: {}, toolUseId: "tool-1" },
+        { type: "runtime_notice", kind: "interrupted", reason: "interrupted" },
+      ],
+    };
+    const optimisticAssistant = {
+      ...durableAssistant,
+      items: [...durableAssistant.items],
+      transientTurnStatus: "cancelled",
+    };
+
+    const reconciled = reconcileTerminalAssistantMessage(
+      [previousUser, durableAssistant, queuedUser],
+      optimisticAssistant,
+      "assistant-1",
+    );
+
+    expect(reconciled.appended).toBe(false);
+    expect(reconciled.messages).toEqual([previousUser, durableAssistant, queuedUser]);
+    expect(
+      reconciled.messages
+        .flatMap((entry) => entry.items ?? [])
+        .filter((item) => item.type === "tool_call" && item.toolUseId === "tool-1"),
+    ).toHaveLength(1);
+    expect(
+      reconciled.messages
+        .flatMap((entry) => entry.items ?? [])
+        .filter((item) => item.type === "runtime_notice" && item.kind === "interrupted"),
+    ).toHaveLength(1);
+    expect(reconciled.messages.at(-1)?.id).toBe("user-2");
+  });
+
+  test("appends the optimistic terminal row when hydration has not finished", () => {
+    const user = message("user-1", "user", "first");
+    const assistant = message("assistant-1", "assistant", "done");
+
+    expect(reconcileTerminalAssistantMessage([user], assistant, "assistant-1")).toEqual({
+      messages: [user, assistant],
+      appended: true,
+    });
+  });
+
+  test("rejects a delayed terminal event after the queued turn starts", () => {
+    expect(terminalEventMatchesActiveStream("assistant-new", "assistant-old", false)).toBe(false);
+    expect(terminalEventMatchesActiveStream("assistant-new", "assistant-new", false)).toBe(true);
+    expect(terminalEventMatchesActiveStream("recovery-placeholder", "assistant-old", true)).toBe(
+      true,
+    );
   });
 });
 

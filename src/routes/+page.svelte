@@ -123,6 +123,8 @@
     isCompactionBoundary,
     preserveMessagesAddedDuringHydration,
     preserveStreamingMessagesDuringHydration,
+    reconcileTerminalAssistantMessage,
+    terminalEventMatchesActiveStream,
     type ConvTree,
   } from "$lib/checkpointTree";
   import { prepareWorkspaceConversationSnapshot } from "$lib/workspaceConversationState";
@@ -2500,6 +2502,10 @@
     assistantMessageId: string,
     startedAt: number,
   ): void {
+    if (chatStreams.recoveredConversationIds[convId]) {
+      const { [convId]: _recovered, ...rest } = chatStreams.recoveredConversationIds;
+      chatStreams.recoveredConversationIds = rest;
+    }
     const isSameRun =
       chatStreams.streamingConversationIds[convId] &&
       chatStreams.assistantMessageIds[convId] === assistantMessageId;
@@ -2613,6 +2619,10 @@
       ];
     }
     startProjectedChatStream(convId, assistantMessageId, startedAt);
+    chatStreams.recoveredConversationIds = {
+      ...chatStreams.recoveredConversationIds,
+      [convId]: true,
+    };
     void fetchConversationMeta(convId)
       .then((conversation) => {
         if (conversation) conversations = mergeConversationMetadata(conversations, [conversation]);
@@ -3262,9 +3272,12 @@
           return;
         }
       },
-      onDone: (conv_id, asstMsgId, error) => {
-        finalizeStreamedMessage(conv_id, error ? "failed" : "completed", asstMsgId, error);
-        interruptTerminalHandoffs.release(conv_id);
+      onDone: (conv_id, asstMsgId, error, turnId) => {
+        if (
+          finalizeStreamedMessage(conv_id, error ? "failed" : "completed", asstMsgId, turnId, error)
+        ) {
+          interruptTerminalHandoffs.release(conv_id);
+        }
       },
       onFollowUpSuggestions: (convId, assistantMessageId, suggestions) => {
         const normalized = normalizeSuggestions(suggestions);
@@ -3284,18 +3297,20 @@
           newConversationSuggestions = normalized;
         }
       },
-      onInterrupted: (conv_id) => {
-        finalizeStreamedMessage(conv_id, "interrupted");
-        interruptTerminalHandoffs.release(conv_id);
+      onInterrupted: (conv_id, _requestId, asstMsgId, turnId) => {
+        if (finalizeStreamedMessage(conv_id, "interrupted", asstMsgId, turnId)) {
+          interruptTerminalHandoffs.release(conv_id);
+        }
         // The live `chat-user-input-request` event has already attached the
         // next approval to its tool card. Do not re-project the complete
         // checkpoint here: replacing the conversation while the user clicks
         // through approvals causes a visible flash. Checkpoint loading remains
         // the recovery path when opening a conversation or restoring a view.
       },
-      onCancelled: (conv_id) => {
-        finalizeStreamedMessage(conv_id, "cancelled");
-        interruptTerminalHandoffs.release(conv_id);
+      onCancelled: (conv_id, asstMsgId, turnId) => {
+        if (finalizeStreamedMessage(conv_id, "cancelled", asstMsgId, turnId)) {
+          interruptTerminalHandoffs.release(conv_id);
+        }
       },
     });
     await Promise.all([...registrations, chatEventRegistration]);
@@ -3412,9 +3427,16 @@
     conv_id: string,
     status: CheckpointTurnStatus,
     asstMsgId?: string,
+    turnId?: string,
     error?: string | null,
-  ) {
-    const assistantMessageId = asstMsgId ?? chatStreams.assistantMessageIds[conv_id];
+  ): boolean {
+    const activeAssistantMessageId = chatStreams.assistantMessageIds[conv_id];
+    const recoveredStream = !!chatStreams.recoveredConversationIds[conv_id];
+    if (!terminalEventMatchesActiveStream(activeAssistantMessageId, asstMsgId, recoveredStream)) {
+      return false;
+    }
+    const assistantMessageId = asstMsgId ?? activeAssistantMessageId;
+    const responseMessageId = turnId ?? assistantMessageId;
     notifyInactiveWindowOfAgentCompletion(
       assistantMessageId,
       status,
@@ -3447,7 +3469,7 @@
       });
       chatStreams.cleanup(conv_id);
       void dispatchNextQueuedMessage(conv_id);
-      return;
+      return true;
     }
 
     const checkpointId = pendingCheckpointIds[conv_id] ?? null;
@@ -3477,6 +3499,7 @@
       const { [conv_id]: _pfs, ...restPfs } = pendingForkSourceCheckpointId;
       const { [conv_id]: _pfu, ...restPfu } = pendingForkUserMessageIds;
       const { [conv_id]: _asstId, ...restAsstIds } = chatStreams.assistantMessageIds;
+      const { [conv_id]: _recovered, ...restRecovered } = chatStreams.recoveredConversationIds;
       chatStreams.itemsByConversation = restItems;
       chatStreams.streamingConversationIds = restStreaming;
       pendingCheckpointIds = restCk;
@@ -3485,12 +3508,18 @@
       pendingForkSourceCheckpointId = restPfs;
       pendingForkUserMessageIds = restPfu;
       chatStreams.assistantMessageIds = restAsstIds;
-      return;
+      chatStreams.recoveredConversationIds = restRecovered;
+      return true;
     }
 
+    const reconciliation = reconcileTerminalAssistantMessage(
+      location.conversations[location.index].messages,
+      assistantMsg,
+      responseMessageId ?? assistantMsg.id,
+    );
     location.conversations[location.index] = {
       ...location.conversations[location.index],
-      messages: [...location.conversations[location.index].messages, assistantMsg],
+      messages: reconciliation.messages,
       updatedAt: Date.now(),
     };
     promoteConversationInRecents(location.conversations[location.index]);
@@ -3498,7 +3527,9 @@
     // Rust persists completed responses, but the client is the source of the
     // stream timing. Save every final message so firstTokenAt/completedAt are
     // merged into that persisted record before a refresh.
-    saveAssistantMessage(conv_id, assistantMsg, checkpointId);
+    if (reconciliation.appended) {
+      saveAssistantMessage(conv_id, assistantMsg, checkpointId);
+    }
 
     // Keep the temporary records visible until the durable terminal records
     // have actually loaded. This avoids a blank banner when IPC refresh is
@@ -3540,6 +3571,7 @@
 
     chatStreams.cleanup(conv_id);
     void dispatchNextQueuedMessage(conv_id);
+    return true;
   }
 
   function notifyInactiveWindowOfAgentCompletion(

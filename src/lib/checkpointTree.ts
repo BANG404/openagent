@@ -58,6 +58,35 @@ export function preserveStreamingMessagesDuringHydration(
   return preserveMessagesAddedDuringHydration(visible, hydrated, new Set());
 }
 
+/**
+ * A terminal checkpoint may hydrate before its terminal stream event arrives.
+ * Reuse that durable Turn instead of appending the same live records again.
+ */
+export function reconcileTerminalAssistantMessage(
+  visible: ChatMessage[],
+  finalized: ChatMessage,
+  responseMessageId: string,
+): { messages: ChatMessage[]; appended: boolean } {
+  const alreadyDurable = visible.some(
+    (message) =>
+      message.role === "assistant" &&
+      (message.id === responseMessageId || message.turn?.response_message_id === responseMessageId),
+  );
+  return alreadyDurable
+    ? { messages: visible, appended: false }
+    : { messages: [...visible, finalized], appended: true };
+}
+
+export function terminalEventMatchesActiveStream(
+  activeAssistantMessageId: string | undefined,
+  eventAssistantMessageId: string | undefined,
+  recoveredStream: boolean,
+): boolean {
+  if (!eventAssistantMessageId) return true;
+  if (!activeAssistantMessageId) return false;
+  return recoveredStream || eventAssistantMessageId === activeAssistantMessageId;
+}
+
 export interface CkTreeNode {
   ckId: string;
   parentCkId: string | null;

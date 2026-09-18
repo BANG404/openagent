@@ -352,6 +352,11 @@
   in the background. Do not show the conversation-loading skeleton, remount an
   unchanged transcript, overwrite backend history, or remove optimistic
   messages from a queued turn.
+- Terminal events identify both the current streamed assistant record and the
+  stable logical Turn response. Ignore a terminal event for an older stream,
+  and when its Turn is already present from checkpoint hydration, reuse that
+  durable projection instead of appending the finalized live records again.
+  Complete this reconciliation before dispatching the next queued message.
 - Preserve messages inserted by live events while any foreground or background
   checkpoint hydration is in flight. If an externally started run reaches its
   first durable checkpoint without a visible user message, reload and reconcile
