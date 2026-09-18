@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.70.1-beta.1] - 2026-09-18
+
+### Bug Fixes
+- **chat**: Reconcile hydrated terminal turns
+- **chat**: Keep long streams pinned to transcript tail
+
 ## [0.70.0-beta.1] - 2026-09-18
 
 ### Features
