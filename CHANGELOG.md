@@ -10,6 +10,19 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.70.0-beta.1] - 2026-09-18
+
+### Features
+- Update runtime for user memory prompt injection
+
+### Bug Fixes
+- **cua**: Persist reserved driver migration
+- **desktop-host**: Prepare the bounded exit before the shell installer runs
+- **frontend-resource**: Continue a pending frontend activation at startup
+
+### Refactoring
+- **frontend**: Remove legacy html previews
+
 ## [0.69.1-beta.2] - 2026-09-18
 
 ## [0.69.1-beta.1] - 2026-09-16
