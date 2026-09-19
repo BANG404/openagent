@@ -2663,9 +2663,15 @@
       message_id: string | null;
       new_conversation: boolean;
     }>("workspace-window-open-request", (event) => {
-      const { conversation_id, message_id, new_conversation } = event.payload;
+      const { workspace, conversation_id, message_id, new_conversation } = event.payload;
       void (async () => {
-        if (new_conversation) {
+        if (workspace && workspace !== workspacePath) {
+          await routeWorkspace(workspace, {
+            conversationId: conversation_id ?? undefined,
+            messageId: message_id ?? undefined,
+            newConversation: new_conversation,
+          });
+        } else if (new_conversation) {
           await activateNewConversationSurface();
         } else if (conversation_id) {
           await revealMemorySource(conversation_id, message_id ?? "");

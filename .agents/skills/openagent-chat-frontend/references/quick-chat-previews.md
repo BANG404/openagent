@@ -42,10 +42,12 @@
   while workspace windows retain their size, position, visibility, and runtime
   state.
 - Quick chat persists its own last-selected model, role, and workspace. Every
-  submission creates a fresh durable conversation, routes the first turn to
-  the selected workspace process, opens or focuses that workspace window, and
-  displays the new streaming conversation there. The launcher must not mutate
-  the primary window's active workspace, role, model default, or transcript.
+  submission creates a fresh durable conversation, switches the current
+  Runtime to the selected workspace, routes the first turn through that
+  Runtime, and focuses the existing application window to display the new
+  streaming conversation there. The launcher must not mutate the primary
+  window's role, model default, or transcript outside that requested workspace
+  handoff, and must not wait for a separate workspace process to register.
   Reload launcher settings when configuration changes so enabled model options
   and the selected model's image-attachment capability stay current. Preserve
   the launcher's model while it remains available; if it becomes unavailable,
