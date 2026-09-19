@@ -68,6 +68,13 @@
 
 ## Workspace and on-demand utility windows
 
+The hidden Quick Chat and development Inspector WebViews are deferred through
+the Tauri main-thread queue after setup returns. Neither participates in the
+initial workspace bootstrap, so constructing them must not delay the primary
+window's first reveal. Keep their labels, URLs, and singleton lookup behavior
+unchanged so shortcut and inspector flows can use the same windows once they
+have been created.
+
 - Reveal a dedicated workspace window's main shell as soon as Tauri
   setup owns the runtime host. Let the frontend's layout-stable loading
   state remain visible while startup bootstrap restores durable

@@ -5021,15 +5021,28 @@ fn run_with_mode(agent_server: bool) {
                         }
                     }
                     if !agent_server {
-                        tauri::WebviewWindowBuilder::new(
-                            app,
-                            "debug",
-                            tauri::WebviewUrl::App("/?dev-inspector=1".into()),
-                        )
-                        .title("OpenAgent Dev Inspector")
-                        .inner_size(980.0, 760.0)
-                        .min_inner_size(720.0, 520.0)
-                        .build()?;
+                        // The inspector is a development-only utility and is not
+                        // part of the first-paint path. Queue its WebView after
+                        // setup so WebView initialization cannot delay the main
+                        // shell becoming visible.
+                        let inspector_app = app.handle().clone();
+                        let inspector_builder_app = inspector_app.clone();
+                        inspector_app
+                            .run_on_main_thread(move || {
+                                if let Err(error) = tauri::WebviewWindowBuilder::new(
+                                    &inspector_builder_app,
+                                    "debug",
+                                    tauri::WebviewUrl::App("/?dev-inspector=1".into()),
+                                )
+                                .title("OpenAgent Dev Inspector")
+                                .inner_size(980.0, 760.0)
+                                .min_inner_size(720.0, 520.0)
+                                .build()
+                                {
+                                    tracing::warn!(%error, "failed to create OpenAgent dev inspector");
+                                }
+                            })
+                            .map_err(std::io::Error::other)?;
                     }
                 }
             }
@@ -5052,22 +5065,35 @@ fn run_with_mode(agent_server: bool) {
                 .build()?;
                 apply_native_window_material(&onboarding_window);
 
-                tauri::WebviewWindowBuilder::new(
-                    app,
-                    "quick-chat",
-                    product_webview_url(&startup_frontend_manager, "?quick-chat-window=1")
-                        .map_err(std::io::Error::other)?,
+                let quick_chat_app = app.handle().clone();
+                let quick_chat_url = product_webview_url(
+                    &startup_frontend_manager,
+                    "?quick-chat-window=1",
                 )
-                .title("OpenAgent Quick Chat")
-                .inner_size(856.0, 246.0)
-                .min_inner_size(760.0, 246.0)
-                .decorations(false)
-                .transparent(true)
-                .resizable(false)
-                .always_on_top(true)
-                .shadow(false)
-                .visible(false)
-                .build()?;
+                .map_err(std::io::Error::other)?;
+                let quick_chat_builder_app = quick_chat_app.clone();
+                quick_chat_app
+                    .run_on_main_thread(move || {
+                        if let Err(error) = tauri::WebviewWindowBuilder::new(
+                            &quick_chat_builder_app,
+                            "quick-chat",
+                            quick_chat_url,
+                        )
+                        .title("OpenAgent Quick Chat")
+                        .inner_size(856.0, 246.0)
+                        .min_inner_size(760.0, 246.0)
+                        .decorations(false)
+                        .transparent(true)
+                        .resizable(false)
+                        .always_on_top(true)
+                        .shadow(false)
+                        .visible(false)
+                        .build()
+                        {
+                            tracing::warn!(%error, "failed to create OpenAgent quick chat window");
+                        }
+                    })
+                    .map_err(std::io::Error::other)?;
             }
 
             // A previous process that ended with a frontend activation pending —
