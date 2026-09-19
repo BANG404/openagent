@@ -52,6 +52,9 @@
   before that handoff, switching to the new conversation must still hydrate its
   persisted checkpoints and branch metadata; an optimistic loaded marker must
   not suppress this first branch projection.
+  After the submission returns its durable conversation ID, the launcher also
+  emits the workspace-window activation request so the main frontend can select
+  the new conversation even if native workspace registration raced the submit.
   Reload launcher settings when configuration changes so enabled model options
   and the selected model's image-attachment capability stay current. Preserve
   the launcher's model while it remains available; if it becomes unavailable,

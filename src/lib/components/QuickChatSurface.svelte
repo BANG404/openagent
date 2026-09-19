@@ -11,7 +11,7 @@
   import { LatestRequest } from "$lib/latestRequest";
   import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
   import { modelSupportsVision } from "$lib/modelCapabilities";
-  import { desktopOpenAgent, listen } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent, emit, listen } from "$lib/openagent/tauriClient";
   import {
     loadQuickChatPreferences,
     resolveQuickChatModel,
@@ -218,7 +218,7 @@
     focusArmed = false;
     focusSuppressed = true;
     try {
-      await desktopOpenAgent.invokeProduct("submit_quick_chat", {
+      const conversationId = await desktopOpenAgent.invokeProduct("submit_quick_chat", {
         request: {
           workspace: selectedWorkspace,
           text: text.trim() || $t("attachmentOnlyPrompt"),
@@ -226,6 +226,16 @@
           modelBinding: decodeModelBinding(selectedModel),
           roleId: selectedRole === defaultRoleKey ? null : selectedRole,
         },
+      });
+      // The backend also asks the registered workspace window to activate,
+      // but that registration can race launcher startup. Notify the main
+      // frontend directly after the durable conversation exists so the
+      // workspace shell always selects the new conversation branch.
+      await emit("workspace-window-open-request", {
+        workspace: selectedWorkspace,
+        conversation_id: conversationId,
+        message_id: null,
+        new_conversation: false,
       });
       inputText = "";
       inputAttachments = [];
