@@ -48,6 +48,10 @@
   streaming conversation there. The launcher must not mutate the primary
   window's role, model default, or transcript outside that requested workspace
   handoff, and must not wait for a separate workspace process to register.
+  When the optimistic `chat-run-started` projection reaches the workspace shell
+  before that handoff, switching to the new conversation must still hydrate its
+  persisted checkpoints and branch metadata; an optimistic loaded marker must
+  not suppress this first branch projection.
   Reload launcher settings when configuration changes so enabled model options
   and the selected model's image-attachment capability stay current. Preserve
   the launcher's model while it remains available; if it becomes unavailable,

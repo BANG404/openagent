@@ -3856,7 +3856,16 @@
       openAgent
         .invokeProduct("set_active_conversation", { convId: id, workspace: workspacePath || "" })
         .catch(() => {});
-    await Promise.all([loadMessagesForConv(id), loadFileChangesForConv(id)]);
+    // An externally started conversation can be marked as loaded by the
+    // optimistic chat-run-started projection before the workspace activation
+    // request reaches this shell. If its checkpoint tree has not been
+    // hydrated yet, bypass the loaded-id short-circuit so the persisted branch
+    // (including a newly created branch with a null tip) becomes active.
+    const refreshBranchProjection = !convTrees[id] || !activeBranchIds[id];
+    await Promise.all([
+      loadMessagesForConv(id, true, refreshBranchProjection),
+      loadFileChangesForConv(id),
+    ]);
     await scrollToBottom();
   }
 
