@@ -370,7 +370,25 @@ jobs:
       - name: Exercise bundled embedding model
         env:
           CARGO_TARGET_DIR: sdk/target/embedded-host
-        run: cargo test --manifest-path src-tauri/Cargo.toml --features embedded-runtime bundled_embedding_model_runs_offline
+        shell: bash
+        run: |
+          max_attempts=3
+          for ((attempt = 1; attempt <= max_attempts; attempt++)); do
+            echo "Running bundled embedding model test (attempt ${attempt}/${max_attempts})."
+            cargo test --manifest-path src-tauri/Cargo.toml --features embedded-runtime bundled_embedding_model_runs_offline
+            status=$?
+            if (( status == 0 )); then
+              exit 0
+            fi
+
+            if (( attempt == max_attempts )); then
+              exit "$status"
+            fi
+
+            delay=$((attempt * 20))
+            echo "Embedding model test failed with exit code ${status}; retrying in ${delay}s."
+            sleep "$delay"
+          done
 
   harness:
     name: Harness contract

@@ -45,3 +45,7 @@
   Keep multiline JSON producers separate from quoted `curl` command
   substitutions; ShellCheck 0.11 can misparse a producer-to-request pipeline
   nested inside one assignment.
+- The full native embedding-model exercise retries its Cargo test up to three
+  times on the same runner, with 20-second and 40-second backoff delays. This
+  covers transient package-host or DNS failures during `ort-sys` setup while
+  preserving the final non-zero status for deterministic build or test errors.
