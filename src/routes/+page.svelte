@@ -2472,6 +2472,10 @@
         bootstrap.active_conversation.branches,
         false,
       );
+      // Bootstrap already contains the transcript, so load the existing
+      // persisted usage projection explicitly for the restored composer.
+      await tick();
+      void refreshTaskUsagesForConversation(activeConvId);
     } else {
       restoringSurface = "new-conversation";
       activeConvId = null;
