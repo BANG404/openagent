@@ -40,7 +40,7 @@
     InterruptResolutionTracker,
     InterruptTerminalHandoff,
   } from "$lib/interruptResolutionTracker";
-  import { resolveStandaloneDevPreview } from "$lib/devPreview";
+  import { resolveRuntimeQuery } from "$lib/runtimeQuery";
   import {
     addWorkspaceToPersistedOrder,
     mergeRecentConversationRefresh,
@@ -169,7 +169,6 @@
   } from "$lib/navigationHistory";
   import {
     parseSettingsDestination,
-    parseSettingsWindowKind,
     settingsSurfaceKey,
     settingsWindowSection,
     settingsWindowSections,
@@ -202,96 +201,38 @@
     TaskTokenUsage,
   } from "$lib/types";
 
-  const runtimeQuery =
-    typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-  const frontendActivationVersion = runtimeQuery?.get("frontend-version") ?? null;
-  const devQuery = import.meta.env.DEV ? runtimeQuery : null;
-  const isDevInspectorWindow = devQuery?.has("dev-inspector") === true;
-  const isOnboardingPreview = devQuery?.has("onboarding-preview") === true;
-  const onboardingResourcePreview = devQuery?.get("onboarding-preview-resource") ?? null;
-  const isQuickChatPreview = devQuery?.has("quick-chat-preview") === true;
-  const standaloneDevPreview = resolveStandaloneDevPreview(runtimeQuery, import.meta.env.DEV);
-  const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
-  const isAgentsSettingsPreview = devQuery?.has("agents-settings-preview") === true;
-  const isAutomationHooksPreview = devQuery?.has("automation-hooks-preview") === true;
-  const isMcpSettingsPreview = devQuery?.has("mcp-settings-preview") === true;
-  const settingsPreviewSection: SettingsNav | null = isMcpSettingsPreview
-    ? "extensions"
-    : isAgentsSettingsPreview
-      ? "agents"
-      : isChannelsSettingsPreview
-        ? "channels"
-        : null;
-  const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
-  const isOnboardingWindow = runtimeQuery?.has("onboarding-window") === true;
-  const isRoleEditorWindow = runtimeQuery?.has("role-editor-window") === true;
-  const settingsWindowKind =
-    parseSettingsWindowKind(runtimeQuery?.get("settings-window") ?? null) ??
-    (isAutomationHooksPreview ? "automation" : null);
-  const settingsWindowInitialSection = runtimeQuery?.get("settings-section") ?? null;
-  const isSettingsWindow = settingsWindowKind !== null;
-  const isOnboardingSurface = isOnboardingWindow || isOnboardingPreview;
-  const isQuickChatSurface = isQuickChatWindow || isQuickChatPreview;
-  const onboardingPreviewTheme =
-    devQuery?.get("onboarding-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("onboarding-preview-theme") === "light"
-        ? "light"
-        : null;
-  const onboardingPreviewLocale: Locale | null =
-    devQuery?.get("onboarding-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("onboarding-preview-locale") === "zh"
-        ? "zh"
-        : null;
-  const channelsSettingsPreviewTheme =
-    devQuery?.get("channels-settings-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("channels-settings-preview-theme") === "light"
-        ? "light"
-        : null;
-  const channelsSettingsPreviewLocale: Locale | null =
-    devQuery?.get("channels-settings-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("channels-settings-preview-locale") === "zh"
-        ? "zh"
-        : null;
-  const agentsSettingsPreviewTheme =
-    devQuery?.get("agents-settings-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("agents-settings-preview-theme") === "light"
-        ? "light"
-        : null;
-  const agentsSettingsPreviewLocale: Locale | null =
-    devQuery?.get("agents-settings-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("agents-settings-preview-locale") === "zh"
-        ? "zh"
-        : null;
-  const automationHooksPreviewTheme =
-    devQuery?.get("automation-hooks-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("automation-hooks-preview-theme") === "light"
-        ? "light"
-        : null;
-  const automationHooksPreviewLocale: Locale | null =
-    devQuery?.get("automation-hooks-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("automation-hooks-preview-locale") === "zh"
-        ? "zh"
-        : null;
-  const mcpSettingsPreviewTheme =
-    devQuery?.get("mcp-settings-preview-theme") === "dark"
-      ? "dark"
-      : devQuery?.get("mcp-settings-preview-theme") === "light"
-        ? "light"
-        : null;
-  const mcpSettingsPreviewLocale: Locale | null =
-    devQuery?.get("mcp-settings-preview-locale") === "en"
-      ? "en"
-      : devQuery?.get("mcp-settings-preview-locale") === "zh"
-        ? "zh"
-        : null;
+  const {
+    frontendActivationVersion,
+    isDevInspectorWindow,
+    isOnboardingPreview,
+    onboardingResourcePreview,
+    isQuickChatPreview,
+    standaloneDevPreview,
+    isChannelsSettingsPreview,
+    isAgentsSettingsPreview,
+    isAutomationHooksPreview,
+    isMcpSettingsPreview,
+    settingsPreviewSection,
+    isRoleEditorWindow,
+    settingsWindowKind,
+    settingsWindowInitialSection,
+    isSettingsWindow,
+    isOnboardingSurface,
+    isQuickChatSurface,
+    onboardingPreviewTheme,
+    onboardingPreviewLocale,
+    channelsSettingsPreviewTheme,
+    channelsSettingsPreviewLocale,
+    agentsSettingsPreviewTheme,
+    agentsSettingsPreviewLocale,
+    automationHooksPreviewTheme,
+    automationHooksPreviewLocale,
+    mcpSettingsPreviewTheme,
+    mcpSettingsPreviewLocale,
+  } = resolveRuntimeQuery(
+    typeof window === "undefined" ? null : window.location.search,
+    import.meta.env.DEV,
+  );
   const isDebugBuild = import.meta.env.DEV;
   let showMainDebugComponents = $state(readMainDebugComponentsVisible());
   let isDebugMode = $derived(isDebugBuild && showMainDebugComponents);

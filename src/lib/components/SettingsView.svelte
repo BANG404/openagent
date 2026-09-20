@@ -26,7 +26,6 @@
   } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
-  import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
   import {
     CUA_DRIVER_COMMAND,
     CUA_DRIVER_ID,
@@ -65,7 +64,9 @@
   import SettingsListInput from "./ui/SettingsListInput.svelte";
   import SettingsStatusToggle from "./ui/SettingsStatusToggle.svelte";
   import PermissionSettings from "./PermissionSettings.svelte";
+  import SettingsAboutTab from "./SettingsAboutTab.svelte";
   import type { SettingsNav } from "$lib/settingsWindows";
+  import { approvalModeDescriptionKey, DEFAULT_APP_CONFIG } from "$lib/settingsDefaults";
 
   type StandardChannelKind = "feishu" | "telegram" | "qq" | "discord" | "slack";
   type ChannelSettingsNav = StandardChannelKind | "wechat" | "gateway";
@@ -107,11 +108,6 @@
     account_id: string | null;
     error: string | null;
   };
-  const approvalModeDescriptionKey = {
-    manual: "approvalModeManualDescription",
-    auto: "approvalModeAutoDescription",
-    off: "approvalModeOffDescription",
-  } as const;
   type ScheduledChatHook = {
     id: string;
     message: string;
@@ -182,54 +178,6 @@
     shell: "...",
     runtime: null,
   });
-
-  const fallbackConfig: AppConfig = {
-    providers: [],
-    defaults: {
-      chat_model: { provider_id: "", model: "" },
-      flash_model: { provider_id: "", model: "" },
-    },
-    model_retry: {
-      retry_count: 3,
-      retry_delay_ms: 30000,
-      chat_queue: [],
-      flash_queue: [],
-    },
-    flash_agents: {
-      title: { enabled: true, prompt: "" },
-      memory: { enabled: true, prompt: "" },
-      skill_category: { enabled: true, prompt: "" },
-      suggestions: { enabled: true, prompt: "" },
-      hook: { enabled: true, prompt: "" },
-      tool_approval: { enabled: false, prompt: "" },
-    },
-    automation_hooks: [],
-    approval_mode: "off",
-    mcp: { servers: [] },
-    theme: "system",
-    language: "zh",
-    launch_on_startup: false,
-    onboarding_completed: false,
-    diagnostic_log_collection_enabled: true,
-    quick_chat_shortcut: DEFAULT_QUICK_CHAT_SHORTCUT,
-    mention_palette_show_global_drafts: true,
-    message_layout: "single",
-    message_double_column_min_width: 1200,
-    book_mode_font_size: 17,
-    workspace_open_mode: "ask",
-    agent_turn_limit_enabled: false,
-    agent_max_turns: 10,
-    context_compaction_enabled: true,
-    context_compaction_threshold: 200000,
-    context_compaction_prompt: "",
-    context_compaction_recent_message_count: 5,
-    memory_retrieval_enabled: false,
-    remote_gateway: {
-      enabled: false,
-      allow_lan_access: false,
-      allowed_workspaces: [],
-    },
-  };
 
   let channelSettingsNav = $state<ChannelSettingsNav>("feishu");
   let selectedSettingsSection = $state<SettingsNav>("general");
@@ -354,7 +302,7 @@
   const mcpConnectionFingerprints = new Map<string, string>();
 
   let draftConfig = $state<NormalizedAppConfig>(
-    normalizeConfigShape(untrack(() => config) ?? fallbackConfig),
+    normalizeConfigShape(untrack(() => config) ?? DEFAULT_APP_CONFIG),
   );
   const cuaDriverId = CUA_DRIVER_ID;
   let userMcpServers = $derived(
@@ -372,7 +320,7 @@
   let initializedFromConfig = $state(false);
   let cuaDefaultApplied = $state(false);
   let acceptedConfigFingerprint = JSON.stringify(
-    normalizeConfigShape(untrack(() => config) ?? fallbackConfig),
+    normalizeConfigShape(untrack(() => config) ?? DEFAULT_APP_CONFIG),
   );
   ensureSelectedProvider();
   ensureSelectedMcpServer();
@@ -4326,27 +4274,7 @@
     </Tabs.Content>
 
     <Tabs.Content value="about" class="settings-tab-panel">
-      <div class="settings-content-col">
-        <div class="about-content">
-          <img class="about-logo-img" src="/app-icon.png" alt="OpenAgent" />
-          <h3 class="about-app-name">OpenAgent {componentVersions.release}</h3>
-          <a class="about-contact" href="mailto:iumm@ibat.ac.cn">iumm@ibat.ac.cn</a>
-          <a
-            class="about-contact"
-            href="https://bang404.github.io/openagent/"
-            target="_blank"
-            rel="noreferrer">{$t("aboutWebsite")}</a
-          >
-          <button
-            class="btn-secondary btn-sm about-update-button"
-            disabled={$appUpdateState !== "idle"}
-            aria-busy={$appUpdateState === "checking"}
-            onclick={() => checkForAppUpdate(true)}
-          >
-            {$appUpdateState === "checking" ? $t("checkingForUpdates") : $t("checkForUpdates")}
-          </button>
-        </div>
-      </div>
+      <SettingsAboutTab release={componentVersions.release} />
     </Tabs.Content>
   </Tabs.Root>
 </div>
@@ -6379,8 +6307,7 @@
   }
 
   .danger-title,
-  .content-col-title,
-  .about-app-name {
+  .content-col-title {
     color: var(--text);
     font-weight: 600;
   }
@@ -6396,8 +6323,7 @@
     justify-content: flex-end;
   }
 
-  .extensions-placeholder,
-  .about-content {
+  .extensions-placeholder {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -6405,31 +6331,6 @@
     padding: 48px 24px;
     text-align: center;
     color: var(--text-muted);
-  }
-
-  .about-contact {
-    font-size: 13px;
-    color: var(--primary);
-    text-decoration: none;
-  }
-
-  .about-contact:hover {
-    text-decoration: underline;
-  }
-
-  .about-update-button {
-    margin-top: 8px;
-  }
-
-  .about-update-button:disabled {
-    cursor: wait;
-    opacity: 0.6;
-  }
-
-  .about-logo-img {
-    width: 64px;
-    height: 64px;
-    border-radius: 14px;
   }
 
   :global(.scheduled-role-select-content .ui-select-item-description) {

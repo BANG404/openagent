@@ -1,4 +1,4 @@
-// @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
+// @ts-nocheck -- legacy fixture typing is tracked separately from the strict test surface.
 import { describe, expect, test } from "bun:test";
 import { finalAssistantOutput, finalAssistantOutputStartIndex } from "../src/lib/assistantOutput";
 

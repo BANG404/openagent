@@ -1,4 +1,3 @@
-// @ts-nocheck -- Bun provides the test module at runtime.
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 

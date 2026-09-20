@@ -34,17 +34,19 @@
   );
   let loadError = $state("");
   let stageElement: HTMLElement;
-  const appWindow = previewConfig ? null : getCurrentWindow();
+  const appWindow = $derived(previewConfig ? null : getCurrentWindow());
   const settingsRequests = new LatestRequest();
-  const synchronizeNativeTheme = appWindow
-    ? createNativeThemeSynchronizer({
-        applyWebTheme: applyDocumentTheme,
-        setNativeTheme: (theme) => appWindow.setTheme(theme),
-        onResolvedTheme: () => {},
-        afterNativeThemeChange: () => new Promise((resolve) => setTimeout(resolve, 0)),
-        onError: (error) => console.warn("Failed to synchronize settings window theme:", error),
-      })
-    : null;
+  const synchronizeNativeTheme = $derived(
+    appWindow
+      ? createNativeThemeSynchronizer({
+          applyWebTheme: applyDocumentTheme,
+          setNativeTheme: (theme) => appWindow.setTheme(theme),
+          onResolvedTheme: () => {},
+          afterNativeThemeChange: () => new Promise((resolve) => setTimeout(resolve, 0)),
+          onError: (error) => console.warn("Failed to synchronize settings window theme:", error),
+        })
+      : null,
+  );
 
   function applyConfig(next: AppConfig): AppConfig {
     const normalized = normalizeConfigShape(next);

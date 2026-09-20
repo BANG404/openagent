@@ -1,4 +1,3 @@
-// @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";

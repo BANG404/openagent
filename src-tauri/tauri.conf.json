@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "openagent",
+  "productName": "OpenAgent",
   "version": "0.70.2-beta.1",
   "identifier": "com.iumm.openagent",
   "build": {
@@ -16,7 +16,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "openagent",
+        "title": "OpenAgent",
         "width": 800,
         "height": 600,
         "minWidth": 1040,

@@ -1,4 +1,3 @@
-// @ts-nocheck -- Bun provides the test module at runtime.
 import { describe, expect, test } from "bun:test";
 import { readCiResultState, verifyCiResults } from "../scripts/verify-ci-results.mjs";
 

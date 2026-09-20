@@ -1,4 +1,4 @@
-// @ts-nocheck -- Bun provides the test module at runtime.
+// @ts-nocheck -- legacy fixture typing is tracked separately from the strict test surface.
 import { afterEach, describe, expect, test } from "bun:test";
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";

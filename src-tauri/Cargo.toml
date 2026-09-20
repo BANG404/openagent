@@ -2,8 +2,8 @@
 name = "openagent"
 default-run = "openagent"
 version = "0.70.2-beta.1"
-description = "A Tauri App"
-authors = ["you"]
+description = "OpenAgent desktop AI agent client"
+authors = ["BANG404"]
 edition = "2021"
 license = "GPL-3.0-or-later"
 

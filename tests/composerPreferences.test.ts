@@ -1,4 +1,4 @@
-// @ts-nocheck -- Bun's test runtime and the Svelte rune shim are test-only globals.
+// @ts-nocheck -- legacy fixture typing is tracked separately from the strict test surface.
 import { describe, expect, test } from "bun:test";
 import { get } from "svelte/store";
 import { normalizeConfigShape } from "../src/lib/config";

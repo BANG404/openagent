@@ -1,4 +1,4 @@
-// @ts-nocheck -- Bun provides the test module at runtime.
+// @ts-nocheck -- legacy fixture typing is tracked separately from the strict test surface.
 import { describe, expect, test } from "bun:test";
 import { buildPreflightCommands } from "../scripts/preflight.mjs";
 
@@ -25,8 +25,13 @@ describe("local preflight plan", () => {
       "actions",
       "lint",
       "format",
+      "test-types",
       "automation-tests",
     ]);
+  });
+
+  test("includes test type checking in the frontend plan", () => {
+    expect(commandIds({ frontend: true })).toContain("test-types");
   });
 
   test("deduplicates shared checks when automation and frontend are selected", () => {
@@ -34,6 +39,7 @@ describe("local preflight plan", () => {
       "actions",
       "lint",
       "format",
+      "test-types",
       "svelte-check",
       "frontend-tests",
     ]);

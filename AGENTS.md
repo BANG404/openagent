@@ -58,6 +58,7 @@ Use Bun for JavaScript dependencies and scripts. Prefix shell commands with
 bun run dev                              # Vite on an available port
 bun run build
 bun run check                            # Svelte + TypeScript
+bun run check:tests                      # Type-check Bun tests
 bun run preflight                        # Diff-selected fast checks
 bun run prepare:windows-sandbox:dev      # Pinned Windows helpers
 bun tauri dev                            # Tauri with the selected Vite URL

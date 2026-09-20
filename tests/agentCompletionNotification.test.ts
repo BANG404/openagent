@@ -1,4 +1,3 @@
-// @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, mock, spyOn, test } from "bun:test";
 import {
   AgentCompletionNotifier,

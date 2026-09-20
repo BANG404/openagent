@@ -1,4 +1,4 @@
-// @ts-nocheck -- Bun provides the test module at runtime.
+// @ts-nocheck -- legacy fixture typing is tracked separately from the strict test surface.
 import { describe, expect, test } from "bun:test";
 import {
   clearQueuedChatMessages,

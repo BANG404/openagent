@@ -93,4 +93,9 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  // The main route has an explicit transitive budget in check-bundle-size.mjs;
+  // keep Vite's generic warning aligned with that enforced limit.
+  build: {
+    chunkSizeWarningLimit: 1400,
+  },
 }));

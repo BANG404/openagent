@@ -18,6 +18,35 @@ async function assetSize(root, file) {
   return { raw: metadata.size, gzip: gzipSync(source).byteLength };
 }
 
+/**
+ * Measure every JavaScript chunk needed by an entry, counting each shared
+ * chunk once. This keeps route budgets from missing transitive imports.
+ *
+ * @param {string} root
+ * @param {Record<string, { file?: string; imports?: string[] }>} manifest
+ * @param {string} entryKey
+ */
+async function entryGraphSize(root, manifest, entryKey) {
+  const seen = new Set();
+  const visit = (key) => {
+    if (seen.has(key)) return;
+    const entry = manifest[key];
+    if (!entry?.file) return;
+    seen.add(key);
+    for (const imported of entry.imports ?? []) visit(imported);
+  };
+  visit(entryKey);
+
+  let raw = 0;
+  let gzip = 0;
+  for (const key of seen) {
+    const size = await assetSize(root, manifest[key].file);
+    raw += size.raw;
+    gzip += size.gzip;
+  }
+  return { raw, gzip };
+}
+
 function formatKiB(bytes) {
   return `${(bytes / 1024).toFixed(1)} KiB`;
 }
@@ -30,8 +59,17 @@ const [clientManifest, serverManifest, clientApp] = await Promise.all([
 
 const remoteRouteMatch = clientApp.match(/["']\/remote["']\s*:\s*\[(\d+)\]/);
 if (!remoteRouteMatch) throw new Error("Could not resolve the /remote client route node");
+const mainRouteMatch = clientApp.match(/["']\/["']\s*:\s*\[(\d+)\]/);
+if (!mainRouteMatch) throw new Error("Could not resolve the main client route node");
 
 const budgets = [
+  {
+    label: "main client route",
+    root: clientRoot,
+    graph: `.svelte-kit/generated/client-optimized/nodes/${mainRouteMatch[1]}.js`,
+    rawLimit: 1400 * 1024,
+    gzipLimit: 448 * 1024,
+  },
   {
     label: "remote client route",
     root: clientRoot,
@@ -67,7 +105,9 @@ const budgets = [
 
 let failed = false;
 for (const budget of budgets) {
-  const size = await assetSize(budget.root, budget.entry.file);
+  const size = budget.graph
+    ? await entryGraphSize(budget.root, clientManifest, budget.graph)
+    : await assetSize(budget.root, budget.entry.file);
   const rawPassed = size.raw <= budget.rawLimit;
   const gzipPassed = size.gzip <= budget.gzipLimit;
   const status = rawPassed && gzipPassed ? "PASS" : "FAIL";

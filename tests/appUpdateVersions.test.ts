@@ -1,4 +1,3 @@
-// @ts-nocheck -- Bun provides the test module at runtime.
 import { describe, expect, test } from "bun:test";
 import { formatComponentVersionTransitions } from "../src/lib/appUpdateVersions";
 

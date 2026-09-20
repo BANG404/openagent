@@ -1,4 +1,3 @@
-// @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { readFile } from "node:fs/promises";
 import { describe, expect, test } from "bun:test";
 import { openBrowserUrl, openSurfaceUrl } from "../src/lib/openagent/externalUrl";

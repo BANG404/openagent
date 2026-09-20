@@ -73,8 +73,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Audit JavaScript dependencies
+        run: bun audit
+
       - name: Check Svelte and TypeScript
         run: bun run check
+
+      - name: Check test TypeScript
+        run: bun run check:tests
 
       - name: Lint frontend source
         run: bun run lint:frontend

@@ -1,9 +1,8 @@
-// @ts-nocheck -- Bun provides the test module at runtime.
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 
 const hostSource = readFileSync("src-tauri/src/lib.rs", "utf8");
-const settingsSource = readFileSync("src/lib/components/SettingsView.svelte", "utf8");
+const settingsSource = readFileSync("src/lib/components/SettingsAboutTab.svelte", "utf8");
 
 describe("product release identity", () => {
   test("exposes the packaged product version separately from component versions", () => {
@@ -28,9 +27,7 @@ describe("product release identity", () => {
   });
 
   test("presents the product release without built-in component versions", () => {
-    expect(settingsSource).toContain(
-      '<h3 class="about-app-name">OpenAgent {componentVersions.release}</h3>',
-    );
+    expect(settingsSource).toContain('<h3 class="about-app-name">OpenAgent {release}</h3>');
     expect(settingsSource).not.toContain("aboutVersion");
     expect(settingsSource).not.toContain("frontendBuildLabel");
   });

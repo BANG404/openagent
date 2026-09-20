@@ -1,4 +1,3 @@
-// @ts-nocheck -- Bun's test runtime is available without @types/bun in the app tsconfig.
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
@@ -108,16 +107,15 @@ describe("standalone development previews", () => {
   });
 
   test("keeps the MCP settings tool-control preview wired to its fixture", async () => {
-    const [route, settings] = await Promise.all([
+    const [route, queryState, settings] = await Promise.all([
       Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/runtimeQuery.ts", import.meta.url)).text(),
       Bun.file(new URL("../src/lib/components/SettingsView.svelte", import.meta.url)).text(),
     ]);
 
-    expect(route).toContain('devQuery?.has("mcp-settings-preview")');
+    expect(route).toContain("isMcpSettingsPreview");
     expect(route).toContain('disabled_tools: ["delete_design_asset"]');
-    expect(settings).toContain(
-      'new URLSearchParams(window.location.search).has("mcp-settings-preview")',
-    );
+    expect(queryState).toContain("isMcpSettingsPreview");
     expect(settings).toContain("inspect_design_asset_with_a_very_long_tool_name");
   });
 });

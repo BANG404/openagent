@@ -5,7 +5,11 @@
   and settings-reload state; its window service owns sizing, positioning, and
   shortcut registration. Development preview surfaces own their fixtures and
   query-specific theme/locale initialization so preview-only state never joins
-  the durable conversation runtime.
+  the durable conversation runtime. Keep desktop/window and development-preview
+  query parsing in `src/lib/runtimeQuery.ts`; the route remains the composition
+  root while the parser owns query normalization and preview theme/locale
+  decoding. Add new query flags there with focused tests so preview-only state
+  cannot leak into durable conversation state.
 - Open General Settings and every management domain from the application menu
   as an in-window fullscreen surface in the requesting window; menu entries and
   their shortcuts never construct another application window. Reopening a domain

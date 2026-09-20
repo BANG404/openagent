@@ -68,6 +68,7 @@ export function buildPreflightCommands(modules) {
     add("actions", "GitHub Actions syntax", "bun", ["run", "lint:actions"]);
     add("lint", "JavaScript and frontend lint", "bun", ["run", "lint:frontend"]);
     add("format", "Repository formatting", "bun", ["run", "format:check"]);
+    add("test-types", "Test TypeScript", "bun", ["run", "check:tests"]);
     if (!modules.frontend) {
       add("automation-tests", "Automation policy tests", "bun", ["test", ...AUTOMATION_TESTS]);
     }
@@ -75,6 +76,7 @@ export function buildPreflightCommands(modules) {
 
   if (modules.frontend) {
     add("svelte-check", "Svelte and TypeScript", "bun", ["run", "check"]);
+    add("test-types", "Test TypeScript", "bun", ["run", "check:tests"]);
     add("lint", "JavaScript and frontend lint", "bun", ["run", "lint:frontend"]);
     add("format", "Repository formatting", "bun", ["run", "format:check"]);
     add("frontend-tests", "Frontend and automation tests", "bun", ["run", "test"]);
@@ -105,11 +107,14 @@ function parseArguments() {
   const args = process.argv.slice(2);
   let baseRef = process.env.PREFLIGHT_BASE?.trim() || "origin/master";
   let dryRun = false;
+  let all = false;
 
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--dry-run") {
       dryRun = true;
+    } else if (argument === "--all") {
+      all = true;
     } else if (argument === "--base" && args[index + 1]) {
       baseRef = args[index + 1];
       index += 1;
@@ -118,13 +123,13 @@ function parseArguments() {
     }
   }
 
-  return { baseRef, dryRun };
+  return { baseRef, dryRun, all };
 }
 
 function main() {
-  const { baseRef, dryRun } = parseArguments();
+  const { baseRef, dryRun, all } = parseArguments();
   const { baseSha, files } = collectPreflightChanges(baseRef);
-  const modules = classifyChangedModules(files);
+  const modules = classifyChangedModules(files, all);
   const selected = Object.entries(modules)
     .filter(([, enabled]) => enabled)
     .map(([name]) => name);
