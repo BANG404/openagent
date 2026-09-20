@@ -10,6 +10,21 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.70.2-beta.1] - 2026-09-19
+
+### Bug Fixes
+- **frontend**: Hand off quick chat conversation
+- **frontend**: Activate quick chat branch
+- **runtime**: Pin quick chat process reuse
+- **chat**: Reuse main window for quick chat
+
+### Performance
+- **startup**: Defer noncritical utility webviews
+
+### Miscellaneous
+- **sdk**: Align submodule with sdk main
+- **sdk**: Align submodule with sdk main
+
 ## [0.70.1-beta.1] - 2026-09-18
 
 ### Bug Fixes
