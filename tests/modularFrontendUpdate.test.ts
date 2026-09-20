@@ -76,7 +76,7 @@ test("components activate in the documented order within one barrier", () => {
     'invoke("activate_runtime_resource"',
     'invoke<void>("activate_frontend_resource"',
     'invoke<boolean>("begin_shell_install")',
-    "await shell.install()",
+    "await shell.install({ restartAfterInstall: true })",
     'invoke("restart_app")',
   ].map((step) => {
     const at = updater.indexOf(step);
@@ -90,7 +90,7 @@ test("the shell installer runs after the host has prepared the exit", () => {
   // `install()` ends the process on Windows, so every step that depends on
   // this host being alive has to precede it.
   const prepared = updater.indexOf('await invoke<boolean>("begin_shell_install")');
-  const install = updater.indexOf("await shell.install()");
+  const install = updater.indexOf("await shell.install({ restartAfterInstall: true })");
   expect(prepared).toBeGreaterThanOrEqual(0);
   expect(install).toBeGreaterThan(prepared);
 
@@ -120,6 +120,10 @@ test("the shell installer runs after the host has prepared the exit", () => {
   expect(host).toContain("DesktopExitStep::Complete");
   expect(host).toContain("advance_desktop_exit_phase()");
   expect(host).toContain("DesktopExitPhase::ShellInstallPrepared");
+});
+
+test("the Windows shell installer explicitly relaunches the desktop", () => {
+  expect(updater).toContain("shell.install({ restartAfterInstall: true })");
 });
 
 test("component lifecycle diagnostics cover shell, Runtime, and frontend stages", () => {

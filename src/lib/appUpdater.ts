@@ -218,7 +218,10 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
       }
       try {
         // On Windows this does not return: the installer replaces the process.
-        await shell.install();
+        // Keep the Windows NSIS handoff explicit. The updater currently
+        // defaults this to true, but omitting it makes a plugin/config default
+        // change look like a successful install followed by a dead desktop.
+        await shell.install({ restartAfterInstall: true });
         await reportComponentUpdateEvent("shell", "install_finished", shellVersions);
       } catch (error) {
         await reportComponentUpdateEvent("shell", "install_failed", shellVersions, error);

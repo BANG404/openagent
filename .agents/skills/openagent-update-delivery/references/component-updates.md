@@ -44,6 +44,12 @@ is completed by the restart request that follows it rather than treated as a
 second exit, and why a failure after preparation is answered with that restart
 instead of an in-place retry.
 
+The Windows shell install call must pass `restartAfterInstall: true` explicitly.
+The updater currently defaults to relaunching after NSIS finishes, but keeping
+the option at the call site makes the production handoff independent of plugin
+or configuration defaults; without it, a successful installer can leave the
+desktop process stopped until the user launches it manually.
+
 After a frontend activation, the host's first WebView confirmation owns the
 completion notice. Other workspace and utility WebViews still confirm the
 active resource but must not display another completion notice.
