@@ -6,21 +6,23 @@ import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import { blackboxInstanceName, resolveBlackboxHome } from "./tauri-test-environment.mjs";
+
 const workspaceRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const scenarioRoot = join(workspaceRoot, "tests", "blackbox");
 const pilotBinary = process.env.TAURI_PILOT_BIN || "tauri-pilot";
-const isolatedHome = process.env.OPENAGENT_HOME;
+const isolatedHome = resolveBlackboxHome(process.env);
 const artifactRoot =
   process.env.BLACKBOX_ARTIFACT_DIR ||
   mkdtempSync(join(tmpdir(), "openagent-automation-blackbox-"));
 mkdirSync(artifactRoot, { recursive: true });
 
-if (!isolatedHome) {
-  throw new Error("OPENAGENT_HOME is required and must point to an isolated test directory");
-}
 if (resolve(isolatedHome) === resolve(join(homedir(), ".openagent"))) {
   throw new Error("Refusing to run black-box automation against ~/.openagent");
 }
+
+process.env.OPENAGENT_HOME = isolatedHome;
+process.env.OPENAGENT_DEV_INSTANCE ||= blackboxInstanceName(process.env);
 
 /** @param {string[]} args @param {string | undefined} windowLabel */
 function pilot(args, windowLabel) {
@@ -39,6 +41,24 @@ function pilot(args, windowLabel) {
     throw new Error(`tauri-pilot ${args.join(" ")} failed with exit code ${result.status}`);
   }
   return result.stdout;
+}
+
+/** @param {string} output */
+function parsePilotWindows(output) {
+  const parsed = JSON.parse(output);
+  const windows = Array.isArray(parsed) ? parsed : parsed.windows;
+  if (!Array.isArray(windows)) throw new Error("tauri-pilot windows --json returned no windows");
+  return windows;
+}
+
+function nativeWindowId() {
+  const windows = parsePilotWindows(pilot(["windows", "--json"], windowLabel));
+  const target = windows.find((window) => window.label === windowLabel);
+  const windowId = target?.window_id ?? target?.windowId ?? target?.id;
+  if (windowId === undefined || windowId === null) {
+    throw new Error(`tauri-pilot did not return a native id for window ${windowLabel}`);
+  }
+  return String(windowId);
 }
 
 /**
@@ -183,7 +203,26 @@ function captureVisualState(theme, language) {
   );
   runScenario("automation-visual.toml");
   const artifact = join(artifactRoot, `automation-${theme}-${language}.png`);
-  pilot(["screenshot", artifact, "--window", windowLabel], windowLabel);
+  const screenshotMode =
+    process.env.BLACKBOX_SCREENSHOT_MODE || (process.platform === "linux" ? "native" : "webview");
+  if (screenshotMode === "native") {
+    pilot(
+      [
+        "screenshot_native",
+        "--window-id",
+        nativeWindowId(),
+        "--output",
+        artifact,
+        "--window",
+        windowLabel,
+      ],
+      windowLabel,
+    );
+  } else if (screenshotMode === "webview") {
+    pilot(["screenshot", artifact, "--window", windowLabel], windowLabel);
+  } else {
+    throw new Error(`Unsupported BLACKBOX_SCREENSHOT_MODE: ${screenshotMode}`);
+  }
   process.stderr.write(`black-box screenshot: ${artifact}\n`);
 }
 

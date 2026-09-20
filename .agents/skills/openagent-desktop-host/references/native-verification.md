@@ -31,10 +31,16 @@ editor, all six scheduled-hook modes, menu entries, shortcuts, cleanup actions,
 and locale/theme states are covered together:
 
 ```bash
-OPENAGENT_HOME=/tmp/openagent-blackbox-fixture \
-TAURI_PILOT_SOCKET=/run/user/1000/tauri-pilot-<instance>.sock \
+bun tauri dev --multi-instance blackbox
 bun run test:blackbox:automation
 ```
+
+The app and wrapper share `~/.openagent-dev/instances/blackbox`, so provider and
+model setup survives reruns. Set `OPENAGENT_HOME` once when a separate fixture
+is required; both commands must receive the same value. On Linux, visual cases
+capture the native window through `screenshot_native` because WebView capture
+does not contain the composited Tauri surface. Set `BLACKBOX_SCREENSHOT_MODE=webview`
+only when testing WebView pixels explicitly.
 
 Start the debug app with the same isolated `OPENAGENT_HOME` and keep the
 resulting screenshots in a temporary directory via `BLACKBOX_ARTIFACT_DIR`.

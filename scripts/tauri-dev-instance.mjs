@@ -2,6 +2,7 @@ import os from "node:os";
 import path from "node:path";
 
 const DEV_INSTANCE_FLAG = "--multi-instance";
+export const DEFAULT_BLACKBOX_INSTANCE = "blackbox";
 
 /**
  * @param {string} value
@@ -87,4 +88,21 @@ export function applyDevelopmentInstanceEnvironment(
           OPENAGENT_HOME: path.join(homeDirectory, ".openagent-dev", "instances", normalizedName),
         }),
   };
+}
+
+/**
+ * Returns the durable development home used by a named debug instance.
+ * Black-box automation uses this same derivation so restarting the app does
+ * not discard provider and model configuration between runs.
+ *
+ * @param {string} instanceName
+ * @param {{ homeDirectory?: string }} [options]
+ */
+export function developmentInstanceHome(instanceName, { homeDirectory = os.homedir() } = {}) {
+  return path.join(
+    homeDirectory,
+    ".openagent-dev",
+    "instances",
+    normalizeDevelopmentInstanceName(instanceName),
+  );
 }
