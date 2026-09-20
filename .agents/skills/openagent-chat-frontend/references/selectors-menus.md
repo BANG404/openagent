@@ -1,5 +1,13 @@
 # Selectors and menus
 
+- Shared interactive controls are not text-selectable. The application
+  primitive in `src/app.css` covers native buttons/selects, disclosure
+  summaries, menu and option rows, tabs, toggles, and ARIA button surfaces so
+  pointer clicks do not leave accidental text selections. Keep text selection
+  enabled for inputs, textareas, contenteditable fields, and message/code
+  content because editing, copying, and assistant-message quoting depend on
+  those surfaces.
+
 - Keep click-opened menus, context menus, selects, comboboxes, and compact
   download choices on one desktop menu scale: 12px labels on a 20px line,
   28px minimum height for single-line items, 4px by 14px item padding, 6px
