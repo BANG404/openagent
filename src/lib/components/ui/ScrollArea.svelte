@@ -16,7 +16,7 @@
 </script>
 
 <ScrollArea.Root
-  type="scroll"
+  type="hover"
   {scrollHideDelay}
   class={`ui-scroll-area ${className}`}
   style={`height: ${height}`}
