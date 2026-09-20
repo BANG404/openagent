@@ -12,6 +12,7 @@
   import { t } from "$lib/i18n";
   import BackgroundTerminalPanel from "$lib/components/BackgroundTerminalPanel.svelte";
   import FileChangePanel from "$lib/components/FileChangePanel.svelte";
+  import ScrollArea from "$lib/components/ui/ScrollArea.svelte";
 
   interface Props {
     flow: CheckpointFlow | null;
@@ -50,7 +51,7 @@
   }: Props = $props();
   let progress = $derived(flow ? checkpointFlowProgress(flow) : { completed: 0, total: 0 });
   let graphLayers = $derived(flow?.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
-  let graphViewport: HTMLDivElement | null = $state(null);
+  let graphViewport: HTMLElement | null = $state(null);
   let graphCanvas: HTMLDivElement | null = $state(null);
   let graphEdges = $state<{ key: string; path: string; status: CheckpointGraphNodeStatus }[]>([]);
   const graphNodeElements = new Map<string, HTMLElement>();
@@ -247,7 +248,12 @@
           {#if flow.nodes.length === 0}
             <p class="flow-empty">{$t("checkpointGraphPlanning")}</p>
           {:else}
-            <div class="graph-viewport" bind:this={graphViewport}>
+            <ScrollArea
+              height="100%"
+              class="graph-viewport"
+              bind:viewport={graphViewport}
+              scrollHideDelay={350}
+            >
               <div class="graph-canvas" bind:this={graphCanvas} role="list">
                 <svg class="graph-edges" aria-hidden="true">
                   <defs>
@@ -332,7 +338,7 @@
                   </div>
                 {/each}
               </div>
-            </div>
+            </ScrollArea>
           {/if}
         {/if}
 
@@ -615,10 +621,10 @@
     min-width: 0;
     min-height: 0;
     flex: 1;
+  }
+  :global(.graph-viewport .ui-scroll-area-viewport) {
     overflow-x: hidden;
-    overflow-y: auto;
-    padding: 12px 10px 20px;
-    scrollbar-gutter: stable;
+    padding: 12px 12px 20px 10px;
   }
   .graph-canvas {
     position: relative;
