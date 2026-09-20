@@ -50,6 +50,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    min-height: 100%;
+    box-sizing: border-box;
     gap: 12px;
     padding: 48px 24px;
     text-align: center;

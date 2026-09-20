@@ -103,6 +103,8 @@ have been created.
   fixed-size window relative to the requesting workspace window only during
   first creation, and preserve a user-moved position when reopening or
   switching sections.
+  The About domain uses a 680 x 400 logical-pixel initial geometry so its
+  transparent native shadow tracks the compact content surface.
 - Keep on-demand utility windows hidden while applying requester-relative
   placement and persisted geometry; reveal them only after both operations
   complete so opening from the application menu does not visibly move the

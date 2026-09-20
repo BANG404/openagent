@@ -3216,7 +3216,7 @@ fn settings_window_spec(kind: &str) -> Option<SettingsWindowSpec> {
             default_section: "about",
             sections: &["about"],
             initial_width: 680.0,
-            initial_height: 480.0,
+            initial_height: 400.0,
         }),
         _ => None,
     }
@@ -5849,7 +5849,7 @@ mod tests {
         assert_eq!(automation.default_section, "lifecycle");
         assert_eq!(automation.sections, &["lifecycle", "schedules"]);
         let about = settings_window_spec("about").expect("about window");
-        assert_eq!((about.initial_width, about.initial_height), (680.0, 480.0));
+        assert_eq!((about.initial_width, about.initial_height), (680.0, 400.0));
         assert!(settings_window_spec("arbitrary").is_none());
     }
 
