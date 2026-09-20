@@ -95,9 +95,9 @@
       {#each Array(3) as _, groupIndex (groupIndex)}
         <section class="detail-group">
           <span class="block group-title" style={`width:${96 + groupIndex * 12}px`}></span>
-          <div class="application-settings-surface detail-card">
+          <div class="provider-form-skeleton">
             {#each Array(groupIndex === 2 ? 3 : 2) as _, rowIndex (rowIndex)}
-              <div class="detail-row">
+              <div class="provider-field">
                 <span class="block row-label" style={`width:${72 + (rowIndex % 2) * 24}px`}></span>
                 <span class="block row-control"></span>
               </div>
@@ -256,8 +256,8 @@
   }
 
   .navigation-skeleton {
-    width: 172px;
-    flex: 0 0 172px;
+    width: var(--settings-nav-width);
+    flex: 0 0 var(--settings-nav-width);
     padding: 12px 8px;
     box-sizing: border-box;
   }
@@ -294,8 +294,8 @@
 
   .collection-skeleton {
     display: flex;
-    width: 256px;
-    flex: 0 0 256px;
+    width: var(--settings-collection-width);
+    flex: 0 0 var(--settings-collection-width);
     flex-direction: column;
     min-height: 0;
   }
@@ -490,41 +490,44 @@
     margin: 0 0 14px;
   }
 
-  .detail-card,
   .content-card {
     overflow: hidden;
     border-radius: 8px;
   }
 
-  .detail-row,
   .content-row {
     display: flex;
     align-items: center;
     gap: 18px;
-    min-height: 64px;
+    min-height: 70px;
     padding: 12px 16px;
     box-sizing: border-box;
   }
 
-  .detail-row + .detail-row,
   .content-row + .content-row {
     border-top: 1px solid var(--mica-divider);
   }
 
-  .detail-row {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 9px;
+  .provider-form-skeleton {
+    display: grid;
+    gap: 16px;
+  }
+
+  .provider-field {
+    display: grid;
+    gap: 6px;
   }
 
   .row-control {
     width: 100%;
-    height: 34px;
+    height: var(--settings-control-height);
     border-radius: 6px;
   }
 
   .content-skeleton {
-    padding: 22px max(28px, calc((100% - 680px) / 2)) 40px;
+    padding: var(--settings-content-padding)
+      max(var(--settings-content-padding), calc((100% - var(--settings-content-max-width)) / 2))
+      40px;
   }
 
   .page-title {

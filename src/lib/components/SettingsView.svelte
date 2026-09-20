@@ -4456,7 +4456,7 @@
   }
 
   :global(.settings-nav-col) {
-    width: 172px;
+    width: var(--settings-nav-width);
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -4535,7 +4535,7 @@
   }
 
   .settings-list-col {
-    width: 256px;
+    width: var(--settings-collection-width);
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -5368,12 +5368,15 @@
     flex: 1;
     min-width: 0;
     overflow-y: auto;
-    padding: 24px;
+    padding: var(--settings-content-padding);
   }
 
   .detail-content,
   .settings-content-col {
-    padding-inline: max(24px, calc((100% - 680px) / 2));
+    padding-inline: max(
+      var(--settings-content-padding),
+      calc((100% - var(--settings-content-max-width)) / 2)
+    );
   }
 
   .agents-settings-intro {
@@ -5469,8 +5472,8 @@
     grid-template-columns: minmax(0, 1fr) minmax(210px, 248px);
     align-items: center;
     gap: 24px;
-    min-height: 42px;
-    padding: 14px 16px;
+    min-height: var(--settings-card-row-min-height);
+    padding: var(--settings-card-row-padding-block) 16px;
   }
 
   .settings-card-row + .settings-card-row {

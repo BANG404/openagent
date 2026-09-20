@@ -17,6 +17,13 @@
     --app-chrome-bg: var(--bg);
     --desktop-titlebar-height: 35px;
     --workspace-card-gap: 8px;
+    --settings-nav-width: 172px;
+    --settings-collection-width: 256px;
+    --settings-content-max-width: 680px;
+    --settings-content-padding: 24px;
+    --settings-control-height: 34px;
+    --settings-card-row-min-height: 42px;
+    --settings-card-row-padding-block: 14px;
     --column-resize-hit-width: 8px;
     --column-resize-indicator-width: 2px;
     --column-resize-indicator-opacity: 0.7;
