@@ -247,6 +247,7 @@
     flex: none;
     align-items: center;
     gap: 5px;
+    margin-inline-end: 18px;
   }
 
   .status {
