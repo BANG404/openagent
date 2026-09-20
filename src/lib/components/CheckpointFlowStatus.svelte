@@ -230,20 +230,24 @@
 
       <div class="flow-body" class:graph={flow.kind === "graph"}>
         {#if flow.kind === "goal"}
-          {#if flow.todos.length === 0}
-            <p class="flow-empty">{$t("checkpointGoalNoTodos")}</p>
-          {:else}
-            {#each flow.todos as todo (todo.id)}
-              <div class="flow-item {todo.status}">
-                <span class="status-dot" aria-hidden="true"></span>
-                <span class="item-copy"
-                  ><strong>{todo.task}</strong>{#if todo.result}<small>{todo.result}</small
-                    >{/if}</span
-                >
-                <span class="item-status">{statusLabel(todo.status)}</span>
-              </div>
-            {/each}
-          {/if}
+          <ScrollArea height="100%" class="flow-body-scroll" scrollHideDelay={350}>
+            <div class="flow-body-content">
+              {#if flow.todos.length === 0}
+                <p class="flow-empty">{$t("checkpointGoalNoTodos")}</p>
+              {:else}
+                {#each flow.todos as todo (todo.id)}
+                  <div class="flow-item {todo.status}">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    <span class="item-copy"
+                      ><strong>{todo.task}</strong>{#if todo.result}<small>{todo.result}</small
+                        >{/if}</span
+                    >
+                    <span class="item-status">{statusLabel(todo.status)}</span>
+                  </div>
+                {/each}
+              {/if}
+            </div>
+          </ScrollArea>
         {:else}
           {#if flow.nodes.length === 0}
             <p class="flow-empty">{$t("checkpointGraphPlanning")}</p>
@@ -547,8 +551,24 @@
     align-content: start;
     gap: 6px;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
     padding: 10px;
+  }
+
+  .flow-body-scroll {
+    min-height: 0;
+    flex: 1;
+  }
+
+  :global(.flow-body-scroll .ui-scroll-area-viewport) {
+    padding: 10px 12px 10px 10px;
+  }
+
+  .flow-body-content {
+    display: grid;
+    min-height: 100%;
+    grid-auto-rows: max-content;
+    gap: 6px;
   }
   .flow-item {
     min-width: 0;
