@@ -252,6 +252,18 @@ impl DesktopWindowState {
             }
         }
     }
+
+    /// Frontend confirmations arriving after shell teardown must not mutate
+    /// the pending selection or attempt to resume a Runtime that is already
+    /// being stopped for replacement.
+    fn rejects_frontend_confirmation(&self) -> bool {
+        matches!(
+            DesktopExitPhase::from_bits(
+                self.desktop_exit.load(std::sync::atomic::Ordering::Acquire)
+            ),
+            DesktopExitPhase::ShellInstallPrepared | DesktopExitPhase::Exiting
+        )
+    }
 }
 
 #[derive(Clone)]
@@ -1004,6 +1016,13 @@ async fn release_component_update(
     if !*active {
         return Ok(());
     }
+    // Shell installation tears the Runtime down before old WebViews finish
+    // their activation callbacks. Treat that late callback as completion of
+    // the in-memory barrier instead of sending /resume to a dead child.
+    if supervisor.status().await.is_none() {
+        *active = false;
+        return Ok(());
+    }
     resume_supervised_runtime(supervisor).await?;
     *active = false;
     Ok(())
@@ -1502,6 +1521,7 @@ async fn confirm_frontend_activation(
     manager: State<'_, FrontendResourceManager>,
     updates: State<'_, RuntimeUpdateState>,
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+    window_state: State<'_, DesktopWindowState>,
     version: String,
 ) -> Result<bool, String> {
     let diagnostic_version = component_update_version(Some(version.clone()))?
@@ -1513,6 +1533,15 @@ async fn confirm_frontend_activation(
         candidate_version = diagnostic_version,
         "frontend activation confirmation received"
     );
+    if window_state.rejects_frontend_confirmation() {
+        tracing::debug!(
+            target: "openagent::component_update",
+            component = "frontend",
+            candidate_version = diagnostic_version,
+            "ignored frontend activation confirmation after desktop teardown began"
+        );
+        return Ok(false);
+    }
     let first_confirmation = manager.confirm(&version).await.map_err(|error| {
         tracing::error!(
             target: "openagent::component_update",
@@ -5449,6 +5478,7 @@ mod tests {
     fn shell_install_preparation_hands_the_exit_to_the_restart_request() {
         let state = DesktopWindowState::default();
         assert_eq!(state.desktop_exit_phase(), DesktopExitPhase::Running);
+        assert!(!state.rejects_frontend_confirmation());
 
         // Preparation stops the children; it never restarts anything.
         state
@@ -5458,6 +5488,7 @@ mod tests {
             state.desktop_exit_phase(),
             DesktopExitPhase::ShellInstallPrepared
         );
+        assert!(state.rejects_frontend_confirmation());
         assert!(state.prepare_shell_install().is_err());
 
         // The exit that follows completes the work preparation already did
@@ -5476,6 +5507,7 @@ mod tests {
         assert_eq!(state.advance_desktop_exit_phase(), DesktopExitStep::Start);
         assert_eq!(state.advance_desktop_exit_phase(), DesktopExitStep::Ignore);
         assert_eq!(state.desktop_exit_phase(), DesktopExitPhase::Exiting);
+        assert!(state.rejects_frontend_confirmation());
     }
 
     #[test]
