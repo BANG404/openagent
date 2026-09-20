@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { readFile } from "node:fs/promises";
+import { readFile, unlink } from "node:fs/promises";
 
 import {
   FRONTEND_BUILD_DEFINE,
@@ -26,10 +26,25 @@ function tauriRuntimeUpdateBarrier() {
       server.watcher.add(pendingRuntimeStamp);
       server.ws.on("openagent:component-update-ready", async (payload) => {
         if (payload?.kind === "runtime" && pendingRuntimeRevision > 0) {
+          const revision = pendingRuntimeRevision;
           await writeRuntimeServerReloadStamp(undefined, {
-            revision: pendingRuntimeRevision,
+            revision,
           });
-          pendingRuntimeRevision = 0;
+          // The pending stamp is a one-shot handoff. Leaving it behind makes
+          // a fresh Vite process observe the old signal and request another
+          // reload after every restart. Do not remove a newer pending build
+          // that may have arrived while this handoff was completing.
+          try {
+            const pending = JSON.parse(await readFile(pendingRuntimeStamp, "utf8"));
+            if (Number(pending.revision) <= revision) {
+              await unlink(pendingRuntimeStamp);
+            }
+          } catch (error) {
+            const code =
+              error && typeof error === "object" && "code" in error ? error.code : undefined;
+            if (code !== "ENOENT") throw error;
+          }
+          if (pendingRuntimeRevision === revision) pendingRuntimeRevision = 0;
           return;
         }
         if (payload?.kind === "frontend") {
