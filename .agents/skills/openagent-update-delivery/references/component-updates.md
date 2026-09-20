@@ -223,7 +223,9 @@ Use an isolated `OPENAGENT_HOME` with `bun tauri dev` to verify that the native
 shell starts, the supervised external `openagent-server` reaches its desktop
 bootstrap, and the Vite frontend mounts through the real WebView. Verify the
 host and Runtime log files separately. A frontend source edit must acquire and
-release the Runtime barrier before the full reload; an SDK Runtime source edit
+release the Runtime barrier before the full reload. Only source changes under
+`src/` or `static/` enter that frontend barrier; generated files and tool logs
+elsewhere in the repository must not reload the WebView. An SDK Runtime source edit
 must rebuild and stage the sidecar before the pending stamp lets Tauri restart.
 
 Production signed-resource commands remain disabled in debug builds. Exercise

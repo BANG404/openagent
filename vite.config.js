@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { readFile, unlink } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   FRONTEND_BUILD_DEFINE,
@@ -14,18 +16,12 @@ import {
 
 const host = process.env.TAURI_DEV_HOST;
 const devPort = Number.parseInt(process.env.OPENAGENT_DEV_PORT ?? "0", 10) || 0;
+const repositoryRoot = path.dirname(fileURLToPath(import.meta.url));
 
 /** @param {string} file */
-function isGeneratedDevelopmentPath(file) {
-  const normalized = file.replaceAll("\\", "/");
-  return [
-    "/.svelte-kit/",
-    "/build/",
-    "/node_modules/",
-    "/runtime-server-pending/",
-    "/sdk/target/",
-    "/src-tauri/",
-  ].some((segment) => normalized.includes(segment));
+function isFrontendDevelopmentPath(file) {
+  const relative = path.relative(repositoryRoot, file).replaceAll("\\", "/");
+  return relative.startsWith("src/") || relative.startsWith("static/");
 }
 
 /** @returns {import("vite").Plugin} */
@@ -80,7 +76,7 @@ function tauriRuntimeUpdateBarrier() {
         });
         return [];
       }
-      if (isGeneratedDevelopmentPath(context.file)) return;
+      if (!isFrontendDevelopmentPath(context.file)) return;
       context.server.ws.send({
         type: "custom",
         event: "openagent:component-update-pending",

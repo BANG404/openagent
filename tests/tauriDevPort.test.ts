@@ -171,6 +171,7 @@ test("Tauri development defers frontend and Runtime reloads through the componen
 
   expect(vite).toContain('event: "openagent:component-update-pending"');
   expect(vite).toContain('server.ws.on("openagent:component-update-ready"');
+  expect(vite).toContain("isFrontendDevelopmentPath(context.file)");
   expect(updater).toContain('hot.on("openagent:component-update-pending"');
   expect(updater).toContain('invoke<ComponentUpdateGate>("begin_component_update")');
   expect(runtimeWatcher).toContain("writeRuntimeServerPendingStamp(repositoryRoot");
