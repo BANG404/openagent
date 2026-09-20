@@ -86,6 +86,8 @@
     showApprovalMode?: boolean;
     approvalMode?: ApprovalMode;
     showWorkspaceSwitcher?: boolean;
+    contextUsage?: number | null;
+    contextCompactionThreshold?: number;
     workspace?: WorkspaceContext | null;
     workspacePath?: string;
     recentWorkspaces?: RecentWorkspace[];
@@ -142,6 +144,8 @@
     showApprovalMode = false,
     approvalMode = "off",
     showWorkspaceSwitcher = false,
+    contextUsage = null,
+    contextCompactionThreshold = 0,
     workspace = null,
     workspacePath = "",
     recentWorkspaces = [],
@@ -246,6 +250,23 @@
   const browserAttachmentAccept = $derived(
     attachmentExtensions.map((extension) => `.${extension}`).join(","),
   );
+  const contextUsagePercent = $derived(
+    contextUsage && contextCompactionThreshold > 0
+      ? Math.min(100, (contextUsage / contextCompactionThreshold) * 100)
+      : 0,
+  );
+  const contextUsageTooltip = $derived.by(() => {
+    if (!contextUsage || contextCompactionThreshold <= 0) return "";
+    const usedPercent = Math.round(contextUsagePercent);
+    const remainingPercent = Math.max(0, 100 - usedPercent);
+    return `${$t("contextWindow")}: ${usedPercent}% ${$t("contextUsed")} (${remainingPercent}% ${$t("contextRemaining")}) · ${formatTokenCount(contextUsage)} / ${formatTokenCount(contextCompactionThreshold)} ${$t("tokensUsed")}`;
+  });
+
+  function formatTokenCount(tokens: number): string {
+    return new Intl.NumberFormat([], { notation: "compact", maximumFractionDigits: 1 }).format(
+      tokens,
+    );
+  }
 
   function attachmentKind(path: string): ChatAttachment["kind"] {
     return /\.(png|jpe?g|gif|webp)$/i.test(path) ? "image" : "document";
@@ -1035,6 +1056,21 @@
             onValueChange={onModelChange}
           />
         {/if}
+        {#if contextUsageTooltip}
+          <Tooltip text={contextUsageTooltip} side="top" align="end">
+            {#snippet trigger(props)}
+              <button
+                class="context-usage-trigger"
+                type="button"
+                aria-label={$t("contextWindow")}
+                style={`--context-usage-percent: ${contextUsagePercent}%`}
+                {...props}
+              >
+                <span class="context-usage-ring" aria-hidden="true"></span>
+              </button>
+            {/snippet}
+          </Tooltip>
+        {/if}
         {#if showReasoningEffort}
           <ReasoningEffortSelect
             value={reasoningEffort}
@@ -1165,6 +1201,38 @@
 
   .composer-disabled {
     opacity: 0.6;
+  }
+
+  .context-usage-trigger {
+    display: inline-grid;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    color: var(--text-muted);
+    background: transparent;
+    cursor: help;
+  }
+
+  .context-usage-trigger:hover,
+  .context-usage-trigger:focus-visible {
+    color: var(--text);
+    background: var(--interactive-state-bg);
+    outline: none;
+  }
+
+  .context-usage-ring {
+    width: 12px;
+    height: 12px;
+    background: conic-gradient(
+      currentColor var(--context-usage-percent),
+      color-mix(in srgb, currentColor 18%, transparent) 0
+    );
+    border-radius: 50%;
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 0);
+    mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 0);
   }
 
   .composer-compact .input {

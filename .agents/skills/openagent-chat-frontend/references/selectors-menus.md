@@ -129,6 +129,12 @@
 - Keep the localized shared-composer placeholder concise while advertising the
   Enter and Shift+Enter keyboard behavior plus the `/` command and `@` mention
   palette triggers.
+- Keep the composer context-window indicator derived from the active branch
+  tip's latest persisted chat usage and the selected model's configured
+  context-compaction threshold (falling back to the global threshold). Hide it
+  when either value is unavailable or compaction is disabled; do not estimate
+  usage from transcript text or expose Inspector trace data in the normal
+  composer.
 - Style boundary-delimited `@` mention and `#` reference tokens in the composer
   with the shared primary accent while preserving the submitted plain text.
   Keep the native textarea as the editable and accessible control; any visual

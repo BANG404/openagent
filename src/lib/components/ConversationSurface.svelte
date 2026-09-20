@@ -9,6 +9,7 @@
   import type { QueuedChatMessage } from "$lib/chatQueue";
   import type { CachedRestoreSurface } from "$lib/startupRestoreCache";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
+  import { getActiveTipNode } from "$lib/checkpointTree";
   import type {
     AppConfig,
     ChatAttachment,
@@ -130,6 +131,17 @@
   } = $props();
 
   let localComposerFocusRequest = $state(0);
+
+  const contextUsage = $derived.by(() => {
+    const tip = getActiveTipNode(view.activeTree);
+    if (!tip) return null;
+    const usages = view.taskUsagesByCheckpointId[tip.ckId];
+    const usage = usages?.at(-1);
+    if (!usage) return null;
+    const reportedInput = usage.total_tokens - usage.output_tokens;
+    const inputTokens = Math.max(usage.input_tokens, reportedInput > 0 ? reportedInput : 0);
+    return inputTokens > 0 ? inputTokens : null;
+  });
 
   function requestComposerFocus() {
     localComposerFocusRequest += 1;
@@ -280,6 +292,10 @@
             onModelChange={composerPreferences.handleModelChange}
             showReasoningEffort={composerPreferences.selectedModelSupportsReasoning}
             allowImageAttachments={composerPreferences.selectedModelSupportsVision}
+            {contextUsage}
+            contextCompactionThreshold={view.config?.context_compaction_enabled
+              ? composerPreferences.selectedContextCompactionThreshold
+              : 0}
             reasoningEffort={composerPreferences.selectedReasoningEffort}
             onReasoningEffortChange={composerPreferences.handleReasoningEffortChange}
             showApprovalMode

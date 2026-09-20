@@ -63,6 +63,17 @@ export class ComposerPreferences {
     return modelSupportsVision(this.dependencies.getConfig(), this.selectedModel);
   }
 
+  get selectedContextCompactionThreshold(): number {
+    const config = this.dependencies.getConfig();
+    const binding = decodeModelBinding(this.selectedModel);
+    if (!config || !binding) return 0;
+    return (
+      config.providers.find((provider) => provider.id === binding.providerId)
+        ?.model_context_compaction_thresholds?.[binding.model] ??
+      config.context_compaction_threshold
+    );
+  }
+
   syncFromConfig(): void {
     const config = this.dependencies.getConfig();
     if (!config) return;
