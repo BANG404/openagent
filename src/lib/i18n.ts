@@ -2010,7 +2010,7 @@ export async function initLocale(): Promise<void> {
 
 // Listen for locale changes emitted by the Rust plugin
 export function listenLocale(): Promise<() => void> {
-  return listen<string>("i18n:locale-changed", (e) => {
+  return listen<string>("i18n:locale-changed", (e: { payload: string }) => {
     const l = e.payload;
     if (l === "zh" || l === "en") locale.set(l);
   });

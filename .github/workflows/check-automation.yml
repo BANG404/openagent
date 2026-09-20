@@ -2,6 +2,9 @@ name: Automation checks
 
 on:
   workflow_call:
+    secrets:
+      OPENAGENT_CI_REPORTER_PRIVATE_KEY:
+        required: false
 
 permissions:
   contents: read
@@ -15,6 +18,49 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      - name: Resolve pinned SDK revision
+        id: sdk
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+
+      - name: Create private SDK read token
+        id: sdk-read-token
+        if: >-
+          github.event_name != 'pull_request'
+          || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+
+      - name: Check out private SDK
+        if: >-
+          github.event_name != 'pull_request'
+          || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ steps.sdk.outputs.sha }}
+          path: sdk
+          token: ${{ steps.sdk-read-token.outputs.token }}
+          persist-credentials: false
+
+      - name: Fetch public TypeScript SDK for fork pull request
+        if: >-
+          github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name != github.repository
+        shell: bash
+        run: |
+          archive="$RUNNER_TEMP/openagent-typescript-sdk.tar.gz"
+          node scripts/fetch-public-typescript-sdk.mjs \
+            --sdk-sha "${{ steps.sdk.outputs.sha }}" \
+            --output "$archive"
+          mkdir -p sdk/typescript
+          tar -xzf "$archive" -C sdk/typescript
 
       - uses: oven-sh/setup-bun@v2
         with:

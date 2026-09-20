@@ -181,6 +181,8 @@ jobs:
     uses: ./.github/workflows/check-automation.yml
     permissions:
       contents: read
+    secrets:
+      OPENAGENT_CI_REPORTER_PRIVATE_KEY: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
 
   frontend:
     name: Frontend
