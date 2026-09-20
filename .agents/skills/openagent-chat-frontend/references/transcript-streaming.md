@@ -344,7 +344,10 @@
   application viewport must not become a second scroll container: keep
   `html`/`body` overflow locked and contain transcript overscroll so wheel or
   touch input at either boundary cannot chain into an outer scrollbar. User
-  message index navigation targets the already-mounted real row directly.
+  message index navigation targets the already-mounted real row directly,
+  stays fixed on the transcript's left edge, and uses message content alone in
+  its hover label so the numeric position is not repeated in a floating
+  tooltip.
   Mark ResizeObserver-owned tail pins as programmatic before assigning
   `scrollTop`, so their delayed scroll events cannot disable following between
   streamed fragments. Only reader scroll intent may leave the live tail.

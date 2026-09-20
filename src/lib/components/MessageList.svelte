@@ -465,9 +465,13 @@
     return usages?.length ? summarizeCacheUsages(usages) : null;
   }
 
-  function userIndexTitle(content: string, index: number) {
+  function userIndexTitle(content: string) {
     const text = content.trim().replace(/\s+/g, " ");
-    return text ? `${index + 1}. ${text.slice(0, 80)}` : `${index + 1}`;
+    return text.slice(0, 80);
+  }
+
+  function userIndexAriaLabel(content: string, index: number) {
+    return userIndexTitle(content) || `User message ${index + 1}`;
   }
 
   function scrollToMessage(id: string) {
@@ -547,12 +551,12 @@
   {#if userMessageIndex.length > 1}
     <nav class="user-message-index" aria-label="User message index">
       {#each userMessageIndex as item, index (item.msg.id)}
-        <Tooltip text={userIndexTitle(item.msg.content, index)} side="left">
+        <Tooltip text={userIndexTitle(item.msg.content)} side="right">
           {#snippet trigger(props)}
             <button
               {...props}
               type="button"
-              aria-label={userIndexTitle(item.msg.content, index)}
+              aria-label={userIndexAriaLabel(item.msg.content, index)}
               onclick={() => scrollToMessage(item.msg.id)}
             >
               <span class="index-mark" aria-hidden="true"></span>
@@ -1172,14 +1176,14 @@
   .user-message-index {
     position: fixed;
     top: 50%;
-    right: calc(16px + var(--flow-panel-index-offset, 0px));
+    left: 16px;
     z-index: 12;
     display: flex;
     width: 28px;
     max-height: min(52vh, 360px);
     transform: translateY(-50%);
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: center;
     gap: 1px;
     padding: 8px 0;
@@ -1191,7 +1195,7 @@
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
     width: 28px;
     min-height: 18px;
     flex: 0 0 auto;
@@ -1208,7 +1212,7 @@
   .user-message-index button:focus-visible {
     background: transparent;
     outline: none;
-    transform: translateX(-2px);
+    transform: translateX(2px);
   }
 
   .user-message-index button:focus-visible {
@@ -1236,7 +1240,7 @@
 
   @media (max-width: 720px) {
     .user-message-index {
-      right: calc(8px + var(--flow-panel-index-offset, 0px));
+      left: 8px;
       width: 38px;
     }
   }
