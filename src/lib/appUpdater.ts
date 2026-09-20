@@ -179,8 +179,14 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
       updateToast(progressToastId, {
         description: translate("frontendUpdateInProgressDescription"),
       });
-      await invoke<void>("activate_frontend_resource", { version: updates.frontend.version });
-      frontendActivationCommitted = true;
+      // A shell install ends this process after the Runtime is stopped. Leave
+      // the frontend selection pending for the replacement process instead of
+      // navigating this WebView into a frontend that cannot bootstrap.
+      await invoke<void>("activate_frontend_resource", {
+        version: updates.frontend.version,
+        navigate: !updates.shell,
+      });
+      frontendActivationCommitted = !updates.shell;
     }
     if (updates.shell) {
       const shell = updates.shell;

@@ -1462,6 +1462,7 @@ async fn activate_frontend_resource(
     manager: State<'_, FrontendResourceManager>,
     updates: State<'_, RuntimeUpdateState>,
     version: String,
+    navigate: Option<bool>,
 ) -> Result<(), String> {
     if cfg!(debug_assertions) {
         return Err("production frontend resources are disabled in development builds".to_string());
@@ -1490,6 +1491,16 @@ async fn activate_frontend_resource(
         );
         error
     })?;
+    if navigate.unwrap_or(true) == false {
+        tracing::info!(
+            target: "openagent::component_update",
+            component = "frontend",
+            stage = "activation_deferred",
+            candidate_version = diagnostic_version,
+            "deferred frontend navigation until the replacement desktop process starts"
+        );
+        return Ok(());
+    }
     if let Err(error) = navigate_frontend_windows(&app, Some(&version)) {
         tracing::error!(
             target: "openagent::component_update",

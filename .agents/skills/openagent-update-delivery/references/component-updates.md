@@ -25,10 +25,13 @@ When a release contains the frontend, Runtime, and native shell together, the
 desktop checks aggregate them into one update notification. Frontend and Runtime
 resources are downloaded and verified before activation; the Tauri updater
 downloads the shell package in the background but installs it only after the
-user selects the update action. Activation drains and probes the Runtime,
-reloads and confirms the frontend, then installs the shell and restarts the
-application. Component-only releases keep the same notification model without
-restarting the shell.
+user selects the update action. When the shell is also selected, activation
+records a pending frontend selection without navigating the current WebView,
+then installs the shell and restarts the application. The replacement process
+serves and confirms that frontend after its Runtime has started. Frontend-only
+activation reloads and confirms the frontend in the current process.
+Component-only releases keep the same notification model without restarting
+the shell.
 
 The shell step begins with a preparation command that re-acquires the barrier —
 an in-process frontend confirmation releases it, so the Runtime must be drained
