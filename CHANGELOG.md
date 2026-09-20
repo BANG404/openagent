@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 - **chat**: Show context window usage in composer
 
 ### Bug Fixes
+- **ci**: Provide SDK sources to automation checks
+- **settings**: Align about window geometry
 - **chat**: Anchor message index to conversation
 - **dev**: Ignore repository tool logs during reload
 - **dev**: Ignore generated reload inputs
