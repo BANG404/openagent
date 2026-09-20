@@ -25,6 +25,10 @@ Read only the references that own the affected behavior:
 - Quick Chat plus browser-verifiable preview routes and Settings surface invariants: [quick-chat-previews.md](references/quick-chat-previews.md)
 - SDK command boundaries, IPC, runtime events, diagnostics, configuration notifications, and completion notifications: [ipc-events.md](references/ipc-events.md)
 
+For any chat-owned loading placeholder or layout change, also follow the
+design-system [loading skeleton contract](../openagent-design-system/references/skeletons.md)
+so the settled component and its placeholder keep the same measured geometry.
+
 ## Verification
 
 Treat this skill and its references as the living source of truth for chat

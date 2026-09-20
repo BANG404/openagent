@@ -30,3 +30,8 @@ Read only the references needed for the task:
 Visible changes require light/dark and Chinese/English verification. Keep
 conversation surfaces theme-neutral and preserve the ownership boundary between
 component styling and shared application utilities.
+
+Loading-state geometry is part of the visual contract. Read
+[skeletons.md](references/skeletons.md) for the required shared tokens,
+destination-specific silhouettes, and review checklist whenever a surface or
+component style changes.
