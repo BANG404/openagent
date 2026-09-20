@@ -290,6 +290,9 @@
   :global(.ui-select-item) {
     justify-content: space-between;
   }
+  :global(.ui-select-item[data-selected]) {
+    padding-inline-end: 18px;
+  }
   :global(.ui-select-item-label) {
     min-width: 0;
     overflow: hidden;
