@@ -10,6 +10,7 @@ const hostResources = readFileSync("src-tauri/src/frontend_resource.rs", "utf8")
 test("production update checks stage and activate a verified frontend resource", () => {
   expect(updater).toContain('invoke<PreparedFrontendResource>("prepare_frontend_resource")');
   expect(updater).toContain('invoke<void>("activate_frontend_resource"');
+  expect(updater).toContain("navigate: !updates.shell");
   expect(updater).toContain('translate("updateComponentFrontend")');
   expect(updater).toContain("current_version: string");
   expect(updater).toContain('translate("frontendUpdateInProgressDescription")');
@@ -142,4 +143,5 @@ test("component activation waits for active agents without cancelling them", () 
   expect(host).not.toContain('body: Some("{\\"cancel\\":true}".to_string())');
   expect(host).toContain('path: "/api/desktop/resume".to_string()');
   expect(host).toContain("frontend activation requires an active component update barrier");
+  expect(host).toContain('stage = "activation_deferred"');
 });
