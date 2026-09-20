@@ -30,6 +30,12 @@
   let expandedCalls = $state(new Set<number>());
 
   const visibleItems = $derived(items.filter((item) => shouldDisplayToolCall(item, isStreaming)));
+  const summaryNames = $derived(
+    visibleItems.filter(
+      (item, index, calls) =>
+        calls.findIndex((candidate) => candidate.name === item.name) === index,
+    ),
+  );
   const statuses = $derived(visibleItems.map((item) => toolCallStatus(item, isStreaming)));
   const statusCounts = $derived.by(() => {
     const counts: Record<ToolCallStatus, number> = {
@@ -99,10 +105,8 @@
           <path d="M6 4l4 4-4 4" />
         </svg>
       </span>
-      <span class="group-title">{$t("toolCallGroup")}</span>
-      <span class="group-count">{visibleItems.length}</span>
-      <span class="group-names" aria-hidden="true">
-        {visibleItems.map((item) => item.name).join(" · ")}
+      <span class="group-names">
+        {summaryNames.map((item) => item.name).join(" · ")}
       </span>
       <span class="group-statuses">
         {#if statusCounts.failed}
@@ -178,7 +182,7 @@
 
 <style>
   .tool-call-group {
-    margin: 2px 0;
+    margin: 4px 0;
     background: transparent;
     font-size: 12px;
   }
@@ -188,11 +192,10 @@
     align-items: center;
     width: 100%;
     min-width: 0;
-    min-height: 32px;
+    min-height: 30px;
     gap: 7px;
-    padding: 5px 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    padding: 4px 2px;
+    border: none;
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
@@ -227,26 +230,6 @@
     height: 12px;
   }
 
-  .group-title {
-    flex: none;
-    color: var(--text);
-    font-weight: 600;
-  }
-
-  .group-count {
-    display: inline-flex;
-    min-width: 18px;
-    height: 18px;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    padding: 0 5px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    color: var(--text-muted);
-    font-size: 10px;
-  }
-
   .group-names {
     min-width: 0;
     flex: 1;
@@ -254,6 +237,7 @@
     color: var(--text-muted);
     font-family: "JetBrains Mono", monospace;
     font-size: 11px;
+    line-height: 1.45;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -301,13 +285,17 @@
   .tool-call-group-items {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding-top: 4px;
+    gap: 0;
+    padding-top: 2px;
     background: transparent;
   }
 
   .tool-call-group-items :global(.tool-call-card) {
     margin: 0;
+  }
+
+  .tool-call-group-items :global(.tool-call-card + .tool-call-card) {
+    border-top: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
   }
 
   .sr-only {

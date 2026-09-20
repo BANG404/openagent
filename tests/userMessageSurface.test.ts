@@ -102,13 +102,18 @@ test("keeps grouped tool calls on the transcript canvas", async () => {
 
   expect(source).not.toContain("var(--user-message-bg)");
   expect(source).toContain(".tool-call-group-toggle {");
-  expect(source).toContain("border: 1px solid var(--border);");
+  expect(source).toContain(
+    "calls.findIndex((candidate) => candidate.name === item.name) === index",
+  );
+  expect(source).toContain("border: none;");
   expect(source).toContain(".status.success span:last-child {");
-  expect(source).toContain("padding-top: 4px;");
+  expect(source).toContain("padding-top: 2px;");
   expect(source.match(/background: transparent;/g)).toHaveLength(3);
-  expect(cardSource).toMatch(/\.tool-call-card\s*\{[^}]*background: transparent;/s);
+  expect(cardSource).toMatch(
+    /\.tool-call-card\s*\{[^}]*border: none;[^}]*background: transparent;/s,
+  );
   expect(cardSource).toMatch(/\.tool-call-header\s*\{[^}]*background: transparent;/s);
-  expect(cardSource).toMatch(/\.tool-toggle\s*\{[^}]*min-height: 32px;/s);
+  expect(cardSource).toMatch(/\.tool-toggle\s*\{[^}]*min-height: 30px;/s);
   expect(cardSource).not.toContain("background: var(--user-message-bg);");
 });
 

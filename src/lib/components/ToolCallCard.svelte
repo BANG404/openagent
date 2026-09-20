@@ -502,8 +502,8 @@
 <style>
   .tool-call-card {
     margin: 0;
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: none;
+    border-radius: 0;
     overflow: hidden;
     font-size: 12px;
     background: transparent;
@@ -519,8 +519,8 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    min-height: 32px;
-    padding: 5px 10px;
+    min-height: 30px;
+    padding: 4px 2px;
     background: transparent;
     color: var(--text-muted);
     width: 100%;
