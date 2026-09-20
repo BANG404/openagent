@@ -519,9 +519,9 @@
     overflow-x: hidden;
     overflow-y: auto;
     scrollbar-gutter: stable;
-    scrollbar-width: auto;
+    scrollbar-width: thin;
     scrollbar-color: var(--text-muted) transparent;
-    padding: 4px 14px 10px 6px;
+    padding: 4px 6px 10px;
   }
 
   .workspace-browser-scroll::-webkit-scrollbar {
