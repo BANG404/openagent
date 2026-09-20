@@ -1,11 +1,12 @@
 <script lang="ts">
   import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
   import { t } from "$lib/i18n";
+  import ScrollArea from "$lib/components/ui/ScrollArea.svelte";
 
   let { release }: { release: string } = $props();
 </script>
 
-<div class="settings-content-col">
+<ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
   <div class="about-content">
     <img class="about-logo-img" src="/app-icon.png" alt="OpenAgent" />
     <h3 class="about-app-name">OpenAgent {release}</h3>
@@ -25,14 +26,16 @@
       {$appUpdateState === "checking" ? $t("checkingForUpdates") : $t("checkForUpdates")}
     </button>
   </div>
-</div>
+</ScrollArea>
 
 <style>
-  .settings-content-col {
+  :global(.settings-content-col) {
     flex: 1;
     min-width: 0;
     min-height: 0;
-    overflow-y: auto;
+  }
+
+  :global(.settings-content-col .ui-scroll-area-viewport) {
     padding: 24px;
     padding-inline: max(24px, calc((100% - 680px) / 2));
   }
