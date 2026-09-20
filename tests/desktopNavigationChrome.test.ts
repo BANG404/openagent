@@ -634,7 +634,9 @@ describe("desktop navigation chrome", () => {
     expect(panel).toMatch(
       /\.resize-handle::after\s*{[^}]*inset: 0 auto 0 3px;[^}]*width: var\(--column-resize-indicator-width\);/s,
     );
-    expect(panel).toMatch(/\.graph-viewport\s*{[^}]*overflow-y: auto;/s);
+    expect(panel).toContain('class="graph-viewport"');
+    expect(panel).toContain("ui-scroll-area-viewport");
+    expect(panel).toContain("padding: 12px 12px 20px 10px");
     expect(panel).toMatch(
       /@media \(max-width: 900px\)[\s\S]*?\.flow-panel:not\(\.collapsed\)\s*{[^}]*position: fixed;[^}]*width: auto;[^}]*max-width: none;/s,
     );
