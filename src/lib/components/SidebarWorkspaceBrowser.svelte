@@ -522,7 +522,7 @@
 
   :global(.workspace-browser-scroll .ui-scroll-area-viewport) {
     box-sizing: border-box;
-    padding: 4px 6px 10px;
+    padding: 4px 12px 10px 6px;
     overflow-x: hidden;
   }
 

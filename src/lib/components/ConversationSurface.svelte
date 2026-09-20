@@ -30,6 +30,7 @@
   import MessageInput, { type SlashCommand } from "./MessageInput.svelte";
   import MessageList from "./MessageList.svelte";
   import NewConversationContext from "./NewConversationContext.svelte";
+  import ScrollArea from "./ui/ScrollArea.svelte";
 
   interface ConversationSurfaceView {
     activeBranchId: string | null;
@@ -182,59 +183,62 @@
       <div class="runtime-banner">{view.browserModeNotice}</div>
     {/if}
 
-    <main
+    <ScrollArea
+      height="100%"
       class="messages"
-      bind:this={messagesElement}
+      bind:viewport={messagesElement}
       onscroll={actions.handleMessagesScroll}
       onwheel={actions.cancelBottomScrollFromUser}
       ontouchstart={actions.cancelBottomScrollFromUser}
       onpointerdown={actions.cancelBottomScrollFromUser}
     >
-      {#if view.mainContentLoading && view.restoringSurface !== "new-conversation"}
-        <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
-      {:else if !view.mainContentLoading}
-        <MessageList
-          messages={view.messages}
-          scrollElement={messagesElement}
-          isStreaming={view.isStreaming}
-          isAwaitingStreamOutput={view.isAwaitingStreamOutput}
-          memoryRetrievalStage={view.memoryRetrievalStage}
-          memoryRetrievalCanSkip={view.memoryRetrievalCanSkip}
-          currentStreamItems={view.currentStreamItems}
-          currentStreamMessageId={view.currentStreamMessageId}
-          activeConvId={view.activeConvId}
-          activeBranchId={view.activeBranchId}
-          debugMode={view.debugMode}
-          fileChanges={view.fileChanges}
-          taskUsagesByCheckpointId={view.taskUsagesByCheckpointId}
-          activeTree={view.activeTree}
-          paddingBottom={inputAreaHeight + 24}
-          showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(view.config)}
-          shikiTheme={view.shikiTheme}
-          mermaidConfig={view.mermaidConfig}
-          messageLayout={view.config?.message_layout ?? "single"}
-          messageDoubleColumnMinWidth={view.config?.message_double_column_min_width ?? 1200}
-          bookModeFontSize={view.config?.book_mode_font_size ?? 17}
-          followTail={view.followTail}
-          onTailPin={actions.markProgrammaticTailPin}
-          tailAnchorToken={view.tailAnchorToken}
-          onTailAnchorSettled={actions.finishStreamCompletionTailAnchor}
-          newConversationGreeting={view.newConversationGreeting}
-          newConversationGreetingLoading={false}
-          followUpSuggestionsByMessageId={view.followUpSuggestionsByMessageId}
-          showNewConversationContext={false}
-          checkpointLoadError={view.checkpointLoadError}
-          onCommitEdit={actions.commitEdit}
-          onAddQuote={addQuote}
-          onReExecute={actions.reExecuteMessage}
-          onSwitchBranch={actions.switchBranch}
-          onSubmitUserInput={actions.submitUserInput}
-          onCancelUserInput={actions.cancelUserInput}
-          onSkipMemoryRetrieval={actions.skipMemoryRetrieval}
-          onSelectSuggestion={actions.sendSuggestedMessage}
-        />
-      {/if}
-    </main>
+      <main class="messages-content">
+        {#if view.mainContentLoading && view.restoringSurface !== "new-conversation"}
+          <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
+        {:else if !view.mainContentLoading}
+          <MessageList
+            messages={view.messages}
+            scrollElement={messagesElement}
+            isStreaming={view.isStreaming}
+            isAwaitingStreamOutput={view.isAwaitingStreamOutput}
+            memoryRetrievalStage={view.memoryRetrievalStage}
+            memoryRetrievalCanSkip={view.memoryRetrievalCanSkip}
+            currentStreamItems={view.currentStreamItems}
+            currentStreamMessageId={view.currentStreamMessageId}
+            activeConvId={view.activeConvId}
+            activeBranchId={view.activeBranchId}
+            debugMode={view.debugMode}
+            fileChanges={view.fileChanges}
+            taskUsagesByCheckpointId={view.taskUsagesByCheckpointId}
+            activeTree={view.activeTree}
+            paddingBottom={inputAreaHeight + 24}
+            showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(view.config)}
+            shikiTheme={view.shikiTheme}
+            mermaidConfig={view.mermaidConfig}
+            messageLayout={view.config?.message_layout ?? "single"}
+            messageDoubleColumnMinWidth={view.config?.message_double_column_min_width ?? 1200}
+            bookModeFontSize={view.config?.book_mode_font_size ?? 17}
+            followTail={view.followTail}
+            onTailPin={actions.markProgrammaticTailPin}
+            tailAnchorToken={view.tailAnchorToken}
+            onTailAnchorSettled={actions.finishStreamCompletionTailAnchor}
+            newConversationGreeting={view.newConversationGreeting}
+            newConversationGreetingLoading={false}
+            followUpSuggestionsByMessageId={view.followUpSuggestionsByMessageId}
+            showNewConversationContext={false}
+            checkpointLoadError={view.checkpointLoadError}
+            onCommitEdit={actions.commitEdit}
+            onAddQuote={addQuote}
+            onReExecute={actions.reExecuteMessage}
+            onSwitchBranch={actions.switchBranch}
+            onSubmitUserInput={actions.submitUserInput}
+            onCancelUserInput={actions.cancelUserInput}
+            onSkipMemoryRetrieval={actions.skipMemoryRetrieval}
+            onSelectSuggestion={actions.sendSuggestedMessage}
+          />
+        {/if}
+      </main>
+    </ScrollArea>
 
     <div
       class="input-area"
@@ -377,16 +381,21 @@
     line-height: 1.5;
   }
 
-  .messages {
+  :global(.messages) {
     position: relative;
     z-index: 1;
     flex: 1;
-    overflow-y: auto;
+  }
+
+  :global(.messages .ui-scroll-area-viewport) {
     overflow-x: clip;
+    overscroll-behavior-y: contain;
+  }
+
+  .messages-content {
+    min-height: 100%;
     display: flex;
     flex-direction: column;
-    overscroll-behavior-y: contain;
-    scrollbar-gutter: stable;
   }
 
   .input-area {
