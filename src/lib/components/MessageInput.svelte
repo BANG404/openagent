@@ -1056,21 +1056,6 @@
             onValueChange={onModelChange}
           />
         {/if}
-        {#if contextUsageTooltip}
-          <Tooltip text={contextUsageTooltip} side="top" align="end">
-            {#snippet trigger(props)}
-              <button
-                class="context-usage-trigger"
-                type="button"
-                aria-label={$t("contextWindow")}
-                style={`--context-usage-percent: ${contextUsagePercent}%`}
-                {...props}
-              >
-                <span class="context-usage-ring" aria-hidden="true"></span>
-              </button>
-            {/snippet}
-          </Tooltip>
-        {/if}
         {#if showReasoningEffort}
           <ReasoningEffortSelect
             value={reasoningEffort}
@@ -1107,6 +1092,21 @@
       </div>
     {/if}
   </div>
+  {#if contextUsageTooltip}
+    <Tooltip text={contextUsageTooltip} side="top" align="end">
+      {#snippet trigger(props)}
+        <button
+          class="context-usage-trigger"
+          type="button"
+          aria-label={$t("contextWindow")}
+          style={`--context-usage-percent: ${contextUsagePercent}%`}
+          {...props}
+        >
+          <span class="context-usage-ring" aria-hidden="true"></span>
+        </button>
+      {/snippet}
+    </Tooltip>
+  {/if}
   {#if isStreaming}
     <Tooltip text={streamingPrimaryTitle}>
       {#snippet trigger(props)}
@@ -1204,6 +1204,10 @@
   }
 
   .context-usage-trigger {
+    position: absolute;
+    right: 45px;
+    bottom: 12px;
+    z-index: 4;
     display: inline-grid;
     width: 24px;
     height: 24px;

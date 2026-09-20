@@ -134,7 +134,9 @@
   context-compaction threshold (falling back to the global threshold). Hide it
   when either value is unavailable or compaction is disabled; do not estimate
   usage from transcript text or expose Inspector trace data in the normal
-  composer.
+  composer. After conversation restore, wait for the hydrated checkpoint tree
+  before mapping the usage projection, and place the indicator immediately to
+  the left of the send/stop control.
 - Style boundary-delimited `@` mention and `#` reference tokens in the composer
   with the shared primary accent while preserving the submitted plain text.
   Keep the native textarea as the editable and accessible control; any visual

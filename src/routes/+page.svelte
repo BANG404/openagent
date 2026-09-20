@@ -912,6 +912,9 @@
         showLoadingState,
         messageIdsAtStart,
       );
+      // The usage projection needs the freshly hydrated checkpoint tree to map
+      // request checkpoints back to the active durable turn.
+      await tick();
       void refreshTaskUsagesForConversation(convId);
       if (convId in checkpointLoadErrors) {
         const { [convId]: _cleared, ...rest } = checkpointLoadErrors;
