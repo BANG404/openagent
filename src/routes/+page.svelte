@@ -2327,7 +2327,7 @@
         void initializeQuickChatShortcut(config?.quick_chat_shortcut).catch((error) => {
           console.warn("Failed to register quick chat shortcut", error);
         });
-        void checkForAppUpdate();
+        if (!import.meta.env.DEV) void checkForAppUpdate();
       }
       if (!startupApplied && launchContext?.conversation_id) {
         void revealMemorySource(launchContext.conversation_id, launchContext.message_id ?? "");

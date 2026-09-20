@@ -15,6 +15,19 @@ import {
 const host = process.env.TAURI_DEV_HOST;
 const devPort = Number.parseInt(process.env.OPENAGENT_DEV_PORT ?? "0", 10) || 0;
 
+/** @param {string} file */
+function isGeneratedDevelopmentPath(file) {
+  const normalized = file.replaceAll("\\", "/");
+  return [
+    "/.svelte-kit/",
+    "/build/",
+    "/node_modules/",
+    "/runtime-server-pending/",
+    "/sdk/target/",
+    "/src-tauri/",
+  ].some((segment) => normalized.includes(segment));
+}
+
 /** @returns {import("vite").Plugin} */
 function tauriRuntimeUpdateBarrier() {
   const pendingRuntimeStamp = runtimeServerPendingStampPath();
@@ -67,6 +80,7 @@ function tauriRuntimeUpdateBarrier() {
         });
         return [];
       }
+      if (isGeneratedDevelopmentPath(context.file)) return;
       context.server.ws.send({
         type: "custom",
         event: "openagent:component-update-pending",
