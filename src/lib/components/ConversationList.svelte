@@ -414,7 +414,31 @@
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-gutter: stable;
-    padding: 4px 6px;
+    scrollbar-width: auto;
+    scrollbar-color: var(--text-muted) transparent;
+    padding: 4px 14px 4px 6px;
+  }
+
+  .conv-list::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .conv-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .conv-list::-webkit-scrollbar-thumb {
+    min-height: 28px;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: var(--text-muted);
+    background-clip: padding-box;
+    opacity: 0.72;
+  }
+
+  .conv-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text);
+    background-clip: padding-box;
   }
 
   .conv-list.embedded {
