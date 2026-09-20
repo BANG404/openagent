@@ -18,3 +18,10 @@
 ### Whitespace Philosophy
 
 Apple's whitespace is the product's pedestal. Every tile begins with at least 64px of air above its headline and 48–64px below. Product renders are never crowded; the nearest content to a product image is at least 40px away. The footer is the only area that breaks this — there, Apple goes deliberately dense to make the full information architecture visible at a glance.
+
+### Scrollable Surfaces
+
+Application lists that need scrolling use the shared `ui/ScrollArea.svelte`
+Bits UI wrapper. Keep the scrollbar in its own gutter and configure transient
+visibility through its `scrollHideDelay` prop instead of styling native
+scrollbars per feature.

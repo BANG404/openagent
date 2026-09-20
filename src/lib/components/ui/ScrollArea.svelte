@@ -4,16 +4,23 @@
 
   let {
     height,
+    scrollHideDelay = 350,
     class: className = "",
     children,
   }: {
     height: string;
+    scrollHideDelay?: number;
     class?: string;
     children?: Snippet;
   } = $props();
 </script>
 
-<ScrollArea.Root type="always" class={`ui-scroll-area ${className}`} style={`height: ${height}`}>
+<ScrollArea.Root
+  type="scroll"
+  {scrollHideDelay}
+  class={`ui-scroll-area ${className}`}
+  style={`height: ${height}`}
+>
   <ScrollArea.Viewport class="ui-scroll-area-viewport">
     {@render children?.()}
   </ScrollArea.Viewport>
@@ -48,10 +55,7 @@
     user-select: none;
   }
 
-  :global(
-    .ui-scroll-area:has(.ui-scroll-area-viewport[data-scrollbar-active="true"])
-      .ui-scroll-area-scrollbar
-  ) {
+  :global(.ui-scroll-area-scrollbar[data-state="visible"]) {
     opacity: 1;
     pointer-events: auto;
   }

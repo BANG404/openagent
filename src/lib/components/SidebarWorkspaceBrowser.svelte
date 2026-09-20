@@ -16,6 +16,7 @@
   import ConversationList from "./ConversationList.svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import SidebarConversationTitle from "./SidebarConversationTitle.svelte";
+  import ScrollArea from "./ui/ScrollArea.svelte";
   import Tooltip from "./Tooltip.svelte";
 
   let {
@@ -277,7 +278,7 @@
 {/snippet}
 
 <div class="workspace-browser">
-  <div class="workspace-browser-scroll">
+  <ScrollArea height="100%" class="workspace-browser-scroll" scrollHideDelay={350}>
     {#if searchActive}
       <ConversationList
         embedded
@@ -501,7 +502,7 @@
         </div>
       {/if}
     {/if}
-  </div>
+  </ScrollArea>
 </div>
 
 <style>
@@ -511,39 +512,18 @@
     overflow: hidden;
   }
 
-  .workspace-browser-scroll {
+  :global(.workspace-browser-scroll) {
     width: 100%;
     min-width: 0;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     box-sizing: border-box;
-    overflow-x: hidden;
-    overflow-y: auto;
-    scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    scrollbar-color: var(--text-muted) transparent;
+  }
+
+  :global(.workspace-browser-scroll .ui-scroll-area-viewport) {
+    box-sizing: border-box;
     padding: 4px 6px 10px;
-  }
-
-  .workspace-browser-scroll::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .workspace-browser-scroll::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .workspace-browser-scroll::-webkit-scrollbar-thumb {
-    min-height: 28px;
-    border: 2px solid transparent;
-    border-radius: 999px;
-    background: var(--text-muted);
-    background-clip: padding-box;
-    opacity: 0.72;
-  }
-
-  .workspace-browser-scroll::-webkit-scrollbar-thumb:hover {
-    background: var(--text);
-    background-clip: padding-box;
+    overflow-x: hidden;
   }
 
   .section-heading {

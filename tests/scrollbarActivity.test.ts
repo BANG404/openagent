@@ -34,7 +34,8 @@ describe("scrollbar activity", () => {
     expect(messageInput).not.toMatch(/::-webkit-scrollbar[^{]*\{\s*display: none;/);
     expect(quickChat).not.toContain("scrollbar-width: none");
     expect(quickChat).not.toMatch(/::-webkit-scrollbar[^{]*\{\s*display: none;/);
-    expect(scrollArea).toContain('<ScrollArea.Root type="always"');
-    expect(scrollArea).toContain('.ui-scroll-area-viewport[data-scrollbar-active="true"]');
+    expect(scrollArea).toContain('type="scroll"');
+    expect(scrollArea).toContain("scrollHideDelay");
+    expect(scrollArea).toContain('.ui-scroll-area-scrollbar[data-state="visible"]');
   });
 });
