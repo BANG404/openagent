@@ -519,7 +519,7 @@
     overflow-x: hidden;
     overflow-y: auto;
     scrollbar-gutter: stable;
-    padding: 4px 6px 10px;
+    padding: 4px 0 10px 6px;
   }
 
   .section-heading {
