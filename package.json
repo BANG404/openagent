@@ -31,7 +31,7 @@
     "build:pages": "bun scripts/build-pages.mjs",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "check:tests": "tsc --noEmit --project tsconfig.tests.json",
+    "check:tests": "svelte-kit sync && tsc --noEmit --project tsconfig.tests.json",
     "lint:frontend": "eslint src tests scripts *.js --max-warnings=0",
     "format": "prettier --write src tests scripts .github *.json *.js",
     "format:check": "prettier --check src tests scripts .github *.json *.js",

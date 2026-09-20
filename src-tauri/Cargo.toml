@@ -83,7 +83,7 @@ tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["json"] }
 uuid = { version = "1", features = ["v4"] }
 rfd = { version = "0.16", default-features = false, features = ["common-controls-v6"] }
-tauri-plugin-notification = "2"
+tauri-plugin-notification = "2.4.0"
 tauri-plugin-window-state = "2.4.1"
 tauri-plugin-pilot = "=0.7.2"
 
@@ -91,7 +91,7 @@ tauri-plugin-pilot = "=0.7.2"
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-single-instance = "2"
-tauri-plugin-updater = "2.10.1"
+tauri-plugin-updater = "2.12.0"
 
 [target.'cfg(any(target_os = "macos", windows))'.dependencies]
 # Match Tauri's pinned native-effect implementation so the host can choose

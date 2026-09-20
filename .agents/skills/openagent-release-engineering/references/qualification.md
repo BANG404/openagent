@@ -45,6 +45,10 @@
   Keep multiline JSON producers separate from quoted `curl` command
   substitutions; ShellCheck 0.11 can misparse a producer-to-request pipeline
   nested inside one assignment.
+- Keep the JavaScript and Rust Tauri plugin minor versions aligned. The
+  `check:tests` script must run `svelte-kit sync` before TypeScript so
+  automation-only jobs have the generated `.svelte-kit/tsconfig.json` that the
+  repository TypeScript configuration extends.
 - The full native embedding-model exercise retries its Cargo test up to three
   times on the same runner, with 20-second and 40-second backoff delays. This
   covers transient package-host or DNS failures during `ort-sys` setup while
