@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.71.1-beta.1] - 2026-09-20
+
+### Bug Fixes
+- **updater**: Defer frontend navigation across shell restart
+- **updater**: Explicitly relaunch Windows shell after install
+
 ## [0.71.0-beta.1] - 2026-09-20
 
 ### Features
