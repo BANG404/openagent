@@ -561,7 +561,7 @@
   }
 
   :global(.flow-body-scroll .ui-scroll-area-viewport) {
-    padding: 10px 12px 10px 10px;
+    padding: 10px 8px 10px 10px;
   }
 
   .flow-body-content {
@@ -644,7 +644,7 @@
   }
   :global(.graph-viewport .ui-scroll-area-viewport) {
     overflow-x: hidden;
-    padding: 12px 12px 20px 10px;
+    padding: 12px 8px 20px 10px;
   }
   .graph-canvas {
     position: relative;

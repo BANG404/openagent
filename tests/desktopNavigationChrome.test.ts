@@ -636,7 +636,7 @@ describe("desktop navigation chrome", () => {
     );
     expect(panel).toContain('class="graph-viewport"');
     expect(panel).toContain("ui-scroll-area-viewport");
-    expect(panel).toContain("padding: 12px 12px 20px 10px");
+    expect(panel).toContain("padding: 12px 8px 20px 10px");
     expect(panel).toMatch(
       /@media \(max-width: 900px\)[\s\S]*?\.flow-panel:not\(\.collapsed\)\s*{[^}]*position: fixed;[^}]*width: auto;[^}]*max-width: none;/s,
     );

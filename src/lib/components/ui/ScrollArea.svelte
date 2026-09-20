@@ -58,14 +58,14 @@
     height: 100%;
     min-height: 0;
     box-sizing: border-box;
-    padding-right: 12px;
+    padding-right: 8px;
   }
 
   :global(.ui-scroll-area-scrollbar) {
     display: flex;
     width: 8px;
-    margin: 3px;
-    padding: 1px;
+    margin: 0;
+    padding: 2px 1px;
     border-radius: 999px;
     background: transparent;
     opacity: 0;
