@@ -10,6 +10,21 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.71.0-beta.1] - 2026-09-20
+
+### Features
+- **chat**: Show context window usage in composer
+
+### Bug Fixes
+- **frontend**: Prevent text selection on interactive controls
+- **frontend**: Refine grouped tool call transcript UI
+- **chat**: Load usage during startup restore
+- **chat**: Restore context usage after reload
+- **desktop**: Ignore late frontend confirmations during teardown
+
+### Refactoring
+- Strengthen frontend quality gates
+
 ## [0.70.2-beta.1] - 2026-09-19
 
 ### Bug Fixes
