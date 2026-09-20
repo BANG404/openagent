@@ -16,6 +16,22 @@ All notable changes to this project will be documented in this file.
 - **chat**: Show context window usage in composer
 
 ### Bug Fixes
+- **chat**: Anchor message index to conversation
+- **dev**: Ignore repository tool logs during reload
+- **dev**: Ignore generated reload inputs
+- **dev**: Consume runtime reload handoff
+- Move user message index to left
+- **scrollarea**: Align thumb with content gutter
+- **scrollarea**: Protect graph index from overlay
+- **scrollarea**: Reserve transparent viewport gutter
+- **sidebar**: Use compact scrollbar gutter
+- **sidebar**: Reserve space for conversation scrollbars
+- **chat**: Align collapsed tool group status spacing
+- **frontend**: Add selected menu item trailing space
+- **frontend**: Keep settings skeleton geometry aligned
+- **sidebar**: Restore scrollbar breathing room
+- **sidebar**: Align workspace scroller to edge
+- **ci**: Align typecheck and tauri plugin versions
 - **frontend**: Prevent text selection on interactive controls
 - **frontend**: Refine grouped tool call transcript UI
 - **chat**: Load usage during startup restore
@@ -23,6 +39,10 @@ All notable changes to this project will be documented in this file.
 - **desktop**: Ignore late frontend confirmations during teardown
 
 ### Refactoring
+- **scrollarea**: Migrate settings and goal views
+- **scrollarea**: Migrate goal status viewport
+- **scrollarea**: Use hover visibility globally
+- **scrollarea**: Unify sidebar scrolling with bits-ui
 - Strengthen frontend quality gates
 
 ## [0.70.2-beta.1] - 2026-09-19
