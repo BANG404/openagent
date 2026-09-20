@@ -167,6 +167,7 @@
   let copyFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
   let transcriptList = $state<TranscriptList | null>(null);
   let messagesRoot = $state<HTMLElement | null>(null);
+  let userMessageIndexLeft = $state(16);
   let selectionPopover = $state<{
     text: string;
     sourceMessageId: string;
@@ -219,6 +220,28 @@
     activeConvId;
     cancelEdit();
     readingTurnKey = null;
+  });
+
+  // The index is fixed to the viewport, so anchor it to the conversation
+  // column rather than the window's left edge (which is occupied by the
+  // desktop sidebar). The observer also follows sidebar resizing.
+  $effect(() => {
+    const root = messagesRoot;
+    const main = root?.closest<HTMLElement>(".main");
+    if (!main) return;
+
+    const update = () => {
+      userMessageIndexLeft = Math.max(8, Math.round(main.getBoundingClientRect().left + 16));
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(main);
+    window.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+    };
   });
 
   // Fast responses should move directly from the optimistic user turn to real
@@ -531,7 +554,7 @@
   role="presentation"
   class:messages-inner-empty={visibleMessages.length === 0 && !isStreaming}
   class:messages-inner-responsive-double={messageLayout === "responsive_double"}
-  style="padding-bottom: {paddingBottom}px; --user-message-collapse-lines: {USER_MESSAGE_COLLAPSE_LINES}"
+  style="padding-bottom: {paddingBottom}px; --user-message-collapse-lines: {USER_MESSAGE_COLLAPSE_LINES}; --user-message-index-left: {userMessageIndexLeft}px"
 >
   {#if checkpointLoadError}
     <div class="checkpoint-load-error" role="alert">{checkpointLoadError}</div>
@@ -1176,7 +1199,7 @@
   .user-message-index {
     position: fixed;
     top: 50%;
-    left: 16px;
+    left: var(--user-message-index-left, 16px);
     z-index: 12;
     display: flex;
     width: 28px;
