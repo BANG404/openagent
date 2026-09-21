@@ -1124,7 +1124,7 @@
     height: 7px;
     border-radius: 50%;
     background: var(--primary);
-    animation: thinking-pulse 1.2s ease-in-out infinite;
+    animation: thinking-pulse 1.8s ease-in-out infinite;
   }
 
   .skip-memory-btn {
@@ -1152,11 +1152,11 @@
   @keyframes thinking-pulse {
     0%,
     100% {
-      opacity: 0.35;
-      transform: scale(0.82);
+      opacity: 0.55;
+      transform: scale(0.9);
     }
     50% {
-      opacity: 1;
+      opacity: 0.85;
       transform: scale(1);
     }
   }

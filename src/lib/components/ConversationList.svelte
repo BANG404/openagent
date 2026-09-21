@@ -643,7 +643,7 @@
     border-radius: 50%;
     background: var(--primary);
     flex-shrink: 0;
-    animation: pulse 1.2s ease-in-out infinite;
+    animation: pulse 1.8s ease-in-out infinite;
   }
 
   :global(.conv-context-trigger) {
@@ -710,10 +710,10 @@
   @keyframes pulse {
     0%,
     100% {
-      opacity: 1;
+      opacity: 0.55;
     }
     50% {
-      opacity: 0.3;
+      opacity: 0.85;
     }
   }
 
