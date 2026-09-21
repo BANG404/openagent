@@ -2392,9 +2392,14 @@
     const configWithCuaDriver = ensureCuaDriverServer(config, cuaDriverEndpoint);
     // The reserved MCP entry is a client of the daemon the desktop host owns.
     // Start it first so the Runtime can connect the remaining MCP list.
-    const cuaDriverDaemonStarted = isCuaDriverEnabled(configWithCuaDriver)
-      ? await startCuaDriverDaemon()
-      : false;
+    let cuaDriverDaemonStarted = false;
+    if (isCuaDriverEnabled(configWithCuaDriver)) {
+      try {
+        cuaDriverDaemonStarted = await startCuaDriverDaemon();
+      } catch (error) {
+        console.error("Failed to start the Cua Driver daemon during bootstrap:", error);
+      }
+    }
     if (configWithCuaDriver !== config || cuaDriverDaemonStarted) {
       // Runtime startup connects the persisted MCP list before this surface is
       // mounted, so persist the product-managed entry here: the first chat turn

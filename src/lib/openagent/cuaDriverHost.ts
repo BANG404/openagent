@@ -37,10 +37,5 @@ export async function hydrateCuaDriverEndpoint(): Promise<string> {
  */
 export async function startCuaDriverDaemon(): Promise<boolean> {
   if (!isTauri()) return false;
-  try {
-    return await invoke<boolean>("start_cua_driver_serve");
-  } catch (error) {
-    console.error("Failed to start the Cua Driver daemon:", error);
-    return false;
-  }
+  return await invoke<boolean>("start_cua_driver_serve");
 }

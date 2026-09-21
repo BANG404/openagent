@@ -360,7 +360,11 @@
   }
 
   function setCuaDriverEnabled(enabled: boolean) {
-    if (enabled) void startCuaDriverDaemon();
+    if (enabled) {
+      void startCuaDriverDaemon().catch((error) => {
+        console.error("Failed to start the Cua Driver daemon:", error);
+      });
+    }
     const existing = findCuaDriverServer();
     if (existing) {
       existing.enabled = enabled;
@@ -1410,8 +1414,19 @@
     if (notReady) return;
     // The reserved entry is only a client; its daemon has to accept
     // connections before the probe can attach to the shared endpoint.
-    if (id === cuaDriverId) await startCuaDriverDaemon();
+    if (id === cuaDriverId) {
+      try {
+        await startCuaDriverDaemon();
+      } catch (error) {
+        mcpTestStatus = {
+          ...mcpTestStatus,
+          [id]: { tone: "error", message: `${$t("mcpTestFailed")}: ${error}` },
+        };
+        return;
+      }
+    }
     mcpTestStatus = { ...mcpTestStatus, [id]: { tone: "testing", message: $t("mcpTesting") } };
+    mcpDiscoveredTools = { ...mcpDiscoveredTools, [id]: [] };
     try {
       const result = (await desktopOpenAgent.invokeProduct("test_mcp_server", {
         server: $state.snapshot(server),
@@ -2203,6 +2218,18 @@
                 />
               </div>
               <span class="detail-hint">{$t("pluginToolsHint")}</span>
+              {#if mcpTestStatus[cuaDriverId] && mcpTestStatus[cuaDriverId].tone !== "idle"}
+                <div
+                  class="provider-status {mcpTestStatus[cuaDriverId].tone === 'success'
+                    ? 'success'
+                    : mcpTestStatus[cuaDriverId].tone === 'error'
+                      ? 'error'
+                      : 'loading'}"
+                  style="margin-top:10px"
+                >
+                  {mcpTestStatus[cuaDriverId].message}
+                </div>
+              {/if}
               {#if (mcpDiscoveredTools[cuaDriverId] ?? []).length > 0}
                 <div class="application-settings-surface plugin-tool-list">
                   {#each mcpDiscoveredTools[cuaDriverId] ?? [] as tool (tool)}
