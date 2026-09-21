@@ -98,11 +98,7 @@
     use:externalLinks={capabilities.openUrl}
   >
     <Streamdown
-      content={isStreaming && isLastText
-        ? item.content + "▋"
-        : isLastText
-          ? item.content
-          : item.content.trimEnd()}
+      content={isLastText ? item.content : item.content.trimEnd()}
       animation={isStreaming && isLastText ? streamingTextAnimation : undefined}
       controls={{ table: false }}
       components={{ code: Code, mermaid: Mermaid, math: ChatMath }}

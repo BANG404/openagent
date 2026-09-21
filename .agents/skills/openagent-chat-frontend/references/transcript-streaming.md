@@ -80,8 +80,9 @@
   change apparent size.
 - Give only the trailing text block of an active streamed response Streamdown's
   gentle word-level fade-in (360ms, ease-out); keep completed and earlier
-  blocks static so each chunk does not replay the whole answer. Disable that
-  animation under `prefers-reduced-motion`.
+  blocks static so each chunk does not replay the whole answer. Do not append a
+  block cursor to the streamed text; the fade is the only live text affordance.
+  Disable that animation under `prefers-reduced-motion`.
 - Keep streamed Markdown list markers outside the list-item content so loose
   lists whose items contain block paragraphs align each marker with the first
   content line.
