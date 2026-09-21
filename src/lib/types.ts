@@ -54,7 +54,12 @@ export type StreamItem =
   | { type: "compaction_boundary" }
   | {
       type: "retry";
-      /** Complete stream state from the failed attempt. */
+      /**
+       * Stream state from the failed attempt that the restored checkpoint does
+       * not already render. Empty when the attempt failed after its own output
+       * became durable, which is the common case for a failed follow-up
+       * request in a tool round.
+       */
       items: StreamItem[];
       attempt: number;
       maxAttempts: number;
