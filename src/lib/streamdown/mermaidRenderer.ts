@@ -38,18 +38,14 @@ let renderSequence = 0;
 // otherwise every later diagram appears to time out as well.
 const MERMAID_RENDER_TIMEOUT_MS = 15_000;
 
-async function renderWithTimeout(
-  mermaid: Awaited<ReturnType<typeof loadMermaid>>,
-  id: string,
-  source: string,
-): Promise<{ svg: string }> {
+async function withTimeout<T>(operation: Promise<T>, description: string): Promise<T> {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
-      mermaid.render(id, source),
+      operation,
       new Promise<never>((_, reject) => {
         timeout = setTimeout(() => {
-          reject(new Error(`Mermaid render timed out after ${MERMAID_RENDER_TIMEOUT_MS}ms`));
+          reject(new Error(`${description} after ${MERMAID_RENDER_TIMEOUT_MS}ms`));
         }, MERMAID_RENDER_TIMEOUT_MS);
       }),
     ]);
@@ -59,7 +55,14 @@ async function renderWithTimeout(
 }
 
 export function loadMermaid() {
-  mermaidModule ??= import("mermaid").then((module) => module.default);
+  mermaidModule ??= import("mermaid")
+    .then((module) => module.default)
+    .catch((error) => {
+      // A failed dynamic import is cached as a rejected Promise. Clear it so
+      // a transient dev-server/WebView load failure can be retried next turn.
+      mermaidModule = null;
+      throw error;
+    });
   return mermaidModule;
 }
 
@@ -110,11 +113,14 @@ export function renderMermaidSvg(
 ): Promise<MermaidRenderOutput> {
   const normalizedSource = normalizeMermaidSource(source);
   const run = renderQueue.then(async () => {
-    const mermaid = await loadMermaid();
+    const mermaid = await withTimeout(loadMermaid(), "Mermaid renderer loading timed out");
     mermaid.initialize(defaultConfig(customConfig));
     renderSequence += 1;
     const uniqueId = `openagent-mermaid-${renderSequence}-${Date.now()}`;
-    const { svg } = await renderWithTimeout(mermaid, uniqueId, normalizedSource);
+    const { svg } = await withTimeout(
+      mermaid.render(uniqueId, normalizedSource),
+      "Mermaid render timed out",
+    );
     const dimensions = svgDimensions(svg);
     return {
       svg,

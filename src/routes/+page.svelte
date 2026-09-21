@@ -107,7 +107,7 @@
   } from "$lib/sidebarPanelScope";
   import { retainUndurableFileChanges } from "$lib/fileChangeReconciliation";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
-  import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
+  import { loadMermaid, renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
     ROOT_KEY,
     buildTreeFromCheckpoints,
@@ -2184,6 +2184,13 @@
     let requiresOnboarding = false;
     let eventDeliveryInstalled = false;
 
+    // Warm the large Mermaid dynamic module before revealing the main window.
+    // Otherwise the first render_mermaid call can spend the Runtime's entire
+    // 20-second response deadline compiling/loading the renderer.
+    const mermaidPreload = loadMermaid().catch((error) => {
+      console.warn("Failed to preload Mermaid renderer; it will retry on demand", error);
+    });
+
     // Live Runtime events are a lossy projection. Restore the complete durable
     // snapshot before subscribing so startup and resync never reconstruct state
     // from partial event delivery. Registration stays single-attempt because
@@ -2216,6 +2223,7 @@
     try {
       // Seed isDarkTheme before settings load so shikiTheme is correct from first render
       isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      await mermaidPreload;
 
       if (tauriAvailable) {
         await applyStartupSnapshot();

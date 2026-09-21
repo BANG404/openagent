@@ -99,7 +99,10 @@
   enforce a finite per-render timeout so a pathological diagram cannot block
   the queue and make later tool calls appear to time out. Streamed Mermaid
   source is debounced before rendering, and a newer source invalidates any
-  older in-flight result.
+  older in-flight result. The main chat shell preloads the Mermaid module
+  before revealing the window so the first tool request does not spend the
+  Runtime response deadline on a cold dynamic import; a failed preload remains
+  retryable.
   Apply the same failed-result hiding rule to ordinary tools.
 - Return a Mermaid renderer result through the shared SDK client with the
   request's owning conversation ID. The production Runtime is routed and
