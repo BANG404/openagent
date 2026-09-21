@@ -36,6 +36,9 @@ style-only lint, adopt the current expression or borrowing form instead of
 suppressing the warning. Use the workspace `playwright` skill when the
 behavior is completely reproducible in a browser.
 
+For boolean conditions, use direct negation (`!value`) instead of comparing a
+boolean expression with `false`, as current Clippy denies `bool_comparison`.
+
 Run `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check` for every
 `src-tauri` change; the CI native-quality job rejects formatting drift before
 running its other Rust checks.

@@ -1491,7 +1491,7 @@ async fn activate_frontend_resource(
         );
         error
     })?;
-    if navigate.unwrap_or(true) == false {
+    if !navigate.unwrap_or(true) {
         tracing::info!(
             target: "openagent::component_update",
             component = "frontend",
