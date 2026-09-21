@@ -255,6 +255,14 @@ describe("desktop conversation branches", () => {
     expect(dispatchSource).toContain(
       "pendingForkUserMessageIds = { ...pendingForkUserMessageIds, [convId]: userMsg.id }",
     );
+    const finalizationSource = pageSource.slice(
+      pageSource.indexOf("function finalizeStreamedMessage"),
+      pageSource.indexOf("function notifyInactiveWindowOfAgentCompletion"),
+    );
+    expect(finalizationSource).toContain("clearPendingForkState(conv_id);");
+    expect(finalizationSource).toContain(
+      "clearPendingForkState(conv_id);\n      chatStreams.cleanup(conv_id);",
+    );
     expect(switchSource).toContain("openAgent.switchRemoteConversationBranch");
     expect(switchSource).toContain("getActiveTipNode(updatedTree)?.ckId");
     expect(pageSource).not.toContain("branches.at(-1)");

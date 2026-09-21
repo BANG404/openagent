@@ -136,6 +136,10 @@
   is reconciled.
   Streaming and durable forms must share the same assistant-turn branch and
   keyed stream-item children.
+- Re-execution fork markers are one-shot state for the submitted turn. Clear
+  them on every terminal path, including a cancelled or empty stream that has
+  no visible assistant record to attach; the next ordinary message must extend
+  the selected branch rather than create an unintended sibling.
 - Reduce logical Turn metadata from checkpoints on the selected branch and
   attach it to the backend-preallocated response message. A tool interrupt and
   its resume keep that Turn key; only terminal Turn states expose duration,

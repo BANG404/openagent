@@ -3381,6 +3381,25 @@
     queueSaveChatMessage(conv_id, msg, checkpointId).catch(() => {});
   }
 
+  function clearPendingForkState(convId: string): void {
+    if (convId in pendingParentCk) {
+      const { [convId]: _pendingParent, ...rest } = pendingParentCk;
+      pendingParentCk = rest;
+    }
+    if (convId in pendingForkMessageId) {
+      const { [convId]: _forkMessage, ...rest } = pendingForkMessageId;
+      pendingForkMessageId = rest;
+    }
+    if (convId in pendingForkSourceCheckpointId) {
+      const { [convId]: _forkSource, ...rest } = pendingForkSourceCheckpointId;
+      pendingForkSourceCheckpointId = rest;
+    }
+    if (convId in pendingForkUserMessageIds) {
+      const { [convId]: _forkUserMessage, ...rest } = pendingForkUserMessageIds;
+      pendingForkUserMessageIds = rest;
+    }
+  }
+
   function discardPersistedStreamDraft(conv_id: string) {
     void conv_id;
   }
@@ -3429,6 +3448,10 @@
           reconcileLiveFileChanges(conv_id, durableChanges, finalizedLiveChangeIds);
         }
       });
+      // A cancelled/empty turn has no checkpoint to attach to the optimistic
+      // fork. Clear the one-shot fork markers before the next ordinary send,
+      // otherwise it is incorrectly submitted as another sibling branch.
+      clearPendingForkState(conv_id);
       chatStreams.cleanup(conv_id);
       void dispatchNextQueuedMessage(conv_id);
       return true;
@@ -3519,22 +3542,7 @@
     // Clean up pending checkpoint id and any re-execution hint for this conv
     const { [conv_id]: _ck, ...restCk } = pendingCheckpointIds;
     pendingCheckpointIds = restCk;
-    if (conv_id in pendingParentCk) {
-      const { [conv_id]: _pp, ...restPp } = pendingParentCk;
-      pendingParentCk = restPp;
-    }
-    if (conv_id in pendingForkMessageId) {
-      const { [conv_id]: _pf, ...restPf } = pendingForkMessageId;
-      pendingForkMessageId = restPf;
-    }
-    if (conv_id in pendingForkSourceCheckpointId) {
-      const { [conv_id]: _pfs, ...restPfs } = pendingForkSourceCheckpointId;
-      pendingForkSourceCheckpointId = restPfs;
-    }
-    if (conv_id in pendingForkUserMessageIds) {
-      const { [conv_id]: _pfu, ...restPfu } = pendingForkUserMessageIds;
-      pendingForkUserMessageIds = restPfu;
-    }
+    clearPendingForkState(conv_id);
 
     chatStreams.cleanup(conv_id);
     void dispatchNextQueuedMessage(conv_id);
