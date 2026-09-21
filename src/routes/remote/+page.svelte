@@ -104,6 +104,9 @@
   let commandNotice = $state("");
   let inputAreaHeight = $state(120);
   let disconnect: (() => void) | null = null;
+  let reconnectTimer: number | null = null;
+  let reconnectAttempt = 0;
+  let connectionGeneration = 0;
   let messagesEl = $state<HTMLElement | null>(null);
   let isDarkTheme = $state(false);
   let preferredTheme = $state<"system" | "light" | "dark">("system");
@@ -356,6 +359,7 @@
     void bootstrap();
     return () => {
       media.removeEventListener("change", syncTheme);
+      if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
       disconnect?.();
       for (const url of previewUrls) URL.revokeObjectURL(url);
     };
@@ -444,6 +448,12 @@
     workspaceId = nextWorkspaceId;
     loadingWorkspace = true;
     error = "";
+    connectionGeneration += 1;
+    reconnectAttempt = 0;
+    if (reconnectTimer !== null) {
+      window.clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
     disconnect?.();
     disconnect = null;
     conversation = null;
@@ -512,6 +522,12 @@
 
   async function newConversation() {
     if (running) return;
+    connectionGeneration += 1;
+    reconnectAttempt = 0;
+    if (reconnectTimer !== null) {
+      window.clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
     disconnect?.();
     disconnect = null;
     conversation = null;
@@ -527,11 +543,19 @@
     if (window.matchMedia("(max-width: 760px)").matches) sidebarCollapsed = true;
   }
 
-  async function connectConversation(convId: string) {
+  async function connectConversation(convId: string, preservePendingTurn = false) {
+    const generation = ++connectionGeneration;
+    reconnectAttempt = 0;
+    if (reconnectTimer !== null) {
+      window.clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
     disconnect?.();
     disconnect = null;
-    optimisticUser = null;
-    pendingAssistantMessageId = null;
+    if (!preservePendingTurn) {
+      optimisticUser = null;
+      pendingAssistantMessageId = null;
+    }
     streamPaused = false;
     forkDisplayMessages = null;
     activeTree = undefined;
@@ -544,7 +568,7 @@
     disconnect = await client.subscribeToConversationState(
       convId,
       (state) => {
-        if (conversation?.conv_id !== convId) return;
+        if (generation !== connectionGeneration || conversation?.conv_id !== convId) return;
         const previousPhase = conversation.phase;
         conversation = state;
         if (state.title?.trim()) {
@@ -586,10 +610,27 @@
         error = "";
       },
       () => {
-        error = tr("remoteReconnect");
+        if (generation !== connectionGeneration || conversation?.conv_id !== convId) return;
+        scheduleConversationReconnect(convId, generation);
       },
     );
     if (window.matchMedia("(max-width: 760px)").matches) sidebarCollapsed = true;
+  }
+
+  function scheduleConversationReconnect(convId: string, generation: number): void {
+    if (reconnectTimer !== null || generation !== connectionGeneration) return;
+    const delay = Math.min(1000 * 2 ** reconnectAttempt, 10000);
+    reconnectAttempt += 1;
+    error = tr("remoteReconnect");
+    reconnectTimer = window.setTimeout(() => {
+      reconnectTimer = null;
+      if (generation !== connectionGeneration || conversation?.conv_id !== convId) return;
+      void connectConversation(convId, true).catch((cause) => {
+        if (conversation?.conv_id !== convId) return;
+        error = cause instanceof Error ? cause.message : String(cause);
+        scheduleConversationReconnect(convId, connectionGeneration);
+      });
+    }, delay);
   }
 
   async function loadConversationHistory(convId: string) {
