@@ -256,10 +256,10 @@
       : 0,
   );
   const contextUsageTooltip = $derived.by(() => {
-    if (!contextUsage || contextCompactionThreshold <= 0) return "";
+    if ((!contextUsage && !isStreaming) || contextCompactionThreshold <= 0) return "";
     const usedPercent = Math.round(contextUsagePercent);
     const remainingPercent = Math.max(0, 100 - usedPercent);
-    return `${$t("contextWindow")}: ${usedPercent}% ${$t("contextUsed")} (${remainingPercent}% ${$t("contextRemaining")}) · ${formatTokenCount(contextUsage)} / ${formatTokenCount(contextCompactionThreshold)} ${$t("tokensUsed")}`;
+    return `${$t("contextWindow")}: ${usedPercent}% ${$t("contextUsed")} (${remainingPercent}% ${$t("contextRemaining")}) · ${formatTokenCount(contextUsage ?? 0)} / ${formatTokenCount(contextCompactionThreshold)} ${$t("tokensUsed")}`;
   });
 
   function formatTokenCount(tokens: number): string {

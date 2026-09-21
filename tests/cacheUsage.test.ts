@@ -299,6 +299,9 @@ describe("completed-turn cache usage", () => {
     expect(routeSource).not.toContain("if (!isDebugBuild || !tauriAvailable) return;");
     expect(routeSource).toContain('openAgent.invokeProduct("get_chat_task_usages", { convId })');
     expect(routeSource).toContain("void refreshTaskUsagesForConversation(convId);");
+    expect(
+      await Bun.file(new URL("../src/lib/components/MessageInput.svelte", import.meta.url)).text(),
+    ).toContain("(!contextUsage && !isStreaming)");
     expect(routeSource).not.toContain('invoke<ChatTaskUsage[]>("get_chat_task_usages"');
     expect(routeSource).not.toContain('invoke<TaskTrace[]>("get_task_traces")');
     expect(messageListSource).toContain("if (!message.checkpointId) return null;");

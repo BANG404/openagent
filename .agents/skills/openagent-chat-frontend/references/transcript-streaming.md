@@ -310,8 +310,9 @@
   newest usage measured on the active checkpoint path. Refresh persisted usage
   when a stream starts so the composer can show the last known context size
   before the new checkpoint is available; then pick up the new measurement when
-  that checkpoint arrives. Do not show a redundant success toast for the same
-  transition.
+  that checkpoint arrives. When no prior measurement exists, keep the enabled
+  streaming indicator mounted at zero until a usage measurement arrives. Do not
+  show a redundant success toast for the same transition.
   Do not show a reply's actions—including regenerate, copy, and book mode—while
   that logical assistant turn is streaming, even when a durable prefix exists
   before a live context-compaction continuation. Keep already completed turns'
