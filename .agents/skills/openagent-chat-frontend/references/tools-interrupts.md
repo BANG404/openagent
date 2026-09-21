@@ -95,7 +95,11 @@
   until the runtime advances to them. This prevents an `ask_user` call from
   making a sibling tool look like an approval request.
   Keep Mermaid renders serialized behind the underlying operation so the
-  shared engine is never used concurrently.
+  shared engine is never used concurrently. The shared renderer must also
+  enforce a finite per-render timeout so a pathological diagram cannot block
+  the queue and make later tool calls appear to time out. Streamed Mermaid
+  source is debounced before rendering, and a newer source invalidates any
+  older in-flight result.
   Apply the same failed-result hiding rule to ordinary tools.
 - Return a Mermaid renderer result through the shared SDK client with the
   request's owning conversation ID. The production Runtime is routed and

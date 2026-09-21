@@ -33,6 +33,31 @@ let mermaidModule: Promise<(typeof import("mermaid"))["default"]> | null = null;
 let renderQueue: Promise<void> = Promise.resolve();
 let renderSequence = 0;
 
+// Mermaid parses and lays out synchronously inside its render promise. A
+// malformed or pathological graph must not hold the shared queue forever,
+// otherwise every later diagram appears to time out as well.
+const MERMAID_RENDER_TIMEOUT_MS = 15_000;
+
+async function renderWithTimeout(
+  mermaid: Awaited<ReturnType<typeof loadMermaid>>,
+  id: string,
+  source: string,
+): Promise<{ svg: string }> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      mermaid.render(id, source),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          reject(new Error(`Mermaid render timed out after ${MERMAID_RENDER_TIMEOUT_MS}ms`));
+        }, MERMAID_RENDER_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
+  }
+}
+
 export function loadMermaid() {
   mermaidModule ??= import("mermaid").then((module) => module.default);
   return mermaidModule;
@@ -89,7 +114,7 @@ export function renderMermaidSvg(
     mermaid.initialize(defaultConfig(customConfig));
     renderSequence += 1;
     const uniqueId = `openagent-mermaid-${renderSequence}-${Date.now()}`;
-    const { svg } = await mermaid.render(uniqueId, normalizedSource);
+    const { svg } = await renderWithTimeout(mermaid, uniqueId, normalizedSource);
     const dimensions = svgDimensions(svg);
     return {
       svg,

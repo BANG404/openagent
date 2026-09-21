@@ -160,7 +160,15 @@
   $effect(() => {
     const config = streamdown.mermaidConfig as MermaidConfig | undefined;
     if (!mermaidReady || !mermaidNode) return;
-    void renderMermaid(token.text, mermaidNode, config);
+    // Streaming Markdown updates the token for every chunk. Debouncing avoids
+    // queueing a render for each intermediate source while keeping the final
+    // diagram responsive. Invalidate the previous generation immediately so
+    // an older in-flight render can never replace the latest source.
+    renderGeneration += 1;
+    const timeout = window.setTimeout(() => {
+      void renderMermaid(token.text, mermaidNode as HTMLElement, config);
+    }, 180);
+    return () => window.clearTimeout(timeout);
   });
 
   function saveFile(filename: string, content: string, mimeType: string) {
