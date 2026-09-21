@@ -310,20 +310,26 @@ describe("completed-turn cache usage", () => {
 });
 
 describe("streaming-turn indicators", () => {
-  test("keeps the composer usage indicator and compaction divider mounted while streaming", async () => {
-    const [routeSource, surfaceSource, streamRendererSource] = await Promise.all([
-      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
-      Bun.file(new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url)).text(),
-      Bun.file(new URL("../src/lib/components/StreamItemRenderer.svelte", import.meta.url)).text(),
-    ]);
+  test("defers the composer usage indicator and compaction divider until streaming ends", async () => {
+    const [routeSource, surfaceSource, messageListSource, streamRendererSource] = await Promise.all(
+      [
+        Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+        Bun.file(
+          new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url),
+        ).text(),
+        Bun.file(new URL("../src/lib/components/MessageList.svelte", import.meta.url)).text(),
+        Bun.file(
+          new URL("../src/lib/components/StreamItemRenderer.svelte", import.meta.url),
+        ).text(),
+      ],
+    );
 
-    // The composer indicator walks the active path for the newest measurement,
-    // so a turn whose checkpoint is still pending keeps reporting usage.
-    expect(surfaceSource).not.toContain("if (view.isStreaming) return null;");
+    // A streaming turn must not expose a stale ancestor measurement.
+    expect(surfaceSource).toContain("view.isStreaming\n      ? null");
     expect(surfaceSource).toContain("ckIdsAlongActivePath(view.activeTree)");
-    // A successful compaction mounts its divider for the rest of the turn and
-    // hands the same boundary to the durable replay at reconciliation.
-    expect(routeSource).toContain("completeCompactionProgress(previousItems)");
+    // A successful compaction clears its transient progress and lets the
+    // durable replay provide the divider after terminal reconciliation.
+    expect(routeSource).toContain("clearCompactionProgress(previousItems)");
     expect(routeSource).toContain(
       "clearCompactionProgress(chatStreams.itemsByConversation[convId] ?? [])",
     );
@@ -332,9 +338,7 @@ describe("streaming-turn indicators", () => {
     expect(routeSource).toContain(
       'const durableItems = items.filter((item) => item.type !== "compaction_boundary");',
     );
+    expect(messageListSource).toContain("!liveCompactionDivider && !isStreaming");
     expect(streamRendererSource).toContain('{:else if item.type === "compaction_boundary"}');
-    expect(streamRendererSource).not.toContain(
-      'item.type === "compaction_boundary" && !isStreaming',
-    );
   });
 });

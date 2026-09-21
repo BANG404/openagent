@@ -135,11 +135,15 @@
 
   let localComposerFocusRequest = $state(0);
 
-  // The indicator stays mounted for the whole turn: a streaming turn has no
-  // checkpoint node until its terminal snapshot, so it reports the newest
-  // reconciled measurement on the active path until its own arrives.
+  // Usage belongs to the completed turn. Do not expose a stale ancestor
+  // measurement while the current response is still streaming.
   const contextUsage = $derived(
-    latestContextUsageTokens(ckIdsAlongActivePath(view.activeTree), view.taskUsagesByCheckpointId),
+    view.isStreaming
+      ? null
+      : latestContextUsageTokens(
+          ckIdsAlongActivePath(view.activeTree),
+          view.taskUsagesByCheckpointId,
+        ),
   );
 
   function requestComposerFocus() {

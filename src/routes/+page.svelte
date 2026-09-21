@@ -140,7 +140,6 @@
     appendToolCall,
     appendUserInput,
     clearCompactionProgress,
-    completeCompactionProgress,
     initializeStreamItems,
     preserveResolvedUserInputs,
     attachToolResult,
@@ -3182,15 +3181,14 @@
         }
 
         if (stage === "done") {
-          // Keep the completion divider exactly where the transient progress
-          // record stood. The durable replay is filtered while its continuation
-          // still streams, so clearing progress here would leave the turn
-          // without a boundary until its terminal checkpoint reconciles. A
-          // compaction-only row keeps the same divider until that cleanup.
+          // The success divider describes a completed compaction, but must not
+          // appear while the response that follows it is still streaming. The
+          // durable replay becomes visible after the turn reaches a terminal
+          // state (and is also used for compaction-only rows).
           if (convId in chatStreams.itemsByConversation) {
             chatStreams.itemsByConversation = {
               ...chatStreams.itemsByConversation,
-              [convId]: completeCompactionProgress(previousItems),
+              [convId]: clearCompactionProgress(previousItems),
             };
           }
           void reconcileCompletedCompaction(convId, revision);
