@@ -2484,6 +2484,10 @@
       [convId]: true,
     };
     chatStreams.awaitingOutput = { ...chatStreams.awaitingOutput, [convId]: true };
+    // Usage is persisted on the preceding checkpoint. Refresh it when a new
+    // stream starts so the composer can keep showing the latest known context
+    // size while the next response is still in flight.
+    void refreshTaskUsagesForConversation(convId);
     if (config?.memory_retrieval_enabled) {
       chatStreams.memoryRetrievalStages = {
         ...chatStreams.memoryRetrievalStages,
