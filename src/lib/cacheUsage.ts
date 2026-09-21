@@ -69,6 +69,27 @@ export function summarizeCacheUsages(usages: readonly TaskTokenUsage[]): CacheUs
   };
 }
 
+/**
+ * Newest measured context size along an active checkpoint path, given
+ * root-first. Usage is recorded per provider request, so a checkpoint whose
+ * turn is still streaming, or whose projection has not loaded yet, reports its
+ * nearest reconciled ancestor instead of leaving the composer without a value.
+ */
+export function latestContextUsageTokens(
+  activePath: Iterable<string>,
+  usagesByCheckpointId: Record<string, TaskTokenUsage[]>,
+): number | null {
+  const ordered = [...activePath];
+  for (let index = ordered.length - 1; index >= 0; index -= 1) {
+    const usage = usagesByCheckpointId[ordered[index]]?.at(-1);
+    if (!usage) continue;
+    const reportedInput = usage.total_tokens - usage.output_tokens;
+    const inputTokens = Math.max(usage.input_tokens, reportedInput > 0 ? reportedInput : 0);
+    if (inputTokens > 0) return inputTokens;
+  }
+  return null;
+}
+
 export function chatTaskUsagesByCheckpoint(
   taskUsages: readonly ChatTaskUsage[],
   checkpoints: readonly { checkpointId: string; turn?: CheckpointTurnMetadata }[] = [],

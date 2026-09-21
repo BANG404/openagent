@@ -9,7 +9,8 @@
   import type { QueuedChatMessage } from "$lib/chatQueue";
   import type { CachedRestoreSurface } from "$lib/startupRestoreCache";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
-  import { getActiveTipNode } from "$lib/checkpointTree";
+  import { ckIdsAlongActivePath } from "$lib/checkpointTree";
+  import { latestContextUsageTokens } from "$lib/cacheUsage";
   import type {
     AppConfig,
     ChatAttachment,
@@ -134,19 +135,12 @@
 
   let localComposerFocusRequest = $state(0);
 
-  const contextUsage = $derived.by(() => {
-    // Usage is finalized with the terminal checkpoint. Keep the composer
-    // indicator hidden while the active turn can still append provider rounds.
-    if (view.isStreaming) return null;
-    const tip = getActiveTipNode(view.activeTree);
-    if (!tip) return null;
-    const usages = view.taskUsagesByCheckpointId[tip.ckId];
-    const usage = usages?.at(-1);
-    if (!usage) return null;
-    const reportedInput = usage.total_tokens - usage.output_tokens;
-    const inputTokens = Math.max(usage.input_tokens, reportedInput > 0 ? reportedInput : 0);
-    return inputTokens > 0 ? inputTokens : null;
-  });
+  // The indicator stays mounted for the whole turn: a streaming turn has no
+  // checkpoint node until its terminal snapshot, so it reports the newest
+  // reconciled measurement on the active path until its own arrives.
+  const contextUsage = $derived(
+    latestContextUsageTokens(ckIdsAlongActivePath(view.activeTree), view.taskUsagesByCheckpointId),
+  );
 
   function requestComposerFocus() {
     localComposerFocusRequest += 1;

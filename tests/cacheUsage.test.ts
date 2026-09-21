@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   chatTaskUsagesByCheckpoint,
+  latestContextUsageTokens,
   summarizeCacheUsage,
   summarizeCacheUsages,
 } from "../src/lib/cacheUsage";
@@ -242,20 +243,57 @@ describe("cache usage normalization", () => {
   });
 });
 
+describe("composer context usage", () => {
+  test("reports the newest measurement on the active path", () => {
+    expect(
+      latestContextUsageTokens(["first", "second"], {
+        first: [usage({ input_tokens: 100, output_tokens: 10, total_tokens: 110 })],
+        second: [usage({ input_tokens: 400, output_tokens: 40, total_tokens: 440 })],
+      }),
+    ).toBe(400);
+  });
+
+  test("falls back to the nearest ancestor while the tip turn streams", () => {
+    expect(
+      latestContextUsageTokens(["first", "second", "streaming"], {
+        first: [usage({ input_tokens: 100, output_tokens: 10, total_tokens: 110 })],
+        second: [usage({ input_tokens: 400, output_tokens: 40, total_tokens: 440 })],
+      }),
+    ).toBe(400);
+  });
+
+  test("keeps walking when a checkpoint has no measured input yet", () => {
+    expect(
+      latestContextUsageTokens(["first", "second"], {
+        first: [usage({ input_tokens: 100, output_tokens: 10, total_tokens: 110 })],
+        second: [usage({ input_tokens: 0, output_tokens: 0, total_tokens: 0 })],
+      }),
+    ).toBe(100);
+  });
+
+  test("uses the newest round of the selected checkpoint", () => {
+    expect(
+      latestContextUsageTokens(["first"], {
+        first: [
+          usage({ input_tokens: 100, output_tokens: 10, total_tokens: 110 }),
+          usage({ input_tokens: 250, output_tokens: 25, total_tokens: 275 }),
+        ],
+      }),
+    ).toBe(250);
+  });
+
+  test("reports nothing before the first measurement", () => {
+    expect(latestContextUsageTokens([], {})).toBeNull();
+    expect(latestContextUsageTokens(["first"], {})).toBeNull();
+  });
+});
+
 describe("completed-turn cache usage", () => {
   test("loads and renders usage in production builds", async () => {
-    const [routeSource, surfaceSource, messageListSource, streamRendererSource] = await Promise.all(
-      [
-        Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
-        Bun.file(
-          new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url),
-        ).text(),
-        Bun.file(new URL("../src/lib/components/MessageList.svelte", import.meta.url)).text(),
-        Bun.file(
-          new URL("../src/lib/components/StreamItemRenderer.svelte", import.meta.url),
-        ).text(),
-      ],
-    );
+    const [routeSource, messageListSource] = await Promise.all([
+      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/components/MessageList.svelte", import.meta.url)).text(),
+    ]);
 
     expect(routeSource).toContain("if (!tauriAvailable) return;");
     expect(routeSource).not.toContain("if (!isDebugBuild || !tauriAvailable) return;");
@@ -264,11 +302,39 @@ describe("completed-turn cache usage", () => {
     expect(routeSource).not.toContain('invoke<TaskTrace[]>("get_task_traces")');
     expect(messageListSource).toContain("if (!message.checkpointId) return null;");
     expect(messageListSource).not.toContain("if (!devMode || !message.checkpointId) return null;");
-    expect(surfaceSource).toContain("if (view.isStreaming) return null;");
-    expect(messageListSource).toContain("isCompactionReplayUser(msg) && !isStreaming");
+    expect(messageListSource).toContain("isCompactionReplayUser(msg) && !liveCompactionDivider");
     expect(messageListSource).toContain(
-      'items.filter((item) => item.type !== "compaction_boundary")',
+      'currentStreamItems.some(\n        (item) => item.type === "compaction" || item.type === "compaction_boundary",\n      )',
     );
-    expect(streamRendererSource).toContain('item.type === "compaction_boundary" && !isStreaming');
+  });
+});
+
+describe("streaming-turn indicators", () => {
+  test("keeps the composer usage indicator and compaction divider mounted while streaming", async () => {
+    const [routeSource, surfaceSource, streamRendererSource] = await Promise.all([
+      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/components/StreamItemRenderer.svelte", import.meta.url)).text(),
+    ]);
+
+    // The composer indicator walks the active path for the newest measurement,
+    // so a turn whose checkpoint is still pending keeps reporting usage.
+    expect(surfaceSource).not.toContain("if (view.isStreaming) return null;");
+    expect(surfaceSource).toContain("ckIdsAlongActivePath(view.activeTree)");
+    // A successful compaction mounts its divider for the rest of the turn and
+    // hands the same boundary to the durable replay at reconciliation.
+    expect(routeSource).toContain("completeCompactionProgress(previousItems)");
+    expect(routeSource).toContain(
+      "clearCompactionProgress(chatStreams.itemsByConversation[convId] ?? [])",
+    );
+    // The optimistic marker must not be persisted: the reconciled replay owns
+    // the boundary once the turn is durable.
+    expect(routeSource).toContain(
+      'const durableItems = items.filter((item) => item.type !== "compaction_boundary");',
+    );
+    expect(streamRendererSource).toContain('{:else if item.type === "compaction_boundary"}');
+    expect(streamRendererSource).not.toContain(
+      'item.type === "compaction_boundary" && !isStreaming',
+    );
   });
 });

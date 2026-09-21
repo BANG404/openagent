@@ -203,6 +203,17 @@
     appendLiveStreamEntry(renderEntries, isStreaming ? currentStreamMessageId : null),
   );
   let currentSegments = $derived(groupStreamItems(currentStreamItems));
+  // The live row carries its own divider while the running stream reports
+  // compaction. A replay that reaches the transcript without a durable
+  // continuation is the live row's own boundary, so it yields to the marker
+  // the stream is already showing; any other replay describes a completed
+  // compaction and stays mounted while a later turn streams.
+  let liveCompactionDivider = $derived(
+    isStreaming &&
+      currentStreamItems.some(
+        (item) => item.type === "compaction" || item.type === "compaction_boundary",
+      ),
+  );
   let userMessageIndex = $derived(
     visibleMessages.filter(({ msg }) => msg.role === "user" && !isCompactionReplayUser(msg)),
   );
@@ -515,30 +526,24 @@
     if (entry.kind === "live_stream") return currentStreamItems;
     if (entry.kind === "assistant_turn") {
       return entry.messages.flatMap((message) => {
-        if (isCompactionReplayUser(message)) {
-          return isStreaming ? [] : [{ type: "compaction_boundary" as const }];
-        }
+        // A durable turn is grouped with the replay that opens it, so its
+        // boundary belongs to a finished reply and stays mounted.
+        if (isCompactionReplayUser(message)) return [{ type: "compaction_boundary" as const }];
         if (message.role !== "assistant") return [];
-        const items = message.items?.length
+        return message.items?.length
           ? message.items
           : message.content
             ? [{ type: "text" as const, content: message.content }]
             : [];
-        // A durable assistant prefix can remain mounted while a later
-        // compaction continuation is streaming. Its persisted boundary is
-        // still part of the old row, but must not become visible until the
-        // whole conversation stream has reached a terminal state.
-        return isStreaming ? items.filter((item) => item.type !== "compaction_boundary") : items;
       });
     }
-    return entryAssistantMessages(entry).flatMap((message) => {
-      const items = message.items?.length
+    return entryAssistantMessages(entry).flatMap((message) =>
+      message.items?.length
         ? message.items
         : message.content
           ? [{ type: "text" as const, content: message.content }]
-          : [];
-      return isStreaming ? items.filter((item) => item.type !== "compaction_boundary") : items;
-    });
+          : [],
+    );
   }
 
   async function copyAssistantOutput(turnId: string, output: string) {
@@ -870,7 +875,7 @@
       {:else if entry.kind === "message"}
         {@const msg = entry.msg}
         {@const msgIdx = entry.index}
-        {#if isCompactionReplayUser(msg) && !isStreaming}
+        {#if isCompactionReplayUser(msg) && !liveCompactionDivider}
           <MessageDivider
             title={$t("compactionCompleted")}
             streamItemKey={`compaction-boundary-${msg.id}`}

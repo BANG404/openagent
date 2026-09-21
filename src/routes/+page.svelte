@@ -139,6 +139,8 @@
     appendThinkingChunk,
     appendToolCall,
     appendUserInput,
+    clearCompactionProgress,
+    completeCompactionProgress,
     initializeStreamItems,
     preserveResolvedUserInputs,
     attachToolResult,
@@ -3133,11 +3135,18 @@
         chatStreams.clearAwaitingOutput(conv_id);
         const items = chatStreams.itemsByConversation[conv_id] ?? [];
         const previousAttempts = items.filter((item) => item.type === "retry");
-        const failedAttemptItems = items.filter((item) => item.type !== "retry");
+        // A completed compaction divider describes the reply, not the failed
+        // attempt that follows it. Keep it outside the attempt bundle so the
+        // retry record cannot hide a boundary that already happened.
+        const compactionBoundaries = items.filter((item) => item.type === "compaction_boundary");
+        const failedAttemptItems = items.filter(
+          (item) => item.type !== "retry" && item.type !== "compaction_boundary",
+        );
         chatStreams.itemsByConversation = {
           ...chatStreams.itemsByConversation,
           [conv_id]: [
             ...previousAttempts,
+            ...compactionBoundaries,
             {
               type: "retry",
               items: failedAttemptItems,
@@ -3173,10 +3182,17 @@
         }
 
         if (stage === "done") {
-          // A normal Agent stream must not finalize with transient progress in
-          // its optimistic message. A compaction-only row stays visible until
-          // its durable checkpoint divider is ready.
-          if (!compactionOnlyConvIds.has(convId)) removeCompactionProgress(convId);
+          // Keep the completion divider exactly where the transient progress
+          // record stood. The durable replay is filtered while its continuation
+          // still streams, so clearing progress here would leave the turn
+          // without a boundary until its terminal checkpoint reconciles. A
+          // compaction-only row keeps the same divider until that cleanup.
+          if (convId in chatStreams.itemsByConversation) {
+            chatStreams.itemsByConversation = {
+              ...chatStreams.itemsByConversation,
+              [convId]: completeCompactionProgress(previousItems),
+            };
+          }
           void reconcileCompletedCompaction(convId, revision);
           return;
         }
@@ -3307,7 +3323,7 @@
     if (!(convId in chatStreams.itemsByConversation)) return;
     chatStreams.itemsByConversation = {
       ...chatStreams.itemsByConversation,
-      [convId]: appendCompactionProgress(chatStreams.itemsByConversation[convId] ?? [], "done"),
+      [convId]: clearCompactionProgress(chatStreams.itemsByConversation[convId] ?? []),
     };
   }
 
@@ -3331,10 +3347,11 @@
     }
     if (compactionProgressRevisions.get(convId) !== revision) return;
     compactionProgressRevisions.delete(convId);
+    // A streaming turn keeps its completed divider: the reconciled replay is
+    // filtered until that turn ends, so the live marker has to outlive
+    // reconciliation. Only a compaction-only row is handed over here.
     if (compactionOnlyConvIds.delete(convId)) {
       chatStreams.cleanup(convId);
-    } else {
-      removeCompactionProgress(convId);
     }
   }
 
@@ -3397,13 +3414,18 @@
 
     const checkpointId = pendingCheckpointIds[conv_id] ?? null;
 
+    // The live divider is a streaming affordance: once this turn is durable the
+    // reconciled compaction replay renders the same boundary, so persisting the
+    // marker as well would mount it twice.
+    const durableItems = items.filter((item) => item.type !== "compaction_boundary");
+
     const finalizedAt = Date.now();
     const assistantMsg: ChatMessage = {
       id: assistantMessageId ?? crypto.randomUUID(),
       role: "assistant",
       content: fullText,
       timestamp: finalizedAt,
-      items: items.length > 0 ? [...items] : undefined,
+      items: durableItems.length > 0 ? [...durableItems] : undefined,
       aborted: status === "cancelled" || undefined,
       checkpointId: checkpointId ?? undefined,
       firstTokenAt: chatStreams.firstTokenAt[conv_id],

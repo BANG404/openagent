@@ -853,11 +853,11 @@ export function attachNewTurn(
 // (and an optional override for activeChild — used to preview what the path WOULD be
 // after a branch switch, so we can diff against the current path).
 export function ckIdsAlongActivePath(
-  tree: ConvTree,
+  tree: ConvTree | undefined,
   activeChildOverride?: Record<string, number>,
 ): Set<string> {
   const set = new Set<string>();
-  if (tree.rootIds.length === 0) return set;
+  if (!tree || tree.rootIds.length === 0) return set;
   const pick = (k: string, fallback: number) =>
     activeChildOverride?.[k] ?? tree.activeChild[k] ?? fallback;
   let ckId: string | undefined = tree.rootIds[pick(ROOT_KEY, tree.rootIds.length - 1)];

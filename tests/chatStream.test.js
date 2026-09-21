@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
-import { appendCompactionProgress, resolveUserInput } from "../src/lib/chatStream";
+import {
+  appendCompactionProgress,
+  clearCompactionProgress,
+  completeCompactionProgress,
+  resolveUserInput,
+} from "../src/lib/chatStream";
 import {
   ROOT_KEY,
   buildTreeFromCheckpoints,
@@ -323,11 +328,47 @@ describe("appendCompactionProgress", () => {
     ]);
   });
 
-  test("removes transient progress when compaction completes or is skipped", () => {
+  test("keeps a terminal stage as the last transient record", () => {
     const initial = [{ type: "compaction", stage: "creating" }];
 
-    expect(appendCompactionProgress(initial, "done")).toEqual([]);
-    expect(appendCompactionProgress(initial, "skipped")).toEqual([]);
+    expect(appendCompactionProgress(initial, "failed", "provider error")).toEqual([
+      { type: "compaction", stage: "failed", error: "provider error" },
+    ]);
+  });
+});
+
+describe("clearCompactionProgress", () => {
+  test("drops transient progress when compaction is skipped", () => {
+    const initial = [
+      { type: "text", content: "Before compaction" },
+      { type: "compaction", stage: "creating" },
+    ];
+
+    expect(clearCompactionProgress(initial)).toEqual([
+      { type: "text", content: "Before compaction" },
+    ]);
+  });
+});
+
+describe("completeCompactionProgress", () => {
+  test("mounts the completion divider in the progress record's position", () => {
+    const initial = [
+      { type: "text", content: "Before compaction" },
+      { type: "compaction", stage: "creating" },
+      { type: "text", content: "After compaction" },
+    ];
+
+    expect(completeCompactionProgress(initial)).toEqual([
+      { type: "text", content: "Before compaction" },
+      { type: "compaction_boundary" },
+      { type: "text", content: "After compaction" },
+    ]);
+  });
+
+  test("leaves a stream without progress untouched", () => {
+    const initial = [{ type: "text", content: "Only text" }];
+
+    expect(completeCompactionProgress(initial)).toEqual(initial);
   });
 });
 

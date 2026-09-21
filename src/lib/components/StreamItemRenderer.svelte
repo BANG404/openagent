@@ -158,7 +158,7 @@
   </div>
 {:else if item.type === "compaction"}
   <CompactionStatus {item} {itemKey} {messageId} />
-{:else if item.type === "compaction_boundary" && !isStreaming}
+{:else if item.type === "compaction_boundary"}
   <MessageDivider title={$t("compactionCompleted")} streamItemKey={itemKey} {messageId} />
 {:else if item.type === "runtime_notice"}
   <MessageDivider

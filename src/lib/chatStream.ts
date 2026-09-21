@@ -152,18 +152,33 @@ export function initializeStreamItems(existing: StreamItem[] | undefined): Strea
   return existing ? [...existing] : [];
 }
 
+/** Update the single transient progress divider while compaction is in flight. */
 export function appendCompactionProgress(
   items: StreamItem[],
   stage: ContextCompactionStage,
   error?: string | null,
 ): StreamItem[] {
-  if (stage === "done" || stage === "skipped") {
-    return items.filter((item) => item.type !== "compaction");
-  }
   const existingIndex = items.findIndex((item) => item.type === "compaction");
   const progress: StreamItem = { type: "compaction", stage, error };
   if (existingIndex === -1) return [...items, progress];
   return items.map((item, index) => (index === existingIndex ? progress : item));
+}
+
+/** Drop the transient progress divider once compaction reports no further stage. */
+export function clearCompactionProgress(items: StreamItem[]): StreamItem[] {
+  return items.filter((item) => item.type !== "compaction");
+}
+
+/**
+ * Mount the completed divider where the transient progress record was, so a
+ * successful compaction is visible while its continuation still streams. It
+ * renders in the live row only; the durable checkpoint replay owns the divider
+ * once the turn reconciles.
+ */
+export function completeCompactionProgress(items: StreamItem[]): StreamItem[] {
+  return items.map((item): StreamItem =>
+    item.type === "compaction" ? { type: "compaction_boundary" } : item,
+  );
 }
 
 export function resolveUserInput(
