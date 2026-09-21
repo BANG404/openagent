@@ -75,6 +75,10 @@
   transcript list. Do not reintroduce viewport virtualization or row-height
   estimation: restored and live rows stay mounted so loading and scrolling do
   not repeatedly construct transcript content or discard row-local UI state.
+  When hydrating a conversation, project the selected checkpoint path once and
+  reuse it for pending-input restoration, tip inspection, and any history
+  handoff; finding the tip alone should use the tree tip node without copying
+  the full transcript.
 - Keep ordinary transcript copy and the shared composer textarea on the same
   compact 14px type scale so streaming and editable durable content do not
   change apparent size.

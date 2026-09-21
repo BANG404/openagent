@@ -960,12 +960,16 @@
       fileChangesPerConv[convId] ?? [],
       new Set(liveChanges.map((change) => change.id)),
     );
+    // Project the selected path once per hydration. Long conversations can
+    // contain thousands of durable records; repeating this copy-heavy walk
+    // made conversation switches spend most of their time in the main thread.
+    const activePath = computeActivePath(tree);
     const pendingProjection = restorePendingUserInputFromCheckpoint(
       convId,
-      computeActivePath(tree),
+      activePath,
       checkpoints,
     );
-    const tipMessage = [...computeActivePath(tree)]
+    const tipMessage = [...activePath]
       .reverse()
       .find((message) => message.role === "assistant" && message.checkpointId);
     const tipCheckpoint = tipMessage
@@ -1029,7 +1033,7 @@
           }
         : { ...conversations[idx], messages: msgs };
     }
-    if (syncBackendHistory) await syncAgentHistoryToActivePath(convId, tree);
+    if (syncBackendHistory) await syncAgentHistoryToActivePath(convId, tree, activePath);
   }
 
   /**
@@ -1233,16 +1237,17 @@
   async function syncAgentHistoryToActivePath(
     convId: string,
     tree = convTrees[convId],
+    projectedPath?: ChatMessage[],
   ): Promise<void> {
     if (!tauriAvailable) return;
-    const path = tree ? computeActivePath(tree) : [];
-    const tipCheckpoint = [...path]
-      .reverse()
-      .find((m) => m.role === "assistant" && m.checkpointId)?.checkpointId;
+    const tipCheckpoint = projectedPath
+      ? [...projectedPath].reverse().find((m) => m.role === "assistant" && m.checkpointId)
+          ?.checkpointId
+      : (getActiveTipNode(tree)?.ckId ?? null);
     await openAgent
       .invokeProduct("restore_agent_history", {
         convId,
-        checkpointId: tipCheckpoint ?? null,
+        checkpointId: tipCheckpoint,
       })
       .catch((e) => console.warn("restore_agent_history failed", e));
   }
