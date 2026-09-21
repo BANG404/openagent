@@ -2152,7 +2152,6 @@
       <div class="settings-content-col">
         <header class="agents-settings-intro">
           <h3>{$t("plugins")}</h3>
-          <p>{$t("pluginDesktopControlDescription")}</p>
         </header>
         <div class="plugin-directory-heading">
           <span class="detail-section-title">{$t("plugins")}</span>
@@ -2165,14 +2164,9 @@
           >
             <Accordion.Header class="plugin-accordion-header">
               <Accordion.Trigger class="plugin-accordion-trigger">
-                <span class="plugin-mark" aria-hidden="true">
-                  <svg viewBox="0 0 16 16" fill="none">
-                    <path d="M8 2v3M8 11v3M2 8h3M11 8h3" />
-                    <rect x="5" y="5" width="6" height="6" rx="1.5" />
-                  </svg>
-                </span>
                 <span class="plugin-accordion-copy">
                   <span class="label-text">Cua Driver</span>
+                  <span class="detail-hint">{$t("pluginDesktopControlDescription")}</span>
                   <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
                 </span>
                 <svg
@@ -5618,27 +5612,6 @@
     box-shadow: var(--focus-ring);
   }
 
-  .plugin-mark {
-    display: inline-flex;
-    width: 32px;
-    height: 32px;
-    flex: 0 0 32px;
-    align-items: center;
-    justify-content: center;
-    border-radius: 9px;
-    background: color-mix(in srgb, var(--primary) 12%, var(--mica-surface));
-    color: var(--primary);
-  }
-
-  .plugin-mark svg {
-    width: 17px;
-    height: 17px;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.35;
-  }
-
   .plugin-accordion-copy {
     display: grid;
     min-width: 0;
@@ -5674,7 +5647,7 @@
   }
 
   :global(.plugin-accordion-content) {
-    padding: 0 16px 16px 60px;
+    padding: 0 16px 16px;
   }
 
   :global(.plugin-accordion-content[data-state="open"]) {
