@@ -46,6 +46,10 @@
   preserve pending `ask_user` stream items when `chat-user-input-request`
   races `chat-run-started`; Tauri listeners are independent and event order is
   not a frontend initialization barrier.
+- `chat.model_usage` carries one provider request's bounded usage projection.
+  Project it into the active stream's context indicator and retain the
+  conversation-scoped persisted usage refresh as the restore and event-loss
+  fallback; do not fetch Inspector traces for ordinary transcript surfaces.
 - In Tauri, selecting a different workspace or a conversation owned by another
   workspace prepares the target state and changes the current supervised Runtime
   with `set_workspace` before committing that state in the existing shell. The
