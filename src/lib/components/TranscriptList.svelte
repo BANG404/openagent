@@ -51,11 +51,23 @@
     });
   }
 
+  // Window and panel resizing can deliver several ResizeObserver callbacks in
+  // one frame. Defer those pins so a long transcript is laid out at most once
+  // per frame; streamed DOM mutations still use pinToTail() immediately.
+  function scheduleTailPin() {
+    if (tailFollowFrame !== null) return;
+    tailFollowFrame = requestAnimationFrame(() => {
+      tailFollowFrame = null;
+      applyTailPin();
+    });
+  }
+
   $effect(() => {
     const container = root;
     if (!container) return;
     const syncWidth = () => {
-      rootWidth = container.clientWidth;
+      const nextWidth = container.clientWidth;
+      if (nextWidth !== rootWidth) rootWidth = nextWidth;
     };
     syncWidth();
     const observer = new ResizeObserver(syncWidth);
@@ -67,7 +79,7 @@
     const container = root;
     const shouldFollow = followTail;
     if (!container || !scrollElement || !shouldFollow) return;
-    const observer = new ResizeObserver(pinToTail);
+    const observer = new ResizeObserver(scheduleTailPin);
     const mutationObserver = new MutationObserver(pinToTail);
     observer.observe(container);
     mutationObserver.observe(container, { childList: true, characterData: true, subtree: true });

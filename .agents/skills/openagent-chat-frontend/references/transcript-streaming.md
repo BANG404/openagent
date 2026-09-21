@@ -79,6 +79,9 @@
   reuse it for pending-input restoration, tip inspection, and any history
   handoff; finding the tip alone should use the tree tip node without copying
   the full transcript.
+  Resize-driven tail pins must be coalesced to one animation frame so dragging
+  the window or panel does not synchronously remeasure a long transcript for
+  every observer callback; streamed DOM mutations may still pin immediately.
 - Keep ordinary transcript copy and the shared composer textarea on the same
   compact 14px type scale so streaming and editable durable content do not
   change apparent size.
