@@ -17,5 +17,8 @@ describe("assistant reply actions", () => {
       /isRerunnable\s*=\s*assistantMsg !== null\s*&&\s*assistantMsgIdx >= 0\s*&&\s*!assistantIsStreaming\s*&&\s*turnIsTerminal/s,
     );
     expect(source).toContain("{#if showAssistantActions}");
+    expect(source).toMatch(
+      /assistantMsg\?\.checkpointId\s*\?\?\s*\(assistantIsStreaming\s*\?\s*\(pendingCheckpointId\s*\?\?\s*undefined\)\s*:\s*undefined\)/s,
+    );
   });
 });

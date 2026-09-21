@@ -53,6 +53,7 @@
     memoryRetrievalCanSkip?: boolean;
     currentStreamItems: StreamItem[];
     currentStreamMessageId: string | null;
+    pendingCheckpointId?: string | null;
     activeConvId: string | null;
     activeBranchId: string | null;
     debugMode: boolean;
@@ -104,6 +105,7 @@
     memoryRetrievalCanSkip = false,
     currentStreamItems,
     currentStreamMessageId,
+    pendingCheckpointId = null,
     activeConvId,
     activeBranchId,
     debugMode,
@@ -681,8 +683,9 @@
                         .slice(segment.startIndex + 1)
                         .some((next) => next.type === "text"))}
                 isStreaming={assistantIsStreaming}
-                debugCheckpointId={debugMode && isRerunnable
-                  ? assistantMsg?.checkpointId
+                debugCheckpointId={debugMode
+                  ? (assistantMsg?.checkpointId ??
+                    (assistantIsStreaming ? (pendingCheckpointId ?? undefined) : undefined))
                   : undefined}
                 thinkingOpen={thinkingRecordOpen(
                   segmentIndex === segments.length - 1,

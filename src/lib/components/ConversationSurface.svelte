@@ -42,6 +42,7 @@
     config: AppConfig | null;
     currentStreamItems: StreamItem[];
     currentStreamMessageId: string | null;
+    pendingCheckpointId: string | null;
     debugMode: boolean;
     fileChanges: FileChange[];
     followTail: boolean;
@@ -208,6 +209,7 @@
             memoryRetrievalCanSkip={view.memoryRetrievalCanSkip}
             currentStreamItems={view.currentStreamItems}
             currentStreamMessageId={view.currentStreamMessageId}
+            pendingCheckpointId={view.pendingCheckpointId}
             activeConvId={view.activeConvId}
             activeBranchId={view.activeBranchId}
             debugMode={view.debugMode}

@@ -130,7 +130,10 @@
   portal and cannot inherit the transcript list's descendant rules. Keep
   pagination recalculation positioning immediate so it cannot compete with the
   smooth animation reserved for an explicit page turn.
-- Use the backend-preallocated assistant message ID as the live row key.
+- Use the backend-preallocated assistant message ID as the live row key. In
+  debug mode, show the pending checkpoint ID on the trailing live text as soon
+  as Runtime emits it; use the durable assistant checkpoint ID after the turn
+  is reconciled.
   Streaming and durable forms must share the same assistant-turn branch and
   keyed stream-item children.
 - Reduce logical Turn metadata from checkpoints on the selected branch and
