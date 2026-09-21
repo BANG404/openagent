@@ -10,7 +10,7 @@
   import type { CachedRestoreSurface } from "$lib/startupRestoreCache";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { ckIdsAlongActivePath } from "$lib/checkpointTree";
-  import { latestContextUsageTokens } from "$lib/cacheUsage";
+  import { contextUsageTokens, latestContextUsageTokens } from "$lib/cacheUsage";
   import type {
     AppConfig,
     ChatAttachment,
@@ -64,6 +64,7 @@
     shikiTheme: string;
     slashCommands: SlashCommand[];
     taskUsagesByCheckpointId: Record<string, TaskTokenUsage[]>;
+    liveContextUsage: TaskTokenUsage | null;
     tailAnchorToken: number | null;
     tauriAvailable: boolean;
     workspace: WorkspaceContext | null;
@@ -139,7 +140,12 @@
   // checkpoint node until its terminal snapshot, so it reports the newest
   // reconciled measurement on the active path until its own arrives.
   const contextUsage = $derived(
-    latestContextUsageTokens(ckIdsAlongActivePath(view.activeTree), view.taskUsagesByCheckpointId),
+    view.isStreaming && view.liveContextUsage
+      ? contextUsageTokens(view.liveContextUsage)
+      : latestContextUsageTokens(
+          ckIdsAlongActivePath(view.activeTree),
+          view.taskUsagesByCheckpointId,
+        ),
   );
 
   function requestComposerFocus() {

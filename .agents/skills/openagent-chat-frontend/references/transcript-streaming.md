@@ -313,10 +313,12 @@
   composer context usage indicator mounted for the same interval, reporting the
   newest usage measured on the active checkpoint path. Refresh persisted usage
   when a stream starts so the composer can show the last known context size
-  before the new checkpoint is available. Poll the persisted usage projection
-  while the stream is active because each provider request can finish before
-  the overall agent turn does; then pick up the final measurement when that
-  checkpoint arrives. When no prior measurement exists, keep the enabled
+  before the new checkpoint is available. Consume the typed `chat-model-usage`
+  event emitted by each Rig `ModelTurnFinished` hook so every provider request,
+  including tool-follow-up rounds, updates the indicator before the overall
+  Agent turn ends. Keep the persisted usage refresh as the restore and
+  event-loss fallback, then pick up the final measurement when that checkpoint
+  arrives. When no prior measurement exists, keep the enabled
   streaming indicator mounted at zero until a usage measurement arrives. Do not
   show a redundant success toast for the same transition.
   Do not show a reply's actions—including regenerate, copy, and book mode—while
