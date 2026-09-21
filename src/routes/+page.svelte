@@ -3048,6 +3048,11 @@
           };
         }
       },
+      onModelUsage: (conv_id) => {
+        // Usage is persisted before the event is emitted. Refresh the bounded
+        // projection so it maps the new request to its durable checkpoint.
+        void refreshTaskUsagesForConversation(conv_id);
+      },
       onMemoryRetrieval: (conv_id, stage) => {
         if (!chatStreams.streamingConversationIds[conv_id]) {
           recoverUnannouncedChatStream(conv_id);
