@@ -134,6 +134,9 @@
   let localComposerFocusRequest = $state(0);
 
   const contextUsage = $derived.by(() => {
+    // Usage is finalized with the terminal checkpoint. Keep the composer
+    // indicator hidden while the active turn can still append provider rounds.
+    if (view.isStreaming) return null;
     const tip = getActiveTipNode(view.activeTree);
     if (!tip) return null;
     const usages = view.taskUsagesByCheckpointId[tip.ckId];

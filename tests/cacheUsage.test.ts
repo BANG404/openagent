@@ -244,10 +244,18 @@ describe("cache usage normalization", () => {
 
 describe("completed-turn cache usage", () => {
   test("loads and renders usage in production builds", async () => {
-    const [routeSource, messageListSource] = await Promise.all([
-      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
-      Bun.file(new URL("../src/lib/components/MessageList.svelte", import.meta.url)).text(),
-    ]);
+    const [routeSource, surfaceSource, messageListSource, streamRendererSource] = await Promise.all(
+      [
+        Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+        Bun.file(
+          new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url),
+        ).text(),
+        Bun.file(new URL("../src/lib/components/MessageList.svelte", import.meta.url)).text(),
+        Bun.file(
+          new URL("../src/lib/components/StreamItemRenderer.svelte", import.meta.url),
+        ).text(),
+      ],
+    );
 
     expect(routeSource).toContain("if (!tauriAvailable) return;");
     expect(routeSource).not.toContain("if (!isDebugBuild || !tauriAvailable) return;");
@@ -256,5 +264,8 @@ describe("completed-turn cache usage", () => {
     expect(routeSource).not.toContain('invoke<TaskTrace[]>("get_task_traces")');
     expect(messageListSource).toContain("if (!message.checkpointId) return null;");
     expect(messageListSource).not.toContain("if (!devMode || !message.checkpointId) return null;");
+    expect(surfaceSource).toContain("if (view.isStreaming) return null;");
+    expect(messageListSource).toContain("isCompactionReplayUser(msg) && !isStreaming");
+    expect(streamRendererSource).toContain('item.type === "compaction_boundary" && !isStreaming');
   });
 });

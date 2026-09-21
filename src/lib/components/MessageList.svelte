@@ -513,7 +513,9 @@
     if (entry.kind === "live_stream") return currentStreamItems;
     if (entry.kind === "assistant_turn") {
       return entry.messages.flatMap((message) => {
-        if (isCompactionReplayUser(message)) return [{ type: "compaction_boundary" as const }];
+        if (isCompactionReplayUser(message)) {
+          return isStreaming ? [] : [{ type: "compaction_boundary" as const }];
+        }
         if (message.role !== "assistant") return [];
         return message.items?.length
           ? message.items
@@ -859,7 +861,7 @@
       {:else if entry.kind === "message"}
         {@const msg = entry.msg}
         {@const msgIdx = entry.index}
-        {#if isCompactionReplayUser(msg)}
+        {#if isCompactionReplayUser(msg) && !isStreaming}
           <MessageDivider
             title={$t("compactionCompleted")}
             streamItemKey={`compaction-boundary-${msg.id}`}
