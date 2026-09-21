@@ -3891,6 +3891,28 @@ fn cua_driver_endpoint_is_ready(endpoint: &str) -> bool {
     std::path::Path::new(endpoint).exists()
 }
 
+/// Remove a Unix socket path left behind after an unclean daemon shutdown.
+///
+/// The driver refuses to replace an existing endpoint path even when no
+/// process is listening on it. The host only calls this after taking the
+/// endpoint ownership lock and confirming that the path is not accepting
+/// connections, so a live peer can never be unlinked here.
+#[cfg(unix)]
+fn remove_stale_cua_driver_endpoint(endpoint: &str) -> Result<(), String> {
+    match std::fs::remove_file(endpoint) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!(
+            "Failed to remove stale Cua Driver endpoint {endpoint}: {error}"
+        )),
+    }
+}
+
+#[cfg(not(unix))]
+fn remove_stale_cua_driver_endpoint(_endpoint: &str) -> Result<(), String> {
+    Ok(())
+}
+
 fn wait_for_cua_driver_endpoint(
     child: &mut std::process::Child,
     endpoint: &str,
@@ -4243,10 +4265,12 @@ fn ensure_cua_driver_serve() -> Result<bool, String> {
     match plan {
         CuaDriverPlan::ReclaimThenServe => {
             reclaim_orphaned_cua_driver_daemon(&endpoint)?;
+            remove_stale_cua_driver_endpoint(&endpoint)?;
             *daemon = Some(spawn_cua_driver_daemon(&endpoint, owner)?);
             Ok(true)
         }
         CuaDriverPlan::Serve => {
+            remove_stale_cua_driver_endpoint(&endpoint)?;
             *daemon = Some(spawn_cua_driver_daemon(&endpoint, owner)?);
             Ok(true)
         }
