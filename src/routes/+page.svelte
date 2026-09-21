@@ -423,6 +423,7 @@
   // the user sees. Nested branch arrows fall out naturally from rendering this path.
   let convTrees = $state<Record<string, ConvTree>>({});
   let taskUsagesByConversation = $state<Record<string, Record<string, TaskTokenUsage[]>>>({});
+  let liveContextUsageByConversation = $state<Record<string, TaskTokenUsage>>({});
   const taskUsageRefreshVersions = new Map<string, number>();
   const taskUsageRefreshTimers = new Map<string, ReturnType<typeof setInterval>>();
   let checkpointLoadErrors = $state<Record<string, string>>({});
@@ -3048,10 +3049,11 @@
           };
         }
       },
-      onModelUsage: (conv_id) => {
-        // Usage is persisted before the event is emitted. Refresh the bounded
-        // projection so it maps the new request to its durable checkpoint.
-        void refreshTaskUsagesForConversation(conv_id);
+      onModelUsage: (conv_id, usage) => {
+        liveContextUsageByConversation = {
+          ...liveContextUsageByConversation,
+          [conv_id]: usage,
+        };
       },
       onMemoryRetrieval: (conv_id, stage) => {
         if (!chatStreams.streamingConversationIds[conv_id]) {
@@ -5205,6 +5207,7 @@
     pendingCheckpointId: activeConvId ? (pendingCheckpointIds[activeConvId] ?? null) : null,
     debugMode: isDebugMode,
     taskUsagesByCheckpointId: activeConvId ? (taskUsagesByConversation[activeConvId] ?? {}) : {},
+    liveContextUsage: activeConvId ? (liveContextUsageByConversation[activeConvId] ?? null) : null,
     fileChanges: currentFileChanges,
     followUpSuggestionsByMessageId,
     // Tail following is a streaming affordance only. Once the response is

@@ -16,6 +16,23 @@ export function summarizeCacheUsage(usage: TaskTokenUsage): CacheUsageSummary {
   return summarizeCacheUsages([usage]);
 }
 
+/**
+ * Return the provider input size represented by one usage record. Providers
+ * differ on whether cached and cache-write tokens are included in
+ * `input_tokens`, so prefer the aggregate when available and reconstruct a
+ * complete input total when the aggregate is missing.
+ */
+export function contextUsageTokens(usage: TaskTokenUsage): number {
+  const reportedInput = usage.total_tokens - usage.output_tokens;
+  const separatelyReportedInput =
+    usage.input_tokens + usage.cached_input_tokens + usage.cache_creation_input_tokens;
+  return reportedInput > 0
+    ? Math.max(usage.input_tokens, reportedInput)
+    : separatelyReportedInput > 0
+      ? separatelyReportedInput
+      : usage.input_tokens;
+}
+
 export function summarizeCacheUsages(usages: readonly TaskTokenUsage[]): CacheUsageSummary {
   let inputTokens = 0;
   let cachedTokens = 0;
@@ -83,8 +100,7 @@ export function latestContextUsageTokens(
   for (let index = ordered.length - 1; index >= 0; index -= 1) {
     const usage = usagesByCheckpointId[ordered[index]]?.at(-1);
     if (!usage) continue;
-    const reportedInput = usage.total_tokens - usage.output_tokens;
-    const inputTokens = Math.max(usage.input_tokens, reportedInput > 0 ? reportedInput : 0);
+    const inputTokens = contextUsageTokens(usage);
     if (inputTokens > 0) return inputTokens;
   }
   return null;
