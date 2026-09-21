@@ -424,6 +424,7 @@
   let convTrees = $state<Record<string, ConvTree>>({});
   let taskUsagesByConversation = $state<Record<string, Record<string, TaskTokenUsage[]>>>({});
   const taskUsageRefreshVersions = new Map<string, number>();
+  const taskUsageRefreshTimers = new Map<string, ReturnType<typeof setInterval>>();
   let checkpointLoadErrors = $state<Record<string, string>>({});
   // Per-conv: parent checkpoint id for the next finalized turn (used to attach a
   // re-execution as a sibling of the edited turn instead of as a tip-extension).
@@ -483,6 +484,19 @@
     } catch (error) {
       console.warn("Failed to load task usage:", error);
     }
+  }
+
+  function startTaskUsageRefreshWhileStreaming(convId: string): void {
+    if (taskUsageRefreshTimers.has(convId)) return;
+    const timer = setInterval(() => {
+      if (!chatStreams.streamingConversationIds[convId]) {
+        clearInterval(timer);
+        taskUsageRefreshTimers.delete(convId);
+        return;
+      }
+      void refreshTaskUsagesForConversation(convId);
+    }, 750);
+    taskUsageRefreshTimers.set(convId, timer);
   }
 
   // Linux has no Rust-owned native material (only Windows uses Mica/Acrylic and macOS uses
@@ -2488,6 +2502,10 @@
     // stream starts so the composer can keep showing the latest known context
     // size while the next response is still in flight.
     void refreshTaskUsagesForConversation(convId);
+    // Each provider request persists usage before the overall agent turn ends.
+    // Poll the small usage projection so the composer reflects that result
+    // while tools or subsequent model rounds are still streaming.
+    startTaskUsageRefreshWhileStreaming(convId);
     if (config?.memory_retrieval_enabled) {
       chatStreams.memoryRetrievalStages = {
         ...chatStreams.memoryRetrievalStages,
