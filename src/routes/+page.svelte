@@ -345,9 +345,6 @@
   // A restored render_mermaid request must be answered once even if its
   // original frontend event was emitted while the transcript was mounting.
   const handledMermaidInterrupts = new Set<string>();
-  // Pre-render Mermaid while sibling tools may still be waiting for approval.
-  // The result is consumed when the runtime establishes the frontend channel.
-  const pendingMermaidResults = new Map<string, Promise<string>>();
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
   // The user's explicit choice, written only by the title-bar toggle. It is the
@@ -2942,16 +2939,7 @@
         source: string;
       }>("chat-mermaid-render-request", (e) => {
         const request = e.payload;
-        const cached = pendingMermaidResults.get(request.conv_id);
-        if (cached) {
-          // The pre-render path already submitted this result before the
-          // runtime entered the tool. Do not submit it a second time when the
-          // runtime emits its normal request event.
-          pendingMermaidResults.delete(request.conv_id);
-          return;
-        }
         const result = renderMermaidToolResult(request.source, mermaidConfig).then(JSON.stringify);
-        pendingMermaidResults.delete(request.conv_id);
         void result
           .then((renderResult) =>
             openAgent.submitInterruptResponse({
@@ -3080,33 +3068,6 @@
           ...chatStreams.itemsByConversation,
           [conv_id]: items,
         };
-        if (name === "render_mermaid" && toolUseId) {
-          const source =
-            typeof args === "object" && args !== null && "source" in args
-              ? (args as { source?: unknown }).source
-              : undefined;
-          if (typeof source === "string" && source.trim()) {
-            pendingMermaidResults.set(
-              conv_id,
-              renderMermaidToolResult(source, mermaidConfig).then((result) =>
-                JSON.stringify(result),
-              ),
-            );
-            void pendingMermaidResults
-              .get(conv_id)
-              ?.then((response) =>
-                openAgent.submitInterruptResponse({
-                  convId: conv_id,
-                  interruptId: toolUseId,
-                  response,
-                }),
-              )
-              .catch((error) => {
-                pendingMermaidResults.delete(conv_id);
-                console.warn("Failed to submit pre-rendered Mermaid result", error);
-              });
-          }
-        }
         persistStreamDraft(conv_id).catch(() => {});
       },
       onToolResult: (conv_id, result, toolUseId) => {
@@ -5184,6 +5145,7 @@
     config,
     currentStreamItems,
     currentStreamMessageId,
+    pendingCheckpointId: activeConvId ? (pendingCheckpointIds[activeConvId] ?? null) : null,
     debugMode: isDebugMode,
     taskUsagesByCheckpointId: activeConvId ? (taskUsagesByConversation[activeConvId] ?? {}) : {},
     fileChanges: currentFileChanges,

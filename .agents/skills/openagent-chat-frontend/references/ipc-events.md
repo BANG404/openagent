@@ -145,5 +145,7 @@
   finalization. Interrupted, cancelled, and failed turns do not notify.
 - Treat `chat-mermaid-render-request` as automatic frontend-assisted tool
   execution. Render with the shared Mermaid engine and return its structured
-  result through `submit_interrupt_response`.
+  result through `submit_interrupt_response`. Start rendering only from this
+  event, after Runtime has registered the interrupt; do not submit a
+  speculative result from the earlier streamed tool-call event.
 - Extend streamed formats only through `src/lib/streamdown/`.
