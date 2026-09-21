@@ -55,6 +55,14 @@
   let thinkingExpanded = $state(false);
   let thinkingToggled = $state(false);
   const capabilities = useOpenAgentUiCapabilities();
+  const streamingTextAnimation = {
+    enabled: true,
+    type: "fade" as const,
+    duration: 360,
+    timingFunction: "ease-out" as const,
+    tokenize: "word" as const,
+    animateOnMount: false,
+  };
 
   // The transcript owns the auto-collapse rule while a turn produces records:
   // a thinking block closes as soon as a later record follows it. A reader
@@ -95,6 +103,7 @@
         : isLastText
           ? item.content
           : item.content.trimEnd()}
+      animation={isStreaming && isLastText ? streamingTextAnimation : undefined}
       controls={{ table: false }}
       components={{ code: Code, mermaid: Mermaid, math: ChatMath }}
       extensions={customExtensions}
@@ -229,6 +238,11 @@
   .message-record {
     content-visibility: auto;
     contain-intrinsic-size: auto 120px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :global(.assistant-msg span[style*="animation-name: sd-"]) {
+      animation: none !important;
+    }
   }
   :global(.message-record[data-file-preview-open]) {
     content-visibility: visible;
