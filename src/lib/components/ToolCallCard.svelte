@@ -593,7 +593,7 @@
 
   .tool-running {
     color: var(--primary);
-    animation: pulse 1.2s ease-in-out infinite;
+    animation: pulse 1.8s ease-in-out infinite;
   }
 
   .tool-pending {
@@ -879,10 +879,10 @@
   @keyframes pulse {
     0%,
     100% {
-      opacity: 1;
+      opacity: 0.55;
     }
     50% {
-      opacity: 0.3;
+      opacity: 0.85;
     }
   }
 
