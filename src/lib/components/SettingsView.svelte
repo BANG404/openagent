@@ -4,7 +4,7 @@
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
   import { onMount, tick, untrack } from "svelte";
-  import { ContextMenu, Dialog, Tabs } from "bits-ui";
+  import { Accordion, ContextMenu, Dialog, Tabs } from "bits-ui";
   import type {
     AgentMemoryEntry,
     AgentRole,
@@ -2154,22 +2154,52 @@
           <h3>{$t("plugins")}</h3>
           <p>{$t("pluginDesktopControlDescription")}</p>
         </header>
-        <section class="application-settings-surface settings-card">
-          <div class="settings-card-row plugin-card-header">
-            <span class="settings-card-copy">
-              <span class="label-text">Cua Driver</span>
-              <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
-            </span>
-            <Switch
-              checked={cuaDriver.enabled}
-              onCheckedChange={(enabled) => setCuaDriverEnabled(enabled)}
-              ariaLabel={$t("pluginDesktopControl")}
-            />
-          </div>
-          <div class="plugin-card-grid">
-            <div class="plugin-card-control">
+        <div class="plugin-directory-heading">
+          <span class="detail-section-title">{$t("plugins")}</span>
+          <span class="plugin-directory-count">1</span>
+        </div>
+        <Accordion.Root type="multiple" class="plugin-accordion">
+          <Accordion.Item
+            value="cua-driver"
+            class="application-settings-surface plugin-accordion-item"
+          >
+            <Accordion.Header class="plugin-accordion-header">
+              <Accordion.Trigger class="plugin-accordion-trigger">
+                <span class="plugin-mark" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none">
+                    <path d="M8 2v3M8 11v3M2 8h3M11 8h3" />
+                    <rect x="5" y="5" width="6" height="6" rx="1.5" />
+                  </svg>
+                </span>
+                <span class="plugin-accordion-copy">
+                  <span class="label-text">Cua Driver</span>
+                  <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
+                </span>
+                <svg
+                  class="plugin-accordion-chevron"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path d="m4 6 4 4 4-4" />
+                </svg>
+              </Accordion.Trigger>
+              <div class="plugin-accordion-actions">
+                <Switch
+                  checked={cuaDriver.enabled}
+                  onCheckedChange={(enabled) => setCuaDriverEnabled(enabled)}
+                  ariaLabel={$t("pluginDesktopControl")}
+                />
+              </div>
+            </Accordion.Header>
+            <Accordion.Content class="plugin-accordion-content">
               <div class="plugin-tools-heading">
-                <span class="label-text">{$t("pluginTools")}</span>
+                <div class="plugin-tools-title">
+                  <span class="label-text">{$t("pluginTools")}</span>
+                  <span class="plugin-tool-count"
+                    >{(mcpDiscoveredTools[cuaDriverId] ?? []).length}</span
+                  >
+                </div>
                 <SettingsActionButton
                   label={$t("testMcpServer")}
                   icon="test"
@@ -2180,7 +2210,7 @@
               </div>
               <span class="detail-hint">{$t("pluginToolsHint")}</span>
               {#if (mcpDiscoveredTools[cuaDriverId] ?? []).length > 0}
-                <div class="application-settings-surface mcp-tool-list plugin-tool-list">
+                <div class="application-settings-surface plugin-tool-list">
                   {#each mcpDiscoveredTools[cuaDriverId] ?? [] as tool (tool)}
                     <div class="mcp-tool-row">
                       <code>{tool}</code>
@@ -2193,12 +2223,15 @@
                   {/each}
                 </div>
               {:else}
-                <span class="detail-hint">{$t("pluginToolsEmpty")}</span>
+                <div class="plugin-tools-empty">
+                  <span class="plugin-tools-empty-icon" aria-hidden="true">+</span>
+                  <span>{$t("pluginToolsEmpty")}</span>
+                </div>
               {/if}
-            </div>
-          </div>
-          <p class="plugin-warning">{$t("pluginUnrestrictedWarning")}</p>
-        </section>
+              <p class="plugin-warning">{$t("pluginUnrestrictedWarning")}</p>
+            </Accordion.Content>
+          </Accordion.Item>
+        </Accordion.Root>
       </div>
     </Tabs.Content>
 
@@ -5519,23 +5552,144 @@
     margin-bottom: 12px;
   }
 
-  .plugin-card-header {
-    align-items: center;
-  }
-
-  .plugin-card-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-    padding: 16px;
-    border-top: 1px solid var(--mica-divider);
-  }
-
-  .plugin-card-control {
+  .plugin-directory-heading {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 2px 10px;
+  }
+
+  .plugin-directory-heading .detail-section-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .plugin-directory-count,
+  .plugin-tool-count {
+    display: inline-flex;
+    min-width: 20px;
+    height: 20px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--interactive-state-bg);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  :global(.plugin-accordion) {
+    display: grid;
+    gap: 10px;
+  }
+
+  :global(.plugin-accordion-item) {
+    overflow: hidden;
+    border-radius: 10px;
+  }
+
+  :global(.plugin-accordion-header) {
+    display: flex;
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  :global(.plugin-accordion-trigger) {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  :global(.plugin-accordion-trigger:focus-visible) {
+    position: relative;
+    z-index: 1;
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  .plugin-mark {
+    display: inline-flex;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--primary) 12%, var(--mica-surface));
+    color: var(--primary);
+  }
+
+  .plugin-mark svg {
+    width: 17px;
+    height: 17px;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.35;
+  }
+
+  .plugin-accordion-copy {
+    display: grid;
+    min-width: 0;
+    flex: 1;
+    gap: 4px;
+  }
+
+  .plugin-accordion-copy .detail-hint {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :global(.plugin-accordion-chevron) {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    stroke: var(--text-muted);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.5;
+    transition: transform 0.18s ease;
+  }
+
+  :global(.plugin-accordion-trigger[data-state="open"] .plugin-accordion-chevron) {
+    transform: rotate(180deg);
+  }
+
+  :global(.plugin-accordion-actions) {
+    display: flex;
+    align-items: center;
+    padding: 0 16px 0 4px;
+  }
+
+  :global(.plugin-accordion-content) {
+    padding: 0 16px 16px 60px;
+  }
+
+  :global(.plugin-accordion-content[data-state="open"]) {
+    animation: plugin-content-open 0.18s ease-out;
+  }
+
+  @keyframes plugin-content-open {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .plugin-tools-heading {
@@ -5546,19 +5700,57 @@
     gap: 8px;
   }
 
+  .plugin-tools-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   .plugin-tool-list {
     width: 100%;
-    margin-top: 4px;
+    margin-top: 12px;
+    overflow: hidden;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    border-top: 1px solid var(--mica-divider);
+    border-bottom: 1px solid var(--mica-divider);
   }
 
   .plugin-warning {
-    margin: 0 16px 16px;
+    margin: 16px 0 0;
     padding: 10px 12px;
     border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--mica-divider));
     border-radius: 8px;
     color: var(--danger);
     font-size: 12px;
     line-height: 1.45;
+  }
+
+  .plugin-tools-empty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px dashed var(--mica-divider);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: var(--settings-hint-size);
+    line-height: var(--settings-hint-leading);
+  }
+
+  .plugin-tools-empty-icon {
+    display: inline-flex;
+    width: 18px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--mica-divider);
+    border-radius: 50%;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1;
   }
 
   .detail-section-header .detail-section-title {
