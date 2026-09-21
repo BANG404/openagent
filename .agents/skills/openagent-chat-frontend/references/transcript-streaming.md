@@ -296,14 +296,21 @@
   flight, keep one localized transient divider mounted and update its checking,
   summarizing, and persistence stages in place. Render a terminal failure with
   the same shared divider in its danger treatment and retain its detail briefly.
-  On success, clear the transient progress record and defer the completion
-  divider until the response reaches a terminal state. Keep it out of a later
-  retry record, and let the durable replay render exactly one divider after
-  finalization. Hide tagged compaction replays while the turn is streaming so a
-  checkpoint refresh cannot make the divider flash early. Keep the composer
-  context usage indicator hidden for the same interval; show the newest usage
-  measured on the active checkpoint path only after streaming ends. Do not show
-  a redundant success toast for the same transition.
+  On success, convert that same transient record into the completion divider in
+  place and leave it mounted for the rest of the streaming turn, because the
+  replay that revision produced has no durable continuation yet. Keep it out of
+  a later retry record so a failed attempt cannot hide a boundary that already
+  happened, and drop it when the optimistic turn is persisted so exactly one
+  divider renders. A replay that subsequently reaches the transcript without a
+  durable continuation is that same boundary and yields to the live marker while
+  the stream still reports compaction; a replay grouped with a durable
+  continuation, or any replay while the running turn reports no compaction,
+  keeps its divider mounted instead of waiting for the stream to end. Keep the
+  composer context usage indicator mounted for the same interval, reporting the
+  newest usage measured on the active checkpoint path; a streaming turn has no
+  checkpoint node until its terminal snapshot, so it keeps the last reconciled
+  measurement and picks up its own when that checkpoint arrives. Do not show a
+  redundant success toast for the same transition.
   Do not show a reply's actions—including regenerate, copy, and book mode—while
   that logical assistant turn is streaming, even when a durable prefix exists
   before a live context-compaction continuation. Keep already completed turns'

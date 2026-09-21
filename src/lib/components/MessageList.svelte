@@ -203,8 +203,11 @@
     appendLiveStreamEntry(renderEntries, isStreaming ? currentStreamMessageId : null),
   );
   let currentSegments = $derived(groupStreamItems(currentStreamItems));
-  // A successful compaction boundary is a completed-turn marker. Keep both
-  // the live marker and its durable replay hidden until the response ends.
+  // The live row carries its own divider while the running stream reports
+  // compaction. A replay that reaches the transcript without a durable
+  // continuation is the live row's own boundary, so it yields to the marker
+  // the stream is already showing; any other replay describes a completed
+  // compaction and stays mounted while a later turn streams.
   let liveCompactionDivider = $derived(
     isStreaming &&
       currentStreamItems.some(
@@ -872,7 +875,7 @@
       {:else if entry.kind === "message"}
         {@const msg = entry.msg}
         {@const msgIdx = entry.index}
-        {#if isCompactionReplayUser(msg) && !liveCompactionDivider && !isStreaming}
+        {#if isCompactionReplayUser(msg) && !liveCompactionDivider}
           <MessageDivider
             title={$t("compactionCompleted")}
             streamItemKey={`compaction-boundary-${msg.id}`}
