@@ -519,20 +519,26 @@
           return isStreaming ? [] : [{ type: "compaction_boundary" as const }];
         }
         if (message.role !== "assistant") return [];
-        return message.items?.length
+        const items = message.items?.length
           ? message.items
           : message.content
             ? [{ type: "text" as const, content: message.content }]
             : [];
+        // A durable assistant prefix can remain mounted while a later
+        // compaction continuation is streaming. Its persisted boundary is
+        // still part of the old row, but must not become visible until the
+        // whole conversation stream has reached a terminal state.
+        return isStreaming ? items.filter((item) => item.type !== "compaction_boundary") : items;
       });
     }
-    return entryAssistantMessages(entry).flatMap((message) =>
-      message.items?.length
+    return entryAssistantMessages(entry).flatMap((message) => {
+      const items = message.items?.length
         ? message.items
         : message.content
           ? [{ type: "text" as const, content: message.content }]
-          : [],
-    );
+          : [];
+      return isStreaming ? items.filter((item) => item.type !== "compaction_boundary") : items;
+    });
   }
 
   async function copyAssistantOutput(turnId: string, output: string) {

@@ -299,8 +299,10 @@
   replace successful progress with the durable completion divider only after
   checkpoint reconciliation and stream completion. Keep the composer context
   usage indicator hidden for the same streaming interval; reveal both finalized
-  surfaces together after the terminal checkpoint is selected. Do not show a
-  redundant success toast for the same transition.
+  surfaces together after the terminal checkpoint is selected. Filter a
+  persisted boundary from any durable assistant prefix while a later
+  compaction continuation is streaming, since that prefix is not itself the
+  live row. Do not show a redundant success toast for the same transition.
   Do not show a reply's actions—including regenerate, copy, and book mode—while
   that logical assistant turn is streaming, even when a durable prefix exists
   before a live context-compaction continuation. Keep already completed turns'

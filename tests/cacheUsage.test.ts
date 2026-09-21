@@ -266,6 +266,9 @@ describe("completed-turn cache usage", () => {
     expect(messageListSource).not.toContain("if (!devMode || !message.checkpointId) return null;");
     expect(surfaceSource).toContain("if (view.isStreaming) return null;");
     expect(messageListSource).toContain("isCompactionReplayUser(msg) && !isStreaming");
+    expect(messageListSource).toContain(
+      'items.filter((item) => item.type !== "compaction_boundary")',
+    );
     expect(streamRendererSource).toContain('item.type === "compaction_boundary" && !isStreaming');
   });
 });
