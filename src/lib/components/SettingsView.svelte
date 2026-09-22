@@ -87,6 +87,7 @@
   type McpProbeResult = {
     tools: string[];
     resources: string[];
+    fingerprint: string;
   };
   type RemoteGatewayStatus = {
     enabled: boolean;
@@ -3984,6 +3985,32 @@
                     class="detail-input flash-task-textarea"
                     bind:value={draftConfig.flash_agents.skill_category.prompt}
                     placeholder={$t("skillCategoryAgentPromptPlaceholder")}></textarea>
+                </label>
+              </details>
+            </article>
+
+            <article class="flash-task-item">
+              <div class="flash-task-heading">
+                <div class="flash-task-copy">
+                  <h5>{$t("mcpServerCategoryAgent")}</h5>
+                  <p>{$t("mcpServerCategoryTaskDescription")}</p>
+                </div>
+                <SettingsStatusToggle
+                  bind:checked={draftConfig.flash_agents.mcp_server_category.enabled}
+                  ariaLabel={$t("mcpServerCategoryAgentEnabled")}
+                />
+              </div>
+              <details
+                class="flash-task-custom"
+                open={draftConfig.flash_agents.mcp_server_category.prompt.trim().length > 0}
+              >
+                <summary>{$t("taskCustomPrompt")}</summary>
+                <label class="detail-label">
+                  <span class="sr-only">{$t("agentExtraPrompt")}</span>
+                  <textarea
+                    class="detail-input flash-task-textarea"
+                    bind:value={draftConfig.flash_agents.mcp_server_category.prompt}
+                    placeholder={$t("mcpServerCategoryAgentPromptPlaceholder")}></textarea>
                 </label>
               </details>
             </article>

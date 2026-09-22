@@ -23,6 +23,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     title: { enabled: true, prompt: "" },
     memory: { enabled: true, prompt: "" },
     skill_category: { enabled: true, prompt: "" },
+    mcp_server_category: { enabled: true, prompt: "" },
     suggestions: { enabled: true, prompt: "" },
     hook: { enabled: true, prompt: "" },
     tool_approval: { enabled: false, prompt: "" },
