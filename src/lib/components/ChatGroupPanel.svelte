@@ -91,14 +91,20 @@
   }
 
   function toggleMention(member: ChatGroupMember): void {
-    const token = `@${member.role_name} `;
-    if (selectedMentions.includes(member.id)) {
-      selectedMentions = selectedMentions.filter((id) => id !== member.id);
-      draft = draft.replace(token, "");
+    // Reconcile against the text first: the user may have removed a mention
+    // directly with Backspace since the last chip interaction.
+    const draftMentions = mentionsFromDraft(draft);
+    selectedMentions = draftMentions;
+    if (draftMentions.includes(member.id)) {
+      draft = removeMentionFromDraft(draft, member.role_name);
+      selectedMentions = mentionsFromDraft(draft);
       return;
     }
-    selectedMentions = [...selectedMentions, member.id];
-    if (!draft.includes(token)) draft = `${token}${draft}`;
+    const token = /\s/.test(member.role_name)
+      ? `@"${member.role_name.replaceAll('"', '\\\\"')}" `
+      : `@${member.role_name} `;
+    draft = `${token}${draft}`;
+    selectedMentions = mentionsFromDraft(draft);
   }
 
   function closeMentionPalette(): void {
@@ -148,7 +154,7 @@
   }
 
   function mentionsFromDraft(content: string): string[] {
-    const found = new Set(selectedMentions);
+    const found = new Set<string>();
     const pattern = /@"([^"\\]*(?:\\.[^"\\]*)*)"|@([^\s@]+)/g;
     for (const match of content.matchAll(pattern)) {
       const name = (match[1] ?? match[2] ?? "").replaceAll('\\"', '"').trim().toLocaleLowerCase();
@@ -156,6 +162,31 @@
       if (member) found.add(member.id);
     }
     return [...found];
+  }
+
+  function removeMentionFromDraft(content: string, roleName: string): string {
+    const pattern = /@"([^"\\]*(?:\\.[^"\\]*)*)"|@([^\s@]+)/g;
+    let removed = false;
+    return content.replace(
+      pattern,
+      (token, quoted: string | undefined, bare: string | undefined) => {
+        if (removed) return token;
+        const name = (quoted ?? bare ?? "").replaceAll('\\"', '"').trim();
+        if (name.toLocaleLowerCase() !== roleName.toLocaleLowerCase()) return token;
+        removed = true;
+        return "";
+      },
+    );
+  }
+
+  function syncSelectedMentions(): void {
+    const next = mentionsFromDraft(draft);
+    if (
+      next.length !== selectedMentions.length ||
+      next.some((id, index) => id !== selectedMentions[index])
+    ) {
+      selectedMentions = next;
+    }
   }
 
   async function sendMessage(): Promise<void> {
@@ -327,7 +358,10 @@
           bind:value={draft}
           rows="3"
           placeholder={$t("chatGroupMessagePlaceholder")}
-          oninput={syncMentionPalette}
+          oninput={() => {
+            syncSelectedMentions();
+            syncMentionPalette();
+          }}
           onselect={syncMentionPalette}
           onclick={syncMentionPalette}
           onkeydown={(event) => {
