@@ -54,6 +54,10 @@
   controller. The page shell coordinates durable conversation/checkpoint data
   with that controller, but must not recreate parallel maps for streaming,
   pause, timing, awaiting-output, or memory-retrieval state.
+- Treat correlated tool results and approval requests as idempotent stream
+  events. Once an event has resolved or attached to its `toolUseId`, a repeated
+  copy must leave the transcript unchanged instead of falling through to the
+  next pending sibling tool.
 - Keep transcript tail-follow intent scoped to the active conversation. The
   shared viewport may be reused when navigating between conversations, but a
   stream's automatic tail pin must not carry over to another conversation.
