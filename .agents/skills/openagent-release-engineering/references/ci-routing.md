@@ -18,7 +18,10 @@ two verification routes:
   Harness integration. Full runs never consume prior fast coverage. Frontend
   bundle budgets resolve both direct Vite manifest entries and source modules
   emitted through a manifest entry's dynamic imports, so code splitting does
-  not fail a valid budget target before size measurement.
+  not fail a valid budget target before size measurement. The settings view
+  budget is 164 KiB raw and 64 KiB gzip; keep the raw limit explicit because
+  this view is the largest settings surface and its gzip size can hide source
+  growth.
 - Workflow-router and shared dependency changes still conservatively select
   every affected module; the verification tier controls whether those modules
   use their quick or complete checks.
