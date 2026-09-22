@@ -313,8 +313,10 @@
   }
 
   :global(.ws-recent-submenu) {
-    width: min(460px, calc(100vw - 24px));
+    width: max-content;
+    min-width: 200px;
     max-width: calc(100vw - 24px);
+    box-sizing: border-box;
   }
 
   .ws-recent-row :global(.ws-dropdown-item) {

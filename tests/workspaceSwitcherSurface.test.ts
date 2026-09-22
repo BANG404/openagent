@@ -17,3 +17,15 @@ test("keeps the composer workspace switcher out of the composer surface selector
   expect(baseFolderNameRule).toBeGreaterThan(-1);
   expect(composerFolderNameRule).toBeGreaterThan(baseFolderNameRule);
 });
+
+test("keeps the recent workspace submenu content-sized", async () => {
+  const source = await readFile(
+    new URL("../src/lib/components/WorkspaceSwitcher.svelte", import.meta.url),
+    "utf8",
+  );
+
+  const recentSubmenuRule = source.match(/:global\(\.ws-recent-submenu\)\s*{([^}]*)}/s)?.[1];
+  expect(recentSubmenuRule).toContain("width: max-content;");
+  expect(recentSubmenuRule).toContain("max-width: calc(100vw - 24px);");
+  expect(recentSubmenuRule).not.toContain("width: min(460px");
+});

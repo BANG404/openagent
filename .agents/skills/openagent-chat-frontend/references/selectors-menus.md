@@ -125,7 +125,9 @@
   Place older workspaces in a side-opening recent-workspaces submenu that
   supports hover, click, and keyboard navigation. Show each complete workspace
   path without per-row icons, mark WSL shares explicitly, and keep an overflowing
-  list's scrollbar flush with the submenu's right edge.
+  list's scrollbar flush with the submenu's right edge. Size the submenu to its
+  content up to the viewport limit so short path lists do not cover the
+  conversation details panel with an oversized empty surface.
 - Keep the composer slash-command and mention palette on the shared compact
   menu row scale and conversation-input material. Align its width to the
   composer, use the shared 18px radius and 6px inset, and let both surfaces
