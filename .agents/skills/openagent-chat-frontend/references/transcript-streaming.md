@@ -440,3 +440,7 @@
 - New checkpoints carry compacted context inside the tagged user replay rather
   than adding a system message. Represent the whole record only by the divider,
   while continuing to restore legacy system-boundary checkpoints.
+- Chat-group messages keep sender identity separate from wake targets. Render
+  the sender from its conversation member, and resolve each persisted mention
+  member ID to an explicit `@role` label so a message sent by the `openagent`
+  role is not confused with the roles it wakes.
