@@ -381,14 +381,12 @@
   individual rows or issuing per-chunk scroll commands from the route. Observe
   only the list's overall height and pin the scroller to the new bottom while
   following the live tail; after the reader leaves the tail, rely on native
-  browser scroll anchoring to preserve their position. Reserve a stable
-  scrollbar gutter so overflow changes cannot alter transcript wrapping or
-  sidebar row width. The native transcript scrollbar follows the application-wide
-  activity treatment: reveal it during scrolling or pointer movement in the
-  scroller, then hide its thumb after the shared idle delay without collapsing
-  the reserved gutter. Restrict the overlaid composer area's pointer hit testing
+  browser scroll anchoring to preserve their position. Desktop and remote
+  transcript viewports use the shared `ui/ScrollArea.svelte` wrapper, which
+  owns the reserved trailing gutter and transient Bits UI scrollbar; do not add
+  a second native scrollbar or per-surface thumb styling. Restrict the overlaid composer area's pointer hit testing
   to its rendered controls; transparent layout padding must pass pointer input
-  through so the scrollbar remains draggable beside the composer. The
+  through so the shared scrollbar remains draggable beside the composer. The
   application viewport must not become a second scroll container: keep
   `html`/`body` overflow locked and contain transcript overscroll so wheel or
   touch input at either boundary cannot chain into an outer scrollbar. User

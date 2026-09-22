@@ -63,6 +63,7 @@
   import SettingsActionButton from "./ui/SettingsActionButton.svelte";
   import SettingsListInput from "./ui/SettingsListInput.svelte";
   import SettingsStatusToggle from "./ui/SettingsStatusToggle.svelte";
+  import ScrollArea from "./ui/ScrollArea.svelte";
   import PermissionSettings from "./PermissionSettings.svelte";
   import SettingsAboutTab from "./SettingsAboutTab.svelte";
   import type { SettingsNav } from "$lib/settingsWindows";
@@ -1984,7 +1985,7 @@
     </Tabs.List>
 
     <Tabs.Content value="general" class="settings-tab-panel">
-      <div class="settings-content-col">
+      <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("appearance")}</h4>
           <div class="application-settings-surface settings-card">
@@ -2161,11 +2162,11 @@
             />
           </div>
         </section>
-      </div>
+      </ScrollArea>
     </Tabs.Content>
 
     <Tabs.Content value="plugins" class="settings-tab-panel">
-      <div class="settings-content-col">
+      <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
         <header class="agents-settings-intro">
           <h3>{$t("plugins")}</h3>
         </header>
@@ -2272,11 +2273,11 @@
             </Accordion.Content>
           </Accordion.Item>
         </Accordion.Root>
-      </div>
+      </ScrollArea>
     </Tabs.Content>
 
     <Tabs.Content value="execution" class="settings-tab-panel">
-      <div class="settings-content-col">
+      <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("approvalMode")}</h4>
           <div class="application-settings-surface settings-card">
@@ -2353,7 +2354,7 @@
             </div>
           </div>
         </section>
-      </div>
+      </ScrollArea>
     </Tabs.Content>
 
     <Tabs.Content value="channels" class="settings-tab-panel">
@@ -2459,7 +2460,11 @@
             </button>
           </div>
         </nav>
-        <div class="settings-content-col channel-settings-detail">
+        <ScrollArea
+          height="100%"
+          class="settings-content-col channel-settings-detail"
+          scrollHideDelay={350}
+        >
           {#if channelSettingsNav === "feishu"}
             <section class="detail-section">
               <div class="detail-section-header remote-gateway-heading">
@@ -2819,12 +2824,12 @@
                 </div>{/if}
             </section>
           {/if}
-        </div>
+        </ScrollArea>
       </div>
     </Tabs.Content>
 
     <Tabs.Content value="memory" class="settings-tab-panel">
-      <div class="settings-content-col">
+      <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
         <section class="detail-section">
           <div class="detail-section-header">
             <div class="detail-section-heading">
@@ -2992,7 +2997,7 @@
             {memoryStatus}
           </div>
         {/if}
-      </div>
+      </ScrollArea>
     </Tabs.Content>
 
     <Tabs.Content value="providers" class="settings-tab-panel">
@@ -3021,49 +3026,51 @@
             />
           </div>
         </div>
-        <div class="provider-list">
-          {#if filteredProviders.length > 0}
-            {#each filteredProviders as provider (provider.id)}
-              {@const providerIcon = providerIconPath(provider.provider)}
-              <ContextMenu.Root>
-                <ContextMenu.Trigger>
-                  <button
-                    class="provider-item {selectedProviderId === provider.id ? 'active' : ''}"
-                    onclick={() => {
-                      selectedProviderId = provider.id;
-                      modelSearch = "";
-                      manualModelName = "";
-                    }}
-                  >
-                    <div class="provider-item-icon">
-                      <img src={providerIcon} alt="" aria-hidden="true" />
-                    </div>
-                    <div class="provider-item-info">
-                      <span class="provider-item-name">{providerServiceName(provider)}</span>
-                      <span class="provider-item-url">{getProviderUrl(provider)}</span>
-                    </div>
-                    <span
-                      class:provider-enabled-dot={provider.enabled}
-                      class:provider-disabled-dot={!provider.enabled}
-                    ></span>
-                  </button>
-                </ContextMenu.Trigger>
-                <ContextMenu.Portal>
-                  <ContextMenu.Content class="desktop-menu-panel ctx-menu-content">
-                    <ContextMenu.Item
-                      class="ctx-menu-item ctx-menu-item-danger"
-                      onclick={() => removeProvider(provider.id)}
+        <ScrollArea height="100%" class="provider-list-scroll" scrollHideDelay={350}>
+          <div class="provider-list">
+            {#if filteredProviders.length > 0}
+              {#each filteredProviders as provider (provider.id)}
+                {@const providerIcon = providerIconPath(provider.provider)}
+                <ContextMenu.Root>
+                  <ContextMenu.Trigger>
+                    <button
+                      class="provider-item {selectedProviderId === provider.id ? 'active' : ''}"
+                      onclick={() => {
+                        selectedProviderId = provider.id;
+                        modelSearch = "";
+                        manualModelName = "";
+                      }}
                     >
-                      {$t("deleteNode")}
-                    </ContextMenu.Item>
-                  </ContextMenu.Content>
-                </ContextMenu.Portal>
-              </ContextMenu.Root>
-            {/each}
-          {:else}
-            <div class="provider-list-empty">{$t("noProviders")}</div>
-          {/if}
-        </div>
+                      <div class="provider-item-icon">
+                        <img src={providerIcon} alt="" aria-hidden="true" />
+                      </div>
+                      <div class="provider-item-info">
+                        <span class="provider-item-name">{providerServiceName(provider)}</span>
+                        <span class="provider-item-url">{getProviderUrl(provider)}</span>
+                      </div>
+                      <span
+                        class:provider-enabled-dot={provider.enabled}
+                        class:provider-disabled-dot={!provider.enabled}
+                      ></span>
+                    </button>
+                  </ContextMenu.Trigger>
+                  <ContextMenu.Portal>
+                    <ContextMenu.Content class="desktop-menu-panel ctx-menu-content">
+                      <ContextMenu.Item
+                        class="ctx-menu-item ctx-menu-item-danger"
+                        onclick={() => removeProvider(provider.id)}
+                      >
+                        {$t("deleteNode")}
+                      </ContextMenu.Item>
+                    </ContextMenu.Content>
+                  </ContextMenu.Portal>
+                </ContextMenu.Root>
+              {/each}
+            {:else}
+              <div class="provider-list-empty">{$t("noProviders")}</div>
+            {/if}
+          </div>
+        </ScrollArea>
         <div class="list-footer">
           <SettingsActionButton
             label={$t("addProvider")}
@@ -3085,7 +3092,7 @@
               ariaLabel={$t("providerEnabled")}
             />
           </div>
-          <div class="detail-content">
+          <ScrollArea height="100%" class="detail-content" scrollHideDelay={350}>
             <section class="detail-section">
               <h4 class="detail-section-title">{$t("basicInfo")}</h4>
               <label class="detail-label">
@@ -3256,13 +3263,13 @@
                 />
               </div>
             </section>
-          </div>
+          </ScrollArea>
         </div>
       {/if}
     </Tabs.Content>
 
     <Tabs.Content value="lifecycle" class="settings-tab-panel">
-      <div class="settings-content-col">
+      <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
         <section class="detail-section">
           <div class="detail-section-header">
             <h4 class="detail-section-title">{$t("lifecycleAutomation")}</h4>
@@ -3428,11 +3435,11 @@
             </div>
           </section>
         {/if}
-      </div>
+      </ScrollArea>
     </Tabs.Content>
 
     <Tabs.Content value="schedules" class="settings-tab-panel">
-      <div class="settings-content-col">
+      <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
         <section class="detail-section">
           <div class="detail-section-header">
             <h4 class="detail-section-title">{$t("scheduledHooks")}</h4>
@@ -3586,10 +3593,10 @@
             {/if}
           </div>
         </section>
-      </div>
+      </ScrollArea>
     </Tabs.Content>
     <Tabs.Content value="defaults" class="settings-tab-panel">
-      <div class="settings-content-col">
+      <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("chatModel")}</h4>
           <div class="detail-label">
@@ -3810,11 +3817,11 @@
             </label>
           </div>
         </section>
-      </div>
+      </ScrollArea>
     </Tabs.Content>
 
     <Tabs.Content value="agents" class="settings-tab-panel">
-      <div class="settings-content-col">
+      <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
         <header class="agents-settings-intro">
           <h3>{$t("flashAgents")}</h3>
           <p>{$t("flashAgentsDescription")}</p>
@@ -4093,51 +4100,53 @@
             </article>
           </div>
         </section>
-      </div>
+      </ScrollArea>
     </Tabs.Content>
 
     <Tabs.Content value="extensions" class="settings-tab-panel">
       <div class="settings-list-col">
-        <div class="provider-list">
-          {#if userMcpServers.length === 0}
-            <div class="provider-list-empty">{$t("noMcpServers")}</div>
-          {:else}
-            {#each userMcpServers as server (server.id)}
-              <ContextMenu.Root>
-                <ContextMenu.Trigger>
-                  <button
-                    class="provider-item {selectedMcpId === server.id ? 'active' : ''}"
-                    onclick={() => (selectedMcpId = server.id)}
-                  >
-                    <div class="provider-item-icon mcp-icon">M</div>
-                    <div class="provider-item-info">
-                      <span class="provider-item-name">{server.name || "Unnamed"}</span>
-                      <span class="provider-item-url"
-                        >{server.transport === "stdio"
-                          ? server.command || $t("mcpCommandPlaceholder")
-                          : server.url || $t("mcpServerUrlPlaceholder")}</span
-                      >
-                    </div>
-                    <span
-                      class:provider-enabled-dot={server.enabled}
-                      class:provider-disabled-dot={!server.enabled}
-                    ></span>
-                  </button>
-                </ContextMenu.Trigger>
-                <ContextMenu.Portal>
-                  <ContextMenu.Content class="desktop-menu-panel ctx-menu-content">
-                    <ContextMenu.Item
-                      class="ctx-menu-item ctx-menu-item-danger"
-                      onclick={() => removeMcpServer(server.id)}
+        <ScrollArea height="100%" class="provider-list-scroll" scrollHideDelay={350}>
+          <div class="provider-list">
+            {#if userMcpServers.length === 0}
+              <div class="provider-list-empty">{$t("noMcpServers")}</div>
+            {:else}
+              {#each userMcpServers as server (server.id)}
+                <ContextMenu.Root>
+                  <ContextMenu.Trigger>
+                    <button
+                      class="provider-item {selectedMcpId === server.id ? 'active' : ''}"
+                      onclick={() => (selectedMcpId = server.id)}
                     >
-                      {$t("deleteNode")}
-                    </ContextMenu.Item>
-                  </ContextMenu.Content>
-                </ContextMenu.Portal>
-              </ContextMenu.Root>
-            {/each}
-          {/if}
-        </div>
+                      <div class="provider-item-icon mcp-icon">M</div>
+                      <div class="provider-item-info">
+                        <span class="provider-item-name">{server.name || "Unnamed"}</span>
+                        <span class="provider-item-url"
+                          >{server.transport === "stdio"
+                            ? server.command || $t("mcpCommandPlaceholder")
+                            : server.url || $t("mcpServerUrlPlaceholder")}</span
+                        >
+                      </div>
+                      <span
+                        class:provider-enabled-dot={server.enabled}
+                        class:provider-disabled-dot={!server.enabled}
+                      ></span>
+                    </button>
+                  </ContextMenu.Trigger>
+                  <ContextMenu.Portal>
+                    <ContextMenu.Content class="desktop-menu-panel ctx-menu-content">
+                      <ContextMenu.Item
+                        class="ctx-menu-item ctx-menu-item-danger"
+                        onclick={() => removeMcpServer(server.id)}
+                      >
+                        {$t("deleteNode")}
+                      </ContextMenu.Item>
+                    </ContextMenu.Content>
+                  </ContextMenu.Portal>
+                </ContextMenu.Root>
+              {/each}
+            {/if}
+          </div>
+        </ScrollArea>
         <div class="list-footer">
           <SettingsActionButton
             label={$t("addMcpServer")}
@@ -4166,7 +4175,7 @@
               ariaLabel={$t("mcpEnabled")}
             />
           </div>
-          <div class="detail-content mcp-detail-content">
+          <ScrollArea height="100%" class="detail-content mcp-detail-content" scrollHideDelay={350}>
             <section class="detail-section mcp-form-section">
               <h4 class="detail-section-title">{$t("basicInfo")}</h4>
               <div class="detail-grid mcp-detail-grid">
@@ -4360,7 +4369,7 @@
                 onclick={() => removeMcpServer(server.id)}
               />
             </section>
-          </div>
+          </ScrollArea>
         </div>
       {:else}
         <div class="settings-detail-col">
@@ -4717,12 +4726,19 @@
   }
 
   .provider-list {
-    flex: 1;
     display: flex;
     flex-direction: column;
     gap: var(--list-item-stack-gap);
-    overflow-y: auto;
+  }
+
+  :global(.provider-list-scroll) {
+    flex: 1;
+    min-height: 0;
+  }
+
+  :global(.provider-list-scroll .ui-scroll-area-viewport) {
     padding: 6px;
+    overflow-x: hidden;
   }
 
   .provider-item {
@@ -5343,7 +5359,7 @@
     line-height: var(--settings-hint-leading);
   }
 
-  .channel-settings-detail {
+  :global(.channel-settings-detail) {
     min-width: 0;
     background: transparent;
   }
@@ -5373,11 +5389,11 @@
     .channel-settings-item {
       width: 128px;
     }
-    .channel-settings-detail {
+    :global(.channel-settings-detail .ui-scroll-area-viewport) {
       padding: 24px 18px;
     }
 
-    .channel-settings-detail .remote-gateway-heading {
+    :global(.channel-settings-detail .remote-gateway-heading) {
       align-items: flex-start;
       flex-direction: column;
       gap: 14px;
@@ -5462,16 +5478,30 @@
     max-width: 100%;
   }
 
-  .detail-content,
-  .settings-content-col {
+  :global(.detail-content) {
     flex: 1;
     min-width: 0;
-    overflow-y: auto;
-    padding: var(--settings-content-padding);
+    min-height: 0;
   }
 
-  .detail-content,
-  .settings-content-col {
+  :global(.detail-content .ui-scroll-area-viewport) {
+    overflow-x: hidden;
+    padding: var(--settings-content-padding);
+    padding-inline: max(
+      var(--settings-content-padding),
+      calc((100% - var(--settings-content-max-width)) / 2)
+    );
+  }
+
+  :global(.settings-content-col) {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  :global(.settings-content-col .ui-scroll-area-viewport) {
+    overflow-x: hidden;
+    padding: var(--settings-content-padding);
     padding-inline: max(
       var(--settings-content-padding),
       calc((100% - var(--settings-content-max-width)) / 2)
@@ -5519,7 +5549,7 @@
     line-height: var(--settings-hint-leading);
   }
 
-  .mcp-detail-content {
+  :global(.mcp-detail-content .ui-scroll-area-viewport) {
     padding-top: 12px;
   }
 

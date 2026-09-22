@@ -5,6 +5,7 @@
   import type { Conversation } from "$lib/types";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import SidebarConversationTitle from "./SidebarConversationTitle.svelte";
+  import ScrollArea from "./ui/ScrollArea.svelte";
 
   interface Props {
     conversations: Conversation[];
@@ -37,7 +38,7 @@
     loading = false,
   }: Props = $props();
 
-  let listElement = $state<HTMLDivElement>();
+  let listElement = $state<HTMLElement | null>(null);
   let pageSentinel = $state<HTMLDivElement>();
   let revealedRoots = $state(projectConversationPageSize);
 
@@ -187,198 +188,210 @@
   {/each}
 {/snippet}
 
-<div class="conv-list-shell" class:embedded>
-  <div class="conv-list" class:embedded bind:this={listElement}>
-    {#if normalizedSearchQuery}
-      {#if searchResults.length === 0}
-        <div class="search-empty">
-          {#if loadingMore}
-            <span class="conversation-page-spinner" aria-hidden="true"></span>
-            <span>{$t("loadingContent")}</span>
-          {:else}
-            {$t("noConversationSearchResults")}
-          {/if}
-        </div>
-      {:else}
-        <div class="search-results" aria-label={$t("searchResults")}>
-          {#each searchResults as conv (conv.id)}
-            <button
-              class="conv-item {conv.id === activeConvId ? 'active' : ''} {streamingConvIds[conv.id]
-                ? 'streaming'
-                : ''}"
-              onclick={() => onSelect(conv.id)}
-            >
-              <svg
-                class="search-result-icon"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.4"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M3 4.5h10M3 8h7M3 11.5h5" />
-              </svg>
-              {@render conversationTitle(conv.title)}
-              {#if streamingConvIds[conv.id]}
-                <span class="conv-streaming-dot" aria-label="Streaming"></span>
-              {/if}
-            </button>
-          {/each}
-        </div>
-      {/if}
-    {:else if loading && compactProject}
-      <div class="project-conversations-loading">
-        <LoadingSkeleton variant="sidebar" rows={2} label={$t("loadingContent")} />
+{#snippet listContent()}
+  {#if normalizedSearchQuery}
+    {#if searchResults.length === 0}
+      <div class="search-empty">
+        {#if loadingMore}
+          <span class="conversation-page-spinner" aria-hidden="true"></span>
+          <span>{$t("loadingContent")}</span>
+        {:else}
+          {$t("noConversationSearchResults")}
+        {/if}
       </div>
-    {:else if topLevel.length === 0}
-      {#if compactProject}
-        <div class="project-empty-conversations">{$t("projectNoChats")}</div>
-      {:else}
-        <div class="empty-conversations">
-          <div class="empty-conversations-icon" aria-hidden="true">
+    {:else}
+      <div class="search-results" aria-label={$t("searchResults")}>
+        {#each searchResults as conv (conv.id)}
+          <button
+            class="conv-item {conv.id === activeConvId ? 'active' : ''} {streamingConvIds[conv.id]
+              ? 'streaming'
+              : ''}"
+            onclick={() => onSelect(conv.id)}
+          >
             <svg
-              viewBox="0 0 24 24"
+              class="search-result-icon"
+              viewBox="0 0 16 16"
               fill="none"
               stroke="currentColor"
-              stroke-width="1.6"
+              stroke-width="1.4"
               stroke-linecap="round"
               stroke-linejoin="round"
-              ><path d="M7 18.5 3.5 21l1.2-4.2A8 8 0 1 1 20 12" /><path
-                d="M8.5 12h.01M12 12h.01M15.5 12h.01"
-              /></svg
+              aria-hidden="true"
             >
-          </div>
-          <strong>{$t("emptyConversationsTitle")}</strong>
-        </div>
-      {/if}
+              <path d="M3 4.5h10M3 8h7M3 11.5h5" />
+            </svg>
+            {@render conversationTitle(conv.title)}
+            {#if streamingConvIds[conv.id]}
+              <span class="conv-streaming-dot" aria-label="Streaming"></span>
+            {/if}
+          </button>
+        {/each}
+      </div>
+    {/if}
+  {:else if loading && compactProject}
+    <div class="project-conversations-loading">
+      <LoadingSkeleton variant="sidebar" rows={2} label={$t("loadingContent")} />
+    </div>
+  {:else if topLevel.length === 0}
+    {#if compactProject}
+      <div class="project-empty-conversations">{$t("projectNoChats")}</div>
     {:else}
-      {#each visibleTopLevel as conv, i (conv.id)}
-        {#if i > 0 && !conv.pinned && topLevel[i - 1].pinned}
-          <div class="conv-list-divider"></div>
-        {/if}
+      <div class="empty-conversations">
+        <div class="empty-conversations-icon" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><path d="M7 18.5 3.5 21l1.2-4.2A8 8 0 1 1 20 12" /><path
+              d="M8.5 12h.01M12 12h.01M15.5 12h.01"
+            /></svg
+          >
+        </div>
+        <strong>{$t("emptyConversationsTitle")}</strong>
+      </div>
+    {/if}
+  {:else}
+    {#each visibleTopLevel as conv, i (conv.id)}
+      {#if i > 0 && !conv.pinned && topLevel[i - 1].pinned}
+        <div class="conv-list-divider"></div>
+      {/if}
 
-        <!-- Top-level conversation -->
-        <ContextMenu.Root>
-          <ContextMenu.Trigger class="conv-context-trigger">
+      <!-- Top-level conversation -->
+      <ContextMenu.Root>
+        <ContextMenu.Trigger class="conv-context-trigger">
+          <button
+            class="conv-item {conv.id === activeConvId ? 'active' : ''} {streamingConvIds[conv.id]
+              ? 'streaming'
+              : ''}"
+            onclick={() => onSelect(conv.id)}
+          >
+            {#if conv.pinned}
+              <svg class="conv-pin-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"
+                />
+              </svg>
+            {/if}
+            {@render conversationTitle(conv.title)}
+            {#if streamingConvIds[conv.id]}
+              <span class="conv-streaming-dot" aria-label="Streaming"></span>
+            {:else}
+              <span
+                class="conv-delete"
+                role="button"
+                tabindex="0"
+                aria-label="Delete conversation"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  onDelete(conv.id, conv.workspace);
+                }}
+                onkeydown={(e) =>
+                  e.key === "Enter" && (e.stopPropagation(), onDelete(conv.id, conv.workspace))}
+                >×</span
+              >
+            {/if}
+          </button>
+        </ContextMenu.Trigger>
+        <ContextMenu.Portal>
+          <ContextMenu.Content class="desktop-menu-panel ctx-menu-content">
+            <ContextMenu.Item class="ctx-menu-item" onclick={() => onTogglePin(conv.id)}>
+              {conv.pinned ? $t("unpinConv") : $t("pinConv")}
+            </ContextMenu.Item>
+            <div class="ctx-menu-separator"></div>
+            <ContextMenu.Item
+              class="ctx-menu-item ctx-menu-item-danger"
+              onclick={() => onDelete(conv.id, conv.workspace)}
+            >
+              {$t("deleteConv")}
+            </ContextMenu.Item>
+          </ContextMenu.Content>
+        </ContextMenu.Portal>
+      </ContextMenu.Root>
+
+      <!-- Sub-conversations nested under this parent -->
+      {#if visibleSubConvMap.has(conv.id)}
+        <div class="sub-conv-group">
+          {#each visibleSubConvMap.get(conv.id)! as sub (sub.id)}
             <button
-              class="conv-item {conv.id === activeConvId ? 'active' : ''} {streamingConvIds[conv.id]
+              class="sub-conv-item {sub.id === activeConvId ? 'active' : ''} {streamingConvIds[
+                sub.id
+              ]
                 ? 'streaming'
                 : ''}"
-              onclick={() => onSelect(conv.id)}
+              style:padding-left="calc(var(--conversation-title-inset) + 12px)"
+              onclick={() => onSelect(sub.id)}
             >
-              {#if conv.pinned}
-                <svg
-                  class="conv-pin-icon"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"
-                  />
-                </svg>
-              {/if}
-              {@render conversationTitle(conv.title)}
-              {#if streamingConvIds[conv.id]}
+              {@render conversationTitle(sub.title)}
+              {#if streamingConvIds[sub.id]}
                 <span class="conv-streaming-dot" aria-label="Streaming"></span>
               {:else}
                 <span
                   class="conv-delete"
                   role="button"
                   tabindex="0"
-                  aria-label="Delete conversation"
+                  aria-label="Delete sub-conversation"
                   onclick={(e) => {
                     e.stopPropagation();
-                    onDelete(conv.id, conv.workspace);
+                    onDelete(sub.id, sub.workspace);
                   }}
                   onkeydown={(e) =>
-                    e.key === "Enter" && (e.stopPropagation(), onDelete(conv.id, conv.workspace))}
+                    e.key === "Enter" && (e.stopPropagation(), onDelete(sub.id, sub.workspace))}
                   >×</span
                 >
               {/if}
             </button>
-          </ContextMenu.Trigger>
-          <ContextMenu.Portal>
-            <ContextMenu.Content class="desktop-menu-panel ctx-menu-content">
-              <ContextMenu.Item class="ctx-menu-item" onclick={() => onTogglePin(conv.id)}>
-                {conv.pinned ? $t("unpinConv") : $t("pinConv")}
-              </ContextMenu.Item>
-              <div class="ctx-menu-separator"></div>
-              <ContextMenu.Item
-                class="ctx-menu-item ctx-menu-item-danger"
-                onclick={() => onDelete(conv.id, conv.workspace)}
-              >
-                {$t("deleteConv")}
-              </ContextMenu.Item>
-            </ContextMenu.Content>
-          </ContextMenu.Portal>
-        </ContextMenu.Root>
+            {#if isActiveBranch(sub.id) && childMap.has(sub.id)}
+              {@render nestedThreadItems(childMap.get(sub.id)!, 2)}
+            {/if}
+          {/each}
+        </div>
+      {/if}
+    {/each}
+  {/if}
+  {#if (compactProject && hasHiddenRoots) || (embedded && hasMore)}
+    <button
+      class="show-more-conversations"
+      type="button"
+      disabled={loadingMore}
+      onclick={revealMore}
+    >
+      {#if loadingMore}<span class="conversation-page-spinner" aria-hidden="true"></span>{/if}
+      <span>{$t("showMore")}</span>
+    </button>
+  {:else if hasMore}
+    <div
+      class="conversation-page-sentinel"
+      class:loading={loadingMore}
+      bind:this={pageSentinel}
+      aria-label={loadingMore ? $t("loadingContent") : undefined}
+    >
+      {#if loadingMore}
+        <span class="conversation-page-spinner" aria-hidden="true"></span>
+      {/if}
+    </div>
+  {/if}
+{/snippet}
 
-        <!-- Sub-conversations nested under this parent -->
-        {#if visibleSubConvMap.has(conv.id)}
-          <div class="sub-conv-group">
-            {#each visibleSubConvMap.get(conv.id)! as sub (sub.id)}
-              <button
-                class="sub-conv-item {sub.id === activeConvId ? 'active' : ''} {streamingConvIds[
-                  sub.id
-                ]
-                  ? 'streaming'
-                  : ''}"
-                style:padding-left="calc(var(--conversation-title-inset) + 12px)"
-                onclick={() => onSelect(sub.id)}
-              >
-                {@render conversationTitle(sub.title)}
-                {#if streamingConvIds[sub.id]}
-                  <span class="conv-streaming-dot" aria-label="Streaming"></span>
-                {:else}
-                  <span
-                    class="conv-delete"
-                    role="button"
-                    tabindex="0"
-                    aria-label="Delete sub-conversation"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      onDelete(sub.id, sub.workspace);
-                    }}
-                    onkeydown={(e) =>
-                      e.key === "Enter" && (e.stopPropagation(), onDelete(sub.id, sub.workspace))}
-                    >×</span
-                  >
-                {/if}
-              </button>
-              {#if isActiveBranch(sub.id) && childMap.has(sub.id)}
-                {@render nestedThreadItems(childMap.get(sub.id)!, 2)}
-              {/if}
-            {/each}
-          </div>
-        {/if}
-      {/each}
-    {/if}
-    {#if (compactProject && hasHiddenRoots) || (embedded && hasMore)}
-      <button
-        class="show-more-conversations"
-        type="button"
-        disabled={loadingMore}
-        onclick={revealMore}
-      >
-        {#if loadingMore}<span class="conversation-page-spinner" aria-hidden="true"></span>{/if}
-        <span>{$t("showMore")}</span>
-      </button>
-    {:else if hasMore}
-      <div
-        class="conversation-page-sentinel"
-        class:loading={loadingMore}
-        bind:this={pageSentinel}
-        aria-label={loadingMore ? $t("loadingContent") : undefined}
-      >
-        {#if loadingMore}
-          <span class="conversation-page-spinner" aria-hidden="true"></span>
-        {/if}
+<div class="conv-list-shell" class:embedded>
+  {#if embedded}
+    <div class="conv-list" class:embedded bind:this={listElement}>
+      {@render listContent()}
+    </div>
+  {:else}
+    <ScrollArea
+      height="100%"
+      class="conv-list-scroll"
+      bind:viewport={listElement}
+      scrollHideDelay={350}
+    >
+      <div class="conv-list">
+        {@render listContent()}
       </div>
-    {/if}
-  </div>
+    </ScrollArea>
+  {/if}
 </div>
 
 <style>
@@ -399,6 +412,16 @@
     overflow: visible;
   }
 
+  :global(.conv-list-scroll) {
+    flex: 1;
+    min-height: 0;
+  }
+
+  :global(.conv-list-scroll .ui-scroll-area-viewport) {
+    padding: 4px 12px 10px 6px;
+    overflow-x: hidden;
+  }
+
   .conv-list {
     --conversation-title-inset: var(--list-item-compact-padding-inline);
 
@@ -407,38 +430,15 @@
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    height: 100%;
     display: flex;
     flex-direction: column;
     gap: var(--list-item-stack-gap);
-    overflow-y: auto;
     overflow-x: hidden;
-    scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    scrollbar-color: var(--text-muted) transparent;
     padding: 4px 6px;
   }
 
-  .conv-list::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .conv-list::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .conv-list::-webkit-scrollbar-thumb {
-    min-height: 28px;
-    border: 2px solid transparent;
-    border-radius: 999px;
-    background: var(--text-muted);
-    background-clip: padding-box;
-    opacity: 0.72;
-  }
-
-  .conv-list::-webkit-scrollbar-thumb:hover {
-    background: var(--text);
-    background-clip: padding-box;
+  :global(.conv-list-scroll .conv-list) {
+    padding: 0;
   }
 
   .conv-list.embedded {
