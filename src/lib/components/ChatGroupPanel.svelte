@@ -3,6 +3,7 @@
   import type { ChatGroup, ChatGroupMember, ChatGroupMessage } from "$lib/openagent";
   import { desktopOpenAgent } from "$lib/openagent/tauriClient";
   import { t } from "$lib/i18n";
+  import Select from "$lib/components/ui/Select.svelte";
 
   let {
     enabled = false,
@@ -24,6 +25,7 @@
   let refreshTimer: ReturnType<typeof setInterval> | null = null;
 
   const selectedGroup = $derived(groups.find((group) => group.id === selectedGroupId) ?? null);
+  const groupItems = $derived(groups.map((group) => ({ value: group.id, label: group.title })));
 
   async function loadGroups(scope = workspace): Promise<void> {
     if (!enabled) return;
@@ -191,11 +193,14 @@
 
     {#if groups.length > 0}
       <label class="group-select-label" for="chat-group-select">{$t("chatGroupSelect")}</label>
-      <select id="chat-group-select" bind:value={selectedGroupId}>
-        {#each groups as group (group.id)}
-          <option value={group.id}>{group.title}</option>
-        {/each}
-      </select>
+      <Select
+        id="chat-group-select"
+        value={selectedGroupId ?? ""}
+        items={groupItems}
+        triggerClass="chat-group-select"
+        ariaLabel={$t("chatGroupSelect")}
+        onValueChange={(value) => (selectedGroupId = value)}
+      />
     {:else}
       <p class="empty">{$t("chatGroupEmpty")}</p>
     {/if}
@@ -297,7 +302,6 @@
     color: var(--text-muted);
     font-size: 11px;
   }
-  select,
   textarea {
     border: 1px solid var(--border);
     border-radius: 5px;
@@ -305,8 +309,8 @@
     color: var(--text);
     font: inherit;
   }
-  select {
-    padding: 6px 8px;
+  :global(.chat-group-select) {
+    width: 100%;
   }
   .member-strip {
     display: flex;
