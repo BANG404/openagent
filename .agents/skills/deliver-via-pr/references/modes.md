@@ -123,6 +123,54 @@ worktree when ownership is already clear.
    integration hashes, verification, cleanup, preserved pre-existing
    changes, and that nothing was pushed.
 
+### OWT recovery and cleanup
+
+The preparation command can fail before the private `sdk` submodule is
+initialized. A common cause is a pinned SDK revision that is not available from
+the configured remote (`upload-pack: not our ref`). Do not change the parent
+gitlink, fetch a different revision into the task, or claim that the pinned
+SDK was verified. Record the exact failure and continue only with checks that
+do not require that revision. A temporary link to an already initialized SDK
+or `node_modules` may be used for narrow implementation checks only when its
+scope is explicit; remove every link before staging and re-check status.
+
+If the default branch advances after the task commit, merge the current default
+branch into the task branch, rerun `bun run preflight`, and retry the
+fast-forward. Do not rebase or cherry-pick the task commit to hide the
+concurrent advance.
+
+Before removing an OWT worktree, verify both its branch and cleanliness:
+
+```bash
+git -C <task-worktree> status --short --branch
+git -C <task-worktree> diff --check
+```
+
+If status is clean but `git worktree remove <task-worktree>` reports
+`working trees containing submodules cannot be moved or removed`, inspect the
+submodule path. When it is the task's failed, empty initialization, remove
+only that empty directory and use the explicit task-worktree fallback:
+
+```bash
+rmdir <task-worktree>/sdk
+git worktree remove --force <task-worktree>
+git worktree prune
+```
+
+The `--force` exception is allowed only after the clean-status check, with an
+explicit task-worktree path, and when no user-owned submodule files remain.
+Never apply it to the repository root or an unreviewed dirty worktree. If the
+submodule contains files or status is not clean, preserve it and stop for
+direction instead of deleting it.
+
+Preflight failures must be classified rather than worked around silently. A
+missing native artifact such as
+`src-tauri/binaries/bwrap-x86_64-unknown-linux-gnu` is an environment or
+preparation blocker, not evidence that frontend tests passed; report the
+passed checks and the exact failing gate. Browser smoke failures must likewise
+retain their assertion and include the Vite/Playwright error; do not weaken the
+fixture assertion merely to turn an unavailable preview into a pass.
+
 ### Coordinate a sealed batch of OWT tasks
 
 When the caller intentionally launches several OWT tasks as one local
