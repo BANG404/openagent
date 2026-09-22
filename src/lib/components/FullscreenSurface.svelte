@@ -155,12 +155,21 @@
     color: var(--text);
     box-shadow: var(--raised-shadow);
     outline: none;
+    transition:
+      top var(--motion-surface) var(--ease-enter),
+      left var(--motion-surface) var(--ease-enter),
+      width var(--motion-surface) var(--ease-enter),
+      height var(--motion-surface) var(--ease-enter),
+      border-radius var(--motion-surface) var(--ease-enter),
+      opacity var(--motion-surface) var(--ease-enter),
+      transform var(--motion-surface) var(--ease-enter);
   }
 
   :global(.fullscreen-surface.expanded) {
-    inset: 16px;
-    width: auto;
-    height: auto;
+    top: 16px;
+    left: 16px;
+    width: calc(100vw - 32px);
+    height: calc(100vh - 32px);
     min-width: 0;
     min-height: 0;
     max-width: none;

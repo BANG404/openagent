@@ -33,6 +33,9 @@ second lifecycle animation in a child component.
   list. Animate only the state marker or the newly introduced row.
 - Native window geometry and material stay outside the motion system; animate
   the WebView content inside the window.
+- Management surfaces that switch between compact and expanded modes animate
+  explicit viewport geometry (`top`, `left`, `width`, and `height`) so the shell
+  and its content stay aligned; avoid `auto` dimensions for that transition.
 
 ## Reduced motion
 
