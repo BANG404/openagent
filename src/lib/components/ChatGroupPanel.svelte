@@ -90,18 +90,6 @@
     }
   }
 
-  async function createGroup(): Promise<void> {
-    const title = window.prompt($t("chatGroupCreatePrompt"));
-    if (!title?.trim()) return;
-    try {
-      const group = await desktopOpenAgent.createChatGroup(title.trim());
-      groups = [group, ...groups.filter((item) => item.id !== group.id)];
-      selectedGroupId = group.id;
-    } catch (cause) {
-      error = String(cause);
-    }
-  }
-
   function toggleMention(member: ChatGroupMember): void {
     const token = `@${member.role_name} `;
     if (selectedMentions.includes(member.id)) {
@@ -265,9 +253,6 @@
         <strong>{$t("chatGroups")}</strong>
         {#if selectedGroup}<span>{selectedGroup.title}</span>{/if}
       </div>
-      <button type="button" class="text-button" onclick={() => void createGroup()}>
-        {$t("chatGroupNew")}
-      </button>
     </header>
 
     {#if groups.length > 0}
@@ -404,7 +389,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .text-button,
   .composer button {
     border: 1px solid var(--border);
     border-radius: 5px;
@@ -413,7 +397,6 @@
     padding: 5px 8px;
     cursor: pointer;
   }
-  .text-button:hover,
   .composer button:hover:not(:disabled) {
     background: var(--surface-hover);
   }
