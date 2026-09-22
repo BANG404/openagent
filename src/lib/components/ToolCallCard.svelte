@@ -85,9 +85,11 @@
   const displayName = $derived(
     name === "dispatch_role"
       ? $t("dispatchRoleTool")
-      : name === "search_roles"
-        ? $t("searchRolesTool")
-        : name,
+      : name === "create_role"
+        ? $t("createRoleTool")
+        : name === "search_roles"
+          ? $t("searchRolesTool")
+          : name,
   );
   const resultText = $derived(result ?? "");
   const status = $derived(
