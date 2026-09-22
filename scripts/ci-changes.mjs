@@ -87,6 +87,7 @@ export function classifyChangedModules(files, forceAll = false) {
     "tests/releaseCi.test.js",
     "tests/releaseComponents.test.js",
     "tests/releaseVersion.test.js",
+    "tests/sdkGitlink.test.js",
   ]);
 
   const automation =

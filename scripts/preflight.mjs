@@ -14,6 +14,7 @@ const AUTOMATION_TESTS = [
   "tests/privateSdkDiagnostic.test.js",
   "tests/releaseCi.test.js",
   "tests/releaseVersion.test.js",
+  "tests/sdkGitlink.test.js",
   "scripts/release-candidate-artifacts.test.mjs",
   "scripts/release-workflow.test.mjs",
 ];
@@ -152,6 +153,12 @@ function main() {
       label: "Git whitespace errors",
       command: "git",
       args: ["diff", "--check", baseSha, "--"],
+    },
+    {
+      id: "sdk-gitlink",
+      label: "Published SDK gitlink",
+      command: "bun",
+      args: ["scripts/verify-sdk-gitlink.mjs"],
     },
     ...commands,
   ];

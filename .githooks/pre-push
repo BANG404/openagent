@@ -8,6 +8,7 @@ fi
 
 zero_sha="0000000000000000000000000000000000000000"
 hook_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+repo_root="$(CDPATH= cd -- "$hook_dir/.." && pwd)"
 public_host_sources="$hook_dir/public-host-sources.txt"
 
 if [ ! -f "$public_host_sources" ]; then
@@ -34,6 +35,8 @@ verify_backend_absent() {
     echo "Push blocked: commit $commit does not store sdk as a gitlink." >&2
     return 1
   fi
+
+  (CDPATH= cd -- "$repo_root" && bun scripts/verify-sdk-gitlink.mjs --host-revision "$commit")
 }
 
 while read -r local_ref local_sha remote_ref remote_sha; do

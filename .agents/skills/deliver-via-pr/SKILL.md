@@ -41,7 +41,9 @@ delivery mechanics only; it does not broaden task scope.
   the task worktree.
 - Follow `sdk/AGENTS.md` for SDK work. The private SDK does not use pull
   requests: push focused commits to `main` first, then update the parent
-  gitlink.
+  gitlink. Local preflight and the host pre-push hook reject any gitlink that is
+  not contained in the SDK checkout's `origin/main`; fetch that ref when it is
+  stale rather than pinning an unadvertised detached commit.
 
 ## Read the right reference
 
