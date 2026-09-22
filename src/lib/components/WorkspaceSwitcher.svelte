@@ -6,7 +6,6 @@
   import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
   import { isWslWorkspacePath, workspaceFolderName } from "$lib/workspacePath";
   import Tooltip from "./Tooltip.svelte";
-  import ScrollArea from "./ui/ScrollArea.svelte";
 
   interface Props {
     workspace: WorkspaceContext | null;
@@ -140,11 +139,7 @@
                 sideOffset={6}
                 alignOffset={-6}
               >
-                <ScrollArea
-                  height="min(240px, calc(100vh - 160px))"
-                  class="ws-recent-list"
-                  scrollHideDelay={350}
-                >
+                <div class="ws-recent-list">
                   <div class="ws-recent-list-content">
                     {#each otherRecent as ws (ws.path)}
                       <div class="ws-recent-row">
@@ -162,7 +157,7 @@
                       </div>
                     {/each}
                   </div>
-                </ScrollArea>
+                </div>
               </DropdownMenu.SubContent>
             </DropdownMenu.Portal>
           </DropdownMenu.Sub>
@@ -303,17 +298,19 @@
   }
 
   :global(.ws-recent-list) {
+    max-height: min(240px, calc(100vh - 160px));
+    overflow-y: auto;
     overscroll-behavior: contain;
     margin-right: calc(-1 * var(--menu-content-padding));
   }
 
-  :global(.ws-recent-list .ui-scroll-area-viewport) {
+  :global(.ws-recent-list) {
     padding-right: var(--menu-content-padding);
-    overflow-x: hidden;
+    scrollbar-width: thin;
   }
 
   :global(.ws-recent-submenu) {
-    width: max-content;
+    width: fit-content(320px);
     min-width: 200px;
     max-width: calc(100vw - 24px);
     box-sizing: border-box;
