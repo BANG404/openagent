@@ -34,6 +34,22 @@ describe("tool stream correlation", () => {
     expect("result" in items[1]).toBe(false);
   });
 
+  test("does not append a replayed tool call with the same provider id", () => {
+    const items = appendToolCall(
+      appendToolCall([], "fetch", { url: "first" }, "call-1"),
+      "fetch",
+      { url: "first" },
+      "call-1",
+    );
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      type: "tool_call",
+      name: "fetch",
+      toolUseId: "call-1",
+    });
+  });
+
   test("keeps the legacy latest-pending fallback without an id", () => {
     let items = appendToolCall([], "fetch", { url: "first" }, "call-1");
     items = appendToolCall(items, "fetch", { url: "second" }, "call-2");
@@ -64,6 +80,41 @@ describe("tool stream correlation", () => {
       result: expect.any(String),
       approval: { state: "unanswered" },
     });
+  });
+
+  test("treats a repeated correlated result as idempotent", () => {
+    let items = appendToolCall([], "fetch", { url: "first" }, "call-1");
+    items = appendToolCall(items, "fetch", { url: "second" }, "call-2");
+    items = attachToolResult(items, "first result", "call-1");
+
+    const repeated = attachToolResult(items, "duplicate result", "call-1");
+
+    expect(repeated).toEqual(items);
+    expect(repeated[1]).toMatchObject({ type: "tool_call", toolUseId: "call-2" });
+    expect("result" in repeated[1]).toBe(false);
+  });
+
+  test("does not reassign a repeated approval to a sibling tool", () => {
+    const request = {
+      request_id: "call-1",
+      conv_id: "conv-1",
+      kind: "tool_approval" as const,
+      fields: [],
+    };
+    let items = appendToolCall([], "write_file", { path: "one.txt" }, "call-1");
+    items = appendToolCall(items, "write_file", { path: "two.txt" }, "call-2");
+    items = appendUserInput(items, request);
+
+    const repeated = appendUserInput(items, request);
+
+    expect(repeated).toEqual(items);
+    expect(repeated[0]).toMatchObject({
+      type: "tool_call",
+      toolUseId: "call-1",
+      approval: { request, state: "pending" },
+    });
+    expect(repeated[1]).toMatchObject({ type: "tool_call", toolUseId: "call-2" });
+    expect("approval" in repeated[1]).toBe(false);
   });
 
   test("preserves an optimistic sibling resolution during hydration", () => {

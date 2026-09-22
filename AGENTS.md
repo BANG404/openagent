@@ -59,6 +59,7 @@ bun run dev                              # Vite on an available port
 bun run build
 bun run check                            # Svelte + TypeScript
 bun run check:tests                      # Type-check Bun tests
+bun run test:browser:preview             # Browser smoke test for the streaming preview
 bun run preflight                        # Diff-selected fast checks
 bun run prepare:windows-sandbox:dev      # Pinned Windows helpers
 bun tauri dev                            # Tauri with the selected Vite URL
