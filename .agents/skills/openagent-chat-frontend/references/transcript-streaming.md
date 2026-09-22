@@ -146,6 +146,10 @@
   debug mode, show the pending checkpoint ID on the trailing live text as soon
   as Runtime emits it; use the durable assistant checkpoint ID after the turn
   is reconciled.
+  Debug mode is the persisted main-window preference exposed from Help in both
+  development and production builds. It defaults on in development and off in
+  production, only controls these transcript debug markers, and does not
+  enable the development inspector or debug APIs.
   Streaming and durable forms must share the same assistant-turn branch and
   keyed stream-item children.
 - Re-execution fork markers are one-shot state for the submitted turn. Clear

@@ -66,6 +66,7 @@
   import {
     DEV_MAIN_DEBUG_VISIBILITY_EVENT,
     readMainDebugComponentsVisible,
+    writeMainDebugComponentsVisible,
   } from "$lib/devDebugVisibility";
   import { ONBOARDING_COMPLETE_EVENT } from "$lib/onboarding";
   import { NEW_CONVERSATION_GREETING } from "$lib/newConversation";
@@ -236,8 +237,16 @@
     import.meta.env.DEV,
   );
   const isDebugBuild = import.meta.env.DEV;
-  let showMainDebugComponents = $state(readMainDebugComponentsVisible());
-  let isDebugMode = $derived(isDebugBuild && showMainDebugComponents);
+  let showMainDebugComponents = $state(readMainDebugComponentsVisible(import.meta.env.DEV));
+  let isDebugMode = $derived(showMainDebugComponents);
+
+  function toggleMainDebugMode(): void {
+    showMainDebugComponents = !showMainDebugComponents;
+    writeMainDebugComponentsVisible(showMainDebugComponents);
+    void emit(DEV_MAIN_DEBUG_VISIBILITY_EVENT, { visible: showMainDebugComponents }).catch(
+      (error) => console.warn("Failed to broadcast debug mode change:", error),
+    );
+  }
   let DevInspector = $state<Component | null>(null);
 
   if (import.meta.env.DEV && isDevInspectorWindow) {
@@ -5482,6 +5491,8 @@
         onCreateRole={() => void openRoleEditor(null)}
         onConfigureRole={(role) => void openRoleEditor(role)}
         onOpenAbout={() => openManagementSurface("about", "about")}
+        debugMode={isDebugMode}
+        onToggleDebugMode={toggleMainDebugMode}
         onQuit={quitApp}
         onToggleCheckpointFlowPanel={() => {
           // The title-bar toggle is the only writer of the preference that

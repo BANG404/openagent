@@ -34,6 +34,8 @@
     onCreateRole,
     onConfigureRole,
     onOpenAbout,
+    debugMode,
+    onToggleDebugMode,
     onOpenLogsFolder,
     onCloseWindow,
     onQuit,
@@ -54,6 +56,8 @@
     onCreateRole: () => void;
     onConfigureRole: (role: AgentRole) => void;
     onOpenAbout: () => void;
+    debugMode: boolean;
+    onToggleDebugMode: () => void;
     onOpenLogsFolder: () => void;
     onCloseWindow: () => void;
     onQuit: () => void;
@@ -552,6 +556,15 @@
         <DropdownMenu.Separator class="application-menu-separator" />
         <DropdownMenu.Item class="application-menu-item" onSelect={onOpenLogsFolder}>
           <span>{$t("openLogsFolder")}</span>
+        </DropdownMenu.Item>
+        <DropdownMenu.Item
+          class="application-menu-item"
+          role="menuitemcheckbox"
+          aria-checked={debugMode}
+          onSelect={onToggleDebugMode}
+        >
+          <span>{$t("debugMode")}</span>
+          <span class="application-menu-shortcut" aria-hidden="true">{debugMode ? "✓" : ""}</span>
         </DropdownMenu.Item>
         <DropdownMenu.Item class="application-menu-item" onSelect={onOpenAbout}>
           <span>{$t("about")}</span><span class="application-menu-shortcut">F1</span>

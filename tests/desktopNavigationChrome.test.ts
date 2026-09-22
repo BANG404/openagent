@@ -532,6 +532,22 @@ describe("desktop navigation chrome", () => {
     expect(menu).toContain("event.altKey && !event.ctrlKey && !event.metaKey");
   });
 
+  test("keeps production debug markers behind the Help menu preference", async () => {
+    const menu = await readFile(new URL("ApplicationMenuBar.svelte", componentsUrl), "utf8");
+    const route = await readFile(routeUrl, "utf8");
+    const visibility = await readFile(
+      new URL("../src/lib/devDebugVisibility.ts", import.meta.url),
+      "utf8",
+    );
+
+    expect(menu).toContain('role="menuitemcheckbox"');
+    expect(menu).toContain('$t("debugMode")');
+    expect(menu).toContain("onToggleDebugMode");
+    expect(route).toContain("readMainDebugComponentsVisible(import.meta.env.DEV)");
+    expect(route).toContain("let isDebugMode = $derived(showMainDebugComponents)");
+    expect(visibility).toContain("defaultVisible = true");
+  });
+
   test("exposes and routes shortcuts for every top-menu settings destination", async () => {
     const menu = await readFile(new URL("ApplicationMenuBar.svelte", componentsUrl), "utf8");
     const targets = [
