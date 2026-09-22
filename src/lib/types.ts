@@ -104,6 +104,7 @@ export interface ChatMessage {
 
 export type AgentMessageTag =
   | "context_compaction"
+  | "chat_group_mention"
   | "terminal_poll"
   | "goal_bootstrap"
   | "graph_bootstrap"

@@ -148,6 +148,7 @@ function isHiddenCheckpointRecord(record: CheckpointMessage): boolean {
   // inside a continued assistant reply without exposing a user-authored turn.
   return (
     record.role === "system" ||
+    record.tags.includes("chat_group_mention") ||
     record.tags.includes("goal_continuation") ||
     record.tags.includes("graph_continuation") ||
     record.tags.includes("graph_node_bootstrap") ||

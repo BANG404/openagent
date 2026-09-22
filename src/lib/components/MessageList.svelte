@@ -179,7 +179,7 @@
     top: number;
   } | null>(null);
   function isHiddenMessage(msg: ChatMessage) {
-    return msg.role === "system";
+    return msg.role === "system" || msg.tags?.includes("chat_group_mention") === true;
   }
   function isCompactionReplayUser(msg: ChatMessage) {
     return msg.role === "user" && msg.tags?.includes("context_compaction") === true;
