@@ -10,6 +10,49 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.72.0-beta.1] - 2026-09-22
+
+### Features
+- **mcp**: Surface cached server capability catalog
+- **frontend**: Add smooth interaction motion system
+- **runtime**: Expose grouped MCP tool bridge
+- **frontend**: Expose debug markers in production
+- **settings**: Organize plugins with expandable cards
+- **runtime**: Discover MCP tools through tool search
+- **chat**: Stream live context usage
+
+### Bug Fixes
+- **remote**: Recover conversation stream after disconnect
+- Remove stale Cua Driver socket before launch
+- Surface Cua Driver MCP connection failures
+- Place Cua description in plugin entry
+- **chat**: Remove streaming text cursor
+- **chat**: Soften streamed text reveal
+- **chat**: Soften streaming activity animations
+- **chat**: Clear stale fork state after empty cancellation
+- **chat**: Refresh usage during active streams
+- **chat**: Keep token indicator visible during streams
+- **chat**: Refresh usage when streaming starts
+- **chat**: Defer usage and compaction indicators
+- **runtime**: Stop retry records repeating durable attempt output
+- **chat**: Show usage and compaction indicators while streaming
+- **chat**: Hide persisted compaction boundary while streaming
+- **chat**: Show pending checkpoint during streaming
+- **chat**: Avoid speculative Mermaid responses
+- **chat**: Defer usage and compaction indicators
+- **chat**: Preload Mermaid before tool requests
+- **chat**: Prevent Mermaid render queue timeouts
+
+### Performance
+- **chat**: Coalesce resize tail pinning
+- **chat**: Reuse projected path during conversation hydration
+
+### Testing
+- **browser**: Add streaming preview smoke command
+- **chat**: Isolate stream lifecycle state
+- **chat**: Make replayed tool calls idempotent
+- **chat**: Harden duplicate tool event handling
+
 ## [0.71.1-beta.1] - 2026-09-21
 
 ### Bug Fixes
