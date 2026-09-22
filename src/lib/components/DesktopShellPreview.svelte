@@ -379,6 +379,7 @@
     display: flex;
     width: 100vw;
     height: 100vh;
+    min-width: var(--desktop-app-min-width);
     overflow: hidden;
     background: var(--bg);
   }

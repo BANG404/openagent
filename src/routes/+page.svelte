@@ -5646,6 +5646,7 @@
   .app {
     display: flex;
     height: 100vh;
+    min-width: var(--desktop-app-min-width);
     overflow: hidden;
     background: transparent;
   }

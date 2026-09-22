@@ -172,6 +172,14 @@
   connection alone does not. Keep the transient stream timer and durable
   checkpoint metadata aligned to that definition. Ignore typed `memory` user
   content in every ordinary transcript, index, edit, copy, and book projection.
+  Keep the desktop shell at the same `1040px` minimum width enforced by the
+  native main window so the sidebar and conversation composer cannot be
+  compressed into unusable tracks. When a transcript footer is narrower than
+  its action and metadata content, keep regenerate/copy/book controls as
+  non-shrinking single-line buttons and wrap timing, cache, and timestamp
+  metadata onto additional lines instead of allowing labels to break into
+  vertical glyphs. Composer toolbar selectors follow the same rule: labels stay
+  on one line with ellipsis, while the toolbar may grow by wrapping controls.
 - Treat the selected branch tip's durable checkpoint as final Goal and Graph
   authority, not transient conversation badges. During streaming, project the
   complete checkpoint-owned `FlowState` carried by `goal-run-updated` after

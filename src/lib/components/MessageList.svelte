@@ -1572,6 +1572,7 @@
 
   .msg-footer-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
     margin: 6px 0 10px;
@@ -1582,23 +1583,28 @@
 
   .msg-actions {
     display: flex;
+    flex: 0 0 auto;
     gap: 6px;
     margin-inline-end: 12px;
   }
   .run-timing,
   .cache-usage {
+    min-width: 0;
     color: var(--text-muted);
     font-size: 11px;
     line-height: 1;
     user-select: none;
+    overflow-wrap: anywhere;
   }
   .msg-action-btn {
     display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: 4px;
     padding: 3px 6px;
     border-radius: 5px;
     font-size: 11px;
+    white-space: nowrap;
     background: transparent;
     border: 1px solid var(--border);
     color: var(--text-muted);

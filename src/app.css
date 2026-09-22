@@ -26,6 +26,8 @@
     --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-exit: cubic-bezier(0.7, 0, 0.84, 0);
     --workspace-card-gap: 8px;
+    /* Keep the desktop shell aligned with the native window's lower bound. */
+    --desktop-app-min-width: 1040px;
     --settings-nav-width: 172px;
     --settings-collection-width: 256px;
     --settings-content-max-width: 680px;

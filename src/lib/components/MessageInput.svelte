@@ -1351,14 +1351,16 @@
   }
 
   .composer-toolbar {
-    height: 38px;
+    min-height: 38px;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 6px;
     padding: 0 48px 6px 9px;
   }
 
   .attach-btn {
+    flex: 0 0 30px;
     width: 30px;
     height: 30px;
     display: inline-flex;
@@ -1377,14 +1379,19 @@
   }
 
   :global(.composer-model-trigger) {
+    flex: 0 1 auto;
     width: auto;
     max-width: 260px;
+    min-width: 0;
+    overflow: hidden;
     border: 0;
     background: transparent;
     box-shadow: none;
     padding: 5px 8px;
     font-size: 12px;
     color: var(--text-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   :global(.composer-model-trigger:hover:not(:disabled)) {
