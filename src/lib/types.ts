@@ -524,6 +524,7 @@ export interface FlashAgentsConfig {
   title: FlashAgentConfig;
   memory: FlashAgentConfig;
   skill_category: FlashAgentConfig;
+  mcp_server_category: FlashAgentConfig;
   suggestions: FlashAgentConfig;
   hook: FlashAgentConfig;
   tool_approval: FlashAgentConfig;
@@ -579,6 +580,15 @@ export interface McpServerConfig {
    * Portable Agent Plugins also namespace their id with `plugin:`.
    */
   plugin_owned?: boolean;
+  catalog?: McpServerCatalog;
+}
+
+export interface McpServerCatalog {
+  fingerprint: string;
+  category: string;
+  summary: string;
+  tools: string[];
+  resources: string[];
 }
 
 export interface McpSettings {

@@ -476,6 +476,7 @@ const zh = {
   hookAgent: "Hook 任务",
   titleAgent: "标题任务",
   skillCategoryAgent: "技能分类任务",
+  mcpServerCategoryAgent: "MCP 服务分类任务",
   autoApprovalTask: "自动审批任务",
   autoApprovalTaskEnabled: "启用自动审批任务",
   autoApprovalTaskDescription:
@@ -583,6 +584,11 @@ const zh = {
   hookAgentPromptPlaceholder: "追加给 Hook 任务的规则，例如只为明确提醒创建任务",
   titleAgentPromptPlaceholder: "追加给标题任务的规则，例如标题优先使用中文",
   skillCategoryAgentPromptPlaceholder: "追加给技能分类任务的规则，例如优先复用团队现有分组",
+  mcpServerCategoryAgentEnabled: "启用 MCP 服务自动分类",
+  mcpServerCategoryTaskDescription:
+    "添加或更新 MCP 服务后，在后台使用 Flash 模型总结服务类型与能力；只有工具和资源指纹变化时才重新分类，并将缓存摘要提供给对话模型用于 tool_search。",
+  mcpServerCategoryAgentPromptPlaceholder:
+    "追加给 MCP 服务分类任务的规则，例如优先使用团队已有的能力分组",
   compactionTaskPromptPlaceholder: "追加给压缩任务的规则，例如保留关键文件路径和未完成事项",
   titleTaskDescription: "根据新对话内容生成简洁标题，用于对话列表展示。",
   suggestionsTaskDescription:
@@ -1468,6 +1474,7 @@ const en: Translations = {
   hookAgent: "Hook Task",
   titleAgent: "Title Task",
   skillCategoryAgent: "Skill Category Task",
+  mcpServerCategoryAgent: "MCP Server Category Task",
   autoApprovalTask: "Auto Approval Task",
   autoApprovalTaskEnabled: "Enable Auto Approval Task",
   autoApprovalTaskDescription:
@@ -1584,6 +1591,11 @@ const en: Translations = {
   titleAgentPromptPlaceholder: "Additional Title Task rules, e.g. prefer titles in English",
   skillCategoryAgentPromptPlaceholder:
     "Additional Skill Category Task rules, e.g. prefer the team taxonomy",
+  mcpServerCategoryAgentEnabled: "Enable automatic MCP server categorization",
+  mcpServerCategoryTaskDescription:
+    "After an MCP server is added or its advertised tools/resources change, use the Flash model in the background to summarize its capability family. Reuse the cached summary when the discovery fingerprint is unchanged and expose it to tool_search discovery.",
+  mcpServerCategoryAgentPromptPlaceholder:
+    "Additional MCP Server Category Task rules, e.g. prefer the team's capability taxonomy",
   compactionTaskPromptPlaceholder:
     "Additional Compaction Task rules, e.g. preserve key file paths and unfinished work",
   titleTaskDescription:

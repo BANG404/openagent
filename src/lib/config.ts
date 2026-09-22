@@ -170,6 +170,10 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
       enabled: input.flash_agents?.skill_category?.enabled ?? true,
       prompt: input.flash_agents?.skill_category?.prompt ?? "",
     },
+    mcp_server_category: {
+      enabled: input.flash_agents?.mcp_server_category?.enabled ?? true,
+      prompt: input.flash_agents?.mcp_server_category?.prompt ?? "",
+    },
     suggestions: {
       enabled: input.flash_agents?.suggestions?.enabled ?? true,
       prompt: input.flash_agents?.suggestions?.prompt ?? "",
