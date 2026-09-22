@@ -148,8 +148,16 @@ git -C <task-worktree> diff --check
 
 If status is clean but `git worktree remove <task-worktree>` reports
 `working trees containing submodules cannot be moved or removed`, inspect the
-submodule path. When it is the task's failed, empty initialization, remove
-only that empty directory and use the explicit task-worktree fallback:
+submodule path and confirm that it was initialized by this task worktree. A
+task-owned SDK checkout may contain prepared source and build files; after
+confirming it has no user changes, unregister it from the task worktree first:
+
+```bash
+git -C <task-worktree> submodule deinit --force sdk
+```
+
+Confirm that the task submodule directory is now empty, remove only that
+directory, and use the explicit task-worktree fallback:
 
 ```bash
 rmdir <task-worktree>/sdk
@@ -159,9 +167,9 @@ git worktree prune
 
 The `--force` exception is allowed only after the clean-status check, with an
 explicit task-worktree path, and when no user-owned submodule files remain.
-Never apply it to the repository root or an unreviewed dirty worktree. If the
-submodule contains files or status is not clean, preserve it and stop for
-direction instead of deleting it.
+Never apply it to the repository root or an unreviewed dirty worktree. Do not
+deinitialize a submodule from the default worktree or a worktree that contains
+user changes; preserve that worktree and stop for direction instead.
 
 Preflight failures must be classified rather than worked around silently. A
 missing native artifact such as
