@@ -202,6 +202,7 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
     config_version: 1,
     approval_mode,
     permission_profile,
+    chat_groups_enabled: input.chat_groups_enabled ?? true,
     language: input.language ?? "zh",
     launch_on_startup: input.launch_on_startup ?? false,
     onboarding_completed: input.onboarding_completed ?? false,

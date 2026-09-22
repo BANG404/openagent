@@ -704,6 +704,7 @@ export interface AppConfig {
   approval_mode: ApprovalMode;
   permission_profile?: PermissionProfile;
   mcp: McpSettings;
+  chat_groups_enabled?: boolean;
   theme: "system" | "light" | "dark";
   language: "zh" | "en";
   launch_on_startup: boolean;

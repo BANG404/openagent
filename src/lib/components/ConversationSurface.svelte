@@ -117,6 +117,8 @@
     onTerminalSummaryChange,
     rightSidebarConversationId = view.activeConvId,
     rightSidebarBranchId = view.activeBranchId,
+    chatGroupsEnabled = false,
+    chatGroupWorkspace = view.workspacePath,
     composerDraft,
     focusRequest,
   }: {
@@ -132,6 +134,8 @@
     /** Scope for every right-sidebar view; defaults to the transcript's own view. */
     rightSidebarConversationId?: string | null;
     rightSidebarBranchId?: string | null;
+    chatGroupsEnabled?: boolean;
+    chatGroupWorkspace?: string;
     composerDraft: ComposerDraft;
     focusRequest: number;
   } = $props();
@@ -360,6 +364,8 @@
     terminalConversationId={rightSidebarConversationId}
     terminalBranchId={rightSidebarBranchId}
     {onTerminalSummaryChange}
+    {chatGroupsEnabled}
+    {chatGroupWorkspace}
   />
 </div>
 

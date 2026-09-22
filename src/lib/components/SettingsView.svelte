@@ -2171,9 +2171,27 @@
         </header>
         <div class="plugin-directory-heading">
           <span class="detail-section-title">{$t("plugins")}</span>
-          <span class="plugin-directory-count">1</span>
+          <span class="plugin-directory-count">2</span>
         </div>
         <Accordion.Root type="multiple" class="plugin-accordion">
+          <Accordion.Item
+            value="chat-groups"
+            class="application-settings-surface plugin-accordion-item"
+          >
+            <Accordion.Header class="plugin-accordion-header">
+              <Accordion.Trigger class="plugin-accordion-trigger">
+                <span class="plugin-accordion-copy">
+                  <span class="label-text">{$t("chatGroupPlugin")}</span>
+                  <span class="detail-hint">{$t("chatGroupPluginDescription")}</span>
+                </span>
+                <Switch
+                  checked={draftConfig.chat_groups_enabled ?? true}
+                  onCheckedChange={(checked) => (draftConfig.chat_groups_enabled = checked)}
+                  ariaLabel={$t("chatGroupPlugin")}
+                />
+              </Accordion.Trigger>
+            </Accordion.Header>
+          </Accordion.Item>
           <Accordion.Item
             value="cua-driver"
             class="application-settings-surface plugin-accordion-item"

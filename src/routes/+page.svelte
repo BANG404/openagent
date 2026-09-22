@@ -793,7 +793,8 @@
   });
   let rightSidebarAvailable = $derived(
     conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length) ||
-      terminalSessionCount > 0,
+      terminalSessionCount > 0 ||
+      (config?.chat_groups_enabled ?? false),
   );
   // The one value the title bar and the sidebar render. Deriving it keeps the
   // "no views, no panel" invariant true at every moment, including the flush
@@ -5508,7 +5509,9 @@
                 ? "files"
                 : terminalSessionCount > 0
                   ? "terminal"
-                  : "status";
+                  : config?.chat_groups_enabled
+                    ? "group"
+                    : "status";
             rightSidebarCollapseRequested = false;
           }
           rightSidebarPreference = rightSidebarCollapseRequested;
@@ -5534,6 +5537,8 @@
             (terminalSessionCount = sessionCount)}
           {rightSidebarConversationId}
           {rightSidebarBranchId}
+          chatGroupsEnabled={config?.chat_groups_enabled ?? false}
+          chatGroupWorkspace={workspacePath}
           composerDraft={activeComposerDraft}
           focusRequest={composerFocusRequest}
         />

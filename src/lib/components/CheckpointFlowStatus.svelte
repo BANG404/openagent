@@ -11,6 +11,7 @@
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { t } from "$lib/i18n";
   import BackgroundTerminalPanel from "$lib/components/BackgroundTerminalPanel.svelte";
+  import ChatGroupPanel from "$lib/components/ChatGroupPanel.svelte";
   import FileChangePanel from "$lib/components/FileChangePanel.svelte";
   import ScrollArea from "$lib/components/ui/ScrollArea.svelte";
 
@@ -30,6 +31,8 @@
     onTerminalSummaryChange?: (runningCount: number, sessionCount: number) => void;
     terminalPreviewSessions?: BackgroundTerminalSession[] | null;
     terminalPreviewOutputs?: Record<string, string>;
+    chatGroupsEnabled?: boolean;
+    chatGroupWorkspace?: string;
   }
 
   let {
@@ -48,6 +51,8 @@
     onTerminalSummaryChange = () => {},
     terminalPreviewSessions = null,
     terminalPreviewOutputs = {},
+    chatGroupsEnabled = false,
+    chatGroupWorkspace = "",
   }: Props = $props();
   let progress = $derived(flow ? checkpointFlowProgress(flow) : { completed: 0, total: 0 });
   let graphLayers = $derived(flow?.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
@@ -150,7 +155,22 @@
       else if (terminalAvailable) activePanel = "terminal";
     }
     if (activePanel === "terminal" && !terminalAvailable) {
-      activePanel = flow ? "status" : changes.length > 0 ? "files" : "status";
+      activePanel = flow
+        ? "status"
+        : changes.length > 0
+          ? "files"
+          : chatGroupsEnabled
+            ? "group"
+            : "status";
+    }
+    if (activePanel === "group" && !chatGroupsEnabled) {
+      activePanel = flow
+        ? "status"
+        : changes.length > 0
+          ? "files"
+          : terminalAvailable
+            ? "terminal"
+            : "status";
     }
   });
 
@@ -214,6 +234,16 @@
             {#if terminalPreviewSessions?.length}
               <span>{terminalPreviewSessions.length}</span>
             {/if}
+          </button>
+        {/if}
+        {#if chatGroupsEnabled}
+          <button
+            type="button"
+            class:active={activePanel === "group"}
+            aria-current={activePanel === "group" ? "page" : undefined}
+            onclick={() => (activePanel = "group")}
+          >
+            {$t("chatGroups")}
           </button>
         {/if}
       </nav>
@@ -351,9 +381,13 @@
     {:else if !collapsed && activePanel === "files"}
       <FileChangePanel {changes} {onRevert} />
     {:else if !collapsed && activePanel !== "terminal"}
-      <div class="flow-body">
-        <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>
-      </div>
+      {#if activePanel === "group"}
+        <ChatGroupPanel enabled={chatGroupsEnabled} workspace={chatGroupWorkspace} />
+      {:else}
+        <div class="flow-body">
+          <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>
+        </div>
+      {/if}
     {/if}
     {#if terminalEnabled}
       <BackgroundTerminalPanel

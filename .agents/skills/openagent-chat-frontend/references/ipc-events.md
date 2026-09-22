@@ -1,5 +1,17 @@
 # IPC and events
 
+## Optional Chat Groups
+
+The chat-group capability is a persisted, optional product plugin. Its tools
+and right-sidebar panel are available only while `chat_groups_enabled` is true.
+`dispatch_role` remains the owner of role conversations; group messages are a
+separate durable log and only explicit `mentions` wake member conversations.
+The typed Runtime client owns `list_chat_groups`, member management, message
+send/read operations, and `chat.group_message`/`chat.group_updated` event
+projection. Disabling the capability hides the panel and makes the registered
+tools reject execution through their live config gate, without deleting
+existing group data.
+
 - Keep ordinary debug and release desktop product operations on the same shared
   SDK selection path: both use the supervised external Runtime transport, while
   the explicit embedded diagnostic mode maps the same finite operations to Tauri
