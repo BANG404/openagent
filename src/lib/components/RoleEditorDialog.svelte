@@ -10,6 +10,7 @@
     toggleSelection,
   } from "$lib/roleScope";
   import SettingsActionButton from "$lib/components/ui/SettingsActionButton.svelte";
+  import ScrollArea from "$lib/components/ui/ScrollArea.svelte";
 
   type RoleDraft = {
     id: string | null;
@@ -131,148 +132,162 @@
     </header>
   {/if}
 
-  <div class="role-editor-body">
-    <section class="role-details">
-      <div class="role-fields">
-        <label>
-          <span>{$t("roleName")}</span>
-          <input bind:value={name} placeholder={$t("roleNamePlaceholder")} autocomplete="off" />
+  {#snippet roleEditorBody()}
+    <div class="role-editor-body">
+      <section class="role-details">
+        <div class="role-fields">
+          <label>
+            <span>{$t("roleName")}</span>
+            <input bind:value={name} placeholder={$t("roleNamePlaceholder")} autocomplete="off" />
+          </label>
+        </div>
+
+        <label class="prompt-field">
+          <span>{$t("roleSystemPrompt")}</span>
+          <textarea bind:value={description} placeholder={$t("roleDescriptionPlaceholder")}
+          ></textarea>
+          <small>{$t("roleDescriptionHint")}</small>
         </label>
-      </div>
+      </section>
 
-      <label class="prompt-field">
-        <span>{$t("roleSystemPrompt")}</span>
-        <textarea bind:value={description} placeholder={$t("roleDescriptionPlaceholder")}
-        ></textarea>
-        <small>{$t("roleDescriptionHint")}</small>
-      </label>
-    </section>
-
-    <section class="resource-section">
-      <div class="resource-heading">
-        <div>
-          <h3>{$t("roleResources")}</h3>
-          <p>{$t("roleResourcesHint")}</p>
+      <section class="resource-section">
+        <div class="resource-heading">
+          <div>
+            <h3>{$t("roleResources")}</h3>
+            <p>{$t("roleResourcesHint")}</p>
+          </div>
         </div>
-      </div>
-      {#if loadingResources}
-        <div class="resource-loading" role="status">{$t("loadingContent")}</div>
-      {:else}
-        <div class="resource-columns">
-          <div class="resource-column">
-            <div class="resource-column-header">
-              <h4>{$t("skills")}</h4>
-              <SettingsActionButton
-                tone="quiet"
-                label={allSkillsSelected ? $t("roleClearSelection") : $t("roleSelectAll")}
-                disabled={listedSkillIds.length === 0}
-                onclick={() =>
-                  (skillIds = setAllSelected(skillIds, listedSkillIds, !allSkillsSelected))}
-              />
-            </div>
-            <div class="resource-browser">
-              <div class="desktop-menu-search-wrap resource-search">
-                <svg
-                  class="desktop-menu-search-icon"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <circle cx="7" cy="7" r="4.25" />
-                  <path d="m10.25 10.25 3 3" />
-                </svg>
-                <input
-                  class="desktop-menu-search-input"
-                  type="search"
-                  bind:value={skillQuery}
-                  placeholder={$t("searchSkills")}
-                  aria-label={$t("searchSkills")}
+        {#if loadingResources}
+          <div class="resource-loading" role="status">{$t("loadingContent")}</div>
+        {:else}
+          <div class="resource-columns">
+            <div class="resource-column">
+              <div class="resource-column-header">
+                <h4>{$t("skills")}</h4>
+                <SettingsActionButton
+                  tone="quiet"
+                  label={allSkillsSelected ? $t("roleClearSelection") : $t("roleSelectAll")}
+                  disabled={listedSkillIds.length === 0}
+                  onclick={() =>
+                    (skillIds = setAllSelected(skillIds, listedSkillIds, !allSkillsSelected))}
                 />
               </div>
-              <div class="resource-list">
-                {#each filteredSkills as skill (skillId(skill))}
-                  <label class="resource-row">
-                    <input
-                      type="checkbox"
-                      checked={skillIds.includes(skillId(skill))}
-                      onchange={(event) =>
-                        (skillIds = toggleSelection(
-                          skillIds,
-                          skillId(skill),
-                          event.currentTarget.checked,
-                        ))}
-                    />
-                    <span><strong>{skill.name}</strong><small>{skill.description}</small></span>
-                  </label>
-                {:else}
-                  <p class="resource-empty">
-                    {skillQuery ? $t("noMatchingSkills") : $t("noSkills")}
-                  </p>
-                {/each}
+              <div class="resource-browser">
+                <div class="desktop-menu-search-wrap resource-search">
+                  <svg
+                    class="desktop-menu-search-icon"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <circle cx="7" cy="7" r="4.25" />
+                    <path d="m10.25 10.25 3 3" />
+                  </svg>
+                  <input
+                    class="desktop-menu-search-input"
+                    type="search"
+                    bind:value={skillQuery}
+                    placeholder={$t("searchSkills")}
+                    aria-label={$t("searchSkills")}
+                  />
+                </div>
+                <ScrollArea height="100%" class="resource-list-scroll" scrollHideDelay={350}>
+                  <div class="resource-list">
+                    {#each filteredSkills as skill (skillId(skill))}
+                      <label class="resource-row">
+                        <input
+                          type="checkbox"
+                          checked={skillIds.includes(skillId(skill))}
+                          onchange={(event) =>
+                            (skillIds = toggleSelection(
+                              skillIds,
+                              skillId(skill),
+                              event.currentTarget.checked,
+                            ))}
+                        />
+                        <span><strong>{skill.name}</strong><small>{skill.description}</small></span>
+                      </label>
+                    {:else}
+                      <p class="resource-empty">
+                        {skillQuery ? $t("noMatchingSkills") : $t("noSkills")}
+                      </p>
+                    {/each}
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+            <div class="resource-column">
+              <div class="resource-column-header">
+                <h4>{$t("mcpServers")}</h4>
+                <SettingsActionButton
+                  tone="quiet"
+                  label={allMcpServersSelected ? $t("roleClearSelection") : $t("roleSelectAll")}
+                  disabled={listedMcpServerIds.length === 0}
+                  onclick={() =>
+                    (mcpServerIds = setAllSelected(
+                      mcpServerIds,
+                      listedMcpServerIds,
+                      !allMcpServersSelected,
+                    ))}
+                />
+              </div>
+              <div class="resource-browser">
+                <div class="desktop-menu-search-wrap resource-search">
+                  <svg
+                    class="desktop-menu-search-icon"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <circle cx="7" cy="7" r="4.25" />
+                    <path d="m10.25 10.25 3 3" />
+                  </svg>
+                  <input
+                    class="desktop-menu-search-input"
+                    type="search"
+                    bind:value={mcpServerQuery}
+                    placeholder={$t("searchMcpServers")}
+                    aria-label={$t("searchMcpServers")}
+                  />
+                </div>
+                <ScrollArea height="100%" class="resource-list-scroll" scrollHideDelay={350}>
+                  <div class="resource-list">
+                    {#each filteredMcpServers as server (server.id)}
+                      <label class="resource-row">
+                        <input
+                          type="checkbox"
+                          checked={mcpServerIds.includes(server.id)}
+                          onchange={(event) =>
+                            (mcpServerIds = toggleSelection(
+                              mcpServerIds,
+                              server.id,
+                              event.currentTarget.checked,
+                            ))}
+                        />
+                        <span><strong>{server.name}</strong><small>{server.transport}</small></span>
+                      </label>
+                    {:else}
+                      <p class="resource-empty">
+                        {mcpServerQuery ? $t("noMatchingMcpServers") : $t("noMcpServers")}
+                      </p>
+                    {/each}
+                  </div>
+                </ScrollArea>
               </div>
             </div>
           </div>
-          <div class="resource-column">
-            <div class="resource-column-header">
-              <h4>{$t("mcpServers")}</h4>
-              <SettingsActionButton
-                tone="quiet"
-                label={allMcpServersSelected ? $t("roleClearSelection") : $t("roleSelectAll")}
-                disabled={listedMcpServerIds.length === 0}
-                onclick={() =>
-                  (mcpServerIds = setAllSelected(
-                    mcpServerIds,
-                    listedMcpServerIds,
-                    !allMcpServersSelected,
-                  ))}
-              />
-            </div>
-            <div class="resource-browser">
-              <div class="desktop-menu-search-wrap resource-search">
-                <svg
-                  class="desktop-menu-search-icon"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <circle cx="7" cy="7" r="4.25" />
-                  <path d="m10.25 10.25 3 3" />
-                </svg>
-                <input
-                  class="desktop-menu-search-input"
-                  type="search"
-                  bind:value={mcpServerQuery}
-                  placeholder={$t("searchMcpServers")}
-                  aria-label={$t("searchMcpServers")}
-                />
-              </div>
-              <div class="resource-list">
-                {#each filteredMcpServers as server (server.id)}
-                  <label class="resource-row">
-                    <input
-                      type="checkbox"
-                      checked={mcpServerIds.includes(server.id)}
-                      onchange={(event) =>
-                        (mcpServerIds = toggleSelection(
-                          mcpServerIds,
-                          server.id,
-                          event.currentTarget.checked,
-                        ))}
-                    />
-                    <span><strong>{server.name}</strong><small>{server.transport}</small></span>
-                  </label>
-                {:else}
-                  <p class="resource-empty">
-                    {mcpServerQuery ? $t("noMatchingMcpServers") : $t("noMcpServers")}
-                  </p>
-                {/each}
-              </div>
-            </div>
-          </div>
-        </div>
-      {/if}
-    </section>
-  </div>
+        {/if}
+      </section>
+    </div>
+  {/snippet}
+
+  {#if presentation === "window"}
+    <ScrollArea height="100%" class="role-editor-body-scroll" scrollHideDelay={350}>
+      {@render roleEditorBody()}
+    </ScrollArea>
+  {:else}
+    {@render roleEditorBody()}
+  {/if}
 
   <footer class="role-editor-actions">
     <div>
@@ -371,11 +386,17 @@
     backdrop-filter: none;
   }
 
-  /* Native utility windows can be shorter than the preferred editor canvas.
-     Let the form itself scroll instead of allowing the footer or fields to be
-     clipped by the window frame. */
-  :global(.role-editor-window .role-editor-body) {
-    overflow-y: auto;
+  :global(.role-editor-body-scroll) {
+    min-height: 0;
+    flex: 1;
+  }
+
+  :global(.role-editor-body-scroll .ui-scroll-area-viewport) {
+    overflow-x: hidden;
+  }
+
+  :global(.role-editor-body-scroll .role-editor-body) {
+    min-height: 100%;
   }
 
   .role-editor-header,
@@ -590,9 +611,18 @@
   }
 
   .resource-list {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  :global(.resource-list-scroll) {
     min-height: 0;
     flex: 1;
-    overflow-y: auto;
+  }
+
+  :global(.resource-list-scroll .ui-scroll-area-viewport) {
+    overflow-x: hidden;
   }
 
   .resource-row {

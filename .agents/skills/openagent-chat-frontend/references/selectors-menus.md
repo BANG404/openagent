@@ -89,9 +89,11 @@
   starts on that role's new-conversation surface.
 - Keep the role editor as a viewport-bounded horizontal workspace: role identity
   and instructions occupy one column while skills and MCP assignments occupy the
-  other. The dialog body itself does not scroll. Each resource collection owns
-  its search field and overflow scrolling, and inner controls use flat bordered
-  surfaces rather than nested elevation. Saved roles have one global scope, so
+  other. The ordinary dialog body itself does not scroll. Each resource
+  collection owns its search field and overflow scrolling, and inner controls
+  use flat bordered surfaces rather than nested elevation. The standalone role
+  editor window uses the shared `ui/ScrollArea.svelte` body viewport when its
+  native window is shorter than the editor canvas. Saved roles have one global scope, so
   the editor has no scope selector and offers only global Skills for association.
   Both columns are exhaustive allowlists: associating nothing runs the role with
   no global Skill and no user MCP server. Workspace Skills and plugin-owned MCP
