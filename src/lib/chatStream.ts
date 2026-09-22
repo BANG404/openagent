@@ -65,6 +65,12 @@ export function appendToolCall(
   // ask_user is represented by a dedicated user_input stream item from
   // chat-user-input-request, not by the generic tool-call card.
   if (name === "ask_user") return items;
+  if (
+    toolUseId &&
+    items.some((item) => item.type === "tool_call" && item.toolUseId === toolUseId)
+  ) {
+    return items;
+  }
   const argsStr = typeof args === "string" ? args : JSON.stringify(args, null, 2);
   return [...items, { type: "tool_call", name, args: argsStr, toolUseId }];
 }

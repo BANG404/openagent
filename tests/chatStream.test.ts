@@ -34,6 +34,22 @@ describe("tool stream correlation", () => {
     expect("result" in items[1]).toBe(false);
   });
 
+  test("does not append a replayed tool call with the same provider id", () => {
+    const items = appendToolCall(
+      appendToolCall([], "fetch", { url: "first" }, "call-1"),
+      "fetch",
+      { url: "first" },
+      "call-1",
+    );
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      type: "tool_call",
+      name: "fetch",
+      toolUseId: "call-1",
+    });
+  });
+
   test("keeps the legacy latest-pending fallback without an id", () => {
     let items = appendToolCall([], "fetch", { url: "first" }, "call-1");
     items = appendToolCall(items, "fetch", { url: "second" }, "call-2");
