@@ -1437,7 +1437,7 @@
     background: var(--primary);
     color: white;
     border: none;
-    border-radius: 50%;
+    border-radius: 8px;
     padding: 0;
     display: flex;
     align-items: center;
@@ -1472,7 +1472,7 @@
     background: var(--surface2);
     color: var(--text-muted);
     border: 0;
-    border-radius: 50%;
+    border-radius: 8px;
     padding: 0;
     display: flex;
     align-items: center;

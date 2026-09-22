@@ -142,6 +142,9 @@
 - Keep the localized shared-composer placeholder concise while advertising the
   Enter and Shift+Enter keyboard behavior plus the `/` command and `@` mention
   palette triggers.
+- Keep the shared composer send, queue, and stop actions at a stable 30px square
+  geometry with an 8px corner radius so the primary actions read as compact
+  rounded-square controls across streaming and idle states.
 - Keep the composer context-window indicator derived from the active branch
   tip's latest persisted chat usage and the selected model's configured
   context-compaction threshold (falling back to the global threshold). Hide it
