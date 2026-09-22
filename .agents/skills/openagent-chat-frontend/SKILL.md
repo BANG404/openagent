@@ -23,6 +23,7 @@ Read only the references that own the affected behavior:
 - Menus, selectors, composer palettes, shared interactive surfaces, and desktop navigation: [selectors-menus.md](references/selectors-menus.md)
 - Bootstrap, onboarding, workspace switching, sidebar restore, and conversation creation: [startup-restore.md](references/startup-restore.md)
 - Quick Chat plus browser-verifiable preview routes and Settings surface invariants: [quick-chat-previews.md](references/quick-chat-previews.md)
+- Chat test authoring, event matrices, and verification levels: [testing-workflow.md](references/testing-workflow.md)
 - SDK command boundaries, IPC, runtime events, diagnostics, configuration notifications, and completion notifications: [ipc-events.md](references/ipc-events.md)
 
 For any chat-owned loading placeholder or layout change, also follow the

@@ -1,5 +1,5 @@
-// @ts-nocheck -- legacy fixture typing is tracked separately from the strict test surface.
 import { describe, expect, test } from "bun:test";
+import type { UserInputRequest } from "../src/lib/types";
 import {
   appendToolCall,
   appendUserInput,
@@ -10,7 +10,12 @@ import {
 
 describe("tool stream correlation", () => {
   test("preserves a pending form received before run startup", () => {
-    const request = { request_id: "question-1", conv_id: "conv-1", kind: "ask_user", fields: [] };
+    const request: UserInputRequest = {
+      request_id: "question-1",
+      conv_id: "conv-1",
+      kind: "ask_user",
+      fields: [],
+    };
     const pending = appendUserInput([], request);
     expect(initializeStreamItems(pending)).toEqual(pending);
     expect(initializeStreamItems(undefined)).toEqual([]);
@@ -50,6 +55,13 @@ describe("tool stream correlation", () => {
     });
   });
 
+  test("keeps the first payload when a replayed call has conflicting details", () => {
+    const first = appendToolCall([], "fetch", { url: "first" }, "call-1");
+    const replayed = appendToolCall(first, "write_file", { path: "second" }, "call-1");
+
+    expect(replayed).toEqual(first);
+  });
+
   test("keeps the legacy latest-pending fallback without an id", () => {
     let items = appendToolCall([], "fetch", { url: "first" }, "call-1");
     items = appendToolCall(items, "fetch", { url: "second" }, "call-2");
@@ -60,7 +72,7 @@ describe("tool stream correlation", () => {
   });
 
   test("resolves approval metadata from the canonical tool result", () => {
-    const request = {
+    const request: UserInputRequest = {
       request_id: "call-1",
       conv_id: "conv-1",
       kind: "tool_approval",
@@ -94,8 +106,15 @@ describe("tool stream correlation", () => {
     expect("result" in repeated[1]).toBe(false);
   });
 
+  test("keeps the canonical result when a late replay carries different output", () => {
+    let items = appendToolCall([], "fetch", { url: "first" }, "call-1");
+    items = attachToolResult(items, "first result", "call-1");
+
+    expect(attachToolResult(items, "late conflicting result", "call-1")).toEqual(items);
+  });
+
   test("does not reassign a repeated approval to a sibling tool", () => {
-    const request = {
+    const request: UserInputRequest = {
       request_id: "call-1",
       conv_id: "conv-1",
       kind: "tool_approval" as const,
@@ -118,7 +137,12 @@ describe("tool stream correlation", () => {
   });
 
   test("preserves an optimistic sibling resolution during hydration", () => {
-    const request = { request_id: "call-1", conv_id: "conv-1", kind: "tool_approval", fields: [] };
+    const request: UserInputRequest = {
+      request_id: "call-1",
+      conv_id: "conv-1",
+      kind: "tool_approval",
+      fields: [],
+    };
     const visible = appendUserInput(
       appendToolCall([], "exec_command", { cmd: "one" }, "call-1"),
       request,

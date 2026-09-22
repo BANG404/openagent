@@ -8,7 +8,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
 const workspaceRoot = fileURLToPath(new URL("..", import.meta.url));
-const port = 5187;
+const port = Number(process.env.OPENAGENT_BROWSER_PREVIEW_PORT || 5187);
 const baseUrl = `http://127.0.0.1:${port}`;
 const previewUrl = `${baseUrl}/?streaming-transcript-preview`;
 const session = `openagent-browser-${process.pid}`;
@@ -38,6 +38,7 @@ function runPlaywright(args) {
 
 async function waitForVite() {
   for (let attempt = 0; attempt < 50; attempt += 1) {
+    if (viteExited) throw new Error(`Vite exited before serving ${baseUrl}`);
     try {
       const response = await fetch(baseUrl);
       if (response.ok) return;
@@ -50,9 +51,17 @@ async function waitForVite() {
 }
 
 await access(playwrightCli);
-const vite = spawn("bun", ["run", "dev", "--host", "127.0.0.1", "--port", String(port)], {
-  cwd: workspaceRoot,
-  stdio: ["ignore", "pipe", "pipe"],
+const vite = spawn(
+  "bun",
+  ["run", "dev", "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
+  {
+    cwd: workspaceRoot,
+    stdio: ["ignore", "pipe", "pipe"],
+  },
+);
+let viteExited = false;
+vite.on("exit", () => {
+  viteExited = true;
 });
 vite.stderr.on("data", (chunk) => process.stderr.write(String(chunk)));
 
@@ -81,7 +90,9 @@ try {
       ];
       const missing = required.filter((value) => !text.includes(value));
       if (missing.length > 0) throw new Error("preview is missing: " + missing.join(", "));
-      return { turns: (text.match(/Completed answer \\d+\\./g) ?? []).length };
+      const turns = (text.match(/Completed answer \\d+\\./g) ?? []).length;
+      if (turns < 19) throw new Error("preview rendered only " + turns + " completed turns");
+      return { turns };
     })()`,
   ]);
   runPlaywright([
