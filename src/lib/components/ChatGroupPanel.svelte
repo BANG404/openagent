@@ -124,6 +124,13 @@
     );
   }
 
+  function mentionedRoleNames(message: ChatGroupMessage): string[] {
+    return message.mentions.map(
+      (memberId) =>
+        members.find((member) => member.id === memberId)?.role_name ?? $t("chatGroupRole"),
+    );
+  }
+
   $effect(() => {
     const groupId = selectedGroupId;
     untrack(() => {
@@ -220,7 +227,15 @@
             <article class="message-row">
               <span class="sender">{senderLabel(message)}</span>
               <p>{message.content}</p>
-              {#if message.mentions.length > 0}<small>{$t("chatGroupMentioned")}</small>{/if}
+              {#if message.mentions.length > 0}
+                <small class="mentions">
+                  {$t("chatGroupMentioned")}:
+                  {#each mentionedRoleNames(message) as roleName, index (message.mentions[index])}
+                    {#if index > 0},
+                    {/if}@{roleName}
+                  {/each}
+                </small>
+              {/if}
             </article>
           {/each}
         {/if}
