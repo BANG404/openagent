@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { onMount, untrack } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import type { ChatGroup, ChatGroupMember, ChatGroupMessage } from "$lib/openagent";
   import { desktopOpenAgent } from "$lib/openagent/tauriClient";
   import { t } from "$lib/i18n";
+  import MentionPalette, { type PaletteItem } from "./MentionPalette.svelte";
 
   let {
     enabled = false,
@@ -18,12 +19,29 @@
   let selectedGroupId = $state<string | null>(null);
   let draft = $state("");
   let selectedMentions = $state<string[]>([]);
+  let mentionMode = $state(false);
+  let mentionQuery = $state("");
+  let mentionStart = $state(0);
+  let mentionActiveIdx = $state(0);
+  let textareaEl = $state<HTMLTextAreaElement | null>(null);
   let cursor = $state(0);
   let sending = $state(false);
   let error = $state<string | null>(null);
   let refreshTimer: ReturnType<typeof setInterval> | null = null;
 
   const selectedGroup = $derived(groups.find((group) => group.id === selectedGroupId) ?? null);
+  const mentionItems = $derived<PaletteItem[]>(
+    members
+      .filter((member) =>
+        member.role_name.toLocaleLowerCase().includes(mentionQuery.trim().toLocaleLowerCase()),
+      )
+      .map((member) => ({
+        id: member.id,
+        insertText: member.role_name,
+        label: member.role_name,
+        hint: $t("mentionRole"),
+      })),
+  );
 
   async function loadGroups(scope = workspace): Promise<void> {
     if (!enabled) return;
@@ -91,20 +109,80 @@
     if (!draft.includes(token)) draft = `${token}${draft}`;
   }
 
+  function closeMentionPalette(): void {
+    mentionMode = false;
+    mentionQuery = "";
+    mentionStart = 0;
+    mentionActiveIdx = 0;
+  }
+
+  function syncMentionPalette(): void {
+    if (!textareaEl) return;
+    const caret = textareaEl.selectionStart ?? draft.length;
+    for (let index = caret - 1; index >= 0; index -= 1) {
+      if (draft[index] === "@") {
+        const previous = index === 0 ? "" : draft[index - 1];
+        if (previous === "" || /\s/.test(previous)) {
+          mentionStart = index;
+          mentionQuery = draft.slice(index + 1, caret).replace(/^"/, "");
+          mentionMode = !/[\s\n]/.test(draft.slice(index + 1, caret).replace(/^"[^"]*$/, ""));
+          if (mentionMode)
+            mentionActiveIdx = Math.min(mentionActiveIdx, Math.max(mentionItems.length - 1, 0));
+          return;
+        }
+        break;
+      }
+      if (/\s/.test(draft[index])) break;
+    }
+    closeMentionPalette();
+  }
+
+  function applyMention(item: PaletteItem): void {
+    if (!textareaEl) return;
+    const caret = textareaEl.selectionStart ?? draft.length;
+    const before = draft.slice(0, mentionStart);
+    const after = draft.slice(caret);
+    const name = item.insertText ?? item.label;
+    const token = /\s/.test(name) ? `@"${name.replaceAll('"', "\\\\" + '"')}"` : `@${name}`;
+    const insertion = `${token} `;
+    draft = `${before}${insertion}${after}`;
+    if (!selectedMentions.includes(item.id)) selectedMentions = [...selectedMentions, item.id];
+    const newCaret = before.length + insertion.length;
+    closeMentionPalette();
+    void tick().then(() => {
+      textareaEl?.focus();
+      textareaEl?.setSelectionRange(newCaret, newCaret);
+    });
+  }
+
+  function mentionsFromDraft(content: string): string[] {
+    const found = new Set(selectedMentions);
+    const pattern = /@"([^"\\]*(?:\\.[^"\\]*)*)"|@([^\s@]+)/g;
+    for (const match of content.matchAll(pattern)) {
+      const name = (match[1] ?? match[2] ?? "").replaceAll('\\"', '"').trim().toLocaleLowerCase();
+      const member = members.find((item) => item.role_name.toLocaleLowerCase() === name);
+      if (member) found.add(member.id);
+    }
+    return [...found];
+  }
+
   async function sendMessage(): Promise<void> {
     if (!selectedGroupId || !draft.trim() || sending) return;
+    const content = draft.trim();
+    const mentions = mentionsFromDraft(content);
     sending = true;
     error = null;
     try {
       const message = await desktopOpenAgent.sendChatGroupMessage(
         selectedGroupId,
-        draft.trim(),
-        selectedMentions,
+        content,
+        mentions,
       );
-      messages = [...messages, message];
+      if (!messages.some((item) => item.id === message.id)) messages = [...messages, message];
       cursor = Math.max(cursor, message.seq);
       draft = "";
       selectedMentions = [];
+      closeMentionPalette();
     } catch (cause) {
       error = String(cause);
     } finally {
@@ -227,8 +305,48 @@
           void sendMessage();
         }}
       >
-        <textarea bind:value={draft} rows="3" placeholder={$t("chatGroupMessagePlaceholder")}
-        ></textarea>
+        {#if mentionMode}
+          <div class="palette-anchor">
+            <MentionPalette
+              items={mentionItems}
+              activeIdx={mentionActiveIdx}
+              emptyText={$t("chatGroupNoMessages")}
+              onSelect={applyMention}
+              onHover={(idx) => (mentionActiveIdx = idx)}
+            />
+          </div>
+        {/if}
+        <textarea
+          bind:this={textareaEl}
+          bind:value={draft}
+          rows="3"
+          placeholder={$t("chatGroupMessagePlaceholder")}
+          oninput={syncMentionPalette}
+          onselect={syncMentionPalette}
+          onclick={syncMentionPalette}
+          onkeydown={(event) => {
+            if (mentionMode && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+              event.preventDefault();
+              mentionActiveIdx =
+                event.key === "ArrowDown"
+                  ? (mentionActiveIdx + 1) % Math.max(mentionItems.length, 1)
+                  : (mentionActiveIdx - 1 + mentionItems.length) % Math.max(mentionItems.length, 1);
+            } else if (
+              mentionMode &&
+              (event.key === "Enter" || event.key === "Tab") &&
+              mentionItems.length > 0
+            ) {
+              event.preventDefault();
+              applyMention(mentionItems[mentionActiveIdx]);
+            } else if (event.key === "Escape" && mentionMode) {
+              event.preventDefault();
+              closeMentionPalette();
+            } else if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              void sendMessage();
+            }
+          }}
+          onblur={() => setTimeout(closeMentionPalette, 100)}></textarea>
         <button type="submit" disabled={sending || !draft.trim()}>{$t("chatGroupSend")}</button>
       </form>
     {/if}
@@ -340,6 +458,7 @@
     font-size: 10px;
   }
   .composer {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 6px;
