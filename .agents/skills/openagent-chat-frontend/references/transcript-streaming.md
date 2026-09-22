@@ -54,6 +54,10 @@
   controller. The page shell coordinates durable conversation/checkpoint data
   with that controller, but must not recreate parallel maps for streaming,
   pause, timing, awaiting-output, or memory-retrieval state.
+- Treat correlated tool results and approval requests as idempotent stream
+  events. Once an event has resolved or attached to its `toolUseId`, a repeated
+  copy must leave the transcript unchanged instead of falling through to the
+  next pending sibling tool.
 - Keep transcript tail-follow intent scoped to the active conversation. The
   shared viewport may be reused when navigating between conversations, but a
   stream's automatic tail pin must not carry over to another conversation.
@@ -146,6 +150,10 @@
   debug mode, show the pending checkpoint ID on the trailing live text as soon
   as Runtime emits it; use the durable assistant checkpoint ID after the turn
   is reconciled.
+  Debug mode is the persisted main-window preference exposed from Help in both
+  development and production builds. It defaults on in development and off in
+  production, only controls these transcript debug markers, and does not
+  enable the development inspector or debug APIs.
   Streaming and durable forms must share the same assistant-turn branch and
   keyed stream-item children.
 - Re-execution fork markers are one-shot state for the submitted turn. Clear

@@ -27,6 +27,8 @@
     onCreateRole,
     onConfigureRole,
     onOpenAbout,
+    debugMode,
+    onToggleDebugMode,
     onQuit,
     onToggleCheckpointFlowPanel,
     onMinimize,
@@ -53,6 +55,8 @@
     onCreateRole: () => void;
     onConfigureRole: (role: AgentRole) => void;
     onOpenAbout: () => void | Promise<void>;
+    debugMode: boolean;
+    onToggleDebugMode: () => void;
     onQuit: () => void;
     onToggleCheckpointFlowPanel: () => void;
     onMinimize: () => void;
@@ -110,6 +114,8 @@
       {onCreateRole}
       {onConfigureRole}
       onOpenAbout={() => void onOpenAbout()}
+      {debugMode}
+      {onToggleDebugMode}
       onCloseWindow={onClose}
       {onQuit}
       {platform}

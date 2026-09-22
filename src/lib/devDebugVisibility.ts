@@ -1,13 +1,17 @@
 export const DEV_MAIN_DEBUG_VISIBILITY_EVENT = "dev-main-debug-visibility-changed";
 
+// Keep the existing key so development profiles retain their current setting.
+// The same preference is intentionally available to production builds through
+// Help -> Debug mode.
 const STORAGE_KEY = "openagent.dev.main-debug-components-visible";
 
-export function readMainDebugComponentsVisible(): boolean {
-  if (typeof window === "undefined") return true;
+export function readMainDebugComponentsVisible(defaultVisible = true): boolean {
+  if (typeof window === "undefined") return defaultVisible;
   try {
-    return window.localStorage.getItem(STORAGE_KEY) !== "false";
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    return stored === null ? defaultVisible : stored !== "false";
   } catch {
-    return true;
+    return defaultVisible;
   }
 }
 

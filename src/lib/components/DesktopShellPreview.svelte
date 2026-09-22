@@ -256,6 +256,8 @@
         roleEditorOpen = true;
       }}
       onOpenAbout={() => {}}
+      debugMode={false}
+      onToggleDebugMode={() => {}}
       onQuit={() => {}}
       onToggleCheckpointFlowPanel={() => {}}
       onMinimize={() => {}}

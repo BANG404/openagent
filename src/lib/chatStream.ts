@@ -78,12 +78,13 @@ export function attachToolResult(
   const next = [...items];
   if (toolUseId) {
     const exact = next.findIndex(
-      (item) =>
-        item.type === "tool_call" && item.toolUseId === toolUseId && item.result === undefined,
+      (item) => item.type === "tool_call" && item.toolUseId === toolUseId,
     );
     if (exact >= 0) {
       const item = next[exact];
-      if (item.type === "tool_call") next[exact] = toolCallWithResult(item, result);
+      if (item.type === "tool_call" && item.result === undefined) {
+        next[exact] = toolCallWithResult(item, result);
+      }
       return next;
     }
   }
@@ -112,18 +113,14 @@ export function appendUserInput(items: StreamItem[], request: UserInputRequest):
   if (request.kind === "tool_approval") {
     const next = [...items];
     const matchingIndex = next.findIndex(
-      (item) =>
-        item.type === "tool_call" &&
-        item.toolUseId === request.request_id &&
-        item.result === undefined &&
-        item.approval === undefined,
+      (item) => item.type === "tool_call" && item.toolUseId === request.request_id,
     );
     if (matchingIndex >= 0) {
       const item = next[matchingIndex];
-      if (item.type === "tool_call") {
+      if (item.type === "tool_call" && item.result === undefined && item.approval === undefined) {
         next[matchingIndex] = { ...item, approval: { request, state: "pending" } };
-        return next;
       }
+      return next;
     }
     // Live approval events do not carry a provider tool-use id. Tools execute
     // in provider order, so pair that provisional event with the first pending
