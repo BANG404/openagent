@@ -10,7 +10,9 @@ The typed Runtime client owns `list_chat_groups`, member management, message
 send/read operations, and `chat.group_message`/`chat.group_updated` event
 projection. Disabling the capability hides the panel and makes the registered
 tools reject execution through their live config gate, without deleting
-existing group data.
+existing group data. The same plugin also exposes `chat_send_message` for a
+workspace-scoped one-to-one message; private delivery is persisted only in the
+target conversation and never copied into a group log.
 
 - Keep ordinary debug and release desktop product operations on the same shared
   SDK selection path: both use the supervised external Runtime transport, while
