@@ -167,8 +167,8 @@
     cursor: pointer;
     vertical-align: baseline;
     transition:
-      background 0.12s,
-      border-color 0.12s;
+      background var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard);
     font-family: inherit;
   }
   .file-ref:hover:not(:disabled) {

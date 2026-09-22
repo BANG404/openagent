@@ -1280,7 +1280,7 @@
     resize: none;
     outline: none;
     line-height: 1.47;
-    transition: border-color 0.15s;
+    transition: border-color var(--motion-fast) var(--ease-standard);
     min-height: 58px;
     max-height: 200px;
     overflow-y: auto;
@@ -1436,9 +1436,9 @@
     align-items: center;
     justify-content: center;
     transition:
-      background 0.15s,
-      transform 0.1s,
-      opacity 0.15s;
+      background var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard),
+      opacity var(--motion-fast) var(--ease-standard);
     user-select: none;
   }
 
@@ -1472,9 +1472,9 @@
     justify-content: center;
     box-shadow: var(--control-shadow);
     transition:
-      background 0.15s,
-      color 0.15s,
-      transform 0.1s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
     user-select: none;
   }
 

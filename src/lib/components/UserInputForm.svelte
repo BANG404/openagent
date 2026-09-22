@@ -86,7 +86,7 @@
   }
 
   const inputBase =
-    "w-full box-border py-1.5 px-[9px] rounded-md bg-[var(--bg)] text-[var(--text)] text-[13px] [font-family:inherit] outline-none transition-colors duration-[120ms]";
+    "w-full box-border py-1.5 px-[9px] rounded-md bg-[var(--bg)] text-[var(--text)] text-[13px] [font-family:inherit] outline-none transition-colors duration-[var(--motion-fast)]";
   function inputCls(field: AskUserField): string {
     return fieldHasError(field)
       ? `${inputBase} border border-[#ef4444]`
@@ -208,14 +208,14 @@
   <div class="flex justify-end gap-2 mt-0.5">
     <button
       type="button"
-      class="px-[14px] py-1.5 rounded-md text-[13px] cursor-pointer transition-colors duration-[120ms] bg-transparent text-[var(--text-muted)] border border-[var(--border)] hover:bg-[var(--surface2)]"
+      class="px-[14px] py-1.5 rounded-md text-[13px] cursor-pointer transition-colors duration-[var(--motion-fast)] bg-transparent text-[var(--text-muted)] border border-[var(--border)] hover:bg-[var(--surface2)]"
       onclick={cancel}
     >
       {request.cancel_label ?? $t("askUserCancel")}
     </button>
     <button
       type="button"
-      class="px-[14px] py-1.5 rounded-md text-[13px] font-medium cursor-pointer transition-colors duration-[120ms] bg-[var(--primary)] text-white border border-transparent hover:bg-[var(--primary-hover)]"
+      class="px-[14px] py-1.5 rounded-md text-[13px] font-medium cursor-pointer transition-colors duration-[var(--motion-fast)] bg-[var(--primary)] text-white border border-transparent hover:bg-[var(--primary-hover)]"
       onclick={submit}
     >
       {request.submit_label ?? $t("askUserSubmit")}
@@ -232,7 +232,7 @@
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     box-shadow: none;
-    transition: border-color 120ms;
+    transition: border-color var(--motion-fast) var(--ease-standard);
   }
   :global(.ui-select-trigger.ask-user-select:hover:not(:disabled)),
   :global(.ui-select-trigger.ask-user-select[data-state="open"]) {

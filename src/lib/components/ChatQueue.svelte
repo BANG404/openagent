@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { slide } from "svelte/transition";
   import type { ChatAttachment, UserMessageContext } from "$lib/types";
   import { t } from "$lib/i18n";
+  import { motionDuration } from "$lib/motion";
   import Tooltip from "./Tooltip.svelte";
 
   interface QueueItem {
@@ -26,7 +28,11 @@
 </script>
 
 {#if items.length > 0}
-  <section class="chat-queue" aria-label={$t("messageQueue")}>
+  <section
+    class="chat-queue"
+    aria-label={$t("messageQueue")}
+    transition:slide={{ duration: motionDuration(180) }}
+  >
     <div class="queue-header">
       <span class="queue-title"
         >{$t("messageQueue")} <span class="queue-count">{items.length}</span></span

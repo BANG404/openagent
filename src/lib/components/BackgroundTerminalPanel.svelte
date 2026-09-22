@@ -686,7 +686,7 @@
     height: 16px;
     flex: 0 0 16px;
     color: var(--text-muted);
-    transition: transform 150ms ease;
+    transition: transform var(--motion-panel) var(--ease-standard);
   }
 
   .session-item.expanded .session-chevron {
@@ -755,7 +755,7 @@
     min-height: 0;
     max-height: min(440px, 58vh);
     flex-direction: column;
-    animation: terminal-detail-in 150ms ease-out;
+    animation: terminal-detail-in var(--motion-panel) var(--ease-enter);
   }
 
   @keyframes terminal-detail-in {

@@ -1,6 +1,8 @@
 <script lang="ts">
   import { Command } from "bits-ui";
   import { tick } from "svelte";
+  import { fly } from "svelte/transition";
+  import { motionDuration } from "$lib/motion";
 
   export interface PaletteItem {
     id: string;
@@ -55,42 +57,44 @@
   }
 </script>
 
-<Command.Root
-  shouldFilter={false}
-  value={activeValue}
-  onValueChange={handleValueChange}
-  loop
-  disableInitialScroll
-  class="palette floating-application-surface"
-  label="Suggestions"
->
-  <Command.List bind:ref={listEl} class="palette-list">
-    {#if loading && items.length === 0}
-      <div class="palette-loading" role="status">
-        <span class="palette-spinner" aria-hidden="true"></span>
-        <span>{emptyText}</span>
-      </div>
-    {:else if items.length === 0}
-      <Command.Empty class="desktop-menu-empty palette-empty">{emptyText}</Command.Empty>
-    {:else}
-      {#each items as item (item.id)}
-        <Command.Item
-          value={item.id}
-          onSelect={() => onSelect(item)}
-          class="desktop-menu-item palette-row"
-        >
-          <span class="palette-label">{item.label}</span>
-          {#if item.detail}
-            <span class="palette-detail">{item.detail}</span>
-          {/if}
-          {#if item.hint}
-            <span class="palette-hint">{item.hint}</span>
-          {/if}
-        </Command.Item>
-      {/each}
-    {/if}
-  </Command.List>
-</Command.Root>
+<div class="palette-motion-wrapper" transition:fly={{ y: 6, duration: motionDuration(160) }}>
+  <Command.Root
+    shouldFilter={false}
+    value={activeValue}
+    onValueChange={handleValueChange}
+    loop
+    disableInitialScroll
+    class="palette floating-application-surface"
+    label="Suggestions"
+  >
+    <Command.List bind:ref={listEl} class="palette-list">
+      {#if loading && items.length === 0}
+        <div class="palette-loading" role="status">
+          <span class="palette-spinner" aria-hidden="true"></span>
+          <span>{emptyText}</span>
+        </div>
+      {:else if items.length === 0}
+        <Command.Empty class="desktop-menu-empty palette-empty">{emptyText}</Command.Empty>
+      {:else}
+        {#each items as item (item.id)}
+          <Command.Item
+            value={item.id}
+            onSelect={() => onSelect(item)}
+            class="desktop-menu-item palette-row"
+          >
+            <span class="palette-label">{item.label}</span>
+            {#if item.detail}
+              <span class="palette-detail">{item.detail}</span>
+            {/if}
+            {#if item.hint}
+              <span class="palette-hint">{item.hint}</span>
+            {/if}
+          </Command.Item>
+        {/each}
+      {/if}
+    </Command.List>
+  </Command.Root>
+</div>
 
 <style>
   :global(.palette) {
@@ -99,6 +103,10 @@
     max-height: min(320px, var(--palette-available-height, 320px));
     overflow: hidden;
     outline: none;
+  }
+
+  .palette-motion-wrapper {
+    width: 100%;
   }
 
   :global(.palette-list) {

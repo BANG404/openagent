@@ -218,7 +218,7 @@
     flex: none;
     align-items: center;
     justify-content: center;
-    transition: transform 0.15s ease;
+    transition: transform var(--motion-fast) var(--ease-standard);
   }
 
   .group-chevron.expanded {

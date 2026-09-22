@@ -1,6 +1,7 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
   import { toasts, dismissToast, type Toast } from "$lib/toast";
+  import { motionDuration } from "$lib/motion";
   import { t } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
 
@@ -22,7 +23,11 @@
 
 <div class="toast-stack" role="region" aria-live="polite">
   {#each $toasts as toast (toast.id)}
-    <div class="toast floating-application-surface" transition:fly={{ y: -16, duration: 180 }}>
+    <div
+      class="toast floating-application-surface"
+      in:fly={{ y: -8, duration: motionDuration(180) }}
+      out:fly={{ y: -8, duration: motionDuration(140) }}
+    >
       <div class="toast-body">
         <div class="toast-title">{toast.title}</div>
         {#if toast.description || toast.link}
@@ -173,7 +178,7 @@
     padding: 6px 10px;
     border-radius: 8px;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: background var(--motion-fast) var(--ease-standard);
     font-family: inherit;
   }
   .toast-action:hover {
@@ -194,9 +199,9 @@
     border-radius: 8px;
     cursor: pointer;
     transition:
-      background 0.12s,
-      color 0.12s,
-      transform 0.12s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
     padding: 0;
   }
   .toast-dismiss:hover {

@@ -45,6 +45,6 @@
     outline: none;
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
-    transition: box-shadow 0.2s;
+    transition: box-shadow var(--motion-panel) var(--ease-standard);
   }
 </style>

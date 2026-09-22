@@ -18,6 +18,7 @@ Read only the references needed for the task:
 - Responsive and review guidance: [responsive.md](references/responsive.md),
   [dos-and-donts.md](references/dos-and-donts.md), and
   [iteration.md](references/iteration.md)
+- Interaction continuity and reduced-motion rules: [motion.md](references/motion.md)
 - `DESIGN.md` purpose and token schema:
   [design-file-overview.md](references/design-file-overview.md) and
   [design-token-schema.md](references/design-token-schema.md)

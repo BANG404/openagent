@@ -87,9 +87,9 @@
     cursor: pointer;
     box-shadow: none;
     transition:
-      transform 0.1s ease,
-      background-color 0.12s ease,
-      color 0.12s ease;
+      transform var(--motion-fast) var(--ease-standard),
+      background-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
   }
 
   .settings-action svg {

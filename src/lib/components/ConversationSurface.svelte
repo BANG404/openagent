@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fade } from "svelte/transition";
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
   import type { CheckpointFlow } from "$lib/checkpointFlow";
   import type { ConvTree } from "$lib/checkpointTree";
@@ -24,6 +25,7 @@
   } from "$lib/types";
   import { t } from "$lib/i18n";
   import { showToast } from "$lib/toast";
+  import { motionDuration } from "$lib/motion";
   import ChatQueue from "./ChatQueue.svelte";
   import CheckpointFlowPanelHost from "./CheckpointFlowPanelHost.svelte";
   import FollowUpSuggestions from "./FollowUpSuggestions.svelte";
@@ -198,49 +200,59 @@
     >
       <main class="messages-content">
         {#if view.mainContentLoading && view.restoringSurface !== "new-conversation"}
-          <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
+          <div
+            class="conversation-state-transition"
+            transition:fade={{ duration: motionDuration(160) }}
+          >
+            <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
+          </div>
         {:else if !view.mainContentLoading}
-          <MessageList
-            messages={view.messages}
-            scrollElement={messagesElement}
-            isStreaming={view.isStreaming}
-            isAwaitingStreamOutput={view.isAwaitingStreamOutput}
-            memoryRetrievalStage={view.memoryRetrievalStage}
-            memoryRetrievalCanSkip={view.memoryRetrievalCanSkip}
-            currentStreamItems={view.currentStreamItems}
-            currentStreamMessageId={view.currentStreamMessageId}
-            pendingCheckpointId={view.pendingCheckpointId}
-            activeConvId={view.activeConvId}
-            activeBranchId={view.activeBranchId}
-            debugMode={view.debugMode}
-            fileChanges={view.fileChanges}
-            taskUsagesByCheckpointId={view.taskUsagesByCheckpointId}
-            activeTree={view.activeTree}
-            paddingBottom={inputAreaHeight + 24}
-            showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(view.config)}
-            shikiTheme={view.shikiTheme}
-            mermaidConfig={view.mermaidConfig}
-            messageLayout={view.config?.message_layout ?? "single"}
-            messageDoubleColumnMinWidth={view.config?.message_double_column_min_width ?? 1200}
-            bookModeFontSize={view.config?.book_mode_font_size ?? 17}
-            followTail={view.followTail}
-            onTailPin={actions.markProgrammaticTailPin}
-            tailAnchorToken={view.tailAnchorToken}
-            onTailAnchorSettled={actions.finishStreamCompletionTailAnchor}
-            newConversationGreeting={view.newConversationGreeting}
-            newConversationGreetingLoading={false}
-            followUpSuggestionsByMessageId={view.followUpSuggestionsByMessageId}
-            showNewConversationContext={false}
-            checkpointLoadError={view.checkpointLoadError}
-            onCommitEdit={actions.commitEdit}
-            onAddQuote={addQuote}
-            onReExecute={actions.reExecuteMessage}
-            onSwitchBranch={actions.switchBranch}
-            onSubmitUserInput={actions.submitUserInput}
-            onCancelUserInput={actions.cancelUserInput}
-            onSkipMemoryRetrieval={actions.skipMemoryRetrieval}
-            onSelectSuggestion={actions.sendSuggestedMessage}
-          />
+          <div
+            class="conversation-state-transition"
+            transition:fade={{ duration: motionDuration(160) }}
+          >
+            <MessageList
+              messages={view.messages}
+              scrollElement={messagesElement}
+              isStreaming={view.isStreaming}
+              isAwaitingStreamOutput={view.isAwaitingStreamOutput}
+              memoryRetrievalStage={view.memoryRetrievalStage}
+              memoryRetrievalCanSkip={view.memoryRetrievalCanSkip}
+              currentStreamItems={view.currentStreamItems}
+              currentStreamMessageId={view.currentStreamMessageId}
+              pendingCheckpointId={view.pendingCheckpointId}
+              activeConvId={view.activeConvId}
+              activeBranchId={view.activeBranchId}
+              debugMode={view.debugMode}
+              fileChanges={view.fileChanges}
+              taskUsagesByCheckpointId={view.taskUsagesByCheckpointId}
+              activeTree={view.activeTree}
+              paddingBottom={inputAreaHeight + 24}
+              showApiKeyWarn={shouldShowDefaultProviderCredentialWarning(view.config)}
+              shikiTheme={view.shikiTheme}
+              mermaidConfig={view.mermaidConfig}
+              messageLayout={view.config?.message_layout ?? "single"}
+              messageDoubleColumnMinWidth={view.config?.message_double_column_min_width ?? 1200}
+              bookModeFontSize={view.config?.book_mode_font_size ?? 17}
+              followTail={view.followTail}
+              onTailPin={actions.markProgrammaticTailPin}
+              tailAnchorToken={view.tailAnchorToken}
+              onTailAnchorSettled={actions.finishStreamCompletionTailAnchor}
+              newConversationGreeting={view.newConversationGreeting}
+              newConversationGreetingLoading={false}
+              followUpSuggestionsByMessageId={view.followUpSuggestionsByMessageId}
+              showNewConversationContext={false}
+              checkpointLoadError={view.checkpointLoadError}
+              onCommitEdit={actions.commitEdit}
+              onAddQuote={addQuote}
+              onReExecute={actions.reExecuteMessage}
+              onSwitchBranch={actions.switchBranch}
+              onSubmitUserInput={actions.submitUserInput}
+              onCancelUserInput={actions.cancelUserInput}
+              onSkipMemoryRetrieval={actions.skipMemoryRetrieval}
+              onSelectSuggestion={actions.sendSuggestedMessage}
+            />
+          </div>
         {/if}
       </main>
     </ScrollArea>
@@ -659,8 +671,8 @@
     color: var(--text-muted) !important;
     border-radius: 6px !important;
     transition:
-      background 0.12s,
-      color 0.12s !important;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard) !important;
   }
   :global([data-streamdown-mermaid] button:hover) {
     background: var(--interactive-state-bg) !important;

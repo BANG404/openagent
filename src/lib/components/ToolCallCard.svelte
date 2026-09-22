@@ -528,7 +528,7 @@
     cursor: pointer;
     text-align: left;
     font-size: 12px;
-    transition: background 0.12s;
+    transition: background var(--motion-fast) var(--ease-standard);
     min-width: 0;
     user-select: none;
   }
@@ -609,7 +609,7 @@
     margin-left: auto;
     flex-shrink: 0;
     color: var(--text-muted);
-    transition: transform 0.15s;
+    transition: transform var(--motion-fast) var(--ease-standard);
     padding-left: 4px;
     width: 14px;
     height: 14px;

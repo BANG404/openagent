@@ -88,7 +88,7 @@
     width: 14px;
     height: 14px;
     flex: none;
-    transition: transform 0.16s ease;
+    transition: transform var(--motion-panel) var(--ease-standard);
   }
 
   .process-records[data-open="true"] .process-chevron {

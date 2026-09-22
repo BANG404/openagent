@@ -1496,8 +1496,8 @@
     font-weight: 600;
     cursor: pointer;
     transition:
-      background 120ms ease,
-      transform 120ms ease;
+      background var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
   }
   .primary-action:hover:not(:disabled) {
     background: var(--primary-hover);
@@ -1545,7 +1545,7 @@
     overflow: visible;
     border-right: 1px solid var(--border);
     background: var(--sidebar-bg);
-    transition: width 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: width var(--motion-layout) var(--ease-enter);
     user-select: none;
   }
   .sidebar.collapsed {
@@ -1651,8 +1651,8 @@
     color: var(--text-muted);
     cursor: pointer;
     transition:
-      background 120ms ease,
-      color 120ms ease;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
   }
   .title-new-conversation:hover,
   .title-new-conversation:focus-visible {

@@ -191,7 +191,7 @@
   .title-bar-menu,
   .mac-window-controls,
   .title-actions {
-    transition: opacity 120ms ease;
+    transition: opacity var(--motion-fast) var(--ease-standard);
   }
 
   .title-bar.window-inactive .title-bar-menu,

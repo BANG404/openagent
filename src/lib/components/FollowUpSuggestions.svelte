@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { fade } from "svelte/transition";
   import { t } from "$lib/i18n";
+  import { motionDuration } from "$lib/motion";
 
   interface Props {
     suggestions: string[];
@@ -16,6 +18,7 @@
     class="follow-up-suggestions"
     class:new-conversation={variant === "new-conversation"}
     aria-label={$t("followUpSuggestions")}
+    transition:fade={{ duration: motionDuration(160) }}
   >
     {#each suggestions as suggestion (suggestion)}
       <button type="button" {disabled} onclick={() => onSelect(suggestion)}>

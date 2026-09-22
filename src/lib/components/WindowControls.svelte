@@ -165,8 +165,8 @@
     align-items: center;
     justify-content: center;
     transition:
-      background 0.12s,
-      color 0.12s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
     flex-shrink: 0;
   }
 

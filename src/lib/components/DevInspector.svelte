@@ -1009,8 +1009,8 @@
     border-radius: 7px;
     background: var(--bg);
     transition:
-      border-color 0.12s,
-      background 0.12s;
+      border-color var(--motion-fast) var(--ease-standard),
+      background var(--motion-fast) var(--ease-standard);
   }
   .timeline-event:hover .event-body,
   .timeline-event.selected .event-body {
@@ -1224,7 +1224,7 @@
     content: "›";
     margin-right: 7px;
     color: var(--text-muted);
-    transition: transform 0.15s;
+    transition: transform var(--motion-fast) var(--ease-standard);
   }
   details[open] summary::before {
     transform: rotate(90deg);

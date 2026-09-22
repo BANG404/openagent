@@ -187,7 +187,7 @@
     padding: 4px 8px;
     border-radius: 6px;
     color: inherit;
-    transition: background 0.12s;
+    transition: background var(--motion-fast) var(--ease-standard);
   }
 
   :global(.composer-workspace-btn) {
@@ -212,7 +212,7 @@
     height: 12px;
     flex: 0 0 12px;
     color: var(--text-muted);
-    transition: transform 0.15s;
+    transition: transform var(--motion-fast) var(--ease-standard);
   }
 
   .workspace-caret path {
@@ -264,7 +264,7 @@
   }
 
   :global(.ws-dropdown-item) {
-    transition: background 0.12s;
+    transition: background var(--motion-fast) var(--ease-standard);
   }
 
   :global(.ws-dropdown-item + .ws-dropdown-item),

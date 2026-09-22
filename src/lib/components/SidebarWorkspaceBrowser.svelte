@@ -569,7 +569,7 @@
     width: 12px;
     height: 12px;
     flex: 0 0 12px;
-    transition: transform 120ms ease;
+    transition: transform var(--motion-fast) var(--ease-standard);
   }
 
   .section-chevron.expanded {

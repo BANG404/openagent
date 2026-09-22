@@ -78,7 +78,7 @@
     font-size: 15px;
     line-height: 1;
     transform: rotate(0deg);
-    transition: transform 0.12s ease;
+    transition: transform var(--motion-fast) var(--ease-standard);
   }
   details[open] > summary::before {
     transform: rotate(90deg);

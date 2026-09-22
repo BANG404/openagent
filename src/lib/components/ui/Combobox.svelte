@@ -113,7 +113,7 @@
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
     box-shadow: var(--mica-shadow);
-    transition: box-shadow 0.2s;
+    transition: box-shadow var(--motion-panel) var(--ease-standard);
   }
   :global(.ui-combobox-input::placeholder) {
     color: var(--text-muted, #888);
@@ -138,13 +138,13 @@
     color: var(--text-muted, #888);
     cursor: pointer;
     transition:
-      background 0.15s,
-      color 0.15s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
   }
   :global(.ui-combobox-trigger svg) {
     width: 14px;
     height: 14px;
-    transition: transform 0.15s;
+    transition: transform var(--motion-fast) var(--ease-standard);
   }
   :global(.ui-combobox-trigger[data-state="open"] svg) {
     transform: rotate(180deg);

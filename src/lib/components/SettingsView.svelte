@@ -4555,8 +4555,8 @@
     cursor: pointer;
     text-align: left;
     transition:
-      background 0.12s,
-      color 0.12s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
   }
 
   :global(.settings-nav-item:hover:not([data-state="active"])) {
@@ -4625,7 +4625,7 @@
     font-family: inherit;
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
-    transition: box-shadow 0.2s;
+    transition: box-shadow var(--motion-panel) var(--ease-standard);
   }
 
   .detail-hint {
@@ -4646,8 +4646,8 @@
     white-space: nowrap;
     box-shadow: none;
     transition:
-      transform 0.1s,
-      background 0.1s;
+      transform var(--motion-fast) var(--ease-standard),
+      background var(--motion-fast) var(--ease-standard);
   }
 
   .model-action-btn {
@@ -4660,8 +4660,8 @@
     cursor: pointer;
     white-space: nowrap;
     transition:
-      transform 0.1s,
-      background 0.1s;
+      transform var(--motion-fast) var(--ease-standard),
+      background var(--motion-fast) var(--ease-standard);
   }
   .model-action-btn:hover {
     background: var(--interactive-state-bg);
@@ -5222,8 +5222,8 @@
     text-align: left;
     cursor: pointer;
     transition:
-      background 0.12s,
-      color 0.12s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
   }
 
   .channel-settings-item:hover {
@@ -5660,7 +5660,7 @@
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-width: 1.5;
-    transition: transform 0.18s ease;
+    transition: transform var(--motion-panel) var(--ease-enter);
   }
 
   :global(.plugin-accordion-trigger[data-state="open"] .plugin-accordion-chevron) {
@@ -5678,7 +5678,7 @@
   }
 
   :global(.plugin-accordion-content[data-state="open"]) {
-    animation: plugin-content-open 0.18s ease-out;
+    animation: plugin-content-open var(--motion-panel) var(--ease-enter);
   }
 
   @keyframes plugin-content-open {
@@ -5947,7 +5947,7 @@
     border-bottom: 1.5px solid currentColor;
     content: "";
     transform: rotate(45deg) translateY(-2px);
-    transition: transform 120ms ease;
+    transition: transform var(--motion-fast) var(--ease-standard);
   }
 
   .flash-task-custom[open] summary::after {
@@ -6045,7 +6045,7 @@
     margin-bottom: 8px;
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
-    transition: box-shadow 0.2s;
+    transition: box-shadow var(--motion-panel) var(--ease-standard);
   }
 
   .manual-model-row {

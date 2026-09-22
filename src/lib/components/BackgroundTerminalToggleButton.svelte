@@ -56,9 +56,9 @@
     color: var(--text-muted);
     cursor: pointer;
     transition:
-      background 120ms ease,
-      color 120ms ease,
-      transform 120ms ease;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
   }
 
   .terminal-toggle:hover,

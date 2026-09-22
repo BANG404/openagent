@@ -43,7 +43,7 @@
     border-radius: 9999px;
     padding: 2px;
     cursor: pointer;
-    transition: background 0.18s;
+    transition: background var(--motion-panel) var(--ease-standard);
     outline: none;
   }
   :global(.ui-switch[data-state="checked"]) {
@@ -64,7 +64,7 @@
     border-radius: 9999px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     transform: translateX(0);
-    transition: transform 0.18s;
+    transition: transform var(--motion-panel) var(--ease-enter);
   }
   :global(.ui-switch[data-state="checked"] .ui-switch-thumb) {
     transform: translateX(16px);

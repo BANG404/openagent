@@ -181,7 +181,7 @@
     background: transparent;
     overflow: visible;
     user-select: none;
-    transition: width 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: width var(--motion-layout) var(--ease-enter);
   }
 
   .sidebar.resizing {
@@ -198,7 +198,7 @@
     align-items: center;
     padding: 0 4px 0 6px;
     box-sizing: border-box;
-    transition: opacity 120ms ease;
+    transition: opacity var(--motion-fast) var(--ease-standard);
   }
 
   .sidebar.window-inactive .sidebar-top,
@@ -232,7 +232,7 @@
     justify-content: space-between;
     gap: 4px;
     padding: 5px 8px 1px;
-    transition: opacity 120ms ease;
+    transition: opacity var(--motion-fast) var(--ease-standard);
   }
 
   .sidebar-role :global(.role-selector-trigger.header) {

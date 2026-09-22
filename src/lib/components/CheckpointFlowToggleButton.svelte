@@ -44,9 +44,9 @@
     color: var(--text-muted);
     cursor: pointer;
     transition:
-      background 120ms ease,
-      color 120ms ease,
-      transform 120ms ease;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
   }
 
   .checkpoint-flow-toggle:hover,
@@ -75,7 +75,7 @@
 
   .checkpoint-flow-toggle-arrow {
     transform-origin: 9px 10px;
-    transition: transform 180ms ease;
+    transition: transform var(--motion-panel) var(--ease-enter);
   }
 
   svg.collapsed .checkpoint-flow-toggle-arrow {

@@ -227,7 +227,7 @@
     color: var(--text-muted);
     font-size: 13px;
     cursor: pointer;
-    transition: color 0.15s;
+    transition: color var(--motion-fast) var(--ease-standard);
   }
   :global(.dialog-action-quiet:hover) {
     background: var(--interactive-state-bg);

@@ -192,7 +192,7 @@
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
     box-shadow: var(--mica-shadow);
-    transition: box-shadow 0.2s;
+    transition: box-shadow var(--motion-panel) var(--ease-standard);
   }
   :global(.ui-select-trigger:focus-visible) {
     box-shadow: var(--mica-shadow), var(--focus-ring);
@@ -264,7 +264,7 @@
     height: 14px;
     flex-shrink: 0;
     color: var(--text-muted, #888);
-    transition: transform 0.15s;
+    transition: transform var(--motion-fast) var(--ease-standard);
   }
   :global(.ui-select-trigger[data-state="open"] .ui-select-caret) {
     transform: rotate(180deg);

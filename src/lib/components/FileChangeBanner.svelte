@@ -181,7 +181,7 @@
     text-align: left;
     color: var(--text-muted);
     font-size: 12px;
-    transition: background 0.12s;
+    transition: background var(--motion-fast) var(--ease-standard);
     user-select: none;
   }
 
@@ -206,7 +206,7 @@
     width: 10px;
     height: 10px;
     flex-shrink: 0;
-    transition: transform 0.15s;
+    transition: transform var(--motion-fast) var(--ease-standard);
   }
 
   .banner-chevron.open {
@@ -288,9 +288,9 @@
     cursor: pointer;
     font-family: "JetBrains Mono", monospace;
     transition:
-      background 0.1s,
-      color 0.1s,
-      border-color 0.1s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard);
   }
 
   .diff-btn:hover,
@@ -309,9 +309,9 @@
     color: var(--text-muted);
     cursor: pointer;
     transition:
-      background 0.1s,
-      color 0.1s,
-      border-color 0.1s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard);
   }
 
   .revert-btn:hover:not(:disabled) {

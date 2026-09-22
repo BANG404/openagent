@@ -16,6 +16,15 @@
     --user-message-bg: var(--component-neutral-bg);
     --app-chrome-bg: var(--bg);
     --desktop-titlebar-height: 35px;
+    --motion-fast: 120ms;
+    --motion-panel: 180ms;
+    --motion-surface: 220ms;
+    --motion-layout: 240ms;
+    --motion-distance-xs: 4px;
+    --motion-distance-sm: 8px;
+    --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-exit: cubic-bezier(0.7, 0, 0.84, 0);
     --workspace-card-gap: 8px;
     --settings-nav-width: 172px;
     --settings-collection-width: 256px;
@@ -307,6 +316,111 @@
     background: var(--floating-surface);
   }
 
+  /* Bits UI keeps portal content mounted until its ending animation is
+     complete. These shared states give every floating surface one quiet,
+     reversible entrance without moving its trigger or changing its size. */
+  .desktop-menu-panel,
+  .floating-application-surface {
+    transform-origin: var(--bits-floating-transform-origin, top center);
+    transition:
+      opacity var(--motion-panel) var(--ease-enter),
+      transform var(--motion-panel) var(--ease-enter);
+  }
+
+  .desktop-menu-panel[data-starting-style],
+  .desktop-menu-panel[data-ending-style],
+  .floating-application-surface[data-starting-style],
+  .floating-application-surface[data-ending-style] {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-xs)) scale(0.98);
+  }
+
+  .desktop-menu-panel[data-ending-style],
+  .floating-application-surface[data-ending-style] {
+    transition-duration: var(--motion-fast);
+    transition-timing-function: var(--ease-exit);
+  }
+
+  /* Dialogs and full-window previews share the same fade. Centered dialogs
+     preserve their positioning transform while the full-window surfaces use
+     opacity only, so native drag regions and image layout remain stable. */
+  :where(
+    .dialog-overlay,
+    .role-editor-overlay,
+    .attachment-dialog-overlay,
+    .agent-book-overlay,
+    .fullscreen-surface-backdrop
+  ) {
+    opacity: 1;
+    transition: opacity var(--motion-panel) var(--ease-standard);
+  }
+
+  :where(
+    .dialog-overlay,
+    .role-editor-overlay,
+    .attachment-dialog-overlay,
+    .agent-book-overlay,
+    .fullscreen-surface-backdrop
+  )[data-starting-style],
+  :where(
+    .dialog-overlay,
+    .role-editor-overlay,
+    .attachment-dialog-overlay,
+    .agent-book-overlay,
+    .fullscreen-surface-backdrop
+  )[data-ending-style] {
+    opacity: 0;
+  }
+
+  :where(
+    .dialog,
+    .role-editor-dialog,
+    .fullscreen-surface,
+    .attachment-dialog,
+    .agent-book-dialog
+  ) {
+    transition:
+      opacity var(--motion-surface) var(--ease-enter),
+      transform var(--motion-surface) var(--ease-enter);
+  }
+
+  .dialog[data-starting-style],
+  .dialog[data-ending-style],
+  .role-editor-dialog[data-starting-style],
+  .role-editor-dialog[data-ending-style] {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + var(--motion-distance-sm))) scale(0.985);
+  }
+
+  .fullscreen-surface[data-starting-style],
+  .fullscreen-surface[data-ending-style] {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.99);
+  }
+
+  .fullscreen-surface.expanded[data-starting-style],
+  .fullscreen-surface.expanded[data-ending-style] {
+    transform: scale(0.99);
+  }
+
+  .attachment-dialog[data-starting-style],
+  .attachment-dialog[data-ending-style],
+  .agent-book-dialog[data-starting-style],
+  .agent-book-dialog[data-ending-style] {
+    opacity: 0;
+  }
+
+  :where(
+    .dialog,
+    .role-editor-dialog,
+    .fullscreen-surface,
+    .attachment-dialog,
+    .agent-book-dialog
+  )[data-ending-style] {
+    transition-duration: var(--motion-panel);
+    transition-timing-function: var(--ease-exit);
+  }
+
   /* Context Menu (bits-ui) — global so it works regardless of which component is mounted. */
   .desktop-menu-panel {
     padding: var(--menu-content-padding);
@@ -336,7 +450,7 @@
     line-height: var(--menu-item-line-height);
     color: var(--text);
     cursor: pointer;
-    transition: background 0.1s;
+    transition: background var(--motion-fast) var(--ease-standard);
     outline: none;
     border: none;
     background: none;
@@ -391,7 +505,7 @@
     pointer-events: none;
     user-select: none;
     transform-origin: var(--bits-tooltip-content-transform-origin);
-    animation: tt-fade-in 0.12s ease-out;
+    animation: tt-fade-in var(--motion-fast) var(--ease-enter);
   }
 
   @keyframes tt-fade-in {
@@ -590,9 +704,37 @@
 .interactive-control,
 .application-menu-trigger {
   transition:
-    background-color 0.12s ease,
-    color 0.12s ease,
-    transform 0.1s ease;
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 1ms;
+    --motion-panel: 1ms;
+    --motion-surface: 1ms;
+    --motion-layout: 1ms;
+    --motion-distance-xs: 0px;
+    --motion-distance-sm: 0px;
+  }
+
+  .desktop-menu-panel[data-starting-style],
+  .desktop-menu-panel[data-ending-style],
+  .floating-application-surface[data-starting-style],
+  .floating-application-surface[data-ending-style],
+  .dialog[data-starting-style],
+  .dialog[data-ending-style],
+  .role-editor-dialog[data-starting-style],
+  .role-editor-dialog[data-ending-style],
+  .fullscreen-surface[data-starting-style],
+  .fullscreen-surface[data-ending-style],
+  .attachment-dialog[data-starting-style],
+  .attachment-dialog[data-ending-style],
+  .agent-book-dialog[data-starting-style],
+  .agent-book-dialog[data-ending-style] {
+    transform: none;
+  }
 }
 
 .interactive-control:hover:not(:disabled),
@@ -738,4 +880,25 @@
 
 .user-msg.memory-source-highlight {
   animation: memory-source-pulse 2.4s ease-out;
+}
+
+@keyframes settings-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-xs));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-tab-panel[data-state="active"] {
+  animation: settings-panel-enter var(--motion-panel) var(--ease-enter);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-tab-panel[data-state="active"] {
+    animation: none;
+  }
 }

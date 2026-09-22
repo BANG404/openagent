@@ -381,11 +381,11 @@
     flex-direction: column;
     margin-left: var(--workspace-card-gap);
     transition:
-      width 180ms cubic-bezier(0.16, 1, 0.3, 1),
-      min-width 180ms cubic-bezier(0.16, 1, 0.3, 1),
-      max-width 180ms cubic-bezier(0.16, 1, 0.3, 1),
-      margin 180ms cubic-bezier(0.16, 1, 0.3, 1),
-      opacity 120ms ease;
+      width var(--motion-layout) var(--ease-enter),
+      min-width var(--motion-layout) var(--ease-enter),
+      max-width var(--motion-layout) var(--ease-enter),
+      margin var(--motion-layout) var(--ease-enter),
+      opacity var(--motion-fast) var(--ease-standard);
   }
   .flow-panel.collapsed {
     width: 0;
@@ -428,7 +428,7 @@
     content: "";
     opacity: 0;
     pointer-events: none;
-    transition: opacity 120ms ease;
+    transition: opacity var(--motion-fast) var(--ease-standard);
   }
   .resize-handle:hover::after,
   .resize-handle:focus-visible::after,

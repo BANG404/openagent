@@ -132,7 +132,7 @@
     background: var(--primary);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 120ms ease;
+    transition: opacity var(--motion-fast) var(--ease-standard);
   }
 
   .sidebar-resize-handle:hover + .sidebar-resize-line,

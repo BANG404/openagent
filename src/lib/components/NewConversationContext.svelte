@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { fade } from "svelte/transition";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import { locale, t } from "$lib/i18n";
+  import { motionDuration } from "$lib/motion";
 
   interface Props {
     prompt: string | null;
@@ -14,14 +16,16 @@
 
 <div class="new-conversation-context" class:stack={placement === "stack"}>
   {#if loading}
-    <LoadingSkeleton variant="memory-note" label={$t("loadingContent")} />
+    <div transition:fade={{ duration: motionDuration(140) }}>
+      <LoadingSkeleton variant="memory-note" label={$t("loadingContent")} />
+    </div>
   {:else if prompt}
-    <div class="memory-note">
+    <div class="memory-note" transition:fade={{ duration: motionDuration(180) }}>
       <p lang={$locale}>{prompt}</p>
     </div>
   {/if}
   {#if showApiKeyWarn}
-    <p class="warn">{$t("configApiKey")}</p>
+    <p class="warn" transition:fade={{ duration: motionDuration(160) }}>{$t("configApiKey")}</p>
   {/if}
 </div>
 

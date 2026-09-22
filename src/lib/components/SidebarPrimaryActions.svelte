@@ -154,7 +154,7 @@
   .sidebar-primary-action {
     cursor: pointer;
     text-align: left;
-    transition: background 120ms ease;
+    transition: background var(--motion-fast) var(--ease-standard);
   }
 
   .sidebar-primary-action:hover,

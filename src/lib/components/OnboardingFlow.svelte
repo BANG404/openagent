@@ -1211,7 +1211,7 @@
     height: 100%;
     border-radius: inherit;
     background: var(--accent);
-    transition: width 160ms ease-out;
+    transition: width var(--motion-panel) var(--ease-enter);
   }
   .embedding-card > .error {
     margin: 0;

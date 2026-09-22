@@ -437,8 +437,8 @@
     background: var(--component-neutral-bg);
     box-shadow: none;
     transition:
-      background 0.15s,
-      transform 0.15s;
+      background var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
   }
 
   .message-capsule:hover,
@@ -732,9 +732,9 @@
     color: var(--text-muted);
     transform: translateY(-50%);
     transition:
-      background 0.12s,
-      color 0.12s,
-      transform 0.12s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
   }
 
   .remove-button svg,

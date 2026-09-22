@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
+  import { fade } from "svelte/transition";
   import StreamItemRenderer from "./StreamItemRenderer.svelte";
   import MessageDivider from "./MessageDivider.svelte";
   import ToolCallGroup from "./ToolCallGroup.svelte";
@@ -33,6 +34,7 @@
   import UserQuote from "./UserQuote.svelte";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { selectionTextWithMath } from "$lib/streamdown/selectionText";
+  import { motionDuration } from "$lib/motion";
   import {
     appendLiveStreamEntry,
     groupAssistantTurns,
@@ -1062,6 +1064,7 @@
   <button
     class="selection-add-button floating-application-surface"
     type="button"
+    transition:fade={{ duration: motionDuration(120) }}
     style={`left: ${selectionPopover.left}px; top: ${selectionPopover.top}px`}
     onpointerdown={(event) => event.preventDefault()}
     onclick={addSelectedQuote}
@@ -1244,7 +1247,7 @@
     background: transparent;
     color: var(--text);
     cursor: pointer;
-    transition: transform 0.12s ease;
+    transition: transform var(--motion-fast) var(--ease-standard);
   }
 
   .user-message-index button:hover,
@@ -1265,9 +1268,9 @@
     border-radius: 999px;
     background: color-mix(in srgb, var(--text-muted) 64%, transparent);
     transition:
-      width 0.12s ease,
-      background 0.12s ease,
-      transform 0.12s ease;
+      width var(--motion-fast) var(--ease-standard),
+      background var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
   }
 
   .user-message-index button:hover .index-mark,
@@ -1367,7 +1370,7 @@
     -webkit-backdrop-filter: blur(12px) saturate(1.05);
     backdrop-filter: blur(12px) saturate(1.05);
     box-shadow: none;
-    transition: box-shadow 0.15s;
+    transition: box-shadow var(--motion-fast) var(--ease-standard);
   }
   .user-content {
     position: relative;
@@ -1405,9 +1408,9 @@
     pointer-events: none;
     transform: translate(3px, -50%);
     transition:
-      opacity 0.12s ease,
-      transform 0.12s ease,
-      color 0.12s ease;
+      opacity var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
   }
   .user-content:hover .user-edit-hint,
   .user-content:focus-visible .user-edit-hint {
@@ -1474,10 +1477,10 @@
     opacity: 0;
     transform: translateY(6px);
     transition:
-      max-height 0.2s ease,
-      opacity 0.18s ease,
-      transform 0.18s ease,
-      margin-top 0.18s ease;
+      max-height var(--motion-panel) var(--ease-standard),
+      opacity var(--motion-panel) var(--ease-standard),
+      transform var(--motion-panel) var(--ease-standard),
+      margin-top var(--motion-panel) var(--ease-standard);
     pointer-events: none;
   }
   .edit-actions.show {
@@ -1497,8 +1500,8 @@
     background: var(--surface2);
     color: var(--text-muted);
     transition:
-      background 0.1s,
-      color 0.1s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
   }
   .edit-confirm-btn {
     background: var(--primary);
@@ -1550,8 +1553,8 @@
     line-height: 1;
     padding: 0;
     transition:
-      background 0.1s,
-      color 0.1s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
   }
   .branch-nav-btn:hover:not(:disabled) {
     background: var(--interactive-state-bg);
@@ -1603,8 +1606,8 @@
   .msg-action-btn {
     cursor: pointer;
     transition:
-      background 0.12s,
-      color 0.12s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
   }
   .msg-action-btn:hover {
     background: var(--interactive-state-bg);

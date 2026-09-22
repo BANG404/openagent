@@ -70,7 +70,7 @@
     background: transparent;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.12s ease;
+    transition: opacity var(--motion-fast) var(--ease-standard);
     touch-action: none;
     user-select: none;
   }

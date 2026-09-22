@@ -100,8 +100,8 @@
     text-decoration: none;
     vertical-align: baseline;
     transition:
-      background 0.12s,
-      border-color 0.12s;
+      background var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard);
   }
   .url-ref:hover {
     background: var(--interactive-state-bg);
@@ -123,13 +123,13 @@
     height: 12px;
   }
   .site-icon svg {
-    transition: opacity 0.12s;
+    transition: opacity var(--motion-fast) var(--ease-standard);
   }
   .site-icon img {
     border-radius: 2px;
     object-fit: contain;
     opacity: 0;
-    transition: opacity 0.12s;
+    transition: opacity var(--motion-fast) var(--ease-standard);
   }
   .site-icon.loaded svg {
     opacity: 0;

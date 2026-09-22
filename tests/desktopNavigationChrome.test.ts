@@ -635,7 +635,7 @@ describe("desktop navigation chrome", () => {
     expect(panel).toContain(
       '<span class="flow-count">{progress.completed}/{progress.total}</span>',
     );
-    expect(panel).toContain("width 180ms cubic-bezier(0.16, 1, 0.3, 1)");
+    expect(panel).toContain("width var(--motion-layout) var(--ease-enter)");
     expect(panel).toContain("width: 0;");
     expect(collapsedPanelShell).not.toContain("display: none;");
     expect(panelShell).toContain("margin-left: var(--workspace-card-gap)");

@@ -600,8 +600,8 @@
     line-height: var(--list-item-compact-line-height);
     gap: var(--list-item-compact-content-gap);
     transition:
-      background 0.12s,
-      color 0.12s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
   }
 
   .conv-item:hover:not(.active) {
@@ -624,7 +624,7 @@
     border-radius: 4px;
     flex-shrink: 0;
     line-height: 1;
-    transition: background 0.1s;
+    transition: background var(--motion-fast) var(--ease-standard);
   }
 
   .conv-item:hover .conv-delete,
@@ -692,8 +692,8 @@
     line-height: var(--list-item-compact-line-height);
     gap: var(--list-item-compact-content-gap);
     transition:
-      background 0.12s,
-      color 0.12s;
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
   }
 
   .sub-conv-item:hover:not(.active) {
