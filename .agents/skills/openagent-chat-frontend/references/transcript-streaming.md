@@ -54,6 +54,9 @@
   controller. The page shell coordinates durable conversation/checkpoint data
   with that controller, but must not recreate parallel maps for streaming,
   pause, timing, awaiting-output, or memory-retrieval state.
+- Starting, timing, and cleaning up a turn must be scoped to its conversation;
+  clearing one conversation's transient maps must preserve every sibling
+  conversation's stream, timing, retrieval, and recovery state.
 - Treat correlated tool calls, results, and approval requests as idempotent
   stream events. Once an event has attached to its `toolUseId`, a repeated copy
   must leave the transcript unchanged instead of creating a duplicate card or

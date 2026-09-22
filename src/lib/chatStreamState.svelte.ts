@@ -1,5 +1,12 @@
 import type { ChatMemoryRetrievalStage } from "$lib/openagent";
 import type { StreamItem } from "$lib/types";
+import {
+  cleanupChatState,
+  clearChatAwaitingOutput,
+  clearChatMemoryRetrieval,
+  recordChatFirstResponse,
+  startChatTiming,
+} from "$lib/chatStreamStateCore";
 
 export class ChatStreamState {
   streamingConversationIds = $state<Record<string, boolean>>({});
@@ -14,51 +21,22 @@ export class ChatStreamState {
   recoveredConversationIds = $state<Record<string, boolean>>({});
 
   startTiming(conversationId: string, timestamp = Date.now()): void {
-    this.clearAwaitingOutput(conversationId);
-    this.clearMemoryRetrieval(conversationId);
-    this.startedAt = { ...this.startedAt, [conversationId]: timestamp };
-    const { [conversationId]: _firstTokenAt, ...rest } = this.firstTokenAt;
-    this.firstTokenAt = rest;
+    startChatTiming(this, conversationId, timestamp);
   }
 
   recordFirstResponse(conversationId: string): void {
-    if (this.firstTokenAt[conversationId]) return;
-    this.firstTokenAt = { ...this.firstTokenAt, [conversationId]: Date.now() };
+    recordChatFirstResponse(this, conversationId, Date.now());
   }
 
   clearAwaitingOutput(conversationId: string): void {
-    if (!this.awaitingOutput[conversationId]) return;
-    const { [conversationId]: _awaiting, ...rest } = this.awaitingOutput;
-    this.awaitingOutput = rest;
+    clearChatAwaitingOutput(this, conversationId);
   }
 
   clearMemoryRetrieval(conversationId: string): void {
-    const { [conversationId]: _stage, ...restStages } = this.memoryRetrievalStages;
-    const { [conversationId]: _skippable, ...restSkippable } = this.memoryRetrievalSkippable;
-    this.memoryRetrievalStages = restStages;
-    this.memoryRetrievalSkippable = restSkippable;
+    clearChatMemoryRetrieval(this, conversationId);
   }
 
   cleanup(conversationId: string): void {
-    const { [conversationId]: _items, ...restItems } = this.itemsByConversation;
-    const { [conversationId]: _streaming, ...restStreaming } = this.streamingConversationIds;
-    const { [conversationId]: _paused, ...restPaused } = this.pausedConversationIds;
-    const { [conversationId]: _assistantId, ...restAssistantIds } = this.assistantMessageIds;
-    const { [conversationId]: _startedAt, ...restStartedAt } = this.startedAt;
-    const { [conversationId]: _firstTokenAt, ...restFirstTokenAt } = this.firstTokenAt;
-    const { [conversationId]: _awaiting, ...restAwaiting } = this.awaitingOutput;
-    const { [conversationId]: _stage, ...restStages } = this.memoryRetrievalStages;
-    const { [conversationId]: _skippable, ...restSkippable } = this.memoryRetrievalSkippable;
-    const { [conversationId]: _recovered, ...restRecovered } = this.recoveredConversationIds;
-    this.itemsByConversation = restItems;
-    this.streamingConversationIds = restStreaming;
-    this.pausedConversationIds = restPaused;
-    this.assistantMessageIds = restAssistantIds;
-    this.startedAt = restStartedAt;
-    this.firstTokenAt = restFirstTokenAt;
-    this.awaitingOutput = restAwaiting;
-    this.memoryRetrievalStages = restStages;
-    this.memoryRetrievalSkippable = restSkippable;
-    this.recoveredConversationIds = restRecovered;
+    cleanupChatState(this, conversationId);
   }
 }
