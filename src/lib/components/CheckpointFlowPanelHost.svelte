@@ -19,6 +19,7 @@
     terminalAvailable = false,
     terminalConversationId = null,
     terminalBranchId = null,
+    rightSidebarScopeKey = "\u0000",
     onTerminalSummaryChange = () => {},
     chatGroupsEnabled = false,
     chatGroupWorkspace = "",
@@ -32,6 +33,7 @@
     terminalAvailable?: boolean;
     terminalConversationId?: string | null;
     terminalBranchId?: string | null;
+    rightSidebarScopeKey?: string;
     onTerminalSummaryChange?: (runningCount: number, sessionCount: number) => void;
     chatGroupsEnabled?: boolean;
     chatGroupWorkspace?: string;
@@ -98,6 +100,7 @@
   {terminalAvailable}
   {terminalConversationId}
   {terminalBranchId}
+  {rightSidebarScopeKey}
   {onTerminalSummaryChange}
   {chatGroupsEnabled}
   {chatGroupWorkspace}

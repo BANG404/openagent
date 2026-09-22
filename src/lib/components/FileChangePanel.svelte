@@ -8,12 +8,13 @@
   let {
     changes,
     onRevert,
+    selectedId = $bindable<string | null>(null),
   }: {
     changes: FileChange[];
     onRevert: (changeId: string) => Promise<void>;
+    selectedId?: string | null;
   } = $props();
 
-  let selectedId = $state<string | null>(null);
   let revertingIds = $state(new Set<string>());
   let selectedChange = $derived(changes.find((change) => change.id === selectedId) ?? changes[0]);
   let diffLines = $derived(fileChangeDiffLines(selectedChange));

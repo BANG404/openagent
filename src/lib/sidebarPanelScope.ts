@@ -93,3 +93,38 @@ export class RightSidebarScopeStore {
     return this.activate(toKey, fallback);
   }
 }
+
+/**
+ * Keeps each tab's own selection separate from the sidebar's active tab.
+ * Components are mounted conditionally, so this small store prevents a tab
+ * switch from turning a user's last file, group, or draft back into defaults.
+ */
+export interface RightSidebarPanelState {
+  fileSelectedId: string | null;
+  groupSelectedId: string | null;
+  groupDraft: string;
+}
+
+export class RightSidebarPanelStateStore {
+  readonly #states = new Map<string, RightSidebarPanelState>();
+
+  activate(key: string, fallback: RightSidebarPanelState): RightSidebarPanelState {
+    return this.#states.get(key) ?? { ...fallback };
+  }
+
+  save(key: string, state: RightSidebarPanelState): RightSidebarPanelState {
+    const saved = { ...state };
+    this.#states.set(key, saved);
+    return saved;
+  }
+
+  switchScope(
+    fromKey: string | null,
+    state: RightSidebarPanelState,
+    toKey: string,
+    fallback: RightSidebarPanelState,
+  ): RightSidebarPanelState {
+    if (fromKey !== null) this.save(fromKey, state);
+    return this.activate(toKey, fallback);
+  }
+}

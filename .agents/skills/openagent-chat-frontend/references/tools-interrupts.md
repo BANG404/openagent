@@ -133,7 +133,12 @@
   record, and reset the panel to an empty scope instead of leaving the previous
   scope's sessions on screen until the next poll. Apply the same per-branch
   retention to every right-sidebar view: the selected tab and the branch's own
-  collapse request are part of the scope, not app-global state. A session whose
+  collapse request are part of the scope, not app-global state. Each tab's own
+  UI state follows the same rule: restore the last selected file, selected
+  group, group draft, selected terminal session, expanded terminal row, and
+  terminal output cursor when that conversation branch returns. Do not reset
+  tab-local state merely because a tab was conditionally unmounted; discard it
+  only when its backing item no longer exists. A session whose
   owning branch is unknown — a `/graph` background run, or any caller with no
   branch context — stays visible in every branch of its conversation, because
   hiding a running process would make it unreachable; only a session that

@@ -9,6 +9,11 @@
   import type { FileChange } from "$lib/types";
   import type { BackgroundTerminalSession } from "$lib/openagent";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
+  import {
+    conversationBranchScopeKey,
+    RightSidebarPanelStateStore,
+    type RightSidebarPanelState,
+  } from "$lib/sidebarPanelScope";
   import { t } from "$lib/i18n";
   import BackgroundTerminalPanel from "$lib/components/BackgroundTerminalPanel.svelte";
   import ChatGroupPanel from "$lib/components/ChatGroupPanel.svelte";
@@ -28,6 +33,8 @@
     terminalAvailable?: boolean;
     terminalConversationId?: string | null;
     terminalBranchId?: string | null;
+    /** Scope shared by every right-sidebar tab so tab-local choices survive switching. */
+    rightSidebarScopeKey?: string;
     onTerminalSummaryChange?: (runningCount: number, sessionCount: number) => void;
     terminalPreviewSessions?: BackgroundTerminalSession[] | null;
     terminalPreviewOutputs?: Record<string, string>;
@@ -48,12 +55,38 @@
     terminalAvailable = false,
     terminalConversationId = null,
     terminalBranchId = null,
+    rightSidebarScopeKey = conversationBranchScopeKey(null, null),
     onTerminalSummaryChange = () => {},
     terminalPreviewSessions = null,
     terminalPreviewOutputs = {},
     chatGroupsEnabled = false,
     chatGroupWorkspace = "",
   }: Props = $props();
+  const panelSnapshots = new RightSidebarPanelStateStore();
+  let currentScopeKey = $state<string | null>(null);
+  let fileSelectedId = $state<string | null>(null);
+  let groupSelectedId = $state<string | null>(null);
+  let groupDraft = $state("");
+
+  $effect(() => {
+    const scope = rightSidebarScopeKey;
+    if (scope === currentScopeKey) return;
+    const current: RightSidebarPanelState = { fileSelectedId, groupSelectedId, groupDraft };
+    const restored = panelSnapshots.switchScope(currentScopeKey, current, scope, {
+      fileSelectedId: null,
+      groupSelectedId: null,
+      groupDraft: "",
+    });
+    currentScopeKey = scope;
+    fileSelectedId = restored.fileSelectedId;
+    groupSelectedId = restored.groupSelectedId;
+    groupDraft = restored.groupDraft;
+  });
+
+  $effect(() => {
+    const scope = currentScopeKey;
+    if (scope !== null) panelSnapshots.save(scope, { fileSelectedId, groupSelectedId, groupDraft });
+  });
   let progress = $derived(flow ? checkpointFlowProgress(flow) : { completed: 0, total: 0 });
   let graphLayers = $derived(flow?.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
   let graphViewport: HTMLElement | null = $state(null);
@@ -379,10 +412,15 @@
         {#if flow.summary}<p class="flow-summary">{flow.summary}</p>{/if}
       </div>
     {:else if !collapsed && activePanel === "files"}
-      <FileChangePanel {changes} {onRevert} />
+      <FileChangePanel {changes} {onRevert} bind:selectedId={fileSelectedId} />
     {:else if !collapsed && activePanel !== "terminal"}
       {#if activePanel === "group"}
-        <ChatGroupPanel enabled={chatGroupsEnabled} workspace={chatGroupWorkspace} />
+        <ChatGroupPanel
+          enabled={chatGroupsEnabled}
+          workspace={chatGroupWorkspace}
+          bind:selectedGroupId={groupSelectedId}
+          bind:draft={groupDraft}
+        />
       {:else}
         <div class="flow-body">
           <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>

@@ -117,6 +117,7 @@
     onTerminalSummaryChange,
     rightSidebarConversationId = view.activeConvId,
     rightSidebarBranchId = view.activeBranchId,
+    rightSidebarScopeKey = `${view.activeConvId ?? ""}\u0000${view.activeBranchId ?? ""}`,
     chatGroupsEnabled = false,
     chatGroupWorkspace = view.workspacePath,
     composerDraft,
@@ -134,6 +135,7 @@
     /** Scope for every right-sidebar view; defaults to the transcript's own view. */
     rightSidebarConversationId?: string | null;
     rightSidebarBranchId?: string | null;
+    rightSidebarScopeKey?: string;
     chatGroupsEnabled?: boolean;
     chatGroupWorkspace?: string;
     composerDraft: ComposerDraft;
@@ -363,6 +365,7 @@
     terminalAvailable={terminalSessionCount > 0}
     terminalConversationId={rightSidebarConversationId}
     terminalBranchId={rightSidebarBranchId}
+    {rightSidebarScopeKey}
     {onTerminalSummaryChange}
     {chatGroupsEnabled}
     {chatGroupWorkspace}

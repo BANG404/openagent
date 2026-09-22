@@ -7,16 +7,18 @@
   let {
     enabled = false,
     workspace = "",
+    selectedGroupId = $bindable<string | null>(null),
+    draft = $bindable(""),
   }: {
     enabled?: boolean;
     workspace?: string;
+    selectedGroupId?: string | null;
+    draft?: string;
   } = $props();
 
   let groups = $state<ChatGroup[]>([]);
   let members = $state<ChatGroupMember[]>([]);
   let messages = $state<ChatGroupMessage[]>([]);
-  let selectedGroupId = $state<string | null>(null);
-  let draft = $state("");
   let selectedMentions = $state<string[]>([]);
   let cursor = $state(0);
   let sending = $state(false);
@@ -133,7 +135,6 @@
     const active = enabled;
     untrack(() => {
       if (!active) return;
-      selectedGroupId = null;
       members = [];
       messages = [];
       cursor = 0;
