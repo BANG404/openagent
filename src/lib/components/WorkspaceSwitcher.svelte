@@ -6,6 +6,7 @@
   import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
   import { isWslWorkspacePath, workspaceFolderName } from "$lib/workspacePath";
   import Tooltip from "./Tooltip.svelte";
+  import ScrollArea from "./ui/ScrollArea.svelte";
 
   interface Props {
     workspace: WorkspaceContext | null;
@@ -139,23 +140,29 @@
                 sideOffset={6}
                 alignOffset={-6}
               >
-                <div class="ws-recent-list">
-                  {#each otherRecent as ws (ws.path)}
-                    <div class="ws-recent-row">
-                      <Tooltip text={ws.path} side="right" block>
-                        <DropdownMenu.Item
-                          class="desktop-menu-item ws-dropdown-item"
-                          onSelect={() => onSelect(ws.path)}
-                        >
-                          {#if isWslWorkspacePath(ws.path)}
-                            <span class="wsl-badge">WSL</span>
-                          {/if}
-                          <span class="ws-workspace-path">{ws.path}</span>
-                        </DropdownMenu.Item>
-                      </Tooltip>
-                    </div>
-                  {/each}
-                </div>
+                <ScrollArea
+                  height="min(240px, calc(100vh - 160px))"
+                  class="ws-recent-list"
+                  scrollHideDelay={350}
+                >
+                  <div class="ws-recent-list-content">
+                    {#each otherRecent as ws (ws.path)}
+                      <div class="ws-recent-row">
+                        <Tooltip text={ws.path} side="right" block>
+                          <DropdownMenu.Item
+                            class="desktop-menu-item ws-dropdown-item"
+                            onSelect={() => onSelect(ws.path)}
+                          >
+                            {#if isWslWorkspacePath(ws.path)}
+                              <span class="wsl-badge">WSL</span>
+                            {/if}
+                            <span class="ws-workspace-path">{ws.path}</span>
+                          </DropdownMenu.Item>
+                        </Tooltip>
+                      </div>
+                    {/each}
+                  </div>
+                </ScrollArea>
               </DropdownMenu.SubContent>
             </DropdownMenu.Portal>
           </DropdownMenu.Sub>
@@ -295,12 +302,14 @@
     display: block;
   }
 
-  .ws-recent-list {
-    max-height: min(240px, calc(100vh - 160px));
-    overflow-y: auto;
+  :global(.ws-recent-list) {
     overscroll-behavior: contain;
     margin-right: calc(-1 * var(--menu-content-padding));
+  }
+
+  :global(.ws-recent-list .ui-scroll-area-viewport) {
     padding-right: var(--menu-content-padding);
+    overflow-x: hidden;
   }
 
   :global(.ws-recent-submenu) {

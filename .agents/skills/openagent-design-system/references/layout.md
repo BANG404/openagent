@@ -24,4 +24,8 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 Application lists that need scrolling use the shared `ui/ScrollArea.svelte`
 Bits UI wrapper. Keep the scrollbar in its own gutter and configure transient
 visibility through its `scrollHideDelay` prop instead of styling native
-scrollbars per feature.
+scrollbars per feature. This includes conversation transcripts, sidebar
+conversation and workspace lists, settings panes, onboarding content, role
+resource browsers, and background-terminal sessions. Preserve native scrolling
+only for content that is intentionally horizontally scrollable (for example
+diffs, code blocks, diagrams, and textareas).

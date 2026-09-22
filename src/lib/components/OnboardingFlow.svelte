@@ -18,6 +18,7 @@
   import Select from "./ui/Select.svelte";
   import SegmentedControl from "./ui/SegmentedControl.svelte";
   import SettingsActionButton from "./ui/SettingsActionButton.svelte";
+  import ScrollArea from "./ui/ScrollArea.svelte";
 
   let {
     config,
@@ -498,240 +499,246 @@
     </aside>
 
     <main class="application-settings-surface step-content" aria-label={copy.steps[step]}>
-      <div class="step-scroll" class:welcome-scroll={step === 0}>
-        {#if step === 0}
-          <p class="welcome-eyebrow">{copy.welcomeEyebrow}</p>
-          <h1 class="welcome-title">{copy.welcomeTitle}</h1>
-          <p class="lead">{copy.welcomeBody}</p>
-          <p class="setup-description">{copy.setupBody}</p>
-          <div class="welcome-features">
-            {#each copy.welcomeFeatures as feature, index (feature.title)}
-              <div class="welcome-feature">
-                <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-                <div>
-                  <strong>{feature.title}</strong>
-                  <p>{feature.body}</p>
+      <ScrollArea
+        height="100%"
+        class={`step-scroll ${step === 0 ? "welcome-scroll" : ""}`}
+        scrollHideDelay={350}
+      >
+        <div class="step-scroll-content">
+          {#if step === 0}
+            <p class="welcome-eyebrow">{copy.welcomeEyebrow}</p>
+            <h1 class="welcome-title">{copy.welcomeTitle}</h1>
+            <p class="lead">{copy.welcomeBody}</p>
+            <p class="setup-description">{copy.setupBody}</p>
+            <div class="welcome-features">
+              {#each copy.welcomeFeatures as feature, index (feature.title)}
+                <div class="welcome-feature">
+                  <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <strong>{feature.title}</strong>
+                    <p>{feature.body}</p>
+                  </div>
                 </div>
-              </div>
-            {/each}
-          </div>
-          <div class="application-settings-surface workspace-card">
-            <div>
-              <span>{copy.workspace}</span>
-              <strong>{workspacePath || copy.noWorkspace}</strong>
-              <p>{copy.workspaceDescription}</p>
+              {/each}
             </div>
-            <SettingsActionButton
-              label={copy.chooseWorkspace}
-              onclick={() => void onPickWorkspace()}
-            />
-          </div>
-        {:else if step === 1}
-          <h1>{copy.preferenceTitle}</h1>
-          <p class="lead">{copy.preferenceBody}</p>
-          <div class="form-grid two">
-            <label>
-              <span>{copy.language}</span>
-              <Select
-                bind:value={draft.language}
-                items={languageOptions}
-                ariaLabel={copy.language}
-                triggerClass="application-settings-control"
+            <div class="application-settings-surface workspace-card">
+              <div>
+                <span>{copy.workspace}</span>
+                <strong>{workspacePath || copy.noWorkspace}</strong>
+                <p>{copy.workspaceDescription}</p>
+              </div>
+              <SettingsActionButton
+                label={copy.chooseWorkspace}
+                onclick={() => void onPickWorkspace()}
               />
-            </label>
-            <label>
-              <span>{copy.theme}</span>
-              <Select
-                bind:value={draft.theme}
-                items={themeOptions}
-                ariaLabel={copy.theme}
-                triggerClass="application-settings-control"
+            </div>
+          {:else if step === 1}
+            <h1>{copy.preferenceTitle}</h1>
+            <p class="lead">{copy.preferenceBody}</p>
+            <div class="form-grid two">
+              <label>
+                <span>{copy.language}</span>
+                <Select
+                  bind:value={draft.language}
+                  items={languageOptions}
+                  ariaLabel={copy.language}
+                  triggerClass="application-settings-control"
+                />
+              </label>
+              <label>
+                <span>{copy.theme}</span>
+                <Select
+                  bind:value={draft.theme}
+                  items={themeOptions}
+                  ariaLabel={copy.theme}
+                  triggerClass="application-settings-control"
+                />
+              </label>
+            </div>
+          {:else if step === 2}
+            <h1>{copy.providerTitle}</h1>
+            <p class="lead">{copy.providerBody}</p>
+            <div class="provider-tabs">
+              {#each draft.providers as provider (provider.id)}
+                <button
+                  class:active={provider.id === selectedProviderId}
+                  onclick={() => (selectedProviderId = provider.id)}
+                >
+                  <span class:online={provider.enabled}></span>{providerServiceName(provider)}
+                </button>
+              {/each}
+              <SettingsActionButton
+                label={copy.addProvider}
+                icon="add"
+                tone="primary"
+                onclick={addProvider}
               />
-            </label>
-          </div>
-        {:else if step === 2}
-          <h1>{copy.providerTitle}</h1>
-          <p class="lead">{copy.providerBody}</p>
-          <div class="provider-tabs">
-            {#each draft.providers as provider (provider.id)}
-              <button
-                class:active={provider.id === selectedProviderId}
-                onclick={() => (selectedProviderId = provider.id)}
-              >
-                <span class:online={provider.enabled}></span>{providerServiceName(provider)}
-              </button>
-            {/each}
-            <SettingsActionButton
-              label={copy.addProvider}
-              icon="add"
-              tone="primary"
-              onclick={addProvider}
-            />
-          </div>
-          {#if selectedProvider}
-            <div class="form-grid">
-              <div class="two">
+            </div>
+            {#if selectedProvider}
+              <div class="form-grid">
+                <div class="two">
+                  <label>
+                    <span>{copy.providerName}</span>
+                    <input
+                      class="application-settings-control"
+                      bind:value={selectedProvider.name}
+                      placeholder={providerServiceName(selectedProvider)}
+                    />
+                  </label>
+                  <label>
+                    <span>{copy.providerType}</span>
+                    <Select
+                      bind:value={selectedProvider.provider}
+                      items={providerOptions}
+                      ariaLabel={copy.providerType}
+                      onValueChange={resetConnection}
+                      triggerClass="application-settings-control"
+                    />
+                  </label>
+                </div>
                 <label>
-                  <span>{copy.providerName}</span>
+                  <span>{copy.baseUrl}</span>
                   <input
                     class="application-settings-control"
-                    bind:value={selectedProvider.name}
-                    placeholder={providerServiceName(selectedProvider)}
+                    bind:value={selectedProvider.base_url}
+                    oninput={resetConnection}
+                    placeholder={providerDefaultBaseUrl(selectedProvider.provider) ||
+                      "https://your-resource.openai.azure.com"}
                   />
+                  <small class="request-url-preview">
+                    {copy.requestUrl}: {providerRequestUrl(selectedProvider)}
+                  </small>
                 </label>
-                <label>
-                  <span>{copy.providerType}</span>
-                  <Select
-                    bind:value={selectedProvider.provider}
-                    items={providerOptions}
-                    ariaLabel={copy.providerType}
-                    onValueChange={resetConnection}
-                    triggerClass="application-settings-control"
-                  />
-                </label>
-              </div>
-              <label>
-                <span>{copy.baseUrl}</span>
-                <input
-                  class="application-settings-control"
-                  bind:value={selectedProvider.base_url}
-                  oninput={resetConnection}
-                  placeholder={providerDefaultBaseUrl(selectedProvider.provider) ||
-                    "https://your-resource.openai.azure.com"}
-                />
-                <small class="request-url-preview">
-                  {copy.requestUrl}: {providerRequestUrl(selectedProvider)}
-                </small>
-              </label>
-              {#if selectedProvider.provider === "openai"}
-                <div class="api-mode-field">
-                  <span>{copy.openAiApiMode}</span>
-                  <SegmentedControl
-                    value={selectedProvider.openai_api_mode}
-                    items={openAiApiModeOptions}
-                    ariaLabel={copy.openAiApiMode}
-                    onValueChange={setOpenAiApiMode}
-                  />
-                </div>
-              {/if}
-              <label>
-                <span>
-                  {providerRequiresApiKey(selectedProvider.provider)
-                    ? copy.apiKey
-                    : selectedProvider.provider === "chatgpt"
-                      ? copy.oauthAccessToken
-                      : copy.optionalApiKey}
-                </span>
-                <input
-                  class="application-settings-control"
-                  type="password"
-                  bind:value={selectedProvider.api_key}
-                  oninput={resetConnection}
-                  placeholder="••••••••••••••••"
-                />
-              </label>
-              {#if selectedProvider.provider === "chatgpt"}
-                <p class="chatgpt-model-catalog-hint" role="note">
-                  {copy.chatgptModelCatalogHint}
-                </p>
-              {/if}
-              <div class="manual-model-row">
-                <input
-                  class="application-settings-control"
-                  bind:value={manualModelName}
-                  placeholder={copy.modelName}
-                  onkeydown={(event) => {
-                    if (event.key === "Enter") addManualModel();
-                  }}
-                />
-                <SettingsActionButton label={copy.addModel} onclick={addManualModel} />
-              </div>
-              <div class="connection-row">
-                <SettingsActionButton
-                  label={connectionStatus === "loading" ? copy.verifying : copy.verify}
-                  onclick={verifyProvider}
-                  disabled={(providerRequiresApiKey(selectedProvider.provider) &&
-                    !selectedProvider.api_key.trim()) ||
-                    connectionStatus === "loading"}
-                />
-                {#if connectionMessage}<p
-                    class:success={connectionStatus === "success"}
-                    class:error={connectionStatus === "error"}
-                  >
-                    {connectionMessage}
-                  </p>{/if}
-              </div>
-            </div>
-          {/if}
-        {:else if step === 3}
-          <h1>{copy.defaultTitle}</h1>
-          <p class="lead">{copy.defaultBody}</p>
-          <div class="form-grid">
-            <label>
-              <span>{copy.chatModel}</span>
-              <Select
-                value={bindingValue(draft.defaults.chat_model)}
-                items={modelBindings}
-                ariaLabel={copy.chatModel}
-                onValueChange={(value) => setModel("chat_model", value)}
-                triggerClass="application-settings-control"
-              />
-            </label>
-            <label>
-              <span>{copy.flashModel}</span>
-              <Select
-                value={bindingValue(draft.defaults.flash_model)}
-                items={modelBindings}
-                ariaLabel={copy.flashModel}
-                onValueChange={(value) => setModel("flash_model", value)}
-                triggerClass="application-settings-control"
-              />
-            </label>
-          </div>
-        {:else}
-          <h1>{copy.readyTitle}</h1>
-          <p class="lead">{copy.readyBody}</p>
-          <div class="application-settings-surface summary">
-            <span>{copy.chatModel}</span>
-            <strong>{draft.defaults.chat_model.model}</strong>
-            <span>{copy.workspace}</span>
-            <strong>{workspacePath || copy.noWorkspace}</strong>
-          </div>
-          <div class="application-settings-surface embedding-card" aria-live="polite">
-            <div class="embedding-heading">
-              <span>{copy.embeddingTitle}</span>
-              <strong>{embeddingReady ? copy.embeddingReady : `${embeddingPercent}%`}</strong>
-            </div>
-            <div
-              class="embedding-meter"
-              role="progressbar"
-              aria-valuemin="0"
-              aria-valuemax="100"
-              aria-valuenow={embeddingPercent}
-            >
-              <span style={`width: ${embeddingPercent}%`}></span>
-            </div>
-            {#if !embeddingReady}
-              <div class="embedding-detail">
-                <p>
-                  {embeddingPreparing ? copy.embeddingPreparing : copy.embeddingWaiting}
-                  {#if embeddingProgress?.current_file}
-                    · {embeddingProgress.current_file}
-                  {/if}
-                </p>
-                {#if !embeddingPreparing}
-                  <SettingsActionButton
-                    label={copy.embeddingRetry}
-                    onclick={() => void prepareEmbeddingResource()}
-                  />
+                {#if selectedProvider.provider === "openai"}
+                  <div class="api-mode-field">
+                    <span>{copy.openAiApiMode}</span>
+                    <SegmentedControl
+                      value={selectedProvider.openai_api_mode}
+                      items={openAiApiModeOptions}
+                      ariaLabel={copy.openAiApiMode}
+                      onValueChange={setOpenAiApiMode}
+                    />
+                  </div>
                 {/if}
+                <label>
+                  <span>
+                    {providerRequiresApiKey(selectedProvider.provider)
+                      ? copy.apiKey
+                      : selectedProvider.provider === "chatgpt"
+                        ? copy.oauthAccessToken
+                        : copy.optionalApiKey}
+                  </span>
+                  <input
+                    class="application-settings-control"
+                    type="password"
+                    bind:value={selectedProvider.api_key}
+                    oninput={resetConnection}
+                    placeholder="••••••••••••••••"
+                  />
+                </label>
+                {#if selectedProvider.provider === "chatgpt"}
+                  <p class="chatgpt-model-catalog-hint" role="note">
+                    {copy.chatgptModelCatalogHint}
+                  </p>
+                {/if}
+                <div class="manual-model-row">
+                  <input
+                    class="application-settings-control"
+                    bind:value={manualModelName}
+                    placeholder={copy.modelName}
+                    onkeydown={(event) => {
+                      if (event.key === "Enter") addManualModel();
+                    }}
+                  />
+                  <SettingsActionButton label={copy.addModel} onclick={addManualModel} />
+                </div>
+                <div class="connection-row">
+                  <SettingsActionButton
+                    label={connectionStatus === "loading" ? copy.verifying : copy.verify}
+                    onclick={verifyProvider}
+                    disabled={(providerRequiresApiKey(selectedProvider.provider) &&
+                      !selectedProvider.api_key.trim()) ||
+                      connectionStatus === "loading"}
+                  />
+                  {#if connectionMessage}<p
+                      class:success={connectionStatus === "success"}
+                      class:error={connectionStatus === "error"}
+                    >
+                      {connectionMessage}
+                    </p>{/if}
+                </div>
               </div>
             {/if}
-            {#if embeddingError}<p class="error">{embeddingError}</p>{/if}
-          </div>
-          {#if saveError}<p class="error">{saveError}</p>{/if}
-        {/if}
-      </div>
+          {:else if step === 3}
+            <h1>{copy.defaultTitle}</h1>
+            <p class="lead">{copy.defaultBody}</p>
+            <div class="form-grid">
+              <label>
+                <span>{copy.chatModel}</span>
+                <Select
+                  value={bindingValue(draft.defaults.chat_model)}
+                  items={modelBindings}
+                  ariaLabel={copy.chatModel}
+                  onValueChange={(value) => setModel("chat_model", value)}
+                  triggerClass="application-settings-control"
+                />
+              </label>
+              <label>
+                <span>{copy.flashModel}</span>
+                <Select
+                  value={bindingValue(draft.defaults.flash_model)}
+                  items={modelBindings}
+                  ariaLabel={copy.flashModel}
+                  onValueChange={(value) => setModel("flash_model", value)}
+                  triggerClass="application-settings-control"
+                />
+              </label>
+            </div>
+          {:else}
+            <h1>{copy.readyTitle}</h1>
+            <p class="lead">{copy.readyBody}</p>
+            <div class="application-settings-surface summary">
+              <span>{copy.chatModel}</span>
+              <strong>{draft.defaults.chat_model.model}</strong>
+              <span>{copy.workspace}</span>
+              <strong>{workspacePath || copy.noWorkspace}</strong>
+            </div>
+            <div class="application-settings-surface embedding-card" aria-live="polite">
+              <div class="embedding-heading">
+                <span>{copy.embeddingTitle}</span>
+                <strong>{embeddingReady ? copy.embeddingReady : `${embeddingPercent}%`}</strong>
+              </div>
+              <div
+                class="embedding-meter"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow={embeddingPercent}
+              >
+                <span style={`width: ${embeddingPercent}%`}></span>
+              </div>
+              {#if !embeddingReady}
+                <div class="embedding-detail">
+                  <p>
+                    {embeddingPreparing ? copy.embeddingPreparing : copy.embeddingWaiting}
+                    {#if embeddingProgress?.current_file}
+                      · {embeddingProgress.current_file}
+                    {/if}
+                  </p>
+                  {#if !embeddingPreparing}
+                    <SettingsActionButton
+                      label={copy.embeddingRetry}
+                      onclick={() => void prepareEmbeddingResource()}
+                    />
+                  {/if}
+                </div>
+              {/if}
+              {#if embeddingError}<p class="error">{embeddingError}</p>{/if}
+            </div>
+            {#if saveError}<p class="error">{saveError}</p>{/if}
+          {/if}
+        </div>
+      </ScrollArea>
 
       <footer>
         <SettingsActionButton
@@ -939,20 +946,24 @@
     border-radius: 8px;
     background: var(--mica-surface);
   }
-  .step-scroll {
+  :global(.step-scroll) {
     min-height: 0;
     flex: 1;
-    overflow-y: auto;
-    padding: 28px 40px 20px;
   }
-  .step-scroll.welcome-scroll {
-    overflow-y: hidden;
+
+  :global(.step-scroll .ui-scroll-area-viewport) {
+    padding: 28px 40px 20px;
+    overflow-x: hidden;
+  }
+
+  :global(.step-scroll.welcome-scroll .ui-scroll-area-viewport) {
+    overflow-y: hidden !important;
     padding-bottom: 0;
   }
-  .welcome-scroll .setup-description {
+  :global(.welcome-scroll .setup-description) {
     margin-bottom: 14px;
   }
-  .welcome-scroll .welcome-features {
+  :global(.welcome-scroll .welcome-features) {
     gap: 7px;
     margin-bottom: 10px;
   }
@@ -1273,7 +1284,7 @@
     .step-content {
       margin-block: 4px;
     }
-    .step-scroll {
+    :global(.step-scroll .ui-scroll-area-viewport) {
       padding: 24px 24px 20px;
     }
     footer {

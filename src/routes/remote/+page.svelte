@@ -17,6 +17,7 @@
   import ToolApprovalActions from "$lib/components/ToolApprovalActions.svelte";
   import UserInputForm from "$lib/components/UserInputForm.svelte";
   import Select from "$lib/components/ui/Select.svelte";
+  import ScrollArea from "$lib/components/ui/ScrollArea.svelte";
   import {
     buildTreeFromCheckpoints,
     checkpointRecordsToMessages,
@@ -1194,55 +1195,63 @@
           </span>
         </header>
 
-        <main class="messages" bind:this={messagesEl}>
-          {#if loadingWorkspace}
-            <LoadingSkeleton variant="new-conversation" label={$t("remoteLoadingWorkspace")} />
-          {:else if loadingConversationId}
-            <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
-          {:else if !workspaceId}
-            <div class="empty-chat">
-              <strong>{$t("remoteNoWorkspaceTitle")}</strong><span
-                >{$t("remoteNoWorkspaceHint")}</span
-              >
-            </div>
-          {:else}
-            <MessageList
-              {messages}
-              scrollElement={messagesEl}
-              isStreaming={running}
-              isAwaitingStreamOutput={running && currentStreamItems.length === 0}
-              {currentStreamItems}
-              {currentStreamMessageId}
-              activeConvId={conversation?.conv_id ?? null}
-              {activeBranchId}
-              debugMode={false}
-              fileChanges={currentFileChanges}
-              {activeTree}
-              paddingBottom={inputAreaHeight + 24}
-              showApiKeyWarn={remoteModels.length === 0}
-              {shikiTheme}
-              {mermaidConfig}
-              {messageLayout}
-              {messageDoubleColumnMinWidth}
-              {bookModeFontSize}
-              newConversationGreeting={NEW_CONVERSATION_GREETING}
-              newConversationGreetingLoading={false}
-              showNewConversationContext={!newConversationLayout}
-              editable={!running}
-              attachmentPreviewLoader={(locator, name) =>
-                client.getRemoteAttachmentPreview(locator, name)}
-              onCommitEdit={(convId, userMessageIndex, text, editedAttachments, editedContexts) =>
-                void commitEdit(convId, userMessageIndex, text, editedAttachments, editedContexts)}
-              onAddQuote={addQuote}
-              onReExecute={(convId, assistantMessageIndex) =>
-                void reExecute(convId, assistantMessageIndex)}
-              onSwitchBranch={(convId, parentKey, targetIdx) =>
-                void switchBranch(convId, parentKey, targetIdx)}
-              onSubmitUserInput={answer}
-              onCancelUserInput={cancelInlineInterrupt}
-            />
-          {/if}
-        </main>
+        <ScrollArea height="100%" class="messages" bind:viewport={messagesEl} scrollHideDelay={350}>
+          <main class="messages-content">
+            {#if loadingWorkspace}
+              <LoadingSkeleton variant="new-conversation" label={$t("remoteLoadingWorkspace")} />
+            {:else if loadingConversationId}
+              <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
+            {:else if !workspaceId}
+              <div class="empty-chat">
+                <strong>{$t("remoteNoWorkspaceTitle")}</strong><span
+                  >{$t("remoteNoWorkspaceHint")}</span
+                >
+              </div>
+            {:else}
+              <MessageList
+                {messages}
+                scrollElement={messagesEl}
+                isStreaming={running}
+                isAwaitingStreamOutput={running && currentStreamItems.length === 0}
+                {currentStreamItems}
+                {currentStreamMessageId}
+                activeConvId={conversation?.conv_id ?? null}
+                {activeBranchId}
+                debugMode={false}
+                fileChanges={currentFileChanges}
+                {activeTree}
+                paddingBottom={inputAreaHeight + 24}
+                showApiKeyWarn={remoteModels.length === 0}
+                {shikiTheme}
+                {mermaidConfig}
+                {messageLayout}
+                {messageDoubleColumnMinWidth}
+                {bookModeFontSize}
+                newConversationGreeting={NEW_CONVERSATION_GREETING}
+                newConversationGreetingLoading={false}
+                showNewConversationContext={!newConversationLayout}
+                editable={!running}
+                attachmentPreviewLoader={(locator, name) =>
+                  client.getRemoteAttachmentPreview(locator, name)}
+                onCommitEdit={(convId, userMessageIndex, text, editedAttachments, editedContexts) =>
+                  void commitEdit(
+                    convId,
+                    userMessageIndex,
+                    text,
+                    editedAttachments,
+                    editedContexts,
+                  )}
+                onAddQuote={addQuote}
+                onReExecute={(convId, assistantMessageIndex) =>
+                  void reExecute(convId, assistantMessageIndex)}
+                onSwitchBranch={(convId, parentKey, targetIdx) =>
+                  void switchBranch(convId, parentKey, targetIdx)}
+                onSubmitUserInput={answer}
+                onCancelUserInput={cancelInlineInterrupt}
+              />
+            {/if}
+          </main>
+        </ScrollArea>
 
         <div
           class="input-area"
@@ -1667,15 +1676,19 @@
     width: 18px;
     height: 18px;
   }
-  .messages {
+  :global(.messages) {
     position: relative;
     z-index: 1;
-    display: flex;
-    min-height: 0;
     flex: 1;
-    flex-direction: column;
+  }
+  :global(.messages .ui-scroll-area-viewport) {
     overflow-x: clip;
-    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+  .messages-content {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
   }
   .empty-chat {
     display: grid;
