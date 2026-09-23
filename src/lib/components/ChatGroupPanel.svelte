@@ -68,7 +68,11 @@
     try {
       const availableGroups = await desktopOpenAgent.listChatGroups(scope || null);
       const allowed = new Set(allowedGroupIds);
-      groups = availableGroups.filter((group) => allowed.has(group.id));
+      const nextGroups = availableGroups.filter((group) => allowed.has(group.id));
+      // Keep the current list mounted while the parent recomputes its tool
+      // scope. Replacing it with an empty list during that short transition
+      // makes the panel disappear and reload on every stream reconciliation.
+      if (nextGroups.length > 0 || groups.length === 0) groups = nextGroups;
       onAvailabilityChange(groups.length > 0);
       if (!selectedGroupId && groups[0]) selectedGroupId = groups[0].id;
       if (selectedGroupId && !groups.some((group) => group.id === selectedGroupId)) {
@@ -262,9 +266,6 @@
     const allowedGroupIds = groupIds;
     untrack(() => {
       if (!active) return;
-      members = [];
-      messages = [];
-      cursor = 0;
       onAvailabilityChange(false);
       void loadGroups(scope, allowedGroupIds);
     });

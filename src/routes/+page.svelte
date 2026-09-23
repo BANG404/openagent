@@ -723,8 +723,25 @@
       : undefined,
   );
   let chatGroupScopeState = $derived(chatGroupScope(messages, currentStreamItems));
-  let chatGroupToolUsed = $derived(chatGroupScopeState.invoked);
-  let chatGroupIds = $derived(chatGroupScopeState.groupIds);
+  // Tool-call reconciliation briefly removes the optimistic stream item
+  // before the durable message is loaded. Retain the last known group scope
+  // for this conversation so the right panel stays mounted through that
+  // handoff instead of flashing away and reopening.
+  let chatGroupScopeCache = $state<Record<string, string[]>>({});
+  $effect(() => {
+    const conversationId = activeConvId;
+    const ids = chatGroupScopeState.groupIds;
+    if (!conversationId || ids.length === 0) return;
+    chatGroupScopeCache = { ...chatGroupScopeCache, [conversationId]: ids };
+  });
+  let chatGroupIds = $derived(
+    chatGroupScopeState.groupIds.length > 0
+      ? chatGroupScopeState.groupIds
+      : activeConvId
+        ? (chatGroupScopeCache[activeConvId] ?? [])
+        : [],
+  );
+  let chatGroupToolUsed = $derived(chatGroupScopeState.invoked || chatGroupIds.length > 0);
   $effect(() => {
     const key = checkpointFlowPanelKey(
       activeConvId,
