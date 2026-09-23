@@ -296,7 +296,13 @@
           groups = [group, ...groups.filter((item) => item.id !== group.id)];
         },
         onMemberChanged: (member) => {
-          if (member.group_id === selectedGroupId) void loadMembers(selectedGroupId);
+          if (member.group_id !== selectedGroupId) return;
+          // Apply the event immediately so a role reply can use its name even
+          // before the full member list refresh completes.
+          members = [...members.filter((item) => item.id !== member.id), member].sort(
+            (left, right) => left.joined_at - right.joined_at,
+          );
+          void loadMembers(selectedGroupId);
         },
       })
       .then((cleanup) => {
