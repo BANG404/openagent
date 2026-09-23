@@ -22,6 +22,7 @@ describe("local preflight plan", () => {
 
   test("runs fast automation coverage without the frontend suite", () => {
     expect(commandIds({ automation: true })).toEqual([
+      "skill-contract",
       "actions",
       "lint",
       "format",
@@ -36,6 +37,7 @@ describe("local preflight plan", () => {
 
   test("deduplicates shared checks when automation and frontend are selected", () => {
     expect(commandIds({ automation: true, frontend: true })).toEqual([
+      "skill-contract",
       "actions",
       "lint",
       "format",

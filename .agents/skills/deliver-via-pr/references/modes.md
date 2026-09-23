@@ -182,7 +182,7 @@ fixture assertion merely to turn an unavailable preview into a pass.
 ### Coordinate a sealed batch of OWT tasks
 
 When the caller intentionally launches several OWT tasks as one local
-delivery, use [references/batch-owt.md](references/batch-owt.md) and its
+delivery, use [batch-owt.md](batch-owt.md) and its
 deterministic coordinator. Register the complete expected task set and seal
 it before any task may trigger integration. Each task still owns a clean,
 committed, individually preflighted branch. The final ready agent
@@ -193,9 +193,9 @@ not infer batch membership from the repository's worktree count.
 
 For independent tasks that do not need a sealed all-or-nothing integration,
 the parent agent may instead use
-[scripts/run-codex-exec-batch.mjs](../../scripts/run-codex-exec-batch.mjs)
+[scripts/run-codex-exec-batch.mjs](../scripts/run-codex-exec-batch.mjs)
 to launch multiple ordinary OWT deliveries concurrently. Read
-[references/parallel-codex-exec.md](references/parallel-codex-exec.md)
+[parallel-codex-exec.md](parallel-codex-exec.md)
 before using it. Do not combine that launcher with the sealed-batch
 coordinator: every launched child follows the complete ordinary OWT
 workflow and integrates its own result.

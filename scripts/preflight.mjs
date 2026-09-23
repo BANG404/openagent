@@ -9,6 +9,7 @@ const AUTOMATION_TESTS = [
   "tests/ciChanges.test.js",
   "tests/ciResults.test.js",
   "tests/docsSync.test.js",
+  "tests/agentSkills.test.js",
   "tests/owtBatch.test.js",
   "tests/preflight.test.js",
   "tests/privateSdkDiagnostic.test.js",
@@ -66,6 +67,7 @@ export function buildPreflightCommands(modules) {
   };
 
   if (modules.automation) {
+    add("skill-contract", "Agent skill contract", "bun", ["run", "check:skills"]);
     add("actions", "GitHub Actions syntax", "bun", ["run", "lint:actions"]);
     add("lint", "JavaScript and frontend lint", "bun", ["run", "lint:frontend"]);
     add("format", "Repository formatting", "bun", ["run", "format:check"]);

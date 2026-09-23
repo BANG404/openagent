@@ -1,5 +1,4 @@
 # OpenAgent contributor map
-
 OpenAgent is a Tauri 2 desktop app. SvelteKit owns presentation and interaction
 state, the private `sdk` submodule owns runtime behavior and typed transports,
 and `src-tauri` is a thin desktop host. The project is in active debugging; do
@@ -11,12 +10,12 @@ repeatable procedures, and fragile subsystem invariants in focused workspace
 skills; keep private SDK internals in the SDK repository.
 
 ## Route the task before editing
-
 Read every applicable owner before changing files:
 
 | Intent | Starting skill |
 | --- | --- |
 | Understand repository structure and ownership | `.agents/skills/project-orientation/SKILL.md` |
+| Change prompt assembly, skill routing, or agent documentation validation | `.agents/skills/agent-prompt-infrastructure/SKILL.md` |
 | Implement product behavior or subsystem changes | The matching `openagent-*` owner below |
 | Debug or inspect the real native desktop app | `.agents/skills/native-app-debugging/SKILL.md` |
 | Verify browser-visible behavior | `.agents/skills/playwright/SKILL.md` |
@@ -34,9 +33,7 @@ debugging, verification, and delivery so agents can choose the right scope.
 | Configuration, databases, memory, migrations, destructive data transitions | `.agents/skills/openagent-persistence/SKILL.md` |
 | Workflows, releases, CI classification, helper packaging, bundle qualification | `.agents/skills/openagent-release-engineering/SKILL.md` |
 | Browser-reproducible UI verification | `.agents/skills/playwright/SKILL.md` |
-| Product design and component language | `.agents/skills/openagent-design-system/` |
-| Configuration and durable-data agent routing | `.agents/skills/openagent-configuration/` |
-| Design-system agent routing and DESIGN.md format | `.agents/skills/openagent-design-system/` |
+| Product design and component language, including `DESIGN.md` | `.agents/skills/openagent-design-system/` |
 | Messaging channels and remote gateway | `.agents/skills/openagent-channel-integrations/` |
 | Agent Plugin package behavior | `.agents/skills/openagent-plugin-development/` |
 | Public Harness client and server protocol | `.agents/skills/openagent-harness-sdk/` |
@@ -50,7 +47,6 @@ the affected behavior or invariant and its primary owner before editing; do not
 duplicate the same detailed rule across this file, a skill, and README files.
 
 ## Commands and verification
-
 Use Bun for JavaScript dependencies and scripts. Prefix shell commands with
 `rtk` as required by the global instructions.
 
@@ -59,6 +55,7 @@ bun run dev                              # Vite on an available port
 bun run build
 bun run check                            # Svelte + TypeScript
 bun run check:tests                      # Type-check Bun tests
+bun run check:skills                     # Validate skill metadata and routing
 bun run test:browser:preview             # Browser smoke test for the streaming preview
 bun run preflight                        # Diff-selected fast checks
 bun run prepare:windows-sandbox:dev      # Pinned Windows helpers
@@ -82,7 +79,6 @@ task-specific fixture; routine development must not touch installed release
 state under `~/.openagent`.
 
 ## Repository boundaries
-
 - `sdk/` is a pinned private submodule. Commit and push SDK changes there first,
   then commit only its gitlink and required host/frontend integration here.
 - `src-tauri/` contains thin entry points, Tauri plugins and commands, event
@@ -109,7 +105,6 @@ Inspector and trace data may contain model context and must not appear in the
 normal product UI.
 
 ## Data and user safety
-
 The canonical locations and compatibility behavior live in
 `.agents/skills/openagent-configuration/`. At a glance:
 
@@ -134,7 +129,6 @@ change. File- or database-backed views need an explicit loading state and a
 layout-stable skeleton.
 
 ## Change quality
-
 - Update the relevant `AGENTS.md`, README, or workspace skill when
   logic changes. Document the resulting behavior, ownership boundary, failure
   mode, or verification procedure—not the edit history.
@@ -150,8 +144,7 @@ layout-stable skeleton.
 ## Delivery
 
 Every repository-changing task uses `deliver-via-pr`. With no prefix, edit the
-existing local `master`, run preflight, and create focused local commits without
-branching or pushing. `OWT` selects an isolated local worktree that is later
-fast-forwarded into local `master`. The skill owns the exact reconciliation,
-preservation, CI, and cleanup rules. Explicit user instructions that alter a
-delivery stage take precedence.
+local `master`, run preflight, and create focused local commits without pushing;
+`OWT` uses an isolated worktree and fast-forwards it into `master`. The skill
+owns reconciliation, preservation, CI, and cleanup; explicit user instructions
+override its delivery stage.

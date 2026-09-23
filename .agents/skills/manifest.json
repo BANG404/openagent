@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "owners": [
+    { "skill": "agent-prompt-infrastructure", "paths": [".agents/skills/"] },
+    { "skill": "project-orientation", "paths": ["AGENTS.md"] },
+    { "skill": "deliver-via-pr", "paths": [".agents/skills/deliver-via-pr/"] },
+    { "skill": "openagent-chat-frontend", "paths": ["src/lib/", "src/routes/"] },
+    { "skill": "openagent-desktop-host", "paths": ["src-tauri/"] },
+    { "skill": "openagent-design-system", "paths": ["DESIGN.md"] },
+    { "skill": "openagent-configuration", "paths": ["config", "src/lib/settings"] },
+    { "skill": "openagent-persistence", "paths": ["messages.db", "memory.md"] },
+    { "skill": "openagent-release-engineering", "paths": [".github/workflows/", "scripts/release"] },
+    { "skill": "openagent-channel-integrations", "paths": ["src-tauri/src/channels"] },
+    { "skill": "openagent-harness-sdk", "paths": ["sdk/harness-typescript/"] },
+    { "skill": "openagent-plugin-development", "paths": ["plugins/", "plugin.json", "mcp.json"] },
+    { "skill": "openagent-update-delivery", "paths": ["scripts/update", "src-tauri/src/update"] },
+    { "skill": "openagent-embedding-resources", "paths": ["src-tauri/resources/models/", "scripts/fetch-embedding-model.mjs"] },
+    { "skill": "openagent-windows-development", "paths": ["scripts/prepare-windows", ".wslconfig"] },
+    { "skill": "native-app-debugging", "paths": ["scripts/tauri", ".agents/skills/openagent-desktop-host/references/native-verification.md"] },
+    { "skill": "playwright", "paths": ["scripts/test-browser-preview.mjs", "tests/browser"] },
+    { "skill": "wait-for-pr-ci", "paths": ["scripts/wait-for-pr-ci"] }
+  ]
+}
