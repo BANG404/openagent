@@ -741,7 +741,9 @@
         ? (chatGroupScopeCache[activeConvId] ?? [])
         : [],
   );
-  let chatGroupToolUsed = $derived(chatGroupScopeState.invoked || chatGroupIds.length > 0);
+  // A group view is available only after a chat-group tool completed with a
+  // durable group id. A pending or failed call must not open the sidebar.
+  let chatGroupToolUsed = $derived(chatGroupIds.length > 0);
   $effect(() => {
     const key = checkpointFlowPanelKey(
       activeConvId,
@@ -3133,10 +3135,6 @@
         chatStreams.clearAwaitingOutput(conv_id);
         chatStreams.clearMemoryRetrieval(conv_id);
         chatStreams.recordFirstResponse(conv_id);
-        if (conv_id === activeConvId && name.startsWith("chat_group_")) {
-          rightSidebarPanel = "group";
-          rightSidebarCollapseRequested = false;
-        }
         let items = appendToolCall(
           chatStreams.itemsByConversation[conv_id] ?? [],
           name,
@@ -3179,6 +3177,11 @@
             toolUseId,
           ),
         };
+        const updatedItems = chatStreams.itemsByConversation[conv_id] ?? [];
+        if (conv_id === activeConvId && chatGroupScope([], updatedItems).groupIds.length > 0) {
+          rightSidebarPanel = "group";
+          rightSidebarCollapseRequested = false;
+        }
         if (rolesMayHaveChanged) void loadAvailableRoles();
         persistStreamDraft(conv_id).catch(() => {});
       },

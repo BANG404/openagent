@@ -1,26 +1,40 @@
 import type { ChatMessage, StreamItem, ToolCallRecord } from "./types";
 
+function parseJson(value: string | undefined): unknown {
+  if (!value) return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
 export interface ChatGroupScope {
   invoked: boolean;
   groupIds: string[];
 }
 
 function parseObject(value: string | undefined): Record<string, unknown> | null {
-  if (!value) return null;
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : null;
-  } catch {
-    return null;
-  }
+  const parsed = parseJson(value);
+  return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+    ? (parsed as Record<string, unknown>)
+    : null;
+}
+
+function hasSuccessfulResult(result: string | undefined): boolean {
+  const parsed = parseJson(result);
+  if (parsed === null || (typeof parsed !== "object" && !Array.isArray(parsed))) return false;
+  if (Array.isArray(parsed)) return true;
+  const record = parsed as Record<string, unknown>;
+  return record.ok !== false && record.success !== false && !record.error;
 }
 
 function groupIdFromCall(name: string, args: string, result?: string): string | null {
   const parsedArgs = parseObject(args);
   const argGroupId = parsedArgs?.group_id ?? parsedArgs?.groupId;
-  if (typeof argGroupId === "string" && argGroupId.trim()) return argGroupId;
+  if (typeof argGroupId === "string" && argGroupId.trim() && hasSuccessfulResult(result)) {
+    return argGroupId;
+  }
 
   // Create and start have no group_id argument; their durable results identify
   // the newly created group at different nesting levels.
@@ -41,7 +55,8 @@ function collectToolCall(
 ): boolean {
   if (!call.name.startsWith("chat_group_")) return false;
   const groupId = groupIdFromCall(call.name, call.args, call.result);
-  if (groupId) ids.add(groupId);
+  if (!groupId) return false;
+  ids.add(groupId);
   return true;
 }
 

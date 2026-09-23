@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { chatGroupScope } from "../src/lib/chatGroupScope";
 
 describe("chatGroupScope", () => {
-  test("collects group ids from selected-branch tool args", () => {
+  test("collects group ids only after a successful tool result", () => {
     const result = chatGroupScope([
       {
         id: "assistant-1",
@@ -14,6 +14,7 @@ describe("chatGroupScope", () => {
             type: "tool_call",
             name: "chat_group_send_message",
             args: JSON.stringify({ group_id: "group-a", content: "hello" }),
+            result: JSON.stringify({ id: "message-1", group_id: "group-a" }),
           },
         ],
       },
@@ -38,10 +39,12 @@ describe("chatGroupScope", () => {
           {
             name: "chat_group_list_members",
             args: JSON.stringify({ group_id: "group-created" }),
+            result: JSON.stringify([]),
           },
           {
             name: "chat_group_read_messages",
             args: JSON.stringify({ group_id: "group-other" }),
+            result: JSON.stringify({ messages: [], next_seq: 0, temporary: true }),
           },
           { name: "dispatch_role", args: "{}" },
         ],
@@ -51,7 +54,7 @@ describe("chatGroupScope", () => {
     expect(result).toEqual({ invoked: true, groupIds: ["group-created", "group-other"] });
   });
 
-  test("keeps invocation visibility while a create call has no result yet", () => {
+  test("does not expose a pending or failed group call", () => {
     expect(
       chatGroupScope([
         {
@@ -62,7 +65,24 @@ describe("chatGroupScope", () => {
           items: [{ type: "tool_call", name: "chat_group_create", args: '{"title":"x"}' }],
         },
       ]),
-    ).toEqual({ invoked: true, groupIds: [] });
+    ).toEqual({ invoked: false, groupIds: [] });
+    expect(
+      chatGroupScope([
+        {
+          id: "assistant-2",
+          role: "assistant",
+          content: "",
+          timestamp: 1,
+          toolCalls: [
+            {
+              name: "chat_group_start",
+              args: '{"title":"x","content":"@Unknown"}',
+              result: "Unknown role 'Unknown'",
+            },
+          ],
+        },
+      ]),
+    ).toEqual({ invoked: false, groupIds: [] });
   });
 
   test("extracts the nested group from chat_group_start", () => {

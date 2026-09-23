@@ -112,7 +112,9 @@
 - Keep status, file changes, background terminals, and invoked chat groups in
   the same resizable desktop right sidebar. Show the sidebar and its title-bar
   entry only while at least one of those views has content; a chat-group view
-  counts only after the active conversation has invoked a `chat_group_*` tool.
+  counts only after the active conversation has a successful `chat_group_*`
+  result with a durable group ID. Pending, failed, or ID-less tool calls must
+  not open the panel or make it available.
   Collapse it when the last available view becomes empty. Make that rule structural rather than dependent on effect
   ordering: the rendered collapse state is the active branch's own request
   projected against availability, so no scope switch, restore, or automatic
