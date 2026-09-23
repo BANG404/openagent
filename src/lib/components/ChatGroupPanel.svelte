@@ -14,7 +14,6 @@
   import { useOpenAgentUiCapabilities } from "$lib/openagent";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import MentionPalette, { type PaletteItem } from "./MentionPalette.svelte";
-  import Select from "$lib/components/ui/Select.svelte";
 
   let {
     enabled = false,
@@ -35,7 +34,6 @@
   let groups = $state<ChatGroup[]>([]);
   let members = $state<ChatGroupMember[]>([]);
   let messages = $state<ChatGroupMessage[]>([]);
-  let selectedMentions = $state<string[]>([]);
   let mentionMode = $state(false);
   let mentionQuery = $state("");
   let mentionStart = $state(0);
@@ -61,7 +59,6 @@
         hint: $t("mentionRole"),
       })),
   );
-  const groupItems = $derived(groups.map((group) => ({ value: group.id, label: group.title })));
 
   async function loadGroups(scope = workspace, allowedGroupIds = groupIds): Promise<void> {
     if (!enabled) return;
@@ -114,23 +111,6 @@
     }
   }
 
-  function toggleMention(member: ChatGroupMember): void {
-    // Reconcile against the text first: the user may have removed a mention
-    // directly with Backspace since the last chip interaction.
-    const draftMentions = mentionsFromDraft(draft);
-    selectedMentions = draftMentions;
-    if (draftMentions.includes(member.id)) {
-      draft = removeMentionFromDraft(draft, member.role_name);
-      selectedMentions = mentionsFromDraft(draft);
-      return;
-    }
-    const token = /\s/.test(member.role_name)
-      ? `@"${member.role_name.replaceAll('"', '\\\\"')}" `
-      : `@${member.role_name} `;
-    draft = `${token}${draft}`;
-    selectedMentions = mentionsFromDraft(draft);
-  }
-
   function closeMentionPalette(): void {
     mentionMode = false;
     mentionQuery = "";
@@ -168,7 +148,6 @@
     const token = /\s/.test(name) ? `@"${name.replaceAll('"', "\\\\" + '"')}"` : `@${name}`;
     const insertion = `${token} `;
     draft = `${before}${insertion}${after}`;
-    if (!selectedMentions.includes(item.id)) selectedMentions = [...selectedMentions, item.id];
     const newCaret = before.length + insertion.length;
     closeMentionPalette();
     void tick().then(() => {
@@ -188,31 +167,6 @@
     return [...found];
   }
 
-  function removeMentionFromDraft(content: string, roleName: string): string {
-    const pattern = /@"([^"\\]*(?:\\.[^"\\]*)*)"|@([\p{L}\p{N}_-]+)/gu;
-    let removed = false;
-    return content.replace(
-      pattern,
-      (token, quoted: string | undefined, bare: string | undefined) => {
-        if (removed) return token;
-        const name = (quoted ?? bare ?? "").replaceAll('\\"', '"').trim();
-        if (name.toLocaleLowerCase() !== roleName.toLocaleLowerCase()) return token;
-        removed = true;
-        return "";
-      },
-    );
-  }
-
-  function syncSelectedMentions(): void {
-    const next = mentionsFromDraft(draft);
-    if (
-      next.length !== selectedMentions.length ||
-      next.some((id, index) => id !== selectedMentions[index])
-    ) {
-      selectedMentions = next;
-    }
-  }
-
   async function sendMessage(): Promise<void> {
     if (!selectedGroupId || !draft.trim() || sending) return;
     const content = draft.trim();
@@ -228,7 +182,6 @@
       if (!messages.some((item) => item.id === message.id)) messages = [...messages, message];
       cursor = Math.max(cursor, message.seq);
       draft = "";
-      selectedMentions = [];
       closeMentionPalette();
     } catch (cause) {
       error = String(cause);
@@ -320,30 +273,14 @@
       </div>
     </header>
 
-    {#if groups.length > 0}
-      <label class="group-select-label" for="chat-group-select">{$t("chatGroupSelect")}</label>
-      <Select
-        id="chat-group-select"
-        value={selectedGroupId ?? ""}
-        items={groupItems}
-        triggerClass="chat-group-select"
-        ariaLabel={$t("chatGroupSelect")}
-        onValueChange={(value) => (selectedGroupId = value)}
-      />
-    {:else}
+    {#if groups.length === 0}
       <p class="empty">{$t("chatGroupEmpty")}</p>
     {/if}
 
     {#if selectedGroup}
-      <div class="member-strip" aria-label={$t("chatGroupMembers")}>
+      <div class="member-strip" aria-label={$t("chatGroupMembers")} role="list">
         {#each members as member (member.id)}
-          <button
-            type="button"
-            class:selected={selectedMentions.includes(member.id)}
-            aria-pressed={selectedMentions.includes(member.id)}
-            class="mention-chip"
-            onclick={() => toggleMention(member)}>@{member.role_name}</button
-          >
+          <span class="mention-chip" role="listitem">@{member.role_name}</span>
         {/each}
       </div>
 
@@ -409,7 +346,6 @@
           rows="3"
           placeholder={$t("chatGroupMessagePlaceholder")}
           oninput={() => {
-            syncSelectedMentions();
             syncMentionPalette();
           }}
           onselect={syncMentionPalette}
@@ -484,19 +420,12 @@
   .composer button:hover:not(:disabled) {
     background: var(--surface-hover);
   }
-  .group-select-label {
-    color: var(--text-muted);
-    font-size: 11px;
-  }
   textarea {
     border: 1px solid var(--border);
     border-radius: 5px;
     background: var(--surface);
     color: var(--text);
     font: inherit;
-  }
-  :global(.chat-group-select) {
-    width: 100%;
   }
   .member-strip {
     display: flex;
@@ -509,12 +438,7 @@
     background: transparent;
     color: var(--text-muted);
     padding: 3px 7px;
-    cursor: pointer;
     font-size: 12px;
-  }
-  .mention-chip.selected {
-    border-color: var(--primary);
-    color: var(--primary);
   }
   .message-list {
     min-height: 120px;
