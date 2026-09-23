@@ -43,6 +43,12 @@
   let sending = $state(false);
   let error = $state<string | null>(null);
   let refreshTimer: ReturnType<typeof setInterval> | null = null;
+  let memberRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  let messagesRefreshInFlight = false;
+  let messagesRefreshQueued = false;
+  let queuedMessagesReset = false;
+  let queuedMessagesGroupId: string | null = null;
+  let membersRequestVersion = 0;
   let isDarkTheme = $state(false);
   const capabilities = useOpenAgentUiCapabilities();
 
@@ -83,12 +89,20 @@
 
   async function refreshMessages(groupId: string | null, reset = false): Promise<void> {
     if (!groupId) return;
+    if (messagesRefreshInFlight) {
+      messagesRefreshQueued = true;
+      queuedMessagesReset ||= reset;
+      queuedMessagesGroupId = groupId;
+      return;
+    }
+    messagesRefreshInFlight = true;
+    const requestCursor = reset ? 0 : cursor;
     if (reset) {
       cursor = 0;
       messages = [];
     }
     try {
-      const result = await desktopOpenAgent.readChatGroupMessages(groupId, cursor, 0, 100);
+      const result = await desktopOpenAgent.readChatGroupMessages(groupId, requestCursor, 0, 100);
       if (result.messages.length > 0) {
         const seen = new Set(messages.map((message) => message.id));
         messages = [...messages, ...result.messages.filter((message) => !seen.has(message.id))];
@@ -96,19 +110,41 @@
       }
     } catch (cause) {
       error = String(cause);
+    } finally {
+      messagesRefreshInFlight = false;
+      if (messagesRefreshQueued) {
+        const nextReset = queuedMessagesReset;
+        const nextGroupId = queuedMessagesGroupId;
+        messagesRefreshQueued = false;
+        queuedMessagesReset = false;
+        queuedMessagesGroupId = null;
+        void refreshMessages(nextGroupId, nextReset);
+      }
     }
   }
 
   async function loadMembers(groupId: string | null): Promise<void> {
+    const requestVersion = ++membersRequestVersion;
     if (!groupId) {
       members = [];
       return;
     }
     try {
-      members = await desktopOpenAgent.listChatGroupMembers(groupId);
+      const nextMembers = await desktopOpenAgent.listChatGroupMembers(groupId);
+      if (requestVersion === membersRequestVersion && selectedGroupId === groupId) {
+        members = nextMembers;
+      }
     } catch (cause) {
       error = String(cause);
     }
+  }
+
+  function scheduleMemberRefresh(groupId: string): void {
+    if (memberRefreshTimer) clearTimeout(memberRefreshTimer);
+    memberRefreshTimer = setTimeout(() => {
+      memberRefreshTimer = null;
+      void loadMembers(groupId);
+    }, 100);
   }
 
   function closeMentionPalette(): void {
@@ -255,7 +291,7 @@
           members = [...members.filter((item) => item.id !== member.id), member].sort(
             (left, right) => left.joined_at - right.joined_at,
           );
-          void loadMembers(selectedGroupId);
+          scheduleMemberRefresh(member.group_id);
         },
       })
       .then((cleanup) => {
@@ -264,6 +300,7 @@
       .catch(() => {});
     return () => {
       if (refreshTimer) clearInterval(refreshTimer);
+      if (memberRefreshTimer) clearTimeout(memberRefreshTimer);
       themeObserver.disconnect();
       unsubscribe?.();
     };

@@ -21,6 +21,9 @@ fresh role child conversation; group messages are a separate durable log and
 only explicit `mentions` wake member conversations.
 Fresh group child conversations are projected as pending until a real
 `chat-run-started` event arrives; creation alone must not render them as running.
+Batch `chat-group-member-changed` notifications into one member refresh and
+serialize message reads so a group wake-up burst cannot reset the panel or
+overload the WebView with concurrent Markdown renders.
 The typed Runtime client owns `list_chat_groups`, member management, message
 send/read operations, and `chat.group_message`/`chat.group_updated` event
 projection. Disabling the capability hides the panel and makes the registered
