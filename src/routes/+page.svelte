@@ -107,6 +107,7 @@
     RightSidebarScopeStore,
   } from "$lib/sidebarPanelScope";
   import { retainUndurableFileChanges } from "$lib/fileChangeReconciliation";
+  import { chatGroupScope } from "$lib/chatGroupScope";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { loadMermaid, renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
@@ -369,7 +370,6 @@
   // empties collapses without anything having to write state again.
   let rightSidebarCollapseRequested = $state(rightSidebarPreferenceDefault);
   let rightSidebarPanel = $state<RightSidebarPanel>("status");
-  let chatGroupsAvailable = $state(false);
   let terminalSessionCount = $state(0);
   let checkpointFlowPanelSelectionKey = $state<string | null>(null);
   let checkpointFlowPanelAutoOpenKey = $state<string | null>(null);
@@ -587,13 +587,6 @@
   // Single source of truth: messages are derived from conversations[]
   let messages = $derived(conversations.find((c) => c.id === activeConvId)?.messages ?? []);
 
-  function hasChatGroupToolCall(items: StreamItem[] | undefined): boolean {
-    return (
-      items?.some((item) => item.type === "tool_call" && item.name.startsWith("chat_group_")) ??
-      false
-    );
-  }
-
   const composerDrafts = new ComposerDraftStore();
   let selectedComposerDraftKey = untrack(() =>
     activeConvId
@@ -729,13 +722,9 @@
       ? (liveCheckpointFlowProjections[activeConvId]?.flow ?? currentCheckpointFlowNode?.flow)
       : undefined,
   );
-  let chatGroupToolUsed = $derived(
-    messages.some(
-      (message) =>
-        hasChatGroupToolCall(message.items) ||
-        message.toolCalls?.some((tool) => tool.name.startsWith("chat_group_")),
-    ) || hasChatGroupToolCall(currentStreamItems),
-  );
+  let chatGroupScopeState = $derived(chatGroupScope(messages, currentStreamItems));
+  let chatGroupToolUsed = $derived(chatGroupScopeState.invoked);
+  let chatGroupIds = $derived(chatGroupScopeState.groupIds);
   $effect(() => {
     const key = checkpointFlowPanelKey(
       activeConvId,
@@ -809,9 +798,7 @@
   let rightSidebarAvailable = $derived(
     conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length) ||
       terminalSessionCount > 0 ||
-      chatGroupToolUsed ||
-      chatGroupsAvailable ||
-      ((config?.chat_groups_enabled ?? false) && rightSidebarPanel === "group"),
+      ((config?.chat_groups_enabled ?? false) && chatGroupToolUsed),
   );
   // The one value the title bar and the sidebar render. Deriving it keeps the
   // "no views, no panel" invariant true at every moment, including the flush
@@ -5560,13 +5547,9 @@
           {rightSidebarConversationId}
           {rightSidebarBranchId}
           chatGroupsEnabled={config?.chat_groups_enabled ?? false}
+          chatGroupsAvailable={(config?.chat_groups_enabled ?? false) && chatGroupToolUsed}
+          {chatGroupIds}
           chatGroupWorkspace={workspacePath}
-          onChatGroupsAvailabilityChange={(available) => {
-            chatGroupsAvailable = available;
-            if (available && rightSidebarPanel === "group") {
-              rightSidebarCollapseRequested = false;
-            }
-          }}
           composerDraft={activeComposerDraft}
           focusRequest={composerFocusRequest}
         />

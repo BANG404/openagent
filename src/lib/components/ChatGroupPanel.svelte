@@ -19,12 +19,14 @@
   let {
     enabled = false,
     workspace = "",
+    groupIds = [],
     selectedGroupId = $bindable<string | null>(null),
     draft = $bindable(""),
     onAvailabilityChange = () => {},
   }: {
     enabled?: boolean;
     workspace?: string;
+    groupIds?: string[];
     selectedGroupId?: string | null;
     draft?: string;
     onAvailabilityChange?: (available: boolean) => void;
@@ -61,10 +63,12 @@
   );
   const groupItems = $derived(groups.map((group) => ({ value: group.id, label: group.title })));
 
-  async function loadGroups(scope = workspace): Promise<void> {
+  async function loadGroups(scope = workspace, allowedGroupIds = groupIds): Promise<void> {
     if (!enabled) return;
     try {
-      groups = await desktopOpenAgent.listChatGroups(scope || null);
+      const availableGroups = await desktopOpenAgent.listChatGroups(scope || null);
+      const allowed = new Set(allowedGroupIds);
+      groups = availableGroups.filter((group) => allowed.has(group.id));
       onAvailabilityChange(groups.length > 0);
       if (!selectedGroupId && groups[0]) selectedGroupId = groups[0].id;
       if (selectedGroupId && !groups.some((group) => group.id === selectedGroupId)) {
@@ -255,13 +259,14 @@
   $effect(() => {
     const scope = workspace;
     const active = enabled;
+    const allowedGroupIds = groupIds;
     untrack(() => {
       if (!active) return;
       members = [];
       messages = [];
       cursor = 0;
       onAvailabilityChange(false);
-      void loadGroups(scope);
+      void loadGroups(scope, allowedGroupIds);
     });
   });
 
@@ -286,6 +291,7 @@
           cursor = Math.max(cursor, message.seq);
         },
         onUpdated: (group) => {
+          if (!groupIds.includes(group.id)) return;
           groups = [group, ...groups.filter((item) => item.id !== group.id)];
         },
         onMemberChanged: (member) => {

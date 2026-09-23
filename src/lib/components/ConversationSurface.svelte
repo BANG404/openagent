@@ -119,6 +119,8 @@
     rightSidebarBranchId = view.activeBranchId,
     rightSidebarScopeKey = `${view.activeConvId ?? ""}\u0000${view.activeBranchId ?? ""}`,
     chatGroupsEnabled = false,
+    chatGroupsAvailable = false,
+    chatGroupIds = [],
     chatGroupWorkspace = view.workspacePath,
     onChatGroupsAvailabilityChange = () => {},
     composerDraft,
@@ -138,6 +140,8 @@
     rightSidebarBranchId?: string | null;
     rightSidebarScopeKey?: string;
     chatGroupsEnabled?: boolean;
+    chatGroupsAvailable?: boolean;
+    chatGroupIds?: string[];
     chatGroupWorkspace?: string;
     onChatGroupsAvailabilityChange?: (available: boolean) => void;
     composerDraft: ComposerDraft;
@@ -370,6 +374,8 @@
     {rightSidebarScopeKey}
     {onTerminalSummaryChange}
     {chatGroupsEnabled}
+    {chatGroupsAvailable}
+    {chatGroupIds}
     {chatGroupWorkspace}
     {onChatGroupsAvailabilityChange}
   />

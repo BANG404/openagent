@@ -39,6 +39,8 @@
     terminalPreviewSessions?: BackgroundTerminalSession[] | null;
     terminalPreviewOutputs?: Record<string, string>;
     chatGroupsEnabled?: boolean;
+    chatGroupsAvailable?: boolean;
+    chatGroupIds?: string[];
     chatGroupWorkspace?: string;
     onChatGroupsAvailabilityChange?: (available: boolean) => void;
   }
@@ -61,6 +63,8 @@
     terminalPreviewSessions = null,
     terminalPreviewOutputs = {},
     chatGroupsEnabled = false,
+    chatGroupsAvailable = false,
+    chatGroupIds = [],
     chatGroupWorkspace = "",
     onChatGroupsAvailabilityChange = () => {},
   }: Props = $props();
@@ -194,11 +198,11 @@
         ? "status"
         : changes.length > 0
           ? "files"
-          : chatGroupsEnabled
+          : chatGroupsEnabled && chatGroupsAvailable
             ? "group"
             : "status";
     }
-    if (activePanel === "group" && !chatGroupsEnabled) {
+    if (activePanel === "group" && (!chatGroupsEnabled || !chatGroupsAvailable)) {
       activePanel = flow
         ? "status"
         : changes.length > 0
@@ -271,7 +275,7 @@
             {/if}
           </button>
         {/if}
-        {#if chatGroupsEnabled}
+        {#if chatGroupsEnabled && chatGroupsAvailable}
           <button
             type="button"
             class:active={activePanel === "group"}
@@ -418,8 +422,9 @@
     {:else if !collapsed && activePanel !== "terminal"}
       {#if activePanel === "group"}
         <ChatGroupPanel
-          enabled={chatGroupsEnabled}
+          enabled={chatGroupsEnabled && chatGroupsAvailable}
           workspace={chatGroupWorkspace}
+          groupIds={chatGroupIds}
           bind:selectedGroupId={groupSelectedId}
           bind:draft={groupDraft}
           onAvailabilityChange={onChatGroupsAvailabilityChange}

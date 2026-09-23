@@ -22,6 +22,8 @@
     rightSidebarScopeKey = "\u0000",
     onTerminalSummaryChange = () => {},
     chatGroupsEnabled = false,
+    chatGroupsAvailable = false,
+    chatGroupIds = [],
     chatGroupWorkspace = "",
     onChatGroupsAvailabilityChange = () => {},
   }: {
@@ -37,6 +39,8 @@
     rightSidebarScopeKey?: string;
     onTerminalSummaryChange?: (runningCount: number, sessionCount: number) => void;
     chatGroupsEnabled?: boolean;
+    chatGroupsAvailable?: boolean;
+    chatGroupIds?: string[];
     chatGroupWorkspace?: string;
     onChatGroupsAvailabilityChange?: (available: boolean) => void;
   } = $props();
@@ -105,6 +109,8 @@
   {rightSidebarScopeKey}
   {onTerminalSummaryChange}
   {chatGroupsEnabled}
+  {chatGroupsAvailable}
+  {chatGroupIds}
   {chatGroupWorkspace}
   {onChatGroupsAvailabilityChange}
   onResizeStart={startResize}
