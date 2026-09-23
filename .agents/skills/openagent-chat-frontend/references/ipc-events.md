@@ -10,8 +10,8 @@ configuration alone must not leave an empty chat-group panel visible. The
 group selector is filtered to group IDs referenced by that branch's tool calls
 (including a `chat_group_create` result), so groups from other branches or the
 workspace's unrelated group list never appear in this sidebar.
-`dispatch_role` remains the owner of role conversations; group messages are a
-separate durable log and only explicit `mentions` wake member conversations.
+`chat_group_start` owns initial role-conversation creation; group messages are
+a separate durable log and only explicit `mentions` wake member conversations.
 The typed Runtime client owns `list_chat_groups`, member management, message
 send/read operations, and `chat.group_message`/`chat.group_updated` event
 projection. Disabling the capability hides the panel and makes the registered

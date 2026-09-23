@@ -1050,7 +1050,7 @@
     <section class="approval-queue-preview-stack" aria-label="Approval queue preview">
       {#each approvalPreviewRequests as request, index (request.request_id)}
         <ToolCallCard
-          name={index === 0 ? "terminal_exec" : index === 1 ? "write_file" : "dispatch_role"}
+          name={index === 0 ? "terminal_exec" : index === 1 ? "write_file" : "chat_group_start"}
           args={JSON.stringify({ request: index + 1 }, null, 2)}
           result={undefined}
           expanded={false}

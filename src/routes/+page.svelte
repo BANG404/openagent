@@ -3143,7 +3143,7 @@
               .find((item) => item.type === "tool_call" && item.result === undefined);
         const rolesMayHaveChanged =
           pendingToolCall?.type === "tool_call" &&
-          (pendingToolCall.name === "dispatch_role" || pendingToolCall.name === "create_role");
+          (pendingToolCall.name === "chat_group_start" || pendingToolCall.name === "create_role");
         if (attachApprovedToolResult(conv_id, result, toolUseId)) {
           if (rolesMayHaveChanged) void loadAvailableRoles();
           return;

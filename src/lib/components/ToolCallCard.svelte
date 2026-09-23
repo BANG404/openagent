@@ -83,8 +83,8 @@
 
   const isFocusedTool = $derived(focusedTools.has(name) && parsedArgs !== null);
   const displayName = $derived(
-    name === "dispatch_role"
-      ? $t("dispatchRoleTool")
+    name === "chat_group_start"
+      ? $t("chatGroupStartTool")
       : name === "create_role"
         ? $t("createRoleTool")
         : name === "search_roles"
