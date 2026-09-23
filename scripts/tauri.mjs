@@ -21,7 +21,8 @@ await access(tauriCli);
 let arguments_ = process.argv.slice(2);
 const environment = { ...process.env };
 let developmentInstanceName;
-if (arguments_[0] === "dev") {
+const developmentParentLifetime = arguments_[0] === "dev";
+if (developmentParentLifetime) {
   const parsed = parseDevelopmentInstanceArguments(arguments_);
   arguments_ = parsed.arguments_;
   developmentInstanceName = parsed.instanceName ?? environment.OPENAGENT_DEV_INSTANCE?.trim();
@@ -36,7 +37,7 @@ if (embeddedRuntime) {
   environment.OPENAGENT_RUNTIME_MODE = "embedded";
   console.log("Using the explicit embedded development Runtime");
 }
-if (arguments_[0] === "dev") {
+if (developmentParentLifetime) {
   if (developmentInstanceName) {
     Object.assign(
       environment,
@@ -58,11 +59,25 @@ if (arguments_[0] === "dev") {
   console.log(`Starting development server on http://localhost:${port}`);
 }
 
+if (developmentParentLifetime) {
+  // Keep the development desktop tied to this launcher. On Windows, closing
+  // the terminal does not reliably deliver a console signal to the GUI host,
+  // but it does close this pipe when the launcher exits.
+  environment.OPENAGENT_DEV_PARENT_LIFETIME = "1";
+}
+
 const child = spawn(process.execPath, [tauriCli, ...arguments_], {
   cwd: root,
   env: environment,
-  stdio: "inherit",
+  stdio: developmentParentLifetime ? ["pipe", "inherit", "inherit"] : "inherit",
 });
+if (developmentParentLifetime) {
+  const closeChildInput = () => {
+    child.stdin?.end();
+  };
+  process.once("SIGINT", closeChildInput);
+  process.once("SIGTERM", closeChildInput);
+}
 const exitCode = await new Promise((resolve, reject) => {
   child.once("error", reject);
   child.once("exit", (code) => resolve(code ?? 1));

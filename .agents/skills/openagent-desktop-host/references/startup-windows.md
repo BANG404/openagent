@@ -2,6 +2,13 @@
 
 ## Single instance and focus routing
 
+- Development launches from `bun tauri dev` inherit a launcher-owned stdin
+  lifetime pipe. The debug host watches that pipe and enters the normal bounded
+  quit path on EOF, so closing the Windows terminal also closes the GUI host
+  and its supervised children. Keep this guarded by the development launcher
+  environment flag; release hosts must not treat their stdin as a parent
+  lifetime signal.
+
 - Register single-instance enforcement as the first Tauri plugin for
   ordinary primary launches. A repeated launch restores, shows, and
   focuses the existing main window.

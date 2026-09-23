@@ -3004,6 +3004,22 @@ fn install_parent_shutdown_monitor(app: tauri::AppHandle) {
         .expect("failed to start parent shutdown monitor");
 }
 
+/// In development, the launcher owns the host's stdin pipe. EOF means the
+/// launcher or its terminal disappeared, so use the normal bounded quit path
+/// instead of leaving the GUI process behind on Windows.
+fn install_dev_parent_shutdown_monitor(app: tauri::AppHandle) {
+    std::thread::Builder::new()
+        .name("openagent-dev-parent-shutdown-monitor".to_string())
+        .spawn(move || {
+            use std::io::Read;
+
+            let mut signal = [0_u8; 1];
+            let _ = std::io::stdin().read(&mut signal);
+            request_desktop_quit(app);
+        })
+        .expect("failed to start development parent shutdown monitor");
+}
+
 #[tauri::command]
 async fn quit_app(app: tauri::AppHandle) -> Result<(), String> {
     request_desktop_quit(app);
@@ -5013,6 +5029,11 @@ fn run_with_mode(agent_server: bool) {
             prepend_bundled_cua_driver_to_path(app.handle()).map_err(std::io::Error::other)?;
             if is_parent_controlled_workspace_window_process() {
                 install_parent_shutdown_monitor(app.handle().clone());
+            } else if cfg!(debug_assertions)
+                && std::env::var_os("OPENAGENT_DEV_PARENT_LIFETIME")
+                    .is_some_and(|value| !value.is_empty())
+            {
+                install_dev_parent_shutdown_monitor(app.handle().clone());
             }
 
             tracing::info!(
