@@ -73,7 +73,8 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 
 - **Multi-Agent & Flash Agents Architecture** — A primary streaming **Chat Agent** for main conversations, and a suite of dedicated async **Flash Agents** (including **Memory Agent** for long-term memory synthesis, **Title Agent** for dynamic conversation renaming, and **Hook Agent** for background scheduled tasks).
 - **Sub-Agent Delegation** — The Chat Agent can call `spawn_agent` to delegate tasks to nested sub-agents; progress streams in real-time into a sub-conversation shown nested under the parent in the sidebar.
-- **Reusable Agent Roles** — Create global role workflows, discover them with hybrid search, and dispatch them as specialized child agents. Roles can be created automatically on first use or managed from the **Roles** panel.
+- **Reusable Agent Roles** — Create global role workflows, discover them with hybrid search, and dispatch them as specialized child agents. Roles can be created automatically on first use or managed from the **Roles** panel; delegated roles inherit the parent conversation's selected resources.
+- **Chat Group Collaboration** — Mention selected roles in a conversation to wake them for focused contributions, keep their responses in the group thread, and coordinate private agent-to-agent messages without leaving the chat.
 - **Goal & Graph Loops (Autonomous Execution)** — Type `/goal` in the chat to run a self-correcting loop directly aiming at the objective. Type `/graph` to first plan a structured DAG task graph (`create_goal_graph_config`) and execute nodes asynchronously with parallel processing. The selected branch's durable checkpoint drives an auto-opening, resizable right panel for Goal to-dos and Graph node dependencies.
 - **Hybrid Long-Term Memory** — SQLite + FTS5 + bundled, offline 384-dim embeddings (fastembed `AllMiniLML6V2Q`) blended with time decay for cross-session recall. Before retrieval, an optional Flash task rewrites the latest message into a focused semantic query, so stored memories are matched to intent rather than just wording.
 - **Interactive User Prompts (`ask_user`)** — The agent can pause mid-task and surface a structured form to the user — `text`, `select`, `checkbox_group`, `confirm`, `date`, and more. The agent blocks until the user responds, then continues with the collected values. No more one-shot guessing on ambiguous instructions.
@@ -85,9 +86,10 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 
 ### Tools and integrations
 
-- **MCP-Native** — Connect external MCP servers over HTTP or stdio; tools are injected into the agent at call time.
+- **MCP-Native** — Connect external MCP servers over HTTP or stdio, inspect cached server capabilities, and let tool search discover the relevant grouped tools at call time.
 - **First-class Dev Tools** — Built-in patch, image-inspection, and terminal tools. Managed terminal sessions support interactive or long-running background processes.
-- **Desktop Automation** — The bundled Cua Driver runs as a host-supervised capability with product-owned permissions and per-tool controls in **Settings → Plugins**.
+- **Desktop Automation** — The bundled Cua Driver runs as a host-supervised capability with product-owned permissions and per-tool controls in the **top-bar Integrations → Plugins** panel.
+- **Plugin Controls** — The top-bar **Integrations → Plugins** entry opens the dedicated Plugins settings window with expandable cards: toggle Chat Group collaboration, test the Cua Driver MCP connection, discover its tools, and choose which desktop actions are exposed to the agent.
 - **Lifecycle Automation** — Run a sandboxed command or inject bounded Agent context around session, prompt, compaction, model, and tool events.
 - **Independent Approval & Runtime Permissions** — Choose when tool calls pause for review separately from the managed filesystem and network sandbox.
 - **Skills System** — Drop a `SKILL.md` into `~/.agents/skills/` or `<workspace>/.agents/skills/`. Category-based progressive discovery keeps large global and project catalogs compact, with optional Flash classification for uncategorized Skills.
@@ -99,6 +101,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 
 - **Context Compaction & Tree Conversations** — Automatically or manually compact long conversations into tree structures to save tokens, preserving history lineage via search-based message recall.
 - **Responsive Conversation History** — Search and paginate the sidebar, queue follow-up messages during a run, and navigate virtualized transcripts without loading the entire history into the DOM.
+- **Live Context & Follow-up Guidance** — Track context-window usage while a response streams and receive durable Flash-generated follow-up suggestions for the latest turn.
 - **In-window Management** — Settings, roles, automation, memory, skills, and other management surfaces open fullscreen inside the active window without replacing the chat shell.
 - **Background Terminal Inspection** — Follow conversation-scoped terminal sessions in an accordion beside Goal/Graph status and file changes.
 - **Scheduled Chat Hooks** — Define recurring or one-off tasks triggered in the background. Hooks are fully persistent, auto-restored on startup, and supported by system tray notifications.
@@ -106,7 +109,6 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 - **DESIGN.md & MDX Editor** — Dedicated edit panel for `DESIGN.md` in your workspace, plus a rich markdown editor (MdxMarkdownEditor) integrated into memory and skill management.
 - **Multi-Workspace Desktop Integration** — Repeated app launches restore and focus the existing primary window instead of starting another primary instance. Open each workspace in a dedicated window, focus existing workspace windows instead of duplicating them, launch on startup, minimize to the system tray, and reveal workspace locations in the native file manager.
 - **Observability** — Optional Langfuse tracing via OpenTelemetry (`gen_ai.*` attributes).
-- **Polished UI** — Apple-style design language, streaming markdown, Mermaid & ECharts rendering, light/dark themes, i18n (zh / en).
 
 ---
 
@@ -314,7 +316,7 @@ Multi-series charts use `series: [{name, data}, ...]`.
 
 - OpenAgent does not provide built-in webpage search/fetching, `render_web`, AGUI `Html(...)`, an embedded browser sidebar, or HTML-preview settings. Agents share websites with `Url(...)`; users open those links in their browser. Browser automation belongs to Cua Driver or another explicitly configured MCP service.
 - The right conversation panel is contextual: it appears only for Goal/Graph status, file changes, or conversation-owned background terminals.
-- The former general Agent Plugins management surface is not exposed. Skills and user-configured MCP servers keep their dedicated settings, while the Plugins surface owns the bundled Cua Driver.
+- The former general Agent Plugins management surface is not exposed. Skills and user-configured MCP servers keep their dedicated settings, while the Plugins surface owns the built-in Chat Group and Cua Driver controls.
 
 ---
 
