@@ -11,11 +11,13 @@
     workspace = "",
     selectedGroupId = $bindable<string | null>(null),
     draft = $bindable(""),
+    onAvailabilityChange = () => {},
   }: {
     enabled?: boolean;
     workspace?: string;
     selectedGroupId?: string | null;
     draft?: string;
+    onAvailabilityChange?: (available: boolean) => void;
   } = $props();
 
   let groups = $state<ChatGroup[]>([]);
@@ -51,11 +53,13 @@
     if (!enabled) return;
     try {
       groups = await desktopOpenAgent.listChatGroups(scope || null);
+      onAvailabilityChange(groups.length > 0);
       if (!selectedGroupId && groups[0]) selectedGroupId = groups[0].id;
       if (selectedGroupId && !groups.some((group) => group.id === selectedGroupId)) {
         selectedGroupId = groups[0]?.id ?? null;
       }
     } catch (cause) {
+      onAvailabilityChange(false);
       error = String(cause);
     }
   }
@@ -244,6 +248,7 @@
       members = [];
       messages = [];
       cursor = 0;
+      onAvailabilityChange(false);
       void loadGroups(scope);
     });
   });
