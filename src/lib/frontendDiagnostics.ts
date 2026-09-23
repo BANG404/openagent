@@ -7,7 +7,29 @@ function errorKind(value: unknown): string {
   if (typeof DOMException !== "undefined" && value instanceof DOMException && value.name) {
     return value.name;
   }
+  // Errors raised by the Tauri WebView can belong to another JS realm, so
+  // instanceof checks are not reliable for them.
+  if (value !== null && typeof value === "object") {
+    const name = (value as { name?: unknown }).name;
+    if (typeof name === "string" && name.length > 0) return name;
+  }
   return typeof value;
+}
+
+const REPORTED_ERROR_TTL_MS = 1000;
+const recentlyReported = new Map<string, number>();
+
+function shouldReport(key: string): boolean {
+  const now = Date.now();
+  const previous = recentlyReported.get(key);
+  if (previous !== undefined && now - previous < REPORTED_ERROR_TTL_MS) return false;
+  recentlyReported.set(key, now);
+  if (recentlyReported.size > 100) {
+    for (const [candidate, timestamp] of recentlyReported) {
+      if (now - timestamp >= REPORTED_ERROR_TTL_MS) recentlyReported.delete(candidate);
+    }
+  }
+  return true;
 }
 
 export type ComponentUpdateDiagnosticStage =
@@ -60,9 +82,24 @@ export function installFrontendDiagnostics(): () => void {
   if (typeof window === "undefined" || !isTauri()) return () => {};
 
   const onError = (event: ErrorEvent) => {
+    // Window-level diagnostics should describe uncaught script errors. Error
+    // events from failed images, media, and other resources have an element as
+    // their target and can fire repeatedly while a view is being rendered.
+    if (event.target && event.target !== window) return;
+    const key = [
+      "error",
+      errorKind(event.error),
+      event.message,
+      event.filename,
+      event.lineno,
+      event.colno,
+    ].join("|");
+    if (!shouldReport(key)) return;
     reportFrontendDiagnostic("frontend_uncaught_error", "window", event.error);
   };
   const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+    const key = ["rejection", errorKind(event.reason), String(event.reason)].join("|");
+    if (!shouldReport(key)) return;
     reportFrontendDiagnostic("frontend_unhandled_rejection", "window", event.reason);
   };
   window.addEventListener("error", onError);
