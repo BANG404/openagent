@@ -40,6 +40,7 @@
     terminalPreviewOutputs?: Record<string, string>;
     chatGroupsEnabled?: boolean;
     chatGroupWorkspace?: string;
+    onChatGroupsAvailabilityChange?: (available: boolean) => void;
   }
 
   let {
@@ -61,6 +62,7 @@
     terminalPreviewOutputs = {},
     chatGroupsEnabled = false,
     chatGroupWorkspace = "",
+    onChatGroupsAvailabilityChange = () => {},
   }: Props = $props();
   const panelSnapshots = new RightSidebarPanelStateStore();
   let currentScopeKey = $state<string | null>(null);
@@ -420,6 +422,7 @@
           workspace={chatGroupWorkspace}
           bind:selectedGroupId={groupSelectedId}
           bind:draft={groupDraft}
+          onAvailabilityChange={onChatGroupsAvailabilityChange}
         />
       {:else}
         <div class="flow-body">

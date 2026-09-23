@@ -23,6 +23,7 @@
     onTerminalSummaryChange = () => {},
     chatGroupsEnabled = false,
     chatGroupWorkspace = "",
+    onChatGroupsAvailabilityChange = () => {},
   }: {
     flow: CheckpointFlow | null;
     changes: FileChange[];
@@ -37,6 +38,7 @@
     onTerminalSummaryChange?: (runningCount: number, sessionCount: number) => void;
     chatGroupsEnabled?: boolean;
     chatGroupWorkspace?: string;
+    onChatGroupsAvailabilityChange?: (available: boolean) => void;
   } = $props();
 
   let width = $state(
@@ -104,5 +106,6 @@
   {onTerminalSummaryChange}
   {chatGroupsEnabled}
   {chatGroupWorkspace}
+  {onChatGroupsAvailabilityChange}
   onResizeStart={startResize}
 />

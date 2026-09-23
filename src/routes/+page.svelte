@@ -369,6 +369,7 @@
   // empties collapses without anything having to write state again.
   let rightSidebarCollapseRequested = $state(rightSidebarPreferenceDefault);
   let rightSidebarPanel = $state<RightSidebarPanel>("status");
+  let chatGroupsAvailable = $state(false);
   let terminalSessionCount = $state(0);
   let checkpointFlowPanelSelectionKey = $state<string | null>(null);
   let checkpointFlowPanelAutoOpenKey = $state<string | null>(null);
@@ -808,7 +809,9 @@
   let rightSidebarAvailable = $derived(
     conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length) ||
       terminalSessionCount > 0 ||
-      chatGroupToolUsed,
+      chatGroupToolUsed ||
+      chatGroupsAvailable ||
+      ((config?.chat_groups_enabled ?? false) && rightSidebarPanel === "group"),
   );
   // The one value the title bar and the sidebar render. Deriving it keeps the
   // "no views, no panel" invariant true at every moment, including the flush
@@ -5556,8 +5559,14 @@
             (terminalSessionCount = sessionCount)}
           {rightSidebarConversationId}
           {rightSidebarBranchId}
-          chatGroupsEnabled={(config?.chat_groups_enabled ?? false) && chatGroupToolUsed}
+          chatGroupsEnabled={config?.chat_groups_enabled ?? false}
           chatGroupWorkspace={workspacePath}
+          onChatGroupsAvailabilityChange={(available) => {
+            chatGroupsAvailable = available;
+            if (available && rightSidebarPanel === "group") {
+              rightSidebarCollapseRequested = false;
+            }
+          }}
           composerDraft={activeComposerDraft}
           focusRequest={composerFocusRequest}
         />

@@ -120,6 +120,7 @@
     rightSidebarScopeKey = `${view.activeConvId ?? ""}\u0000${view.activeBranchId ?? ""}`,
     chatGroupsEnabled = false,
     chatGroupWorkspace = view.workspacePath,
+    onChatGroupsAvailabilityChange = () => {},
     composerDraft,
     focusRequest,
   }: {
@@ -138,6 +139,7 @@
     rightSidebarScopeKey?: string;
     chatGroupsEnabled?: boolean;
     chatGroupWorkspace?: string;
+    onChatGroupsAvailabilityChange?: (available: boolean) => void;
     composerDraft: ComposerDraft;
     focusRequest: number;
   } = $props();
@@ -369,6 +371,7 @@
     {onTerminalSummaryChange}
     {chatGroupsEnabled}
     {chatGroupWorkspace}
+    {onChatGroupsAvailabilityChange}
   />
 </div>
 
