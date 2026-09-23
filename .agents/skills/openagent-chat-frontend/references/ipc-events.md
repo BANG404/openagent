@@ -7,8 +7,8 @@ are available only while `chat_groups_enabled` is true, and its right-sidebar
 tab is shown only for a conversation that has actually invoked a
 `chat_group_*` tool. The first such invocation selects and expands the tab;
 configuration alone must not leave an empty chat-group panel visible.
-`dispatch_role` remains the owner of role conversations; group messages are a
-separate durable log and only explicit `mentions` wake member conversations.
+`chat_group_start` owns initial role-conversation creation; group messages are
+a separate durable log and only explicit `mentions` wake member conversations.
 The typed Runtime client owns `list_chat_groups`, member management, message
 send/read operations, and `chat.group_message`/`chat.group_updated` event
 projection. Disabling the capability hides the panel and makes the registered
