@@ -23,8 +23,11 @@ an implementation call count.
 - Pure item or map transformations belong in Bun unit tests.
 - Multiple stream events, hydration, cleanup, cancellation, and recovery belong
   in state or stream integration tests.
-- Rendering, keyboard interaction, scrolling, theme, locale, and reload belong
-  in a browser preview smoke test.
+- Rendering, keyboard interaction, scrolling, theme, locale, and reload in the
+  shipped chat UI must be verified in the real Tauri window with a chat-owned
+  `tauri-pilot` black-box scenario. Add a scenario and `test:blackbox:chat`
+  runner when the changed chat workflow has no coverage yet. A browser preview
+  smoke test can supplement this when the state is reproducible there.
 - SDK, Tauri, and Harness boundaries belong in their contract or integration
   suites.
 
@@ -42,7 +45,11 @@ state, ports, browser sessions, and temporary artifacts.
 
 A chat test change is complete when it has a normal path and a failure or
 recovery path, strict test typing, a deterministic command, and a matching
-verification route. Visible changes also cover light and dark themes, Chinese
-and English copy, streaming-to-durable finalization, reload, and branch
-switching where those states are affected. Update this owner reference when a
-new invariant or test surface becomes part of the product contract.
+verification route. Run the corresponding Tauri black-box command before
+handoff for every changed user-facing chat module. Visible changes also cover
+light and dark themes, Chinese and English copy, streaming-to-durable
+finalization, reload, and branch switching where those states are affected.
+Follow the shared setup and isolation rules in the desktop-host
+[`native-verification.md`](../../openagent-desktop-host/references/native-verification.md).
+Update this owner reference when a new invariant or test surface becomes part
+of the product contract.

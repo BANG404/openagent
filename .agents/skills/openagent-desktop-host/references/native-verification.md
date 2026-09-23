@@ -21,6 +21,26 @@ acceptance criteria. Do not substitute another browser control surface for the
 workspace `playwright` skill, and do not create repository-root artifact
 directories.
 
+## Module-level acceptance
+
+For every changed user-facing module or native interaction, run a committed
+`tauri-pilot` black-box scenario against the real debug Tauri window and assert
+the expected user-visible result. Select the scenario and command for the
+changed module; testing a neighboring module does not cover it. If no scenario
+and command exist yet, add them under `tests/blackbox/` and `scripts/`, expose a
+`test:blackbox:<module>` package command, and run that command before handoff.
+Use isolated application data and deterministic fixtures, and include the
+failure or recovery behavior affected by the change. Unit tests, browser
+previews, Rust checks, and screenshots can supplement this run but do not
+replace it for user-facing Tauri behavior.
+
+Start the matching debug application with the same isolated
+`OPENAGENT_HOME` and development instance expected by the module runner. Keep
+the runner's DOM assertions and cleanup in the script; the scenario should
+drive the same controls a user uses. Record the exact command and result in the
+handoff. If the changed behavior is not user-facing and has no native
+interaction, use its owning contract or integration tests instead.
+
 ## Automation top-bar black-box coverage
 
 The committed `tests/blackbox/automation-*.toml` scenarios drive the real

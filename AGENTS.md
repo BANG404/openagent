@@ -139,7 +139,7 @@ layout-stable skeleton.
 - Automation JavaScript is checked through the repository TypeScript config;
   add explicit JSDoc types where inference cannot establish safe boundaries.
 - Treat the private submodule revision as release-relevant source input.
-- Verify visible UI changes in light and dark themes and in Chinese and English.
+- Verify visible UI changes in the real Tauri window with the changed module's `tauri-pilot` black-box scenario, including light/dark themes and Chinese/English where applicable. See `.agents/skills/openagent-desktop-host/references/native-verification.md`.
 
 ## Delivery
 
