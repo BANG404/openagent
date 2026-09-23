@@ -109,10 +109,11 @@
   resolves the live renderer channel inside that conversation, because the
   frontend request ID is ephemeral while remote snapshots expose the durable
   tool-call ID.
-- Keep status, file changes, and background terminals in the same resizable
-  desktop right sidebar. Show the sidebar and its title-bar entry only while at
-  least one of those views has content, and collapse it when the last available
-  view becomes empty. Make that rule structural rather than dependent on effect
+- Keep status, file changes, background terminals, and invoked chat groups in
+  the same resizable desktop right sidebar. Show the sidebar and its title-bar
+  entry only while at least one of those views has content; a chat-group view
+  counts only after the active conversation has invoked a `chat_group_*` tool.
+  Collapse it when the last available view becomes empty. Make that rule structural rather than dependent on effect
   ordering: the rendered collapse state is the active branch's own request
   projected against availability, so no scope switch, restore, or automatic
   open can leave an expanded panel with nothing to show — which would also be

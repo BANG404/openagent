@@ -586,6 +586,13 @@
   // Single source of truth: messages are derived from conversations[]
   let messages = $derived(conversations.find((c) => c.id === activeConvId)?.messages ?? []);
 
+  function hasChatGroupToolCall(items: StreamItem[] | undefined): boolean {
+    return (
+      items?.some((item) => item.type === "tool_call" && item.name.startsWith("chat_group_")) ??
+      false
+    );
+  }
+
   const composerDrafts = new ComposerDraftStore();
   let selectedComposerDraftKey = untrack(() =>
     activeConvId
@@ -721,6 +728,13 @@
       ? (liveCheckpointFlowProjections[activeConvId]?.flow ?? currentCheckpointFlowNode?.flow)
       : undefined,
   );
+  let chatGroupToolUsed = $derived(
+    messages.some(
+      (message) =>
+        hasChatGroupToolCall(message.items) ||
+        message.toolCalls?.some((tool) => tool.name.startsWith("chat_group_")),
+    ) || hasChatGroupToolCall(currentStreamItems),
+  );
   $effect(() => {
     const key = checkpointFlowPanelKey(
       activeConvId,
@@ -794,7 +808,7 @@
   let rightSidebarAvailable = $derived(
     conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length) ||
       terminalSessionCount > 0 ||
-      (config?.chat_groups_enabled ?? false),
+      chatGroupToolUsed,
   );
   // The one value the title bar and the sidebar render. Deriving it keeps the
   // "no views, no panel" invariant true at every moment, including the flush
@@ -3106,6 +3120,10 @@
         chatStreams.clearAwaitingOutput(conv_id);
         chatStreams.clearMemoryRetrieval(conv_id);
         chatStreams.recordFirstResponse(conv_id);
+        if (conv_id === activeConvId && name.startsWith("chat_group_")) {
+          rightSidebarPanel = "group";
+          rightSidebarCollapseRequested = false;
+        }
         let items = appendToolCall(
           chatStreams.itemsByConversation[conv_id] ?? [],
           name,
@@ -5509,7 +5527,7 @@
                 ? "files"
                 : terminalSessionCount > 0
                   ? "terminal"
-                  : config?.chat_groups_enabled
+                  : chatGroupToolUsed
                     ? "group"
                     : "status";
             rightSidebarCollapseRequested = false;
@@ -5537,7 +5555,7 @@
             (terminalSessionCount = sessionCount)}
           {rightSidebarConversationId}
           {rightSidebarBranchId}
-          chatGroupsEnabled={config?.chat_groups_enabled ?? false}
+          chatGroupsEnabled={(config?.chat_groups_enabled ?? false) && chatGroupToolUsed}
           chatGroupWorkspace={workspacePath}
           composerDraft={activeComposerDraft}
           focusRequest={composerFocusRequest}

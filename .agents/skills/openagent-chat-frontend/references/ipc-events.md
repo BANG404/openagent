@@ -3,7 +3,10 @@
 ## Optional Chat Groups
 
 The chat-group capability is a persisted, optional product plugin. Its tools
-and right-sidebar panel are available only while `chat_groups_enabled` is true.
+are available only while `chat_groups_enabled` is true, and its right-sidebar
+tab is shown only for a conversation that has actually invoked a
+`chat_group_*` tool. The first such invocation selects and expands the tab;
+configuration alone must not leave an empty chat-group panel visible.
 `dispatch_role` remains the owner of role conversations; group messages are a
 separate durable log and only explicit `mentions` wake member conversations.
 The typed Runtime client owns `list_chat_groups`, member management, message
