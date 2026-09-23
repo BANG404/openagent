@@ -255,7 +255,6 @@
     const allowedGroupIds = groupIds;
     untrack(() => {
       if (!active) return;
-      onAvailabilityChange(false);
       void loadGroups(scope, allowedGroupIds);
     });
   });

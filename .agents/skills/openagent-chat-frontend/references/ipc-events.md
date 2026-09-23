@@ -24,6 +24,10 @@ Fresh group child conversations are projected as pending until a real
 Batch `chat-group-member-changed` notifications into one member refresh and
 serialize message reads so a group wake-up burst cannot reset the panel or
 overload the WebView with concurrent Markdown renders.
+While the panel is mounted, do not synchronously report chat-group availability
+as false during its initial load: the parent uses that value to decide whether
+to mount the panel, so clearing it before the load completes causes an
+unmount/remount update loop in Svelte.
 The typed Runtime client owns `list_chat_groups`, member management, message
 send/read operations, and `chat.group_message`/`chat.group_updated` event
 projection. Disabling the capability hides the panel and makes the registered
