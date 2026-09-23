@@ -48,6 +48,7 @@ describe("local preflight plan", () => {
   test("uses host compile checks while leaving cross-platform coverage to CI", () => {
     expect(commandIds({ nativeQuality: true, nativePlatform: true })).toEqual([
       "rust-format",
+      "frontend-dist",
       "cua-driver",
       "rust-check",
     ]);
@@ -57,6 +58,17 @@ describe("local preflight plan", () => {
       nativePlatform: true,
     }).find(({ id }) => id === "rust-check");
     expect(rustCheck?.args).toEqual(["check", "--manifest-path", "src-tauri/Cargo.toml"]);
+  });
+
+  test("materializes Tauri frontendDist before the host compile check", () => {
+    const modules = { ...nothing, nativePlatform: true };
+    const frontendDist = buildPreflightCommands(modules).find(({ id }) => id === "frontend-dist");
+    expect(frontendDist).toMatchObject({
+      command: "node",
+      args: ["-e", "require('fs').mkdirSync('build', { recursive: true })"],
+    });
+    const ids = commandIds(modules);
+    expect(ids.indexOf("frontend-dist")).toBeLessThan(ids.indexOf("rust-check"));
   });
 
   test("uses the quick resource and contract validators", () => {

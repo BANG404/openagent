@@ -10,6 +10,13 @@ metadata:
 Keep streaming and durable turns as two representations of the same logical
 transcript. Avoid remounts and UI state loss during reconciliation.
 
+Chat-group transcript rows use the shared Streamdown renderer, including the
+application link-opening capability, so Markdown in role and user messages
+must not fall back to raw paragraph text. Group mentions are resolved from the
+message body as well as composer-selected member IDs; the runtime reconciles
+legacy groups by registering role conversations found in prior group messages
+before returning the member list.
+
 The delayed "awaiting stream output" status must remain mounted while a turn is
 waiting. Intermediate model/tool rounds may replace the stream message ID;
 those updates must not restart the delay or make the status flash.

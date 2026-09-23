@@ -56,6 +56,9 @@ Open only the references that own the affected step:
 
 ## Verification
 
-Run `bun run preflight` before commit. Use `--dry-run` to inspect and
-`--base <ref>` only for non-`master` targets. Do not duplicate CI lint, test,
-check, or build commands locally.
+Run `bun run preflight` before commit. The native preflight plan materializes
+the configured Tauri `frontendDist` directory before `cargo check`, so a clean
+worktree does not require a manual production frontend build just to run the
+host compile gate. Use `--dry-run` to inspect and `--base <ref>` only for
+non-`master` targets. Do not duplicate CI lint, test, check, or build commands
+locally.

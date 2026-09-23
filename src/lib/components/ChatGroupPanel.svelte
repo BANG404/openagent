@@ -3,6 +3,16 @@
   import type { ChatGroup, ChatGroupMember, ChatGroupMessage } from "$lib/openagent";
   import { desktopOpenAgent } from "$lib/openagent/tauriClient";
   import { t } from "$lib/i18n";
+  import { Streamdown } from "svelte-streamdown";
+  import Code from "svelte-streamdown/code";
+  import ChatMath from "$lib/streamdown/ChatMath.svelte";
+  import Mermaid from "$lib/streamdown/Mermaid.svelte";
+  import CustomToken from "$lib/streamdown/CustomToken.svelte";
+  import { customExtensions, type ComponentToken } from "$lib/streamdown/extensions";
+  import { chatMarkdownTheme } from "$lib/streamdown/chatMarkdownTheme";
+  import { externalLinks } from "$lib/streamdown/externalLink";
+  import { useOpenAgentUiCapabilities } from "$lib/openagent";
+  import { mermaidConfigFor } from "$lib/mermaidTheme";
   import MentionPalette, { type PaletteItem } from "./MentionPalette.svelte";
   import Select from "$lib/components/ui/Select.svelte";
 
@@ -33,6 +43,8 @@
   let sending = $state(false);
   let error = $state<string | null>(null);
   let refreshTimer: ReturnType<typeof setInterval> | null = null;
+  let isDarkTheme = $state(false);
+  const capabilities = useOpenAgentUiCapabilities();
 
   const selectedGroup = $derived(groups.find((group) => group.id === selectedGroupId) ?? null);
   const mentionItems = $derived<PaletteItem[]>(
@@ -254,6 +266,15 @@
   });
 
   onMount(() => {
+    const updateTheme = () => {
+      isDarkTheme = document.documentElement.classList.contains("dark");
+    };
+    updateTheme();
+    const themeObserver = new MutationObserver(updateTheme);
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
     refreshTimer = setInterval(() => void refreshMessages(selectedGroupId), 2000);
     let unsubscribe: (() => void) | undefined;
     void desktopOpenAgent
@@ -277,6 +298,7 @@
       .catch(() => {});
     return () => {
       if (refreshTimer) clearInterval(refreshTimer);
+      themeObserver.disconnect();
       unsubscribe?.();
     };
   });
@@ -325,7 +347,23 @@
           {#each messages as message (message.id)}
             <article class="message-row">
               <span class="sender">{senderLabel(message)}</span>
-              <p>{message.content}</p>
+              <div class="group-message-markdown" use:externalLinks={capabilities.openUrl}>
+                <Streamdown
+                  content={message.content.trimEnd()}
+                  controls={{ table: false }}
+                  components={{ code: Code, mermaid: Mermaid, math: ChatMath }}
+                  extensions={customExtensions}
+                  theme={chatMarkdownTheme}
+                  shikiTheme={isDarkTheme ? "github-dark" : "github-light"}
+                  mermaidConfig={mermaidConfigFor(isDarkTheme)}
+                >
+                  {#snippet children({ token })}
+                    {#if (token as ComponentToken).type === "component"}
+                      <CustomToken token={token as ComponentToken} isDark={isDarkTheme} />
+                    {/if}
+                  {/snippet}
+                </Streamdown>
+              </div>
               {#if message.mentions.length > 0}
                 <small class="mentions">
                   {$t("chatGroupMentioned")}:
@@ -490,10 +528,46 @@
     color: var(--text-muted);
     font-size: 11px;
   }
-  .message-row p {
+  .group-message-markdown {
     margin: 3px 0 0;
-    white-space: pre-wrap;
     overflow-wrap: anywhere;
+  }
+  :global(.group-message-markdown > *) {
+    margin-top: 0;
+  }
+  :global(.group-message-markdown p) {
+    margin: 0 0 7px;
+    white-space: pre-wrap;
+  }
+  :global(.group-message-markdown p:last-child) {
+    margin-bottom: 0;
+  }
+  :global(.group-message-markdown h1),
+  :global(.group-message-markdown h2),
+  :global(.group-message-markdown h3),
+  :global(.group-message-markdown h4),
+  :global(.group-message-markdown h5),
+  :global(.group-message-markdown h6) {
+    margin: 4px 0 6px;
+    font-size: 1em;
+    font-weight: 650;
+  }
+  :global(.group-message-markdown ul),
+  :global(.group-message-markdown ol) {
+    margin: 4px 0 7px;
+    padding-left: 1.35em;
+  }
+  :global(.group-message-markdown blockquote) {
+    margin: 5px 0;
+    border-left: 3px solid var(--border);
+    padding-left: 9px;
+    color: var(--text-muted);
+  }
+  :global(.group-message-markdown [data-streamdown-code]) {
+    margin: 6px 0;
+    overflow: auto;
+    border-radius: 4px;
+    font-size: 12px;
   }
   .message-row small {
     color: var(--primary);
