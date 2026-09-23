@@ -22,11 +22,15 @@ function groupIdFromCall(name: string, args: string, result?: string): string | 
   const argGroupId = parsedArgs?.group_id ?? parsedArgs?.groupId;
   if (typeof argGroupId === "string" && argGroupId.trim()) return argGroupId;
 
-  // create has no group_id argument; its durable result is the first record
-  // that identifies the newly created group.
-  if (name === "chat_group_create") {
+  // Create and start have no group_id argument; their durable results identify
+  // the newly created group at different nesting levels.
+  if (name === "chat_group_create" || name === "chat_group_start") {
     const created = parseObject(result);
-    return typeof created?.id === "string" && created.id.trim() ? created.id : null;
+    const group = name === "chat_group_start" ? created?.group : created;
+    if (group && typeof group === "object" && !Array.isArray(group)) {
+      const id = (group as Record<string, unknown>).id;
+      return typeof id === "string" && id.trim() ? id : null;
+    }
   }
   return null;
 }

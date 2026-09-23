@@ -64,4 +64,28 @@ describe("chatGroupScope", () => {
       ]),
     ).toEqual({ invoked: true, groupIds: [] });
   });
+
+  test("extracts the nested group from chat_group_start", () => {
+    const result = chatGroupScope([
+      {
+        id: "assistant-1",
+        role: "assistant",
+        content: "",
+        timestamp: 1,
+        toolCalls: [
+          {
+            name: "chat_group_start",
+            args: JSON.stringify({ title: "Planning", roles: ["Research"], content: "Start" }),
+            result: JSON.stringify({
+              group: { id: "group-started", title: "Planning" },
+              members: [],
+              message: { group_id: "group-started" },
+            }),
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({ invoked: true, groupIds: ["group-started"] });
+  });
 });

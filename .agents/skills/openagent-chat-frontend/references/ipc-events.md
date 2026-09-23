@@ -8,7 +8,7 @@ tab is shown only for the active conversation branch that has actually invoked
 a `chat_group_*` tool. The first such invocation selects and expands the tab;
 configuration alone must not leave an empty chat-group panel visible. The
 group selector is filtered to group IDs referenced by that branch's tool calls
-(including a `chat_group_create` result), so groups from other branches or the
+(including `chat_group_create` and `chat_group_start` results), so groups from other branches or the
 workspace's unrelated group list never appear in this sidebar.
 `chat_group_start` owns initial role-conversation creation; group messages are
 a separate durable log and only explicit `mentions` wake member conversations.
