@@ -7,15 +7,18 @@ are available only while `chat_groups_enabled` is true, and its right-sidebar
 tab is shown only for the active conversation branch that has actually invoked
 a `chat_group_*` tool. The first such invocation selects and expands the tab;
 configuration alone must not leave an empty chat-group panel visible. The
-The group list is filtered to group IDs referenced by that branch's tool calls
+group selector is filtered to group IDs referenced by that branch's tool calls
 (including the nested group returned by `chat_group_start`), so groups from
 other branches or the workspace's unrelated group list never appear in this
-sidebar. The panel displays the active group's title and participating roles as
+sidebar.
+The panel displays the active group's title and participating roles as
 read-only context; it does not switch groups or wake roles from member clicks.
 Manual wakeups are sent by typing `@` in the group composer and choosing a
 member from its mention palette.
-`chat_group_start` owns initial role-conversation creation; group messages are
-a separate durable log and only explicit `mentions` wake member conversations.
+`chat_group_start` creates the group and records its first message without
+creating role conversations. The first boundary-safe `@role` mention creates a
+fresh role child conversation; group messages are a separate durable log and
+only explicit `mentions` wake member conversations.
 Fresh group child conversations are projected as pending until a real
 `chat-run-started` event arrives; creation alone must not render them as running.
 The typed Runtime client owns `list_chat_groups`, member management, message
