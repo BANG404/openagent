@@ -2576,7 +2576,9 @@
         parentConvId: event.parent_conv_id ?? undefined,
         compactedFromConvId: event.compacted_from_conv_id ?? undefined,
         flowKind: event.flow_kind ?? undefined,
-        flowStatus: event.flow_status ?? undefined,
+        flowStatus:
+          event.flow_status ??
+          (existing.flowStatus === "pending" ? "running" : existing.flowStatus),
         roleId: event.role_id ?? undefined,
         updatedAt: startedAt,
       };
@@ -2913,6 +2915,7 @@
       workspace: string;
       hidden_task?: boolean;
       flow_kind?: string;
+      started?: boolean;
     }>("subagent-started", (e) => {
       const {
         sub_conv_id,
@@ -2926,6 +2929,7 @@
         parent_conv_id,
         hidden_task,
         flow_kind,
+        started,
       } = e.payload;
       // Only show sub-convs that belong to the current workspace
       if (ws !== (workspacePath || "")) return;
@@ -2947,14 +2951,16 @@
         parentConvId: parent_conv_id ?? undefined,
         roleId: role_id,
         flowKind: flow_kind,
-        flowStatus: flow_kind ? "running" : undefined,
+        flowStatus: started === false ? "pending" : flow_kind ? "running" : undefined,
       };
       conversations = [subConv, ...conversations];
       loadedConvIds.add(sub_conv_id);
-      chatStreams.streamingConversationIds = {
-        ...chatStreams.streamingConversationIds,
-        [sub_conv_id]: true,
-      };
+      if (started !== false) {
+        chatStreams.streamingConversationIds = {
+          ...chatStreams.streamingConversationIds,
+          [sub_conv_id]: true,
+        };
+      }
       chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [sub_conv_id]: [] };
       chatStreams.assistantMessageIds = {
         ...chatStreams.assistantMessageIds,
@@ -2963,7 +2969,7 @@
       if (branch_id) {
         activeBranchIds = { ...activeBranchIds, [sub_conv_id]: branch_id };
       }
-      chatStreams.startTiming(sub_conv_id, taskMsg.timestamp);
+      if (started !== false) chatStreams.startTiming(sub_conv_id, taskMsg.timestamp);
     });
 
     // ask_user tool: backend emits with conv_id + form schema; we stash it per-conv

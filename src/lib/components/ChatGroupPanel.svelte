@@ -175,7 +175,7 @@
 
   function mentionsFromDraft(content: string): string[] {
     const found = new Set<string>();
-    const pattern = /@"([^"\\]*(?:\\.[^"\\]*)*)"|@([^\s@]+)/g;
+    const pattern = /@"([^"\\]*(?:\\.[^"\\]*)*)"|@([\p{L}\p{N}_-]+)/gu;
     for (const match of content.matchAll(pattern)) {
       const name = (match[1] ?? match[2] ?? "").replaceAll('\\"', '"').trim().toLocaleLowerCase();
       const member = members.find((item) => item.role_name.toLocaleLowerCase() === name);
@@ -185,7 +185,7 @@
   }
 
   function removeMentionFromDraft(content: string, roleName: string): string {
-    const pattern = /@"([^"\\]*(?:\\.[^"\\]*)*)"|@([^\s@]+)/g;
+    const pattern = /@"([^"\\]*(?:\\.[^"\\]*)*)"|@([\p{L}\p{N}_-]+)/gu;
     let removed = false;
     return content.replace(
       pattern,

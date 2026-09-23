@@ -13,6 +13,8 @@ other branches or the workspace's unrelated group list never appear in this
 sidebar.
 `chat_group_start` owns initial role-conversation creation; group messages are
 a separate durable log and only explicit `mentions` wake member conversations.
+Fresh group child conversations are projected as pending until a real
+`chat-run-started` event arrives; creation alone must not render them as running.
 The typed Runtime client owns `list_chat_groups`, member management, message
 send/read operations, and `chat.group_message`/`chat.group_updated` event
 projection. Disabling the capability hides the panel and makes the registered
