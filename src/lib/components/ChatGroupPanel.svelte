@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick, untrack } from "svelte";
+  import { onMount, untrack } from "svelte";
   import type { ChatGroup, ChatGroupMember, ChatGroupMessage } from "$lib/openagent";
   import { desktopOpenAgent } from "$lib/openagent/tauriClient";
   import { t } from "$lib/i18n";
@@ -17,7 +17,8 @@
   import { externalLinks } from "$lib/streamdown/externalLink";
   import { useOpenAgentUiCapabilities } from "$lib/openagent";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
-  import MentionPalette, { type PaletteItem } from "./MentionPalette.svelte";
+  import MessageInput from "./MessageInput.svelte";
+  import type { PaletteItem } from "./MentionPalette.svelte";
 
   let {
     enabled = false,
@@ -38,14 +39,12 @@
   let groups = $state<ChatGroup[]>([]);
   let members = $state<ChatGroupMember[]>([]);
   let messages = $state<ChatGroupMessage[]>([]);
-  let mentionMode = $state(false);
-  let mentionQuery = $state("");
-  let mentionStart = $state(0);
-  let mentionActiveIdx = $state(0);
-  let textareaEl = $state<HTMLTextAreaElement | null>(null);
   let cursor = $state(0);
   let sending = $state(false);
   let error = $state<string | null>(null);
+  let membersExpanded = $state(true);
+  let membersOverflow = $state(false);
+  let memberStripElement = $state<HTMLDivElement | null>(null);
   let refreshTimer: ReturnType<typeof setInterval> | null = null;
   let memberRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   let messagesRefreshInFlight = false;
@@ -57,18 +56,31 @@
   const capabilities = useOpenAgentUiCapabilities();
 
   const selectedGroup = $derived(groups.find((group) => group.id === selectedGroupId) ?? null);
-  const mentionItems = $derived<PaletteItem[]>(
-    members
-      .filter((member) =>
-        member.role_name.toLocaleLowerCase().includes(mentionQuery.trim().toLocaleLowerCase()),
-      )
+  function measureMemberOverflow(): void {
+    const element = memberStripElement;
+    if (!element) return;
+    const previousWrap = element.style.flexWrap;
+    element.style.flexWrap = "nowrap";
+    membersOverflow = element.scrollWidth > element.clientWidth;
+    element.style.flexWrap = previousWrap;
+  }
+
+  $effect(() => {
+    members;
+    selectedGroupId;
+    queueMicrotask(measureMemberOverflow);
+  });
+  async function loadMentionItems(query: string): Promise<PaletteItem[]> {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    return members
+      .filter((member) => member.role_name.toLocaleLowerCase().includes(normalizedQuery))
       .map((member) => ({
         id: member.id,
         insertText: member.role_name,
         label: member.role_name,
         hint: $t("mentionRole"),
-      })),
-  );
+      }));
+  }
 
   async function loadGroups(scope = workspace, allowedGroupIds = groupIds): Promise<void> {
     if (!enabled) return;
@@ -151,51 +163,6 @@
     }, 100);
   }
 
-  function closeMentionPalette(): void {
-    mentionMode = false;
-    mentionQuery = "";
-    mentionStart = 0;
-    mentionActiveIdx = 0;
-  }
-
-  function syncMentionPalette(): void {
-    if (!textareaEl) return;
-    const caret = textareaEl.selectionStart ?? draft.length;
-    for (let index = caret - 1; index >= 0; index -= 1) {
-      if (draft[index] === "@") {
-        const previous = index === 0 ? "" : draft[index - 1];
-        if (previous === "" || /\s/.test(previous)) {
-          mentionStart = index;
-          mentionQuery = draft.slice(index + 1, caret).replace(/^"/, "");
-          mentionMode = !/[\s\n]/.test(draft.slice(index + 1, caret).replace(/^"[^"]*$/, ""));
-          if (mentionMode)
-            mentionActiveIdx = Math.min(mentionActiveIdx, Math.max(mentionItems.length - 1, 0));
-          return;
-        }
-        break;
-      }
-      if (/\s/.test(draft[index])) break;
-    }
-    closeMentionPalette();
-  }
-
-  function applyMention(item: PaletteItem): void {
-    if (!textareaEl) return;
-    const caret = textareaEl.selectionStart ?? draft.length;
-    const before = draft.slice(0, mentionStart);
-    const after = draft.slice(caret);
-    const name = item.insertText ?? item.label;
-    const token = /\s/.test(name) ? `@"${name.replaceAll('"', "\\\\" + '"')}"` : `@${name}`;
-    const insertion = `${token} `;
-    draft = `${before}${insertion}${after}`;
-    const newCaret = before.length + insertion.length;
-    closeMentionPalette();
-    void tick().then(() => {
-      textareaEl?.focus();
-      textareaEl?.setSelectionRange(newCaret, newCaret);
-    });
-  }
-
   function mentionsFromDraft(content: string): string[] {
     const found = new Set<string>();
     const pattern = /@"([^"\\]*(?:\\.[^"\\]*)*)"|@([\p{L}\p{N}_-]+)/gu;
@@ -222,7 +189,6 @@
       if (!messages.some((item) => item.id === message.id)) messages = [...messages, message];
       cursor = Math.max(cursor, message.seq);
       draft = "";
-      closeMentionPalette();
     } catch (cause) {
       error = String(cause);
     } finally {
@@ -230,12 +196,30 @@
     }
   }
 
+  function senderMember(message: ChatGroupMessage): ChatGroupMember | undefined {
+    if (!message.sender_id) return undefined;
+    return members.find(
+      (member) =>
+        member.conversation_id === message.sender_id ||
+        member.id === message.sender_id ||
+        member.branch_id === message.sender_id,
+    );
+  }
+
   function senderLabel(message: ChatGroupMessage): string {
     if (message.sender_type === "user") return $t("chatGroupYou");
-    return (
-      members.find((member) => member.conversation_id === message.sender_id)?.role_name ??
-      $t("chatGroupRole")
-    );
+    return senderMember(message)?.role_name ?? $t("chatGroupRole");
+  }
+
+  function senderKey(message: ChatGroupMessage): string {
+    return `${message.sender_type}:${message.sender_id ?? senderLabel(message)}`;
+  }
+
+  function senderTime(message: ChatGroupMessage): string {
+    return new Date(message.created_at).toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 
   function extensionsForMessage(message: ChatGroupMessage) {
@@ -276,6 +260,9 @@
       attributes: true,
       attributeFilter: ["class"],
     });
+    const memberResizeObserver = new ResizeObserver(measureMemberOverflow);
+    if (memberStripElement) memberResizeObserver.observe(memberStripElement);
+    measureMemberOverflow();
     refreshTimer = setInterval(() => void refreshMessages(selectedGroupId), 2000);
     let unsubscribe: (() => void) | undefined;
     void desktopOpenAgent
@@ -285,6 +272,10 @@
           if (messages.some((item) => item.id === message.id)) return;
           messages = [...messages, message];
           cursor = Math.max(cursor, message.seq);
+          // A role can be created and mentioned before the member-change
+          // event reaches this panel. Refresh after the durable message so
+          // persisted mention ids always have a role-name mapping.
+          scheduleMemberRefresh(message.group_id);
         },
         onUpdated: (group) => {
           if (!groupIds.includes(group.id)) return;
@@ -308,6 +299,7 @@
       if (refreshTimer) clearInterval(refreshTimer);
       if (memberRefreshTimer) clearTimeout(memberRefreshTimer);
       themeObserver.disconnect();
+      memberResizeObserver.disconnect();
       unsubscribe?.();
     };
   });
@@ -315,111 +307,108 @@
 
 {#if enabled}
   <section class="group-panel" aria-label={$t("chatGroups")}>
-    <header class="group-header">
-      <div>
-        <strong>{$t("chatGroups")}</strong>
-        {#if selectedGroup}<span>{selectedGroup.title}</span>{/if}
-      </div>
-    </header>
-    <p class="group-hint">{$t("chatGroupMentionHint")}</p>
-
     {#if groups.length === 0}
       <p class="empty">{$t("chatGroupEmpty")}</p>
     {/if}
 
     {#if selectedGroup}
-      <div class="member-strip" aria-label={$t("chatGroupMembers")} role="list">
-        {#each members as member (member.id)}
-          <span class="mention-chip" role="listitem">@{member.role_name}</span>
-        {/each}
-      </div>
+      <section class="member-section" aria-label={$t("chatGroupMembers")}>
+        {#if membersOverflow}
+          <button
+            class="member-toggle"
+            type="button"
+            aria-expanded={membersExpanded}
+            onclick={() => (membersExpanded = !membersExpanded)}
+          >
+            <span>{$t("chatGroupMembers")}</span>
+            <svg
+              class:expanded={membersExpanded}
+              class="member-chevron"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path d="m4 6 4 4 4-4" />
+            </svg>
+          </button>
+        {/if}
+        <div
+          bind:this={memberStripElement}
+          class:collapsed={!membersExpanded}
+          class="member-strip"
+          role="list"
+        >
+          {#each members as member (member.id)}
+            <span class="mention-chip" role="listitem">{member.role_name}</span>
+          {/each}
+        </div>
+      </section>
 
       <div class="message-list" aria-live="polite">
         {#if messages.length === 0}
           <p class="empty">{$t("chatGroupNoMessages")}</p>
         {:else}
-          {#each messages as message (message.id)}
-            <article class="message-row">
-              <span class="sender">{senderLabel(message)}</span>
-              <div class="group-message-markdown" use:externalLinks={capabilities.openUrl}>
-                <Streamdown
-                  content={message.content.trimEnd()}
-                  controls={{ table: false }}
-                  components={{ code: Code, mermaid: Mermaid, math: ChatMath }}
-                  extensions={extensionsForMessage(message)}
-                  theme={chatMarkdownTheme}
-                  shikiTheme={isDarkTheme ? "github-dark" : "github-light"}
-                  mermaidConfig={mermaidConfigFor(isDarkTheme)}
-                >
-                  {#snippet children({ token })}
-                    {#if (token as ComponentToken).type === "component"}
-                      <CustomToken token={token as ComponentToken} isDark={isDarkTheme} />
-                    {:else if (token as ChatGroupMentionToken).type === "chatGroupMention"}
-                      <span class="chat-group-mention"
-                        >{(token as ChatGroupMentionToken).label}</span
-                      >
-                    {/if}
-                  {/snippet}
-                </Streamdown>
+          {#each messages as message, index (message.id)}
+            {@const showSender =
+              index === 0 || senderKey(messages[index - 1]) !== senderKey(message)}
+            <article class:message-group-start={showSender} class="message-row">
+              <div class="message-body">
+                {#if showSender}
+                  <div class="speaker-divider" aria-label={senderLabel(message)}>
+                    <span class="sender">{senderLabel(message)}</span>
+                    <time datetime={new Date(message.created_at).toISOString()}
+                      >{senderTime(message)}</time
+                    >
+                  </div>
+                  <div class="speaker-rule" aria-hidden="true"></div>
+                {/if}
+                <div class="group-message-markdown" use:externalLinks={capabilities.openUrl}>
+                  <Streamdown
+                    content={message.content.trimEnd()}
+                    controls={{ table: false }}
+                    components={{ code: Code, mermaid: Mermaid, math: ChatMath }}
+                    extensions={extensionsForMessage(message)}
+                    theme={chatMarkdownTheme}
+                    shikiTheme={isDarkTheme ? "github-dark" : "github-light"}
+                    mermaidConfig={mermaidConfigFor(isDarkTheme)}
+                  >
+                    {#snippet children({ token })}
+                      {#if (token as ComponentToken).type === "component"}
+                        <CustomToken token={token as ComponentToken} isDark={isDarkTheme} />
+                      {:else if (token as ChatGroupMentionToken).type === "chatGroupMention"}
+                        <span class="chat-group-mention"
+                          >{(token as ChatGroupMentionToken).label}</span
+                        >
+                      {/if}
+                    {/snippet}
+                  </Streamdown>
+                </div>
               </div>
             </article>
           {/each}
         {/if}
       </div>
 
-      <form
-        class="composer"
-        onsubmit={(event) => {
-          event.preventDefault();
-          void sendMessage();
-        }}
-      >
-        {#if mentionMode}
-          <div class="palette-anchor">
-            <MentionPalette
-              items={mentionItems}
-              activeIdx={mentionActiveIdx}
-              emptyText={$t("chatGroupNoMessages")}
-              onSelect={applyMention}
-              onHover={(idx) => (mentionActiveIdx = idx)}
-            />
-          </div>
-        {/if}
-        <textarea
-          bind:this={textareaEl}
-          bind:value={draft}
-          rows="3"
-          placeholder={$t("chatGroupMessagePlaceholder")}
-          oninput={() => {
-            syncMentionPalette();
-          }}
-          onselect={syncMentionPalette}
-          onclick={syncMentionPalette}
-          onkeydown={(event) => {
-            if (mentionMode && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
-              event.preventDefault();
-              mentionActiveIdx =
-                event.key === "ArrowDown"
-                  ? (mentionActiveIdx + 1) % Math.max(mentionItems.length, 1)
-                  : (mentionActiveIdx - 1 + mentionItems.length) % Math.max(mentionItems.length, 1);
-            } else if (
-              mentionMode &&
-              (event.key === "Enter" || event.key === "Tab") &&
-              mentionItems.length > 0
-            ) {
-              event.preventDefault();
-              applyMention(mentionItems[mentionActiveIdx]);
-            } else if (event.key === "Escape" && mentionMode) {
-              event.preventDefault();
-              closeMentionPalette();
-            } else if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              void sendMessage();
-            }
-          }}
-          onblur={() => setTimeout(closeMentionPalette, 100)}></textarea>
-        <button type="submit" disabled={sending || !draft.trim()}>{$t("chatGroupSend")}</button>
-      </form>
+      <MessageInput
+        bind:value={draft}
+        attachments={[]}
+        selectedModel=""
+        modelOptions={[]}
+        placeholder={$t("chatGroupMessagePlaceholder")}
+        disabled={!selectedGroupId || sending}
+        isStreaming={false}
+        sendDisabled={sending || !draft.trim()}
+        sendTitle={$t("chatGroupSend")}
+        showAttachments={false}
+        showModelSelector={false}
+        showReasoningEffort={false}
+        showApprovalMode={false}
+        showWorkspaceSwitcher={false}
+        enableMentions={true}
+        {loadMentionItems}
+        onSend={() => void sendMessage()}
+        onStop={() => {}}
+      />
     {/if}
 
     {#if error}<p class="error">{error}</p>{/if}
@@ -435,52 +424,48 @@
     gap: 10px;
     padding: 12px;
   }
-  .group-header {
+  .member-section {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .group-header div {
-    display: flex;
-    min-width: 0;
     flex-direction: column;
-    gap: 2px;
+    gap: 6px;
   }
-  .group-header span {
-    overflow: hidden;
+  .member-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    border: 0;
+    background: transparent;
     color: var(--text-muted);
+    padding: 2px 0;
     font-size: 12px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    text-align: left;
   }
-  .group-hint {
-    margin: 0;
+  .member-chevron {
+    width: 14px;
+    height: 14px;
     color: var(--text-muted);
-    font-size: 12px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transform: rotate(-90deg);
+    transition: transform 120ms ease;
   }
-  .composer button {
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--surface);
-    color: var(--text);
-    padding: 5px 8px;
-    cursor: pointer;
-  }
-  .composer button:hover:not(:disabled) {
-    background: var(--surface-hover);
-  }
-  textarea {
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--surface);
-    color: var(--text);
-    font: inherit;
+  .member-chevron.expanded {
+    transform: rotate(0deg);
   }
   .member-strip {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
+  }
+  .member-strip.collapsed {
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+  .group-panel :global(.composer-compact .input) {
+    min-height: 64px;
   }
   .mention-chip {
     border: 1px solid var(--border);
@@ -499,15 +484,43 @@
     padding: 8px 0;
   }
   .message-row {
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
-    padding: 7px 2px;
+    padding: 5px 4px;
   }
-  .message-row:last-child {
-    border-bottom: 0;
+  .message-row.message-group-start {
+    margin-top: 26px;
+    padding-top: 0;
+  }
+  .message-row:first-child {
+    margin-top: 6px;
+  }
+  .message-row:not(.message-group-start) {
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+  .message-body {
+    min-width: 0;
+  }
+  .speaker-divider {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .speaker-rule {
+    margin-bottom: 14px;
+    border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   }
   .sender {
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .speaker-divider time {
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 10px;
+    white-space: nowrap;
   }
   .group-message-markdown {
     margin: 3px 0 0;
@@ -554,25 +567,9 @@
     border-radius: 4px;
     background: color-mix(in srgb, var(--primary) 12%, transparent);
     color: var(--primary);
-    font-size: 10px;
-  }
-  .composer {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  textarea {
-    min-height: 64px;
-    resize: vertical;
-    padding: 8px;
-  }
-  .composer button {
-    align-self: flex-end;
-  }
-  .composer button:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
+    padding: 1px 4px;
+    font-weight: 650;
+    white-space: nowrap;
   }
   .empty,
   .error {
