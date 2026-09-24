@@ -732,7 +732,16 @@
     const conversationId = activeConvId;
     const ids = chatGroupScopeState.groupIds;
     if (!conversationId || ids.length === 0) return;
-    chatGroupScopeCache = { ...chatGroupScopeCache, [conversationId]: ids };
+    untrack(() => {
+      const previous = chatGroupScopeCache[conversationId];
+      if (
+        previous?.length === ids.length &&
+        previous.every((groupId, index) => groupId === ids[index])
+      ) {
+        return;
+      }
+      chatGroupScopeCache = { ...chatGroupScopeCache, [conversationId]: [...ids] };
+    });
   });
   let chatGroupIds = $derived(
     chatGroupScopeState.groupIds.length > 0
