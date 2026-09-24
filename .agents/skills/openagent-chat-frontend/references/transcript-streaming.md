@@ -230,7 +230,7 @@
   non-interactive track using the same 180ms width curve as the conversation
   sidebar.
   When the conversation container changes width, preserve the user's panel
-  proportion before applying the existing 62% container cap and 260px/800px
+  proportion before applying the existing 62% container cap and 260px/960px
   bounds; the stored value remains the last concrete width for reloads.
   The status panel header uses the concise `Goal` or `Graph` kind label, its
   objective beneath it, and a right-aligned completed/total count. Do not render

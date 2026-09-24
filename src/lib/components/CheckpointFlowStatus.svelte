@@ -456,7 +456,7 @@
     display: flex;
     width: min(var(--flow-panel-width), 62%, calc(100% - var(--workspace-card-gap)));
     min-width: min(260px, 62%, calc(100% - var(--workspace-card-gap)));
-    max-width: min(800px, 62%, calc(100% - var(--workspace-card-gap)));
+    max-width: min(960px, 62%, calc(100% - var(--workspace-card-gap)));
     flex: 0 0 auto;
     flex-direction: column;
     margin-left: var(--workspace-card-gap);
