@@ -71,7 +71,12 @@
   import { HttpTransport } from "$lib/openagent/httpTransport";
   import { randomUuid } from "$lib/uuid";
   import { InterruptResolutionTracker } from "$lib/interruptResolutionTracker";
-  import { clampSidebarWidth, loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
+  import {
+    clampSidebarWidth,
+    loadSidebarWidth,
+    saveSidebarWidth,
+    sidebarWidthForViewportRatio,
+  } from "$lib/sidebarSizing";
   import { NEW_CONVERSATION_GREETING } from "$lib/newConversation";
 
   type Screen = "loading" | "pair" | "chat";
@@ -116,6 +121,8 @@
   let bookModeFontSize = $state(17);
   let sidebarCollapsed = $state(false);
   let sidebarWidth = $state(loadSidebarWidth());
+  let viewportWidth = typeof window === "undefined" ? 1 : Math.max(window.innerWidth, 1);
+  let sidebarWidthRatio = 0;
   let sidebarResizing = $state(false);
   let optimisticUser = $state<ChatMessage | null>(null);
   let pendingAssistantMessageId = $state<string | null>(null);
@@ -150,6 +157,7 @@
 
   function resizeSidebar(width: number): void {
     sidebarWidth = clampSidebarWidth(width);
+    sidebarWidthRatio = sidebarWidth / viewportWidth;
   }
 
   const remoteUiCapabilities: OpenAgentUiCapabilities = {
@@ -352,14 +360,29 @@
   });
 
   onMount(() => {
+    sidebarWidthRatio = sidebarWidth / viewportWidth;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const syncTheme = () => applyRemoteTheme(preferredTheme);
+    const updateSidebarForViewport = () => {
+      const nextViewportWidth = Math.max(
+        document.documentElement.clientWidth || window.innerWidth,
+        1,
+      );
+      if (nextViewportWidth === viewportWidth) return;
+      sidebarWidth = sidebarWidthForViewportRatio(sidebarWidthRatio, nextViewportWidth);
+      viewportWidth = nextViewportWidth;
+    };
+    const sidebarObserver = new ResizeObserver(updateSidebarForViewport);
+    sidebarObserver.observe(document.documentElement);
+    window.addEventListener("resize", updateSidebarForViewport);
     syncTheme();
     sidebarCollapsed = window.matchMedia("(max-width: 760px)").matches;
     media.addEventListener("change", syncTheme);
     void bootstrap();
     return () => {
       media.removeEventListener("change", syncTheme);
+      sidebarObserver.disconnect();
+      window.removeEventListener("resize", updateSidebarForViewport);
       if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
       disconnect?.();
       for (const url of previewUrls) URL.revokeObjectURL(url);

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import type { CheckpointFlow } from "$lib/checkpointFlow";
   import type { FileChange } from "$lib/types";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
@@ -6,6 +7,7 @@
     clampCheckpointFlowPanelWidth,
     loadCheckpointFlowPanelWidth,
     saveCheckpointFlowPanelWidth,
+    scaleCheckpointFlowPanelWidth,
   } from "$lib/checkpointFlowPanelSizing";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
 
@@ -49,6 +51,26 @@
     typeof window === "undefined" ? 320 : loadCheckpointFlowPanelWidth(window.localStorage),
   );
   let resizing = $state(false);
+
+  function scaleForContainer(previousWidth: number, nextWidth: number): void {
+    width = scaleCheckpointFlowPanelWidth(width, previousWidth, nextWidth);
+  }
+
+  onMount(() => {
+    const panel = document.getElementById("checkpoint-flow-panel");
+    const container = panel?.parentElement;
+    if (!container) return;
+    let previousWidth = container.clientWidth;
+    const observer = new ResizeObserver(() => {
+      const nextWidth = container.clientWidth;
+      if (nextWidth > 0 && previousWidth > 0 && nextWidth !== previousWidth) {
+        scaleForContainer(previousWidth, nextWidth);
+      }
+      previousWidth = nextWidth;
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  });
 
   function startResize(event: PointerEvent): void {
     if (event.button !== 0 || collapsed || resizing) return;

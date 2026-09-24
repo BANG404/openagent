@@ -284,7 +284,7 @@ describe("desktop navigation chrome", () => {
       /\.fullscreen-surface\)\s*{[^}]*position: fixed;[^}]*top: 50%;[^}]*left: 50%;[^}]*transform: translate\(-50%, -50%\);[^}]*z-index: 81;/s,
     );
     expect(fullscreenSurface).toMatch(
-      /\.fullscreen-surface\)\s*{[^}]*width: min\(780px, calc\(100vw - 32px\)\);[^}]*height: min\(560px, calc\(100vh - 48px\)\);[^}]*resize: both;/s,
+      /\.fullscreen-surface\)\s*{[^}]*width: min\(max\(640px, 75vw\), 1100px, calc\(100vw - 32px\)\);[^}]*height: min\(max\(400px, 80vh\), 800px, calc\(100vh - 48px\)\);[^}]*resize: both;/s,
     );
     expect(fullscreenSurface).toMatch(
       /\.fullscreen-surface\.expanded\)\s*{[^}]*top: 16px;[^}]*left: 16px;[^}]*width: calc\(100vw - 32px\);[^}]*height: calc\(100vh - 32px\);/s,

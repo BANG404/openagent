@@ -166,6 +166,9 @@
   chosen width across reload, keep the default at that lower bound,
   and normalize narrower saved values when they load. Disable width animation
   while dragging, and expose the same bounds to keyboard users.
+  When the desktop viewport changes size, preserve the chosen sidebar share
+  before applying those bounds so the workspace does not become visually
+  unbalanced on a maximized or restored window.
   Size every project and Recent conversation title from the live space remaining
   in its row, truncate overflow with an ellipsis, and scroll only overflowing copy
   when the pointer rests on the title. Recompute that overflow whenever the

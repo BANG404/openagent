@@ -9,6 +9,7 @@ import {
   loadCheckpointFlowPanelWidth,
   saveCheckpointFlowPanelCollapsed,
   saveCheckpointFlowPanelWidth,
+  scaleCheckpointFlowPanelWidth,
 } from "../src/lib/checkpointFlowPanelSizing";
 
 function memoryStorage(): Storage {
@@ -53,5 +54,12 @@ describe("checkpoint flow panel sizing", () => {
 
     expect(loadCheckpointFlowPanelWidth(storage)).toBe(417);
     expect(loadCheckpointFlowPanelCollapsed(storage)).toBe(false);
+  });
+
+  test("scales the panel with its conversation container", () => {
+    expect(scaleCheckpointFlowPanelWidth(400, 800, 1200)).toBe(600);
+    expect(scaleCheckpointFlowPanelWidth(400, 800, 400)).toBe(
+      400 * CHECKPOINT_FLOW_PANEL_MAX_CONTAINER_RATIO,
+    );
   });
 });

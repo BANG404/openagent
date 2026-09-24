@@ -139,8 +139,8 @@
     z-index: 81;
     display: flex;
     flex-direction: column;
-    width: min(780px, calc(100vw - 32px));
-    height: min(560px, calc(100vh - 48px));
+    width: min(max(640px, 75vw), 1100px, calc(100vw - 32px));
+    height: min(max(400px, 80vh), 800px, calc(100vh - 48px));
     min-width: min(640px, calc(100vw - 32px));
     min-height: min(400px, calc(100vh - 48px));
     max-width: calc(100vw - 32px);

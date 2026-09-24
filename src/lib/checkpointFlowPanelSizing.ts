@@ -40,3 +40,18 @@ export function clampCheckpointFlowPanelWidth(width: number, containerWidth: num
   const minimum = Math.min(CHECKPOINT_FLOW_PANEL_MIN_WIDTH, maximum);
   return Math.min(maximum, Math.max(minimum, Math.round(width)));
 }
+
+/** Keep the user-selected panel share when its conversation container resizes. */
+export function scaleCheckpointFlowPanelWidth(
+  width: number,
+  previousContainerWidth: number,
+  containerWidth: number,
+): number {
+  if (!Number.isFinite(previousContainerWidth) || previousContainerWidth <= 0) {
+    return clampCheckpointFlowPanelWidth(width, containerWidth);
+  }
+  return clampCheckpointFlowPanelWidth(
+    (width * containerWidth) / previousContainerWidth,
+    containerWidth,
+  );
+}

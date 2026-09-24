@@ -1,6 +1,11 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import type { AgentRole, Conversation, RecentWorkspace } from "$lib/types";
-  import { loadSidebarWidth, saveSidebarWidth } from "$lib/sidebarSizing";
+  import {
+    loadSidebarWidth,
+    saveSidebarWidth,
+    sidebarWidthForViewportRatio,
+  } from "$lib/sidebarSizing";
   import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
 
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
@@ -89,6 +94,33 @@
   let width = $state(loadSidebarWidth());
   let resizing = $state(false);
   let searchOpen = $state(false);
+  let viewportWidth = typeof window === "undefined" ? 1 : Math.max(window.innerWidth, 1);
+  let widthRatio = 0;
+
+  function resizeWidth(nextWidth: number): void {
+    width = nextWidth;
+    widthRatio = nextWidth / viewportWidth;
+  }
+
+  onMount(() => {
+    widthRatio = width / viewportWidth;
+    const updateForViewport = () => {
+      const nextViewportWidth = Math.max(
+        document.documentElement.clientWidth || window.innerWidth,
+        1,
+      );
+      if (nextViewportWidth === viewportWidth) return;
+      width = sidebarWidthForViewportRatio(widthRatio, nextViewportWidth);
+      viewportWidth = nextViewportWidth;
+    };
+    const observer = new ResizeObserver(updateForViewport);
+    observer.observe(document.documentElement);
+    window.addEventListener("resize", updateForViewport);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateForViewport);
+    };
+  });
 
   function changeRole(role: string): void {
     searchOpen = false;
@@ -163,7 +195,7 @@
   <SidebarResizeHandle
     {width}
     ariaLabel={$t("resizeSidebar")}
-    onResize={(next) => (width = next)}
+    onResize={resizeWidth}
     onResizeStateChange={(next) => (resizing = next)}
     onResizeEnd={saveSidebarWidth}
   />

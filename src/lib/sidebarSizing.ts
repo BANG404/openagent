@@ -8,6 +8,14 @@ export function clampSidebarWidth(width: number): number {
   return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, Math.round(width)));
 }
 
+/** Resolve a dragged sidebar's stored share against the current viewport. */
+export function sidebarWidthForViewportRatio(ratio: number, viewportWidth: number): number {
+  if (!Number.isFinite(ratio) || !Number.isFinite(viewportWidth) || viewportWidth <= 0) {
+    return SIDEBAR_DEFAULT_WIDTH;
+  }
+  return clampSidebarWidth(ratio * viewportWidth);
+}
+
 export function normalizeStoredSidebarWidth(value: string | null): number {
   if (value === null || value.trim() === "") return SIDEBAR_DEFAULT_WIDTH;
   const width = Number(value);

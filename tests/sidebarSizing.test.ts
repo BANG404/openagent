@@ -5,6 +5,7 @@ import {
   SIDEBAR_MIN_WIDTH,
   clampSidebarWidth,
   normalizeStoredSidebarWidth,
+  sidebarWidthForViewportRatio,
 } from "../src/lib/sidebarSizing";
 
 describe("sidebar sizing", () => {
@@ -25,5 +26,11 @@ describe("sidebar sizing", () => {
     expect(normalizeStoredSidebarWidth("120")).toBe(SIDEBAR_MIN_WIDTH);
     expect(normalizeStoredSidebarWidth("420")).toBe(SIDEBAR_MAX_WIDTH);
     expect(normalizeStoredSidebarWidth("264")).toBe(264);
+  });
+
+  test("scales the sidebar with the viewport while preserving bounds", () => {
+    expect(sidebarWidthForViewportRatio(220 / 1040, 1560)).toBe(330);
+    expect(sidebarWidthForViewportRatio(220 / 1040, 2080)).toBe(SIDEBAR_MAX_WIDTH);
+    expect(sidebarWidthForViewportRatio(360 / 1560, 1040)).toBe(240);
   });
 });

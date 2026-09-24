@@ -91,6 +91,14 @@ have been created.
   construct another WebView; the frontend owns that fullscreen surface, its
   domain sections, and the window chrome it paints while covering the shared
   title bar.
+- Size the shared in-window management surface from the requesting window's
+  viewport: 75% of its width and 80% of its height, bounded by a usable minimum,
+  viewport gutters, and a wide-screen maximum. Keep its manual resize and
+  expanded state within the main window.
+- Keep the draggable workspace sidebar and conversation-details panel at their
+  user-selected proportion when the main window changes size. Apply their
+  existing minimum, maximum, and container-ratio bounds after scaling, and keep
+  the persisted width as the last concrete size for the next launch.
 - Keep on-demand utility-window construction a native host responsibility for
   the standalone `?settings-window=` and `?role-editor-window=` WebViews the host
   creates itself, with fixed domain labels including General Settings. Each
