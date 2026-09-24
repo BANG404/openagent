@@ -17,8 +17,11 @@ Manual wakeups are sent by typing `@` in the group composer and choosing a
 member from its mention palette.
 `chat_group_start` creates the group and records its first message without
 creating role conversations. The first boundary-safe `@role` mention creates a
-fresh role child conversation; group messages are a separate durable log and
-only explicit `mentions` wake member conversations.
+fresh role child conversation and a dedicated branch in the group's workspace;
+that branch is persisted on the member and reused for later wake-ups. Legacy or
+manually added members without a branch receive one lazily on their first
+wake-up. Group messages are a separate durable log and only explicit `mentions`
+wake member conversations.
 Fresh group child conversations are projected as pending until a real
 `chat-run-started` event arrives; creation alone must not render them as running.
 Batch `chat-group-member-changed` notifications into one member refresh and
