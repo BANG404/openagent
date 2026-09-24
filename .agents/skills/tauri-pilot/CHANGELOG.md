@@ -1,0 +1,1152 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- TOML scenario `storage-get` step reads a storage key and fails when it is
+  missing (`found: false`). A key holding an empty string still passes. [#184]
+
+- MCP `pilot.run` executes a TOML scenario from a `path` or inline `content`
+  and returns per-step results plus the CLI summary line. `fail_fast`
+  overrides the scenario file; JUnit XML is not written because the
+  structured result is the report. [#167]
+
+- Android device and emulator support via ADB from Linux or macOS. Each plugin
+  instance uses an abstract socket named `tauri-pilot-{identifier}-{random}.sock`,
+  forwarded with `adb forward localfilesystem:... localabstract:...`. Connections
+  require matching UID/GID pairs for the app, root or ADB shell. [#145]
+
+- iOS Simulator support. A Simulator shares the Mac's filesystem, so the usual
+  socket file is already reachable and the CLI needs no extra flags. Physical
+  devices are not supported yet.
+
+### Changed
+
+- A bare snapshot id (`e12`) is now a ref for every target-taking command, not
+  only `scroll`. `snapshot` prints `[ref=e12]`, so `click e12` and
+  `value e12` were read as CSS selectors and failed with
+  `No element matches selector: e12`. The normalization moved from the scroll
+  path into `parse_target`, which the CLI, MCP and TOML scenario steps all
+  share. `@e12` keeps working. **Breaking:** a bare `e12` is no longer read as
+  a CSS selector. No *registered* custom element can be named `e12` (the name
+  must contain a hyphen), but a page that builds an unknown `<e12>` tag must
+  now write that type selector another way — `:is(e12)`, or
+  `wait --selector e12`. **Breaking:** MCP tools no longer take the element
+  through a `ref` property. `pilot.scroll` was the only one that advertised
+  it, and `{"ref": "e12"}` must become `{"target": "e12"}`; sending `ref` now
+  fails with an error instead of silently scrolling the page. TOML scenario
+  steps drop `ref` for the same reason, so `ref = "e1"` becomes
+  `target = "e1"`. The CLI `scroll --ref` flag is unchanged. Every MCP
+  `target`/`source` description is now worded the same; `wait` and `html` say
+  so without coordinates, which neither ever supported. [#216]
+
+- A bridge command on a page whose origin never said hello no longer runs its
+  script before it fails, so a `click` there no longer clicks. `navigate` still
+  runs, since it is the way back to the app origin.
+
+- `url` is answered by the plugin instead of the bridge, so it reports the
+  current page even where no bridge can call back — a foreign origin the ACL
+  denies, which is exactly when you need to know where you are. `windows`
+  already read the URL that way. [#233]
+
+- An unknown `--window` label is now answered the way an unknown
+  `screenshot_native` window id already is: code `-32602`,
+  `error.data.error = "WINDOW_NOT_FOUND"`, and the windows that do exist under
+  `error.data.available_windows` — `{label, url, title}` rows here, against
+  the `{window_id, owner, title, layer}` ones native capture reports. A typo
+  therefore costs no `windows` round-trip, and a caller that is not the CLI can
+  tell it from a plugin failure without reading the message. The `press`
+  message for that mistake drops its `cannot focus target window:` prefix and
+  reads `Window 'nope' not found` like every other command. [#233]
+
+- `logs` and `network` mark their timestamps with a `Z` suffix
+  (`[14:23:07.350Z]`). The clock reading has always been UTC, built from the
+  epoch without a timezone, so on a machine that is not on UTC it read as a
+  clock skew against `date`. `--json` output is unchanged and still carries the
+  raw epoch. [#231]
+
+- Dependency floors raised to versions the code builds against. Several were
+  major-only and let a consumer's lockfile hold a version that cannot compile:
+  `tauri` 2 -> 2.11.3, the release `tauri-plugin` 2.6.3 belongs to (`tauri`
+  2.10.3 does not compile against `tauri-runtime` 2.11.3, which is what a
+  fresh resolve pairs it with); `tokio` 1 -> 1.37, for the `mpsc::Receiver::is_closed` that `rmcp`
+  3.4.0 calls; `tracing` 0.1 -> 0.1.41, what `tracing-subscriber` 0.3.20 asks
+  for, and above the 0.1.23 below which `rmcp`'s `#[instrument]` does not
+  expand; `serde` 1 -> 1.0.225 and `serde_json` 1 -> 1.0.127, the
+  lowest `toml` 1 and `rmcp`'s `schemars` resolve with; `clap` 4 -> 4.3.4 for
+  `Error::exit_code`; `image` 0.25 -> 0.25.2 on macOS, where the crate-root
+  `image::ImageReader` alias the screenshot code calls first appears; and
+  `tracing-subscriber` 0.3 -> 0.3.20, the RUSTSEC-2025-0055 patch. Apps
+  consuming the plugin must now be on `tauri` 2.11.3 or newer. A new CI job
+  resolves direct dependencies with `-Z direct-minimal-versions` and checks the
+  workspace on Linux, macOS and Windows, so a floor can no longer drift below
+  the code the way `rmcp` did in #210. [#221]
+
+### Fixed
+
+- `run` and MCP `pilot.run` check every scenario step before connecting. A key
+  the action does not read, such as `selector` on `assert-exists`, now fails
+  the load with `step 'assert-exists' does not accept 'selector'; use
+  'target'`. Unknown actions and missing required keys fail the same way. They
+  used to fail only when the step ran, after earlier steps had changed the app
+  and with a failure screenshot. A `wait` step now needs exactly one of
+  `target` or `selector`. Behavior change: a stray key next to the ones the
+  action needs, such as `value` on `click`, used to be ignored and now fails
+  the load, so a scenario that passed before may need cleaning up. The CLI
+  reference lists the keys each action takes. [#243]
+
+- MCP tool errors keep the app's structured `error.data` as fields instead of
+  one text blob. A `pilot.state` call with an unknown `window` now returns
+  `error: "WINDOW_NOT_FOUND"`, `message`, `rpc_code: -32602` and
+  `available_windows` in `structuredContent`, where it used to return the CLI's
+  printed error, JSON included, as a single `error` string. An app error with
+  no domain code puts its message under `error`. CLI output is unchanged. [#242]
+
+- The CLI no longer hangs forever when something accepts the connection but
+  never answers, such as a wedged app or another process holding the socket
+  path. Each command now gives up after 35 s, plus the `--timeout` of `wait`
+  and `watch` or the gesture time of a tuned `drag`, and names the path that
+  stayed silent. Change the deadline with
+  `--rpc-timeout <secs>` or `TAURI_PILOT_RPC_TIMEOUT`. A connection whose
+  request was abandoned, for example by the `timeout_ms` of a scenario step
+  other than `wait` or `watch`, now refuses further requests instead of
+  pairing the late answer with the next one. Such a step gets no failure
+  screenshot: it reports `screenshot_error` right away, where the screenshot
+  used to hang the run. With `--no-fail-fast`, the next step opens a fresh
+  connection, also when the app closed the old one. [#241]
+
+- On Windows, quitting the app with Ctrl+C or Ctrl+Break, or by closing the
+  console running `cargo tauri dev`, now removes
+  `%LOCALAPPDATA%\tauri-pilot\instances\{identifier}.json`. Those console
+  control events end the process before Tauri emits `RunEvent::Exit`, so the
+  registry guard never dropped and the file stayed behind. The CLI skips an
+  entry whose pid is dead, so the leftover only bit once another process drew
+  that pid: the CLI could then resolve to the dead pipe. Debug builds now watch
+  Ctrl+C, Ctrl+Break and console close, remove the instance file, then exit
+  with `STATUS_CONTROL_C_EXIT`, the status the default handler gives. A console
+  handler your app registered before the plugin's `setup` is no longer called
+  in debug builds, since the plugin's claims the event first. System shutdown
+  and logoff still leave the file: Windows delivers neither to a console
+  handler in a process that has loaded user32.dll, as every Tauri app has. An
+  integration test sends Ctrl+Break to a child app and asserts both. The
+  `tokio` floor moves from 1.37 to 1.44: before that release a watched close
+  event killed the process before the watcher could run. [#229]
+
+- The signal watcher's exit half is under test. Nothing covered the part that
+  actually kills the app, because every mock app shares the test process and
+  the re-raise there ends the whole run: a plugin that swallowed Ctrl+C and
+  left only SIGKILL to stop a `cargo tauri dev` run would have gone green. An
+  integration test now re-execs the test binary as a child app, sends it
+  SIGINT, SIGTERM or SIGHUP, and asserts both the unlinked socket (#217) and
+  the 128+n exit status, which no in-process test can do. `re_raise` also
+  stopped skipping `libc::raise` under `cfg!(test)`: that flag is only set in
+  the `--lib` binary, so it never changed what a shipped app did, and the
+  divergence is gone with the three in-process signal tests it existed for.
+  [#230]
+
+- The second Clippy pass, the one that lints the plugin with debug
+  assertions off as release builds compile it, now takes `--all-targets`
+  too. Without it that pass skipped every `#[cfg(test)]` module, so a
+  test-only lint could only be caught by the first pass, and never under
+  the release cfg. CI, the release workflow, `scripts/release.sh`, the PR
+  template and both contributing guides pass the flag on every workspace
+  Clippy invocation. [#220]
+
+- `logs` no longer prints a raw JavaScriptCore frame as the source. An
+  anonymous JSC frame is written `@url:line:col`, and the `@` that separates
+  the (empty) function name from the location survived into the output as
+  `(@tauri://localhost:1:143)`. A frame from eval'd code has no url at all —
+  WebKitGTK writes `@undefined:1:91` or `@:1:91` — and reports `line:col`
+  like the event path does. Named frames keep their `fn@url:line:col`
+  form. [#232]
+
+- An uncaught error from eval'd code no longer reports its source as
+  `undefined:1:91`. WebKitGTK sets the error event's `filename` to the string
+  `"undefined"` there, which the old truthiness check let through; the file
+  part is now dropped and only `line:col` is reported. An event that carries a
+  line and column but no filename now reports them too, where it used to have
+  no source; an event with no location at all still has none. [#232]
+
+- `fill` on a `<select>` with no matching option now names `fill` in the
+  error instead of `select:`. Both commands share the option matcher, which
+  hardcoded the prefix of a command the user may never have typed. [#232]
+
+- **Breaking:** `network` reports `response_size: null` instead of `0` when the
+  size is unknown, so the field is now `number | null` in `--json`, in the
+  NDJSON `--follow` stream and in the MCP tool. Both recorders read
+  `Content-Length`, which `tauri://` responses do not expose, and turned that
+  miss into a confident zero; a malformed header such as `1380bytes` did the
+  same through `parseInt`. Reading the real size would mean cloning and
+  buffering every response body, so an unknown size is now reported as
+  unknown — on the `fetch` path, on the XHR path whose `responseType` yields
+  an unmeasurable body, and on the error, timeout and abort paths where no
+  response arrived. An explicit `Content-Length: 0` still reports `0`. [#232]
+
+- Quitting the app with Ctrl+C, `kill`, or by closing the terminal running
+  `cargo tauri dev` now removes `tauri-pilot-{identifier}.sock`. SIGINT,
+  SIGTERM and SIGHUP end the process before Tauri emits `RunEvent::Exit`, so
+  the plugin's socket guard never dropped and the file piled up in
+  `$XDG_RUNTIME_DIR`, where `ls` or other tooling could take it for a running
+  app. Debug builds on Unix now watch all three signals, unlink the socket,
+  then re-raise with the default handler so the app still dies with its usual
+  128+n status. A crash or `SIGKILL` still leaves the file; the next bind
+  treats it as stale. Windows gets the same treatment in #229. [#217]
+
+- Failure screenshots from `run` and MCP `pilot.run` are now reported, and
+  `pilot.run` no longer drops them wherever the server process happened to
+  start. A failed step carries the absolute file in its result
+  (`screenshot`), or the reason it could not be written
+  (`screenshot_error`), in the MCP report, in `run --json` and as
+  `<system-out>` in the JUnit XML. `run --screenshots-dir <DIR>` and the
+  `screenshots_dir` argument on `pilot.run` pick the directory. `run` keeps
+  its `./tauri-pilot-failures` default, relative to the working directory;
+  `pilot.run` now defaults to an owner-only per-user
+  `tauri-pilot-failures-<uid>` directory under `$XDG_RUNTIME_DIR` or the
+  system temp directory, because the server's working directory belongs to
+  whichever client spawned it. The old `/tmp/tauri-pilot-failures` was
+  world-readable, and since the name was predictable in a world-writable
+  `/tmp`, any local user could pre-create it as a directory or a symlink and
+  collect or redirect the screenshots. `run --json` prints the report as
+  JSON; the flag was accepted and ignored before. [#215]
+
+- A request over the plugin's 1 MiB line limit, such as a React
+  development build sent with `eval -`, now fails before it is sent, with
+  `eval request is N bytes; the plugin accepts at most 1048576 bytes`.
+  The plugin answered it with an error carrying `"id": null` and hung up,
+  so the CLI printed `Response ID mismatch: expected 1, got null`, or
+  `Broken pipe` when the hang-up came first. An error with `"id": null`,
+  which JSON-RPC 2.0 sends when the request id cannot be read, is now
+  reported as that error instead of an id mismatch. `drop` checks its files
+  against the same limit before reading them: they travel base64-encoded,
+  so one drop carries a little under 768 KiB, not the 50 MB per file the
+  docs promised. [#214]
+
+- The CLI no longer panics when its stdout is closed early, as in
+  `tauri-pilot snapshot | head -1`. Rust ignores `SIGPIPE`, so every write
+  after the reader left failed with `EPIPE` and `println!` aborted with
+  "failed printing to stdout: Broken pipe" and exit status 101. Output now
+  goes through one writer that exits with status 0 on a broken pipe, so
+  `set -o pipefail` scripts stay green. `storage get` on a missing key still
+  exits 1. Other write errors still fail. [#213]
+
+- `check` now runs React's `onChange` on controlled checkboxes and radios.
+  It assigned `.checked` and dispatched a bare `change`, which also updated
+  React's value tracker, so React saw no change and the next render put the
+  old value back. It now clicks the input natively, so the browser flips it
+  and fires `click`, `input` and `change` as a user click does. An
+  already-selected radio is left alone and gets no event. If the click
+  changes nothing (a disabled input, or page code that cancels the click),
+  `check` fails instead of reporting ok. [#212]
+
+- `logs` no longer goes silent once page code assigns its own `console.log`
+  (or `warn`, `error`, `info`) without calling the previous one. Capture is
+  an accessor on each method, so an assignment is chained behind it: the
+  page's function still runs, but reading `console.log` back returns the
+  bridge's entry point rather than that function. Restoring a saved
+  reference puts back exactly what it called, and a level that forwards to
+  another is recorded once, under the level the page called. A reference
+  saved earlier and called later from a timer records a second entry, since
+  it looks like a logger's early-bound `console.log`. Redefining the
+  property outright (React's dev build does while it builds a component
+  stack), or assigning to a method that cannot be redefined, where the
+  bridge could only install itself by plain assignment, drops capture until
+  the next `logs` call restores it; lines logged in between are lost. On a
+  frozen console, `logs --level error` says that capture is unavailable
+  instead of showing an empty buffer. [#190]
+
+- `logs --level error` now records uncaught exceptions and unhandled
+  promise rejections, not only `console.*` calls. Rejections are prefixed
+  `Unhandled rejection: `; the human-readable renderer prints `source`
+  when the bridge set it. Failed resource loads (`<img>`/`<script>` 404)
+  stay out of the buffer. [#188]
+
+- Pathname socket bind serializes stale replacement with an exclusive
+  flock on a sibling lock file, so two instances starting over the same
+  leftover socket cannot unlink each other's file or record the wrong
+  inode. The flock is released before bind returns, so a live second
+  instance still gets "already in use" immediately. The sibling
+  `{socket}.lock` file may remain and is reused on the next bind. [#195]
+
+- `check` on an already-selected radio no longer unchecks it and empties
+  the group. Checkboxes still toggle. [#177]
+
+- `press` now waits until the target window actually has OS focus after
+  `set_focus`, and returns an error instead of injecting when the window
+  manager refuses the request. Previously `set_focus` succeeding was treated
+  as focus transferred, so on X11 with focus-stealing prevention the keys
+  could land in another application while the RPC still reported `ok`. [#175]
+
+- Bridge commands no longer run on a page that replaced the one they
+  checked. The wrapper compares the checked origin before the command.
+  If the URL already moved after eval, or a later timeout sees a
+  different origin, the RPC names the pin and the new page instead of
+  returning a generic eval timeout. `navigate` is not pinned; it
+  assigns the absolute destination resolved from the checked page. [#173]
+
+- Pathname socket bind no longer sets the process umask. `umask(0o177)`
+  around `UnixListener::bind` is per-process, so another thread that created
+  a directory in that window got mode `0o600` (no execute bit) and then
+  `EACCES`. Socket mode is still `0o600` via `set_permissions` after bind,
+  and connections still require a matching peer UID. [#172]
+
+- `screenshot` now copies `scrollbar-color`, `scrollbar-width`, and
+  `scrollbar-gutter` onto the clone, so a panel that styles its scrollbar
+  with those properties keeps the bar in the PNG. `::-webkit-scrollbar`
+  pseudo-element rules still cannot be carried this way; on macOS
+  `screenshot_native` captures what the window paints. [#166]
+
+- The Unix socket guard now deletes the socket file when dropped. It
+  compared the file's inode with the one `fstat` returns for the listener,
+  which belongs to the kernel's socket object rather than the file, so they
+  never matched and the file stayed. Each `cargo test` run left a
+  `/tmp/tauri-pilot-test-*.sock` behind, and CLI auto-detection, which takes
+  the newest `tauri-pilot-*.sock` in `/tmp` when `$XDG_RUNTIME_DIR` has none,
+  could pick one of those dead sockets instead of a running app's. The guard
+  now reads the inode from the socket path right after bind. It only drops
+  when the server task ends, though, so quitting an app still leaves its
+  socket until the next bind at that path removes it as stale ([#194]).
+  [#165]
+
+- Release builds no longer print dead-code warnings from
+  `tauri-plugin-pilot`. The warnings showed in this workspace and in apps
+  that use the plugin as a path dependency; Cargo hides warnings from git
+  and crates.io dependencies. `init` only starts the server in debug builds,
+  but the modules behind it still compiled in release, where nothing called
+  them. Those modules now use the same cfg as `init`, so release builds
+  leave them out. CI lints the plugin with debug assertions off to keep it
+  that way. [#164]
+
+- `ipc --args` is now checked while the command line is parsed, before the
+  CLI connects to the app, and must be a JSON object. Malformed JSON, arrays,
+  scalars and `null` exit 2 with
+  `invalid value 'not-json' for '--args <ARGS>': must be a JSON object, e.g. '{"name":"World"}' (expected ident at line 1 column 2)`.
+  The CLI used to connect first, so with no app running the bad value was
+  never reported, only `No tauri-pilot socket found`. With an app running it
+  exited 1 with serde's message alone (`expected ident at line 1 column 2`),
+  and valid JSON that was not an object went to the command unchanged.
+  `ipc --help` now describes `--args`. [#163]
+
+- `snapshot` no longer prints `value="0"` on every `<li>`. The bridge read
+  `HTMLLIElement.value`, which reflects the `value` attribute and returns `0`
+  when the attribute is absent or does not parse as an integer, in an `<ol>`
+  too. An `<li>` now shows its `value` attribute as written, and no value
+  when the attribute is absent or empty (`<li value="3">` still shows
+  `value="3"`). `value` returns the same string, so `<li value="3">` gives
+  `"3"` instead of the number `3`, which `assert value` rejected with
+  `expected string response from server`. `diff --ref` against a file saved
+  with `snapshot --save` before this fix reports a `value` change on each
+  affected `<li>` until the file is saved again. [#162]
+
+- `record stop` with no recording in progress now fails with
+  `No recording in progress` and exits 1 without writing the output file. It
+  used to save `[]` and exit 0, which read as a successful capture of nothing
+  and hid a `record start` that never ran. A second `record stop` fails the
+  same way. The check lives in the plugin, so the JSON-RPC `record.stop`
+  method and the MCP `record_stop` tool return the same error. [#161]
+
+- `storage get` on a missing key now exits 1, like `assert` and `wait`, so
+  `storage get key || echo absent` works and a missing key is no longer
+  confused with a key holding an empty string. The `(not found)` notice moved
+  to stderr, leaving stdout for the value. `--json` still prints
+  `{"found": false}` and exits 1 too. The JSON-RPC and MCP responses are
+  unchanged. [#160]
+
+- `wait --gone` now returns `{ gone: true }` (`--json`, MCP, JSON-RPC;
+  CLI text: `✓ gone`) and times out with
+  `Timeout waiting for <selector> to disappear`. Success used to
+  return `{ found: true }` (CLI: `✓ found`) and the timeout said
+  `Timeout waiting for <selector>`, both of which describe the
+  opposite of waiting for an element to disappear. Callers that
+  parsed `found` on the gone path must switch to `gone`. [#159]
+
+- `value` and `snapshot` now report every selected option of a
+  `<select multiple>`, joined with `", "` like the `forms` CLI
+  (`skills = "rust, js"`). Both used `HTMLSelectElement.value`, which is
+  only the first selected option, so a multi-select with `rust` and `js`
+  selected looked like `rust`. `forms.dump` still returns the JSON array.
+  [#158]
+
+- `scroll --ref` now accepts a CSS selector or `x,y` coordinates, not only a
+  snapshot ref. The bridge used `requireEl`, which looks the value up in the
+  snapshot map, so `scroll down 50 --ref "#log"` raised `Unknown ref: #log`.
+  Scroll now uses `resolveTarget` like click/fill/text, the CLI parses
+  `--target` / `--ref` through `parse_target`, and MCP plus TOML scenario
+  steps follow the same shapes. `--ref` remains an alias of `--target`.
+  Bare snapshot ids (`e12`) still count as refs. [#157]
+
+- `network` no longer records the plugin's own `__callback` IPC. Eval and
+  the bridge hello POST to `ipc://localhost/plugin:pilot|__callback` (URL
+  encoded). Fetch skipped that only when `URL.pathname` was exactly
+  `/plugin:pilot|__callback`, which WebKit does not produce for the `ipc:`
+  scheme, and XHR was never skipped. The skip now matches Tauri's IPC URL
+  shapes on both fetch and XHR. [#156]
+
+- `snapshot` and `snapshot -i` now list div-based interactive elements.
+  Hosts with `draggable="true"`, `contenteditable`, an `onclick` attribute or
+  property, or `tabindex` were dropped because `ROLE_MAP` has no `DIV` entry,
+  so `walk()` emitted no ref. `isInteractiveElement` also ignored draggable,
+  contenteditable, and `onclick`; a `tabindex` host was already treated as
+  interactive. They now get a ref (`textbox` for contenteditable, `generic`
+  otherwise). Layout wrappers without those signals stay out of the tree,
+  as do unmapped hosts whose only signal is `tabindex < 0`. [#155]
+
+- `fill`, `type`, and `check` no longer report ok on an element that cannot
+  take the write. Assigning `.value` or `.checked` on a plain `<div>` created
+  an expando and left the visible text unchanged, which is the same silent
+  no-op `select` was hardened against. `fill` accepts `<input>`,
+  `<textarea>`, `<select>`, and contenteditable hosts (including Tiptap /
+  ProseMirror-style editors, via `insertText` with a `textContent`
+  fallback). `fill` on `<select>` matches an option by value then label and
+  throws if none match. `type` accepts `<input>`, `<textarea>`, and
+  contenteditable hosts, and rejects `<select>` (use `fill` or `select`).
+  Both throw on anything else. `check` accepts only checkbox and radio
+  inputs. [#154]
+
+- Without `--window` and without a `main` window, commands now target the
+  first window by label, and `windows.list` sorts by label. Both used Tauri's
+  hash order, which changes from run to run.
+
+- `press` without `--window` now fails when the app has no webview window,
+  instead of sending the key to whatever app has focus.
+
+- `navigate` to an origin the pilot bridge cannot answer from no longer
+  reports ok and leaves the session hung. The bridge does run on a foreign
+  page, but Tauri's ACL rejects its `__callback` because the pilot permission
+  only covers the app origin, so every later command waited out the 10 s eval
+  timeout. The bridge now says hello through `__callback` on each page load,
+  which tells the plugin which origins can answer. On a first visit, `navigate`
+  waits up to 3 s for that hello and fails without it; a destination that
+  already said hello waits the usual 10 s for the new page. Other commands on
+  a page with no hello fail at once, and the error names the page and the
+  origins that work. Navigating back to the app origin recovers the session,
+  and an origin listed in a capability's `remote.urls` keeps working. Pilot's
+  own IPC calls also no longer show up in `network.getRequests`. [#153]
+
+- A second instance of an app that embeds the plugin no longer panics at
+  startup. On Unix the plugin `setup` hook propagated the `AddrInUse` error
+  from the socket bind, which Tauri turns into a fatal `PluginInitialization`
+  error, so the second process died before it showed a window. The plugin is
+  debug-only tooling: it now logs a warning, skips the server and lets the app
+  run, which is what Windows already did. [#152]
+
+- `screenshot_native` errors now carry their detail to the terminal. Every RPC
+  error went through one `bail!` in the CLI client that kept the code and the
+  message and dropped `error.data`, so a `WINDOW_NOT_FOUND` printed nothing of
+  the `available_windows` list the plugin builds for it. The fix is in the
+  shared error path, so any command whose plugin side attaches structured data
+  keeps it. The plugin mirrors `message` into `data`, and the CLI drops that
+  key only when it is the exact duplicate, so a producer with a distinct
+  `data.message` still prints it. [#149]
+
+- `screenshot_native` no longer reports a made-up `scale_factor`. The value was
+  the captured PNG's pixel width divided by the window's logical width, which
+  only holds when the PNG is the window. It comes from both axes now and is
+  `null` when they disagree on the ratio: with screen recording denied the
+  `CGWindowList` fallback returns a screen-sized image (2.87 across against
+  2.79 down on a 2.0 display), and the permitted path was off too because
+  `screencapture` padded its own PNG with the window's drop shadow. The
+  `tcc_denied` flag no longer gates the derivation — it reports a permission
+  state, and `capture_with_fallback` raises it after a granted probe whose
+  per-window capture failed for some other reason. Two agreeing ratios are not
+  proof by themselves, since a screen-sized image whose aspect happens to match
+  the window's would pass, so the capture's provenance gates them: a
+  `CGWindowList` PNG asks for `kCGWindowImageNominalResolution` and can only
+  legitimately be 1:1, and anything else from that backend gets no scale.
+  [#149]
+
+- `cargo clippy --all-targets -- -D warnings` passes again. The new
+  `manual_is_variant_and` lint rejects the `.ok().is_some_and(...)` in
+  `dangerous_mcp_tools_enabled`; it reads `.is_ok_and(...)` now, same
+  behaviour. CI and release runs now pass `--all-targets` too, so test
+  modules are linted: that turned up an unused import in the plugin's
+  webview tests and `drop()` calls on `_`-prefixed bindings in the CLI's
+  socket tests. [#211]
+
+- `screenshot` no longer pins the webview for minutes on style-variable-heavy
+  pages. html-to-image copies computed styles onto the clone, and whenever
+  `getComputedStyle(el).cssText` is empty — WebKit and Blink both — it falls
+  back to one `setProperty` per name in `getComputedStyle(documentElement)`.
+  On a Tailwind v4 page that is ~2200 names, ~1760 of them custom properties,
+  applied to every cloned element; macOS WebKit re-serializes the whole style
+  attribute on each call, making the clone quadratic (~370 s and 100 % CPU on a
+  648-node page, with every later bridge call timing out until it finished).
+  The bridge now passes a curated `includeStyleProperties` list of the
+  properties a page actually paints, so the copy drops from ~2200 to 187
+  `setProperty` calls per element (measured 28x faster end-to-end on a Chromium
+  repro of that page at the original 156-name cut, pixel-identical output).
+  Custom properties are dropped on purpose: computed values already arrive with
+  their `var()` resolved. The list is an allowlist, though, so a standard
+  painted property that is not on it is missing from the capture as well;
+  on macOS `screenshot_native` remains the pixel-exact escape hatch. [#146]
+
+### Changed
+
+- Dependency floors raised in `Cargo.toml`, the only pinning this repo commits
+  (`Cargo.lock` is ignored, so a requirement is what actually reaches a
+  consumer): `anyhow` 1 -> 1.0.104, `libc` 0.2.184 -> 0.2.189 in both crates,
+  `owo-colors` 4.3.0 -> 4.4.0, `rmcp` 3.1.4 -> 3.4.0, and the `tauri-plugin`
+  build dependency 2.6.1 -> 2.6.3. The `anyhow` floor is the one that matters:
+  it clears RUSTSEC-2026-0190, an unsoundness in `Error::downcast_mut()`
+  patched in 1.0.103.
+
+- macOS native captures no longer include the window's drop shadow.
+  `capture_screencapture` passes `screencapture -o`, so the PNG matches
+  `kCGWindowBounds` and the scale factor is derivable from it. [#149]
+
+### Security
+
+- `available_windows`, returned with a `WINDOW_NOT_FOUND` error, no longer
+  carries the titles of windows owned by other processes. The list walks every
+  on-screen window, and now that the CLI renders `error.data` that payload
+  reaches stderr and the MCP client, so one stale `--window-id` would have
+  handed a developer's document names, URLs and chat titles to whatever model
+  backs that client. `window_id` and `owner` are what a caller needs to
+  retarget. [#149]
+
+## [0.7.3] - 2026-08-30
+
+### Changed
+
+- Upgrade `rmcp` to 3.1.4 (from 1.7). The only break reaching this codebase is
+  SEP-2322: `ServerHandler::call_tool` now returns `CallToolResponse`, converted
+  at the trait boundary so the internal helpers keep returning `CallToolResult`.
+  The MCP tool surface is unchanged. `base64` 0.23, `windows` 0.62,
+  `core-graphics` 0.25 and `serial_test` 4 move with it. [#143]
+
+### Fixed
+
+- `drag` now performs a real pointer gesture, so it drives JS drag libraries
+  (dnd-kit, sortable.js, interact.js, react-dnd's mouse backend) instead of only
+  HTML5 `draggable="true"` handlers. Previously it dispatched HTML5 DragEvents
+  plus a single `mousedown` — no `mousemove` stream and no `mouseup` — which those
+  libraries cannot activate on, while still returning `ok: true`. A drag against a
+  dnd-kit app therefore reported success and did nothing, which is the worst
+  outcome for an agent asserting on it. The gesture now presses the deepest node
+  under the start point when that node is inside the source (library listeners
+  commonly sit on an inner handle, and events only bubble upward; an overlay over
+  the source is ignored), streams interpolated `pointermove`/`mousemove` events
+  hit-tested at each step, emits the HTML5 sequence as before, and releases with
+  `pointerup`/`mouseup`. Every pointer event precedes its compatibility mouse
+  event, as a browser produces them. `steps`, `stepDelayMs` and `settleMs` params
+  tune it over JSON-RPC and MCP, and the Rust-side eval timeout now covers the
+  gesture they describe instead of a flat 10 s. The result echoes
+  `from`/`to`/`steps` and adds `html5DropHandled` so a caller can see whether a
+  native handler claimed the drop. `ok` still means only that the gesture was
+  delivered — assert the effect. [#142]
+
+### Security
+
+- Upgrade the docs site to Astro 7.1.5 (from 6.3.2), Starlight 0.41.5 and sharp
+  0.35.3, clearing all 16 open Dependabot alerts. Astro carried four XSS issues
+  and a host-header SSRF in the prerendered error page fetch; sharp inherited
+  four libvips CVEs. Refreshing the lockfile also moved the transitive
+  js-yaml (4.3.0), svgo (4.0.2), vite (8.1.5) and esbuild (0.28.1) onto patched
+  versions. Docs-only — the plugin and CLI crates are untouched. [#140]
+
+- Upgrade `quick-xml` to 0.42, clearing RUSTSEC-2026-0194 (quadratic
+  duplicate-attribute check) and RUSTSEC-2026-0195 (unbounded namespace
+  allocation), both scored 7.5. The docs lockfile was refreshed again to drop
+  the vulnerable `js-yaml` and `nanoid` it still carried. `cargo audit` and
+  `npm audit` are both clean. [#143]
+
+## [0.7.2] - 2026-06-10
+
+### Added
+
+- `tauri-pilot --version` prints the CLI version. The flag was missing, so a
+  caller had no way to confirm which build they were running. [#135]
+- The plugin reports its own version in the `ping` response, and
+  `tauri-pilot ping` now shows the plugin and CLI versions together and warns
+  when they drift. A response without a `plugin_version` field comes from a
+  plugin <= 0.7.0, which predates the macOS native-eval fix, so the CLI points
+  at an upgrade. [#135]
+- `state` output includes the plugin's `plugin_version`. [#135]
+- The plugin logs its version when the socket or named pipe starts listening,
+  so the running plugin version shows up in the app's logs. [#135]
+
+## [0.7.1] - 2026-06-05
+
+### Fixed
+
+- Restore eval-based commands on macOS headless CI runners by delivering eval
+  results through the existing `__callback` IPC command on every platform instead
+  of relying on the native `WKWebView` completion handler, which may never fire
+  without an interactive GUI session. [#126]
+- Update two stale `EvalEngine` doc comments that still described the removed
+  native eval callback model; eval results are now documented as delivered via
+  the `__callback` IPC command on every platform. [#128]
+- Capture the full document height in `screenshot` without `--selector`.
+  html-to-image sized the render from the viewport and always started at the
+  document origin, so the PNG showed the top of the page regardless of scroll
+  position and silently dropped everything below the fold. [#129]
+- Scroll the source element into view before an offset drag. `drag --offset`
+  resolves the drop point with `elementFromPoint`, which is viewport-bound, so
+  a source outside the visible viewport failed with the misleading error
+  "No element at offset (x,y)". The bridge now centers the source in the
+  viewport first, and the residual errors name the actual cause (drop point
+  outside the viewport vs. no element at the computed point). [#130]
+
+## [0.7.0] - 2026-05-30
+
+### Added
+
+- Add a `screenshot_native` CLI subcommand to capture a native window PNG by
+  window id. [#108]
+- Make bridge bootstrap idempotent so repeated injection attempts are no-ops.
+  [#108]
+
+### Fixed
+
+- Restore eval result delivery on Tauri 2.11 / wry 0.55 by using native
+  WebView eval callbacks instead of JS-to-Tauri `__callback` IPC for eval
+  results. [#108]
+- Preserve `windows.list` output without panicking when wry 0.55 cannot report
+  a webview URL. [#108]
+- Include `<p>` paragraph text in accessibility snapshots by mapping `<p>` to
+  the `paragraph` role. Snapshots previously dropped paragraph content (e.g. the
+  default Tauri template greeting rendered in a `<p>`), so callers could not
+  verify text that appeared after an interaction. The role is non-interactive,
+  so `snapshot --interactive` still omits paragraphs. [#109]
+- Restore eval on Linux (`WebKitGTK`) and Windows (`WebView2`). [#108] switched
+  eval delivery to reading the script's return value, which only works on macOS
+  where `WKWebView` resolves a returned Promise; `WebKitGTK` and `WebView2`
+  deliver the unresolved Promise instead, so every eval-based command
+  (`snapshot`, `state`, `click`, …) timed out after 10s. These platforms now
+  deliver eval results through the `__callback` IPC command again, while macOS
+  keeps the native callback path from [#108]. [#110]
+- Make `select` match by visible option label as well as `value`, and error
+  instead of silently reporting `ok` when no option matches. Setting
+  `HTMLSelectElement.value` to an unmatched string leaves `value=""` /
+  `selectedIndex=-1` per the DOM spec, so passing a label (which snapshots
+  surface) or a typo previously cleared the selection while the command still
+  exited `0`. A successful `select` now guarantees an option was selected.
+  [#113]
+- Fire `Control`+digit global shortcuts via `press` on X11 layouts where the
+  digit row is shifted (e.g. French AZERTY). `press "Control+1"` now triggers a
+  registered `Control+Digit1` accelerator, consistent with `Control+Shift+P`.
+  `enigo` resolves a `Key::Unicode` digit only at shift-level 0, so on AZERTY
+  (where `1` is `Shift`+`&`) it remapped the digit onto a spare keycode that no
+  physical-key `XGrabKey` grab matched, while letters (always level 0) worked —
+  the asymmetry #75 could not explain. A digit that is part of a modified combo
+  is now injected as its raw physical keycode, matching the keycode
+  `global-hotkey` grabs. A bare `press "1"` keeps the layout-aware path, so it
+  still types the layout's digit rather than the unshifted physical key. [#114]
+- Fire `Shift`+uppercase-letter global shortcuts via `press` on non-US layouts.
+  `press "Control+Shift+P"` — the conventional uppercase spelling — silently
+  failed to fire its accelerator on AZERTY while exiting `0`; only the lowercase
+  `Control+Shift+p` worked. #114 fixed the symmetric digit case but left
+  uppercase letters broken: `parse_combo` keeps the literal `'P'`, whose keysym
+  lives at shift-level 1, so `enigo` could not place it on the physical key and
+  remapped it onto a spare keycode no `XGrabKey` grab matched. An uppercase
+  letter in a modified combo is now lowered to its base key for injection, and
+  the explicitly held `Shift` produces the uppercase character — matching the
+  grab at level 0. A bare `press "P"` keeps `Key::Unicode('P')`, so it still
+  types an uppercase `P`. [#121]
+- Fix a startup panic on Windows ("there is no reactor running, must be called
+  from the context of a Tokio 1.x runtime") that aborted the host app before its
+  window opened. tokio's `NamedPipeServer` registers with the reactor the moment
+  it is created, but the plugin bound the pipe in its synchronous `setup` hook —
+  outside any tokio runtime. The Windows pipe is now bound inside the spawned
+  server task, which runs on the runtime. The Unix socket path is unchanged: it
+  binds with the std `UnixListener`, which needs no runtime. [#115]
+- Stop `diff` aborting on any page containing `<li>` elements. The bridge
+  captured an element's `value` IDL property verbatim, but for `<li>`,
+  `<progress>`, and `<meter>` that property is a number (an `<li>`'s ordinal,
+  defaulting to `0`), so snapshots serialised `"value": 0` while the plugin
+  types `SnapshotElement.value` as `Option<String>`. Parsing such a reference
+  snapshot failed with `invalid type: integer 0, expected a string` (`-32602`),
+  making `diff` unusable on most real apps. The bridge now coerces `value` to a
+  string at capture, matching the wire contract. [#120]
+
+### Security
+
+- Block `javascript:` URLs in the `pilot.navigate` MCP tool. Because
+  `navigate` is not gated behind the dangerous-tools opt-in, an untrusted MCP
+  client could previously pass a `javascript:` URL that the bridge assigns to
+  `window.location.href`, executing arbitrary JavaScript and bypassing the
+  `pilot.eval` gate added in [#104]. The URL is now normalized the way a
+  browser's URL parser would — stripping ASCII tab/newline/carriage-return
+  anywhere in the string and leading C0 controls/spaces — before any
+  `javascript:` scheme is rejected with `INVALID_PARAMS`, so smuggling
+  variants such as `java\tscript:` or `\0javascript:` are blocked too. [#107]
+- Harden the release workflow against `CARGO_REGISTRY_TOKEN` exfiltration.
+  `cargo publish` ran a verification build with the registry token present in
+  the environment, so a compromised dependency build script or proc-macro
+  could read and leak the token during that build. Each crate is now verified
+  with a secret-free `cargo package` step (no token in scope), and the
+  token-bearing `cargo publish` step runs with `--no-verify` so it only uploads
+  the already-verified package. [#106]
+- Shell-escape element `ref` values when exporting recordings to shell
+  scripts via `replay --export sh`. Refs were previously emitted unquoted
+  (e.g. `tauri-pilot click @e1`) while selectors and values were already
+  escaped, so a recording carrying a crafted `ref` (injectable through the
+  `record.add` IPC method or a hand-edited recording file) could inject
+  arbitrary shell commands into the generated script. All `@ref` tokens —
+  top-level targets, nested `source`/`target` refs, and `scroll --ref`
+  arguments — are now single-quoted. [#105]
+- Gate the dangerous MCP tools `pilot.drop`, `pilot.eval`, and `pilot.ipc`
+  behind the `TAURI_PILOT_MCP_ENABLE_DANGEROUS_TOOLS` opt-in environment
+  variable. By default these tools are now hidden from `list_tools` and
+  rejected at call time, so an untrusted MCP client can no longer execute
+  arbitrary JavaScript (`eval`), invoke arbitrary Tauri commands (`ipc`), or
+  feed arbitrary local file paths into the app (`drop`). Set the variable to
+  `1`, `true`, `yes`, or `on` to restore the previous behaviour. [#104]
+
+## [0.6.0] - 2026-05-22
+
+### Added
+
+- macOS native screenshot backend (`screencapture` shell-out plus
+  `CGWindowListCreateImage` fallback) behind the existing `screenshot`
+  module surface; WKWebView path scaffolded for follow-up.
+- `screenshot_native` JSON-RPC method (advertised as the `pilot.screenshot_native`
+  MCP tool) that captures a window by `window_id` to a caller-specified
+  `output_path`. Uses macOS `screencapture` when Screen Recording permission
+  is granted, falls back to `CGWindowListCreateImage` with `tcc_denied: true`
+  in metadata when permission is revoked between probe and call. Path-only
+  response shape — no inline bytes. Bare `screenshot` keeps its existing
+  bridge html-to-image behaviour and is wholly separate from the new method,
+  so the two surfaces cannot be confused. On Linux and Windows,
+  `pilot.screenshot_native` is registered but every call responds with
+  `PERMISSION_DENIED` and the message `"screenshot is only available on
+  macOS in this release"` — the request shape validators run first, so a
+  contract-violating call sees the validation error on every host.
+
+### Security
+
+- Add top-level `permissions: contents: read` to CI and Release workflows
+  to satisfy the CodeQL `actions/missing-workflow-permissions` rule (least
+  privilege for `GITHUB_TOKEN`). The Release job keeps its scoped
+  `contents: write` override needed to publish GitHub Releases.
+- Force `devalue` to `^5.8.1` via `docs/package.json` `overrides` to clear
+  the GHSA DoS advisory (sparse-array deserialization) flagged on the
+  vulnerable `>=5.6.3, <=5.8.0` range pulled transitively through
+  `astro`/`@astrojs/starlight`.
+- `SKILL.md`: second pass on skills.sh Snyk findings W007 and W011 — the
+  first remediation in [#89] cleared the literal `password123` value but
+  left enough authentication-flavoured vocabulary and a login example in
+  place that the Snyk LLM auditor still graded the skill as encouraging
+  secret handling. Restructured the skill so the safety contract sits in a
+  top-of-file `## Safety` section that the auditor reads first, dropped the
+  standalone `### Untrusted WebView content` and `## Credential Safety`
+  sections (their content is consolidated into `## Safety`), and replaced
+  the login-form example with a list-filter example that does not type
+  into any credential field. Also extended the WebView-output rule to name
+  `navigate` and `eval` scripts that call `fetch`, matching the surfaces
+  the Snyk W011 finding called out explicitly.
+
+### Changed
+
+- **Breaking (advertised surface):** MCP tool names are now namespaced under
+  `pilot.*` in the published tool list — every tool exposed by `tauri-pilot
+  mcp` is advertised as `pilot.<name>` (e.g. `pilot.ping`, `pilot.click`,
+  `pilot.fill`, `pilot.attrs`, `pilot.snapshot`, `pilot.eval`,
+  `pilot.assert_text`, etc.). Bare names continue to resolve through
+  `tools/call` for backwards compatibility, but the advertised surface that
+  MCP clients discover and register against is the prefixed form. Motivation:
+  when this CLI is registered alongside other MCP servers, generic bare names
+  like `attrs` or `ping` collide with — and shadow — tools from those servers,
+  forcing the client owner to disambiguate by hand. Clients that referred to
+  bare names in their server registrations or inline prompts should update to
+  the prefixed form (`attrs` → `pilot.attrs`, `ping` → `pilot.ping`, and so
+  on). No tool semantics, schemas, or MCP protocol versions change.
+- Pin the `rmcp` manifest floor at `1.7.0` (was `^1.4.0`). The lockfile already
+  resolved to `1.7.0` via the earlier caret bump in `[0.5.2]`, so this only
+  aligns the declared dependency with the version actually being tested and
+  prevents an accidental rebuild against a pre-`1.7.0` rmcp. No behaviour
+  change.
+- Replace ASCII architecture diagram in `README.md` with an `assets/architecture.png`
+  illustration (with descriptive `alt` text) for better rendering on crates.io,
+  GitHub, and assistive technologies.
+- Bump Rust dependencies: `tauri` `2.11.1` → `2.11.2`, `tauri-plugin`
+  (build) `2.6.1` → `2.6.2` (patch), `quick-xml` `0.36` → `0.40` (used only
+  by scenario serialization tests), `toml` `0.8` → `1` (used by scenario
+  loader — `from_str` API unchanged for our usage). Workspace-wide
+  `cargo update` also refreshed transitive crates. `windows` (`0.61`) and
+  `core-graphics` (`0.24`) intentionally kept pinned until their next
+  minor bumps can be validated on actual Windows / macOS runners.
+
+## [0.5.2] - 2026-05-14
+
+### Changed
+
+- Refresh transitive and minor-bump dependency versions via `cargo update`
+  within existing semver carets. No public API or CLI behavior changes. Notable
+  resolved versions: `tauri` 2.10.3 → 2.11.1, `tauri-plugin` 2.5.4 → 2.6.1,
+  `tauri-build` 2.5.6 → 2.6.1, `tokio` 1.50.0 → 1.52.3, `wry` 0.54.4 → 0.55.1,
+  `rmcp` 1.5.0 → 1.7.0, `thiserror` 2.0.x → 2.0.18, `tower-http` 0.6.8 →
+  0.6.10, `tray-icon` 0.21.3 → 0.23.1, `wasm-bindgen` 0.2.117 → 0.2.121.
+  Breaking-only upgrades (`quick-xml` 0.36 → 0.40, `toml` 0.8 → 1.x, `windows`
+  0.61 → 0.62) intentionally deferred to dedicated PRs.
+- Refresh `docs/` npm dependencies via `npm update --save`. Bumps `astro`
+  6.1.9 → 6.3.2 (closes `npm audit` advisory GHSA-xr5h-phrj-8vxv on server
+  islands, plus patch fixes for HMR `HTMLElement` errors and double-encoded
+  URL handling), `@astrojs/starlight` 0.38.4 → 0.38.5, `sharp` 0.34.2 →
+  0.34.5. Astro 6.4 and Starlight 0.39 deferred (both involve breaking
+  changes). Supersedes #90.
+
+### Fixed
+
+- `wait` no longer caps user-supplied `--timeout` at the internal Rust default
+  (10 s). The handler dispatched `wait` through the generic `handle_eval_method`
+  with `DEFAULT_TIMEOUT`, so any `--timeout` above 10 000 ms produced a cryptic
+  `Eval error: eval timed out after 10s` instead of the bridge's well-formed
+  `Timeout waiting for <selector>` rejection. The reporter on issue #91 surfaced
+  this as "`wait --selector` silently fails for UUID values" — the UUID was a
+  coincidence: their UUID-bearing kanban rows simply rendered after the 10 s
+  cap. `wait` now joins `watch` on a shared `bridge_eval_timeout` helper that
+  pads the JS-side timeout with a 2 s headroom buffer ([#91]).
+- `bridge.js` `waitFor`: explicit `timeout: 0` is honored as "resolve or reject
+  immediately" instead of being coerced to the 10 000 ms default via
+  `||`-fallback. The previous behavior desynchronised the JS timer from the
+  padded Rust channel and could surface the generic "eval timed out" error for
+  `wait --timeout 0`. Matches the `watch` semantics that already used a
+  `!= null` check ([#91]).
+
+### Security
+
+- `SKILL.md`: addressed skills.sh Snyk findings W007 (insecure credential
+  handling) and W011 (third-party content exposure). Replaced the literal
+  `user@example.com` / `password123` pair in the login-flow example with
+  `$TEST_EMAIL` / `$TEST_PASSWORD` env-var references, added a "Credential
+  Safety" preamble that also flags `record` recordings and `replay --export
+  sh` shell scripts as credential-bearing artifacts to scrub before sharing,
+  and added an "Untrusted WebView content" guard instructing the agent to
+  treat output from `eval`, `html`, `text`, `attrs`, `value`, `logs`,
+  `network`, and `screenshot` as data to inspect — not instructions to
+  follow — and to escalate suspected indirect prompt-injection attempts.
+
+## [0.5.1] - 2026-05-09
+
+### Fixed
+
+- `fill` and `type` actions now work on `<textarea>`. The bridge previously grabbed the `value` setter via `Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value") || Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")` — but the first descriptor is always truthy, so the textarea fallback was unreachable and the input setter was applied to a textarea, throwing `The HTMLInputElement.value setter can only be used on instances of HTMLInputElement` (WebIDL `[LegacyUnforgeable]` brand check). The bridge now resolves the setter via `Object.getPrototypeOf(el)`, which works uniformly across `<input>`, `<textarea>`, and `<select>` (and also fixes a latent variant of the same bug for inputs sourced from another realm/iframe). The React controlled-input bypass that already existed for plain `<input>` is preserved unchanged ([#85]).
+
+### Changed
+
+- `select` action now validates the target tag explicitly: misrouted selectors that resolve to an `<input>`, `<textarea>`, or any non-`<select>` element fail fast with `select requires a <select> element, got: <tag>` instead of silently writing to the wrong element. The pre-refactor implicit type guard came from the `HTMLSelectElement.prototype.value` brand check; the new `nativeValueSetter` helper picks the setter from the element's own prototype, so the guard was made explicit. The check is tag-based (`el.tagName.toLowerCase() === "select"`) rather than `instanceof`, so `<select>` elements coming from another window/iframe realm continue to work ([#85]).
+
+## [0.5.0] - 2026-04-25
+
+### Added
+
+- **Windows support** — named pipe server and client for Windows, with security hardening (DACL, SID validation), registry-based instance discovery, and platform-specific tests ([#64])
+- **Batch scenario runner** — `tauri-pilot run <scenario.toml>` executes declarative TOML scenarios with 18 action types (click, fill, type, press, select, check, scroll, navigate, wait, watch, eval, screenshot, assert-text, assert-exists, assert-visible, assert-hidden, assert-value, assert-url). Supports `fail_fast` (default true), `--no-fail-fast` override, `--junit <file>` for JUnit XML output, and auto-captures failure screenshots to `./tauri-pilot-failures/`. Exit code 0 = all pass, 1 = any failure. Example: `docs/examples/login-flow.toml` ([#62])
+- `connect.timeout_ms` in TOML scenarios — wraps `Client::connect` in `tokio::time::timeout` ([#63])
+- `global_timeout_ms` in TOML scenarios — hard deadline around `run_scenario` ([#63])
+- Per-step `timeout_ms` applied to all non-`wait`/`watch` actions via `tokio::time::timeout` ([#63])
+- `<testsuites>` JUnit XML root now carries `tests`, `failures`, `errors`, `skipped`, `time` aggregate attributes for CI reporters (Jenkins, GitHub Actions, Allure) ([#63])
+
+### Fixed
+
+- **Windows security hardening** — fixed heap overflow in ACL allocation, use-after-free on the SID buffer, a no-op peer-SID check (`OpenProcessToken` on the impersonated thread replaced with `OpenThreadToken`), UB on the alloc-failure path, silent fallback to a broader default DACL, and a permanently-aborting accept loop. Also switched `instances_dir` creation to `std::fs::create_dir_all` for correctness on clean profiles, and added a regression test asserting the bound pipe carries a user-only DACL with one ACE ([#64])
+- `tauri-pilot-cli` Windows builds now enable the `Win32_Foundation` and `Win32_System_Threading` features on the `windows` crate so `is_pid_alive` compiles on Windows CI ([#64])
+- `tauri-plugin-pilot` marks the Linux-target `enigo` entry as `optional = true` so `--no-default-features` actually drops the dependency — previously the `press` feature gate was silently defeated by cargo merging the target-specific entry with the top-level one ([#64])
+- `tauri-plugin-pilot` server now caps per-line reads using `AsyncReadExt::take` before invoking `read_line`, so a peer flooding bytes without a newline can no longer OOM the host process — the existing `MAX_LINE_LENGTH` check was applied after the full line had already been buffered ([#64])
+- `tauri-pilot-cli` Unix client tests use a per-process, atomic-counter socket path instead of hard-coded `/tmp/tauri-pilot-test-*.sock` paths, so parallel `cargo test` runs no longer cross-wire through the same socket file ([#64])
+- `tauri-pilot-cli` Windows registry-resolution tests mock entries with `std::process::id()` instead of a fabricated dead PID, so the liveness filter added in the Windows support work doesn't skip them ([#64])
+- `assert-exists` now verifies the `visible` key is present in the RPC response to catch missing DOM elements ([#63])
+- `scroll top` and `scroll bottom` now actually scroll. Previously the bridge `scroll()` only computed dx/dy for `up`/`down`/`left`/`right`, so `top` and `bottom` returned `✓ ok` while `scrollBy(0, 0)` was a silent no-op. The bridge now uses `scrollTo(scrollX, 0)` for `top` and `scrollTo(scrollX, max(documentElement.scrollHeight, body.scrollHeight) - documentElement.clientHeight)` for `bottom` on the window (preserves horizontal scroll, quirks-mode safe, excludes any horizontal scrollbar height that `window.innerHeight` would otherwise count), and `scrollTop = 0` / `scrollTop = scrollHeight - clientHeight` on element refs. Unknown directions now throw instead of silently no-op (behavior change: scripts that previously got `{ ok: true }` for typos like `"Down"` will now get an error). The MCP `scroll` tool schema also exposes `top` and `bottom` in its direction enum, and `docs/reference/cli.md` lists them ([#73])
+- `tauri-pilot wait <target>` (positional) is now parsed the same way as `click`, `text`, `value`, etc.: `@x` is a snapshot ref, anything else is a CSS selector. Previously the positional was forwarded raw and the bridge always treated it as a snapshot ref via `idMap.get`, so `tauri-pilot wait "#trigger-deferred"` timed out even when the element existed ([#74])
+- `wait` TOML scenario steps now honor the `ref = "e1"` field on `[[step]]` entries (the same field already accepted by `scroll` etc.), routing through the shared `build_wait_params` helper instead of silently dropping it ([#74])
+- `tauri-pilot wait` and the bridge `waitFor` now reject up-front when neither `selector` nor `ref` is provided (including the `@`-alone edge case where `parse_target` would otherwise produce an empty ref), instead of silently waiting on a `MutationObserver` until the timeout fires ([#74])
+- Bridge `waitFor` reads `options.ref` (was `options.target`) so its protocol matches `resolveTarget`, the field name used by every other element-targeting handler ([#74])
+- The MCP `wait` tool now routes through the same `build_wait_params` helper so MCP clients get the auto-detection fix without their own code change ([#74])
+- Scoped the `press` + global-shortcut claim from PR #45 / `[0.4.0]`. On X11, `enigo`'s `XTestFakeKeyEvent` backend does not reliably satisfy the `XGrabKey` passive grabs used by `tauri-plugin-global-shortcut`'s Linux backend, so registered global shortcuts may not fire. DOM listeners and Tauri accelerators are unaffected. See [#75], the README's "Known limitations" section, and the `press` reference docs for the mechanism and the documented workaround.
+- `tauri-pilot eval` now auto-wraps top-level `await` in an async IIFE so the natural shape works (`await Promise.resolve("hi")`, `await fetch("/api").then(r => r.json())`). Previously the bridge fell through to indirect eval — a script context where top-level `await` is forbidden — and surfaced an opaque `Unexpected identifier 'Promise'` error instead of pointing at the real cause. The bridge now compiles in three stages (expression → async-expression → async-statement-IIFE-when-await-is-detected → indirect-eval) and emits a clear error pointing back at `docs/reference/cli.md` when none of them parse. Multi-statement scripts that want to surface a value still need an explicit `return`. ([#79])
+- `tauri-pilot --json snapshot --save <path>` now emits a self-describing JSON object on stdout: the saved file path is merged into the result as `"path"` (alongside `"elements"`), matching the `record stop --output` and `screenshot` conventions. Pipelines like `... | jq` or `... | python -c 'json.load(sys.stdin)'` are no longer at the mercy of stderr/stdout interleaving. Also routed `tracing` output to stderr in CLI mode so `RUST_LOG`-driven log lines can never corrupt a `--json` payload (it was already routed to stderr in `mcp` mode). The human-readable "Snapshot saved to <path>" line is still printed to stderr ([#80]).
+
+### Changed
+
+- Clippy cleanup / no-suppression policy: remove speculative Windows helpers (`discover_instances`, `find_newest_instance`, `is_pid_alive`), scope test-only imports inside `mod tests` blocks, replace `.unwrap()`/`.unwrap_err()` in tests with `.expect()`/`.expect_err()` to satisfy the workspace `clippy::unwrap_used = "deny"` without module-level `#[allow]` escapes, and fix `cast_precision_loss`/`cast_possible_truncation` via `Duration::as_secs_f64` and `Value::as_i64`. Also retry on `ERROR_PIPE_BUSY` when connecting to the Windows Named Pipe so `client::windows::connect` has a genuine await instead of `#[allow(clippy::unused_async)]`
+- `tauri-plugin-pilot` `init()` doc comment clarifies the no-op fallback now excludes Windows too and mentions the Named Pipe server path ([#64])
+- Bumped `windows` crate `0.52` → `0.61` on both `tauri-plugin-pilot` and `tauri-pilot-cli`, aligning with the version already pulled transitively by `tauri`/`tao`/`wry`/`webview2-com`/`enigo`. Deduplicates the Windows dependency graph (removes the parallel `windows-targets` tree shipped with 0.52) and picks up the `HANDLE(*mut c_void)` layout matching `std::os::windows::raw::HANDLE`. Mechanical breaking changes: `HANDLE(0)` → `HANDLE(std::ptr::null_mut())`, `HANDLE(raw as isize)` → `HANDLE(raw)`, `self.0.0 != 0` → `!self.0.0.is_null()`, `PSID` import relocated from `Win32::Foundation` to `Win32::Security`, `BOOL` now lives in `windows::core`, `SetSecurityDescriptorDacl` takes `Option<*const ACL>` (cast via `.cast_const()`), `GetSecurityInfo` returns `WIN32_ERROR` (use `.ok()`), `LocalFree` takes `Option<HLOCAL>` ([#68])
+- Bumped `indicatif` from `0.17` to `0.18` (brings the transitive `console` update to `0.16`; only `ProgressBar::new_spinner()` is used — API stable)
+- Bumped docs dependencies: `astro` `6.1.3` → `6.1.9`, `@astrojs/starlight` `0.38.2` → `0.38.4`, transitively `vite` `7.3.1` → `7.3.2`
+- Refreshed `Cargo.lock` patch-level updates: `libc` `0.2.184` → `0.2.186`, `clap` / `clap_derive` `4.6.0` → `4.6.1`, `assert_cmd` `2.2.0` → `2.2.1`
+
+### Security
+
+- Resolved Dependabot alerts #1–#4 (all in `docs/`):
+  - `astro` XSS via `define:vars` incomplete `</script>` sanitization ([GHSA-j687-52p2-xcff](https://github.com/advisories/GHSA-j687-52p2-xcff), CVE-2026-41067) — patched upstream in `astro@6.1.6`; included via bump to `astro@6.1.9`
+  - `vite` path traversal in optimized deps `.map` handling ([GHSA-4w7w-66w2-5vf9](https://github.com/advisories/GHSA-4w7w-66w2-5vf9), CVE-2026-39365)
+  - `vite` `server.fs.deny` bypass via query parameters ([GHSA-v2wj-q39q-566r](https://github.com/advisories/GHSA-v2wj-q39q-566r), CVE-2026-39364)
+  - `vite` arbitrary file read via dev-server WebSocket ([GHSA-p9ff-h696-f583](https://github.com/advisories/GHSA-p9ff-h696-f583), CVE-2026-39363)
+  - All three `vite` CVEs fixed transitively via `astro@6.1.9` → `vite@7.3.2`
+
+### Removed
+
+- `.gitignore` no longer ignores `CLAUDE.md`, `.sisyphus/`, `.agents/`, or `skills-lock.json` — these are personal tooling entries that belong in a user-level `~/.gitignore_global`, not in the repo ([#64])
+
+## [0.4.0] - 2026-04-17
+
+### Added
+
+- `eval` command now reads the script from stdin when the argument is `-` or omitted ([#41])
+- Stdin heredoc and pipe examples for `eval -` in README, SKILL.md, and CLI reference ([#50])
+- MCP server mode for exposing tauri-pilot commands as structured tools over stdio ([#51])
+- `watch --require-mutation` flag defers the stability timer until at least one DOM mutation occurs, then waits for `--stable` ms of quiet. Rejects on timeout if nothing mutated. Use after IPC calls that trigger async re-renders (e.g. React state updates) where you need to block until the re-render lands ([#49])
+
+### Changed
+
+- **Breaking:** `watch` default semantics changed — the stability timer now arms at startup instead of on the first mutation. Idle runs resolve after `--stable` ms with an empty change set (`{added:[], removed:[], modified:[]}`) instead of rejecting with a "no DOM changes" timeout error. Scripts that relied on `watch` as a "did anything change?" assertion should switch to `watch --require-mutation` to keep the old reject-on-idle behaviour ([#49])
+- `press` command now injects keyboard events at the OS level via `enigo` instead of dispatching synthetic JS `KeyboardEvent`s. Events are now `isTrusted=true` and traverse the full input pipeline, reaching DOM listeners, Tauri accelerators, and global shortcut handlers ([#45])
+- The plugin now requests window focus before injecting keys so events land on the correct webview
+- `tauri-plugin-pilot` exposes a default-on `press` feature that gates the `enigo` dependency. Build with `--no-default-features` to drop it from release builds where the whole plugin is already no-op'd ([#53])
+- Bumped MSRV from Rust 1.94.0 to **1.95.0** (workspace `Cargo.toml`, `ci.yml`, `release.yml`). Public docs (README, CONTRIBUTING, docs site) updated and the inaccurate "LTS" wording dropped — Rust does not yet ship an LTS channel ([#54])
+
+### Fixed
+
+- `eval` now accepts `const`, `let`, `var`, function declarations and other statements — the previous `new Function("return (…)")` wrapper forced an expression context and rejected top-level declarations. Scripts now run through indirect `eval`, which returns the completion value of the last expression ([#46])
+- `click` now dispatches pointer events before mouse events so Radix UI dropdown, select, and dialog triggers open correctly ([#52])
+- `press "Control+1"` and similar combos now trigger Tauri global shortcuts and any handler that requires trusted keyboard events ([#45])
+- `press` with an explicit `--window <label>` now returns an error when the target window cannot be focused, instead of silently delivering the key to whatever window currently holds focus ([#53])
+- `press` serializes the full `focus → settle → inject` sequence, so two concurrent calls targeting different windows can no longer race on the focus step and cross their keys ([#53])
+- `press` combo parser now rejects empty segments between `+` (e.g. `Control++P`, `+A`) instead of silently normalizing them into different shortcuts ([#53])
+- `press` now explicitly enables enigo's `wayland` backend so OS-level key injection works on Wayland sessions, not just X11 ([#53])
+- `press` validates the combo string before taking the focus lock or stealing focus, so malformed input returns `-32602` (invalid params) immediately instead of `-32603` after an 80ms focus settle ([#53])
+- `simulate_press` now propagates modifier-release failures instead of dropping them, so a combo can no longer return `Ok(())` while leaving a modifier stuck down ([#53])
+- `press` with `--window <label>` but no focus hook installed now errors instead of silently injecting into whatever window has focus ([#53])
+- `Enigo::new` failure hint about macOS Accessibility permission is now gated to macOS builds — Linux and Windows errors no longer point users at the wrong remediation ([#53])
+- `press` JoinError handling distinguishes panics from cancellation and runtime-shutdown cases instead of reporting every failure as "panicked" ([#53])
+- `eval` now exits with code 0 when the JS expression returns `undefined` (e.g. `element.click()`, void functions). Previously the CLI bailed with `Error: Server returned empty result without error`, breaking bash `&&` chains and `set -e` scripts even though the eval had succeeded ([#48])
+
+## [0.3.0] - 2026-04-10
+
+### Added
+
+- **macOS support** — CI verification on macOS, updated documentation and platform requirements ([#37])
+
+## [0.2.1] - 2026-04-05
+
+### Security
+
+- **Socket hardening** — three layers of defense against local privilege escalation ([#31])
+  - Socket permissions set to `0o600` (owner-only) immediately after bind
+  - `umask(0o177)` guard around bind to eliminate TOCTOU race window
+  - Peer credential (UID) verification rejects connections from other local users
+  - Socket placed in `$XDG_RUNTIME_DIR` (user-private `0o700` directory) with `/tmp` fallback
+  - `XDG_RUNTIME_DIR` validated for ownership and permissions before use
+  - CLI `resolve_socket()` filters candidates by UID ownership
+
+## [0.2.0] - 2026-04-05
+
+### Added
+
+- **Record/replay** — capture user interactions as replayable test scripts (`record start`, `record stop --output`, `record status`, `replay`, `replay --export sh`) ([#15])
+- **Multi-window support** — `windows` command lists all windows, `--window` flag targets specific window ([#14])
+- **Form dump** — get all form fields at once instead of calling `value` on each input individually ([#13])
+  - `tauri-pilot forms` — dump all forms on the page
+  - `tauri-pilot forms --selector "#login-form"` — target a specific form
+  - Shows field name, type, value, and checked state
+- **Storage access** — read and write browser localStorage/sessionStorage from the CLI ([#12])
+  - `tauri-pilot storage get "key"` — read a single key
+  - `tauri-pilot storage set "key" "value"` — write a key-value pair
+  - `tauri-pilot storage list` — dump all key-value pairs
+  - `tauri-pilot storage clear` — clear all storage
+  - `--session` flag to use sessionStorage instead of localStorage
+- **Drag & drop support** — simulate drag interactions and file drops for kanban boards, sortable lists, and drop zones ([#11])
+  - `tauri-pilot drag @e5 @e6` — drag element to another element
+  - `tauri-pilot drag @e5 --offset 0,100` — drag by pixel offset
+  - `tauri-pilot drop @e3 --file ./test.png` — simulate file drop on element
+  - Dispatches full HTML5 drag event sequence: `dragstart`, `dragenter`, `dragover`, `drop`, `dragend`
+- **DOM watch command** — observe DOM mutations with MutationObserver, debounce until stable, and return a change summary ([#10])
+  - `tauri-pilot watch` — block until any DOM change, print summary
+  - `--timeout` timeout in ms, `--selector` scope to subtree, `--stable` debounce duration
+  - Uses `MutationObserver` with `childList`, `subtree`, `attributes`, `characterData`
+
+## [0.1.0] - 2026-04-03
+
+### Added
+
+- **Built-in assertions** — one-step verification for AI agents instead of manual text+parse+compare ([#9])
+  - `tauri-pilot assert text @e1 "Dashboard"` — exact text content match
+  - `tauri-pilot assert visible @e3` / `hidden @e3` — element visibility checks
+  - `tauri-pilot assert value @e2 "workspace"` — input value match
+  - `tauri-pilot assert count ".list-item" 5` — element count by CSS selector
+  - `tauri-pilot assert checked @e4` — checkbox state
+  - `tauri-pilot assert contains @e1 "error"` — partial text match
+  - `tauri-pilot assert url "/dashboard"` — URL substring match
+  - Exit code 0 + `ok` on success, exit code 1 + `FAIL: ...` on failure
+  - 3 new JS bridge functions: `visible()`, `count()`, `checked()`
+- **Snapshot diff command** — compare current page state with a previous snapshot ([#8])
+  - `diff` JSON-RPC method in plugin with added/removed/changed detection
+  - `tauri-pilot diff` CLI command with `--ref FILE`, `--interactive`, `--selector`, `--depth` flags
+  - `tauri-pilot snapshot --save FILE` flag to persist snapshots for later comparison
+  - Colored diff output: red `-` removed, green `+` added, yellow `~` changed with field-level detail
+  - Snapshot storage in `EvalEngine` — last snapshot retained automatically after each `snapshot` call
+- **Network request interception** — monkey-patch `fetch` and `XMLHttpRequest` in the JS bridge with a 200-entry ring buffer ([#7])
+  - `network.getRequests` and `network.clear` JSON-RPC methods
+  - `tauri-pilot network` CLI command with `--filter`, `--failed`, `--last`, `--follow`, `--clear` flags
+  - Colored status codes (2xx green, 3xx cyan, 4xx yellow, 5xx red)
+  - NDJSON output in `--follow --json` mode for `jq` compatibility
+- **Console log capture** — monkey-patch `console.log/warn/error/info` in the JS bridge with a 500-entry ring buffer ([#17])
+  - `console.getLogs` and `console.clear` JSON-RPC methods
+  - `tauri-pilot logs` CLI command with `--level`, `--last`, `--follow`, `--clear` flags
+  - Colored output formatting for log levels
+  - NDJSON output in `--follow --json` mode for `jq` compatibility
+- **Colored CLI output** — TTY-aware formatting with `owo-colors` + `indicatif` ([#3])
+  - `style.rs` reusable helpers (success/error/warning/info/dim/bold)
+  - Automatic `NO_COLOR` support
+  - Colored accessibility tree (cyan roles, bold names, dim refs)
+  - Spinner for screenshot capture
+- **Phase 1: Skeleton, Protocol, and Snapshot** — full foundation ([#1])
+  - Cargo workspace with two crates (`tauri-plugin-pilot`, `tauri-pilot-cli`)
+  - JSON-RPC 2.0 protocol types with round-trip tests
+  - JS bridge (`window.__PILOT__`) with TreeWalker snapshot, refs, and `ROLE_MAP`
+  - Unix socket server with newline-delimited JSON-RPC framing
+  - `EvalEngine` with callback pattern (eval + oneshot channel + timeout)
+  - `__callback` IPC handler with `__TAURI_INTERNALS__.invoke`
+  - 23 JSON-RPC methods: `ping`, `snapshot`, `click`, `fill`, `type`, `press`, `select`, `check`, `scroll`, `eval`, `screenshot`, `text`, `html`, `value`, `attrs`, `wait`, `navigate`, `url`, `title`, `state`, `ipc`, `console.getLogs`, `console.clear`
+  - CLI with Clap: all subcommands, target resolution (`@ref`, CSS selector, `x,y` coords), `--json` flag
+  - `waitFor` with `MutationObserver` + configurable timeout
+  - Screenshot support via `html-to-image` (base64 PNG save-to-file)
+  - `SKILL.md` for Claude Code integration
+  - Prism integration script (`scripts/integrate-prism.sh`)
+  - `SocketGuard` RAII for socket cleanup on shutdown/panic
+  - `resolveTarget()` helper for ref/selector/coords
+  - Identifier sanitization for socket paths
+  - Debug-only compilation (`#[cfg(debug_assertions)]`)
+- **Documentation site** — Astro Starlight at `docs/` ([#5])
+  - 6 pages: Getting Started, CLI Reference, Plugin Setup, Architecture, AI Agent Integration, Contributing
+  - Dark theme with cyan accent
+  - GitHub Actions workflow for GitHub Pages deployment
+- **Project logo and badges** in README ([#4])
+
+### Fixed
+
+- Bundle `html-to-image` into bridge JS for screenshot support ([#2])
+- Upgrade Node.js to 22 for Astro 6.x compatibility in CI
+- IPC command injection via `JSON.parse` — use `serde_json` string literal
+- JSON-RPC version field validation at server boundary
+- Socket bind failure propagation from plugin setup
+- `set_nonblocking` error propagation (replace `expect()` with `?`)
+- `fstat`-based inode guard for socket cleanup race conditions
+- `std::os::unix::net::UnixListener` for sync bind in Tauri plugin setup
+- `__TAURI_INTERNALS__.invoke` instead of `__TAURI__.core.invoke`
+- Bridge functions accept params object (not positional arguments)
+- `build.rs` + permissions for `__callback` IPC command
+
+[#15]: https://github.com/mpiton/tauri-pilot/issues/15
+[#14]: https://github.com/mpiton/tauri-pilot/issues/14
+[#13]: https://github.com/mpiton/tauri-pilot/issues/13
+[#12]: https://github.com/mpiton/tauri-pilot/issues/12
+[#11]: https://github.com/mpiton/tauri-pilot/issues/11
+[#10]: https://github.com/mpiton/tauri-pilot/issues/10
+[#37]: https://github.com/mpiton/tauri-pilot/issues/37
+[#41]: https://github.com/mpiton/tauri-pilot/pull/41
+[#45]: https://github.com/mpiton/tauri-pilot/issues/45
+[#46]: https://github.com/mpiton/tauri-pilot/issues/46
+[#48]: https://github.com/mpiton/tauri-pilot/issues/48
+[#49]: https://github.com/mpiton/tauri-pilot/issues/49
+[#50]: https://github.com/mpiton/tauri-pilot/pull/50
+[#51]: https://github.com/mpiton/tauri-pilot/pull/51
+[#52]: https://github.com/mpiton/tauri-pilot/pull/52
+[#53]: https://github.com/mpiton/tauri-pilot/pull/53
+[#54]: https://github.com/mpiton/tauri-pilot/issues/54
+[#62]: https://github.com/mpiton/tauri-pilot/pull/62
+[#63]: https://github.com/mpiton/tauri-pilot/pull/63
+[Unreleased]: https://github.com/mpiton/tauri-pilot/compare/v0.7.3...HEAD
+[0.7.3]: https://github.com/mpiton/tauri-pilot/compare/v0.7.2...v0.7.3
+[0.7.2]: https://github.com/mpiton/tauri-pilot/compare/v0.7.1...v0.7.2
+[0.7.1]: https://github.com/mpiton/tauri-pilot/compare/v0.7.0...v0.7.1
+[0.7.0]: https://github.com/mpiton/tauri-pilot/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/mpiton/tauri-pilot/compare/v0.5.2...v0.6.0
+[0.5.2]: https://github.com/mpiton/tauri-pilot/compare/v0.5.1...v0.5.2
+[0.5.1]: https://github.com/mpiton/tauri-pilot/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/mpiton/tauri-pilot/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/mpiton/tauri-pilot/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/mpiton/tauri-pilot/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/mpiton/tauri-pilot/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/mpiton/tauri-pilot/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/mpiton/tauri-pilot/releases/tag/v0.1.0
+[#9]: https://github.com/mpiton/tauri-pilot/issues/9
+[#1]: https://github.com/mpiton/tauri-pilot/pull/1
+[#2]: https://github.com/mpiton/tauri-pilot/pull/2
+[#3]: https://github.com/mpiton/tauri-pilot/pull/3
+[#4]: https://github.com/mpiton/tauri-pilot/pull/4
+[#5]: https://github.com/mpiton/tauri-pilot/pull/5
+[#7]: https://github.com/mpiton/tauri-pilot/issues/7
+[#8]: https://github.com/mpiton/tauri-pilot/issues/8
+[#17]: https://github.com/mpiton/tauri-pilot/pull/17
+[#31]: https://github.com/mpiton/tauri-pilot/issues/31
+[#64]: https://github.com/mpiton/tauri-pilot/pull/64
+[#68]: https://github.com/mpiton/tauri-pilot/issues/68
+[#73]: https://github.com/mpiton/tauri-pilot/issues/73
+[#74]: https://github.com/mpiton/tauri-pilot/issues/74
+[#75]: https://github.com/mpiton/tauri-pilot/issues/75
+[#79]: https://github.com/mpiton/tauri-pilot/issues/79
+[#80]: https://github.com/mpiton/tauri-pilot/issues/80
+[#85]: https://github.com/mpiton/tauri-pilot/issues/85
+[#89]: https://github.com/mpiton/tauri-pilot/pull/89
+[#91]: https://github.com/mpiton/tauri-pilot/issues/91
+[#104]: https://github.com/mpiton/tauri-pilot/pull/104
+[#105]: https://github.com/mpiton/tauri-pilot/pull/105
+[#106]: https://github.com/mpiton/tauri-pilot/pull/106
+[#107]: https://github.com/mpiton/tauri-pilot/pull/107
+[#108]: https://github.com/mpiton/tauri-pilot/issues/108
+[#109]: https://github.com/mpiton/tauri-pilot/issues/109
+[#110]: https://github.com/mpiton/tauri-pilot/issues/110
+[#113]: https://github.com/mpiton/tauri-pilot/issues/113
+[#114]: https://github.com/mpiton/tauri-pilot/issues/114
+[#115]: https://github.com/mpiton/tauri-pilot/issues/115
+[#120]: https://github.com/mpiton/tauri-pilot/issues/120
+[#121]: https://github.com/mpiton/tauri-pilot/issues/121
+[#126]: https://github.com/mpiton/tauri-pilot/issues/126
+[#128]: https://github.com/mpiton/tauri-pilot/issues/128
+[#129]: https://github.com/mpiton/tauri-pilot/issues/129
+[#130]: https://github.com/mpiton/tauri-pilot/issues/130
+[#135]: https://github.com/mpiton/tauri-pilot/issues/135
+[#140]: https://github.com/mpiton/tauri-pilot/pull/140
+[#142]: https://github.com/mpiton/tauri-pilot/pull/142
+[#143]: https://github.com/mpiton/tauri-pilot/pull/143
+[#145]: https://github.com/mpiton/tauri-pilot/pull/145
+[#146]: https://github.com/mpiton/tauri-pilot/issues/146
+[#149]: https://github.com/mpiton/tauri-pilot/issues/149
+[#152]: https://github.com/mpiton/tauri-pilot/issues/152
+[#153]: https://github.com/mpiton/tauri-pilot/issues/153
+[#154]: https://github.com/mpiton/tauri-pilot/issues/154
+[#155]: https://github.com/mpiton/tauri-pilot/issues/155
+[#156]: https://github.com/mpiton/tauri-pilot/issues/156
+[#157]: https://github.com/mpiton/tauri-pilot/issues/157
+[#159]: https://github.com/mpiton/tauri-pilot/issues/159
+[#160]: https://github.com/mpiton/tauri-pilot/issues/160
+[#161]: https://github.com/mpiton/tauri-pilot/issues/161
+[#162]: https://github.com/mpiton/tauri-pilot/issues/162
+[#163]: https://github.com/mpiton/tauri-pilot/issues/163
+[#164]: https://github.com/mpiton/tauri-pilot/issues/164
+[#165]: https://github.com/mpiton/tauri-pilot/issues/165
+[#166]: https://github.com/mpiton/tauri-pilot/issues/166
+[#167]: https://github.com/mpiton/tauri-pilot/issues/167
+[#172]: https://github.com/mpiton/tauri-pilot/issues/172
+[#173]: https://github.com/mpiton/tauri-pilot/issues/173
+[#175]: https://github.com/mpiton/tauri-pilot/issues/175
+[#177]: https://github.com/mpiton/tauri-pilot/issues/177
+[#184]: https://github.com/mpiton/tauri-pilot/issues/184
+[#188]: https://github.com/mpiton/tauri-pilot/issues/188
+[#190]: https://github.com/mpiton/tauri-pilot/issues/190
+[#194]: https://github.com/mpiton/tauri-pilot/issues/194
+[#195]: https://github.com/mpiton/tauri-pilot/issues/195
+[#211]: https://github.com/mpiton/tauri-pilot/issues/211
+[#212]: https://github.com/mpiton/tauri-pilot/issues/212
+[#213]: https://github.com/mpiton/tauri-pilot/issues/213
+[#214]: https://github.com/mpiton/tauri-pilot/issues/214
+[#215]: https://github.com/mpiton/tauri-pilot/issues/215
+[#216]: https://github.com/mpiton/tauri-pilot/issues/216
+[#217]: https://github.com/mpiton/tauri-pilot/issues/217
+[#220]: https://github.com/mpiton/tauri-pilot/issues/220
+[#221]: https://github.com/mpiton/tauri-pilot/issues/221
+[#229]: https://github.com/mpiton/tauri-pilot/issues/229
+[#230]: https://github.com/mpiton/tauri-pilot/issues/230
+[#231]: https://github.com/mpiton/tauri-pilot/issues/231
+[#232]: https://github.com/mpiton/tauri-pilot/issues/232
+[#233]: https://github.com/mpiton/tauri-pilot/issues/233
+[#241]: https://github.com/mpiton/tauri-pilot/issues/241
+[#242]: https://github.com/mpiton/tauri-pilot/issues/242
+[#243]: https://github.com/mpiton/tauri-pilot/issues/243

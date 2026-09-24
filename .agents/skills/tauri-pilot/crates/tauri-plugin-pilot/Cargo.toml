@@ -1,0 +1,78 @@
+[package]
+name = "tauri-plugin-pilot"
+version = "0.7.3"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Tauri v2 plugin for runtime UI testing and automation via IPC JSON-RPC"
+keywords = ["tauri", "plugin", "testing", "automation", "accessibility"]
+categories = ["development-tools::testing", "gui"]
+readme = "README.md"
+links = "tauri-plugin-pilot"
+
+[lints]
+workspace = true
+
+[features]
+default = ["press"]
+# Enables the OS-level `press` command. Pulls in `enigo` and its platform
+# backends. Opt out with `--no-default-features` to drop the dependency from
+# release builds where the whole plugin is already no-op'd by
+# `cfg(debug_assertions)`.
+press = ["dep:enigo"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+# `signal`: a signal on Unix (#217) or a console control event on Windows
+# (#229) ends the app before RunEvent::Exit, so the plugin watches both.
+tokio = { workspace = true, features = ["net", "rt", "sync", "time", "io-util", "signal"] }
+tracing.workspace = true
+thiserror = "2"
+tauri = { workspace = true, features = ["unstable"] }
+enigo = { version = "0.6.1", optional = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.189"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_System_Pipes",
+    "Win32_System_Threading",
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+] }
+
+[target.'cfg(target_os="linux")'.dependencies]
+enigo = { version = "0.6.1", features = ["wayland"], optional = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10"
+core-graphics = "0.25"
+# 0.25.2 is where `image::ImageReader` (screenshot/ipc.rs) became an alias at
+# the crate root; 0.25.0 and 0.25.1 only expose `image::io::Reader`.
+image = { version = "0.25.2", default-features = false, features = ["png"] }
+
+[dev-dependencies]
+serial_test = "4"
+tauri = { workspace = true, features = ["test"] }
+tokio = { workspace = true, features = ["test-util", "macros"] }
+
+# What tests/signal_exit.rs uses, listed in full rather than leaning on the
+# features the library enables for its own reasons.
+[target.'cfg(windows)'.dev-dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_System_Console",
+    "Win32_System_Threading",
+] }
+
+[build-dependencies]
+tauri-plugin = { version = "2.6.3", features = ["build"] }

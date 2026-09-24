@@ -1,0 +1,35 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# AI Agents
+.claude/
+
+# Node (for bridge build step)
+node_modules/
+package-lock.json
+!docs/package-lock.json
+
+# Project Managment
+ARCHI.md
+PRD.md
+SPEC.md
+demo.tape
+
+# Test artifacts
+capture.png
+
+# ECC
+.insaits_audit*

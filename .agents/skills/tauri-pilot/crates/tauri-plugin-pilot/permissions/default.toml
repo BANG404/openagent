@@ -1,0 +1,12 @@
+"$schema" = "schemas/schema.json"
+
+[[permission]]
+identifier = "allow-eval-callbacks"
+description = "Allow the internal callback IPC commands used by the eval engine"
+
+[permission.commands]
+allow = ["callback", "__callback"]
+
+[default]
+description = "Default permissions for tauri-plugin-pilot (allows eval callback)"
+permissions = ["allow-eval-callbacks"]
