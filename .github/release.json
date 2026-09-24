@@ -1,10 +1,10 @@
 {
   "ready": true,
-  "version": "0.72.0-beta.1",
-  "tag": "v0.72.0-beta.1",
+  "version": "0.73.0-beta.1",
+  "tag": "v0.73.0-beta.1",
   "channel": "beta",
-  "sourceSha": "c92074f01492adba80a2c439e665562d9a999be7",
-  "previousTag": "v0.71.1-beta.1",
+  "sourceSha": "53a75b88efbef95689fcfeb4334787a8d1ea179b",
+  "previousTag": "v0.72.0-beta.1",
   "components": {
     "frontend": true,
     "runtime": true,

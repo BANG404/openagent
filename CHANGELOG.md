@@ -10,6 +10,72 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.73.0-beta.1] - 2026-09-24
+
+### Features
+- **chat**: Refine group panel messages and members
+- **ui**: Widen resizable right sidebar
+- **chat**: Annotate group role mentions inline
+- Route chat group wakeups through bound branches
+- **agent**: Add prompt skill contract validation
+- Replace dispatch role with chat group start
+- **chat**: Render group markdown and resolve role mentions
+- **roles**: Inherit parent delegated resources
+- Split role creation from dispatch
+- Expose private chat message tool
+- Add optional chat group collaboration
+
+### Bug Fixes
+- Discard queued messages when stopping chat
+- Stop delayed chat group wakes after cancellation
+- Enforce chat group wake tool calls
+- Route group mentions through runtime queue
+- Preserve active chat group role turns
+- **chat**: Clarify role mention replies
+- **onboarding**: Reserve space for short windows
+- **window**: Preserve normal geometry on restore
+- **onboarding**: Fit welcome content without scrolling
+- **frontend**: Scale resizable surfaces with window
+- Restore chat group sidebar after hydration
+- **chat**: Prevent role self-wakeups
+- **chat**: Avoid redundant chat group scope updates
+- Refresh bound branch before queued group wake
+- **dev**: Stop desktop host when launcher exits
+- **chat**: Avoid chat group availability remount loop
+- **chat**: Coalesce chat group panel refreshes
+- Keep failed chat group runs out of sidebars
+- Wake chat roles from markdown mentions
+- Prevent repeated frontend diagnostic reports
+- Create chat group roles on mention
+- Stabilize chat group role wakeups
+- Continue goals and target chat group mentions
+- **chat**: Merge group creation into start
+- **chat**: Resolve started group ids
+- **chat**: Scope group sidebar to active branch
+- **chat**: Resolve legacy role labels
+- **chat**: Preserve delegated role names
+- **chat**: Keep existing group panel selectable
+- **chat**: Refresh roles and dispatch asynchronously
+- Open chat group sidebar on tool use
+- **chat**: Use runtime queue for group wakeups
+- **chat**: Hide queued group role wakeups
+- **ui**: Polish composer actions and terminal waits
+- Sync chat group mentions after text deletion
+- **frontend**: Preserve chat layout minimum widths
+- **chat**: Remove chat group creation button
+- Size recent workspace submenu to content
+- Size recent workspace submenu to content
+- **frontend**: Unify remaining scroll surfaces
+- **frontend**: Scroll standalone role editor body
+- **chat**: Show awakened group roles
+- **chat**: Retain right sidebar tab state
+- **chat**: Support reliable group mentions
+- **frontend**: Reuse shared chat group selector
+- **frontend**: Smooth expanded management surface motion
+
+### Refactoring
+- **chat-group**: Use composer mentions for wakeups
+
 ## [0.72.0-beta.1] - 2026-09-22
 
 ### Features
