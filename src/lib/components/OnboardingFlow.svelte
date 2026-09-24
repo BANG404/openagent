@@ -1330,4 +1330,10 @@
       flex: 1;
     }
   }
+
+  @media (max-height: 600px) {
+    footer {
+      padding-top: 8px;
+    }
+  }
 </style>
