@@ -314,6 +314,7 @@
         {#if selectedGroup}<span>{selectedGroup.title}</span>{/if}
       </div>
     </header>
+    <p class="group-hint">{$t("chatGroupMentionHint")}</p>
 
     {#if groups.length === 0}
       <p class="empty">{$t("chatGroupEmpty")}</p>
@@ -450,6 +451,11 @@
     font-size: 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .group-hint {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 12px;
   }
   .composer button {
     border: 1px solid var(--border);

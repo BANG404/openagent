@@ -15,6 +15,9 @@ The panel displays the active group's title and participating roles as
 read-only context; it does not switch groups or wake roles from member clicks.
 Manual wakeups are sent by typing `@` in the group composer and choosing a
 member from its mention palette.
+An `@role` mention is a wake-up request for that role to reply in the group.
+The role's final answer is not copied from its private conversation; the role
+must publish the response with `chat_group_send_message` before finishing.
 `chat_group_start` creates the group and records its first message without
 creating role conversations. The first boundary-safe `@role` mention creates a
 fresh role child conversation and a dedicated branch in the group's workspace;
