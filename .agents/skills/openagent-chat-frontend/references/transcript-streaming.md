@@ -451,5 +451,7 @@
   while continuing to restore legacy system-boundary checkpoints.
 - Chat-group messages keep sender identity separate from wake targets. Render
   the sender from its conversation member, and resolve each persisted mention
-  member ID to an explicit `@role` label so a message sent by the `openagent`
-  role is not confused with the roles it wakes.
+  member ID to an explicit inline `@role` annotation so a message sent by the
+  `openagent` role is not confused with the roles it wakes. Do not add a
+  separate mention summary below the message; unresolved or non-mention `@text`
+  remains ordinary Markdown text.

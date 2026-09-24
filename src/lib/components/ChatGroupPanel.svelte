@@ -9,6 +9,10 @@
   import Mermaid from "$lib/streamdown/Mermaid.svelte";
   import CustomToken from "$lib/streamdown/CustomToken.svelte";
   import { customExtensions, type ComponentToken } from "$lib/streamdown/extensions";
+  import {
+    createChatGroupMentionExtension,
+    type ChatGroupMentionToken,
+  } from "$lib/streamdown/chatGroupMention";
   import { chatMarkdownTheme } from "$lib/streamdown/chatMarkdownTheme";
   import { externalLinks } from "$lib/streamdown/externalLink";
   import { useOpenAgentUiCapabilities } from "$lib/openagent";
@@ -234,11 +238,14 @@
     );
   }
 
-  function mentionedRoleNames(message: ChatGroupMessage): string[] {
-    return message.mentions.map(
-      (memberId) =>
-        members.find((member) => member.id === memberId)?.role_name ?? $t("chatGroupRole"),
+  function extensionsForMessage(message: ChatGroupMessage) {
+    const mentionExtension = createChatGroupMentionExtension(
+      message.mentions.flatMap((memberId) => {
+        const member = members.find((item) => item.id === memberId);
+        return member ? [{ id: member.id, roleName: member.role_name }] : [];
+      }),
     );
+    return mentionExtension ? [...customExtensions, mentionExtension] : customExtensions;
   }
 
   $effect(() => {
@@ -339,7 +346,7 @@
                   content={message.content.trimEnd()}
                   controls={{ table: false }}
                   components={{ code: Code, mermaid: Mermaid, math: ChatMath }}
-                  extensions={customExtensions}
+                  extensions={extensionsForMessage(message)}
                   theme={chatMarkdownTheme}
                   shikiTheme={isDarkTheme ? "github-dark" : "github-light"}
                   mermaidConfig={mermaidConfigFor(isDarkTheme)}
@@ -347,19 +354,14 @@
                   {#snippet children({ token })}
                     {#if (token as ComponentToken).type === "component"}
                       <CustomToken token={token as ComponentToken} isDark={isDarkTheme} />
+                    {:else if (token as ChatGroupMentionToken).type === "chatGroupMention"}
+                      <span class="chat-group-mention"
+                        >{(token as ChatGroupMentionToken).label}</span
+                      >
                     {/if}
                   {/snippet}
                 </Streamdown>
               </div>
-              {#if message.mentions.length > 0}
-                <small class="mentions">
-                  {$t("chatGroupMentioned")}:
-                  {#each mentionedRoleNames(message) as roleName, index (message.mentions[index])}
-                    {#if index > 0},
-                    {/if}@{roleName}
-                  {/each}
-                </small>
-              {/if}
             </article>
           {/each}
         {/if}
@@ -548,7 +550,9 @@
     border-radius: 4px;
     font-size: 12px;
   }
-  .message-row small {
+  .chat-group-mention {
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
     color: var(--primary);
     font-size: 10px;
   }
