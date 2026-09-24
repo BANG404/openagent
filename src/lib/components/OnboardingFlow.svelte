@@ -960,6 +960,10 @@
     overflow-y: hidden !important;
     padding-bottom: 0;
   }
+
+  :global(.step-scroll.welcome-scroll .ui-scroll-area-scrollbar) {
+    display: none;
+  }
   :global(.welcome-scroll .setup-description) {
     margin-bottom: 14px;
   }
@@ -1043,7 +1047,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
+    gap: 8px;
+    padding-block: 12px;
   }
   .workspace-card div {
     display: grid;
