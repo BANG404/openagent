@@ -155,7 +155,9 @@
   which case it remains the send action. Sending a queued follow-up from the
   paused state resumes the current stream so queue dispatch cannot deadlock.
   Keep stop as a separate terminal action and clear transient pause state on
-  every terminal path and conversation switch.
+  every terminal path and conversation switch. Stop also discards queued
+  follow-up messages before requesting cancellation; a cancelled turn must not
+  dispatch its next queued message.
 - The main conversation composer exposes the same global approval mode as
   General settings. Switching `manual`, `auto`, or `off` saves the normalized
   configuration without changing the independent permission profile; quick

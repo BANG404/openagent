@@ -977,6 +977,8 @@
 
   async function stopMessage() {
     if (!conversation || !running) return;
+    const convId = conversation.conv_id;
+    clearQueuedMessages(convId);
     await perform(() => client.cancelRemoteConversation(conversation!.conv_id));
   }
 

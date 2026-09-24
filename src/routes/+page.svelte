@@ -4400,10 +4400,13 @@
   async function stopMessage() {
     if (!tauriAvailable) return;
     if (!activeConvId || !isCurrentStreaming) return;
+    const convId = activeConvId;
+    clearQueuedMessages(convId);
+    await syncChatQueuePending(convId);
     // Saving the partial response can be queued behind earlier stream writes.
     // Do not make that queue delay the cancellation signal.
     void persistStreamDraft(activeConvId, true).catch(() => {});
-    await openAgent.invokeProduct("cancel_chat_message", { convId: activeConvId }).catch(() => {});
+    await openAgent.invokeProduct("cancel_chat_message", { convId }).catch(() => {});
   }
 
   async function setStreamPaused(convId: string, paused: boolean) {
