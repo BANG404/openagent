@@ -55,3 +55,12 @@ export function scaleCheckpointFlowPanelWidth(
     containerWidth,
   );
 }
+
+/** Apply a saved panel share to a new conversation-container width. */
+export function checkpointFlowPanelWidthForRatio(
+  widthRatio: number,
+  containerWidth: number,
+): number {
+  const safeRatio = Number.isFinite(widthRatio) ? Math.max(0, widthRatio) : 0;
+  return clampCheckpointFlowPanelWidth(safeRatio * containerWidth, containerWidth);
+}

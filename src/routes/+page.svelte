@@ -11,6 +11,7 @@
   import { onMount, tick, untrack } from "svelte";
   import type { Component } from "svelte";
   import { detectWindowPlatform } from "$lib/windowPlatform";
+  import { createWindowMaximizer } from "$lib/windowMaximizer";
 
   // Lazy-loaded feature views expose different prop contracts; each render site
   // below remains checked against the concrete component after loading.
@@ -519,6 +520,7 @@
     !isQuickChatSurface &&
     !isDevInspectorWindow;
   const appWindow = tauriAvailable ? getCurrentWindow() : null;
+  const windowMaximizer = appWindow ? createWindowMaximizer(appWindow) : null;
   const completionWindowActivity = tauriAvailable
     ? { isFocused: () => invoke<boolean>("is_desktop_window_active") }
     : null;
@@ -5412,9 +5414,36 @@
   });
 
   const winMinimize = () => appWindow?.minimize();
-  const winMaximize = () => appWindow?.toggleMaximize();
+  const winMaximize = () => windowMaximizer?.toggle() ?? Promise.resolve();
   const winClose = () => (launchContext?.workspace ? appWindow?.close() : appWindow?.hide());
   const quitApp = () => void invoke("quit_app");
+
+  onMount(() => {
+    if (!windowMaximizer || !appWindow) return;
+
+    let disposed = false;
+    let unlistenMoved: (() => void) | undefined;
+    let unlistenResized: (() => void) | undefined;
+    const rememberNormalGeometry = () => {
+      if (!disposed) void windowMaximizer.rememberNormalGeometry();
+    };
+
+    void windowMaximizer.rememberNormalGeometry();
+    void appWindow.onMoved(rememberNormalGeometry).then((unlisten) => {
+      if (disposed) unlisten();
+      else unlistenMoved = unlisten;
+    });
+    void appWindow.onResized(rememberNormalGeometry).then((unlisten) => {
+      if (disposed) unlisten();
+      else unlistenResized = unlisten;
+    });
+
+    return () => {
+      disposed = true;
+      unlistenMoved?.();
+      unlistenResized?.();
+    };
+  });
 
   // Keep the webview's built-in context menu available while developing, but
   // do not expose browser actions (such as inspect/copy navigation) in builds.

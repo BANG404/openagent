@@ -99,6 +99,11 @@ have been created.
   user-selected proportion when the main window changes size. Apply their
   existing minimum, maximum, and container-ratio bounds after scaling, and keep
   the persisted width as the last concrete size for the next launch.
+- The frontend maximize control must capture the main window's normal physical
+  position and inner size before maximizing, ignore transition resize/move
+  events, and reapply that geometry after restoring. Resizable panels keep the
+  selected container ratio separately from their clamped concrete width so a
+  larger maximized window cannot change the size restored to the normal window.
 - Keep on-demand utility-window construction a native host responsibility for
   the standalone `?settings-window=` and `?role-editor-window=` WebViews the host
   creates itself, with fixed domain labels including General Settings. Each

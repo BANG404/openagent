@@ -3,6 +3,7 @@ import {
   CHECKPOINT_FLOW_PANEL_MAX_CONTAINER_RATIO,
   CHECKPOINT_FLOW_PANEL_MAX_WIDTH,
   CHECKPOINT_FLOW_PANEL_MIN_WIDTH,
+  checkpointFlowPanelWidthForRatio,
   checkpointFlowPanelMaximum,
   clampCheckpointFlowPanelWidth,
   loadCheckpointFlowPanelCollapsed,
@@ -61,5 +62,12 @@ describe("checkpoint flow panel sizing", () => {
     expect(scaleCheckpointFlowPanelWidth(400, 800, 400)).toBe(
       400 * CHECKPOINT_FLOW_PANEL_MAX_CONTAINER_RATIO,
     );
+  });
+
+  test("preserves the selected ratio when a larger container hits the width cap", () => {
+    const ratio = 400 / 800;
+    const expanded = checkpointFlowPanelWidthForRatio(ratio, 2400);
+    expect(expanded).toBe(CHECKPOINT_FLOW_PANEL_MAX_WIDTH);
+    expect(checkpointFlowPanelWidthForRatio(ratio, 800)).toBe(400);
   });
 });

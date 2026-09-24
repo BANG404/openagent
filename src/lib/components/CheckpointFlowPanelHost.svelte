@@ -5,9 +5,9 @@
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import {
     clampCheckpointFlowPanelWidth,
+    checkpointFlowPanelWidthForRatio,
     loadCheckpointFlowPanelWidth,
     saveCheckpointFlowPanelWidth,
-    scaleCheckpointFlowPanelWidth,
   } from "$lib/checkpointFlowPanelSizing";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
 
@@ -51,22 +51,20 @@
     typeof window === "undefined" ? 320 : loadCheckpointFlowPanelWidth(window.localStorage),
   );
   let resizing = $state(false);
-
-  function scaleForContainer(previousWidth: number, nextWidth: number): void {
-    width = scaleCheckpointFlowPanelWidth(width, previousWidth, nextWidth);
-  }
+  let widthRatio = 0;
 
   onMount(() => {
     const panel = document.getElementById("checkpoint-flow-panel");
     const container = panel?.parentElement;
     if (!container) return;
     let previousWidth = container.clientWidth;
+    widthRatio = previousWidth > 0 ? width / previousWidth : 0;
     const observer = new ResizeObserver(() => {
       const nextWidth = container.clientWidth;
       if (nextWidth > 0 && previousWidth > 0 && nextWidth !== previousWidth) {
-        scaleForContainer(previousWidth, nextWidth);
+        width = checkpointFlowPanelWidthForRatio(widthRatio, nextWidth);
       }
-      previousWidth = nextWidth;
+      if (nextWidth > 0) previousWidth = nextWidth;
     });
     observer.observe(container);
     return () => observer.disconnect();
@@ -84,6 +82,7 @@
     const startX = event.clientX;
     const startWidth = panel.getBoundingClientRect().width;
     width = startWidth;
+    widthRatio = container.clientWidth > 0 ? startWidth / container.clientWidth : widthRatio;
     const previousCursor = document.documentElement.style.cursor;
     const previousUserSelect = document.documentElement.style.userSelect;
     target.setPointerCapture(pointerId);
@@ -96,6 +95,7 @@
         startWidth + startX - moveEvent.clientX,
         container.clientWidth,
       );
+      if (container.clientWidth > 0) widthRatio = width / container.clientWidth;
     };
     const onEnd = (endEvent: PointerEvent) => {
       if (endEvent.pointerId !== pointerId) return;
