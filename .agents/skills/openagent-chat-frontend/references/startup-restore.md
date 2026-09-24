@@ -254,6 +254,12 @@
 - Treat the new-conversation action as idempotent while that surface is already
   visible. Do not reload its greeting or suggestions, rewrite its durable active marker,
   or toggle its loading skeleton on a repeated click.
+
+- Restore the right-sidebar selection after conversation hydration has projected
+  durable chat-group tool results. A scope switch may temporarily fall back to
+  the status panel before those results are available; when a conversation has
+  chat groups and no flow, file, or terminal surface, select the chat-group
+  panel once the scope is known. Respect an explicit user collapse request.
 - The new-conversation greeting is the fixed prompt `Where should we start?`
   across desktop, remote, preview, and every locale. Keep it outside the
   localization dictionaries so an immediate locale switch cannot replace it.

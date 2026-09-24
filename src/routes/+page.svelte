@@ -753,6 +753,24 @@
   // A group view is available only after a chat-group tool completed with a
   // durable group id. A pending or failed call must not open the sidebar.
   let chatGroupToolUsed = $derived(chatGroupIds.length > 0);
+  // Conversation hydration can briefly restore the sidebar as `status` before
+  // the durable chat-group tool result is projected into `messages`. Once the
+  // group scope is known, select the group view when it is the only available
+  // detail surface so recovery does not leave an empty status panel visible.
+  $effect(() => {
+    const onlyChatGroupsAvailable =
+      chatGroupToolUsed &&
+      !currentCheckpointFlow &&
+      currentFileChanges.length === 0 &&
+      terminalSessionCount === 0;
+    if (
+      onlyChatGroupsAvailable &&
+      !rightSidebarCollapseRequested &&
+      rightSidebarPanel === "status"
+    ) {
+      rightSidebarPanel = "group";
+    }
+  });
   $effect(() => {
     const key = checkpointFlowPanelKey(
       activeConvId,
