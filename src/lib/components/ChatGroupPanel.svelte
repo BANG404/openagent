@@ -18,6 +18,7 @@
   import { useOpenAgentUiCapabilities } from "$lib/openagent";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import MessageInput from "./MessageInput.svelte";
+  import ChatGroupBookReader from "./ChatGroupBookReader.svelte";
   import type { PaletteItem } from "./MentionPalette.svelte";
 
   let {
@@ -44,6 +45,7 @@
   let error = $state<string | null>(null);
   let membersExpanded = $state(true);
   let membersOverflow = $state(false);
+  let bookReaderOpen = $state(false);
   let memberStripElement = $state<HTMLDivElement | null>(null);
   let refreshTimer: ReturnType<typeof setInterval> | null = null;
   let memberRefreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -312,6 +314,25 @@
     {/if}
 
     {#if selectedGroup}
+      <header class="group-heading">
+        <div class="group-heading-copy">
+          <strong>{selectedGroup.title}</strong>
+          <span>{messages.length} {$t("chatGroupBookMessages")}</span>
+        </div>
+        <button
+          class="book-open"
+          type="button"
+          aria-label={$t("openChatGroupBookMode")}
+          onclick={() => (bookReaderOpen = true)}
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true"
+            ><path
+              d="M3 2.5h7.5A2.5 2.5 0 0 1 13 5v8.5H5.5A2.5 2.5 0 0 1 3 11V2.5Zm0 0v8.5A2.5 2.5 0 0 0 5.5 13H13"
+            /></svg
+          >
+          <span>{$t("openChatGroupBookMode")}</span>
+        </button>
+      </header>
       <section class="member-section" aria-label={$t("chatGroupMembers")}>
         {#if membersOverflow}
           <button
@@ -409,6 +430,15 @@
         onSend={() => void sendMessage()}
         onStop={() => {}}
       />
+
+      {#if bookReaderOpen}
+        <ChatGroupBookReader
+          group={selectedGroup}
+          {members}
+          {messages}
+          onClose={() => (bookReaderOpen = false)}
+        />
+      {/if}
     {/if}
 
     {#if error}<p class="error">{error}</p>{/if}
@@ -428,6 +458,57 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+  }
+  .group-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .group-heading-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .group-heading-copy strong {
+    overflow: hidden;
+    color: var(--text);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .group-heading-copy span {
+    color: var(--text-muted);
+    font-size: 10px;
+  }
+  .book-open {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 5px;
+    min-height: 28px;
+    padding: 4px 7px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .book-open:hover,
+  .book-open:focus-visible {
+    background: var(--interactive-state-bg);
+    color: var(--text);
+  }
+  .book-open svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.2;
   }
   .member-toggle {
     display: flex;
