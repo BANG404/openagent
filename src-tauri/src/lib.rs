@@ -53,7 +53,8 @@ use frontend_resource::{
     FrontendResourceManager, FrontendResourceSource, InstalledFrontendResource,
 };
 use runtime_process::{
-    RuntimeLaunchSpec, RuntimeProcessSupervisor, DESKTOP_RUNTIME_PROTOCOL_VERSION,
+    inspect_runtime_bootstrap, RuntimeLaunchSpec, RuntimeProcessSupervisor,
+    DESKTOP_RUNTIME_PROTOCOL_VERSION,
 };
 use runtime_resource::{InstalledRuntimeResource, RuntimeResourceManager, RuntimeResourceSource};
 use runtime_transport::{RuntimeEventProxy, RuntimeProxyRequest, RuntimeProxyResponse};
@@ -1110,7 +1111,6 @@ async fn activate_runtime_resource(
         .await
         .ok_or_else(|| "Runtime activation requires external Runtime mode".to_string())?;
 
-    proxy.stop().await;
     let candidate_spec = RuntimeLaunchSpec {
         binary_path: candidate.binary_path.clone(),
         workspace: previous_spec.workspace.clone(),
@@ -1121,6 +1121,36 @@ async fn activate_runtime_resource(
         new_conversation: previous_spec.new_conversation,
         primary_desktop_services: previous_spec.primary_desktop_services,
     };
+    let bootstrap =
+        inspect_runtime_bootstrap(&candidate_spec.binary_path, &candidate_spec.openagent_home)
+            .await
+            .map_err(|error| {
+                tracing::error!(
+                    target: "openagent::component_update",
+                    component = "runtime",
+                    stage = "candidate_bootstrap_inspection_failed",
+                    candidate_version = candidate.version,
+                    %error,
+                    "Runtime candidate failed its pre-activation bootstrap inspection"
+                );
+                error
+            })?;
+    if bootstrap.requires_persistence_transition() {
+        let scope = bootstrap.transition_scope().unwrap_or("persisted data");
+        tracing::warn!(
+            target: "openagent::component_update",
+            component = "runtime",
+            stage = "candidate_bootstrap_transition_required",
+            candidate_version = candidate.version,
+            transition_scope = scope,
+            "Runtime candidate requires an explicit persistence transition; activation was not started"
+        );
+        return Err(format!(
+            "Runtime candidate requires an explicit persistence transition for {scope}; activation was not started"
+        ));
+    }
+
+    proxy.stop().await;
     if let Err(candidate_error) = supervisor.reload_after_drain(candidate_spec).await {
         tracing::error!(
             target: "openagent::component_update",

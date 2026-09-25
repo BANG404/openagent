@@ -51,6 +51,7 @@ The root contains these user-maintained or durable files:
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `config.toml`                     | Providers, model bindings, tool policy, UI preferences, onboarding completion, MCP, and remote-gateway settings              |
 | `config.toml.bak`                 | Previous valid configuration used for startup recovery                                                                        |
+| `config.toml.pre-v1.bak`          | Immutable copy retained while an unversioned legacy configuration is normalized to the versioned shape                    |
 | `memory.md`                       | Global user memory                                                                                                            |
 | `messages.db`                     | Conversation, checkpoint, follow-up suggestion, workspace-and-locale new-conversation suggestion, attachment, rollback, and optional chat-group storage |
 | `messages.db.pre-schema-v<N>.bak` | SQLite-consistent snapshot retained before an automatic database schema upgrade                                               |

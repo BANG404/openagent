@@ -1,7 +1,7 @@
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use std::ffi::OsString;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -9,6 +9,7 @@ use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
 
 const READY_TIMEOUT: Duration = Duration::from_secs(15);
+const BOOTSTRAP_INSPECT_TIMEOUT: Duration = Duration::from_secs(15);
 const HEALTH_TIMEOUT: Duration = Duration::from_secs(5);
 const TOKEN_ENV: &str = "OPENAGENT_DESKTOP_RUNTIME_TOKEN";
 pub const DESKTOP_RUNTIME_PROTOCOL_VERSION: u32 = 2;
@@ -53,6 +54,105 @@ pub struct RuntimeProcessStatus {
     pub protocol: RuntimeProtocolRange,
     pub version: String,
     pub pid: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct RuntimeBootstrapInspection {
+    schema_version: u32,
+    status: String,
+    #[serde(default)]
+    transition: Option<RuntimePersistenceTransition>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+struct RuntimePersistenceTransition {
+    reset_config: bool,
+    reset_conversations: bool,
+}
+
+impl RuntimeBootstrapInspection {
+    pub fn requires_persistence_transition(&self) -> bool {
+        self.status == "transition_required"
+    }
+
+    pub fn transition_scope(&self) -> Option<&'static str> {
+        let transition = self.transition.as_ref()?;
+        match (transition.reset_config, transition.reset_conversations) {
+            (true, true) => Some("settings and conversations"),
+            (true, false) => Some("settings"),
+            (false, true) => Some("conversations"),
+            (false, false) => Some("data"),
+        }
+    }
+}
+
+/// Run the candidate's read-only bootstrap inspection without opening its
+/// long-lived Runtime. This is the activation safety boundary for persisted
+/// configuration and SQLite data.
+pub async fn inspect_runtime_bootstrap(
+    binary_path: &Path,
+    openagent_home: &Path,
+) -> Result<RuntimeBootstrapInspection, String> {
+    if !binary_path.is_file() {
+        return Err(format!(
+            "Runtime bootstrap candidate does not exist: {}",
+            binary_path.display()
+        ));
+    }
+    let mut command = Command::new(binary_path);
+    command
+        .arg("--desktop-bootstrap")
+        .arg("inspect")
+        .env("OPENAGENT_HOME", openagent_home)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.as_std_mut().creation_flags(0x0800_0000);
+    }
+    let child = command.spawn().map_err(|error| {
+        format!(
+            "failed to start Runtime bootstrap inspection {}: {error}",
+            binary_path.display()
+        )
+    })?;
+    let output = tokio::time::timeout(BOOTSTRAP_INSPECT_TIMEOUT, child.wait_with_output())
+        .await
+        .map_err(|_| "Runtime bootstrap inspection timed out".to_string())?
+        .map_err(|error| format!("Runtime bootstrap inspection failed: {error}"))?;
+    if !output.status.success() {
+        let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(if detail.is_empty() {
+            format!(
+                "Runtime bootstrap inspection exited with status {}",
+                output.status
+            )
+        } else {
+            format!("Runtime bootstrap inspection failed: {detail}")
+        });
+    }
+    parse_runtime_bootstrap_inspection(&output.stdout)
+}
+
+fn parse_runtime_bootstrap_inspection(bytes: &[u8]) -> Result<RuntimeBootstrapInspection, String> {
+    let inspection: RuntimeBootstrapInspection = serde_json::from_slice(bytes)
+        .map_err(|error| format!("Runtime bootstrap inspection response was invalid: {error}"))?;
+    if inspection.schema_version != 1 {
+        return Err(format!(
+            "Unsupported Runtime bootstrap inspection schema version {}",
+            inspection.schema_version
+        ));
+    }
+    match inspection.status.as_str() {
+        "ready" if inspection.transition.is_none() => Ok(inspection),
+        "transition_required" if inspection.transition.is_some() => Ok(inspection),
+        status => Err(format!(
+            "Runtime bootstrap inspection returned invalid status {status}"
+        )),
+    }
 }
 
 struct RunningRuntime {
@@ -432,7 +532,8 @@ async fn stop_child(child: &mut Child) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        runtime_arguments, validate_ready, RuntimeLaunchSpec, RuntimeProtocolRange, RuntimeReady,
+        parse_runtime_bootstrap_inspection, runtime_arguments, validate_ready, RuntimeLaunchSpec,
+        RuntimeProtocolRange, RuntimeReady,
     };
     use std::ffi::OsString;
     use std::path::PathBuf;
@@ -464,6 +565,32 @@ mod tests {
     fn rejects_an_incompatible_runtime_protocol() {
         assert!(validate_ready(&ready("http://127.0.0.1:43123"), 1).is_err());
         assert!(validate_ready(&ready("http://127.0.0.1:43123"), 4).is_err());
+    }
+
+    #[test]
+    fn parses_a_ready_bootstrap_inspection() {
+        let inspection =
+            parse_runtime_bootstrap_inspection(br#"{"schema_version":1,"status":"ready"}"#)
+                .unwrap();
+        assert!(!inspection.requires_persistence_transition());
+        assert_eq!(inspection.transition_scope(), None);
+    }
+
+    #[test]
+    fn preserves_transition_scope_without_starting_the_runtime() {
+        let inspection = parse_runtime_bootstrap_inspection(
+            br#"{"schema_version":1,"status":"transition_required","transition":{"reset_config":false,"reset_conversations":true}}"#,
+        )
+        .unwrap();
+        assert!(inspection.requires_persistence_transition());
+        assert_eq!(inspection.transition_scope(), Some("conversations"));
+    }
+
+    #[test]
+    fn rejects_unknown_bootstrap_inspection_schema() {
+        let error = parse_runtime_bootstrap_inspection(br#"{"schema_version":2,"status":"ready"}"#)
+            .unwrap_err();
+        assert!(error.contains("schema version 2"));
     }
 
     #[test]
