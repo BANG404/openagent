@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
-## [0.73.0-beta.1] - 2026-09-24
+## [0.73.0-beta.1] - 2026-09-25
 
 ### Features
 - **chat**: Refine group panel messages and members
@@ -26,6 +26,7 @@ All notable changes to this project will be documented in this file.
 - Add optional chat group collaboration
 
 ### Bug Fixes
+- **ci**: Repair release qualification checks
 - Discard queued messages when stopping chat
 - Stop delayed chat group wakes after cancellation
 - Enforce chat group wake tool calls
