@@ -15,3 +15,8 @@ fields are explicitly truncated so the supplemental context cannot consume the
 summary budget. Flash summaries connect active goals and decisions to the latest
 concrete implementation or verification state while the complete visible
 checkpoint transcript remains durable.
+
+The runtime estimate is Unicode-aware: ASCII text uses an approximate
+four-characters-per-token ratio, while non-ASCII text is counted closer to one
+token per character. This keeps automatic compaction from underestimating
+Chinese and other non-ASCII transcripts.
