@@ -554,6 +554,7 @@ const zh = {
   chatGroupBookContext: "保留上下文",
   chatGroupBookOnlyRole: "只看角色",
   chatGroupBookShowing: "正在阅读",
+  chatGroupBookPagination: "聊天组书籍分页",
   executionPermissions: "执行权限与沙盒",
   executionPermissionsDescription:
     "这些权限在工具通过审批后继续生效，并决定进程与内置文件工具实际可以访问的范围。",
@@ -1581,6 +1582,7 @@ const en: Translations = {
   chatGroupBookContext: "Keep context",
   chatGroupBookOnlyRole: "Role only",
   chatGroupBookShowing: "Reading",
+  chatGroupBookPagination: "Chat group book pagination",
   executionPermissions: "Execution Permissions & Sandbox",
   executionPermissionsDescription:
     "These permissions remain active after approval and define what processes and built-in file tools can actually access.",

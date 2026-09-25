@@ -28,6 +28,8 @@
   let open = $state(true);
   let selectedMemberIds = $state<string[]>([]);
   let contextMode = $state<"context" | "only">("context");
+  let pageIndex = $state(0);
+  const messagesPerPage = 7;
   // Theme changes arrive through the document class observer below.
   let isDarkTheme = $state(false); // eslint-disable-line svelte/prefer-writable-derived
   const capabilities = useOpenAgentUiCapabilities();
@@ -53,6 +55,10 @@
     }
     return messages.filter((_message, index) => matching.has(index));
   });
+  const pageCount = $derived(Math.max(1, Math.ceil(visibleMessages.length / messagesPerPage)));
+  const pageMessages = $derived(
+    visibleMessages.slice(pageIndex * messagesPerPage, (pageIndex + 1) * messagesPerPage),
+  );
 
   $effect(() => {
     isDarkTheme = document.documentElement.classList.contains("dark");
@@ -60,11 +66,24 @@
   $effect(() => {
     if (!open) onClose();
   });
+  $effect(() => {
+    visibleMessages;
+    pageIndex = Math.min(pageIndex, pageCount - 1);
+  });
 
   function toggleMember(id: string) {
     selectedMemberIds = selectedSet.has(id)
       ? selectedMemberIds.filter((memberId) => memberId !== id)
       : [...selectedMemberIds, id];
+  }
+
+  function movePage(offset: number) {
+    pageIndex = Math.max(0, Math.min(pageCount - 1, pageIndex + offset));
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === "ArrowLeft") movePage(-1);
+    if (event.key === "ArrowRight") movePage(1);
   }
 
   function senderLabel(message: ChatGroupMessage): string {
@@ -83,7 +102,7 @@
 <Dialog.Root bind:open>
   <Dialog.Portal>
     <Dialog.Overlay class="group-book-overlay" />
-    <Dialog.Content class="group-book-dialog">
+    <Dialog.Content class="group-book-dialog" onkeydown={handleKeydown}>
       <header class="group-book-toolbar" data-tauri-drag-region>
         <div class="group-book-title">
           <Dialog.Title>{group.title}</Dialog.Title>
@@ -157,7 +176,7 @@
           {#if visibleMessages.length === 0}
             <p class="empty">{$t("chatGroupNoMessages")}</p>
           {:else}
-            {#each visibleMessages as message (message.id)}
+            {#each pageMessages as message (message.id)}
               <article class="book-message">
                 <header class="message-meta">
                   <strong>{senderLabel(message)}</strong>
@@ -188,6 +207,27 @@
               </article>
             {/each}
           {/if}
+          <nav class="book-pagination" aria-label={$t("chatGroupBookPagination")}>
+            <button
+              class="page-button"
+              type="button"
+              disabled={pageIndex === 0}
+              onclick={() => movePage(-1)}
+            >
+              <span aria-hidden="true">←</span>
+              {$t("previousPage")}
+            </button>
+            <span class="page-count">{pageIndex + 1} / {pageCount}</span>
+            <button
+              class="page-button"
+              type="button"
+              disabled={pageIndex === pageCount - 1}
+              onclick={() => movePage(1)}
+            >
+              {$t("nextPage")}
+              <span aria-hidden="true">→</span>
+            </button>
+          </nav>
         </main>
       </div>
     </Dialog.Content>
@@ -297,14 +337,16 @@
     padding: 7px 8px;
     border: 0;
     border-radius: 6px;
-    background: transparent;
+    appearance: none;
+    background: transparent !important;
     color: var(--text);
     text-align: left;
     cursor: pointer;
   }
   .member-filter:hover,
   .member-filter.selected {
-    background: var(--interactive-state-bg);
+    background: var(--interactive-state-bg) !important;
+    box-shadow: inset 2px 0 0 var(--primary);
   }
   .member-dot {
     width: 7px;
@@ -348,17 +390,19 @@
     padding: 4px 5px;
     border: 0;
     border-radius: 5px;
-    background: transparent;
+    appearance: none;
+    background: transparent !important;
     color: var(--text-muted);
     font-size: 11px;
     cursor: pointer;
   }
   .filter-mode button.active,
   .filter-mode button:hover {
-    background: var(--interactive-state-bg);
+    background: var(--interactive-state-bg) !important;
     color: var(--text);
   }
   .group-book-page {
+    position: relative;
     overflow: auto;
     min-width: 0;
     padding: 46px clamp(28px, 7vw, 120px) 64px;
@@ -407,21 +451,64 @@
     color: var(--text-muted);
     font-size: 13px;
   }
+  .book-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 34px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    break-inside: avoid;
+  }
+  .page-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 5px 9px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent !important;
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .page-button:hover:not(:disabled),
+  .page-button:focus-visible {
+    background: var(--interactive-state-bg) !important;
+    color: var(--text);
+  }
+  .page-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .page-count {
+    min-width: 42px;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
   @media (max-width: 760px) {
     :global(.group-book-dialog) {
       padding: 8px;
     }
     .group-book-layout {
-      grid-template-columns: 1fr;
-      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
     .group-book-toc {
+      flex: none;
+      max-height: 218px;
       border-right: 0;
       border-bottom: 1px solid var(--border);
       padding: 16px;
     }
     .group-book-page {
-      min-height: 60vh;
+      min-height: 0;
+      flex: 1;
       padding: 28px 20px 48px;
       column-width: auto;
       column-count: 1;
