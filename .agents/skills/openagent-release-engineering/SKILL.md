@@ -23,6 +23,7 @@ Read only the operational reference that matches the task:
 - Local release commands: [local-commands.md](references/local-commands.md)
 - Release source boundaries: [release-sources.md](references/release-sources.md)
 - Development Runtime refresh: [development-runtime.md](references/development-runtime.md)
+- Codex CI auto-fix and WSL Runner setup: [codex-autofix.md](references/codex-autofix.md)
 
 Use `deliver-via-pr` for repository delivery. Its preflight and CI handoff
 rules remain authoritative; do not duplicate ordinary CI locally.

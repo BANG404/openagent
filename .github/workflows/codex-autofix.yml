@@ -1,0 +1,141 @@
+name: Codex CI Auto-Fix
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+concurrency:
+  group: codex-autofix-${{ github.event.workflow_run.id }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+jobs:
+  authorize:
+    name: Authorize trusted repair
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'failure'
+        && github.event.workflow_run.event == 'pull_request'
+      }}
+    runs-on: ubuntu-24.04
+    outputs:
+      trusted: ${{ steps.trust.outputs.trusted }}
+      head_sha: ${{ steps.trust.outputs.head_sha }}
+      pr_number: ${{ steps.trust.outputs.pr_number }}
+    steps:
+      - name: Require an administrator-owned repository PR
+        id: trust
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          trusted=false
+          head_sha="$RUN_HEAD_SHA"
+
+          if [[ -n "$PR_NUMBER" ]]; then
+            head_repository="$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.head.repo.full_name')"
+            author="$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.user.login')"
+            author_is_admin="$(
+              gh api "repos/$REPOSITORY/collaborators/$author/permission" \
+                --jq '.user.permissions.admin // false' 2>/dev/null || printf 'false'
+            )"
+
+            if [[ "$head_repository" == "$REPOSITORY" && "$author_is_admin" == "true" ]]; then
+              trusted=true
+              head_sha="$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')"
+            fi
+          fi
+
+          {
+            echo "trusted=$trusted"
+            echo "head_sha=$head_sha"
+            echo "pr_number=$PR_NUMBER"
+          } >> "$GITHUB_OUTPUT"
+
+  repair:
+    name: Repair CI failure with Codex
+    needs: authorize
+    if: needs.authorize.outputs.trusted == 'true'
+    runs-on: [self-hosted, wsl, codex-agent]
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: read
+    env:
+      UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+      UPSTREAM_RUN_URL: ${{ github.event.workflow_run.html_url }}
+      PR_NUMBER: ${{ needs.authorize.outputs.pr_number }}
+      GH_TOKEN: ${{ github.token }}
+      CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+    steps:
+      - name: Check out the trusted PR head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.authorize.outputs.head_sha }}
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Download CI logs
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run view "$UPSTREAM_RUN_ID" --log > "$RUNNER_TEMP/ci.log" || true
+          if [[ ! -s "$RUNNER_TEMP/ci.log" ]]; then
+            printf 'No logs were available for CI run %s\n' "$UPSTREAM_RUN_ID" >&2
+            exit 1
+          fi
+          tail -c 200000 "$RUNNER_TEMP/ci.log" > "$RUNNER_TEMP/ci-tail.log"
+
+      - name: Run Codex repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CODEX_API_KEY:-}"
+
+          branch="codex/autofix-${UPSTREAM_RUN_ID}"
+          git switch --create "$branch"
+
+          codex exec \
+            --ephemeral \
+            --model gpt-6-sol \
+            --dangerously-bypass-approvals-and-sandbox \
+            -o "$RUNNER_TEMP/codex-last-message.txt" \
+            <<PROMPT
+          Repair the CI failure for this trusted OpenAgent pull request.
+
+          Read the CI output at $RUNNER_TEMP/ci-tail.log and inspect the current repository.
+          Identify the root cause before editing.
+          Make the smallest change that fixes the failure. Preserve the existing CI and
+          release architecture. Do not change secrets, permissions, release metadata, or
+          unrelated files. Run the narrowest useful verification command after editing.
+          Do not commit; the workflow will create the commit.
+          Upstream CI run: $UPSTREAM_RUN_URL
+          Pull request: #$PR_NUMBER
+          PROMPT
+
+      - name: Commit and push repair branch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet && [[ -z "$(git status --short)" ]]; then
+            echo "Codex produced no changes"
+            exit 0
+          fi
+
+          git add -A
+          git config user.name "Codex CI Auto-Fix"
+          git config user.email "codex-ci-autofix@users.noreply.github.com"
+          git commit -m "fix(ci): repair failed run $UPSTREAM_RUN_ID"
+          git push --set-upstream origin "codex/autofix-$UPSTREAM_RUN_ID"
