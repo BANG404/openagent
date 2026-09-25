@@ -1554,7 +1554,8 @@ const en: Translations = {
   chatGroupYou: "You",
   chatGroupMentioned: "mentioned; will reply in the group",
   chatGroupMentionHint: "Mention a role with @ to wake it and receive its reply in the group.",
-  chatGroupMessagePlaceholder: "Write a group message. Type @ and choose a role to get a group reply.",
+  chatGroupMessagePlaceholder:
+    "Write a group message. Type @ and choose a role to get a group reply.",
   chatGroupSend: "Send message",
   chatGroupPlugin: "Chat group collaboration",
   chatGroupPluginDescription: "Record group messages; @ mentions wake roles to reply in the group.",

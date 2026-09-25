@@ -45,6 +45,10 @@ invariant, and delete superseded guidance instead of appending history. Update
 the closest owning skill reference as well when the product or architecture
 contract changes.
 
+Keep the shared translation tables in `src/lib/i18n.ts` structurally aligned
+between Chinese and English and formatted with the repository Prettier config;
+copy changes must preserve both locale keys.
+
 Run `bun run check` and `bun run format:check`. For visible changes, verify
 light/dark themes, Chinese and English copy, streaming-to-durable finalization,
 reload, and branch switching. Run `bun run check:docs` before handoff. Keep
