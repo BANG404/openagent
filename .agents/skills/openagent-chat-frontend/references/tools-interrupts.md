@@ -38,6 +38,11 @@
   card's header hint on the command itself. Project every `apply_patch` file operation into tabs backed by the
   same bounded, line-numbered diff view as the conversation Files panel; retain
   total addition and removal counts even when the rendered patch is truncated.
+  `apply_patch` follows the Codex patch grammar: add operations require one or
+  more `+` lines, update operations may contain a move without hunks, and the
+  tool's visible name and successful file-edit label are localized alongside
+  every other built-in tool. Unknown MCP tool names remain readable as supplied
+  by the server.
   A standard `Delete File` header has no body, so hydrate its tab from the
   matching pre-delete `FileChange` snapshot; number every deleted source line
   from 1 and count the complete file even when the rendered preview is bounded.

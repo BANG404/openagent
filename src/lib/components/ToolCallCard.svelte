@@ -4,7 +4,7 @@
   import type { ChatToolImage, UserInputRequest } from "$lib/types";
   import type { FileChange } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
-  import { t } from "$lib/i18n";
+  import { t, toolNameKey } from "$lib/i18n";
   import {
     applyFileChangeSnapshotsToPatchPreviews,
     parseApplyPatchPreview,
@@ -82,15 +82,10 @@
   });
 
   const isFocusedTool = $derived(focusedTools.has(name) && parsedArgs !== null);
-  const displayName = $derived(
-    name === "chat_group_start"
-      ? $t("chatGroupStartTool")
-      : name === "create_role"
-        ? $t("createRoleTool")
-        : name === "search_roles"
-          ? $t("searchRolesTool")
-          : name,
-  );
+  const displayName = $derived.by(() => {
+    const key = toolNameKey(name);
+    return key ? $t(key) : name;
+  });
   const resultText = $derived(result ?? "");
   const status = $derived(
     toolCallStatus({ type: "tool_call", name, args, result } satisfies ToolCallItem, showRunning),

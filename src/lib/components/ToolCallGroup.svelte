@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "$lib/i18n";
+  import { t, toolNameKey } from "$lib/i18n";
   import {
     shouldDisplayToolCall,
     toolCallStatus,
@@ -106,7 +106,12 @@
         </svg>
       </span>
       <span class="group-names">
-        {summaryNames.map((item) => item.name).join(" · ")}
+        {summaryNames
+          .map((item) => {
+            const key = toolNameKey(item.name);
+            return key ? $t(key) : item.name;
+          })
+          .join(" · ")}
       </span>
       <span class="group-statuses">
         {#if statusCounts.failed}
