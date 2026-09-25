@@ -1195,8 +1195,16 @@
     z-index: 3;
     width: 100%;
     box-sizing: border-box;
+    container-type: inline-size;
     transition: box-shadow 1.35s cubic-bezier(0.16, 1, 0.3, 1);
     overflow: hidden;
+  }
+
+  /* Keep wrapped placeholder text clear of the send control in narrow panes. */
+  @container (max-width: 280px) {
+    .composer .input {
+      min-height: 78px;
+    }
   }
 
   .composer-disabled {

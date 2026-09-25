@@ -165,6 +165,9 @@
   tall; keep the textarea block-level so inline baseline space cannot make that
   geometry browser-dependent. Compact toolbar-free variants retain their own
   smaller height, while attachments, quotes, and multiline text grow normally.
+  When a composer container is narrow enough for its localized placeholder to
+  wrap to three lines, give the textarea enough minimum height for the wrapped
+  copy to remain visible above the send control.
 - Selecting `/goal` or `/graph` replaces only the active slash trigger with the
   complete command token. Preserve any draft text after the caret as the command
   argument instead of clearing the composer.
