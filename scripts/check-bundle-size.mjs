@@ -98,8 +98,8 @@ const budgets = [
     label: "settings view",
     root: clientRoot,
     entry: requireManifestEntry(clientManifest, "src/lib/components/SettingsView.svelte"),
-    // The MCP server categorization task added roughly 3 KiB to this view.
-    rawLimit: 164 * 1024,
+    // Settings scroll surfaces and MCP categorization now require just under 165 KiB.
+    rawLimit: 165 * 1024,
     gzipLimit: 64 * 1024,
   },
 ];
