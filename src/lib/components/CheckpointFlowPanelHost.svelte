@@ -81,6 +81,8 @@
     const pointerId = event.pointerId;
     const startX = event.clientX;
     const startWidth = panel.getBoundingClientRect().width;
+    let resizeFrame: number | null = null;
+    let pendingWidth = startWidth;
     width = startWidth;
     widthRatio = container.clientWidth > 0 ? startWidth / container.clientWidth : widthRatio;
     const previousCursor = document.documentElement.style.cursor;
@@ -91,11 +93,16 @@
     resizing = true;
     const onMove = (moveEvent: PointerEvent) => {
       if (moveEvent.pointerId !== pointerId) return;
-      width = clampCheckpointFlowPanelWidth(
+      pendingWidth = clampCheckpointFlowPanelWidth(
         startWidth + startX - moveEvent.clientX,
         container.clientWidth,
       );
-      if (container.clientWidth > 0) widthRatio = width / container.clientWidth;
+      if (resizeFrame !== null) return;
+      resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = null;
+        width = pendingWidth;
+        if (container.clientWidth > 0) widthRatio = width / container.clientWidth;
+      });
     };
     const onEnd = (endEvent: PointerEvent) => {
       if (endEvent.pointerId !== pointerId) return;
@@ -103,6 +110,12 @@
       window.removeEventListener("pointerup", onEnd);
       window.removeEventListener("pointercancel", onEnd);
       target.removeEventListener("lostpointercapture", onEnd);
+      if (resizeFrame !== null) {
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = null;
+      }
+      width = pendingWidth;
+      if (container.clientWidth > 0) widthRatio = width / container.clientWidth;
       if (target.hasPointerCapture(pointerId)) target.releasePointerCapture(pointerId);
       document.documentElement.style.cursor = previousCursor;
       document.documentElement.style.userSelect = previousUserSelect;
