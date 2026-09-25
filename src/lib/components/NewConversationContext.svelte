@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
-  import { locale, t } from "$lib/i18n";
+  import { t } from "$lib/i18n";
   import { motionDuration } from "$lib/motion";
 
   interface Props {
@@ -11,17 +11,13 @@
     placement?: "overlay" | "stack";
   }
 
-  let { prompt, loading, showApiKeyWarn, placement = "overlay" }: Props = $props();
+  let { prompt: _prompt, loading, showApiKeyWarn, placement = "overlay" }: Props = $props();
 </script>
 
 <div class="new-conversation-context" class:stack={placement === "stack"}>
   {#if loading}
     <div transition:fade={{ duration: motionDuration(140) }}>
       <LoadingSkeleton variant="memory-note" label={$t("loadingContent")} />
-    </div>
-  {:else if prompt}
-    <div class="memory-note" transition:fade={{ duration: motionDuration(180) }}>
-      <p lang={$locale}>{prompt}</p>
     </div>
   {/if}
   {#if showApiKeyWarn}
@@ -61,41 +57,6 @@
     transform: none;
   }
 
-  .new-conversation-context.stack .memory-note p {
-    font-size: 28px;
-    font-weight: 400;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
-  }
-
-  .new-conversation-context.stack .memory-note p:lang(zh) {
-    letter-spacing: 0.06em;
-  }
-
-  .memory-note {
-    position: relative;
-    isolation: isolate;
-    box-sizing: border-box;
-    width: fit-content;
-    max-width: min(100%, 720px);
-    padding: 0 clamp(34px, 5vw, 64px);
-    border: 0;
-    background: transparent;
-    pointer-events: auto;
-    user-select: text;
-  }
-
-  .memory-note p {
-    position: relative;
-    z-index: 1;
-    margin: 0;
-    color: var(--text);
-    font-size: 18px;
-    font-weight: 500;
-    line-height: 1.55;
-    overflow-wrap: anywhere;
-  }
-
   .warn {
     margin-top: 4px;
     color: #f59e0b !important;
@@ -109,10 +70,6 @@
 
     .new-conversation-context.stack {
       margin-bottom: 28px;
-    }
-
-    .new-conversation-context.stack .memory-note p {
-      font-size: 26px;
     }
   }
 </style>

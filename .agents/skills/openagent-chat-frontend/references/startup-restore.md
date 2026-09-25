@@ -265,12 +265,9 @@
   selection, draft, members, and messages survive the toggle. Show a
   layout-stable skeleton while a chat-group scope or its first message page is
   loading instead of painting the empty state during that request.
-- The new-conversation greeting is the fixed prompt `Where should we start?`
-  across desktop, remote, preview, and every locale. Keep it outside the
-  localization dictionaries so an immediate locale switch cannot replace it.
-  It uses a compact, regular-weight display heading treatment above the
-  centered composer. Keep its tracking locale-aware: Latin copy remains subtly
-  compact while Chinese copy uses open, positive character spacing. It must not
+- The new-conversation surface does not render a greeting above the centered
+  composer. Keep the composer, suggestions, loading state, and API key warning
+  aligned across desktop, remote, and preview surfaces. Suggestions do not
   depend on memory or a Flash task. Show exactly three optional Flash-generated
   suggestions derived from up to the five most recently updated top-level
   conversation titles below the composer. Restore them from `messages.db`
