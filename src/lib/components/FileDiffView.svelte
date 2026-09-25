@@ -51,7 +51,8 @@
     min-width: 0;
     min-height: 0;
     flex: 1;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     background: var(--component-neutral-bg, color-mix(in srgb, var(--surface) 88%, var(--bg)));
     color-scheme: light dark;
   }
@@ -61,8 +62,8 @@
     flex: 1 1 auto;
   }
   .diff-table {
-    width: max-content;
-    min-width: 100%;
+    width: 100%;
+    min-width: 0;
     padding: 6px 0;
   }
   .diff-row {
@@ -71,11 +72,13 @@
     width: 100%;
     min-width: 0;
     min-height: 20px;
+    align-items: start;
     color: var(--text-muted);
     font:
       400 12px/20px "JetBrains Mono",
       monospace;
-    white-space: pre;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
   .diff-row > * {
     box-sizing: border-box;
@@ -102,7 +105,8 @@
     padding: 0 12px 0 4px;
     color: inherit;
     font: inherit;
-    white-space: pre;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
   .diff-row.add {
     background: color-mix(in srgb, #18794e 24%, transparent);
