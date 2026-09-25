@@ -342,7 +342,7 @@
     width: min(58%, 450px);
     margin-left: auto;
     padding: 11px 14px;
-    border-radius: 18px;
+    border-radius: var(--app-radius);
     background: var(--user-message-bg);
     -webkit-backdrop-filter: blur(12px) saturate(1.05);
     backdrop-filter: blur(12px) saturate(1.05);
@@ -443,7 +443,7 @@
     min-height: 98px;
     overflow: hidden;
     border: 1px solid var(--mica-border);
-    border-radius: 18px;
+    border-radius: var(--app-radius);
     background: var(--mica-surface);
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);

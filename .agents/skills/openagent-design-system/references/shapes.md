@@ -12,6 +12,14 @@
 | `{rounded.pill}` | 9999px       | Primary blue pill CTAs, sub-nav buy button, configurator option chips, search input — the signature Apple pill |
 | `{rounded.full}` | 9999px / 50% | Circular control chips floating over photography                                                               |
 
+### Application Shell Geometry
+
+The desktop window edge and application-level surfaces share a 12px radius
+through `--app-radius`. Use this token for the conversation shell, composers,
+floating surfaces, message surfaces, and other large internal panels so the
+interior geometry follows the native window edge. Keep pills, circles, and
+compact menu rows on their semantic radius tokens.
+
 ### Photography Geometry
 
 - **Hero imagery**: full-bleed, 21:9 or taller on the homepage; 16:9 on environment and shop pages. Product renders are photographic-realistic, often shot on a tinted surface that becomes the tile background.

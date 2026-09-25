@@ -11,6 +11,7 @@
   :root {
     color-scheme: light;
     --bg: #f5f5f7;
+    --app-radius: 12px;
     --conversation-surface: var(--surface);
     --component-neutral-bg: #f4f4f5;
     --user-message-bg: var(--component-neutral-bg);
@@ -247,12 +248,12 @@
      outline so transparent title chrome and content share one Apple-style edge. */
   html.macos-window,
   html.macos-window body {
-    border-radius: 12px;
+    border-radius: var(--app-radius);
     overflow: hidden;
   }
 
   html.macos-window body {
-    clip-path: inset(0 round 12px);
+    clip-path: inset(0 round var(--app-radius));
   }
 
   html.native-window-material .flow-panel-surface {
@@ -297,7 +298,7 @@
   .floating-application-surface,
   .conversation-input-surface {
     border: 1px solid var(--mica-border);
-    border-radius: 18px;
+    border-radius: var(--app-radius);
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
     box-shadow: var(--mica-shadow);

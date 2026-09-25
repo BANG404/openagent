@@ -480,7 +480,7 @@
     width: 112px;
     height: 112px;
     flex: 0 0 112px;
-    border-radius: 18px;
+    border-radius: var(--app-radius);
     background: var(--component-neutral-bg);
     box-shadow: none;
   }

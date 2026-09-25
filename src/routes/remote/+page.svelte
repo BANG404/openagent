@@ -1402,7 +1402,7 @@
     width: 68px;
     height: 68px;
     padding: 5px;
-    border-radius: 18px;
+    border-radius: var(--app-radius);
     background: rgba(255, 255, 255, 0.9);
     box-shadow: var(--control-shadow);
     object-fit: contain;
@@ -1437,7 +1437,7 @@
     z-index: 1;
     width: min(100%, 440px);
     padding: 34px;
-    border-radius: 18px;
+    border-radius: var(--app-radius);
     background: var(--control-surface);
     box-shadow: var(--raised-shadow);
     backdrop-filter: blur(20px) saturate(1.12);
@@ -1777,7 +1777,7 @@
   }
   .approval-card {
     overflow: hidden;
-    border-radius: 18px;
+    border-radius: var(--app-radius);
     background: var(--control-surface);
     box-shadow: var(--control-shadow);
   }

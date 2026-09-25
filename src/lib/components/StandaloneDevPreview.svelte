@@ -1720,7 +1720,7 @@
     min-width: 0;
     padding: 28px;
     border: 1px solid var(--mica-border);
-    border-radius: 18px;
+    border-radius: var(--app-radius);
     background: var(--mica-surface);
     box-shadow: var(--mica-shadow);
     backdrop-filter: blur(24px) saturate(1.2);

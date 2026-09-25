@@ -1352,7 +1352,7 @@
     max-width: 100%;
     box-sizing: border-box;
     border: 0;
-    border-radius: 18px;
+    border-radius: var(--app-radius);
     padding: 9px 14px;
     margin: 0;
     font-family: inherit;
@@ -1379,7 +1379,7 @@
     box-sizing: border-box;
     padding: 9px 14px;
     border: 0;
-    border-radius: 18px;
+    border-radius: var(--app-radius);
     color: var(--text);
     font-size: 14px;
     line-height: 1.47;
