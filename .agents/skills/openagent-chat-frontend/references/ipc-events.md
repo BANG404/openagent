@@ -29,12 +29,14 @@ group. User-authored `@role` text is also a wake-up request; Agent-authored
 The role's final answer is not copied from its private conversation; the role
 must publish the response with `chat_group_send_message` before finishing.
 `chat_group_start` creates the group and records its first message without
-creating role conversations. The first boundary-safe `@role` mention creates a
-fresh role child conversation and a dedicated branch in the group's workspace;
-that branch is persisted on the member and reused for later wake-ups. Legacy or
-manually added members without a branch receive one lazily on their first
-wake-up. Group messages are a separate durable log and only explicit `mentions`
-wake member conversations.
+creating role conversations. A user-authored boundary-safe `@role` mention
+creates a fresh role child conversation and a dedicated branch in the group's
+workspace; that branch is persisted on the member and reused for later
+wake-ups. Agent messages use explicit member IDs instead, and their `@role`
+text does not create children. Legacy or manually added members without a
+branch receive one lazily on their first wake-up. Group messages are a separate
+durable log; user `@role` text and explicit `mentions` targets wake member
+conversations.
 Fresh group child conversations are projected as pending until a real
 `chat-run-started` event arrives; creation alone must not render them as running.
 Batch `chat-group-member-changed` notifications into one member refresh and
