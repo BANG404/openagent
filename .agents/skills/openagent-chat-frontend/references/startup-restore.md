@@ -260,6 +260,11 @@
   the status panel before those results are available; when a conversation has
   chat groups and no flow, file, or terminal surface, select the chat-group
   panel once the scope is known. Respect an explicit user collapse request.
+  Keep the selected details tab when the panel is collapsed and reopened, and
+  keep file and chat-group tab instances mounted while hidden so their loaded
+  selection, draft, members, and messages survive the toggle. Show a
+  layout-stable skeleton while a chat-group scope or its first message page is
+  loading instead of painting the empty state during that request.
 - The new-conversation greeting is the fixed prompt `Where should we start?`
   across desktop, remote, preview, and every locale. Keep it outside the
   localization dictionaries so an immediate locale switch cannot replace it.

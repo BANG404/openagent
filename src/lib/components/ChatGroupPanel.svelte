@@ -18,6 +18,7 @@
   import { useOpenAgentUiCapabilities } from "$lib/openagent";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import MessageInput from "./MessageInput.svelte";
+  import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import type { PaletteItem } from "./MentionPalette.svelte";
 
   let {
@@ -42,6 +43,8 @@
   let cursor = $state(0);
   let sending = $state(false);
   let error = $state<string | null>(null);
+  let groupsLoading = $state(false);
+  let messagesLoading = $state(false);
   let membersExpanded = $state(true);
   let membersOverflow = $state(false);
   let memberStripElement = $state<HTMLDivElement | null>(null);
@@ -52,8 +55,22 @@
   let queuedMessagesReset = false;
   let queuedMessagesGroupId: string | null = null;
   let membersRequestVersion = 0;
+  let groupsRequestVersion = 0;
   let isDarkTheme = $state(false);
   const capabilities = useOpenAgentUiCapabilities();
+
+  type ChatGroupSnapshot = {
+    groups: ChatGroup[];
+    members: ChatGroupMember[];
+    messages: ChatGroupMessage[];
+    cursor: number;
+    selectedGroupId: string | null;
+    draft: string;
+    membersExpanded: boolean;
+  };
+  const snapshots = new Map<string, ChatGroupSnapshot>();
+  let currentSnapshotKey = $state<string | null>(null);
+  let snapshotKey = $derived(`${workspace}\u0000${groupIds.join("\u0001")}`);
 
   const selectedGroup = $derived(groups.find((group) => group.id === selectedGroupId) ?? null);
   function measureMemberOverflow(): void {
@@ -84,6 +101,8 @@
 
   async function loadGroups(scope = workspace, allowedGroupIds = groupIds): Promise<void> {
     if (!enabled) return;
+    const requestVersion = ++groupsRequestVersion;
+    groupsLoading = true;
     try {
       const availableGroups = await desktopOpenAgent.listChatGroups(scope || null);
       const allowed = new Set(allowedGroupIds);
@@ -100,6 +119,8 @@
     } catch (cause) {
       onAvailabilityChange(false);
       error = String(cause);
+    } finally {
+      if (requestVersion === groupsRequestVersion) groupsLoading = false;
     }
   }
 
@@ -114,6 +135,7 @@
     messagesRefreshInFlight = true;
     const requestCursor = reset ? 0 : cursor;
     if (reset) {
+      messagesLoading = true;
       cursor = 0;
       messages = [];
     }
@@ -127,6 +149,7 @@
     } catch (cause) {
       error = String(cause);
     } finally {
+      if (reset) messagesLoading = false;
       messagesRefreshInFlight = false;
       if (messagesRefreshQueued) {
         const nextReset = queuedMessagesReset;
@@ -245,6 +268,45 @@
   }
 
   $effect(() => {
+    const key = snapshotKey;
+    untrack(() => {
+      if (key === currentSnapshotKey) return;
+      if (currentSnapshotKey !== null) {
+        snapshots.set(currentSnapshotKey, {
+          groups,
+          members,
+          messages,
+          cursor,
+          selectedGroupId,
+          draft,
+          membersExpanded,
+        });
+      }
+      const snapshot = snapshots.get(key);
+      currentSnapshotKey = key;
+      if (snapshot) {
+        groups = snapshot.groups;
+        members = snapshot.members;
+        messages = snapshot.messages;
+        cursor = snapshot.cursor;
+        selectedGroupId = snapshot.selectedGroupId;
+        draft = snapshot.draft;
+        membersExpanded = snapshot.membersExpanded;
+        groupsLoading = false;
+        messagesLoading = false;
+      } else {
+        groups = [];
+        members = [];
+        messages = [];
+        cursor = 0;
+        selectedGroupId = null;
+        groupsLoading = enabled;
+        messagesLoading = false;
+      }
+    });
+  });
+
+  $effect(() => {
     const groupId = selectedGroupId;
     untrack(() => {
       void refreshMessages(groupId, true);
@@ -319,7 +381,9 @@
 
 {#if enabled}
   <section class="group-panel" aria-label={$t("chatGroups")}>
-    {#if groups.length === 0}
+    {#if groupsLoading && groups.length === 0}
+      <LoadingSkeleton variant="detail-list" rows={4} label={$t("loadingContent")} />
+    {:else if groups.length === 0}
       <p class="empty">{$t("chatGroupEmpty")}</p>
     {/if}
 
@@ -363,7 +427,9 @@
       </section>
 
       <div class="message-list" aria-live="polite">
-        {#if messages.length === 0}
+        {#if messagesLoading && messages.length === 0}
+          <LoadingSkeleton variant="detail-list" rows={4} label={$t("loadingContent")} />
+        {:else if messages.length === 0}
           <p class="empty">{$t("chatGroupNoMessages")}</p>
         {:else}
           {#each messages as message, index (message.id)}

@@ -5597,15 +5597,6 @@
           if (!rightSidebarCollapseRequested) {
             rightSidebarCollapseRequested = true;
           } else {
-            rightSidebarPanel = currentCheckpointFlow
-              ? "status"
-              : currentFileChanges.length > 0
-                ? "files"
-                : terminalSessionCount > 0
-                  ? "terminal"
-                  : chatGroupToolUsed
-                    ? "group"
-                    : "status";
             rightSidebarCollapseRequested = false;
           }
           rightSidebarPreference = rightSidebarCollapseRequested;

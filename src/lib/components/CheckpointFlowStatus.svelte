@@ -417,10 +417,26 @@
 
         {#if flow.summary}<p class="flow-summary">{flow.summary}</p>{/if}
       </div>
-    {:else if !collapsed && activePanel === "files"}
-      <FileChangePanel {changes} {onRevert} bind:selectedId={fileSelectedId} />
-    {:else if !collapsed && activePanel !== "terminal"}
-      {#if activePanel === "group"}
+    {/if}
+
+    <!-- Keep tab-local data mounted while the sidebar is collapsed or another
+         tab is active. This preserves loaded group messages and file selection
+         instead of rebuilding the first tab on every return. -->
+    <div
+      class="panel-cache-slot"
+      hidden={collapsed || activePanel !== "files"}
+      aria-hidden={collapsed || activePanel !== "files"}
+    >
+      {#if changes.length > 0}
+        <FileChangePanel {changes} {onRevert} bind:selectedId={fileSelectedId} />
+      {/if}
+    </div>
+    <div
+      class="panel-cache-slot"
+      hidden={collapsed || activePanel !== "group"}
+      aria-hidden={collapsed || activePanel !== "group"}
+    >
+      {#if chatGroupsEnabled && chatGroupsAvailable}
         <ChatGroupPanel
           enabled={chatGroupsEnabled && chatGroupsAvailable}
           workspace={chatGroupWorkspace}
@@ -429,11 +445,16 @@
           bind:draft={groupDraft}
           onAvailabilityChange={onChatGroupsAvailabilityChange}
         />
-      {:else}
-        <div class="flow-body">
-          <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>
-        </div>
       {/if}
+    </div>
+    {#if !collapsed &&
+      activePanel !== "status" &&
+      activePanel !== "files" &&
+      activePanel !== "group" &&
+      activePanel !== "terminal"}
+      <div class="flow-body">
+        <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>
+      </div>
     {/if}
     {#if terminalEnabled}
       <BackgroundTerminalPanel
@@ -487,6 +508,17 @@
     overflow: hidden;
     border-radius: 12px;
     background: var(--surface);
+  }
+  .panel-cache-slot {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .panel-cache-slot[hidden] {
+    display: none;
   }
   .resize-handle {
     position: absolute;
