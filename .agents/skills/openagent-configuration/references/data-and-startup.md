@@ -23,6 +23,9 @@ and exits. When a destructive transition is required, Tauri presents the user
 confirmation and asks that command to perform the backup and reset before it
 starts the long-lived supervised server. The ordinary Tauri binary therefore
 does not link the private SDK Rust crates.
+Known unversioned configuration is normalized atomically by the long-lived
+Runtime after bootstrap inspection, with the original bytes retained in
+`config.toml.pre-v1.bak`; it does not enter the destructive transition flow.
 
 In ordinary debug and release desktop builds, one supervised external Runtime
 is the sole writer for `OPENAGENT_HOME`. The Tauri host does not construct a
