@@ -99,6 +99,11 @@ after the old process exits. If candidate startup or probing fails, it restarts
 the previous launch specification. Ordinary release startup activates this
 supervisor before writable product operations are accepted, preserving the
 single-writer boundary.
+Before stopping the current server for a Runtime activation, the host runs the
+verified candidate's read-only `--desktop-bootstrap inspect` command against
+the selected application-data root. A `transition_required` result aborts the
+activation while the current Runtime and its data remain untouched; only a
+`ready` result may cross the process replacement boundary.
 The supervisor, authenticated Tauri proxy, and host-owned resource protocols are
 public desktop adapters so contributors can build and extend the shell without
 receiving the private Runtime implementation. Agent execution, providers,
