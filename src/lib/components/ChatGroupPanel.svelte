@@ -18,7 +18,6 @@
   import { useOpenAgentUiCapabilities } from "$lib/openagent";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import MessageInput from "./MessageInput.svelte";
-  import ChatGroupBookReader from "./ChatGroupBookReader.svelte";
   import type { PaletteItem } from "./MentionPalette.svelte";
 
   let {
@@ -45,7 +44,6 @@
   let error = $state<string | null>(null);
   let membersExpanded = $state(true);
   let membersOverflow = $state(false);
-  let bookReaderOpen = $state(false);
   let memberStripElement = $state<HTMLDivElement | null>(null);
   let refreshTimer: ReturnType<typeof setInterval> | null = null;
   let memberRefreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -217,6 +215,18 @@
     return `${message.sender_type}:${message.sender_id ?? senderLabel(message)}`;
   }
 
+  function senderTone(message: ChatGroupMessage): string {
+    if (message.sender_type === "user") return "user";
+    const key = senderKey(message);
+    let hash = 0;
+    for (const character of key) hash = (hash * 31 + character.charCodeAt(0)) | 0;
+    return `tone-${Math.abs(hash) % 5}`;
+  }
+
+  function senderInitial(message: ChatGroupMessage): string {
+    return senderLabel(message).trim().slice(0, 1).toLocaleUpperCase() || "?";
+  }
+
   function senderTime(message: ChatGroupMessage): string {
     return new Date(message.created_at).toLocaleTimeString(undefined, {
       hour: "2-digit",
@@ -317,21 +327,8 @@
       <header class="group-heading">
         <div class="group-heading-copy">
           <strong>{selectedGroup.title}</strong>
-          <span>{messages.length} {$t("chatGroupBookMessages")}</span>
+          <span>{messages.length} {$t("chatGroupMessages")}</span>
         </div>
-        <button
-          class="book-open"
-          type="button"
-          aria-label={$t("openChatGroupBookMode")}
-          onclick={() => (bookReaderOpen = true)}
-        >
-          <svg viewBox="0 0 16 16" aria-hidden="true"
-            ><path
-              d="M3 2.5h7.5A2.5 2.5 0 0 1 13 5v8.5H5.5A2.5 2.5 0 0 1 3 11V2.5Zm0 0v8.5A2.5 2.5 0 0 0 5.5 13H13"
-            /></svg
-          >
-          <span>{$t("openChatGroupBookMode")}</span>
-        </button>
       </header>
       <section class="member-section" aria-label={$t("chatGroupMembers")}>
         {#if membersOverflow}
@@ -372,11 +369,23 @@
           {#each messages as message, index (message.id)}
             {@const showSender =
               index === 0 || senderKey(messages[index - 1]) !== senderKey(message)}
-            <article class:message-group-start={showSender} class="message-row">
+            <article
+              class:message-group-start={showSender}
+              class="message-row"
+              class:message-user={message.sender_type === "user"}
+              class:tone-0={senderTone(message) === "tone-0"}
+              class:tone-1={senderTone(message) === "tone-1"}
+              class:tone-2={senderTone(message) === "tone-2"}
+              class:tone-3={senderTone(message) === "tone-3"}
+              class:tone-4={senderTone(message) === "tone-4"}
+            >
               <div class="message-body">
                 {#if showSender}
                   <div class="speaker-divider" aria-label={senderLabel(message)}>
-                    <span class="sender">{senderLabel(message)}</span>
+                    <span class="sender-identity">
+                      <span class="sender-avatar" aria-hidden="true">{senderInitial(message)}</span>
+                      <span class="sender">{senderLabel(message)}</span>
+                    </span>
                     <time datetime={new Date(message.created_at).toISOString()}
                       >{senderTime(message)}</time
                     >
@@ -431,14 +440,6 @@
         onStop={() => {}}
       />
 
-      {#if bookReaderOpen}
-        <ChatGroupBookReader
-          group={selectedGroup}
-          {members}
-          {messages}
-          onClose={() => (bookReaderOpen = false)}
-        />
-      {/if}
     {/if}
 
     {#if error}<p class="error">{error}</p>{/if}
@@ -481,34 +482,6 @@
   .group-heading-copy span {
     color: var(--text-muted);
     font-size: 10px;
-  }
-  .book-open {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    gap: 5px;
-    min-height: 28px;
-    padding: 4px 7px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 11px;
-    cursor: pointer;
-  }
-  .book-open:hover,
-  .book-open:focus-visible {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-  .book-open svg {
-    width: 14px;
-    height: 14px;
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.2;
   }
   .member-toggle {
     display: flex;
@@ -565,11 +538,30 @@
     padding: 8px 0;
   }
   .message-row {
+    --sender-accent: var(--primary);
+    position: relative;
     padding: 5px 4px;
   }
+  .message-row.tone-0 { --sender-accent: #0f766e; }
+  .message-row.tone-1 { --sender-accent: #b45309; }
+  .message-row.tone-2 { --sender-accent: #7c3aed; }
+  .message-row.tone-3 { --sender-accent: #c2410c; }
+  .message-row.tone-4 { --sender-accent: #15803d; }
+  .message-row.message-user { --sender-accent: var(--primary); }
   .message-row.message-group-start {
     margin-top: 26px;
     padding-top: 0;
+  }
+  .message-row.message-group-start::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -1px;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--sender-accent);
+    content: "";
+    opacity: 0.8;
   }
   .message-row:first-child {
     margin-top: 6px;
@@ -588,12 +580,31 @@
     gap: 12px;
     margin-bottom: 8px;
   }
+  .sender-identity {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    gap: 7px;
+  }
+  .sender-avatar {
+    display: inline-grid;
+    width: 20px;
+    height: 20px;
+    flex: none;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--sender-accent) 55%, var(--border));
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--sender-accent) 14%, var(--surface));
+    color: var(--sender-accent);
+    font-size: 10px;
+    font-weight: 700;
+  }
   .speaker-rule {
     margin-bottom: 14px;
     border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   }
   .sender {
-    color: var(--text);
+    color: var(--sender-accent);
     font-size: 13px;
     line-height: 1.3;
     white-space: nowrap;
