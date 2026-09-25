@@ -139,6 +139,7 @@
   .quick-chat {
     position: relative;
     width: 100%;
+    min-width: 320px;
     min-height: 100px;
     max-height: 191px;
     overflow: hidden;
