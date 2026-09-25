@@ -10,7 +10,7 @@ the working tree changes.
 The workflow runs only for a failed `pull_request` CI run whose head repository
 is this repository and whose author has administrator permission. Fork pull
 requests and non-administrator contributors never reach the self-hosted job or
-receive `CODEX_API_KEY`. Keep this gate when changing the workflow; a
+receive `FIREDOG_KEY`. Keep this gate when changing the workflow; a
 `workflow_run` workflow can access repository secrets.
 
 The WSL runner must be dedicated to this repository. Do not keep personal files,
@@ -66,7 +66,13 @@ wire_api = "responses"
 env_key = "CODEX_API_KEY"
 ```
 
-Add `CODEX_API_KEY` as a repository Actions secret. The workflow passes it only
+Add `FIREDOG_KEY` as a repository Actions secret. The workflow passes it only
 after the trust gate succeeds. Confirm that the Runner service account can find
 both `codex` and `gh` in its `PATH`; an interactive shell's PATH is not always
 available to a WSL service.
+
+The WSL host should update Codex independently of repository jobs. Use a
+systemd oneshot service and timer that checks the npm registry daily, installs
+the exact latest version only when it changes, and verifies `codex --version`.
+Keep the update script and timer outside the repository so an automated repair
+cannot modify its own updater.
