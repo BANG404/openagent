@@ -26,7 +26,7 @@
 </script>
 
 <ScrollArea.Root
-  type="hover"
+  type="scroll"
   {scrollHideDelay}
   class={`ui-scroll-area ${className}`}
   style={`height: ${height}`}
@@ -85,11 +85,11 @@
     flex: 1;
     min-height: 24px;
     border-radius: inherit;
-    background: var(--text-muted);
-    opacity: 0.6;
+    background: var(--interactive-state-bg);
+    opacity: 1;
   }
 
   :global(.ui-scroll-area-thumb:hover) {
-    opacity: 0.9;
+    opacity: 1;
   }
 </style>

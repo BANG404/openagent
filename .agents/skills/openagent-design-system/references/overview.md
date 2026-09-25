@@ -30,8 +30,8 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   enabled or disabled state with adjacent text, dots, or labels; expose the
   control name through its accessible label.
 - **Transient scrollbars:** scrollbars across the application keep their
-  layout footprint but hide their thumb while idle. Scrolling or moving the
-  pointer within a scrollable region reveals its scrollbar temporarily; nested,
+  layout footprint but hide their thumb while idle. Scrolling within a
+  scrollable region reveals its scrollbar temporarily; nested,
   horizontal, textarea, and attachment-strip scrollers follow the same behavior.
 - **Desktop application shell:** keep one compact, continuous top chrome across
   the sidebar, conversation, and Settings surfaces. Settings does not render a

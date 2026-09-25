@@ -513,7 +513,7 @@
   }
 
   :global(.workspace-browser-scroll) {
-    width: 100%;
+    width: calc(100% + var(--workspace-card-gap));
     min-width: 0;
     flex: 1;
     min-height: 0;
