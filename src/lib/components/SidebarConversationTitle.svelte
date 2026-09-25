@@ -10,22 +10,29 @@
     const copy = node.querySelector<HTMLElement>(".sidebar-conversation-title-copy");
     if (!copy) return;
 
+    let updateFrame: number | null = null;
     const update = () => {
+      updateFrame = null;
       const overflow = Math.max(0, copy.scrollWidth - node.clientWidth);
-      overflowing = overflow > 2;
+      const nextOverflowing = overflow > 2;
+      if (nextOverflowing !== overflowing) overflowing = nextOverflowing;
       node.style.setProperty("--title-overflow", `${overflow}px`);
       node.style.setProperty("--title-scroll-duration", `${Math.max(2.8, overflow / 28)}s`);
     };
+    const scheduleUpdate = () => {
+      if (updateFrame !== null) return;
+      updateFrame = requestAnimationFrame(update);
+    };
 
-    const resizeObserver = new ResizeObserver(update);
-    const mutationObserver = new MutationObserver(update);
+    const resizeObserver = new ResizeObserver(scheduleUpdate);
+    const mutationObserver = new MutationObserver(scheduleUpdate);
     resizeObserver.observe(node);
     mutationObserver.observe(copy, { childList: true, characterData: true, subtree: true });
-    const updateFrame = requestAnimationFrame(update);
+    scheduleUpdate();
 
     return {
       destroy() {
-        cancelAnimationFrame(updateFrame);
+        if (updateFrame !== null) cancelAnimationFrame(updateFrame);
         resizeObserver.disconnect();
         mutationObserver.disconnect();
       },

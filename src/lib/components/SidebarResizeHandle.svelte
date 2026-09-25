@@ -23,6 +23,17 @@
   let activeHandle: HTMLInputElement | null = null;
   let previousCursor = "";
   let previousUserSelect = "";
+  let resizeFrame: number | null = null;
+
+  function applyResize(): void {
+    resizeFrame = null;
+    onResize(resizedWidth);
+  }
+
+  function scheduleResize(): void {
+    if (resizeFrame !== null) return;
+    resizeFrame = requestAnimationFrame(applyResize);
+  }
 
   function beginResize(event: PointerEvent): void {
     if (event.button !== 0 || activePointerId !== null) return;
@@ -46,12 +57,17 @@
   function resize(event: PointerEvent): void {
     if (event.pointerId !== activePointerId) return;
     resizedWidth = clampSidebarWidth(startWidth + event.clientX - startX);
-    onResize(resizedWidth);
+    scheduleResize();
   }
 
   function finishResize(event?: PointerEvent): void {
     if (activePointerId === null || (event && event.pointerId !== activePointerId)) return;
     activePointerId = null;
+    if (resizeFrame !== null) {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = null;
+    }
+    onResize(resizedWidth);
     document.documentElement.style.cursor = previousCursor;
     document.documentElement.style.userSelect = previousUserSelect;
     activeHandle?.blur();
