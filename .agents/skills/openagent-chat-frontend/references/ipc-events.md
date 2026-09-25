@@ -13,11 +13,19 @@ other branches or the workspace's unrelated group list never appear in this
 sidebar.
 The panel displays the active group's title and participating roles as
 read-only context; it does not switch groups or wake roles from member clicks.
-Manual wakeups are sent by typing `@` in the group composer and choosing a
-member from its mention palette.
+Manual wakeups are sent by selecting member IDs through the group's `mentions`
+parameter. The composer may still use `@` as a member picker, and user-authored
+`@role` text keeps its wake behavior; Agent message text alone never wakes a
+role. `all` targets every member.
 Group messages are rendered inline in the panel; chat groups do not provide a
 separate book-mode reader.
-An `@role` mention is a wake-up request for that role to reply in the group.
+The first message from a sender shows a neutral left border that is solid for
+30% of its height and dashed for the rest, even if it is the sender's only
+message. Consecutive messages from that sender use a dashed left border
+throughout.
+An explicit `mentions` target is a wake-up request for that role to reply in the
+group. User-authored `@role` text is also a wake-up request; Agent-authored
+`@role` text is ordinary Markdown content.
 The role's final answer is not copied from its private conversation; the role
 must publish the response with `chat_group_send_message` before finishing.
 `chat_group_start` creates the group and records its first message without

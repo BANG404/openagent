@@ -53,7 +53,9 @@ export function matchChatGroupMention(
 
 export function findChatGroupMentionStart(src: string): number | undefined {
   for (let index = src.indexOf("@"); index >= 0; index = src.indexOf("@", index + 1)) {
-    if (index === 0 || /\s/u.test(src[index - 1] ?? "")) return index;
+    const previous = src[index - 1] ?? "";
+    if (previous === "`") continue;
+    if (index === 0 || !/[\p{L}\p{N}_]/u.test(previous)) return index;
   }
   return undefined;
 }

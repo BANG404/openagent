@@ -43,4 +43,20 @@ describe("chat group mention rendering", () => {
       matchChatGroupMention("@unknown", [{ id: "reviewer-id", roleName: "reviewer" }]),
     ).toBeUndefined();
   });
+
+  test("recognizes mentions after punctuation", () => {
+    expect(findChatGroupMentionStart("请：@reviewer")).toBe(2);
+    expect(findChatGroupMentionStart("然后、@reviewer")).toBe(3);
+    expect(
+      matchChatGroupMention("@严守-人类中心主义哲学家", [
+        { id: "strict-humanist", roleName: "严守-人类中心主义哲学家" },
+      ]),
+    ).toEqual(
+      expect.objectContaining({
+        type: "chatGroupMention",
+        label: "@严守-人类中心主义哲学家",
+        roleId: "strict-humanist",
+      }),
+    );
+  });
 });
