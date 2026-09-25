@@ -17,6 +17,7 @@
     { "skill": "openagent-embedding-resources", "paths": ["src-tauri/resources/models/", "scripts/fetch-embedding-model.mjs"] },
     { "skill": "openagent-windows-development", "paths": ["scripts/prepare-windows", ".wslconfig"] },
     { "skill": "native-app-debugging", "paths": ["scripts/tauri", ".agents/skills/openagent-desktop-host/references/native-verification.md"] },
+    { "skill": "tauri-pilot", "paths": [".agents/skills/tauri-pilot/"] },
     { "skill": "playwright", "paths": ["scripts/test-browser-preview.mjs", "tests/browser"] },
     { "skill": "wait-for-pr-ci", "paths": ["scripts/wait-for-pr-ci"] }
   ]

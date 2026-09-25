@@ -16,7 +16,7 @@ const manifestPath = resolve(skillsRoot, "manifest.json");
  */
 function frontmatter(file) {
   const source = readFileSync(file, "utf8");
-  const match = source.match(/^---\n([\s\S]*?)\n---\n/);
+  const match = source.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
   if (!match) throw new Error(`${file}: missing YAML frontmatter`);
   /** @type {Partial<SkillFields>} */
   const fields = {};
@@ -29,7 +29,7 @@ function frontmatter(file) {
   if (!fields.name || !fields.description) {
     throw new Error(`${file}: name and description are required`);
   }
-  if (!/^metadata:\s*$/m.test(match[1]) || !/\n\s+category:\s*\S+/.test(match[1])) {
+  if (!/^metadata:\s*$/m.test(match[1]) || !/\r?\n\s+category:\s*\S+/.test(match[1])) {
     throw new Error(`${file}: metadata.category is required`);
   }
   return /** @type {SkillFields} */ (fields);
@@ -45,6 +45,7 @@ function relativeLinks(file) {
   for (const match of source.matchAll(/\[[^\]]+\]\(([^)#]+)(?:#[^)]+)?\)/g)) {
     const target = match[1];
     if (/^(?:https?:|mailto:)/.test(target)) continue;
+    if (target.startsWith("/")) continue;
     if (!existsSync(resolve(dirname(file), target))) errors.push(`${file}: missing ${target}`);
   }
   return errors;

@@ -1,6 +1,8 @@
 ---
 name: tauri-pilot
 description: Inspect, interact with, and test a running Tauri v2 app via CLI. Communicates over Unix socket using JSON-RPC 2.0. Use when testing UI, automating interactions, or debugging a Tauri app.
+metadata:
+  category: native-debugging
 ---
 
 # tauri-pilot
