@@ -73,11 +73,12 @@
   following based on the actual viewport position, even if a programmatic pin
   was scheduled in the same frame.
 - Drive awaiting-output from the SDK's model-request lifecycle rather than from
-  an empty transcript. Every Rig completion request, including a follow-up
-  request after tool results, starts the delayed thinking indicator; the first
-  observable text, reasoning, or tool call clears it. Earlier records in the
-  same logical turn must not suppress the indicator for a later agent-loop
-  request.
+  an empty transcript or a timer. Every Rig completion request, including a
+  follow-up request after tool results, uses the same active stream state as the
+  composer: the thinking indicator appears immediately while the running turn
+  awaits model output and disappears when that state clears or the turn ends.
+  Earlier records in the same logical turn must not suppress the indicator for
+  a later agent-loop request.
 - Completed messages and the active response share one keyed, fully mounted
   transcript list. Do not reintroduce viewport virtualization or row-height
   estimation: restored and live rows stay mounted so loading and scrolling do

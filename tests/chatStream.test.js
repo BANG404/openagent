@@ -219,14 +219,10 @@ describe("conversation transition rendering", () => {
       dispatchSource.indexOf('.invokeProduct("create_conversation", pendingConversationCreation)'),
     );
     expect(surfaceSource).toContain("showNewConversationContext={false}");
-    expect(messageListSource).toContain("showAwaitingStreamOutput");
-    expect(messageListSource).toContain("}, 250);");
     expect(messageListSource).toContain(
-      "{:else if assistantIsStreaming && showAwaitingStreamOutput}",
-    );
-    expect(messageListSource).not.toContain(
       "{:else if assistantIsStreaming && isAwaitingStreamOutput}",
     );
+    expect(messageListSource).not.toContain("showAwaitingStreamOutput");
   });
 });
 
