@@ -26,8 +26,10 @@ throughout.
 An explicit `mentions` target is a wake-up request for that role to reply in the
 group. User-authored `@role` text is also a wake-up request; Agent-authored
 `@role` text is ordinary Markdown content.
-The role's final answer is not copied from its private conversation; the role
-must publish the response with `chat_group_send_message` before finishing.
+The role's final answer is not copied from its private conversation. When a
+wake-up has a substantive response, the role must publish that response with
+`chat_group_send_message` before finishing; stale, duplicate, or purely
+procedural wake-ups may be explicitly skipped instead.
 `chat_group_start` creates the group, records its first message without waking
 it, and persists saved roles listed in its `roles` argument as a wake roster.
 It creates no role conversation, branch, or group member. A later explicit
