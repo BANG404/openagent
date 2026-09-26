@@ -23,6 +23,9 @@ and exits. When a destructive transition is required, Tauri presents the user
 confirmation and asks that command to perform the backup and reset before it
 starts the long-lived supervised server. The ordinary Tauri binary therefore
 does not link the private SDK Rust crates.
+Additive database upgrades, such as creating a new optional feature table, are
+applied transactionally by the Runtime without entering this confirmation
+flow; the Runtime keeps a SQLite snapshot beside `messages.db` for rollback.
 Known unversioned configuration is normalized atomically by the long-lived
 Runtime after bootstrap inspection, with the original bytes retained in
 `config.toml.pre-v1.bak`; it does not enter the destructive transition flow.
