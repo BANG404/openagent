@@ -65,15 +65,25 @@ export default tseslint.config(
   },
   {
     files: [
+      "src/**/*.{js,ts,svelte,mjs,cjs}",
+      "tests/**/*.{js,ts,svelte,mjs,cjs}",
+      "scripts/**/*.{js,ts,svelte,mjs,cjs}",
+      "*.{js,ts,mjs,cjs}",
+    ],
+    rules: {
+      // One file-size ceiling keeps new responsibilities moving into focused
+      // modules instead of growing another composition root.
+      "max-lines": ["error", { max: 2000, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  {
+    files: [
       "src/lib/components/**/*.svelte",
       "src/lib/streamdown/components/**/*.svelte",
       "src/lib/openagent/**/*.ts",
     ],
     ignores: ["src/lib/components/SettingsView.svelte"],
     rules: {
-      // Keep existing large surfaces on a ratchet while making leaf modules
-      // small enough to review and split when they gain another responsibility.
-      "max-lines": ["error", { max: 2000, skipBlankLines: true, skipComments: true }],
       "max-lines-per-function": ["error", { max: 700, skipBlankLines: true, skipComments: true }],
       complexity: ["error", 50],
     },
@@ -82,7 +92,6 @@ export default tseslint.config(
     files: ["src/routes/**/*.svelte"],
     ignores: ["src/routes/+page.svelte"],
     rules: {
-      "max-lines": ["error", { max: 2000, skipBlankLines: true, skipComments: true }],
       "max-lines-per-function": ["error", { max: 700, skipBlankLines: true, skipComments: true }],
       complexity: ["error", 50],
     },
@@ -90,8 +99,6 @@ export default tseslint.config(
   {
     files: ["src/routes/+page.svelte"],
     rules: {
-      // This composition root is legacy debt; it may shrink, but must not grow.
-      "max-lines": ["error", { max: 5200, skipBlankLines: true, skipComments: true }],
       "max-lines-per-function": ["error", { max: 700, skipBlankLines: true, skipComments: true }],
       complexity: ["error", 50],
     },
@@ -99,9 +106,6 @@ export default tseslint.config(
   {
     files: ["src/lib/components/SettingsView.svelte"],
     rules: {
-      // Keep the legacy settings root on a shrink-only ratchet while its
-      // domain sections move into focused components.
-      "max-lines": ["error", { max: 6200, skipBlankLines: true, skipComments: true }],
       "max-lines-per-function": ["error", { max: 700, skipBlankLines: true, skipComments: true }],
       complexity: ["error", 50],
     },
@@ -113,7 +117,6 @@ export default tseslint.config(
       "src/lib/openagent/**/*.ts",
     ],
     rules: {
-      "max-lines": ["error", { max: 500, skipBlankLines: true, skipComments: true }],
       "max-lines-per-function": ["error", { max: 160, skipBlankLines: true, skipComments: true }],
       complexity: ["error", 20],
       "max-depth": ["error", 5],

@@ -160,8 +160,8 @@ under `src/lib/components/ui/` are the implementation boundary and are exempt
 from the consumer rule. Keep the standalone check when changing the baseline;
 it is the ratchet's source of truth.
 
-The frontend ESLint configuration also applies size and complexity ceilings to
-leaf components, route surfaces, and the two current composition roots. The
-large `+page.svelte` and `SettingsView.svelte` roots use shrink-only ceilings;
-new behavior should move into focused components instead of increasing those
-files.
+The frontend ESLint configuration applies one mandatory 2000 nonblank,
+noncomment line ceiling to every checked JavaScript, TypeScript, and Svelte
+file. New behavior should move into focused components instead of growing a
+composition root. Rust uses Clippy's `too_many_lines` with the same 2000-line
+threshold and treats it as an error in `lint:rust`.
