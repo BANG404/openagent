@@ -1188,12 +1188,14 @@
   }
   .input-wrapper {
     position: relative;
+    min-width: 0;
   }
 
   .composer {
     position: relative;
     z-index: 3;
     width: 100%;
+    min-width: 0;
     box-sizing: border-box;
     container-type: inline-size;
     transition: box-shadow 1.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1203,7 +1205,15 @@
   /* Keep wrapped placeholder text clear of the send control in narrow panes. */
   @container (max-width: 280px) {
     .composer .input {
-      min-height: 78px;
+      min-height: 78px !important;
+    }
+
+    .composer-toolbar {
+      gap: 4px;
+    }
+
+    :global(.composer-model-trigger) {
+      max-width: min(180px, 100%);
     }
   }
 
@@ -1281,7 +1291,7 @@
     background: transparent;
     border: none;
     border-radius: 0;
-    padding: 12px 18px 4px;
+    padding: 12px 54px 4px 18px;
     color: var(--text);
     font-family: inherit;
     font-size: 14px;
@@ -1359,6 +1369,7 @@
   }
 
   .composer-toolbar {
+    min-width: 0;
     min-height: 38px;
     display: flex;
     flex-wrap: wrap;
