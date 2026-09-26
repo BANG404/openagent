@@ -24,11 +24,12 @@ const test = spawnSync(process.execPath, ["run", "test"], {
   env: process.env,
   stdio: "inherit",
 });
-if (test.status !== 0) process.exit(test.status ?? 1);
 
 const scanner = spawnSync("sonar-scanner", [], {
   env: process.env,
   shell: process.platform === "win32",
   stdio: "inherit",
 });
-process.exit(scanner.status ?? 1);
+
+if (scanner.status !== 0) process.exit(scanner.status ?? 1);
+process.exit(test.status ?? 1);
