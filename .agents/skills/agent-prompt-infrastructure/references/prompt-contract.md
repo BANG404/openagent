@@ -48,3 +48,9 @@ changes still require the relevant behavior documentation through
 Prompt behavior should be verified with stable metadata or snapshots that show
 which layers were selected, not by exposing raw system prompts, provider
 secrets, or model-context diagnostics in normal product UI.
+
+## Entrypoint size
+
+Each skill `SKILL.md` is a compact router. Its prose body is limited to 200
+non-whitespace characters; move detailed procedures, schemas, and examples to
+linked references. `bun run check:skills` enforces this budget for every skill.

@@ -18,6 +18,8 @@
     "check:embedding-model": "bun scripts/fetch-embedding-model.mjs --check",
     "check:docs": "bun scripts/check-docs-sync.mjs",
     "check:skills": "bun scripts/validate-agent-skills.mjs",
+    "check:components": "bun scripts/check-component-usage.mjs",
+    "check:tool-i18n": "bun scripts/check-static-tool-i18n.mjs",
     "preflight": "bun scripts/preflight.mjs",
     "fetch:embedding-model": "bun scripts/fetch-embedding-model.mjs",
     "prepare:worktree:dev": "bun scripts/prepare-worktree.mjs --profile dev",

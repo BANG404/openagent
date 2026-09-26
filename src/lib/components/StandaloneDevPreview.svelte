@@ -1047,7 +1047,7 @@
   />
 {:else if preview === "approval-queue"}
   <main class="approval-queue-preview-stage">
-    <section class="approval-queue-preview-stack" aria-label="Approval queue preview">
+    <section class="approval-queue-preview-stack" aria-label={$t("toolPreviewApprovalQueue")}>
       {#each approvalPreviewRequests as request, index (request.request_id)}
         <ToolCallCard
           name={index === 0 ? "terminal_exec" : index === 1 ? "write_file" : "chat_group_start"}
@@ -1065,7 +1065,7 @@
   </main>
 {:else if preview === "tool-diff"}
   <main class="tool-diff-preview-stage">
-    <section class="tool-diff-preview-stack" aria-label="Large Agent edit preview">
+    <section class="tool-diff-preview-stack" aria-label={$t("toolPreviewLargeEdit")}>
       <ToolCallCard
         name="apply_patch"
         args={toolPatchArgs}
@@ -1087,7 +1087,7 @@
   </main>
 {:else if preview === "tool-status"}
   <main class="tool-status-preview-stage">
-    <section class="tool-status-preview-stack" aria-label="Tool result status preview">
+    <section class="tool-status-preview-stack" aria-label={$t("toolPreviewStatus")}>
       <ToolCallCard
         name="terminal_exec"
         args={JSON.stringify({ command: "bun run check" }, null, 2)}
@@ -1557,7 +1557,7 @@
     class:following-tail={streamingFollowTail}
     bind:this={streamingMessagesElement}
     onscroll={updateStreamingFollowTail}
-    aria-label="Streaming transcript preview"
+    aria-label={$t("streamingTranscriptPreview")}
   >
     <MessageList
       messages={streamingMessages}

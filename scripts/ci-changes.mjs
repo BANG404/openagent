@@ -80,6 +80,7 @@ export function classifyChangedModules(files, forceAll = false) {
     "tests/codexExecBatch.test.js",
     "tests/ciReuse.test.js",
     "tests/ciResults.test.js",
+    "tests/componentUsage.test.js",
     "tests/docsSync.test.js",
     "tests/owtBatch.test.js",
     "tests/preflight.test.js",
@@ -88,6 +89,8 @@ export function classifyChangedModules(files, forceAll = false) {
     "tests/releaseComponents.test.js",
     "tests/releaseVersion.test.js",
     "tests/sdkGitlink.test.js",
+    "tests/skillDocumentLength.test.js",
+    "tests/staticToolI18n.test.js",
   ]);
 
   const automation =
@@ -95,6 +98,7 @@ export function classifyChangedModules(files, forceAll = false) {
     normalized.some((file) =>
       matchesPath(file, [
         ".agents/skills/deliver-via-pr/",
+        ".agents/skills/",
         ".github/",
         "scripts/",
         ".agents/skills/openagent-release-engineering/",

@@ -10,6 +10,8 @@ const manifestPath = resolve(skillsRoot, "manifest.json");
 /** @typedef {{ skill: string, paths: string[] }} SkillOwner */
 /** @typedef {{ version: number, owners: SkillOwner[] }} SkillManifest */
 
+export const MAX_SKILL_ENTRYPOINT_CHARS = 200;
+
 /**
  * @param {string} file
  * @returns {SkillFields}
@@ -65,8 +67,51 @@ function markdownFiles(directory) {
   return files;
 }
 
+/**
+ * Return the prose length of a skill entrypoint. YAML metadata and fenced
+ * examples are routing data or reference material, so they do not count
+ * toward the compact entrypoint budget.
+ *
+ * @param {string} source
+ * @returns {number}
+ */
+export function skillBodyCharacterCount(source) {
+  const body = source
+    .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "")
+    .replace(/^```[\s\S]*?^```\s*$/gm, "")
+    .replace(/\s/gu, "");
+  return [...body].length;
+}
+
+/**
+ * @param {string} directory
+ * @returns {string[]}
+ */
+export function skillEntrypoints(directory = skillsRoot) {
+  return readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => resolve(directory, entry.name, "SKILL.md"))
+    .filter((file) => existsSync(file));
+}
+
+/**
+ * @param {{ directory?: string, maxChars?: number }} [options]
+ * @returns {string[]}
+ */
+export function skillLengthErrors({
+  directory = skillsRoot,
+  maxChars = MAX_SKILL_ENTRYPOINT_CHARS,
+} = {}) {
+  return skillEntrypoints(directory).flatMap((file) => {
+    const count = skillBodyCharacterCount(readFileSync(file, "utf8"));
+    return count > maxChars
+      ? [`${file}: entrypoint has ${count} prose characters (maximum ${maxChars})`]
+      : [];
+  });
+}
+
 function validate() {
-  const errors = [];
+  const errors = [...skillLengthErrors()];
   const skillNames = new Set();
   for (const entry of readdirSync(skillsRoot, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;

@@ -181,6 +181,21 @@ describe("CI module classification", () => {
     });
   });
 
+  test("routes skill and frontend contract tests to their owning modules", () => {
+    expect(classifyChangedModules([".agents/skills/openagent-chat-frontend/SKILL.md"])).toEqual({
+      ...nothing,
+      automation: true,
+    });
+    expect(classifyChangedModules(["tests/componentUsage.test.js"])).toEqual({
+      ...nothing,
+      automation: true,
+    });
+    expect(classifyChangedModules(["src/lib/components/ToolCallCard.svelte"])).toEqual({
+      ...nothing,
+      frontend: true,
+    });
+  });
+
   test("only verifies automation for generated release metadata", () => {
     expect(
       classifyChangedModules([
@@ -207,7 +222,7 @@ describe("CI module classification", () => {
         "README.md",
         ".agents/skills/openagent-design-system/references/colors.md",
       ]),
-    ).toEqual(nothing);
+    ).toEqual({ ...nothing, automation: true });
   });
 
   test("routes modular release documentation through automation checks", () => {

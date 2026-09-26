@@ -1,64 +1,12 @@
 ---
 name: deliver-via-pr
-description: "Implement and deliver OpenAgent repository changes using prefix-selected Git modes. Use for every repository-changing task: default to verified commits directly on the local host default branch, and use OWT for an isolated local worktree that is later fast-forwarded into the local default branch."
+description: Implement and deliver OpenAgent repository changes using prefix-selected Git modes. Use for every repository-changing task: default to verified commits directly on the local host default branch, and use OWT for an isolated local worktree that is later fast-forwarded into the local default branch.
 metadata:
   category: pr-and-ci
 ---
 
 # Repository delivery
 
-## Select the mode
-
-Read the first token of the user's task. `OWT` is a separate prefix; with no
-prefix, the default mode is direct local. A prefix is an uppercase standalone
-token at the start of the message, optionally followed by whitespace or a
-colon. Remove the token from the task description after selecting the mode.
-
-| Input | Mode | Terminal state |
-| --- | --- | --- |
-| No prefix | Direct local | Verified commits on the local default branch; no branch, worktree, or push |
-| `OWT` | Worktree local | Isolated task worktree; commits fast-forwarded into the local default branch; no push |
-
-An explicit user instruction (uncommitted changes, named target branch, or
-similar override) overrides the corresponding default. A prefix selects
-delivery mechanics only; it does not broaden task scope.
-
-## Establish scope
-
-- Read the nearest `AGENTS.md` and the mapped source-of-truth documentation.
-- For behavior or documentation changes, read
-  [references/living-documentation.md](references/living-documentation.md) and
-  pick one primary documentation owner.
-- Inspect `git status --short --branch`, worktrees, and the remote default
-  branch.
-- For diagnosis or review only, do not change branches or files.
-- Preserve unrelated branches, worktrees, staged files, and working changes.
-  Direct local mode stages only the owned paths or hunks. Use the automatic
-  conflict-isolation procedure in
-  [references/modes.md](references/modes.md#automatic-conflict-isolation) when
-  unrelated local state blocks safe editing or authoritative verification.
-  `OWT` leaves unrelated changes in the default worktree; never copy them into
-  the task worktree.
-- Follow `sdk/AGENTS.md` for SDK work. The private SDK does not use pull
-  requests: push focused commits to `main` first, then update the parent
-  gitlink. Local preflight and the host pre-push hook reject any gitlink that is
-  not contained in the SDK checkout's `origin/main`; fetch that ref when it is
-  stale rather than pinning an unadvertised detached commit.
-
-## Read the right reference
-
-Open only the references that own the affected step:
-
-- Direct local and OWT procedures: [references/modes.md](references/modes.md)
-- Living documentation ownership: [references/living-documentation.md](references/living-documentation.md)
-- Sealed batch OWT coordination: [references/batch-owt.md](references/batch-owt.md)
-- Parallel Codex execution: [references/parallel-codex-exec.md](references/parallel-codex-exec.md)
-
-## Verification
-
-Run `bun run preflight` before commit. The native preflight plan materializes
-the configured Tauri `frontendDist` directory before `cargo check`, so a clean
-worktree does not require a manual production frontend build just to run the
-host compile gate. Use `--dry-run` to inspect and `--base <ref>` only for
-non-`master` targets. Do not duplicate CI lint, test, check, or build commands
-locally.
+Read [references/modes.md](references/modes.md) for delivery. Use
+[living-documentation.md](references/living-documentation.md) for ownership.
+Preserve unrelated work. Run bun run preflight.

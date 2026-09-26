@@ -114,7 +114,7 @@
       {/snippet}
     </Streamdown>
     {#if isLastText && item.content.trim() && debugCheckpointId}
-      <span class="checkpoint-btn">checkpoint: {debugCheckpointId}</span>
+      <span class="checkpoint-btn">{$t("checkpointLabel")}: {debugCheckpointId}</span>
     {/if}
   </div>
 {:else if item.type === "thinking"}
@@ -134,7 +134,7 @@
       }}
     >
       <span class="thinking-marker" aria-hidden="true">{thinkingExpanded ? "▾" : "▸"}</span>
-      <span>Thinking</span>
+      <span>{$t("thinking")}</span>
     </button>
     {#if thinkingExpanded}<pre>{renderThinkingContent(item.content)}</pre>{/if}
   </div>

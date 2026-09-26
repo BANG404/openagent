@@ -53,3 +53,10 @@ Follow the shared setup and isolation rules in the desktop-host
 [`native-verification.md`](../../openagent-desktop-host/references/native-verification.md).
 Update this owner reference when a new invariant or test surface becomes part
 of the product contract.
+
+## Shared control and tool labels
+
+Frontend changes also run `check:components` and `check:tool-i18n`. Reuse the
+shared controls under `src/lib/components/ui/`; do not add native selects,
+dialogs, or new checkbox/radio primitives. Static tool labels, status values,
+and accessibility text belong in both locale catalogs in `src/lib/i18n.ts`.

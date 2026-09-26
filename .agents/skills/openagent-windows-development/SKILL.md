@@ -7,8 +7,6 @@ metadata:
 
 # Windows development
 
-Read [setup-and-sync.md](references/setup-and-sync.md) for
-one-time setup, linker and filesystem rules, and WSL commit synchronization.
-Keep Windows source/build locations and synchronization steps aligned with the
-document; do not turn a local performance workaround into a product runtime
-fallback.
+Read [setup-and-sync.md](references/setup-and-sync.md) for setup, linker,
+filesystem, and WSL sync rules. Keep local performance workarounds out of the
+product runtime.

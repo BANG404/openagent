@@ -7,11 +7,6 @@ metadata:
 
 # Modular updates
 
-Read [component-updates.md](references/component-updates.md) for the
-development and published boundary matrix, Runtime supervisor contract,
-frontend activation, rollback, and third-party reload behavior.
-
-Route native process mechanics to `openagent-desktop-host`; route artifacts,
-signatures, channels, and publication to `openagent-release-engineering`.
-Never introduce a replaceable Rust dynamic library or a second durable-state
-writer.
+Read [component-updates.md](references/component-updates.md) for update
+boundaries, activation, rollback, and reload. Route native mechanics and
+release artifacts to their owning skills.

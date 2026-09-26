@@ -20,10 +20,11 @@
   }
 
   function formatValue(field: AskUserField, value: unknown): string {
-    if (value === undefined || value === null || value === "") return "-";
-    if (Array.isArray(value)) return value.length > 0 ? value.map(String).join(", ") : "-";
+    if (value === undefined || value === null || value === "") return $t("emptyValue");
+    if (Array.isArray(value))
+      return value.length > 0 ? value.map(String).join(", ") : $t("emptyValue");
     if (field.type === "checkbox" || field.type === "confirm") {
-      return value ? "Yes" : "No";
+      return value ? $t("yes") : $t("no");
     }
     if (typeof value === "object") return JSON.stringify(value);
     return String(value);

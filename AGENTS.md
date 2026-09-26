@@ -96,13 +96,14 @@ state under `~/.openagent`.
   children; use a `children` snippet only when parameters require it.
 - Extend streamed Markdown, code, Mermaid, ECharts, or AGUI only through
   `src/lib/streamdown/`.
-- Follow `.agents/skills/openagent-design-system/` and prefer Bits UI primitives.
+- Follow `.agents/skills/openagent-design-system/` and prefer Bits UI primitives;
+  reuse `src/lib/components/ui/`, with native selects, dialogs, and new checkbox/radio controls rejected by the shared component contract.
 
 Frontends submit ordinary chat and slash-command input through the shared SDK
 client; do not parse commands or select flows in a host. IPC changes update the
 SDK contract or adapter, public frontend types, and all callers together.
 Inspector and trace data may contain model context and must not appear in the
-normal product UI.
+normal product UI. Static agent-tool labels and accessibility text use `src/lib/i18n.ts`; frontend changes run the related contract checks.
 
 ## Data and user safety
 The canonical locations and compatibility behavior live in
@@ -142,7 +143,6 @@ layout-stable skeleton.
 - Verify visible UI changes in the real Tauri window with the changed module's `tauri-pilot` black-box scenario, including light/dark themes and Chinese/English where applicable. See `.agents/skills/openagent-desktop-host/references/native-verification.md`.
 
 ## Delivery
-
 Every repository-changing task uses `deliver-via-pr`. With no prefix, edit the
 local `master`, run preflight, and create focused local commits without pushing;
 `OWT` uses an isolated worktree and fast-forwards it into `master`. The skill

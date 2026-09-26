@@ -467,7 +467,7 @@
                 {#each images as image (image.src)}
                   <img
                     src={image.src}
-                    alt={name === "view_image" ? "Viewed workspace image" : "Tool result image"}
+                    alt={name === "view_image" ? $t("viewedWorkspaceImage") : $t("toolResultImage")}
                   />
                 {/each}
               </div>
@@ -485,7 +485,7 @@
               {#each images as image (image.src)}
                 <img
                   src={image.src}
-                  alt={name === "view_image" ? "Viewed workspace image" : "Tool result image"}
+                  alt={name === "view_image" ? $t("viewedWorkspaceImage") : $t("toolResultImage")}
                 />
               {/each}
             </div>

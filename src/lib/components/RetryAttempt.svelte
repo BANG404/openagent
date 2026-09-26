@@ -93,7 +93,7 @@
           </Streamdown>
         {:else if attemptItem.type === "thinking"}
           <details class="thinking-block">
-            <summary>Thinking</summary>
+            <summary>{$t("thinking")}</summary>
             <pre>{attemptItem.content.trimEnd()}</pre>
           </details>
         {:else if attemptItem.type === "tool_call"}
