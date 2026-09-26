@@ -165,6 +165,21 @@ Debug desktop builds use `~/.openagent-dev` by default, keeping development
 configuration and data separate from an installed release. Set
 `OPENAGENT_HOME` explicitly to use another development root.
 
+### Run tests with SonarQube
+
+Install the SonarScanner CLI and create a project token in the SonarQube
+instance configured in `sonar-project.properties`. Set the token in the local
+environment, then run:
+
+```bash
+# PowerShell
+$env:SONAR_TOKEN = "<project-token>"
+bun run test:sonar
+```
+
+The command runs `bun run test` first and only uploads the analysis when the
+tests pass.
+
 ### Build a distributable
 
 ```bash
