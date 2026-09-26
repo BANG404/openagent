@@ -25,11 +25,17 @@ const test = spawnSync(process.execPath, ["run", "test"], {
   stdio: "inherit",
 });
 
+if (test.error) throw test.error;
+if (test.status !== 0) process.exit(test.status ?? 1);
+
 const scanner = spawnSync("sonar-scanner", [], {
   env: process.env,
   shell: process.platform === "win32",
   stdio: "inherit",
 });
 
+if (scanner.error) {
+  console.error(`Unable to start sonar-scanner: ${scanner.error.message}`);
+  process.exit(1);
+}
 if (scanner.status !== 0) process.exit(scanner.status ?? 1);
-process.exit(test.status ?? 1);
