@@ -1,6 +1,6 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 
 const envFile = resolve(process.cwd(), ".env.sonar");
 
@@ -20,22 +20,70 @@ if (!process.env.SONAR_TOKEN) {
   process.exit(1);
 }
 
-const test = spawnSync(process.execPath, ["run", "test"], {
-  env: process.env,
-  stdio: "inherit",
-});
+const repositoryRoot = process.cwd();
+const coverageRoot = resolve(repositoryRoot, "coverage", "sonar");
 
-if (test.error) throw test.error;
-if (test.status !== 0) process.exit(test.status ?? 1);
+function run(command, args, cwd = repositoryRoot) {
+  const result = spawnSync(command, args, {
+    cwd,
+    env: process.env,
+    stdio: "inherit",
+    shell: command === "sonar-scanner" && process.platform === "win32",
+  });
 
-const scanner = spawnSync("sonar-scanner", [], {
-  env: process.env,
-  shell: process.platform === "win32",
-  stdio: "inherit",
-});
-
-if (scanner.error) {
-  console.error(`Unable to start sonar-scanner: ${scanner.error.message}`);
-  process.exit(1);
+  if (result.error) {
+    console.error(`Unable to start ${command}: ${result.error.message}`);
+    process.exit(1);
+  }
+  if (result.status !== 0) process.exit(result.status ?? 1);
 }
-if (scanner.status !== 0) process.exit(scanner.status ?? 1);
+
+function testFilesUnder(directory) {
+  const absoluteDirectory = resolve(repositoryRoot, directory);
+  const entries = readdirSync(absoluteDirectory, { withFileTypes: true });
+  return entries.flatMap((entry) => {
+    const relativePath = join(directory, entry.name);
+    if (entry.isDirectory()) return testFilesUnder(relativePath);
+    if (!entry.isFile() || !/\.(?:test|spec)\.(?:js|mjs|ts)$/u.test(entry.name)) return [];
+    return [relative(repositoryRoot, resolve(repositoryRoot, relativePath))];
+  });
+}
+
+rmSync(coverageRoot, { recursive: true, force: true });
+mkdirSync(coverageRoot, { recursive: true });
+
+for (const packagePath of ["sdk/typescript", "sdk/harness-typescript"]) {
+  run(process.execPath, ["install", "--frozen-lockfile"], resolve(repositoryRoot, packagePath));
+}
+
+run(process.execPath, [
+  "test",
+  "--coverage",
+  "--coverage-reporter=lcov",
+  "--coverage-dir",
+  join(coverageRoot, "host"),
+  ...testFilesUnder("tests"),
+  ...testFilesUnder("scripts"),
+]);
+
+run(process.execPath, [
+  "test",
+  "--coverage",
+  "--coverage-reporter=lcov",
+  "--coverage-dir",
+  join(coverageRoot, "sdk-typescript"),
+  "sdk/typescript/tests",
+]);
+
+run(process.execPath, [
+  "test",
+  "--coverage",
+  "--coverage-reporter=lcov",
+  "--coverage-dir",
+  join(coverageRoot, "sdk-harness-typescript"),
+  "sdk/harness-typescript/tests",
+]);
+
+run("cargo", ["test", "--manifest-path", resolve(repositoryRoot, "sdk", "Cargo.toml"), "--workspace"]);
+
+run("sonar-scanner", []);

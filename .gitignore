@@ -1,5 +1,6 @@
 # Bun
 node_modules/
+coverage/
 
 # Build outputs
 build/

@@ -177,8 +177,11 @@ $env:SONAR_TOKEN = "<project-token>"
 bun run test:sonar
 ```
 
-The command runs `bun run test` first and only uploads the analysis when the
-tests pass.
+The command runs the host tests with LCOV coverage, installs and tests both
+TypeScript SDK packages with their own LCOV reports, then runs the SDK Rust
+workspace tests. SonarQube receives the host and TypeScript SDK coverage only;
+the Rust tests remain an upload gate because Rust coverage tooling is not part
+of the repository toolchain. Analysis is uploaded only when every test passes.
 
 ### Build a distributable
 
