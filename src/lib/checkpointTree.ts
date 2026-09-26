@@ -244,6 +244,7 @@ function recordToMessage(
   r: CheckpointMessage,
   checkpointId: string,
   convId: string | null = null,
+  chatGroupWake = false,
 ): ChatMessage {
   let content = "";
   const derivedItems: StreamItem[] = persistedItems(r.items);
@@ -318,6 +319,7 @@ function recordToMessage(
     completedAt: r.completed_at ?? undefined,
     tags: r.tags,
     agentTag: r.tags[0],
+    chatGroupWake: chatGroupWake || undefined,
   };
 }
 
@@ -328,10 +330,15 @@ export function checkpointRecordsToMessages(
   convId: string | null = null,
 ): ChatMessage[] {
   const messages: ChatMessage[] = [];
+  let pendingChatGroupWake = false;
   for (const record of orderCheckpointRecords(records)) {
     const isCompactionBoundaryRecord =
       record.role === "system" && record.tags.includes("context_compaction");
-    if (isCompactionBoundaryRecord || isHiddenCheckpointRecord(record)) continue;
+    if (isCompactionBoundaryRecord) continue;
+    if (isHiddenCheckpointRecord(record)) {
+      if (record.tags.includes("chat_group_mention")) pendingChatGroupWake = true;
+      continue;
+    }
     const toolResults = record.content.filter((part) => part.type === "tool_result");
     if (
       toolResults.length > 0 &&
@@ -349,7 +356,8 @@ export function checkpointRecordsToMessages(
       })
     )
       continue;
-    messages.push(recordToMessage(record, checkpointId, convId));
+    messages.push(recordToMessage(record, checkpointId, convId, pendingChatGroupWake));
+    if (pendingChatGroupWake && record.role === "assistant") pendingChatGroupWake = false;
   }
   return messages;
 }

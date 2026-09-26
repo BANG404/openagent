@@ -100,6 +100,8 @@ export interface ChatMessage {
   tags?: string[];
   /** OpenAgent metadata read from the provider-compatible checkpoint message. */
   agentTag?: AgentMessageTag;
+  /** The assistant turn was triggered by a chat-group wake prompt. */
+  chatGroupWake?: boolean;
 }
 
 export type AgentMessageTag =

@@ -1091,6 +1091,7 @@
                 turn: restored.turn ?? message.turn,
                 tags: restored.tags ?? message.tags,
                 agentTag: restored.agentTag ?? message.agentTag,
+                chatGroupWake: restored.chatGroupWake ?? message.chatGroupWake,
               };
             }),
           }

@@ -51,6 +51,27 @@ describe("checkpoint record projection", () => {
     ]);
   });
 
+  test("marks the assistant turn following a chat-group wake prompt", () => {
+    const [message] = checkpointRecordsToMessages(
+      [
+        record({
+          id: "wake-1",
+          role: "user",
+          tags: ["chat_group_mention"],
+          content: [{ type: "text", text: "[chat_group:group-1]" }],
+        }),
+        record({
+          id: "wake-reply-1",
+          content: [{ type: "text", text: "Published to the group." }],
+        }),
+      ],
+      "checkpoint-1",
+      "conversation-1",
+    );
+
+    expect(message.chatGroupWake).toBe(true);
+  });
+
   test("preserves ordered reasoning and joins a persisted tool result", () => {
     const messages = checkpointRecordsToMessages(
       [

@@ -643,6 +643,7 @@
         {@const turnSuggestionHostMessageId =
           turnMetadata?.response_message_id ?? assistantMsg?.id ?? null}
         {@const turnIsTerminal = ["completed", "cancelled", "failed"].includes(turnStatus)}
+        {@const isChatGroupWake = turnMessages.some((message) => message.chatGroupWake)}
         {@const assistantSegments = groupStreamItems(renderedAssistantItems)}
         {@const { processSegments, finalSegments } = partitionAssistantSegments(
           assistantSegments,
@@ -735,7 +736,8 @@
           </div>
         {/if}
         {#if assistantMsg}
-          {#if isRerunnable || timing || cacheUsage || assistantMsg.timestamp > 0 || renderedAssistantItems.length > 0}
+          {#if !isChatGroupWake &&
+            (isRerunnable || timing || cacheUsage || assistantMsg.timestamp > 0 || renderedAssistantItems.length > 0)}
             <div
               class="msg-footer-row message-record pagination-footer"
               id={renderedAssistantItems.length > 0 ? undefined : `message-${assistantMsg.id}`}
@@ -854,7 +856,7 @@
                 >{/if}
             </div>
           {/if}
-          {#if !assistantIsStreaming && turnIsTerminal && turnSuggestionHostMessageId === suggestionHostMessageId && turnSuggestions.length === 3}
+          {#if !isChatGroupWake && !assistantIsStreaming && turnIsTerminal && turnSuggestionHostMessageId === suggestionHostMessageId && turnSuggestions.length === 3}
             <div class="message-record pagination-footer">
               <FollowUpSuggestions suggestions={turnSuggestions} onSelect={onSelectSuggestion} />
             </div>

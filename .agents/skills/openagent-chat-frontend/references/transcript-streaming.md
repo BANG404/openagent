@@ -360,6 +360,9 @@
   before a live context-compaction continuation. Keep already completed turns'
   action footers mounted while a later turn streams. Reveal the live turn's
   actions together only after its complete Agent reply finishes.
+  A durable turn opened by a `chat_group_mention` wake prompt publishes its
+  answer through the group panel, so keep its completion footer and follow-up
+  suggestions hidden in the role conversation.
   Book mode opens from that footer and flows each complete reply continuously
   across a two-column, full-window spread, adding pages when the reply exceeds
   one spread. Match Mermaid fullscreen's fixed viewport footprint and inner
