@@ -254,6 +254,8 @@ export interface TaskTokenUsage {
   input_tokens: number;
   output_tokens: number;
   total_tokens: number;
+  /** Input-context size from the latest provider request in this task. */
+  context_tokens?: number;
   cached_input_tokens: number;
   cache_creation_input_tokens: number;
   tool_use_prompt_tokens: number;

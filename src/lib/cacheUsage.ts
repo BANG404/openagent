@@ -23,6 +23,9 @@ export function summarizeCacheUsage(usage: TaskTokenUsage): CacheUsageSummary {
  * complete input total when the aggregate is missing.
  */
 export function contextUsageTokens(usage: TaskTokenUsage): number {
+  if (usage.context_tokens != null && usage.context_tokens > 0) {
+    return usage.context_tokens;
+  }
   const reportedInput = usage.total_tokens - usage.output_tokens;
   const separatelyReportedInput =
     usage.input_tokens + usage.cached_input_tokens + usage.cache_creation_input_tokens;

@@ -355,6 +355,13 @@
   arrives. When no prior measurement exists, keep the enabled
   streaming indicator mounted at zero until a usage measurement arrives. Do not
   show a redundant success toast for the same transition.
+- Treat the context indicator as a request-size measurement, not a turn-total
+  counter. The runtime's aggregate usage is retained for cache and cost
+  summaries, while `context_tokens` records the latest provider request's full
+  input context, including cached tokens. This follows Codex's
+  `last_token_usage` behavior for tool-follow-up rounds and keeps the indicator
+  aligned with the provider's context-window denominator. Checkpoint data from
+  before `context_tokens` was added uses the existing derived-input fallback.
   Do not show a reply's actions—including regenerate, copy, and book mode—while
   that logical assistant turn is streaming, even when a durable prefix exists
   before a live context-compaction continuation. Keep already completed turns'
