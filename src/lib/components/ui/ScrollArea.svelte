@@ -59,10 +59,19 @@
     min-height: 0;
     box-sizing: border-box;
     padding-right: 8px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  :global(.ui-scroll-area-viewport::-webkit-scrollbar) {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   :global(.ui-scroll-area-scrollbar) {
     display: flex;
+    z-index: 1;
     width: 8px;
     margin: 0;
     padding: 2px 1px;

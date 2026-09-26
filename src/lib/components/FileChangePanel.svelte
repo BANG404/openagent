@@ -3,6 +3,7 @@
   import { fileChangeDiffLines } from "$lib/fileChangeDiff";
   import type { FileChange } from "$lib/types";
   import FileDiffView from "./FileDiffView.svelte";
+  import ScrollArea from "./ui/ScrollArea.svelte";
   import Tooltip from "./Tooltip.svelte";
 
   let {
@@ -104,9 +105,11 @@
       </Tooltip>
     </div>
 
-    <div class="diff-host" role="tabpanel">
-      <FileDiffView lines={diffLines} />
-    </div>
+    <ScrollArea height="100%" class="diff-scroll" scrollHideDelay={350}>
+      <div class="diff-host" role="tabpanel">
+        <FileDiffView lines={diffLines} scrollable={false} />
+      </div>
+    </ScrollArea>
   {/if}
 </div>
 
@@ -259,6 +262,14 @@
     min-width: 0;
     min-height: 0;
     flex: 1;
+  }
+  :global(.diff-scroll) {
+    min-height: 0;
+    flex: 1;
+  }
+  :global(.diff-scroll .ui-scroll-area-viewport) {
+    overflow-x: hidden;
+    padding-right: 8px;
   }
   @container (max-width: 220px) {
     .change-kind {

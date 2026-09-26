@@ -436,14 +436,16 @@
                     {#if outputTruncated}<p class="truncated-notice">
                         {$t("backgroundTerminalOutputTruncated")}
                       </p>{/if}
-                    <div
-                      class="terminal-output"
-                      bind:this={outputElement}
-                      role="log"
-                      aria-live="polite"
+                    <ScrollArea
+                      height="100%"
+                      class="terminal-output-scroll"
+                      bind:viewport={outputElement}
+                      scrollHideDelay={350}
                     >
-                      {output || $t("backgroundTerminalWaitingOutput")}
-                    </div>
+                      <div class="terminal-output" role="log" aria-live="polite">
+                        {output || $t("backgroundTerminalWaitingOutput")}
+                      </div>
+                    </ScrollArea>
                     {#if outputError}<p class="panel-error" role="alert">{outputError}</p>{/if}
                     {#if isRunning(selectedSession)}
                       <form
@@ -824,12 +826,8 @@
 
   .terminal-output {
     min-height: 0;
-    min-height: 150px;
-    max-height: 280px;
-    flex: 1 1 auto;
     margin: 0;
     padding: 12px;
-    overflow: auto;
     background: var(--component-neutral-bg);
     color: var(--text);
     font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
@@ -839,6 +837,16 @@
     outline: none;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+  }
+
+  :global(.terminal-output-scroll) {
+    min-height: 150px;
+    max-height: 280px;
+    flex: 1 1 auto;
+  }
+
+  :global(.terminal-output-scroll .ui-scroll-area-viewport) {
+    overflow-x: hidden;
   }
 
   .truncated-notice,

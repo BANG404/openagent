@@ -21,6 +21,24 @@ The delayed "awaiting stream output" status must remain mounted while a turn is
 waiting. Intermediate model/tool rounds may replace the stream message ID;
 those updates must not restart the delay or make the status flash.
 
+## Component reuse and visual consistency
+
+Before building a frontend surface, search `src/lib/components/` and
+`src/lib/components/ui/` for an existing component or pattern that already
+owns the interaction, loading state, scrolling, or layout geometry. Prefer
+composing that component and extending it with explicit props over copying its
+markup or creating a parallel primitive. Shared vertical scrolling uses
+`ui/ScrollArea.svelte`, including every scrollable right-sidebar panel; native
+overflow is reserved for deliberate horizontal strips or content-local needs
+such as code and media, and should remain local to that content.
+
+When a genuinely new component is required, read the applicable
+`openagent-design-system` references first and use the existing CSS tokens,
+Bits UI primitives, typography, spacing, radii, states, and icon conventions.
+New components must look like part of the current product in both themes and
+must not introduce one-off colors, shadows, or control behavior when an
+existing component already defines it.
+
 Read only the references that own the affected behavior:
 
 - Cross-host boundaries and bootstrap ordering: [product-host-contract.md](references/product-host-contract.md)

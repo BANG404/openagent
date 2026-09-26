@@ -19,6 +19,7 @@
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import MessageInput from "./MessageInput.svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
+  import ScrollArea from "./ui/ScrollArea.svelte";
   import type { PaletteItem } from "./MentionPalette.svelte";
 
   let {
@@ -426,7 +427,8 @@
         </div>
       </section>
 
-      <div class="message-list" aria-live="polite">
+      <ScrollArea height="100%" class="message-list" scrollHideDelay={350}>
+        <div class="message-list-content" aria-live="polite">
         {#if messagesLoading && messages.length === 0}
           <LoadingSkeleton variant="detail-list" rows={4} label={$t("loadingContent")} />
         {:else if messages.length === 0}
@@ -483,7 +485,8 @@
             </article>
           {/each}
         {/if}
-      </div>
+        </div>
+      </ScrollArea>
 
       <MessageInput
         bind:value={draft}
@@ -595,13 +598,20 @@
     padding: 3px 7px;
     font-size: 12px;
   }
-  .message-list {
+  :global(.message-list) {
     min-height: 120px;
     flex: 1;
-    overflow: auto;
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
-    padding: 8px 0;
+    padding: 0;
+  }
+  :global(.message-list .ui-scroll-area-viewport) {
+    overflow-x: hidden;
+    padding: 0 8px 0 0;
+  }
+  .message-list-content {
+    min-height: 100%;
+    padding: 0 0 8px;
   }
   .message-row {
     --sender-accent: var(--primary);

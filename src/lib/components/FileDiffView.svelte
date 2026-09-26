@@ -5,15 +5,17 @@
   let {
     lines,
     compact = false,
+    scrollable = true,
   }: {
     lines: FileChangeDiffLine[];
     compact?: boolean;
+    scrollable?: boolean;
   } = $props();
 
   let singleLineNumbers = $derived(lines.every((line) => line.type !== "context"));
 </script>
 
-<div class="diff-viewport" class:compact>
+<div class="diff-viewport" class:compact class:scrollable>
   {#if lines.length > 0}
     <div class="diff-table">
       {#each lines as line, index (`${line.type}-${index}`)}
@@ -52,9 +54,11 @@
     min-height: 0;
     flex: 1;
     overflow-x: hidden;
-    overflow-y: auto;
     background: var(--component-neutral-bg, color-mix(in srgb, var(--surface) 88%, var(--bg)));
     color-scheme: light dark;
+  }
+  .diff-viewport.scrollable {
+    overflow-y: auto;
   }
   .diff-viewport.compact {
     max-height: 280px;
