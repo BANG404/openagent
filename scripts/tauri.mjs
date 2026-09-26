@@ -20,6 +20,11 @@ await access(tauriCli);
 
 let arguments_ = process.argv.slice(2);
 const environment = { ...process.env };
+if (process.platform === "win32") {
+  // Rust incremental session cleanup can fail on Windows/ReFS when a compiler
+  // file handle is still closing, leaving an access-denied warning on startup.
+  environment.CARGO_INCREMENTAL ??= "0";
+}
 let developmentInstanceName;
 const developmentParentLifetime = arguments_[0] === "dev";
 if (developmentParentLifetime) {

@@ -472,6 +472,7 @@
 
 <style>
   .flow-panel {
+    --flow-panel-gap: 3px;
     position: relative;
     z-index: 12;
     display: flex;
@@ -480,7 +481,7 @@
     max-width: min(960px, 62%, calc(100% - var(--workspace-card-gap)));
     flex: 0 0 auto;
     flex-direction: column;
-    margin-left: var(--workspace-card-gap);
+    margin-left: var(--flow-panel-gap);
     transition:
       width var(--motion-layout) var(--ease-enter),
       min-width var(--motion-layout) var(--ease-enter),
@@ -506,7 +507,7 @@
     flex: 1;
     flex-direction: column;
     overflow: hidden;
-    border-radius: 12px;
+    border-radius: 0 12px 12px 0;
     background: var(--surface);
   }
   .panel-cache-slot {
@@ -522,7 +523,9 @@
   }
   .resize-handle {
     position: absolute;
-    inset: 0 auto 0 calc(-1 * var(--workspace-card-gap));
+    /* Center the full hit target on the gap between the conversation and panel. */
+    inset: 0 auto 0
+      calc(-1 * (var(--column-resize-hit-width) + var(--flow-panel-gap)) / 2);
     z-index: 2;
     width: var(--column-resize-hit-width);
     padding: 0;

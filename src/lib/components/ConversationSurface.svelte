@@ -196,7 +196,10 @@
 </script>
 
 <div class="conversation-workspace">
-  <div class="conversation-stage bg-conversation-surface">
+  <div
+    class="conversation-stage bg-conversation-surface"
+    class:sidebar-open={!checkpointFlowPanelCollapsed}
+  >
     {#if !view.tauriAvailable}
       <div class="runtime-banner">{view.browserModeNotice}</div>
     {/if}
@@ -403,6 +406,10 @@
     flex-direction: column;
     overflow: hidden;
     border-radius: 12px;
+  }
+
+  .conversation-stage.sidebar-open {
+    border-radius: 12px 0 0 12px;
   }
 
   .runtime-banner {

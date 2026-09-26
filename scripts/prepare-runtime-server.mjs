@@ -108,7 +108,18 @@ export async function prepareRuntimeServer({ profile = "dev", targetTriple } = {
     resolvedTarget,
   ];
   if (profile === "release") cargoArguments.push("--release");
-  run(cargo, cargoArguments, { stdio: "inherit" });
+  run(cargo, cargoArguments, {
+    stdio: "inherit",
+    // Cargo's incremental finalizer can fail to remove its temporary session
+    // directory on Windows/ReFS when the compiler still has a file handle.
+    // The runtime sidecar is rebuilt frequently in dev, so deterministic
+    // non-incremental cleanup is preferable to emitting an access-denied
+    // warning at every startup.
+    env: {
+      ...process.env,
+      ...(process.platform === "win32" ? { CARGO_INCREMENTAL: "0" } : {}),
+    },
+  });
   await mkdir(path.dirname(paths.destination), { recursive: true });
   const changed = await copyFileIfChanged(paths.source, paths.destination);
   if (!resolvedTarget.includes("windows")) await chmod(paths.destination, 0o755);

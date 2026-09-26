@@ -44,7 +44,6 @@ fn decode_windows_command_output(bytes: &[u8]) -> String {
 
 #[cfg(windows)]
 fn hidden_command() -> tokio::process::Command {
-    use std::os::windows::process::CommandExt;
     let mut command = tokio::process::Command::new("wsl.exe");
     command.creation_flags(0x0800_0000);
     command
