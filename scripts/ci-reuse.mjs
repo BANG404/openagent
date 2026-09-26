@@ -55,6 +55,17 @@ function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** @param {unknown} value @param {string} [fallback] */
+function textValue(value, fallback = "") {
+  if (value == null) return fallback;
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 /**
  * @param {Array<Record<string, unknown>>} statuses
  * @param {string} context
@@ -63,8 +74,8 @@ export function latestStatus(statuses, context) {
   return statuses
     .filter((status) => status.context === context)
     .sort((left, right) =>
-      String(right.updated_at ?? right.created_at ?? "").localeCompare(
-        String(left.updated_at ?? left.created_at ?? ""),
+      textValue(right.updated_at ?? right.created_at).localeCompare(
+        textValue(left.updated_at ?? left.created_at),
       ),
     )[0];
 }
@@ -72,7 +83,7 @@ export function latestStatus(statuses, context) {
 /** @param {unknown} description */
 export function verifiedTreeFromDescription(description) {
   return (
-    String(description ?? "").match(/(?:^|\s)tree=(?<tree>[0-9a-f]{40})(?:\s|$)/)?.groups?.tree ??
+    /(?:^|\s)tree=(?<tree>[0-9a-f]{40})(?:\s|$)/.exec(textValue(description))?.groups?.tree ??
     ""
   );
 }
@@ -84,10 +95,8 @@ export function verifiedTreeFromDescription(description) {
 export function parseRunId(targetUrl, repository) {
   try {
     const url = new URL(targetUrl);
-    const escapedRepository = repository.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const match = url.pathname.match(
-      new RegExp(`^/${escapedRepository}/actions/runs/(?<runId>[0-9]+)/?$`, "i"),
-    );
+    const escapedRepository = repository.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+    const match = new RegExp(`^/${escapedRepository}/actions/runs/(?<runId>[0-9]+)/?$`, "i").exec(url.pathname);
     return url.hostname === "github.com" ? (match?.groups?.runId ?? "") : "";
   } catch {
     return "";
@@ -190,7 +199,7 @@ export async function resolveVerifiedTreeReuse(options) {
           ) {
             continue;
           }
-          const headSha = String(pull.head.sha ?? "");
+          const headSha = textValue(pull.head.sha);
           if (!/^[0-9a-f]{40}$/.test(headSha) || headSha === options.targetSha) {
             continue;
           }
@@ -213,8 +222,7 @@ export async function resolveVerifiedTreeReuse(options) {
       const statuses = combined.statuses.filter(isRecord);
       const required = latestStatus(statuses, REQUIRED_CONTEXT);
       if (
-        !required ||
-        required.state !== "success" ||
+        required?.state !== "success" ||
         verifiedTreeFromDescription(required.description) !== options.targetTree
       ) {
         continue;
@@ -229,7 +237,7 @@ export async function resolveVerifiedTreeReuse(options) {
         const contexts = VERIFIED_CI_CONTEXTS[capability];
         const context = options.full && contexts.full ? contexts.full : contexts.fast;
         const status = context ? latestStatus(statuses, context) : undefined;
-        if (status && verifiedTreeFromDescription(status.description) === options.targetTree) {
+        if (status?.description && verifiedTreeFromDescription(status.description) === options.targetTree) {
           statusEntries.push(status);
         } else {
           reusable[capability] = false;
@@ -239,7 +247,7 @@ export async function resolveVerifiedTreeReuse(options) {
       const runIds = new Set();
       let valid = true;
       for (const status of statusEntries) {
-        const sourceRunId = parseRunId(String(status.target_url ?? ""), options.repository);
+        const sourceRunId = parseRunId(textValue(status.target_url), options.repository);
         if (!sourceRunId || sourceRunId === options.runId) {
           valid = false;
           break;
@@ -264,7 +272,7 @@ export async function resolveVerifiedTreeReuse(options) {
           valid = false;
           break;
         }
-        sourceRuns.push(String(run.html_url ?? ""));
+        sourceRuns.push(textValue(run.html_url));
       }
       if (!valid) continue;
 
@@ -383,7 +391,7 @@ async function main() {
 
 const entry = process.argv[1] ? resolve(process.argv[1]) : "";
 if (entry && fileURLToPath(import.meta.url) === entry) {
-  main().catch((error) => {
+  await main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   });

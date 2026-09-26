@@ -15,7 +15,7 @@ export interface ChatGroupMentionRole {
 const mentionPattern = /^@(?:"((?:[^"\\]|\\.)*)"|([\p{L}\p{N}_-]+))/u;
 
 function decodeRoleName(value: string): string {
-  return value.replaceAll('\\"', '"').trim();
+  return value.replaceAll(String.raw`\"`, '"').trim();
 }
 
 function normalizeRoles(roles: readonly ChatGroupMentionRole[]) {
@@ -29,7 +29,7 @@ function tokenForSource(
   src: string,
   knownRoles: readonly ChatGroupMentionRole[],
 ): ChatGroupMentionToken | undefined {
-  const match = src.match(mentionPattern);
+  const match = mentionPattern.exec(src);
   if (!match) return undefined;
   const roleName = decodeRoleName(match[1] ?? match[2] ?? "");
   const role = knownRoles.find(

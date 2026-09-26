@@ -219,7 +219,9 @@ export function checkpointGraphLayers(nodes: CheckpointGraphNode[]): CheckpointG
   const layers: CheckpointGraphNode[][] = [];
   for (const node of nodes) {
     const rank = ranks.get(node.id) ?? 0;
-    (layers[rank] ??= []).push(node);
+    const layer = layers[rank] ?? [];
+    layer.push(node);
+    layers[rank] = layer;
   }
   for (const layer of layers) {
     if (!layer) continue;

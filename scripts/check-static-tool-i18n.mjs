@@ -22,9 +22,9 @@ export const STATIC_TOOL_COMPONENTS = Object.freeze([
 ]);
 
 const staticTextNodePattern =
-  /<(?:span|summary|p|h[1-6]|label|button)\b[^>]*>\s*([A-Za-z][^<{]*?)\s*<\/(?:span|summary|p|h[1-6]|label|button)>/giu;
+  /<(?:span|summary|p|h[1-6]|label|button)\b[^>]*>([^<]*)<\/(?:span|summary|p|h[1-6]|label|button)>/giu;
 const staticAttributePattern =
-  /\b(?:aria-label|title|placeholder|alt)\s*=\s*["']([A-Za-z][^"']*)["']/giu;
+  /\b(?:aria-label|title|placeholder|alt)\s*=\s*(?:"([^"]*)"|'([^']*)')/giu;
 const forbiddenLiteralPattern = /["'](Thinking|Yes|No)["']/gu;
 
 const allowedStaticText = new Set(["OpenAgent", "ChatGPT OAuth · gpt-5.6"]);
@@ -38,7 +38,7 @@ const allowedStaticText = new Set(["OpenAgent", "ChatGPT OAuth · gpt-5.6"]);
  */
 export function translationKeys(source) {
   const keys = new Set();
-  for (const match of source.matchAll(/^\s{2}([A-Za-z][A-Za-z0-9_]*):/gmu)) keys.add(match[1]);
+  for (const match of source.matchAll(/^\s{2}([A-Za-z]\w*):/gmu)) keys.add(match[1]);
   return keys;
 }
 
@@ -47,8 +47,8 @@ export function translationKeys(source) {
  * @returns {{ zh: Set<string>, en: Set<string> }}
  */
 export function translationCatalogs(source) {
-  const zhBody = source.match(/(?:const|export const) zh = \{([\s\S]*?)\} as const;/u)?.[1] ?? "";
-  const enBody = source.match(/(?:const|export const) en(?:: [^=]+)? = \{([\s\S]*?)\};/u)?.[1] ?? "";
+  const zhBody = /(?:const|export const) zh = \{([\s\S]*?)\} as const;/u.exec(source)?.[1] ?? "";
+  const enBody = /(?:const|export const) en(?:: [^=]+)? = \{([\s\S]*?)\};/u.exec(source)?.[1] ?? "";
   return { zh: translationKeys(zhBody), en: translationKeys(enBody) };
 }
 
@@ -57,7 +57,7 @@ export function translationCatalogs(source) {
  * @returns {string[]}
  */
 function usedTranslationKeys(source) {
-  return [...source.matchAll(/\b(?:\$t|t)\(\s*["']([A-Za-z][A-Za-z0-9_]*)["']\s*\)/gu)].map(
+  return [...source.matchAll(/\b(?:\$t|t)\(\s*["']([A-Za-z]\w*)["']\s*\)/gu)].map(
     (match) => match[1],
   );
 }
@@ -81,13 +81,13 @@ export function staticToolI18nViolations(source, file, keys) {
 
   for (const match of source.matchAll(staticTextNodePattern)) {
     const text = match[1].trim();
-    if (text && !allowedStaticText.has(text)) {
+    if (/^[A-Za-z]/u.test(text) && !/[{}]/u.test(text) && !allowedStaticText.has(text)) {
       errors.push(`${file}: hardcoded tool UI text "${text}" must use $t(...).`);
     }
   }
   for (const match of source.matchAll(staticAttributePattern)) {
-    const text = match[1].trim();
-    if (text && !allowedStaticText.has(text)) {
+    const text = (match[1] ?? match[2] ?? "").trim();
+    if (/^[A-Za-z]/u.test(text) && !allowedStaticText.has(text)) {
       errors.push(`${file}: hardcoded tool UI attribute "${text}" must use $t(...).`);
     }
   }

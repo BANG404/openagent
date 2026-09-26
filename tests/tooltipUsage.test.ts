@@ -78,6 +78,6 @@ describe("tooltip usage", () => {
     expect(tooltipSource).toContain("collisionPadding={8}");
     expect(appCss).toContain("max-width: min(280px, calc(100vw - 24px));");
     expect(appCss).toContain("overflow-wrap: anywhere;");
-    expect(appCss).toContain("word-break: break-word;");
+    expect(appCss).toContain("word-break: normal;");
   });
 });

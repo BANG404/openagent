@@ -252,7 +252,7 @@
   }
 
   .mcp-icon {
-    background: #6366f1;
+    background: #4f46e5;
     color: #fff;
   }
 
@@ -1925,7 +1925,7 @@
   }
 
   .provider-status.error {
-    color: #dc2626;
+    color: #991b1b;
   }
 
   .provider-status.loading {

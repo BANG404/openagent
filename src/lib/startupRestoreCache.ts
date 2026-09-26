@@ -19,8 +19,7 @@ function readCache(): StartupRestoreCache {
     const value = JSON.parse(
       window.localStorage.getItem(STORAGE_KEY) ?? "null",
     ) as StartupRestoreCache | null;
-    return value &&
-      value.workspaces &&
+    return value?.workspaces &&
       typeof value.workspaces === "object" &&
       !Array.isArray(value.workspaces)
       ? value

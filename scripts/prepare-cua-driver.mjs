@@ -74,7 +74,7 @@ function rustHost() {
   });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error("rustc -vV failed while resolving the Cua target");
-  const host = result.stdout.match(/^host:\s+([^\s]+)$/m)?.[1];
+  const host = /^host:\s+([^\s]+)$/m.exec(result.stdout)?.[1];
   if (!host) throw new Error("rustc -vV did not report a host target");
   return host;
 }

@@ -33,10 +33,19 @@ export function evalValue(v: Value, state: Record<string, unknown> = {}): unknow
       const r = evalValue(v.right, state);
       // Mimic JS '+' semantics: string concat if either side is a string.
       if (typeof l === "string" || typeof r === "string") {
-        return String(l ?? "") + String(r ?? "");
+        return textValue(l) + textValue(r);
       }
       return (l as number) + (r as number);
     }
+  }
+}
+
+function textValue(value: unknown): string {
+  if (value == null) return "";
+  try {
+    return JSON.stringify(value) ?? "";
+  } catch {
+    return "";
   }
 }
 

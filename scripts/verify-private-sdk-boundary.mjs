@@ -56,7 +56,9 @@ if (cargoTree.status !== 0) {
   throw new Error("Could not verify the default Tauri dependency graph");
 }
 for (const crate of ["openagent-app", "openagent-protocol", "openagent-runtime"]) {
-  if (new RegExp(`(?:^|\\n)[^\\n]*\\b${crate.replace("-", "\\-")} v`).test(cargoTree.stdout)) {
+  const escapedCrate = crate.replace("-", String.raw`\-`);
+  const pattern = String.raw`(?:^|\n)[^\n]*\b${escapedCrate} v`;
+  if (new RegExp(pattern).test(cargoTree.stdout)) {
     throw new Error(`Default Tauri dependency graph contains private crate ${crate}`);
   }
 }
@@ -69,9 +71,9 @@ const hostProtocolSource = readFileSync(
   resolve(repositoryRoot, "src-tauri", "src", "runtime_process.rs"),
   "utf8",
 );
-const sdkProtocol = sdkProtocolSource.match(/pub const SDK_PROTOCOL_VERSION: u32 = (\d+);/)?.[1];
-const hostProtocol = hostProtocolSource.match(
-  /pub const DESKTOP_RUNTIME_PROTOCOL_VERSION: u32 = (\d+);/,
+const sdkProtocol = /pub const SDK_PROTOCOL_VERSION: u32 = (\d+);/.exec(sdkProtocolSource)?.[1];
+const hostProtocol = /pub const DESKTOP_RUNTIME_PROTOCOL_VERSION: u32 = (\d+);/.exec(
+  hostProtocolSource,
 )?.[1];
 if (!sdkProtocol || sdkProtocol !== hostProtocol) {
   throw new Error("The public desktop Runtime protocol version must match the pinned SDK");

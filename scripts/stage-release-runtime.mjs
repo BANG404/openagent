@@ -40,6 +40,36 @@ async function verifyArtifact(directory, target, expectedFile, descriptor) {
   return source;
 }
 
+async function stageTauriArtifact(candidate, tauriTarget, repositoryRoot) {
+  const runtimeTarget = TAURI_RUNTIME_TARGETS[tauriTarget];
+  if (!runtimeTarget) throw new Error(`Unsupported Tauri Runtime target: ${tauriTarget}.`);
+  const extension = tauriTarget.includes("windows") ? ".exe" : "";
+  const destination = path.join(
+    repositoryRoot,
+    "src-tauri",
+    "binaries",
+    `openagent-server-${tauriTarget}${extension}`,
+  );
+  await mkdir(path.dirname(destination), { recursive: true });
+  await copyFile(candidate.sources[runtimeTarget], destination);
+  if (!extension) await chmod(destination, 0o755);
+}
+
+async function stageOutputArtifacts(candidate, outputDirectory, releaseVersion) {
+  await mkdir(outputDirectory, { recursive: true });
+  const outputManifest = path.join(outputDirectory, "openagent-sdk-manifest.json");
+  if (releaseVersion) {
+    await writeFile(outputManifest, `${JSON.stringify(candidate.manifest, null, 2)}\n`);
+  } else {
+    await copyFile(candidate.manifestPath, outputManifest);
+  }
+  for (const [target, file] of Object.entries(RELEASE_RUNTIME_ARTIFACTS)) {
+    const destination = path.join(outputDirectory, file);
+    await copyFile(candidate.sources[target], destination);
+    if (!file.endsWith(".exe")) await chmod(destination, 0o755);
+  }
+}
+
 export async function validateReleaseRuntime({ artifactsDirectory, sdkSha }) {
   if (!/^[0-9a-f]{40}$/.test(sdkSha ?? "")) {
     throw new Error("SDK SHA must be a full lowercase commit SHA.");
@@ -81,34 +111,8 @@ export async function stageReleaseRuntime({
   if (releaseVersion) {
     candidate.manifest.release_version = releaseVersion;
   }
-  if (tauriTarget) {
-    const runtimeTarget = TAURI_RUNTIME_TARGETS[tauriTarget];
-    if (!runtimeTarget) throw new Error(`Unsupported Tauri Runtime target: ${tauriTarget}.`);
-    const extension = tauriTarget.includes("windows") ? ".exe" : "";
-    const destination = path.join(
-      repositoryRoot,
-      "src-tauri",
-      "binaries",
-      `openagent-server-${tauriTarget}${extension}`,
-    );
-    await mkdir(path.dirname(destination), { recursive: true });
-    await copyFile(candidate.sources[runtimeTarget], destination);
-    if (!extension) await chmod(destination, 0o755);
-  }
-  if (outputDirectory) {
-    await mkdir(outputDirectory, { recursive: true });
-    const outputManifest = path.join(outputDirectory, "openagent-sdk-manifest.json");
-    if (releaseVersion) {
-      await writeFile(outputManifest, `${JSON.stringify(candidate.manifest, null, 2)}\n`);
-    } else {
-      await copyFile(candidate.manifestPath, outputManifest);
-    }
-    for (const [target, file] of Object.entries(RELEASE_RUNTIME_ARTIFACTS)) {
-      const destination = path.join(outputDirectory, file);
-      await copyFile(candidate.sources[target], destination);
-      if (!file.endsWith(".exe")) await chmod(destination, 0o755);
-    }
-  }
+  if (tauriTarget) await stageTauriArtifact(candidate, tauriTarget, repositoryRoot);
+  if (outputDirectory) await stageOutputArtifacts(candidate, outputDirectory, releaseVersion);
   if (!tauriTarget && !outputDirectory) {
     throw new Error("Specify --tauri-target, --output, or both.");
   }

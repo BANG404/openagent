@@ -110,8 +110,9 @@ function toolCallWithResult(
 ): Extract<StreamItem, { type: "tool_call" }> {
   if (!item.approval) return { ...item, result };
   const status = toolCallStatus({ ...item, result }, false);
-  const state =
-    status === "unanswered" ? "unanswered" : status === "cancelled" ? "cancelled" : "answered";
+  let state: "unanswered" | "cancelled" | "answered" = "answered";
+  if (status === "unanswered") state = "unanswered";
+  else if (status === "cancelled") state = "cancelled";
   return { ...item, result, approval: { ...item.approval, state } };
 }
 
@@ -216,12 +217,9 @@ export function preserveResolvedUserInputs(
   }
   if (resolved.size === 0) return hydrated;
   return hydrated.map((item) => {
-    const requestId =
-      item.type === "user_input"
-        ? item.request.request_id
-        : item.type === "tool_call"
-          ? item.approval?.request.request_id
-          : undefined;
+    let requestId: string | undefined;
+    if (item.type === "user_input") requestId = item.request.request_id;
+    else if (item.type === "tool_call") requestId = item.approval?.request.request_id;
     const previous = requestId ? resolved.get(requestId) : undefined;
     if (!previous) return item;
     if (item.type === "user_input" && previous.type === "user_input") {

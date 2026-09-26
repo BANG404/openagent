@@ -36,8 +36,8 @@ export interface ParsedComponent {
 export type ParseError = { message: string; pos: number };
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; error: ParseError };
 
-const COMPONENT_HEAD = /[A-Z][A-Za-z0-9_]*\(/;
-const IDENT = /^[A-Za-z_][A-Za-z0-9_]*/;
+const COMPONENT_HEAD = /[A-Z]/;
+const IDENT = /^\w+/;
 const NUMBER = /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/;
 
 class Parser {
@@ -86,7 +86,7 @@ class Parser {
 
   /** Parse identifier (no $). */
   parseIdent(): ParseResult<string> {
-    const m = this.rest().match(IDENT);
+    const m = IDENT.exec(this.rest());
     if (!m) return { ok: false, error: this.err("expected identifier") };
     this.pos += m[0].length;
     return { ok: true, value: m[0] };
@@ -111,28 +111,9 @@ class Parser {
     while (this.pos < this.src.length) {
       const ch = this.src[this.pos];
       if (ch === "\\") {
-        const n = this.src[this.pos + 1] ?? "";
-        const escMap: Record<string, string> = {
-          n: "\n",
-          r: "\r",
-          t: "\t",
-          '"': '"',
-          "\\": "\\",
-          "/": "/",
-        };
-        if (n in escMap) {
-          out += escMap[n];
-          this.pos += 2;
-        } else if (n === "u") {
-          const hex = this.src.slice(this.pos + 2, this.pos + 6);
-          if (!/^[0-9a-fA-F]{4}$/.test(hex))
-            return { ok: false, error: this.err("bad \\u escape") };
-          out += String.fromCharCode(parseInt(hex, 16));
-          this.pos += 6;
-        } else {
-          out += n;
-          this.pos += 2;
-        }
+        const escaped = this.parseEscape();
+        if (!escaped.ok) return escaped;
+        out += escaped.value;
       } else if (ch === '"') {
         this.pos++;
         return { ok: true, value: out };
@@ -144,8 +125,34 @@ class Parser {
     return { ok: false, error: this.err("unterminated string") };
   }
 
+  private parseEscape(): ParseResult<string> {
+    const n = this.src[this.pos + 1] ?? "";
+    const escMap: Record<string, string> = {
+      n: "\n",
+      r: "\r",
+      t: "\t",
+      '"': '"',
+      "\\": "\\",
+      "/": "/",
+    };
+    if (n in escMap) {
+      this.pos += 2;
+      return { ok: true, value: escMap[n] };
+    }
+    if (n === "u") {
+      const hex = this.src.slice(this.pos + 2, this.pos + 6);
+      if (!/^[0-9a-fA-F]{4}$/.test(hex)) {
+        return { ok: false, error: this.err(String.raw`bad \u escape`) };
+      }
+      this.pos += 6;
+      return { ok: true, value: String.fromCodePoint(Number.parseInt(hex, 16)) };
+    }
+    this.pos += 2;
+    return { ok: true, value: n };
+  }
+
   parseNumber(): ParseResult<number> {
-    const m = this.rest().match(NUMBER);
+    const m = NUMBER.exec(this.rest());
     if (!m) return { ok: false, error: this.err("expected number") };
     this.pos += m[0].length;
     return { ok: true, value: Number(m[0]) };
@@ -197,23 +204,15 @@ class Parser {
     }
     while (true) {
       this.skipWs();
-      let key: string;
-      if (this.peek() === '"') {
-        const s = this.parseString();
-        if (!s.ok) return s;
-        key = s.value;
-      } else {
-        const id = this.parseIdent();
-        if (!id.ok) return id;
-        key = id.value;
-      }
+      const key = this.parseObjectKey();
+      if (!key.ok) return key;
       this.skipWs();
       const colonErr = this.expect(":");
       if (colonErr) return { ok: false, error: colonErr };
       this.skipWs();
       const v = this.parseExpr();
       if (!v.ok) return v;
-      entries.push([key, v.value]);
+      entries.push([key.value, v.value]);
       this.skipWs();
       if (this.peek() === ",") {
         this.pos++;
@@ -227,12 +226,17 @@ class Parser {
     }
   }
 
+  private parseObjectKey(): ParseResult<string> {
+    if (this.peek() === '"') return this.parseString();
+    return this.parseIdent();
+  }
+
   /** Try to parse a nested component starting at current position. */
   tryParseComponent(): ParseResult<Value> | null {
     const sub = this.rest();
     if (!COMPONENT_HEAD.test(sub.slice(0, Math.min(64, sub.length)))) return null;
     // Verify the match starts at offset 0
-    const m = sub.match(/^([A-Z][A-Za-z0-9_]*)\(/);
+    const m = /^([A-Z]\w*)\(/.exec(sub);
     if (!m) return null;
     const result = parseComponentAt(this.src, this.pos);
     if (!result.ok) return result;
@@ -254,28 +258,9 @@ class Parser {
     if (ch === "$") return this.parseVar();
     if (ch === "[") return this.parseArray();
     if (ch === "{") return this.parseObject();
-    if (ch === "(") {
-      this.pos++;
-      const v = this.parseExpr();
-      if (!v.ok) return v;
-      this.skipWs();
-      const e = this.expect(")");
-      if (e) return { ok: false, error: e };
-      return v;
-    }
-    // keywords + numbers + nested component
-    if (this.rest().startsWith("true")) {
-      this.pos += 4;
-      return { ok: true, value: { kind: "bool", value: true } };
-    }
-    if (this.rest().startsWith("false")) {
-      this.pos += 5;
-      return { ok: true, value: { kind: "bool", value: false } };
-    }
-    if (this.rest().startsWith("null")) {
-      this.pos += 4;
-      return { ok: true, value: { kind: "null" } };
-    }
+    if (ch === "(") return this.parseParenthesized();
+    const keyword = this.parseKeyword();
+    if (keyword) return keyword;
     if (ch === "-" || (ch >= "0" && ch <= "9")) {
       const n = this.parseNumber();
       if (!n.ok) return n;
@@ -285,6 +270,27 @@ class Parser {
     const comp = this.tryParseComponent();
     if (comp !== null) return comp;
     return { ok: false, error: this.err("unexpected token") };
+  }
+
+  private parseParenthesized(): ParseResult<Value> {
+    this.pos++;
+    const value = this.parseExpr();
+    if (!value.ok) return value;
+    this.skipWs();
+    const error = this.expect(")");
+    return error ? { ok: false, error } : value;
+  }
+
+  private parseKeyword(): ParseResult<Value> | null {
+    const keywords: Array<[string, Value]> = [
+      ["true", { kind: "bool", value: true }],
+      ["false", { kind: "bool", value: false }],
+      ["null", { kind: "null" }],
+    ];
+    const keyword = keywords.find(([name]) => this.rest().startsWith(name));
+    if (!keyword) return null;
+    this.pos += keyword[0].length;
+    return { ok: true, value: keyword[1] };
   }
 
   parseExpr(): ParseResult<Value> {
@@ -337,7 +343,7 @@ class Parser {
 /** Parse a component call beginning at `start`. The character at `start` must be the first uppercase letter of the name. */
 export function parseComponentAt(src: string, start: number): ParseResult<ParsedComponent> {
   const p = new Parser(src, start);
-  const headMatch = src.slice(start).match(/^([A-Z][A-Za-z0-9_]*)\(/);
+  const headMatch = /^([A-Z]\w*)\(/.exec(src.slice(start));
   if (!headMatch) return { ok: false, error: { message: "not a component head", pos: start } };
   const name = headMatch[1];
   p.pos = start + headMatch[0].length;
@@ -353,11 +359,11 @@ export function parseComponentAt(src: string, start: number): ParseResult<Parsed
 export function findNextComponentStart(src: string, from = 0): number {
   // Component name must start with uppercase ASCII; not preceded by a word char (to avoid matching FooBar inside identifiers).
   for (let i = from; i < src.length; i++) {
-    const code = src.charCodeAt(i);
+    const code = src.codePointAt(i) ?? 0;
     if (code < 65 || code > 90) continue; // not A-Z
     // not preceded by [A-Za-z0-9_]
     if (i > 0) {
-      const p = src.charCodeAt(i - 1);
+      const p = src.codePointAt(i - 1) ?? 0;
       const isWord =
         (p >= 65 && p <= 90) ||
         (p >= 97 && p <= 122) ||
@@ -367,7 +373,7 @@ export function findNextComponentStart(src: string, from = 0): number {
       if (isWord) continue;
     }
     const tail = src.slice(i, i + 64);
-    if (COMPONENT_HEAD.test(tail) && /^[A-Z][A-Za-z0-9_]*\(/.test(tail)) {
+    if (COMPONENT_HEAD.test(tail) && /^[A-Z]\w*\(/.test(tail)) {
       return i;
     }
   }

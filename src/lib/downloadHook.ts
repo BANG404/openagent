@@ -14,13 +14,13 @@ function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk) as unknown as number[]);
+    binary += String.fromCodePoint(...bytes.subarray(i, i + chunk));
   }
   return btoa(binary);
 }
 
 function isBinaryMime(mimeType: string): boolean {
-  return !/^text\/|charset|json|xml|svg|csv|markdown/i.test(mimeType);
+  return !/(?:^text\/|charset|json|xml|svg|csv|markdown)/i.test(mimeType);
 }
 
 async function handleDownload(payload: DownloadPayload): Promise<void> {

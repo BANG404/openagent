@@ -88,12 +88,12 @@ const DOWNLOADS = [
 
 /** @param {string} value */
 function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return value.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 /** @param {string} changelog @param {string} version */
 export function currentReleaseChanges(changelog, version) {
-  const heading = new RegExp(`^## \\[${escapeRegExp(version)}\\](?: - .+)?\\r?$`, "m");
+  const heading = new RegExp(String.raw`^## \[${escapeRegExp(version)}\](?: - .+)?\r?$`, "m");
   const match = heading.exec(changelog);
   if (!match) throw new Error(`CHANGELOG.md has no section for ${version}`);
   const bodyStart = changelog.indexOf("\n", match.index + match[0].length);
@@ -222,7 +222,7 @@ async function main() {
 
 const entry = process.argv[1] ? path.resolve(process.argv[1]) : "";
 if (entry && fileURLToPath(import.meta.url) === entry) {
-  main().catch((error) => {
+  await main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   });

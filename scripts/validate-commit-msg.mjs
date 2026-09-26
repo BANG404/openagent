@@ -19,7 +19,7 @@ if (ignoredPrefixes.some((prefix) => firstLine.startsWith(prefix))) {
 }
 
 const conventionalPattern =
-  /^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9._/-]+\))?!?: .{1,}$/;
+  /^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9._/-]+\))?!?: .+$/;
 
 if (!conventionalPattern.test(firstLine)) {
   console.error("Invalid commit message.");

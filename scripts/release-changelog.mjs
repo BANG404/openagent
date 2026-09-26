@@ -21,7 +21,7 @@ function isVersionHeading(heading, version) {
 export function replaceCurrentReleaseSection(content, version, section) {
   const headings = releaseHeadings(content);
   const firstRelease = headings[0];
-  if (firstRelease === undefined) return null;
+  if (typeof firstRelease !== "number") return null;
 
   const currentHeading = content.slice(firstRelease).split(/\r?\n/, 1)[0];
   if (!isVersionHeading(currentHeading, version)) return null;
@@ -29,7 +29,8 @@ export function replaceCurrentReleaseSection(content, version, section) {
   const historyStart = headings[1] ?? content.length;
   const prefix = content.slice(0, firstRelease).trimEnd();
   const history = content.slice(historyStart);
-  return `${prefix}\n\n${section}${history ? `\n${history}` : ""}`;
+  const historySuffix = history ? `\n${history}` : "";
+  return `${prefix}\n\n${section}${historySuffix}`;
 }
 
 /**
@@ -47,7 +48,7 @@ export function isReleaseRefreshChangelog(previous, current, version) {
   const currentHeadings = releaseHeadings(current);
   const previousFirst = previousHeadings[0];
   const currentFirst = currentHeadings[0];
-  if (previousFirst === undefined || currentFirst === undefined) return false;
+  if (typeof previousFirst !== "number" || typeof currentFirst !== "number") return false;
 
   const previousHeading = previous.slice(previousFirst).split(/\r?\n/, 1)[0];
   const currentHeading = current.slice(currentFirst).split(/\r?\n/, 1)[0];

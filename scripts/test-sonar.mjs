@@ -7,9 +7,12 @@ const envFile = resolve(process.cwd(), ".env.sonar");
 try {
   const contents = readFileSync(envFile, "utf8");
   for (const line of contents.split(/\r?\n/u)) {
-    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/u);
-    if (!match || match[1].startsWith("#")) continue;
-    process.env[match[1]] = match[2].replace(/^(["'])(.*)\1$/u, "$2");
+    const separator = line.indexOf("=");
+    if (separator <= 0) continue;
+    const name = line.slice(0, separator).trim();
+    if (!/^[A-Za-z_]\w*$/u.test(name)) continue;
+    const value = line.slice(separator + 1).trim();
+    process.env[name] = /^(["'])[\s\S]*\1$/u.test(value) ? value.slice(1, -1) : value;
   }
 } catch (error) {
   if (error.code !== "ENOENT") throw error;

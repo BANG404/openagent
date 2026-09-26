@@ -213,7 +213,7 @@ describe("desktop navigation chrome", () => {
     expect(onboarding).toContain('class="application-settings-surface step-content"');
     expect(onboarding).toMatch(/\.step-content\s*{[^}]*background: var\(--mica-surface\);/s);
 
-    for (const [component, transparentRegions] of [
+    for (const [, transparentRegions] of [
       [
         "SettingsView.svelte",
         [

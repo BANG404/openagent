@@ -590,7 +590,8 @@ function updateChangelog(version, commits) {
   }
 
   const content = readFileSync(file, "utf8");
-  const duplicate = new RegExp(`^## \\[${version.replaceAll(".", "\\.")}\\]`, "m");
+  const escapedVersion = version.replaceAll(".", String.raw`\.`);
+  const duplicate = new RegExp(String.raw`^## \[${escapedVersion}\]`, "m");
   if (duplicate.test(content)) {
     const refreshed = replaceCurrentReleaseSection(content, version, section);
     if (refreshed !== null) writeFileSync(file, refreshed);
@@ -629,7 +630,8 @@ function updatePromotionChangelog(version, prereleaseVersion, channel) {
   }
 
   const content = readFileSync(file, "utf8");
-  const duplicate = new RegExp(`^## \\[${version.replaceAll(".", "\\.")}\\]`, "m");
+  const escapedVersion = version.replaceAll(".", String.raw`\.`);
+  const duplicate = new RegExp(String.raw`^## \[${escapedVersion}\]`, "m");
   if (duplicate.test(content)) return;
 
   const firstRelease = content.search(/^## \[/m);

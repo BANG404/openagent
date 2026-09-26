@@ -72,11 +72,9 @@ function validateAssetNames(target, names, includeFull) {
 /** @param {string} target @param {string} name */
 function stagedAssetName(target, name) {
   if (!target.startsWith("macos-")) return name;
-  const suffix = name.endsWith(".app.tar.gz.sig")
-    ? ".app.tar.gz.sig"
-    : name.endsWith(".app.tar.gz")
-      ? ".app.tar.gz"
-      : "";
+  let suffix = "";
+  if (name.endsWith(".app.tar.gz.sig")) suffix = ".app.tar.gz.sig";
+  else if (name.endsWith(".app.tar.gz")) suffix = ".app.tar.gz";
   if (!suffix) return name;
   const architecture = target === "macos-arm64" ? "aarch64" : "x64";
   const stem = name.slice(0, -suffix.length).replace(/_(?:aarch64|x64)$/, "");
@@ -120,7 +118,7 @@ export async function stageTauriArtifacts({ artifactPaths, outputDirectory, targ
   await Promise.all(
     staged.map(({ file, name }) => copyFile(file, path.join(outputDirectory, name))),
   );
-  return names.sort();
+  return names.toSorted((left, right) => left.localeCompare(right));
 }
 
 /**
@@ -128,10 +126,10 @@ export async function stageTauriArtifacts({ artifactPaths, outputDirectory, targ
  */
 export async function stageFullInstaller({ bundleRoot, outputDirectory, target, version }) {
   requireTarget(target);
-  const directory =
-    target === "windows-x64" ? "nsis" : target.startsWith("macos-") ? "dmg" : "appimage";
-  const extension =
-    target === "windows-x64" ? ".exe" : target.startsWith("macos-") ? ".dmg" : ".AppImage";
+  const directoryByTarget = target === "windows-x64" ? "nsis" : "appimage";
+  const directory = target.startsWith("macos-") ? "dmg" : directoryByTarget;
+  const extensionByTarget = target === "windows-x64" ? ".exe" : ".AppImage";
+  const extension = target.startsWith("macos-") ? ".dmg" : extensionByTarget;
   const candidates = (await collectFiles(bundleRoot)).filter(
     (file) =>
       path.basename(file).includes(version) &&
@@ -203,8 +201,9 @@ export async function verifyCandidateSet({
   expectedTargets.forEach(requireTarget);
   const entries = await filesByName(candidateDirectory);
   const manifestNames = [...entries.keys()].filter((name) => /^candidate-.+\.json$/.test(name));
-  const expectedManifestNames = expectedTargets.map((target) => `candidate-${target}.json`).sort();
-  if (manifestNames.sort().join("\n") !== expectedManifestNames.join("\n")) {
+  const expectedManifestNames = expectedTargets.map((target) => `candidate-${target}.json`).sort((left, right) => left.localeCompare(right));
+  const sortedManifestNames = manifestNames.toSorted((left, right) => left.localeCompare(right));
+  if (sortedManifestNames.join("\n") !== expectedManifestNames.join("\n")) {
     throw new Error(
       `Candidate manifests do not match expected targets. Expected ${expectedManifestNames.join(", ")}; found ${manifestNames.join(", ")}`,
     );
@@ -244,7 +243,7 @@ export async function verifyCandidateSet({
   );
   if (unexpected.length > 0)
     throw new Error(`Unexpected candidate files: ${unexpected.join(", ")}`);
-  return [...declaredAssets].sort();
+  return [...declaredAssets].sort((left, right) => left.localeCompare(right));
 }
 
 /**
@@ -385,7 +384,7 @@ async function main() {
 
 const entry = process.argv[1] ? path.resolve(process.argv[1]) : "";
 if (entry && fileURLToPath(import.meta.url) === entry) {
-  main().catch((error) => {
+  await main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   });

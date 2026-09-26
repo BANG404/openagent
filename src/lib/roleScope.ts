@@ -10,7 +10,8 @@ export function globalRoleSkillIds(skillIds: string[]): string[] {
 
 /** Add or remove one association, keeping the list free of duplicates. */
 export function toggleSelection(selected: string[], value: string, checked: boolean): string[] {
-  return checked ? [...new Set([...selected, value])] : selected.filter((item) => item !== value);
+  if (checked) return [...new Set([...selected, value])];
+  return selected.filter((item) => item !== value);
 }
 
 /**

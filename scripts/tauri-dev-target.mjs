@@ -17,7 +17,12 @@ function normalizeIdentityPath(value, platform) {
  * @returns {string}
  */
 function safeDirectoryName(value) {
-  return value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "openagent";
+  const replaced = value.replace(/[^\w.-]/g, "-");
+  let start = 0;
+  let end = replaced.length;
+  while (start < end && replaced[start] === "-") start += 1;
+  while (end > start && replaced[end - 1] === "-") end -= 1;
+  return replaced.slice(start, end) || "openagent";
 }
 
 /**

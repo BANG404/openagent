@@ -32,8 +32,9 @@ export function handleExternalLinkClick(event: MouseEvent, openUrl: ExternalUrlO
   if (event.defaultPrevented) return false;
 
   const target = event.target;
-  const element =
-    target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
+  let element: Element | null = null;
+  if (target instanceof Element) element = target;
+  else if (target instanceof Node) element = target.parentElement;
   const anchor = element?.closest<HTMLAnchorElement>("a[href]");
   const owner = event.currentTarget;
   if (!anchor || !(owner instanceof Node) || !owner.contains(anchor)) return false;

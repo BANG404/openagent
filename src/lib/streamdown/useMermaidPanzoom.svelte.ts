@@ -267,11 +267,7 @@ export function useMermaidPanzoom(opts: PanzoomOptions = {}) {
     expandedMessageRecord = next ? setContainingMessageExpanded(eventTarget, true) : null;
     fullscreenPortal?.restore();
     fullscreenPortal = next ? portalContainingMermaid(eventTarget) : null;
-    if (!fullscreenPortal) {
-      eventTarget.setAttribute("data-expanded", String(next));
-    } else {
-      eventTarget.setAttribute("data-expanded", "false");
-    }
+    (eventTarget as HTMLElement).dataset.expanded = fullscreenPortal ? "false" : String(next);
     requestAnimationFrame(() => zoomToFit());
   }
 

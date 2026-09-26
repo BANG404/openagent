@@ -5,7 +5,7 @@ import {
   TitleComponent,
   TooltipComponent,
 } from "echarts/components";
-import { init, use } from "echarts/core";
+import { use } from "echarts/core";
 import { LabelLayout, UniversalTransition } from "echarts/features";
 import { CanvasRenderer } from "echarts/renderers";
 
@@ -22,4 +22,4 @@ use([
   CanvasRenderer,
 ]);
 
-export const initializeChart = init;
+export { init as initializeChart } from "echarts/core";

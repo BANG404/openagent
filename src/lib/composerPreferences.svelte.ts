@@ -138,7 +138,7 @@ export class ComposerPreferences {
           ? {
               ...provider,
               model_reasoning_efforts: {
-                ...(provider.model_reasoning_efforts ?? {}),
+                ...(provider.model_reasoning_efforts ?? undefined),
                 [model]: effort,
               },
             }

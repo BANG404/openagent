@@ -53,10 +53,10 @@ const namedKeys = new Set([
 ]);
 
 function isSupportedKey(code: string): boolean {
-  if (/^Key[A-Z]$/.test(code) || /^Digit[0-9]$/.test(code) || /^Numpad[0-9]$/.test(code)) {
+  if (/^Key[A-Z]$/.test(code) || /^Digit\d$/.test(code) || /^Numpad\d$/.test(code)) {
     return true;
   }
-  const functionKey = /^F([1-9]|1[0-9]|2[0-4])$/.exec(code);
+  const functionKey = /^F([1-9]|1\d|2[0-4])$/.exec(code);
   return Boolean(functionKey) || namedKeys.has(code);
 }
 
@@ -68,7 +68,7 @@ export function normalizeQuickChatShortcut(value: unknown): string {
   if (
     new Set(modifiers).size !== modifiers.length ||
     modifiers.some((modifier) => !["CommandOrControl", "Alt", "Shift"].includes(modifier)) ||
-    !isSupportedKey(tokens[tokens.length - 1])
+    !isSupportedKey(tokens.at(-1) ?? "")
   ) {
     return DEFAULT_QUICK_CHAT_SHORTCUT;
   }
@@ -114,8 +114,8 @@ const keyLabels: Record<string, string> = {
 
 function displayKey(code: string): string {
   if (/^Key[A-Z]$/.test(code)) return code.slice(3);
-  if (/^Digit[0-9]$/.test(code)) return code.slice(5);
-  if (/^Numpad[0-9]$/.test(code)) return `Num ${code.slice(6)}`;
+  if (/^Digit\d$/.test(code)) return code.slice(5);
+  if (/^Numpad\d$/.test(code)) return `Num ${code.slice(6)}`;
   return keyLabels[code] ?? code.replace(/^Numpad/, "Num ");
 }
 

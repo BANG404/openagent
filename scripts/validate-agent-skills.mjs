@@ -18,20 +18,27 @@ export const MAX_SKILL_ENTRYPOINT_CHARS = 200;
  */
 function frontmatter(file) {
   const source = readFileSync(file, "utf8");
-  const match = source.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
-  if (!match) throw new Error(`${file}: missing YAML frontmatter`);
+  const lines = source.split(/\r?\n/);
+  const end = lines.indexOf("---", 1);
+  if (lines[0] !== "---" || end < 0) throw new Error(`${file}: missing YAML frontmatter`);
   /** @type {Partial<SkillFields>} */
   const fields = {};
-  for (const line of match[1].split(/\r?\n/)) {
-    const field = line.match(/^(name|description):\s*["']?(.*?)["']?\s*$/);
-    if (field && (field[1] === "name" || field[1] === "description")) {
-      fields[field[1]] = field[2].trim();
+  for (const line of lines.slice(1, end)) {
+    const separator = line.indexOf(":");
+    if (separator <= 0) continue;
+    const name = line.slice(0, separator).trim();
+    if (name !== "name" && name !== "description") continue;
+    let value = line.slice(separator + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
     }
+    fields[name] = value;
   }
   if (!fields.name || !fields.description) {
     throw new Error(`${file}: name and description are required`);
   }
-  if (!/^metadata:\s*$/m.test(match[1]) || !/\r?\n\s+category:\s*\S+/.test(match[1])) {
+  const metadataLines = lines.slice(1, end);
+  if (!metadataLines.includes("metadata:") || !metadataLines.some((line) => /^\s+category:\s*\S+/.test(line))) {
     throw new Error(`${file}: metadata.category is required`);
   }
   return /** @type {SkillFields} */ (fields);
@@ -44,7 +51,7 @@ function frontmatter(file) {
 function relativeLinks(file) {
   const source = readFileSync(file, "utf8");
   const errors = [];
-  for (const match of source.matchAll(/\[[^\]]+\]\(([^)#]+)(?:#[^)]+)?\)/g)) {
+  for (const match of source.matchAll(/\]\(([^)#\s]+)/g)) {
     const target = match[1];
     if (/^(?:https?:|mailto:)/.test(target)) continue;
     if (target.startsWith("/")) continue;
@@ -76,9 +83,19 @@ function markdownFiles(directory) {
  * @returns {number}
  */
 export function skillBodyCharacterCount(source) {
-  const body = source
-    .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "")
-    .replace(/^```[\s\S]*?^```\s*$/gm, "")
+  const lines = source.split(/\r?\n/);
+  const frontmatterEnd = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
+  const bodyLines = lines.slice(frontmatterEnd >= 0 ? frontmatterEnd + 1 : 0);
+  let inFence = false;
+  const body = bodyLines
+    .filter((line) => {
+      if (line.startsWith("```")) {
+        inFence = !inFence;
+        return false;
+      }
+      return !inFence;
+    })
+    .join(" ")
     .replace(/\s/gu, "");
   return [...body].length;
 }
@@ -110,62 +127,72 @@ export function skillLengthErrors({
   });
 }
 
+/** @param {{ name: string; isDirectory(): boolean }} entry @param {string[]} errors @param {Set<string>} skillNames */
+function validateSkillDirectory(entry, errors, skillNames) {
+  const file = resolve(skillsRoot, entry.name, "SKILL.md");
+  if (!existsSync(file)) {
+    errors.push(`${file}: every skill directory needs SKILL.md`);
+    return;
+  }
+  try {
+    const fields = frontmatter(file);
+    if (fields.name !== entry.name) errors.push(`${file}: name must match directory`);
+    if (skillNames.has(fields.name)) errors.push(`${file}: duplicate skill name`);
+    skillNames.add(fields.name);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+  }
+  for (const markdown of markdownFiles(resolve(skillsRoot, entry.name))) {
+    errors.push(...relativeLinks(markdown));
+  }
+}
+
+/** @param {string[]} errors @param {Set<string>} skillNames */
+function validateSkillDirectories(errors, skillNames) {
+  for (const entry of readdirSync(skillsRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    validateSkillDirectory(entry, errors, skillNames);
+  }
+}
+
+/** @param {string[]} errors @param {Set<string>} skillNames */
+function validateManifest(errors, skillNames) {
+  if (!existsSync(manifestPath)) {
+    errors.push(`${manifestPath}: missing routing manifest`);
+    return;
+  }
+  /** @type {SkillManifest | undefined} */
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  } catch (error) {
+    errors.push(`${manifestPath}: invalid JSON (${error})`);
+  }
+  const owners = manifest?.owners;
+  if (!Array.isArray(owners) || owners.length === 0) {
+    errors.push(`${manifestPath}: owners must be a non-empty array`);
+    return;
+  }
+  const listed = new Set();
+  for (const owner of owners) {
+    if (!owner || typeof owner.skill !== "string" || !Array.isArray(owner.paths) || owner.paths.length === 0) {
+      errors.push(`${manifestPath}: each owner needs a skill and non-empty paths`);
+      continue;
+    }
+    if (!skillNames.has(owner.skill)) errors.push(`${manifestPath}: unknown skill ${owner.skill}`);
+    if (listed.has(owner.skill)) errors.push(`${manifestPath}: duplicate owner ${owner.skill}`);
+    listed.add(owner.skill);
+  }
+  for (const skill of skillNames) {
+    if (!listed.has(skill)) errors.push(`${manifestPath}: unlisted skill ${skill}`);
+  }
+}
+
 function validate() {
   const errors = [...skillLengthErrors()];
   const skillNames = new Set();
-  for (const entry of readdirSync(skillsRoot, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const file = resolve(skillsRoot, entry.name, "SKILL.md");
-    if (!existsSync(file)) {
-      errors.push(`${file}: every skill directory needs SKILL.md`);
-      continue;
-    }
-    try {
-      const fields = frontmatter(file);
-      if (fields.name !== entry.name) errors.push(`${file}: name must match directory`);
-      if (skillNames.has(fields.name)) errors.push(`${file}: duplicate skill name`);
-      skillNames.add(fields.name);
-    } catch (error) {
-      errors.push(error instanceof Error ? error.message : String(error));
-    }
-    for (const markdown of markdownFiles(resolve(skillsRoot, entry.name))) {
-      errors.push(...relativeLinks(markdown));
-    }
-  }
-
-  if (!existsSync(manifestPath)) errors.push(`${manifestPath}: missing routing manifest`);
-  else {
-    /** @type {SkillManifest | undefined} */
-    let manifest;
-    try {
-      manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-    } catch (error) {
-      errors.push(`${manifestPath}: invalid JSON (${error})`);
-    }
-    const owners = manifest?.owners;
-    if (!Array.isArray(owners) || owners.length === 0) {
-      errors.push(`${manifestPath}: owners must be a non-empty array`);
-    } else {
-      const listed = new Set();
-      for (const owner of owners) {
-        if (
-          !owner ||
-          typeof owner.skill !== "string" ||
-          !Array.isArray(owner.paths) ||
-          owner.paths.length === 0
-        ) {
-          errors.push(`${manifestPath}: each owner needs a skill and non-empty paths`);
-          continue;
-        }
-        if (!skillNames.has(owner.skill))
-          errors.push(`${manifestPath}: unknown skill ${owner.skill}`);
-        if (listed.has(owner.skill)) errors.push(`${manifestPath}: duplicate owner ${owner.skill}`);
-        listed.add(owner.skill);
-      }
-      for (const skill of skillNames)
-        if (!listed.has(skill)) errors.push(`${manifestPath}: unlisted skill ${skill}`);
-    }
-  }
+  validateSkillDirectories(errors, skillNames);
+  validateManifest(errors, skillNames);
   return errors;
 }
 

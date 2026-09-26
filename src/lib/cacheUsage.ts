@@ -29,11 +29,9 @@ export function contextUsageTokens(usage: TaskTokenUsage): number {
   const reportedInput = usage.total_tokens - usage.output_tokens;
   const separatelyReportedInput =
     usage.input_tokens + usage.cached_input_tokens + usage.cache_creation_input_tokens;
-  return reportedInput > 0
-    ? Math.max(usage.input_tokens, reportedInput)
-    : separatelyReportedInput > 0
-      ? separatelyReportedInput
-      : usage.input_tokens;
+  if (reportedInput > 0) return Math.max(usage.input_tokens, reportedInput);
+  if (separatelyReportedInput > 0) return separatelyReportedInput;
+  return usage.input_tokens;
 }
 
 export function summarizeCacheUsages(usages: readonly TaskTokenUsage[]): CacheUsageSummary {
@@ -53,12 +51,9 @@ export function summarizeCacheUsages(usages: readonly TaskTokenUsage[]): CacheUs
     // Some OpenAI-compatible Windows builds omit total_tokens while still
     // returning cache counters. The component totals are enough to calculate
     // a rate, so do not discard an observed hit when the aggregate is absent.
-    const providerInputTokens =
-      reportedInput > 0
-        ? reportedInput
-        : separatelyReportedInput > 0
-          ? separatelyReportedInput
-          : usage.input_tokens;
+    let providerInputTokens = usage.input_tokens;
+    if (reportedInput > 0) providerInputTokens = reportedInput;
+    else if (separatelyReportedInput > 0) providerInputTokens = separatelyReportedInput;
     const totalsMissing = usage.total_tokens <= usage.output_tokens;
 
     cachedTokens += cached;
@@ -136,7 +131,9 @@ export function chatTaskUsagesByCheckpoint(
       checkpointId = matchingTurns[0].checkpointId;
     }
 
-    (byCheckpoint[checkpointId] ??= []).push(trace.usage);
+    const checkpointTraces = byCheckpoint[checkpointId] ?? [];
+    checkpointTraces.push(trace.usage);
+    byCheckpoint[checkpointId] = checkpointTraces;
   }
   return byCheckpoint;
 }

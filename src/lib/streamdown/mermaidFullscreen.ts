@@ -40,7 +40,8 @@ export function portalContainingMermaid(
       restored = true;
       host.setAttribute(MERMAID_EXPANDED_ATTRIBUTE, "false");
       if (nextSibling?.parentNode === parent) {
-        parent.insertBefore(host, nextSibling);
+        if (typeof nextSibling.before === "function") nextSibling.before(host);
+        else parent.insertBefore(host, nextSibling); // NOSONAR: test doubles lack ChildNode.before.
       } else {
         parent.appendChild(host);
       }

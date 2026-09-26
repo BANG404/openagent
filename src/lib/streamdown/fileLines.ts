@@ -7,8 +7,9 @@ const MAX_PREVIEW_LINES = 200;
 
 /** Parse the line selector accepted by the AGUI File component. */
 export function parseFileLineRange(value: unknown): FileLineRange | null {
-  const text =
-    typeof value === "number" ? String(value) : typeof value === "string" ? value.trim() : "";
+  let text = "";
+  if (typeof value === "number") text = String(value);
+  else if (typeof value === "string") text = value.trim();
   const match = /^(?:L)?(\d+)(?:\s*[-:]\s*(?:L)?(\d+))?$/i.exec(text);
   if (!match) return null;
 

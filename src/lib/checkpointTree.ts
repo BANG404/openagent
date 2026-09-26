@@ -17,6 +17,16 @@ import type {
   UserInputRequest,
 } from "./types";
 
+function textValue(value: unknown, fallback = ""): string {
+  if (value == null) return fallback;
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export const ROOT_KEY = "__root__";
 
 /**
@@ -222,7 +232,7 @@ export function askUserRequestFromToolUse(
   }
   const request: Record<string, unknown> = {
     ...(part.input as Record<string, unknown>),
-    request_id: String(part.id ?? ""),
+    request_id: textValue(part.id),
     conv_id: convId,
     kind: "ask_user" as const,
   };
@@ -260,8 +270,8 @@ function recordToMessage(
       derivedItems.push({
         type: "attachment",
         attachment: {
-          path: String(part.blob_id ?? ""),
-          name: String(part.name ?? "attachment"),
+          path: textValue(part.blob_id),
+          name: textValue(part.name, "attachment"),
           kind: part.kind === "image" ? "image" : "document",
           mimeType: typeof part.mime_type === "string" ? part.mime_type : undefined,
         },
@@ -285,9 +295,9 @@ function recordToMessage(
       } else {
         derivedItems.push({
           type: "tool_call",
-          name: String(part.name ?? "tool"),
+          name: textValue(part.name, "tool"),
           args: JSON.stringify(part.input ?? {}),
-          toolUseId: String(part.id ?? ""),
+          toolUseId: textValue(part.id),
         });
       }
     } else if (part.type === "tool_result") {
@@ -302,7 +312,7 @@ function recordToMessage(
       derivedItems.push({
         type: "runtime_notice",
         kind: part.type === "runtime_error" ? "error" : "interrupted",
-        reason: String(part.reason ?? ""),
+        reason: textValue(part.reason),
       });
     }
   }
@@ -343,7 +353,7 @@ export function checkpointRecordsToMessages(
     if (
       toolResults.length > 0 &&
       toolResults.every((part) => {
-        const toolUseId = String(part.tool_use_id ?? "");
+        const toolUseId = textValue(part.tool_use_id);
         return (
           Boolean(toolUseId) &&
           attachPersistedToolResult(
@@ -384,9 +394,9 @@ function toolResultText(content: unknown): string {
       if (item.type === "text" && typeof item.text === "string") return item.text;
       if (item.type === "json" && "value" in item) {
         try {
-          return JSON.stringify(item.value) ?? String(item.value);
+          return JSON.stringify(item.value) ?? textValue(item.value);
         } catch {
-          return String(item.value);
+          return textValue(item.value);
         }
       }
       if (item.type === "image") return "[image]";
@@ -404,12 +414,13 @@ function toolResultImages(content: unknown): ChatToolImage[] {
     if (value.type !== "image" || !value.data || typeof value.data !== "object") return [];
     const data = value.data as Record<string, unknown>;
     if (data.type !== "base64" || typeof data.value !== "string") return [];
-    const mediaType =
-      typeof value.media_type === "string"
-        ? value.media_type.includes("/")
+    let mediaType = "image/png";
+    if (typeof value.media_type === "string") {
+      mediaType =
+        value.media_type.includes("/")
           ? value.media_type
-          : `image/${value.media_type === "jpeg" ? "jpeg" : value.media_type}`
-        : "image/png";
+          : "image/" + (value.media_type === "jpeg" ? "jpeg" : value.media_type);
+    }
     return [{ src: `data:${mediaType};base64,${data.value}`, mimeType: mediaType }];
   });
 }
@@ -435,17 +446,13 @@ function attachPersistedToolResult(
     const item = items[itemIndex];
     if (item.type === "tool_call") {
       const status = toolCallStatus({ ...item, result }, false);
-      const approval = item.approval
-        ? {
-            ...item.approval,
-            state:
-              status === "unanswered"
-                ? ("unanswered" as const)
-                : status === "cancelled"
-                  ? ("cancelled" as const)
-                  : ("answered" as const),
-          }
-        : undefined;
+      let approval = item.approval;
+      if (approval) {
+        let approvalState: "unanswered" | "cancelled" | "answered" = "answered";
+        if (status === "unanswered") approvalState = "unanswered";
+        else if (status === "cancelled") approvalState = "cancelled";
+        approval = { ...approval, state: approvalState };
+      }
       items[itemIndex] = {
         ...item,
         result,
@@ -469,9 +476,12 @@ function attachPersistedToolResult(
         !Array.isArray(response) &&
         (response as Record<string, unknown>).cancelled === true,
       );
+      let state: "unanswered" | "cancelled" | "answered" = "answered";
+      if (unanswered) state = "unanswered";
+      else if (cancelled) state = "cancelled";
       items[itemIndex] = {
         ...item,
-        state: unanswered ? "unanswered" : cancelled ? "cancelled" : "answered",
+        state,
         response,
       };
     } else {
@@ -542,7 +552,7 @@ export function buildTreeFromCheckpoints(
       if (
         toolResults.length > 0 &&
         toolResults.every((part) => {
-          const toolUseId = String(part.tool_use_id ?? "");
+          const toolUseId = textValue(part.tool_use_id);
           return (
             Boolean(toolUseId) &&
             attachPersistedToolResult(

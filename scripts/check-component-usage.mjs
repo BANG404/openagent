@@ -98,7 +98,7 @@ export function componentUsageErrors({
 export function componentSourceErrors(source, name, baseline = NATIVE_CONTROL_BASELINE) {
   const errors = [];
   for (const rule of forbiddenNativePatterns) {
-    const matches = source.match(rule.pattern) ?? [];
+    const matches = rule.pattern.exec(source) ?? [];
     if (matches.length > 0) {
       errors.push(`${name}: native <${rule.element}> is not allowed; use ${rule.replacement}.`);
     }

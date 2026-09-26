@@ -49,7 +49,7 @@ describe("frontend activation startup handshake", () => {
     let calls = 0;
     const failure = new Error("confirmation unavailable");
 
-    expect(
+    await expect(
       confirmFrontendActivationWithRetry(
         "0.60.0-beta.1",
         async () => {

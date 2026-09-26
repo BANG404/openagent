@@ -78,7 +78,7 @@ function defaultConfig(customConfig?: MermaidConfig): MermaidConfig {
       htmlLabels: true,
       curve: "basis",
     },
-    ...(customConfig || {}),
+    ...(customConfig ?? undefined),
   };
 }
 
@@ -147,21 +147,17 @@ export function mermaidToolFailure(error: unknown): MermaidToolFailure {
       : null;
   const loc =
     hash?.loc && typeof hash.loc === "object" ? (hash.loc as Record<string, unknown>) : null;
-  const rawMessage =
-    error instanceof Error
-      ? error.message
-      : typeof error === "string"
-        ? error
-        : typeof record?.message === "string"
-          ? record.message
-          : String(error);
-  const message = rawMessage.replace(/\s+$/g, "").slice(0, 1600);
+  let rawMessage = "Unknown Mermaid error";
+  if (error instanceof Error) rawMessage = error.message;
+  else if (typeof error === "string") rawMessage = error;
+  else if (typeof record?.message === "string") rawMessage = record.message;
+  else if (error != null) rawMessage = JSON.stringify(error) ?? rawMessage;
+  const message = rawMessage.trimEnd().slice(0, 1600);
+  const lineMatch = /line\s+(\d+)/i.exec(message);
   const line =
     numericLocation(loc?.first_line) ??
     numericLocation(record?.line) ??
-    numericLocation(
-      /line\s+(\d+)/i.exec(message)?.[1] ? Number(/line\s+(\d+)/i.exec(message)?.[1]) : undefined,
-    );
+    (lineMatch ? Number(lineMatch[1]) : undefined);
   const column = numericLocation(loc?.first_column) ?? numericLocation(record?.column);
 
   return {

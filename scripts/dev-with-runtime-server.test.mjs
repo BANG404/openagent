@@ -85,7 +85,7 @@ test("rebuilds changed Runtime sources before emitting the pending stamp", async
     }
     expect(builds).toBe(1);
     expect(stamp?.revision).toBe(1);
-    await expect(
+    expect(
       readFile(runtimeServerReloadStampPath(repositoryRoot), "utf8"),
     ).rejects.toHaveProperty("code", "ENOENT");
   } finally {

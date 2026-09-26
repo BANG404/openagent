@@ -26,13 +26,11 @@ export function finalAssistantOutputStartIndex(items: StreamItem[]): number {
 export function finalAssistantOutput(messageOrMessages: ChatMessage | ChatMessage[]): string {
   const messages = Array.isArray(messageOrMessages) ? messageOrMessages : [messageOrMessages];
   const assistantMessages = messages.filter((message) => message.role === "assistant");
-  const items = assistantMessages.flatMap((message) =>
-    message.items?.length
-      ? message.items
-      : message.content
-        ? [{ type: "text" as const, content: message.content }]
-        : [],
-  );
+  const items = assistantMessages.flatMap((message) => {
+    if (message.items?.length) return message.items;
+    if (message.content) return [{ type: "text" as const, content: message.content }];
+    return [];
+  });
   if (items.length === 0) return "";
 
   return items

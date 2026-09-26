@@ -27,7 +27,13 @@ function translate(key: TranslationKeys): string {
 }
 
 function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error) ?? "Unknown error";
+  } catch {
+    return "Unknown error";
+  }
 }
 
 type PreparedFrontendResource = {
@@ -145,7 +151,7 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
       durationMs: 0,
     });
 
-    if (updates.shellDownload) {
+    if (updates.shellDownload !== null) {
       try {
         await updates.shellDownload;
       } catch {
@@ -316,7 +322,7 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
     }
 
     const shellDownload = shell ? downloadShellUpdate(shell) : null;
-    if (shellDownload) void shellDownload.catch(() => {});
+    if (shellDownload !== null) void shellDownload.catch(() => {});
     const updates: AvailableUpdates = { runtime, frontend, shell, shellDownload };
     const releaseUrl = shell ? appUpdateReleaseUrl(shell.version) : undefined;
     const componentVersionCandidates: Array<ComponentVersionTransition | null> = [

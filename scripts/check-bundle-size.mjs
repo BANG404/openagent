@@ -57,9 +57,9 @@ const [clientManifest, serverManifest, clientApp] = await Promise.all([
   readFile(path.join(workspace, ".svelte-kit", "generated", "client-optimized", "app.js"), "utf8"),
 ]);
 
-const remoteRouteMatch = clientApp.match(/["']\/remote["']\s*:\s*\[(\d+)\]/);
+const remoteRouteMatch = /["']\/remote["']\s*:\s*\[(\d+)\]/.exec(clientApp);
 if (!remoteRouteMatch) throw new Error("Could not resolve the /remote client route node");
-const mainRouteMatch = clientApp.match(/["']\/["']\s*:\s*\[(\d+)\]/);
+const mainRouteMatch = /["']\/["']\s*:\s*\[(\d+)\]/.exec(clientApp);
 if (!mainRouteMatch) throw new Error("Could not resolve the main client route node");
 
 const budgets = [

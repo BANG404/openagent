@@ -159,7 +159,7 @@ describe("release candidate artifacts", () => {
     );
 
     await writeFile(path.join(candidates, "openagent_1.2.3_x64-setup.exe"), "tampered");
-    await expect(
+    expect(
       verifyCandidateSet({
         candidateDirectory: candidates,
         expectedTargets: targets,

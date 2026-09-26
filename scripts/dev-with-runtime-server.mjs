@@ -41,6 +41,7 @@ export function startRuntimeServerDevWatcher({
     }
     building = true;
     do {
+      if (closed) break;
       pending = false;
       try {
         console.log("[runtime-server] SDK source changed; rebuilding the debug server...");
@@ -57,7 +58,7 @@ export function startRuntimeServerDevWatcher({
       } catch (error) {
         onError(error);
       }
-    } while (pending && !closed);
+    } while (pending);
     building = false;
   };
 

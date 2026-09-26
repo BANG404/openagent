@@ -34,7 +34,7 @@ test("prefers the explicit release target over Tauri's host environment", async 
   process.env.TAURI_ENV_PLATFORM = "macos";
   process.env.TAURI_ENV_ARCH = "aarch64";
   try {
-    await expect(prepareRuntimeServer()).rejects.toThrow(
+    expect(prepareRuntimeServer()).rejects.toThrow(
       "OpenAgent has no packaged runtime server for unsupported-explicit-target.",
     );
   } finally {
@@ -102,7 +102,7 @@ test("requires non-empty staged bytes when release builds reuse a Runtime", asyn
     targetTriple: "x86_64-unknown-linux-gnu",
     profile: "release",
   });
-  await expect(
+  expect(
     requirePreparedRuntimeServer({ ...paths, targetTriple: "x86_64-unknown-linux-gnu" }),
   ).rejects.toThrow(/sidecar is missing/);
   await writeFile(paths.destination, "runtime-bytes").catch(async (error) => {

@@ -83,6 +83,32 @@ function classifySdkPath(file, components) {
   components.runtime = true;
 }
 
+/** @param {string} file @param {ReleaseComponents} components */
+function classifyHostPath(file, components) {
+  if (file.startsWith("src-tauri/")) components.nativeShell = true;
+  if (
+    file === "src-tauri/src/frontend_resource.rs" ||
+    file === "scripts/frontend-artifacts.mjs"
+  ) {
+    components.frontend = true;
+  }
+  if (
+    file.startsWith("src/") ||
+    file.startsWith("static/") ||
+    file.startsWith("assets/") ||
+    ["package.json", "bun.lock", "svelte.config.js", "tsconfig.json", "vite.config.js"].includes(
+      file,
+    )
+  ) {
+    components.frontend = true;
+  }
+  if (file.startsWith("patches/")) {
+    components.frontend = true;
+    components.runtime = true;
+    components.nativeShell = true;
+  }
+}
+
 /**
  * @param {string[]} files
  * @param {string[] | null} sdkFiles
@@ -103,28 +129,7 @@ export function classifyReleaseComponents(files, sdkFiles = null) {
       }
       continue;
     }
-    if (file.startsWith("src-tauri/")) components.nativeShell = true;
-    if (
-      file === "src-tauri/src/frontend_resource.rs" ||
-      file === "scripts/frontend-artifacts.mjs"
-    ) {
-      components.frontend = true;
-    }
-    if (
-      file.startsWith("src/") ||
-      file.startsWith("static/") ||
-      file.startsWith("assets/") ||
-      ["package.json", "bun.lock", "svelte.config.js", "tsconfig.json", "vite.config.js"].includes(
-        file,
-      )
-    ) {
-      components.frontend = true;
-    }
-    if (file.startsWith("patches/")) {
-      components.frontend = true;
-      components.runtime = true;
-      components.nativeShell = true;
-    }
+    classifyHostPath(file, components);
   }
   return components;
 }

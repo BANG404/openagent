@@ -18,6 +18,17 @@ function previewLocale(query: URLSearchParams | null, key: string): Locale | nul
   return value === "en" || value === "zh" ? value : null;
 }
 
+function settingsPreviewSection(
+  mcp: boolean,
+  agents: boolean,
+  channels: boolean,
+): SettingsNav | null {
+  if (mcp) return "extensions";
+  if (agents) return "agents";
+  if (channels) return "channels";
+  return null;
+}
+
 export type RuntimeQueryState = {
   frontendActivationVersion: string | null;
   isDevInspectorWindow: boolean;
@@ -80,13 +91,11 @@ export function resolveRuntimeQuery(
     isAgentsSettingsPreview,
     isAutomationHooksPreview,
     isMcpSettingsPreview,
-    settingsPreviewSection: isMcpSettingsPreview
-      ? "extensions"
-      : isAgentsSettingsPreview
-        ? "agents"
-        : isChannelsSettingsPreview
-          ? "channels"
-          : null,
+    settingsPreviewSection: settingsPreviewSection(
+      isMcpSettingsPreview,
+      isAgentsSettingsPreview,
+      isChannelsSettingsPreview,
+    ),
     isQuickChatWindow,
     isOnboardingWindow,
     isRoleEditorWindow,

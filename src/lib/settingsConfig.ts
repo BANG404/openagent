@@ -55,15 +55,21 @@ export function providerConnectionFingerprint(provider: ProviderConfig): string 
 }
 
 export function normalizeOpenAiBaseUrl(baseUrl: string): string {
-  let base = baseUrl.trim().replace(/\/+$/, "");
+  let base = stripTrailingSlashes(baseUrl.trim());
   if (!base) return "https://api.openai.com/v1";
   for (const suffix of ["/chat/completions", "/responses", "/models"]) {
     if (base.endsWith(suffix)) {
-      base = base.slice(0, -suffix.length).replace(/\/+$/, "");
+      base = stripTrailingSlashes(base.slice(0, -suffix.length));
       break;
     }
   }
   return base.endsWith("/v1") ? base : `${base}/v1`;
+}
+
+function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") end -= 1;
+  return value.slice(0, end);
 }
 
 export function openAiRequestUrl(baseUrl: string, mode: OpenAiApiMode): string {

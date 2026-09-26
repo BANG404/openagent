@@ -42,7 +42,7 @@ export function createWindowMaximizer(target: WindowMaximizerTarget) {
   }
 
   async function toggle(): Promise<void> {
-    if (pendingToggle) return pendingToggle;
+    if (pendingToggle !== null) return pendingToggle;
 
     pendingToggle = (async () => {
       if (await target.isMaximized()) {

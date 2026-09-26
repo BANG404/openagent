@@ -217,6 +217,8 @@
 
   * {
     box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
   }
 
   html,
@@ -260,11 +262,6 @@
     background: var(--surface);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-  }
-
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
   }
 
   [data-scrollbar-active="true"] {
@@ -317,13 +314,6 @@
   .desktop-menu-panel,
   .floating-application-surface {
     background: var(--floating-surface);
-  }
-
-  /* Bits UI keeps portal content mounted until its ending animation is
-     complete. These shared states give every floating surface one quiet,
-     reversible entrance without moving its trigger or changing its size. */
-  .desktop-menu-panel,
-  .floating-application-surface {
     transform-origin: var(--bits-floating-transform-origin, top center);
     transition:
       opacity var(--motion-panel) var(--ease-enter),
@@ -502,7 +492,7 @@
     box-sizing: border-box;
     max-width: min(280px, calc(100vw - 24px));
     overflow-wrap: anywhere;
-    word-break: break-word;
+    word-break: normal;
     white-space: normal;
     box-shadow: var(--tooltip-shadow);
     z-index: 600;

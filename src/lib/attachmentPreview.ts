@@ -31,7 +31,7 @@ export const ATTACHMENT_PREVIEW_MIN_SCALE = 0.5;
 export const ATTACHMENT_PREVIEW_MAX_SCALE = 3;
 
 export function isAttachmentPreviewSupported(name: string): boolean {
-  const extension = name.match(/\.([^.\s]+)$/)?.[1]?.toLowerCase();
+  const extension = /\.([^.\s]+)$/.exec(name)?.[1]?.toLowerCase();
   return extension ? PREVIEWABLE_EXTENSIONS.has(extension) : false;
 }
 

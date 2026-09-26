@@ -19,7 +19,7 @@ export function runtimeServerPendingStampPath(repositoryRoot = root) {
  * @param {{ revision: number, updatedAt?: string }} value
  */
 export async function writeRuntimeServerReloadStamp(
-  repositoryRoot = root,
+  repositoryRoot,
   { revision, updatedAt = new Date().toISOString() },
 ) {
   const stamp = runtimeServerReloadStampPath(repositoryRoot);
@@ -33,7 +33,7 @@ export async function writeRuntimeServerReloadStamp(
  * @param {{ revision: number, updatedAt?: string }} value
  */
 export async function writeRuntimeServerPendingStamp(
-  repositoryRoot = root,
+  repositoryRoot,
   { revision, updatedAt = new Date().toISOString() },
 ) {
   const stamp = runtimeServerPendingStampPath(repositoryRoot);

@@ -71,6 +71,6 @@ export function classifyMediaSource(source: unknown, mediaKind: "image" | "video
 export function mediaDisplayName(source: string): string {
   if (/^data:image\//i.test(source)) return "Embedded image";
   const withoutQuery = source.split(/[?#]/, 1)[0];
-  const name = withoutQuery.split(/[\\/]/).filter(Boolean).at(-1);
+  const name = withoutQuery.split(/[\\/]/).findLast((part) => part.length > 0);
   return name || source;
 }

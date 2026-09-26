@@ -22,7 +22,9 @@ function operationHeaderFromLine(value: string): RegExpExecArray | null {
 }
 
 function operationFromHeader(value: string): ToolPatchOperation {
-  return value === "Add" ? "add" : value === "Delete" ? "delete" : "update";
+  if (value === "Add") return "add";
+  if (value === "Delete") return "delete";
+  return "update";
 }
 
 function previewLines(
@@ -44,7 +46,7 @@ function previewLines(
       newLine = Number(hunk[2]);
       continue;
     }
-    if (sourceLine.startsWith("@@") || sourceLine.startsWith("\\ No newline")) continue;
+    if (sourceLine.startsWith("@@") || sourceLine.startsWith(String.raw`\ No newline`)) continue;
 
     let line: FileChangeDiffLine | null = null;
     if (operation === "add" || sourceLine.startsWith("+")) {
@@ -99,10 +101,10 @@ function boundedPreviewLines(source: FileChangeDiffLine[]): FileChangeDiffLine[]
 }
 
 function normalizedPath(path: string): string {
-  return path
-    .replaceAll("\\", "/")
-    .replace(/^\.\/+/, "")
-    .replace(/\/+$/, "");
+  const normalized = path.replaceAll("\\", "/").replace(/^\.\/+/, "");
+  let end = normalized.length;
+  while (end > 0 && normalized[end - 1] === "/") end -= 1;
+  return normalized.slice(0, end);
 }
 
 function matchesFileChangePath(changePath: string, patchPath: string): boolean {

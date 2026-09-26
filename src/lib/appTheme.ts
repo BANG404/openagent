@@ -38,7 +38,9 @@ export function createNativeThemeSynchronizer({
       if (requestRevision !== revision) return;
 
       try {
-        await setNativeTheme(theme === "system" ? null : explicitDark ? "dark" : "light");
+        let nativeTheme: "dark" | "light" | null = null;
+        if (theme !== "system") nativeTheme = explicitDark ? "dark" : "light";
+        await setNativeTheme(nativeTheme);
         if (theme === "system") await afterNativeThemeChange();
       } catch (error) {
         onError(error);

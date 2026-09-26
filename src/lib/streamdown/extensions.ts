@@ -25,7 +25,7 @@ export const componentInlineExtension: Extension = {
   tokenizer(src: string): ComponentToken | undefined {
     // The dispatcher feeds us `src` starting at some position; we only match
     // when the very first chars look like a component head.
-    const head = src.match(/^([A-Z][A-Za-z0-9_]*)\(/);
+    const head = /^([A-Z]\w*)\(/.exec(src);
     if (!head) return undefined;
 
     const result = parseComponentAt(src, 0);
@@ -62,13 +62,13 @@ export const componentBlockExtension: Extension = {
   applyInBlockParsing: true,
   start(src: string): number | undefined {
     // Only kick in if a component head appears at start-of-line.
-    const m = src.match(/(^|\n)[A-Z][A-Za-z0-9_]*\(/);
+    const m = /(^|\n)[A-Z]\w*\(/.exec(src);
     if (!m) return undefined;
     return m.index! + (m[1] ? 1 : 0);
   },
   tokenizer(src: string): ComponentToken | undefined {
     // Must start at beginning of a line.
-    const head = src.match(/^([A-Z][A-Za-z0-9_]*)\(/);
+    const head = /^([A-Z]\w*)\(/.exec(src);
     if (!head) return undefined;
     const result = parseComponentAt(src, 0);
     if (result.ok) {
@@ -77,7 +77,7 @@ export const componentBlockExtension: Extension = {
       const after = src.slice(end);
       if (after.length === 0 || /^\s*(?:\n|$)/.test(after)) {
         // consume trailing newline(s)
-        const trailing = after.match(/^[ \t]*\n?/);
+        const trailing = /^[ \t]*\n?/.exec(after);
         const consume = end + (trailing ? trailing[0].length : 0);
         return {
           type: "component",

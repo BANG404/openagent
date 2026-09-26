@@ -72,14 +72,17 @@ export const isBetaReleaseRefresh = isPrereleaseReleaseRefresh;
 export function getLatestReleaseTag(tags) {
   const parsed = [];
   for (const tag of tags) {
-    const match = tag.match(/^v(\d+)\.(\d+)\.(\d+)(?:-(beta|rc)\.(\d+))?$/);
+    const match = /^v(\d+)\.(\d+)\.(\d+)(?:-(beta|rc)\.(\d+))?$/.exec(tag);
     if (!match) continue;
+    let precedence = 0;
+    if (match[4] === undefined) precedence = 2;
+    else if (match[4] === "rc") precedence = 1;
     parsed.push({
       tag,
       major: Number.parseInt(match[1], 10),
       minor: Number.parseInt(match[2], 10),
       patch: Number.parseInt(match[3], 10),
-      precedence: match[4] === undefined ? 2 : match[4] === "rc" ? 1 : 0,
+      precedence,
       prerelease: match[5] === undefined ? 0 : Number.parseInt(match[5], 10),
     });
   }
@@ -102,7 +105,7 @@ export function getLatestReleaseTag(tags) {
  * @returns {{ version: string, baseVersion: string, promotion: boolean }}
  */
 export function getNextReleaseVersion(currentVersion, bump, channel, options = {}) {
-  const match = currentVersion.match(releaseVersionPattern);
+  const match = releaseVersionPattern.exec(currentVersion);
   if (!match) throw new Error(`Unsupported version format: ${currentVersion}`);
   if (!["beta", "rc", "stable"].includes(channel))
     throw new Error(`Unsupported release channel: ${channel}`);
@@ -152,10 +155,10 @@ export function getNextBetaNumber(baseVersion, tags, currentVersion) {
 
 /** @param {string} baseVersion @param {"beta" | "rc"} channel @param {string[]} tags @param {string} currentVersion */
 export function getNextPrereleaseNumber(baseVersion, channel, tags, currentVersion) {
-  const escapedBase = baseVersion.replaceAll(".", "\\.");
-  const matcher = new RegExp(`^v?${escapedBase}-${channel}\\.(\\d+)$`);
+  const escapedBase = baseVersion.replaceAll(".", String.raw`\.`);
+  const matcher = new RegExp(String.raw`^v?${escapedBase}-${channel}\.(\d+)$`);
   const numbers = [...tags, currentVersion]
-    .map((value) => value.match(matcher)?.[1])
+    .map((value) => matcher.exec(value)?.[1])
     .filter((value) => value !== undefined)
     .map((value) => Number.parseInt(value, 10))
     .filter((value) => !Number.isNaN(value));
@@ -164,7 +167,7 @@ export function getNextPrereleaseNumber(baseVersion, channel, tags, currentVersi
 
 /** @param {string} versionOrTag */
 export function getReleaseLine(versionOrTag) {
-  const match = versionOrTag.match(/^v?(\d+)\.(\d+)\.\d+(?:-(?:beta|rc)\.\d+)?$/);
+  const match = /^v?(\d+)\.(\d+)\.\d+(?:-(?:beta|rc)\.\d+)?$/.exec(versionOrTag);
   if (!match)
     throw new Error(
       `Release version or tag must use X.Y.Z or prerelease form, got: ${versionOrTag}`,
@@ -176,7 +179,7 @@ export function getReleaseLine(versionOrTag) {
 export function getPromotion(sourceTag, releaseLine, sourceChannel, targetChannel) {
   if (!/^\d+\.\d+$/.test(releaseLine))
     throw new Error(`Release line must use X.Y form, got: ${releaseLine}`);
-  const match = sourceTag.match(new RegExp(`^v(\\d+\\.\\d+\\.\\d+)-${sourceChannel}\\.(\\d+)$`));
+  const match = new RegExp(String.raw`^v(\d+\.\d+\.\d+)-${sourceChannel}\.(\d+)$`).exec(sourceTag);
   if (!match)
     throw new Error(
       `${targetChannel} promotion source must be a ${sourceChannel} tag, got ${sourceTag}.`,

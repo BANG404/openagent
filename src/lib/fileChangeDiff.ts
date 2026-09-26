@@ -8,13 +8,38 @@ export type FileChangeDiffLine = {
   newLine?: number;
 };
 
+function changedPatchLines(source: string[], start: number, oldLine: number, newLine: number) {
+  const lines: FileChangeDiffLine[] = [];
+  const changed: string[] = [];
+  let index = start;
+  while (
+    index < source.length &&
+    (source[index].startsWith("+") || source[index].startsWith("-")) &&
+    !source[index].startsWith("+++") &&
+    !source[index].startsWith("---")
+  ) {
+    changed.push(source[index]);
+    index += 1;
+  }
+  for (const changedLine of changed.filter((item) => item.startsWith("+"))) {
+    lines.push({ type: "remove", text: `-${changedLine.slice(1)}`, oldLine });
+    oldLine += 1;
+  }
+  for (const changedLine of changed.filter((item) => item.startsWith("-"))) {
+    lines.push({ type: "add", text: `+${changedLine.slice(1)}`, newLine });
+    newLine += 1;
+  }
+  return { lines, nextIndex: index - 1, oldLine, newLine };
+}
+
 export function parseReverseFilePatch(patch: string): FileChangeDiffLine[] {
   let oldLine = 0;
   let newLine = 0;
   const lines: FileChangeDiffLine[] = [];
   const source = patch.split("\n");
-  for (let index = 0; index < source.length; index += 1) {
-    const line = source[index];
+  let skippedUntil = -1;
+  for (const [index, line] of source.entries()) {
+    if (index <= skippedUntil) continue;
     const header = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line);
     if (header) {
       // Stored patches run new -> old. Swap the hunk counters for forward display.
@@ -24,25 +49,11 @@ export function parseReverseFilePatch(patch: string): FileChangeDiffLine[] {
     }
     if (line.startsWith("+++") || line.startsWith("---")) continue;
     if (line.startsWith("+") || line.startsWith("-")) {
-      const changed: string[] = [];
-      while (
-        index < source.length &&
-        (source[index].startsWith("+") || source[index].startsWith("-")) &&
-        !source[index].startsWith("+++") &&
-        !source[index].startsWith("---")
-      ) {
-        changed.push(source[index]);
-        index += 1;
-      }
-      index -= 1;
-      for (const changedLine of changed.filter((item) => item.startsWith("+"))) {
-        lines.push({ type: "remove", text: `-${changedLine.slice(1)}`, oldLine });
-        oldLine += 1;
-      }
-      for (const changedLine of changed.filter((item) => item.startsWith("-"))) {
-        lines.push({ type: "add", text: `+${changedLine.slice(1)}`, newLine });
-        newLine += 1;
-      }
+      const changed = changedPatchLines(source, index, oldLine, newLine);
+      lines.push(...changed.lines);
+      oldLine = changed.oldLine;
+      newLine = changed.newLine;
+      skippedUntil = changed.nextIndex;
       continue;
     }
     lines.push({ type: "context", text: line, oldLine, newLine });
