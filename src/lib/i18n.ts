@@ -112,6 +112,7 @@ const zh = {
   pauseOutput: "暂停输出",
   resumeOutput: "继续输出",
   stopOutput: "停止生成",
+  scrollToBottom: "滚动到底部",
   quickChat: "快捷对话",
   quickChatPlaceholder: "询问 OpenAgent…",
   quickShortcutLabel: "唤起快捷键",
@@ -1205,6 +1206,7 @@ const en: Translations = {
   pauseOutput: "Pause output",
   resumeOutput: "Resume output",
   stopOutput: "Stop generating",
+  scrollToBottom: "Scroll to bottom",
   quickChat: "Quick chat",
   quickChatPlaceholder: "Ask OpenAgent…",
   quickShortcutLabel: "Global shortcut",
@@ -1692,7 +1694,8 @@ const en: Translations = {
   chatGroupMessagePlaceholder: "Write a group message. Type @ and choose a wake target.",
   chatGroupSend: "Send message",
   chatGroupPlugin: "Chat group collaboration",
-  chatGroupPluginDescription: "Record group messages; user @ or explicit wake targets receive group replies.",
+  chatGroupPluginDescription:
+    "Record group messages; user @ or explicit wake targets receive group replies.",
   chatGroupMessages: "messages",
   executionPermissions: "Execution Permissions & Sandbox",
   executionPermissionsDescription:

@@ -5348,6 +5348,7 @@
     submitUserInput,
     switchBranch: switchBranchAt,
     selectWorkspace: switchNewConversationWorkspace,
+    scrollToBottom,
   };
 
   // ─── Window Controls ─────────────────────────────────────────────────────────

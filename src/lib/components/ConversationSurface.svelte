@@ -32,6 +32,7 @@
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import MessageInput, { type SlashCommand } from "./MessageInput.svelte";
   import MessageList from "./MessageList.svelte";
+  import Tooltip from "./Tooltip.svelte";
   import NewConversationContext from "./NewConversationContext.svelte";
   import ScrollArea from "./ui/ScrollArea.svelte";
 
@@ -103,6 +104,7 @@
     pickWorkspace: () => void | Promise<void>;
     pickWslWorkspace: () => void | Promise<void>;
     selectWorkspace: (path: string) => void | Promise<void>;
+    scrollToBottom: (behavior?: ScrollBehavior) => void | Promise<void>;
   }
 
   let {
@@ -150,6 +152,34 @@
 
   let localComposerFocusRequest = $state(0);
   let wasNewConversationLayout = $state<boolean | null>(null);
+  let showScrollToBottom = $state(false);
+
+  function updateScrollToBottomVisibility(): void {
+    const element = messagesElement;
+    if (!element) {
+      showScrollToBottom = false;
+      return;
+    }
+    showScrollToBottom = element.scrollHeight - element.scrollTop - element.clientHeight > 24;
+  }
+
+  function handleMessagesScroll(): void {
+    actions.handleMessagesScroll();
+    updateScrollToBottomVisibility();
+  }
+
+  $effect(() => {
+    const element = messagesElement;
+    if (!element) return;
+    updateScrollToBottomVisibility();
+    element.addEventListener("scroll", updateScrollToBottomVisibility, { passive: true });
+    const observer = new ResizeObserver(updateScrollToBottomVisibility);
+    observer.observe(element);
+    return () => {
+      element.removeEventListener("scroll", updateScrollToBottomVisibility);
+      observer.disconnect();
+    };
+  });
 
   $effect(() => {
     const isNewConversationLayout = view.newConversationLayout;
@@ -217,7 +247,7 @@
       height="100%"
       class="messages"
       bind:viewport={messagesElement}
-      onscroll={actions.handleMessagesScroll}
+      onscroll={handleMessagesScroll}
       onwheel={actions.cancelBottomScrollFromUser}
       ontouchstart={actions.cancelBottomScrollFromUser}
       onpointerdown={actions.cancelBottomScrollFromUser}
@@ -289,6 +319,23 @@
         view.newConversationSuggestions.length === 0}
       bind:clientHeight={inputAreaHeight}
     >
+      {#if showScrollToBottom && !view.newConversationLayout}
+        <Tooltip text={$t("scrollToBottom")} side="top">
+          {#snippet trigger(props)}
+            <button
+              {...props}
+              class="scroll-to-bottom"
+              type="button"
+              aria-label={$t("scrollToBottom")}
+              onclick={() => void actions.scrollToBottom("smooth")}
+            >
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M8 3v9m-3.5-3.5L8 12l3.5-3.5" />
+              </svg>
+            </button>
+          {/snippet}
+        </Tooltip>
+      {/if}
       {#if view.newConversationLayout}
         <NewConversationContext
           prompt={view.newConversationGreeting}
@@ -458,6 +505,54 @@
     padding-bottom: 16px;
     background: transparent;
     pointer-events: none;
+  }
+
+  .scroll-to-bottom {
+    position: absolute;
+    right: 50%;
+    bottom: calc(100% + 12px);
+    z-index: 3;
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--mica-surface);
+    color: var(--text-muted);
+    box-shadow: var(--shadow-elevation-2, 0 2px 10px rgba(0, 0, 0, 0.12));
+    cursor: pointer;
+    pointer-events: auto;
+    transform: translateX(50%);
+    transition:
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
+  }
+
+  .scroll-to-bottom:hover,
+  .scroll-to-bottom:focus-visible {
+    background: var(--component-neutral-bg);
+    color: var(--text);
+    outline: none;
+  }
+
+  .scroll-to-bottom:focus-visible {
+    box-shadow: var(--focus-ring);
+  }
+
+  .scroll-to-bottom:active {
+    transform: translateX(50%) scale(0.94);
+  }
+
+  .scroll-to-bottom svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   .input-area-new-conversation {

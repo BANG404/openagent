@@ -57,4 +57,27 @@ describe("tooltip usage", () => {
     expect(indexSnippet?.match(/<Tooltip\b/g)).toHaveLength(1);
     expect(indexSnippet).not.toContain("index-preview");
   });
+
+  test("anchors the absolute scroll button directly to the tooltip trigger", async () => {
+    const source = await readFile(
+      new URL("lib/components/ConversationSurface.svelte", srcRoot),
+      "utf8",
+    );
+    const scrollButton = source.match(
+      /\{#snippet trigger\(props\)\}[\s\S]*?class="scroll-to-bottom"[\s\S]*?<\/button>/,
+    )?.[0];
+
+    expect(scrollButton).toBeDefined();
+    expect(scrollButton).toContain("{...props}");
+  });
+
+  test("keeps shared tooltip text within the viewport", async () => {
+    const tooltipSource = await readFile(new URL("lib/components/Tooltip.svelte", srcRoot), "utf8");
+    const appCss = await readFile(new URL("../src/app.css", import.meta.url), "utf8");
+
+    expect(tooltipSource).toContain("collisionPadding={8}");
+    expect(appCss).toContain("max-width: min(280px, calc(100vw - 24px));");
+    expect(appCss).toContain("overflow-wrap: anywhere;");
+    expect(appCss).toContain("word-break: break-word;");
+  });
 });

@@ -29,6 +29,22 @@ const forbiddenNativePatterns = [
   },
 ];
 
+const nativeTitlePattern = /\btitle\s*=\s*(?:["'][^"']*["']|\{[^}]*\})/u;
+const nativeElementsWithVisualTitles = new Set([
+  "a",
+  "article",
+  "button",
+  "div",
+  "img",
+  "input",
+  "label",
+  "li",
+  "p",
+  "section",
+  "span",
+  "time",
+]);
+
 /**
  * @param {string} directory
  * @returns {string[]}
@@ -85,6 +101,15 @@ export function componentSourceErrors(source, name, baseline = NATIVE_CONTROL_BA
     const matches = source.match(rule.pattern) ?? [];
     if (matches.length > 0) {
       errors.push(`${name}: native <${rule.element}> is not allowed; use ${rule.replacement}.`);
+    }
+  }
+
+  for (const match of source.matchAll(/<([a-z][\w.-]*)\b[^>]*>/giu)) {
+    const element = match[1].toLowerCase();
+    if (nativeElementsWithVisualTitles.has(element) && nativeTitlePattern.test(match[0])) {
+      errors.push(
+        `${name}: native <${element}> title is not allowed for visual hints; use the shared Tooltip component.`,
+      );
     }
   }
 

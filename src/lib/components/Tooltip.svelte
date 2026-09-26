@@ -54,7 +54,7 @@
       {/snippet}
     </T.Trigger>
     <T.Portal>
-      <T.Content class="tt-content" {side} {sideOffset} {align}>
+      <T.Content class="tt-content" {side} {sideOffset} {align} collisionPadding={8}>
         {text}
       </T.Content>
     </T.Portal>

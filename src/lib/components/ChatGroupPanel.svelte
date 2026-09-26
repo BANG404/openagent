@@ -20,6 +20,7 @@
   import MessageInput from "./MessageInput.svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import ScrollArea from "./ui/ScrollArea.svelte";
+  import Tooltip from "./Tooltip.svelte";
   import type { PaletteItem } from "./MentionPalette.svelte";
 
   let {
@@ -429,12 +430,11 @@
           role="list"
         >
           {#each members as member (member.id)}
-            <span
-              class="mention-chip"
-              role="listitem"
-              title={roleTooltip(member)}
-              aria-label={roleTooltip(member)}>{member.role_name}</span
-            >
+            <Tooltip text={roleTooltip(member)} side="top" align="start">
+              <span class="mention-chip" role="listitem" aria-label={roleTooltip(member)}>
+                {member.role_name}
+              </span>
+            </Tooltip>
           {/each}
         </div>
         </section>
