@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
-  import type { ChatGroup, ChatGroupMember, ChatGroupMessage } from "$lib/openagent";
+  import type { AgentRole, ChatGroup, ChatGroupMember, ChatGroupMessage } from "$lib/openagent";
   import { desktopOpenAgent } from "$lib/openagent/tauriClient";
   import { t } from "$lib/i18n";
   import { Streamdown } from "svelte-streamdown";
@@ -40,17 +40,17 @@
 
   let groups = $state<ChatGroup[]>([]);
   let members = $state<ChatGroupMember[]>([]);
+  let roleDefinitions = $state<AgentRole[]>([]);
   let messages = $state<ChatGroupMessage[]>([]);
   let cursor = $state(0);
   let sending = $state(false);
   let error = $state<string | null>(null);
   let groupsLoading = $state(false);
   let messagesLoading = $state(false);
-  let membersExpanded = $state(true);
-  let membersOverflow = $state(false);
-  let memberStripElement = $state<HTMLDivElement | null>(null);
+  let membersExpanded = $state(false);
   let refreshTimer: ReturnType<typeof setInterval> | null = null;
   let memberRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  let initialLoadTimer: ReturnType<typeof setTimeout> | null = null;
   let messagesRefreshInFlight = false;
   let messagesRefreshQueued = false;
   let queuedMessagesReset = false;
@@ -74,20 +74,14 @@
   let snapshotKey = $derived(`${workspace}\u0000${groupIds.join("\u0001")}`);
 
   const selectedGroup = $derived(groups.find((group) => group.id === selectedGroupId) ?? null);
-  function measureMemberOverflow(): void {
-    const element = memberStripElement;
-    if (!element) return;
-    const previousWrap = element.style.flexWrap;
-    element.style.flexWrap = "nowrap";
-    membersOverflow = element.scrollWidth > element.clientWidth;
-    element.style.flexWrap = previousWrap;
+  function roleTooltip(member: ChatGroupMember): string {
+    const role = roleDefinitions.find((item) => item.id === member.role_id);
+    if (!role) return member.role_name;
+    const details = [role.description.trim()];
+    if (role.skill_ids.length > 0) details.push(`Skills: ${role.skill_ids.join(", ")}`);
+    if (role.mcp_server_ids.length > 0) details.push(`MCP: ${role.mcp_server_ids.join(", ")}`);
+    return `${role.name}\n${details.filter(Boolean).join("\n")}`;
   }
-
-  $effect(() => {
-    members;
-    selectedGroupId;
-    queueMicrotask(measureMemberOverflow);
-  });
   async function loadMentionItems(query: string): Promise<PaletteItem[]> {
     const normalizedQuery = query.trim().toLocaleLowerCase();
     return members
@@ -239,17 +233,24 @@
     return `${message.sender_type}:${message.sender_id ?? senderLabel(message)}`;
   }
 
-  function senderTone(message: ChatGroupMessage): string {
-    if (message.sender_type === "user") return "user";
-    const key = senderKey(message);
-    let hash = 0;
-    for (const character of key) hash = (hash * 31 + character.charCodeAt(0)) | 0;
-    return `tone-${Math.abs(hash) % 5}`;
-  }
+  type MessageGroup = {
+    key: string;
+    messages: ChatGroupMessage[];
+  };
 
-  function senderInitial(message: ChatGroupMessage): string {
-    return senderLabel(message).trim().slice(0, 1).toLocaleUpperCase() || "?";
-  }
+  const messageGroups = $derived.by(() => {
+    const grouped: MessageGroup[] = [];
+    for (const message of messages) {
+      const key = senderKey(message);
+      const current = grouped[grouped.length - 1];
+      if (current && senderKey(current.messages[0]) === key) {
+        current.messages.push(message);
+      } else {
+        grouped.push({ key: `${key}:${message.id}`, messages: [message] });
+      }
+    }
+    return grouped;
+  });
 
   function senderTime(message: ChatGroupMessage): string {
     return new Date(message.created_at).toLocaleTimeString(undefined, {
@@ -335,9 +336,14 @@
       attributes: true,
       attributeFilter: ["class"],
     });
-    const memberResizeObserver = new ResizeObserver(measureMemberOverflow);
-    if (memberStripElement) memberResizeObserver.observe(memberStripElement);
-    measureMemberOverflow();
+    const roleLoadTimer = setTimeout(() => {
+      void desktopOpenAgent
+        .invokeProduct("list_agent_roles", {})
+        .then((roles) => {
+          roleDefinitions = roles;
+        })
+        .catch(() => {});
+    }, 280);
     refreshTimer = setInterval(() => void refreshMessages(selectedGroupId), 2000);
     let unsubscribe: (() => void) | undefined;
     void desktopOpenAgent
@@ -373,8 +379,9 @@
     return () => {
       if (refreshTimer) clearInterval(refreshTimer);
       if (memberRefreshTimer) clearTimeout(memberRefreshTimer);
+      if (initialLoadTimer) clearTimeout(initialLoadTimer);
+      clearTimeout(roleLoadTimer);
       themeObserver.disconnect();
-      memberResizeObserver.disconnect();
       unsubscribe?.();
     };
   });
@@ -395,12 +402,13 @@
           <span>{messages.length} {$t("chatGroupMessages")}</span>
         </div>
       </header>
-      <section class="member-section" aria-label={$t("chatGroupMembers")}>
-        {#if membersOverflow}
+      {#if members.length > 0}
+        <section class="member-section" aria-label={$t("chatGroupMembers")}>
           <button
             class="member-toggle"
             type="button"
             aria-expanded={membersExpanded}
+            aria-controls="chat-group-members"
             onclick={() => (membersExpanded = !membersExpanded)}
           >
             <span>{$t("chatGroupMembers")}</span>
@@ -414,101 +422,100 @@
               <path d="m4 6 4 4 4-4" />
             </svg>
           </button>
-        {/if}
         <div
-          bind:this={memberStripElement}
           class:collapsed={!membersExpanded}
           class="member-strip"
+          id="chat-group-members"
           role="list"
         >
           {#each members as member (member.id)}
-            <span class="mention-chip" role="listitem">{member.role_name}</span>
+            <span
+              class="mention-chip"
+              role="listitem"
+              title={roleTooltip(member)}
+              aria-label={roleTooltip(member)}>{member.role_name}</span
+            >
           {/each}
         </div>
-      </section>
+        </section>
+      {/if}
 
-      <ScrollArea height="100%" class="message-list" scrollHideDelay={350}>
+      <div class="message-stack">
+        <ScrollArea height="100%" class="message-list" scrollHideDelay={350}>
         <div class="message-list-content" aria-live="polite">
         {#if messagesLoading && messages.length === 0}
           <LoadingSkeleton variant="detail-list" rows={4} label={$t("loadingContent")} />
         {:else if messages.length === 0}
           <p class="empty">{$t("chatGroupNoMessages")}</p>
         {:else}
-          {#each messages as message, index (message.id)}
-            {@const showSender =
-              index === 0 || senderKey(messages[index - 1]) !== senderKey(message)}
-            <article
-              class:message-group-start={showSender}
-              class="message-row"
-              class:message-user={message.sender_type === "user"}
-              class:tone-0={senderTone(message) === "tone-0"}
-              class:tone-1={senderTone(message) === "tone-1"}
-              class:tone-2={senderTone(message) === "tone-2"}
-              class:tone-3={senderTone(message) === "tone-3"}
-              class:tone-4={senderTone(message) === "tone-4"}
-            >
-              <div class="message-body">
-                {#if showSender}
-                  <div class="speaker-divider" aria-label={senderLabel(message)}>
-                    <span class="sender-identity">
-                      <span class="sender-avatar" aria-hidden="true">{senderInitial(message)}</span>
-                      <span class="sender">{senderLabel(message)}</span>
-                    </span>
-                    <time datetime={new Date(message.created_at).toISOString()}
-                      >{senderTime(message)}</time
-                    >
-                  </div>
-                  <div class="speaker-rule" aria-hidden="true"></div>
-                {/if}
-                <div class="group-message-markdown" use:externalLinks={capabilities.openUrl}>
-                  <Streamdown
-                    content={message.content.trimEnd()}
-                    controls={{ table: false }}
-                    components={{ code: Code, mermaid: Mermaid, math: ChatMath }}
-                    extensions={extensionsForMessage(message)}
-                    theme={chatMarkdownTheme}
-                    shikiTheme={isDarkTheme ? "github-dark" : "github-light"}
-                    mermaidConfig={mermaidConfigFor(isDarkTheme)}
-                  >
-                    {#snippet children({ token })}
-                      {#if (token as ComponentToken).type === "component"}
-                        <CustomToken token={token as ComponentToken} isDark={isDarkTheme} />
-                      {:else if (token as ChatGroupMentionToken).type === "chatGroupMention"}
-                        <span class="chat-group-mention"
-                          >{(token as ChatGroupMentionToken).label}</span
-                        >
-                      {/if}
-                    {/snippet}
-                  </Streamdown>
-                </div>
+          {#each messageGroups as messageGroup (messageGroup.key)}
+            {@const firstMessage = messageGroup.messages[0]}
+            <section class="message-group">
+              <div class="speaker-divider" aria-label={senderLabel(firstMessage)}>
+                <span class="sender">{senderLabel(firstMessage)}</span>
+                <time datetime={new Date(firstMessage.created_at).toISOString()}
+                  >{senderTime(firstMessage)}</time
+                >
               </div>
-            </article>
+              <div class="speaker-rule" aria-hidden="true"></div>
+              {#each messageGroup.messages as message (message.id)}
+                <article class="message-row">
+                  <div class="message-body">
+                    <div class="group-message-markdown" use:externalLinks={capabilities.openUrl}>
+                      <Streamdown
+                        content={message.content.trimEnd()}
+                        controls={{ table: false }}
+                        components={{ code: Code, mermaid: Mermaid, math: ChatMath }}
+                        extensions={extensionsForMessage(message)}
+                        theme={chatMarkdownTheme}
+                        shikiTheme={isDarkTheme ? "github-dark" : "github-light"}
+                        mermaidConfig={mermaidConfigFor(isDarkTheme)}
+                      >
+                        {#snippet children({ token })}
+                          {#if (token as ComponentToken).type === "component"}
+                            <CustomToken token={token as ComponentToken} isDark={isDarkTheme} />
+                          {:else if (token as ChatGroupMentionToken).type === "chatGroupMention"}
+                            <span class="chat-group-mention"
+                              >{(token as ChatGroupMentionToken).label}</span
+                            >
+                          {/if}
+                        {/snippet}
+                      </Streamdown>
+                    </div>
+                  </div>
+                </article>
+              {/each}
+            </section>
           {/each}
         {/if}
         </div>
-      </ScrollArea>
+        </ScrollArea>
 
-      <MessageInput
-        bind:value={draft}
-        attachments={[]}
-        selectedModel=""
-        modelOptions={[]}
-        placeholder={$t("chatGroupMessagePlaceholder")}
-        disabled={!selectedGroupId || sending}
-        isStreaming={false}
-        sendDisabled={sending || !draft.trim()}
-        sendTitle={$t("chatGroupSend")}
-        showAttachments={false}
-        showModelSelector={false}
-        showReasoningEffort={false}
-        showApprovalMode={false}
-        showWorkspaceSwitcher={false}
-        enableMentions={true}
-        {loadMentionItems}
-        onSend={() => void sendMessage()}
-        onStop={() => {}}
-      />
-
+        <div class="group-input-area">
+          <div class="group-input-inner">
+            <MessageInput
+              bind:value={draft}
+              attachments={[]}
+              selectedModel=""
+              modelOptions={[]}
+              placeholder={$t("chatGroupMessagePlaceholder")}
+              disabled={!selectedGroupId || sending}
+              isStreaming={false}
+              sendDisabled={sending || !draft.trim()}
+              sendTitle={$t("chatGroupSend")}
+              showAttachments={false}
+              showModelSelector={false}
+              showReasoningEffort={false}
+              showApprovalMode={false}
+              showWorkspaceSwitcher={false}
+              enableMentions={true}
+              {loadMentionItems}
+              onSend={() => void sendMessage()}
+              onStop={() => {}}
+            />
+          </div>
+        </div>
+      </div>
     {/if}
 
     {#if error}<p class="error">{error}</p>{/if}
@@ -521,7 +528,7 @@
     min-height: 0;
     flex: 1;
     flex-direction: column;
-    gap: 10px;
+    gap: 7px;
     padding: 12px;
   }
   .member-section {
@@ -563,6 +570,15 @@
     padding: 2px 0;
     font-size: 12px;
     text-align: left;
+    cursor: pointer;
+  }
+  .member-toggle:hover,
+  .member-toggle:focus-visible {
+    color: var(--text);
+    outline: none;
+  }
+  .member-toggle:focus-visible {
+    box-shadow: inset 0 -1px var(--focus-ring-color, var(--primary));
   }
   .member-chevron {
     width: 14px;
@@ -584,25 +600,35 @@
     gap: 5px;
   }
   .member-strip.collapsed {
-    flex-wrap: nowrap;
-    overflow: hidden;
+    display: none;
   }
   .group-panel :global(.composer-compact .input) {
     min-height: 64px;
   }
   .mention-chip {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
     border: 1px solid var(--border);
     border-radius: 999px;
     background: transparent;
     color: var(--text-muted);
     padding: 3px 7px;
     font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .message-stack {
+    position: relative;
+    min-height: 0;
+    flex: 1;
   }
   :global(.message-list) {
-    min-height: 120px;
-    flex: 1;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    min-height: 0;
+    border: 0;
     padding: 0;
   }
   :global(.message-list .ui-scroll-area-viewport) {
@@ -611,38 +637,33 @@
   }
   .message-list-content {
     min-height: 100%;
-    padding: 0 0 8px;
+    padding: 0 0 112px;
+  }
+  .group-input-area {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .group-input-inner {
+    pointer-events: auto;
+  }
+  .message-group {
+    min-width: 0;
+    margin-top: 26px;
+  }
+  .message-group:first-child {
+    margin-top: 0;
   }
   .message-row {
-    --sender-accent: var(--primary);
-    position: relative;
     padding: 5px 4px;
   }
-  .message-row.tone-0 { --sender-accent: #0f766e; }
-  .message-row.tone-1 { --sender-accent: #b45309; }
-  .message-row.tone-2 { --sender-accent: #7c3aed; }
-  .message-row.tone-3 { --sender-accent: #c2410c; }
-  .message-row.tone-4 { --sender-accent: #15803d; }
-  .message-row.message-user { --sender-accent: var(--primary); }
-  .message-row.message-group-start {
-    margin-top: 26px;
+  .message-row:first-of-type {
     padding-top: 0;
   }
-  .message-row.message-group-start::before {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: -1px;
-    width: 2px;
-    border-radius: 2px;
-    background: var(--sender-accent);
-    content: "";
-    opacity: 0.8;
-  }
-  .message-row:first-child {
-    margin-top: 6px;
-  }
-  .message-row:not(.message-group-start) {
+  .message-row:not(:first-of-type) {
     padding-top: 3px;
     padding-bottom: 3px;
   }
@@ -650,40 +671,35 @@
     min-width: 0;
   }
   .speaker-divider {
+    position: sticky;
+    z-index: 1;
+    top: 0;
     display: flex;
+    min-width: 0;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 8px;
-  }
-  .sender-identity {
-    display: inline-flex;
-    align-items: center;
-    min-width: 0;
-    gap: 7px;
-  }
-  .sender-avatar {
-    display: inline-grid;
-    width: 20px;
-    height: 20px;
-    flex: none;
-    place-items: center;
-    border: 1px solid color-mix(in srgb, var(--sender-accent) 55%, var(--border));
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--sender-accent) 14%, var(--surface));
-    color: var(--sender-accent);
-    font-size: 10px;
-    font-weight: 700;
+    margin: 0 -4px 8px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    background: var(--surface);
+    padding: 6px 4px 7px;
   }
   .speaker-rule {
-    margin-bottom: 14px;
-    border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    display: none;
   }
   .sender {
-    color: var(--sender-accent);
-    font-size: 13px;
-    line-height: 1.3;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 650;
+    line-height: 1.25;
+    text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .sender::first-letter {
+    font-size: 1.35em;
+    font-weight: 700;
   }
   .speaker-divider time {
     color: var(--text-muted);

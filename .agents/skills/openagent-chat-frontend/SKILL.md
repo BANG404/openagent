@@ -39,6 +39,11 @@ New components must look like part of the current product in both themes and
 must not introduce one-off colors, shadows, or control behavior when an
 existing component already defines it.
 
+The chat-group detail panel keeps its message viewport borderless at the top
+and bottom. Group-member details below the group title start collapsed and
+toggle as one section. Its composer floats above the viewport with enough
+scroll-content padding for the final message to remain reachable.
+
 Read only the references that own the affected behavior:
 
 - Cross-host boundaries and bootstrap ordering: [product-host-contract.md](references/product-host-contract.md)
