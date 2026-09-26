@@ -104,9 +104,9 @@
   @media (prefers-color-scheme: dark) {
     :root {
       color-scheme: dark;
-      --bg: #000000;
-      --sidebar-bg: #000000;
-      --surface: #000000;
+      --bg: #282c34;
+      --sidebar-bg: #282c34;
+      --surface: #282c34;
       --surface2: #1c1c1c;
       --border: #2b2b2b;
       --text: #e2e8f0;
@@ -140,9 +140,9 @@
   /* Forced dark override */
   html.dark {
     color-scheme: dark;
-    --bg: #000000;
-    --sidebar-bg: #000000;
-    --surface: #000000;
+    --bg: #282c34;
+    --sidebar-bg: #282c34;
+    --surface: #282c34;
     --surface2: #1c1c1c;
     --border: #2b2b2b;
     --text: #e2e8f0;
