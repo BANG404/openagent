@@ -47,8 +47,8 @@ export function translationKeys(source) {
  * @returns {{ zh: Set<string>, en: Set<string> }}
  */
 export function translationCatalogs(source) {
-  const zhBody = source.match(/const zh = \{([\s\S]*?)\} as const;/u)?.[1] ?? "";
-  const enBody = source.match(/const en: Translations = \{([\s\S]*?)\};/u)?.[1] ?? "";
+  const zhBody = source.match(/(?:const|export const) zh = \{([\s\S]*?)\} as const;/u)?.[1] ?? "";
+  const enBody = source.match(/(?:const|export const) en(?:: [^=]+)? = \{([\s\S]*?)\};/u)?.[1] ?? "";
   return { zh: translationKeys(zhBody), en: translationKeys(enBody) };
 }
 
@@ -107,6 +107,13 @@ export function staticToolI18nErrors({
   i18nSource = readFileSync(resolve(projectRoot, "src/lib/i18n.ts"), "utf8"),
 } = {}) {
   const catalogs = translationCatalogs(i18nSource);
+  if (catalogs.zh.size === 0 || catalogs.en.size === 0) {
+    const zhSource = readFileSync(resolve(projectRoot, "src/lib/i18n.zh.ts"), "utf8");
+    const enSource = readFileSync(resolve(projectRoot, "src/lib/i18n.en.ts"), "utf8");
+    const splitCatalogs = translationCatalogs(`${zhSource}\n${enSource}`);
+    catalogs.zh = splitCatalogs.zh;
+    catalogs.en = splitCatalogs.en;
+  }
   const keys = new Set([...catalogs.zh].filter((key) => catalogs.en.has(key)));
   return components.flatMap((name) => {
     const file = resolve(projectRoot, "src/lib/components", name);
