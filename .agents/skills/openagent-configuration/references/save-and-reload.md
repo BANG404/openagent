@@ -75,9 +75,12 @@ stable fingerprint of the advertised tool/resource names, a short capability
 category, a bounded summary, and discovery examples. After an MCP save or
 configuration reload, the Runtime probes configured servers in a background
 Flash task. An unchanged fingerprint reuses the cached category and summary;
-only a changed discovery set triggers reclassification. Live definitions are
-mounted directly into the next role-scoped Agent turn; the cached catalog stays
-settings metadata and is not used as a model-facing tool-routing instruction.
+only a changed discovery set triggers reclassification. Ordinary live
+definitions remain deferred after connection. The next role-scoped Agent turn
+receives the built-ins and `load`; a `load` result adds matching MCP definitions
+to the shared ToolServer so the following provider request receives those tools
+directly. The cached catalog is runtime candidate metadata and settings metadata,
+not a generic `tool_call` routing instruction.
 Probe failures or missing Flash credentials leave the last valid catalog
 untouched and never block settings persistence.
 
