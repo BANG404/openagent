@@ -4,4 +4,3 @@ self-hosted-runner:
     - linux-x64
     - windows-x64
     - wsl
-    - codex-agent
