@@ -254,6 +254,8 @@
 - Treat the new-conversation action as idempotent while that surface is already
   visible. Do not reload its greeting or suggestions, rewrite its durable active marker,
   or toggle its loading skeleton on a repeated click.
+- When switching from an existing conversation to the new-conversation surface, issue a
+  composer focus request after the surface becomes visible so the input is ready for typing.
 
 - Restore the right-sidebar selection after conversation hydration has projected
   durable chat-group tool results. A scope switch may temporarily fall back to

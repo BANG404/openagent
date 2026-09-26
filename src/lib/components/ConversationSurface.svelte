@@ -149,6 +149,15 @@
   } = $props();
 
   let localComposerFocusRequest = $state(0);
+  let wasNewConversationLayout = $state<boolean | null>(null);
+
+  $effect(() => {
+    const isNewConversationLayout = view.newConversationLayout;
+    if (wasNewConversationLayout === false && isNewConversationLayout) {
+      localComposerFocusRequest += 1;
+    }
+    wasNewConversationLayout = isNewConversationLayout;
+  });
 
   // The indicator stays mounted for the whole turn: a streaming turn has no
   // checkpoint node until its terminal snapshot, so it reports the newest

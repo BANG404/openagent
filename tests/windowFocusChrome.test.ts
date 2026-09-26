@@ -52,6 +52,9 @@ describe("window focus chrome", () => {
     expect(conversationSurface).toContain(
       "focusRequest={focusRequest + localComposerFocusRequest}",
     );
+    expect(conversationSurface).toMatch(
+      /wasNewConversationLayout === false && isNewConversationLayout[\s\S]*?localComposerFocusRequest \+= 1/,
+    );
     expect(input).toContain(
       "if (focusRequest > 0) void focusInputAfterWindowActivation(focusRequest);",
     );
