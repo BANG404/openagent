@@ -77,7 +77,7 @@ configuration reload, the Runtime probes configured servers in a background
 Flash task. An unchanged fingerprint reuses the cached category and summary;
 only a changed discovery set triggers reclassification. Ordinary live
 definitions remain deferred after connection. The next role-scoped Agent turn
-receives the built-ins and `load`; a `load` result adds matching MCP definitions
+receives the built-ins and `load_tool`; a `load_tool` result adds matching MCP definitions
 to the shared ToolServer so the following provider request receives those tools
 directly. The cached catalog is runtime candidate metadata and settings metadata,
 not a generic `tool_call` routing instruction.
