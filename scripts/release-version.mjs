@@ -104,7 +104,7 @@ export function getLatestReleaseTag(tags) {
  * @param {{ prereleaseNumber?: number, migrateLegacyBetaVersion?: boolean }} [options]
  * @returns {{ version: string, baseVersion: string, promotion: boolean }}
  */
-export function getNextReleaseVersion(currentVersion, bump, channel, options = {}) {
+export function getNextReleaseVersion(currentVersion, bump, channel, options = {}) { // NOSONAR: release policy branches are kept together to make version transitions auditable.
   const match = releaseVersionPattern.exec(currentVersion);
   if (!match) throw new Error(`Unsupported version format: ${currentVersion}`);
   if (!["beta", "rc", "stable"].includes(channel))

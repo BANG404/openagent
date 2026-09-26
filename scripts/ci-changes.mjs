@@ -168,7 +168,7 @@ export function classifyChangedModules(files, forceAll = false) {
  * @returns {string[]}
  */
 function changedFiles(baseSha, headSha) {
-  return execFileSync("git", ["diff", "--name-only", "--diff-filter=ACMRT", baseSha, headSha], {
+  return execFileSync("git", ["diff", "--name-only", "--diff-filter=ACMRT", baseSha, headSha], { // NOSONAR: git is the fixed repository tool.
     encoding: "utf8",
   })
     .split(/\r?\n/)
@@ -186,7 +186,7 @@ function main() {
   // treating the immutable Beta snapshot as an entirely new repository.
   if (!forceAll && ZERO_SHA.test(baseSha)) {
     try {
-      baseSha = execFileSync("git", ["rev-parse", `${headSha}^`], { encoding: "utf8" }).trim();
+      baseSha = execFileSync("git", ["rev-parse", `${headSha}^`], { encoding: "utf8" }).trim(); // NOSONAR: git is the fixed repository tool.
     } catch {
       forceAll = true;
     }

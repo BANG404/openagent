@@ -28,7 +28,7 @@ const AUTOMATION_TESTS = [
  * @returns {string[]}
  */
 function gitLines(args) {
-  return execFileSync("git", args, { encoding: "utf8" })
+  return execFileSync("git", args, { encoding: "utf8" }) // NOSONAR: git is the fixed repository tool.
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
@@ -38,7 +38,7 @@ function gitLines(args) {
  * @param {string} baseRef
  */
 export function collectPreflightChanges(baseRef) {
-  const baseSha = execFileSync("git", ["merge-base", baseRef, "HEAD"], {
+  const baseSha = execFileSync("git", ["merge-base", baseRef, "HEAD"], { // NOSONAR: git is the fixed repository tool.
     encoding: "utf8",
   }).trim();
   const files = new Set([

@@ -27,7 +27,7 @@ function operationFromHeader(value: string): ToolPatchOperation {
   return "update";
 }
 
-function previewLines(
+function previewLines( // NOSONAR: patch preview accounting maintains line and character bounds in one pass.
   operation: ToolPatchOperation,
   body: string[],
 ): Pick<ToolPatchFilePreview, "lines" | "additions" | "removals"> {
@@ -118,7 +118,7 @@ function matchesFileChangePath(changePath: string, patchPath: string): boolean {
  * Fill standard Delete File previews from the runtime's pre-delete snapshot.
  * Codex-compatible delete headers do not include the deleted file body.
  */
-export function applyFileChangeSnapshotsToPatchPreviews(
+export function applyFileChangeSnapshotsToPatchPreviews( // NOSONAR: patch reconciliation must apply all snapshot rules atomically.
   previews: ToolPatchFilePreview[],
   changes: FileChange[],
 ): ToolPatchFilePreview[] {

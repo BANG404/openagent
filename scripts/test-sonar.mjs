@@ -93,8 +93,8 @@ run("cargo", ["test", "--manifest-path", resolve(repositoryRoot, "src-tauri", "C
 
 const scannerAvailable =
   process.platform === "win32"
-    ? spawnSync("where.exe", ["sonar-scanner"], { stdio: "ignore" }).status === 0
-    : spawnSync("sh", ["-c", "command -v sonar-scanner"], { stdio: "ignore" }).status === 0;
+    ? spawnSync("where.exe", ["sonar-scanner"], { stdio: "ignore" }).status === 0 // NOSONAR: fixed platform lookup utility.
+    : spawnSync("sh", ["-c", "command -v sonar-scanner"], { stdio: "ignore" }).status === 0; // NOSONAR: fixed platform lookup utility.
 
 if (scannerAvailable) {
   run("sonar-scanner", []);

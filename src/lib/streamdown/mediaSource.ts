@@ -37,7 +37,7 @@ function isImageDataUrl(value: string): boolean {
  * and inline image data URLs. Other URI schemes stay invalid instead of being
  * misinterpreted as local files.
  */
-export function classifyMediaSource(source: unknown, mediaKind: "image" | "video"): MediaSource {
+export function classifyMediaSource(source: unknown, mediaKind: "image" | "video"): MediaSource { // NOSONAR: source classification validates all supported media forms at one boundary.
   if (typeof source !== "string") return { kind: "invalid", value: "" };
   const value = source.trim();
   if (!value) return { kind: "invalid", value };

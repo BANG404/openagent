@@ -18,7 +18,7 @@ function gitBashPath(value) {
 }
 
 function git(cwd, ...args) {
-  const result = spawnSync("git", args, { cwd, encoding: "utf8" });
+  const result = spawnSync("git", args, { cwd, encoding: "utf8" }); // NOSONAR: test invokes the fixed git tool.
   expect(result.status, result.stderr).toBe(0);
   return result.stdout.trim();
 }

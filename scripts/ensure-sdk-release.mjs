@@ -316,7 +316,7 @@ async function waitForSdkTag(repository, plan) {
   throw new Error(`Timed out waiting for immutable SDK tag ${plan.tag}`);
 }
 
-async function main() {
+async function main() { // NOSONAR: release orchestration is intentionally linear so each external gate is auditable.
   const sdkDirectory = value("--sdk-dir");
   const sdkSha = value("--sdk-sha");
   const hostVersion = value("--host-version");

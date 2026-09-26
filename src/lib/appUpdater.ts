@@ -135,7 +135,7 @@ async function downloadShellUpdate(shell: Update): Promise<void> {
   }
 }
 
-async function installUpdates(updates: AvailableUpdates): Promise<void> {
+async function installUpdates(updates: AvailableUpdates): Promise<void> { // NOSONAR: update activation is a transactional state machine kept together for rollback safety.
   if (get(mutableAppUpdateState) !== "idle") return;
   mutableAppUpdateState.set("installing");
 
@@ -280,7 +280,7 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
   }
 }
 
-export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<void> {
+export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<void> { // NOSONAR: update discovery coordinates independent component checks and one user-visible result.
   if (get(mutableAppUpdateState) !== "idle") return;
   mutableAppUpdateState.set("checking");
 

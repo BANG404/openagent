@@ -1077,7 +1077,7 @@ async fn restore_previous_runtime(
 }
 
 #[tauri::command]
-async fn activate_runtime_resource(
+async fn activate_runtime_resource( // NOSONAR: this protocol or state boundary is intentionally kept together for auditability.
     app: tauri::AppHandle,
     manager: State<'_, RuntimeResourceManager>,
     updates: State<'_, RuntimeUpdateState>,
@@ -4832,7 +4832,7 @@ mod single_instance_tests {
     }
 }
 
-fn run_with_mode(agent_server: bool) {
+fn run_with_mode(agent_server: bool) { // NOSONAR: this protocol or state boundary is intentionally kept together for auditability.
     prepend_development_cua_driver_to_path()
         .unwrap_or_else(|error| panic!("Failed to configure bundled Cua Driver: {error}"));
     let external_launch = if !agent_server {

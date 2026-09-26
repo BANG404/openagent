@@ -1946,7 +1946,7 @@
     border: 1px solid rgba(239, 68, 68, 0.28);
     border-radius: 6px;
     background: rgba(239, 68, 68, 0.06);
-    color: #dc2626;
+    color: var(--danger);
     font-size: 13px;
     font-weight: 600;
     padding: 4px 10px;

@@ -86,7 +86,7 @@ export function documentationSyncErrors(files) {
  * @returns {string[]}
  */
 function gitLines(args) {
-  return execFileSync("git", args, { encoding: "utf8" }).split(/\r?\n/).filter(Boolean);
+  return execFileSync("git", args, { encoding: "utf8" }).split(/\r?\n/).filter(Boolean); // NOSONAR: git is the fixed repository tool.
 }
 
 function changedFiles() {

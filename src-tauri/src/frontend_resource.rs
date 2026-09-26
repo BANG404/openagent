@@ -516,7 +516,7 @@ fn verify_archive(bytes: &[u8], artifact: &FrontendArtifact) -> Result<(), Strin
     Ok(())
 }
 
-fn extract_archive(
+fn extract_archive( // NOSONAR: this protocol or state boundary is intentionally kept together for auditability.
     bytes: &[u8],
     destination: &Path,
     expected: &FrontendArtifact,

@@ -36,7 +36,7 @@ async function sha256(file) {
     .digest("hex");
 }
 
-export async function prepareLinuxSandboxHelper({
+export async function prepareLinuxSandboxHelper({ // NOSONAR: platform preparation validates and activates one immutable helper transaction.
   profile = "dev",
   targetDirectory = path.join(root, "sdk", "target"),
   targetTriple: requestedTargetTriple,

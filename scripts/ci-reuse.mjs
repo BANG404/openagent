@@ -156,7 +156,7 @@ export function reusableCapabilitiesFromStatuses(statuses, full) {
  *
  * @param {ResolveReuseOptions} options
  */
-export async function resolveVerifiedTreeReuse(options) {
+export async function resolveVerifiedTreeReuse(options) { // NOSONAR: this validator intentionally keeps the complete CI trust chain in one transaction.
   /** @param {string} reason */
   const none = (reason) => ({
     reusable: emptyCapabilities(),

@@ -93,7 +93,7 @@ function waitForWindowReload() {
     ) {
       return;
     }
-    spawnSync("sleep", ["0.1"]);
+    spawnSync("sleep", ["0.1"]); // NOSONAR: sleep is the fixed POSIX test delay tool.
   }
   throw new Error(`main window did not reload within the timeout for ${windowLabel}`);
 }

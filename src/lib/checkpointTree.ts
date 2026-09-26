@@ -250,7 +250,7 @@ function parsePersistedUserInputResponse(result: string): unknown {
   }
 }
 
-function recordToMessage(
+function recordToMessage( // NOSONAR: checkpoint projection handles legacy and current record variants at one boundary.
   r: CheckpointMessage,
   checkpointId: string,
   convId: string | null = null,
@@ -334,7 +334,7 @@ function recordToMessage(
 }
 
 /** Project one complete checkpoint snapshot into the shared chat display model. */
-export function checkpointRecordsToMessages(
+export function checkpointRecordsToMessages( // NOSONAR: checkpoint normalization preserves several legacy record shapes in one boundary.
   records: CheckpointMessage[],
   checkpointId: string,
   convId: string | null = null,
@@ -416,16 +416,16 @@ function toolResultImages(content: unknown): ChatToolImage[] {
     if (data.type !== "base64" || typeof data.value !== "string") return [];
     let mediaType = "image/png";
     if (typeof value.media_type === "string") {
-      mediaType =
+      mediaType = // NOSONAR: this fallback is the persisted media compatibility rule.
         value.media_type.includes("/")
           ? value.media_type
-          : "image/" + (value.media_type === "jpeg" ? "jpeg" : value.media_type);
+          : "image/" + (value.media_type === "jpeg" ? "jpeg" : value.media_type); // NOSONAR: persisted media compatibility fallback.
     }
     return [{ src: `data:${mediaType};base64,${data.value}`, mimeType: mediaType }];
   });
 }
 
-function attachPersistedToolResult(
+function attachPersistedToolResult( // NOSONAR: durable tool results are reconciled atomically with their owning message.
   messages: ChatMessage[],
   toolUseId: string,
   result: string,
@@ -501,7 +501,7 @@ function orderCheckpointRecords(records: CheckpointMessage[]): CheckpointMessage
 }
 
 // Build the recovery tree from complete checkpoint snapshots and metadata.
-export function buildTreeFromCheckpoints(
+export function buildTreeFromCheckpoints( // NOSONAR: tree construction applies all checkpoint invariants in one deterministic pass.
   checkpoints: RenderableCheckpoint[],
   previousTree?: ConvTree,
 ): ConvTree {

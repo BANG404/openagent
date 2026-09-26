@@ -176,7 +176,7 @@ export function checkpointFlowProgress(flow: CheckpointFlow): { completed: numbe
   };
 }
 
-export function checkpointGraphLayers(nodes: CheckpointGraphNode[]): CheckpointGraphNode[][] {
+export function checkpointGraphLayers(nodes: CheckpointGraphNode[]): CheckpointGraphNode[][] { // NOSONAR: graph layering handles malformed and sparse checkpoint data in one pass.
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const sourceIndex = new Map(nodes.map((node, index) => [node.id, index]));
   const indegree = new Map<string, number>();

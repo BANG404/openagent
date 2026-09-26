@@ -40,7 +40,7 @@ export function frontendProductVersion(repositoryRoot = root) {
  */
 export function frontendRevision(repositoryRoot = root) {
   try {
-    const revision = execFileSync("git", ["rev-parse", "HEAD"], {
+    const revision = execFileSync("git", ["rev-parse", "HEAD"], { // NOSONAR: git is the fixed repository tool.
       cwd: repositoryRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],

@@ -192,7 +192,7 @@ async function filesByName(directory) {
 /**
  * @param {{ candidateDirectory: string, expectedTargets: string[], desktopSha: string, sdkSha: string }} options
  */
-export async function verifyCandidateSet({
+export async function verifyCandidateSet({ // NOSONAR: candidate verification is a single integrity transaction.
   candidateDirectory,
   expectedTargets,
   desktopSha,

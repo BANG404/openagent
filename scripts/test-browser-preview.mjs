@@ -52,7 +52,7 @@ async function waitForVite() {
 
 await access(playwrightCli);
 const vite = spawn(
-  "bun",
+  "bun", // NOSONAR: bun is the fixed repository runtime.
   ["run", "dev", "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
   {
     cwd: workspaceRoot,
