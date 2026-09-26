@@ -86,6 +86,8 @@ run(process.execPath, [
 
 run("cargo", ["test", "--manifest-path", resolve(repositoryRoot, "sdk", "Cargo.toml"), "--workspace"]);
 
+run("cargo", ["test", "--manifest-path", resolve(repositoryRoot, "src-tauri", "Cargo.toml")]);
+
 const scannerAvailable =
   process.platform === "win32"
     ? spawnSync("where.exe", ["sonar-scanner"], { stdio: "ignore" }).status === 0
