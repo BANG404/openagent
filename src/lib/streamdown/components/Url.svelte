@@ -44,6 +44,7 @@
 
   async function open(e: MouseEvent) {
     e.preventDefault();
+    e.stopPropagation();
     if (!href) return;
     try {
       await capabilities.openUrl(href);
@@ -54,7 +55,7 @@
 </script>
 
 <Tooltip text={href}>
-  <a class="url-ref" {href} onclick={open}>
+  <a class="url-ref" {href} onclickcapture={open}>
     <span class="site-icon" class:loaded={faviconLoaded} aria-hidden="true">
       <svg
         viewBox="0 0 16 16"
