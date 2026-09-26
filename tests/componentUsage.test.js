@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { ESLint } from "eslint";
 import {
   componentSourceErrors,
   componentUsageErrors,
@@ -30,6 +31,20 @@ describe("shared frontend component contract", () => {
     expect(errors).toEqual([
       "new-component.svelte: native checkbox/radio controls are not allowed; use the shared Switch or SegmentedControl component.",
     ]);
+  });
+
+  test("exposes the same contract through the frontend ESLint config", async () => {
+    const eslint = new ESLint({ cwd: process.cwd() });
+    const [result] = await eslint.lintText("<select></select>", {
+      filePath: "src/lib/components/contract-fixture.svelte",
+    });
+
+    expect(result.messages).toContainEqual(
+      expect.objectContaining({
+        ruleId: "openagent/component-usage",
+        message: expect.stringContaining("shared Select component"),
+      }),
+    );
   });
 
   test("keeps a shared UI directory available for reusable primitives", () => {

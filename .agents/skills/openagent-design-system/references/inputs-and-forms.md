@@ -148,3 +148,20 @@ onboarding or native runtime state. Add
 `reasoning-effort-preview-locale=zh|en` to verify theme and localization.
 
 Error and validation states were not surfaced in the analyzed pages.
+
+### Automated component contract
+
+Frontend component primitives are checked in two layers. `check:components`
+keeps the file-specific native-control baseline and its focused tests. The same
+contract is also enabled as `openagent/component-usage` in the Svelte ESLint
+configuration, so the normal `lint:frontend` path reports new native
+`select`, `dialog`, checkbox/radio, and visual `title` usage. Shared primitives
+under `src/lib/components/ui/` are the implementation boundary and are exempt
+from the consumer rule. Keep the standalone check when changing the baseline;
+it is the ratchet's source of truth.
+
+The frontend ESLint configuration also applies size and complexity ceilings to
+leaf components, route surfaces, and the two current composition roots. The
+large `+page.svelte` and `SettingsView.svelte` roots use shrink-only ceilings;
+new behavior should move into focused components instead of increasing those
+files.

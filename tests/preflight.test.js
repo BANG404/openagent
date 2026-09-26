@@ -50,6 +50,7 @@ describe("local preflight plan", () => {
   test("uses host compile checks while leaving cross-platform coverage to CI", () => {
     expect(commandIds({ nativeQuality: true, nativePlatform: true })).toEqual([
       "rust-format",
+      "rust-lint",
       "frontend-dist",
       "cua-driver",
       "rust-check",

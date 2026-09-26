@@ -90,6 +90,7 @@ export function buildPreflightCommands(modules) {
 
   if (modules.nativeQuality) {
     add("rust-format", "Rust formatting", "bun", ["run", "format:rust:check"]);
+    add("rust-lint", "Rust Clippy", "bun", ["run", "lint:rust"]);
   }
   if (modules.nativeQuality || modules.nativePlatform) {
     add("frontend-dist", "Materialize frontendDist for Tauri macros", "node", [
