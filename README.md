@@ -86,7 +86,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 
 ### Tools and integrations
 
-- **MCP-Native** — Connect external MCP servers over HTTP or stdio, inspect cached server capabilities, and let tool search discover the relevant grouped tools at call time.
+- **MCP-Native** — Connect external MCP servers over HTTP or stdio; enabled tools are mounted directly into each role-scoped Agent turn with per-tool controls.
 - **First-class Dev Tools** — Built-in patch, image-inspection, and terminal tools. Managed terminal sessions support interactive or long-running background processes.
 - **Desktop Automation** — The bundled Cua Driver runs as a host-supervised capability with product-owned permissions and per-tool controls in the **top-bar Integrations → Plugins** panel.
 - **Plugin Controls** — The top-bar **Integrations → Plugins** entry opens the dedicated Plugins settings window with expandable cards: toggle Chat Group collaboration, test the Cua Driver MCP connection, discover its tools, and choose which desktop actions are exposed to the agent.
