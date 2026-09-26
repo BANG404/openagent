@@ -1,11 +1,21 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { delimiter, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const hook = resolve(".githooks/post-commit");
 const fixtures = [];
+
+function gitBashPath(value) {
+  const normalized = value.replaceAll("\\", "/");
+  const tempPrefix = `${tmpdir().replaceAll("\\", "/").replace(/\/$/u, "")}/`;
+  if (normalized.startsWith(tempPrefix)) return `/tmp/${normalized.slice(tempPrefix.length)}`;
+  if (/^[A-Za-z]:\//.test(normalized)) {
+    return `/${normalized[0].toLowerCase()}${normalized.slice(2)}`;
+  }
+  return normalized;
+}
 
 function git(cwd, ...args) {
   const result = spawnSync("git", args, { cwd, encoding: "utf8" });
@@ -21,7 +31,19 @@ async function fixture() {
   const bin = join(root, "bin");
   await mkdir(source);
   await mkdir(bin);
-  await writeFile(join(bin, "git.exe"), '#!/usr/bin/env bash\nexec git "$@"\n');
+  const realGit = process.platform === "win32" ? "/mingw64/bin/git" : "git";
+  const gitShim =
+    process.platform === "win32"
+      ? `#!/usr/bin/env bash
+if [ "$1" = "-C" ]; then
+  args=("$@")
+  args[1]="$(cygpath -u "\${args[1]}")"
+  exec ${realGit} "\${args[@]}"
+fi
+exec ${realGit} "$@"
+`
+      : `#!/usr/bin/env bash\nexec ${realGit} "$@"\n`;
+  await writeFile(join(bin, "git.exe"), gitShim);
   await chmod(join(bin, "git.exe"), 0o755);
 
   git(source, "init", "-b", "master");
@@ -41,10 +63,28 @@ async function fixture() {
 }
 
 function runHook({ bin, source }) {
-  return spawnSync("bash", [hook], {
-    cwd: source,
+  const bash =
+    process.platform === "win32"
+      ? join(process.env.ProgramFiles ?? "C:\\Program Files", "Git", "bin", "bash.exe")
+      : "bash";
+  const hookPath = process.platform === "win32" ? gitBashPath(hook) : hook;
+  const args =
+    process.platform === "win32"
+      ? [
+          "-c",
+          'hash -p /mingw64/bin/git git; cd "$2" || exit 1; source "$1"',
+          "openagent-hook",
+          hookPath,
+          gitBashPath(source),
+        ]
+      : [hookPath];
+  return spawnSync(bash, args, {
+    cwd: process.platform === "win32" ? process.cwd() : source,
     encoding: "utf8",
-    env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+    env:
+      process.platform === "win32"
+        ? { ...process.env, PATH: `${gitBashPath(bin)}:/usr/bin:/bin:/mingw64/bin` }
+        : { ...process.env, PATH: `${bin}${delimiter}${process.env.PATH}` },
   });
 }
 

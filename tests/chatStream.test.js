@@ -19,9 +19,11 @@ import {
   terminalEventMatchesActiveStream,
 } from "../src/lib/checkpointTree";
 
+const routeSourceUrl = new URL("../src/routes/PageRuntime.svelte", import.meta.url);
+
 describe("model request activity", () => {
   test("shows waiting for every Rig completion round and clears it on a tool call", async () => {
-    const route = await readFile("src/routes/+page.svelte", "utf8");
+    const route = await readFile(routeSourceUrl, "utf8");
     const responseStart = route.slice(
       route.indexOf("onResponseStarted:"),
       route.indexOf("onMemoryRetrieval:", route.indexOf("onResponseStarted:")),
@@ -131,7 +133,7 @@ describe("background checkpoint reconciliation", () => {
 
 describe("external conversation hydration", () => {
   test("does not restore render_mermaid as a manual approval", async () => {
-    const pageSource = await readFile("src/routes/+page.svelte", "utf8");
+    const pageSource = await readFile(routeSourceUrl, "utf8");
     expect(pageSource).toContain('if (toolUse.name === "render_mermaid") return [];');
     expect(pageSource).toContain("restoreMermaidRenderRequests(convId, tipCheckpoint)");
   });
@@ -151,7 +153,7 @@ describe("external conversation hydration", () => {
 
   test("reloads the first durable checkpoint when a live run has no user message", async () => {
     const pageSource = await readFile(
-      new URL("../src/routes/+page.svelte", import.meta.url),
+      new URL("../src/routes/PageRuntime.svelte", import.meta.url),
       "utf8",
     );
 
@@ -199,7 +201,7 @@ describe("fork hydration", () => {
 describe("conversation transition rendering", () => {
   test("does not expose an empty active conversation while the first turn is persisted", async () => {
     const pageSource = await readFile(
-      new URL("../src/routes/+page.svelte", import.meta.url),
+      new URL("../src/routes/PageRuntime.svelte", import.meta.url),
       "utf8",
     );
     const surfaceSource = await readFile(
@@ -229,7 +231,7 @@ describe("conversation transition rendering", () => {
 describe("desktop conversation branches", () => {
   test("routes branch switches and edited-message forks through Runtime operations", async () => {
     const pageSource = await readFile(
-      new URL("../src/routes/+page.svelte", import.meta.url),
+      new URL("../src/routes/PageRuntime.svelte", import.meta.url),
       "utf8",
     );
     const reexecuteSource = pageSource.slice(

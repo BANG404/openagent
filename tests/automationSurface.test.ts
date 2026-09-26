@@ -1,11 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
+import { settingsViewSource } from "./sourceSurfaces";
 
 const componentsUrl = new URL("../src/lib/components/", import.meta.url);
 
 describe("automation settings surface", () => {
   test("keeps every lifecycle event in the editor option set", async () => {
-    const settings = await readFile(new URL("SettingsView.svelte", componentsUrl), "utf8");
+    const settings = await settingsViewSource();
     const events = [
       "session_start",
       "session_end",
@@ -31,7 +32,7 @@ describe("automation settings surface", () => {
   });
 
   test("keeps all scheduled hook modes connected to their argument mapping", async () => {
-    const settings = await readFile(new URL("SettingsView.svelte", componentsUrl), "utf8");
+    const settings = await settingsViewSource();
     const modes = ["delay", "run_at", "interval_minutes", "daily", "weekdays", "weekly"];
 
     for (const mode of modes) {
@@ -56,7 +57,7 @@ describe("automation settings surface", () => {
   });
 
   test("does not let delayed initial navigation override a user tab choice", async () => {
-    const settings = await readFile(new URL("SettingsView.svelte", componentsUrl), "utf8");
+    const settings = await settingsViewSource();
     expect(settings).toContain(
       'document.querySelector<HTMLButtonElement>("[data-tabs-trigger][data-state=active]")',
     );

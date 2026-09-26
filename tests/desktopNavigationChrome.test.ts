@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
+import { settingsViewSource } from "./sourceSurfaces";
 
-const routeUrl = new URL("../src/routes/+page.svelte", import.meta.url);
+const routeUrl = new URL("../src/routes/PageRuntime.svelte", import.meta.url);
 const componentsUrl = new URL("../src/lib/components/", import.meta.url);
 const fullscreenSurfaceUrl = new URL("FullscreenSurface.svelte", componentsUrl);
 const appCssUrl = new URL("../src/app.css", import.meta.url);
@@ -188,9 +189,11 @@ describe("desktop navigation chrome", () => {
     expect(nativeMaterialTokens).toContain("--app-chrome-bg: transparent");
     expect(nativeMaterialTokens).toContain("--sidebar-bg: transparent");
     expect(appCss).toMatch(
-      /html\.macos-window,\s*html\.macos-window body\s*{[^}]*border-radius: 12px;[^}]*overflow: hidden;/s,
+      /html\.macos-window,\s*html\.macos-window body\s*{[^}]*border-radius: var\(--app-radius\);[^}]*overflow: hidden;/s,
     );
-    expect(appCss).toMatch(/html\.macos-window body\s*{[^}]*clip-path: inset\(0 round 12px\);/s);
+    expect(appCss).toMatch(
+      /html\.macos-window body\s*{[^}]*clip-path: inset\(0 round var\(--app-radius\)\);/s,
+    );
     expect(route).toContain('document.documentElement.classList.add("macos-window")');
     expect(appCss).toMatch(
       /html\.native-window-material \.flow-panel-surface\s*{[^}]*background: var\(--surface\);[^}]*backdrop-filter: none;/s,
@@ -198,7 +201,7 @@ describe("desktop navigation chrome", () => {
     expect(flowPanel).not.toContain("backdrop-filter");
     expect(route).toMatch(/\.app\s*{[^}]*background: transparent;/s);
 
-    const settings = await readFile(new URL("SettingsView.svelte", componentsUrl), "utf8");
+    const settings = await settingsViewSource();
     const onboarding = await readFile(new URL("OnboardingFlow.svelte", componentsUrl), "utf8");
 
     expect(settings).toMatch(/\.settings-panel\s*{[^}]*background: transparent;/s);
@@ -223,7 +226,7 @@ describe("desktop navigation chrome", () => {
         ],
       ],
     ] as const) {
-      const source = await readFile(new URL(component, componentsUrl), "utf8");
+      const source = settings;
       for (const region of transparentRegions) {
         expect(source).toMatch(
           new RegExp(
@@ -260,7 +263,7 @@ describe("desktop navigation chrome", () => {
   test("renders every settings domain as an in-window fullscreen surface", async () => {
     const route = await readFile(routeUrl, "utf8");
     const menu = await readFile(new URL("ApplicationMenuBar.svelte", componentsUrl), "utf8");
-    const settings = await readFile(new URL("SettingsView.svelte", componentsUrl), "utf8");
+    const settings = await settingsViewSource();
     const fullscreenSurface = await readFile(fullscreenSurfaceUrl, "utf8");
     const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
 
@@ -640,14 +643,14 @@ describe("desktop navigation chrome", () => {
     expect(panel).toContain("width var(--motion-layout) var(--ease-enter)");
     expect(panel).toContain("width: 0;");
     expect(collapsedPanelShell).not.toContain("display: none;");
-    expect(panelShell).toContain("margin-left: var(--workspace-card-gap)");
+    expect(panelShell).toContain("margin-left: var(--flow-panel-gap)");
     expect(panel).toMatch(
-      /\.flow-panel-surface\s*{[^}]*border-radius: 12px;[^}]*background: var\(--surface\);/s,
+      /\.flow-panel-surface\s*{[^}]*border-radius: 0 12px 12px 0;[^}]*background: var\(--surface\);/s,
     );
     expect(panelShell).not.toContain("border:");
     expect(panelShell).not.toContain("box-shadow:");
     expect(panel).toMatch(
-      /\.resize-handle\s*{[^}]*inset: 0 auto 0 calc\(-1 \* var\(--workspace-card-gap\)\);[^}]*width: var\(--column-resize-hit-width\);/s,
+      /\.resize-handle\s*{[^}]*inset: 0 auto 0\s*calc\(-1 \* \(var\(--column-resize-hit-width\) \+ var\(--flow-panel-gap\)\) \/ 2\);[^}]*width: var\(--column-resize-hit-width\);/s,
     );
     expect(panel).toMatch(
       /\.resize-handle::after\s*{[^}]*inset: 0 auto 0 3px;[^}]*width: var\(--column-resize-indicator-width\);/s,

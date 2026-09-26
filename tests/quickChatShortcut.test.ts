@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { settingsViewSource } from "./sourceSurfaces";
 
 import {
   DEFAULT_QUICK_CHAT_SHORTCUT,
@@ -31,9 +32,7 @@ describe("quick chat shortcut", () => {
   });
 
   test("records from the window instead of relying on button focus", async () => {
-    const settingsSource = await Bun.file(
-      new URL("../src/lib/components/SettingsView.svelte", import.meta.url),
-    ).text();
+    const settingsSource = await settingsViewSource();
 
     expect(settingsSource).toContain("<svelte:window onkeydown={handleQuickShortcutKeydown} />");
     expect(settingsSource).not.toMatch(
@@ -43,7 +42,7 @@ describe("quick chat shortcut", () => {
 
   test("reloads the hidden launcher after an in-app settings save", async () => {
     const [pageSource, surfaceSource] = await Promise.all([
-      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/routes/PageRuntime.svelte", import.meta.url)).text(),
       Bun.file(new URL("../src/lib/components/QuickChatSurface.svelte", import.meta.url)).text(),
     ]);
     const saveSettingsSource = pageSource.slice(

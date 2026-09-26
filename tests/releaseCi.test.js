@@ -1,52 +1,46 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
-const releaseWorkflow = readFileSync(
+/** @param {URL|string} url */
+const readText = (url) => readFileSync(url, "utf8").replace(/\r\n/g, "\n");
+
+const releaseWorkflow = readText(
   new URL("../.github/workflows/release.yml", import.meta.url),
-  "utf8",
 );
-const ciWorkflow = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
-const frontendWorkflow = readFileSync(
+const ciWorkflow = readText(new URL("../.github/workflows/ci.yml", import.meta.url));
+const frontendWorkflow = readText(
   new URL("../.github/workflows/check-frontend.yml", import.meta.url),
-  "utf8",
 );
-const nativeWorkflow = readFileSync(
+const nativeWorkflow = readText(
   new URL("../.github/workflows/check-native.yml", import.meta.url),
-  "utf8",
 );
-const sdkWorkflow = readFileSync(
+const sdkWorkflow = readText(
   new URL("../.github/workflows/sdk-ci.yml", import.meta.url),
-  "utf8",
 );
-const nativeCargoManifest = readFileSync(
+const nativeCargoManifest = readText(
   new URL("../src-tauri/Cargo.toml", import.meta.url),
-  "utf8",
 );
 const tauriConfig = JSON.parse(
-  readFileSync(new URL("../src-tauri/tauri.conf.json", import.meta.url), "utf8"),
+  readText(new URL("../src-tauri/tauri.conf.json", import.meta.url)),
 );
 const fullTauriConfig = JSON.parse(
-  readFileSync(new URL("../src-tauri/tauri.full.conf.json", import.meta.url), "utf8"),
+  readText(new URL("../src-tauri/tauri.full.conf.json", import.meta.url)),
 );
 const desktopCapability = JSON.parse(
-  readFileSync(new URL("../src-tauri/capabilities/default.json", import.meta.url), "utf8"),
+  readText(new URL("../src-tauri/capabilities/default.json", import.meta.url)),
 );
-const prHeadWorkflow = readFileSync(
+const prHeadWorkflow = readText(
   new URL("../.github/workflows/report-pr-head-ci.yml", import.meta.url),
-  "utf8",
 );
-const prepareReleaseWorkflow = readFileSync(
+const prepareReleaseWorkflow = readText(
   new URL("../.github/workflows/prepare-release.yml", import.meta.url),
-  "utf8",
 );
-const releaseScript = readFileSync(new URL("../scripts/release.mjs", import.meta.url), "utf8");
-const privateRunnerCompose = readFileSync(
+const releaseScript = readText(new URL("../scripts/release.mjs", import.meta.url));
+const privateRunnerCompose = readText(
   new URL("../scripts/ci/self-hosted-runner/compose.yaml", import.meta.url),
-  "utf8",
 );
-const privateRunnerEnvironment = readFileSync(
+const privateRunnerEnvironment = readText(
   new URL("../scripts/ci/self-hosted-runner/.env.example", import.meta.url),
-  "utf8",
 );
 describe("release CI verification", () => {
   test("reserves complete qualification for release, scheduled, and manual runs", () => {

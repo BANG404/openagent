@@ -6,6 +6,7 @@ import {
   summarizeCacheUsages,
 } from "../src/lib/cacheUsage";
 import type { ChatTaskUsage, TaskTokenUsage } from "../src/lib/types";
+import { readSource } from "./sourceSurfaces";
 
 function usage(overrides: Partial<TaskTokenUsage>): TaskTokenUsage {
   return {
@@ -291,8 +292,8 @@ describe("composer context usage", () => {
 describe("completed-turn cache usage", () => {
   test("loads and renders usage in production builds", async () => {
     const [routeSource, messageListSource] = await Promise.all([
-      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
-      Bun.file(new URL("../src/lib/components/MessageList.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/routes/PageRuntime.svelte", import.meta.url)).text(),
+      readSource(new URL("../src/lib/components/MessageList.svelte", import.meta.url)),
     ]);
 
     expect(routeSource).toContain("if (!tauriAvailable) return;");
@@ -316,7 +317,7 @@ describe("completed-turn cache usage", () => {
 describe("streaming-turn indicators", () => {
   test("keeps the composer usage indicator and compaction divider mounted while streaming", async () => {
     const [routeSource, surfaceSource, streamRendererSource] = await Promise.all([
-      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/routes/PageRuntime.svelte", import.meta.url)).text(),
       Bun.file(new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url)).text(),
       Bun.file(new URL("../src/lib/components/StreamItemRenderer.svelte", import.meta.url)).text(),
     ]);

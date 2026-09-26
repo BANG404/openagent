@@ -51,7 +51,9 @@ describe("release Runtime staging", () => {
       "src-tauri/binaries/openagent-server-x86_64-unknown-linux-gnu",
     );
     expect(await readFile(destination, "utf8")).toBe("runtime:linux-x64");
-    expect((await stat(destination)).mode & 0o111).not.toBe(0);
+    if (process.platform !== "win32") {
+      expect((await stat(destination)).mode & 0o111).not.toBe(0);
+    }
   });
 
   test("stamps the product release identity into the Runtime manifest", async () => {

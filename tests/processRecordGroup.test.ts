@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 
+async function readSource(url: URL | string) {
+  return (await readFile(url, "utf8")).replace(/\r\n/g, "\n");
+}
+
 const processRecordGroupUrl = new URL(
   "../src/lib/components/ProcessRecordGroup.svelte",
   import.meta.url,
@@ -11,7 +15,7 @@ const agentBookReaderUrl = new URL("../src/lib/components/AgentBookReader.svelte
 
 describe("process record group", () => {
   test("uses a controlled button without fragmenting a native details element", async () => {
-    const source = await readFile(processRecordGroupUrl, "utf8");
+    const source = await readSource(processRecordGroupUrl);
 
     expect(source).toContain('class="process-record-summary"');
     expect(source).toContain("aria-expanded={open}");
@@ -23,8 +27,8 @@ describe("process record group", () => {
 
   test("mounts the process disclosure only for completed assistant turns", async () => {
     const [source, bookSource] = await Promise.all([
-      readFile(messageListUrl, "utf8"),
-      readFile(agentBookReaderUrl, "utf8"),
+      readSource(messageListUrl),
+      readSource(agentBookReaderUrl),
     ]);
 
     expect(source).toContain("shouldShowProcessRecords(turnStatus, processSegments.length)");
@@ -33,8 +37,8 @@ describe("process record group", () => {
 
   test("keeps completed process records collapsed by default", async () => {
     const [groupSource, messageSource] = await Promise.all([
-      readFile(processRecordGroupUrl, "utf8"),
-      readFile(messageListUrl, "utf8"),
+      readSource(processRecordGroupUrl),
+      readSource(messageListUrl),
     ]);
 
     expect(groupSource).toContain("let open = $state(false)");
@@ -48,8 +52,8 @@ describe("process record group", () => {
 
   test("keeps final rich output mounted while completion reveals the process disclosure", async () => {
     const [groupSource, messageSource] = await Promise.all([
-      readFile(processRecordGroupUrl, "utf8"),
-      readFile(messageListUrl, "utf8"),
+      readSource(processRecordGroupUrl),
+      readSource(messageListUrl),
     ]);
 
     expect(groupSource).toContain("{#if grouped}");
@@ -61,8 +65,8 @@ describe("process record group", () => {
   });
 
   test("keeps the controlled header with the first fragmented process record", async () => {
-    const source = await readFile(transcriptListUrl, "utf8");
-    const bookSource = await readFile(agentBookReaderUrl, "utf8");
+    const source = await readSource(transcriptListUrl);
+    const bookSource = await readSource(agentBookReaderUrl);
 
     expect(source).toMatch(
       /\.transcript-row\.content-columns :global\(\.process-record-summary\)\s*\{[^}]*break-inside: avoid-column;[^}]*break-after: avoid-column;/s,
@@ -74,7 +78,7 @@ describe("process record group", () => {
   });
 
   test("coalesces book pagination outside ResizeObserver delivery", async () => {
-    const source = await readFile(agentBookReaderUrl, "utf8");
+    const source = await readSource(agentBookReaderUrl);
 
     expect(source).toContain("const resizeObserver = new ResizeObserver(schedulePagination)");
     expect(source).toMatch(
@@ -87,8 +91,8 @@ describe("process record group", () => {
 
   test("keeps every fully mounted transcript row visible", async () => {
     const [source, messageSource] = await Promise.all([
-      readFile(transcriptListUrl, "utf8"),
-      readFile(messageListUrl, "utf8"),
+      readSource(transcriptListUrl),
+      readSource(messageListUrl),
     ]);
 
     expect(source).toMatch(
@@ -100,10 +104,9 @@ describe("process record group", () => {
   });
 
   test("pins streamed transcript mutations immediately and after layout settles", async () => {
-    const source = await readFile(transcriptListUrl, "utf8");
-    const pageSource = await readFile(
-      new URL("../src/routes/+page.svelte", import.meta.url),
-      "utf8",
+    const source = await readSource(transcriptListUrl);
+    const pageSource = await readSource(
+      new URL("../src/routes/PageRuntime.svelte", import.meta.url),
     );
 
     expect(source).toContain("function applyTailPin()");

@@ -16,7 +16,7 @@ describe("stream pause control", () => {
 
   test("resumes a paused stream after queuing a follow-up", async () => {
     const [desktop, remote, previews] = await Promise.all([
-      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/routes/PageRuntime.svelte", import.meta.url)).text(),
       Bun.file(new URL("../src/routes/remote/+page.svelte", import.meta.url)).text(),
       Bun.file(new URL("../src/lib/devPreview.ts", import.meta.url)).text(),
     ]);

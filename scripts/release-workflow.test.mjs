@@ -8,7 +8,7 @@ const workflowPath = new URL("../.github/workflows/release.yml", import.meta.url
  * @param {string} nextJobName
  */
 async function releaseJobSource(jobName, nextJobName) {
-  const source = await readFile(workflowPath, "utf8");
+  const source = (await readFile(workflowPath, "utf8")).replace(/\r\n/g, "\n");
   const start = source.indexOf(`  ${jobName}:\n`);
   const end = source.indexOf(`  ${nextJobName}:\n`, start + 1);
 

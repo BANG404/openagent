@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 
-const routeUrl = new URL("../src/routes/+page.svelte", import.meta.url);
+const routeUrl = new URL("../src/routes/PageRuntime.svelte", import.meta.url);
 const hostLibUrl = new URL("../src-tauri/src/lib.rs", import.meta.url);
 
 const STARTUP_DIAGNOSTICS = [

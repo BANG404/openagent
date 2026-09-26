@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 
-const routeUrl = new URL("../src/routes/+page.svelte", import.meta.url);
+const routeUrl = new URL("../src/routes/PageRuntime.svelte", import.meta.url);
 const onboardingUrl = new URL("../src/lib/onboarding.ts", import.meta.url);
 const onboardingFlowUrl = new URL("../src/lib/components/OnboardingFlow.svelte", import.meta.url);
 

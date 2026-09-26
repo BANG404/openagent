@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import path from "node:path";
 import { addDevUrlConfigArgument, findAvailableLoopbackPort } from "../scripts/tauri-dev-port.mjs";
 import {
   applyDevelopmentInstanceEnvironment,
@@ -84,7 +85,7 @@ describe("Tauri development multi-instance selection", () => {
     ).toEqual({
       OPENAGENT_DEV_MULTI_INSTANCE: "1",
       OPENAGENT_DEV_INSTANCE: "agent-a",
-      OPENAGENT_HOME: "/home/example/.openagent-dev/instances/agent-a",
+      OPENAGENT_HOME: path.join("/home/example", ".openagent-dev", "instances", "agent-a"),
     });
   });
 

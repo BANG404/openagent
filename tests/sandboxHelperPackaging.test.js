@@ -1,28 +1,28 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
-const nativeWorkflow = readFileSync(
+/** @param {URL|string} url */
+const readText = (url) => readFileSync(url, "utf8").replace(/\r\n/g, "\n");
+
+const nativeWorkflow = readText(
   new URL("../.github/workflows/check-native.yml", import.meta.url),
-  "utf8",
 );
-const windowsHelper = readFileSync(
+const windowsHelper = readText(
   new URL("../scripts/prepare-windows-sandbox-helpers.mjs", import.meta.url),
-  "utf8",
 );
-const cargoManifest = readFileSync(new URL("../src-tauri/Cargo.toml", import.meta.url), "utf8");
-const tauriLauncher = readFileSync(new URL("../scripts/tauri.mjs", import.meta.url), "utf8");
+const cargoManifest = readText(new URL("../src-tauri/Cargo.toml", import.meta.url));
+const tauriLauncher = readText(new URL("../scripts/tauri.mjs", import.meta.url));
 const packageManifest = JSON.parse(
-  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+  readText(new URL("../package.json", import.meta.url)),
 );
-const linuxHelper = readFileSync(
+const linuxHelper = readText(
   new URL("../scripts/prepare-linux-sandbox-helper.mjs", import.meta.url),
-  "utf8",
 );
 const baseTauriConfig = JSON.parse(
-  readFileSync(new URL("../src-tauri/tauri.conf.json", import.meta.url), "utf8"),
+  readText(new URL("../src-tauri/tauri.conf.json", import.meta.url)),
 );
 const windowsTauriConfig = JSON.parse(
-  readFileSync(new URL("../src-tauri/tauri.windows.conf.json", import.meta.url), "utf8"),
+  readText(new URL("../src-tauri/tauri.windows.conf.json", import.meta.url)),
 );
 
 describe("sandbox helper packaging", () => {

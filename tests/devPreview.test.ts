@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { settingsViewSource } from "./sourceSurfaces";
 import { readFileSync } from "node:fs";
 
 import { previewParameterPrefix, resolveStandaloneDevPreview } from "../src/lib/devPreview";
@@ -108,9 +109,9 @@ describe("standalone development previews", () => {
 
   test("keeps the MCP settings tool-control preview wired to its fixture", async () => {
     const [route, queryState, settings] = await Promise.all([
-      Bun.file(new URL("../src/routes/+page.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/routes/PageRuntime.svelte", import.meta.url)).text(),
       Bun.file(new URL("../src/lib/runtimeQuery.ts", import.meta.url)).text(),
-      Bun.file(new URL("../src/lib/components/SettingsView.svelte", import.meta.url)).text(),
+      settingsViewSource(),
     ]);
 
     expect(route).toContain("isMcpSettingsPreview");

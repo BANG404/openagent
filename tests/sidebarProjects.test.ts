@@ -169,7 +169,7 @@ describe("sidebar project order", () => {
       new URL("../src/lib/components/SidebarWorkspaceBrowser.svelte", import.meta.url),
       "utf8",
     );
-    const route = await readFile(new URL("../src/routes/+page.svelte", import.meta.url), "utf8");
+    const route = await readFile(new URL("../src/routes/PageRuntime.svelte", import.meta.url), "utf8");
 
     expect(browser).toContain("void loadProjectSnapshot(project.path, roleKey)");
     expect(browser).toContain("await onLoadProjectConversations(path, roleKey)");
@@ -249,7 +249,7 @@ describe("sidebar project order", () => {
   });
 
   test("does not open a conversation after its workspace switch fails", async () => {
-    const route = await readFile(new URL("../src/routes/+page.svelte", import.meta.url), "utf8");
+    const route = await readFile(new URL("../src/routes/PageRuntime.svelte", import.meta.url), "utf8");
     const openStart = route.indexOf("async function openSidebarConversation");
     const openHandler = route.slice(
       openStart,
@@ -286,7 +286,7 @@ describe("sidebar project order", () => {
   });
 
   test("retains a loaded role's recent snapshot during background refresh", async () => {
-    const route = await readFile(new URL("../src/routes/+page.svelte", import.meta.url), "utf8");
+    const route = await readFile(new URL("../src/routes/PageRuntime.svelte", import.meta.url), "utf8");
 
     expect(route).toContain("recentConversationRoleKey !== roleKey");
     expect(route).toContain("if (replacingRoleSnapshot) recentConversations = []");
@@ -294,7 +294,7 @@ describe("sidebar project order", () => {
   });
 
   test("promotes Flash-generated title updates into recent conversations", async () => {
-    const route = await readFile(new URL("../src/routes/+page.svelte", import.meta.url), "utf8");
+    const route = await readFile(new URL("../src/routes/PageRuntime.svelte", import.meta.url), "utf8");
     const handlerStart = route.indexOf(
       'register<{ conv_id: string; title: string }>("conversation-title-updated"',
     );
@@ -440,7 +440,7 @@ describe("sidebar project order", () => {
       new URL("../src/lib/components/ConversationList.svelte", import.meta.url),
       "utf8",
     );
-    const route = await readFile(new URL("../src/routes/+page.svelte", import.meta.url), "utf8");
+    const route = await readFile(new URL("../src/routes/PageRuntime.svelte", import.meta.url), "utf8");
     const appCss = await readFile(new URL("../src/app.css", import.meta.url), "utf8");
 
     expect(browser).toContain("removeProjectConversationSnapshot(snapshots, ownerWorkspace, id)");

@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
+import { settingsViewSource } from "./sourceSurfaces";
 
 const componentPaths = [
   "../src/lib/components/MentionPalette.svelte",
@@ -56,10 +57,7 @@ test("reuses shared controls across onboarding and settings collections", async 
     new URL("../src/lib/components/OnboardingFlow.svelte", import.meta.url),
     "utf8",
   );
-  const settings = await readFile(
-    new URL("../src/lib/components/SettingsView.svelte", import.meta.url),
-    "utf8",
-  );
+  const settings = await settingsViewSource();
   const settingsActionButton = await readFile(
     new URL("../src/lib/components/ui/SettingsActionButton.svelte", import.meta.url),
     "utf8",
@@ -106,7 +104,7 @@ test("reuses shared controls across onboarding and settings collections", async 
   );
   expect(permissions).not.toMatch(/\.permission-settings\s*{[^}]*box-shadow:/s);
   expect(settings).not.toContain('class="interactive-control filter-toggle"');
-  expect(settings).toMatch(/<SettingsActionButton\s+label=\{providerFilter/);
+  expect(settings).toMatch(/<SettingsActionButton\s+label=\{view\.providerFilter/);
   expect(settingsActionButton).toMatch(
     /\.settings-action\s*{[^}]*border: 1px solid var\(--mica-divider\);/s,
   );
