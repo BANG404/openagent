@@ -82,10 +82,10 @@ window's first reveal. Keep their labels, URLs, and singleton lookup behavior
 unchanged so shortcut and inspector flows can use the same windows once they
 have been created.
 
-- Reveal a dedicated workspace window's main shell as soon as Tauri
-  setup owns the runtime host. Let the frontend's layout-stable loading
-  state remain visible while startup bootstrap restores durable
-  conversation data.
+- Reveal each desktop window's main shell as soon as Tauri setup owns the
+  runtime host. Let the frontend's layout-stable loading state remain visible
+  while startup bootstrap restores durable conversation data, including for
+  the primary release process whose window is initially hidden in the bundle.
 - Render Settings management domains and the saved-role editor inside the
   requesting window. Application-menu activation and its shortcuts must not
   construct another WebView; the frontend owns that fullscreen surface, its

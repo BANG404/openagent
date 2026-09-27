@@ -3769,8 +3769,11 @@ fn should_install_desktop_integrations(
     !agent_server && !development_multi_instance
 }
 
-fn should_reveal_workspace_shell_early(agent_server: bool, is_workspace_window: bool) -> bool {
-    !agent_server && is_workspace_window
+fn should_reveal_workspace_shell_early(agent_server: bool, _is_workspace_window: bool) -> bool {
+    // The primary release window also owns a layout-stable loading shell. Show
+    // it before the Runtime reads durable conversation state so a large
+    // database cannot make the application appear not to have started.
+    !agent_server
 }
 
 fn should_start_primary_desktop_services(
@@ -4790,8 +4793,8 @@ mod single_instance_tests {
     }
 
     #[test]
-    fn dedicated_workspace_windows_reveal_the_loading_shell_early() {
-        assert!(!should_reveal_workspace_shell_early(false, false));
+    fn desktop_windows_reveal_the_loading_shell_early() {
+        assert!(should_reveal_workspace_shell_early(false, false));
         assert!(should_reveal_workspace_shell_early(false, true));
         assert!(!should_reveal_workspace_shell_early(true, true));
     }
