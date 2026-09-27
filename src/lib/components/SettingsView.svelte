@@ -1,7 +1,6 @@
 <script lang="ts">
   import { setContext } from "svelte";
   import "./settings-view.css";
-  import SettingsViewNavigation from "./SettingsViewNavigation.svelte";
   import SettingsViewTabsPrimary from "./SettingsViewTabsPrimary.svelte";
   import SettingsViewTabsSecondary from "./SettingsViewTabsSecondary.svelte";
   import SettingsViewDialogs from "./SettingsViewDialogs.svelte";
@@ -1952,7 +1951,6 @@
     activationMode="manual"
     class="settings-body"
   >
-    <SettingsViewNavigation />
     <SettingsViewTabsPrimary />
     <SettingsViewTabsSecondary />
   </Tabs.Root>

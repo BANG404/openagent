@@ -31,7 +31,6 @@
 
 <div
   class="settings-window-skeleton"
-  class:with-navigation={spec.showNavigation}
   class:collection={hasCollection}
   class:about={spec.layout === "about"}
   data-settings-skeleton-layout={spec.layout}
@@ -42,17 +41,6 @@
   aria-live="polite"
 >
   <span class="sr-only">{label}</span>
-
-  {#if spec.showNavigation}
-    <aside class="navigation-skeleton" aria-hidden="true">
-      {#each spec.sections as section, index (section)}
-        <div class="navigation-row" class:active={section === spec.section}>
-          <span class="block navigation-icon"></span>
-          <span class="block navigation-label" style={`width:${58 + index * 9}%`}></span>
-        </div>
-      {/each}
-    </aside>
-  {/if}
 
   {#if hasCollection}
     <aside class="collection-skeleton" aria-hidden="true">
@@ -255,41 +243,8 @@
     animation: shimmer 1.35s ease-in-out infinite;
   }
 
-  .navigation-skeleton {
-    width: var(--settings-nav-width);
-    flex: 0 0 var(--settings-nav-width);
-    padding: 12px 8px;
-    box-sizing: border-box;
-  }
-
-  .navigation-row {
-    display: flex;
-    height: var(--list-item-compact-height);
-    align-items: center;
-    gap: var(--list-item-compact-content-gap);
-    padding: 4px var(--list-item-compact-padding-inline);
-    border-radius: var(--list-item-compact-radius);
-    box-sizing: border-box;
-  }
-
-  .navigation-row + .navigation-row {
-    margin-top: var(--list-item-stack-gap);
-  }
-
-  .navigation-row.active,
   .collection-row.active {
     background: var(--interactive-state-bg);
-  }
-
-  .navigation-icon {
-    width: 16px;
-    height: 16px;
-    flex: 0 0 16px;
-    border-radius: 4px;
-  }
-
-  .navigation-label {
-    height: 9px;
   }
 
   .collection-skeleton {
@@ -661,11 +616,6 @@
   }
 
   @media (max-width: 720px) {
-    .navigation-skeleton {
-      width: 148px;
-      flex-basis: 148px;
-    }
-
     .collection-skeleton {
       width: 220px;
       flex-basis: 220px;

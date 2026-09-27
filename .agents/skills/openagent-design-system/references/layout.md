@@ -29,3 +29,6 @@ conversation and workspace lists, settings panes, onboarding content, role
 resource browsers, and background-terminal sessions. Preserve native scrolling
 only for content that is intentionally horizontally scrollable (for example
 diffs, code blocks, diagrams, and textareas).
+
+Top-bar settings windows place their active section content directly in the
+window surface; they do not render a separate left navigation rail.
