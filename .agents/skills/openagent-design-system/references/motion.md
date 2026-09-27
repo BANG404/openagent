@@ -46,3 +46,13 @@ screen-reader live regions remain available and do not depend on animation.
 Review visible changes in light and dark themes, Chinese and English, normal
 motion, and reduced motion. Verify rapid open/close and focus restoration so a
 cancelled transition cannot leave a stale overlay or trap focus.
+
+## Dot matrix icons
+
+UI action icons use \`src/lib/components/ui/DotIcon.svelte\`. The component keeps
+the icon footprint stable while animating individual dots on hover, press, and
+focused states. Use \`name="thinking"\` for live reasoning or waiting status so
+the status marker communicates activity without changing layout. The shared
+fallback in \`src/app.css\` gives older action-container SVGs the same dot-matrix
+appearance; content SVG such as Mermaid, charts, and media previews stays
+untouched. Respect \`prefers-reduced-motion\` for all dot animations.

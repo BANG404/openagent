@@ -4,6 +4,7 @@
   import { motionDuration } from "$lib/motion";
   import { t } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
+  import DotIcon from "./ui/DotIcon.svelte";
 
   async function runAction(toast: Toast) {
     if (!toast.action) return;
@@ -69,17 +70,7 @@
           onclick={() => dismissToast(toast.id)}
           aria-label={$t("toastDismiss")}
         >
-          <svg
-            viewBox="0 0 14 14"
-            width="12"
-            height="12"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.6"
-            stroke-linecap="round"
-          >
-            <path d="M3 3 L11 11 M11 3 L3 11" />
-          </svg>
+          <DotIcon name="close" size={12} />
         </button>
       </div>
     </div>

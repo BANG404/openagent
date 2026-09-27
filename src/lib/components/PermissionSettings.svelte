@@ -19,6 +19,7 @@
   import { untrack } from "svelte";
   import Tooltip from "./Tooltip.svelte";
   import Select from "./ui/Select.svelte";
+  import DotIcon from "./ui/DotIcon.svelte";
 
   let {
     profile,
@@ -398,10 +399,7 @@
     {/if}
   {:else}
     <div class="permission-warning disabled">
-      <svg viewBox="0 0 20 20" aria-hidden="true">
-        <path d="M10 2.5 18 17H2L10 2.5Z" />
-        <path d="M10 7v4.5M10 14.5v.1" />
-      </svg>
+      <DotIcon name="warning" size={20} />
       <p>{$t("permissionDisabledWarning")}</p>
     </div>
   {/if}
@@ -646,7 +644,7 @@
     background: color-mix(in srgb, var(--danger) 10%, var(--surface2));
   }
 
-  .permission-warning svg {
+  .permission-warning :global(.dot-icon) {
     width: 17px;
     height: 17px;
     flex: 0 0 auto;
@@ -657,7 +655,7 @@
     stroke-width: 1.4;
   }
 
-  .permission-warning.disabled svg {
+  .permission-warning.disabled :global(.dot-icon) {
     stroke: var(--danger);
   }
 

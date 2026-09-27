@@ -9,6 +9,7 @@
   import type { FileChange } from "$lib/types";
   import ToolCallCard from "./ToolCallCard.svelte";
   import Tooltip from "./Tooltip.svelte";
+  import DotIcon from "./ui/DotIcon.svelte";
 
   interface Props {
     items: ToolCallItem[];
@@ -94,16 +95,7 @@
       onclick={() => (expanded = !expanded)}
     >
       <span class="group-chevron" class:expanded aria-hidden="true">
-        <svg
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M6 4l4 4-4 4" />
-        </svg>
+        <DotIcon name="chevron-right" size={12} />
       </span>
       <span class="group-names">
         {summaryNames
@@ -230,7 +222,7 @@
     transform: rotate(90deg);
   }
 
-  .group-chevron svg {
+  .group-chevron :global(.dot-icon) {
     width: 12px;
     height: 12px;
   }

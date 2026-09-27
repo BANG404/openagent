@@ -15,6 +15,7 @@
   import FileDiffView from "./FileDiffView.svelte";
   import Tooltip from "./Tooltip.svelte";
   import ToolApprovalActions from "./ToolApprovalActions.svelte";
+  import DotIcon from "./ui/DotIcon.svelte";
 
   interface Props {
     name: string;
@@ -289,16 +290,7 @@
             </span>
           </Tooltip>
           <span class="tool-chevron" class:expanded aria-hidden="true">
-            <svg
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M6 4l4 4-4 4" />
-            </svg>
+            <DotIcon name="chevron-right" size={12} />
           </span>
         </button>
         {#if isFocusedTool && filePath && name !== "apply_patch"}
@@ -310,18 +302,7 @@
                 aria-label={$t("openContainingFolder")}
                 onclick={(event) => openContainingFolder(filePath, event)}
               >
-                <svg
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M1.8 4.5h4.4l1.2 1.4h6.8v6.6a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1z" />
-                  <path d="M1.8 6h12.4" />
-                </svg>
+                <DotIcon name="folder" size={15} />
               </button>
             {/snippet}
           </Tooltip>
@@ -348,20 +329,7 @@
                     class="path-chip"
                     onclick={(event) => openPath(filePath, event)}
                   >
-                    <svg
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M3 2.5h6l4 4V13a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 13V3a.5.5 0 0 1 .5-.5z"
-                      />
-                      <path d="M9 2.5V6.5h4" />
-                    </svg>
+                    <DotIcon name="file" size={15} />
                     <span>{filePath}</span>
                   </button>
                 {/snippet}
@@ -620,7 +588,7 @@
     transform: rotate(90deg);
   }
 
-  .tool-chevron svg {
+  .tool-chevron :global(.dot-icon) {
     width: 12px;
     height: 12px;
   }
@@ -638,7 +606,7 @@
     flex-shrink: 0;
   }
 
-  .tool-icon-btn svg {
+  .tool-icon-btn :global(.dot-icon) {
     width: 13px;
     height: 13px;
   }
@@ -670,7 +638,7 @@
     background: var(--interactive-state-bg);
   }
 
-  .path-chip svg {
+  .path-chip :global(.dot-icon) {
     width: 13px;
     height: 13px;
     color: var(--text-muted);

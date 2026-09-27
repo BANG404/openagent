@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
+  import DotIcon from "./ui/DotIcon.svelte";
 
   interface Props {
     collapsed: boolean;
@@ -19,20 +20,7 @@
       aria-label={collapsed ? $t("expandSidebar") : $t("collapseSidebar")}
       onclick={onToggle}
     >
-      <svg
-        class:collapsed
-        viewBox="0 0 20 20"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        <rect x="3.25" y="3.25" width="13.5" height="13.5" rx="2" />
-        <path d="M8 3.5v13" />
-        <path class="sidebar-collapse-arrow" d="m12.25 7.25-2.5 2.75 2.5 2.75" />
-      </svg>
+      <DotIcon name="chevron-right" size={18} class={collapsed ? "collapsed-icon" : ""} />
     </button>
   {/snippet}
 </Tooltip>
@@ -71,23 +59,14 @@
     transform: scale(0.95);
   }
 
-  svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .sidebar-collapse-arrow {
-    transform-origin: 11px 10px;
-    transition: transform var(--motion-panel) var(--ease-enter);
-  }
-
-  svg.collapsed .sidebar-collapse-arrow {
+  :global(.collapsed-icon) {
     transform: rotate(180deg);
+    transition: transform var(--motion-panel) var(--ease-enter);
   }
 
   @media (prefers-reduced-motion: reduce) {
     .sidebar-collapse-button,
-    .sidebar-collapse-arrow {
+    :global(.collapsed-icon) {
       transition: none;
     }
   }

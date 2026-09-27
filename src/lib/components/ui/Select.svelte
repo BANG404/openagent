@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Select } from "bits-ui";
+  import DotIcon from "./DotIcon.svelte";
 
   type Item = {
     value: string;
@@ -95,16 +96,7 @@
       {/if}
       <span class="ui-select-value-label">{selectedLabel || placeholder}</span>
     </span>
-    <svg class="ui-select-caret" viewBox="0 0 16 16" aria-hidden="true">
-      <path
-        d="M4 6l4 4 4-4"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
+    <DotIcon class="ui-select-caret" name="chevron-down" size={14} />
   </Select.Trigger>
   <Select.Portal>
     <Select.Content
@@ -116,16 +108,7 @@
     >
       {#if searchable}
         <div class="desktop-menu-search-wrap">
-          <svg class="desktop-menu-search-icon" viewBox="0 0 16 16" aria-hidden="true">
-            <circle cx="7" cy="7" r="4.25" fill="none" stroke="currentColor" stroke-width="1.5" />
-            <path
-              d="m10.25 10.25 3 3"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-            />
-          </svg>
+          <DotIcon class="desktop-menu-search-icon" name="search" size={15} />
           <input
             class="desktop-menu-search-input ui-select-search"
             type="search"

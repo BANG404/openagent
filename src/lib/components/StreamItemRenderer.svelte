@@ -18,6 +18,7 @@
   import CustomToken from "$lib/streamdown/CustomToken.svelte";
   import { externalLinks } from "$lib/streamdown/externalLink";
   import { useOpenAgentUiCapabilities } from "$lib/openagent";
+  import DotIcon from "./ui/DotIcon.svelte";
 
   interface Props {
     item: StreamItem;
@@ -133,7 +134,8 @@
         thinkingExpanded = !thinkingExpanded;
       }}
     >
-      <span class="thinking-marker" aria-hidden="true">{thinkingExpanded ? "▾" : "▸"}</span>
+      <DotIcon name="thinking" size={11} active={isStreaming} />
+      <DotIcon name={thinkingExpanded ? "chevron-down" : "chevron-right"} size={10} />
       <span>{$t("thinking")}</span>
     </button>
     {#if thinkingExpanded}<pre>{renderThinkingContent(item.content)}</pre>{/if}
@@ -272,11 +274,6 @@
   .thinking-summary:focus-visible {
     border-radius: 3px;
     box-shadow: var(--focus-ring);
-  }
-  .thinking-marker {
-    width: 9px;
-    flex: none;
-    text-align: center;
   }
   .thinking-block pre {
     margin: 6px 0 0;

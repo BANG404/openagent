@@ -36,6 +36,7 @@
   import Tooltip from "./Tooltip.svelte";
   import NewConversationContext from "./NewConversationContext.svelte";
   import ScrollArea from "./ui/ScrollArea.svelte";
+  import DotIcon from "./ui/DotIcon.svelte";
 
   interface ConversationSurfaceView {
     activeBranchId: string | null;
@@ -332,9 +333,7 @@
               aria-label={$t("scrollToBottom")}
               onclick={() => void actions.scrollToBottom("smooth")}
             >
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M8 3v9m-3.5-3.5L8 12l3.5-3.5" />
-              </svg>
+              <DotIcon name="chevron-down" size={16} />
             </button>
           {/snippet}
         </Tooltip>
@@ -550,7 +549,7 @@
     transform: translateX(50%) scale(0.94);
   }
 
-  .scroll-to-bottom svg {
+  .scroll-to-bottom :global(.dot-icon) {
     width: 18px;
     height: 18px;
     stroke: currentColor;
