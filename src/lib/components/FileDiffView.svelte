@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
   import type { FileChangeDiffLine } from "$lib/fileChangeDiff";
+  import DotIcon from "./ui/DotIcon.svelte";
 
   let {
     lines,
@@ -39,10 +40,7 @@
     </div>
   {:else}
     <div class="diff-empty">
-      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d="M5 2.75h6l4 4v10.5H5z" />
-        <path d="M11 2.75v4h4M7.5 11h5M7.5 13.75h3.5" />
-      </svg>
+      <DotIcon name="file" size={20} />
       <span>{$t("fileChangePreviewUnavailable")}</span>
     </div>
   {/if}
@@ -138,7 +136,7 @@
     font-size: 11px;
     text-align: center;
   }
-  .diff-empty svg {
+  .diff-empty :global(.dot-icon) {
     width: 28px;
     height: 28px;
     stroke: currentColor;
