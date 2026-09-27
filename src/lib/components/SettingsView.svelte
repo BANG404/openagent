@@ -14,6 +14,7 @@
   import { Tabs } from "bits-ui";
   import type {
     AgentPluginSummary,
+    AgentPluginUpdateSummary,
     AgentMemoryEntry,
     AgentRole,
     AppConfig,
@@ -221,6 +222,8 @@
     new URLSearchParams(window.location.search).has("mcp-settings-preview");
   let mcpTestStatus = $state<Record<string, McpTestStatus>>({});
   let agentPlugins = $state<AgentPluginSummary[]>([]);
+  let agentPluginUpdates = $state<AgentPluginUpdateSummary[]>([]);
+  let agentPluginUpdatesLoading = $state(false);
   let agentPluginsLoading = $state(false);
   let agentPluginStatus = $state("");
   let mcpDiscoveredTools = $state<Record<string, string[]>>(
@@ -1667,10 +1670,23 @@
     agentPluginStatus = "";
     try {
       agentPlugins = await desktopOpenAgent.listAgentPlugins();
+      void checkAgentPluginUpdates();
     } catch (error: unknown) {
       agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(error)}`;
     } finally {
       agentPluginsLoading = false;
+    }
+  }
+
+  async function checkAgentPluginUpdates(): Promise<void> {
+    if (!isTauri()) return;
+    agentPluginUpdatesLoading = true;
+    try {
+      agentPluginUpdates = await desktopOpenAgent.checkAgentPluginUpdates();
+    } catch (error: unknown) {
+      console.warn("Failed to check Agent Plugin updates:", error);
+    } finally {
+      agentPluginUpdatesLoading = false;
     }
   }
 
@@ -1835,6 +1851,12 @@
     },
     get agentPluginsLoading() {
       return agentPluginsLoading;
+    },
+    get agentPluginUpdates() {
+      return agentPluginUpdates;
+    },
+    get agentPluginUpdatesLoading() {
+      return agentPluginUpdatesLoading;
     },
     get agentPluginStatus() {
       return agentPluginStatus;

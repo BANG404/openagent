@@ -627,12 +627,22 @@ export interface AgentPluginSummary {
   version: string | null;
   description: string | null;
   path: string;
+  repository: string | null;
   capabilities: string[];
   skills: AgentPluginSkillSummary[];
   mcp_servers: AgentPluginMcpSummary[];
   sidebar_views: AgentPluginSidebarViewSummary[];
   automation_hooks: AgentPluginAutomationHookSummary[];
   warnings: string[];
+  error: string | null;
+}
+
+export interface AgentPluginUpdateSummary {
+  id: string;
+  current_version: string | null;
+  latest_version: string | null;
+  release_url: string | null;
+  update_available: boolean;
   error: string | null;
 }
 

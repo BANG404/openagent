@@ -9,9 +9,9 @@ and unknown fields remain harmless to other hosts.
 ## Normalized descriptor
 
 The Runtime exposes a typed descriptor rather than raw manifest JSON. Its
-stable fields are `id`, `name`, `version`, `source`, `enabled`, `capabilities`,
-`skills`, `mcp_servers`, `automation_hooks`, `sidebar_views`, `permissions`,
-`update`, `warnings`, and `error`. IDs are the manifest name and child
+stable fields are `id`, `name`, `version`, `repository`, `path`, `capabilities`,
+`skills`, `mcp_servers`, `automation_hooks`, `sidebar_views`, `warnings`, and
+`error`. Update results are returned by `check_updates`. IDs are the manifest name and child
 components use `plugin:<plugin-id>:<component-id>`.
 
 The loader accepts a valid manifest even when one optional component is bad.
@@ -58,16 +58,17 @@ affected view and leave the main conversation surface usable.
 
 ## Lifecycle and updates
 
-The host and SDK expose `discover`, `read`, `install`, `enable`, `disable`,
-`reconcile`, `update`, and `uninstall` as structured operations. Installation
-copies into a staging directory, validates again, then atomically activates a
-versioned package. The previous active version remains available for rollback.
+The current host and SDK expose `list`, `read`, `install`, `check_updates`, and
+`uninstall` as structured operations. Installation copies into a staging
+directory, validates again, then atomically activates the package. Enable,
+disable, rollback, and replacement activation remain reserved for a later
+package lifecycle revision.
 
-Local directories are the first supported source. GitHub Release and
-configured Marketplace sources must provide a manifest, a compatible version,
-and a verified digest before activation. Update checks use cached GitHub
-metadata and show a user-facing version transition; downloading a candidate
-never replaces the active package or starts new plugin code until activation.
+Local directories are the first supported source. A manifest `repository` may
+point to an HTTPS GitHub repository. `check_updates` reads its latest stable
+release metadata, compares the tag with the installed version, and shows a
+user-facing reminder. The check never downloads, activates, or starts new
+plugin code.
 
 ## Built-in migration
 

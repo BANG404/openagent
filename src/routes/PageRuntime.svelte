@@ -2216,11 +2216,21 @@
   });
 
   onMount(() => {
-    if (!tauriAvailable) return;
+    if (!tauriAvailable || isSettingsWindow || isDevInspectorWindow) return;
     void openAgent
       .invokeProduct("list_agent_plugins", {})
       .then((plugins) => {
         agentPlugins = plugins;
+        return openAgent.invokeProduct("check_agent_plugin_updates", {});
+      })
+      .then((updates) => {
+        const available = updates.filter((update) => update.update_available);
+        if (available.length === 0) return;
+        showToast({
+          title: $t("pluginUpdateAvailable"),
+          description: $t("pluginUpdateDescription").replace("{count}", String(available.length)),
+          durationMs: 6000,
+        });
       })
       .catch((error) => console.warn("Failed to load Agent Plugins:", error));
   });
@@ -2729,6 +2739,16 @@
         .invokeProduct("list_agent_plugins", {})
         .then((plugins) => {
           agentPlugins = plugins;
+          return openAgent.invokeProduct("check_agent_plugin_updates", {});
+        })
+        .then((updates) => {
+          const available = updates.filter((update) => update.update_available);
+          if (available.length === 0) return;
+          showToast({
+            title: $t("pluginUpdateAvailable"),
+            description: $t("pluginUpdateDescription").replace("{count}", String(available.length)),
+            durationMs: 6000,
+          });
         })
         .catch((error) => console.warn("Failed to refresh Agent Plugins:", error));
     });

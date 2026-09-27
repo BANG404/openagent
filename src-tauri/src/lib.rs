@@ -2337,6 +2337,13 @@ async fn list_agent_plugins(
 }
 
 #[tauri::command]
+async fn check_agent_plugin_updates(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+) -> Result<Vec<openagent_runtime::agent_plugins::AgentPluginUpdateSummary>, String> {
+    openagent_runtime::commands::check_agent_plugin_updates(runtime.state()).await
+}
+
+#[tauri::command]
 async fn install_agent_plugin(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     source: String,
@@ -5540,6 +5547,7 @@ fn run_with_mode(agent_server: bool) {
         get_system_locale,
         list_skills,
         list_agent_plugins,
+        check_agent_plugin_updates,
         install_agent_plugin,
         uninstall_agent_plugin,
         read_agent_plugin_asset,

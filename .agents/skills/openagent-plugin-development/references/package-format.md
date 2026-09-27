@@ -37,10 +37,11 @@ preserved when the plugin is uninstalled. This makes removal recoverable and
 allows a later installation of the same plugin name to reuse its state. Delete
 that data manually only when it is no longer needed.
 
-Installation sources, registries, updates, trust prompts, and sandbox policy are
+Installation sources, registries, trust prompts, and sandbox policy are
 client-owned behavior rather than part of the portable format. This integration
-installs local directories and does not provide a marketplace or automatic
-update channel. Plugin subprocesses remain subject to the normal OpenAgent
+installs local directories and can check an HTTPS GitHub `repository` for a
+latest-release reminder; it does not automatically download or replace a
+package. Plugin subprocesses remain subject to the normal OpenAgent
 process and permission environment; package containment prevents package path
 escapes but is not itself a subprocess sandbox.
 

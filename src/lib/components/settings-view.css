@@ -1153,6 +1153,25 @@
   font-variant-numeric: tabular-nums;
 }
 
+.plugin-update-mark {
+  margin-left: 6px;
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.plugin-update-hint {
+  margin: 8px 0 0;
+  color: var(--primary);
+  font-size: 11px;
+}
+
+.plugin-update-hint a {
+  margin-left: 6px;
+  color: inherit;
+  text-decoration: underline;
+}
+
 .plugin-directory-count,
 .plugin-tool-count {
   display: inline-flex;

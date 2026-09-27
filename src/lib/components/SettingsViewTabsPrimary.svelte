@@ -10,6 +10,7 @@
   import { Accordion, ContextMenu, Dialog, Tabs } from "bits-ui";
   import type {
     AgentMemoryEntry,
+    AgentPluginUpdateSummary,
     AgentRole,
     AppConfig,
     AutomationHookConfig,
@@ -276,7 +277,7 @@
           icon="refresh"
           tone="quiet"
           onclick={() => view.refreshAgentPlugins()}
-          disabled={view.agentPluginsLoading}
+          disabled={view.agentPluginsLoading || view.agentPluginUpdatesLoading}
         />
       </div>
     </div>
@@ -318,7 +319,12 @@
                 <span class="label-text">{plugin.name}</span>
                 <span class="detail-hint">{plugin.description ?? plugin.id}</span>
               </span>
-              <span class="plugin-version">{plugin.version ?? "-"}</span>
+              <span class="plugin-version">
+                {plugin.version ?? "-"}
+                {#if (view.agentPluginUpdates ?? []).find((item: AgentPluginUpdateSummary) => item.id === plugin.id)?.update_available}
+                  <span class="plugin-update-mark">{$t("pluginUpdateAvailable")}</span>
+                {/if}
+              </span>
             </Accordion.Trigger>
           </Accordion.Header>
           <Accordion.Content class="plugin-accordion-content">
@@ -340,6 +346,17 @@
             {/each}
             {#if plugin.error}
               <p class="plugin-warning">{plugin.error}</p>
+            {/if}
+            {@const update = (view.agentPluginUpdates ?? []).find(
+              (item: AgentPluginUpdateSummary) => item.id === plugin.id,
+            )}
+            {#if update?.update_available && update.latest_version}
+              <p class="plugin-update-hint">
+                {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
+                {#if update.release_url}
+                  <a href={update.release_url} target="_blank" rel="noreferrer">GitHub</a>
+                {/if}
+              </p>
             {/if}
           </Accordion.Content>
         </Accordion.Item>
