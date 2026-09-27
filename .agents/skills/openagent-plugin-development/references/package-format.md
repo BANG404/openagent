@@ -26,6 +26,38 @@ local `tag`. Tagged output is accepted only when the tag is declared in the
 plugin's `message_policies`; the host applies the declared audience policy and
 stores the namespaced tag in the checkpoint.
 
+`extensions.openagent.commands` is an optional array of portable slash
+commands. Each entry has an ID, display `label`, display `description`, an
+`argument` mode (`none` or `required_text`), a package-relative executable
+`command`, and an optional `timeout_secs` from 1 to 300. For example:
+
+```json
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "conversation-tools",
+  "extensions": {
+    "openagent": {
+      "commands": [
+        {
+          "id": "summarize",
+          "label": "Summarize",
+          "description": "Create a concise conversation summary",
+          "argument": "required_text",
+          "command": "bin/summarize.cmd",
+          "timeout_secs": 30
+        }
+      ]
+    }
+  }
+}
+```
+
+The command is addressed as `/conversation-tools:summarize`. On invocation,
+OpenAgent sends a JSON request on stdin containing `conversation_id`,
+`plugin_id`, `command`, `argument`, and the original `input`; stdout must be a
+non-empty prompt. The executable runs through the normal process boundary and
+must remain inside the installed package root.
+
 The loader selects its bundled 1.0.0 rules from the canonical `$schema` value;
 it never downloads a schema while loading a package. It resolves symlinks,
 junctions, and equivalent filesystem indirections before reading, copying, or

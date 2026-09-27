@@ -5348,14 +5348,16 @@
     agentCommandSpecs.flatMap((spec) => {
       const run = slashCommandRun(spec.name);
       const insertText =
-        spec.name === "goal" || spec.name === "graph" ? `/${spec.name}` : undefined;
+        spec.name === "goal" || spec.name === "graph" || spec.plugin_id
+          ? `/${spec.name}`
+          : undefined;
       if (!run && !insertText) return [];
       return [
         {
           id: spec.name,
           name: spec.name,
-          label: $t(spec.label_key as TranslationKeys),
-          description: $t(spec.description_key as TranslationKeys),
+          label: spec.label ?? $t(spec.label_key as TranslationKeys),
+          description: spec.description ?? $t(spec.description_key as TranslationKeys),
           insertText,
           run: run ?? undefined,
         },

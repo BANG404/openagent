@@ -15,6 +15,10 @@
   only after the route has restored and applied a fresh startup bootstrap.
 - Submit every ordinary chat message and slash command from either host through
   `submit_agent_input` so runtime routing and command semantics remain shared.
+- Treat plugin slash commands as Runtime-owned entries in the same catalog:
+  hosts may display their labels and descriptions, but must not parse or execute
+  plugin commands locally. The Runtime resolves enabled plugin ownership and
+  invokes the package executable.
 - When the route is loaded from a versioned production frontend resource,
   confirm the exact `frontend-version` with the host immediately after mount.
   Confirmation is a resource-health handshake, not durable chat restoration;

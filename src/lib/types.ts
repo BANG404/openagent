@@ -632,6 +632,14 @@ export interface AgentPluginMessagePolicy {
   model_visible: boolean;
 }
 
+export interface AgentPluginCommandSummary {
+  id: string;
+  name: string;
+  argument: "none" | "required_text";
+  label: string;
+  description: string;
+}
+
 export interface AgentPluginSummary {
   id: string;
   name: string;
@@ -643,6 +651,7 @@ export interface AgentPluginSummary {
   repository: string | null;
   capabilities: string[];
   commands: string[];
+  command_specs: AgentPluginCommandSummary[];
   message_policies: AgentPluginMessagePolicy[];
   skills: AgentPluginSkillSummary[];
   mcp_servers: AgentPluginMcpSummary[];

@@ -79,6 +79,37 @@ ordinary Runtime finalization. Plugin hooks do not receive model context or
 Inspector/trace data. Command execution requires an explicit host permission;
 MCP-backed actions are preferred.
 
+### Slash commands
+
+Portable commands are declared in `plugin.json` under
+`extensions.openagent.commands`:
+
+```json
+{
+  "id": "summarize",
+  "label": "Summarize",
+  "description": "Summarize the current conversation",
+  "argument": "required_text",
+  "command": "bin/summarize.cmd",
+  "timeout_secs": 30
+}
+```
+
+The command is exposed as `/plugin-id:summarize`. `argument` is either `none`
+or `required_text`; command IDs, labels, descriptions, package-relative paths,
+and timeouts (`1` through `300` seconds) are validated before registration.
+Unknown fields and invalid entries are skipped with a plugin diagnostic. A
+disabled or invalid plugin contributes no commands.
+
+When invoked, the Runtime starts the package-relative executable through the
+same process boundary used by Automation Hooks. It writes one UTF-8 JSON
+object to stdin containing `conversation_id`, `plugin_id`, `command`,
+`argument`, and the original `input`. The executable must return a non-empty
+UTF-8 prompt on stdout. Non-zero exit status, timeout, empty stdout, or a path
+that resolves outside the installed plugin root fails the command without
+starting a model run. The command catalog exposes labels and descriptions but
+never package filesystem paths.
+
 ### Right-sidebar views
 
 Sidebar view IDs are `plugin:<plugin-id>:<view-id>`. A view declares a title,

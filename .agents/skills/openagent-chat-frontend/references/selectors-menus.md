@@ -171,3 +171,8 @@
 - Selecting `/goal` or `/graph` replaces only the active slash trigger with the
   complete command token. Preserve any draft text after the caret as the command
   argument instead of clearing the composer.
+- Populate the slash-command palette from the shared Runtime command catalog on
+  both desktop and remote hosts. Builtin commands use localized label and
+  description keys; portable plugin commands use their literal `label` and
+  `description` and insert the complete `/plugin-id:command-id` token while
+  preserving the remaining draft argument.

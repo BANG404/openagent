@@ -1683,8 +1683,10 @@ async fn submit_agent_input(
 }
 
 #[tauri::command]
-fn get_agent_commands() -> Vec<CommandSpec> {
-    agent_commands()
+async fn get_agent_commands(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+) -> Vec<CommandSpec> {
+    agent_commands_for_state(runtime.state()).await
 }
 
 #[tauri::command]
