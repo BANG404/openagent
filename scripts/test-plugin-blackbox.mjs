@@ -42,10 +42,29 @@ function pilot(args) {
 }
 
 // Exercise the Integrations surface through the same menu a user would use
-// before running the sidebar assertions.
+// before refreshing the installed plugin directory.
 pilot(["click", "#application-integrations-menu", "--window", "main"]);
 pilot(["click", '[role="menuitem"]:last-child', "--window", "main"]);
 pilot(["wait", "--selector", '[role="dialog"]', "--timeout", "5000", "--window", "main"]);
+pilot([
+  "eval",
+  `(async () => {
+    const deadline = Date.now() + 10000;
+    while (Date.now() < deadline) {
+      const refresh = [...document.querySelectorAll("button")].find((button) =>
+        /^(Refresh|刷新)$/.test(button.textContent?.trim() ?? ""),
+      );
+      if (refresh instanceof HTMLElement) {
+        refresh.click();
+        return true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw new Error("plugin refresh control is missing");
+  })()`,
+  "--window",
+  "main",
+]);
 pilot([
   "eval",
   `(() => {
