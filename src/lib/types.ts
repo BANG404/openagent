@@ -668,6 +668,9 @@ export interface AgentPluginUpdateSummary {
   current_version: string | null;
   latest_version: string | null;
   release_url: string | null;
+  asset_name: string | null;
+  asset_url: string | null;
+  asset_digest: string | null;
   update_available: boolean;
   error: string | null;
 }

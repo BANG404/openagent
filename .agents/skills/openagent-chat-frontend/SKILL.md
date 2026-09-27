@@ -8,4 +8,5 @@ metadata:
 # OpenAgent chat frontend
 
 Own transcript, composer, tool rendering, streaming, restore, and attachments.
-Read focused references. Reuse components/ui and Bits UI; run frontend tests.
+Read focused references, including `references/plugin-contract.md`. Reuse
+components/ui and Bits UI; run frontend tests.

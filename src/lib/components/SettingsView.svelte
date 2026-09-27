@@ -224,6 +224,7 @@
   let agentPlugins = $state<AgentPluginSummary[]>([]);
   let agentPluginUpdates = $state<AgentPluginUpdateSummary[]>([]);
   let agentPluginUpdatesLoading = $state(false);
+  let agentPluginUpdating = $state<string | null>(null);
   let agentPluginsLoading = $state(false);
   let agentPluginStatus = $state("");
   let mcpDiscoveredTools = $state<Record<string, string[]>>(
@@ -1713,6 +1714,22 @@
     }
   }
 
+  async function updateAgentPlugin(pluginId: string): Promise<void> {
+    if (!isTauri() || agentPluginUpdating) return;
+    agentPluginUpdating = pluginId;
+    agentPluginStatus = "";
+    try {
+      await desktopOpenAgent.updateAgentPlugin(pluginId);
+      await refreshAgentPlugins();
+      await emit("agent-plugins-changed").catch(() => {});
+      agentPluginStatus = tr("pluginUpdated");
+    } catch (error: unknown) {
+      agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(error)}`;
+    } finally {
+      agentPluginUpdating = null;
+    }
+  }
+
   async function installAgentPlugin() {
     const selected = await openDialog({ multiple: false, directory: true });
     if (!selected || Array.isArray(selected)) return;
@@ -1887,11 +1904,17 @@
     get agentPluginUpdatesLoading() {
       return agentPluginUpdatesLoading;
     },
+    get agentPluginUpdating() {
+      return agentPluginUpdating;
+    },
     get agentPluginStatus() {
       return agentPluginStatus;
     },
     get installAgentPlugin() {
       return installAgentPlugin;
+    },
+    get updateAgentPlugin() {
+      return updateAgentPlugin;
     },
     get refreshAgentPlugins() {
       return refreshAgentPlugins;

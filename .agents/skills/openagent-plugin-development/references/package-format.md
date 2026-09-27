@@ -3,8 +3,9 @@
 OpenAgent can load portable [Agent Plugins](https://agent-plugins.org/) version
 1.0.0 packages whose root contains `plugin.json`. Validated packages are
 installed under the active `OPENAGENT_HOME`; the original folder is not used at
-runtime. The desktop Integrations settings surface does not provide a plugin
-installer or manager.
+runtime. The desktop Integrations settings surface can install a local folder,
+refresh installed packages, enable or disable them, and apply verified GitHub
+release updates.
 
 OpenAgent implements both portable component types:
 
@@ -88,9 +89,15 @@ that data manually only when it is no longer needed.
 
 Installation sources, registries, trust prompts, and sandbox policy are
 client-owned behavior rather than part of the portable format. This integration
-installs local directories and can check an HTTPS GitHub `repository` for a
-latest-release reminder; it does not automatically download or replace a
-package. Plugin subprocesses remain subject to the normal OpenAgent
+installs local directories and checks an HTTPS GitHub `repository` for a
+latest-release reminder. An explicit update action downloads only a GitHub
+release asset whose URL is HTTPS, whose name ends in `.zip`, `.tar.gz`, or
+`.tgz`, and whose GitHub `sha256:` digest is present and matches the bytes.
+The asset is size-limited, extracted into staging with archive traversal and
+link rejection, validated as a complete package with a matching manifest name,
+then atomically activated. The previous package is retained until activation
+succeeds and is restored if replacement fails; `plugin-data` is never replaced.
+Plugin subprocesses remain subject to the normal OpenAgent
 process and permission environment; package containment prevents package path
 escapes but is not itself a subprocess sandbox.
 

@@ -78,8 +78,12 @@ When changing a component, verify all of these boundaries:
 
 ## Updates
 
-`repository` may point to an HTTPS GitHub repository. The current integration
-checks the latest stable release and reports a version transition. It does not
-download, replace, or execute a release during a check. Any future activation
-flow must stage and validate the candidate, verify its digest, and retain a
-rollback path before replacing the active package.
+`repository` may point to an HTTPS GitHub repository. The integration checks the
+latest stable release and reports a version transition and verified archive
+candidate. The Settings surface performs replacement only after an explicit
+Update action. Release assets must be HTTPS GitHub `.zip`, `.tar.gz`, or `.tgz`
+files with a GitHub `sha256:` digest. OpenAgent limits the download size,
+rejects traversal and links while extracting, validates the complete manifest
+and component set in staging, then atomically activates the candidate while
+preserving `plugin-data`; activation failures restore the previous package. A
+check never downloads or executes a release.

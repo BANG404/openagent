@@ -2351,6 +2351,14 @@ async fn check_agent_plugin_updates(
 }
 
 #[tauri::command]
+async fn update_agent_plugin(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    id: String,
+) -> Result<openagent_runtime::agent_plugins::AgentPluginSummary, String> {
+    openagent_runtime::commands::update_agent_plugin(runtime.state(), id).await
+}
+
+#[tauri::command]
 async fn install_agent_plugin(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     source: String,
@@ -5582,6 +5590,7 @@ fn run_with_mode(agent_server: bool) {
         list_skills,
         list_agent_plugins,
         check_agent_plugin_updates,
+        update_agent_plugin,
         install_agent_plugin,
         uninstall_agent_plugin,
         read_agent_plugin_asset,

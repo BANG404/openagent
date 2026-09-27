@@ -448,6 +448,15 @@
                   {#if update.release_url}
                     <a href={update.release_url} target="_blank" rel="noreferrer">GitHub</a>
                   {/if}
+                  {#if update.asset_url}
+                    <SettingsActionButton
+                      label={$t("pluginUpdate")}
+                      icon="download"
+                      tone="quiet"
+                      onclick={() => view.updateAgentPlugin(plugin.id)}
+                      disabled={view.agentPluginUpdating !== null}
+                    />
+                  {/if}
                 </p>
               {/if}
             </Accordion.Content>

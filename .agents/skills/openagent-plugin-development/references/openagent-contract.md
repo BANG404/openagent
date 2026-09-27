@@ -139,17 +139,20 @@ affected view and leave the main conversation surface usable.
 
 ## Lifecycle and updates
 
-The current host and SDK expose `list`, `read`, `install`, `check_updates`, and
-`uninstall` as structured operations. Installation copies into a staging
-directory, validates again, then atomically activates the package. Enable,
-disable, rollback, and replacement activation remain reserved for a later
-package lifecycle revision.
+The current host and SDK expose `list`, `read`, `install`, `check_updates`,
+`update`, and `uninstall` as structured operations. Installation and update
+copy into a staging directory, validate again, then atomically activate the
+package. Updates select a GitHub HTTPS release archive with a verified
+`sha256:` digest, reject oversized or unsafe archives, preserve `plugin-data`,
+and restore the previous active package if replacement cannot be completed.
+Enable and disable remain lifecycle gates for mounted components.
 
 Local directories are the first supported source. A manifest `repository` may
 point to an HTTPS GitHub repository. `check_updates` reads its latest stable
 release metadata, compares the tag with the installed version, and shows a
-user-facing reminder. The check never downloads, activates, or starts new
-plugin code.
+user-facing reminder including a verified archive candidate when one exists.
+`update` is explicit: it downloads, validates, stages, and atomically activates
+that candidate without executing it during validation.
 
 ## Built-in migration
 
