@@ -465,7 +465,8 @@
   transcript, retain user-visible plugin lifecycle messages as ordinary
   assistant rows, and keep both projections aligned by checkpoint message ID.
   Builtin Goal, Graph, and Chat Groups tags use this same namespaced projection;
-  do not add a frontend allowlist for builtin enum tags. Older checkpoints are
+  do not add a frontend allowlist for builtin enum tags. The Runtime-only
+  `terminal_poll` control tag remains hidden separately. Older checkpoints are
   normalized by Runtime before hydration.
 - Chat-group messages keep sender identity separate from wake targets. Render
   the sender from its conversation member, and resolve each persisted mention
