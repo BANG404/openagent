@@ -10,6 +10,11 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.73.1-beta.1] - 2026-09-25
+
+### Bug Fixes
+- **runtime**: Preflight persistence before activation
+
 ## [0.73.0-beta.1] - 2026-09-25
 
 ### Features
