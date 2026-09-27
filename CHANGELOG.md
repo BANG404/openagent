@@ -10,6 +10,82 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.74.0-beta.1] - 2026-09-27
+
+### Features
+- **runtime**: Clarify MCP tool loader
+- **runtime**: Defer MCP tools until load
+- **runtime**: Mount MCP tools directly
+- **chat**: Localize tool call surfaces
+- **chat**: Add chat group book reader
+
+### Bug Fixes
+- Restore settings window styles
+- **runtime**: Prevent duplicate recovery branches
+- Constrain settings surfaces for scrolling
+- Pass Sonar coverage and duplication gates
+- Remove top bar settings navigation rail
+- Clear remaining SonarQube findings
+- Address SonarQube findings
+- **chat**: Bind thinking indicator to stream state
+- **ui**: Stabilize tooltip positioning
+- **frontend**: Prevent duplicate external URL opens
+- **runtime**: Keep MCP loader guidance factual
+- **runtime**: Name MCP loader consistently
+- Focus composer when starting a new conversation
+- Align context token usage with latest request
+- Improve Windows cleanup and panel layout
+- **chat-group**: Float composer and collapse members
+- Keep composer usable in narrow windows
+- **frontend**: Unify right sidebar scrolling
+- **chat**: Tighten group wake guidance
+- Tune dark mode background color
+- Use neutral black dark mode background
+- **chat**: Make awakened role replies optional
+- **chat**: Hide completion footer for group wake turns
+- **persistence**: Keep schema six migrations automatic
+- **chat**: Wake group roles lazily
+- **chat**: Wake initialized group roles
+- Remove new conversation greeting
+- **chat**: Preserve details panel state on collapse
+- Align shared scrollbars
+- Wrap file diff content to viewport
+- **chat**: Use explicit group wake targets
+- **chat**: Repair group book layout and pagination
+- **quick-chat**: Keep composer usable at narrow widths
+- **chat**: Recover queued group mentions
+- Keep narrow composer placeholder visible
+
+### Performance
+- Throttle flow panel resizing
+- Smooth sidebar resizing
+
+### Refactoring
+- Split oversized frontend surfaces
+- **chat**: Remove chat group book mode
+
+### Documentation
+- Update runtime skill prompt wording
+
+### Testing
+- Fix Sonar test portability
+- Load persisted SonarQube token
+- Enforce shared components skill size and tool i18n
+
+### Styling
+- Format repository sources
+- Unify application corner radius
+
+### Miscellaneous
+- Add local SonarQube test command
+- Update sdk revision
+- Lower clippy line threshold
+- Enforce two thousand line source limit
+- Enforce frontend structure and rust clippy
+- **sdk**: Update runtime gitlink
+- Update SDK runtime gitlink
+- **sdk**: Pin explicit wake target fix
+
 ## [0.73.1-beta.1] - 2026-09-25
 
 ### Bug Fixes
