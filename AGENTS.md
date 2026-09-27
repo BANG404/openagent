@@ -14,23 +14,21 @@ Read every applicable owner before changing files:
 
 | Intent | Starting skill |
 | --- | --- |
-| Understand repository structure and ownership | `.agents/skills/project-orientation/SKILL.md` |
 | Change prompt assembly, skill routing, or agent documentation validation | `.agents/skills/agent-prompt-infrastructure/SKILL.md` |
 | Implement product behavior or subsystem changes | The matching `openagent-*` owner below |
-| Debug or inspect the real native desktop app | `.agents/skills/native-app-debugging/SKILL.md` |
 | Verify browser-visible behavior | `.agents/skills/playwright/SKILL.md` |
 | Deliver repository changes | `.agents/skills/deliver-via-pr/SKILL.md` |
 
 The `openagent-*` names below are implementation owners, not a single
-catch-all category. The starting skills above separate orientation, coding,
-debugging, verification, and delivery so agents can choose the right scope.
+catch-all category. The starting skills above separate coding, verification,
+and delivery so agents can choose the right scope.
 
 | Scope | Source of truth |
 | --- | --- |
 | Repository delivery, documentation ownership, commits, worktrees, PRs, CI handoff | `.agents/skills/deliver-via-pr/SKILL.md` |
 | Chat transcript, composer, streaming/final reconciliation, restore, attachments, chat events, streamed rendering | `.agents/skills/openagent-chat-frontend/SKILL.md` |
 | Tauri host, native windows, single instance, IPC adapters, desktop verification | `.agents/skills/openagent-desktop-host/SKILL.md` |
-| Configuration, databases, memory, migrations, destructive data transitions | `.agents/skills/openagent-persistence/SKILL.md` |
+| Configuration, databases, memory, migrations, destructive data transitions | `.agents/skills/openagent-configuration/SKILL.md` |
 | Workflows, releases, CI classification, helper packaging, bundle qualification | `.agents/skills/openagent-release-engineering/SKILL.md` |
 | Browser-reproducible UI verification | `.agents/skills/playwright/SKILL.md` |
 | Product design and component language, including `DESIGN.md` | `.agents/skills/openagent-design-system/` |
