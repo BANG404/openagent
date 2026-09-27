@@ -181,9 +181,12 @@ class Parser {
       if (!v.ok) return v;
       items.push(v.value);
       this.skipWs();
-      if (this.peek() === ",") {
-        this.pos++;
-        continue;
+      switch (this.consumeListSeparator("]")) {
+        case "trailing":
+          this.pos++;
+          return { ok: true, value: { kind: "array", items } };
+        case "continue":
+          continue;
       }
       if (this.peek() === "]") {
         this.pos++;
@@ -214,9 +217,12 @@ class Parser {
       if (!v.ok) return v;
       entries.push([key.value, v.value]);
       this.skipWs();
-      if (this.peek() === ",") {
-        this.pos++;
-        continue;
+      switch (this.consumeListSeparator("}")) {
+        case "trailing":
+          this.pos++;
+          return { ok: true, value: { kind: "object", entries } };
+        case "continue":
+          continue;
       }
       if (this.peek() === "}") {
         this.pos++;
@@ -330,13 +336,23 @@ class Parser {
       if (!v.ok) return v;
       args.push([id.value, v.value]);
       this.skipWs();
-      if (this.peek() === ",") {
-        this.pos++;
-        continue;
+      switch (this.consumeListSeparator(")")) {
+        case "trailing":
+          this.pos++;
+          return { ok: true, value: args };
+        case "continue":
+          continue;
       }
       if (this.peek() === ")") return { ok: true, value: args };
       return { ok: false, error: this.err("expected ',' or ')' in args") };
     }
+  }
+
+  private consumeListSeparator(close: string): "trailing" | "continue" | null {
+    if (this.peek() !== ",") return null;
+    this.pos++;
+    this.skipWs();
+    return this.peek() === close ? "trailing" : "continue";
   }
 }
 

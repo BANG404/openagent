@@ -1,5 +1,11 @@
 # Modular CI
 
+The local SonarQube scan classifies `tests/`, `scripts/**/*.test.mjs`, both
+TypeScript SDK test trees, and `sdk/rust/**/tests/**/*.rs` as tests. Keep those
+paths out of production duplication measurements when changing
+`sonar-project.properties`. Host and TypeScript SDK LCOV reports supply coverage;
+Rust tests gate upload but do not currently produce a coverage report.
+
 `ci.yml` classifies changed paths before calling reusable workflows and applies
 two verification routes:
 

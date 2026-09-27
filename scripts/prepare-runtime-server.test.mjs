@@ -34,7 +34,7 @@ test("prefers the explicit release target over Tauri's host environment", async 
   process.env.TAURI_ENV_PLATFORM = "macos";
   process.env.TAURI_ENV_ARCH = "aarch64";
   try {
-    expect(prepareRuntimeServer()).rejects.toThrow(
+    await expect(prepareRuntimeServer()).rejects.toThrow(
       "OpenAgent has no packaged runtime server for unsupported-explicit-target.",
     );
   } finally {
