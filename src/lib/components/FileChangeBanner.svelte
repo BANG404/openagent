@@ -2,7 +2,6 @@
   import type { FileChange } from "$lib/types";
   import { t } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
-  import DotIcon from "./ui/DotIcon.svelte";
 
   let {
     changes,
@@ -68,12 +67,34 @@
 
 <div class="banner conversation-input-surface">
   <button class="banner-header" onclick={toggleExpand}>
-    <DotIcon class="banner-icon" name="file" size={16} />
+    <svg
+      class="banner-icon"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M9 2H3a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V7L9 2z" />
+      <path d="M9 2v5h5" />
+    </svg>
     <span class="banner-title"
       >{changes.length}
       {$t(changes.length === 1 ? "fileChangeModified" : "fileChangesModified")}</span
     >
-    <DotIcon class="banner-chevron" name="chevron-down" size={12} active={expanded} />
+    <svg
+      class="banner-chevron"
+      class:open={expanded}
+      viewBox="0 0 10 6"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M1 1l4 4 4-4" />
+    </svg>
   </button>
 
   {#if expanded}
@@ -81,7 +102,17 @@
       {#each changes as change (change.id)}
         <div class="change-row">
           <div class="change-main">
-            <DotIcon class="change-icon" name="file" size={15} />
+            <svg
+              class="change-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M2 4h12M2 8h8M2 12h5" />
+            </svg>
             <Tooltip text={change.path}>
               <span class="change-path">{shortPath(change.path)}</span>
             </Tooltip>

@@ -19,7 +19,6 @@
   import Tooltip from "./Tooltip.svelte";
   import ReasoningEffortSelect from "./ReasoningEffortSelect.svelte";
   import WorkspaceSwitcher from "./WorkspaceSwitcher.svelte";
-  import DotIcon from "./ui/DotIcon.svelte";
   import { applySlashCommandSelection } from "./slashCommandSelection";
   import { segmentComposerTokens } from "./composerTokenHighlights";
   import { t } from "$lib/i18n";
@@ -1013,7 +1012,19 @@
                 {disabled}
                 onclick={pickAttachments}
               >
-                <DotIcon name="attach" size={16} />
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  width="16"
+                  height="16"
+                  ><path
+                    d="M5.5 8.8 10 4.3a2.1 2.1 0 0 1 3 3l-6 6a3.4 3.4 0 0 1-4.8-4.8l6-6"
+                  /><path d="m5 10 5.4-5.4" /></svg
+                >
               </button>
             {/snippet}
           </Tooltip>{/if}
@@ -1108,11 +1119,30 @@
           onclick={runPrimaryAction}
         >
           {#if hasComposerContent}
-            <DotIcon name="send" size={16} />
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              width="16"
+              height="16"><path d="M8 13V3m-5 5 5-5 5 5" /></svg
+            >
           {:else if isPaused}
-            <DotIcon name="play" size={14} />
+            <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"
+              ><path d="M5 3.4v9.2L12 8 5 3.4Z" /></svg
+            >
           {:else}
-            <DotIcon name="pause" size={14} />
+            <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"
+              ><rect x="4" y="3" width="3" height="10" rx="1" /><rect
+                x="9"
+                y="3"
+                width="3"
+                height="10"
+                rx="1"
+              /></svg
+            >
           {/if}
         </button>
       {/snippet}
@@ -1120,7 +1150,9 @@
     {#if showStopButton}<Tooltip text={stopTitle}>
         {#snippet trigger(props)}
           <button class="stop-btn" aria-label={stopTitle} {...props} onclick={onStop}>
-            <DotIcon name="stop" size={12} />
+            <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12"
+              ><rect x="3" y="3" width="10" height="10" rx="1" /></svg
+            >
           </button>
         {/snippet}
       </Tooltip>{/if}
@@ -1134,7 +1166,16 @@
           disabled={sendDisabled}
           onclick={onSend}
         >
-          <DotIcon name="send" size={16} />
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            width="16"
+            height="16"><path d="M8 13V3m-5 5l5-5 5 5" /></svg
+          >
         </button>
       {/snippet}
     </Tooltip>

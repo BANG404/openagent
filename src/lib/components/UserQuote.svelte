@@ -3,7 +3,6 @@
   import { t } from "$lib/i18n";
   import QuoteContent from "$lib/streamdown/QuoteContent.svelte";
   import Tooltip from "./Tooltip.svelte";
-  import DotIcon from "./ui/DotIcon.svelte";
 
   interface Props {
     context: UserMessageContext;
@@ -15,7 +14,17 @@
 </script>
 
 <div class="user-quote" class:user-quote-composer={variant === "composer"}>
-  <DotIcon class="quote-icon" name="quote" size={14} />
+  <svg
+    class="quote-icon"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.4"
+    stroke-linecap="round"
+    aria-hidden="true"
+  >
+    <path d="M3 4.5h10M3 8h7M3 11.5h5" />
+  </svg>
   <div class="quote-text"><QuoteContent content={context.text} /></div>
   {#if onRemove}
     <Tooltip text={$t("removeQuotedContext")}>
@@ -27,7 +36,9 @@
           aria-label={$t("removeQuotedContext")}
           onclick={onRemove}
         >
-          <DotIcon name="close" size={14} />
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="m4 4 8 8M12 4l-8 8" />
+          </svg>
         </button>
       {/snippet}
     </Tooltip>
@@ -100,7 +111,7 @@
     box-shadow: var(--focus-ring);
   }
 
-  .quote-remove :global(.dot-icon) {
+  .quote-remove svg {
     width: 12px;
     height: 12px;
     fill: none;

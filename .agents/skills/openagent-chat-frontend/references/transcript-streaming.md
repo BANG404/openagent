@@ -466,9 +466,3 @@
   `openagent` role is not confused with the roles it wakes. Do not add a
   separate mention summary below the message; unresolved or non-mention `@text`
   remains ordinary Markdown text.
-
-- Streaming and reasoning affordances use the shared dot-matrix icon component.
-  Keep the \`thinking\` marker mounted with a stable footprint while reasoning or
-  memory retrieval is active, and let reduced-motion preferences disable its
-  per-dot animation without removing the live status or changing transcript
-  geometry.

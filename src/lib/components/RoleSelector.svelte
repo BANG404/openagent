@@ -3,7 +3,6 @@
   import { t } from "$lib/i18n";
   import type { AgentRole } from "$lib/types";
   import Tooltip from "./Tooltip.svelte";
-  import DotIcon from "./ui/DotIcon.svelte";
 
   let {
     value,
@@ -61,7 +60,10 @@
         aria-label={$t("selectRole")}
       >
         {#if !header}
-          <DotIcon class="role-selector-icon" name="info" size={18} />
+          <svg class="role-selector-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <circle cx="10" cy="6.25" r="2.75" />
+            <path d="M4.75 16c.4-3 2.15-4.7 5.25-4.7s4.85 1.7 5.25 4.7" />
+          </svg>
         {/if}
         {#if !compact}
           <span class="role-selector-copy">
@@ -72,7 +74,9 @@
           </span>
         {/if}
         {#if !header}
-          <DotIcon class="role-selector-caret" name="chevron-down" size={14} />
+          <svg class="role-selector-caret" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M4 6l4 4 4-4" />
+          </svg>
         {/if}
       </Select.Trigger>
     {/snippet}
@@ -86,7 +90,10 @@
       sideOffset={6}
     >
       <div class="desktop-menu-search-wrap role-selector-search-wrap">
-        <DotIcon class="desktop-menu-search-icon" name="search" size={15} />
+        <svg class="desktop-menu-search-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="7" cy="7" r="4.25" />
+          <path d="m10.25 10.25 3 3" />
+        </svg>
         <input
           class="desktop-menu-search-input"
           type="search"
@@ -167,7 +174,7 @@
   :global(.role-selector-trigger.header .role-selector-name) {
     font-size: 14px;
   }
-  :global(.role-selector-icon) {
+  .role-selector-icon {
     width: 18px;
     height: 18px;
     flex: 0 0 18px;
@@ -194,11 +201,18 @@
     white-space: nowrap;
     font-size: 13px;
   }
-  :global(.role-selector-caret) {
+  .role-selector-caret {
     width: 13px;
     height: 13px;
     flex: 0 0 13px;
     color: var(--text-muted);
+  }
+  .role-selector-caret path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
   :global(.role-selector-trigger.compact .role-selector-caret) {
     display: none;
@@ -219,7 +233,7 @@
   :global(.role-selector-content.header) {
     width: min(max(var(--bits-select-anchor-width), 240px), calc(100vw - 24px));
   }
-  .role-selector-search-wrap :global(.dot-icon) {
+  .role-selector-search-wrap svg {
     stroke: var(--text-muted);
     stroke-width: 1.5;
     stroke-linecap: round;

@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Combobox } from "bits-ui";
-  import DotIcon from "./DotIcon.svelte";
 
   type Item = { value: string; label: string; disabled?: boolean };
 
@@ -60,7 +59,16 @@
       oninput={(e) => (inputValue = e.currentTarget.value)}
     />
     <Combobox.Trigger class="interactive-control ui-combobox-trigger" aria-label={ariaLabel}>
-      <DotIcon name="chevron-down" size={14} />
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path
+          d="M4 6l4 4 4-4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
     </Combobox.Trigger>
   </div>
   <Combobox.Portal>
@@ -132,6 +140,14 @@
     transition:
       background var(--motion-fast) var(--ease-standard),
       color var(--motion-fast) var(--ease-standard);
+  }
+  :global(.ui-combobox-trigger svg) {
+    width: 14px;
+    height: 14px;
+    transition: transform var(--motion-fast) var(--ease-standard);
+  }
+  :global(.ui-combobox-trigger[data-state="open"] svg) {
+    transform: rotate(180deg);
   }
   :global(.ui-combobox-content) {
     z-index: 1000;

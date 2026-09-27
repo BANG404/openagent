@@ -1,7 +1,6 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
-  import DotIcon from "./ui/DotIcon.svelte";
 
   interface Props {
     canGoBack: boolean;
@@ -23,7 +22,9 @@
         disabled={!canGoBack}
         onclick={onBack}
       >
-        <DotIcon name="chevron-right" size={16} class="history-back" />
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="m9.75 3.5-4.5 4.5 4.5 4.5" />
+        </svg>
       </button>
     {/snippet}
   </Tooltip>
@@ -36,7 +37,9 @@
         disabled={!canGoForward}
         onclick={onForward}
       >
-        <DotIcon name="chevron-right" size={16} />
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="m6.25 3.5 4.5 4.5-4.5 4.5" />
+        </svg>
       </button>
     {/snippet}
   </Tooltip>
@@ -87,8 +90,13 @@
     cursor: default;
   }
 
-  :global(.history-back) {
-    transform: rotate(180deg);
+  svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   @media (prefers-reduced-motion: reduce) {

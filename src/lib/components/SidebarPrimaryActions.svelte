@@ -1,7 +1,6 @@
 <script lang="ts">
   import { tick } from "svelte";
   import { t } from "$lib/i18n";
-  import DotIcon from "./ui/DotIcon.svelte";
 
   interface Props {
     searchOpen?: boolean;
@@ -51,13 +50,36 @@
 
 <div class="sidebar-primary-actions">
   <button class="sidebar-primary-action" type="button" onclick={handleNew}>
-    <DotIcon name="add" size={18} />
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path
+        d="M11.75 4.25H5.5A1.75 1.75 0 0 0 3.75 6v8.5a1.75 1.75 0 0 0 1.75 1.75H14a1.75 1.75 0 0 0 1.75-1.75V8.25"
+      />
+      <path d="m9 11 6.35-6.35M12.75 4.25h3v3" />
+    </svg>
     <span>{$t("newChat")}</span>
   </button>
 
   {#if searchOpen}
     <div class="sidebar-search-row" onfocusout={handleSearchFocusout}>
-      <DotIcon name="search" size={18} />
+      <svg
+        viewBox="0 0 20 20"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <circle cx="8.75" cy="8.75" r="5.25" />
+        <path d="m12.65 12.65 3.85 3.85" />
+      </svg>
       <input
         bind:this={searchInput}
         value={searchQuery}
@@ -73,13 +95,32 @@
           aria-label={$t("clearSearch")}
           onclick={() => onSearch("")}
         >
-          <DotIcon name="close" size={13} />
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="m4 4 8 8M12 4l-8 8" />
+          </svg>
         </button>
       {/if}
     </div>
   {:else}
     <button class="sidebar-primary-action" type="button" onclick={openSearch}>
-      <DotIcon name="search" size={18} />
+      <svg
+        viewBox="0 0 20 20"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <circle cx="8.75" cy="8.75" r="5.25" />
+        <path d="m12.65 12.65 3.85 3.85" />
+      </svg>
       <span>{$t("search")}</span>
     </button>
   {/if}
@@ -132,6 +173,13 @@
     background: color-mix(in srgb, var(--surface2) 78%, var(--text) 6%);
   }
 
+  .sidebar-primary-action > svg,
+  .sidebar-search-row > svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+  }
+
   .sidebar-search-row input {
     min-width: 0;
     flex: 1;
@@ -166,5 +214,10 @@
   .clear-search:hover {
     background: var(--interactive-state-bg);
     color: var(--text);
+  }
+
+  .clear-search svg {
+    width: 13px;
+    height: 13px;
   }
 </style>

@@ -6,7 +6,6 @@
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import SidebarConversationTitle from "./SidebarConversationTitle.svelte";
   import ScrollArea from "./ui/ScrollArea.svelte";
-  import DotIcon from "./ui/DotIcon.svelte";
 
   interface Props {
     conversations: Conversation[];
@@ -209,7 +208,18 @@
               : ''}"
             onclick={() => onSelect(conv.id)}
           >
-            <DotIcon class="search-result-icon" name="file" size={14} />
+            <svg
+              class="search-result-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 4.5h10M3 8h7M3 11.5h5" />
+            </svg>
             {@render conversationTitle(conv.title)}
             {#if streamingConvIds[conv.id]}
               <span class="conv-streaming-dot" aria-label="Streaming"></span>
@@ -228,7 +238,17 @@
     {:else}
       <div class="empty-conversations">
         <div class="empty-conversations-icon" aria-hidden="true">
-          <DotIcon name="quote" size={24} />
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><path d="M7 18.5 3.5 21l1.2-4.2A8 8 0 1 1 20 12" /><path
+              d="M8.5 12h.01M12 12h.01M15.5 12h.01"
+            /></svg
+          >
         </div>
         <strong>{$t("emptyConversationsTitle")}</strong>
       </div>
@@ -249,7 +269,11 @@
             onclick={() => onSelect(conv.id)}
           >
             {#if conv.pinned}
-              <DotIcon class="conv-pin-icon" name="pin" size={14} />
+              <svg class="conv-pin-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"
+                />
+              </svg>
             {/if}
             {@render conversationTitle(conv.title)}
             {#if streamingConvIds[conv.id]}
@@ -500,7 +524,7 @@
     background: color-mix(in srgb, var(--primary) 10%, transparent);
   }
 
-  .empty-conversations-icon :global(.dot-icon) {
+  .empty-conversations-icon svg {
     width: 19px;
     height: 19px;
   }
@@ -551,7 +575,7 @@
     }
   }
 
-  :global(.search-result-icon) {
+  .search-result-icon {
     width: 14px;
     height: 14px;
     flex: 0 0 14px;
@@ -627,7 +651,7 @@
     width: 100%;
   }
 
-  :global(.conv-pin-icon) {
+  .conv-pin-icon {
     width: 10px;
     height: 10px;
     flex-shrink: 0;

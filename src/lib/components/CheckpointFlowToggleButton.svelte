@@ -1,7 +1,6 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
-  import DotIcon from "./ui/DotIcon.svelte";
 
   interface Props {
     collapsed: boolean;
@@ -22,7 +21,11 @@
       aria-expanded={!collapsed}
       onclick={onToggle}
     >
-      <DotIcon name="chevron-right" size={18} class={collapsed ? "collapsed-icon" : ""} />
+      <svg class:collapsed viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect x="3.25" y="3.25" width="13.5" height="13.5" rx="2" />
+        <path d="M12 3.5v13" />
+        <path class="checkpoint-flow-toggle-arrow" d="m7.75 7.25 2.5 2.75-2.5 2.75" />
+      </svg>
     </button>
   {/snippet}
 </Tooltip>
@@ -61,14 +64,27 @@
     transform: scale(0.95);
   }
 
-  :global(.collapsed-icon) {
-    transform: rotate(180deg);
+  svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .checkpoint-flow-toggle-arrow {
+    transform-origin: 9px 10px;
     transition: transform var(--motion-panel) var(--ease-enter);
+  }
+
+  svg.collapsed .checkpoint-flow-toggle-arrow {
+    transform: rotate(180deg);
   }
 
   @media (prefers-reduced-motion: reduce) {
     .checkpoint-flow-toggle,
-    :global(.collapsed-icon) {
+    .checkpoint-flow-toggle-arrow {
       transition: none;
     }
   }

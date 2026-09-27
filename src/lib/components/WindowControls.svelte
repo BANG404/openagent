@@ -5,7 +5,6 @@
   import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
   import { t } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
-  import DotIcon from "./ui/DotIcon.svelte";
 
   let {
     onMinimize,
@@ -75,13 +74,23 @@
   {#if resolvedPlatform === "macos"}
     <Tooltip text={$t("closeWindow")} side="bottom">
       <button class="win-btn win-close" aria-label={$t("closeWindow")} onclick={onClose}>
-        <DotIcon name="close" size={10} />
+        <svg viewBox="0 0 10 10" aria-hidden="true"><path d="m3 3 4 4m0-4L3 7" /></svg>
       </button>
     </Tooltip>
   {/if}
   <Tooltip text={$t("minimizeWindow")} side="bottom">
     <button class="win-btn win-minimize" aria-label={$t("minimizeWindow")} onclick={onMinimize}>
-      <DotIcon name="minimize" size={12} />
+      <svg width="12" height="2" viewBox="0 0 12 2" fill="none" aria-hidden="true">
+        <line
+          x1="0"
+          y1="1"
+          x2="12"
+          y2="1"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+        />
+      </svg>
     </button>
   </Tooltip>
   {#if canMaximize}
@@ -92,9 +101,34 @@
         onclick={handleMaximize}
       >
         {#if isMaximized}
-          <DotIcon name="restore" size={12} />
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path
+              d="M4.25 3.25V2.5c0-.69.56-1.25 1.25-1.25h4c.69 0 1.25.56 1.25 1.25v4c0 .69-.56 1.25-1.25 1.25h-.75"
+              stroke="currentColor"
+              stroke-width="1.25"
+            />
+            <rect
+              x="1.25"
+              y="3.75"
+              width="7"
+              height="7"
+              rx="1.25"
+              stroke="currentColor"
+              stroke-width="1.25"
+            />
+          </svg>
         {:else}
-          <DotIcon name="maximize" size={11} />
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+            <rect
+              x="0.75"
+              y="0.75"
+              width="9.5"
+              height="9.5"
+              rx="1.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+            />
+          </svg>
         {/if}
       </button>
     </Tooltip>
@@ -102,7 +136,9 @@
   {#if resolvedPlatform !== "macos"}
     <Tooltip text={$t("closeWindow")} side="bottom">
       <button class="win-btn win-close" aria-label={$t("closeWindow")} onclick={onClose}>
-        <DotIcon name="close" size={11} />
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+          <path d="m1 1 9 9m0-9-9 9" />
+        </svg>
       </button>
     </Tooltip>
   {/if}
@@ -152,8 +188,12 @@
     border-top-right-radius: 7px;
   }
 
-  .win-btn :global(.dot-icon) {
-    color: currentColor;
+  .win-btn svg path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   .win-controls.macos {
@@ -195,7 +235,7 @@
     filter: brightness(0.94);
   }
 
-  .win-controls.macos .win-btn :global(.dot-icon) {
+  .win-controls.macos .win-btn svg {
     width: 8px;
     height: 8px;
   }

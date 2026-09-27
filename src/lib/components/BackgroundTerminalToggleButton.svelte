@@ -1,7 +1,6 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
-  import DotIcon from "./ui/DotIcon.svelte";
 
   let {
     collapsed,
@@ -29,7 +28,10 @@
       aria-expanded={!collapsed}
       onclick={onToggle}
     >
-      <DotIcon name="terminal" size={18} active={!collapsed} />
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect x="2.75" y="3.75" width="14.5" height="12.5" rx="2" />
+        <path d="m6 8 2 2-2 2M10.5 12h3.5" />
+      </svg>
       {#if runningCount > 0}
         <span class="running-count" aria-label={$t("backgroundTerminalsRunning")}
           >{Math.min(runningCount, 9)}{runningCount > 9 ? "+" : ""}</span
@@ -73,6 +75,15 @@
 
   .terminal-toggle:active {
     transform: scale(0.95);
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   .running-count {

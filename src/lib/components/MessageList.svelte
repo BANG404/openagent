@@ -10,7 +10,6 @@
   import TranscriptList from "./TranscriptList.svelte";
   import NewConversationContext from "./NewConversationContext.svelte";
   import FollowUpSuggestions from "./FollowUpSuggestions.svelte";
-  import DotIcon from "./ui/DotIcon.svelte";
   import { t } from "$lib/i18n";
   import { finalAssistantOutput } from "$lib/assistantOutput";
   import { summarizeCacheUsages } from "$lib/cacheUsage";
@@ -701,7 +700,7 @@
         {@render renderAssistantSegments(finalSegments)}
         {#if assistantIsStreaming && memoryRetrievalStage}
           <div class="thinking-status memory-retrieval-status" role="status" aria-live="polite">
-            <DotIcon name="thinking" size={11} />
+            <span class="thinking-dot"></span>
             <span>{memoryRetrievalLabel(memoryRetrievalStage)}</span>
             {#if memoryRetrievalCanSkip}
               <button class="skip-memory-btn" type="button" onclick={onSkipMemoryRetrieval}
@@ -711,7 +710,7 @@
           </div>
         {:else if assistantIsStreaming && isAwaitingStreamOutput}
           <div class="thinking-status" role="status" aria-live="polite">
-            <DotIcon name="thinking" size={11} />
+            <span class="thinking-dot"></span>
             <span>{$t("awaitingStreamOutput")}</span>
           </div>
         {/if}
@@ -730,7 +729,19 @@
                       aria-label={$t("rerun")}
                       onclick={() => onReExecute(activeConvId!, assistantMsgIdx)}
                     >
-                      <DotIcon name="refresh" size={12} />
+                      <svg
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        width="12"
+                        height="12"
+                        aria-hidden="true"
+                      >
+                        <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5M14 2v4h-4" />
+                      </svg>
                       <span>{$t("rerun")}</span>
                     </button>
                   {/if}
@@ -741,10 +752,37 @@
                       onclick={() => copyAssistantOutput(entry.key, copyableOutput)}
                     >
                       {#if copiedAssistantMessageId === entry.key}
-                        <DotIcon name="check" size={12} />
+                        <svg
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          width="12"
+                          height="12"
+                          aria-hidden="true"
+                        >
+                          <path d="m3 8.5 3 3 7-7" />
+                        </svg>
                         <span>{$t("copied")}</span>
                       {:else}
-                        <DotIcon name="copy" size={12} />
+                        <svg
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          width="12"
+                          height="12"
+                          aria-hidden="true"
+                        >
+                          <rect x="5" y="5" width="8" height="8" rx="1.5" />
+                          <path
+                            d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"
+                          />
+                        </svg>
                         <span>{$t("copyFinalAnswer")}</span>
                       {/if}
                     </button>
@@ -755,7 +793,20 @@
                       aria-label={$t("openBookMode")}
                       onclick={() => (readingTurnKey = entry.key)}
                     >
-                      <DotIcon name="file" size={12} />
+                      <svg
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        width="12"
+                        height="12"
+                        aria-hidden="true"
+                      >
+                        <path d="M2.5 3.2c1.7-.5 3.5-.1 5.5 1.2v8.4c-2-1.3-3.8-1.7-5.5-1.2V3.2Z" />
+                        <path d="M13.5 3.2c-1.7-.5-3.5-.1-5.5 1.2v8.4c2-1.3 3.8-1.7 5.5-1.2V3.2Z" />
+                      </svg>
                       <span>{$t("bookMode")}</span>
                     </button>
                   {/if}
@@ -888,7 +939,19 @@
                   >
                     <span class="user-content-text">{msg.content}</span>
                     <span class="user-edit-hint" aria-hidden="true">
-                      <DotIcon name="sparkles" size={13} />
+                      <svg
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        width="13"
+                        height="13"
+                      >
+                        <path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L6 12l-3 .75.75-3 7.75-7.25Z" />
+                        <path d="m10 4 2 2" />
+                      </svg>
                     </span>
                   </div>
                 {/snippet}
@@ -986,7 +1049,7 @@
     onpointerdown={(event) => event.preventDefault()}
     onclick={addSelectedQuote}
   >
-    <DotIcon name="quote" size={14} />
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M3 8h7M3 11.5h5" /></svg>
     <span>{$t("addSelectionToChat")}</span>
   </button>
 {/if}
@@ -1039,6 +1102,14 @@
     line-height: 1.4;
   }
 
+  .thinking-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--primary);
+    animation: thinking-pulse 1.8s ease-in-out infinite;
+  }
+
   .skip-memory-btn {
     margin-left: 3px;
     padding: 2px 7px;
@@ -1059,6 +1130,24 @@
   .skip-memory-btn:disabled {
     cursor: default;
     opacity: 0.55;
+  }
+
+  @keyframes thinking-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(0.9);
+    }
+    50% {
+      opacity: 0.85;
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .thinking-dot {
+      animation: none;
+    }
   }
 
   .debug-context {
@@ -1228,7 +1317,7 @@
     box-shadow: var(--mica-shadow), var(--focus-ring);
   }
 
-  .selection-add-button :global(.dot-icon) {
+  .selection-add-button svg {
     width: 14px;
     height: 14px;
     fill: none;
