@@ -365,6 +365,10 @@
         console.error("Failed to start the Cua Driver daemon:", error);
       });
     }
+    draftConfig.agent_plugins_enabled = {
+      ...(draftConfig.agent_plugins_enabled ?? {}),
+      [cuaDriverId]: enabled,
+    };
     const existing = findCuaDriverServer();
     if (existing) {
       existing.enabled = enabled;
@@ -373,6 +377,25 @@
     const created = createCuaDriverServer(cuaDriverEndpoint());
     created.enabled = enabled;
     draftConfig.mcp.servers = [created, ...draftConfig.mcp.servers];
+  }
+
+  function setChatGroupsEnabled(enabled: boolean) {
+    draftConfig.chat_groups_enabled = enabled;
+    draftConfig.agent_plugins_enabled = {
+      ...(draftConfig.agent_plugins_enabled ?? {}),
+      "chat-groups": enabled,
+    };
+  }
+
+  function agentPluginEnabled(pluginId: string): boolean {
+    return draftConfig.agent_plugins_enabled?.[pluginId] ?? true;
+  }
+
+  function setAgentPluginEnabled(pluginId: string, enabled: boolean) {
+    draftConfig.agent_plugins_enabled = {
+      ...(draftConfig.agent_plugins_enabled ?? {}),
+      [pluginId]: enabled,
+    };
   }
 
   let cuaDriver = $derived(findCuaDriverServer() ?? createCuaDriverServer(cuaDriverEndpoint()));
@@ -1852,6 +1875,12 @@
     get agentPluginsLoading() {
       return agentPluginsLoading;
     },
+    get agentPluginEnabled() {
+      return agentPluginEnabled;
+    },
+    get setAgentPluginEnabled() {
+      return setAgentPluginEnabled;
+    },
     get agentPluginUpdates() {
       return agentPluginUpdates;
     },
@@ -2310,6 +2339,9 @@
     },
     get setCuaDriverEnabled() {
       return setCuaDriverEnabled;
+    },
+    get setChatGroupsEnabled() {
+      return setChatGroupsEnabled;
     },
     get setDefaultModel() {
       return setDefaultModel;

@@ -631,6 +631,7 @@ export interface AgentPluginSummary {
   id: string;
   name: string;
   builtin: boolean;
+  enabled: boolean;
   version: string | null;
   description: string | null;
   path: string;
@@ -769,6 +770,7 @@ export interface AppConfig {
   permission_profile?: PermissionProfile;
   mcp: McpSettings;
   chat_groups_enabled?: boolean;
+  agent_plugins_enabled?: Record<string, boolean>;
   theme: "system" | "light" | "dark";
   language: "zh" | "en";
   launch_on_startup: boolean;

@@ -335,7 +335,7 @@
               <div class="plugin-accordion-actions">
                 <Switch
                   checked={view.draftConfig.chat_groups_enabled ?? true}
-                  onCheckedChange={(checked) => (view.draftConfig.chat_groups_enabled = checked)}
+                  onCheckedChange={(checked) => view.setChatGroupsEnabled(checked)}
                   ariaLabel={$t("chatGroupPlugin")}
                 />
               </div>
@@ -345,6 +345,14 @@
                   checked={view.cuaDriver.enabled}
                   onCheckedChange={(enabled) => view.setCuaDriverEnabled(enabled)}
                   ariaLabel={$t("pluginDesktopControl")}
+                />
+              </div>
+            {:else}
+              <div class="plugin-accordion-actions">
+                <Switch
+                  checked={view.agentPluginEnabled(plugin.id)}
+                  onCheckedChange={(enabled) => view.setAgentPluginEnabled(plugin.id, enabled)}
+                  ariaLabel={plugin.name}
                 />
               </div>
             {/if}

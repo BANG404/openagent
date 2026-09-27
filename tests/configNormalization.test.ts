@@ -114,6 +114,33 @@ describe("MCP tool policy config", () => {
   });
 });
 
+describe("Agent Plugin lifecycle config", () => {
+  test("defaults plugin switches to an empty compatibility map", () => {
+    expect(normalizeConfigShape({} as AppConfig).agent_plugins_enabled).toEqual({});
+  });
+
+  test("keeps valid switches and drops malformed plugin ids", () => {
+    expect(
+      normalizeConfigShape({
+        agent_plugins_enabled: {
+          "demo-plugin": false,
+          "Bad Plugin": false,
+          "../escape": false,
+        },
+      } as AppConfig).agent_plugins_enabled,
+    ).toEqual({ "demo-plugin": false });
+  });
+
+  test("uses the shared Chat Groups switch as the compatibility value", () => {
+    const normalized = normalizeConfigShape({
+      chat_groups_enabled: true,
+      agent_plugins_enabled: { "chat-groups": false },
+    } as AppConfig);
+
+    expect(normalized.chat_groups_enabled).toBe(false);
+  });
+});
+
 describe("model retry config", () => {
   test("defaults each model to three retries with a thirty second interval", () => {
     const normalized = normalizeConfigShape({} as AppConfig);

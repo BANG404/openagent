@@ -11,7 +11,7 @@ and unknown fields remain harmless to other hosts.
 The Runtime exposes a typed descriptor rather than raw manifest JSON. Its
 stable fields are `id`, `name`, `version`, `repository`, `path`, `capabilities`,
 `commands`, `message_policies`, `skills`, `mcp_servers`, `automation_hooks`,
-`sidebar_views`, `warnings`, and `error`. Update results are returned by
+`sidebar_views`, `enabled`, `warnings`, and `error`. Update results are returned by
 `check_updates`. IDs are the manifest name for portable packages and the
 reserved builtin ID for product capabilities; child components use
 `plugin:<plugin-id>:<component-id>`.
@@ -26,6 +26,13 @@ unknown fields and policies with no audience, and exposes the normalized policy
 through the plugin descriptor. Only the Runtime can persist a checkpoint or
 apply a policy, so a package cannot forge a builtin tag or bypass audience
 projection.
+
+`enabled` is the lifecycle gate for portable components. Missing persisted
+entries default to `true` for compatibility; disabling a plugin removes its
+Skills, MCP servers, and Automation Hooks from new Runtime assemblies. Builtin
+switches retain their existing product settings: Chat Groups uses
+`chat_groups_enabled`, Cua uses its reserved MCP entry, and Goal/Graph use the
+same `agent_plugins_enabled` map.
 
 Runtime hosts that need to emit a plugin message resolve its namespaced tag
 through the installed-plugin policy resolver. The resolver checks the plugin

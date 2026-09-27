@@ -51,6 +51,12 @@ package. Plugin subprocesses remain subject to the normal OpenAgent
 process and permission environment; package containment prevents package path
 escapes but is not itself a subprocess sandbox.
 
+Installed portable plugins share the product plugin lifecycle switch. Disabled
+plugins remain installed for rollback and update checks, but their Skills, MCP
+servers, Automation Hooks, and sidebar surfaces are not mounted into a new
+Runtime assembly. Re-enabling the plugin restores those components without
+changing its package data.
+
 The product-managed Cua Driver is exposed as the trusted builtin
 `cua-driver` descriptor, while its implementation remains host-owned. Release
 builds stage the pinned upstream `trycua/cua` binary distribution as a verified

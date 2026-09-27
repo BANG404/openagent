@@ -196,13 +196,25 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
       matcher: hook.matcher ?? "",
       timeout_secs: Math.min(300, Math.max(1, Math.floor(Number(hook.timeout_secs) || 30))),
     }));
+  const agent_plugins_enabled = Object.fromEntries(
+    Object.entries(input.agent_plugins_enabled ?? {}).filter(
+      ([id, enabled]) =>
+        /^[a-z0-9](?:[a-z0-9.-]{0,62}[a-z0-9])?$/.test(id) &&
+        !id.includes("--") &&
+        !id.includes("..") &&
+        typeof enabled === "boolean",
+    ),
+  );
+  const chat_groups_enabled =
+    agent_plugins_enabled["chat-groups"] ?? input.chat_groups_enabled ?? true;
 
   return {
     ...normalizedInput,
     config_version: 1,
     approval_mode,
     permission_profile,
-    chat_groups_enabled: input.chat_groups_enabled ?? true,
+    chat_groups_enabled,
+    agent_plugins_enabled,
     language: input.language ?? "zh",
     launch_on_startup: input.launch_on_startup ?? false,
     onboarding_completed: input.onboarding_completed ?? false,

@@ -31,6 +31,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   automation_hooks: [],
   approval_mode: "off",
   mcp: { servers: [] },
+  agent_plugins_enabled: {},
   theme: "system",
   language: "zh",
   launch_on_startup: false,

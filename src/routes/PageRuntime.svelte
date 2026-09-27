@@ -851,6 +851,7 @@
   });
   let pluginSidebarViews = $derived(
     agentPlugins
+      .filter((plugin) => plugin.enabled)
       .flatMap((plugin) => plugin.sidebar_views)
       .filter((view) => {
         if (view.scope === "global") return true;
@@ -2857,6 +2858,12 @@
               console.error("Failed to apply reloaded autostart setting:", error),
             );
           }
+          void openAgent
+            .invokeProduct("list_agent_plugins", {})
+            .then((plugins) => {
+              agentPlugins = plugins;
+            })
+            .catch((error) => console.warn("Failed to refresh plugin lifecycle state:", error));
         })
         .catch((error) => console.error("Failed to apply reloaded settings:", error));
     });
