@@ -92,9 +92,6 @@ jobs:
       - name: Materialize Runtime sidecar for Tauri macros
         run: node scripts/prepare-runtime-server.mjs --placeholder
 
-      - name: Materialize Cua Driver for Tauri macros
-        run: node scripts/prepare-cua-driver.mjs
-
       - name: Verify private SDK boundary
         run: node scripts/verify-private-sdk-boundary.mjs
 
@@ -181,9 +178,6 @@ jobs:
 
       - name: Materialize Runtime sidecar for Tauri macros
         run: node scripts/prepare-runtime-server.mjs --placeholder
-
-      - name: Materialize Cua Driver for Tauri macros
-        run: node scripts/prepare-cua-driver.mjs
 
       - uses: oven-sh/setup-bun@v2
         if: runner.os == 'Windows'
@@ -357,9 +351,6 @@ jobs:
 
       - name: Materialize Runtime sidecar for Tauri macros
         run: node scripts/prepare-runtime-server.mjs --placeholder
-
-      - name: Materialize Cua Driver for Tauri macros
-        run: node scripts/prepare-cua-driver.mjs
 
       - uses: Swatinem/rust-cache@v2
         with:

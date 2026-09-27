@@ -22,6 +22,7 @@
     TaskTokenUsage,
     UserMessageContext,
     WorkspaceContext,
+    AgentPluginSidebarViewSummary,
   } from "$lib/types";
   import { t } from "$lib/i18n";
   import { showToast } from "$lib/toast";
@@ -127,6 +128,7 @@
     onChatGroupsAvailabilityChange = () => {},
     composerDraft,
     focusRequest,
+    pluginSidebarViews = [],
   }: {
     view: ConversationSurfaceView;
     actions: ConversationSurfaceActions;
@@ -148,6 +150,7 @@
     onChatGroupsAvailabilityChange?: (available: boolean) => void;
     composerDraft: ComposerDraft;
     focusRequest: number;
+    pluginSidebarViews?: AgentPluginSidebarViewSummary[];
   } = $props();
 
   let localComposerFocusRequest = $state(0);
@@ -437,6 +440,7 @@
     {chatGroupIds}
     {chatGroupWorkspace}
     {onChatGroupsAvailabilityChange}
+    {pluginSidebarViews}
   />
 </div>
 

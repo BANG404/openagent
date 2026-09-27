@@ -88,7 +88,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 
 - **MCP-Native** — Connect external MCP servers over HTTP or stdio; the Agent uses `load_tool` to find relevant capabilities and mounts matching tools into the next request, with per-tool controls.
 - **First-class Dev Tools** — Built-in patch, image-inspection, and terminal tools. Managed terminal sessions support interactive or long-running background processes.
-- **Desktop Automation** — The bundled Cua Driver runs as a host-supervised capability with product-owned permissions and per-tool controls in the **top-bar Integrations → Plugins** panel.
+- **Desktop Automation** — The host-supervised Cua Driver is installed from the upstream GitHub release channel and runs with product-owned permissions and per-tool controls in the **top-bar Integrations → Plugins** panel. OpenAgent checks for newer driver releases with the other component updates.
 - **Plugin Controls** — The top-bar **Integrations → Plugins** entry opens the dedicated Plugins settings window with expandable cards: toggle Chat Group collaboration, test the Cua Driver MCP connection, discover its tools, and choose which desktop actions are exposed to the agent.
 - **Lifecycle Automation** — Run a sandboxed command or inject bounded Agent context around session, prompt, compaction, model, and tool events.
 - **Independent Approval & Runtime Permissions** — Choose when tool calls pause for review separately from the managed filesystem and network sandbox.

@@ -10,6 +10,7 @@
     saveCheckpointFlowPanelWidth,
   } from "$lib/checkpointFlowPanelSizing";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
+  import type { AgentPluginSidebarViewSummary } from "$lib/types";
 
   let {
     flow,
@@ -28,6 +29,7 @@
     chatGroupIds = [],
     chatGroupWorkspace = "",
     onChatGroupsAvailabilityChange = () => {},
+    pluginSidebarViews = [],
   }: {
     flow: CheckpointFlow | null;
     changes: FileChange[];
@@ -45,6 +47,7 @@
     chatGroupIds?: string[];
     chatGroupWorkspace?: string;
     onChatGroupsAvailabilityChange?: (available: boolean) => void;
+    pluginSidebarViews?: AgentPluginSidebarViewSummary[];
   } = $props();
 
   let width = $state(
@@ -148,5 +151,6 @@
   {chatGroupIds}
   {chatGroupWorkspace}
   {onChatGroupsAvailabilityChange}
+  {pluginSidebarViews}
   onResizeStart={startResize}
 />

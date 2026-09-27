@@ -18,34 +18,34 @@ import { fileURLToPath } from "node:url";
 const scriptPath = fileURLToPath(import.meta.url);
 const root = path.resolve(path.dirname(scriptPath), "..");
 
-export const CUA_DRIVER_VERSION = "0.28.2";
+export const CUA_DRIVER_VERSION = "0.30.1";
 const releaseTag = `cua-driver-rs-v${CUA_DRIVER_VERSION}`;
 const releaseRoot = `https://github.com/trycua/cua/releases/download/${releaseTag}`;
 
 const releaseAssets = {
   "aarch64-apple-darwin": {
     name: `cua-driver-rs-${CUA_DRIVER_VERSION}-darwin-arm64.tar.gz`,
-    sha256: "818ddefa0fa8ba2ec9cba837c7aa634a4b064221c748752cf49c5b08e2c94e8c",
+    sha256: "5dabcd3fd2bd66eee0f1acf046735830ea61f66c8935175ef454a54d01ecd0f0",
   },
   "x86_64-apple-darwin": {
     name: `cua-driver-rs-${CUA_DRIVER_VERSION}-darwin-x86_64.tar.gz`,
-    sha256: "9e00cc92480a8f3d32bbcb7cb45cbc42293b7bd13c1808f5047f1f73a8b64f24",
+    sha256: "7bc12e21e00e2d78d480a985f6793d9238f9ee3a29176a39b9bd13fe0da2d6c3",
   },
   "aarch64-unknown-linux-gnu": {
     name: `cua-driver-rs-${CUA_DRIVER_VERSION}-linux-arm64-binary.tar.gz`,
-    sha256: "55e8a32839a4ac369a773df4dac87b345bd4567779221ade4a5e39223a45a2e8",
+    sha256: "4dd8c42aaad592b8bd5ab825b5cd576bb2569e3ef14a99f63b445637dd8a0d2d",
   },
   "x86_64-unknown-linux-gnu": {
     name: `cua-driver-rs-${CUA_DRIVER_VERSION}-linux-x86_64-binary.tar.gz`,
-    sha256: "a1d99fd04bb4927ef5ffdbe60eb91ed8b51a2bab60e10fc604a75bd59ce69c3e",
+    sha256: "82411700ae43fa34f6263eb603866c77d4e25e5556ffa03d92cd79cbab9472a2",
   },
   "aarch64-pc-windows-msvc": {
     name: `cua-driver-rs-${CUA_DRIVER_VERSION}-windows-arm64-binary.zip`,
-    sha256: "578b88ff2dd56f06eb7e984d73aaf5e76f59c6fde9542c967d6a30d00213c680",
+    sha256: "d82a6c1523e909dbffdf28a41a6be64de31874b6f671c8cb344d857553708a85",
   },
   "x86_64-pc-windows-msvc": {
     name: `cua-driver-rs-${CUA_DRIVER_VERSION}-windows-x86_64-binary.zip`,
-    sha256: "1f4bfceeab64cb7f56be7aad774c3dc2d2910d1427e4be1d79939c706e8029ba",
+    sha256: "96ebb5996c0e25adf40ed648a46959723d31df5d90f24ffe2fb2d3cc2ee780be",
   },
 };
 

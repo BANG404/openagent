@@ -10,6 +10,7 @@ is never loaded as a replaceable dynamic library.
 | ------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | Frontend                       | Vite HMR through `bun tauri dev`                 | Signed `frontend-beta`, `frontend-rc`, or `frontend-stable` resource                        | Confirmed WebView reload with rollback                    |
 | Desktop Runtime / headless SDK | Rebuild and restart `openagent-server`           | Signed Runtime channel or versioned SDK release binaries plus `openagent-sdk-manifest.json` | Supervised drain, restart, probe, reconnect, and rollback |
+| Cua Driver                     | Prepared local resource                          | GitHub `cua-driver-rs-v*` asset with published SHA-256 digest                               | Activate verified version and restart desktop             |
 | Third-party client             | Local TypeScript source or published npm package | `@bang404/openagent-harness`                                                                | Normal package update                                     |
 | Desktop native shell           | Tauri rebuild/restart                            | Signed installer and Tauri updater                                                          | Application restart                                       |
 
@@ -32,6 +33,13 @@ serves and confirms that frontend after its Runtime has started. Frontend-only
 activation reloads and confirms the frontend in the current process.
 Component-only releases keep the same notification model without restarting
 the shell.
+
+The Cua Driver is a host-owned external resource. Release builds download the
+platform asset from the upstream GitHub release list on first use and install
+it beneath `OPENAGENT_HOME/resources/cua-driver/<version>/<target>/`. A later
+check downloads a newer verified candidate without replacing the active daemon;
+the update notification links to the upstream release and activation restarts
+the desktop so the daemon and Runtime inherit the new executable path.
 
 The shell step begins with a preparation command that re-acquires the barrier —
 an in-process frontend confirmation releases it, so the Runtime must be drained

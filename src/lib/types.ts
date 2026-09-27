@@ -596,6 +596,46 @@ export interface McpServerCatalog {
   resources: string[];
 }
 
+export interface AgentPluginSkillSummary {
+  name: string;
+  description: string;
+}
+
+export interface AgentPluginMcpSummary {
+  name: string;
+  transport: "stdio" | "streamable-http";
+}
+
+export interface AgentPluginSidebarViewSummary {
+  id: `plugin:${string}:${string}`;
+  title: string;
+  entry: string;
+  scope: "global" | "workspace" | "conversation";
+}
+
+export interface AgentPluginAutomationHookSummary {
+  id: string;
+  event: string;
+  matcher: string;
+  timeout_secs: number;
+  command: string;
+}
+
+export interface AgentPluginSummary {
+  id: string;
+  name: string;
+  version: string | null;
+  description: string | null;
+  path: string;
+  capabilities: string[];
+  skills: AgentPluginSkillSummary[];
+  mcp_servers: AgentPluginMcpSummary[];
+  sidebar_views: AgentPluginSidebarViewSummary[];
+  automation_hooks: AgentPluginAutomationHookSummary[];
+  warnings: string[];
+  error: string | null;
+}
+
 export interface McpSettings {
   servers: McpServerConfig[];
 }

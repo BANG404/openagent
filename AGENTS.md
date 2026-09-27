@@ -33,7 +33,7 @@ and delivery so agents can choose the right scope.
 | Browser-reproducible UI verification | `.agents/skills/playwright/SKILL.md` |
 | Product design and component language, including `DESIGN.md` | `.agents/skills/openagent-design-system/` |
 | Messaging channels and remote gateway | `.agents/skills/openagent-channel-integrations/` |
-| Agent Plugin package behavior | `.agents/skills/openagent-plugin-development/` |
+| Agent Plugin packages, lifecycle, automation, and sidebar extensions | `.agents/skills/openagent-plugin-development/` |
 | Public Harness client and server protocol | `.agents/skills/openagent-harness-sdk/` |
 | Modular frontend, Runtime, and shell updates | `.agents/skills/openagent-update-delivery/` |
 | Embedding resource provenance and activation | `.agents/skills/openagent-embedding-resources/` |
@@ -138,7 +138,8 @@ layout-stable skeleton.
 - Automation JavaScript is checked through the repository TypeScript config;
   add explicit JSDoc types where inference cannot establish safe boundaries.
 - Treat the private submodule revision as release-relevant source input.
-- Verify visible UI changes in the real Tauri window with the changed module's `tauri-pilot` black-box scenario, including light/dark themes and Chinese/English where applicable. See `.agents/skills/openagent-desktop-host/references/native-verification.md`.
+- Verify visible UI changes in the real Tauri window with the changed module's
+  `tauri-pilot` black-box scenario, including light/dark themes and Chinese/English where applicable. See `.agents/skills/openagent-desktop-host/references/native-verification.md`.
 
 ## Delivery
 Every repository-changing task uses `deliver-via-pr`. With no prefix, edit the

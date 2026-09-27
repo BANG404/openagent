@@ -206,6 +206,7 @@
     UserMessageContext,
     CheckpointTurnStatus,
     TaskTokenUsage,
+    AgentPluginSummary,
   } from "$lib/types";
 
   const {
@@ -378,6 +379,7 @@
   let checkpointFlowPanelAutoOpenKey = $state<string | null>(null);
   let fileChangesPanelSelectionKey = $state<string | null>(null);
   let workspace = $state<WorkspaceContext | null>(null);
+  let agentPlugins = $state<AgentPluginSummary[]>([]);
   let config = $state<AppConfig | null>(null);
   const settingsRequests = new LatestRequest();
   let isMemorySyncing = $state(false);
@@ -847,10 +849,20 @@
     }
     return Array.from(byPath.values());
   });
+  let pluginSidebarViews = $derived(
+    agentPlugins
+      .flatMap((plugin) => plugin.sidebar_views)
+      .filter((view) => {
+        if (view.scope === "global") return true;
+        if (view.scope === "workspace") return workspacePath.trim().length > 0;
+        return activeConvId !== null;
+      }),
+  );
   let rightSidebarAvailable = $derived(
     conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length) ||
       terminalSessionCount > 0 ||
-      ((config?.chat_groups_enabled ?? false) && chatGroupToolUsed),
+      ((config?.chat_groups_enabled ?? false) && chatGroupToolUsed) ||
+      pluginSidebarViews.length > 0,
   );
   // The one value the title bar and the sidebar render. Deriving it keeps the
   // "no views, no panel" invariant true at every moment, including the flush
@@ -2204,6 +2216,16 @@
   });
 
   onMount(() => {
+    if (!tauriAvailable) return;
+    void openAgent
+      .invokeProduct("list_agent_plugins", {})
+      .then((plugins) => {
+        agentPlugins = plugins;
+      })
+      .catch((error) => console.warn("Failed to load Agent Plugins:", error));
+  });
+
+  onMount(() => {
     if (!tauriAvailable || detectWindowPlatform() !== "macos") return;
     document.documentElement.classList.add("macos-window");
     return () => document.documentElement.classList.remove("macos-window");
@@ -2702,6 +2724,14 @@
     const register = <T,>(event: string, handler: (event: { payload: T }) => void) => {
       registrations.push(listen<T>(event, handler));
     };
+    register("agent-plugins-changed", () => {
+      void openAgent
+        .invokeProduct("list_agent_plugins", {})
+        .then((plugins) => {
+          agentPlugins = plugins;
+        })
+        .catch((error) => console.warn("Failed to refresh Agent Plugins:", error));
+    });
     let runtimeResyncInFlight = false;
 
     register<{ generation: number }>("runtime-resync-required", () => {
@@ -5327,6 +5357,7 @@
     newConversationGreeting,
     newConversationSuggestions,
     queuedMessages: activeConvId ? (queuedChatMessages[activeConvId] ?? []) : [],
+    pluginSidebarViews,
     restoringSurface,
     shikiTheme,
     slashCommands,
@@ -5637,6 +5668,7 @@
             (terminalSessionCount = sessionCount)}
           {rightSidebarConversationId}
           {rightSidebarBranchId}
+          {pluginSidebarViews}
           chatGroupsEnabled={config?.chat_groups_enabled ?? false}
           chatGroupsAvailable={(config?.chat_groups_enabled ?? false) && chatGroupToolUsed}
           {chatGroupIds}

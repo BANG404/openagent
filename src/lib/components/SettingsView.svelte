@@ -6,13 +6,14 @@
   import SettingsViewTabsPrimary from "./SettingsViewTabsPrimary.svelte";
   import SettingsViewTabsSecondary from "./SettingsViewTabsSecondary.svelte";
   import SettingsViewDialogs from "./SettingsViewDialogs.svelte";
-  import { desktopOpenAgent, invoke, listen } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent, emit, invoke, listen } from "$lib/openagent/tauriClient";
   import { isTauri } from "@tauri-apps/api/core";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
   import { onMount, tick, untrack } from "svelte";
   import { Tabs } from "bits-ui";
   import type {
+    AgentPluginSummary,
     AgentMemoryEntry,
     AgentRole,
     AppConfig,
@@ -219,6 +220,9 @@
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).has("mcp-settings-preview");
   let mcpTestStatus = $state<Record<string, McpTestStatus>>({});
+  let agentPlugins = $state<AgentPluginSummary[]>([]);
+  let agentPluginsLoading = $state(false);
+  let agentPluginStatus = $state("");
   let mcpDiscoveredTools = $state<Record<string, string[]>>(
     isMcpSettingsPreview
       ? {
@@ -595,6 +599,7 @@
       }, 1500);
     }
     if (visibleSections.has("providers")) refreshChatgptAuthStatus().catch(() => {});
+    if (visibleSections.has("plugins")) refreshAgentPlugins().catch(() => {});
     const unlistenRemotePairingCode = visibleSections.has("channels")
       ? listen("remote-gateway-pairing-code-rotated", () => {
           refreshRemoteGateway().catch(() => {});
@@ -1653,6 +1658,39 @@
     return scope === "global" || Boolean(workspacePath);
   }
 
+  async function refreshAgentPlugins() {
+    if (!isTauri()) {
+      agentPlugins = [];
+      return;
+    }
+    agentPluginsLoading = true;
+    agentPluginStatus = "";
+    try {
+      agentPlugins = await desktopOpenAgent.listAgentPlugins();
+    } catch (error: unknown) {
+      agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(error)}`;
+    } finally {
+      agentPluginsLoading = false;
+    }
+  }
+
+  async function installAgentPlugin() {
+    const selected = await openDialog({ multiple: false, directory: true });
+    if (!selected || Array.isArray(selected)) return;
+    agentPluginsLoading = true;
+    agentPluginStatus = "";
+    try {
+      await desktopOpenAgent.installAgentPlugin(selected);
+      await refreshAgentPlugins();
+      await emit("agent-plugins-changed").catch(() => {});
+      agentPluginStatus = tr("pluginInstalled");
+    } catch (error: unknown) {
+      agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(error)}`;
+    } finally {
+      agentPluginsLoading = false;
+    }
+  }
+
   async function exportMemory() {
     if (!memoryScopeAvailable()) {
       memoryStatus = tr("memoryNoWorkspace");
@@ -1791,6 +1829,21 @@
     },
     get autostartSyncing() {
       return autostartSyncing;
+    },
+    get agentPlugins() {
+      return agentPlugins;
+    },
+    get agentPluginsLoading() {
+      return agentPluginsLoading;
+    },
+    get agentPluginStatus() {
+      return agentPluginStatus;
+    },
+    get installAgentPlugin() {
+      return installAgentPlugin;
+    },
+    get refreshAgentPlugins() {
+      return refreshAgentPlugins;
     },
     get beginAutomationHook() {
       return beginAutomationHook;

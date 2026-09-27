@@ -49,7 +49,16 @@ type PreparedRuntimeResource = {
   update_available: boolean;
 };
 
+type PreparedCuaDriverResource = {
+  current_version: string | null;
+  latest_version: string;
+  target: string;
+  update_available: boolean;
+  release_url: string;
+};
+
 type AvailableUpdates = {
+  cuaDriver: PreparedCuaDriverResource | null;
   runtime: PreparedRuntimeResource | null;
   frontend: PreparedFrontendResource | null;
   shell: Update | null;
@@ -123,6 +132,15 @@ async function checkForFrontendResourceUpdate(): Promise<PreparedFrontendResourc
   return candidate.update_available ? candidate : null;
 }
 
+async function checkForCuaDriverUpdate(): Promise<PreparedCuaDriverResource | null> {
+  if (import.meta.env.DEV) return null;
+  const candidate = await withAppUpdateTimeout(
+    invoke<PreparedCuaDriverResource>("prepare_cua_driver_resource"),
+    RESOURCE_UPDATE_PREPARE_TIMEOUT_MS,
+  );
+  return candidate.update_available ? candidate : null;
+}
+
 async function downloadShellUpdate(shell: Update): Promise<void> {
   const versions = { currentVersion: shell.currentVersion, candidateVersion: shell.version };
   await reportComponentUpdateEvent("shell", "download_started", versions);
@@ -144,6 +162,7 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
   let componentUpdateStarted = false;
   let frontendActivationCommitted = false;
   let shellInstallPrepared = false;
+  let cuaDriverActivated = false;
 
   try {
     progressToastId = showToast({
@@ -181,6 +200,16 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
         version: updates.runtime.version,
         target: updates.runtime.target,
       });
+    }
+    if (updates.cuaDriver) {
+      updateToast(progressToastId, {
+        description: translate("cuaDriverUpdateInProgressDescription"),
+      });
+      await invoke("activate_cua_driver_resource", {
+        version: updates.cuaDriver.latest_version,
+        target: updates.cuaDriver.target,
+      });
+      cuaDriverActivated = true;
     }
     if (updates.frontend) {
       updateToast(progressToastId, {
@@ -246,6 +275,15 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
 
     // A replacement frontend owns the completion notice after its startup
     // hook confirms activation and releases the Runtime write barrier.
+    if (updates.cuaDriver) {
+      showToast({
+        title: translate("updateInstalled"),
+        description: translate("cuaDriverUpdateRestarting"),
+        durationMs: 3000,
+      });
+      await invoke("restart_app");
+      return;
+    }
     showToast({
       title: translate("updateInstalled"),
       description: translate("updateComponentsInstalled"),
@@ -259,6 +297,16 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
       console.warn("[openagent] Shell install failed after preparation; restarting", error);
       await invoke("restart_app").catch((restartError) =>
         console.error("[openagent] Failed to restart after the shell install", restartError),
+      );
+      return;
+    }
+    if (cuaDriverActivated) {
+      console.warn(
+        "[openagent] Cua Driver activation completed before a later update failed; restarting",
+        error,
+      );
+      await invoke("restart_app").catch((restartError) =>
+        console.error("[openagent] Failed to restart after Cua Driver activation", restartError),
       );
       return;
     }
@@ -299,6 +347,12 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
     } catch (error) {
       console.warn("[openagent] Frontend resource update check failed", error);
     }
+    let cuaDriver: PreparedCuaDriverResource | null = null;
+    try {
+      cuaDriver = await checkForCuaDriverUpdate();
+    } catch (error) {
+      console.warn("[openagent] Cua Driver update check failed", error);
+    }
     await reportComponentUpdateEvent("shell", "check_started");
     let shell: Update | null;
     try {
@@ -312,7 +366,7 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
       await reportComponentUpdateEvent("shell", "check_failed", {}, error);
       throw error;
     }
-    if (!shell && !runtime && !frontend) {
+    if (!shell && !runtime && !frontend && !cuaDriver) {
       if (notifyWhenUpToDate) {
         showToast({
           title: translate("updateCurrent"),
@@ -325,8 +379,8 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
 
     const shellDownload = shell ? downloadShellUpdate(shell) : null;
     if (shellDownload !== null) void shellDownload.catch(() => {});
-    const updates: AvailableUpdates = { runtime, frontend, shell, shellDownload };
-    const releaseUrl = shell ? appUpdateReleaseUrl(shell.version) : undefined;
+    const updates: AvailableUpdates = { cuaDriver, runtime, frontend, shell, shellDownload };
+    const releaseUrl = shell ? appUpdateReleaseUrl(shell.version) : cuaDriver?.release_url;
     const componentVersionCandidates: Array<ComponentVersionTransition | null> = [
       shell
         ? {
@@ -347,6 +401,13 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
             label: translate("updateComponentRuntime"),
             currentVersion: runtime.current_version,
             candidateVersion: runtime.version,
+          }
+        : null,
+      cuaDriver
+        ? {
+            label: translate("updateComponentCuaDriver"),
+            currentVersion: cuaDriver.current_version,
+            candidateVersion: cuaDriver.latest_version,
           }
         : null,
     ];

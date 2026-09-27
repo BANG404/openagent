@@ -6,7 +6,7 @@
     type CheckpointFlow,
     type CheckpointGraphNodeStatus,
   } from "$lib/checkpointFlow";
-  import type { FileChange } from "$lib/types";
+  import type { AgentPluginSidebarViewSummary, FileChange } from "$lib/types";
   import type { BackgroundTerminalSession } from "$lib/openagent";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import {
@@ -19,6 +19,8 @@
   import ChatGroupPanel from "$lib/components/ChatGroupPanel.svelte";
   import FileChangePanel from "$lib/components/FileChangePanel.svelte";
   import ScrollArea from "$lib/components/ui/ScrollArea.svelte";
+  import PluginSidebarPanel from "$lib/components/PluginSidebarPanel.svelte";
+  import { isPluginSidebarPanel } from "$lib/rightSidebar";
 
   interface Props {
     flow: CheckpointFlow | null;
@@ -43,6 +45,7 @@
     chatGroupIds?: string[];
     chatGroupWorkspace?: string;
     onChatGroupsAvailabilityChange?: (available: boolean) => void;
+    pluginSidebarViews?: AgentPluginSidebarViewSummary[];
   }
 
   let {
@@ -67,6 +70,7 @@
     chatGroupIds = [],
     chatGroupWorkspace = "",
     onChatGroupsAvailabilityChange = () => {},
+    pluginSidebarViews = [],
   }: Props = $props();
   const panelSnapshots = new RightSidebarPanelStateStore();
   let currentScopeKey = $state<string | null>(null);
@@ -211,6 +215,18 @@
             ? "terminal"
             : "status";
     }
+    if (
+      isPluginSidebarPanel(activePanel) &&
+      !pluginSidebarViews.some((view) => view.id === activePanel)
+    ) {
+      activePanel = flow
+        ? "status"
+        : changes.length > 0
+          ? "files"
+          : terminalAvailable
+            ? "terminal"
+            : "status";
+    }
   });
 
   function statusLabel(status: string): string {
@@ -285,6 +301,14 @@
             {$t("chatGroups")}
           </button>
         {/if}
+        {#each pluginSidebarViews as view (view.id)}
+          <button
+            type="button"
+            class:active={activePanel === view.id}
+            aria-current={activePanel === view.id ? "page" : undefined}
+            onclick={() => (activePanel = view.id)}>{view.title}</button
+          >
+        {/each}
       </nav>
     {/if}
 
@@ -447,7 +471,16 @@
         />
       {/if}
     </div>
-    {#if !collapsed && activePanel !== "status" && activePanel !== "files" && activePanel !== "group" && activePanel !== "terminal"}
+    {#each pluginSidebarViews as view (view.id)}
+      <div
+        class="panel-cache-slot"
+        hidden={collapsed || activePanel !== view.id}
+        aria-hidden={collapsed || activePanel !== view.id}
+      >
+        <PluginSidebarPanel {view} scopeKey={rightSidebarScopeKey} />
+      </div>
+    {/each}
+    {#if !collapsed && activePanel !== "status" && activePanel !== "files" && activePanel !== "group" && activePanel !== "terminal" && !isPluginSidebarPanel(activePanel)}
       <div class="flow-body">
         <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>
       </div>

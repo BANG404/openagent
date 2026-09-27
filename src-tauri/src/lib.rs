@@ -39,6 +39,7 @@ use tauri::{path::BaseDirectory, Emitter, LogicalSize, Manager, PhysicalPosition
 #[cfg(not(feature = "embedded-runtime"))]
 use tracing_subscriber::fmt::writer::MakeWriterExt;
 
+pub mod cua_driver_resource;
 pub mod frontend_resource;
 pub mod local_capabilities;
 pub mod process_lifetime;
@@ -49,6 +50,7 @@ pub mod runtime_transport;
 pub mod workspace_process;
 pub mod wsl;
 
+use cua_driver_resource::{CuaDriverResourceManager, CuaDriverResourceStatus};
 use frontend_resource::{
     FrontendResourceManager, FrontendResourceSource, InstalledFrontendResource,
 };
@@ -2328,6 +2330,38 @@ async fn list_skills(
 }
 
 #[tauri::command]
+async fn list_agent_plugins(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+) -> Result<Vec<openagent_runtime::agent_plugins::AgentPluginSummary>, String> {
+    openagent_runtime::commands::list_agent_plugins(runtime.state()).await
+}
+
+#[tauri::command]
+async fn install_agent_plugin(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    source: String,
+) -> Result<openagent_runtime::agent_plugins::AgentPluginSummary, String> {
+    openagent_runtime::commands::install_agent_plugin(runtime.state(), source).await
+}
+
+#[tauri::command]
+async fn uninstall_agent_plugin(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    id: String,
+) -> Result<(), String> {
+    openagent_runtime::commands::uninstall_agent_plugin(runtime.state(), id).await
+}
+
+#[tauri::command]
+async fn read_agent_plugin_asset(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    plugin_id: String,
+    entry: String,
+) -> Result<openagent_runtime::agent_plugins::AgentPluginAsset, String> {
+    openagent_runtime::commands::read_agent_plugin_asset(runtime.state(), plugin_id, entry).await
+}
+
+#[tauri::command]
 async fn get_skill_content(path: String) -> Result<String, String> {
     openagent_runtime::commands::get_skill_content(path).await
 }
@@ -4419,10 +4453,35 @@ fn cua_driver_endpoint() -> String {
 /// entry and wait until it is accepting connections. Returns whether this call
 /// spawned the daemon.
 #[tauri::command]
-async fn start_cua_driver_serve() -> Result<bool, String> {
+async fn start_cua_driver_serve(
+    manager: State<'_, CuaDriverResourceManager>,
+) -> Result<bool, String> {
+    if !cfg!(debug_assertions) {
+        manager.ensure_installed().await?;
+        configure_external_cua_driver_path(manager.inner()).await?;
+    }
     tauri::async_runtime::spawn_blocking(ensure_cua_driver_serve)
         .await
         .map_err(|error| format!("Cua Driver startup task failed: {error}"))?
+}
+
+/// Download and verify the current Cua Driver release from GitHub. The first
+/// call installs and activates a driver; later calls leave the active daemon
+/// untouched and return an update candidate for the frontend to present.
+#[tauri::command]
+async fn prepare_cua_driver_resource(
+    manager: State<'_, CuaDriverResourceManager>,
+) -> Result<CuaDriverResourceStatus, String> {
+    manager.prepare_latest().await
+}
+
+#[tauri::command]
+async fn activate_cua_driver_resource(
+    manager: State<'_, CuaDriverResourceManager>,
+    version: String,
+    target: String,
+) -> Result<(), String> {
+    manager.activate(&version, &target).await
 }
 
 fn cua_driver_binary_name() -> &'static str {
@@ -4682,6 +4741,30 @@ fn prepend_bundled_cua_driver_to_path(app: &tauri::AppHandle) -> Result<bool, St
     prepend_cua_driver_directory_to_path(staged_cua_driver_directory(directory))
 }
 
+async fn configure_external_cua_driver_path(
+    manager: &CuaDriverResourceManager,
+) -> Result<bool, String> {
+    let binary = manager.ensure_installed().await?;
+    let directory = binary
+        .parent()
+        .ok_or_else(|| "Cua Driver executable has no parent directory".to_string())?
+        .to_path_buf();
+    prepend_cua_driver_directory_to_path(directory)
+}
+
+async fn configure_installed_cua_driver_path(
+    manager: &CuaDriverResourceManager,
+) -> Result<bool, String> {
+    let Some((_, binary)) = manager.active_resource().await? else {
+        return Ok(false);
+    };
+    let directory = binary
+        .parent()
+        .ok_or_else(|| "Cua Driver executable has no parent directory".to_string())?
+        .to_path_buf();
+    prepend_cua_driver_directory_to_path(directory)
+}
+
 async fn start_runtime_spec(
     supervisor: &RuntimeProcessSupervisor,
     spec: RuntimeLaunchSpec,
@@ -4840,8 +4923,10 @@ mod single_instance_tests {
 #[allow(clippy::too_many_lines)]
 fn run_with_mode(agent_server: bool) {
     // NOSONAR: this protocol or state boundary is intentionally kept together for auditability.
-    prepend_development_cua_driver_to_path()
-        .unwrap_or_else(|error| panic!("Failed to configure bundled Cua Driver: {error}"));
+    if cfg!(debug_assertions) {
+        prepend_development_cua_driver_to_path()
+            .unwrap_or_else(|error| panic!("Failed to configure Cua Driver: {error}"));
+    }
     let external_launch = if !agent_server {
         match prepare_interactive_persistence() {
             Ok(Some(launch)) => Some(launch),
@@ -4897,6 +4982,8 @@ fn run_with_mode(agent_server: bool) {
     );
     let startup_runtime_supervisor = runtime_supervisor.clone();
     let protocol_runtime_supervisor = runtime_supervisor.clone();
+    let cua_driver_manager = CuaDriverResourceManager::new(data_dir.clone());
+    let startup_cua_driver_manager = cua_driver_manager.clone();
     let runtime_manager = runtime_resource_manager(data_dir);
     let startup_runtime_manager = runtime_manager.clone();
     let builder = tauri::Builder::default().manage(desktop_data_dir);
@@ -5061,9 +5148,18 @@ fn run_with_mode(agent_server: bool) {
         .manage(RuntimeUpdateState::default())
         .manage(DesktopWindowState::default())
         .manage(runtime_manager)
+        .manage(cua_driver_manager)
         .manage(frontend_manager)
         .setup(move |app| {
-            prepend_bundled_cua_driver_to_path(app.handle()).map_err(std::io::Error::other)?;
+            if cfg!(debug_assertions) {
+                prepend_bundled_cua_driver_to_path(app.handle()).map_err(std::io::Error::other)?;
+            } else {
+                if let Err(error) = tauri::async_runtime::block_on(configure_installed_cua_driver_path(
+                    &startup_cua_driver_manager,
+                )) {
+                    tracing::warn!(%error, "failed to configure an installed Cua Driver resource");
+                }
+            }
             if is_parent_controlled_workspace_window_process() {
                 install_parent_shutdown_monitor(app.handle().clone());
             } else if cfg!(debug_assertions)
@@ -5361,6 +5457,8 @@ fn run_with_mode(agent_server: bool) {
         get_settings,
         start_cua_driver_serve,
         cua_driver_endpoint,
+        prepare_cua_driver_resource,
+        activate_cua_driver_resource,
         get_component_versions,
         get_embedding_resource_status,
         prepare_embedding_resource,
@@ -5441,6 +5539,10 @@ fn run_with_mode(agent_server: bool) {
         save_design_document,
         get_system_locale,
         list_skills,
+        list_agent_plugins,
+        install_agent_plugin,
+        uninstall_agent_plugin,
+        read_agent_plugin_asset,
         get_skill_content,
         save_skill_content,
         create_skill,
@@ -5503,6 +5605,8 @@ fn run_with_mode(agent_server: bool) {
     let builder = builder.invoke_handler(tauri::generate_handler![
         start_cua_driver_serve,
         cua_driver_endpoint,
+        prepare_cua_driver_resource,
+        activate_cua_driver_resource,
         get_component_versions,
         prepare_runtime_resource,
         begin_component_update,

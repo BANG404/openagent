@@ -136,8 +136,6 @@ describe("release CI verification", () => {
     expect(nativeWorkflow.match(/Materialize frontendDist for Tauri macros/g)).toHaveLength(3);
     expect(nativeWorkflow.match(/Materialize Runtime sidecar for Tauri macros/g)).toHaveLength(3);
     expect(nativeWorkflow.match(/prepare-runtime-server\.mjs --placeholder/g)).toHaveLength(3);
-    expect(nativeWorkflow.match(/Materialize Cua Driver for Tauri macros/g)).toHaveLength(3);
-    expect(nativeWorkflow.match(/prepare-cua-driver\.mjs/g)).toHaveLength(3);
     const hostCompatibilityJob = sdkWorkflow.match(
       / {2}host-compatibility:\n(?<job>[\s\S]*?)\n {2}required:/,
     )?.groups?.job;
@@ -148,8 +146,6 @@ describe("release CI verification", () => {
     );
     expect(hostCompatibilityJob).toContain("Materialize Runtime sidecar for Tauri macros");
     expect(hostCompatibilityJob).toContain("node scripts/prepare-runtime-server.mjs --placeholder");
-    expect(hostCompatibilityJob).toContain("Materialize Cua Driver for Tauri macros");
-    expect(hostCompatibilityJob).toContain("node scripts/prepare-cua-driver.mjs");
     expect(nativeCargoManifest).toContain(
       'rfd = { version = "0.16", default-features = false, features = ["common-controls-v6"] }',
     );
@@ -298,12 +294,9 @@ describe("release CI verification", () => {
 
   test("publishes lightweight updater inputs and separate full first-install bundles", () => {
     expect(tauriConfig.bundle.createUpdaterArtifacts).toBe(true);
-    expect(tauriConfig.bundle.resources).toEqual({
-      "resources/cua-driver/": "cua-driver/",
-    });
+    expect(tauriConfig.bundle.resources).toBeUndefined();
     expect(fullTauriConfig.bundle.createUpdaterArtifacts).toBe(false);
     expect(fullTauriConfig.bundle.resources).toEqual({
-      "resources/cua-driver/": "cua-driver/",
       "resources/models/all-MiniLM-L6-v2-q/": "models/all-MiniLM-L6-v2-q/",
     });
     expect(releaseWorkflow).toContain("Build full first-install bundle");

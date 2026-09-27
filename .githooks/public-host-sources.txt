@@ -1,4 +1,5 @@
 src-tauri/src/bin/openagent-agent-server.rs
+src-tauri/src/cua_driver_resource.rs
 src-tauri/src/frontend_resource.rs
 src-tauri/src/lib.rs
 src-tauri/src/local_capabilities.rs

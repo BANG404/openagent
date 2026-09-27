@@ -59,7 +59,6 @@ describe("sandbox helper packaging", () => {
     expect(windowsTauriConfig.bundle.targets).toEqual(["nsis"]);
     expect(windowsTauriConfig.bundle.resources).toEqual({
       "resources/codex-resources/": "codex-resources/",
-      "resources/cua-driver/": "cua-driver/",
     });
   });
 

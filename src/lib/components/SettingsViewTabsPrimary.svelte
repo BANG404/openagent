@@ -262,8 +262,32 @@
     </header>
     <div class="plugin-directory-heading">
       <span class="detail-section-title">{$t("plugins")}</span>
-      <span class="plugin-directory-count">2</span>
+      <span class="plugin-directory-count">{view.agentPlugins.length + 2}</span>
+      <div class="plugin-directory-actions">
+        <SettingsActionButton
+          label={$t("pluginInstall")}
+          icon="add"
+          tone="primary"
+          onclick={() => view.installAgentPlugin()}
+          disabled={view.agentPluginsLoading}
+        />
+        <SettingsActionButton
+          label={$t("pluginRefresh")}
+          icon="refresh"
+          tone="quiet"
+          onclick={() => view.refreshAgentPlugins()}
+          disabled={view.agentPluginsLoading}
+        />
+      </div>
     </div>
+    {#if view.agentPluginStatus}
+      <div class="provider-status success">{view.agentPluginStatus}</div>
+    {/if}
+    {#if view.agentPluginsLoading && view.agentPlugins.length === 0}
+      <p class="detail-hint">{$t("pluginLoading")}</p>
+    {:else if view.agentPlugins.length === 0}
+      <p class="detail-hint">{$t("pluginEmpty")}</p>
+    {/if}
     <Accordion.Root type="multiple" class="plugin-accordion">
       <Accordion.Item
         value="chat-groups"
@@ -283,6 +307,43 @@
           </Accordion.Trigger>
         </Accordion.Header>
       </Accordion.Item>
+      {#each view.agentPlugins as plugin (plugin.id)}
+        <Accordion.Item
+          value={`plugin-${plugin.id}`}
+          class="application-settings-surface plugin-accordion-item"
+        >
+          <Accordion.Header class="plugin-accordion-header">
+            <Accordion.Trigger class="plugin-accordion-trigger">
+              <span class="plugin-accordion-copy">
+                <span class="label-text">{plugin.name}</span>
+                <span class="detail-hint">{plugin.description ?? plugin.id}</span>
+              </span>
+              <span class="plugin-version">{plugin.version ?? "-"}</span>
+            </Accordion.Trigger>
+          </Accordion.Header>
+          <Accordion.Content class="plugin-accordion-content">
+            <div class="plugin-tools-heading">
+              <div class="plugin-tools-title">
+                <span class="label-text">{$t("pluginComponents")}</span>
+                <span class="plugin-tool-count"
+                  >{plugin.skills.length + plugin.mcp_servers.length}</span
+                >
+              </div>
+            </div>
+            <span class="detail-hint">
+              {plugin.skills.length}
+              {$t("pluginSkills")} · {plugin.mcp_servers.length}
+              {$t("pluginMcpServers")}
+            </span>
+            {#each plugin.warnings as warning (warning)}
+              <p class="plugin-warning">{warning}</p>
+            {/each}
+            {#if plugin.error}
+              <p class="plugin-warning">{plugin.error}</p>
+            {/if}
+          </Accordion.Content>
+        </Accordion.Item>
+      {/each}
       <Accordion.Item value="cua-driver" class="application-settings-surface plugin-accordion-item">
         <Accordion.Header class="plugin-accordion-header">
           <Accordion.Trigger class="plugin-accordion-trigger">

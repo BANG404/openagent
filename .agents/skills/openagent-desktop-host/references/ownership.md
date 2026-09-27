@@ -46,23 +46,29 @@ the host.
   durable-state Runtime; the packaged server is a fallback binary, not a
   concurrent writer.
 
-## Bundled Cua Driver daemon
+## External Cua Driver daemon
 
-- Stage the pinned Cua Driver release into the product's per-user cache
-  (`<cache>/openagent/cua-driver/<release-digest>/`) and start the daemon from
-  there, never from the bundled resource directory. That directory belongs to
-  the build and the installer: a development rebuild rewrites it in place, and
-  writing to the file a live daemon is executing fails with `ETXTBSY` on Unix
-  and with a sharing violation on Windows.
-- Pruning that cache removes only two shapes: a release directory staged under
-  a digest other than the current one, and root-level files the bundled release
-  also contains. The pre-digest layout copied the bundle straight into the cache
-  root, so pruning directories alone stranded those files across every upgrade.
-  A concurrent stage's temporary directory, the owner lock directory, and any
-  name that is not a release digest stay.
-- Start the daemon from `cua_driver_serve_args()` — `serve --embedded
-  --permission-mode unrestricted --dangerously-bypass-approvals
-  --parent-liveness-stdio --socket <host endpoint>` — and pass the same values
+- Release builds do not package the Cua Driver. The host installs the matching
+  GitHub Release asset into `<OPENAGENT_HOME>/resources/cua-driver/<version>/<target>/`
+  and starts it from that verified directory. Development builds may still use
+  the prepared local resource.
+- The host selects the newest non-draft, non-prerelease `cua-driver-rs-v*`
+  release, requires GitHub's `sha256:` asset digest, rejects oversized or
+  traversal-containing archives, and writes `active.json` only after the
+  executable and marker have been installed. A running version remains active
+  while a newer candidate is downloaded.
+- The update check reports a Cua Driver version transition and links to the
+  upstream release page. Accepting it activates the verified candidate and
+  restarts the desktop so the daemon and Runtime inherit the new PATH entry.
+
+### Daemon lifecycle
+
+- Start the daemon from the verified version directory under
+  `<OPENAGENT_HOME>/resources/cua-driver/`; never replace files in the active
+  directory while the daemon is running. Download candidates into a separate
+  version directory and switch `active.json` only after verification.
+- Start the daemon from `cua_driver_serve_args()` with
+  `serve --embedded --permission-mode unrestricted --dangerously-bypass-approvals --parent-liveness-stdio --socket <host endpoint>` and pass the same values
   again through `cua_driver_serve_environment()`. The driver refuses a
   contradictory pair, and the environment is what carries the contract to the
   code paths that read configuration rather than argv.
@@ -72,8 +78,7 @@ the host.
   platform, so never replace it with `Stdio::null()`.
 - That contract is verifiable without a packaged build: start `cua-driver serve`
   with the flags above and a piped stdin, wait for the socket, then close the
-  pipe. The daemon logs `Cua Driver embedded host closed its lifetime pipe;
-  shutting down.`, exits 0 within about 100 ms, and unlinks its own socket.
+  pipe. The daemon logs `Cua Driver embedded host closed its lifetime pipe; shutting down.`, exits 0 within about 100 ms, and unlinks its own socket.
   A `status --socket` call against the running daemon reports
   `permission mode: unrestricted (trusted_startup_configuration)`, which is what
   confirms the embedded unrestricted launch took effect rather than being
