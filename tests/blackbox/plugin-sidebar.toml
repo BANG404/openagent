@@ -1,0 +1,52 @@
+[scenario]
+name = "agent plugin sidebar isolation"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "right sidebar is expanded"
+action = "eval"
+script = '''(() => {
+  const expand = [...document.querySelectorAll("button")].find((candidate) =>
+    /^(Expand right sidebar|展开右侧栏)$/.test(
+      candidate.getAttribute("aria-label") ?? candidate.textContent?.trim() ?? ""
+    )
+  );
+  if (expand instanceof HTMLElement) expand.click();
+  return true;
+})()'''
+
+[[step]]
+name = "plugin sidebar entry is visible"
+action = "eval"
+script = '''(() => {
+  const button = [...document.querySelectorAll("button")].find((candidate) =>
+    candidate.textContent?.trim() === "Demo Plugin"
+  );
+  if (!(button instanceof HTMLElement)) throw new Error("demo plugin sidebar entry is missing");
+  button.click();
+  return true;
+})()'''
+
+[[step]]
+name = "plugin iframe receives scoped context"
+action = "eval"
+script = '''(() => {
+  const iframe = document.querySelector("#checkpoint-flow-panel iframe");
+  if (!(iframe instanceof HTMLIFrameElement)) throw new Error("plugin iframe is missing");
+  const text = iframe.contentDocument?.querySelector("#scope")?.textContent ?? "";
+  if (!text.startsWith("Scope: ") || !text.includes("\u0000")) {
+    throw new Error(`plugin context was not delivered: ${text}`);
+  }
+  return text;
+})()'''
+
+[[step]]
+name = "main conversation remains mounted beside plugin"
+action = "eval"
+script = '''(() => {
+  const main = document.querySelector(".conversation-stage");
+  if (!(main instanceof HTMLElement)) throw new Error("main conversation surface is missing");
+  if (!document.querySelector("#checkpoint-flow-panel iframe")) throw new Error("plugin panel disappeared");
+  return true;
+})()'''

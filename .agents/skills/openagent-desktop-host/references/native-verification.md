@@ -72,3 +72,17 @@ not a permanent controlled value. User tab changes must survive asynchronous
 role or hook refreshes; the black-box suite covers durable persistence by
 reloading the whole main window, reopening Automation, and only then asserting
 that the saved hook returned and creating a scheduled hook.
+
+## Agent plugin sidebar coverage
+
+The committed `tests/blackbox/plugin-sidebar.toml` scenario drives the demo
+Agent Plugin in the main window. It verifies the declared sidebar iframe,
+versioned conversation and branch context, and that the conversation surface
+stays mounted beside the plugin. The wrapper copies the deterministic fixture
+into the isolated plugin directory before running the scenario and checks the
+window error log afterward:
+
+```bash
+bun tauri dev --multi-instance plugin-blackbox
+bun run test:blackbox:plugins
+```
