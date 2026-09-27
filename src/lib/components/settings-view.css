@@ -28,15 +28,15 @@
     color: var(--text);
   }
 
-  :global(.settings-body) {
-    display: flex;
-    flex: 1;
+  .settings-body {
+    display: flex !important;
+    flex: 1 1 auto;
     min-width: 0;
     min-height: 0;
     overflow: hidden;
   }
 
-  :global(.settings-nav-col) {
+  .settings-nav-col {
     width: var(--settings-nav-width);
     flex-shrink: 0;
     display: flex;
@@ -46,7 +46,7 @@
     padding: 12px 8px;
   }
 
-  .settings-panel.single-section :global(.settings-nav-col) {
+  .settings-panel.single-section .settings-nav-col {
     display: none;
   }
 
@@ -64,7 +64,7 @@
     padding-top: 8px;
   }
 
-  :global(.settings-nav-item) {
+  .settings-nav-item {
     position: relative;
     display: flex;
     align-items: center;
@@ -86,28 +86,33 @@
       color var(--motion-fast) var(--ease-standard);
   }
 
-  :global(.settings-nav-item:hover:not([data-state="active"])) {
+  .settings-nav-item:hover:not([data-state="active"]) {
     background: var(--interactive-state-bg);
     color: var(--text);
   }
 
-  :global(.settings-nav-item[data-state="active"]) {
+  .settings-nav-item[data-state="active"] {
     background: var(--interactive-state-bg);
     color: var(--text);
     font-weight: 500;
   }
 
-  :global(.settings-nav-item:focus-visible) {
+  .settings-nav-item:focus-visible {
     box-shadow: var(--focus-ring);
     outline: none;
   }
 
-  :global(.settings-tab-panel) {
+  .settings-tab-panel {
     flex: 1;
     min-width: 0;
     min-height: 0;
-    display: flex;
+    display: flex !important;
     outline: none;
+  }
+
+  .settings-tab-panel[data-state="inactive"],
+  .settings-tab-panel[hidden] {
+    display: none !important;
   }
 
   .nav-icon {
@@ -204,12 +209,12 @@
     gap: var(--list-item-stack-gap);
   }
 
-  :global(.provider-list-scroll) {
+  .provider-list-scroll {
     flex: 1;
     min-height: 0;
   }
 
-  :global(.provider-list-scroll .ui-scroll-area-viewport) {
+  .provider-list-scroll .ui-scroll-area-viewport {
     padding: 6px;
     overflow-x: hidden;
   }
@@ -832,7 +837,7 @@
     line-height: var(--settings-hint-leading);
   }
 
-  :global(.channel-settings-detail) {
+  .channel-settings-detail {
     min-width: 0;
     background: transparent;
   }
@@ -862,11 +867,11 @@
     .channel-settings-item {
       width: 128px;
     }
-    :global(.channel-settings-detail .ui-scroll-area-viewport) {
+    .channel-settings-detail .ui-scroll-area-viewport {
       padding: 24px 18px;
     }
 
-    :global(.channel-settings-detail .remote-gateway-heading) {
+    .channel-settings-detail .remote-gateway-heading {
       align-items: flex-start;
       flex-direction: column;
       gap: 14px;
@@ -951,13 +956,13 @@
     max-width: 100%;
   }
 
-  :global(.detail-content) {
+  .detail-content {
     flex: 1;
     min-width: 0;
     min-height: 0;
   }
 
-  :global(.detail-content .ui-scroll-area-viewport) {
+  .detail-content .ui-scroll-area-viewport {
     overflow-x: hidden;
     padding: var(--settings-content-padding);
     padding-inline: max(
@@ -966,13 +971,13 @@
     );
   }
 
-  :global(.settings-content-col) {
+  .settings-content-col {
     flex: 1;
     min-width: 0;
     min-height: 0;
   }
 
-  :global(.settings-content-col .ui-scroll-area-viewport) {
+  .settings-content-col .ui-scroll-area-viewport {
     overflow-x: hidden;
     padding: var(--settings-content-padding);
     padding-inline: max(
@@ -1022,7 +1027,7 @@
     line-height: var(--settings-hint-leading);
   }
 
-  :global(.mcp-detail-content .ui-scroll-area-viewport) {
+  .mcp-detail-content .ui-scroll-area-viewport {
     padding-top: 12px;
   }
 
@@ -1150,23 +1155,23 @@
     font-variant-numeric: tabular-nums;
   }
 
-  :global(.plugin-accordion) {
+  .plugin-accordion {
     display: grid;
     gap: 10px;
   }
 
-  :global(.plugin-accordion-item) {
+  .plugin-accordion-item {
     overflow: hidden;
     border-radius: 10px;
   }
 
-  :global(.plugin-accordion-header) {
+  .plugin-accordion-header {
     display: flex;
     align-items: stretch;
     min-width: 0;
   }
 
-  :global(.plugin-accordion-trigger) {
+  .plugin-accordion-trigger {
     display: flex;
     min-width: 0;
     flex: 1;
@@ -1180,7 +1185,7 @@
     text-align: left;
   }
 
-  :global(.plugin-accordion-trigger:focus-visible) {
+  .plugin-accordion-trigger:focus-visible {
     position: relative;
     z-index: 1;
     outline: none;
@@ -1200,7 +1205,7 @@
     white-space: nowrap;
   }
 
-  :global(.plugin-accordion-chevron) {
+  .plugin-accordion-chevron {
     width: 16px;
     height: 16px;
     flex: 0 0 16px;
@@ -1211,21 +1216,21 @@
     transition: transform var(--motion-panel) var(--ease-enter);
   }
 
-  :global(.plugin-accordion-trigger[data-state="open"] .plugin-accordion-chevron) {
+  .plugin-accordion-trigger[data-state="open"] .plugin-accordion-chevron {
     transform: rotate(180deg);
   }
 
-  :global(.plugin-accordion-actions) {
+  .plugin-accordion-actions {
     display: flex;
     align-items: center;
     padding: 0 16px 0 4px;
   }
 
-  :global(.plugin-accordion-content) {
+  .plugin-accordion-content {
     padding: 0 16px 16px;
   }
 
-  :global(.plugin-accordion-content[data-state="open"]) {
+  .plugin-accordion-content[data-state="open"] {
     animation: plugin-content-open var(--motion-panel) var(--ease-enter);
   }
 
@@ -1423,7 +1428,7 @@
     line-height: var(--settings-heading-leading);
   }
 
-  .flash-task-suboption :global(button) {
+  .flash-task-suboption button {
     flex: 0 0 auto;
   }
 
@@ -1993,7 +1998,7 @@
     gap: 3px;
   }
 
-  .reasoning-support-field :global(.field-hint) {
+  .reasoning-support-field .field-hint {
     display: block;
   }
 
@@ -2027,7 +2032,7 @@
     font-size: 12px;
   }
 
-  :global(.dialog-actions.model-config-actions) {
+  .dialog-actions.model-config-actions {
     justify-content: space-between;
   }
 
@@ -2036,11 +2041,11 @@
     gap: 8px;
   }
 
-  :global(.btn-primary.danger-primary) {
+  .btn-primary.danger-primary {
     background: var(--danger);
   }
 
-  :global(.btn-primary.danger-primary:hover) {
+  .btn-primary.danger-primary:hover {
     background: color-mix(in srgb, var(--danger) 82%, var(--text));
   }
 
@@ -2076,7 +2081,7 @@
     color: var(--text-muted);
   }
 
-  :global(.scheduled-role-select-content .ui-select-item-description) {
+  .scheduled-role-select-content .ui-select-item-description {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
