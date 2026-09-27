@@ -527,6 +527,8 @@
     ? { isFocused: () => invoke<boolean>("is_desktop_window_active") }
     : null;
   const agentCompletionNotifier = new AgentCompletionNotifier();
+  let themeSyncGeneration = 0;
+  let themeSyncInFlight = false;
   const synchronizeNativeTheme =
     appWindow && usesNativeWindowMaterial
       ? createNativeThemeSynchronizer({
@@ -2233,6 +2235,11 @@
       return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const syncSystemTheme = () => {
+      // setTheme can make WebView's media query change before the persisted
+      // config catches up. Ignore that internal transition; otherwise the
+      // listener queues a stale system theme between an explicit selection's
+      // WebView and native updates.
+      if (themeSyncInFlight) return;
       if ((config?.theme ?? "system") === "system") applyTheme("system");
     };
     media.addEventListener("change", syncSystemTheme);
@@ -3659,7 +3666,11 @@
 
   function applyTheme(theme: string) {
     if (synchronizeNativeTheme) {
-      void synchronizeNativeTheme(theme as AppTheme);
+      const generation = ++themeSyncGeneration;
+      themeSyncInFlight = true;
+      void synchronizeNativeTheme(theme as AppTheme).finally(() => {
+        if (generation === themeSyncGeneration) themeSyncInFlight = false;
+      });
       return;
     }
     isDarkTheme = applyDocumentTheme(theme);

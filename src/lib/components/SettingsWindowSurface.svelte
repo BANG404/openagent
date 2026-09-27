@@ -3,7 +3,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import SettingsWindowSkeleton from "$lib/components/SettingsWindowSkeleton.svelte";
   import SettingsView from "$lib/components/SettingsView.svelte";
-  import { applyDocumentTheme, createNativeThemeSynchronizer } from "$lib/appTheme";
+  import { applyDocumentTheme, createNativeThemeSynchronizer, type AppTheme } from "$lib/appTheme";
   import { normalizeConfigShape } from "$lib/config";
   import { LatestRequest } from "$lib/latestRequest";
   import { desktopOpenAgent, emit, invoke, listen } from "$lib/openagent/tauriClient";
@@ -36,6 +36,8 @@
   let stageElement: HTMLElement;
   const appWindow = $derived(previewConfig ? null : getCurrentWindow());
   const settingsRequests = new LatestRequest();
+  let themeSyncGeneration = 0;
+  let themeSyncInFlight = false;
   const synchronizeNativeTheme = $derived(
     appWindow
       ? createNativeThemeSynchronizer({
@@ -48,6 +50,14 @@
       : null,
   );
 
+  function applyNativeTheme(theme: AppTheme): void {
+    const generation = ++themeSyncGeneration;
+    themeSyncInFlight = true;
+    void (synchronizeNativeTheme?.(theme) ?? Promise.resolve()).finally(() => {
+      if (generation === themeSyncGeneration) themeSyncInFlight = false;
+    });
+  }
+
   function applyConfig(next: AppConfig): AppConfig {
     const normalized = normalizeConfigShape(next);
     config = structuredClone(normalized);
@@ -55,7 +65,7 @@
     if (previewConfig) {
       applyDocumentTheme(normalized.theme ?? "system");
     } else {
-      void synchronizeNativeTheme?.(normalized.theme ?? "system");
+      applyNativeTheme(normalized.theme ?? "system");
       void appWindow?.setTitle($t(settingsWindowTitles[kind]));
     }
     return normalized;
@@ -107,7 +117,8 @@
     let stopSectionRequests: (() => void) | undefined;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const syncSystemTheme = () => {
-      if ((config?.theme ?? "system") === "system") void synchronizeNativeTheme?.("system");
+      if (themeSyncInFlight) return;
+      if ((config?.theme ?? "system") === "system") applyNativeTheme("system");
     };
     media.addEventListener("change", syncSystemTheme);
 
