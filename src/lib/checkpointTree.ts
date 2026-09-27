@@ -158,17 +158,7 @@ function isHiddenCheckpointRecord(record: CheckpointMessage): boolean {
   // retaining their durable checkpoint data for replay and inspection.
   return (
     record.role === "system" ||
-    ((record.plugin_tags?.length ?? 0) > 0 && record.plugin_user_visible === false) ||
-    record.tags.some((tag) =>
-      [
-        "chat_group_mention",
-        "terminal_poll",
-        "goal_continuation",
-        "graph_continuation",
-        "graph_node_bootstrap",
-        "graph_node_continuation",
-      ].includes(tag),
-    )
+    ((record.plugin_tags?.length ?? 0) > 0 && record.plugin_user_visible === false)
   );
 }
 

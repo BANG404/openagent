@@ -37,7 +37,11 @@ same `agent_plugins_enabled` map.
 Runtime hosts that need to emit a plugin message resolve its namespaced tag
 through the installed-plugin policy resolver. The resolver checks the plugin
 root and namespace before returning the audience rule; raw tags and tags owned
-by another plugin are rejected.
+by another plugin are rejected. Builtin lifecycle tags use the same persisted
+shape (`plugin:<builtin-id>:<tag>`): Goal, Graph, and Chat Groups materialize
+their enum tags into `plugin_tags` and persist the resolved user/model audience.
+On restore, older checkpoints are normalized before transcript or provider
+projection, so frontend code does not need a builtin-tag allowlist.
 
 Automation commands may return a structured lifecycle message such as
 `{"message":"Approval required","tag":"approval"}`. The Runtime
