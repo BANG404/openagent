@@ -39,6 +39,15 @@ through the installed-plugin policy resolver. The resolver checks the plugin
 root and namespace before returning the audience rule; raw tags and tags owned
 by another plugin are rejected.
 
+Automation commands may return a structured lifecycle message such as
+`{"message":"Approval required","tag":"approval"}`. The Runtime
+namespaces the local tag to `plugin:<plugin-id>:<tag>`, verifies that the
+manifest declares the tag, and persists the resolved audience in the
+checkpoint record. `user_visible` messages are projected into the transcript;
+`model_visible` messages are included in the next provider request. Plain text
+hook output keeps the existing model-context behavior and is not persisted as a
+plugin message.
+
 The loader accepts a valid manifest even when one optional component is bad.
 Manifest errors reject the package; a bad `skills/`, `mcp.json`, automation
 entry, or sidebar entry disables only that component and records a diagnostic.

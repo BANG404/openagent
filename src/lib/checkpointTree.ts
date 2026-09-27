@@ -158,6 +158,7 @@ function isHiddenCheckpointRecord(record: CheckpointMessage): boolean {
   // retaining their durable checkpoint data for replay and inspection.
   return (
     record.role === "system" ||
+    ((record.plugin_tags?.length ?? 0) > 0 && record.plugin_user_visible === false) ||
     record.tags.some((tag) =>
       [
         "chat_group_mention",
@@ -334,6 +335,7 @@ function recordToMessage( // NOSONAR: checkpoint projection handles legacy and c
     completedAt: r.completed_at ?? undefined,
     tags: r.tags,
     agentTag: r.tags[0],
+    pluginTags: r.plugin_tags,
     chatGroupWake: chatGroupWake || undefined,
   };
 }

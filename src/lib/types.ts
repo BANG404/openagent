@@ -100,6 +100,8 @@ export interface ChatMessage {
   tags?: string[];
   /** OpenAgent metadata read from the provider-compatible checkpoint message. */
   agentTag?: AgentMessageTag;
+  /** Namespaced plugin lifecycle tags projected by the Runtime. */
+  pluginTags?: string[];
   /** The assistant turn was triggered by a chat-group wake prompt. */
   chatGroupWake?: boolean;
 }
@@ -306,6 +308,9 @@ export interface CheckpointMessage {
   first_token_at: number | null;
   completed_at: number | null;
   tags: AgentMessageTag[];
+  plugin_tags?: string[];
+  plugin_user_visible?: boolean;
+  plugin_model_visible?: boolean;
   system_prompt: string | null;
   tools: string | null;
 }

@@ -460,6 +460,10 @@
 - New checkpoints carry compacted context inside the tagged user replay rather
   than adding a system message. Represent the whole record only by the divider,
   while continuing to restore legacy system-boundary checkpoints.
+- Preserve namespaced `plugin_tags` on hydrated checkpoint records. Runtime
+  audience policy is authoritative: hide plugin-only model messages from the
+  transcript, retain user-visible plugin lifecycle messages as ordinary
+  assistant rows, and keep both projections aligned by checkpoint message ID.
 - Chat-group messages keep sender identity separate from wake targets. Render
   the sender from its conversation member, and resolve each persisted mention
   member ID to an explicit inline `@role` annotation so a message sent by the

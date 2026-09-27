@@ -21,6 +21,11 @@ lowercase `tag`, `user_visible`, and `model_visible` boolean. OpenAgent
 namespaces these tags as `plugin:<plugin-id>:<tag>` and rejects malformed or
 audience-less entries while retaining the rest of the package.
 
+Automation hook commands can emit a JSON object with `message` and an optional
+local `tag`. Tagged output is accepted only when the tag is declared in the
+plugin's `message_policies`; the host applies the declared audience policy and
+stores the namespaced tag in the checkpoint.
+
 The loader selects its bundled 1.0.0 rules from the canonical `$schema` value;
 it never downloads a schema while loading a package. It resolves symlinks,
 junctions, and equivalent filesystem indirections before reading, copying, or
