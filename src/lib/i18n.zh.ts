@@ -295,6 +295,8 @@ export const zh = {
   pluginUpdated: "插件已更新。",
   pluginOperationFailed: "插件操作失败",
   pluginUpdate: "更新",
+  pluginUninstall: "卸载",
+  pluginUninstallConfirm: "确定卸载插件“{name}”？插件数据会保留。",
   pluginUpdateAvailable: "有可用更新",
   pluginUpdateDescription: "GitHub 上有 {count} 个插件可更新。",
   pluginLatestVersion: "最新版本：{version}",

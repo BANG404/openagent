@@ -4,8 +4,8 @@ OpenAgent can load portable [Agent Plugins](https://agent-plugins.org/) version
 1.0.0 packages whose root contains `plugin.json`. Validated packages are
 installed under the active `OPENAGENT_HOME`; the original folder is not used at
 runtime. The desktop Integrations settings surface can install a local folder,
-refresh installed packages, enable or disable them, and apply verified GitHub
-release updates.
+refresh installed packages, enable or disable them, uninstall third-party
+packages, and apply verified GitHub release updates.
 
 OpenAgent implements both portable component types:
 
@@ -97,6 +97,8 @@ The asset is size-limited, extracted into staging with archive traversal and
 link rejection, validated as a complete package with a matching manifest name,
 then atomically activated. The previous package is retained until activation
 succeeds and is restored if replacement fails; `plugin-data` is never replaced.
+An interrupted replacement is repaired during the next Runtime startup before
+installed packages are loaded.
 Plugin subprocesses remain subject to the normal OpenAgent
 process and permission environment; package containment prevents package path
 escapes but is not itself a subprocess sandbox.

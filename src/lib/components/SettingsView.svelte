@@ -225,6 +225,8 @@
   let agentPluginUpdates = $state<AgentPluginUpdateSummary[]>([]);
   let agentPluginUpdatesLoading = $state(false);
   let agentPluginUpdating = $state<string | null>(null);
+  let agentPluginRemoveId = $state<string | null>(null);
+  let agentPluginRemoving = $state(false);
   let agentPluginsLoading = $state(false);
   let agentPluginStatus = $state("");
   let mcpDiscoveredTools = $state<Record<string, string[]>>(
@@ -1730,6 +1732,35 @@
     }
   }
 
+  function requestUninstallAgentPlugin(pluginId: string): void {
+    const plugin = agentPlugins.find((item) => item.id === pluginId);
+    if (!plugin || plugin.builtin) return;
+    agentPluginRemoveId = pluginId;
+  }
+
+  function cancelUninstallAgentPlugin(): void {
+    if (agentPluginRemoving) return;
+    agentPluginRemoveId = null;
+  }
+
+  async function confirmUninstallAgentPlugin(): Promise<void> {
+    const pluginId = agentPluginRemoveId;
+    if (!pluginId || agentPluginRemoving || !isTauri()) return;
+    agentPluginRemoving = true;
+    agentPluginStatus = "";
+    try {
+      await desktopOpenAgent.uninstallAgentPlugin(pluginId);
+      agentPluginRemoveId = null;
+      await refreshAgentPlugins();
+      await emit("agent-plugins-changed").catch(() => {});
+      agentPluginStatus = tr("pluginUninstalled");
+    } catch (error: unknown) {
+      agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(error)}`;
+    } finally {
+      agentPluginRemoving = false;
+    }
+  }
+
   async function installAgentPlugin() {
     const selected = await openDialog({ multiple: false, directory: true });
     if (!selected || Array.isArray(selected)) return;
@@ -1907,6 +1938,19 @@
     get agentPluginUpdating() {
       return agentPluginUpdating;
     },
+    get agentPluginRemoveDialogOpen() {
+      return agentPluginRemoveId !== null;
+    },
+    get agentPluginRemoveName() {
+      return (
+        agentPlugins.find((plugin) => plugin.id === agentPluginRemoveId)?.name ??
+        agentPluginRemoveId ??
+        ""
+      );
+    },
+    get agentPluginRemoving() {
+      return agentPluginRemoving;
+    },
     get agentPluginStatus() {
       return agentPluginStatus;
     },
@@ -1915,6 +1959,15 @@
     },
     get updateAgentPlugin() {
       return updateAgentPlugin;
+    },
+    get requestUninstallAgentPlugin() {
+      return requestUninstallAgentPlugin;
+    },
+    get cancelUninstallAgentPlugin() {
+      return cancelUninstallAgentPlugin;
+    },
+    get confirmUninstallAgentPlugin() {
+      return confirmUninstallAgentPlugin;
     },
     get refreshAgentPlugins() {
       return refreshAgentPlugins;

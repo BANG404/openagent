@@ -145,6 +145,8 @@ copy into a staging directory, validate again, then atomically activate the
 package. Updates select a GitHub HTTPS release archive with a verified
 `sha256:` digest, reject oversized or unsafe archives, preserve `plugin-data`,
 and restore the previous active package if replacement cannot be completed.
+Startup also repairs an interrupted replacement by restoring a backup when the
+active package is missing and removing stale staging directories.
 Enable and disable remain lifecycle gates for mounted components.
 
 Local directories are the first supported source. A manifest `repository` may

@@ -127,6 +127,39 @@
   </Dialog.Portal>
 </Dialog.Root>
 
+<Dialog.Root
+  open={view.agentPluginRemoveDialogOpen}
+  onOpenChange={(open) => {
+    if (!open) view.cancelUninstallAgentPlugin();
+  }}
+>
+  <Dialog.Portal>
+    <Dialog.Overlay class="dialog-overlay" />
+    <Dialog.Content class="dialog">
+      <Dialog.Title class="dialog-title">{$t("pluginUninstall")}</Dialog.Title>
+      <p class="dialog-copy">
+        {$t("pluginUninstallConfirm").replace("{name}", view.agentPluginRemoveName)}
+      </p>
+      <div class="dialog-actions">
+        <button
+          class="btn-secondary"
+          onclick={view.cancelUninstallAgentPlugin}
+          disabled={view.agentPluginRemoving}
+        >
+          {$t("cancel")}
+        </button>
+        <SettingsActionButton
+          label={$t("pluginUninstall")}
+          icon="trash"
+          tone="danger"
+          onclick={view.confirmUninstallAgentPlugin}
+          disabled={view.agentPluginRemoving}
+        />
+      </div>
+    </Dialog.Content>
+  </Dialog.Portal>
+</Dialog.Root>
+
 <Dialog.Root bind:open={view.modelConfigDialogOpen}>
   <Dialog.Portal>
     <Dialog.Overlay class="dialog-overlay" />

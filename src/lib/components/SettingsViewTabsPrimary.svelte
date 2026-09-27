@@ -459,6 +459,15 @@
                   {/if}
                 </p>
               {/if}
+              {#if !plugin.builtin}
+                <SettingsActionButton
+                  label={$t("pluginUninstall")}
+                  icon="trash"
+                  tone="danger"
+                  onclick={() => view.requestUninstallAgentPlugin(plugin.id)}
+                  disabled={view.agentPluginUpdating !== null || view.agentPluginRemoving}
+                />
+              {/if}
             </Accordion.Content>
           {/if}
         </Accordion.Item>
