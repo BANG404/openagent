@@ -58,6 +58,12 @@ OpenAgent sends a JSON request on stdin containing `conversation_id`,
 non-empty prompt. The executable runs through the normal process boundary and
 must remain inside the installed package root.
 
+Sidebar entries may include `icon` and a `capabilities` array. Capabilities are
+limited to `workspace`, `conversation`, `branch`, `files`, `locale`, and
+`theme`; the host sends only the requested fields in the versioned
+`openagent:sidebar-context` message. File access is metadata-only and never
+contains file contents or diffs.
+
 The loader selects its bundled 1.0.0 rules from the canonical `$schema` value;
 it never downloads a schema while loading a package. It resolves symlinks,
 junctions, and equivalent filesystem indirections before reading, copying, or

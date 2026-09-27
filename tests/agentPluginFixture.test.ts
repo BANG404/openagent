@@ -11,7 +11,7 @@ describe("Agent Plugin fixture", () => {
       name?: string;
       extensions?: {
         openagent?: {
-          sidebar?: Array<{ entry?: string }>;
+          sidebar?: Array<{ entry?: string; icon?: string; capabilities?: string[] }>;
           automation?: Array<{ command?: string }>;
           message_policies?: Array<{
             tag?: string;
@@ -25,6 +25,13 @@ describe("Agent Plugin fixture", () => {
     expect(manifest.$schema).toBe("https://agent-plugins.org/schemas/1.0.0/plugin.schema.json");
     expect(manifest.name).toBe("openagent-demo-plugin");
     expect(manifest.extensions?.openagent?.sidebar?.[0]?.entry).toBe("ui/panel.html");
+    expect(manifest.extensions?.openagent?.sidebar?.[0]?.icon).toBe("panel");
+    expect(manifest.extensions?.openagent?.sidebar?.[0]?.capabilities).toEqual([
+      "conversation",
+      "branch",
+      "files",
+      "theme",
+    ]);
     expect(manifest.extensions?.openagent?.automation?.[0]?.command).toBe("hooks/after-tool.cmd");
     expect(manifest.extensions?.openagent?.message_policies?.[0]).toEqual({
       tag: "notice",

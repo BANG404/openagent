@@ -30,6 +30,7 @@
     chatGroupWorkspace = "",
     onChatGroupsAvailabilityChange = () => {},
     pluginSidebarViews = [],
+    pluginSidebarContext = {},
   }: {
     flow: CheckpointFlow | null;
     changes: FileChange[];
@@ -48,6 +49,14 @@
     chatGroupWorkspace?: string;
     onChatGroupsAvailabilityChange?: (available: boolean) => void;
     pluginSidebarViews?: AgentPluginSidebarViewSummary[];
+    pluginSidebarContext?: {
+      workspacePath?: string | null;
+      conversationId?: string | null;
+      branchId?: string | null;
+      fileChanges?: Array<{ path: string; status: string }>;
+      locale?: string;
+      theme?: string;
+    };
   } = $props();
 
   let width = $state(
@@ -152,5 +161,6 @@
   {chatGroupWorkspace}
   {onChatGroupsAvailabilityChange}
   {pluginSidebarViews}
+  {pluginSidebarContext}
   onResizeStart={startResize}
 />

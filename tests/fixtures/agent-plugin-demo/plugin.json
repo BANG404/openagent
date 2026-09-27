@@ -19,7 +19,9 @@
           "id": "demo-panel",
           "title": "Demo Plugin",
           "entry": "ui/panel.html",
-          "scope": "conversation"
+          "scope": "conversation",
+          "icon": "panel",
+          "capabilities": ["conversation", "branch", "files", "theme"]
         }
       ],
       "automation": [

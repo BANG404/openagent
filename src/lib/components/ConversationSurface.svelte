@@ -156,6 +156,17 @@
   let localComposerFocusRequest = $state(0);
   let wasNewConversationLayout = $state<boolean | null>(null);
   let showScrollToBottom = $state(false);
+  let pluginSidebarContext = $derived({
+    workspacePath: view.workspacePath || null,
+    conversationId: view.activeConvId,
+    branchId: view.activeBranchId,
+    locale: view.config?.language ?? "en",
+    theme: view.config?.theme ?? "system",
+    fileChanges: view.fileChanges.map((change) => ({
+      path: change.path,
+      status: change.old_patch === null ? "created" : "modified",
+    })),
+  });
 
   function updateScrollToBottomVisibility(): void {
     const element = messagesElement;
@@ -441,6 +452,7 @@
     {chatGroupWorkspace}
     {onChatGroupsAvailabilityChange}
     {pluginSidebarViews}
+    {pluginSidebarContext}
   />
 </div>
 

@@ -616,6 +616,8 @@ export interface AgentPluginSidebarViewSummary {
   title: string;
   entry: string;
   scope: "global" | "workspace" | "conversation";
+  icon?: string | null;
+  capabilities: string[];
 }
 
 export interface AgentPluginAutomationHookSummary {

@@ -46,6 +46,14 @@
     chatGroupWorkspace?: string;
     onChatGroupsAvailabilityChange?: (available: boolean) => void;
     pluginSidebarViews?: AgentPluginSidebarViewSummary[];
+    pluginSidebarContext?: {
+      workspacePath?: string | null;
+      conversationId?: string | null;
+      branchId?: string | null;
+      fileChanges?: Array<{ path: string; status: string }>;
+      locale?: string;
+      theme?: string;
+    };
   }
 
   let {
@@ -71,6 +79,7 @@
     chatGroupWorkspace = "",
     onChatGroupsAvailabilityChange = () => {},
     pluginSidebarViews = [],
+    pluginSidebarContext = {},
   }: Props = $props();
   const panelSnapshots = new RightSidebarPanelStateStore();
   let currentScopeKey = $state<string | null>(null);
@@ -477,7 +486,7 @@
         hidden={collapsed || activePanel !== view.id}
         aria-hidden={collapsed || activePanel !== view.id}
       >
-        <PluginSidebarPanel {view} scopeKey={rightSidebarScopeKey} />
+        <PluginSidebarPanel {view} scopeKey={rightSidebarScopeKey} context={pluginSidebarContext} />
       </div>
     {/each}
     {#if !collapsed && activePanel !== "status" && activePanel !== "files" && activePanel !== "group" && activePanel !== "terminal" && !isPluginSidebarPanel(activePanel)}

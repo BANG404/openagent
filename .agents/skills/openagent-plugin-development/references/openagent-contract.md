@@ -113,15 +113,19 @@ never package filesystem paths.
 ### Right-sidebar views
 
 Sidebar view IDs are `plugin:<plugin-id>:<view-id>`. A view declares a title,
-icon, package-relative entry, scope (`global`, `workspace`, or `conversation`),
-and requested host capabilities. The host registers it beside the built-in
+optional icon, package-relative entry, scope (`global`, `workspace`, or
+`conversation`), and requested host capabilities. Supported capabilities are
+`workspace`, `conversation`, `branch`, `files`, `locale`, and `theme`; the host
+only includes data requested by the view. The host registers it beside the built-in
 `status`, `files`, `terminal`, and `group` panels and persists selection with
 the existing conversation/branch scope store.
 
 The first host surface accepts UTF-8 HTML entries and runs them in an iframe
 with `sandbox="allow-scripts"`. Third-party UI runs in an isolated plugin surface. The host sends only an
 allowlisted panel context (workspace and opaque conversation/branch identity,
-safe file-change summaries, and plugin state) over a versioned RPC channel.
+safe file-change summaries, locale, and theme) over a versioned postMessage
+channel. The context is refreshed when the active workspace, branch, or theme
+changes.
 Plugins never receive transcript contents, prompts, model output, Inspector
 records, trace payloads, or another plugin's data. UI failures unmount only the
 affected view and leave the main conversation surface usable.
