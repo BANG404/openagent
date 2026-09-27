@@ -73,6 +73,7 @@
   import type { SettingsNav } from "$lib/settingsWindows";
   import { approvalModeDescriptionKey, DEFAULT_APP_CONFIG } from "$lib/settingsDefaults";
   const view = getContext<Record<string, unknown>>("settings-view") as Record<string, any>;
+  const builtinChatGroupsId = "chat-groups";
 </script>
 
 <Tabs.Content value="general" class="settings-tab-panel">
@@ -263,7 +264,7 @@
     </header>
     <div class="plugin-directory-heading">
       <span class="detail-section-title">{$t("plugins")}</span>
-      <span class="plugin-directory-count">{view.agentPlugins.length + 2}</span>
+      <span class="plugin-directory-count">{view.agentPlugins.length}</span>
       <div class="plugin-directory-actions">
         <SettingsActionButton
           label={$t("pluginInstall")}
@@ -290,24 +291,6 @@
       <p class="detail-hint">{$t("pluginEmpty")}</p>
     {/if}
     <Accordion.Root type="multiple" class="plugin-accordion">
-      <Accordion.Item
-        value="chat-groups"
-        class="application-settings-surface plugin-accordion-item"
-      >
-        <Accordion.Header class="plugin-accordion-header">
-          <Accordion.Trigger class="plugin-accordion-trigger">
-            <span class="plugin-accordion-copy">
-              <span class="label-text">{$t("chatGroupPlugin")}</span>
-              <span class="detail-hint">{$t("chatGroupPluginDescription")}</span>
-            </span>
-            <Switch
-              checked={view.draftConfig.chat_groups_enabled ?? true}
-              onCheckedChange={(checked) => (view.draftConfig.chat_groups_enabled = checked)}
-              ariaLabel={$t("chatGroupPlugin")}
-            />
-          </Accordion.Trigger>
-        </Accordion.Header>
-      </Accordion.Item>
       {#each view.agentPlugins as plugin (plugin.id)}
         <Accordion.Item
           value={`plugin-${plugin.id}`}
@@ -316,128 +299,153 @@
           <Accordion.Header class="plugin-accordion-header">
             <Accordion.Trigger class="plugin-accordion-trigger">
               <span class="plugin-accordion-copy">
-                <span class="label-text">{plugin.name}</span>
-                <span class="detail-hint">{plugin.description ?? plugin.id}</span>
-              </span>
-              <span class="plugin-version">
-                {plugin.version ?? "-"}
-                {#if (view.agentPluginUpdates ?? []).find((item: AgentPluginUpdateSummary) => item.id === plugin.id)?.update_available}
-                  <span class="plugin-update-mark">{$t("pluginUpdateAvailable")}</span>
-                {/if}
-              </span>
-            </Accordion.Trigger>
-          </Accordion.Header>
-          <Accordion.Content class="plugin-accordion-content">
-            <div class="plugin-tools-heading">
-              <div class="plugin-tools-title">
-                <span class="label-text">{$t("pluginComponents")}</span>
-                <span class="plugin-tool-count"
-                  >{plugin.skills.length + plugin.mcp_servers.length}</span
+                <span class="label-text"
+                  >{plugin.id === builtinChatGroupsId ? $t("chatGroupPlugin") : plugin.name}</span
                 >
-              </div>
-            </div>
-            <span class="detail-hint">
-              {plugin.skills.length}
-              {$t("pluginSkills")} · {plugin.mcp_servers.length}
-              {$t("pluginMcpServers")}
-            </span>
-            {#each plugin.warnings as warning (warning)}
-              <p class="plugin-warning">{warning}</p>
-            {/each}
-            {#if plugin.error}
-              <p class="plugin-warning">{plugin.error}</p>
-            {/if}
-            {@const update = (view.agentPluginUpdates ?? []).find(
-              (item: AgentPluginUpdateSummary) => item.id === plugin.id,
-            )}
-            {#if update?.update_available && update.latest_version}
-              <p class="plugin-update-hint">
-                {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
-                {#if update.release_url}
-                  <a href={update.release_url} target="_blank" rel="noreferrer">GitHub</a>
+                <span class="detail-hint"
+                  >{plugin.id === builtinChatGroupsId
+                    ? $t("chatGroupPluginDescription")
+                    : plugin.id === view.cuaDriverId
+                      ? $t("pluginDesktopControlDescription")
+                      : (plugin.description ?? plugin.id)}</span
+                >
+                {#if plugin.id === view.cuaDriverId}
+                  <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
                 {/if}
-              </p>
+              </span>
+              {#if plugin.id === view.cuaDriverId}
+                <svg
+                  class="plugin-accordion-chevron"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path d="m4 6 4 4 4-4" />
+                </svg>
+              {:else if plugin.id !== builtinChatGroupsId}
+                <span class="plugin-version">
+                  {plugin.version ?? "-"}
+                  {#if (view.agentPluginUpdates ?? []).find((item: AgentPluginUpdateSummary) => item.id === plugin.id)?.update_available}
+                    <span class="plugin-update-mark">{$t("pluginUpdateAvailable")}</span>
+                  {/if}
+                </span>
+              {/if}
+            </Accordion.Trigger>
+            {#if plugin.id === builtinChatGroupsId}
+              <div class="plugin-accordion-actions">
+                <Switch
+                  checked={view.draftConfig.chat_groups_enabled ?? true}
+                  onCheckedChange={(checked) => (view.draftConfig.chat_groups_enabled = checked)}
+                  ariaLabel={$t("chatGroupPlugin")}
+                />
+              </div>
+            {:else if plugin.id === view.cuaDriverId}
+              <div class="plugin-accordion-actions">
+                <Switch
+                  checked={view.cuaDriver.enabled}
+                  onCheckedChange={(enabled) => view.setCuaDriverEnabled(enabled)}
+                  ariaLabel={$t("pluginDesktopControl")}
+                />
+              </div>
             {/if}
-          </Accordion.Content>
+          </Accordion.Header>
+          {#if plugin.id === view.cuaDriverId}
+            <Accordion.Content class="plugin-accordion-content">
+              <div class="plugin-tools-heading">
+                <div class="plugin-tools-title">
+                  <span class="label-text">{$t("pluginTools")}</span>
+                  <span class="plugin-tool-count"
+                    >{(view.mcpDiscoveredTools[view.cuaDriverId] ?? []).length}</span
+                  >
+                </div>
+                <SettingsActionButton
+                  label={$t("testMcpServer")}
+                  icon="test"
+                  tone="quiet"
+                  onclick={() => view.testMcpServer(view.cuaDriverId)}
+                  disabled={view.mcpTestStatus[view.cuaDriverId]?.tone === "testing"}
+                />
+              </div>
+              <span class="detail-hint">{$t("pluginToolsHint")}</span>
+              {#if view.mcpTestStatus[view.cuaDriverId] && view.mcpTestStatus[view.cuaDriverId].tone !== "idle"}
+                <div
+                  class="provider-status {view.mcpTestStatus[view.cuaDriverId].tone === 'success'
+                    ? 'success'
+                    : view.mcpTestStatus[view.cuaDriverId].tone === 'error'
+                      ? 'error'
+                      : 'loading'}"
+                  style="margin-top:10px"
+                >
+                  {view.mcpTestStatus[view.cuaDriverId].message}
+                </div>
+              {/if}
+              {#if (view.mcpDiscoveredTools[view.cuaDriverId] ?? []).length > 0}
+                <div class="application-settings-surface plugin-tool-list">
+                  {#each view.mcpDiscoveredTools[view.cuaDriverId] ?? [] as tool (tool)}
+                    <div class="mcp-tool-row">
+                      <code>{tool}</code>
+                      <Switch
+                        checked={!view.cuaDriver.disabled_tools.includes(tool)}
+                        onCheckedChange={(checked) =>
+                          view.setMcpToolEnabled(view.cuaDriverId, tool, checked)}
+                        ariaLabel={`${$t("mcpToolEnabled")}: ${tool}`}
+                      />
+                    </div>
+                  {/each}
+                </div>
+              {:else}
+                <div class="plugin-tools-empty">
+                  <span class="plugin-tools-empty-icon" aria-hidden="true">+</span>
+                  <span>{$t("pluginToolsEmpty")}</span>
+                </div>
+              {/if}
+              <p class="plugin-warning">{$t("pluginUnrestrictedWarning")}</p>
+            </Accordion.Content>
+          {:else if plugin.id !== builtinChatGroupsId}
+            <Accordion.Content class="plugin-accordion-content">
+              <div class="plugin-tools-heading">
+                <div class="plugin-tools-title">
+                  <span class="label-text">{$t("pluginComponents")}</span>
+                  <span class="plugin-tool-count"
+                    >{plugin.skills.length +
+                      plugin.mcp_servers.length +
+                      plugin.commands.length +
+                      plugin.message_policies.length}</span
+                  >
+                </div>
+              </div>
+              <span class="detail-hint">
+                {plugin.skills.length}
+                {$t("pluginSkills")} · {plugin.mcp_servers.length}
+                {$t("pluginMcpServers")}
+                {#if plugin.commands.length > 0}
+                  · {plugin.commands.length} {$t("pluginCommands")}
+                {/if}
+                {#if plugin.message_policies.length > 0}
+                  · {plugin.message_policies.length} {$t("pluginMessagePolicies")}
+                {/if}
+              </span>
+              {#each plugin.warnings as warning (warning)}
+                <p class="plugin-warning">{warning}</p>
+              {/each}
+              {#if plugin.error}
+                <p class="plugin-warning">{plugin.error}</p>
+              {/if}
+              {@const update = (view.agentPluginUpdates ?? []).find(
+                (item: AgentPluginUpdateSummary) => item.id === plugin.id,
+              )}
+              {#if update?.update_available && update.latest_version}
+                <p class="plugin-update-hint">
+                  {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
+                  {#if update.release_url}
+                    <a href={update.release_url} target="_blank" rel="noreferrer">GitHub</a>
+                  {/if}
+                </p>
+              {/if}
+            </Accordion.Content>
+          {/if}
         </Accordion.Item>
       {/each}
-      <Accordion.Item value="cua-driver" class="application-settings-surface plugin-accordion-item">
-        <Accordion.Header class="plugin-accordion-header">
-          <Accordion.Trigger class="plugin-accordion-trigger">
-            <span class="plugin-accordion-copy">
-              <span class="label-text">Cua Driver</span>
-              <span class="detail-hint">{$t("pluginDesktopControlDescription")}</span>
-              <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
-            </span>
-            <svg
-              class="plugin-accordion-chevron"
-              viewBox="0 0 16 16"
-              fill="none"
-              aria-hidden="true"
-            >
-              <path d="m4 6 4 4 4-4" />
-            </svg>
-          </Accordion.Trigger>
-          <div class="plugin-accordion-actions">
-            <Switch
-              checked={view.cuaDriver.enabled}
-              onCheckedChange={(enabled) => view.setCuaDriverEnabled(enabled)}
-              ariaLabel={$t("pluginDesktopControl")}
-            />
-          </div>
-        </Accordion.Header>
-        <Accordion.Content class="plugin-accordion-content">
-          <div class="plugin-tools-heading">
-            <div class="plugin-tools-title">
-              <span class="label-text">{$t("pluginTools")}</span>
-              <span class="plugin-tool-count"
-                >{(view.mcpDiscoveredTools[view.cuaDriverId] ?? []).length}</span
-              >
-            </div>
-            <SettingsActionButton
-              label={$t("testMcpServer")}
-              icon="test"
-              tone="quiet"
-              onclick={() => view.testMcpServer(view.cuaDriverId)}
-              disabled={view.mcpTestStatus[view.cuaDriverId]?.tone === "testing"}
-            />
-          </div>
-          <span class="detail-hint">{$t("pluginToolsHint")}</span>
-          {#if view.mcpTestStatus[view.cuaDriverId] && view.mcpTestStatus[view.cuaDriverId].tone !== "idle"}
-            <div
-              class="provider-status {view.mcpTestStatus[view.cuaDriverId].tone === 'success'
-                ? 'success'
-                : view.mcpTestStatus[view.cuaDriverId].tone === 'error'
-                  ? 'error'
-                  : 'loading'}"
-              style="margin-top:10px"
-            >
-              {view.mcpTestStatus[view.cuaDriverId].message}
-            </div>
-          {/if}
-          {#if (view.mcpDiscoveredTools[view.cuaDriverId] ?? []).length > 0}
-            <div class="application-settings-surface plugin-tool-list">
-              {#each view.mcpDiscoveredTools[view.cuaDriverId] ?? [] as tool (tool)}
-                <div class="mcp-tool-row">
-                  <code>{tool}</code>
-                  <Switch
-                    checked={!view.cuaDriver.disabled_tools.includes(tool)}
-                    onCheckedChange={(checked) =>
-                      view.setMcpToolEnabled(view.cuaDriverId, tool, checked)}
-                    ariaLabel={`${$t("mcpToolEnabled")}: ${tool}`}
-                  />
-                </div>
-              {/each}
-            </div>
-          {:else}
-            <div class="plugin-tools-empty">
-              <span class="plugin-tools-empty-icon" aria-hidden="true">+</span>
-              <span>{$t("pluginToolsEmpty")}</span>
-            </div>
-          {/if}
-          <p class="plugin-warning">{$t("pluginUnrestrictedWarning")}</p>
-        </Accordion.Content>
-      </Accordion.Item>
     </Accordion.Root>
   </ScrollArea>
 </Tabs.Content>

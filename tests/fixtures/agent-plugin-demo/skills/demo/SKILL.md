@@ -1,5 +1,5 @@
 ---
-name: demo-plugin-skill
+name: demo
 description: A deterministic Skill fixture for Agent Plugin loading tests.
 ---
 

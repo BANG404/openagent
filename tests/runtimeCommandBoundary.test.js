@@ -118,6 +118,22 @@ describe("desktop command boundary", () => {
     expect(gateway).toContain("super::read_agent_plugin_asset(runtime_state, plugin_id, entry)");
   });
 
+  test("registers product capabilities through the Agent Plugin descriptor", () => {
+    const plugins = readFileSync("sdk/rust/openagent-runtime/src/agent_plugins.rs", "utf8");
+    const protocol = readFileSync("sdk/rust/openagent-protocol/src/lib.rs", "utf8");
+    const settings = readFileSync("src/lib/components/SettingsViewTabsPrimary.svelte", "utf8");
+
+    expect(plugins).toContain('id: "chat-groups".to_string()');
+    expect(plugins).toContain('id: "goal".to_string()');
+    expect(plugins).toContain('id: "graph".to_string()');
+    expect(plugins).toContain('id: "cua-driver".to_string()');
+    expect(plugins).toContain("pub message_policies: Vec<AgentPluginMessagePolicy>");
+    expect(protocol).toContain("pub plugin_id: Option<String>");
+    expect(protocol).toContain('"goal" | "graph" => Some(name.to_string())');
+    expect(settings).toContain("{#each view.agentPlugins as plugin (plugin.id)}");
+    expect(settings).not.toContain('value="cua-driver" class="application-settings-surface');
+  });
+
   test("resolves native open paths through the active desktop Runtime mode", () => {
     const host = readFileSync("src-tauri/src/lib.rs", "utf8");
     const start = host.indexOf("async fn resolve_desktop_open_path");

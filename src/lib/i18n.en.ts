@@ -303,6 +303,8 @@ const en: Record<TranslationKeys, string> = {
   pluginComponents: "Components",
   pluginSkills: "Skills",
   pluginMcpServers: "MCP servers",
+  pluginCommands: "commands",
+  pluginMessagePolicies: "message policies",
   pluginDesktopControlDescription:
     "Connect Cua Driver as an MCP service so the Agent can operate desktop apps and browsers.",
   pluginDesktopControl: "Desktop control",

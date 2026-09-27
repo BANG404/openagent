@@ -293,19 +293,23 @@
   built-in providers such as Cua Driver are managed from their owning plugin
   surface and must not appear here. The same exclusion applies to the MCP
   association column in the Agent Role editor.
-- The Plugins settings surface includes the built-in Cua Driver capability. It
-  seeds an enabled stdio MCP entry on first configuration load and exposes only
-  switch controls: the plugin enable switch plus Cua connection testing and
-  per-tool scope switches. Permission mode, socket, grants, and manifest are
-  fixed product policy rather than user settings, so never render them as
-  editable fields again. Release builds resolve the reserved `cua-driver`
-  command from OpenAgent's verified bundled resource; development builds may
-  still use an independently installed command. Connection testing and the
-  plugin switch start the host-owned daemon before probing, because
-  `cua-driver mcp --socket` is only a client; without that call the tool list
-  stays empty with the `pluginToolsEmpty` hint. Show a localized warning for the
-  fixed unrestricted mode, and keep the tool switches usable down to a single
-  column on narrow windows.
+- The Plugins settings surface renders product capabilities and installed
+  packages from the Runtime Agent Plugin registry. Chat Groups, Goal Mode, and
+  Graph Mode retain their existing switches or slash commands; their
+  checkpoint message policies describe which tagged prompts are user-visible
+  and which are model-only. The Cua Driver entry still seeds an enabled stdio
+  MCP entry on first configuration load and exposes only switch controls: the
+  plugin enable switch plus Cua connection testing and per-tool scope switches.
+  Permission mode, socket, grants, and manifest are fixed product policy rather
+  than user settings, so never render them as editable fields again. Release
+  builds resolve the reserved `cua-driver` command from OpenAgent's verified
+  bundled resource; development builds may still use an independently
+  installed command. Connection testing and the plugin switch start the
+  host-owned daemon before probing, because `cua-driver mcp --socket` is only a
+  client; without that call the tool list stays empty with the
+  `pluginToolsEmpty` hint. Show a localized warning for the fixed unrestricted
+  mode, and keep the tool switches usable down to a single column on narrow
+  windows.
 - Settings action controls use one compact, shadowless semantic hierarchy:
   primary blue pills for creation, divider-bordered filled controls for ordinary
   file, test, and navigation actions, blue controls for inline row construction,

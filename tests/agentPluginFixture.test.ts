@@ -43,4 +43,9 @@ describe("Agent Plugin fixture", () => {
       expect(await readFile(resolve(fixtureRoot, relativePath!), "utf8")).toBeTruthy();
     }
   });
+
+  test("uses a directory-matching Skill name", async () => {
+    const skill = await readFile(resolve(fixtureRoot, "skills/demo/SKILL.md"), "utf8");
+    expect(skill).toContain("name: demo");
+  });
 });

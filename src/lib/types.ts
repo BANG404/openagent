@@ -621,14 +621,23 @@ export interface AgentPluginAutomationHookSummary {
   command: string;
 }
 
+export interface AgentPluginMessagePolicy {
+  tag: string;
+  user_visible: boolean;
+  model_visible: boolean;
+}
+
 export interface AgentPluginSummary {
   id: string;
   name: string;
+  builtin: boolean;
   version: string | null;
   description: string | null;
   path: string;
   repository: string | null;
   capabilities: string[];
+  commands: string[];
+  message_policies: AgentPluginMessagePolicy[];
   skills: AgentPluginSkillSummary[];
   mcp_servers: AgentPluginMcpSummary[];
   sidebar_views: AgentPluginSidebarViewSummary[];

@@ -10,9 +10,18 @@ and unknown fields remain harmless to other hosts.
 
 The Runtime exposes a typed descriptor rather than raw manifest JSON. Its
 stable fields are `id`, `name`, `version`, `repository`, `path`, `capabilities`,
-`skills`, `mcp_servers`, `automation_hooks`, `sidebar_views`, `warnings`, and
-`error`. Update results are returned by `check_updates`. IDs are the manifest name and child
-components use `plugin:<plugin-id>:<component-id>`.
+`commands`, `message_policies`, `skills`, `mcp_servers`, `automation_hooks`,
+`sidebar_views`, `warnings`, and `error`. Update results are returned by
+`check_updates`. IDs are the manifest name for portable packages and the
+reserved builtin ID for product capabilities; child components use
+`plugin:<plugin-id>:<component-id>`.
+
+Runtime command descriptors carry an optional `plugin_id`; `/goal` and
+`/graph` point to their matching builtin descriptor. `message_policies` lists
+checkpoint tags owned by that builtin capability and declares whether each
+tagged message is visible to the user and/or model. It is descriptive metadata
+for trusted Runtime capabilities, not a permission for a portable plugin to
+forge internal tags.
 
 The loader accepts a valid manifest even when one optional component is bad.
 Manifest errors reject the package; a bad `skills/`, `mcp.json`, automation
@@ -27,8 +36,11 @@ always under `<OPENAGENT_HOME>/plugin-data/<plugin-id>/`.
 Skills continue to use immediate child directories under `skills/` with a
 conforming `SKILL.md`. MCP continues to use the portable `mcp.json` schema and
 the existing `PLUGIN_ROOT`/`PLUGIN_DATA` expansion and transport restrictions.
-The reserved `cua-driver` entry remains a product-owned capability and is not a
-user-installed plugin.
+The product registry exposes Cua Driver, Chat Groups, Goal Mode, and Graph Mode
+as trusted builtin plugin descriptors. Their implementation remains owned by
+the Runtime or desktop host, so they cannot be installed or uninstalled as
+portable packages. Cua Driver still uses its verified resource, daemon
+ownership, fixed endpoint, and reserved MCP lifecycle.
 
 ### Automation
 
@@ -72,11 +84,11 @@ plugin code.
 
 ## Built-in migration
 
-Built-in Chat Groups use the same descriptor and registry with a trusted
-`builtin` source while retaining `chat_groups_enabled` and existing Runtime
-operations. Cua Driver is displayed through the registry for consistency but
-keeps its verified resource, daemon ownership, fixed endpoint, and reserved
-MCP lifecycle. Existing user MCP, Skills, and `automation_hooks` settings are
+Built-in capabilities use the same descriptor and registry with a trusted
+`builtin` source. Chat Groups retains `chat_groups_enabled`; Goal and Graph
+retain the `/goal` and `/graph` Runtime commands; their checkpoint message
+policies remain persisted by the existing checkpoint store. Existing user MCP,
+Skills, and `automation_hooks` settings are
 normalized without changing their persisted shapes.
 
 ## Verification

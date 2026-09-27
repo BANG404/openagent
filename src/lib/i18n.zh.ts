@@ -299,6 +299,8 @@ export const zh = {
   pluginComponents: "组件",
   pluginSkills: "技能",
   pluginMcpServers: "MCP 服务",
+  pluginCommands: "命令",
+  pluginMessagePolicies: "消息策略",
   pluginDesktopControlDescription:
     "将 Cua Driver 作为 MCP 服务接入，让 Agent 可以操作桌面应用与浏览器。",
   pluginDesktopControl: "桌面控制",
