@@ -7,7 +7,6 @@
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import Tooltip from "./Tooltip.svelte";
   import ScrollArea from "./ui/ScrollArea.svelte";
-  import DotIcon from "./ui/DotIcon.svelte";
 
   let {
     active = true,
@@ -345,7 +344,9 @@
         <LoadingSkeleton variant="sidebar" rows={4} label={$t("loadingContent")} />
       {:else if sessions.length === 0}
         <div class="empty-state">
-          <DotIcon name="terminal" size={24} />
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"
+            ><rect x="3" y="4" width="18" height="16" rx="2" /><path d="m7 9 3 3-3 3m6 0h4" /></svg
+          >
           <strong>{$t("backgroundTerminalsEmpty")}</strong>
           <span>{$t("backgroundTerminalsEmptyDescription")}</span>
         </div>
