@@ -18,10 +18,19 @@ reserved builtin ID for product capabilities; child components use
 
 Runtime command descriptors carry an optional `plugin_id`; `/goal` and
 `/graph` point to their matching builtin descriptor. `message_policies` lists
-checkpoint tags owned by that builtin capability and declares whether each
-tagged message is visible to the user and/or model. It is descriptive metadata
-for trusted Runtime capabilities, not a permission for a portable plugin to
-forge internal tags.
+checkpoint or lifecycle message tags owned by the plugin and declares whether
+each message is visible to the user and/or model. Portable packages use entries
+shaped like `{ "tag": "notice", "user_visible": true, "model_visible": false }`.
+The loader namespaces portable tags as `plugin:<plugin-id>:<tag>`, rejects
+unknown fields and policies with no audience, and exposes the normalized policy
+through the plugin descriptor. Only the Runtime can persist a checkpoint or
+apply a policy, so a package cannot forge a builtin tag or bypass audience
+projection.
+
+Runtime hosts that need to emit a plugin message resolve its namespaced tag
+through the installed-plugin policy resolver. The resolver checks the plugin
+root and namespace before returning the audience rule; raw tags and tags owned
+by another plugin are rejected.
 
 The loader accepts a valid manifest even when one optional component is bad.
 Manifest errors reject the package; a bad `skills/`, `mcp.json`, automation
@@ -37,10 +46,12 @@ Skills continue to use immediate child directories under `skills/` with a
 conforming `SKILL.md`. MCP continues to use the portable `mcp.json` schema and
 the existing `PLUGIN_ROOT`/`PLUGIN_DATA` expansion and transport restrictions.
 The product registry exposes Cua Driver, Chat Groups, Goal Mode, and Graph Mode
-as trusted builtin plugin descriptors. Their implementation remains owned by
-the Runtime or desktop host, so they cannot be installed or uninstalled as
-portable packages. Cua Driver still uses its verified resource, daemon
-ownership, fixed endpoint, and reserved MCP lifecycle.
+as trusted builtin plugin descriptors. The same registration supplies their
+capabilities, commands, message policies, and component ownership to the
+Runtime. Their implementation remains owned by the Runtime or desktop host, so
+they cannot be installed or uninstalled as portable packages. Cua Driver still
+uses its verified resource, daemon ownership, fixed endpoint, and reserved MCP
+lifecycle.
 
 ### Automation
 

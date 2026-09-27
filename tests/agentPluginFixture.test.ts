@@ -13,6 +13,11 @@ describe("Agent Plugin fixture", () => {
         openagent?: {
           sidebar?: Array<{ entry?: string }>;
           automation?: Array<{ command?: string }>;
+          message_policies?: Array<{
+            tag?: string;
+            user_visible?: boolean;
+            model_visible?: boolean;
+          }>;
         };
       };
     };
@@ -21,6 +26,11 @@ describe("Agent Plugin fixture", () => {
     expect(manifest.name).toBe("openagent-demo-plugin");
     expect(manifest.extensions?.openagent?.sidebar?.[0]?.entry).toBe("ui/panel.html");
     expect(manifest.extensions?.openagent?.automation?.[0]?.command).toBe("hooks/after-tool.cmd");
+    expect(manifest.extensions?.openagent?.message_policies?.[0]).toEqual({
+      tag: "notice",
+      user_visible: true,
+      model_visible: false,
+    });
   });
 
   test("keeps every declared component inside the fixture package", async () => {

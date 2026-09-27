@@ -7,6 +7,13 @@
   "extensions": {
     "openagent": {
       "capabilities": ["sidebar", "automation"],
+      "message_policies": [
+        {
+          "tag": "notice",
+          "user_visible": true,
+          "model_visible": false
+        }
+      ],
       "sidebar": [
         {
           "id": "demo-panel",

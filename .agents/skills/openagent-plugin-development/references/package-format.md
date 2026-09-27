@@ -15,6 +15,12 @@ OpenAgent implements both portable component types:
   HTTP transports are supported. Legacy HTTP+SSE entries are reported and
   skipped.
 
+`extensions.openagent.message_policies` is an optional array for declaring
+audience rules for plugin-produced lifecycle messages. Each entry contains a
+lowercase `tag`, `user_visible`, and `model_visible` boolean. OpenAgent
+namespaces these tags as `plugin:<plugin-id>:<tag>` and rejects malformed or
+audience-less entries while retaining the rest of the package.
+
 The loader selects its bundled 1.0.0 rules from the canonical `$schema` value;
 it never downloads a schema while loading a package. It resolves symlinks,
 junctions, and equivalent filesystem indirections before reading, copying, or
