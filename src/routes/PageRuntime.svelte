@@ -2217,13 +2217,15 @@
 
   onMount(() => {
     if (!tauriAvailable || isSettingsWindow || isDevInspectorWindow) return;
-    void openAgent
-      .invokeProduct("list_agent_plugins", {})
-      .then((plugins) => {
+    let disposed = false;
+    const load = async (notifyUpdates = true): Promise<void> => {
+      try {
+        const plugins = await openAgent.invokeProduct("list_agent_plugins", {});
+        if (disposed) return;
         agentPlugins = plugins;
-        return openAgent.invokeProduct("check_agent_plugin_updates", {});
-      })
-      .then((updates) => {
+        const updates = await openAgent.invokeProduct("check_agent_plugin_updates", {});
+        if (disposed) return;
+        if (!notifyUpdates) return;
         const available = updates.filter((update) => update.update_available);
         if (available.length === 0) return;
         showToast({
@@ -2231,8 +2233,16 @@
           description: $t("pluginUpdateDescription").replace("{count}", String(available.length)),
           durationMs: 6000,
         });
-      })
-      .catch((error) => console.warn("Failed to load Agent Plugins:", error));
+      } catch (error) {
+        if (!disposed) console.warn("Failed to load Agent Plugins:", error);
+      }
+    };
+    void load();
+    const retry = window.setTimeout(() => void load(false), 2000);
+    return () => {
+      disposed = true;
+      window.clearTimeout(retry);
+    };
   });
 
   onMount(() => {

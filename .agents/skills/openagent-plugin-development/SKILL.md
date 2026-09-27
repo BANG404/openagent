@@ -7,4 +7,5 @@ metadata:
 
 # Agent Plugins
 
-Read [package-format.md](references/package-format.md) and [openagent-contract.md](references/openagent-contract.md). Apply them to plugin changes; isolate failures and keep trust in the client.
+Read the package, OpenAgent contract, and third-party development references
+before plugin changes; keep trust and sandbox policy in the client.

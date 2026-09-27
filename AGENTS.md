@@ -33,7 +33,7 @@ and delivery so agents can choose the right scope.
 | Browser-reproducible UI verification | `.agents/skills/playwright/SKILL.md` |
 | Product design and component language, including `DESIGN.md` | `.agents/skills/openagent-design-system/` |
 | Messaging channels and remote gateway | `.agents/skills/openagent-channel-integrations/` |
-| Agent Plugin packages, lifecycle, automation, and sidebar extensions | `.agents/skills/openagent-plugin-development/` |
+| Agent Plugin packages (`plugin.json`), lifecycle, automation, and sidebar extensions | `.agents/skills/openagent-plugin-development/` |
 | Public Harness client and server protocol | `.agents/skills/openagent-harness-sdk/` |
 | Modular frontend, Runtime, and shell updates | `.agents/skills/openagent-update-delivery/` |
 | Embedding resource provenance and activation | `.agents/skills/openagent-embedding-resources/` |

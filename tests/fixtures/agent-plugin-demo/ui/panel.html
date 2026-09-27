@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <title>Demo Plugin</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font:
+        13px system-ui,
+        sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 16px;
+      color: CanvasText;
+      background: Canvas;
+    }
+    code {
+      font-size: 12px;
+    }
+  </style>
+  <main>
+    <strong>Demo Plugin</strong>
+    <p id="scope">Waiting for sidebar context.</p>
+  </main>
+  <script>
+    addEventListener("message", (event) => {
+      if (event.data?.type !== "openagent:sidebar-context") return;
+      document.querySelector("#scope").textContent = `Scope: ${event.data.scope}`;
+    });
+  </script>
+</html>

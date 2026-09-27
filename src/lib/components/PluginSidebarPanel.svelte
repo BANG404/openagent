@@ -59,10 +59,11 @@
   {:else if error}
     <p class="plugin-state plugin-error">{error}</p>
   {:else if src}
+    <!-- WebView2 requires same-origin blob documents to paint sandboxed HTML. -->
     <iframe
       title={view.title}
       {src}
-      sandbox="allow-scripts"
+      sandbox="allow-scripts allow-same-origin"
       referrerpolicy="no-referrer"
       onload={(event) => {
         const frame = event.currentTarget as HTMLIFrameElement;

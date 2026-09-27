@@ -1,0 +1,29 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "openagent-demo-plugin",
+  "version": "1.0.0",
+  "description": "A deterministic fixture for Agent Plugin contract and sidebar checks.",
+  "repository": "https://github.com/example/openagent-demo-plugin",
+  "extensions": {
+    "openagent": {
+      "capabilities": ["sidebar", "automation"],
+      "sidebar": [
+        {
+          "id": "demo-panel",
+          "title": "Demo Plugin",
+          "entry": "ui/panel.html",
+          "scope": "conversation"
+        }
+      ],
+      "automation": [
+        {
+          "id": "after-tool",
+          "event": "after_tool",
+          "matcher": "*",
+          "timeout_secs": 15,
+          "command": "hooks/after-tool.cmd"
+        }
+      ]
+    }
+  }
+}

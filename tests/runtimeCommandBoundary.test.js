@@ -106,6 +106,18 @@ describe("desktop command boundary", () => {
     expect(misplaced).toEqual([]);
   });
 
+  test("routes Agent Plugin asset reads through the Runtime product dispatcher", () => {
+    const contracts = readFileSync("sdk/typescript/src/contracts.ts", "utf8");
+    const gateway = readFileSync(
+      "sdk/rust/openagent-runtime/src/commands/remote_gateway.rs",
+      "utf8",
+    );
+
+    expect(contracts).toContain('"read_agent_plugin_asset"');
+    expect(gateway).toContain('"read_agent_plugin_asset" =>');
+    expect(gateway).toContain("super::read_agent_plugin_asset(runtime_state, plugin_id, entry)");
+  });
+
   test("resolves native open paths through the active desktop Runtime mode", () => {
     const host = readFileSync("src-tauri/src/lib.rs", "utf8");
     const start = host.indexOf("async fn resolve_desktop_open_path");
