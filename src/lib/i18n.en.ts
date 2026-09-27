@@ -300,7 +300,7 @@ const en: Record<TranslationKeys, string> = {
   pluginOperationFailed: "Plugin operation failed",
   pluginUpdate: "Update",
   pluginUninstall: "Uninstall",
-  pluginUninstallConfirm: "Remove plugin \"{name}\"? Its plugin data will be preserved.",
+  pluginUninstallConfirm: 'Remove plugin "{name}"? Its plugin data will be preserved.',
   pluginUpdateAvailable: "Update available",
   pluginUpdateDescription: "{count} plugin update(s) are available on GitHub.",
   pluginLatestVersion: "Latest version: {version}",
