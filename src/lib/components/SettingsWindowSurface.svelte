@@ -164,6 +164,7 @@
   .settings-window-stage {
     width: 100vw;
     height: 100vh;
+    min-height: 0;
     display: flex;
     overflow: hidden;
     background: transparent;
