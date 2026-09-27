@@ -1797,7 +1797,12 @@ async fn save_settings(
     config: Config,
     base_config: Option<Config>,
 ) -> Result<Config, String> {
-    openagent_runtime::commands::save_settings(runtime.state(), config, base_config).await
+    let saved = openagent_runtime::commands::save_settings(runtime.state(), config, base_config)
+        .await?;
+    if !openagent_runtime::config::agent_plugin_enabled(&saved, "cua-driver") {
+        stop_cua_driver_serve();
+    }
+    Ok(saved)
 }
 
 #[tauri::command]
@@ -2559,14 +2564,41 @@ async fn save_mcp_servers(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     servers: Vec<McpServerConfig>,
 ) -> Result<(), String> {
-    if servers.iter().any(|server| server.id == "cua-driver" && server.enabled) {
+    let cua_enabled = {
+        let config = runtime.state().config.lock().await;
+        config
+            .agent_plugins_enabled
+            .get("cua-driver")
+            .copied()
+            .unwrap_or_else(|| {
+                servers
+                    .iter()
+                    .find(|server| server.id == "cua-driver")
+                    .is_some_and(|server| server.enabled)
+            })
+    };
+    if cua_enabled && servers.iter().any(|server| server.id == "cua-driver" && server.enabled) {
         ensure_cua_driver_serve()?;
     }
     openagent_runtime::commands::save_mcp_servers(runtime.state(), servers).await
 }
 
 #[tauri::command]
-async fn test_mcp_server(server: McpServerConfig) -> Result<mcp::McpProbeResult, String> {
+async fn test_mcp_server(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    server: McpServerConfig,
+) -> Result<mcp::McpProbeResult, String> {
+    let plugin_enabled = {
+        let config = runtime.state().config.lock().await;
+        config
+            .agent_plugins_enabled
+            .get("cua-driver")
+            .copied()
+            .unwrap_or(server.enabled)
+    };
+    if server.id == "cua-driver" && !plugin_enabled {
+        return Err("Cua Driver plugin is disabled in settings".to_string());
+    }
     if server.id == "cua-driver" && server.enabled {
         ensure_cua_driver_serve()?;
     }

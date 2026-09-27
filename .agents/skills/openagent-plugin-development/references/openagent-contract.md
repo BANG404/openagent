@@ -30,9 +30,12 @@ projection.
 `enabled` is the lifecycle gate for portable components. Missing persisted
 entries default to `true` for compatibility; disabling a plugin removes its
 Skills, MCP servers, and Automation Hooks from new Runtime assemblies. Builtin
-switches retain their existing product settings: Chat Groups uses
-`chat_groups_enabled`, Cua uses its reserved MCP entry, and Goal/Graph use the
-same `agent_plugins_enabled` map.
+switches retain their existing product settings through one resolver: Chat
+Groups keeps the legacy `chat_groups_enabled` compatibility field, Cua uses
+its reserved MCP entry, and Goal/Graph use the same `agent_plugins_enabled`
+map. All Runtime and desktop entry points use this resolver, so a temporary
+mismatch between legacy and normalized settings cannot expose one path after
+the plugin is disabled.
 
 Runtime hosts that need to emit a plugin message resolve its namespaced tag
 through the installed-plugin policy resolver. The resolver checks the plugin
@@ -67,7 +70,7 @@ conforming `SKILL.md`. MCP continues to use the portable `mcp.json` schema and
 the existing `PLUGIN_ROOT`/`PLUGIN_DATA` expansion and transport restrictions.
 The product registry exposes Cua Driver, Chat Groups, Goal Mode, and Graph Mode
 as trusted builtin plugin descriptors. The same registration supplies their
-capabilities, commands, message policies, and component ownership to the
+capabilities, commands, tool ownership, message policies, and component ownership to the
 Runtime. Their implementation remains owned by the Runtime or desktop host, so
 they cannot be installed or uninstalled as portable packages. Cua Driver still
 uses its verified resource, daemon ownership, fixed endpoint, and reserved MCP
@@ -153,9 +156,16 @@ plugin code.
 Built-in capabilities use the same descriptor and registry with a trusted
 `builtin` source. Chat Groups retains `chat_groups_enabled`; Goal and Graph
 retain the `/goal` and `/graph` Runtime commands; their checkpoint message
-policies remain persisted by the existing checkpoint store. Existing user MCP,
+policies remain persisted by the existing checkpoint store. Flow starts resolve
+their kind through the builtin registry before checking enablement, so an
+unknown flow cannot fall through to Goal execution. Existing user MCP,
 Skills, and `automation_hooks` settings are
 normalized without changing their persisted shapes.
+
+Builtin tools are also owned by registry entries. The provider tool projection
+removes tools whose owning builtin is disabled, and every tool call repeats the
+same live check before mutating state. This keeps a stale Runtime tool server or
+an in-flight model request from bypassing a settings toggle.
 
 ## Verification
 

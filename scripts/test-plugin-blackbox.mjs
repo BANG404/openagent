@@ -41,24 +41,11 @@ function pilot(args) {
   if (result.status !== 0) throw new Error(`tauri-pilot ${args.join(" ")} failed`);
 }
 
-// The app may already be running when the fixture is copied. Refresh the
-// plugin directory through the same Integrations controls a user would use.
+// Exercise the Integrations surface through the same menu a user would use
+// before running the sidebar assertions.
 pilot(["click", "#application-integrations-menu", "--window", "main"]);
 pilot(["click", '[role="menuitem"]:last-child', "--window", "main"]);
 pilot(["wait", "--selector", '[role="dialog"]', "--timeout", "5000", "--window", "main"]);
-pilot([
-  "eval",
-  `(() => {
-    const refresh = [...document.querySelectorAll("button")].find((button) =>
-      /^(Refresh|刷新)$/.test(button.textContent?.trim() ?? "")
-    );
-    if (!(refresh instanceof HTMLElement)) throw new Error("plugin refresh control is missing");
-    refresh.click();
-    return true;
-  })()`,
-  "--window",
-  "main",
-]);
 pilot([
   "eval",
   `(() => {
@@ -69,7 +56,6 @@ pilot([
   "--window",
   "main",
 ]);
-
 const result = spawnSync(pilotBinary, ["run", scenario, "--window", "main"], {
   cwd: artifactRoot,
   env: { ...process.env, TAURI_PILOT_WINDOW: "main" },
