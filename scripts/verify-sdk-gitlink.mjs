@@ -8,7 +8,8 @@ import { resolve } from "node:path";
  * @returns {{ status: number, stdout: string, stderr: string }}
  */
 function runGit(cwd, args) {
-  const result = spawnSync("git", args, { // NOSONAR: git is the fixed repository tool.
+  const result = spawnSync("git", args, {
+    // NOSONAR: git is the fixed repository tool.
     cwd,
     encoding: "utf8",
     shell: false,

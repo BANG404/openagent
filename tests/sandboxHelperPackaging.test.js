@@ -4,17 +4,13 @@ import { readFileSync } from "node:fs";
 /** @param {URL|string} url */
 const readText = (url) => readFileSync(url, "utf8").replace(/\r\n/g, "\n");
 
-const nativeWorkflow = readText(
-  new URL("../.github/workflows/check-native.yml", import.meta.url),
-);
+const nativeWorkflow = readText(new URL("../.github/workflows/check-native.yml", import.meta.url));
 const windowsHelper = readText(
   new URL("../scripts/prepare-windows-sandbox-helpers.mjs", import.meta.url),
 );
 const cargoManifest = readText(new URL("../src-tauri/Cargo.toml", import.meta.url));
 const tauriLauncher = readText(new URL("../scripts/tauri.mjs", import.meta.url));
-const packageManifest = JSON.parse(
-  readText(new URL("../package.json", import.meta.url)),
-);
+const packageManifest = JSON.parse(readText(new URL("../package.json", import.meta.url)));
 const linuxHelper = readText(
   new URL("../scripts/prepare-linux-sandbox-helper.mjs", import.meta.url),
 );

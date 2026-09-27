@@ -423,72 +423,75 @@
               <path d="m4 6 4 4 4-4" />
             </svg>
           </button>
-        <div
-          class:collapsed={!membersExpanded}
-          class="member-strip"
-          id="chat-group-members"
-          role="list"
-        >
-          {#each members as member (member.id)}
-            <Tooltip text={roleTooltip(member)} side="top" align="start">
-              <span class="mention-chip" role="listitem" aria-label={roleTooltip(member)}>
-                {member.role_name}
-              </span>
-            </Tooltip>
-          {/each}
-        </div>
+          <div
+            class:collapsed={!membersExpanded}
+            class="member-strip"
+            id="chat-group-members"
+            role="list"
+          >
+            {#each members as member (member.id)}
+              <Tooltip text={roleTooltip(member)} side="top" align="start">
+                <span class="mention-chip" role="listitem" aria-label={roleTooltip(member)}>
+                  {member.role_name}
+                </span>
+              </Tooltip>
+            {/each}
+          </div>
         </section>
       {/if}
 
       <div class="message-stack">
         <ScrollArea height="100%" class="message-list" scrollHideDelay={350}>
-        <div class="message-list-content" aria-live="polite">
-        {#if messagesLoading && messages.length === 0}
-          <LoadingSkeleton variant="detail-list" rows={4} label={$t("loadingContent")} />
-        {:else if messages.length === 0}
-          <p class="empty">{$t("chatGroupNoMessages")}</p>
-        {:else}
-          {#each messageGroups as messageGroup (messageGroup.key)}
-            {@const firstMessage = messageGroup.messages[0]}
-            <section class="message-group">
-              <div class="speaker-divider" aria-label={senderLabel(firstMessage)}>
-                <span class="sender">{senderLabel(firstMessage)}</span>
-                <time datetime={new Date(firstMessage.created_at).toISOString()}
-                  >{senderTime(firstMessage)}</time
-                >
-              </div>
-              <div class="speaker-rule" aria-hidden="true"></div>
-              {#each messageGroup.messages as message (message.id)}
-                <article class="message-row">
-                  <div class="message-body">
-                    <div class="group-message-markdown" use:externalLinks={capabilities.openUrl}>
-                      <Streamdown
-                        content={message.content.trimEnd()}
-                        controls={{ table: false }}
-                        components={{ code: Code, mermaid: Mermaid, math: ChatMath }}
-                        extensions={extensionsForMessage(message)}
-                        theme={chatMarkdownTheme}
-                        shikiTheme={isDarkTheme ? "github-dark" : "github-light"}
-                        mermaidConfig={mermaidConfigFor(isDarkTheme)}
-                      >
-                        {#snippet children({ token })}
-                          {#if (token as ComponentToken).type === "component"}
-                            <CustomToken token={token as ComponentToken} isDark={isDarkTheme} />
-                          {:else if (token as ChatGroupMentionToken).type === "chatGroupMention"}
-                            <span class="chat-group-mention"
-                              >{(token as ChatGroupMentionToken).label}</span
-                            >
-                          {/if}
-                        {/snippet}
-                      </Streamdown>
-                    </div>
+          <div class="message-list-content" aria-live="polite">
+            {#if messagesLoading && messages.length === 0}
+              <LoadingSkeleton variant="detail-list" rows={4} label={$t("loadingContent")} />
+            {:else if messages.length === 0}
+              <p class="empty">{$t("chatGroupNoMessages")}</p>
+            {:else}
+              {#each messageGroups as messageGroup (messageGroup.key)}
+                {@const firstMessage = messageGroup.messages[0]}
+                <section class="message-group">
+                  <div class="speaker-divider" aria-label={senderLabel(firstMessage)}>
+                    <span class="sender">{senderLabel(firstMessage)}</span>
+                    <time datetime={new Date(firstMessage.created_at).toISOString()}
+                      >{senderTime(firstMessage)}</time
+                    >
                   </div>
-                </article>
+                  <div class="speaker-rule" aria-hidden="true"></div>
+                  {#each messageGroup.messages as message (message.id)}
+                    <article class="message-row">
+                      <div class="message-body">
+                        <div
+                          class="group-message-markdown"
+                          use:externalLinks={capabilities.openUrl}
+                        >
+                          <Streamdown
+                            content={message.content.trimEnd()}
+                            controls={{ table: false }}
+                            components={{ code: Code, mermaid: Mermaid, math: ChatMath }}
+                            extensions={extensionsForMessage(message)}
+                            theme={chatMarkdownTheme}
+                            shikiTheme={isDarkTheme ? "github-dark" : "github-light"}
+                            mermaidConfig={mermaidConfigFor(isDarkTheme)}
+                          >
+                            {#snippet children({ token })}
+                              {#if (token as ComponentToken).type === "component"}
+                                <CustomToken token={token as ComponentToken} isDark={isDarkTheme} />
+                              {:else if (token as ChatGroupMentionToken).type === "chatGroupMention"}
+                                <span class="chat-group-mention"
+                                  >{(token as ChatGroupMentionToken).label}</span
+                                >
+                              {/if}
+                            {/snippet}
+                          </Streamdown>
+                        </div>
+                      </div>
+                    </article>
+                  {/each}
+                </section>
               {/each}
-            </section>
-          {/each}
-        {/if}
-        </div>
+            {/if}
+          </div>
         </ScrollArea>
 
         <div class="group-input-area">

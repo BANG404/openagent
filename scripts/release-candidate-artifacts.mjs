@@ -192,7 +192,8 @@ async function filesByName(directory) {
 /**
  * @param {{ candidateDirectory: string, expectedTargets: string[], desktopSha: string, sdkSha: string }} options
  */
-export async function verifyCandidateSet({ // NOSONAR: candidate verification is a single integrity transaction.
+export async function verifyCandidateSet({
+  // NOSONAR: candidate verification is a single integrity transaction.
   candidateDirectory,
   expectedTargets,
   desktopSha,
@@ -201,7 +202,9 @@ export async function verifyCandidateSet({ // NOSONAR: candidate verification is
   expectedTargets.forEach(requireTarget);
   const entries = await filesByName(candidateDirectory);
   const manifestNames = [...entries.keys()].filter((name) => /^candidate-.+\.json$/.test(name));
-  const expectedManifestNames = expectedTargets.map((target) => `candidate-${target}.json`).sort((left, right) => left.localeCompare(right));
+  const expectedManifestNames = expectedTargets
+    .map((target) => `candidate-${target}.json`)
+    .sort((left, right) => left.localeCompare(right));
   const sortedManifestNames = manifestNames.toSorted((left, right) => left.localeCompare(right));
   if (sortedManifestNames.join("\n") !== expectedManifestNames.join("\n")) {
     throw new Error(

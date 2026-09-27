@@ -17,7 +17,10 @@ describe("window focus chrome", () => {
   });
 
   test("drives chrome and composer behavior from one window focus state", async () => {
-    const route = await readFile(new URL("../src/routes/PageRuntime.svelte", import.meta.url), "utf8");
+    const route = await readFile(
+      new URL("../src/routes/PageRuntime.svelte", import.meta.url),
+      "utf8",
+    );
     const conversationSurface = await readFile(
       new URL("ConversationSurface.svelte", componentsUrl),
       "utf8",

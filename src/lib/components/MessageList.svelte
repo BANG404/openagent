@@ -715,8 +715,7 @@
           </div>
         {/if}
         {#if assistantMsg}
-          {#if !isChatGroupWake &&
-            (isRerunnable || timing || cacheUsage || assistantMsg.timestamp > 0 || renderedAssistantItems.length > 0)}
+          {#if !isChatGroupWake && (isRerunnable || timing || cacheUsage || assistantMsg.timestamp > 0 || renderedAssistantItems.length > 0)}
             <div
               class="msg-footer-row message-record pagination-footer"
               id={renderedAssistantItems.length > 0 ? undefined : `message-${assistantMsg.id}`}

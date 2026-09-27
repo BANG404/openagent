@@ -108,7 +108,11 @@
       </label>
 
       <div class="dialog-actions">
-        <button class="btn-secondary" onclick={view.cancelClearMemoryScope} disabled={view.memoryBusy}>
+        <button
+          class="btn-secondary"
+          onclick={view.cancelClearMemoryScope}
+          disabled={view.memoryBusy}
+        >
           {$t("cancel")}
         </button>
         <button
@@ -173,7 +177,10 @@
         </label>
 
         <label class="reasoning-support-field">
-          <Switch bind:checked={view.modelConfigSupportsVision} ariaLabel={$t("modelSupportsVision")} />
+          <Switch
+            bind:checked={view.modelConfigSupportsVision}
+            ariaLabel={$t("modelSupportsVision")}
+          />
           <span>
             <span class="label-text">{$t("modelSupportsVision")}</span>
             <span class="field-hint">{$t("modelSupportsVisionHint")}</span>

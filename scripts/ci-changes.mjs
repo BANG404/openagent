@@ -168,7 +168,8 @@ export function classifyChangedModules(files, forceAll = false) {
  * @returns {string[]}
  */
 function changedFiles(baseSha, headSha) {
-  return execFileSync("git", ["diff", "--name-only", "--diff-filter=ACMRT", baseSha, headSha], { // NOSONAR: git is the fixed repository tool.
+  return execFileSync("git", ["diff", "--name-only", "--diff-filter=ACMRT", baseSha, headSha], {
+    // NOSONAR: git is the fixed repository tool.
     encoding: "utf8",
   })
     .split(/\r?\n/)

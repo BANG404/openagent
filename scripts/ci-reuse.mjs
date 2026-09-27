@@ -83,8 +83,7 @@ export function latestStatus(statuses, context) {
 /** @param {unknown} description */
 export function verifiedTreeFromDescription(description) {
   return (
-    /(?:^|\s)tree=(?<tree>[0-9a-f]{40})(?:\s|$)/.exec(textValue(description))?.groups?.tree ??
-    ""
+    /(?:^|\s)tree=(?<tree>[0-9a-f]{40})(?:\s|$)/.exec(textValue(description))?.groups?.tree ?? ""
   );
 }
 
@@ -96,7 +95,9 @@ export function parseRunId(targetUrl, repository) {
   try {
     const url = new URL(targetUrl);
     const escapedRepository = repository.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-    const match = new RegExp(`^/${escapedRepository}/actions/runs/(?<runId>[0-9]+)/?$`, "i").exec(url.pathname);
+    const match = new RegExp(`^/${escapedRepository}/actions/runs/(?<runId>[0-9]+)/?$`, "i").exec(
+      url.pathname,
+    );
     return url.hostname === "github.com" ? (match?.groups?.runId ?? "") : "";
   } catch {
     return "";
@@ -156,7 +157,8 @@ export function reusableCapabilitiesFromStatuses(statuses, full) {
  *
  * @param {ResolveReuseOptions} options
  */
-export async function resolveVerifiedTreeReuse(options) { // NOSONAR: this validator intentionally keeps the complete CI trust chain in one transaction.
+export async function resolveVerifiedTreeReuse(options) {
+  // NOSONAR: this validator intentionally keeps the complete CI trust chain in one transaction.
   /** @param {string} reason */
   const none = (reason) => ({
     reusable: emptyCapabilities(),
@@ -237,7 +239,10 @@ export async function resolveVerifiedTreeReuse(options) { // NOSONAR: this valid
         const contexts = VERIFIED_CI_CONTEXTS[capability];
         const context = options.full && contexts.full ? contexts.full : contexts.fast;
         const status = context ? latestStatus(statuses, context) : undefined;
-        if (status?.description && verifiedTreeFromDescription(status.description) === options.targetTree) {
+        if (
+          status?.description &&
+          verifiedTreeFromDescription(status.description) === options.targetTree
+        ) {
           statusEntries.push(status);
         } else {
           reusable[capability] = false;

@@ -4,7 +4,8 @@
 import type { ContextCompactionStage, StreamItem, UserInputRequest } from "./types";
 import { toolCallStatus } from "./toolCallGroups";
 
-export function appendChunk(items: StreamItem[], text: string): StreamItem[] { // NOSONAR: stream chunk normalization keeps ordering rules in one small state transition.
+export function appendChunk(items: StreamItem[], text: string): StreamItem[] {
+  // NOSONAR: stream chunk normalization keeps ordering rules in one small state transition.
   const split = splitThinkingTags(text);
   if (split.length > 1 || split.some((part) => part.type === "thinking")) {
     return split.reduce((next, part) => {
@@ -25,7 +26,8 @@ function appendPlainTextChunk(items: StreamItem[], text: string): StreamItem[] {
 
 type TextLikeStreamItem = Extract<StreamItem, { type: "text" | "thinking" }>;
 
-function splitThinkingTags(text: string): TextLikeStreamItem[] { // NOSONAR: tag splitting preserves streaming order across partial delimiters.
+function splitThinkingTags(text: string): TextLikeStreamItem[] {
+  // NOSONAR: tag splitting preserves streaming order across partial delimiters.
   const parts: TextLikeStreamItem[] = [];
   let rest = text;
   let inThinking = false;

@@ -86,10 +86,7 @@ function classifySdkPath(file, components) {
 /** @param {string} file @param {ReleaseComponents} components */
 function classifyHostPath(file, components) {
   if (file.startsWith("src-tauri/")) components.nativeShell = true;
-  if (
-    file === "src-tauri/src/frontend_resource.rs" ||
-    file === "scripts/frontend-artifacts.mjs"
-  ) {
+  if (file === "src-tauri/src/frontend_resource.rs" || file === "scripts/frontend-artifacts.mjs") {
     components.frontend = true;
   }
   if (

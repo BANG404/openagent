@@ -1,4 +1,6 @@
+<!-- eslint-disable max-lines -- settings surface is the composition root for the settings domains. -->
 <script lang="ts">
+  /* eslint-disable max-lines */
   import { setContext } from "svelte";
   import "./settings-view.css";
   import SettingsViewTabsPrimary from "./SettingsViewTabsPrimary.svelte";
@@ -19,9 +21,7 @@
     PermissionProfile,
     ProviderConfig,
   } from "$lib/types";
-  import {
-    captureQuickChatShortcut,
-  } from "$lib/quickChatShortcut";
+  import { captureQuickChatShortcut } from "$lib/quickChatShortcut";
   import {
     normalizeConfigShape,
     type NormalizedAppConfig,
@@ -1746,196 +1746,571 @@
     memoryStatus = tr("memoryClearCancelled");
   }
 
-
   setContext("settings-view", {
-    get acceptedConfigFingerprint() { return acceptedConfigFingerprint; },
-    get addEnvVar() { return addEnvVar; },
-    get addHeader() { return addHeader; },
-    get addManualModel() { return addManualModel; },
-    get addMcpServer() { return addMcpServer; },
-    get addProvider() { return addProvider; },
-    get addRetryQueueModel() { return addRetryQueueModel; },
-    get autoSaveInitialized() { return autoSaveInitialized; },
-    get autoSaveTimer() { return autoSaveTimer; },
-    get automationHookDraft() { return automationHookDraft; },
-    get automationHookEventLabel() { return automationHookEventLabel; },
-    get autostartReady() { return autostartReady; },
-    get autostartRequestSeq() { return autostartRequestSeq; },
-    get autostartStatus() { return autostartStatus; },
-    get autostartSyncing() { return autostartSyncing; },
-    get beginAutomationHook() { return beginAutomationHook; },
-    get cancelClearMemoryScope() { return cancelClearMemoryScope; },
-    get cancelHook() { return cancelHook; },
-    get channelSettingsNav() { return channelSettingsNav; },
-    get channelStatuses() { return channelStatuses; },
-    get chatgptOAuthAuthenticated() { return chatgptOAuthAuthenticated; },
-    get clearMemoryScope() { return clearMemoryScope; },
-    get commitQuickChatShortcut() { return commitQuickChatShortcut; },
-    get componentVersions() { return componentVersions; },
-    get config() { return config; },
-    get confirmClearMemoryScope() { return confirmClearMemoryScope; },
-    get copiedRemoteValue() { return copiedRemoteValue; },
-    get copyRemoteGatewayValue() { return copyRemoteGatewayValue; },
-    get cuaDefaultApplied() { return cuaDefaultApplied; },
-    get cuaDriver() { return cuaDriver; },
-    get cuaDriverId() { return cuaDriverId; },
-    get deleteConfiguredModel() { return deleteConfiguredModel; },
-    get draftConfig() { return draftConfig; },
-    get draggedRetryQueue() { return draggedRetryQueue; },
-    get dropRetryQueueModel() { return dropRetryQueueModel; },
-    get editHook() { return editHook; },
-    get editingHookConversationId() { return editingHookConversationId; },
-    get editingHookId() { return editingHookId; },
-    get enabledProviderOptions() { return enabledProviderOptions; },
-    get ensureSelectedMcpServer() { return ensureSelectedMcpServer; },
-    get ensureSelectedProvider() { return ensureSelectedProvider; },
-    get exportMemory() { return exportMemory; },
-    get extractMemory() { return extractMemory; },
-    get fetchModels() { return fetchModels; },
-    get filteredModels() { return filteredModels; },
-    get filteredProviders() { return filteredProviders; },
-    get findCuaDriverServer() { return findCuaDriverServer; },
-    get formatHookTime() { return formatHookTime; },
-    get formatMemoryDate() { return formatMemoryDate; },
-    get getProviderPreviewUrl() { return getProviderPreviewUrl; },
-    get getProviderUrl() { return getProviderUrl; },
-    get getStatus() { return getStatus; },
-    get handleQuickShortcutKeydown() { return handleQuickShortcutKeydown; },
-    get hookArgs() { return hookArgs; },
-    get hookDelayMinutes() { return hookDelayMinutes; },
-    get hookIntervalMinutes() { return hookIntervalMinutes; },
-    get hookMessage() { return hookMessage; },
-    get hookMode() { return hookMode; },
-    get hookRoleKey() { return hookRoleKey; },
-    get hookRoleName() { return hookRoleName; },
-    get hookRoles() { return hookRoles; },
-    get hookRunAt() { return hookRunAt; },
-    get hookStatus() { return hookStatus; },
-    get hookTimeOfDay() { return hookTimeOfDay; },
-    get hookWeekdays() { return hookWeekdays; },
-    get importMemory() { return importMemory; },
-    get initialNav() { return initialNav; },
-    get initialSectionResolved() { return initialSectionResolved; },
-    get initializedFromConfig() { return initializedFromConfig; },
-    get isMcpSettingsPreview() { return isMcpSettingsPreview; },
-    get lastAutostartTarget() { return lastAutostartTarget; },
-    get lastInitialNav() { return lastInitialNav; },
-    get logoutChatgpt() { return logoutChatgpt; },
-    get manualModelName() { return manualModelName; },
-    get mcpConnectionFingerprints() { return mcpConnectionFingerprints; },
-    get mcpDiscoveredTools() { return mcpDiscoveredTools; },
-    get mcpDiscoveryFingerprints() { return mcpDiscoveryFingerprints; },
-    get mcpTestStatus() { return mcpTestStatus; },
-    get memoryAgentEntries() { return memoryAgentEntries; },
-    get memoryAgentScope() { return memoryAgentScope; },
-    get memoryAgentSearch() { return memoryAgentSearch; },
-    get memoryBusy() { return memoryBusy; },
-    get memoryClearCloseHandled() { return memoryClearCloseHandled; },
-    get memoryClearDialogOpen() { return memoryClearDialogOpen; },
-    get memoryClearInput() { return memoryClearInput; },
-    get memoryExtracting() { return memoryExtracting; },
-    get memoryLoading() { return memoryLoading; },
-    get memoryRequestSeq() { return memoryRequestSeq; },
-    get memorySaving() { return memorySaving; },
-    get memoryScope() { return memoryScope; },
-    get memoryScopeAvailable() { return memoryScopeAvailable; },
-    get memoryStatus() { return memoryStatus; },
-    get memoryUserContent() { return memoryUserContent; },
-    get modelConfigDialogOpen() { return modelConfigDialogOpen; },
-    get modelConfigName() { return modelConfigName; },
-    get modelConfigOriginalName() { return modelConfigOriginalName; },
-    get modelConfigProviderId() { return modelConfigProviderId; },
-    get modelConfigSupportsReasoningEffort() { return modelConfigSupportsReasoningEffort; },
-    get modelConfigSupportsVision() { return modelConfigSupportsVision; },
-    get modelConfigThreshold() { return modelConfigThreshold; },
-    get modelConfigUsesResponsesReasoning() { return modelConfigUsesResponsesReasoning; },
-    get modelConfigValidationError() { return modelConfigValidationError; },
-    get modelLoading() { return modelLoading; },
-    get modelSearch() { return modelSearch; },
-    get moveRetryQueueModel() { return moveRetryQueueModel; },
-    get onOpenConversation() { return onOpenConversation; },
-    get onSave() { return onSave; },
-    get onThemePreview() { return onThemePreview; },
-    get openAiApiModeOptions() { return openAiApiModeOptions; },
-    get openModelConfig() { return openModelConfig; },
-    get parseChannelIds() { return parseChannelIds; },
-    get pendingMcpServerIds() { return pendingMcpServerIds; },
-    get pendingSave() { return pendingSave; },
-    get permissionProfile() { return permissionProfile; },
-    get providerConnectionFingerprints() { return providerConnectionFingerprints; },
-    get providerFilter() { return providerFilter; },
-    get providerModels() { return providerModels; },
-    get providerSearch() { return providerSearch; },
-    get providerStatus() { return providerStatus; },
-    get quickShortcutRecording() { return quickShortcutRecording; },
-    get quickShortcutStatus() { return quickShortcutStatus; },
-    get rebaseDraftValue() { return rebaseDraftValue; },
-    get reconnectWechatChannel() { return reconnectWechatChannel; },
-    get refreshAgentMemories() { return refreshAgentMemories; },
-    get refreshChannelStatuses() { return refreshChannelStatuses; },
-    get refreshChatgptAuthStatus() { return refreshChatgptAuthStatus; },
-    get refreshHookRoles() { return refreshHookRoles; },
-    get refreshHooks() { return refreshHooks; },
-    get refreshMemory() { return refreshMemory; },
-    get refreshRemoteGateway() { return refreshRemoteGateway; },
-    get refreshWechatChannel() { return refreshWechatChannel; },
-    get remoteCopyTimer() { return remoteCopyTimer; },
-    get remoteGatewayBusy() { return remoteGatewayBusy; },
-    get remoteGatewayMessage() { return remoteGatewayMessage; },
-    get remoteGatewayStatus() { return remoteGatewayStatus; },
-    get removeAgentMemory() { return removeAgentMemory; },
-    get removeAutomationHook() { return removeAutomationHook; },
-    get removeEnvVar() { return removeEnvVar; },
-    get removeHeader() { return removeHeader; },
-    get removeMcpServer() { return removeMcpServer; },
-    get removeModel() { return removeModel; },
-    get removeProvider() { return removeProvider; },
-    get removeRetryQueueModel() { return removeRetryQueueModel; },
-    get repairDefaultModelBindings() { return repairDefaultModelBindings; },
-    get resetHookEditor() { return resetHookEditor; },
-    get rotateRemotePairingCode() { return rotateRemotePairingCode; },
-    get saveAutomationHook() { return saveAutomationHook; },
-    get saveDraftConfig() { return saveDraftConfig; },
-    get saveHook() { return saveHook; },
-    get saveModelConfig() { return saveModelConfig; },
-    get saveUserMemory() { return saveUserMemory; },
-    get scheduledHooks() { return scheduledHooks; },
-    get sections() { return sections; },
-    get selectBindingProvider() { return selectBindingProvider; },
-    get selectedMcpId() { return selectedMcpId; },
-    get selectedMcpIndex() { return selectedMcpIndex; },
-    get selectedMcpServer() { return selectedMcpServer; },
-    get selectedProvider() { return selectedProvider; },
-    get selectedProviderId() { return selectedProviderId; },
-    get selectedProviderIndex() { return selectedProviderIndex; },
-    get selectedSettingsSection() { return selectedSettingsSection; },
-    get setAutomationHookAction() { return setAutomationHookAction; },
-    get setCuaDriverEnabled() { return setCuaDriverEnabled; },
-    get setDefaultModel() { return setDefaultModel; },
-    get setMcpEnabled() { return setMcpEnabled; },
-    get setMcpToolEnabled() { return setMcpToolEnabled; },
-    get setModelCompactionThreshold() { return setModelCompactionThreshold; },
-    get setModelReasoningEffortSupport() { return setModelReasoningEffortSupport; },
-    get setModelVisionSupport() { return setModelVisionSupport; },
-    get setOpenAiApiMode() { return setOpenAiApiMode; },
-    get setProviderEnabled() { return setProviderEnabled; },
-    get snapshotDraftConfig() { return snapshotDraftConfig; },
-    get startRetryQueueDrag() { return startRetryQueueDrag; },
-    get suppressNextAutoSave() { return suppressNextAutoSave; },
-    get syncAutostart() { return syncAutostart; },
-    get testMcpServer() { return testMcpServer; },
-    get testProvider() { return testProvider; },
-    get toggleCurrentWorkspaceAccess() { return toggleCurrentWorkspaceAccess; },
-    get updateEnvKey() { return updateEnvKey; },
-    get updateHeaderKey() { return updateHeaderKey; },
-    get updateRetryDelaySeconds() { return updateRetryDelaySeconds; },
-    get userMcpServers() { return userMcpServers; },
-    get visibleSections() { return visibleSections; },
-    get wechatChannelBusy() { return wechatChannelBusy; },
-    get wechatChannelMessage() { return wechatChannelMessage; },
-    get wechatChannelStatus() { return wechatChannelStatus; },
-    get wechatStatusTimer() { return wechatStatusTimer; },
-    get workspacePath() { return workspacePath; },
+    get acceptedConfigFingerprint() {
+      return acceptedConfigFingerprint;
+    },
+    get addEnvVar() {
+      return addEnvVar;
+    },
+    get addHeader() {
+      return addHeader;
+    },
+    get addManualModel() {
+      return addManualModel;
+    },
+    get addMcpServer() {
+      return addMcpServer;
+    },
+    get addProvider() {
+      return addProvider;
+    },
+    get addRetryQueueModel() {
+      return addRetryQueueModel;
+    },
+    get autoSaveInitialized() {
+      return autoSaveInitialized;
+    },
+    get autoSaveTimer() {
+      return autoSaveTimer;
+    },
+    get automationHookDraft() {
+      return automationHookDraft;
+    },
+    get automationHookEventLabel() {
+      return automationHookEventLabel;
+    },
+    get autostartReady() {
+      return autostartReady;
+    },
+    get autostartRequestSeq() {
+      return autostartRequestSeq;
+    },
+    get autostartStatus() {
+      return autostartStatus;
+    },
+    get autostartSyncing() {
+      return autostartSyncing;
+    },
+    get beginAutomationHook() {
+      return beginAutomationHook;
+    },
+    get cancelClearMemoryScope() {
+      return cancelClearMemoryScope;
+    },
+    get cancelHook() {
+      return cancelHook;
+    },
+    get channelSettingsNav() {
+      return channelSettingsNav;
+    },
+    get channelStatuses() {
+      return channelStatuses;
+    },
+    get chatgptOAuthAuthenticated() {
+      return chatgptOAuthAuthenticated;
+    },
+    get clearMemoryScope() {
+      return clearMemoryScope;
+    },
+    get commitQuickChatShortcut() {
+      return commitQuickChatShortcut;
+    },
+    get componentVersions() {
+      return componentVersions;
+    },
+    get config() {
+      return config;
+    },
+    get confirmClearMemoryScope() {
+      return confirmClearMemoryScope;
+    },
+    get copiedRemoteValue() {
+      return copiedRemoteValue;
+    },
+    get copyRemoteGatewayValue() {
+      return copyRemoteGatewayValue;
+    },
+    get cuaDefaultApplied() {
+      return cuaDefaultApplied;
+    },
+    get cuaDriver() {
+      return cuaDriver;
+    },
+    get cuaDriverId() {
+      return cuaDriverId;
+    },
+    get deleteConfiguredModel() {
+      return deleteConfiguredModel;
+    },
+    get draftConfig() {
+      return draftConfig;
+    },
+    get draggedRetryQueue() {
+      return draggedRetryQueue;
+    },
+    get dropRetryQueueModel() {
+      return dropRetryQueueModel;
+    },
+    get editHook() {
+      return editHook;
+    },
+    get editingHookConversationId() {
+      return editingHookConversationId;
+    },
+    get editingHookId() {
+      return editingHookId;
+    },
+    get enabledProviderOptions() {
+      return enabledProviderOptions;
+    },
+    get ensureSelectedMcpServer() {
+      return ensureSelectedMcpServer;
+    },
+    get ensureSelectedProvider() {
+      return ensureSelectedProvider;
+    },
+    get exportMemory() {
+      return exportMemory;
+    },
+    get extractMemory() {
+      return extractMemory;
+    },
+    get fetchModels() {
+      return fetchModels;
+    },
+    get filteredModels() {
+      return filteredModels;
+    },
+    get filteredProviders() {
+      return filteredProviders;
+    },
+    get findCuaDriverServer() {
+      return findCuaDriverServer;
+    },
+    get formatHookTime() {
+      return formatHookTime;
+    },
+    get formatMemoryDate() {
+      return formatMemoryDate;
+    },
+    get getProviderPreviewUrl() {
+      return getProviderPreviewUrl;
+    },
+    get getProviderUrl() {
+      return getProviderUrl;
+    },
+    get getStatus() {
+      return getStatus;
+    },
+    get handleQuickShortcutKeydown() {
+      return handleQuickShortcutKeydown;
+    },
+    get hookArgs() {
+      return hookArgs;
+    },
+    get hookDelayMinutes() {
+      return hookDelayMinutes;
+    },
+    get hookIntervalMinutes() {
+      return hookIntervalMinutes;
+    },
+    get hookMessage() {
+      return hookMessage;
+    },
+    get hookMode() {
+      return hookMode;
+    },
+    get hookRoleKey() {
+      return hookRoleKey;
+    },
+    get hookRoleName() {
+      return hookRoleName;
+    },
+    get hookRoles() {
+      return hookRoles;
+    },
+    get hookRunAt() {
+      return hookRunAt;
+    },
+    get hookStatus() {
+      return hookStatus;
+    },
+    get hookTimeOfDay() {
+      return hookTimeOfDay;
+    },
+    get hookWeekdays() {
+      return hookWeekdays;
+    },
+    get importMemory() {
+      return importMemory;
+    },
+    get initialNav() {
+      return initialNav;
+    },
+    get initialSectionResolved() {
+      return initialSectionResolved;
+    },
+    get initializedFromConfig() {
+      return initializedFromConfig;
+    },
+    get isMcpSettingsPreview() {
+      return isMcpSettingsPreview;
+    },
+    get lastAutostartTarget() {
+      return lastAutostartTarget;
+    },
+    get lastInitialNav() {
+      return lastInitialNav;
+    },
+    get logoutChatgpt() {
+      return logoutChatgpt;
+    },
+    get manualModelName() {
+      return manualModelName;
+    },
+    get mcpConnectionFingerprints() {
+      return mcpConnectionFingerprints;
+    },
+    get mcpDiscoveredTools() {
+      return mcpDiscoveredTools;
+    },
+    get mcpDiscoveryFingerprints() {
+      return mcpDiscoveryFingerprints;
+    },
+    get mcpTestStatus() {
+      return mcpTestStatus;
+    },
+    get memoryAgentEntries() {
+      return memoryAgentEntries;
+    },
+    get memoryAgentScope() {
+      return memoryAgentScope;
+    },
+    get memoryAgentSearch() {
+      return memoryAgentSearch;
+    },
+    get memoryBusy() {
+      return memoryBusy;
+    },
+    get memoryClearCloseHandled() {
+      return memoryClearCloseHandled;
+    },
+    get memoryClearDialogOpen() {
+      return memoryClearDialogOpen;
+    },
+    get memoryClearInput() {
+      return memoryClearInput;
+    },
+    get memoryExtracting() {
+      return memoryExtracting;
+    },
+    get memoryLoading() {
+      return memoryLoading;
+    },
+    get memoryRequestSeq() {
+      return memoryRequestSeq;
+    },
+    get memorySaving() {
+      return memorySaving;
+    },
+    get memoryScope() {
+      return memoryScope;
+    },
+    get memoryScopeAvailable() {
+      return memoryScopeAvailable;
+    },
+    get memoryStatus() {
+      return memoryStatus;
+    },
+    get memoryUserContent() {
+      return memoryUserContent;
+    },
+    get modelConfigDialogOpen() {
+      return modelConfigDialogOpen;
+    },
+    get modelConfigName() {
+      return modelConfigName;
+    },
+    get modelConfigOriginalName() {
+      return modelConfigOriginalName;
+    },
+    get modelConfigProviderId() {
+      return modelConfigProviderId;
+    },
+    get modelConfigSupportsReasoningEffort() {
+      return modelConfigSupportsReasoningEffort;
+    },
+    get modelConfigSupportsVision() {
+      return modelConfigSupportsVision;
+    },
+    get modelConfigThreshold() {
+      return modelConfigThreshold;
+    },
+    get modelConfigUsesResponsesReasoning() {
+      return modelConfigUsesResponsesReasoning;
+    },
+    get modelConfigValidationError() {
+      return modelConfigValidationError;
+    },
+    get modelLoading() {
+      return modelLoading;
+    },
+    get modelSearch() {
+      return modelSearch;
+    },
+    get moveRetryQueueModel() {
+      return moveRetryQueueModel;
+    },
+    get onOpenConversation() {
+      return onOpenConversation;
+    },
+    get onSave() {
+      return onSave;
+    },
+    get onThemePreview() {
+      return onThemePreview;
+    },
+    get openAiApiModeOptions() {
+      return openAiApiModeOptions;
+    },
+    get openModelConfig() {
+      return openModelConfig;
+    },
+    get parseChannelIds() {
+      return parseChannelIds;
+    },
+    get pendingMcpServerIds() {
+      return pendingMcpServerIds;
+    },
+    get pendingSave() {
+      return pendingSave;
+    },
+    get permissionProfile() {
+      return permissionProfile;
+    },
+    get providerConnectionFingerprints() {
+      return providerConnectionFingerprints;
+    },
+    get providerFilter() {
+      return providerFilter;
+    },
+    get providerModels() {
+      return providerModels;
+    },
+    get providerSearch() {
+      return providerSearch;
+    },
+    get providerStatus() {
+      return providerStatus;
+    },
+    get quickShortcutRecording() {
+      return quickShortcutRecording;
+    },
+    get quickShortcutStatus() {
+      return quickShortcutStatus;
+    },
+    get rebaseDraftValue() {
+      return rebaseDraftValue;
+    },
+    get reconnectWechatChannel() {
+      return reconnectWechatChannel;
+    },
+    get refreshAgentMemories() {
+      return refreshAgentMemories;
+    },
+    get refreshChannelStatuses() {
+      return refreshChannelStatuses;
+    },
+    get refreshChatgptAuthStatus() {
+      return refreshChatgptAuthStatus;
+    },
+    get refreshHookRoles() {
+      return refreshHookRoles;
+    },
+    get refreshHooks() {
+      return refreshHooks;
+    },
+    get refreshMemory() {
+      return refreshMemory;
+    },
+    get refreshRemoteGateway() {
+      return refreshRemoteGateway;
+    },
+    get refreshWechatChannel() {
+      return refreshWechatChannel;
+    },
+    get remoteCopyTimer() {
+      return remoteCopyTimer;
+    },
+    get remoteGatewayBusy() {
+      return remoteGatewayBusy;
+    },
+    get remoteGatewayMessage() {
+      return remoteGatewayMessage;
+    },
+    get remoteGatewayStatus() {
+      return remoteGatewayStatus;
+    },
+    get removeAgentMemory() {
+      return removeAgentMemory;
+    },
+    get removeAutomationHook() {
+      return removeAutomationHook;
+    },
+    get removeEnvVar() {
+      return removeEnvVar;
+    },
+    get removeHeader() {
+      return removeHeader;
+    },
+    get removeMcpServer() {
+      return removeMcpServer;
+    },
+    get removeModel() {
+      return removeModel;
+    },
+    get removeProvider() {
+      return removeProvider;
+    },
+    get removeRetryQueueModel() {
+      return removeRetryQueueModel;
+    },
+    get repairDefaultModelBindings() {
+      return repairDefaultModelBindings;
+    },
+    get resetHookEditor() {
+      return resetHookEditor;
+    },
+    get rotateRemotePairingCode() {
+      return rotateRemotePairingCode;
+    },
+    get saveAutomationHook() {
+      return saveAutomationHook;
+    },
+    get saveDraftConfig() {
+      return saveDraftConfig;
+    },
+    get saveHook() {
+      return saveHook;
+    },
+    get saveModelConfig() {
+      return saveModelConfig;
+    },
+    get saveUserMemory() {
+      return saveUserMemory;
+    },
+    get scheduledHooks() {
+      return scheduledHooks;
+    },
+    get sections() {
+      return sections;
+    },
+    get selectBindingProvider() {
+      return selectBindingProvider;
+    },
+    get selectedMcpId() {
+      return selectedMcpId;
+    },
+    get selectedMcpIndex() {
+      return selectedMcpIndex;
+    },
+    get selectedMcpServer() {
+      return selectedMcpServer;
+    },
+    get selectedProvider() {
+      return selectedProvider;
+    },
+    get selectedProviderId() {
+      return selectedProviderId;
+    },
+    get selectedProviderIndex() {
+      return selectedProviderIndex;
+    },
+    get selectedSettingsSection() {
+      return selectedSettingsSection;
+    },
+    get setAutomationHookAction() {
+      return setAutomationHookAction;
+    },
+    get setCuaDriverEnabled() {
+      return setCuaDriverEnabled;
+    },
+    get setDefaultModel() {
+      return setDefaultModel;
+    },
+    get setMcpEnabled() {
+      return setMcpEnabled;
+    },
+    get setMcpToolEnabled() {
+      return setMcpToolEnabled;
+    },
+    get setModelCompactionThreshold() {
+      return setModelCompactionThreshold;
+    },
+    get setModelReasoningEffortSupport() {
+      return setModelReasoningEffortSupport;
+    },
+    get setModelVisionSupport() {
+      return setModelVisionSupport;
+    },
+    get setOpenAiApiMode() {
+      return setOpenAiApiMode;
+    },
+    get setProviderEnabled() {
+      return setProviderEnabled;
+    },
+    get snapshotDraftConfig() {
+      return snapshotDraftConfig;
+    },
+    get startRetryQueueDrag() {
+      return startRetryQueueDrag;
+    },
+    get suppressNextAutoSave() {
+      return suppressNextAutoSave;
+    },
+    get syncAutostart() {
+      return syncAutostart;
+    },
+    get testMcpServer() {
+      return testMcpServer;
+    },
+    get testProvider() {
+      return testProvider;
+    },
+    get toggleCurrentWorkspaceAccess() {
+      return toggleCurrentWorkspaceAccess;
+    },
+    get updateEnvKey() {
+      return updateEnvKey;
+    },
+    get updateHeaderKey() {
+      return updateHeaderKey;
+    },
+    get updateRetryDelaySeconds() {
+      return updateRetryDelaySeconds;
+    },
+    get userMcpServers() {
+      return userMcpServers;
+    },
+    get visibleSections() {
+      return visibleSections;
+    },
+    get wechatChannelBusy() {
+      return wechatChannelBusy;
+    },
+    get wechatChannelMessage() {
+      return wechatChannelMessage;
+    },
+    get wechatChannelStatus() {
+      return wechatChannelStatus;
+    },
+    get wechatStatusTimer() {
+      return wechatStatusTimer;
+    },
+    get workspacePath() {
+      return workspacePath;
+    },
   });
 </script>
 

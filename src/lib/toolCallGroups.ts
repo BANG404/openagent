@@ -39,7 +39,8 @@ export function isGroupableToolCall(item: StreamItem): item is ToolCallItem {
   return item.type === "tool_call" && !isRenderTool(item) && item.approval === undefined;
 }
 
-export function groupStreamItems(items: StreamItem[]): StreamItemSegment[] { // NOSONAR: grouping preserves stream ordering and tool lifecycle state in one pass.
+export function groupStreamItems(items: StreamItem[]): StreamItemSegment[] {
+  // NOSONAR: grouping preserves stream ordering and tool lifecycle state in one pass.
   const segments: StreamItemSegment[] = [];
   for (let index = 0; index < items.length;) {
     const item = items[index];
@@ -191,7 +192,8 @@ function isCompactionContinuation(entry: StoredMessageRenderEntry): boolean {
  * transcript row. A compaction replay is an internal continuation boundary, not a
  * new user turn, so keep it inside the reply that resumes after compaction.
  */
-export function groupAssistantTurns(entries: StoredMessageRenderEntry[]): MessageRenderEntry[] { // NOSONAR: turn grouping handles persisted and live message variants together.
+export function groupAssistantTurns(entries: StoredMessageRenderEntry[]): MessageRenderEntry[] {
+  // NOSONAR: turn grouping handles persisted and live message variants together.
   const grouped: MessageRenderEntry[] = [];
   for (let position = 0; position < entries.length;) {
     const firstMessages = assistantMessages(entries[position]);

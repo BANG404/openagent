@@ -29,7 +29,10 @@ function frontmatter(file) {
     const name = line.slice(0, separator).trim();
     if (name !== "name" && name !== "description") continue;
     let value = line.slice(separator + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
       value = value.slice(1, -1);
     }
     fields[name] = value;
@@ -38,7 +41,10 @@ function frontmatter(file) {
     throw new Error(`${file}: name and description are required`);
   }
   const metadataLines = lines.slice(1, end);
-  if (!metadataLines.includes("metadata:") || !metadataLines.some((line) => /^\s+category:\s*\S+/.test(line))) {
+  if (
+    !metadataLines.includes("metadata:") ||
+    !metadataLines.some((line) => /^\s+category:\s*\S+/.test(line))
+  ) {
     throw new Error(`${file}: metadata.category is required`);
   }
   return /** @type {SkillFields} */ (fields);
@@ -175,7 +181,12 @@ function validateManifest(errors, skillNames) {
   }
   const listed = new Set();
   for (const owner of owners) {
-    if (!owner || typeof owner.skill !== "string" || !Array.isArray(owner.paths) || owner.paths.length === 0) {
+    if (
+      !owner ||
+      typeof owner.skill !== "string" ||
+      !Array.isArray(owner.paths) ||
+      owner.paths.length === 0
+    ) {
       errors.push(`${manifestPath}: each owner needs a skill and non-empty paths`);
       continue;
     }

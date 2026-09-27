@@ -52,10 +52,46 @@ const toolNameKeys: Partial<Record<string, TranslationKeys>> = {
 };
 
 export const locale = writable<Locale>("zh");
-export const t = derived(locale, ($locale) => (key: TranslationKeys): string => ($locale === "en" ? en : zh)[key]);
-export function toolNameKey(name: string): TranslationKeys | undefined { return toolNameKeys[name]; }
-export function tr(key: TranslationKeys): string { return (get(locale) === "en" ? en : zh)[key]; }
-export function setLocale(newLocale: Locale): void { locale.set(newLocale); invoke("plugin:i18n|set_locale", { locale: newLocale }).catch(() => {}); }
-export async function initLocale(): Promise<void> { try { const stored = await invoke<string>("plugin:i18n|get_locale"); if (stored === "zh" || stored === "en") locale.set(stored); } catch {} }
-export function listenLocale(): Promise<() => void> { return listen<string>("i18n:locale-changed", (e: { payload: string }) => { const value = e.payload; if (value === "zh" || value === "en") locale.set(value); }); }
-export async function initI18n(savedLanguage?: string | null): Promise<void> { let target: Locale; if (savedLanguage === "zh" || savedLanguage === "en") target = savedLanguage; else { try { const systemLocale = await invoke<string>("get_system_locale"); target = systemLocale.toLowerCase().startsWith("zh") ? "zh" : "en"; } catch { target = "zh"; } } locale.set(target); invoke("plugin:i18n|set_locale", { locale: target }).catch(() => {}); listenLocale().catch(() => {}); }
+export const t = derived(
+  locale,
+  ($locale) =>
+    (key: TranslationKeys): string =>
+      ($locale === "en" ? en : zh)[key],
+);
+export function toolNameKey(name: string): TranslationKeys | undefined {
+  return toolNameKeys[name];
+}
+export function tr(key: TranslationKeys): string {
+  return (get(locale) === "en" ? en : zh)[key];
+}
+export function setLocale(newLocale: Locale): void {
+  locale.set(newLocale);
+  invoke("plugin:i18n|set_locale", { locale: newLocale }).catch(() => {});
+}
+export async function initLocale(): Promise<void> {
+  try {
+    const stored = await invoke<string>("plugin:i18n|get_locale");
+    if (stored === "zh" || stored === "en") locale.set(stored);
+  } catch {}
+}
+export function listenLocale(): Promise<() => void> {
+  return listen<string>("i18n:locale-changed", (e: { payload: string }) => {
+    const value = e.payload;
+    if (value === "zh" || value === "en") locale.set(value);
+  });
+}
+export async function initI18n(savedLanguage?: string | null): Promise<void> {
+  let target: Locale;
+  if (savedLanguage === "zh" || savedLanguage === "en") target = savedLanguage;
+  else {
+    try {
+      const systemLocale = await invoke<string>("get_system_locale");
+      target = systemLocale.toLowerCase().startsWith("zh") ? "zh" : "en";
+    } catch {
+      target = "zh";
+    }
+  }
+  locale.set(target);
+  invoke("plugin:i18n|set_locale", { locale: target }).catch(() => {});
+  listenLocale().catch(() => {});
+}

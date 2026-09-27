@@ -87,7 +87,12 @@ run(process.execPath, [
   "sdk/harness-typescript/tests",
 ]);
 
-run("cargo", ["test", "--manifest-path", resolve(repositoryRoot, "sdk", "Cargo.toml"), "--workspace"]);
+run("cargo", [
+  "test",
+  "--manifest-path",
+  resolve(repositoryRoot, "sdk", "Cargo.toml"),
+  "--workspace",
+]);
 
 run("cargo", ["test", "--manifest-path", resolve(repositoryRoot, "src-tauri", "Cargo.toml")]);
 

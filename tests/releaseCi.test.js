@@ -4,25 +4,15 @@ import { readFileSync } from "node:fs";
 /** @param {URL|string} url */
 const readText = (url) => readFileSync(url, "utf8").replace(/\r\n/g, "\n");
 
-const releaseWorkflow = readText(
-  new URL("../.github/workflows/release.yml", import.meta.url),
-);
+const releaseWorkflow = readText(new URL("../.github/workflows/release.yml", import.meta.url));
 const ciWorkflow = readText(new URL("../.github/workflows/ci.yml", import.meta.url));
 const frontendWorkflow = readText(
   new URL("../.github/workflows/check-frontend.yml", import.meta.url),
 );
-const nativeWorkflow = readText(
-  new URL("../.github/workflows/check-native.yml", import.meta.url),
-);
-const sdkWorkflow = readText(
-  new URL("../.github/workflows/sdk-ci.yml", import.meta.url),
-);
-const nativeCargoManifest = readText(
-  new URL("../src-tauri/Cargo.toml", import.meta.url),
-);
-const tauriConfig = JSON.parse(
-  readText(new URL("../src-tauri/tauri.conf.json", import.meta.url)),
-);
+const nativeWorkflow = readText(new URL("../.github/workflows/check-native.yml", import.meta.url));
+const sdkWorkflow = readText(new URL("../.github/workflows/sdk-ci.yml", import.meta.url));
+const nativeCargoManifest = readText(new URL("../src-tauri/Cargo.toml", import.meta.url));
+const tauriConfig = JSON.parse(readText(new URL("../src-tauri/tauri.conf.json", import.meta.url)));
 const fullTauriConfig = JSON.parse(
   readText(new URL("../src-tauri/tauri.full.conf.json", import.meta.url)),
 );

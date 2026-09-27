@@ -38,7 +38,8 @@ function gitLines(args) {
  * @param {string} baseRef
  */
 export function collectPreflightChanges(baseRef) {
-  const baseSha = execFileSync("git", ["merge-base", baseRef, "HEAD"], { // NOSONAR: git is the fixed repository tool.
+  const baseSha = execFileSync("git", ["merge-base", baseRef, "HEAD"], {
+    // NOSONAR: git is the fixed repository tool.
     encoding: "utf8",
   }).trim();
   const files = new Set([

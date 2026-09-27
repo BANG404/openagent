@@ -447,11 +447,7 @@
         />
       {/if}
     </div>
-    {#if !collapsed &&
-      activePanel !== "status" &&
-      activePanel !== "files" &&
-      activePanel !== "group" &&
-      activePanel !== "terminal"}
+    {#if !collapsed && activePanel !== "status" && activePanel !== "files" && activePanel !== "group" && activePanel !== "terminal"}
       <div class="flow-body">
         <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>
       </div>
@@ -524,8 +520,7 @@
   .resize-handle {
     position: absolute;
     /* Center the full hit target on the gap between the conversation and panel. */
-    inset: 0 auto 0
-      calc(-1 * (var(--column-resize-hit-width) + var(--flow-panel-gap)) / 2);
+    inset: 0 auto 0 calc(-1 * (var(--column-resize-hit-width) + var(--flow-panel-gap)) / 2);
     z-index: 2;
     width: var(--column-resize-hit-width);
     padding: 0;

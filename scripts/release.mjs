@@ -62,7 +62,8 @@ const promotionSourcePaths = [
 ];
 
 function git(gitArgs, options = {}) {
-  return execFileSync("git", gitArgs, { // NOSONAR: git is the fixed repository tool.
+  return execFileSync("git", gitArgs, {
+    // NOSONAR: git is the fixed repository tool.
     encoding: "utf8",
     stdio: options.stdio ?? ["ignore", "pipe", "pipe"],
   }).trim();
@@ -304,7 +305,8 @@ function readReferenceJson(reference, file) {
 }
 
 function readReferenceFile(reference, file) {
-  return execFileSync("git", ["show", `${reference}:${file}`], { // NOSONAR: git is the fixed repository tool.
+  return execFileSync("git", ["show", `${reference}:${file}`], {
+    // NOSONAR: git is the fixed repository tool.
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -380,7 +382,8 @@ function verifyChangelog(version, releaseRefresh = false) {
   }
 }
 
-function verifyPendingRelease() { // NOSONAR: release manifest checks are intentionally evaluated as one gate.
+function verifyPendingRelease() {
+  // NOSONAR: release manifest checks are intentionally evaluated as one gate.
   const manifest = readJson(releaseManifestFile);
   if (manifest.ready !== true) {
     throw new Error(`${releaseManifestFile} is not marked ready.`);
@@ -646,7 +649,8 @@ function updatePromotionChangelog(version, prereleaseVersion, channel) {
   );
 }
 
-function main() { // NOSONAR: release orchestration is intentionally linear so each external gate is auditable.
+function main() {
+  // NOSONAR: release orchestration is intentionally linear so each external gate is auditable.
   if (verify) {
     verifyPendingRelease();
     return;
@@ -732,7 +736,8 @@ function main() { // NOSONAR: release orchestration is intentionally linear so e
       const previousSdk = sourceBase ? git(["rev-parse", `${sourceBase}:sdk`]) : "";
       const currentSdk = git(["rev-parse", "HEAD:sdk"]);
       sdkFiles = previousSdk
-        ? execFileSync("git", ["-C", "sdk", "diff", "--name-only", previousSdk, currentSdk], { // NOSONAR: git is the fixed repository tool.
+        ? execFileSync("git", ["-C", "sdk", "diff", "--name-only", previousSdk, currentSdk], {
+            // NOSONAR: git is the fixed repository tool.
             encoding: "utf8",
           })
             .trim()
