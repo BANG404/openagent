@@ -1,5 +1,35 @@
 # Agent Plugins
 
+## OpenAI plugin compatibility
+
+OpenAgent accepts the portable Agent Plugins 1.0 package used by OpenAI and
+also reads the Codex compatibility layout emitted by the OpenAI plugin creator:
+
+```text
+plugin-root/
+  plugin.json                 # portable entry point (preferred)
+  mcp.json                    # portable MCP config
+  .codex-plugin/plugin.json   # compatibility overlay when no OpenAI extension is inline
+  .mcp.json                   # legacy MCP config referenced by the overlay
+  .app.json                   # registered OpenAI connector mappings
+  hooks/hooks.json            # optional OpenAI lifecycle hooks
+```
+
+The portable manifest keeps `name`, `version`, and other identity fields at the
+root. OpenAI presentation, connector mappings, and hook paths belong in
+`extensions.com.openai`. When that object is present it is authoritative over
+`.codex-plugin/plugin.json`; OpenAgent does not merge the two. If the portable
+manifest has no inline OpenAI extension, the overlay is used. A package with
+only `.codex-plugin/plugin.json` is also accepted for compatibility.
+
+Portable packages always prefer root `mcp.json`. Legacy `.mcp.json` accepts the
+OpenAI examples' `type: "http"` alias and ignores the informational
+`oauth_resource` field after validating the HTTPS endpoint. Hook commands are
+loaded from `hooks/hooks.json` (or the configured relative path) only when the
+command resolves to a file under the installed package through
+`${PLUGIN_ROOT}`. Connector IDs in `.app.json` are presentation metadata; the
+MCP endpoint remains owned by the package MCP configuration.
+
 OpenAgent can load portable [Agent Plugins](https://agent-plugins.org/) version
 1.0.0 packages whose root contains `plugin.json`. Validated packages are
 installed under the active `OPENAGENT_HOME`; the original folder is not used at
@@ -38,6 +68,13 @@ Plugins that need a long-lived capability process may declare
 The Runtime validates containment and reports the normalized descriptor; the
 host owns daemon supervision and may connect it through a normal `mcp.json`
 client entry.
+
+Product-owned standard packages may also declare
+`extensions.openagent.runtime` as `chat-groups`, `goal`, `graph`, or
+`cua-driver`. This binds the package to exactly one trusted product capability.
+The package repository is the default GitHub subscription source; verified
+release archives can overlay the matching builtin package while the Runtime
+continues to own durable state, permissions, and execution.
 
 `extensions.openagent.commands` is an optional array of portable slash
 commands. Each entry has an ID, display `label`, display `description`, an

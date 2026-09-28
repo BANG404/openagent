@@ -656,6 +656,26 @@ export interface AgentPluginCommandSummary {
   description: string;
 }
 
+export interface AgentPluginOpenAiSummary {
+  display_name: string | null;
+  short_description: string | null;
+  long_description: string | null;
+  developer_name: string | null;
+  category: string | null;
+  capabilities: string[];
+  website_url: string | null;
+  privacy_policy_url: string | null;
+  terms_of_service_url: string | null;
+  default_prompt: string[];
+  brand_color: string | null;
+  composer_icon: string | null;
+  logo: string | null;
+  logo_dark: string | null;
+  screenshots: string[];
+  apps: string | null;
+  hooks: string | null;
+}
+
 export interface AgentPluginSummary {
   id: string;
   name: string;
@@ -665,6 +685,7 @@ export interface AgentPluginSummary {
   description: string | null;
   path: string;
   repository: string | null;
+  runtime?: string | null;
   capabilities: string[];
   commands: string[];
   command_specs: AgentPluginCommandSummary[];
@@ -674,6 +695,7 @@ export interface AgentPluginSummary {
   sidebar_views: AgentPluginSidebarViewSummary[];
   automation_hooks: AgentPluginAutomationHookSummary[];
   daemon?: AgentPluginDaemonSummary | null;
+  openai?: AgentPluginOpenAiSummary | null;
   warnings: string[];
   error: string | null;
 }
