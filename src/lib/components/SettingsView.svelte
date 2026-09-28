@@ -9,6 +9,7 @@
   import { desktopOpenAgent, emit, invoke, listen } from "$lib/openagent/tauriClient";
   import { isTauri } from "@tauri-apps/api/core";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
+  import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
   import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
   import { onMount, tick, untrack } from "svelte";
   import { Tabs } from "bits-ui";
@@ -89,6 +90,14 @@
     tools: string[];
     resources: string[];
     fingerprint: string;
+  };
+  type McpOAuthStart = {
+    authorization_url: string;
+  };
+  type McpOAuthStatus = {
+    authorized: boolean;
+    expires_at?: number | null;
+    error?: string | null;
   };
   type RemoteGatewayStatus = {
     enabled: boolean;
@@ -1512,6 +1521,42 @@
     }
   }
 
+  async function authorizeMcpServer(id: string) {
+    const server = draftConfig.mcp.servers.find((item) => item.id === id);
+    if (!server || server.transport !== "http" || !server.url.trim()) return;
+    mcpTestStatus = {
+      ...mcpTestStatus,
+      [id]: { tone: "testing", message: $t("mcpAuthorizationOpening") },
+    };
+    try {
+      const start = (await desktopOpenAgent.invokeProduct("begin_mcp_oauth", {
+        server: $state.snapshot(server),
+      })) as McpOAuthStart;
+      await openExternalUrl(start.authorization_url);
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const status = (await desktopOpenAgent.invokeProduct("get_mcp_oauth_status", {
+          server_id: id,
+        })) as McpOAuthStatus;
+        if (status.authorized) {
+          await desktopOpenAgent.invokeProduct("refresh_mcp_servers", {});
+          mcpTestStatus = {
+            ...mcpTestStatus,
+            [id]: { tone: "success", message: $t("mcpAuthorizationCompleted") },
+          };
+          return;
+        }
+        if (status.error) throw new Error(status.error);
+      }
+      throw new Error($t("mcpAuthorizationTimedOut"));
+    } catch (err: unknown) {
+      mcpTestStatus = {
+        ...mcpTestStatus,
+        [id]: { tone: "error", message: `${$t("mcpAuthorizationFailed")}: ${err}` },
+      };
+    }
+  }
+
   async function setMcpEnabled(id: string, enabled: boolean) {
     const server = draftConfig.mcp.servers.find((item) => item.id === id);
     if (!server) return;
@@ -2604,6 +2649,9 @@
     },
     get testMcpServer() {
       return testMcpServer;
+    },
+    get authorizeMcpServer() {
+      return authorizeMcpServer;
     },
     get testProvider() {
       return testProvider;

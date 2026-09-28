@@ -676,6 +676,11 @@ export const zh = {
   // Model actions
   delete: "删除",
   // Extensions - MCP
+  mcpAuthorize: "鎺堟潈",
+  mcpAuthorizationOpening: "姝ｅ湪鎵撳紑 MCP 鎺堟潈...",
+  mcpAuthorizationCompleted: "MCP 鎺堟潈瀹屾垚",
+  mcpAuthorizationFailed: "MCP 鎺堟潈澶辫触",
+  mcpAuthorizationTimedOut: "MCP 鎺堟潈瓒呮椂",
   mcpServers: "MCP 服务器",
   mcpComing: "MCP 服务器支持即将推出",
   addMcpServer: "添加服务器",

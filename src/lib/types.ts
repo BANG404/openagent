@@ -35,6 +35,7 @@ export interface McpUiResource {
 }
 
 export interface McpUiInvocation {
+  conversation_id?: string | null;
   descriptor: {
     server_id: string;
     tool_name: string;
@@ -609,6 +610,10 @@ export interface McpServerConfig {
   url: string;
   bearer_token: string;
   headers: Record<string, string>;
+  oauth_resource?: string;
+  oauth_authorization_server?: string;
+  oauth_client_id?: string;
+  oauth_scope?: string;
   // Stdio
   command: string;
   args: string[];
@@ -697,7 +702,14 @@ export interface AgentPluginOpenAiSummary {
   logo_dark: string | null;
   screenshots: string[];
   apps: string | null;
+  app_connectors: AgentPluginAppConnectorSummary[];
   hooks: string | null;
+}
+
+export interface AgentPluginAppConnectorSummary {
+  name: string;
+  connector_id: string;
+  category: string | null;
 }
 
 export interface AgentPluginSummary {

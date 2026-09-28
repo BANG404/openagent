@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { desktopOpenAgent } from "$lib/openagent/tauriClient";
   import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
+  import { t } from "$lib/i18n";
   import type { McpUiInvocation } from "$lib/types";
 
   let { invocation }: { invocation: McpUiInvocation } = $props();
@@ -9,13 +11,14 @@
   let frame = $state<HTMLIFrameElement | null>(null);
   let height = $state(280);
   let initialized = $state(false);
-  let displayMode = $state<"inline" | "fullscreen">("inline");
+  let displayMode = $state<"inline" | "fullscreen" | "pip">("inline");
+  let modal = $state<{ content: string; title?: string } | null>(null);
   let _modelContextUpdate = $state<unknown>(undefined);
   let hostContextVersion = $state(0);
   let requestId = 1;
   const uiCapabilities = useOpenAgentUiCapabilities();
 
-  const availableDisplayModes = ["inline", "fullscreen"] as const;
+  const availableDisplayModes = ["inline", "fullscreen", "pip"] as const;
 
   function hostContext(): Record<string, unknown> {
     const container = frame?.parentElement;
@@ -157,7 +160,7 @@
     openExternal: function (url) { return request("ui/open-link", { url: url }); },
     setOpenInAppUrl: function (url) { return request("ui/set-open-in-app-url", { url: url }); },
     uploadFile: function () { return unsupported("uploadFile"); },
-    selectFiles: function () { return unsupported("selectFiles"); },
+    selectFiles: function (options) { return request("ui/select-files", { options: options || {} }); },
     getFileDownloadUrl: function () { return unsupported("getFileDownloadUrl"); },
     get widgetState() { return widgetState; },
     setWidgetState: function (state) {
@@ -274,7 +277,7 @@
     }
     if (method === "ui/request-display-mode") {
       const requested = params.mode;
-      if (requested !== "inline" && requested !== "fullscreen") {
+      if (requested !== "inline" && requested !== "fullscreen" && requested !== "pip") {
         error(id, -32602, "display mode is not supported by this host");
         return;
       }
@@ -309,10 +312,39 @@
       }
       return;
     }
-    if (method === "ui/update-model-context" || method === "ui/message") {
-      if (method === "ui/update-model-context") {
-        _modelContextUpdate = params.content;
+    if (method === "ui/message") {
+      const message =
+        typeof params.message === "string"
+          ? params.message
+          : Array.isArray(params.content)
+            ? params.content
+                .filter(
+                  (part) =>
+                    part &&
+                    typeof part === "object" &&
+                    (part as { type?: unknown }).type === "text",
+                )
+                .map((part) => (part as { text?: unknown }).text)
+                .filter((text): text is string => typeof text === "string")
+                .join("\n")
+            : "";
+      if (!message.trim() || !invocation.conversation_id) {
+        error(id, -32602, "ui/message requires a conversation and text content");
+        return;
       }
+      try {
+        const result = await desktopOpenAgent.submitInput({
+          convId: invocation.conversation_id,
+          text: message,
+        });
+        response(id, result);
+      } catch (cause) {
+        error(id, -32000, String(cause));
+      }
+      return;
+    }
+    if (method === "ui/update-model-context") {
+      _modelContextUpdate = params.content;
       response(id, {});
       return;
     }
@@ -321,7 +353,36 @@
       return;
     }
     if (method === "ui/request-modal" || method === "ui/request-close") {
-      error(id, -32601, method + " is not supported by this host");
+      if (method === "ui/request-close") {
+        modal = null;
+        response(id, {});
+        return;
+      }
+      const content = typeof params.content === "string" ? params.content : "";
+      if (!content) {
+        error(id, -32602, "ui/request-modal requires string content");
+        return;
+      }
+      const options = (params.options ?? {}) as { title?: unknown };
+      modal = {
+        content,
+        title: typeof options.title === "string" ? options.title : undefined,
+      };
+      response(id, {});
+      return;
+    }
+    if (method === "ui/select-files") {
+      try {
+        const options = (params.options ?? {}) as { multiple?: unknown };
+        const selected = await openDialog({
+          multiple: options.multiple === true,
+          directory: false,
+          title: "Select files",
+        });
+        response(id, { files: selected ? (Array.isArray(selected) ? selected : [selected]) : [] });
+      } catch (cause) {
+        error(id, -32000, String(cause));
+      }
       return;
     }
     if (method === "ui/resource-teardown") {
@@ -403,6 +464,7 @@
 
 <section
   class:fullscreen={displayMode === "fullscreen"}
+  class:pip={displayMode === "pip"}
   class="mcp-app-frame"
   style={"height: " + height + "px"}
   aria-label="MCP App"
@@ -417,6 +479,26 @@
     onload={onLoad}
   ></iframe>
 </section>
+
+{#if modal}
+  <div class="mcp-app-modal-backdrop" role="presentation">
+    <div
+      class="mcp-app-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={modal.title ?? "MCP App"}
+      tabindex="-1"
+    >
+      <div class="mcp-app-modal-header">
+        <strong>{modal.title ?? "MCP App"}</strong>
+        <button type="button" aria-label={$t("close")} onclick={() => (modal = null)}
+          >{$t("close")}</button
+        >
+      </div>
+      <pre>{modal.content}</pre>
+    </div>
+  </div>
+{/if}
 
 <style>
   .mcp-app-frame {
@@ -437,10 +519,58 @@
     border-radius: 0;
     background: var(--background);
   }
+  .mcp-app-frame.pip {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1000;
+    width: min(360px, calc(100vw - 32px));
+    height: 240px !important;
+    margin: 0;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 22%);
+  }
   iframe {
     display: block;
     width: 100%;
     height: 100%;
     border: 0;
+  }
+  .mcp-app-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgb(0 0 0 / 42%);
+  }
+  .mcp-app-modal {
+    width: min(640px, 100%);
+    max-height: min(720px, 90vh);
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    box-shadow: 0 18px 48px rgb(0 0 0 / 28%);
+  }
+  .mcp-app-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mcp-app-modal-header button {
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .mcp-app-modal pre {
+    margin: 0;
+    padding: 16px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 </style>

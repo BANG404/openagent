@@ -1286,6 +1286,14 @@
               onclick={() => view.testMcpServer(server.id)}
               disabled={!serverReady || status?.tone === "testing"}
             />
+            {#if server.transport === "http"}
+              <SettingsActionButton
+                label={$t("mcpAuthorize")}
+                icon="refresh"
+                onclick={() => view.authorizeMcpServer(server.id)}
+                disabled={!serverReady || status?.tone === "testing"}
+              />
+            {/if}
           </div>
           <div class="detail-grid mcp-detail-grid">
             <div class="detail-label">

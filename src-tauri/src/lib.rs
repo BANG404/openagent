@@ -2612,6 +2612,20 @@ async fn test_mcp_server(
 }
 
 #[tauri::command]
+async fn begin_mcp_oauth(
+    server: McpServerConfig,
+) -> Result<openagent_runtime::mcp_oauth::OAuthAuthorizationStart, String> {
+    openagent_runtime::commands::begin_mcp_oauth(server).await
+}
+
+#[tauri::command]
+async fn get_mcp_oauth_status(
+    server_id: String,
+) -> Result<openagent_runtime::mcp_oauth::OAuthAuthorizationStatus, String> {
+    openagent_runtime::commands::get_mcp_oauth_status(server_id).await
+}
+
+#[tauri::command]
 async fn call_mcp_tool(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     server_id: String,
@@ -5633,6 +5647,8 @@ fn run_with_mode(agent_server: bool) {
         get_mcp_servers,
         save_mcp_servers,
         test_mcp_server,
+        begin_mcp_oauth,
+        get_mcp_oauth_status,
         call_mcp_tool,
         read_mcp_resource,
         refresh_mcp_servers,
