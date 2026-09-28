@@ -1161,7 +1161,7 @@
 }
 
 .plugin-update-hint {
-  margin: 8px 0 0;
+  margin: 0;
   color: var(--primary);
   font-size: 11px;
 }
@@ -1264,6 +1264,14 @@
 
 .plugin-accordion-content[data-state="open"] {
   animation: plugin-content-open var(--motion-panel) var(--ease-enter);
+}
+
+.plugin-accordion-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
 }
 
 @keyframes plugin-content-open {

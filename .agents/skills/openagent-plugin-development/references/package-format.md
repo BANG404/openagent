@@ -10,8 +10,13 @@ packages, and apply verified GitHub release updates.
 OpenAgent implements both portable component types:
 
 - Agent Skills are discovered only from immediate child directories under
-  `skills/` that contain a conforming `SKILL.md`. Valid plugin skills join the
-  global and workspace Skill catalog used for model discovery.
+  `skills/` that contain a conforming `SKILL.md`. The frontmatter `name` must
+  match its directory name and contain only 1-64 lowercase letters, digits, or
+  single hyphens, the `description` must be 1-1024 characters, and an optional
+  `compatibility` must be 1-500 characters. A Skill that violates any of those
+  rules is skipped with a diagnostic naming the rule while its siblings still
+  load. Valid plugin skills join the global and workspace Skill catalog used
+  for model discovery.
 - MCP servers are loaded only from root `mcp.json`. The stdio and Streamable
   HTTP transports are supported. Legacy HTTP+SSE entries are reported and
   skipped.
@@ -70,8 +75,9 @@ it never downloads a schema while loading a package. It resolves symlinks,
 junctions, and equivalent filesystem indirections before reading, copying, or
 executing package content. A manifest escape or fatal manifest violation rejects
 the package. A bad component location disables that component type, while an
-invalid Skill or MCP entry is skipped without disabling valid siblings. Settings
-shows these diagnostics on the installed plugin card.
+invalid Skill or MCP entry is skipped without disabling valid siblings. Every
+diagnostic names the rule or field it rejected, so the installed plugin card
+reports an actionable reason instead of a generic specification error.
 
 For stdio MCP, OpenAgent creates a writable persistent `PLUGIN_DATA` directory,
 supplies `PLUGIN_ROOT` and `PLUGIN_DATA` after the configured environment, and

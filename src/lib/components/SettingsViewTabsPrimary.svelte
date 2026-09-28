@@ -442,31 +442,35 @@
               {@const update = (view.agentPluginUpdates ?? []).find(
                 (item: AgentPluginUpdateSummary) => item.id === plugin.id,
               )}
-              {#if update?.update_available && update.latest_version}
-                <p class="plugin-update-hint">
-                  {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
-                  {#if update.release_url}
-                    <a href={update.release_url} target="_blank" rel="noreferrer">GitHub</a>
+              {#if (update?.update_available && update.latest_version) || !plugin.builtin}
+                <div class="plugin-accordion-footer">
+                  {#if update?.update_available && update.latest_version}
+                    <p class="plugin-update-hint">
+                      {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
+                      {#if update.release_url}
+                        <a href={update.release_url} target="_blank" rel="noreferrer">GitHub</a>
+                      {/if}
+                      {#if update.asset_url}
+                        <SettingsActionButton
+                          label={$t("pluginUpdate")}
+                          icon="download"
+                          tone="quiet"
+                          onclick={() => view.updateAgentPlugin(plugin.id)}
+                          disabled={view.agentPluginUpdating !== null}
+                        />
+                      {/if}
+                    </p>
                   {/if}
-                  {#if update.asset_url}
+                  {#if !plugin.builtin}
                     <SettingsActionButton
-                      label={$t("pluginUpdate")}
-                      icon="download"
-                      tone="quiet"
-                      onclick={() => view.updateAgentPlugin(plugin.id)}
-                      disabled={view.agentPluginUpdating !== null}
+                      label={$t("pluginUninstall")}
+                      icon="trash"
+                      tone="danger"
+                      onclick={() => view.requestUninstallAgentPlugin(plugin.id)}
+                      disabled={view.agentPluginUpdating !== null || view.agentPluginRemoving}
                     />
                   {/if}
-                </p>
-              {/if}
-              {#if !plugin.builtin}
-                <SettingsActionButton
-                  label={$t("pluginUninstall")}
-                  icon="trash"
-                  tone="danger"
-                  onclick={() => view.requestUninstallAgentPlugin(plugin.id)}
-                  disabled={view.agentPluginUpdating !== null || view.agentPluginRemoving}
-                />
+                </div>
               {/if}
             </Accordion.Content>
           {/if}
