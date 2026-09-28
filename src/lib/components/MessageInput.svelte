@@ -21,6 +21,7 @@
   import WorkspaceSwitcher from "./WorkspaceSwitcher.svelte";
   import { applySlashCommandSelection } from "./slashCommandSelection";
   import { segmentComposerTokens } from "./composerTokenHighlights";
+  import { applyComposerFormat, type ComposerFormat } from "./composerFormatting";
   import { t } from "$lib/i18n";
   import { showToast } from "$lib/toast";
   import { attachmentNameSupported, selectableAttachmentExtensions } from "$lib/attachmentPolicy";
@@ -78,6 +79,7 @@
     loadMentionItems?: (query: string) => Promise<PaletteItem[]>;
     showGlobalDraftsInMentions?: boolean;
     showAttachments?: boolean;
+    showFormatting?: boolean;
     allowImageAttachments?: boolean;
     attachmentDisplay?: "cards" | "strip";
     showModelSelector?: boolean;
@@ -136,6 +138,7 @@
     loadMentionItems,
     showGlobalDraftsInMentions = true,
     showAttachments = true,
+    showFormatting = true,
     allowImageAttachments = false,
     attachmentDisplay = "cards",
     showModelSelector = true,
@@ -174,6 +177,7 @@
   let composerEl = $state<HTMLElement | null>(null);
   let browserFileInput = $state<HTMLInputElement | null>(null);
   let wasDisabled = $state(false);
+  let formatToolbarOpen = $state(false);
   let referencedAttachmentPaths = new Set<string>();
   const hasComposerContent = $derived(
     Boolean(value.trim() || attachments.length || contexts.length),
@@ -888,6 +892,22 @@
       }
     }
 
+    if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+      const format: ComposerFormat | null =
+        e.key.toLowerCase() === "b"
+          ? { prefix: "**" }
+          : e.key.toLowerCase() === "i"
+            ? { prefix: "*" }
+            : e.key === "`"
+              ? { prefix: "`" }
+              : null;
+      if (format) {
+        e.preventDefault();
+        applyFormat(format);
+        return;
+      }
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       runPrimaryAction();
@@ -914,6 +934,25 @@
 
   function handleSelect() {
     if (paletteMode) syncPaletteFromCaret();
+  }
+
+  function applyFormat(format: ComposerFormat) {
+    if (!textareaEl) return;
+    const selection = applyComposerFormat(
+      value,
+      textareaEl.selectionStart ?? value.length,
+      textareaEl.selectionEnd ?? value.length,
+      format,
+    );
+    value = selection.value;
+    void tick().then(() => {
+      if (!textareaEl) return;
+      textareaEl.focus({ preventScroll: true });
+      textareaEl.setSelectionRange(selection.start, selection.end);
+      resizeTextarea();
+      syncInputHighlightScroll(textareaEl);
+      syncPaletteFromCaret();
+    });
   }
 </script>
 
@@ -1000,8 +1039,86 @@
         }}
         {disabled}></textarea>
     </div>
-    {#if showAttachments || showModelSelector || showReasoningEffort || showApprovalMode || showWorkspaceSwitcher}
+    {#if showFormatting || showAttachments || showModelSelector || showReasoningEffort || showApprovalMode || showWorkspaceSwitcher}
       <div class="composer-toolbar">
+        <Tooltip text={formatToolbarOpen ? $t("composerFormattingHide") : $t("composerFormatting")}>
+          {#snippet trigger(props)}
+            <button
+              class="format-toggle"
+              class:format-toggle-active={formatToolbarOpen}
+              type="button"
+              aria-label={formatToolbarOpen
+                ? $t("composerFormattingHide")
+                : $t("composerFormatting")}
+              aria-expanded={formatToolbarOpen}
+              {...props}
+              {disabled}
+              onclick={() => (formatToolbarOpen = !formatToolbarOpen)}
+            >
+              <span aria-hidden="true">Aa</span>
+            </button>
+          {/snippet}
+        </Tooltip>
+        {#if formatToolbarOpen}
+          <div class="format-actions" role="toolbar" aria-label={$t("composerFormatting")}>
+            <Tooltip text={$t("mdEditorBold")}>
+              {#snippet trigger(props)}
+                <button
+                  class="format-btn"
+                  type="button"
+                  aria-label={$t("mdEditorBold")}
+                  {...props}
+                  {disabled}
+                  onclick={() => applyFormat({ prefix: "**" })}
+                >
+                  <strong aria-hidden="true">B</strong>
+                </button>
+              {/snippet}
+            </Tooltip>
+            <Tooltip text={$t("mdEditorItalic")}>
+              {#snippet trigger(props)}
+                <button
+                  class="format-btn"
+                  type="button"
+                  aria-label={$t("mdEditorItalic")}
+                  {...props}
+                  {disabled}
+                  onclick={() => applyFormat({ prefix: "*" })}
+                >
+                  <em aria-hidden="true">I</em>
+                </button>
+              {/snippet}
+            </Tooltip>
+            <Tooltip text={$t("mdEditorStrikethrough")}>
+              {#snippet trigger(props)}
+                <button
+                  class="format-btn"
+                  type="button"
+                  aria-label={$t("mdEditorStrikethrough")}
+                  {...props}
+                  {disabled}
+                  onclick={() => applyFormat({ prefix: "~~" })}
+                >
+                  <s aria-hidden="true">S</s>
+                </button>
+              {/snippet}
+            </Tooltip>
+            <Tooltip text={$t("mdEditorInlineCode")}>
+              {#snippet trigger(props)}
+                <button
+                  class="format-btn format-code-btn"
+                  type="button"
+                  aria-label={$t("mdEditorInlineCode")}
+                  {...props}
+                  {disabled}
+                  onclick={() => applyFormat({ prefix: "`" })}
+                >
+                  <code aria-hidden="true">&lt;/&gt;</code>
+                </button>
+              {/snippet}
+            </Tooltip>
+          </div>
+        {/if}
         {#if showAttachments}<Tooltip text={$t("attachFiles")}>
             {#snippet trigger(props)}
               <button
@@ -1390,6 +1507,47 @@
     background: transparent;
     color: var(--text-muted);
     padding: 0;
+  }
+
+  .format-toggle,
+  .format-btn {
+    flex: 0 0 var(--composer-control-size);
+    width: var(--composer-control-size);
+    height: var(--composer-control-size);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: var(--composer-control-radius);
+    background: transparent;
+    color: var(--text-muted);
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .format-toggle:hover:not(:disabled),
+  .format-toggle-active,
+  .format-btn:hover:not(:disabled) {
+    background: var(--interactive-state-bg);
+    color: var(--text);
+  }
+
+  .format-toggle:focus-visible,
+  .format-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  .format-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding-right: 2px;
+    border-right: 1px solid var(--mica-divider);
+  }
+
+  .format-code-btn code {
+    font-size: 11px;
   }
 
   .attach-btn:hover:not(:disabled) {

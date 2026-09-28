@@ -142,6 +142,12 @@
 - Keep the localized shared-composer placeholder concise while advertising the
   Enter and Shift+Enter keyboard behavior plus the `/` command and `@` mention
   palette triggers.
+- Keep the shared composer text-formatting group backed by Markdown so the
+  existing plain-text message contract remains unchanged. The group exposes
+  bold, italic, strikethrough, and inline-code actions, preserves the textarea
+  selection after each action, and supports the matching `Ctrl`/`Cmd` shortcuts.
+  Formatting stays available in compact composer variants unless a caller
+  explicitly sets `showFormatting={false}`.
 - Keep the shared composer send, queue, and stop actions at a stable 30px square
   geometry with an 8px corner radius so the primary actions read as compact
   rounded-square controls across streaming and idle states.
