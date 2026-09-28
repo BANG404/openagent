@@ -102,6 +102,7 @@ client; do not parse commands or select flows in a host. IPC changes update the
 SDK contract or adapter, public frontend types, and all callers together.
 Inspector and trace data may contain model context and must not appear in the
 normal product UI. Static agent-tool labels and accessibility text use `src/lib/i18n.ts`; frontend changes run the related contract checks.
+A feature container that shares state through a context facade must expose a setter for every property its child surfaces write, including `bind:` targets; a getter-only property throws on every click or input update.
 
 ## Data and user safety
 The canonical locations and compatibility behavior live in

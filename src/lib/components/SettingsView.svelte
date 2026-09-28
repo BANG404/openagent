@@ -1947,6 +1947,9 @@
     get automationHookDraft() {
       return automationHookDraft;
     },
+    set automationHookDraft(value) {
+      automationHookDraft = value;
+    },
     get automationHookEventLabel() {
       return automationHookEventLabel;
     },
@@ -2032,6 +2035,9 @@
     get channelSettingsNav() {
       return channelSettingsNav;
     },
+    set channelSettingsNav(value) {
+      channelSettingsNav = value;
+    },
     get channelStatuses() {
       return channelStatuses;
     },
@@ -2076,6 +2082,9 @@
     },
     get draggedRetryQueue() {
       return draggedRetryQueue;
+    },
+    set draggedRetryQueue(value) {
+      draggedRetryQueue = value;
     },
     get dropRetryQueueModel() {
       return dropRetryQueueModel;
@@ -2140,17 +2149,32 @@
     get hookDelayMinutes() {
       return hookDelayMinutes;
     },
+    set hookDelayMinutes(value) {
+      hookDelayMinutes = value;
+    },
     get hookIntervalMinutes() {
       return hookIntervalMinutes;
+    },
+    set hookIntervalMinutes(value) {
+      hookIntervalMinutes = value;
     },
     get hookMessage() {
       return hookMessage;
     },
+    set hookMessage(value) {
+      hookMessage = value;
+    },
     get hookMode() {
       return hookMode;
     },
+    set hookMode(value) {
+      hookMode = value;
+    },
     get hookRoleKey() {
       return hookRoleKey;
+    },
+    set hookRoleKey(value) {
+      hookRoleKey = value;
     },
     get hookRoleName() {
       return hookRoleName;
@@ -2161,14 +2185,23 @@
     get hookRunAt() {
       return hookRunAt;
     },
+    set hookRunAt(value) {
+      hookRunAt = value;
+    },
     get hookStatus() {
       return hookStatus;
     },
     get hookTimeOfDay() {
       return hookTimeOfDay;
     },
+    set hookTimeOfDay(value) {
+      hookTimeOfDay = value;
+    },
     get hookWeekdays() {
       return hookWeekdays;
+    },
+    set hookWeekdays(value) {
+      hookWeekdays = value;
     },
     get importMemory() {
       return importMemory;
@@ -2197,6 +2230,9 @@
     get manualModelName() {
       return manualModelName;
     },
+    set manualModelName(value) {
+      manualModelName = value;
+    },
     get mcpConnectionFingerprints() {
       return mcpConnectionFingerprints;
     },
@@ -2218,17 +2254,29 @@
     get memoryAgentSearch() {
       return memoryAgentSearch;
     },
+    set memoryAgentSearch(value) {
+      memoryAgentSearch = value;
+    },
     get memoryBusy() {
       return memoryBusy;
     },
     get memoryClearCloseHandled() {
       return memoryClearCloseHandled;
     },
+    set memoryClearCloseHandled(value) {
+      memoryClearCloseHandled = value;
+    },
     get memoryClearDialogOpen() {
       return memoryClearDialogOpen;
     },
+    set memoryClearDialogOpen(value) {
+      memoryClearDialogOpen = value;
+    },
     get memoryClearInput() {
       return memoryClearInput;
+    },
+    set memoryClearInput(value) {
+      memoryClearInput = value;
     },
     get memoryExtracting() {
       return memoryExtracting;
@@ -2245,6 +2293,9 @@
     get memoryScope() {
       return memoryScope;
     },
+    set memoryScope(value) {
+      memoryScope = value;
+    },
     get memoryScopeAvailable() {
       return memoryScopeAvailable;
     },
@@ -2254,11 +2305,20 @@
     get memoryUserContent() {
       return memoryUserContent;
     },
+    set memoryUserContent(value) {
+      memoryUserContent = value;
+    },
     get modelConfigDialogOpen() {
       return modelConfigDialogOpen;
     },
+    set modelConfigDialogOpen(value) {
+      modelConfigDialogOpen = value;
+    },
     get modelConfigName() {
       return modelConfigName;
+    },
+    set modelConfigName(value) {
+      modelConfigName = value;
     },
     get modelConfigOriginalName() {
       return modelConfigOriginalName;
@@ -2269,11 +2329,20 @@
     get modelConfigSupportsReasoningEffort() {
       return modelConfigSupportsReasoningEffort;
     },
+    set modelConfigSupportsReasoningEffort(value) {
+      modelConfigSupportsReasoningEffort = value;
+    },
     get modelConfigSupportsVision() {
       return modelConfigSupportsVision;
     },
+    set modelConfigSupportsVision(value) {
+      modelConfigSupportsVision = value;
+    },
     get modelConfigThreshold() {
       return modelConfigThreshold;
+    },
+    set modelConfigThreshold(value) {
+      modelConfigThreshold = value;
     },
     get modelConfigUsesResponsesReasoning() {
       return modelConfigUsesResponsesReasoning;
@@ -2286,6 +2355,9 @@
     },
     get modelSearch() {
       return modelSearch;
+    },
+    set modelSearch(value) {
+      modelSearch = value;
     },
     get moveRetryQueueModel() {
       return moveRetryQueueModel;
@@ -2332,11 +2404,17 @@
     get providerFilter() {
       return providerFilter;
     },
+    set providerFilter(value) {
+      providerFilter = value;
+    },
     get providerModels() {
       return providerModels;
     },
     get providerSearch() {
       return providerSearch;
+    },
+    set providerSearch(value) {
+      providerSearch = value;
     },
     get providerStatus() {
       return providerStatus;
@@ -2344,8 +2422,14 @@
     get quickShortcutRecording() {
       return quickShortcutRecording;
     },
+    set quickShortcutRecording(value) {
+      quickShortcutRecording = value;
+    },
     get quickShortcutStatus() {
       return quickShortcutStatus;
+    },
+    set quickShortcutStatus(value) {
+      quickShortcutStatus = value;
     },
     get rebaseDraftValue() {
       return rebaseDraftValue;
@@ -2449,6 +2533,9 @@
     get selectedMcpId() {
       return selectedMcpId;
     },
+    set selectedMcpId(value) {
+      selectedMcpId = value;
+    },
     get selectedMcpIndex() {
       return selectedMcpIndex;
     },
@@ -2460,6 +2547,9 @@
     },
     get selectedProviderId() {
       return selectedProviderId;
+    },
+    set selectedProviderId(value) {
+      selectedProviderId = value;
     },
     get selectedProviderIndex() {
       return selectedProviderIndex;

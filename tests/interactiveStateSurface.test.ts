@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
-import { settingsViewSource } from "./sourceSurfaces";
+import { readSource, settingsViewSource } from "./sourceSurfaces";
 
 const componentPaths = [
   "../src/lib/components/MentionPalette.svelte",
@@ -8,6 +8,13 @@ const componentPaths = [
   "../src/lib/components/WorkspaceSwitcher.svelte",
   "../src/lib/components/ui/Combobox.svelte",
   "../src/lib/components/ui/Select.svelte",
+];
+
+const settingsSurfaceFiles = [
+  "SettingsViewNavigation.svelte",
+  "SettingsViewTabsPrimary.svelte",
+  "SettingsViewTabsSecondary.svelte",
+  "SettingsViewDialogs.svelte",
 ];
 
 test("derives shared interaction states from the current text color in app.css", async () => {
@@ -137,4 +144,37 @@ test("reuses the shared Select for application-owned choice fields", async () =>
   expect(sources[0]).toMatch(
     /\.ui-select-trigger\.ask-user-select\)[\s\S]*?background: var\(--bg\);[\s\S]*?box-shadow: none;/,
   );
+});
+
+test("keeps the settings-view context facade writable for its child surfaces", async () => {
+  const settingsView = await readSource(
+    new URL("../src/lib/components/SettingsView.svelte", import.meta.url),
+  );
+  const facade = settingsView.slice(settingsView.indexOf('setContext("settings-view"'));
+  const getters = new Set(
+    [...facade.matchAll(/^\s+get ([A-Za-z0-9_]+)\(\)/gmu)].map((match) => match[1]),
+  );
+  const setters = new Set(
+    [...facade.matchAll(/^\s+set ([A-Za-z0-9_]+)\(/gmu)].map((match) => match[1]),
+  );
+
+  const written = new Map<string, string>();
+  for (const file of settingsSurfaceFiles) {
+    const source = await readSource(new URL(`../src/lib/components/${file}`, import.meta.url));
+    for (const match of source.matchAll(
+      /view\.([A-Za-z0-9_]+)(?![\w.])\s*(?:\+\+|--|(?:\?\?|\|\||[-+*/%])?=(?!=))/gu,
+    )) {
+      written.set(match[1], file);
+    }
+    for (const match of source.matchAll(/bind:[\w-]+=\{\s*view\.([A-Za-z0-9_]+)(?![\w.])/gu)) {
+      written.set(match[1], file);
+    }
+  }
+
+  expect(written.size).toBeGreaterThan(20);
+  expect(
+    [...written]
+      .filter(([name]) => !(getters.has(name) && setters.has(name)))
+      .map(([name, file]) => `${file}: view.${name} needs a matching get/set pair`),
+  ).toEqual([]);
 });
