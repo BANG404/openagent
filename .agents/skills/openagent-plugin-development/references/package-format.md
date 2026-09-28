@@ -32,6 +32,13 @@ local `tag`. Tagged output is accepted only when the tag is declared in the
 plugin's `message_policies`; the host applies the declared audience policy and
 stores the namespaced tag in the checkpoint.
 
+Plugins that need a long-lived capability process may declare
+`extensions.openagent.daemon` with a package-relative `command`, string
+`args` and `capabilities` arrays, and `transport` set to `stdio` or `socket`.
+The Runtime validates containment and reports the normalized descriptor; the
+host owns daemon supervision and may connect it through a normal `mcp.json`
+client entry.
+
 `extensions.openagent.commands` is an optional array of portable slash
 commands. Each entry has an ID, display `label`, display `description`, an
 `argument` mode (`none` or `required_text`), a package-relative executable

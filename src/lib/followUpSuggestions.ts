@@ -1,4 +1,4 @@
-import type { ChatMessage, RenderableCheckpoint } from "$lib/types";
+import { isPluginMessage, type ChatMessage, type RenderableCheckpoint } from "$lib/types";
 
 function normalizeDurableSuggestions(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -54,7 +54,7 @@ export function latestTurnSuggestionHostMessageId(
       if (message.turn?.response_message_id) return message.turn.response_message_id;
       continue;
     }
-    if (message.role === "user" && message.timestamp !== 0) {
+    if (message.role === "user" && !isPluginMessage(message) && message.timestamp !== 0) {
       return fallbackAssistantMessageId;
     }
   }

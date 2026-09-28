@@ -315,6 +315,9 @@ const en: Record<TranslationKeys, string> = {
   pluginSidebarDisabled: "Enable the plugin to open this view",
   pluginSidebarInvalid: "The plugin could not be loaded",
   pluginSidebarOutOfScope: "Requires an open workspace or conversation",
+  pluginMessageAriaLabel: "Plugin message",
+  pluginMessageFrom: "From plugin",
+  pluginMessageSourceUnknown: "Unknown plugin",
   pluginDesktopControlDescription:
     "Connect Cua Driver as an MCP service so the Agent can operate desktop apps and browsers.",
   pluginDesktopControl: "Desktop control",

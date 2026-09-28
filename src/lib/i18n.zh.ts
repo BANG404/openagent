@@ -311,6 +311,9 @@ export const zh = {
   pluginSidebarDisabled: "启用插件后可打开此视图",
   pluginSidebarInvalid: "插件加载失败",
   pluginSidebarOutOfScope: "需要一个打开的工作区或会话",
+  pluginMessageAriaLabel: "插件消息",
+  pluginMessageFrom: "来自插件",
+  pluginMessageSourceUnknown: "未知插件",
   pluginDesktopControlDescription:
     "将 Cua Driver 作为 MCP 服务接入，让 Agent 可以操作桌面应用与浏览器。",
   pluginDesktopControl: "桌面控制",

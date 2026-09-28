@@ -17,6 +17,7 @@ import type {
   StreamItem,
   UserInputRequest,
 } from "./types";
+import { isPluginMessage } from "./types";
 
 function textValue(value: unknown, fallback = ""): string {
   if (value == null) return fallback;
@@ -148,7 +149,9 @@ export function findUserMessageIndexForAssistant(
   if (messages[assistantMessageIndex]?.role !== "assistant") return -1;
   for (let index = assistantMessageIndex - 1; index >= 0; index -= 1) {
     const message = messages[index];
-    if (message.role === "user" && !isCompactionBoundary(message)) return index;
+    if (message.role === "user" && !isCompactionBoundary(message) && !isPluginMessage(message)) {
+      return index;
+    }
   }
   return -1;
 }
@@ -566,7 +569,7 @@ export function buildTreeFromCheckpoints( // NOSONAR: tree construction applies 
       }
       const message = recordToMessage(record, ckId);
       node.timelineMessages.push(message);
-      if (record.role === "user") node.user = message;
+      if (record.role === "user" && !isPluginMessage(message)) node.user = message;
       else if (record.role === "assistant") node.assistant = message;
       else node.systemMessages = [...(node.systemMessages ?? []), message];
     }
@@ -637,7 +640,9 @@ export function computeActivePath(tree: ConvTree): ChatMessage[] {
     selectedNodes.push(node);
     path.push(
       ...node.timelineMessages.map((message) =>
-        message.role === "user" ? { ...message, checkpointId: node.ckId } : message,
+        message.role === "user" && !isPluginMessage(message)
+          ? { ...message, checkpointId: node.ckId }
+          : message,
       ),
     );
     tip = node;
@@ -651,7 +656,9 @@ export function computeActivePath(tree: ConvTree): ChatMessage[] {
   if (tip?.isSelfContainedSnapshot) {
     return attachSelectedTurnMetadata(
       tip.timelineMessages.map((message) =>
-        message.role === "user" ? { ...message, checkpointId: tip.ckId } : message,
+        message.role === "user" && !isPluginMessage(message)
+          ? { ...message, checkpointId: tip.ckId }
+          : message,
       ),
       selectedNodes,
     );
@@ -781,7 +788,8 @@ function findUserMessageIntroduction(
       node &&
       (node.user?.id === userMessageId ||
         node.timelineMessages.some(
-          (message) => message.role === "user" && message.id === userMessageId,
+          (message) =>
+            message.role === "user" && !isPluginMessage(message) && message.id === userMessageId,
         ))
     ) {
       return node;

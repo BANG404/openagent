@@ -106,6 +106,13 @@ export interface ChatMessage {
   chatGroupWake?: boolean;
 }
 
+/** User-role records emitted by a portable plugin automation hook. */
+export function isPluginMessage(message: unknown): boolean {
+  if (!message || typeof message !== "object") return false;
+  const tags = (message as { pluginTags?: unknown }).pluginTags;
+  return Array.isArray(tags) && tags.length > 0;
+}
+
 export type AgentMessageTag =
   | "context_compaction"
   | "chat_group_mention"
@@ -628,6 +635,13 @@ export interface AgentPluginAutomationHookSummary {
   command: string;
 }
 
+export interface AgentPluginDaemonSummary {
+  command: string;
+  args: string[];
+  transport: "stdio" | "socket";
+  capabilities: string[];
+}
+
 export interface AgentPluginMessagePolicy {
   tag: string;
   user_visible: boolean;
@@ -659,6 +673,7 @@ export interface AgentPluginSummary {
   mcp_servers: AgentPluginMcpSummary[];
   sidebar_views: AgentPluginSidebarViewSummary[];
   automation_hooks: AgentPluginAutomationHookSummary[];
+  daemon?: AgentPluginDaemonSummary | null;
   warnings: string[];
   error: string | null;
 }

@@ -50,10 +50,18 @@ Automation commands may return a structured lifecycle message such as
 `{"message":"Approval required","tag":"approval"}`. The Runtime
 namespaces the local tag to `plugin:<plugin-id>:<tag>`, verifies that the
 manifest declares the tag, and persists the resolved audience in the
-checkpoint record. `user_visible` messages are projected into the transcript;
-`model_visible` messages are included in the next provider request. Plain text
-hook output keeps the existing model-context behavior and is not persisted as a
-plugin message.
+checkpoint record. `user_visible` messages are persisted as `user`-role plugin
+records and projected by the common frontend plugin-message component, which
+labels the owning plugin from the namespace; they are never treated as an
+authored user prompt. `model_visible` messages are included in the next
+provider request. Plain text hook output keeps the existing model-context
+behavior and is not persisted as a plugin message.
+
+Plugins may also declare one `extensions.openagent.daemon` with a contained
+command, string `args` and `capabilities` arrays, and `stdio` or `socket`
+transport. The Runtime validates and reports this descriptor. The host owns
+supervision, permissions, endpoint selection, and shutdown; a daemon can be
+paired with an MCP client declared in `mcp.json`.
 
 Tagged output is delivered only through that durable plugin-message channel. It
 never becomes a suffix on the tool result that triggered the hook, so a

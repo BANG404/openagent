@@ -32,7 +32,9 @@
   } from "$lib/types";
   import AttachmentPreview from "./AttachmentPreview.svelte";
   import UserQuote from "./UserQuote.svelte";
+  import PluginMessage from "./PluginMessage.svelte";
   import type { MermaidConfig } from "$lib/mermaidTheme";
+  import { isPluginMessage } from "$lib/types";
   import { selectionTextWithMath } from "$lib/streamdown/selectionText";
   import { motionDuration } from "$lib/motion";
   import {
@@ -216,7 +218,9 @@
       ),
   );
   let userMessageIndex = $derived(
-    visibleMessages.filter(({ msg }) => msg.role === "user" && !isCompactionReplayUser(msg)),
+    visibleMessages.filter(
+      ({ msg }) => msg.role === "user" && !isCompactionReplayUser(msg) && !isPluginMessage(msg),
+    ),
   );
   const USER_MESSAGE_COLLAPSE_LENGTH = 800;
   const USER_MESSAGE_COLLAPSE_LINES = 8;
@@ -863,6 +867,8 @@
             streamItemKey={`compaction-boundary-${msg.id}`}
             messageId={msg.id}
           />
+        {:else if msg.role === "user" && isPluginMessage(msg)}
+          <PluginMessage message={msg} />
         {:else if msg.role === "user"}
           {@const siblingInfo = activeConvId
             ? getSiblingInfoForUserMessage(activeTree, msg.id)
