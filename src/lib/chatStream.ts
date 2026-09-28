@@ -1,7 +1,12 @@
 // Streaming-side helpers for pure stream-item manipulation. Transport event
 // subscription lives in the OpenAgent client SDK.
 
-import type { ContextCompactionStage, StreamItem, UserInputRequest } from "./types";
+import type {
+  ContextCompactionStage,
+  McpUiInvocation,
+  StreamItem,
+  UserInputRequest,
+} from "./types";
 import { toolCallStatus } from "./toolCallGroups";
 
 export function appendChunk(items: StreamItem[], text: string): StreamItem[] {
@@ -63,6 +68,7 @@ export function appendToolCall(
   name: string,
   args: unknown,
   toolUseId?: string,
+  mcpUi?: McpUiInvocation,
 ): StreamItem[] {
   // ask_user is represented by a dedicated user_input stream item from
   // chat-user-input-request, not by the generic tool-call card.
@@ -74,7 +80,7 @@ export function appendToolCall(
     return items;
   }
   const argsStr = typeof args === "string" ? args : JSON.stringify(args, null, 2);
-  return [...items, { type: "tool_call", name, args: argsStr, toolUseId }];
+  return [...items, { type: "tool_call", name, args: argsStr, toolUseId, mcpUi }];
 }
 
 // Find the latest tool_call without a result and attach `result` to it.
@@ -82,6 +88,7 @@ export function attachToolResult(
   items: StreamItem[],
   result: string,
   toolUseId?: string,
+  mcpUi?: McpUiInvocation,
 ): StreamItem[] {
   const next = [...items];
   if (toolUseId) {
@@ -91,7 +98,7 @@ export function attachToolResult(
     if (exact >= 0) {
       const item = next[exact];
       if (item.type === "tool_call" && item.result === undefined) {
-        next[exact] = toolCallWithResult(item, result);
+        next[exact] = toolCallWithResult(item, result, mcpUi);
       }
       return next;
     }
@@ -99,7 +106,7 @@ export function attachToolResult(
   for (let i = next.length - 1; i >= 0; i--) {
     const it = next[i];
     if (it.type === "tool_call" && it.result === undefined) {
-      next[i] = toolCallWithResult(it, result);
+      next[i] = toolCallWithResult(it, result, mcpUi);
       return next;
     }
   }
@@ -109,13 +116,15 @@ export function attachToolResult(
 function toolCallWithResult(
   item: Extract<StreamItem, { type: "tool_call" }>,
   result: string,
+  mcpUi?: McpUiInvocation,
 ): Extract<StreamItem, { type: "tool_call" }> {
-  if (!item.approval) return { ...item, result };
-  const status = toolCallStatus({ ...item, result }, false);
+  const next = mcpUi ? { ...item, result, mcpUi } : { ...item, result };
+  if (!item.approval) return next;
+  const status = toolCallStatus(next, false);
   let state: "unanswered" | "cancelled" | "answered" = "answered";
   if (status === "unanswered") state = "unanswered";
   else if (status === "cancelled") state = "cancelled";
-  return { ...item, result, approval: { ...item.approval, state } };
+  return { ...next, approval: { ...item.approval, state } };
 }
 
 export function appendUserInput(items: StreamItem[], request: UserInputRequest): StreamItem[] {

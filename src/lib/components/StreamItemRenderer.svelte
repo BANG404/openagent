@@ -149,6 +149,7 @@
       name={item.name}
       args={item.args}
       result={item.result}
+      mcpUi={item.mcpUi}
       images={item.images}
       {expanded}
       argHint={toolArgHint(item.args)}

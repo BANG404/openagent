@@ -2613,6 +2613,31 @@ async fn test_mcp_server(
     openagent_runtime::commands::test_mcp_server(server).await
 }
 
+#[tauri::command]
+async fn call_mcp_tool(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    server_id: String,
+    tool_name: String,
+    arguments: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    openagent_runtime::commands::call_mcp_ui_tool(
+        runtime.state(),
+        server_id,
+        tool_name,
+        arguments,
+    )
+    .await
+}
+
+#[tauri::command]
+async fn read_mcp_resource(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    server_id: String,
+    uri: String,
+) -> Result<mcp::McpUiResource, String> {
+    openagent_runtime::commands::read_mcp_ui_resource(runtime.state(), server_id, uri).await
+}
+
 }
 
 #[tauri::command]
@@ -5608,6 +5633,8 @@ fn run_with_mode(agent_server: bool) {
         get_mcp_servers,
         save_mcp_servers,
         test_mcp_server,
+        call_mcp_tool,
+        read_mcp_resource,
         refresh_mcp_servers,
         get_conversations,
         get_conversation_page,

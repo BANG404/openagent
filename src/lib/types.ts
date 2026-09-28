@@ -26,6 +26,28 @@ export type UserMessageContext = {
   sourceMessageId?: string | null;
 };
 
+export interface McpUiResource {
+  uri: string;
+  mime_type: string;
+  text?: string | null;
+  blob?: string | null;
+  meta?: unknown;
+}
+
+export interface McpUiInvocation {
+  descriptor: {
+    server_id: string;
+    tool_name: string;
+    resource_uri: string;
+    visibility: string[];
+  };
+  resource?: McpUiResource | null;
+  arguments: unknown;
+  content: unknown[];
+  structured_content?: unknown;
+  meta?: unknown;
+}
+
 export type ContextCompactionStage =
   "checking" | "summarizing" | "creating" | "done" | "skipped" | "failed";
 
@@ -39,6 +61,7 @@ export type StreamItem =
       name: string;
       args: string;
       result?: string;
+      mcpUi?: McpUiInvocation;
       images?: ChatToolImage[];
       /** Provider tool-use id, retained so restored checkpoints can join results. */
       toolUseId?: string;

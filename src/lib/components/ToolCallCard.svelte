@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
   import MermaidToolPreview from "./MermaidToolPreview.svelte";
-  import type { ChatToolImage, UserInputRequest } from "$lib/types";
+  import type { ChatToolImage, McpUiInvocation, UserInputRequest } from "$lib/types";
   import type { FileChange } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t, toolNameKey } from "$lib/i18n";
@@ -16,11 +16,13 @@
   import FileDiffView from "./FileDiffView.svelte";
   import Tooltip from "./Tooltip.svelte";
   import ToolApprovalActions from "./ToolApprovalActions.svelte";
+  import McpAppFrame from "./McpAppFrame.svelte";
 
   interface Props {
     name: string;
     args: string;
     result: string | undefined;
+    mcpUi?: McpUiInvocation;
     images?: ChatToolImage[];
     expanded: boolean;
     argHint: string;
@@ -52,6 +54,7 @@
     name,
     args,
     result,
+    mcpUi,
     images = [],
     expanded,
     argHint,
@@ -332,6 +335,10 @@
           onApprove={(requestId) => onApprove?.(requestId)}
           onDeny={(requestId) => onDeny?.(requestId)}
         />
+      {/if}
+
+      {#if mcpUi?.resource}
+        <McpAppFrame invocation={mcpUi} />
       {/if}
 
       {#if expanded}

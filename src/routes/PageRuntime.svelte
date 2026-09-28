@@ -3239,7 +3239,7 @@
         if (text) chatStreams.recordFirstResponse(conv_id);
         applyStreamMutation(conv_id, (items) => appendThinkingChunk(items, text));
       },
-      onToolCall: (conv_id, name, args, toolUseId) => {
+      onToolCall: (conv_id, name, args, toolUseId, mcpUi) => {
         chatStreams.clearAwaitingOutput(conv_id);
         chatStreams.clearMemoryRetrieval(conv_id);
         chatStreams.recordFirstResponse(conv_id);
@@ -3248,6 +3248,7 @@
           name,
           args,
           toolUseId,
+          mcpUi,
         );
         const pendingInput = pendingUserInputs[conv_id];
         if (pendingInput?.kind === "tool_approval") {
@@ -3259,7 +3260,7 @@
         };
         persistStreamDraft(conv_id).catch(() => {});
       },
-      onToolResult: (conv_id, result, toolUseId) => {
+      onToolResult: (conv_id, result, toolUseId, mcpUi) => {
         const pendingToolCall = toolUseId
           ? (chatStreams.itemsByConversation[conv_id] ?? []).find(
               (item) =>
@@ -3283,6 +3284,7 @@
             chatStreams.itemsByConversation[conv_id] ?? [],
             result,
             toolUseId,
+            mcpUi,
           ),
         };
         const updatedItems = chatStreams.itemsByConversation[conv_id] ?? [];
