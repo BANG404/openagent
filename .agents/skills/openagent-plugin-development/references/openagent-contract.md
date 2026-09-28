@@ -120,13 +120,23 @@ size-change notifications. Resource CSP and permission metadata are applied to
 the iframe, and tools with `visibility: ["app"]` are excluded from the model's
 tool catalog while remaining callable by the active app.
 
-This does not claim parity with ChatGPT-only `window.openai` extensions. The
-host provides a compatibility bridge for `toolInput`, `toolOutput`, `callTool`,
-`sendFollowUpMessage`, `widgetState`, and `setWidgetState`, but does not
-currently provide the optional file, checkout, modal, or picture-in-picture
-APIs, nor OAuth 2.1 connector authorization or
-marketplace/discovery behavior. Apps must use the portable MCP Apps bridge or
-feature-detect those optional APIs and provide a fallback.
+The host also provides the documented `window.openai` compatibility extensions:
+`toolInput`, `toolOutput`, `toolResponseMetadata`, `callTool`,
+`sendFollowUpMessage`, `widgetState`, `setWidgetState`, `uploadFile`,
+`selectFiles`, `getFileDownloadUrl`, `requestDisplayMode`, `requestModal`,
+`requestClose`, `notifyIntrinsicHeight`, `openExternal`, `setOpenInAppUrl`, and
+`requestCheckout`. Checkout is an explicit confirmation boundary; after the
+user confirms, OpenAgent calls the same server's `complete_checkout` tool and
+returns its result. It does not process payment credentials or replace the
+merchant's payment provider. Apps must still feature-detect optional APIs and
+provide a text or link fallback.
+
+MCP HTTP connectors support OAuth 2.1 discovery, PKCE S256, loopback
+callbacks, public dynamic registration, refresh tokens, and restricted local
+token storage. The local plugin lifecycle supports package installation,
+enable/disable, uninstall, and verified GitHub release updates. A hosted
+OpenAI marketplace listing is a separate service and is not claimed by the
+local package loader.
 
 ### Automation
 

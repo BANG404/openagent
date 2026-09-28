@@ -9,13 +9,16 @@
   let { invocation }: { invocation: McpUiInvocation } = $props();
 
   let frame = $state<HTMLIFrameElement | null>(null);
+  let modalFrame = $state<HTMLIFrameElement | null>(null);
   let height = $state(280);
+  let width = $state<number | null>(null);
   let initialized = $state(false);
   let displayMode = $state<"inline" | "fullscreen" | "pip">("inline");
   let modal = $state<{
     content: string;
     title?: string;
     html?: boolean;
+    params?: unknown;
     checkout?: { id: unknown; session: unknown };
   } | null>(null);
   let closed = $state(false);
@@ -26,6 +29,7 @@
   let requestId = 1;
   let viewAvailableDisplayModes: string[] = ["inline", "fullscreen", "pip"];
   let pendingCheckout: { id: unknown; session: unknown } | null = null;
+  const requestTargets = new Map<unknown, Window>();
   const uiCapabilities = useOpenAgentUiCapabilities();
 
   const availableDisplayModes = ["inline", "fullscreen", "pip"] as const;
@@ -39,14 +43,47 @@
       locale: navigator.language,
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       platform: /android|iphone|ipad/i.test(navigator.userAgent) ? "mobile" : "desktop",
+      deviceCapabilities: {
+        touch: "ontouchstart" in window || navigator.maxTouchPoints > 0,
+        hover: window.matchMedia("(hover: hover)").matches,
+      },
       userAgent: navigator.userAgent,
       maxHeight: 720,
       safeAreaInsets: { top: 0, right: 0, bottom: 0, left: 0 },
-      containerDimensions: { width: container?.clientWidth ?? 0, maxHeight: 720 },
+      containerDimensions: {
+        width: container?.clientWidth ?? 0,
+        maxHeight: 720,
+      },
       toolInfo: { tool: { name: invocation.descriptor.tool_name } },
       openInAppUrl,
       styles: { variables: {}, css: { fonts: "" } },
       version: hostContextVersion,
+    };
+  }
+
+  function resourceMetadata(): Record<string, unknown> {
+    return (invocation.resource?.meta as Record<string, unknown> | null) ?? {};
+  }
+
+  function resourceUiMetadata(): Record<string, unknown> {
+    const meta = resourceMetadata();
+    const standard = (meta.ui as Record<string, unknown> | undefined) ?? {};
+    const legacyCsp = (meta["openai/widgetCSP"] as Record<string, unknown> | undefined) ?? {};
+    const legacyUi = (meta["openai/ui"] as Record<string, unknown> | undefined) ?? {};
+    const csp = (standard.csp as Record<string, unknown> | undefined) ?? {};
+    return {
+      ...standard,
+      prefersBorder: standard.prefersBorder ?? meta["openai/widgetPrefersBorder"],
+      domain: standard.domain ?? meta["openai/widgetDomain"],
+      availableDisplayModes: legacyUi.availableDisplayModes ?? standard.availableDisplayModes,
+      csp: {
+        ...csp,
+        connectDomains: csp.connectDomains ?? legacyCsp.connect_domains,
+        resourceDomains: csp.resourceDomains ?? legacyCsp.resource_domains,
+        frameDomains: csp.frameDomains ?? legacyCsp.frame_domains,
+        baseUriDomains: csp.baseUriDomains ?? legacyCsp.base_uri_domains,
+        redirectDomains: legacyCsp.redirect_domains,
+      },
     };
   }
 
@@ -65,11 +102,12 @@
   }
 
   function cspMeta(): string {
-    const ui = (invocation.resource?.meta as { ui?: { csp?: Record<string, string[]> } } | null)
-      ?.ui;
-    const csp = ui?.csp;
+    const ui = resourceUiMetadata();
+    const csp = ui.csp as Record<string, unknown> | undefined;
     const domains = (key: string) =>
-      (csp?.[key] ?? []).filter((value) => /^https?:\/\//.test(value));
+      (Array.isArray(csp?.[key]) ? csp[key] : []).filter(
+        (value): value is string => typeof value === "string" && /^https?:\/\//.test(value),
+      );
     const connect = domains("connectDomains");
     const resources = domains("resourceDomains");
     const frames = domains("frameDomains");
@@ -104,12 +142,27 @@
       : withMeta + bridge;
   }
 
+  function modalDocumentSource(content: string, params: unknown): string {
+    const escaped = JSON.stringify(params ?? null).replace(/<\//g, "<\\/");
+    // Keep the closing tag out of the Svelte source so it cannot terminate this
+    // component's outer script block during compilation.
+    const scriptClose = "<" + "/script>";
+    const prelude = `<script>window.__openagentModalParams=${escaped};${scriptClose}`;
+    const withMeta = content.includes("</head>")
+      ? content.replace("</head>", cspMeta() + prelude + "</head>")
+      : cspMeta() + prelude + content;
+    const bridge = openAiBridgeScript();
+    return withMeta.includes("</body>")
+      ? withMeta.replace("</body>", bridge + "</body>")
+      : withMeta + bridge;
+  }
+
   function openAiBridgeScript(): string {
     return `<script>
 (function () {
   var pending = new Map();
   var nextId = 1000000;
-  var toolInput;
+  var toolInput = window.__openagentModalParams;
   var toolOutput;
   var toolResponseMetadata;
   var widgetState = null;
@@ -146,9 +199,13 @@
       }
       return;
     }
-    if (message.method === "ui/notifications/tool-input") toolInput = message.params;
+    if (message.method === "ui/notifications/tool-input") {
+      toolInput = message.params && Object.prototype.hasOwnProperty.call(message.params, "arguments")
+        ? message.params.arguments
+        : message.params;
+    }
     if (message.method === "ui/notifications/tool-result") {
-      toolOutput = message.params;
+      toolOutput = message.params && message.params.structuredContent;
       toolResponseMetadata = message.params || null;
     }
     if (message.method === "ui/notifications/tool-cancelled") {
@@ -218,7 +275,7 @@
     get widgetState() { return widgetState; },
     setWidgetState: function (state) {
       widgetState = state;
-      return request("ui/set-widget-state", { state: state });
+      void request("ui/set-widget-state", { state: state });
     }
   };
 })();
@@ -238,9 +295,7 @@
   }
 
   function sandboxPermissions(): Record<string, Record<string, never>> {
-    const ui = (
-      invocation.resource?.meta as { ui?: { permissions?: Record<string, unknown> } } | null
-    )?.ui;
+    const ui = resourceUiMetadata();
     const allowed = ["camera", "microphone", "geolocation", "clipboardWrite"] as const;
     return Object.fromEntries(
       allowed
@@ -254,11 +309,15 @@
   }
 
   function response(id: unknown, result: unknown): void {
-    post({ jsonrpc: "2.0", id, result });
+    const target = requestTargets.get(id) ?? frame?.contentWindow;
+    requestTargets.delete(id);
+    target?.postMessage({ jsonrpc: "2.0", id, result }, "*");
   }
 
   function error(id: unknown, code: number, message: string): void {
-    post({ jsonrpc: "2.0", id, error: { code, message } });
+    const target = requestTargets.get(id) ?? frame?.contentWindow;
+    requestTargets.delete(id);
+    target?.postMessage({ jsonrpc: "2.0", id, error: { code, message } }, "*");
   }
 
   function sendToolState(): void {
@@ -298,8 +357,10 @@
       const requestedModes = (
         params.appCapabilities as { availableDisplayModes?: unknown } | undefined
       )?.availableDisplayModes;
-      viewAvailableDisplayModes = Array.isArray(requestedModes)
-        ? requestedModes.filter((mode): mode is string =>
+      const declaredModes = resourceUiMetadata().availableDisplayModes;
+      const supportedModes = Array.isArray(requestedModes) ? requestedModes : declaredModes;
+      viewAvailableDisplayModes = Array.isArray(supportedModes)
+        ? supportedModes.filter((mode): mode is string =>
             ["inline", "fullscreen", "pip"].includes(String(mode)),
           )
         : ["inline", "fullscreen", "pip"];
@@ -399,6 +460,23 @@
         const parsed = new URL(url);
         if (!["http:", "https:"].includes(parsed.protocol)) {
           throw new Error("only http(s) links are allowed");
+        }
+        const redirect = params.redirectUrl;
+        if (typeof redirect === "string") {
+          const redirectUrl = new URL(redirect, window.location.href);
+          if (!["http:", "https:"].includes(redirectUrl.protocol)) {
+            throw new Error("redirectUrl must use http(s)");
+          }
+          const redirectDomains =
+            ((resourceUiMetadata().csp as Record<string, unknown> | undefined)?.redirectDomains as
+              unknown[] | undefined) ?? [];
+          const allowed = redirectDomains.some(
+            (domain) => typeof domain === "string" && redirectUrl.origin === domain,
+          );
+          if (!allowed) throw new Error("redirectUrl is not allowlisted by the app");
+          parsed.searchParams.set("redirectUrl", redirectUrl.toString());
+        } else if (redirect !== undefined && redirect !== false) {
+          throw new Error("redirectUrl must be a URL or false");
         }
         await uiCapabilities.openUrl(parsed.toString());
         response(id, {});
@@ -545,11 +623,8 @@
         return;
       }
       const template = typeof params.template === "string" ? params.template : "";
-      let content =
-        typeof params.content === "string"
-          ? params.content
-          : JSON.stringify(params.params ?? params);
-      let html = false;
+      let content = typeof params.content === "string" ? params.content : htmlContent();
+      let html = Boolean(template) || typeof params.content !== "string";
       if (template) {
         try {
           const resource = (await desktopOpenAgent.invokeProduct("read_mcp_resource", {
@@ -587,6 +662,7 @@
       modal = {
         content,
         html,
+        params: params.params,
         title: typeof options.title === "string" ? options.title : undefined,
       };
       response(id, {});
@@ -668,9 +744,12 @@
   }
 
   function onMessage(event: MessageEvent): void {
-    if (event.source !== frame?.contentWindow) return;
+    if (event.source !== frame?.contentWindow && event.source !== modalFrame?.contentWindow) return;
     const message = event.data as Record<string, unknown> | null;
     if (!message || message.jsonrpc !== "2.0" || typeof message.method !== "string") return;
+    if (message.id !== undefined && event.source && event.source instanceof Window) {
+      requestTargets.set(message.id, event.source);
+    }
     if (message.id === undefined) {
       if (message.method === "ui/notifications/initialized") {
         initialized = true;
@@ -682,9 +761,13 @@
         sendToolState();
       }
       if (message.method === "ui/notifications/size-changed") {
-        const value = (message.params as { height?: unknown } | undefined)?.height;
+        const size = message.params as { height?: unknown; width?: unknown } | undefined;
+        const value = size?.height;
         if (typeof value === "number" && Number.isFinite(value)) {
           height = Math.max(120, Math.min(720, Math.ceil(value)));
+        }
+        if (typeof size?.width === "number" && Number.isFinite(size.width)) {
+          width = Math.max(240, Math.min(1402, Math.ceil(size.width)));
         }
       }
       return;
@@ -742,7 +825,7 @@
   class:fullscreen={displayMode === "fullscreen"}
   class:pip={displayMode === "pip"}
   class="mcp-app-frame"
-  style={"height: " + height + "px"}
+  style={"height: " + height + "px" + (width ? "; width: " + width + "px" : "")}
   aria-label="MCP App"
 >
   <iframe
@@ -774,7 +857,8 @@
       {#if modal.html}
         <iframe
           title={modal.title ?? "MCP App modal"}
-          srcdoc={modal.content}
+          srcdoc={modalDocumentSource(modal.content, modal.params)}
+          bind:this={modalFrame}
           sandbox="allow-scripts"
         ></iframe>
       {:else}
@@ -784,14 +868,22 @@
         <div class="mcp-app-modal-actions">
           <button
             type="button"
-            onclick={() => {
-              if (pendingCheckout)
-                response(pendingCheckout.id, {
-                  status: "confirmed",
-                  session: pendingCheckout.session,
+            onclick={async () => {
+              const checkout = pendingCheckout;
+              if (!checkout) return;
+              try {
+                const result = await desktopOpenAgent.invokeProduct("call_mcp_tool", {
+                  server_id: invocation.descriptor.server_id,
+                  tool_name: "complete_checkout",
+                  arguments: checkout.session,
                 });
-              pendingCheckout = null;
-              modal = null;
+                response(checkout.id, result);
+              } catch (cause) {
+                error(checkout.id, -32000, String(cause));
+              } finally {
+                pendingCheckout = null;
+                modal = null;
+              }
             }}>Confirm</button
           >
           <button
