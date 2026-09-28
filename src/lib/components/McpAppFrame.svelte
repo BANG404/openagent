@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import { desktopOpenAgent } from "$lib/openagent/tauriClient";
+  import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
   import type { McpUiInvocation } from "$lib/types";
 
   let { invocation }: { invocation: McpUiInvocation } = $props();
@@ -8,7 +9,35 @@
   let frame = $state<HTMLIFrameElement | null>(null);
   let height = $state(280);
   let initialized = $state(false);
+  let displayMode = $state<"inline" | "fullscreen">("inline");
+  let _modelContextUpdate = $state<unknown>(undefined);
+  let hostContextVersion = $state(0);
   let requestId = 1;
+  const uiCapabilities = useOpenAgentUiCapabilities();
+
+  const availableDisplayModes = ["inline", "fullscreen"] as const;
+
+  function hostContext(): Record<string, unknown> {
+    const container = frame?.parentElement;
+    return {
+      theme: document.documentElement.classList.contains("dark") ? "dark" : "light",
+      displayMode,
+      availableDisplayModes,
+      locale: navigator.language,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      platform: navigator.platform,
+      userAgent: navigator.userAgent,
+      maxHeight: 720,
+      safeAreaInsets: { top: 0, right: 0, bottom: 0, left: 0 },
+      containerDimensions: {
+        width: container?.clientWidth ?? 0,
+        height: container?.clientHeight ?? height,
+      },
+      toolInfo: { tool: { name: invocation.descriptor.tool_name } },
+      styles: { variables: {} },
+      version: hostContextVersion,
+    };
+  }
 
   function htmlContent(): string {
     const resource = invocation.resource;
@@ -69,11 +98,16 @@
   var nextId = 1000000;
   var toolInput;
   var toolOutput;
+  var toolResponseMetadata;
   var widgetState;
+  var hostContext = {};
   function request(method, params) {
     var id = nextId++;
     window.parent.postMessage({ jsonrpc: "2.0", id: id, method: method, params: params || {} }, "*");
     return new Promise(function (resolve, reject) { pending.set(id, { resolve: resolve, reject: reject }); });
+  }
+  function unsupported(name) {
+    return Promise.reject(new Error(name + " is not supported by this host"));
   }
   window.addEventListener("message", function (event) {
     if (event.source !== window.parent) return;
@@ -83,17 +117,48 @@
       var call = pending.get(message.id);
       pending.delete(message.id);
       if (message.error) call.reject(message.error);
-      else call.resolve(message.result);
+      else {
+        if (message.result && message.result.hostContext) {
+          hostContext = message.result.hostContext;
+        }
+        call.resolve(message.result);
+      }
       return;
     }
     if (message.method === "ui/notifications/tool-input") toolInput = message.params;
-    if (message.method === "ui/notifications/tool-result") toolOutput = message.params;
+    if (message.method === "ui/notifications/tool-result") {
+      toolOutput = message.params;
+      toolResponseMetadata = message.params && message.params._meta;
+    }
+    if (message.method === "ui/notifications/host-context-changed") {
+      hostContext = message.params || {};
+      window.dispatchEvent(new CustomEvent("openai:host-context-changed", { detail: hostContext }));
+    }
   }, { passive: true });
   window.openai = {
     get toolInput() { return toolInput; },
     get toolOutput() { return toolOutput; },
+    get toolResponseMetadata() { return toolResponseMetadata; },
+    get theme() { return hostContext.theme; },
+    get locale() { return hostContext.locale; },
+    get displayMode() { return hostContext.displayMode || "inline"; },
+    get maxHeight() { return hostContext.maxHeight; },
+    get safeArea() { return hostContext.safeAreaInsets; },
+    get view() { return hostContext.view; },
+    get userAgent() { return hostContext.userAgent; },
     callTool: function (name, args) { return request("tools/call", { name: name, arguments: args || {} }); },
     sendFollowUpMessage: function (message) { return request("ui/message", { message: message }); },
+    requestDisplayMode: function (mode) { return request("ui/request-display-mode", { mode: mode }); },
+    requestModal: function (content, options) { return request("ui/request-modal", { content: content, options: options || {} }); },
+    requestClose: function () { return request("ui/request-close", {}); },
+    notifyIntrinsicHeight: function (height) {
+      window.parent.postMessage({ jsonrpc: "2.0", method: "ui/notifications/size-changed", params: { height: height } }, "*");
+    },
+    openExternal: function (url) { return request("ui/open-link", { url: url }); },
+    setOpenInAppUrl: function (url) { return request("ui/set-open-in-app-url", { url: url }); },
+    uploadFile: function () { return unsupported("uploadFile"); },
+    selectFiles: function () { return unsupported("selectFiles"); },
+    getFileDownloadUrl: function () { return unsupported("getFileDownloadUrl"); },
     get widgetState() { return widgetState; },
     setWidgetState: function (state) {
       widgetState = state;
@@ -151,15 +216,24 @@
     const method = typeof message.method === "string" ? message.method : "";
     const params = (message.params ?? {}) as Record<string, unknown>;
     if (method === "ui/initialize" || method === "initialize") {
+      const requestedVersion =
+        typeof params.protocolVersion === "string" ? params.protocolVersion : "2026-01-26";
       response(id, {
-        protocolVersion: "2026-01-26",
-        capabilities: {},
-        hostInfo: { name: "OpenAgent", version: "0.1.0" },
-        hostContext: {
-          toolInfo: { tool: { name: invocation.descriptor.tool_name } },
-          theme: document.documentElement.classList.contains("dark") ? "dark" : "light",
-          displayMode: "inline",
+        protocolVersion: requestedVersion,
+        hostCapabilities: {
+          openLinks: {},
+          serverTools: {},
+          updateModelContext: {},
+          requestDisplayMode: {},
         },
+        capabilities: {
+          openLinks: {},
+          serverTools: {},
+          updateModelContext: {},
+          requestDisplayMode: {},
+        },
+        hostInfo: { name: "OpenAgent", version: "0.1.0" },
+        hostContext: hostContext(),
       });
       return;
     }
@@ -186,6 +260,40 @@
       }
       return;
     }
+    if (method === "ui/open-link") {
+      const url = typeof params.url === "string" ? params.url : "";
+      try {
+        const parsed = new URL(url);
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+          throw new Error("only http(s) links are allowed");
+        }
+        await uiCapabilities.openUrl(parsed.toString());
+        response(id, {});
+      } catch (cause) {
+        error(id, -32602, String(cause));
+      }
+      return;
+    }
+    if (method === "ui/request-display-mode") {
+      const requested = params.mode;
+      if (requested !== "inline" && requested !== "fullscreen") {
+        error(id, -32602, "display mode is not supported by this host");
+        return;
+      }
+      displayMode = requested;
+      hostContextVersion += 1;
+      response(id, { mode: displayMode });
+      post({
+        jsonrpc: "2.0",
+        method: "ui/notifications/host-context-changed",
+        params: hostContext(),
+      });
+      return;
+    }
+    if (method === "notifications/message") {
+      response(id, {});
+      return;
+    }
     if (method === "resources/read") {
       const uri = typeof params.uri === "string" ? params.uri : "";
       if (uri !== invocation.descriptor.resource_uri) {
@@ -204,7 +312,18 @@
       return;
     }
     if (method === "ui/update-model-context" || method === "ui/message") {
+      if (method === "ui/update-model-context") {
+        _modelContextUpdate = params.content;
+      }
       response(id, {});
+      return;
+    }
+    if (method === "ui/set-open-in-app-url") {
+      error(id, -32601, "setOpenInAppUrl is not supported by this host");
+      return;
+    }
+    if (method === "ui/request-modal" || method === "ui/request-close") {
+      error(id, -32601, method + " is not supported by this host");
       return;
     }
     if (method === "ui/resource-teardown") {
@@ -224,7 +343,7 @@
         post({
           jsonrpc: "2.0",
           method: "ui/notifications/host-context-changed",
-          params: { theme: document.documentElement.classList.contains("dark") ? "dark" : "light" },
+          params: hostContext(),
         });
         sendToolState();
       }
@@ -253,7 +372,20 @@
 
   $effect(() => {
     window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
+    const observer = new MutationObserver(() => {
+      if (!initialized) return;
+      hostContextVersion += 1;
+      post({
+        jsonrpc: "2.0",
+        method: "ui/notifications/host-context-changed",
+        params: hostContext(),
+      });
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("message", onMessage);
+    };
   });
 
   onDestroy(() => {
@@ -271,7 +403,12 @@
   });
 </script>
 
-<section class="mcp-app-frame" style={"height: " + height + "px"} aria-label="MCP App">
+<section
+  class:fullscreen={displayMode === "fullscreen"}
+  class="mcp-app-frame"
+  style={"height: " + height + "px"}
+  aria-label="MCP App"
+>
   <iframe
     title="MCP App"
     srcdoc={documentSource()}
@@ -292,6 +429,15 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     background: var(--surface);
+  }
+  .mcp-app-frame.fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    height: 100dvh !important;
+    margin: 0;
+    border-radius: 0;
+    background: var(--background);
   }
   iframe {
     display: block;

@@ -40,6 +40,7 @@ export interface McpUiInvocation {
     tool_name: string;
     resource_uri: string;
     visibility: string[];
+    meta?: unknown;
   };
   resource?: McpUiResource | null;
   arguments: unknown;
