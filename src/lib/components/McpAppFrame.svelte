@@ -223,13 +223,11 @@
         hostCapabilities: {
           openLinks: {},
           serverTools: {},
-          updateModelContext: {},
           requestDisplayMode: {},
         },
         capabilities: {
           openLinks: {},
           serverTools: {},
-          updateModelContext: {},
           requestDisplayMode: {},
         },
         hostInfo: { name: "OpenAgent", version: "0.1.0" },
