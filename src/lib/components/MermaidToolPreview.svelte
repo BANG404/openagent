@@ -3,6 +3,7 @@
   import Mermaid from "$lib/streamdown/Mermaid.svelte";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t } from "$lib/i18n";
+  import { parseToolResultJson } from "$lib/toolResultJson";
 
   type JsonObject = Record<string, unknown>;
 
@@ -19,14 +20,11 @@
   const markdown = $derived(source ? `\`\`\`\`mermaid\n${source}\n\`\`\`\`` : "");
   const parsedResult = $derived.by((): JsonObject | null => {
     if (!result) return null;
-    try {
-      const parsed = JSON.parse(result);
-      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-        ? (parsed as JsonObject)
-        : null;
-    } catch {
-      return null;
-    }
+    // A durable result may carry Runtime-appended model context after its JSON value.
+    const parsed = parseToolResultJson(result);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as JsonObject)
+      : null;
   });
   const error = $derived.by(() => {
     if (!parsedResult || parsedResult.ok !== false) return null;

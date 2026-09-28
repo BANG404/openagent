@@ -6,6 +6,7 @@
 import { appendChunk } from "./chatStream";
 import { normalizeCheckpointFlow, type CheckpointFlow } from "./checkpointFlow";
 import { isUnansweredToolResult, toolCallStatus } from "./toolCallGroups";
+import { parseToolResultJson } from "./toolResultJson";
 import type {
   ChatMessage,
   ChatToolImage,
@@ -240,11 +241,10 @@ export function askUserRequestFromToolUse(
 }
 
 function parsePersistedUserInputResponse(result: string): unknown {
-  try {
-    return JSON.parse(result);
-  } catch {
-    return result;
-  }
+  // A durable result may carry Runtime-appended model context after its JSON
+  // value; plain text stays the raw response.
+  const parsed = parseToolResultJson(result);
+  return parsed === null ? result : parsed;
 }
 
 function recordToMessage( // NOSONAR: checkpoint projection handles legacy and current record variants at one boundary.

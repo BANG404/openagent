@@ -24,6 +24,14 @@
   by live tool events: preserve text, serialize JSON values, and represent image
   results without exposing encoded bytes. Structured tool output must not become
   a successful but blank card after finalization, reload, or branch switching.
+  The Runtime may append model context to the same result — automation-hook
+  output and plugin context arrive as extra content blocks — so the joined text
+  is `<json>` followed by that context, not one JSON value. Every reader that
+  needs the structured result parses the leading JSON value through
+  `src/lib/toolResultJson.ts` instead of the whole string; a result that starts
+  with an object or array is structured, and plain text stays plain text.
+  Appended context must not turn a failed result into a successful one, nor
+  hide a structured result a feature already depends on.
 - `view_image` ToolResult image blocks remain image content during checkpoint
   hydration. Render them as bounded previews in the expanded tool card, while
   keeping the textual result concise (`[image]`) and never printing base64 in
@@ -118,8 +126,10 @@
   the same resizable desktop right sidebar. Show the sidebar and its title-bar
   entry only while at least one of those views has content; a chat-group view
   counts only after the active conversation has a successful `chat_group_*`
-  result with a durable group ID. Pending, failed, or ID-less tool calls must
-  not open the panel or make it available.
+  result with a durable group ID, read from that result's leading JSON value so
+  Runtime-appended hook context cannot make an invoked group look absent.
+  Pending, failed, or ID-less tool calls must not open the panel or make it
+  available.
   Collapse it when the last available view becomes empty. Make that rule structural rather than dependent on effect
   ordering: the rendered collapse state is the active branch's own request
   projected against availability, so no scope switch, restore, or automatic

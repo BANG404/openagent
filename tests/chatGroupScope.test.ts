@@ -108,4 +108,59 @@ describe("chatGroupScope", () => {
 
     expect(result).toEqual({ invoked: true, groupIds: ["group-started"] });
   });
+
+  // The Runtime appends model context (automation-hook output) to the durable
+  // result, so the structured value is only a prefix of the result text.
+  const appendedContext = "\n[Automation hook: demo automation]\nC:\\plugins\\demo\\after-tool.cmd";
+
+  test("reads group ids from a result that carries appended context", () => {
+    const result = chatGroupScope([
+      {
+        id: "assistant-1",
+        role: "assistant",
+        content: "",
+        timestamp: 1,
+        items: [
+          {
+            type: "tool_call",
+            name: "chat_group_start",
+            args: JSON.stringify({ title: "Round table", roles: ["Debater"], content: "Start" }),
+            result:
+              JSON.stringify({ group: { id: "group-started" }, members: [], message: {} }) +
+              appendedContext,
+          },
+          {
+            type: "tool_call",
+            name: "chat_group_send_message",
+            args: JSON.stringify({ group_id: "group-started", content: "hello" }),
+            result:
+              JSON.stringify({ id: "message-1", group_id: "group-started" }) + appendedContext,
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({ invoked: true, groupIds: ["group-started"] });
+  });
+
+  test("keeps a plain-text failure unstructured when context is appended", () => {
+    const result = chatGroupScope([
+      {
+        id: "assistant-1",
+        role: "assistant",
+        content: "",
+        timestamp: 1,
+        items: [
+          {
+            type: "tool_call",
+            name: "chat_group_send_message",
+            args: JSON.stringify({ group_id: "group-a", content: "hello" }),
+            result: "Unknown role 'Debater'" + appendedContext,
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({ invoked: false, groupIds: [] });
+  });
 });

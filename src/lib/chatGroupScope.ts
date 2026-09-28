@@ -1,12 +1,10 @@
 import type { ChatMessage, StreamItem, ToolCallRecord } from "./types";
+import { parseToolResultJson } from "./toolResultJson";
 
+// A durable result may carry Runtime-appended model context after its JSON
+// value, so success and group identity are read from the structured prefix.
 function parseJson(value: string | undefined): unknown {
-  if (!value) return null;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return null;
-  }
+  return value ? parseToolResultJson(value) : null;
 }
 
 export interface ChatGroupScope {

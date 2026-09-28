@@ -1,5 +1,6 @@
 import type { ChatMessage, CheckpointTurnStatus, StreamItem } from "./types";
 import { isRenderTool } from "./assistantOutput";
+import { parseToolResultJson } from "./toolResultJson";
 
 export type ToolCallItem = Extract<StreamItem, { type: "tool_call" }>;
 
@@ -277,16 +278,14 @@ export function toolCallStatus(item: ToolCallItem, showRunning: boolean): ToolCa
   if (isUnansweredToolResult(text)) return "unanswered";
   if (CANCELLED_TOOL_RESULT.test(text)) return "cancelled";
   if (/^(error|failed|failure)\b\s*:?\s*/i.test(text)) return "failed";
-  try {
-    const parsed = JSON.parse(text) as unknown;
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      const record = parsed as Record<string, unknown>;
-      if (record.cancelled === true) return "cancelled";
-      if (record.ok === false || record.success === false || record.error) return "failed";
-    }
-  } catch {
-    // Plain-text tool output is a successful result unless it starts with a
-    // conventional error marker handled above.
+  // Read the leading JSON value so Runtime-appended model context cannot hide a
+  // structured failure. Plain-text tool output is a successful result unless it
+  // starts with a conventional error marker handled above.
+  const parsed = parseToolResultJson(text);
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    const record = parsed as Record<string, unknown>;
+    if (record.cancelled === true) return "cancelled";
+    if (record.ok === false || record.success === false || record.error) return "failed";
   }
   return "success";
 }

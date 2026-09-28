@@ -12,6 +12,7 @@
     type ToolPatchFilePreview,
   } from "$lib/toolCallPatch";
   import { shouldDisplayToolCall, toolCallStatus, type ToolCallItem } from "$lib/toolCallGroups";
+  import { parseToolResultJson } from "$lib/toolResultJson";
   import FileDiffView from "./FileDiffView.svelte";
   import Tooltip from "./Tooltip.svelte";
   import ToolApprovalActions from "./ToolApprovalActions.svelte";
@@ -172,22 +173,19 @@
   }
 
   function parseTerminalResult(text: string): TerminalResult | null {
-    try {
-      const parsed = JSON.parse(text);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-      const value = parsed as JsonObject;
-      if (typeof value.output !== "string") return null;
-      return {
-        output: value.output,
-        status: typeof value.status === "string" ? value.status : undefined,
-        session_id: typeof value.session_id === "string" ? value.session_id : undefined,
-        exit_code: typeof value.exit_code === "number" ? value.exit_code : undefined,
-        truncated: value.truncated === true,
-        temporary: value.temporary === true,
-      };
-    } catch {
-      return null;
-    }
+    // A durable result may carry Runtime-appended model context after its JSON value.
+    const parsed = parseToolResultJson(text);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const value = parsed as JsonObject;
+    if (typeof value.output !== "string") return null;
+    return {
+      output: value.output,
+      status: typeof value.status === "string" ? value.status : undefined,
+      session_id: typeof value.session_id === "string" ? value.session_id : undefined,
+      exit_code: typeof value.exit_code === "number" ? value.exit_code : undefined,
+      truncated: value.truncated === true,
+      temporary: value.temporary === true,
+    };
   }
 
   function summarizeTerminalResult(value: TerminalResult | null): string {
