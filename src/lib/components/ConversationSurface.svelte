@@ -607,10 +607,6 @@
     min-height: 66px;
   }
 
-  .input-area-new-conversation .input-inner :global(.composer-copy) {
-    min-height: 99px;
-  }
-
   .conversation-workspace :global(.composer) {
     background: var(--mica-surface);
     -webkit-backdrop-filter: blur(24px) saturate(1.28);

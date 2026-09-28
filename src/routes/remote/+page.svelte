@@ -1758,9 +1758,6 @@
   .input-area-new-conversation .input-inner :global(.composer-compact .input) {
     min-height: 66px;
   }
-  .input-area-new-conversation .input-inner :global(.composer-copy) {
-    min-height: 99px;
-  }
   .composer-error {
     margin: 7px 0 0;
     text-align: center;

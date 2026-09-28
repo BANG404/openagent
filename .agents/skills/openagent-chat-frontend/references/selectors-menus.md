@@ -167,7 +167,12 @@
   smaller height, while attachments, quotes, and multiline text grow normally.
   When a composer container is narrow enough for its localized placeholder to
   wrap to three lines, give the textarea enough minimum height for the wrapped
-  copy to remain visible above the send control.
+  copy to remain visible above the send control. Keep the composer's loading
+  skeleton on the same tokens instead of restating pixel values: the skeleton
+  card reuses the composer border and shadow, its text placeholder sits on the
+  textarea's first line, its toolbar placeholders fill the bottom 38px row, and
+  its send placeholder is the same bottom-right 30px rounded square outside the
+  bordered card, so the surface cannot resize when the composer mounts.
 - Selecting `/goal` or `/graph` replaces only the active slash trigger with the
   complete command token. Preserve any draft text after the caret as the command
   argument instead of clearing the composer.

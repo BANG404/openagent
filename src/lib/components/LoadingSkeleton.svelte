@@ -55,13 +55,17 @@
       <span class="block line medium"></span>
     </div>
   {:else if variant === "composer"}
-    <div class="composer-copy">
-      <span class="block composer-placeholder"></span>
-      <div class="composer-toolbar">
-        <span class="block composer-action"></span>
-        <span class="block composer-model"></span>
-        <span class="block composer-send"></span>
+    <div class="composer-frame">
+      <div class="composer-copy">
+        <div class="composer-input-area">
+          <span class="block composer-placeholder"></span>
+        </div>
+        <div class="composer-toolbar">
+          <span class="block composer-action"></span>
+          <span class="block composer-model"></span>
+        </div>
       </div>
+      <span class="block composer-send"></span>
     </div>
   {:else if variant === "table"}
     <div class="schema-skeleton">
@@ -436,39 +440,54 @@
 
   .composer {
     padding: 0;
+    container-type: inline-size;
+  }
+
+  /* Mirror the mounted composer's inner box model so the surface never jumps. */
+  .composer-frame {
+    position: relative;
   }
 
   .composer-copy {
     box-sizing: border-box;
-    min-height: 98px;
     overflow: hidden;
-    border: 1px solid var(--mica-border);
+    border: 1px solid var(--composer-border);
     border-radius: var(--app-radius);
     background: var(--mica-surface);
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
-    box-shadow: var(--mica-shadow);
+    box-shadow: var(--composer-shadow);
+  }
+
+  .composer-input-area {
+    box-sizing: border-box;
+    min-height: var(--composer-input-min-height);
+    padding: var(--composer-input-padding);
   }
 
   .composer-placeholder {
     width: 36%;
     height: 10px;
-    margin: 17px 18px 9px;
+    margin-top: 5px;
   }
 
   .composer-toolbar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    height: 38px;
-    padding: 0 9px 6px;
+    gap: 6px;
     box-sizing: border-box;
+    min-height: var(--composer-toolbar-min-height);
+    padding: 0 48px 6px 9px;
   }
 
   .composer-action,
   .composer-send {
-    width: 30px;
-    height: 30px;
+    flex: none;
+    width: var(--composer-control-size);
+    height: var(--composer-control-size);
+  }
+
+  .composer-action {
     border-radius: 50%;
   }
 
@@ -478,8 +497,22 @@
     border-radius: 8px;
   }
 
+  /* The send action is a bottom-right 30px rounded square, not a toolbar item. */
   .composer-send {
-    margin-left: auto;
+    position: absolute;
+    right: var(--composer-send-inset);
+    bottom: var(--composer-send-inset);
+    border-radius: var(--composer-control-radius);
+  }
+
+  @container (max-width: 280px) {
+    .composer-input-area {
+      min-height: var(--composer-input-narrow-min-height);
+    }
+
+    .composer-toolbar {
+      gap: 4px;
+    }
   }
 
   .sr-only {

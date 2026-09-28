@@ -1205,7 +1205,7 @@
   /* Keep wrapped placeholder text clear of the send control in narrow panes. */
   @container (max-width: 280px) {
     .composer .input {
-      min-height: 78px !important;
+      min-height: var(--composer-input-narrow-min-height) !important;
     }
 
     .composer-toolbar {
@@ -1291,7 +1291,7 @@
     background: transparent;
     border: none;
     border-radius: 0;
-    padding: 12px 54px 4px 18px;
+    padding: var(--composer-input-padding);
     color: var(--text);
     font-family: inherit;
     font-size: 14px;
@@ -1299,7 +1299,7 @@
     outline: none;
     line-height: 1.47;
     transition: border-color var(--motion-fast) var(--ease-standard);
-    min-height: 58px;
+    min-height: var(--composer-input-min-height);
     max-height: 200px;
     overflow-y: auto;
   }
@@ -1370,7 +1370,7 @@
 
   .composer-toolbar {
     min-width: 0;
-    min-height: 38px;
+    min-height: var(--composer-toolbar-min-height);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -1379,9 +1379,9 @@
   }
 
   .attach-btn {
-    flex: 0 0 30px;
-    width: 30px;
-    height: 30px;
+    flex: 0 0 var(--composer-control-size);
+    width: var(--composer-control-size);
+    height: var(--composer-control-size);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1449,14 +1449,14 @@
   .send-btn {
     position: absolute;
     z-index: 4;
-    right: 9px;
-    bottom: 9px;
-    width: 30px;
-    height: 30px;
+    right: var(--composer-send-inset);
+    bottom: var(--composer-send-inset);
+    width: var(--composer-control-size);
+    height: var(--composer-control-size);
     background: var(--primary);
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--composer-control-radius);
     padding: 0;
     display: flex;
     align-items: center;
@@ -1484,14 +1484,14 @@
   .stop-btn {
     position: absolute;
     z-index: 4;
-    right: 9px;
-    bottom: 9px;
-    width: 30px;
-    height: 30px;
+    right: var(--composer-send-inset);
+    bottom: var(--composer-send-inset);
+    width: var(--composer-control-size);
+    height: var(--composer-control-size);
     background: var(--surface2);
     color: var(--text-muted);
     border: 0;
-    border-radius: 8px;
+    border-radius: var(--composer-control-radius);
     padding: 0;
     display: flex;
     align-items: center;
@@ -1505,7 +1505,7 @@
   }
 
   .queue-btn {
-    right: 45px;
+    right: calc(var(--composer-send-inset) + var(--composer-control-size) + 6px);
     background: var(--primary);
   }
 

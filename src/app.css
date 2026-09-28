@@ -12,6 +12,14 @@
     color-scheme: light;
     --bg: #f5f5f7;
     --app-radius: 12px;
+    /* Composer geometry shared by the mounted composer and its loading skeleton. */
+    --composer-input-padding: 12px 54px 4px 18px;
+    --composer-input-min-height: 58px;
+    --composer-input-narrow-min-height: 78px;
+    --composer-toolbar-min-height: 38px;
+    --composer-control-size: 30px;
+    --composer-control-radius: 8px;
+    --composer-send-inset: 9px;
     --conversation-surface: var(--surface);
     --component-neutral-bg: #f4f4f5;
     --user-message-bg: var(--component-neutral-bg);
