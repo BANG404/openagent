@@ -84,11 +84,11 @@ not a generic `tool_call` routing instruction.
 Probe failures or missing Flash credentials leave the last valid catalog
 untouched and never block settings persistence.
 
-The product-managed Cua Driver entry is seeded and normalized during the first
-desktop startup bootstrap, before the first chat turn. Its reserved stdio
-command is the fixed `mcp --embedded --socket <endpoint>` proxy onto the
-host-owned `serve` daemon, where `<endpoint>` is the private endpoint the host
-reports through `cua_driver_endpoint`; normalization restores that command with
+The Cua Driver plugin entry is seeded and normalized during the first desktop
+startup bootstrap, before the first chat turn. Its reserved stdio command is
+the fixed `mcp --embedded --socket <endpoint>` proxy onto the plugin-owned
+`serve` daemon, where `<endpoint>` is the private endpoint the host reports
+through `cua_driver_endpoint`; normalization restores that command with
 the current endpoint, records plugin ownership, and clears legacy permission,
 socket, grant, and manifest overrides. Generic transport normalization preserves
 the persisted ownership value so an older entry remains the exact merge base

@@ -52,7 +52,6 @@ describe("local preflight plan", () => {
       "rust-format",
       "rust-lint",
       "frontend-dist",
-      "cua-driver",
       "rust-check",
     ]);
     const rustCheck = buildPreflightCommands({

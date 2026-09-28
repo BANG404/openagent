@@ -39,7 +39,6 @@ use tauri::{path::BaseDirectory, Emitter, LogicalSize, Manager, PhysicalPosition
 #[cfg(not(feature = "embedded-runtime"))]
 use tracing_subscriber::fmt::writer::MakeWriterExt;
 
-pub mod cua_driver_resource;
 pub mod frontend_resource;
 pub mod local_capabilities;
 pub mod process_lifetime;
@@ -50,7 +49,6 @@ pub mod runtime_transport;
 pub mod workspace_process;
 pub mod wsl;
 
-use cua_driver_resource::{CuaDriverResourceManager, CuaDriverResourceStatus};
 use frontend_resource::{
     FrontendResourceManager, FrontendResourceSource, InstalledFrontendResource,
 };
@@ -1685,8 +1683,8 @@ async fn submit_agent_input(
 #[tauri::command]
 async fn get_agent_commands(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
-) -> Vec<CommandSpec> {
-    agent_commands_for_state(runtime.state()).await
+) -> Result<Vec<CommandSpec>, String> {
+    Ok(agent_commands_for_state(runtime.state()).await)
 }
 
 #[tauri::command]
@@ -2586,7 +2584,7 @@ async fn save_mcp_servers(
             })
     };
     if cua_enabled && servers.iter().any(|server| server.id == "cua-driver" && server.enabled) {
-        ensure_cua_driver_serve()?;
+        ensure_cua_driver_serve(runtime.inner().clone()).await?;
     }
     openagent_runtime::commands::save_mcp_servers(runtime.state(), servers).await
 }
@@ -2608,7 +2606,7 @@ async fn test_mcp_server(
         return Err("Cua Driver plugin is disabled in settings".to_string());
     }
     if server.id == "cua-driver" && server.enabled {
-        ensure_cua_driver_serve()?;
+        ensure_cua_driver_serve(runtime.inner().clone()).await?;
     }
     openagent_runtime::commands::test_mcp_server(server).await
 }
@@ -3938,7 +3936,7 @@ fn packaged_runtime_binary() -> Result<std::path::PathBuf, String> {
     Ok(binary)
 }
 
-/// Private endpoint shared by the product-managed Cua Driver daemon and its
+/// Private endpoint shared by the plugin-owned Cua Driver daemon and its
 /// reserved MCP client entry, in the shape each platform expects: a named pipe
 /// on Windows and a filesystem path elsewhere.
 ///
@@ -3979,6 +3977,7 @@ fn cua_driver_endpoint_path() -> String {
 /// The liveness flag makes the daemon treat EOF on its own stdin as loss of the
 /// desktop host, which is the same control-pipe contract the supervised Runtime
 /// speaks, and the only one that also works on macOS and Linux.
+#[cfg(feature = "embedded-runtime")]
 fn cua_driver_serve_args() -> Vec<String> {
     [
         "serve",
@@ -4000,6 +3999,7 @@ fn cua_driver_serve_args() -> Vec<String> {
 /// with the bundle identity macOS resolves for the daemon's parent, so it has to
 /// be the installed app's identifier rather than a development instance's
 /// rewritten one.
+#[cfg(feature = "embedded-runtime")]
 const CUA_DRIVER_HOST_BUNDLE_ID: &str = "com.iumm.openagent";
 
 /// Environment of the embedded daemon launch.
@@ -4007,6 +4007,7 @@ const CUA_DRIVER_HOST_BUNDLE_ID: &str = "com.iumm.openagent";
 /// The permission values repeat the command line because the driver documents an
 /// explicit two-part environment contract for unrestricted embedding and refuses
 /// contradictory values; repeating the same value is not a contradiction.
+#[cfg(feature = "embedded-runtime")]
 fn cua_driver_serve_environment() -> [(&'static str, &'static str); 5] {
     [
         ("CUA_DRIVER_EMBEDDED", "1"),
@@ -4018,9 +4019,11 @@ fn cua_driver_serve_environment() -> [(&'static str, &'static str); 5] {
 }
 
 /// How long the host waits for a freshly spawned daemon to accept connections.
+#[cfg(feature = "embedded-runtime")]
 const CUA_DRIVER_STARTUP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
 
 /// How long the host waits for a daemon to act on a shutdown request.
+#[cfg(feature = "embedded-runtime")]
 const CUA_DRIVER_STOP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
 /// How long the host waits for its own daemon to exit before it kills it.
@@ -4032,11 +4035,13 @@ const CUA_DRIVER_SHUTDOWN_TIMEOUT: std::time::Duration = std::time::Duration::fr
 /// reserved MCP client attaches immediately after this returns, and the driver
 /// binds its listener after it has created the socket path.
 #[cfg(unix)]
+#[cfg(feature = "embedded-runtime")]
 fn cua_driver_endpoint_is_ready(endpoint: &str) -> bool {
     std::os::unix::net::UnixStream::connect(endpoint).is_ok()
 }
 
 #[cfg(windows)]
+#[cfg(feature = "embedded-runtime")]
 fn cua_driver_endpoint_is_ready(endpoint: &str) -> bool {
     std::fs::OpenOptions::new()
         .read(true)
@@ -4046,6 +4051,7 @@ fn cua_driver_endpoint_is_ready(endpoint: &str) -> bool {
 }
 
 #[cfg(not(any(unix, windows)))]
+#[cfg(feature = "embedded-runtime")]
 fn cua_driver_endpoint_is_ready(endpoint: &str) -> bool {
     std::path::Path::new(endpoint).exists()
 }
@@ -4057,6 +4063,7 @@ fn cua_driver_endpoint_is_ready(endpoint: &str) -> bool {
 /// endpoint ownership lock and confirming that the path is not accepting
 /// connections, so a live peer can never be unlinked here.
 #[cfg(unix)]
+#[cfg(feature = "embedded-runtime")]
 fn remove_stale_cua_driver_endpoint(endpoint: &str) -> Result<(), String> {
     match std::fs::remove_file(endpoint) {
         Ok(()) => Ok(()),
@@ -4068,10 +4075,12 @@ fn remove_stale_cua_driver_endpoint(endpoint: &str) -> Result<(), String> {
 }
 
 #[cfg(not(unix))]
+#[cfg(feature = "embedded-runtime")]
 fn remove_stale_cua_driver_endpoint(_endpoint: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(feature = "embedded-runtime")]
 fn wait_for_cua_driver_endpoint(
     child: &mut std::process::Child,
     endpoint: &str,
@@ -4102,11 +4111,13 @@ fn wait_for_cua_driver_endpoint(
 /// Path of the advisory lock that records which process owns the reserved
 /// endpoint. It lives beside the staged releases so one cache directory answers
 /// both "which driver is this" and "who is serving it".
+#[cfg(feature = "embedded-runtime")]
 fn cua_driver_owner_lock_path() -> Option<std::path::PathBuf> {
     cua_driver_staging_root().map(|root| root.join("owner").join("daemon.lock"))
 }
 
 /// Who owns the reserved endpoint, as far as this process can tell.
+#[cfg(feature = "embedded-runtime")]
 enum CuaDriverOwnership {
     /// This process owns the endpoint and may start or stop its daemon.
     Owned(std::fs::File),
@@ -4124,6 +4135,7 @@ enum CuaDriverOwnership {
 /// Binding a second listener is never an option — the driver unlinks the live
 /// socket when it binds — so this lock is also what serializes concurrent
 /// window processes that start at the same time.
+#[cfg(feature = "embedded-runtime")]
 fn acquire_cua_driver_ownership() -> Result<CuaDriverOwnership, String> {
     use std::io::{Seek, SeekFrom, Write};
 
@@ -4172,6 +4184,7 @@ fn acquire_cua_driver_ownership() -> Result<CuaDriverOwnership, String> {
 
 /// What this process must do about the reserved endpoint.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg(feature = "embedded-runtime")]
 enum CuaDriverPlan {
     /// Stop the daemon that outlived its owner, then start a fresh one.
     ReclaimThenServe,
@@ -4187,6 +4200,7 @@ enum CuaDriverPlan {
 /// take the endpoint away from a process that is still using it, and leaving an
 /// orphan in place would serve a superseded release forever, so every cell is
 /// deliberate.
+#[cfg(feature = "embedded-runtime")]
 fn plan_cua_driver_launch(ownership: &CuaDriverOwnership, endpoint_ready: bool) -> CuaDriverPlan {
     match (ownership, endpoint_ready) {
         // Whatever answers here outlived its owner: the lock was free.
@@ -4208,12 +4222,23 @@ fn plan_cua_driver_launch(ownership: &CuaDriverOwnership, endpoint_ready: bool) 
 /// The request goes to the endpoint rather than to a process id, so a daemon
 /// this product does not own — the standalone installation on its own endpoint —
 /// can never be hit by it.
-fn cua_driver_stop_daemon(endpoint: &str) -> Result<std::process::ExitStatus, String> {
+#[cfg(feature = "embedded-runtime")]
+fn cua_driver_stop_daemon(
+    endpoint: &str,
+    launch: &openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
+) -> Result<std::process::ExitStatus, String> {
     use std::process::{Command, Stdio};
 
-    let mut command = Command::new("cua-driver");
+    let mut command = if launch.command.ends_with(".mjs") || launch.command.ends_with(".js") {
+        let mut command = Command::new("node");
+        command.arg(&launch.command);
+        command
+    } else {
+        Command::new(&launch.command)
+    };
     command
         .args(["stop", "--socket", endpoint])
+        .current_dir(&launch.root)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
@@ -4246,6 +4271,7 @@ fn cua_driver_stop_daemon(endpoint: &str) -> Result<std::process::ExitStatus, St
 }
 
 /// Whether the endpoint still accepts connections after a shutdown request.
+#[cfg(feature = "embedded-runtime")]
 fn wait_for_cua_driver_endpoint_release(endpoint: &str) -> Result<(), String> {
     let deadline = std::time::Instant::now() + CUA_DRIVER_STOP_TIMEOUT;
     while cua_driver_endpoint_is_ready(endpoint) {
@@ -4266,12 +4292,16 @@ fn wait_for_cua_driver_endpoint_release(endpoint: &str) -> Result<(), String> {
 /// Reclaiming matters because such a daemon serves whatever release started it:
 /// left alone it would keep serving an older driver, and it is exactly the
 /// process a previous crash or force-kill leaves behind.
-fn reclaim_orphaned_cua_driver_daemon(endpoint: &str) -> Result<(), String> {
+#[cfg(feature = "embedded-runtime")]
+fn reclaim_orphaned_cua_driver_daemon(
+    endpoint: &str,
+    launch: &openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
+) -> Result<(), String> {
     tracing::info!(
         %endpoint,
         "reclaiming a Cua Driver daemon whose owning process is gone"
     );
-    let status = cua_driver_stop_daemon(endpoint)?;
+    let status = cua_driver_stop_daemon(endpoint, launch)?;
     tracing::debug!(%endpoint, %status, "asked the orphaned Cua Driver daemon to exit");
     wait_for_cua_driver_endpoint_release(endpoint).map_err(|error| {
         format!("{error}; refusing to bind a second listener to the live endpoint")
@@ -4284,6 +4314,7 @@ fn reclaim_orphaned_cua_driver_daemon(endpoint: &str) -> Result<(), String> {
 /// permission mode, an endpoint already in use — and the daemon reports them on
 /// stderr. The pipe must also be drained, or a chatty daemon blocks on a full
 /// pipe buffer.
+#[cfg(feature = "embedded-runtime")]
 fn forward_cua_driver_stderr(stderr: Option<std::process::ChildStderr>) {
     use std::io::BufRead;
 
@@ -4319,6 +4350,8 @@ struct CuaDriverDaemon {
     _stdin: std::process::ChildStdin,
     _lifetime: crate::process_lifetime::HostLifetimeGuard,
     _owner: Option<std::fs::File>,
+    #[cfg(feature = "embedded-runtime")]
+    launch: openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
 }
 
 /// The daemon this process started, if any.
@@ -4329,16 +4362,26 @@ static CUA_DRIVER_SERVE_CHILD: std::sync::OnceLock<std::sync::Mutex<Option<CuaDr
 ///
 /// The caller stores the result while it still holds the serve state lock, so
 /// this function must not reach for that lock itself.
+#[cfg(feature = "embedded-runtime")]
 fn spawn_cua_driver_daemon(
     endpoint: &str,
     owner: Option<std::fs::File>,
+    launch: &openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
 ) -> Result<CuaDriverDaemon, String> {
     use std::process::{Command, Stdio};
 
-    let mut command = Command::new("cua-driver");
+    let mut command = if launch.command.ends_with(".mjs") || launch.command.ends_with(".js") {
+        let mut command = Command::new("node");
+        command.arg(&launch.command);
+        command
+    } else {
+        Command::new(&launch.command)
+    };
     command
-        .args(cua_driver_serve_args())
+        .args(&launch.args)
+        .args(cua_driver_serve_args().into_iter().skip(2))
         .envs(cua_driver_serve_environment())
+        .current_dir(&launch.root)
         .stdin(Stdio::piped())
         .stdout(Stdio::null())
         .stderr(Stdio::piped());
@@ -4379,10 +4422,11 @@ fn spawn_cua_driver_daemon(
         _stdin: stdin,
         _lifetime: lifetime,
         _owner: owner,
+        launch: launch.clone(),
     })
 }
 
-/// Start the product-managed Cua Driver daemon unless one is already listening
+/// Start the plugin-owned Cua Driver daemon unless one is already listening
 /// on the reserved endpoint, and wait until it accepts connections.
 ///
 /// The daemon owns the unrestricted desktop runtime; the reserved MCP entry is
@@ -4396,7 +4440,10 @@ fn spawn_cua_driver_daemon(
 ///
 /// Endpoint ownership decides what this process may do, and every window process
 /// reaches the same endpoint; `plan_cua_driver_launch` is that rule.
-fn ensure_cua_driver_serve() -> Result<bool, String> {
+#[cfg(feature = "embedded-runtime")]
+fn ensure_cua_driver_serve_with_launch(
+    launch: openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
+) -> Result<bool, String> {
     let endpoint = cua_driver_endpoint_path();
     let state = CUA_DRIVER_SERVE_CHILD.get_or_init(|| std::sync::Mutex::new(None));
     let mut daemon = state
@@ -4423,14 +4470,14 @@ fn ensure_cua_driver_serve() -> Result<bool, String> {
     };
     match plan {
         CuaDriverPlan::ReclaimThenServe => {
-            reclaim_orphaned_cua_driver_daemon(&endpoint)?;
+            reclaim_orphaned_cua_driver_daemon(&endpoint, &launch)?;
             remove_stale_cua_driver_endpoint(&endpoint)?;
-            *daemon = Some(spawn_cua_driver_daemon(&endpoint, owner)?);
+            *daemon = Some(spawn_cua_driver_daemon(&endpoint, owner, &launch)?);
             Ok(true)
         }
         CuaDriverPlan::Serve => {
             remove_stale_cua_driver_endpoint(&endpoint)?;
-            *daemon = Some(spawn_cua_driver_daemon(&endpoint, owner)?);
+            *daemon = Some(spawn_cua_driver_daemon(&endpoint, owner, &launch)?);
             Ok(true)
         }
         CuaDriverPlan::AwaitPeer => {
@@ -4441,6 +4488,33 @@ fn ensure_cua_driver_serve() -> Result<bool, String> {
         }
         CuaDriverPlan::Adopt => Ok(false),
     }
+}
+
+/// Resolve and supervise a plugin-owned daemon through the standard package
+/// contract. The host never downloads or bundles a Cua executable.
+#[cfg(feature = "embedded-runtime")]
+async fn ensure_cua_driver_serve(runtime: Arc<OpenAgentRuntime>) -> Result<bool, String> {
+    let state = runtime.state();
+    let roots = state
+        .agent_plugin_roots
+        .clone()
+        .ok_or_else(|| "Agent Plugin support is not configured".to_string())?;
+    let enabled = state.config.lock().await.agent_plugins_enabled.clone();
+    let launch = openagent_runtime::agent_plugins::resolve_installed_plugin_daemon(
+        &roots.packages,
+        &roots.data,
+        &enabled,
+        "cua-driver",
+    )
+    .await?;
+    tauri::async_runtime::spawn_blocking(move || ensure_cua_driver_serve_with_launch(launch))
+        .await
+        .map_err(|error| format!("Cua Driver startup task failed: {error}"))?
+}
+
+#[cfg(not(feature = "embedded-runtime"))]
+async fn ensure_cua_driver_serve() -> Result<bool, String> {
+    Err("Cua Driver daemon supervision requires the embedded Runtime".to_string())
 }
 
 /// Stop the daemon this process started.
@@ -4467,7 +4541,8 @@ fn stop_cua_driver_serve() {
     // sessions, then close the liveness pipe. EOF on that pipe is the driver's
     // own "the host is gone" signal and the one path that still works when the
     // daemon cannot answer the endpoint.
-    if let Err(error) = cua_driver_stop_daemon(&cua_driver_endpoint_path()) {
+    #[cfg(feature = "embedded-runtime")]
+    if let Err(error) = cua_driver_stop_daemon(&cua_driver_endpoint_path(), &daemon.launch) {
         tracing::debug!(%error, "Cua Driver stop request failed during shutdown");
     }
     drop(daemon._stdin);
@@ -4501,6 +4576,7 @@ fn wait_for_cua_driver_exit(child: &mut std::process::Child, timeout: std::time:
 }
 
 /// Wait for another process's daemon to start listening on `endpoint`.
+#[cfg(feature = "embedded-runtime")]
 fn wait_for_cua_driver_endpoint_ready(endpoint: &str) -> Result<(), String> {
     let deadline = std::time::Instant::now() + CUA_DRIVER_STARTUP_TIMEOUT;
     while !cua_driver_endpoint_is_ready(endpoint) {
@@ -4523,39 +4599,19 @@ fn cua_driver_endpoint() -> String {
     cua_driver_endpoint_path()
 }
 
-/// Ask the desktop host to start the bundled Cua Driver daemon for the reserved
+/// Ask the desktop host to start the installed Cua Driver plugin daemon for the reserved
 /// entry and wait until it is accepting connections. Returns whether this call
 /// spawned the daemon.
+#[cfg(feature = "embedded-runtime")]
 #[tauri::command]
-async fn start_cua_driver_serve(
-    manager: State<'_, CuaDriverResourceManager>,
-) -> Result<bool, String> {
-    if !cfg!(debug_assertions) {
-        manager.ensure_installed().await?;
-        configure_external_cua_driver_path(manager.inner()).await?;
-    }
-    tauri::async_runtime::spawn_blocking(ensure_cua_driver_serve)
-        .await
-        .map_err(|error| format!("Cua Driver startup task failed: {error}"))?
+async fn start_cua_driver_serve(runtime: State<'_, Arc<OpenAgentRuntime>>) -> Result<bool, String> {
+    ensure_cua_driver_serve(runtime.inner().clone()).await
 }
 
-/// Download and verify the current Cua Driver release from GitHub. The first
-/// call installs and activates a driver; later calls leave the active daemon
-/// untouched and return an update candidate for the frontend to present.
+#[cfg(not(feature = "embedded-runtime"))]
 #[tauri::command]
-async fn prepare_cua_driver_resource(
-    manager: State<'_, CuaDriverResourceManager>,
-) -> Result<CuaDriverResourceStatus, String> {
-    manager.prepare_latest().await
-}
-
-#[tauri::command]
-async fn activate_cua_driver_resource(
-    manager: State<'_, CuaDriverResourceManager>,
-    version: String,
-    target: String,
-) -> Result<(), String> {
-    manager.activate(&version, &target).await
+async fn start_cua_driver_serve() -> Result<bool, String> {
+    ensure_cua_driver_serve().await
 }
 
 fn cua_driver_binary_name() -> &'static str {
@@ -4797,48 +4853,6 @@ fn prepend_development_cua_driver_to_path() -> Result<bool, String> {
     Ok(false)
 }
 
-fn prepend_bundled_cua_driver_to_path(app: &tauri::AppHandle) -> Result<bool, String> {
-    let resource = app.path().resolve("cua-driver", BaseDirectory::Resource);
-    let mut candidates = Vec::new();
-    if let Ok(directory) = resource {
-        candidates.push(directory);
-    }
-    #[cfg(debug_assertions)]
-    if let Some(directory) = development_cua_driver_directory() {
-        candidates.push(directory);
-    }
-
-    let Some(directory) = first_valid_cua_driver_directory(candidates) else {
-        tracing::debug!("bundled Cua Driver resource directory is unavailable");
-        return Ok(false);
-    };
-    prepend_cua_driver_directory_to_path(staged_cua_driver_directory(directory))
-}
-
-async fn configure_external_cua_driver_path(
-    manager: &CuaDriverResourceManager,
-) -> Result<bool, String> {
-    let binary = manager.ensure_installed().await?;
-    let directory = binary
-        .parent()
-        .ok_or_else(|| "Cua Driver executable has no parent directory".to_string())?
-        .to_path_buf();
-    prepend_cua_driver_directory_to_path(directory)
-}
-
-async fn configure_installed_cua_driver_path(
-    manager: &CuaDriverResourceManager,
-) -> Result<bool, String> {
-    let Some((_, binary)) = manager.active_resource().await? else {
-        return Ok(false);
-    };
-    let directory = binary
-        .parent()
-        .ok_or_else(|| "Cua Driver executable has no parent directory".to_string())?
-        .to_path_buf();
-    prepend_cua_driver_directory_to_path(directory)
-}
-
 async fn start_runtime_spec(
     supervisor: &RuntimeProcessSupervisor,
     spec: RuntimeLaunchSpec,
@@ -5056,8 +5070,6 @@ fn run_with_mode(agent_server: bool) {
     );
     let startup_runtime_supervisor = runtime_supervisor.clone();
     let protocol_runtime_supervisor = runtime_supervisor.clone();
-    let cua_driver_manager = CuaDriverResourceManager::new(data_dir.clone());
-    let startup_cua_driver_manager = cua_driver_manager.clone();
     let runtime_manager = runtime_resource_manager(data_dir);
     let startup_runtime_manager = runtime_manager.clone();
     let builder = tauri::Builder::default().manage(desktop_data_dir);
@@ -5222,18 +5234,8 @@ fn run_with_mode(agent_server: bool) {
         .manage(RuntimeUpdateState::default())
         .manage(DesktopWindowState::default())
         .manage(runtime_manager)
-        .manage(cua_driver_manager)
         .manage(frontend_manager)
         .setup(move |app| {
-            if cfg!(debug_assertions) {
-                prepend_bundled_cua_driver_to_path(app.handle()).map_err(std::io::Error::other)?;
-            } else {
-                if let Err(error) = tauri::async_runtime::block_on(configure_installed_cua_driver_path(
-                    &startup_cua_driver_manager,
-                )) {
-                    tracing::warn!(%error, "failed to configure an installed Cua Driver resource");
-                }
-            }
             if is_parent_controlled_workspace_window_process() {
                 install_parent_shutdown_monitor(app.handle().clone());
             } else if cfg!(debug_assertions)
@@ -5493,7 +5495,7 @@ fn run_with_mode(agent_server: bool) {
                 let servers =
                     openagent_runtime::commands::effective_mcp_servers(state, &config).await;
                 if servers.iter().any(|server| server.id == "cua-driver" && server.enabled) {
-                    if let Err(error) = ensure_cua_driver_serve() {
+                    if let Err(error) = ensure_cua_driver_serve(startup_runtime.clone()).await {
                         tracing::error!(target: "openagent::cua", %error, "failed to start configured Cua Driver serve daemon");
                     }
                 }
@@ -5531,8 +5533,6 @@ fn run_with_mode(agent_server: bool) {
         get_settings,
         start_cua_driver_serve,
         cua_driver_endpoint,
-        prepare_cua_driver_resource,
-        activate_cua_driver_resource,
         get_component_versions,
         get_embedding_resource_status,
         prepare_embedding_resource,
@@ -5683,8 +5683,6 @@ fn run_with_mode(agent_server: bool) {
     let builder = builder.invoke_handler(tauri::generate_handler![
         start_cua_driver_serve,
         cua_driver_endpoint,
-        prepare_cua_driver_resource,
-        activate_cua_driver_resource,
         get_component_versions,
         prepare_runtime_resource,
         begin_component_update,

@@ -98,7 +98,6 @@ export function buildPreflightCommands(modules) {
       "-e",
       "require('fs').mkdirSync('build', { recursive: true })",
     ]);
-    add("cua-driver", "Cua Driver resources", "bun", ["run", "prepare:cua-driver"]);
     add("rust-check", "Host-platform Rust compile check", "cargo", [
       "check",
       "--manifest-path",

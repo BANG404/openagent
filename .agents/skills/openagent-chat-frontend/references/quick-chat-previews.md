@@ -305,7 +305,7 @@
   builds resolve the reserved `cua-driver` command from OpenAgent's verified
   bundled resource; development builds may still use an independently
   installed command. Connection testing and the plugin switch start the
-  host-owned daemon before probing, because `cua-driver mcp --socket` is only a
+  plugin-owned daemon before probing, because `cua-driver mcp --socket` is only a
   client; without that call the tool list stays empty with the
   `pluginToolsEmpty` hint. Show a localized warning for the fixed unrestricted
   mode, and keep the tool switches usable down to a single column on narrow

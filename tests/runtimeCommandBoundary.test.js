@@ -4,7 +4,6 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const nativeCommands = new Set([
-  "activate_cua_driver_resource",
   "activate_frontend_resource",
   "activate_runtime_resource",
   "begin_component_update",
@@ -27,7 +26,6 @@ const nativeCommands = new Set([
   "plugin:i18n|get_locale",
   "plugin:i18n|set_locale",
   "prepare_embedding_resource",
-  "prepare_cua_driver_resource",
   "prepare_frontend_resource",
   "prepare_runtime_resource",
   "quit_app",

@@ -46,27 +46,20 @@ the host.
   durable-state Runtime; the packaged server is a fallback binary, not a
   concurrent writer.
 
-## External Cua Driver daemon
+## Plugin-owned Cua Driver daemon
 
-- Release builds do not package the Cua Driver. The host installs the matching
-  GitHub Release asset into `<OPENAGENT_HOME>/resources/cua-driver/<version>/<target>/`
-  and starts it from that verified directory. Development builds may still use
-  the prepared local resource.
-- The host selects the newest non-draft, non-prerelease `cua-driver-rs-v*`
-  release, requires GitHub's `sha256:` asset digest, rejects oversized or
-  traversal-containing archives, and writes `active.json` only after the
-  executable and marker have been installed. A running version remains active
-  while a newer candidate is downloaded.
-- The update check reports a Cua Driver version transition and links to the
-  upstream release page. Accepting it activates the verified candidate and
-  restarts the desktop so the daemon and Runtime inherit the new PATH entry.
+- The Cua Driver package is subscribed and updated from
+  `https://github.com/BANG404/openagent-cua-driver` through the normal Agent
+  Plugin updater. The desktop bundle does not contain a Cua binary or resource
+  downloader.
+- The host resolves the package's validated `extensions.openagent.daemon`
+  descriptor and supervises that command. Package updates are installed into a
+  versioned plugin directory before activation.
 
 ### Daemon lifecycle
 
-- Start the daemon from the verified version directory under
-  `<OPENAGENT_HOME>/resources/cua-driver/`; never replace files in the active
-  directory while the daemon is running. Download candidates into a separate
-  version directory and switch `active.json` only after verification.
+- Start the daemon from the verified installed plugin directory; never replace
+  files in the active directory while the daemon is running.
 - Start the daemon from `cua_driver_serve_args()` with
   `serve --embedded --permission-mode unrestricted --dangerously-bypass-approvals --parent-liveness-stdio --socket <host endpoint>` and pass the same values
   again through `cua_driver_serve_environment()`. The driver refuses a
@@ -153,11 +146,9 @@ the host.
 
 ## Asset protocols and native opener
 
-- The product-managed Cua Driver resource must be placed on the child-process
-  `PATH` before any Runtime bootstrap in development mode, because the
-  embedded diagnostic can initialize MCP connections before Tauri `setup`.
-  Tauri `Resource` resolution remains the packaged path; development startup
-  may fall back to the source or debug resource directory.
+- The installed Cua Driver plugin daemon must be resolved before any Runtime
+  bootstrap in development mode, because the embedded diagnostic can initialize
+  MCP connections before Tauri `setup`.
 - Rewrite Runtime media asset URLs to the host-owned `openagent-runtime`
   protocol. Permit only GET/HEAD requests for bounded media asset paths,
   preserve byte-range response headers, and attach the process token only in

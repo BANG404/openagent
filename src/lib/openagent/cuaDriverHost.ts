@@ -2,7 +2,7 @@ import { isTauri } from "@tauri-apps/api/core";
 import { invoke } from "./tauriClient";
 
 /**
- * Desktop bridge for the product-managed Cua Driver daemon.
+ * Desktop bridge for the plugin-owned Cua Driver daemon.
  *
  * The endpoint is host-owned product policy: on Windows it is a named pipe and
  * on macOS/Linux a private filesystem path. The reserved MCP entry persists it,
@@ -28,7 +28,7 @@ export async function hydrateCuaDriverEndpoint(): Promise<string> {
 }
 
 /**
- * Start the product-managed daemon and wait until it accepts connections.
+ * Start the plugin-owned daemon and wait until it accepts connections.
  *
  * `cua-driver mcp --socket` refuses to run without a listening daemon, so this
  * has to succeed before the reserved entry is connected or probed. Returns

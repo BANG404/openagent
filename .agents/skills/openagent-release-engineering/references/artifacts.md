@@ -1,11 +1,9 @@
 # Host and helper artifacts
 
 - Native CI that compiles Tauri without the frontend build must materialize the
-  configured `frontendDist`, target-named placeholders for configured
-  `externalBin` resources, and generated configured bundle resources such as
-  the Cua Driver before invoking Cargo; frontend qualification and release
-  component builds own the production bytes. Tauri build scripts validate these
-  resource paths even when native CI is only checking Rust targets.
+  configured `frontendDist` and target-named placeholders for configured
+  `externalBin` resources before invoking Cargo; frontend qualification and
+  release component builds own the production bytes.
   Keep direct native-dialog dependencies from enabling a Linux backend that
   conflicts with the backend selected by `tauri-plugin-dialog`.
 - Build platform sandbox helpers from the Codex revision pinned by the SDK.
@@ -17,12 +15,9 @@
   and produces NSIS plus updater artifacts, not WiX. Linux strips
   `codex-bwrap`, embeds its SHA-256 at release compilation, and packages those
   exact bytes through `externalBin`.
-- Bundle Cua Driver from the versioned `trycua/cua` release selected in
-  `scripts/prepare-cua-driver.mjs`. The build must choose the asset for the
-  exact Tauri target, verify its pinned SHA-256 before extraction, retain the
-  distribution's companion libraries and helpers, and package the resulting
-  directory as the `cua-driver` Tauri resource. Never fetch an unversioned
-  driver or trust release filenames without the pinned digest.
+- Cua Driver is delivered by the verified Agent Plugin release at
+  `https://github.com/BANG404/openagent-cua-driver`; the desktop bundle does
+  not package or download a Cua binary.
 - Use `bun run tauri:build` for release builds so generated helper digests reach
   Cargo. Keep the release Cargo profile size-oriented and audit installer size,
   not generated `target/` contents. The ordinary desktop build must leave the

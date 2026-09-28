@@ -97,12 +97,36 @@ Skills continue to use immediate child directories under `skills/` with a
 conforming `SKILL.md`. MCP continues to use the portable `mcp.json` schema and
 the existing `PLUGIN_ROOT`/`PLUGIN_DATA` expansion and transport restrictions.
 The product registry exposes Cua Driver, Chat Groups, Goal Mode, and Graph Mode
-as trusted plugin descriptors. Chat Groups, Goal Mode, and Graph Mode each have
-their own standard package repository and can receive a verified GitHub package
-overlay. The registration still supplies their capabilities, commands, tool
-ownership, message policies, and component ownership to the Runtime. Cua Driver
-continues to use its verified product resource, daemon ownership, fixed
-endpoint, and reserved MCP lifecycle rather than the plugin package updater.
+as trusted plugin descriptors. Each capability has a standard package repository
+and can receive a verified GitHub package overlay. The registration still
+supplies trusted capabilities, commands, tool ownership, message policies, and
+component ownership to the Runtime. Cua Driver's daemon is resolved from its
+installed package and supervised through the same host daemon boundary as any
+other plugin; its reserved MCP entry remains the client connection.
+
+### MCP Apps UI
+
+OpenAgent supports the portable MCP Apps UI contract for MCP tools that declare
+`_meta.ui.resourceUri`; `_meta["ui/resourceUri"]` and
+`_meta["openai/outputTemplate"]` are accepted compatibility aliases. The host
+reads `ui://` resources through `resources/read`, accepts only
+`text/html;profile=mcp-app`, enforces a 4 MiB resource limit, and renders the
+HTML in a sandboxed iframe. The iframe bridge implements the MCP Apps
+initialization handshake with `hostCapabilities` and `hostContext`, tool
+input/result notifications, `tools/call`, `resources/read`, `ui/open-link`,
+`ui/request-display-mode` for inline/fullscreen, `ui/message`,
+`ui/update-model-context`, teardown, ping, host-context changes, and
+size-change notifications. Resource CSP and permission metadata are applied to
+the iframe, and tools with `visibility: ["app"]` are excluded from the model's
+tool catalog while remaining callable by the active app.
+
+This does not claim parity with ChatGPT-only `window.openai` extensions. The
+host provides a compatibility bridge for `toolInput`, `toolOutput`, `callTool`,
+`sendFollowUpMessage`, `widgetState`, and `setWidgetState`, but does not
+currently provide the optional file, checkout, modal, or picture-in-picture
+APIs, nor OAuth 2.1 connector authorization or
+marketplace/discovery behavior. Apps must use the portable MCP Apps bridge or
+feature-detect those optional APIs and provide a fallback.
 
 ### Automation
 

@@ -20,7 +20,7 @@ export function cuaDriverMcpArgs(endpoint: string): string[] {
 }
 
 /**
- * Whether an MCP id is reserved for a product-managed plugin capability.
+ * Whether an MCP id is reserved for a trusted plugin capability.
  *
  * Plugin-owned entries are absent from the Agent Role editor's MCP column, so a
  * role can never associate them; the runtime keeps them for every role.
@@ -30,7 +30,7 @@ export function isPluginOwnedMcpServerId(id: string): boolean {
 }
 
 /**
- * The reserved entry is a fixed MCP proxy onto the product-managed daemon.
+ * The reserved entry is a fixed MCP proxy onto the plugin-owned daemon.
  * Permission mode, endpoint, grants, and manifests are product policy, so the
  * persisted entry only carries the host-provided endpoint. Users can enable or
  * disable the plugin and narrow the exposed tool surface.
@@ -78,7 +78,7 @@ export function isCuaDriverEnabled(config: AppConfig): boolean {
   return config.mcp.servers.some((server) => server.id === CUA_DRIVER_ID && server.enabled);
 }
 
-/** Add or normalize the product-managed Cua entry without touching user MCP services. */
+/** Add or normalize the plugin-owned Cua entry without touching user MCP services. */
 export function ensureCuaDriverServer(config: AppConfig, endpoint: string): AppConfig {
   if (!endpoint) return config;
   const existing = config.mcp.servers.find((server) => server.id === CUA_DRIVER_ID);

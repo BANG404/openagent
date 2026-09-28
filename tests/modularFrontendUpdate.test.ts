@@ -35,15 +35,12 @@ test("production update checks aggregate Runtime and Shell updates", () => {
   expect(updater).toContain('translate("updateDeferredActiveAgent")');
 });
 
-test("production update checks and activates the external Cua Driver", () => {
-  expect(updater).toContain('invoke<PreparedCuaDriverResource>("prepare_cua_driver_resource")');
-  expect(updater).toContain('invoke("activate_cua_driver_resource"');
-  expect(updater).toContain('translate("updateComponentCuaDriver")');
-  expect(updater).toContain("cuaDriver?.release_url");
-  expect(updater).toContain("cuaDriverActivated = true");
-  expect(updater).toContain('translate("cuaDriverUpdateRestarting")');
-  expect(host).toContain("CuaDriverResourceManager");
-  expect(host).toContain("manager.ensure_installed().await?");
+test("Cua updates use the Agent Plugin subscription path", () => {
+  expect(updater).not.toContain("prepare_cua_driver_resource");
+  expect(updater).not.toContain("activate_cua_driver_resource");
+  expect(host).toContain("resolve_installed_plugin_daemon");
+  expect(host).toContain('"cua-driver"');
+  expect(host).not.toContain('Command::new("cua-driver")');
 });
 
 test("versioned WebViews confirm activation through the host handshake", () => {

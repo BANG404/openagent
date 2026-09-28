@@ -1,7 +1,7 @@
 //! Kernel-enforced lifetime for the long-lived children of the desktop host.
 //!
 //! The host owns two children for the whole life of the process: the supervised
-//! Runtime and the Cua Driver daemon. Both have to disappear with the host on
+//! Runtime and plugin capability daemons. Both have to disappear with the host on
 //! *every* exit path, including the ones where no Rust `Drop` runs at all — the
 //! release profile sets `panic = "abort"`, and a force-kill, a crash, or a
 //! logoff never unwinds either.
@@ -14,7 +14,7 @@
 //!
 //! Unix has no equivalent, so the same invariant comes from the control pipe
 //! each child already watches: the Runtime treats control-stdin EOF as loss of
-//! its desktop owner, and the Cua Driver daemon does the same through
+//! its desktop owner, and plugin daemons do the same through
 //! `--parent-liveness-stdio`. The guard is therefore a no-op there and the pipe
 //! is the contract of record.
 
@@ -90,13 +90,13 @@ pub(crate) fn bind_tokio_child(
     Ok(HostLifetimeGuard)
 }
 
-/// Bind an already-spawned child — the Cua Driver daemon — to this process.
+/// Bind an already-spawned plugin daemon child to this process.
 ///
 /// A `std::process::Child` owns no waitable handle this module can borrow, so
 /// the process is reopened by id. Binding happens right after the spawn, while
 /// the child is still alive; a child that exited in between fails here rather
 /// than silently losing its guard.
-#[cfg(windows)]
+#[cfg(all(feature = "embedded-runtime", windows))]
 pub(crate) fn bind_std_child(
     label: &str,
     child: &std::process::Child,
@@ -114,7 +114,7 @@ pub(crate) fn bind_std_child(
     Ok(job)
 }
 
-#[cfg(not(windows))]
+#[cfg(all(feature = "embedded-runtime", not(windows)))]
 pub(crate) fn bind_std_child(
     _label: &str,
     _child: &std::process::Child,
