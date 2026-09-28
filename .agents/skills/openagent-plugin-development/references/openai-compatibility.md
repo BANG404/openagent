@@ -16,8 +16,16 @@ injected only into the configured server transport.
 
 MCP Apps resources use `ui://` URIs and `text/html;profile=mcp-app`, are
 isolated in sandboxed iframes, and receive the MCP Apps initialize handshake,
-host context, tool calls, resource reads, link opening, follow-up messages,
-modal, file selection, inline/fullscreen/PiP display modes, and the partial
-`window.openai` bridge. File upload/download URLs, checkout, and persistent
-model-context updates require a separate durable product contract and must not
-be advertised as supported until that contract exists.
+host context, tool calls, prompt/resource discovery and reads, link opening,
+follow-up messages, modal, file selection/upload/download, inline/fullscreen/PiP
+display modes, widget state, and the `window.openai` bridge. Tool results keep
+their `content`, `structuredContent`, `_meta`, and `isError` envelope fields.
+Widget state and model-context updates are persisted in the conversation
+database; model context is consumed by the next provider request.
+
+This is product compatibility, not a claim that every OpenAI-hosted service is
+available locally. Checkout is represented by a host confirmation boundary and
+does not process payments. OAuth still depends on the provider's discovery and
+registration policy, and marketplace listing/discovery is not part of the local
+plugin loader. Hosts must also enforce their own CSP, permission, and trust
+policy when installing third-party packages.

@@ -48,6 +48,10 @@ export interface McpUiInvocation {
   content: unknown[];
   structured_content?: unknown;
   meta?: unknown;
+  result_meta?: unknown;
+  tool_result?: unknown;
+  is_error?: boolean;
+  state_key?: string | null;
 }
 
 export type ContextCompactionStage =

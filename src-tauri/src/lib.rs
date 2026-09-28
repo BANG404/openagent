@@ -2646,8 +2646,124 @@ async fn read_mcp_resource(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     server_id: String,
     uri: String,
-) -> Result<mcp::McpUiResource, String> {
-    openagent_runtime::commands::read_mcp_ui_resource(runtime.state(), server_id, uri).await
+) -> Result<serde_json::Value, String> {
+    openagent_runtime::commands::read_mcp_resource(runtime.state(), server_id, uri).await
+}
+
+#[tauri::command]
+async fn list_mcp_prompts(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    server_id: String,
+) -> Result<serde_json::Value, String> {
+    openagent_runtime::commands::list_mcp_prompts(runtime.state(), server_id).await
+}
+
+#[tauri::command]
+async fn get_mcp_prompt(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    server_id: String,
+    name: String,
+    arguments: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    openagent_runtime::commands::get_mcp_prompt(runtime.state(), server_id, name, arguments).await
+}
+
+#[tauri::command]
+async fn list_mcp_resources(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    server_id: String,
+) -> Result<serde_json::Value, String> {
+    openagent_runtime::commands::list_mcp_resources(runtime.state(), server_id).await
+}
+
+#[tauri::command]
+async fn list_mcp_resource_templates(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    server_id: String,
+) -> Result<serde_json::Value, String> {
+    openagent_runtime::commands::list_mcp_resource_templates(runtime.state(), server_id).await
+}
+
+#[tauri::command]
+async fn get_mcp_app_state(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    conversation_id: Option<String>,
+    server_id: String,
+    resource_uri: String,
+) -> Result<serde_json::Value, String> {
+    openagent_runtime::commands::get_mcp_app_state(
+        runtime.state(),
+        conversation_id,
+        server_id,
+        resource_uri,
+    )
+    .await
+}
+
+#[tauri::command]
+async fn set_mcp_app_state(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    conversation_id: Option<String>,
+    server_id: String,
+    resource_uri: String,
+    widget_state: serde_json::Value,
+) -> Result<(), String> {
+    openagent_runtime::commands::set_mcp_app_state(
+        runtime.state(),
+        conversation_id,
+        server_id,
+        resource_uri,
+        widget_state,
+    )
+    .await
+}
+
+#[tauri::command]
+async fn update_mcp_app_model_context(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    conversation_id: String,
+    content: Option<serde_json::Value>,
+    structured_content: Option<serde_json::Value>,
+) -> Result<(), String> {
+    openagent_runtime::commands::update_mcp_app_model_context(
+        runtime.state(),
+        conversation_id,
+        content,
+        structured_content,
+    )
+    .await
+}
+
+#[tauri::command]
+async fn mcp_app_import_file(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    path: String,
+) -> Result<openagent_runtime::commands::McpAppFile, String> {
+    openagent_runtime::commands::mcp_app_import_file(runtime.state(), path).await
+}
+
+#[tauri::command]
+async fn mcp_app_upload_file(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    name: String,
+    mime_type: String,
+    content_base64: String,
+) -> Result<openagent_runtime::commands::McpAppFile, String> {
+    openagent_runtime::commands::mcp_app_upload_file(
+        runtime.state(),
+        name,
+        mime_type,
+        content_base64,
+    )
+    .await
+}
+
+#[tauri::command]
+async fn mcp_app_get_file_download_url(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    file_id: String,
+) -> Result<openagent_runtime::commands::McpAppDownload, String> {
+    openagent_runtime::commands::mcp_app_get_file_download_url(runtime.state(), file_id).await
 }
 
 }
@@ -5651,6 +5767,16 @@ fn run_with_mode(agent_server: bool) {
         get_mcp_oauth_status,
         call_mcp_tool,
         read_mcp_resource,
+        list_mcp_prompts,
+        get_mcp_prompt,
+        list_mcp_resources,
+        list_mcp_resource_templates,
+        get_mcp_app_state,
+        set_mcp_app_state,
+        update_mcp_app_model_context,
+        mcp_app_import_file,
+        mcp_app_upload_file,
+        mcp_app_get_file_download_url,
         refresh_mcp_servers,
         get_conversations,
         get_conversation_page,

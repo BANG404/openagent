@@ -12,10 +12,20 @@
   let height = $state(280);
   let initialized = $state(false);
   let displayMode = $state<"inline" | "fullscreen" | "pip">("inline");
-  let modal = $state<{ content: string; title?: string } | null>(null);
+  let modal = $state<{
+    content: string;
+    title?: string;
+    html?: boolean;
+    checkout?: { id: unknown; session: unknown };
+  } | null>(null);
+  let closed = $state(false);
+  let openInAppUrl = $state<string | null>(null);
+  let widgetState = $state<unknown>(null);
   let _modelContextUpdate = $state<unknown>(undefined);
   let hostContextVersion = $state(0);
   let requestId = 1;
+  let viewAvailableDisplayModes: string[] = ["inline", "fullscreen", "pip"];
+  let pendingCheckout: { id: unknown; session: unknown } | null = null;
   const uiCapabilities = useOpenAgentUiCapabilities();
 
   const availableDisplayModes = ["inline", "fullscreen", "pip"] as const;
@@ -27,17 +37,15 @@
       displayMode,
       availableDisplayModes,
       locale: navigator.language,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      platform: navigator.platform,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      platform: /android|iphone|ipad/i.test(navigator.userAgent) ? "mobile" : "desktop",
       userAgent: navigator.userAgent,
       maxHeight: 720,
       safeAreaInsets: { top: 0, right: 0, bottom: 0, left: 0 },
-      containerDimensions: {
-        width: container?.clientWidth ?? 0,
-        height: container?.clientHeight ?? height,
-      },
+      containerDimensions: { width: container?.clientWidth ?? 0, maxHeight: 720 },
       toolInfo: { tool: { name: invocation.descriptor.tool_name } },
-      styles: { variables: {} },
+      openInAppUrl,
+      styles: { variables: {}, css: { fonts: "" } },
       version: hostContextVersion,
     };
   }
@@ -48,7 +56,9 @@
     if (resource.text) return resource.text;
     if (!resource.blob) return "";
     try {
-      return atob(resource.blob);
+      const binary = atob(resource.blob);
+      const bytes = Uint8Array.from(binary, (value) => value.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
     } catch {
       return "";
     }
@@ -102,15 +112,20 @@
   var toolInput;
   var toolOutput;
   var toolResponseMetadata;
-  var widgetState;
+  var widgetState = null;
   var hostContext = {};
   function request(method, params) {
     var id = nextId++;
     window.parent.postMessage({ jsonrpc: "2.0", id: id, method: method, params: params || {} }, "*");
     return new Promise(function (resolve, reject) { pending.set(id, { resolve: resolve, reject: reject }); });
   }
-  function unsupported(name) {
-    return Promise.reject(new Error(name + " is not supported by this host"));
+  function bytesToBase64(bytes) {
+    var binary = "";
+    var chunk = 0x8000;
+    for (var offset = 0; offset < bytes.length; offset += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(offset, offset + chunk));
+    }
+    return btoa(binary);
   }
   window.addEventListener("message", function (event) {
     if (event.source !== window.parent) return;
@@ -122,7 +137,10 @@
       if (message.error) call.reject(message.error);
       else {
         if (message.result && message.result.hostContext) {
-          hostContext = message.result.hostContext;
+          hostContext = Object.assign({}, hostContext, message.result.hostContext);
+        }
+        if (message.result && Object.prototype.hasOwnProperty.call(message.result, "widgetState")) {
+          widgetState = message.result.widgetState;
         }
         call.resolve(message.result);
       }
@@ -131,10 +149,13 @@
     if (message.method === "ui/notifications/tool-input") toolInput = message.params;
     if (message.method === "ui/notifications/tool-result") {
       toolOutput = message.params;
-      toolResponseMetadata = message.params && message.params._meta;
+      toolResponseMetadata = message.params || null;
+    }
+    if (message.method === "ui/notifications/tool-cancelled") {
+      toolResponseMetadata = message.params || null;
     }
     if (message.method === "ui/notifications/host-context-changed") {
-      hostContext = message.params || {};
+      hostContext = Object.assign({}, hostContext, message.params || {});
       window.dispatchEvent(new CustomEvent("openai:host-context-changed", { detail: hostContext }));
     }
   }, { passive: true });
@@ -150,22 +171,54 @@
     get view() { return hostContext.view; },
     get userAgent() { return hostContext.userAgent; },
     callTool: function (name, args) { return request("tools/call", { name: name, arguments: args || {} }); },
-    sendFollowUpMessage: function (message) { return request("ui/message", { message: message }); },
-    requestDisplayMode: function (mode) { return request("ui/request-display-mode", { mode: mode }); },
-    requestModal: function (content, options) { return request("ui/request-modal", { content: content, options: options || {} }); },
+    listPrompts: function () { return request("prompts/list", {}); },
+    getPrompt: function (name, args) { return request("prompts/get", { name: name, arguments: args || {} }); },
+    listResources: function () { return request("resources/list", {}); },
+    listResourceTemplates: function () { return request("resources/templates/list", {}); },
+    sendFollowUpMessage: function (message) {
+      var value = typeof message === "string" ? { prompt: message } : (message || {});
+      return request("ui/message", {
+        role: "user",
+        content: { type: "text", text: value.prompt || "" },
+        scrollToBottom: value.scrollToBottom !== false
+      });
+    },
+    requestDisplayMode: function (value) {
+      return request("ui/request-display-mode", typeof value === "string" ? { mode: value } : value || {});
+    },
+    requestModal: function (value, options) {
+      if (typeof value === "string") return request("ui/request-modal", { content: value, options: options || {} });
+      return request("ui/request-modal", value || {});
+    },
     requestClose: function () { return request("ui/request-close", {}); },
     notifyIntrinsicHeight: function (height) {
-      window.parent.postMessage({ jsonrpc: "2.0", method: "ui/notifications/size-changed", params: { height: height } }, "*");
+      window.parent.postMessage({ jsonrpc: "2.0", method: "ui/notifications/size-changed", params: { height: height, width: document.documentElement.clientWidth } }, "*");
     },
-    openExternal: function (url) { return request("ui/open-link", { url: url }); },
-    setOpenInAppUrl: function (url) { return request("ui/set-open-in-app-url", { url: url }); },
-    uploadFile: function () { return unsupported("uploadFile"); },
-    selectFiles: function (options) { return request("ui/select-files", { options: options || {} }); },
-    getFileDownloadUrl: function () { return unsupported("getFileDownloadUrl"); },
+    openExternal: function (value) {
+      var href = typeof value === "string" ? value : value && value.href;
+      return request("ui/open-link", { url: href, redirectUrl: typeof value === "object" ? value.redirectUrl : undefined });
+    },
+    setOpenInAppUrl: function (value) {
+      var href = typeof value === "string" ? value : value && value.href;
+      return request("ui/set-open-in-app-url", { href: href });
+    },
+    uploadFile: async function (file, options) {
+      if (!file || typeof file.arrayBuffer !== "function") throw new Error("uploadFile requires a File or Blob");
+      var bytes = new Uint8Array(await file.arrayBuffer());
+      return request("ui/upload-file", {
+        name: file.name || "attachment",
+        mimeType: file.type || "application/octet-stream",
+        contentBase64: bytesToBase64(bytes),
+        library: !!(options && options.library)
+      });
+    },
+    selectFiles: function () { return request("ui/select-files", {}); },
+    getFileDownloadUrl: function (value) { return request("ui/get-file-download-url", value || {}); },
+    requestCheckout: function (session) { return request("ui/request-checkout", session || {}); },
     get widgetState() { return widgetState; },
     setWidgetState: function (state) {
       widgetState = state;
-      window.parent.postMessage({ jsonrpc: "2.0", method: "ui/update-model-context", params: { content: state } }, "*");
+      return request("ui/set-widget-state", { state: state });
     }
   };
 })();
@@ -176,10 +229,24 @@
     const ui = (
       invocation.resource?.meta as { ui?: { permissions?: Record<string, unknown> } } | null
     )?.ui;
-    const values = Object.keys(ui?.permissions ?? {}).filter((value) =>
-      ["camera", "microphone", "geolocation", "clipboard-write"].includes(value),
-    );
+    const values = Object.keys(ui?.permissions ?? {})
+      .map((value) => (value === "clipboardWrite" ? "clipboard-write" : value))
+      .filter((value) =>
+        ["camera", "microphone", "geolocation", "clipboard-write"].includes(value),
+      );
     return values.length ? values.join("; ") : undefined;
+  }
+
+  function sandboxPermissions(): Record<string, Record<string, never>> {
+    const ui = (
+      invocation.resource?.meta as { ui?: { permissions?: Record<string, unknown> } } | null
+    )?.ui;
+    const allowed = ["camera", "microphone", "geolocation", "clipboardWrite"] as const;
+    return Object.fromEntries(
+      allowed
+        .filter((value) => Object.prototype.hasOwnProperty.call(ui?.permissions ?? {}, value))
+        .map((value) => [value, {}]),
+    );
   }
 
   function post(message: Record<string, unknown>): void {
@@ -201,19 +268,26 @@
       method: "ui/notifications/tool-input",
       params: { arguments: invocation.arguments },
     });
-    if (invocation.structured_content !== undefined || invocation.content.length > 0) {
-      post({
-        jsonrpc: "2.0",
-        method: "ui/notifications/tool-result",
-        params: {
-          content: invocation.content,
-          structuredContent: invocation.structured_content,
-          _meta: invocation.meta,
-        },
-      });
-    }
+    const result: Record<string, unknown> =
+      invocation.tool_result && typeof invocation.tool_result === "object"
+        ? { ...(invocation.tool_result as Record<string, unknown>) }
+        : {
+            content: invocation.content,
+            structuredContent: invocation.structured_content,
+            _meta: invocation.result_meta ?? invocation.meta,
+            isError: invocation.is_error ?? false,
+          };
+    result.content ??= invocation.content;
+    if (invocation.structured_content !== undefined)
+      result.structuredContent ??= invocation.structured_content;
+    result._meta ??= invocation.result_meta ?? invocation.meta;
+    result.isError ??= invocation.is_error ?? false;
+    post({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params: result });
   }
 
+  // MCP Apps protocol dispatch is intentionally centralized so every request
+  // shares the same server and iframe authorization boundary.
+  // eslint-disable-next-line complexity
   async function handleRequest(message: Record<string, unknown>): Promise<void> {
     const id = message.id;
     const method = typeof message.method === "string" ? message.method : "";
@@ -221,20 +295,39 @@
     if (method === "ui/initialize" || method === "initialize") {
       const requestedVersion =
         typeof params.protocolVersion === "string" ? params.protocolVersion : "2026-01-26";
+      const requestedModes = (
+        params.appCapabilities as { availableDisplayModes?: unknown } | undefined
+      )?.availableDisplayModes;
+      viewAvailableDisplayModes = Array.isArray(requestedModes)
+        ? requestedModes.filter((mode): mode is string =>
+            ["inline", "fullscreen", "pip"].includes(String(mode)),
+          )
+        : ["inline", "fullscreen", "pip"];
+      try {
+        widgetState = await desktopOpenAgent.invokeProduct("get_mcp_app_state", {
+          conversation_id: invocation.conversation_id ?? null,
+          server_id: invocation.descriptor.server_id,
+          resource_uri: invocation.descriptor.resource_uri,
+        });
+      } catch {
+        widgetState = null;
+      }
+      const hostCapabilities = {
+        openLinks: {},
+        serverTools: {},
+        serverResources: {},
+        logging: {},
+        sandbox: {
+          permissions: sandboxPermissions(),
+        },
+      };
       response(id, {
         protocolVersion: requestedVersion,
-        hostCapabilities: {
-          openLinks: {},
-          serverTools: {},
-          requestDisplayMode: {},
-        },
-        capabilities: {
-          openLinks: {},
-          serverTools: {},
-          requestDisplayMode: {},
-        },
+        hostCapabilities,
+        capabilities: hostCapabilities,
         hostInfo: { name: "OpenAgent", version: "0.1.0" },
         hostContext: hostContext(),
+        widgetState,
       });
       return;
     }
@@ -261,6 +354,45 @@
       }
       return;
     }
+    if (
+      method === "prompts/list" ||
+      method === "resources/list" ||
+      method === "resources/templates/list"
+    ) {
+      const command =
+        method === "prompts/list"
+          ? "list_mcp_prompts"
+          : method === "resources/list"
+            ? "list_mcp_resources"
+            : "list_mcp_resource_templates";
+      try {
+        const result = await desktopOpenAgent.invokeProduct(command, {
+          server_id: invocation.descriptor.server_id,
+        });
+        response(id, result);
+      } catch (cause) {
+        error(id, -32000, String(cause));
+      }
+      return;
+    }
+    if (method === "prompts/get") {
+      const name = typeof params.name === "string" ? params.name : "";
+      if (!name) {
+        error(id, -32602, "prompts/get requires a prompt name");
+        return;
+      }
+      try {
+        const result = await desktopOpenAgent.invokeProduct("get_mcp_prompt", {
+          server_id: invocation.descriptor.server_id,
+          name,
+          arguments: params.arguments ?? {},
+        });
+        response(id, result);
+      } catch (cause) {
+        error(id, -32000, String(cause));
+      }
+      return;
+    }
     if (method === "ui/open-link") {
       const url = typeof params.url === "string" ? params.url : "";
       try {
@@ -281,6 +413,13 @@
         error(id, -32602, "display mode is not supported by this host");
         return;
       }
+      if (
+        viewAvailableDisplayModes.length > 0 &&
+        !viewAvailableDisplayModes.includes(String(requested))
+      ) {
+        response(id, { mode: displayMode });
+        return;
+      }
       displayMode = requested;
       hostContextVersion += 1;
       response(id, { mode: displayMode });
@@ -292,13 +431,34 @@
       return;
     }
     if (method === "notifications/message") {
-      response(id, {});
+      if (id !== undefined) response(id, {});
+      return;
+    }
+    if (method === "ui/download-file") {
+      const url = typeof params.url === "string" ? params.url : "";
+      try {
+        const parsed = new URL(url, window.location.href);
+        if (!["http:", "https:", "data:"].includes(parsed.protocol)) {
+          throw new Error("only http(s) or data URLs are allowed");
+        }
+        if (parsed.protocol === "data:") {
+          const anchor = document.createElement("a");
+          anchor.href = parsed.toString();
+          anchor.download = typeof params.fileName === "string" ? params.fileName : "download";
+          anchor.click();
+        } else {
+          await uiCapabilities.openUrl(parsed.toString());
+        }
+        response(id, {});
+      } catch (cause) {
+        error(id, -32000, String(cause));
+      }
       return;
     }
     if (method === "resources/read") {
       const uri = typeof params.uri === "string" ? params.uri : "";
-      if (uri !== invocation.descriptor.resource_uri) {
-        error(id, -32602, "resource URI is outside the active MCP App");
+      if (!uri) {
+        error(id, -32602, "resources/read requires a URI");
         return;
       }
       try {
@@ -313,21 +473,25 @@
       return;
     }
     if (method === "ui/message") {
+      const content = params.content;
       const message =
         typeof params.message === "string"
           ? params.message
-          : Array.isArray(params.content)
-            ? params.content
-                .filter(
-                  (part) =>
-                    part &&
-                    typeof part === "object" &&
-                    (part as { type?: unknown }).type === "text",
-                )
-                .map((part) => (part as { text?: unknown }).text)
-                .filter((text): text is string => typeof text === "string")
-                .join("\n")
-            : "";
+          : content &&
+              typeof content === "object" &&
+              (content as { type?: unknown }).type === "text"
+            ? String((content as { text?: unknown }).text ?? "")
+            : Array.isArray(content)
+              ? content
+                  .filter(
+                    (part) =>
+                      part &&
+                      typeof part === "object" &&
+                      (part as { type?: unknown }).type === "text",
+                  )
+                  .map((part) => String((part as { text?: unknown }).text ?? ""))
+                  .join("\n")
+              : "";
       if (!message.trim() || !invocation.conversation_id) {
         error(id, -32602, "ui/message requires a conversation and text content");
         return;
@@ -344,28 +508,85 @@
       return;
     }
     if (method === "ui/update-model-context") {
-      _modelContextUpdate = params.content;
-      response(id, {});
+      _modelContextUpdate = params;
+      try {
+        await desktopOpenAgent.invokeProduct("update_mcp_app_model_context", {
+          conversation_id: invocation.conversation_id ?? "",
+          content: params.content,
+          structured_content: params.structuredContent,
+        });
+        response(id, {});
+      } catch (cause) {
+        error(id, -32000, String(cause));
+      }
       return;
     }
     if (method === "ui/set-open-in-app-url") {
-      error(id, -32601, "setOpenInAppUrl is not supported by this host");
+      const href = typeof params.href === "string" ? params.href : "";
+      if (href) {
+        try {
+          const parsed = new URL(href);
+          if (!["http:", "https:"].includes(parsed.protocol))
+            throw new Error("only http(s) links are allowed");
+          openInAppUrl = parsed.toString();
+        } catch (cause) {
+          error(id, -32602, String(cause));
+          return;
+        }
+      }
+      response(id, {});
       return;
     }
     if (method === "ui/request-modal" || method === "ui/request-close") {
       if (method === "ui/request-close") {
         modal = null;
+        closed = true;
         response(id, {});
         return;
       }
-      const content = typeof params.content === "string" ? params.content : "";
-      if (!content) {
-        error(id, -32602, "ui/request-modal requires string content");
+      const template = typeof params.template === "string" ? params.template : "";
+      let content =
+        typeof params.content === "string"
+          ? params.content
+          : JSON.stringify(params.params ?? params);
+      let html = false;
+      if (template) {
+        try {
+          const resource = (await desktopOpenAgent.invokeProduct("read_mcp_resource", {
+            server_id: invocation.descriptor.server_id,
+            uri: template,
+          })) as {
+            contents?: Array<{
+              text?: unknown;
+              blob?: unknown;
+              mimeType?: unknown;
+              mime_type?: unknown;
+            }>;
+          };
+          const item = resource.contents?.[0];
+          if (typeof item?.text === "string") {
+            content = item.text;
+            html = true;
+          } else if (typeof item?.blob === "string") {
+            const binary = atob(item.blob);
+            content = new TextDecoder().decode(
+              Uint8Array.from(binary, (value) => value.charCodeAt(0)),
+            );
+            html = true;
+          }
+        } catch (cause) {
+          error(id, -32000, String(cause));
+          return;
+        }
+      }
+      if (!content && !template) {
+        error(id, -32602, "ui/request-modal requires content or template");
         return;
       }
       const options = (params.options ?? {}) as { title?: unknown };
       modal = {
         content,
+        html,
         title: typeof options.title === "string" ? options.title : undefined,
       };
       response(id, {});
@@ -373,16 +594,70 @@
     }
     if (method === "ui/select-files") {
       try {
-        const options = (params.options ?? {}) as { multiple?: unknown };
         const selected = await openDialog({
-          multiple: options.multiple === true,
+          multiple: true,
           directory: false,
           title: "Select files",
         });
-        response(id, { files: selected ? (Array.isArray(selected) ? selected : [selected]) : [] });
+        const paths = selected ? (Array.isArray(selected) ? selected : [selected]) : [];
+        const files = [];
+        for (const path of paths) {
+          files.push(await desktopOpenAgent.invokeProduct("mcp_app_import_file", { path }));
+        }
+        response(id, files);
       } catch (cause) {
         error(id, -32000, String(cause));
       }
+      return;
+    }
+    if (method === "ui/upload-file") {
+      try {
+        const file = await desktopOpenAgent.invokeProduct("mcp_app_upload_file", {
+          name: typeof params.name === "string" ? params.name : "attachment",
+          mime_type:
+            typeof params.mimeType === "string" ? params.mimeType : "application/octet-stream",
+          content_base64: typeof params.contentBase64 === "string" ? params.contentBase64 : "",
+        });
+        response(id, { fileId: file.fileId });
+      } catch (cause) {
+        error(id, -32000, String(cause));
+      }
+      return;
+    }
+    if (method === "ui/get-file-download-url") {
+      try {
+        const fileId = typeof params.fileId === "string" ? params.fileId : "";
+        const result = await desktopOpenAgent.invokeProduct("mcp_app_get_file_download_url", {
+          file_id: fileId,
+        });
+        response(id, { downloadUrl: result.downloadUrl });
+      } catch (cause) {
+        error(id, -32000, String(cause));
+      }
+      return;
+    }
+    if (method === "ui/set-widget-state") {
+      try {
+        widgetState = params.state;
+        await desktopOpenAgent.invokeProduct("set_mcp_app_state", {
+          conversation_id: invocation.conversation_id ?? null,
+          server_id: invocation.descriptor.server_id,
+          resource_uri: invocation.descriptor.resource_uri,
+          widget_state: params.state,
+        });
+        response(id, {});
+      } catch (cause) {
+        error(id, -32000, String(cause));
+      }
+      return;
+    }
+    if (method === "ui/request-checkout") {
+      pendingCheckout = { id, session: params };
+      modal = {
+        content: JSON.stringify(params, null, 2),
+        title: "Checkout",
+        checkout: pendingCheckout,
+      };
       return;
     }
     if (method === "ui/resource-teardown") {
@@ -463,6 +738,7 @@
 </script>
 
 <section
+  class:closed
   class:fullscreen={displayMode === "fullscreen"}
   class:pip={displayMode === "pip"}
   class="mcp-app-frame"
@@ -495,7 +771,39 @@
           >{$t("close")}</button
         >
       </div>
-      <pre>{modal.content}</pre>
+      {#if modal.html}
+        <iframe
+          title={modal.title ?? "MCP App modal"}
+          srcdoc={modal.content}
+          sandbox="allow-scripts"
+        ></iframe>
+      {:else}
+        <pre>{modal.content}</pre>
+      {/if}
+      {#if modal.checkout}
+        <div class="mcp-app-modal-actions">
+          <button
+            type="button"
+            onclick={() => {
+              if (pendingCheckout)
+                response(pendingCheckout.id, {
+                  status: "confirmed",
+                  session: pendingCheckout.session,
+                });
+              pendingCheckout = null;
+              modal = null;
+            }}>Confirm</button
+          >
+          <button
+            type="button"
+            onclick={() => {
+              if (pendingCheckout) error(pendingCheckout.id, -32000, "Checkout cancelled");
+              pendingCheckout = null;
+              modal = null;
+            }}>Cancel</button
+          >
+        </div>
+      {/if}
     </div>
   </div>
 {/if}
@@ -509,6 +817,9 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     background: var(--surface);
+  }
+  .mcp-app-frame.closed {
+    display: none;
   }
   .mcp-app-frame.fullscreen {
     position: fixed;
@@ -572,5 +883,16 @@
     padding: 16px;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+  }
+  .mcp-app-modal iframe {
+    width: 100%;
+    min-height: 240px;
+    border: 0;
+  }
+  .mcp-app-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
   }
 </style>
