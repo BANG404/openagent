@@ -277,7 +277,7 @@
           label={$t("pluginRefresh")}
           icon="refresh"
           tone="quiet"
-          onclick={() => view.refreshAgentPlugins()}
+          onclick={() => view.reloadAgentPlugins()}
           disabled={view.agentPluginsLoading || view.agentPluginUpdatesLoading}
         />
       </div>

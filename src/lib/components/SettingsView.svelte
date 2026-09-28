@@ -513,6 +513,10 @@
       .then(async () => {
         try {
           const saved = normalizeConfigShape(await onSave(snapshot, baseConfig));
+          const pluginEnablementChanged =
+            JSON.stringify(saved.agent_plugins_enabled ?? {}) !==
+              JSON.stringify(baseConfig.agent_plugins_enabled ?? {}) ||
+            (saved.chat_groups_enabled ?? true) !== (baseConfig.chat_groups_enabled ?? true);
           const edited = snapshotDraftConfig();
           const rebased = normalizeConfigShape(
             rebaseDraftValue(snapshot, saved, edited) as AppConfig,
@@ -523,6 +527,10 @@
           for (const server of edited.mcp.servers) pendingMcpServerIds.delete(server.id);
           ensureSelectedProvider();
           ensureSelectedMcpServer();
+          // The plugin manager lists each sidebar view through the installed
+          // plugin summary, so an enablement save must re-read it; otherwise the
+          // row keeps a stale lifecycle until the settings surface remounts.
+          if (pluginEnablementChanged) void refreshAgentPlugins();
         } catch (error) {
           reportFrontendDiagnostic("settings_save_failed", "SettingsView", error);
           await tick();
@@ -1731,6 +1739,16 @@
     }
   }
 
+  /**
+   * Re-read the installed plugins for an explicit user refresh and announce it,
+   * so the right sidebar rebuilds each mounted panel's package identity instead
+   * of keeping the document it read before the plugin directory changed.
+   */
+  async function reloadAgentPlugins(): Promise<void> {
+    await refreshAgentPlugins();
+    await emit("agent-plugins-changed").catch(() => {});
+  }
+
   async function checkAgentPluginUpdates(): Promise<void> {
     if (!isTauri()) return;
     agentPluginUpdatesLoading = true;
@@ -1998,6 +2016,9 @@
     },
     get refreshAgentPlugins() {
       return refreshAgentPlugins;
+    },
+    get reloadAgentPlugins() {
+      return reloadAgentPlugins;
     },
     get beginAutomationHook() {
       return beginAutomationHook;

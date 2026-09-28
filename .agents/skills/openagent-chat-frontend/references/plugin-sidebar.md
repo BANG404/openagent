@@ -31,15 +31,19 @@ The plugin manager in Settings lists each declared view with the same lifecycle
 state and offers "open in sidebar", which selects the panel and expands the
 sidebar. A view the host cannot mount stays listed but disabled with its reason
 instead of hiding the declaration.
+Because the manager reads its own installed-plugin summary, a settings save that
+changed plugin enablement re-reads it, so toggling a plugin updates every listed
+row without remounting the settings surface.
 
 ## Live panel documents
 
 The shell derives one `pluginSidebarRevision` from the installed package
 identities of the visible panels and passes it to every mounted plugin panel. A
 revision change re-reads the declared entry through `read_agent_plugin_asset`,
-so an install, update, or enable/disable replaces the mounted document instead
-of leaving the panel on the snapshot it read first. Treat a panel as a live
-view of the installed package rather than a static HTML page.
+so an install, update, remove, manual refresh, or enable/disable replaces the
+mounted document instead of leaving the panel on the snapshot it read first.
+Treat a panel as a live view of the installed package rather than a static HTML
+page.
 
 A panel document is still a single declared entry: package sub-resources are
 outside the current asset boundary, so a plugin page must inline its own styles

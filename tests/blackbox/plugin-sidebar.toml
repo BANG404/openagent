@@ -1,7 +1,49 @@
 [scenario]
 name = "agent plugin sidebar isolation"
 fail_fast = true
-global_timeout_ms = 30000
+global_timeout_ms = 45000
+
+[[step]]
+name = "demo plugin is enabled before the sidebar assertions"
+action = "eval"
+script = '''(async () => {
+  const trigger = document.querySelector("#application-integrations-menu");
+  if (!(trigger instanceof HTMLElement)) throw new Error("integrations menu trigger is missing");
+  trigger.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const item = [...document.querySelectorAll("[role=menuitem]")].find((candidate) =>
+    /Plugins|插件/.test(candidate.textContent ?? "")
+  );
+  if (!item) throw new Error("plugins menu item is missing");
+  item.click();
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const control = document.querySelector(
+    '[role=dialog] [role=switch][aria-label="openagent-demo-plugin"]'
+  );
+  if (!(control instanceof HTMLElement)) throw new Error("demo plugin switch is missing");
+  if (control.getAttribute("aria-checked") !== "true") control.click();
+  const entryPresent = () =>
+    [...document.querySelectorAll("button")].some(
+      (candidate) => candidate.textContent?.trim() === "Demo Plugin"
+    );
+  const deadline = Date.now() + 7000;
+  while (Date.now() < deadline) {
+    if (control.getAttribute("aria-checked") === "true" && entryPresent()) return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the enabled demo plugin never produced a sidebar entry");
+})()'''
+
+[[step]]
+name = "settings surface closes before the sidebar assertions"
+action = "eval"
+script = '''(() => {
+  const close = document.querySelector(
+    '[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]'
+  );
+  if (close instanceof HTMLElement) close.click();
+  return true;
+})()'''
 
 [[step]]
 name = "right sidebar is expanded"
@@ -48,5 +90,120 @@ script = '''(() => {
   const main = document.querySelector(".conversation-stage");
   if (!(main instanceof HTMLElement)) throw new Error("main conversation surface is missing");
   if (!document.querySelector("#checkpoint-flow-panel iframe")) throw new Error("plugin panel disappeared");
+  return true;
+})()'''
+
+[[step]]
+name = "plugin manager lists the declared view as available"
+action = "eval"
+script = '''(async () => {
+  const trigger = document.querySelector("#application-integrations-menu");
+  if (!(trigger instanceof HTMLElement)) throw new Error("integrations menu trigger is missing");
+  trigger.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const item = [...document.querySelectorAll("[role=menuitem]")].find((candidate) =>
+    /Plugins|插件/.test(candidate.textContent ?? "")
+  );
+  if (!item) throw new Error("plugins menu item is missing");
+  item.click();
+  const deadline = Date.now() + 7000;
+  while (Date.now() < deadline) {
+    const row = document.querySelector(".plugin-sidebar-views .plugin-sidebar-view-row");
+    const button = row && row.querySelector("button");
+    if (row && !row.querySelector(".detail-hint") && button instanceof HTMLButtonElement) {
+      if (button.disabled) throw new Error("open-in-sidebar is disabled for an enabled plugin");
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the enabled plugin never listed an available sidebar view");
+})()'''
+
+[[step]]
+name = "disabling the plugin gates the manager row without a remount"
+action = "eval"
+script = '''(async () => {
+  const control = document.querySelector(
+    '[role=dialog] [role=switch][aria-label="openagent-demo-plugin"]'
+  );
+  if (!(control instanceof HTMLElement)) throw new Error("demo plugin switch is missing");
+  if (control.getAttribute("aria-checked") !== "true") {
+    throw new Error("the demo plugin was not enabled before the lifecycle check");
+  }
+  control.click();
+  const deadline = Date.now() + 7000;
+  while (Date.now() < deadline) {
+    const row = document.querySelector(".plugin-sidebar-views .plugin-sidebar-view-row");
+    const hint = row && row.querySelector(".detail-hint");
+    const button = row && row.querySelector("button");
+    if (
+      control.getAttribute("aria-checked") === "false" &&
+      hint &&
+      button instanceof HTMLButtonElement &&
+      button.disabled
+    ) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the listed view kept its lifecycle after the plugin was disabled");
+})()'''
+
+[[step]]
+name = "a disabled plugin leaves no sidebar entry behind"
+action = "eval"
+script = '''(async () => {
+  const entryPresent = () =>
+    [...document.querySelectorAll("button")].some(
+      (candidate) => candidate.textContent?.trim() === "Demo Plugin"
+    );
+  const deadline = Date.now() + 7000;
+  while (Date.now() < deadline) {
+    if (!entryPresent() && !document.querySelector("#checkpoint-flow-panel iframe")) return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("a disabled plugin kept a sidebar entry or mounted panel");
+})()'''
+
+[[step]]
+name = "re-enabling the plugin restores the sidebar view"
+action = "eval"
+script = '''(async () => {
+  const control = document.querySelector(
+    '[role=dialog] [role=switch][aria-label="openagent-demo-plugin"]'
+  );
+  if (!(control instanceof HTMLElement)) throw new Error("demo plugin switch is missing");
+  control.click();
+  const entryPresent = () =>
+    [...document.querySelectorAll("button")].some(
+      (candidate) => candidate.textContent?.trim() === "Demo Plugin"
+    );
+  const deadline = Date.now() + 7000;
+  while (Date.now() < deadline) {
+    const row = document.querySelector(".plugin-sidebar-views .plugin-sidebar-view-row");
+    const button = row && row.querySelector("button");
+    if (
+      control.getAttribute("aria-checked") === "true" &&
+      row &&
+      !row.querySelector(".detail-hint") &&
+      button instanceof HTMLButtonElement &&
+      !button.disabled &&
+      entryPresent()
+    ) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("re-enabling the plugin did not restore the listed view");
+})()'''
+
+[[step]]
+name = "settings close leaves the demo plugin enabled"
+action = "eval"
+script = '''(() => {
+  const close = document.querySelector(
+    '[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]'
+  );
+  if (close instanceof HTMLElement) close.click();
   return true;
 })()'''
