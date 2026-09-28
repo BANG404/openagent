@@ -1320,6 +1320,34 @@
   line-height: 1.45;
 }
 
+.plugin-sidebar-views {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.plugin-sidebar-view-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0 8px 12px;
+  border-top: 1px solid var(--mica-divider);
+}
+
+.plugin-sidebar-view-row:last-child {
+  border-bottom: 1px solid var(--mica-divider);
+}
+
+.plugin-sidebar-view-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .plugin-tools-empty {
   display: flex;
   align-items: center;

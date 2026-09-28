@@ -46,6 +46,8 @@
     chatGroupWorkspace?: string;
     onChatGroupsAvailabilityChange?: (available: boolean) => void;
     pluginSidebarViews?: AgentPluginSidebarViewSummary[];
+    /** Package identity of the visible plugins; a change reloads each panel. */
+    pluginSidebarRevision?: string;
     pluginSidebarContext?: {
       workspacePath?: string | null;
       conversationId?: string | null;
@@ -79,6 +81,7 @@
     chatGroupWorkspace = "",
     onChatGroupsAvailabilityChange = () => {},
     pluginSidebarViews = [],
+    pluginSidebarRevision = "",
     pluginSidebarContext = {},
   }: Props = $props();
   const panelSnapshots = new RightSidebarPanelStateStore();
@@ -486,7 +489,12 @@
         hidden={collapsed || activePanel !== view.id}
         aria-hidden={collapsed || activePanel !== view.id}
       >
-        <PluginSidebarPanel {view} scopeKey={rightSidebarScopeKey} context={pluginSidebarContext} />
+        <PluginSidebarPanel
+          {view}
+          {pluginSidebarRevision}
+          scopeKey={rightSidebarScopeKey}
+          context={pluginSidebarContext}
+        />
       </div>
     {/each}
     {#if !collapsed && activePanel !== "status" && activePanel !== "files" && activePanel !== "group" && activePanel !== "terminal" && !isPluginSidebarPanel(activePanel)}

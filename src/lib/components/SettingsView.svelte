@@ -14,6 +14,7 @@
   import { Tabs } from "bits-ui";
   import type {
     AgentPluginSummary,
+    AgentPluginSidebarViewSummary,
     AgentPluginUpdateSummary,
     AgentMemoryEntry,
     AgentRole,
@@ -60,6 +61,12 @@
   } from "$lib/settingsConfig";
   import { t, tr, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import type { SettingsNav } from "$lib/settingsWindows";
+  import {
+    pluginSidebarLifecycle,
+    type PluginSidebarContext,
+    type PluginSidebarLifecycle,
+  } from "$lib/pluginSidebar";
+  import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { DEFAULT_APP_CONFIG } from "$lib/settingsDefaults";
 
   type StandardChannelKind = "feishu" | "telegram" | "qq" | "discord" | "slack";
@@ -139,6 +146,11 @@
     onSave,
     onOpenConversation,
     onThemePreview,
+    onOpenPluginSidebarView,
+    pluginSidebarContext = {
+      hasWorkspace: workspacePath.trim().length > 0,
+      hasConversation: false,
+    },
   }: {
     config: AppConfig | null;
     workspacePath: string;
@@ -147,6 +159,9 @@
     onSave: (config: AppConfig, baseConfig?: AppConfig) => Promise<AppConfig>;
     onOpenConversation: (conversationId: string) => Promise<void>;
     onThemePreview?: (theme: string) => void;
+    /** Absent in the standalone settings window, which owns no right sidebar. */
+    onOpenPluginSidebarView?: (panel: RightSidebarPanel) => void;
+    pluginSidebarContext?: PluginSidebarContext;
   } = $props();
 
   const visibleSections = $derived(
@@ -399,6 +414,18 @@
       ...(draftConfig.agent_plugins_enabled ?? {}),
       [pluginId]: enabled,
     };
+  }
+
+  /**
+   * Resolves one declared sidebar view against the host context the main window
+   * reported. The plugin manager shows the same lifecycle the right sidebar
+   * applies, so an entry it disables is exactly a panel the sidebar hides.
+   */
+  function pluginSidebarLifecycleFor(
+    plugin: AgentPluginSummary,
+    view: AgentPluginSidebarViewSummary,
+  ): PluginSidebarLifecycle {
+    return pluginSidebarLifecycle(view, plugin, pluginSidebarContext);
   }
 
   let cuaDriver = $derived(findCuaDriverServer() ?? createCuaDriverServer(cuaDriverEndpoint()));
@@ -2244,6 +2271,15 @@
     },
     get onOpenConversation() {
       return onOpenConversation;
+    },
+    get onOpenPluginSidebarView() {
+      return onOpenPluginSidebarView;
+    },
+    get pluginSidebarContext() {
+      return pluginSidebarContext;
+    },
+    get pluginSidebarLifecycleFor() {
+      return pluginSidebarLifecycleFor;
     },
     get onSave() {
       return onSave;

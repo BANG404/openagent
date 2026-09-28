@@ -418,7 +418,8 @@
                     >{plugin.skills.length +
                       plugin.mcp_servers.length +
                       plugin.commands.length +
-                      plugin.message_policies.length}</span
+                      plugin.message_policies.length +
+                      plugin.sidebar_views.length}</span
                   >
                 </div>
               </div>
@@ -432,12 +433,45 @@
                 {#if plugin.message_policies.length > 0}
                   · {plugin.message_policies.length} {$t("pluginMessagePolicies")}
                 {/if}
+                {#if plugin.sidebar_views.length > 0}
+                  · {plugin.sidebar_views.length} {$t("pluginSidebarViews")}
+                {/if}
               </span>
               {#each plugin.warnings as warning (warning)}
                 <p class="plugin-warning">{warning}</p>
               {/each}
               {#if plugin.error}
                 <p class="plugin-warning">{plugin.error}</p>
+              {/if}
+              {#if plugin.sidebar_views.length > 0}
+                <div class="plugin-sidebar-views">
+                  <span class="label-text">{$t("pluginSidebarViews")}</span>
+                  {#each plugin.sidebar_views as sidebarView (sidebarView.id)}
+                    {@const lifecycle = view.pluginSidebarLifecycleFor(plugin, sidebarView)}
+                    <div class="plugin-sidebar-view-row">
+                      <span class="plugin-sidebar-view-copy">
+                        <span class="label-text">{sidebarView.title}</span>
+                        {#if lifecycle !== "available"}
+                          <span class="detail-hint">
+                            {lifecycle === "disabled"
+                              ? $t("pluginSidebarDisabled")
+                              : lifecycle === "invalid"
+                                ? $t("pluginSidebarInvalid")
+                                : $t("pluginSidebarOutOfScope")}
+                          </span>
+                        {/if}
+                      </span>
+                      {#if view.onOpenPluginSidebarView}
+                        <SettingsActionButton
+                          label={$t("pluginSidebarOpen")}
+                          tone="quiet"
+                          disabled={lifecycle !== "available"}
+                          onclick={() => view.onOpenPluginSidebarView(sidebarView.id)}
+                        />
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
               {/if}
               {@const update = (view.agentPluginUpdates ?? []).find(
                 (item: AgentPluginUpdateSummary) => item.id === plugin.id,

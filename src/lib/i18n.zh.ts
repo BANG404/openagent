@@ -306,6 +306,11 @@ export const zh = {
   pluginMcpServers: "MCP 服务",
   pluginCommands: "命令",
   pluginMessagePolicies: "消息策略",
+  pluginSidebarViews: "侧边栏视图",
+  pluginSidebarOpen: "在右侧栏打开",
+  pluginSidebarDisabled: "启用插件后可打开此视图",
+  pluginSidebarInvalid: "插件加载失败",
+  pluginSidebarOutOfScope: "需要一个打开的工作区或会话",
   pluginDesktopControlDescription:
     "将 Cua Driver 作为 MCP 服务接入，让 Agent 可以操作桌面应用与浏览器。",
   pluginDesktopControl: "桌面控制",

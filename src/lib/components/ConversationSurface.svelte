@@ -129,6 +129,7 @@
     composerDraft,
     focusRequest,
     pluginSidebarViews = [],
+    pluginSidebarRevision = "",
   }: {
     view: ConversationSurfaceView;
     actions: ConversationSurfaceActions;
@@ -151,6 +152,8 @@
     composerDraft: ComposerDraft;
     focusRequest: number;
     pluginSidebarViews?: AgentPluginSidebarViewSummary[];
+    /** Changes when an installed plugin package changes, so panels re-read. */
+    pluginSidebarRevision?: string;
   } = $props();
 
   let localComposerFocusRequest = $state(0);
@@ -452,6 +455,7 @@
     {chatGroupWorkspace}
     {onChatGroupsAvailabilityChange}
     {pluginSidebarViews}
+    {pluginSidebarRevision}
     {pluginSidebarContext}
   />
 </div>

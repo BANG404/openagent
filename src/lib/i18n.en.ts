@@ -310,6 +310,11 @@ const en: Record<TranslationKeys, string> = {
   pluginMcpServers: "MCP servers",
   pluginCommands: "commands",
   pluginMessagePolicies: "message policies",
+  pluginSidebarViews: "sidebar views",
+  pluginSidebarOpen: "Open in sidebar",
+  pluginSidebarDisabled: "Enable the plugin to open this view",
+  pluginSidebarInvalid: "The plugin could not be loaded",
+  pluginSidebarOutOfScope: "Requires an open workspace or conversation",
   pluginDesktopControlDescription:
     "Connect Cua Driver as an MCP service so the Agent can operate desktop apps and browsers.",
   pluginDesktopControl: "Desktop control",

@@ -112,6 +112,12 @@
   import { retainUndurableFileChanges } from "$lib/fileChangeReconciliation";
   import { chatGroupScope } from "$lib/chatGroupScope";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
+  import {
+    availablePluginSidebarViews,
+    firstAvailablePluginSidebarPanel,
+    pluginSidebarEntries,
+    pluginSidebarRevision as pluginSidebarRevisionOf,
+  } from "$lib/pluginSidebar";
   import { loadMermaid, renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
     ROOT_KEY,
@@ -765,19 +771,18 @@
   // the durable chat-group tool result is projected into `messages`. Once the
   // group scope is known, select the group view when it is the only available
   // detail surface so recovery does not leave an empty status panel visible.
+  // A plugin panel is the last resort of the same recovery: when the scope has
+  // no built-in detail surface, the first lifecycle-available panel replaces
+  // the empty status surface instead of leaving the sidebar open on nothing.
   $effect(() => {
-    const onlyChatGroupsAvailable =
-      chatGroupToolUsed &&
-      !currentCheckpointFlow &&
-      currentFileChanges.length === 0 &&
-      terminalSessionCount === 0;
-    if (
-      onlyChatGroupsAvailable &&
-      !rightSidebarCollapseRequested &&
-      rightSidebarPanel === "status"
-    ) {
+    if (rightSidebarCollapseRequested || rightSidebarPanel !== "status") return;
+    if (currentCheckpointFlow || currentFileChanges.length > 0 || terminalSessionCount > 0) return;
+    if (chatGroupToolUsed) {
       rightSidebarPanel = "group";
+      return;
     }
+    const pluginPanel = firstAvailablePluginSidebarPanel(pluginSidebarRegistry);
+    if (pluginPanel) rightSidebarPanel = pluginPanel;
   });
   $effect(() => {
     const key = checkpointFlowPanelKey(
@@ -849,16 +854,16 @@
     }
     return Array.from(byPath.values());
   });
-  let pluginSidebarViews = $derived(
-    agentPlugins
-      .filter((plugin) => plugin.enabled)
-      .flatMap((plugin) => plugin.sidebar_views)
-      .filter((view) => {
-        if (view.scope === "global") return true;
-        if (view.scope === "workspace") return workspacePath.trim().length > 0;
-        return activeConvId !== null;
-      }),
-  );
+  // Plugin sidebar views resolve through one lifecycle registry instead of an
+  // inline filter, so a disabled, broken, or out-of-scope view is never mounted
+  // and the management surface reports the same reason the sidebar hides.
+  let pluginSidebarContext = $derived({
+    hasWorkspace: workspacePath.trim().length > 0,
+    hasConversation: activeConvId !== null,
+  });
+  let pluginSidebarRegistry = $derived(pluginSidebarEntries(agentPlugins, pluginSidebarContext));
+  let pluginSidebarViews = $derived(availablePluginSidebarViews(pluginSidebarRegistry));
+  let pluginSidebarRevision = $derived(pluginSidebarRevisionOf(pluginSidebarRegistry));
   let rightSidebarAvailable = $derived(
     conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length) ||
       terminalSessionCount > 0 ||
@@ -5172,6 +5177,19 @@
     if (config) setLocale((config.language ?? "zh") as Locale);
   }
 
+  /**
+   * Navigates the right sidebar to a plugin panel from a management surface.
+   * The lifecycle registry stays authoritative: a panel the sidebar cannot
+   * mount for the active scope is ignored instead of selecting a view the
+   * sidebar would immediately navigate away from.
+   */
+  function openPluginSidebarView(panel: RightSidebarPanel): void {
+    if (!pluginSidebarViews.some((view) => view.id === panel)) return;
+    closeAuxiliarySurfaces();
+    rightSidebarCollapseRequested = false;
+    rightSidebarPanel = panel;
+  }
+
   async function openHookConversation(conversationId: string) {
     navigationCaptureDepth += 1;
     try {
@@ -5708,6 +5726,7 @@
           {rightSidebarConversationId}
           {rightSidebarBranchId}
           {pluginSidebarViews}
+          {pluginSidebarRevision}
           chatGroupsEnabled={config?.chat_groups_enabled ?? false}
           chatGroupsAvailable={(config?.chat_groups_enabled ?? false) && chatGroupToolUsed}
           {chatGroupIds}
@@ -5740,6 +5759,8 @@
               sections={settingsSurfaceSections}
               onSave={saveSettings}
               onOpenConversation={openHookConversation}
+              onOpenPluginSidebarView={openPluginSidebarView}
+              {pluginSidebarContext}
               onThemePreview={applyTheme}
             />
           {:else}

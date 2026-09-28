@@ -30,6 +30,7 @@
     chatGroupWorkspace = "",
     onChatGroupsAvailabilityChange = () => {},
     pluginSidebarViews = [],
+    pluginSidebarRevision = "",
     pluginSidebarContext = {},
   }: {
     flow: CheckpointFlow | null;
@@ -49,6 +50,7 @@
     chatGroupWorkspace?: string;
     onChatGroupsAvailabilityChange?: (available: boolean) => void;
     pluginSidebarViews?: AgentPluginSidebarViewSummary[];
+    pluginSidebarRevision?: string;
     pluginSidebarContext?: {
       workspacePath?: string | null;
       conversationId?: string | null;
@@ -161,6 +163,7 @@
   {chatGroupWorkspace}
   {onChatGroupsAvailabilityChange}
   {pluginSidebarViews}
+  {pluginSidebarRevision}
   {pluginSidebarContext}
   onResizeStart={startResize}
 />

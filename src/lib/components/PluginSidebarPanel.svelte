@@ -5,12 +5,15 @@
 
   let {
     view,
+    pluginSidebarRevision = "",
     scopeKey,
     locale = "en",
     theme = "system",
     context = {},
   }: {
     view: AgentPluginSidebarViewSummary;
+    /** Installed package identity; a change re-reads the panel document. */
+    pluginSidebarRevision?: string;
     scopeKey: string;
     locale?: string;
     theme?: string;
@@ -64,8 +67,9 @@
         plugin_id: pluginId,
         entry: view.entry,
       });
-      const blob = new Blob([asset.content], { type: asset.mime });
-      src = URL.createObjectURL(blob);
+      const previous = src;
+      src = URL.createObjectURL(new Blob([asset.content], { type: asset.mime }));
+      if (previous) URL.revokeObjectURL(previous);
     } catch (cause) {
       error = String(cause);
     } finally {
@@ -73,9 +77,13 @@
     }
   }
 
+  // The plugin descriptor carries the installed package identity, so a plugin
+  // install, update, or enable/disable re-reads the document instead of leaving
+  // the panel on the snapshot it loaded first.
   $effect(() => {
     view.id;
     view.entry;
+    pluginSidebarRevision;
     void load();
   });
 
