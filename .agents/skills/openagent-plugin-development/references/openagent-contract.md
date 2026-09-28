@@ -27,6 +27,14 @@ through the plugin descriptor. Only the Runtime can persist a checkpoint or
 apply a policy, so a package cannot forge a builtin tag or bypass audience
 projection.
 
+`extensions.openagent.runtime` optionally binds a standard package to one
+trusted product capability: `chat-groups`, `goal`, `graph`, or `cua-driver`.
+The Runtime accepts only the matching builtin identity and never treats this
+field as a general permission grant. Builtin subscriptions use the package's
+GitHub `repository` as their update source; a verified release is staged as a
+package overlay while durable execution and permission checks remain in the
+matching Runtime capability.
+
 `enabled` is the lifecycle gate for portable components. Missing persisted
 entries default to `true` for compatibility; disabling a plugin removes its
 Skills, MCP servers, and Automation Hooks from new Runtime assemblies. Builtin
@@ -89,12 +97,12 @@ Skills continue to use immediate child directories under `skills/` with a
 conforming `SKILL.md`. MCP continues to use the portable `mcp.json` schema and
 the existing `PLUGIN_ROOT`/`PLUGIN_DATA` expansion and transport restrictions.
 The product registry exposes Cua Driver, Chat Groups, Goal Mode, and Graph Mode
-as trusted builtin plugin descriptors. The same registration supplies their
-capabilities, commands, tool ownership, message policies, and component ownership to the
-Runtime. Their implementation remains owned by the Runtime or desktop host, so
-they cannot be installed or uninstalled as portable packages. Cua Driver still
-uses its verified resource, daemon ownership, fixed endpoint, and reserved MCP
-lifecycle.
+as trusted plugin descriptors. Chat Groups, Goal Mode, and Graph Mode each have
+their own standard package repository and can receive a verified GitHub package
+overlay. The registration still supplies their capabilities, commands, tool
+ownership, message policies, and component ownership to the Runtime. Cua Driver
+continues to use its verified product resource, daemon ownership, fixed
+endpoint, and reserved MCP lifecycle rather than the plugin package updater.
 
 ### Automation
 

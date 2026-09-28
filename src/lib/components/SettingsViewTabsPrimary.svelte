@@ -476,8 +476,11 @@
               {@const update = (view.agentPluginUpdates ?? []).find(
                 (item: AgentPluginUpdateSummary) => item.id === plugin.id,
               )}
-              {#if (update?.update_available && update.latest_version) || !plugin.builtin}
+              {#if (update?.update_available && update.latest_version) || !plugin.builtin || plugin.repository}
                 <div class="plugin-accordion-footer">
+                  {#if plugin.repository}
+                    <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
+                  {/if}
                   {#if update?.update_available && update.latest_version}
                     <p class="plugin-update-hint">
                       {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
@@ -506,6 +509,34 @@
                   {/if}
                 </div>
               {/if}
+            </Accordion.Content>
+          {:else}
+            <Accordion.Content class="plugin-accordion-content">
+              {@const update = (view.agentPluginUpdates ?? []).find(
+                (item: AgentPluginUpdateSummary) => item.id === plugin.id,
+              )}
+              <div class="plugin-accordion-footer">
+                {#if plugin.repository}
+                  <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
+                {/if}
+                {#if update?.update_available && update.latest_version}
+                  <p class="plugin-update-hint">
+                    {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
+                    {#if update.release_url}
+                      <a href={update.release_url} target="_blank" rel="noreferrer">Release</a>
+                    {/if}
+                    {#if update.asset_url}
+                      <SettingsActionButton
+                        label={$t("pluginUpdate")}
+                        icon="download"
+                        tone="quiet"
+                        onclick={() => view.updateAgentPlugin(plugin.id)}
+                        disabled={view.agentPluginUpdating !== null}
+                      />
+                    {/if}
+                  </p>
+                {/if}
+              </div>
             </Accordion.Content>
           {/if}
         </Accordion.Item>

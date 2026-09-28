@@ -9,3 +9,5 @@ metadata:
 
 Read the package, OpenAgent contract, and third-party development references
 before plugin changes; keep trust and sandbox policy in the client.
+
+See `references/published-sources.md` for published package URLs.
