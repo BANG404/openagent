@@ -772,7 +772,7 @@ describe("buildTreeFromCheckpoints", () => {
   });
 
   test("hides goal continuation prompts while projecting checkpoint flow metadata", () => {
-    const record = (id, role, text, tags = []) => ({
+    const record = (id, role, text, tags = [], plugin = {}) => ({
       id,
       role,
       content: [{ type: "text", text }],
@@ -781,6 +781,7 @@ describe("buildTreeFromCheckpoints", () => {
       first_token_at: null,
       completed_at: null,
       tags,
+      ...plugin,
     });
     const tree = buildTreeFromCheckpoints([
       {
@@ -799,7 +800,12 @@ describe("buildTreeFromCheckpoints", () => {
           messages: [
             record("goal-command", "user", "/goal Ship the feature", ["goal_bootstrap"]),
             record("assistant", "assistant", "I am working on it."),
-            record("goal-control", "user", "Continue the incomplete goal.", ["goal_continuation"]),
+            // A durable flow prompt carries the namespaced plugin projection
+            // the Runtime materializes, not only the builtin enum tag.
+            record("goal-control", "user", "Continue the incomplete goal.", ["goal_continuation"], {
+              plugin_tags: ["plugin:goal:goal_continuation"],
+              plugin_user_visible: false,
+            }),
           ],
         },
       },

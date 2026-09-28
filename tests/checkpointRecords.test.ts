@@ -54,10 +54,14 @@ describe("checkpoint record projection", () => {
   test("marks the assistant turn following a chat-group wake prompt", () => {
     const [message] = checkpointRecordsToMessages(
       [
+        // The Runtime materializes the builtin audience as the namespaced
+        // plugin projection, and that projection is what hides the wake prompt.
         record({
           id: "wake-1",
           role: "user",
           tags: ["chat_group_mention"],
+          plugin_tags: ["plugin:chat-groups:chat_group_mention"],
+          plugin_user_visible: false,
           content: [{ type: "text", text: "[chat_group:group-1]" }],
         }),
         record({

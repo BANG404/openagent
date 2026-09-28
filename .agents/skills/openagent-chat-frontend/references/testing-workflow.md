@@ -39,7 +39,9 @@ different responsibilities.
 For stream changes, consider normal, duplicate, out-of-order, missing-id,
 conflicting-payload, late-after-cleanup, empty-value, cancellation, reload,
 and cross-conversation cases. Keep fixtures deterministic and isolate durable
-state, ports, browser sessions, and temporary artifacts.
+state, ports, browser sessions, and temporary artifacts. A checkpoint fixture
+that models a Runtime-emitted record carries the namespaced plugin projection
+(`plugin_tags` with `plugin_user_visible`), not only the builtin enum tag.
 
 ## Completion criteria
 

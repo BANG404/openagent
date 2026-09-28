@@ -123,10 +123,10 @@ describe("desktop command boundary", () => {
     const protocol = readFileSync("sdk/rust/openagent-protocol/src/lib.rs", "utf8");
     const settings = readFileSync("src/lib/components/SettingsViewTabsPrimary.svelte", "utf8");
 
-    expect(plugins).toContain('id: "chat-groups".to_string()');
-    expect(plugins).toContain('id: "goal".to_string()');
-    expect(plugins).toContain('id: "graph".to_string()');
-    expect(plugins).toContain('id: "cua-driver".to_string()');
+    expect(plugins).toContain('id: "chat-groups",');
+    expect(plugins).toContain('id: "goal",');
+    expect(plugins).toContain('id: "graph",');
+    expect(plugins).toContain('id: "cua-driver",');
     expect(plugins).toContain("pub message_policies: Vec<AgentPluginMessagePolicy>");
     expect(protocol).toContain("pub plugin_id: Option<String>");
     expect(protocol).toContain('"goal" | "graph" => Some(name.to_string())');
