@@ -2342,6 +2342,13 @@ async fn list_agent_plugins(
 }
 
 #[tauri::command]
+async fn list_agent_plugin_marketplaces(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+) -> Result<Vec<openagent_runtime::agent_plugins::AgentPluginMarketplaceSummary>, String> {
+    openagent_runtime::commands::list_agent_plugin_marketplaces(runtime.state()).await
+}
+
+#[tauri::command]
 async fn check_agent_plugin_updates(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<Vec<openagent_runtime::agent_plugins::AgentPluginUpdateSummary>, String> {
@@ -2362,6 +2369,20 @@ async fn install_agent_plugin(
     source: String,
 ) -> Result<openagent_runtime::agent_plugins::AgentPluginSummary, String> {
     openagent_runtime::commands::install_agent_plugin(runtime.state(), source).await
+}
+
+#[tauri::command]
+async fn install_marketplace_agent_plugin(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    marketplace_path: String,
+    plugin_name: String,
+) -> Result<openagent_runtime::agent_plugins::AgentPluginSummary, String> {
+    openagent_runtime::commands::install_marketplace_agent_plugin(
+        runtime.state(),
+        marketplace_path,
+        plugin_name,
+    )
+    .await
 }
 
 #[tauri::command]
@@ -5744,9 +5765,11 @@ fn run_with_mode(agent_server: bool) {
         get_system_locale,
         list_skills,
         list_agent_plugins,
+        list_agent_plugin_marketplaces,
         check_agent_plugin_updates,
         update_agent_plugin,
         install_agent_plugin,
+        install_marketplace_agent_plugin,
         uninstall_agent_plugin,
         read_agent_plugin_asset,
         get_skill_content,

@@ -752,6 +752,37 @@ export interface AgentPluginUpdateSummary {
   error: string | null;
 }
 
+export interface AgentPluginMarketplaceSource {
+  kind: string;
+  path: string | null;
+  url: string | null;
+  reference: string | null;
+  package: string | null;
+  version: string | null;
+  registry: string | null;
+}
+
+export interface AgentPluginMarketplaceEntry {
+  name: string;
+  display_name: string | null;
+  category: string | null;
+  installation: string;
+  authentication: string;
+  source: AgentPluginMarketplaceSource;
+  installed: boolean;
+  error: string | null;
+}
+
+export interface AgentPluginMarketplaceSummary {
+  name: string;
+  display_name: string | null;
+  path: string;
+  source: string;
+  plugins: AgentPluginMarketplaceEntry[];
+  warnings: string[];
+  error: string | null;
+}
+
 export interface McpSettings {
   servers: McpServerConfig[];
 }

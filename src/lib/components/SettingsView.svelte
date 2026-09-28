@@ -15,6 +15,7 @@
   import { Tabs } from "bits-ui";
   import type {
     AgentPluginSummary,
+    AgentPluginMarketplaceSummary,
     AgentPluginSidebarViewSummary,
     AgentPluginUpdateSummary,
     AgentMemoryEntry,
@@ -246,6 +247,7 @@
     new URLSearchParams(window.location.search).has("mcp-settings-preview");
   let mcpTestStatus = $state<Record<string, McpTestStatus>>({});
   let agentPlugins = $state<AgentPluginSummary[]>([]);
+  let agentPluginMarketplaces = $state<AgentPluginMarketplaceSummary[]>([]);
   let agentPluginUpdates = $state<AgentPluginUpdateSummary[]>([]);
   let agentPluginUpdatesLoading = $state(false);
   let agentPluginUpdating = $state<string | null>(null);
@@ -1770,12 +1772,18 @@
   async function refreshAgentPlugins() {
     if (!isTauri()) {
       agentPlugins = [];
+      agentPluginMarketplaces = [];
       return;
     }
     agentPluginsLoading = true;
     agentPluginStatus = "";
     try {
-      agentPlugins = await desktopOpenAgent.listAgentPlugins();
+      const [plugins, marketplaces] = await Promise.all([
+        desktopOpenAgent.listAgentPlugins(),
+        desktopOpenAgent.listAgentPluginMarketplaces(),
+      ]);
+      agentPlugins = plugins;
+      agentPluginMarketplaces = marketplaces;
       void checkAgentPluginUpdates();
     } catch (error: unknown) {
       agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(error)}`;
@@ -1858,6 +1866,22 @@
     agentPluginStatus = "";
     try {
       await desktopOpenAgent.installAgentPlugin(selected);
+      await refreshAgentPlugins();
+      await emit("agent-plugins-changed").catch(() => {});
+      agentPluginStatus = tr("pluginInstalled");
+    } catch (error: unknown) {
+      agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(error)}`;
+    } finally {
+      agentPluginsLoading = false;
+    }
+  }
+
+  async function installMarketplaceAgentPlugin(marketplacePath: string, pluginName: string) {
+    if (!isTauri() || agentPluginsLoading) return;
+    agentPluginsLoading = true;
+    agentPluginStatus = "";
+    try {
+      await desktopOpenAgent.installMarketplaceAgentPlugin(marketplacePath, pluginName);
       await refreshAgentPlugins();
       await emit("agent-plugins-changed").catch(() => {});
       agentPluginStatus = tr("pluginInstalled");
@@ -2013,6 +2037,9 @@
     get agentPlugins() {
       return agentPlugins;
     },
+    get agentPluginMarketplaces() {
+      return agentPluginMarketplaces;
+    },
     get agentPluginsLoading() {
       return agentPluginsLoading;
     },
@@ -2049,6 +2076,9 @@
     },
     get installAgentPlugin() {
       return installAgentPlugin;
+    },
+    get installMarketplaceAgentPlugin() {
+      return installMarketplaceAgentPlugin;
     },
     get updateAgentPlugin() {
       return updateAgentPlugin;

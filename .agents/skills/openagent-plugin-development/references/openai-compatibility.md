@@ -26,6 +26,9 @@ database; model context is consumed by the next provider request.
 This is product compatibility, not a claim that every OpenAI-hosted service is
 available locally. Checkout is represented by a host confirmation boundary and
 does not process payments. OAuth still depends on the provider's discovery and
-registration policy, and marketplace listing/discovery is not part of the local
-plugin loader. Hosts must also enforce their own CSP, permission, and trust
-policy when installing third-party packages.
+registration policy. Repository and personal Marketplace catalogs are
+discovered from the standard paths and local sources can be installed; remote
+URL, Git, and npm sources are listed with their policy metadata but require a
+source-specific verified installer before activation. Hosts must also enforce
+their own CSP, permission, and trust policy when installing third-party
+packages.

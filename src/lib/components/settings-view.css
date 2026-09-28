@@ -1187,6 +1187,38 @@
   font-variant-numeric: tabular-nums;
 }
 
+.plugin-marketplaces {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.plugin-marketplace-surface {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.plugin-marketplace-heading,
+.plugin-marketplace-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.plugin-marketplace-copy,
+.plugin-marketplace-heading > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.plugin-marketplace-row + .plugin-marketplace-row {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 10px;
+}
+
 .plugin-accordion {
   display: grid;
   gap: 10px;

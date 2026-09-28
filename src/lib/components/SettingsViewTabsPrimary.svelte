@@ -285,6 +285,66 @@
     {#if view.agentPluginStatus}
       <div class="provider-status success">{view.agentPluginStatus}</div>
     {/if}
+    {#if view.agentPluginMarketplaces.length > 0}
+      <section class="plugin-marketplaces" aria-label={$t("pluginMarketplaces")}>
+        <div class="plugin-tools-heading">
+          <div class="plugin-tools-title">
+            <span class="label-text">{$t("pluginMarketplaces")}</span>
+            <span class="plugin-tool-count">{view.agentPluginMarketplaces.length}</span>
+          </div>
+        </div>
+        {#each view.agentPluginMarketplaces as marketplace (marketplace.path)}
+          <div class="plugin-marketplace-surface plugin-marketplace">
+            <div class="plugin-marketplace-heading">
+              <div>
+                <span class="label-text">{marketplace.display_name ?? marketplace.name}</span>
+                <span class="detail-hint">{marketplace.path}</span>
+              </div>
+              <span class="detail-hint">{marketplace.source}</span>
+            </div>
+            {#if marketplace.error}
+              <p class="plugin-warning">{marketplace.error}</p>
+            {:else}
+              {#each marketplace.plugins as entry (entry.name)}
+                {@const canInstall =
+                  entry.source.kind === "local" &&
+                  !entry.installed &&
+                  !entry.error &&
+                  entry.installation !== "NOT_AVAILABLE"}
+                <div class="plugin-marketplace-row">
+                  <div class="plugin-marketplace-copy">
+                    <span class="label-text">{entry.display_name ?? entry.name}</span>
+                    <span class="detail-hint">
+                      {entry.category ?? $t("pluginMarketplaceUncategorized")} · {entry.source.kind} ·
+                      {entry.installation} · {entry.authentication}
+                    </span>
+                    {#if entry.error}
+                      <span class="plugin-warning">{entry.error}</span>
+                    {:else if entry.installed}
+                      <span class="detail-hint">{$t("pluginMarketplaceInstalled")}</span>
+                    {:else if entry.source.kind !== "local"}
+                      <span class="detail-hint"
+                        >{$t("pluginMarketplaceSourceInstallerRequired")}</span
+                      >
+                    {/if}
+                  </div>
+                  {#if canInstall}
+                    <SettingsActionButton
+                      label={$t("pluginMarketplaceInstall")}
+                      icon="download"
+                      tone="quiet"
+                      onclick={() =>
+                        view.installMarketplaceAgentPlugin(marketplace.path, entry.name)}
+                      disabled={view.agentPluginsLoading}
+                    />
+                  {/if}
+                </div>
+              {/each}
+            {/if}
+          </div>
+        {/each}
+      </section>
+    {/if}
     {#if view.agentPluginsLoading && view.agentPlugins.length === 0}
       <p class="detail-hint">{$t("pluginLoading")}</p>
     {:else if view.agentPlugins.length === 0}
