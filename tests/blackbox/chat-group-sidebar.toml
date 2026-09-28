@@ -1,0 +1,74 @@
+[scenario]
+name = "chat group sidebar scope"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "open the seeded chat-group conversation"
+action = "eval"
+script = '''(async () => {
+  const title = "Chat group sidebar diagnostic";
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    const item = [...document.querySelectorAll(".conv-item")].find((candidate) =>
+      (candidate.textContent ?? "").includes(title)
+    );
+    if (item instanceof HTMLElement) {
+      item.click();
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the seeded chat-group conversation is missing");
+})()'''
+
+[[step]]
+name = "the persisted chat-group tool round renders in the transcript"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    const stage = document.querySelector(".conversation-stage");
+    const text = stage ? stage.textContent ?? "" : "";
+    if (text.includes("Start chat group") || text.includes("\u542f\u52a8\u804a\u5929\u7ec4")) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the seeded chat-group tool call never rendered");
+})()'''
+
+[[step]]
+name = "the chat-group sidebar tab is available for the conversation scope"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    const tab = [...document.querySelectorAll("button")].find((candidate) =>
+      /^(Chat groups|\u804a\u5929\u7ec4)$/.test(candidate.textContent?.trim() ?? "")
+    );
+    if (tab instanceof HTMLElement) {
+      if (tab.getAttribute("aria-current") !== "page") tab.click();
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the chat-group sidebar tab is missing for a completed chat-group tool round");
+})()'''
+
+[[step]]
+name = "the sidebar shows the group recorded by the tool result"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    const panel = document.querySelector(".group-panel");
+    const title = panel?.querySelector(".group-heading strong")?.textContent?.trim() ?? "";
+    const messages = panel?.querySelector(".message-list")?.textContent ?? "";
+    if (title === "Diagnostic group" && messages.includes("Deterministic first message")) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the chat-group sidebar never rendered the persisted group");
+})()'''

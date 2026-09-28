@@ -1,3 +1,3 @@
 @echo off
 setlocal
-more
+echo {"message":"Demo plugin received a tool result","tag":"notice"}

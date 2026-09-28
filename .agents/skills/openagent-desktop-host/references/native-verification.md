@@ -86,3 +86,23 @@ window error log afterward:
 bun tauri dev --multi-instance plugin-blackbox
 bun run test:blackbox:plugins
 ```
+
+## Chat-group sidebar coverage
+
+The committed `tests/blackbox/chat-group-sidebar.toml` scenario verifies that a
+durable chat-group tool round makes the right-sidebar chat-group view available
+and renders the recorded group. It needs no provider run: the wrapper seeds the
+conversation first by calling the isolated debug instance's loopback dev API
+(`POST /v1/diagnostics/chat-group-conversation`), which registers a real group
+through the product tool and writes one renderable checkpoint. The scenario then
+drives the same conversation list and sidebar tabs a user uses:
+
+```bash
+bun tauri dev --multi-instance blackbox
+bun run test:blackbox:chat-groups
+```
+
+The app and the wrapper must share the isolated `OPENAGENT_HOME`/instance; the
+wrapper reads `dev-api.json` from that home and fails with a clear message when
+the instance is not running. Keep the seeded conversation out of release state;
+the diagnostic route exists only in the debug dev API.

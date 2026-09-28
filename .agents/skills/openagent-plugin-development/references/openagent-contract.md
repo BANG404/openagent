@@ -55,6 +55,18 @@ checkpoint record. `user_visible` messages are projected into the transcript;
 hook output keeps the existing model-context behavior and is not persisted as a
 plugin message.
 
+Tagged output is delivered only through that durable plugin-message channel. It
+never becomes a suffix on the tool result that triggered the hook, so a
+structured tool result such as `{"invoked":true,"groupIds":[...]}` stays exactly
+what the tool returned; consumers may therefore read a leading JSON value
+without tolerating appended plugin text. Untagged plain-text output keeps the
+existing inline model-context behavior at the hook site.
+
+The Runtime resolves each hook's package-relative `command` to a contained
+executable inside the plugin root and invokes that file. Plugin commands and
+hooks are not expected to be shell fragments, so a plugin must not rely on shell
+expansion, pipes, or quoting tricks in `command`.
+
 The loader accepts a valid manifest even when one optional component is bad.
 Manifest errors reject the package; a bad `skills/`, `mcp.json`, automation
 entry, or sidebar entry disables only that component and records a diagnostic.
