@@ -106,7 +106,12 @@ The command is exposed as `/plugin-id:summarize`. `argument` is either `none`
 or `required_text`; command IDs, labels, descriptions, package-relative paths,
 and timeouts (`1` through `300` seconds) are validated before registration.
 Unknown fields and invalid entries are skipped with a plugin diagnostic. A
-disabled or invalid plugin contributes no commands.
+disabled or invalid plugin contributes no commands. The catalog projection
+resolves ownership through the builtin registry and the portable descriptor
+owner instead of trusting a descriptor tag, and every host reads that
+projection rather than caching its own list. Frontends re-read the catalog when
+settings or the installed plugin set change, so disabling a plugin removes its
+commands from the composer palette without an application restart.
 
 When invoked, the Runtime starts the package-relative executable through the
 same process boundary used by Automation Hooks. It writes one UTF-8 JSON
@@ -171,6 +176,11 @@ Builtin tools are also owned by registry entries. The provider tool projection
 removes tools whose owning builtin is disabled, and every tool call repeats the
 same live check before mutating state. This keeps a stale Runtime tool server or
 an in-flight model request from bypassing a settings toggle.
+
+The command catalog shares that admission rule. `/goal` and `/graph` are gated
+by their registry entry rather than by a descriptor tag, and every consumer
+that rebuilds an advertised tool list mid-run applies the same plugin switch, so
+a disabled capability cannot reappear in a later turn of an in-flight request.
 
 ## Verification
 

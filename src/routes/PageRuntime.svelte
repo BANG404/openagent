@@ -2464,12 +2464,7 @@
     }
 
     if (tauriAvailable) {
-      void openAgent
-        .listAgentCommands()
-        .then((commandSpecs) => {
-          agentCommandSpecs = commandSpecs;
-        })
-        .catch(() => {});
+      void refreshAgentCommands();
       pollMemoryStatus();
       if (!launchContext?.workspace) {
         void initializeQuickChatShortcut(config?.quick_chat_shortcut).catch((error) => {
@@ -2751,6 +2746,7 @@
       registrations.push(listen<T>(event, handler));
     };
     register("agent-plugins-changed", () => {
+      void refreshAgentCommands();
       void openAgent
         .invokeProduct("list_agent_plugins", {})
         .then((plugins) => {
@@ -2838,6 +2834,7 @@
           const next = normalizeConfigShape(reloaded as AppConfig);
           const nextShortcut = normalizeQuickChatShortcut(next.quick_chat_shortcut);
           config = structuredClone(next);
+          void refreshAgentCommands();
           applyTheme(config.theme ?? "system");
           const suggestionLanguage = (config.language ?? "zh") as Locale;
           const suggestionWorkspace = workspacePath;
@@ -3848,6 +3845,19 @@
       if (config.recent_workspaces?.length) recentWorkspaces = config.recent_workspaces;
     } catch (e) {
       console.error("Failed to load settings:", e);
+    }
+  }
+
+  // The Runtime command catalog is config-derived: disabling an Agent Plugin
+  // removes the commands it owns. Re-read it whenever settings or the installed
+  // plugin set change, so the composer palette cannot offer a command the
+  // Runtime would reject and does not require an application restart.
+  async function refreshAgentCommands() {
+    if (!tauriAvailable) return;
+    try {
+      agentCommandSpecs = await openAgent.listAgentCommands();
+    } catch (error) {
+      console.warn("Failed to refresh agent commands:", error);
     }
   }
 
@@ -5226,6 +5236,7 @@
       }
       settingsRequests.invalidate();
       config = structuredClone(savedSnapshot);
+      void refreshAgentCommands();
       applyTheme(config.theme ?? "system");
       setLocale((config.language ?? "zh") as Locale);
       await emit("settings-changed").catch((error) => {
