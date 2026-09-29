@@ -46,6 +46,14 @@ a package, so a value that does not parse falls back to comparing numeric
 components left to right, padded with zeros. Publish increments that SemVer
 understands.
 
+`homepage` and `license` are manifest strings from the validated manifest, and
+the installed plugin card shows them as provenance beside the package's
+description. `author` and `keywords` are validated the same way and carried to
+clients without a surface of their own. None of them is an authority: the
+Runtime never reads them to decide what a package contains or may do, and
+`repository` is the only descriptive field that drives behavior, because it is
+the subscription the verified release updater follows.
+
 OpenAgent implements both portable component types:
 
 - Agent Skills are discovered only from immediate child directories under

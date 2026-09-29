@@ -716,6 +716,12 @@ export interface AgentPluginAppConnectorSummary {
   category: string | null;
 }
 
+export interface AgentPluginAuthorSummary {
+  name: string | null;
+  email: string | null;
+  url: string | null;
+}
+
 export interface AgentPluginSummary {
   id: string;
   name: string;
@@ -725,6 +731,11 @@ export interface AgentPluginSummary {
   description: string | null;
   path: string;
   repository: string | null;
+  /** Package provenance from the validated manifest, never an authority. */
+  homepage: string | null;
+  license: string | null;
+  author: AgentPluginAuthorSummary | null;
+  keywords: string[];
   runtime?: string | null;
   capabilities: string[];
   commands: string[];

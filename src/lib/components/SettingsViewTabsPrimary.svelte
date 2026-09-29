@@ -379,6 +379,11 @@
                 {#if plugin.runtime === desktopControlRuntime}
                   <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
                 {/if}
+                {#if plugin.license || plugin.homepage}
+                  <span class="detail-hint"
+                    >{[plugin.license, plugin.homepage].filter(Boolean).join(" · ")}</span
+                  >
+                {/if}
               </span>
               {#if plugin.runtime === desktopControlRuntime}
                 <svg
