@@ -834,44 +834,44 @@
             summary: "3 项待办，1 项完成。",
           }
         : {
-          kind: "graph",
-          objective: "并行完成 Goal / Graph 状态可视化",
-          status: "running",
-          iteration: 1,
-          nodes: [
-            { id: "checkpoint", task: "整理并核对市场数据", dependsOn: [], status: "completed" },
-            {
-              id: "goal-panel",
-              task: "汇总市场指数和行业表现",
-              dependsOn: ["checkpoint"],
-              status: "running",
-            },
-            {
-              id: "graph-panel",
-              task: "汇总热门板块与涨跌幅",
-              dependsOn: ["checkpoint"],
-              status: "pending",
-            },
-            {
-              id: "sector-analysis",
-              task: "分析板块异动和可能驱动因素",
-              dependsOn: ["checkpoint"],
-              status: "pending",
-            },
-            {
-              id: "source-audit",
-              task: "检查引用链接、时间与市场口径",
-              dependsOn: ["checkpoint"],
-              status: "pending",
-            },
-            {
-              id: "verification",
-              task: "合并结果并生成结构化摘要",
-              dependsOn: ["goal-panel", "graph-panel", "sector-analysis", "source-audit"],
-              status: "pending",
-            },
-          ],
-        };
+            kind: "graph",
+            objective: "并行完成 Goal / Graph 状态可视化",
+            status: "running",
+            iteration: 1,
+            nodes: [
+              { id: "checkpoint", task: "整理并核对市场数据", dependsOn: [], status: "completed" },
+              {
+                id: "goal-panel",
+                task: "汇总市场指数和行业表现",
+                dependsOn: ["checkpoint"],
+                status: "running",
+              },
+              {
+                id: "graph-panel",
+                task: "汇总热门板块与涨跌幅",
+                dependsOn: ["checkpoint"],
+                status: "pending",
+              },
+              {
+                id: "sector-analysis",
+                task: "分析板块异动和可能驱动因素",
+                dependsOn: ["checkpoint"],
+                status: "pending",
+              },
+              {
+                id: "source-audit",
+                task: "检查引用链接、时间与市场口径",
+                dependsOn: ["checkpoint"],
+                status: "pending",
+              },
+              {
+                id: "verification",
+                task: "合并结果并生成结构化摘要",
+                dependsOn: ["goal-panel", "graph-panel", "sector-analysis", "source-audit"],
+                status: "pending",
+              },
+            ],
+          };
   if (query.has("checkpoint-flow-preview-empty")) {
     if (checkpointFlow.kind === "graph") checkpointFlow.nodes = [];
     if (checkpointFlow.kind === "plugin") checkpointFlow.items = [];

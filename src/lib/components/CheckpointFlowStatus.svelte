@@ -379,9 +379,7 @@
             <div class="flow-body-content">
               {#if flatItems.length === 0}
                 <p class="flow-empty">
-                  {$t(
-                    flow.kind === "goal" ? "checkpointGoalNoTodos" : "checkpointPluginFlowEmpty",
-                  )}
+                  {$t(flow.kind === "goal" ? "checkpointGoalNoTodos" : "checkpointPluginFlowEmpty")}
                 </p>
               {:else}
                 {#each flatItems as item (item.id)}

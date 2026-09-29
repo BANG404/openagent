@@ -221,8 +221,7 @@ export function updateLiveCheckpointFlowProjection(
 }
 
 export function checkpointFlowProgress(flow: CheckpointFlow): { completed: number; total: number } {
-  const items =
-    flow.kind === "goal" ? flow.todos : flow.kind === "graph" ? flow.nodes : flow.items;
+  const items = flow.kind === "goal" ? flow.todos : flow.kind === "graph" ? flow.nodes : flow.items;
   return {
     completed: items.filter((item) => item.status === "completed").length,
     total: items.length,
