@@ -2629,7 +2629,7 @@ async fn test_mcp_server(
     if server.id == "cua-driver" && server.enabled {
         ensure_cua_driver_serve(runtime.inner().clone()).await?;
     }
-    openagent_runtime::commands::test_mcp_server(server).await
+    openagent_runtime::commands::test_mcp_server(runtime.state(), server).await
 }
 
 #[tauri::command]
@@ -4521,6 +4521,34 @@ fn spawn_cua_driver_daemon(
 ) -> Result<CuaDriverDaemon, String> {
     use std::process::{Command, Stdio};
 
+    // Every plugin process carries a policy the kernel resolved for it, and this
+    // is where the host consumes the daemon's. The reserved Cua topology is
+    // fixed product policy: driving the interactive desktop needs the user's own
+    // desktop and its accessibility grants, which the managed backends replace
+    // (on Windows a confined process runs on a private desktop no interactive
+    // window exists on), so the daemon is exempt with a recorded reason instead
+    // of unconfined by default. A managed policy here would mean that product
+    // rule changed without this spawn point changing; a driver the kernel would
+    // confine cannot do its job, so the host refuses to start one rather than
+    // starting a daemon that cannot work.
+    match &launch.process_policy {
+        openagent_runtime::plugin_process_policy::PluginProcessPolicy::Managed(policy) => {
+            return Err(format!(
+                "Cua Driver '{}' resolved a managed process policy; the reserved desktop topology cannot run confined",
+                policy.plugin_id()
+            ));
+        }
+        openagent_runtime::plugin_process_policy::PluginProcessPolicy::Unmanaged {
+            reason, ..
+        } => {
+            tracing::info!(
+                plugin = %launch.plugin_id,
+                exemption = %reason,
+                "Cua Driver daemon starts outside the managed process sandbox"
+            );
+        }
+    }
+
     let mut command = if launch.command.ends_with(".mjs") || launch.command.ends_with(".js") {
         let mut command = Command::new("node");
         command.arg(&launch.command);
@@ -4651,10 +4679,12 @@ async fn ensure_cua_driver_serve(runtime: Arc<OpenAgentRuntime>) -> Result<bool,
         .clone()
         .ok_or_else(|| "Agent Plugin support is not configured".to_string())?;
     let enabled = state.config.lock().await.agent_plugins_enabled.clone();
+    let process_launch = state.plugin_process_launch().await;
     let launch = openagent_runtime::agent_plugins::resolve_installed_plugin_daemon(
         &roots.packages,
         &roots.data,
         &enabled,
+        &process_launch,
         "cua-driver",
     )
     .await?;
@@ -5650,7 +5680,8 @@ fn run_with_mode(agent_server: bool) {
                         tracing::error!(target: "openagent::cua", %error, "failed to start configured Cua Driver serve daemon");
                     }
                 }
-                let mcp_handles = mcp::connect_mcp_servers(&servers);
+                let launch = state.plugin_process_launch().await;
+                let mcp_handles = mcp::connect_mcp_servers(&servers, Some(&launch));
                 *state.mcp_join_handles.lock().await = mcp_handles;
                 tracing::info!(
                     target: "openagent::startup",
