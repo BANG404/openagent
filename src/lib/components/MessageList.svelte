@@ -36,6 +36,8 @@
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { isPluginMessage } from "$lib/types";
   import { selectionTextWithMath } from "$lib/streamdown/selectionText";
+  import { parseInline } from "$lib/composerMarkdown";
+  import { renderInlineNodes } from "$lib/composerDom";
   import { motionDuration } from "$lib/motion";
   import {
     appendLiveStreamEntry,
@@ -405,6 +407,31 @@
       content.length > USER_MESSAGE_COLLAPSE_LENGTH ||
       content.split("\n").length > USER_MESSAGE_COLLAPSE_LINES
     );
+  }
+
+  function attachmentReferenceMap(attachments: ChatAttachment[]): ReadonlyMap<string, string> {
+    const references = new Map<string, string>();
+    for (const attachment of attachments) {
+      if (attachment.referenceLabel) references.set(attachment.referenceLabel, attachment.path);
+    }
+    return references;
+  }
+
+  /**
+   * Projects the user's own markdown inline. Block children would break the
+   * `-webkit-line-clamp` collapse on `.user-content-text`, so only the inline
+   * projection is drawn and block markers stay literal in the bubble.
+   */
+  function renderUserContent(
+    node: HTMLElement,
+    params: { content: string; references: ReadonlyMap<string, string> },
+  ) {
+    const draw = (next: { content: string; references: ReadonlyMap<string, string> }) => {
+      node.replaceChildren();
+      renderInlineNodes(node, parseInline(next.content, 0, next.references));
+    };
+    draw(params);
+    return { update: draw };
   }
 
   function isUserMessageCollapsed(msg: ChatMessage) {
@@ -877,6 +904,7 @@
           {@const attachments = attachmentItems.map((item) => item.attachment)}
           {@const quoteItems = msg.items?.filter((item) => item.type === "quote") ?? []}
           {@const contexts = quoteItems.map((item) => item.context)}
+          {@const contentReferences = attachmentReferenceMap(attachments)}
           {@const isEditingThisMessage = editingMsgId === msg.id}
           {@const retainedAttachmentCount = attachments.filter(
             (attachment) => !removedAttachmentPaths.has(attachment.path),
@@ -943,7 +971,13 @@
                       }
                     }}
                   >
-                    <span class="user-content-text">{msg.content}</span>
+                    <span
+                      class="user-content-text composer-md"
+                      use:renderUserContent={{
+                        content: msg.content,
+                        references: contentReferences,
+                      }}
+                    ></span>
                     <span class="user-edit-hint" aria-hidden="true">
                       <svg
                         viewBox="0 0 16 16"
@@ -967,7 +1001,10 @@
                 class="user-content readonly bg-conversation-component"
                 class:collapsed={isUserMessageCollapsed(msg)}
               >
-                <span class="user-content-text">{msg.content}</span>
+                <span
+                  class="user-content-text composer-md"
+                  use:renderUserContent={{ content: msg.content, references: contentReferences }}
+                ></span>
               </div>
             {/if}
             {#if attachments.length > 0}

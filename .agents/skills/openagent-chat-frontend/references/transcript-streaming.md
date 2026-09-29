@@ -13,7 +13,7 @@
   title-bar content dim and restore together without changing their shared
   native window material or geometry. When that state transitions from inactive
   to active while the conversation composer is mounted, return keyboard focus
-  to its enabled textarea through the shared composer focus-request channel.
+  to its enabled editor through the shared composer focus-request channel.
   Treat every native focused callback and explicit desktop-window activation
   event as a distinct request even if no preceding blur callback reached the
   WebView; route that monotonic request through `ConversationSurface` to
@@ -21,7 +21,7 @@
   tray activation, repeated launches, and registered-workspace navigation restore
   DOM focus without a pointer click. On Windows the host must transfer a newly
   activated top-level window into the embedded WebView before sending the
-  activation event; the frontend request then owns only the final DOM textarea
+  activation event; the frontend request then owns only the final DOM editor
   focus. A targeted workspace request reissues the
   focus request after its conversation navigation settles so an atomic switch
   cannot leave focus attached to the previously visible composer.
@@ -90,9 +90,18 @@
   Resize-driven tail pins must be coalesced to one animation frame so dragging
   the window or panel does not synchronously remeasure a long transcript for
   every observer callback; streamed DOM mutations may still pin immediately.
-- Keep ordinary transcript copy and the shared composer textarea on the same
+- Keep ordinary transcript copy and the shared composer editor on the same
   compact 14px type scale so streaming and editable durable content do not
   change apparent size.
+- Render the user's own authored message through the composer's inline Markdown
+  projection: bold, italic, strikethrough, inline code, and links render with a
+  shared `.composer-md` treatment from `src/app.css`. Keep that projection
+  inline-only, because block children would break the collapsed message's
+  `-webkit-line-clamp`; block syntax stays literal in the bubble. Attachment
+  labels render as atomic chips and never as links. The in-place edit control
+  remains a plain textarea showing raw Markdown; selecting a rendered bubble
+  yields the visible text, so a copied user message no longer carries its markup
+  markers.
 - Give only the trailing text block of an active streamed response Streamdown's
   gentle word-level fade-in (360ms, ease-out); keep completed and earlier
   blocks static so each chunk does not replay the whole answer. Do not append a
