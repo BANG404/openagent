@@ -73,7 +73,12 @@
   import type { SettingsNav } from "$lib/settingsWindows";
   import { approvalModeDescriptionKey, DEFAULT_APP_CONFIG } from "$lib/settingsDefaults";
   const view = getContext<Record<string, unknown>>("settings-view") as Record<string, any>;
-  const builtinChatGroupsId = "chat-groups";
+  // A card's shape follows the runtime binding the plugin declares rather than
+  // its id, so the same product capability renders the same way whichever
+  // package supplies it. The reserved MCP entry keeps its own id: that is the
+  // key its discovered tools and connection test live under, not a card.
+  const chatGroupsRuntime = "chat-groups";
+  const desktopControlRuntime = "cua-driver";
 </script>
 
 <Tabs.Content value="general" class="settings-tab-panel">
@@ -360,20 +365,22 @@
             <Accordion.Trigger class="plugin-accordion-trigger">
               <span class="plugin-accordion-copy">
                 <span class="label-text"
-                  >{plugin.id === builtinChatGroupsId ? $t("chatGroupPlugin") : plugin.name}</span
+                  >{plugin.runtime === chatGroupsRuntime
+                    ? $t("chatGroupPlugin")
+                    : plugin.name}</span
                 >
                 <span class="detail-hint"
-                  >{plugin.id === builtinChatGroupsId
+                  >{plugin.runtime === chatGroupsRuntime
                     ? $t("chatGroupPluginDescription")
-                    : plugin.id === view.cuaDriverId
+                    : plugin.runtime === desktopControlRuntime
                       ? $t("pluginDesktopControlDescription")
                       : (plugin.description ?? plugin.id)}</span
                 >
-                {#if plugin.id === view.cuaDriverId}
+                {#if plugin.runtime === desktopControlRuntime}
                   <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
                 {/if}
               </span>
-              {#if plugin.id === view.cuaDriverId}
+              {#if plugin.runtime === desktopControlRuntime}
                 <svg
                   class="plugin-accordion-chevron"
                   viewBox="0 0 16 16"
@@ -382,7 +389,7 @@
                 >
                   <path d="m4 6 4 4 4-4" />
                 </svg>
-              {:else if plugin.id !== builtinChatGroupsId}
+              {:else if plugin.runtime !== chatGroupsRuntime}
                 <span class="plugin-version">
                   {plugin.version ?? "-"}
                   {#if (view.agentPluginUpdates ?? []).find((item: AgentPluginUpdateSummary) => item.id === plugin.id)?.update_available}
@@ -391,7 +398,7 @@
                 </span>
               {/if}
             </Accordion.Trigger>
-            {#if plugin.id === builtinChatGroupsId}
+            {#if plugin.runtime === chatGroupsRuntime}
               <div class="plugin-accordion-actions">
                 <Switch
                   checked={view.draftConfig.chat_groups_enabled ?? true}
@@ -399,7 +406,7 @@
                   ariaLabel={$t("chatGroupPlugin")}
                 />
               </div>
-            {:else if plugin.id === view.cuaDriverId}
+            {:else if plugin.runtime === desktopControlRuntime}
               <div class="plugin-accordion-actions">
                 <Switch
                   checked={view.cuaDriver.enabled}
@@ -417,7 +424,7 @@
               </div>
             {/if}
           </Accordion.Header>
-          {#if plugin.id === view.cuaDriverId}
+          {#if plugin.runtime === desktopControlRuntime}
             <Accordion.Content class="plugin-accordion-content">
               <div class="plugin-tools-heading">
                 <div class="plugin-tools-title">
@@ -469,7 +476,7 @@
               {/if}
               <p class="plugin-warning">{$t("pluginUnrestrictedWarning")}</p>
             </Accordion.Content>
-          {:else if plugin.id !== builtinChatGroupsId}
+          {:else if plugin.runtime !== chatGroupsRuntime}
             <Accordion.Content class="plugin-accordion-content">
               <div class="plugin-tools-heading">
                 <div class="plugin-tools-title">

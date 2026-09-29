@@ -1,6 +1,16 @@
 import type { AppConfig, McpServerConfig } from "./types";
 
 export const CUA_DRIVER_ID = "cua-driver";
+
+/**
+ * The placeholder persisted as the reserved entry's command.
+ *
+ * No process is ever started from it: when the Runtime mounts MCP servers it
+ * replaces the program with the launcher the installed Driver package declares,
+ * and reports a named error for the entry when that package is missing. It stays
+ * a stable token so an entry a user already has keeps matching the fixed launch
+ * shape instead of being rewritten on every bootstrap.
+ */
 export const CUA_DRIVER_COMMAND = "cua-driver";
 
 /**

@@ -308,7 +308,10 @@
   this entry to find. Connection testing and the plugin switch start the
   plugin-owned daemon before probing, because the reserved client only attaches
   to an endpoint; without that call the tool list stays empty with the
-  `pluginToolsEmpty` hint. Show a localized warning for the fixed unrestricted
+  `pluginToolsEmpty` hint. A card's shape follows the runtime binding the
+  package declares rather than its id, so a capability renders identically
+  whichever package supplies it; the reserved MCP entry keeps its own id, which
+  is the key its discovered tools and connection test live under. Show a localized warning for the fixed unrestricted
   mode, and keep the tool switches usable down to a single column on narrow
   windows.
 - Settings action controls use one compact, shadowless semantic hierarchy:
