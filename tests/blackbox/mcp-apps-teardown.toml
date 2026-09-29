@@ -1,0 +1,84 @@
+[scenario]
+name = "mcp apps teardown"
+fail_fast = true
+global_timeout_ms = 60000
+
+# The seeded close-marked conversation passes `close: true` through the tool
+# arguments, so the fixture widget exercises the app-initiated
+# `ui/request-close` teardown once it has finished its handshake.
+#
+# The previous conversation's frame is intentionally left mounted by
+# `mcp-apps.toml`, so the frame count here also proves that switching the active
+# conversation tears the old app frame down instead of leaking it into the new
+# transcript.
+
+[[step]]
+name = "open the close-marked MCP Apps conversation"
+action = "eval"
+script = '''(async () => {
+  const title = "MCP Apps diagnostic close";
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline) {
+    const item = [...document.querySelectorAll(".conv-item")].find((candidate) =>
+      (candidate.textContent ?? "").includes(title)
+    );
+    if (item instanceof HTMLElement) {
+      item.click();
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the seeded close-marked MCP Apps conversation is missing");
+})()'''
+
+[[step]]
+name = "the close-marked conversation mounts its own app frame"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 20000;
+  while (Date.now() < deadline) {
+    const frame = document.querySelector(".mcp-app-frame");
+    if (frame instanceof HTMLElement && frame.querySelector("iframe")) return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the close-marked conversation never mounted an app frame");
+})()'''
+
+[[step]]
+name = "the app-initiated close request tears the frame down"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 20000;
+  while (Date.now() < deadline) {
+    if (document.querySelector(".mcp-app-frame.closed")) return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("ui/request-close never hid the app frame");
+})()'''
+
+[[step]]
+name = "the torn-down frame stops rendering the app"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    const frame = document.querySelector(".mcp-app-frame.closed");
+    if (frame instanceof HTMLElement && getComputedStyle(frame).display === "none") return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the closed app frame still occupies the transcript");
+})()'''
+
+[[step]]
+name = "the torn-down frame leaves no copy behind in the new conversation"
+action = "eval"
+script = '''(() => {
+  const frames = document.querySelectorAll(".mcp-app-frame");
+  if (frames.length !== 1) {
+    throw new Error(`expected only the active conversation app frame, found ${frames.length}`);
+  }
+  if (!(document.querySelector(".conversation-stage") instanceof HTMLElement)) {
+    throw new Error("the main conversation surface is missing after the teardown");
+  }
+  return true;
+})()'''

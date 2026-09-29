@@ -1,0 +1,103 @@
+[scenario]
+name = "mcp apps live render"
+fail_fast = true
+global_timeout_ms = 60000
+
+# The seeded conversation carries a live `chat-tool-call`/`chat-tool-result`
+# pair for a real MCP stdio server's UI tool, so the transcript mounts
+# `McpAppFrame` without a provider turn.
+#
+# The frame is not readable from here: the host mounts the app in a
+# `sandbox="allow-scripts"` iframe, so the parent window has no
+# `contentDocument`. The fixture widget therefore encodes its status into the
+# intrinsic height it reports, which the host applies to the `.mcp-app-frame`
+# section as an inline style:
+#
+#   560px = handshake + app-only tool round trip + file round trip, light theme
+#   600px = the same run after the host switched to the dark theme
+
+[[step]]
+name = "open the seeded MCP Apps conversation"
+action = "eval"
+script = '''(async () => {
+  const title = "MCP Apps diagnostic";
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline) {
+    const item = [...document.querySelectorAll(".conv-item")].find((candidate) => {
+      const text = candidate.textContent ?? "";
+      return text.includes(title) && !text.includes("close");
+    });
+    if (item instanceof HTMLElement) {
+      item.click();
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the seeded MCP Apps conversation is missing");
+})()'''
+
+[[step]]
+name = "the MCP app frame mounts for the live tool call"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 20000;
+  while (Date.now() < deadline) {
+    const frame = document.querySelector(".mcp-app-frame");
+    if (frame instanceof HTMLElement && frame.querySelector("iframe")) return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the seeded MCP Apps tool call never mounted a frame");
+})()'''
+
+[[step]]
+name = "the widget completes its handshake, app tool call, and file round trip"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 20000;
+  while (Date.now() < deadline) {
+    const frame = document.querySelector(".mcp-app-frame");
+    if (frame instanceof HTMLElement && frame.style.height === "560px") return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  const frame = document.querySelector(".mcp-app-frame");
+  throw new Error(
+    "the widget never reported a fully successful light-theme height; last style.height=" +
+      (frame instanceof HTMLElement ? JSON.stringify(frame.style.height) : "<no frame>")
+  );
+})()'''
+
+[[step]]
+name = "the app frame is not torn down while its conversation is active"
+action = "eval"
+script = '''(() => {
+  const frame = document.querySelector(".mcp-app-frame");
+  if (!(frame instanceof HTMLElement)) throw new Error("the app frame disappeared");
+  if (frame.classList.contains("closed")) throw new Error("the app frame closed itself unprompted");
+  if (frame.style.display === "none") throw new Error("the app frame is hidden");
+  return true;
+})()'''
+
+[[step]]
+name = "the app frame carries the host locale for the active language"
+action = "eval"
+script = '''(() => {
+  const frame = document.querySelector(".mcp-app-frame");
+  if (!(frame instanceof HTMLElement)) throw new Error("the app frame disappeared");
+  const label = frame.getAttribute("aria-label");
+  if (label !== "MCP App") throw new Error(`unexpected app frame label: ${JSON.stringify(label)}`);
+  return true;
+})()'''
+
+[[step]]
+name = "the transcript remains mounted beside the app frame"
+action = "eval"
+script = '''(() => {
+  if (!(document.querySelector(".conversation-stage") instanceof HTMLElement)) {
+    throw new Error("the main conversation surface is missing");
+  }
+  const frames = document.querySelectorAll(".mcp-app-frame");
+  if (frames.length !== 1) {
+    throw new Error(`expected exactly one app frame, found ${frames.length}`);
+  }
+  return true;
+})()'''

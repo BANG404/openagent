@@ -158,6 +158,10 @@
   }
 
   function openAiBridgeScript(): string {
+    // Keep a literal closing tag out of the Svelte source so it cannot end this
+    // component's script block, and keep any backslash out of the emitted
+    // document so the WebView actually ends the injected script element.
+    const scriptClose = "<" + "/script>";
     return `<script>
 (function () {
   var pending = new Map();
@@ -279,7 +283,7 @@
     }
   };
 })();
-<\\/script>`;
+${scriptClose}`;
   }
 
   function permissions(): string | undefined {
@@ -304,14 +308,18 @@
     );
   }
 
+  // `postMessage` structured-clones its payload, and Svelte's `$state` proxies
+  // cannot be cloned — passing one throws `DataCloneError` and the frame
+  // silently never receives the message. Snapshotting here keeps every send
+  // path (state-derived tool arguments, saved widget state) clonable.
   function post(message: Record<string, unknown>): void {
-    frame?.contentWindow?.postMessage(message, "*");
+    frame?.contentWindow?.postMessage($state.snapshot(message), "*");
   }
 
   function response(id: unknown, result: unknown): void {
     const target = requestTargets.get(id) ?? frame?.contentWindow;
     requestTargets.delete(id);
-    target?.postMessage({ jsonrpc: "2.0", id, result }, "*");
+    target?.postMessage($state.snapshot({ jsonrpc: "2.0", id, result }), "*");
   }
 
   function error(id: unknown, code: number, message: string): void {
@@ -673,7 +681,7 @@
         const selected = await openDialog({
           multiple: true,
           directory: false,
-          title: "Select files",
+          title: $t("selectFiles"),
         });
         const paths = selected ? (Array.isArray(selected) ? selected : [selected]) : [];
         const files = [];
@@ -731,7 +739,7 @@
       pendingCheckout = { id, session: params };
       modal = {
         content: JSON.stringify(params, null, 2),
-        title: "Checkout",
+        title: $t("checkout"),
         checkout: pendingCheckout,
       };
       return;
@@ -826,10 +834,10 @@
   class:pip={displayMode === "pip"}
   class="mcp-app-frame"
   style={"height: " + height + "px" + (width ? "; width: " + width + "px" : "")}
-  aria-label="MCP App"
+  aria-label={$t("mcpApp")}
 >
   <iframe
-    title="MCP App"
+    title={$t("mcpApp")}
     srcdoc={documentSource()}
     bind:this={frame}
     sandbox="allow-scripts"
@@ -845,18 +853,18 @@
       class="mcp-app-modal"
       role="dialog"
       aria-modal="true"
-      aria-label={modal.title ?? "MCP App"}
+      aria-label={modal.title ?? $t("mcpApp")}
       tabindex="-1"
     >
       <div class="mcp-app-modal-header">
-        <strong>{modal.title ?? "MCP App"}</strong>
+        <strong>{modal.title ?? $t("mcpApp")}</strong>
         <button type="button" aria-label={$t("close")} onclick={() => (modal = null)}
           >{$t("close")}</button
         >
       </div>
       {#if modal.html}
         <iframe
-          title={modal.title ?? "MCP App modal"}
+          title={modal.title ?? $t("mcpAppDialog")}
           srcdoc={modalDocumentSource(modal.content, modal.params)}
           bind:this={modalFrame}
           sandbox="allow-scripts"
@@ -884,15 +892,15 @@
                 pendingCheckout = null;
                 modal = null;
               }
-            }}>Confirm</button
+            }}>{$t("confirm")}</button
           >
           <button
             type="button"
             onclick={() => {
-              if (pendingCheckout) error(pendingCheckout.id, -32000, "Checkout cancelled");
+              if (pendingCheckout) error(pendingCheckout.id, -32000, $t("checkoutCancelled"));
               pendingCheckout = null;
               modal = null;
-            }}>Cancel</button
+            }}>{$t("cancel")}</button
           >
         </div>
       {/if}

@@ -98,7 +98,7 @@ through the product tool and writes one renderable checkpoint. The scenario then
 drives the same conversation list and sidebar tabs a user uses:
 
 ```bash
-bun tauri dev --multi-instance blackbox
+OPENAGENT_HOME="$HOME/.openagent-dev/instances/blackbox" bun tauri dev
 bun run test:blackbox:chat-groups
 ```
 
@@ -106,3 +106,72 @@ The app and the wrapper must share the isolated `OPENAGENT_HOME`/instance; the
 wrapper reads `dev-api.json` from that home and fails with a clear message when
 the instance is not running. Keep the seeded conversation out of release state;
 the diagnostic route exists only in the debug dev API.
+
+This section and the MCP Apps section below are the two runners that seed
+through the dev API, and they are the two that must not use
+`--multi-instance <name>`. The host only passes `--desktop-primary` to the
+Runtime when it is not an agent server, not a workspace window, and not a
+development multi-instance, and `start_dev_api` (which writes `dev-api.json`)
+runs behind that argument, so a multi-instance run never publishes the manifest
+the wrapper needs. Set the isolated `OPENAGENT_HOME` explicitly instead, as
+above; that mode restores ordinary single-instance enforcement, so stop any
+other running window of the same build first.
+
+## MCP Apps coverage
+
+The committed `tests/blackbox/mcp-apps.toml` and `mcp-apps-teardown.toml`
+scenarios verify the MCP Apps host bridge against the real, dependency-free MCP
+stdio server in `tests/fixtures/mcp-app-demo/`. The wrapper copies that fixture
+into the isolated home first, then seeds a conversation through the loopback dev
+API (`POST /v1/diagnostics/mcp-app-conversation`). The runtime connects the
+fixture over stdio, reads its `ui://` resource, and emits the same
+`chat-tool-call`/`chat-tool-result` events a provider round would, so the run
+needs no provider and no committed database fixture:
+
+```bash
+OPENAGENT_HOME="$HOME/.openagent-dev/instances/blackbox" bun tauri dev
+bun run test:blackbox:mcp-apps
+```
+
+Like the chat-group runner, this one seeds through the dev API and so cannot use
+`--multi-instance`; see that section for why.
+
+The host mounts MCP Apps in a `sandbox="allow-scripts"` iframe, so the parent
+window has no `contentDocument` and cannot assert on widget internals. Every
+assertion is therefore a host-observable signal. The fixture widget encodes its
+status into the intrinsic height it reports through
+`openai.notifyIntrinsicHeight`, which the host applies to the `.mcp-app-frame`
+section as an inline style:
+
+- `560px` — handshake plus the app-only tool round trip plus the
+  `uploadFile`/`getFileDownloadUrl` round trip, light theme.
+- `600px` — the same successful run after the host switched to the dark theme.
+
+A regression in the `ui/*` bridge, the `window.openai` compatibility layer, the
+app-only tool dispatch boundary, or file flow moves the frame off those heights
+instead of silently passing. Keep the encoding contract, the widget, and this
+list aligned when either changes.
+
+The wrapper drives the same Appearance controls a user uses, so the run also
+covers the theme and language boundaries: the frame height must follow the dark
+theme and the frame must carry the host locale for the active language.
+Teardown is covered twice, because the two paths have different owners. The
+close-marked conversation passes `close: true` through the tool arguments so the
+widget exercises the app-initiated `ui/request-close` path, which must hide the
+frame; and because the close-marked conversation is opened second, the frame
+count asserts that switching the active conversation unmounts the previous
+conversation's app frame instead of leaking it into the new transcript. That
+close-marked run is also the only step that proves the host delivers the tool
+arguments, because it is the only widget behavior that reads
+`openai.toolInput`; the light-theme run passes on the widget-initiated request
+paths alone.
+
+Two failures in the injected bridge are silent — the widget simply renders at
+its default height and reports nothing — so keep both invariants when editing
+`McpAppFrame.svelte`. The bridge script's closing tag must reach the WebView
+without a backslash, or the injected script element never terminates and
+`window.openai` is never defined; build the tag by concatenation so the literal
+`</script>` stays out of the Svelte source. And every host-to-widget message
+must be structured-clonable, so snapshot `$state` values before `postMessage`;
+a state proxy throws `DataCloneError`, which the frame sees as a message that
+was never sent.

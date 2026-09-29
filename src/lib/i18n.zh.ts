@@ -80,6 +80,12 @@ export const zh = {
   aboutWindowTitle: "关于 OpenAgent",
   executionAndPermissions: "执行与权限",
   close: "关闭",
+  confirm: "确认",
+  checkout: "结算",
+  checkoutCancelled: "结算已取消",
+  mcpApp: "MCP 应用",
+  mcpAppDialog: "MCP 应用对话框",
+  selectFiles: "选择文件",
   backToChat: "返回对话",
   more: "更多",
   // Empty state

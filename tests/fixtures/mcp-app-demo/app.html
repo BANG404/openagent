@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>OpenAgent MCP Apps demo</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 12px;
+        font:
+          13px system-ui,
+          sans-serif;
+        background: #fff;
+        color: #111;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #111;
+          color: #eee;
+        }
+      }
+      code {
+        font-family: ui-monospace, monospace;
+      }
+      .row {
+        margin: 4px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      The black-box scenario cannot read this document: the host mounts the app
+      in a `sandbox="allow-scripts"` iframe, so the parent window has no
+      `contentDocument` access. Every observable signal therefore has to travel
+      over the MCP Apps bridge. The widget encodes its status into the intrinsic
+      height it reports, because the host applies that height to the
+      `.mcp-app-frame` section as an inline style the scenario can read:
+
+        HEIGHT = 260 + (theme === "dark" ? 40 : 0)
+                      + (tool round trip succeeded ? 100 : 0)
+                      + (file round trip succeeded ? 200 : 0)
+
+      A fully successful light-theme run therefore reports 560px, and the same
+      run after the host switches to the dark theme reports 600px.
+    -->
+    <div class="row">ready: <span id="ready">no</span></div>
+    <div class="row">theme: <span id="theme">-</span></div>
+    <div class="row">locale: <span id="locale">-</span></div>
+    <div class="row">displayMode: <span id="display-mode">-</span></div>
+    <div class="row">toolInput: <code id="tool-input">-</code></div>
+    <div class="row">toolOutput: <code id="tool-output">-</code></div>
+    <div class="row">tool round trip: <span id="tool-status">-</span></div>
+    <div class="row">file round trip: <span id="file-status">-</span></div>
+    <script>
+      (function () {
+        var pending = new Map();
+        var nextId = 1;
+        var toolOk = false;
+        var fileOk = false;
+        var closed = false;
+        function request(method, params) {
+          var id = nextId++;
+          window.parent.postMessage(
+            { jsonrpc: "2.0", id: id, method: method, params: params || {} },
+            "*",
+          );
+          return new Promise(function (resolve, reject) {
+            pending.set(id, { resolve: resolve, reject: reject });
+          });
+        }
+        function set(id, value) {
+          var el = document.getElementById(id);
+          if (el) el.textContent = String(value);
+        }
+        window.addEventListener("message", function (event) {
+          if (event.source !== window.parent) return;
+          var message = event.data;
+          if (!message || message.jsonrpc !== "2.0") return;
+          if (message.id !== undefined && pending.has(message.id)) {
+            var call = pending.get(message.id);
+            pending.delete(message.id);
+            if (message.error) call.reject(message.error);
+            else call.resolve(message.result);
+          }
+        });
+        function report() {
+          var theme = window.openai ? window.openai.theme : undefined;
+          var height = 260 + (theme === "dark" ? 40 : 0) + (toolOk ? 100 : 0) + (fileOk ? 200 : 0);
+          window.openai.notifyIntrinsicHeight(height);
+          return height;
+        }
+        function refresh() {
+          var api = window.openai;
+          if (!api) return;
+          set("theme", api.theme ?? "-");
+          set("locale", api.locale ?? "-");
+          set("display-mode", api.displayMode ?? "-");
+          set("tool-input", JSON.stringify(api.toolInput ?? null));
+          set("tool-output", JSON.stringify(api.toolOutput ?? null));
+          set("tool-status", toolOk ? "ok" : "pending");
+          set("file-status", fileOk ? "ok" : "pending");
+        }
+        function afterContextChange() {
+          refresh();
+          report();
+        }
+        window.addEventListener("openai:host-context-changed", afterContextChange);
+        function callAppTool() {
+          return window.openai
+            .callTool("demo_app_action", { value: 7 })
+            .then(function (result) {
+              var structured = result && result.structuredContent;
+              if (!structured || structured.action !== 7) {
+                throw new Error("unexpected app tool result: " + JSON.stringify(result));
+              }
+              toolOk = true;
+              refresh();
+              report();
+            })
+            .catch(function (error) {
+              set("tool-status", "error:" + (error && error.message ? error.message : error));
+            });
+        }
+        function roundTripFile() {
+          var file = new File([new Uint8Array([1, 2, 3, 4])], "demo.bin", {
+            type: "application/octet-stream",
+          });
+          return window.openai
+            .uploadFile(file)
+            .then(function (uploaded) {
+              if (!uploaded || !uploaded.fileId) {
+                throw new Error("uploadFile returned no fileId");
+              }
+              return window.openai
+                .getFileDownloadUrl({ fileId: uploaded.fileId })
+                .then(function (url) {
+                  if (!url || !url.downloadUrl) {
+                    throw new Error("getFileDownloadUrl returned no downloadUrl");
+                  }
+                  fileOk = true;
+                  refresh();
+                  report();
+                });
+            })
+            .catch(function (error) {
+              set("file-status", "error:" + (error && error.message ? error.message : error));
+            });
+        }
+        function maybeClose() {
+          var input = window.openai ? window.openai.toolInput : undefined;
+          if (!closed && input && input.close === true) {
+            closed = true;
+            window.openai.requestClose();
+          }
+        }
+        document.addEventListener("DOMContentLoaded", function () {
+          request("ui/initialize", {
+            protocolVersion: "2026-01-26",
+            appCapabilities: { availableDisplayModes: ["inline", "fullscreen", "pip"] },
+            clientInfo: { name: "openagent-mcp-app-demo", version: "1.0.0" },
+          })
+            .then(function () {
+              window.parent.postMessage(
+                { jsonrpc: "2.0", method: "ui/notifications/initialized" },
+                "*",
+              );
+              set("ready", "ready");
+              refresh();
+              report();
+              return callAppTool()
+                .then(roundTripFile)
+                .then(function () {
+                  maybeClose();
+                });
+            })
+            .catch(function (error) {
+              set("ready", "error:" + (error && error.message ? error.message : error));
+            });
+          var ticks = 0;
+          var timer = setInterval(function () {
+            refresh();
+            if (++ticks === 2) maybeClose();
+            if (ticks > 40) clearInterval(timer);
+          }, 100);
+        });
+      })();
+    </script>
+  </body>
+</html>
