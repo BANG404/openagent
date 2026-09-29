@@ -431,7 +431,17 @@ describe("desktop navigation chrome", () => {
     expect(spawnCua).toContain(".stdin(Stdio::piped())");
     expect(spawnCua).toContain(".stdin.take()");
     expect(host).toContain("_stdin: std::process::ChildStdin");
-    expect(host).toContain('"serve",\n        "--embedded"');
+    // The `serve --embedded` the daemon runs belongs to the package that
+    // publishes the launcher, so the host appends only its policy tail to the
+    // descriptor the kernel resolved. A host that rebuilt the leading arguments
+    // here is how an interpreter ends up being started as if it were the script.
+    const cuaLaunchArgs = host.slice(
+      host.indexOf("fn cua_driver_launch_args"),
+      host.indexOf("fn cua_driver_serve_environment"),
+    );
+    expect(cuaLaunchArgs).toContain(
+      "launch\n        .args\n        .iter()\n        .cloned()\n        .chain(cua_driver_serve_args())",
+    );
     expect(host).toContain('"--parent-liveness-stdio"');
 
     // Tauri's own exit event is the only cleanup a non-primary window process

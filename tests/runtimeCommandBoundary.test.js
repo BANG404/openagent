@@ -121,10 +121,13 @@ describe("desktop command boundary", () => {
     const protocol = readFileSync("sdk/rust/openagent-protocol/src/lib.rs", "utf8");
     const settings = readFileSync("src/lib/components/SettingsViewTabsPrimary.svelte", "utf8");
 
-    expect(plugins).toContain('id: "chat-groups",');
-    expect(plugins).toContain('id: "goal",');
-    expect(plugins).toContain('id: "graph",');
-    expect(plugins).toContain('id: "cua-driver",');
+    // Each product capability is named once, by the id catalog the whole
+    // descriptor reads, so a capability cannot be registered under a literal
+    // that no longer matches the identity the Runtime resolves.
+    for (const capability of ["CHAT_GROUPS_ID", "GOAL_ID", "GRAPH_ID", "CUA_DRIVER_ID"]) {
+      expect(plugins).toContain(`pub const ${capability}: &str = `);
+      expect(plugins).toContain(`id: ${capability},`);
+    }
     expect(plugins).toContain("pub message_policies: Vec<AgentPluginMessagePolicy>");
     expect(protocol).toContain("pub plugin_id: Option<String>");
     expect(protocol).toContain('"goal" | "graph" => Some(name.to_string())');

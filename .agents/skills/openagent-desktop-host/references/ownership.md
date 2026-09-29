@@ -60,18 +60,33 @@ the host.
 
 - Start the daemon from the verified installed plugin directory; never replace
   files in the active directory while the daemon is running.
-- Start the daemon from `cua_driver_serve_args()` with
-  `serve --embedded --permission-mode unrestricted --dangerously-bypass-approvals --parent-liveness-stdio --socket <host endpoint>` and pass the same values
-  again through `cua_driver_serve_environment()`. The driver refuses a
-  contradictory pair, and the environment is what carries the contract to the
-  code paths that read configuration rather than argv.
+- The kernel resolves the launch — the program it runs, and the `serve
+  --embedded` the package declares — and the host appends only the policy tail
+  it owns through `cua_driver_launch_args()`: `--permission-mode unrestricted
+  --dangerously-bypass-approvals --parent-liveness-stdio --socket <host
+  endpoint>`. Pass the same values again through
+  `cua_driver_serve_environment()`. The driver refuses a contradictory pair, and
+  the environment is what carries the contract to the code paths that read
+  configuration rather than argv. Never rebuild the leading arguments in the
+  host: interpreting the launch twice is how `node` gets started as if it were
+  the package's launcher file.
+- The launcher fetches the driver it runs into the package's own writable
+  directory on first use, so every invocation — provisioning, serving, stopping
+  — carries `PLUGIN_DATA` from the resolved descriptor and runs with the package
+  root as its working directory. That is why a package that ships a launcher and
+  no driver still needs no write access to the package it was loaded from.
+- The launcher's `--openagent-prepare` mode fetches and verifies the driver and
+  exits without starting anything, under its own long budget, so the daemon's
+  startup timeout never pays for a download. Provisioning happens before the
+  serve call, never in the middle of the wait for the endpoint to listen.
 - Hold the daemon's stdin open for the life of the entry. That pipe is the
   driver's own parent-liveness contract: EOF means the host is gone, and the
   daemon shuts itself down. It is the only mechanism that works on every
   platform, so never replace it with `Stdio::null()`.
-- That contract is verifiable without a packaged build: start `cua-driver serve`
-  with the flags above and a piped stdin, wait for the socket, then close the
-  pipe. The daemon logs `Cua Driver embedded host closed its lifetime pipe; shutting down.`, exits 0 within about 100 ms, and unlinks its own socket.
+- That contract is verifiable without a packaged build: run the installed
+  package's launcher with `serve --embedded` and the flags above, a piped stdin,
+  and `PLUGIN_DATA` pointing at a writable empty directory, wait for the socket,
+  then close the pipe. The daemon logs `Cua Driver embedded host closed its lifetime pipe; shutting down.`, exits 0 within about 100 ms, and unlinks its own socket.
   A `status --socket` call against the running daemon reports
   `permission mode: unrestricted (trusted_startup_configuration)`, which is what
   confirms the embedded unrestricted launch took effect rather than being
@@ -79,15 +94,15 @@ the host.
 - Stop the daemon this process spawned on every product exit path, including
   the quit watchdog that force-exits a hung shutdown and Tauri's
   `RunEvent::Exit`, which is the only cleanup a non-primary window process
-  reaches. Ask first with `cua-driver stop --socket <host endpoint>`, then drop
-  the liveness pipe, then kill; never signal it by pid, which would reach an
-  unrelated process.
+  reaches. Ask first through the same package launcher with the driver's `stop
+  --socket <host endpoint>` subcommand, then drop the liveness pipe, then kill;
+  never signal it by pid, which would reach an unrelated process.
 - The endpoint has exactly one owner at a time, recorded as an exclusive lock
   on `<cache>/openagent/cua-driver/owner/daemon.lock`. Holding the lock means
   the daemon behind the endpoint is this process's; a lock held by someone else
   means a live peer's daemon, which this process must never stop; an unheld lock
   beside a listening endpoint means an orphan whose owner is gone, which is
-  reclaimed with `cua-driver stop --socket` before a new daemon starts. The lock
+  reclaimed with the launcher's `stop --socket` before a new daemon starts. The lock
   is also the only serialization point — without it two launching windows race,
   and the loser unlinks the winner's live socket.
 - `mcp --embedded` is what keeps the reserved entry's client from starting a
@@ -106,7 +121,7 @@ the host.
   new visible terminal window beside the product window.
 - The policy covers the supervised Runtime, the desktop-bootstrap helper, child
   workspace windows, `wsl.exe` probes, the Cua Driver daemon, and the
-  `cua-driver stop` request sent during shutdown. Startup starts that daemon
+  launcher's `stop` request sent during shutdown. Startup starts that daemon
   whenever the reserved MCP entry is enabled, and shutdown stops it on every
   exit path, so one unflagged spawn puts a terminal window in every production
   launch and every quit.

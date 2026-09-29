@@ -301,12 +301,13 @@
   MCP entry on first configuration load and exposes only switch controls: the
   plugin enable switch plus Cua connection testing and per-tool scope switches.
   Permission mode, socket, grants, and manifest are fixed product policy rather
-  than user settings, so never render them as editable fields again. Release
-  builds resolve the reserved `cua-driver` command from OpenAgent's verified
-  bundled resource; development builds may still use an independently
-  installed command. Connection testing and the plugin switch start the
-  plugin-owned daemon before probing, because `cua-driver mcp --socket` is only a
-  client; without that call the tool list stays empty with the
+  than user settings, so never render them as editable fields again. The
+  reserved `cua-driver` command is resolved from the installed package when MCP
+  servers are mounted, and the package's launcher provisions the driver it runs
+  into that package's own data directory, so no build ships a Cua executable for
+  this entry to find. Connection testing and the plugin switch start the
+  plugin-owned daemon before probing, because the reserved client only attaches
+  to an endpoint; without that call the tool list stays empty with the
   `pluginToolsEmpty` hint. Show a localized warning for the fixed unrestricted
   mode, and keep the tool switches usable down to a single column on narrow
   windows.

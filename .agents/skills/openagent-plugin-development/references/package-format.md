@@ -37,6 +37,15 @@ runtime. The desktop Integrations settings surface can install a local folder,
 refresh installed packages, enable or disable them, uninstall third-party
 packages, and apply verified GitHub release updates.
 
+An update is offered when the published version outranks the installed one. When
+both parse as SemVer (after an optional leading `v`) precedence follows the
+specification: a release outranks its own prerelease, prerelease identifiers
+compare numerically and then by ASCII, and build metadata is ignored.
+`version` is free-form in the portable format and is never grounds for rejecting
+a package, so a value that does not parse falls back to comparing numeric
+components left to right, padded with zeros. Publish increments that SemVer
+understands.
+
 OpenAgent implements both portable component types:
 
 - Agent Skills are discovered only from immediate child directories under
@@ -197,10 +206,19 @@ identity described below. Both reasons reach the user's diagnostics.
   naming the reason instead of starting an unconfined process, so the plugin's
   MCP tools are absent until the profile is enforceable again. On Linux that
   includes WSL1, which cannot create the user namespaces the sandbox needs.
-- On Windows the first confined process can require the sandbox's elevated
-  setup, which the system asks the user to approve. A refused or failed setup
-  surfaces as the same fail-closed diagnostic rather than as a silently
-  unconfined plugin.
+- On Windows a session whose network tier restricts network access needs a
+  one-time sandbox setup, and **a plugin process never raises an elevation
+  prompt**. When that setup has not run, the plugin's start fails closed with a
+  diagnostic naming the plugin and pointing at an ordinary agent command, which
+  is the path allowed to ask for elevation. A package cannot provision itself,
+  and installing one grants no privilege that would let it.
+- That gate asks the sandbox crate's own readiness predicate, which compares a
+  setup version and the stored accounts rather than the proxy settings the
+  offline account's filters depend on. A host whose proxy configuration changed
+  while a marker from the previous configuration survived still reads as
+  provisioned, and can then reach the setup path from a plugin process. The gate
+  narrows the window rather than closing it, which is why an unexpected prompt
+  there is a bug worth reporting.
 - Because the session profile owns the network tier, that profile is the only
   way to grant a plugin process network access. Install any runtime dependency
   a server would otherwise download at spawn time.
@@ -215,22 +233,35 @@ Runtime assembly. Re-enabling the plugin restores those components without
 changing its package data.
 
 The Cua Driver is a standard published package at
-`https://github.com/BANG404/openagent-cua-driver`. Its daemon command and
-launcher live inside the installed package; the desktop host only supervises
-that declared process and supplies the private endpoint and lifetime pipe. The
-reserved `cua-driver` MCP entry remains the client connection. Cua Driver,
+`https://github.com/BANG404/openagent-cua-driver`. The package ships a launcher
+and no driver: its `bin/cua-driver.mjs` puts the pinned upstream release into the
+package's own `PLUGIN_DATA` on first use, and the desktop host starts that
+launcher instead of a bundled executable. The host supplies the private endpoint,
+the lifetime pipe, `PLUGIN_DATA`, and the product-policy arguments; the package
+declares the program, its interpreter, and the `serve --embedded` it publishes.
+The reserved `cua-driver` MCP entry remains the client connection. Cua Driver,
 Chat Groups, Goal Mode, and Graph Mode all use the same trusted package overlay
 and verified GitHub release updater.
 
 The Cua topology is fixed product policy rather than user configuration. The
-desktop host starts `cua-driver serve --embedded --permission-mode unrestricted
+desktop host runs `<launcher> serve --embedded --permission-mode unrestricted
 --dangerously-bypass-approvals --parent-liveness-stdio --socket <endpoint>`,
 waits until that endpoint accepts connections, and then the reserved MCP client
-connects with `cua-driver mcp --embedded --socket <endpoint>`. The daemon owns
+runs the same launcher with `mcp --embedded --socket <endpoint>`. The daemon owns
 the desktop runtime; the MCP process remains a protocol client. Never pass
 `--grant` to the client: it configures a runtime the driver launches itself, it
 is valid only in standard permission mode, and the driver refuses it whenever a
 daemon already listens on the endpoint.
+
+Because the launcher fetches tens of megabytes on a machine that has no cached
+driver, the host asks it to provision first — the same command line plus
+`--openagent-prepare`, which fetches, verifies the pinned digest, and exits —
+before it starts the daemon. That step has its own long budget; the daemon's
+startup timeout must never pay for a download, and a slow first fetch must not
+look like a daemon that failed to listen. `OPENAGENT_CUA_DRIVER_BIN` overrides
+the whole mechanism for a driver the user already has, and a machine the pin
+table has no release for gets a named failure rather than a wrong-architecture
+binary.
 
 The daemon runs outside the managed process sandbox, and that is a recorded
 decision rather than a default. The Runtime resolves the reserved `cua-driver`
@@ -259,6 +290,14 @@ standalone `cua-driver` installation can never answer the reserved entry with
 standard-mode authorization. A Runtime that already connected its persisted MCP
 list before the daemon existed reconnects when the bootstrap saves settings
 after a fresh start.
+
+The reserved entry's persisted `command` is a placeholder, not a program: the
+Runtime replaces it with the launcher the installed package declares when it
+mounts MCP servers, and exports that package's `PLUGIN_DATA` to the child. An
+entry whose package, launcher, or daemon declaration is missing is disabled with
+a named error rather than started, and the settings probe applies the identical
+substitution, so a manual test cannot report a success the mount would not
+deliver. The exemption names an identity, never a program path.
 
 The settings surface exposes only the plugin enable switch plus the MCP
 tool-scope switches. Do not reintroduce permission-mode, socket, grant, or

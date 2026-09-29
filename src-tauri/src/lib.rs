@@ -4117,22 +4117,22 @@ fn cua_driver_endpoint_path() -> String {
     }
 }
 
-/// The fixed `cua-driver serve` command line. Permission mode, socket, grants,
-/// and capability manifests are product policy: the daemon always runs
-/// unrestricted on the product's private endpoint, so no per-user input is
-/// involved.
+/// The product-policy arguments of the reserved daemon's command line.
 ///
-/// `--embedded` and `--parent-liveness-stdio` are the driver's embedding
-/// contract. Embedded mode keeps the driver inside this product's authorization
-/// identity: it never prompts and never relaunches itself as the standalone app.
-/// The liveness flag makes the daemon treat EOF on its own stdin as loss of the
-/// desktop host, which is the same control-pipe contract the supervised Runtime
-/// speaks, and the only one that also works on macOS and Linux.
+/// The subcommand and the embedding identity come from the installed package,
+/// which declares what it publishes (`serve --embedded`); everything here is
+/// policy the host owns rather than something a package decides. Permission
+/// mode, socket, grants, and capability manifests are product policy: the daemon
+/// always runs unrestricted on the product's private endpoint, so no per-user
+/// input is involved.
+///
+/// `--parent-liveness-stdio` is the driver's liveness contract. It makes the
+/// daemon treat EOF on its own stdin as loss of the desktop host, which is the
+/// same control-pipe contract the supervised Runtime speaks, and the only one
+/// that also works on macOS and Linux.
 #[cfg(feature = "embedded-runtime")]
 fn cua_driver_serve_args() -> Vec<String> {
     [
-        "serve",
-        "--embedded",
         "--permission-mode",
         "unrestricted",
         "--dangerously-bypass-approvals",
@@ -4143,6 +4143,25 @@ fn cua_driver_serve_args() -> Vec<String> {
     .map(str::to_owned)
     .chain(std::iter::once(cua_driver_endpoint_path()))
     .collect()
+}
+
+/// The complete command line of the reserved daemon.
+///
+/// The kernel resolved the program and its leading arguments when it resolved
+/// the daemon — an interpreter and the package's own file, for a JavaScript
+/// launcher — so this appends the policy tail to that descriptor instead of
+/// interpreting the launch a second time. A host that re-derived the rule here is
+/// how `node` ends up being started as if it were the script.
+#[cfg(feature = "embedded-runtime")]
+fn cua_driver_launch_args(
+    launch: &openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
+) -> Vec<String> {
+    launch
+        .args
+        .iter()
+        .cloned()
+        .chain(cua_driver_serve_args())
+        .collect()
 }
 
 /// Bundle identifier of the installed app that owns the daemon, as pinned in
@@ -4158,20 +4177,44 @@ const CUA_DRIVER_HOST_BUNDLE_ID: &str = "com.iumm.openagent";
 /// The permission values repeat the command line because the driver documents an
 /// explicit two-part environment contract for unrestricted embedding and refuses
 /// contradictory values; repeating the same value is not a contradiction.
+///
+/// `PLUGIN_DATA` is the package's own writable directory. The package ships a
+/// launcher rather than a driver, and a launcher that has to fetch the program it
+/// runs must not write into the immutable package it was loaded from.
 #[cfg(feature = "embedded-runtime")]
-fn cua_driver_serve_environment() -> [(&'static str, &'static str); 5] {
-    [
-        ("CUA_DRIVER_EMBEDDED", "1"),
-        ("CUA_DRIVER_PERMISSION_MODE", "unrestricted"),
-        ("CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS", "1"),
-        ("CUA_DRIVER_PARENT_LIVENESS_STDIN", "1"),
-        ("CUA_DRIVER_HOST_BUNDLE_ID", CUA_DRIVER_HOST_BUNDLE_ID),
+fn cua_driver_serve_environment(
+    launch: &openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
+) -> Vec<(&'static str, String)> {
+    vec![
+        ("CUA_DRIVER_EMBEDDED", "1".to_string()),
+        ("CUA_DRIVER_PERMISSION_MODE", "unrestricted".to_string()),
+        ("CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS", "1".to_string()),
+        ("CUA_DRIVER_PARENT_LIVENESS_STDIN", "1".to_string()),
+        (
+            "CUA_DRIVER_HOST_BUNDLE_ID",
+            CUA_DRIVER_HOST_BUNDLE_ID.to_string(),
+        ),
+        ("PLUGIN_DATA", launch.data_root.clone()),
     ]
 }
 
 /// How long the host waits for a freshly spawned daemon to accept connections.
 #[cfg(feature = "embedded-runtime")]
 const CUA_DRIVER_STARTUP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
+
+/// Argument the reserved launcher accepts to provision the driver it runs and
+/// exit without starting it.
+#[cfg(feature = "embedded-runtime")]
+const CUA_DRIVER_PREPARE_ARG: &str = "--openagent-prepare";
+
+/// How long the package's launcher may spend provisioning the driver it runs.
+///
+/// The launcher fetches tens of megabytes and verifies a digest, with its own
+/// two-minute budget for the transfer alone; this is the budget for the whole
+/// step, and it is deliberately not the daemon's startup timeout, which is the
+/// wait that must never pay for a download.
+#[cfg(feature = "embedded-runtime")]
+const CUA_DRIVER_PREPARE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(600);
 
 /// How long the host waits for a daemon to act on a shutdown request.
 #[cfg(feature = "embedded-runtime")]
@@ -4260,8 +4303,9 @@ fn wait_for_cua_driver_endpoint(
 }
 
 /// Path of the advisory lock that records which process owns the reserved
-/// endpoint. It lives beside the staged releases so one cache directory answers
-/// both "which driver is this" and "who is serving it".
+/// endpoint. It lives in the per-user cache because ownership is a property of
+/// this machine's desktop host rather than of the driver the installed package
+/// supplies.
 #[cfg(feature = "embedded-runtime")]
 fn cua_driver_owner_lock_path() -> Option<std::path::PathBuf> {
     cua_driver_staging_root().map(|root| root.join("owner").join("daemon.lock"))
@@ -4378,27 +4422,20 @@ fn cua_driver_stop_daemon(
     endpoint: &str,
     launch: &openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
 ) -> Result<std::process::ExitStatus, String> {
-    use std::process::{Command, Stdio};
+    use std::process::Stdio;
 
-    let mut command = if launch.command.ends_with(".mjs") || launch.command.ends_with(".js") {
-        let mut command = Command::new("node");
-        command.arg(&launch.command);
-        command
-    } else {
-        Command::new(&launch.command)
-    };
-    command
-        .args(["stop", "--socket", endpoint])
-        .current_dir(&launch.root)
+    // The stop client is the same package launcher, told a different subcommand:
+    // the descriptor's own arguments first, then the product's stop topology.
+    let mut args = launch.launcher_args.clone();
+    args.extend([
+        "stop".to_string(),
+        "--socket".to_string(),
+        endpoint.to_string(),
+    ]);
+    let mut stopping = cua_driver_launcher_process(launch, args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null());
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        command.creation_flags(0x0800_0000);
-    }
-    let mut stopping = command
+        .stderr(Stdio::null())
         .spawn()
         .map_err(|error| format!("Failed to stop the Cua Driver daemon: {error}"))?;
     let deadline = std::time::Instant::now() + CUA_DRIVER_STOP_TIMEOUT;
@@ -4509,6 +4546,127 @@ struct CuaDriverDaemon {
 static CUA_DRIVER_SERVE_CHILD: std::sync::OnceLock<std::sync::Mutex<Option<CuaDriverDaemon>>> =
     std::sync::OnceLock::new();
 
+/// The reserved launcher, started the way this run resolved it.
+///
+/// Every invocation of the package's launcher — provisioning it, serving it,
+/// stopping it — goes through this one shape, so the program, the working
+/// directory, and the stop window cannot diverge. The environment is the
+/// caller's: the embedded contract belongs to the daemon, and the launcher needs
+/// only `PLUGIN_DATA` to find the driver it runs.
+#[cfg(feature = "embedded-runtime")]
+fn cua_driver_launcher_process(
+    launch: &openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
+    args: Vec<String>,
+) -> std::process::Command {
+    let mut command = std::process::Command::new(&launch.command);
+    command
+        .args(args)
+        .env("PLUGIN_DATA", &launch.data_root)
+        .current_dir(&launch.root);
+    // The release host is a `windows`-subsystem process without a console, so a
+    // console-subsystem child created without CREATE_NO_WINDOW allocates its own
+    // visible terminal window beside the product window. Startup starts this
+    // daemon whenever the reserved entry is enabled and the package's launcher is
+    // a console program too, so the flag keeps every one of those starts out of
+    // the user's taskbar.
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x0800_0000);
+    }
+    command
+}
+
+/// The launcher invocation that provisions or starts the daemon, which is the
+/// only one that carries the embedded contract's environment.
+#[cfg(feature = "embedded-runtime")]
+fn cua_driver_launcher_command(
+    launch: &openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
+    args: Vec<String>,
+) -> std::process::Command {
+    let mut command = cua_driver_launcher_process(launch, args);
+    command.envs(cua_driver_serve_environment(launch));
+    command
+}
+
+/// The daemon's own command line, asking the launcher to provision the driver it
+/// runs and exit instead of starting it.
+#[cfg(feature = "embedded-runtime")]
+fn cua_driver_prepare_args(
+    launch: &openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
+) -> Vec<String> {
+    cua_driver_launch_args(launch)
+        .into_iter()
+        .chain([CUA_DRIVER_PREPARE_ARG.to_string()])
+        .collect()
+}
+
+/// Put the driver the package's launcher runs on disk before anything supervises
+/// it as a daemon.
+///
+/// The package ships a launcher, not a driver, so the first launch fetches the
+/// pinned release and verifies its digest; `--openagent-prepare` makes that the
+/// whole job and exits. Leaving it to the daemon's start would spend the daemon's
+/// startup budget on a network download and then kill the daemon for being slow,
+/// which is a failure the user cannot act on. The download gets a budget that is
+/// about the network instead, and the daemon's own start stays a spawn.
+#[cfg(feature = "embedded-runtime")]
+fn prepare_cua_driver(
+    launch: &openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
+) -> Result<(), String> {
+    use std::io::Read;
+    use std::process::Stdio;
+
+    let mut child = cua_driver_launcher_command(launch, cua_driver_prepare_args(launch))
+        .stdin(Stdio::null())
+        // The launcher promises nothing on stdout — for the client subcommand
+        // that pipe is the MCP transport — so the host reads only its stderr.
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("Failed to provision the Cua Driver: {error}"))?;
+    let diagnostics = child.stderr.take().map(|stderr| {
+        std::thread::spawn(move || {
+            let mut text = String::new();
+            let _ = std::io::BufReader::new(stderr).read_to_string(&mut text);
+            text
+        })
+    });
+    let deadline = std::time::Instant::now() + CUA_DRIVER_PREPARE_TIMEOUT;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if std::time::Instant::now() < deadline => {
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Ok(None) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!(
+                    "the Cua Driver package did not finish provisioning within {}s",
+                    CUA_DRIVER_PREPARE_TIMEOUT.as_secs()
+                ));
+            }
+            Err(error) => return Err(format!("Cua Driver provisioning status failed: {error}")),
+        }
+    };
+    if status.success() {
+        return Ok(());
+    }
+    let diagnostics = diagnostics
+        .and_then(|reader| reader.join().ok())
+        .map(|text| text.trim().to_string())
+        .filter(|text| !text.is_empty());
+    Err(match diagnostics {
+        Some(diagnostics) => {
+            format!("the Cua Driver package could not prepare its driver: {diagnostics}")
+        }
+        None => {
+            format!("the Cua Driver package could not prepare its driver (exit status {status})")
+        }
+    })
+}
+
 /// Spawn the daemon on an endpoint this process owns and wait until it listens.
 ///
 /// The caller stores the result while it still holds the serve state lock, so
@@ -4519,7 +4677,7 @@ fn spawn_cua_driver_daemon(
     owner: Option<std::fs::File>,
     launch: &openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
 ) -> Result<CuaDriverDaemon, String> {
-    use std::process::{Command, Stdio};
+    use std::process::Stdio;
 
     // Every plugin process carries a policy the kernel resolved for it, and this
     // is where the host consumes the daemon's. The reserved Cua topology is
@@ -4549,32 +4707,11 @@ fn spawn_cua_driver_daemon(
         }
     }
 
-    let mut command = if launch.command.ends_with(".mjs") || launch.command.ends_with(".js") {
-        let mut command = Command::new("node");
-        command.arg(&launch.command);
-        command
-    } else {
-        Command::new(&launch.command)
-    };
-    command
-        .args(&launch.args)
-        .args(cua_driver_serve_args().into_iter().skip(2))
-        .envs(cua_driver_serve_environment())
-        .current_dir(&launch.root)
+    prepare_cua_driver(launch)?;
+    let mut spawned = cua_driver_launcher_command(launch, cua_driver_launch_args(launch))
         .stdin(Stdio::piped())
         .stdout(Stdio::null())
-        .stderr(Stdio::piped());
-    // The release host is a `windows`-subsystem process without a console, so a
-    // console-subsystem daemon created without CREATE_NO_WINDOW allocates its
-    // own visible terminal window beside the product window. Startup starts this
-    // daemon whenever the reserved entry is enabled, so the flag keeps it out of
-    // every packaged launch.
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        command.creation_flags(0x0800_0000);
-    }
-    let mut spawned = command
+        .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| format!("Failed to start Cua Driver serve: {error}"))?;
     let Some(stdin) = spawned.stdin.take() else {
@@ -4795,243 +4932,18 @@ async fn start_cua_driver_serve() -> Result<bool, String> {
     ensure_cua_driver_serve().await
 }
 
-fn cua_driver_binary_name() -> &'static str {
-    #[cfg(windows)]
-    {
-        "cua-driver.exe"
-    }
-    #[cfg(not(windows))]
-    {
-        "cua-driver"
-    }
-}
-
-fn is_valid_cua_driver_directory(directory: &std::path::Path) -> bool {
-    directory.is_dir() && directory.join(cua_driver_binary_name()).is_file()
-}
-
-fn first_valid_cua_driver_directory(
-    candidates: impl IntoIterator<Item = std::path::PathBuf>,
-) -> Option<std::path::PathBuf> {
-    candidates
-        .into_iter()
-        .find(|directory| is_valid_cua_driver_directory(directory))
-}
-
-/// Key naming the staged copy of one pinned Cua Driver release.
+/// Per-user directory whose only remaining content is the reserved endpoint's
+/// owner lock.
 ///
-/// `prepare:cua-driver` records the pinned release asset and its digest beside
-/// the binary, so the digest identifies the driver the bundled resources
-/// contain.
-fn cua_driver_resource_key(directory: &std::path::Path) -> Option<String> {
-    let marker = std::fs::read_to_string(directory.join("openagent-resource.json")).ok()?;
-    let marker: serde_json::Value = serde_json::from_str(&marker).ok()?;
-    let digest = marker.get("sha256")?.as_str()?.trim().to_ascii_lowercase();
-    (digest.len() == 64 && digest.bytes().all(|byte| byte.is_ascii_hexdigit())).then_some(digest)
-}
-
-/// Per-user root for staged Cua Driver releases.
+/// The name is older than what it holds: the host used to stage the driver
+/// release it bundled here, and the lock lives beside that history so one cache
+/// directory answers "who is serving the reserved endpoint". A package now owns
+/// the driver and caches it under its own `PLUGIN_DATA`, so nothing stages
+/// releases here, and the directory is deliberately not cleaned up: the lock is
+/// per-user state that has to survive a rebuild.
+#[cfg(feature = "embedded-runtime")]
 fn cua_driver_staging_root() -> Option<std::path::PathBuf> {
     dirs::cache_dir().map(|directory| directory.join("openagent").join("cua-driver"))
-}
-
-fn copy_directory_tree(
-    source: &std::path::Path,
-    destination: &std::path::Path,
-) -> std::io::Result<()> {
-    std::fs::create_dir_all(destination)?;
-    for entry in std::fs::read_dir(source)? {
-        let entry = entry?;
-        let target = destination.join(entry.file_name());
-        if entry.path().is_dir() {
-            copy_directory_tree(&entry.path(), &target)?;
-        } else {
-            std::fs::copy(entry.path(), &target)?;
-        }
-    }
-    Ok(())
-}
-
-/// Marker files an earlier build wrote into the cache root itself.
-///
-/// They are named here because they are not part of the driver bundle, so the
-/// bundle listing cannot identify them.
-const CUA_DRIVER_LEGACY_ROOT_FILES: [&str; 3] = [
-    "openagent-capabilities.json",
-    "openagent-capabilities.yaml",
-    "openagent-resource.json",
-];
-
-/// Whether a directory name is one of the digest keys this layout stages under.
-fn is_cua_driver_release_key(name: &str) -> bool {
-    name.len() == 64 && name.bytes().all(|byte| byte.is_ascii_hexdigit())
-}
-
-/// Remove staged releases other than the current one, and the flat artifacts an
-/// earlier layout left behind in the cache root.
-///
-/// Best effort: another OpenAgent process may still be serving a driver from its
-/// own staged copy, which no platform has to let this process delete.
-///
-/// Only two shapes are removed: release directories that are not the current
-/// digest, and root-level files the bundled release also contains — the pre-digest
-/// layout copied the bundle straight into the root, where pruning directories
-/// alone left it behind forever. Everything else stays: a concurrent stage's
-/// temporary directory, the owner lock directory, and any directory whose name is
-/// not a release digest.
-fn prune_staged_cua_driver_releases(
-    root: &std::path::Path,
-    current: &str,
-    bundled: &std::path::Path,
-) {
-    let Ok(entries) = std::fs::read_dir(root) else {
-        return;
-    };
-    let legacy: std::collections::HashSet<std::ffi::OsString> = std::fs::read_dir(bundled)
-        .map(|entries| {
-            entries
-                .flatten()
-                .map(|entry| entry.file_name())
-                .collect::<std::collections::HashSet<_>>()
-        })
-        .unwrap_or_default();
-    for entry in entries.flatten() {
-        let name = entry.file_name();
-        // Leave a concurrent stage's temporary directory alone.
-        if name.to_string_lossy().starts_with('.') {
-            continue;
-        }
-        let path = entry.path();
-        let superseded_release = path.is_dir()
-            && name.to_string_lossy() != current
-            && is_cua_driver_release_key(&name.to_string_lossy());
-        let legacy_root_file = path.is_file()
-            && (legacy.contains(&name)
-                || CUA_DRIVER_LEGACY_ROOT_FILES
-                    .iter()
-                    .any(|legacy_name| name == *legacy_name));
-        if !superseded_release && !legacy_root_file {
-            continue;
-        }
-        tracing::debug!(path = %path.display(), "removing a stale staged Cua Driver");
-        if path.is_dir() {
-            let _ = std::fs::remove_dir_all(&path);
-        } else {
-            let _ = std::fs::remove_file(&path);
-        }
-    }
-}
-
-/// Copy one bundled Cua Driver release into the per-user cache and return the
-/// directory the daemon must start from.
-///
-/// The bundled resource directory belongs to the build and the installer: a
-/// development rebuild rewrites it in place, and writing to the file a live
-/// daemon is executing fails with `ETXTBSY` on Unix and with a sharing
-/// violation on Windows. Staging also keeps a rebuild from replacing the
-/// release the running daemon already serves.
-fn stage_cua_driver_release(
-    directory: &std::path::Path,
-    root: &std::path::Path,
-) -> Result<std::path::PathBuf, String> {
-    let Some(key) = cua_driver_resource_key(directory) else {
-        return Err("the bundled Cua Driver release marker is unavailable".to_string());
-    };
-    let staged = root.join(&key);
-    if is_valid_cua_driver_directory(&staged) {
-        return Ok(staged);
-    }
-    std::fs::create_dir_all(root)
-        .map_err(|error| format!("Failed to create {}: {error}", root.display()))?;
-    let temporary = root.join(format!(".{key}.{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&temporary);
-    let staged_release = copy_directory_tree(directory, &temporary).and_then(|()| {
-        if staged.exists() {
-            std::fs::remove_dir_all(&staged)?;
-        }
-        std::fs::rename(&temporary, &staged)
-    });
-    if let Err(error) = staged_release {
-        let _ = std::fs::remove_dir_all(&temporary);
-        return Err(format!(
-            "Failed to stage the bundled Cua Driver at {}: {error}",
-            staged.display()
-        ));
-    }
-    prune_staged_cua_driver_releases(root, &key, directory);
-    Ok(staged)
-}
-
-/// Directory the bundled Cua Driver daemon must start from.
-///
-/// Fall back to the bundled directory when the per-user cache or the release
-/// marker is unavailable: the daemon must still start, and the failure is
-/// reported where the bundled resource is configured.
-fn staged_cua_driver_directory(directory: std::path::PathBuf) -> std::path::PathBuf {
-    let Some(root) = cua_driver_staging_root() else {
-        tracing::debug!(
-            path = %directory.display(),
-            "per-user cache directory is unavailable for the bundled Cua Driver"
-        );
-        return directory;
-    };
-    match stage_cua_driver_release(&directory, &root) {
-        Ok(staged) => staged,
-        Err(error) => {
-            tracing::warn!(%error, "falling back to the bundled Cua Driver directory");
-            directory
-        }
-    }
-}
-
-fn prepend_cua_driver_directory_to_path(directory: std::path::PathBuf) -> Result<bool, String> {
-    if !is_valid_cua_driver_directory(&directory) {
-        return Ok(false);
-    }
-
-    let current = std::env::var_os("PATH").unwrap_or_default();
-    let mut entries: Vec<_> = std::env::split_paths(&current).collect();
-    if entries.first() != Some(&directory) {
-        entries.insert(0, directory.clone());
-    }
-    let path = std::env::join_paths(entries)
-        .map_err(|error| format!("Failed to prepend bundled Cua Driver to PATH: {error}"))?;
-    std::env::set_var("PATH", path);
-    tracing::debug!(path = %directory.display(), "bundled Cua Driver path configured");
-    Ok(true)
-}
-
-#[cfg(debug_assertions)]
-fn development_cua_driver_directory() -> Option<std::path::PathBuf> {
-    let mut candidates = vec![
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("resources")
-            .join("cua-driver"),
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("target")
-            .join("debug")
-            .join("cua-driver"),
-    ];
-    if let Ok(executable) = std::env::current_exe() {
-        if let Some(parent) = executable.parent() {
-            candidates.insert(0, parent.join("cua-driver"));
-        }
-    }
-    first_valid_cua_driver_directory(candidates).map(staged_cua_driver_directory)
-}
-
-#[cfg(debug_assertions)]
-fn prepend_development_cua_driver_to_path() -> Result<bool, String> {
-    let Some(directory) = development_cua_driver_directory() else {
-        tracing::debug!("bundled Cua Driver development resource is unavailable");
-        return Ok(false);
-    };
-    prepend_cua_driver_directory_to_path(directory)
-}
-
-#[cfg(not(debug_assertions))]
-fn prepend_development_cua_driver_to_path() -> Result<bool, String> {
-    Ok(false)
 }
 
 async fn start_runtime_spec(
@@ -5192,10 +5104,6 @@ mod single_instance_tests {
 #[allow(clippy::too_many_lines)]
 fn run_with_mode(agent_server: bool) {
     // NOSONAR: this protocol or state boundary is intentionally kept together for auditability.
-    if cfg!(debug_assertions) {
-        prepend_development_cua_driver_to_path()
-            .unwrap_or_else(|error| panic!("Failed to configure Cua Driver: {error}"));
-    }
     let external_launch = if !agent_server {
         match prepare_interactive_persistence() {
             Ok(Some(launch)) => Some(launch),
@@ -5979,33 +5887,40 @@ mod tests {
         assert!(state.rejects_frontend_confirmation());
     }
 
-    #[test]
-    fn bundled_cua_driver_selection_skips_missing_candidates() {
-        let root = std::env::temp_dir().join(format!(
-            "openagent-cua-driver-test-{}",
-            uuid::Uuid::new_v4()
-        ));
-        let missing = root.join("missing");
-        let valid = root.join("valid");
-        std::fs::create_dir_all(&valid).expect("create Cua Driver fixture");
-        std::fs::write(valid.join(cua_driver_binary_name()), b"fixture")
-            .expect("write Cua Driver fixture");
+    /// The reserved daemon launch, as the kernel resolves it for the Cua Driver
+    /// package: an interpreter, the package's own launcher, and the `serve
+    /// --embedded` the package declares.
+    #[cfg(feature = "embedded-runtime")]
+    fn cua_driver_launch_fixture(
+        data_root: &str,
+    ) -> openagent_runtime::agent_plugins::AgentPluginDaemonLaunch {
+        use openagent_runtime::agent_plugins::AgentPluginDaemonLaunch;
+        use openagent_runtime::plugin_process_policy::PluginProcessPolicy;
 
-        assert_eq!(
-            first_valid_cua_driver_directory([missing, valid.clone()]),
-            Some(valid.clone())
-        );
-        std::fs::remove_dir_all(root).expect("remove Cua Driver fixture");
+        let launcher = "/packages/cua-driver/bin/cua-driver.mjs".to_string();
+        AgentPluginDaemonLaunch {
+            plugin_id: "cua-driver".to_string(),
+            root: "/packages/cua-driver".to_string(),
+            command: "node".to_string(),
+            launcher_args: vec![launcher.clone()],
+            args: vec![launcher, "serve".to_string(), "--embedded".to_string()],
+            transport: "socket".to_string(),
+            capabilities: vec!["desktop-control".to_string()],
+            data_root: data_root.to_string(),
+            process_policy: PluginProcessPolicy::Unmanaged {
+                plugin_id: "cua-driver".to_string(),
+                reason: "the reserved desktop topology is fixed product policy",
+            },
+        }
     }
 
+    #[cfg(feature = "embedded-runtime")]
     #[test]
     fn cua_driver_serve_uses_fixed_unrestricted_flags_and_private_endpoint() {
         let endpoint = cua_driver_endpoint_path();
         assert_eq!(
             cua_driver_serve_args(),
             vec![
-                "serve",
-                "--embedded",
                 "--permission-mode",
                 "unrestricted",
                 "--dangerously-bypass-approvals",
@@ -6029,23 +5944,69 @@ mod tests {
         }
     }
 
+    /// The daemon's command line is the package's declaration followed by the
+    /// host's policy. Neither side re-derives the other: the subcommand and the
+    /// embedding identity come from the manifest, and the program the host starts
+    /// is the one the kernel resolved — never `node` interpreted a second time.
+    #[cfg(feature = "embedded-runtime")]
+    #[test]
+    fn cua_driver_launch_arguments_extend_the_package_declaration() {
+        let launch = cua_driver_launch_fixture("C:/plugin-data/cua-driver");
+        let args = cua_driver_launch_args(&launch);
+
+        assert_eq!(args[0], launch.launcher_args[0]);
+        assert_eq!(
+            args,
+            vec![
+                launch.launcher_args[0].clone(),
+                "serve".to_string(),
+                "--embedded".to_string(),
+                "--permission-mode".to_string(),
+                "unrestricted".to_string(),
+                "--dangerously-bypass-approvals".to_string(),
+                "--parent-liveness-stdio".to_string(),
+                "--socket".to_string(),
+                cua_driver_endpoint_path(),
+            ]
+        );
+    }
+
+    /// Provisioning is the same launch with one more argument, because the
+    /// launcher that fetches the driver is the launcher that runs it.
+    #[cfg(feature = "embedded-runtime")]
+    #[test]
+    fn cua_driver_prepare_requests_the_same_launch() {
+        let launch = cua_driver_launch_fixture("C:/plugin-data/cua-driver");
+        assert_eq!(
+            cua_driver_prepare_args(&launch),
+            cua_driver_launch_args(&launch)
+                .into_iter()
+                .chain([CUA_DRIVER_PREPARE_ARG.to_string()])
+                .collect::<Vec<_>>()
+        );
+    }
+
     /// The daemon has to be told twice that it is embedded and unrestricted: the
     /// command line carries the flags the host starts it with, and the
     /// environment carries the same values for the driver's two-part embedding
-    /// contract, which refuses contradictory values.
+    /// contract, which refuses contradictory values. `PLUGIN_DATA` is the one
+    /// variable the package's launcher cannot run without.
+    #[cfg(feature = "embedded-runtime")]
     #[test]
     fn cua_driver_serve_environment_matches_the_embedded_contract() {
-        let environment = cua_driver_serve_environment()
-            .into_iter()
-            .collect::<Vec<_>>();
+        let launch = cua_driver_launch_fixture("C:/plugin-data/cua-driver");
         assert_eq!(
-            environment,
+            cua_driver_serve_environment(&launch),
             vec![
-                ("CUA_DRIVER_EMBEDDED", "1"),
-                ("CUA_DRIVER_PERMISSION_MODE", "unrestricted"),
-                ("CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS", "1"),
-                ("CUA_DRIVER_PARENT_LIVENESS_STDIN", "1"),
-                ("CUA_DRIVER_HOST_BUNDLE_ID", CUA_DRIVER_HOST_BUNDLE_ID),
+                ("CUA_DRIVER_EMBEDDED", "1".to_string()),
+                ("CUA_DRIVER_PERMISSION_MODE", "unrestricted".to_string()),
+                ("CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS", "1".to_string()),
+                ("CUA_DRIVER_PARENT_LIVENESS_STDIN", "1".to_string()),
+                (
+                    "CUA_DRIVER_HOST_BUNDLE_ID",
+                    CUA_DRIVER_HOST_BUNDLE_ID.to_string()
+                ),
+                ("PLUGIN_DATA", "C:/plugin-data/cua-driver".to_string()),
             ]
         );
     }
@@ -6054,6 +6015,7 @@ mod tests {
     /// peer's: a live owner's daemon is never reclaimed — only a lock this
     /// process took, beside a daemon that still answers, may be stopped — and a
     /// peer that has not finished starting is waited on rather than raced.
+    #[cfg(feature = "embedded-runtime")]
     #[test]
     fn cua_driver_launch_plan_never_replaces_a_live_peers_daemon() {
         let owned = CuaDriverOwnership::Owned(tempfile::tempfile().expect("owner lock stand-in"));
@@ -6083,6 +6045,7 @@ mod tests {
     /// The bundle identifier is an advisory label the driver compares with the
     /// bundle identity macOS resolves for the host, so it has to be the installed
     /// app's identifier rather than a development instance's rewritten one.
+    #[cfg(feature = "embedded-runtime")]
     #[test]
     fn cua_driver_host_bundle_id_matches_the_tauri_identifier() {
         let configuration = std::fs::read_to_string(
@@ -6140,158 +6103,6 @@ mod tests {
         drop(contender);
         std::fs::remove_dir_all(path.parent().expect("owner lock parent"))
             .expect("remove owner lock fixture");
-    }
-
-    #[test]
-    fn cua_driver_release_directories_are_digest_keyed() {
-        assert!(is_cua_driver_release_key(
-            "120cd7f40340c5e012422aca393932767e228c224dd8b9df2124ca29c5e48226"
-        ));
-        assert!(!is_cua_driver_release_key("120cd7f4"));
-        assert!(!is_cua_driver_release_key("owner"));
-        assert!(!is_cua_driver_release_key("previous-release"));
-        assert!(!is_cua_driver_release_key(
-            "120cd7f40340c5e012422aca393932767e228c224dd8b9df2124ca29c5e4822z"
-        ));
-    }
-
-    #[test]
-    fn cua_driver_release_key_requires_the_prepare_marker() {
-        let root =
-            std::env::temp_dir().join(format!("openagent-cua-key-test-{}", uuid::Uuid::new_v4()));
-        std::fs::create_dir_all(&root).expect("create Cua Driver key fixture");
-
-        assert_eq!(cua_driver_resource_key(&root), None);
-
-        std::fs::write(root.join("openagent-resource.json"), "{ not json")
-            .expect("write malformed Cua Driver marker");
-        assert_eq!(cua_driver_resource_key(&root), None);
-
-        std::fs::write(
-            root.join("openagent-resource.json"),
-            r#"{"sha256":"120CD7F40340C5E012422ACA393932767E228C224DD8B9DF2124CA29C5E48226"}"#,
-        )
-        .expect("write Cua Driver marker");
-        assert_eq!(
-            cua_driver_resource_key(&root),
-            Some("120cd7f40340c5e012422aca393932767e228c224dd8b9df2124ca29c5e48226".to_string())
-        );
-
-        std::fs::write(
-            root.join("openagent-resource.json"),
-            r#"{"sha256":"120cd7f4"}"#,
-        )
-        .expect("write truncated Cua Driver marker");
-        assert_eq!(cua_driver_resource_key(&root), None);
-
-        std::fs::remove_dir_all(root).expect("remove Cua Driver key fixture");
-    }
-
-    #[test]
-    fn staged_cua_driver_release_reuses_one_copy_per_pinned_release() {
-        let root =
-            std::env::temp_dir().join(format!("openagent-cua-stage-test-{}", uuid::Uuid::new_v4()));
-        let bundle = root.join("bundle");
-        let cache = root.join("cache");
-        std::fs::create_dir_all(bundle.join("wayland-helper")).expect("create Cua Driver bundle");
-        std::fs::write(bundle.join(cua_driver_binary_name()), b"fixture")
-            .expect("write Cua Driver fixture");
-        std::fs::write(bundle.join("wayland-helper").join("helper"), b"helper")
-            .expect("write Cua Driver helper fixture");
-        let digest = "120cd7f40340c5e012422aca393932767e228c224dd8b9df2124ca29c5e48226";
-        std::fs::write(
-            bundle.join("openagent-resource.json"),
-            format!(r#"{{"sha256":"{digest}"}}"#),
-        )
-        .expect("write Cua Driver marker");
-
-        let staged = stage_cua_driver_release(&bundle, &cache).expect("stage bundled Cua Driver");
-        assert_eq!(staged, cache.join(digest));
-        assert!(is_valid_cua_driver_directory(&staged));
-        assert!(staged.join("wayland-helper").join("helper").is_file());
-
-        // A later launch reuses the staged release instead of rewriting it,
-        // which is what keeps a rebuild from replacing a running daemon.
-        std::fs::write(staged.join("sentinel"), b"kept").expect("mark staged Cua Driver copy");
-        assert_eq!(
-            stage_cua_driver_release(&bundle, &cache).expect("reuse staged Cua Driver"),
-            staged
-        );
-        assert!(staged.join("sentinel").is_file());
-
-        std::fs::remove_dir_all(root).expect("remove Cua Driver stage fixture");
-    }
-
-    /// Pruning removes exactly two shapes: a release directory staged under a
-    /// digest other than the current one, and the flat artifacts the pre-digest
-    /// layout copied into the cache root. Everything else in the root — a
-    /// concurrent stage's temporary directory, the owner lock directory, a
-    /// foreign file, or a directory that is not a release digest — is not ours
-    /// to delete.
-    #[test]
-    fn staging_cua_driver_prunes_superseded_releases_and_flat_artifacts() {
-        let root =
-            std::env::temp_dir().join(format!("openagent-cua-prune-test-{}", uuid::Uuid::new_v4()));
-        let bundle = root.join("bundle");
-        let cache = root.join("cache");
-        std::fs::create_dir_all(bundle.join("wayland-helper")).expect("create Cua Driver bundle");
-        std::fs::write(bundle.join(cua_driver_binary_name()), b"fixture")
-            .expect("write Cua Driver fixture");
-        std::fs::write(bundle.join("wayland-helper").join("helper"), b"helper")
-            .expect("write Cua Driver helper fixture");
-        let current = "120cd7f40340c5e012422aca393932767e228c224dd8b9df2124ca29c5e48226";
-        std::fs::write(
-            bundle.join("openagent-resource.json"),
-            format!(r#"{{"sha256":"{current}"}}"#),
-        )
-        .expect("write Cua Driver marker");
-
-        let superseded = cache.join("ab".repeat(32));
-        let concurrent = cache.join(format!(".{current}.4242"));
-        let owner = cache.join("owner");
-        let foreign_directory = cache.join("previous-release");
-        std::fs::create_dir_all(&superseded).expect("create superseded Cua Driver release");
-        std::fs::create_dir_all(&concurrent).expect("create concurrent Cua Driver stage");
-        std::fs::create_dir_all(&owner).expect("create Cua Driver owner directory");
-        std::fs::create_dir_all(&foreign_directory).expect("create foreign Cua Driver directory");
-        std::fs::write(owner.join("daemon.lock"), b"").expect("write Cua Driver owner lock");
-        // The flat layout copied the bundle straight into the cache root, so
-        // pruning directories alone left these behind across every upgrade.
-        for flat in [
-            cua_driver_binary_name(),
-            "openagent-resource.json",
-            "openagent-capabilities.yaml",
-        ] {
-            std::fs::write(cache.join(flat), b"legacy").expect("write flat Cua Driver artifact");
-        }
-        std::fs::write(cache.join("notes.txt"), b"mine").expect("write foreign Cua Driver file");
-
-        let staged = stage_cua_driver_release(&bundle, &cache).expect("stage bundled Cua Driver");
-
-        assert_eq!(staged, cache.join(current));
-        assert!(!superseded.exists());
-        for flat in [
-            cua_driver_binary_name(),
-            "openagent-resource.json",
-            "openagent-capabilities.yaml",
-        ] {
-            assert!(!cache.join(flat).exists(), "{flat} survived pruning");
-        }
-        assert!(concurrent.exists(), "a concurrent stage must survive");
-        assert!(
-            owner.join("daemon.lock").is_file(),
-            "the owner lock must survive"
-        );
-        assert!(
-            foreign_directory.exists(),
-            "a directory that is not a release digest must survive"
-        );
-        assert!(
-            cache.join("notes.txt").is_file(),
-            "a foreign file must survive"
-        );
-        assert!(staged.join("wayland-helper").join("helper").is_file());
-        std::fs::remove_dir_all(root).expect("remove Cua Driver prune fixture");
     }
 
     #[test]
