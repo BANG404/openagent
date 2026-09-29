@@ -233,7 +233,7 @@
   center. When no generated suggestions are available, raise that complete stack
   by 24px without positioning the greeting and composer independently. Constrain
   that composer to a 760px outer column. Give its compact
-  textarea more single-line height than the bottom-anchored composer, and keep
+  editor more single-line height than the bottom-anchored composer, and keep
   the loading skeleton at the same expanded height. Do not position the greeting
   and composer independently. Ordinary conversations keep the composer anchored
   to the bottom in the wider 900px outer column. The shared composer and its
@@ -241,7 +241,7 @@
   Keep the model, reasoning-effort, and approval triggers inside that composer
   surface-free at rest; standalone Select material must not leak into the
   toolbar. Keep the composer shell's neutral Mica perimeter unchanged when its
-  textarea receives focus; embedded toolbar controls retain their own focus
+  editor receives focus; embedded toolbar controls retain their own focus
   rings, which expand outside each control boundary instead of inset.
 - Let the conversation shell own the custom title-bar clearance. Keep the
   ordinary transcript's own top inset compact so it does not stack a second
@@ -282,7 +282,7 @@
   direct-send interaction remain browser-verifiable. In
   the centered new-conversation placement, reserve the leading suggestion-icon
   track inside the composer gutter: align the icon with the composer shell and
-  the suggestion copy with the textarea copy instead of centering the copy
+  the suggestion copy with the editor copy instead of centering the copy
   without accounting for the icon.
 - Keep the right-side user-message index on one shared tooltip surface. Its
   hover and focus treatment may extend the marker line but must not paint a

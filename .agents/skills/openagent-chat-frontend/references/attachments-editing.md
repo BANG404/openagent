@@ -14,25 +14,29 @@ must never be offered while the Runtime is drained for component replacement.
   `Add to chat` floating action. Adding it creates a structured `quote` context
   tied to the source assistant message, moves focus to the shared composer, and
   leaves the editable draft text unchanged. Render pending quotes above the
-  textarea with an explicit remove action; queue, submit, restore, branch edit,
-  and remote-gateway flows must preserve the same typed context. Render durable
-  quotes above the user-authored message text, shrink their cards to the visible
-  excerpt up to the available message width, and keep their provider wrapper out
-  of the visible transcript. Pending composer quote rows continue to fill the
-  composer width. Preserve selected KaTeX expressions as Markdown math from the
-  renderer-owned source wrapper instead of copying its visual layout spans, and
-  render that math in pending and durable quote cards.
+  composer editor with an explicit remove action; queue, submit, restore, branch
+  edit, and remote-gateway flows must preserve the same typed context. Render
+  durable quotes above the user-authored message text, shrink their cards to the
+  visible excerpt up to the available message width, and keep their provider
+  wrapper out of the visible transcript. Pending composer quote rows continue to
+  fill the composer width. Preserve selected KaTeX expressions as Markdown math
+  from the renderer-owned source wrapper instead of copying its visual layout
+  spans, and render that math in pending and durable quote cards.
 - Keep pending composer text, attachments, and quoted context isolated by
   conversation while navigating. The new-conversation surface owns a separate
   draft per workspace and role; sending or deleting one conversation must not
   clear another conversation's pending composer state. Write the active reactive
   draft back to its keyed store before swapping the composer to another draft;
   retaining only the pre-proxy source object loses edits made through bindings.
-  Synchronize the single-row textarea's measured height on mount, before the
-  first edit. Start every measurement from its CSS minimum instead of `auto`,
-  then clamp the content height to that minimum so an empty restored draft and
-  its first typed character cannot resize or move the composer across browser
-  engines.
+  A restored draft is projected from the Markdown model through the ordinary
+  projection path, so no textarea-style height measurement runs on mount and an
+  empty restored draft and its first typed character cannot resize or move the
+  composer across browser engines.
+- Render `[Image #N]`/`[File #N]` labels as atomic chips the caret steps over
+  rather than as inline Markdown. Removing one chip's attachment drops exactly
+  its label from the model and leaves the surrounding user text intact; the same
+  chip treatment applies to the label inside the rendered user transcript
+  bubble.
 - Reuse one attachment preview component in composer and restored transcript.
 - Open attachment previews in the same full-window visual frame used by rich
   Mermaid and book previews: center the attachment within the framed canvas and

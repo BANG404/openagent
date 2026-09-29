@@ -73,7 +73,7 @@
   can toggle during the operation. A submission hides the launcher only after
   the target workspace accepted the turn; failures keep it visible with its
   draft intact. Every shortcut reveal must explicitly return DOM focus to the
-  composer textarea after the native launcher window has been shown and focused,
+  composer editor after the native launcher window has been shown and focused,
   and the native focused callback must repeat that request after the operating
   system confirms activation. The persistent hidden window does not remount its
   composer between sessions.
@@ -116,15 +116,15 @@
   the unified card. Each selector trigger owns its leading
   icon, label, and caret as one hover, focus, open-state, and pointer target.
 - Keep the compact composer height bounded and content-driven. Let the shared
-  textarea's measured height grow the card through a small multi-line range;
-  keep its typography and horizontal inset on the ordinary composer's compact
-  14px scale.
+  editor grow the card through its CSS multi-line clamp, then scroll internally
+  past it; keep its typography and horizontal inset on the ordinary composer's
+  compact 14px scale.
   an attachment adds one compact row, and content beyond the maximum scrolls
   internally. Render attachments as a shadowless, single-line compact strip
-  in normal flow above the textarea and scroll it horizontally so scrolled text
+  in normal flow above the editor and scroll it horizontally so scrolled text
   never passes beneath a fixed attachment overlay. Keep attachment and send
   controls vertically aligned at the composer end, and do not render a leading
-  glyph before the quick-chat textarea. Treat the native attachment dialog
+  glyph before the quick-chat editor. Treat the native attachment dialog
   like the workspace picker: suppress focus-close for its full lifetime and
   restore launcher focus after it closes.
 - General settings owns the persisted quick-chat accelerator. Capturing a new

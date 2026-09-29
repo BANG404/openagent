@@ -62,9 +62,9 @@ describe("window focus chrome", () => {
       "if (focusRequest > 0) void focusInputAfterWindowActivation(focusRequest);",
     );
     expect(input).toMatch(
-      /focusInputAfterWindowActivation[\s\S]*?setTimeout\(resolve, 100\)[\s\S]*?focusRequest !== request[\s\S]*?textareaEl\.focus/,
+      /focusInputAfterWindowActivation[\s\S]*?setTimeout\(resolve, 100\)[\s\S]*?focusRequest !== request[\s\S]*?editorEl\.focus/,
     );
-    expect(input).toContain("textareaEl.focus({ preventScroll: true });");
+    expect(input).toContain("editorEl.focus({ preventScroll: true });");
     expect(nativeHost).toMatch(
       /tauri_plugin_single_instance::init[\s\S]*?window\.unminimize\(\)[\s\S]*?window\.show\(\)[\s\S]*?window\.set_focus\(\)[\s\S]*?window\.emit\(DESKTOP_WINDOW_ACTIVATED_EVENT/,
     );

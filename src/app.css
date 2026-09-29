@@ -904,3 +904,82 @@
     animation: none;
   }
 }
+
+/* ─── Markdown projection ────────────────────────────────────────────────────
+   Markup markers are not rendered by `composerDom.ts`; the elements it builds
+   carry `.composer-*` classes. Both the composer's contenteditable editor and
+   the user transcript bubble render through `.composer-md`, so the styles live
+   here rather than in either component's scoped stylesheet. */
+.composer-md {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.composer-md .composer-block {
+  min-height: 1.47em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.composer-md .composer-marker {
+  padding-right: 0.35em;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.composer-md .composer-block-listItem > .composer-marker {
+  display: inline-block;
+  min-width: 1.25em;
+}
+
+.composer-md .composer-block-heading {
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.composer-md .composer-block-heading[data-level="1"] {
+  font-size: 1.4em;
+}
+
+.composer-md .composer-block-heading[data-level="2"] {
+  font-size: 1.26em;
+}
+
+.composer-md .composer-block-heading[data-level="3"] {
+  font-size: 1.14em;
+}
+
+.composer-md .composer-block-heading[data-level="4"],
+.composer-md .composer-block-heading[data-level="5"],
+.composer-md .composer-block-heading[data-level="6"] {
+  font-size: 1.05em;
+}
+
+.composer-md .composer-block-quote {
+  padding-left: 10px;
+  border-left: 2px solid var(--mica-divider);
+  color: var(--text-muted);
+}
+
+.composer-md .composer-chip {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.composer-md .composer-link {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.composer-md code {
+  padding: 0.1em 0.32em;
+  border-radius: 4px;
+  background: var(--surface2);
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.9em;
+}

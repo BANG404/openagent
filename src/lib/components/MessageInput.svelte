@@ -20,7 +20,21 @@
   import ReasoningEffortSelect from "./ReasoningEffortSelect.svelte";
   import WorkspaceSwitcher from "./WorkspaceSwitcher.svelte";
   import { applySlashCommandSelection } from "./slashCommandSelection";
-  import { segmentComposerTokens } from "./composerTokenHighlights";
+  import {
+    insertSoftLineBreak,
+    parseBlocks,
+    removeLineMarker,
+    splice,
+    wordBoundaryAfter,
+    wordBoundaryBefore,
+    type ComposerEdit,
+  } from "$lib/composerMarkdown";
+  import {
+    clearBlocks,
+    getMarkdownSelection,
+    renderBlocks,
+    setMarkdownSelection,
+  } from "$lib/composerDom";
   import { applyComposerFormat, type ComposerFormat } from "./composerFormatting";
   import { t } from "$lib/i18n";
   import { showToast } from "$lib/toast";
@@ -172,9 +186,13 @@
     onResume = () => {},
   }: Props = $props();
 
-  let textareaEl = $state<HTMLTextAreaElement | null>(null);
-  let inputHighlightsEl = $state<HTMLDivElement | null>(null);
+  let editorEl = $state<HTMLDivElement | null>(null);
   let composerEl = $state<HTMLElement | null>(null);
+  // The markdown string is canonical; `lastProjected` is what the editor DOM shows.
+  let lastProjected = "";
+  let composing = $state(false);
+  let undoStack: Array<{ value: string; caret: number }> = [];
+  let redoStack: Array<{ value: string; caret: number }> = [];
   let browserFileInput = $state<HTMLInputElement | null>(null);
   let wasDisabled = $state(false);
   let formatToolbarOpen = $state(false);
@@ -189,7 +207,6 @@
     }
     return references;
   });
-  const highlightedInputSegments = $derived(segmentComposerTokens(value, attachmentReferencePaths));
   const streamingPrimaryTitle = $derived(
     hasComposerContent ? sendTitle : isPaused ? resumeTitle : pauseTitle,
   );
@@ -304,11 +321,11 @@
     const synchronized = synchronizeAttachmentReferences(value, nextAttachments);
     attachments = synchronized.attachments;
     value = synchronized.value;
+    const limit = synchronized.value.length;
     void tick().then(() => {
-      if (!textareaEl) return;
-      textareaEl.focus();
-      textareaEl.setSelectionRange(value.length, value.length);
-      resizeTextarea();
+      if (!editorEl) return;
+      editorEl.focus();
+      setMarkdownSelection(editorEl, limit);
     });
   }
 
@@ -424,10 +441,25 @@
     return attachmentNameSupported(name, allowImageAttachments);
   }
 
+  /** Paste plain text so the markdown model and the editor DOM stay in sync. */
+  function insertPastedText(event: ClipboardEvent) {
+    if (disabled) return;
+    const text = event.clipboardData?.getData("text/plain");
+    if (!text) return;
+    event.preventDefault();
+    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
+    const start = selection?.start ?? value.length;
+    const end = selection?.end ?? start;
+    commitEdit(splice(value, start, end, text.replace(/\r\n?/g, "\n")));
+  }
+
   async function handlePaste(event: ClipboardEvent) {
-    if (!showAttachments) return;
     const files = Array.from(event.clipboardData?.files ?? []);
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      insertPastedText(event);
+      return;
+    }
+    if (!showAttachments) return;
     event.preventDefault();
     if (disabled) return;
 
@@ -516,6 +548,11 @@
     }
 
     const retainedAttachments = attachmentsReferencedByText(value, attachments);
+    for (const attachment of attachments) {
+      if (!retainedAttachments.includes(attachment) && attachment.previewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(attachment.previewUrl);
+      }
+    }
     const synchronized = synchronizeAttachmentReferences(value, retainedAttachments);
     if (
       synchronized.value !== value ||
@@ -552,26 +589,61 @@
         : $t("paletteNoFiles"),
   );
 
-  function resizeTextarea(element: HTMLTextAreaElement | null = textareaEl) {
-    if (!element) return;
-    const minHeight = Number.parseFloat(getComputedStyle(element).minHeight) || 0;
-    element.style.height = `${minHeight}px`;
-    // WebView2 can report a stale scroll height while restoring an empty textarea.
-    if (!element.value) return;
-    element.style.height = `${Math.min(Math.max(element.scrollHeight, minHeight), 200)}px`;
+  const historyLimit = 100;
+
+  /** Rebuild the editor DOM from the canonical markdown and restore the caret. */
+  function project(nextValue: string, start: number, end = start) {
+    if (!editorEl) return;
+    lastProjected = nextValue;
+    if (nextValue.length === 0) clearBlocks(editorEl);
+    else renderBlocks(editorEl, parseBlocks(nextValue, attachmentReferencePaths));
+    setMarkdownSelection(editorEl, start, end);
+    syncPaletteFromCaret();
   }
 
-  function syncInputHighlightScroll(element: HTMLTextAreaElement | null = textareaEl) {
-    if (!element || !inputHighlightsEl) return;
-    inputHighlightsEl.scrollTop = element.scrollTop;
-    inputHighlightsEl.scrollLeft = element.scrollLeft;
+  /** Apply an editor-originated edit: record history, then re-project. */
+  function commit(nextValue: string, start: number, end = start) {
+    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
+    undoStack.push({ value, caret: selection?.start ?? value.length });
+    if (undoStack.length > historyLimit) undoStack.shift();
+    redoStack = [];
+    value = nextValue;
+    project(nextValue, start, end);
+  }
+
+  function commitEdit(edit: ComposerEdit | null) {
+    if (edit) commit(edit.value, edit.caret);
+  }
+
+  function restore(entry: { value: string; caret: number }) {
+    value = entry.value;
+    project(entry.value, Math.min(entry.caret, entry.value.length));
+  }
+
+  function undo() {
+    const entry = undoStack.pop();
+    if (!entry) return;
+    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
+    redoStack.push({ value, caret: selection?.start ?? value.length });
+    restore(entry);
+  }
+
+  function redo() {
+    const entry = redoStack.pop();
+    if (!entry) return;
+    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
+    undoStack.push({ value, caret: selection?.start ?? value.length });
+    restore(entry);
   }
 
   $effect(() => {
-    const draftValue = value;
-    void tick().then(() => {
-      if (textareaEl?.value === draftValue) resizeTextarea();
-    });
+    const nextValue = value;
+    if (!editorEl || composing || nextValue === lastProjected) return;
+    const selection = getMarkdownSelection(editorEl);
+    const limit = nextValue.length;
+    const start = Math.min(selection?.start ?? limit, limit);
+    const end = Math.min(selection?.end ?? start, limit);
+    project(nextValue, start, end);
   });
 
   function syncPaletteAvailableHeight() {
@@ -597,7 +669,6 @@
   });
 
   onMount(() => {
-    resizeTextarea();
     focusInput();
     const syncOpenPalette = () => {
       if (paletteMode) syncPaletteAvailableHeight();
@@ -608,6 +679,11 @@
     window.addEventListener("scroll", syncOpenPalette, true);
     window.visualViewport?.addEventListener("resize", syncOpenPalette);
     window.visualViewport?.addEventListener("scroll", syncOpenPalette);
+    // `select` does not fire on a contenteditable, so track caret moves centrally.
+    const handleSelectionChange = () => {
+      if (editorEl && getMarkdownSelection(editorEl)) syncPaletteFromCaret();
+    };
+    document.addEventListener("selectionchange", handleSelectionChange);
 
     return () => {
       composerResizeObserver.disconnect();
@@ -615,6 +691,7 @@
       window.removeEventListener("scroll", syncOpenPalette, true);
       window.visualViewport?.removeEventListener("resize", syncOpenPalette);
       window.visualViewport?.removeEventListener("scroll", syncOpenPalette);
+      document.removeEventListener("selectionchange", handleSelectionChange);
     };
   });
 
@@ -635,15 +712,15 @@
     // restoring its internal keyboard focus. Retry after that native handoff so
     // the browser does not restore the previously focused control over us.
     await new Promise<void>((resolve) => setTimeout(resolve, 100));
-    if (focusRequest !== request || !textareaEl || disabled) return;
-    textareaEl.focus({ preventScroll: true });
+    if (focusRequest !== request || !editorEl || disabled) return;
+    editorEl.focus({ preventScroll: true });
   }
 
   async function focusInput() {
     await tick();
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    if (!textareaEl || disabled) return;
-    textareaEl.focus({ preventScroll: true });
+    if (!editorEl || disabled) return;
+    editorEl.focus({ preventScroll: true });
   }
 
   $effect(() => {
@@ -799,9 +876,9 @@
   }
 
   async function syncPaletteFromCaret() {
-    if (!textareaEl) return;
-    const caret = textareaEl.selectionStart ?? value.length;
-    const trigger = detectTrigger(value, caret);
+    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
+    if (!selection) return;
+    const trigger = detectTrigger(value, selection.start);
     if (!trigger) {
       if (paletteMode !== null) closePalette();
       return;
@@ -817,32 +894,30 @@
     }
   }
 
+  function refocusEditor() {
+    void tick().then(() => editorEl?.focus({ preventScroll: true }));
+  }
+
   function applySelection(item: PaletteItem) {
+    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
+    const caret = selection?.start ?? value.length;
     if (paletteMode === "slash") {
       const cmd = slashCommands.find((c) => c.id === item.id);
-      const caret = textareaEl?.selectionStart ?? value.length;
       closePalette();
       if (cmd) {
         if (cmd.insertText) {
-          const selection = applySlashCommandSelection(value, triggerStart, caret, cmd.insertText);
-          value = selection.value;
-          void tick().then(() => {
-            if (!textareaEl) return;
-            textareaEl.focus();
-            textareaEl.setSelectionRange(selection.caret, selection.caret);
-            resizeTextarea();
-          });
+          const next = applySlashCommandSelection(value, triggerStart, caret, cmd.insertText);
+          commit(next.value, next.caret);
+          refocusEditor();
         } else {
-          value = "";
-          if (textareaEl) textareaEl.style.height = "auto";
+          commit("", 0);
           cmd.run?.();
         }
       }
       return;
     }
 
-    if (paletteMode === "mention" && textareaEl) {
-      const caret = textareaEl.selectionStart ?? value.length;
+    if (paletteMode === "mention") {
       const before = value.slice(0, triggerStart);
       const after = value.slice(caret);
       // Wrap paths with whitespace in quotes so the token stays intact.
@@ -850,19 +925,16 @@
       const escapedMention = mention.replaceAll('"', '\\"');
       const token = /\s|"/.test(mention) ? `@"${escapedMention}"` : `@${mention}`;
       const insertion = `${token} `;
-      value = `${before}${insertion}${after}`;
-      const newCaret = before.length + insertion.length;
       closePalette();
-      tick().then(() => {
-        if (!textareaEl) return;
-        textareaEl.focus();
-        textareaEl.setSelectionRange(newCaret, newCaret);
-        resizeTextarea();
-      });
+      commit(`${before}${insertion}${after}`, before.length + insertion.length);
+      refocusEditor();
     }
   }
 
   function handleKeydown(e: KeyboardEvent) {
+    // IME owns Enter/Escape/arrows while composing; never intercept those.
+    if (composing || e.isComposing) return;
+
     if (paletteMode) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -893,10 +965,22 @@
     }
 
     if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+      const key = e.key.toLowerCase();
+      // Native undo cannot survive re-projection, so history is model-level.
+      if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if ((key === "z" && e.shiftKey) || key === "y") {
+        e.preventDefault();
+        redo();
+        return;
+      }
       const format: ComposerFormat | null =
-        e.key.toLowerCase() === "b"
+        key === "b"
           ? { prefix: "**" }
-          : e.key.toLowerCase() === "i"
+          : key === "i"
             ? { prefix: "*" }
             : e.key === "`"
               ? { prefix: "`" }
@@ -914,45 +998,109 @@
     }
   }
 
-  function handleInput(e: Event) {
-    const el = e.target as HTMLTextAreaElement;
-    value = el.value;
-    const retainedAttachments = attachmentsReferencedByText(el.value, attachments);
-    for (const attachment of attachments) {
-      if (!retainedAttachments.includes(attachment) && attachment.previewUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(attachment.previewUrl);
-      }
-    }
-    const synchronized = synchronizeAttachmentReferences(el.value, retainedAttachments);
-    attachments = synchronized.attachments;
-    value = synchronized.value;
-    el.value = synchronized.value;
-    resizeTextarea(el);
-    syncInputHighlightScroll(el);
-    syncPaletteFromCaret();
+  /** Cut keeps the clipboard payload but replays the deletion on the model. */
+  function handleCut(event: ClipboardEvent) {
+    if (disabled) return;
+    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
+    if (!selection || selection.start === selection.end) return;
+    event.preventDefault();
+    event.clipboardData?.setData("text/plain", value.slice(selection.start, selection.end));
+    commitEdit(splice(value, selection.start, selection.end, ""));
   }
 
-  function handleSelect() {
-    if (paletteMode) syncPaletteFromCaret();
+  /**
+   * Every browser edit is cancelled and replayed against the markdown model, so
+   * the DOM can never drift from the canonical string. Paste, cut, and history
+   * have their own listeners and are deliberately not handled here.
+   */
+  function handleBeforeInput(event: InputEvent) {
+    if (composing) return;
+    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
+    const start = selection?.start ?? value.length;
+    const end = selection?.end ?? start;
+
+    const replace = (from: number, to: number, insertion: string) => {
+      event.preventDefault();
+      commitEdit(splice(value, from, to, insertion));
+    };
+
+    switch (event.inputType) {
+      case "insertText":
+      case "insertReplacementText": {
+        const text = event.data ?? event.dataTransfer?.getData("text/plain") ?? "";
+        if (text) replace(start, end, text);
+        return;
+      }
+      case "insertLineBreak":
+        event.preventDefault();
+        commitEdit(insertSoftLineBreak(value, start));
+        return;
+      case "insertParagraph":
+        event.preventDefault();
+        runPrimaryAction();
+        return;
+      case "deleteContentBackward":
+        event.preventDefault();
+        commitEdit(
+          removeLineMarker(value, start) ?? splice(value, Math.max(0, start - 1), start, ""),
+        );
+        return;
+      case "deleteContentForward":
+        replace(start, end === start ? Math.min(value.length, start + 1) : end, "");
+        return;
+      case "deleteWordBackward":
+        replace(wordBoundaryBefore(value, start), end, "");
+        return;
+      case "deleteWordForward":
+        replace(start, wordBoundaryAfter(value, end), "");
+        return;
+      default:
+        return;
+    }
   }
 
   function applyFormat(format: ComposerFormat) {
-    if (!textareaEl) return;
-    const selection = applyComposerFormat(
-      value,
-      textareaEl.selectionStart ?? value.length,
-      textareaEl.selectionEnd ?? value.length,
-      format,
-    );
-    value = selection.value;
-    void tick().then(() => {
-      if (!textareaEl) return;
-      textareaEl.focus({ preventScroll: true });
-      textareaEl.setSelectionRange(selection.start, selection.end);
-      resizeTextarea();
-      syncInputHighlightScroll(textareaEl);
-      syncPaletteFromCaret();
-    });
+    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
+    const start = selection?.start ?? value.length;
+    const end = selection?.end ?? start;
+    const next = applyComposerFormat(value, start, end, format);
+    // Leave the wrapped content selected so the next keystroke replaces it.
+    commit(next.value, next.start, next.end);
+    refocusEditor();
+  }
+
+  let compositionAnchor = 0;
+
+  // While an IME owns the editor the DOM is left alone; `handleBeforeInput` and
+  // the projection effect both stand down until the composition commits.
+  function handleCompositionStart() {
+    composing = true;
+    compositionAnchor = editorEl
+      ? (getMarkdownSelection(editorEl)?.start ?? value.length)
+      : value.length;
+  }
+
+  function handleCompositionEnd(event: CompositionEvent) {
+    composing = false;
+    const text = event.data ?? "";
+    if (text) commitEdit(splice(value, compositionAnchor, compositionAnchor, text));
+    else if (value !== lastProjected) project(value, compositionAnchor);
+  }
+
+  function handleDragOver(event: DragEvent) {
+    // Nothing may edit the projection directly — drops are replayed on the model.
+    event.preventDefault();
+  }
+
+  function handleDrop(event: DragEvent) {
+    event.preventDefault();
+    if (disabled) return;
+    const text = event.dataTransfer?.getData("text/plain");
+    if (!text) return;
+    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
+    const start = selection?.start ?? value.length;
+    const end = selection?.end ?? start;
+    commitEdit(splice(value, start, end, text.replace(/\r\n?/g, "\n")));
   }
 </script>
 
@@ -1010,34 +1158,31 @@
       </div>
     {/if}
     <div class="composer-input-stack">
-      <div class="input input-highlights" bind:this={inputHighlightsEl} aria-hidden="true">
-        {#each highlightedInputSegments as segment, index (index)}
-          {#if segment.highlighted}
-            <span
-              class="composer-token"
-              class:composer-attachment-token={Boolean(segment.attachmentPath)}
-              data-attachment-path={segment.attachmentPath}>{segment.text}</span
-            >
-          {:else}{segment.text}{/if}
-        {/each}<span class="input-highlights-end">&#8203;</span>
-      </div>
-      <textarea
-        class="input input-editor"
-        rows="1"
-        {placeholder}
-        bind:value
-        bind:this={textareaEl}
+      <!-- Markers are hidden: this editor is a projection of the markdown model. -->
+      <div
+        class="input input-editor composer-md"
+        class:input-editor-empty={value.length === 0}
+        role="textbox"
+        aria-multiline="true"
+        aria-label={placeholder}
+        contenteditable={disabled ? "false" : "true"}
+        tabindex="0"
+        spellcheck="false"
+        bind:this={editorEl}
         onkeydown={handleKeydown}
-        oninput={handleInput}
-        onscroll={(event) => syncInputHighlightScroll(event.currentTarget)}
+        onbeforeinput={handleBeforeInput}
         onpaste={handlePaste}
-        onselect={handleSelect}
-        onclick={handleSelect}
+        oncut={handleCut}
+        ondrop={handleDrop}
+        ondragover={handleDragOver}
+        oncompositionstart={handleCompositionStart}
+        oncompositionend={handleCompositionEnd}
         onblur={() => {
           // Defer so the mousedown on a palette row still fires.
           setTimeout(() => closePalette(), 100);
         }}
-        {disabled}></textarea>
+        data-placeholder={placeholder}
+      ></div>
     </div>
     {#if showFormatting || showAttachments || showModelSelector || showReasoningEffort || showApprovalMode || showWorkspaceSwitcher}
       <div class="composer-toolbar">
@@ -1421,44 +1566,18 @@
     overflow-y: auto;
   }
 
-  .input-highlights {
-    position: absolute;
-    inset: 0;
-    height: 100%;
-    pointer-events: none;
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-    overflow-y: auto;
-    scrollbar-color: transparent transparent;
-  }
-
-  .input-highlights::-webkit-scrollbar {
-    visibility: hidden;
-  }
-
   .input-editor {
     position: relative;
     z-index: 1;
-    color: transparent;
     caret-color: var(--text);
-    -webkit-text-fill-color: transparent;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 
-  .input-editor::placeholder {
+  .input-editor.input-editor-empty::before {
     color: var(--text-muted);
-    -webkit-text-fill-color: var(--text-muted);
-  }
-
-  .composer-token {
-    color: var(--primary);
-    border-radius: 3px;
-    background: color-mix(in srgb, var(--primary) 12%, transparent);
-    box-decoration-break: clone;
-    -webkit-box-decoration-break: clone;
-  }
-
-  .input-highlights-end {
-    font-size: 0;
+    content: attr(data-placeholder);
+    pointer-events: none;
   }
 
   .input:focus {

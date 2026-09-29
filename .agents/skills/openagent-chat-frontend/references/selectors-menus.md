@@ -142,12 +142,30 @@
 - Keep the localized shared-composer placeholder concise while advertising the
   Enter and Shift+Enter keyboard behavior plus the `/` command and `@` mention
   palette triggers.
+- The composer's Markdown string is the single source of truth and the
+  contenteditable editor (`src/lib/components/MessageInput.svelte` +
+  `src/lib/composerMarkdown.ts` + `src/lib/composerDom.ts`) is only its
+  projection over that string. Render formatting with the markup markers
+  hidden, map DOM selection back to Markdown offsets for the palette,
+  formatting, and attachment-reference synchronization, and never re-render
+  during IME composition. Rebuild the projection from the model for every edit
+  instead of trusting the browser's DOM mutation, so `/command`, `@"path"`, and
+  `[Image #N]` survive byte-for-byte.
 - Keep the shared composer text-formatting group backed by Markdown so the
   existing plain-text message contract remains unchanged. The group exposes
-  bold, italic, strikethrough, and inline-code actions, preserves the textarea
-  selection after each action, and supports the matching `Ctrl`/`Cmd` shortcuts.
-  Formatting stays available in compact composer variants unless a caller
-  explicitly sets `showFormatting={false}`.
+  bold, italic, strikethrough, and inline-code actions, keeps the wrapped
+  Markdown range selected after each action, and supports the matching
+  `Ctrl`/`Cmd` shortcuts. Formatting stays available in compact composer
+  variants unless a caller explicitly sets `showFormatting={false}`.
+- Never let the browser edit the projected DOM directly. Handle `beforeinput`,
+  `paste`, `cut`, and `drop`, cancel the native edit, and replay it as a
+  Markdown splice; keep a Markdown-level undo/redo stack with `Ctrl`/`Cmd+Z`
+  and `Ctrl`/`Cmd+Shift+Z` (native undo cannot survive re-projection). Paste
+  takes `text/plain` only, so rich clipboard HTML cannot desynchronize the
+  model.
+- Support only closed, non-empty markup pairs. A half-typed marker such as
+  `**bo` stays literal until its closing delimiter is typed, so the text does
+  not jitter mid-keystroke.
 - Keep the shared composer send, queue, and stop actions at a stable 30px square
   geometry with an 8px corner radius so the primary actions read as compact
   rounded-square controls across streaming and idle states.
@@ -159,26 +177,28 @@
   composer. After conversation restore, wait for the hydrated checkpoint tree
   before mapping the usage projection, and place the indicator immediately to
   the left of the send/stop control.
-- Style boundary-delimited `@` mention and `#` reference tokens in the composer
-  with the shared primary accent while preserving the submitted plain text.
-  Keep the native textarea as the editable and accessible control; any visual
-  token layer must match its wrapping and scroll position without changing
-  caret, selection, IME, draft restoration, or palette behavior.
-- Keep an empty composer at its CSS single-row height. During startup and draft
-  restoration, do not derive an empty textarea's height from `scrollHeight`:
-  WebView2 can report a stale expanded value. Measure and clamp only non-empty
-  textarea content. A standard empty composer with its bottom toolbar is 98px
-  tall; keep the textarea block-level so inline baseline space cannot make that
-  geometry browser-dependent. Compact toolbar-free variants retain their own
-  smaller height, while attachments, quotes, and multiline text grow normally.
-  When a composer container is narrow enough for its localized placeholder to
-  wrap to three lines, give the textarea enough minimum height for the wrapped
-  copy to remain visible above the send control. Keep the composer's loading
-  skeleton on the same tokens instead of restating pixel values: the skeleton
-  card reuses the composer border and shadow, its text placeholder sits on the
-  textarea's first line, its toolbar placeholders fill the bottom 38px row, and
-  its send placeholder is the same bottom-right 30px rounded square outside the
-  bordered card, so the surface cannot resize when the composer mounts.
+- Style boundary-delimited `@` mention and `#` reference tokens, and the
+  `[Image #N]`/`[File #N]` attachment labels, as atomic non-editable chips with
+  the shared primary accent. Scan for them before inline Markdown parsing so a
+  bracket label can never become a link, and keep their exact source in the
+  model so the submitted plain text is unchanged. They share the `.composer-md`
+  projection styles in `src/app.css` with the transcript bubble.
+- Size the composer from CSS alone. An empty composer holds its single-row
+  `min-height`, the editor clamps at a 200px `max-height` and scrolls past it,
+  and nothing derives an editor height from `scrollHeight` — WebView2 can report
+  a stale expanded value during startup and draft restoration. A standard empty
+  composer with its bottom toolbar is 98px tall; keep the editor block-level so
+  inline baseline space cannot make that geometry browser-dependent. Compact
+  toolbar-free variants retain their own smaller height, while attachments,
+  quotes, and multiline text grow normally. When a composer container is narrow
+  enough for its localized placeholder to wrap to three lines, give the editor
+  enough minimum height for the wrapped copy to remain visible above the send
+  control. Keep the composer's loading skeleton on the same tokens instead of
+  restating pixel values: the skeleton card reuses the composer border and
+  shadow, its text placeholder sits on the editor's first line, its toolbar
+  placeholders fill the bottom 38px row, and its send placeholder is the same
+  bottom-right 30px rounded square outside the bordered card, so the surface
+  cannot resize when the composer mounts.
 - Selecting `/goal` or `/graph` replaces only the active slash trigger with the
   complete command token. Preserve any draft text after the caret as the command
   argument instead of clearing the composer.

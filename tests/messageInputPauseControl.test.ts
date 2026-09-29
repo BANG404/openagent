@@ -26,22 +26,33 @@ describe("stream pause control", () => {
     expect(remote).toMatch(/if \(streamPaused\) await setStreamPaused\(false\);/);
   });
 
-  test("measures the textarea from a stable single-line CSS minimum", async () => {
+  test("sizes the contenteditable composer from CSS rather than measured height", async () => {
     const source = await Bun.file(
       new URL("../src/lib/components/MessageInput.svelte", import.meta.url),
     ).text();
 
-    expect(source).toContain(
-      "const minHeight = Number.parseFloat(getComputedStyle(element).minHeight)",
-    );
-    expect(source).toContain("element.style.height = `${minHeight}px`;");
-    expect(source).toContain("if (!element.value) return;");
-    expect(source).toContain("Math.max(element.scrollHeight, minHeight)");
-    expect(source).toMatch(/<textarea\s+class="input input-editor"\s+rows="1"/);
-    expect(source).not.toContain('element.style.height = "auto";');
+    expect(source).toMatch(/<div\s+class="input input-editor composer-md"/);
+    expect(source).toContain('contenteditable={disabled ? "false" : "true"}');
+    // No JS height measurement survives; the CSS clamp owns the editor size.
+    expect(source).not.toContain("resizeTextarea");
+    expect(source).not.toContain("scrollHeight");
     expect(source).toMatch(
-      /const draftValue = value;\s+void tick\(\)\.then\(\(\) => \{\s+if \(textareaEl\?\.value === draftValue\) resizeTextarea\(\);/,
+      /\n {2}\.input \{[^}]*min-height: var\(--composer-input-min-height\);[^}]*max-height: 200px;[^}]*overflow-y: auto;/s,
     );
-    expect(source).toMatch(/onMount\(\(\) => \{\s+resizeTextarea\(\);\s+focusInput\(\);/);
+  });
+
+  test("gates re-projection behind IME composition", async () => {
+    const source = await Bun.file(
+      new URL("../src/lib/components/MessageInput.svelte", import.meta.url),
+    ).text();
+
+    expect(source).toMatch(
+      /if \(!editorEl \|\| composing \|\| nextValue === lastProjected\) return;/,
+    );
+    expect(source).toContain("oncompositionstart={handleCompositionStart}");
+    expect(source).toContain("oncompositionend={handleCompositionEnd}");
+    expect(source).toMatch(
+      /function handleBeforeInput\(event: InputEvent\) \{\s+if \(composing\) return;/,
+    );
   });
 });
