@@ -1,0 +1,419 @@
+[scenario]
+name = "agent plugin process"
+fail_fast = true
+global_timeout_ms = 90000
+
+# A package's processes are reachable only through the surfaces a user has: the
+# permission profile that decides their policy, the plugin card that installs
+# them, and the composer that invokes a portable command. The scenario therefore
+# drives those controls and asserts only what the window can show. Whether the
+# child was contained is asserted where the policy can be measured directly, and
+# the command's own failure is asserted from the host log by the runner: the
+# desktop run path reports a pre-turn failure to the log rather than to the
+# transcript, so a transcript assertion here would only prove the UI stayed
+# quiet. See scripts/test-plugin-process-blackbox.mjs.
+
+[[step]]
+name = "the fixture package is listed among the installed plugins"
+action = "eval"
+script = '''(async () => {
+  const trigger = document.querySelector("#application-integrations-menu");
+  if (!(trigger instanceof HTMLElement)) throw new Error("integrations menu trigger is missing");
+  trigger.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const item = [...document.querySelectorAll("[role=menuitem]")].find((candidate) =>
+    /Plugins|插件/.test(candidate.textContent ?? "")
+  );
+  if (!item) throw new Error("plugins menu item is missing");
+  item.click();
+  const deadline = Date.now() + 7000;
+  while (Date.now() < deadline) {
+    const control = document.querySelector(
+      '[role=dialog] [role=switch][aria-label="openagent-process-plugin"]'
+    );
+    if (control instanceof HTMLElement) return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the installed fixture package never appeared in the plugin list");
+})()'''
+
+[[step]]
+name = "the execution profile is opened from the agent menu"
+action = "eval"
+script = '''(async () => {
+  // The settings surface hosts one section at a time and carries no navigation
+  // column of its own, so every section is reached the way a user reaches it:
+  // through the menu item that opens it.
+  const trigger = document.querySelector("#application-role-menu");
+  if (!(trigger instanceof HTMLElement)) throw new Error("agent menu trigger is missing");
+  trigger.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const item = [...document.querySelectorAll("[role=menuitem]")].find((candidate) =>
+    /Execution|执行|权限/.test(candidate.textContent ?? "")
+  );
+  if (!item) throw new Error("the execution and permissions menu item is missing");
+  item.click();
+  const deadline = Date.now() + 7000;
+  while (Date.now() < deadline) {
+    const panel = document.querySelector(".settings-tab-panel[data-value=execution]");
+    if (
+      panel instanceof HTMLElement &&
+      panel.getAttribute("data-state") === "active" &&
+      !panel.hasAttribute("hidden")
+    ) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the execution and permissions panel never opened");
+})()'''
+
+[[step]]
+name = "the isolation control is opened"
+action = "click"
+target = ".settings-tab-panel[data-value=execution] .ui-select-trigger[aria-label=\"Isolation\"]"
+
+[[step]]
+name = "the managed isolation tier is selected"
+action = "click"
+target = "[role=option][data-value=managed]"
+
+[[step]]
+name = "the network control is opened"
+action = "click"
+target = ".settings-tab-panel[data-value=execution] .ui-select-trigger[aria-label=\"Network\"]"
+
+[[step]]
+name = "the network-enabled tier is selected"
+action = "click"
+target = "[role=option][data-value=enabled]"
+
+[[step]]
+name = "the managed, network-enabled profile is in effect"
+action = "eval"
+script = '''(async () => {
+  const trigger = (label) =>
+    document.querySelector(
+      '.settings-tab-panel[data-value=execution] .ui-select-trigger[aria-label="' + label + '"]'
+    );
+  const isolation = trigger("Isolation");
+  const network = trigger("Network");
+  if (!(isolation instanceof HTMLElement) || !(network instanceof HTMLElement)) {
+    throw new Error("the permission controls are missing");
+  }
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const isolationValue = isolation.textContent?.trim() ?? "";
+    const networkValue = network.textContent?.trim() ?? "";
+    if (
+      isolationValue.startsWith("Managed by OpenAgent") &&
+      networkValue === "Enabled" &&
+      document.querySelectorAll(".ui-select-content").length === 0
+    ) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(
+    "the permission controls kept '" +
+      (isolation.textContent?.trim() ?? "") +
+      "' / '" +
+      (network.textContent?.trim() ?? "") +
+      "'"
+  );
+})()'''
+
+[[step]]
+name = "the fixture package is re-mounted through its card switch"
+action = "eval"
+script = '''(async () => {
+  // Cycling the switch is what makes the mounted server this run's: the runner
+  // clears the package's data directory before the scenario starts, and only a
+  // fresh mount writes the report the runner asserts on.
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 120));
+  const trigger = document.querySelector("#application-integrations-menu");
+  if (!(trigger instanceof HTMLElement)) throw new Error("integrations menu trigger is missing");
+  trigger.click();
+  await settle();
+  const item = [...document.querySelectorAll("[role=menuitem]")].find((candidate) =>
+    /Plugins|插件/.test(candidate.textContent ?? "")
+  );
+  if (!item) throw new Error("plugins menu item is missing");
+  item.click();
+  const control = () =>
+    document.querySelector('[role=dialog] [role=switch][aria-label="openagent-process-plugin"]');
+  const awaitState = async (expected) => {
+    const deadline = Date.now() + 3000;
+    while (Date.now() < deadline) {
+      const switchControl = control();
+      if (switchControl instanceof HTMLElement && switchControl.getAttribute("aria-checked") === expected) {
+        return;
+      }
+      await settle();
+    }
+    throw new Error("the fixture package never reported '" + expected + "'");
+  };
+  const deadline = Date.now() + 3000;
+  while (Date.now() < deadline && !(control() instanceof HTMLElement)) await settle();
+  if (!(control() instanceof HTMLElement)) throw new Error("the fixture package switch is missing");
+  if (control().getAttribute("aria-checked") === "true") {
+    control().click();
+    await awaitState("false");
+  }
+  control().click();
+  await awaitState("true");
+  return true;
+})()'''
+
+[[step]]
+name = "the card reports the validated package and its declared components"
+action = "eval"
+script = '''(async () => {
+  const control = document.querySelector(
+    '[role=dialog] [role=switch][aria-label="openagent-process-plugin"]'
+  );
+  if (!(control instanceof HTMLElement)) throw new Error("the fixture package switch is missing");
+  const header = control.closest(".plugin-accordion-header");
+  if (!(header instanceof HTMLElement)) throw new Error("the fixture package card header is missing");
+  const card = header.parentElement;
+  const trigger = header.querySelector(".plugin-accordion-trigger");
+  if (card === null || !(trigger instanceof HTMLElement)) {
+    throw new Error("the fixture package card cannot be inspected");
+  }
+  const body = () => card.querySelector(".plugin-accordion-content");
+  if (body() === null) trigger.click();
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline && body() === null) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  const content = body();
+  if (content === null) throw new Error("the fixture package card never expanded");
+  const count = content.querySelector(".plugin-tool-count")?.textContent?.trim();
+  if (count !== "2") {
+    throw new Error("the card reported '" + count + "' declared components instead of 2");
+  }
+  const warnings = [...card.querySelectorAll(".plugin-warning")]
+    .map((node) => node.textContent?.trim() ?? "")
+    .filter((text) => text.length > 0);
+  if (warnings.length > 0) {
+    throw new Error("the fixture package loaded with warnings: " + warnings.join(" | "));
+  }
+  const version = card.querySelector(".plugin-version")?.textContent?.trim() ?? "";
+  if (!version.startsWith("1.0.0")) {
+    throw new Error("the card did not show the package version: " + version);
+  }
+  const metadata = [...header.querySelectorAll(".detail-hint")]
+    .map((node) => node.textContent?.trim() ?? "")
+    .find((text) => text.includes("MIT"));
+  if (metadata !== "MIT · https://example.com/openagent-process-plugin") {
+    throw new Error("the card did not show the validated package metadata: " + metadata);
+  }
+  return true;
+})()'''
+
+[[step]]
+name = "the composer palette offers the namespaced plugin command"
+action = "eval"
+script = '''(async () => {
+  const close = document.querySelector(
+    '[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]'
+  );
+  if (close instanceof HTMLElement) close.click();
+  const deadline = Date.now() + 7000;
+  let editor = null;
+  while (Date.now() < deadline) {
+    if (document.querySelector("[role=dialog]") === null) {
+      const candidate = document.querySelector(".composer .input-editor[contenteditable=true]");
+      if (candidate instanceof HTMLElement) {
+        editor = candidate;
+        break;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  if (editor === null) throw new Error("the composer editor never became available");
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+  editor.dispatchEvent(
+    new InputEvent("beforeinput", {
+      inputType: "insertText",
+      data: "/openagent-process-plugin:stamp",
+      bubbles: true,
+      cancelable: true,
+    })
+  );
+  while (Date.now() < deadline) {
+    const row = [...document.querySelectorAll(".palette-row")].find(
+      (candidate) =>
+        candidate.querySelector(".palette-label")?.textContent?.trim() ===
+        "/openagent-process-plugin:stamp"
+    );
+    if (row) {
+      const detail = row.querySelector(".palette-detail")?.textContent?.trim() ?? "";
+      if (detail !== "Record the invocation inside the plugin's own data directory.") {
+        throw new Error("the palette row did not carry the command's own description: " + detail);
+      }
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the composer palette never offered /openagent-process-plugin:stamp");
+})()'''
+
+[[step]]
+name = "submitting the plugin command keeps its argument in the transcript"
+action = "eval"
+script = '''(async () => {
+  const editor = document.querySelector(".composer .input-editor[contenteditable=true]");
+  if (!(editor instanceof HTMLElement)) throw new Error("the composer editor is missing");
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  range.collapse(false);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+  editor.dispatchEvent(
+    new InputEvent("beforeinput", {
+      inputType: "insertText",
+      data: " fail",
+      bubbles: true,
+      cancelable: true,
+    })
+  );
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  const draft = editor.textContent ?? "";
+  if (!draft.includes("stamp fail")) {
+    throw new Error("the composer did not keep the command argument: " + draft);
+  }
+  if (document.querySelector(".palette-row") !== null) {
+    throw new Error("the composer palette stayed open on a command with an argument");
+  }
+  editor.dispatchEvent(
+    new InputEvent("beforeinput", { inputType: "insertParagraph", bubbles: true, cancelable: true })
+  );
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const transcript = document.querySelector(".transcript-list")?.textContent ?? "";
+    if (transcript.includes("/openagent-process-plugin:stamp fail")) return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the submitted plugin command never reached the transcript");
+})()'''
+
+[[step]]
+name = "the composer returns to idle after the plugin command stops"
+action = "eval"
+script = '''(async () => {
+  // The composer's primary action is the surface that shows whether a run is
+  // still open: a live run swaps the send control for a stop control.
+  const deadline = Date.now() + 6000;
+  while (Date.now() < deadline) {
+    const idle = document.querySelector('.send-btn[aria-label="Send"], .send-btn[aria-label="发送"]');
+    if (idle instanceof HTMLElement && document.querySelector(".stop-btn") === null) return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the composer stayed busy after the plugin command stopped");
+})()'''
+
+[[step]]
+name = "the fixture package is disabled again through its card switch"
+action = "eval"
+script = '''(async () => {
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 120));
+  const trigger = document.querySelector("#application-integrations-menu");
+  if (!(trigger instanceof HTMLElement)) throw new Error("integrations menu trigger is missing");
+  trigger.click();
+  await settle();
+  const item = [...document.querySelectorAll("[role=menuitem]")].find((candidate) =>
+    /Plugins|插件/.test(candidate.textContent ?? "")
+  );
+  if (!item) throw new Error("plugins menu item is missing");
+  item.click();
+  const deadline = Date.now() + 4000;
+  let control = null;
+  while (Date.now() < deadline) {
+    const candidate = document.querySelector(
+      '[role=dialog] [role=switch][aria-label="openagent-process-plugin"]'
+    );
+    if (candidate instanceof HTMLElement && document.querySelector("[role=dialog]")) {
+      control = candidate;
+      break;
+    }
+    await settle();
+  }
+  if (control === null) throw new Error("the fixture package switch is missing");
+  if (control.getAttribute("aria-checked") === "true") control.click();
+  while (Date.now() < deadline + 3000) {
+    if (control.getAttribute("aria-checked") === "false") return true;
+    await settle();
+  }
+  throw new Error("the fixture package never reported as disabled");
+})()'''
+
+[[step]]
+name = "the execution profile is reopened for the restore"
+action = "eval"
+script = '''(async () => {
+  const trigger = document.querySelector("#application-role-menu");
+  if (!(trigger instanceof HTMLElement)) throw new Error("agent menu trigger is missing");
+  trigger.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const item = [...document.querySelectorAll("[role=menuitem]")].find((candidate) =>
+    /Execution|执行|权限/.test(candidate.textContent ?? "")
+  );
+  if (!item) throw new Error("the execution and permissions menu item is missing");
+  item.click();
+  const deadline = Date.now() + 7000;
+  while (Date.now() < deadline) {
+    const panel = document.querySelector(".settings-tab-panel[data-value=execution]");
+    if (
+      panel instanceof HTMLElement &&
+      panel.getAttribute("data-state") === "active" &&
+      !panel.hasAttribute("hidden")
+    ) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the execution and permissions panel never reopened");
+})()'''
+
+[[step]]
+name = "the network control is reopened"
+action = "click"
+target = ".settings-tab-panel[data-value=execution] .ui-select-trigger[aria-label=\"Network\"]"
+
+[[step]]
+name = "the restricted network tier is selected again"
+action = "click"
+target = "[role=option][data-value=restricted]"
+
+[[step]]
+name = "the restricted network tier is restored and the surface closes"
+action = "eval"
+script = '''(async () => {
+  const network = document.querySelector(
+    '.settings-tab-panel[data-value=execution] .ui-select-trigger[aria-label="Network"]'
+  );
+  if (!(network instanceof HTMLElement)) throw new Error("the network control is missing");
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    if (
+      network.textContent?.trim() === "Restricted" &&
+      document.querySelectorAll(".ui-select-content").length === 0
+    ) {
+      const close = document.querySelector(
+        '[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]'
+      );
+      if (close instanceof HTMLElement) close.click();
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(
+    "the network control stayed on '" + (network.textContent?.trim() ?? "") + "'"
+  );
+})()'''

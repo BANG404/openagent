@@ -1,0 +1,30 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "openagent-process-plugin",
+  "version": "1.0.0",
+  "description": "A deterministic fixture for Agent Plugin process, command, and daemon checks.",
+  "repository": "https://github.com/example/openagent-process-plugin",
+  "license": "MIT",
+  "homepage": "https://example.com/openagent-process-plugin",
+  "extensions": {
+    "openagent": {
+      "capabilities": [],
+      "commands": [
+        {
+          "id": "stamp",
+          "label": "Stamp the plugin data directory",
+          "description": "Record the invocation inside the plugin's own data directory.",
+          "argument": "required_text",
+          "command": "bin/stamp.cmd",
+          "timeout_secs": 30
+        }
+      ],
+      "daemon": {
+        "command": "bin/daemon.mjs",
+        "args": ["serve"],
+        "capabilities": [],
+        "transport": "stdio"
+      }
+    }
+  }
+}

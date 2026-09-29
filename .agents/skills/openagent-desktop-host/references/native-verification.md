@@ -87,6 +87,49 @@ bun tauri dev --multi-instance plugin-blackbox
 bun run test:blackbox:plugins
 ```
 
+## Agent plugin process coverage
+
+The committed `tests/blackbox/plugin-process.toml` scenario drives the processes
+a package declares. The fixture under `tests/fixtures/agent-plugin-process`
+declares an `mcp.json` server, a portable command, and a daemon at once, and the
+scenario raises the instance to the managed, network-enabled profile on the way
+in and restores the restricted tier on the way out. It shares the instance
+reserved for plugin verification, which the wrapper picks because the scenario
+changes the permission profile:
+
+```bash
+bun tauri dev --multi-instance plugin-blackbox
+bun run test:blackbox:plugin-process
+```
+
+The instance has to run a workspace that does not contain the app's own build
+tree. The managed Windows backend launches its wrapper by path and refuses to do
+so when a profile write rule covers the executable, so an instance whose
+workspace is the user's home cannot confine a plugin process at all; both the
+command and the MCP server fail, and that refusal is the symptom to read. The
+wrapper therefore refuses to start unless `workspace` in the instance's
+`config.toml` is the instance's own `workspace` directory, and it reports the
+refusal by name if the fixture's server still never connects. The workspace is
+read once at startup and the settings surface rewrites the whole file on save, so
+change it with the instance stopped and start it again.
+
+Whether the child was contained is not asserted here; the Runtime's confinement
+test owns that, where the workspace and the package root can be chosen
+independently. The wrapper asserts only what a host can observe: the scenario
+steps against the card, the composer, and the permission controls; the Runtime
+log delta carrying the fixture command's own failure, which the desktop run path
+reports to the log rather than to the conversation; the handshake report the
+fixture's MCP server writes into its own data directory after `tools/list`; the
+restored configuration; and the window's error log, ignoring entries older than
+the run, because a dev build logs its own bootstrap failure for the Cua driver
+daemon before any runner reaches it.
+
+The run ends with the fixture package disabled, which is the state the scenario
+restores. The wrapper unmounts the package through the same switch before
+replacing the installed copy: a mounted package's server holds the package
+directory as its working directory, and Windows will not delete a directory a
+live process is sitting in.
+
 ## Chat-group sidebar coverage
 
 The committed `tests/blackbox/chat-group-sidebar.toml` scenario verifies that a
