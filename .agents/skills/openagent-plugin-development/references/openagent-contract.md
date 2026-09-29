@@ -243,7 +243,7 @@ object to the step's stdin and reads one back per iteration:
 {
   "conversation_id": "…",
   "plugin_id": "goal",
-  "flow_id": "goal",
+  "flow_id": "plugin:goal:goal",
   "iteration": 1,
   "argument": "ship the release",
   "input": "/goal ship the release",
@@ -253,7 +253,9 @@ object to the step's stdin and reads one back per iteration:
 
 `iteration` counts from `1`, `last_output` is the previous turn's persisted
 assistant response (empty on the first iteration), and `conversation_id` may
-change if the Runtime moved the run to a continuation conversation. The step
+change if the Runtime moved the run to a continuation conversation. `flow_id` is
+the flow's namespaced catalog id, so the step receives its own identity rather
+than a bare manifest id; `plugin_id` is the installed package name. The step
 returns the prompt for the next turn, whether the flow is complete, and
 optionally the display projection of its own state:
 
@@ -278,12 +280,21 @@ its state schema, its status vocabulary, and its completion rule. The optional
 its own `plugin_id` and `flow_id` onto that projection, persists it in the
 conversation checkpoint, and emits it as a `plugin` kind on the flow event, so
 the UI renders it generically and cannot be made to attribute a flow to another
-package. A step that returns an empty prompt, invalid JSON, a non-zero exit
+package. The right-sidebar status panel shows the projection with no field of
+its own: the heading is the `label` the installed package declared for that
+namespaced flow, the subheading is the projection's `title`, the list is its
+`items`, and a status token the host has no translation for is shown verbatim. A step that returns an empty prompt, invalid JSON, a non-zero exit
 status, or times out fails the flow without starting another turn; the loop also
 stops when the turn is cancelled or interrupted, or when `max_iterations` is
 reached. Untrusted package output never reaches the transcript as a user
 message: only the Runtime's own continuation prompt is persisted as the hidden
 user record.
+
+`done` is the package's report on the state its previous turn left behind, so
+the Runtime ends the flow before spending a turn on a prompt that could only
+wind down. The first iteration always runs, because a flow must produce at least
+one turn; from the second iteration on, a step that reports `done` ends the flow
+instead of supplying its next prompt.
 
 ### Right-sidebar views
 
