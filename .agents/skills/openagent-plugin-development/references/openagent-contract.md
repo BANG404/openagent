@@ -69,7 +69,11 @@ Plugins may also declare one `extensions.openagent.daemon` with a contained
 command, string `args` and `capabilities` arrays, and `stdio` or `socket`
 transport. The Runtime validates and reports this descriptor. The host owns
 supervision, permissions, endpoint selection, and shutdown; a daemon can be
-paired with an MCP client declared in `mcp.json`.
+paired with an MCP client declared in `mcp.json`. The Runtime resolves the
+daemon's process policy alongside the descriptor and the host consumes it at its
+spawn point, so a daemon starts either confined by the session-derived policy or
+under a recorded exemption reason; the host stops rather than starting a daemon
+whose resolved policy is managed while the topology requires it unconfined.
 
 Tagged output is delivered only through that durable plugin-message channel. It
 never becomes a suffix on the tool result that triggered the hook, so a
@@ -102,7 +106,10 @@ and can receive a verified GitHub package overlay. The registration still
 supplies trusted capabilities, commands, tool ownership, message policies, and
 component ownership to the Runtime. Cua Driver's daemon is resolved from its
 installed package and supervised through the same host daemon boundary as any
-other plugin; its reserved MCP entry remains the client connection.
+other plugin; its reserved MCP entry remains the client connection. It is also
+the one reserved process exemption: the Runtime resolves that identity to an
+unmanaged policy with a fixed product reason, and the host records the reason
+when it starts the daemon instead of starting it unconfined by default.
 
 ### MCP Apps UI
 
@@ -185,8 +192,10 @@ projection rather than caching its own list. Frontends re-read the catalog when
 settings or the installed plugin set change, so disabling a plugin removes its
 commands from the composer palette without an application restart.
 
-When invoked, the Runtime starts the package-relative executable through the
-same process boundary used by Automation Hooks. It writes one UTF-8 JSON
+When invoked, the Runtime starts the package-relative executable under the
+plugin process policy the package loader resolved for it, not the plain session
+profile Automation Hooks inherit, so the command needs an active workspace and
+gains only its own `PLUGIN_DATA` write access. It writes one UTF-8 JSON
 object to stdin containing `conversation_id`, `plugin_id`, `command`,
 `argument`, and the original `input`. The executable must return a non-empty
 UTF-8 prompt on stdout. Non-zero exit status, timeout, empty stdout, or a path

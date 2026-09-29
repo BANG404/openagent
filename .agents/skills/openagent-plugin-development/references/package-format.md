@@ -129,7 +129,9 @@ expands only those placeholders in arguments, environment values, and `cwd`.
 Plugin-relative commands and working directories must remain inside the
 resolved package root. Remote MCP endpoints require HTTPS except for literal
 loopback endpoints, and configured headers are not forwarded across an origin
-change.
+change. The stdio child runs under the plugin process policy described below,
+so its writable roots and inherited environment are the resolved policy rather
+than the host's.
 
 Installed packages live at `<OPENAGENT_HOME>/plugins/<plugin-name>/`. Writable
 state lives separately at `<OPENAGENT_HOME>/plugin-data/<plugin-name>/` and is
@@ -151,7 +153,49 @@ An interrupted replacement is repaired during the next Runtime startup before
 installed packages are loaded.
 Plugin subprocesses remain subject to the normal OpenAgent
 process and permission environment; package containment prevents package path
-escapes but is not itself a subprocess sandbox.
+escapes but is not itself the subprocess sandbox, which the next section
+describes.
+
+## Plugin process confinement
+
+Every process an installed plugin starts — its stdio MCP servers, its portable
+commands, and the daemon the host supervises — carries a policy the Runtime
+resolves at load time from the user's current session permission profile. The
+profile is inherited, never widened: host-root read, the active workspace's
+write access, and the session's network tier are exactly what the user already
+granted to ordinary agent commands, and the only addition is a write grant on
+that plugin's own `<OPENAGENT_HOME>/plugin-data/<plugin-id>/`. There is no
+per-plugin permission setting and no permission field in the portable format.
+
+- The policy anchors on the active workspace. With no active workspace the
+  anchor is the immutable package root and the inherited workspace write is
+  downgraded to read, so a plugin never gains write access to its own package.
+  A portable command still requires an active workspace, because its working
+  directory has to resolve inside a permission root, and reports the missing
+  workspace instead of running.
+- `PLUGIN_DATA` is writable, and the child's `TMPDIR`, `TEMP`, and `TMP` point
+  inside it: the managed backends bind no system temp directory, so the
+  child's scratch space is part of its confinement rather than an extra grant.
+- The host's own credentials are removed from the child environment — names
+  ending in `_API_KEY`, `_ACCESS_KEY`, `_API_TOKEN`, `_ACCESS_TOKEN`, or
+  `_SECRET_KEY`, the `AWS_*` credential names, `GITHUB_TOKEN`/`GH_TOKEN`, and
+  the `ANTHROPIC_`, `OPENAI_`, and `OPENAGENT_` namespaces with `OPENAGENT_HOME`
+  retained. Values the package declares itself in `mcp.json` still apply. This
+  bounds inherited secrets only: the inherited host-root read keeps a
+  credential file on disk readable, which is the user's own choice.
+- A package `capabilities` declaration is a signal, not an authorization. It
+  never widens the resolved policy, so a server that declares network access
+  still runs under the session's network tier.
+- A profile the host's backend cannot enforce fails closed with a diagnostic
+  naming the reason instead of starting an unconfined process, so the plugin's
+  MCP tools are absent until the profile is enforceable again. On Linux that
+  includes WSL1, which cannot create the user namespaces the sandbox needs.
+- Because the session profile owns the network tier, that profile is the only
+  way to grant a plugin process network access. Install any runtime dependency
+  a server would otherwise download at spawn time.
+
+Automation hook commands are lifecycle configuration rather than plugin
+capabilities, so they keep inheriting the session profile directly.
 
 Installed portable plugins share the product plugin lifecycle switch. Disabled
 plugins remain installed for rollback and update checks, but their Skills, MCP
@@ -176,6 +220,17 @@ the desktop runtime; the MCP process remains a protocol client. Never pass
 `--grant` to the client: it configures a runtime the driver launches itself, it
 is valid only in standard permission mode, and the driver refuses it whenever a
 daemon already listens on the endpoint.
+
+The daemon runs outside the managed process sandbox, and that is a recorded
+decision rather than a default. The Runtime resolves the reserved `cua-driver`
+identity to an unmanaged policy whose recorded reason is that the reserved
+topology launches unrestricted desktop control by fixed product policy, and the
+host consumes that policy at its spawn point: it records the exemption and
+refuses to start a driver whose policy is managed. Confining it would defeat its
+purpose — on Windows a managed process runs on a private desktop where no
+interactive window exists, and on macOS it would lose the host's accessibility
+grants — so the exclusion is documented product behavior, not a gap in
+confinement.
 
 Both `--embedded` flags are lifetime contracts, not cosmetics. The daemon's
 makes it stay inside the host's process tree instead of relaunching itself as a
