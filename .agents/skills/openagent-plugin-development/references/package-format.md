@@ -125,6 +125,17 @@ OpenAgent sends a JSON request on stdin containing `conversation_id`,
 non-empty prompt. The executable runs through the normal process boundary and
 must remain inside the installed package root.
 
+`extensions.openagent.flows` is an optional array of package-owned autonomous
+loops. Each entry has an ID, display `label`, display `description`, an
+`argument` mode (`none` or `required_text`), a package-relative executable
+`step`, an optional `timeout_secs` from 1 to 300, and an optional
+`max_iterations` from 1 to 100. The Runtime runs the loop and the package owns
+every decision inside it; see
+`references/openagent-contract.md` for the stdin/stdout step contract. A flow's
+step receives the same `PLUGIN_ROOT` and `PLUGIN_DATA` as the package's stdio
+MCP servers, so a package keeps one state directory across its step and its
+tools.
+
 Sidebar entries may include `icon` and a `capabilities` array. Capabilities are
 limited to `workspace`, `conversation`, `branch`, `files`, `locale`, and
 `theme`; the host sends only the requested fields in the versioned

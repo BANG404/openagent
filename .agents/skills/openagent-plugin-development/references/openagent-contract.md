@@ -10,8 +10,9 @@ and unknown fields remain harmless to other hosts.
 
 The Runtime exposes a typed descriptor rather than raw manifest JSON. Its
 stable fields are `id`, `name`, `version`, `repository`, `path`, `capabilities`,
-`commands`, `message_policies`, `skills`, `mcp_servers`, `automation_hooks`,
-`sidebar_views`, `enabled`, `warnings`, and `error`. Update results are returned by
+`commands`, `flows`, `message_policies`, `skills`, `mcp_servers`,
+`automation_hooks`, `sidebar_views`, `enabled`, `warnings`, and `error`. Update
+results are returned by
 `check_updates`. IDs are the manifest name for portable packages and the
 reserved builtin ID for product capabilities; child components use
 `plugin:<plugin-id>:<component-id>`.
@@ -202,6 +203,87 @@ UTF-8 prompt on stdout. Non-zero exit status, timeout, empty stdout, or a path
 that resolves outside the installed plugin root fails the command without
 starting a model run. The command catalog exposes labels and descriptions but
 never package filesystem paths.
+
+### Flows
+
+A flow is a package-owned autonomous loop. The Runtime owns the loop mechanics
+— turn dispatch, cancellation, the iteration limit, and checkpoint
+continuation — and the package owns every decision inside it. Flows are
+declared in `plugin.json` under `extensions.openagent.flows`:
+
+```json
+{
+  "id": "goal",
+  "label": "Goal",
+  "description": "Work an objective to completion",
+  "argument": "required_text",
+  "step": "bin/goal-step.mjs",
+  "timeout_secs": 60,
+  "max_iterations": 50
+}
+```
+
+The flow is exposed as `/plugin-id:goal`. `argument` is `none` or
+`required_text`; `step` is a package-relative executable; `timeout_secs` is `1`
+through `300`; `max_iterations` is `1` through `100`; and `max_iterations`
+defaults to `100`. Validation matches portable commands: unknown fields and
+invalid entries are skipped with a diagnostic, a disabled or invalid package
+contributes no flows, and no flow's step may resolve outside the package root.
+A flow whose id repeats a command id on the same package is rejected in favor of
+the command.
+
+The Runtime starts the step under the package's own process policy, so a flow
+needs an active workspace and gains only its own `PLUGIN_DATA` write access. The
+same confinement applies to the package's MCP servers, and both receive
+`PLUGIN_ROOT` and `PLUGIN_DATA` from the trusted loader, so a package keeps one
+state directory across its step and its tools. The Runtime writes one UTF-8 JSON
+object to the step's stdin and reads one back per iteration:
+
+```json
+{
+  "conversation_id": "…",
+  "plugin_id": "goal",
+  "flow_id": "goal",
+  "iteration": 1,
+  "argument": "ship the release",
+  "input": "/goal ship the release",
+  "last_output": ""
+}
+```
+
+`iteration` counts from `1`, `last_output` is the previous turn's persisted
+assistant response (empty on the first iteration), and `conversation_id` may
+change if the Runtime moved the run to a continuation conversation. The step
+returns the prompt for the next turn, whether the flow is complete, and
+optionally the display projection of its own state:
+
+```json
+{
+  "prompt": "The goal is still active. Current state: …",
+  "done": false,
+  "state": {
+    "title": "Ship the release",
+    "status": "running",
+    "items": [
+      { "id": "1", "label": "Cut the tag", "status": "completed", "detail": "v1.2.0" }
+    ],
+    "summary": null
+  }
+}
+```
+
+The Runtime interprets none of this beyond `prompt` and `done`: the package owns
+its state schema, its status vocabulary, and its completion rule. The optional
+`state` object carries only what the package chooses to show. The Runtime stamps
+its own `plugin_id` and `flow_id` onto that projection, persists it in the
+conversation checkpoint, and emits it as a `plugin` kind on the flow event, so
+the UI renders it generically and cannot be made to attribute a flow to another
+package. A step that returns an empty prompt, invalid JSON, a non-zero exit
+status, or times out fails the flow without starting another turn; the loop also
+stops when the turn is cancelled or interrupted, or when `max_iterations` is
+reached. Untrusted package output never reaches the transcript as a user
+message: only the Runtime's own continuation prompt is persisted as the hidden
+user record.
 
 ### Right-sidebar views
 

@@ -689,6 +689,15 @@ export interface AgentPluginCommandSummary {
   description: string;
 }
 
+export interface AgentPluginFlowSummary {
+  id: string;
+  name: string;
+  argument: "none" | "required_text";
+  label: string;
+  description: string;
+  max_iterations: number;
+}
+
 export interface AgentPluginOpenAiSummary {
   display_name: string | null;
   short_description: string | null;
@@ -740,6 +749,7 @@ export interface AgentPluginSummary {
   capabilities: string[];
   commands: string[];
   command_specs: AgentPluginCommandSummary[];
+  flows: AgentPluginFlowSummary[];
   message_policies: AgentPluginMessagePolicy[];
   skills: AgentPluginSkillSummary[];
   mcp_servers: AgentPluginMcpSummary[];

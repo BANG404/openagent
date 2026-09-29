@@ -43,6 +43,7 @@ function plugin(overrides: Partial<AgentPluginSummary> = {}): AgentPluginSummary
     capabilities: [],
     commands: [],
     command_specs: [],
+    flows: [],
     message_policies: [],
     skills: [],
     mcp_servers: [],
