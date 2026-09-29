@@ -166,6 +166,9 @@ write access, and the session's network tier are exactly what the user already
 granted to ordinary agent commands, and the only addition is a write grant on
 that plugin's own `<OPENAGENT_HOME>/plugin-data/<plugin-id>/`. There is no
 per-plugin permission setting and no permission field in the portable format.
+Two cases resolve to a recorded exemption instead of a confined process: a
+session whose permission profile the user disabled, and the reserved Cua Driver
+identity described below. Both reasons reach the user's diagnostics.
 
 - The policy anchors on the active workspace. With no active workspace the
   anchor is the immutable package root and the inherited workspace write is
@@ -185,11 +188,19 @@ per-plugin permission setting and no permission field in the portable format.
   credential file on disk readable, which is the user's own choice.
 - A package `capabilities` declaration is a signal, not an authorization. It
   never widens the resolved policy, so a server that declares network access
-  still runs under the session's network tier.
+  still runs under the session's network tier. The `network` token is the one
+  signal the Runtime reads: a package that declares it while the profile
+  restricts network access gets one diagnostic naming the plugin when its
+  process starts, instead of failing at the first socket. Declaring it changes
+  nothing about the policy.
 - A profile the host's backend cannot enforce fails closed with a diagnostic
   naming the reason instead of starting an unconfined process, so the plugin's
   MCP tools are absent until the profile is enforceable again. On Linux that
   includes WSL1, which cannot create the user namespaces the sandbox needs.
+- On Windows the first confined process can require the sandbox's elevated
+  setup, which the system asks the user to approve. A refused or failed setup
+  surfaces as the same fail-closed diagnostic rather than as a silently
+  unconfined plugin.
 - Because the session profile owns the network tier, that profile is the only
   way to grant a plugin process network access. Install any runtime dependency
   a server would otherwise download at spawn time.
