@@ -768,6 +768,7 @@ export interface AgentPluginMarketplaceEntry {
   category: string | null;
   installation: string;
   authentication: string;
+  products: string[];
   source: AgentPluginMarketplaceSource;
   installed: boolean;
   error: string | null;

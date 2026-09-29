@@ -10,9 +10,22 @@ grant capabilities; `mcp.json` remains the transport source of truth.
 
 HTTP MCP servers support OAuth 2.1 discovery, PKCE S256, loopback callbacks,
 public dynamic client registration, refresh tokens, and per-server token
-storage. Hosts should start authorization from the MCP settings surface and
-refresh MCP connections after the callback completes. Bearer tokens are
-injected only into the configured server transport.
+storage. Discovery follows the connector's `WWW-Authenticate` challenge: a 401
+on the unauthenticated handshake supplies `resource_metadata` and `scope`, and
+that metadata URL takes precedence over the derived well-known path. The
+protected resource's advertised `resource` is the canonical RFC 8707 audience;
+it is rejected rather than overridden when a connector is explicitly configured
+for a different one, and a configured value only fills in when metadata omits
+it. The authorization server must advertise PKCE `S256`, expose secure
+authorization and token endpoints, and report an `issuer` matching the
+discovered issuer. When it advertises RFC 9207 `iss` support, the loopback
+callback rejects any authorization response whose `iss` is missing or not
+byte-identical to the metadata issuer. Client ID Metadata Documents (CIMD) are
+not implemented: an authorization server that offers only CIMD produces an
+actionable diagnostic instead of a silent fallback. Hosts start authorization
+from the MCP settings surface and refresh MCP connections after the callback
+completes; bearer tokens are injected only into the configured server
+transport.
 
 MCP Apps resources use `ui://` URIs and `text/html;profile=mcp-app`, are
 isolated in sandboxed iframes, and receive the MCP Apps initialize handshake,
@@ -21,14 +34,29 @@ follow-up messages, modal, file selection/upload/download, inline/fullscreen/PiP
 display modes, widget state, and the `window.openai` bridge. Tool results keep
 their `content`, `structuredContent`, `_meta`, and `isError` envelope fields.
 Widget state and model-context updates are persisted in the conversation
-database; model context is consumed by the next provider request.
+database; model context is consumed by the next provider request. A tool absent
+from `_meta.ui.visibility` defaults to model- and app-visible, `["app"]` hides it
+from the model catalog, and `["model"]` makes it unreachable from the widget.
+`tests/fixtures/mcp-app-demo/` is the committed, dependency-free MCP stdio
+server that drives the bridge end to end; see the desktop host skill's
+`native-verification.md` for the `test:blackbox:mcp-apps` run.
 
 This is product compatibility, not a claim that every OpenAI-hosted service is
 available locally. Checkout is represented by a host confirmation boundary and
 does not process payments. OAuth still depends on the provider's discovery and
-registration policy. Repository and personal Marketplace catalogs are
-discovered from the standard paths and local sources can be installed; remote
-URL, Git, and npm sources are listed with their policy metadata but require a
-source-specific verified installer before activation. Hosts must also enforce
-their own CSP, permission, and trust policy when installing third-party
-packages.
+registration policy.
+
+Repository and personal Marketplace catalogs are discovered from the standard
+paths. Every source kind can be installed: `local` paths are read in place,
+`url` sources download an archive (`.zip`, `.tar.gz`, `.tgz`) or clone a
+repository, `git-subdir` clones and then contains the declared subdirectory
+inside the checkout, and `npm` runs `npm pack` (or `npm publish`-equivalent
+metadata) with lifecycle scripts disabled and extracts the returned tarball.
+Remote sources are staged in a temporary directory and then pass through the
+same manifest validation and atomic activation as a direct install, so a
+package that fails validation never reaches `OPENAGENT_HOME/plugins`. Source
+URLs must be HTTPS without credentials or a query; npm registries must be HTTPS
+without credentials, query, or fragment. Downloads and clones are size- and
+time-bounded. Git and npm therefore require the corresponding CLI on `PATH`, and
+the host must enforce its own CSP, permission, and trust policy before
+installing a third-party package.

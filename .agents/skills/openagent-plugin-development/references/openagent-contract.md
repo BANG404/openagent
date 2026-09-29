@@ -125,15 +125,25 @@ The host also provides the documented `window.openai` compatibility extensions:
 `sendFollowUpMessage`, `widgetState`, `setWidgetState`, `uploadFile`,
 `selectFiles`, `getFileDownloadUrl`, `requestDisplayMode`, `requestModal`,
 `requestClose`, `notifyIntrinsicHeight`, `openExternal`, `setOpenInAppUrl`, and
-`requestCheckout`. Checkout is an explicit confirmation boundary; after the
-user confirms, OpenAgent calls the same server's `complete_checkout` tool and
-returns its result. It does not process payment credentials or replace the
-merchant's payment provider. Apps must still feature-detect optional APIs and
-provide a text or link fallback.
+`requestCheckout`. Checkout is an explicit confirmation boundary: the host
+shows the session the component supplied and, only after the user confirms,
+calls the same server's `complete_checkout` tool with that session and returns
+its result. OpenAgent never collects payment credentials, never substitutes for
+the merchant's payment provider, and never treats component-supplied totals as
+authoritative — the server owns prices and order status, so it must re-validate
+what it receives. The standard's hosted payment sheet is a private beta and is
+not implemented; apps that need it must fall back to the external,
+merchant-hosted flow. Apps must still feature-detect optional APIs and provide
+a text or link fallback.
 
 MCP HTTP connectors support OAuth 2.1 discovery, PKCE S256, loopback
 callbacks, public dynamic registration, refresh tokens, and restricted local
-token storage. The local plugin lifecycle supports package installation,
+token storage. Discovery is challenge-driven: a 401 `WWW-Authenticate` header
+supplies the `resource_metadata` URL and requested scope, and the protected
+resource's advertised `resource` becomes the canonical RFC 8707 audience (a
+conflicting configured resource is rejected). PKCE `S256`, secure endpoints,
+issuer agreement, and RFC 9207 `iss` validation on the callback are enforced;
+Client ID Metadata Documents are not implemented and fail with a diagnostic. The local plugin lifecycle supports package installation,
 enable/disable, uninstall, and verified GitHub release updates. A hosted
 OpenAI marketplace listing is a separate service and is not claimed by the
 local package loader.
@@ -216,7 +226,9 @@ Startup also repairs an interrupted replacement by restoring a backup when the
 active package is missing and removing stale staging directories.
 Enable and disable remain lifecycle gates for mounted components.
 
-Local directories are the first supported source. A manifest `repository` may
+Direct installs use a local directory; a Marketplace entry can additionally be
+`local`, `url`, `git-subdir`, or `npm`, and each is staged and validated through
+the same activation path. A manifest `repository` may
 point to an HTTPS GitHub repository. `check_updates` reads its latest stable
 release metadata, compares the tag with the installed version, and shows a
 user-facing reminder including a verified archive candidate when one exists.
