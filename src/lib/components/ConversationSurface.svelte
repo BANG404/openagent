@@ -23,6 +23,7 @@
     UserMessageContext,
     WorkspaceContext,
     AgentPluginSidebarViewSummary,
+    AgentPluginFlowSummary,
   } from "$lib/types";
   import { t } from "$lib/i18n";
   import { showToast } from "$lib/toast";
@@ -129,6 +130,7 @@
     composerDraft,
     focusRequest,
     pluginSidebarViews = [],
+    pluginFlows = [],
     pluginSidebarRevision = "",
   }: {
     view: ConversationSurfaceView;
@@ -152,6 +154,7 @@
     composerDraft: ComposerDraft;
     focusRequest: number;
     pluginSidebarViews?: AgentPluginSidebarViewSummary[];
+    pluginFlows?: AgentPluginFlowSummary[];
     /** Changes when an installed plugin package changes, so panels re-read. */
     pluginSidebarRevision?: string;
   } = $props();
@@ -455,6 +458,7 @@
     {chatGroupWorkspace}
     {onChatGroupsAvailabilityChange}
     {pluginSidebarViews}
+    {pluginFlows}
     {pluginSidebarRevision}
     {pluginSidebarContext}
   />

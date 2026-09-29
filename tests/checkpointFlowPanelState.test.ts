@@ -13,6 +13,14 @@ const goal = (status = "running") => ({
   todos: [],
 });
 
+const pluginFlow = (status = "running") => ({
+  kind: "plugin",
+  objective: "Ship the release",
+  status,
+  flowId: "plugin:goal:goal",
+  items: [],
+});
+
 describe("checkpoint flow panel state", () => {
   test("opens for a newly created flow and a restarted terminal flow", () => {
     expect(shouldAutoOpenCheckpointFlowPanel(undefined, goal())).toBe(true);
@@ -21,6 +29,11 @@ describe("checkpoint flow panel state", () => {
 
   test("preserves the user's choice during updates to the same running flow", () => {
     expect(shouldAutoOpenCheckpointFlowPanel(goal(), { ...goal(), iteration: 2 })).toBe(false);
+    expect(shouldAutoOpenCheckpointFlowPanel(pluginFlow(), pluginFlow())).toBe(false);
+  });
+
+  test("reopens a package flow that a package status reported as terminal", () => {
+    expect(shouldAutoOpenCheckpointFlowPanel(pluginFlow("completed"), pluginFlow())).toBe(true);
   });
 
   test("keys panel selection by conversation and branch", () => {

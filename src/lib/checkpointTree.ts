@@ -106,7 +106,7 @@ export interface CkTreeNode {
   user?: ChatMessage;
   assistant?: ChatMessage;
   systemMessages?: ChatMessage[];
-  flowKind?: "goal" | "graph" | "graph-node";
+  flowKind?: "goal" | "graph" | "graph-node" | "plugin";
   flowStatus?: string;
   flow?: CheckpointFlow;
   turn?: CheckpointTurnMetadata;

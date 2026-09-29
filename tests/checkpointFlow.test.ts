@@ -71,6 +71,55 @@ describe("checkpoint Goal and Graph state", () => {
     expect(flow && checkpointFlowProgress(flow)).toEqual({ completed: 1, total: 2 });
   });
 
+  test("carries a package flow's own title, status, and items unchanged", () => {
+    const flow = normalizeCheckpointFlow("plugin", {
+      plugin_id: "goal",
+      flow_id: "plugin:goal:goal",
+      title: "Ship the release",
+      status: "awaiting_review",
+      items: [
+        { id: "one", label: "Inspect", status: "completed" },
+        { id: "two", label: "Implement", status: "in_progress", detail: "editing files" },
+        { id: 3, label: "Ignored", status: "pending" },
+      ],
+      summary: "One of two",
+    });
+
+    expect(flow).toEqual({
+      kind: "plugin",
+      objective: "Ship the release",
+      status: "awaiting_review",
+      flowId: "plugin:goal:goal",
+      items: [
+        { id: "one", label: "Inspect", status: "completed", detail: undefined },
+        { id: "two", label: "Implement", status: "in_progress", detail: "editing files" },
+      ],
+      summary: "One of two",
+    });
+    expect(flow && checkpointFlowProgress(flow)).toEqual({ completed: 1, total: 2 });
+    expect(
+      checkpointFlowFromLiveUpdate({
+        conv_id: "conversation",
+        kind: "plugin-flow",
+        status: "running",
+        flow: {
+          kind: "plugin",
+          state: {
+            plugin_id: "goal",
+            flow_id: "plugin:goal:goal",
+            title: "Ship the release",
+            status: "running",
+            items: [],
+          },
+        },
+      }),
+    ).toMatchObject({ kind: "plugin", objective: "Ship the release" });
+  });
+
+  test("rejects a package projection without a title", () => {
+    expect(normalizeCheckpointFlow("plugin", { items: [] })).toBeUndefined();
+  });
+
   test("preserves Graph dependencies while rejecting malformed nodes", () => {
     const flow = normalizeCheckpointFlow("graph", {
       objective: "Run in parallel",

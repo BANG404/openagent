@@ -863,6 +863,8 @@
   });
   let pluginSidebarRegistry = $derived(pluginSidebarEntries(agentPlugins, pluginSidebarContext));
   let pluginSidebarViews = $derived(availablePluginSidebarViews(pluginSidebarRegistry));
+  /** Every installed package flow, so a package flow panel can name itself. */
+  let pluginFlows = $derived(agentPlugins.flatMap((plugin) => plugin.flows));
   let pluginSidebarRevision = $derived(pluginSidebarRevisionOf(pluginSidebarRegistry));
   let rightSidebarAvailable = $derived(
     conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length) ||
@@ -5739,6 +5741,7 @@
           {rightSidebarConversationId}
           {rightSidebarBranchId}
           {pluginSidebarViews}
+          {pluginFlows}
           {pluginSidebarRevision}
           chatGroupsEnabled={config?.chat_groups_enabled ?? false}
           chatGroupsAvailable={(config?.chat_groups_enabled ?? false) && chatGroupToolUsed}

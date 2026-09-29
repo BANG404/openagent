@@ -4,9 +4,14 @@
     checkpointFlowProgress,
     checkpointGraphLayers,
     type CheckpointFlow,
+    type CheckpointFlowItem,
     type CheckpointGraphNodeStatus,
   } from "$lib/checkpointFlow";
-  import type { AgentPluginSidebarViewSummary, FileChange } from "$lib/types";
+  import type {
+    AgentPluginFlowSummary,
+    AgentPluginSidebarViewSummary,
+    FileChange,
+  } from "$lib/types";
   import type { BackgroundTerminalSession } from "$lib/openagent";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import {
@@ -46,6 +51,8 @@
     chatGroupWorkspace?: string;
     onChatGroupsAvailabilityChange?: (available: boolean) => void;
     pluginSidebarViews?: AgentPluginSidebarViewSummary[];
+    /** Installed package flows, so a package flow panel can name itself. */
+    pluginFlows?: AgentPluginFlowSummary[];
     /** Package identity of the visible plugins; a change reloads each panel. */
     pluginSidebarRevision?: string;
     pluginSidebarContext?: {
@@ -81,6 +88,7 @@
     chatGroupWorkspace = "",
     onChatGroupsAvailabilityChange = () => {},
     pluginSidebarViews = [],
+    pluginFlows = [],
     pluginSidebarRevision = "",
     pluginSidebarContext = {},
   }: Props = $props();
@@ -111,6 +119,23 @@
   });
   let progress = $derived(flow ? checkpointFlowProgress(flow) : { completed: 0, total: 0 });
   let graphLayers = $derived(flow?.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
+  // Goal to-dos and package items are both flat progress entries; only Graph
+  // keeps its own layered rendering.
+  let flatItems = $derived(flatFlowItems(flow));
+  let pluginFlowLabels = $derived(
+    Object.fromEntries(pluginFlows.map((pluginFlow) => [pluginFlow.id, pluginFlow.label])),
+  );
+  // A built-in flow keeps its translated heading; a package flow names itself,
+  // because only the package knows what its own loop is called.
+  let heading = $derived(
+    flow === null
+      ? ""
+      : flow.kind === "goal"
+        ? $t("checkpointGoal")
+        : flow.kind === "graph"
+          ? $t("checkpointGraph")
+          : (pluginFlowLabels[flow.flowId] ?? $t("checkpointPluginFlow")),
+  );
   let graphViewport: HTMLElement | null = $state(null);
   let graphCanvas: HTMLDivElement | null = $state(null);
   let graphEdges = $state<{ key: string; path: string; status: CheckpointGraphNodeStatus }[]>([]);
@@ -241,13 +266,28 @@
     }
   });
 
+  function flatFlowItems(current: CheckpointFlow | null): CheckpointFlowItem[] {
+    if (current?.kind === "goal") {
+      return current.todos.map((todo) => ({
+        id: todo.id,
+        label: todo.task,
+        status: todo.status,
+        detail: todo.result,
+      }));
+    }
+    return current?.kind === "plugin" ? current.items : [];
+  }
+
   function statusLabel(status: string): string {
     if (status === "completed") return $t("checkpointFlowCompleted");
     if (status === "failed") return $t("checkpointFlowFailed");
     if (status === "blocked") return $t("checkpointFlowBlocked");
     if (status === "in_progress") return $t("checkpointFlowInProgress");
     if (status === "pending") return $t("checkpointFlowPending");
-    return $t("checkpointFlowRunning");
+    if (status === "running") return $t("checkpointFlowRunning");
+    // A package owns its status vocabulary, so an unmapped token is shown as
+    // the package reported it rather than relabelled.
+    return status;
   }
 </script>
 
@@ -327,27 +367,31 @@
     {#if !collapsed && activePanel === "status" && flow}
       <header class="flow-header">
         <span class="flow-heading">
-          <strong>{$t(flow.kind === "goal" ? "checkpointGoal" : "checkpointGraph")}</strong>
+          <strong>{heading}</strong>
           <span>{flow.objective}</span>
         </span>
         <span class="flow-count">{progress.completed}/{progress.total}</span>
       </header>
 
       <div class="flow-body" class:graph={flow.kind === "graph"}>
-        {#if flow.kind === "goal"}
+        {#if flow.kind !== "graph"}
           <ScrollArea height="100%" class="flow-body-scroll" scrollHideDelay={350}>
             <div class="flow-body-content">
-              {#if flow.todos.length === 0}
-                <p class="flow-empty">{$t("checkpointGoalNoTodos")}</p>
+              {#if flatItems.length === 0}
+                <p class="flow-empty">
+                  {$t(
+                    flow.kind === "goal" ? "checkpointGoalNoTodos" : "checkpointPluginFlowEmpty",
+                  )}
+                </p>
               {:else}
-                {#each flow.todos as todo (todo.id)}
-                  <div class="flow-item {todo.status}">
+                {#each flatItems as item (item.id)}
+                  <div class="flow-item {item.status}">
                     <span class="status-dot" aria-hidden="true"></span>
                     <span class="item-copy"
-                      ><strong>{todo.task}</strong>{#if todo.result}<small>{todo.result}</small
+                      ><strong>{item.label}</strong>{#if item.detail}<small>{item.detail}</small
                         >{/if}</span
                     >
-                    <span class="item-status">{statusLabel(todo.status)}</span>
+                    <span class="item-status">{statusLabel(item.status)}</span>
                   </div>
                 {/each}
               {/if}

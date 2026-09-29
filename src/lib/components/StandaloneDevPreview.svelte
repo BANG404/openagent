@@ -806,8 +806,9 @@
     { name: "archive", path: "D:\\Workspace Archive\\2026\\archive" },
   ];
 
+  const checkpointFlowPreviewKind = query.get("checkpoint-flow-preview-kind");
   const checkpointFlow: CheckpointFlow =
-    query.get("checkpoint-flow-preview-kind") === "goal"
+    checkpointFlowPreviewKind === "goal"
       ? {
           kind: "goal",
           objective: "完成聊天界面的 Goal 状态面板",
@@ -819,7 +820,20 @@
             { id: "verify", task: "验证主题、语言和交互", status: "pending" },
           ],
         }
-      : {
+      : checkpointFlowPreviewKind === "plugin"
+        ? {
+            kind: "plugin",
+            objective: "把 Goal 收尾并按插件标准发布",
+            status: "running",
+            flowId: "plugin:goal:goal",
+            items: [
+              { id: "todo-1", label: "打包并校验 plugin.json", status: "completed" },
+              { id: "todo-2", label: "推送仓库并创建 release", status: "in_progress" },
+              { id: "todo-3", label: "验证安装后的自动继续", status: "pending" },
+            ],
+            summary: "3 项待办，1 项完成。",
+          }
+        : {
           kind: "graph",
           objective: "并行完成 Goal / Graph 状态可视化",
           status: "running",
@@ -858,8 +872,9 @@
             },
           ],
         };
-  if (query.has("checkpoint-flow-preview-empty") && checkpointFlow.kind === "graph") {
-    checkpointFlow.nodes = [];
+  if (query.has("checkpoint-flow-preview-empty")) {
+    if (checkpointFlow.kind === "graph") checkpointFlow.nodes = [];
+    if (checkpointFlow.kind === "plugin") checkpointFlow.items = [];
   }
   if (query.has("checkpoint-flow-preview-completed")) checkpointFlow.status = "completed";
   const checkpointFlowPreviewFlow =
@@ -1288,6 +1303,16 @@
       <CheckpointFlowStatus
         flow={checkpointFlowPreviewFlow}
         changes={checkpointFlowPreviewChanges}
+        pluginFlows={[
+          {
+            id: "plugin:goal:goal",
+            name: "goal:goal",
+            argument: "required_text",
+            label: "Goal",
+            description: "Work an objective to completion across turns.",
+            max_iterations: 50,
+          },
+        ]}
         width={panelWidth}
         collapsed={panelCollapsed}
         resizing={panelResizing}

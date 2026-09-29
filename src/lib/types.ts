@@ -361,8 +361,9 @@ export interface CheckpointData {
     | "final_cancelled"
     | "final_failed"
     | null;
+  /** `plugin` is a package flow's own projection; the other two are built in. */
   flow?: {
-    kind: "goal" | "graph";
+    kind: "goal" | "graph" | "plugin";
     state: Record<string, unknown>;
   };
 }
@@ -372,7 +373,7 @@ export interface GoalRunUpdatedEvent {
   kind: string;
   status: string;
   flow?: {
-    kind: "goal" | "graph";
+    kind: "goal" | "graph" | "plugin";
     state: unknown;
   };
 }

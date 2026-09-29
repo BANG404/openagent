@@ -18,6 +18,15 @@ export interface CheckpointGraphNode {
   result?: string;
 }
 
+/** One flat entry of a package flow's own progress projection. */
+export interface CheckpointFlowItem {
+  id: string;
+  label: string;
+  /** Package-owned vocabulary; only the tokens the host also uses get a label. */
+  status: string;
+  detail?: string;
+}
+
 export type CheckpointFlow =
   | {
       kind: "goal";
@@ -34,6 +43,16 @@ export type CheckpointFlow =
       status: CheckpointFlowStatus;
       iteration: number;
       nodes: CheckpointGraphNode[];
+      summary?: string;
+    }
+  | {
+      kind: "plugin";
+      objective: string;
+      /** The package's own status string, carried to the panel unchanged. */
+      status: string;
+      /** Namespaced catalog id, the key that names the flow for the reader. */
+      flowId: string;
+      items: CheckpointFlowItem[];
       summary?: string;
     };
 
@@ -94,12 +113,45 @@ function iteration(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
 }
 
-export function normalizeCheckpointFlow(
-  kind: "goal" | "graph",
-  value: unknown,
-): CheckpointFlow | undefined {
+function flowItem(value: unknown): CheckpointFlowItem | undefined {
+  const item = asRecord(value);
+  if (!item || typeof item.id !== "string" || typeof item.label !== "string") return undefined;
+  return {
+    id: item.id,
+    label: item.label,
+    status: typeof item.status === "string" ? item.status : "running",
+    detail: optionalString(item.detail),
+  };
+}
+
+/**
+ * A package flow reports its own projection, so nothing here is interpreted:
+ * the title is the reader-facing heading and every item keeps the status string
+ * the package chose.
+ */
+function pluginFlow(state: Record<string, unknown>): CheckpointFlow | undefined {
+  const title = optionalString(state.title) ?? optionalString(state.objective);
+  if (!title) return undefined;
+  return {
+    kind: "plugin",
+    objective: title,
+    status: optionalString(state.status) ?? "running",
+    flowId: optionalString(state.flow_id) ?? "",
+    items: Array.isArray(state.items)
+      ? state.items.flatMap((value): CheckpointFlowItem[] => {
+          const item = flowItem(value);
+          return item ? [item] : [];
+        })
+      : [],
+    summary: optionalString(state.summary),
+  };
+}
+
+export function normalizeCheckpointFlow(kind: string, value: unknown): CheckpointFlow | undefined {
   const state = asRecord(value);
-  if (!state || typeof state.objective !== "string") return undefined;
+  if (!state) return undefined;
+  if (kind === "plugin") return pluginFlow(state);
+  if (typeof state.objective !== "string") return undefined;
   const common = {
     objective: state.objective,
     status: flowStatus(state.status),
@@ -125,7 +177,7 @@ export function normalizeCheckpointFlow(
         })
       : [];
     return {
-      kind,
+      kind: "goal",
       ...common,
       todos,
       graphNodeId: optionalString(state.graph_node_id),
@@ -151,7 +203,7 @@ export function normalizeCheckpointFlow(
         ];
       })
     : [];
-  return { kind, ...common, nodes };
+  return { kind: "graph", ...common, nodes };
 }
 
 export function checkpointFlowFromLiveUpdate(
@@ -169,7 +221,8 @@ export function updateLiveCheckpointFlowProjection(
 }
 
 export function checkpointFlowProgress(flow: CheckpointFlow): { completed: number; total: number } {
-  const items = flow.kind === "goal" ? flow.todos : flow.nodes;
+  const items =
+    flow.kind === "goal" ? flow.todos : flow.kind === "graph" ? flow.nodes : flow.items;
   return {
     completed: items.filter((item) => item.status === "completed").length,
     total: items.length,
