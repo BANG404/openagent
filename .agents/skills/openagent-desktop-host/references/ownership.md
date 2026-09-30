@@ -50,11 +50,11 @@ the host.
 
 Long-lived plugin processes use the host's `PluginDaemonSupervisor` registry.
 It stores one managed child per validated plugin ID, holds the stdin lifetime
-pipe, drains diagnostics, waits for socket readiness when a transport declares
-an endpoint, and performs bounded stop plus forced reaping on exit. Cua Driver
-keeps its reserved endpoint ownership lock, provisioning step, unrestricted
-policy, and command-line policy tail in its adapter while the generic registry
-handles other plugin daemons. A daemon with a managed process policy must go
+pipe and adapter resources, drains diagnostics, waits for socket readiness when
+a transport declares an endpoint, and performs bounded stop plus forced
+reaping on exit. Cua Driver uses this same registry; its adapter keeps only the
+reserved endpoint ownership lock, provisioning step, unrestricted policy, and
+command-line policy tail. A daemon with a managed process policy must go
 through a sandbox-aware host adapter; it is rejected rather than started with
 ambient permissions.
 

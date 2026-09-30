@@ -92,6 +92,7 @@ impl PluginDaemonStop {
 struct ManagedDaemon {
     child: PluginDaemonChild,
     stop: Option<PluginDaemonStop>,
+    _resources: Vec<Box<dyn Send>>,
 }
 
 /// Host-owned registry for all long-lived plugin daemons in this desktop
@@ -113,6 +114,15 @@ impl PluginDaemonSupervisor {
         &self,
         spec: PluginDaemonSpec,
         stop: Option<PluginDaemonStop>,
+    ) -> Result<bool, String> {
+        self.start_with_resources(spec, stop, Vec::new())
+    }
+
+    pub(crate) fn start_with_resources(
+        &self,
+        spec: PluginDaemonSpec,
+        stop: Option<PluginDaemonStop>,
+        resources: Vec<Box<dyn Send>>,
     ) -> Result<bool, String> {
         let mut daemons = self
             .daemons
@@ -180,6 +190,7 @@ impl PluginDaemonSupervisor {
                     _lifetime: lifetime,
                 },
                 stop,
+                _resources: resources,
             },
         );
         Ok(true)
