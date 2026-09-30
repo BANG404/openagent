@@ -8,6 +8,7 @@
     checkpointFlowPanelWidthForRatio,
     loadCheckpointFlowPanelWidth,
     saveCheckpointFlowPanelWidth,
+    CONVERSATION_PANEL_COLLAPSE_THRESHOLD,
   } from "$lib/checkpointFlowPanelSizing";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
   import type { AgentPluginFlowSummary, AgentPluginSidebarViewSummary } from "$lib/types";
@@ -33,6 +34,8 @@
     pluginFlows = [],
     pluginSidebarRevision = "",
     pluginSidebarContext = {},
+    conversationPanelCollapsed = false,
+    onConversationCollapse = () => {},
   }: {
     flow: CheckpointFlow | null;
     changes: FileChange[];
@@ -61,6 +64,8 @@
       locale?: string;
       theme?: string;
     };
+    conversationPanelCollapsed?: boolean;
+    onConversationCollapse?: (collapsed: boolean) => void;
   } = $props();
 
   let width = $state(
@@ -109,10 +114,13 @@
     resizing = true;
     const onMove = (moveEvent: PointerEvent) => {
       if (moveEvent.pointerId !== pointerId) return;
-      pendingWidth = clampCheckpointFlowPanelWidth(
-        startWidth + startX - moveEvent.clientX,
-        container.clientWidth,
-      );
+      const rawWidth = startWidth + startX - moveEvent.clientX;
+      if (rawWidth >= container.clientWidth - CONVERSATION_PANEL_COLLAPSE_THRESHOLD) {
+        onConversationCollapse(true);
+        pendingWidth = container.clientWidth;
+      } else {
+        pendingWidth = clampCheckpointFlowPanelWidth(rawWidth, container.clientWidth);
+      }
       if (resizeFrame !== null) return;
       resizeFrame = requestAnimationFrame(() => {
         resizeFrame = null;
@@ -168,5 +176,6 @@
   {pluginFlows}
   {pluginSidebarRevision}
   {pluginSidebarContext}
+  conversationCollapsed={conversationPanelCollapsed}
   onResizeStart={startResize}
 />

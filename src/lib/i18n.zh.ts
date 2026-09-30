@@ -588,6 +588,8 @@ export const zh = {
   checkpointFlowResize: "调整右侧栏宽度",
   checkpointFlowCollapse: "收起右侧栏",
   checkpointFlowExpand: "展开右侧栏",
+  conversationCollapse: "收起中间对话",
+  conversationExpand: "展开中间对话",
   backgroundTerminals: "后台终端",
   backgroundTerminalsExpand: "展开后台终端",
   backgroundTerminalsCollapse: "收起后台终端",

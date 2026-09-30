@@ -63,6 +63,7 @@
       locale?: string;
       theme?: string;
     };
+    conversationCollapsed?: boolean;
   }
 
   let {
@@ -91,6 +92,7 @@
     pluginFlows = [],
     pluginSidebarRevision = "",
     pluginSidebarContext = {},
+    conversationCollapsed = false,
   }: Props = $props();
   const panelSnapshots = new RightSidebarPanelStateStore();
   let currentScopeKey = $state<string | null>(null);
@@ -295,6 +297,7 @@
   id="checkpoint-flow-panel"
   class="flow-panel"
   class:collapsed
+  class:conversation-collapsed={conversationCollapsed}
   class:resizing
   style:--flow-panel-width={`${width}px`}
   aria-label={$t("conversationDetails")}
@@ -584,6 +587,17 @@
     margin-left: 0;
     opacity: 0;
     pointer-events: none;
+  }
+  .flow-panel.conversation-collapsed {
+    width: calc(100% - var(--workspace-card-gap));
+    max-width: none;
+  }
+  .flow-panel.collapsed.conversation-collapsed {
+    width: 0;
+    max-width: 0;
+  }
+  .flow-panel.conversation-collapsed .flow-panel-surface {
+    border-radius: 12px;
   }
   .flow-panel.resizing {
     transition: none;
