@@ -382,6 +382,39 @@ export function splice(value: string, start: number, end: number, insertion: str
   };
 }
 
+/** Remove formatting delimiters whose visible content was deleted. */
+export function removeEmptyFormatting(value: string, caret: number): ComposerEdit {
+  let nextValue = value;
+  let nextCaret = caret;
+  const rules: RegExp[] = [
+    /\*\*([\t ]*)\*\*/g,
+    /~~([\t ]*)~~/g,
+    /`([\t ]*)`/g,
+    /(?<!\*)\*(?!\*)([\t ]*)(?<!\*)\*(?!\*)/g,
+  ];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    if (nextValue === "**") {
+      nextValue = "";
+      nextCaret = 0;
+      changed = true;
+    }
+    for (const rule of rules) {
+      rule.lastIndex = 0;
+      nextValue = nextValue.replace(rule, (match, content: string, offset: number) => {
+        changed = true;
+        if (nextCaret > offset) {
+          const relative = Math.min(nextCaret - offset, match.length);
+          nextCaret = offset + Math.min(relative, content.length);
+        }
+        return content;
+      });
+    }
+  }
+  return { value: nextValue, caret: Math.max(0, nextCaret) };
+}
+
 /**
  * Shift+Enter: stay inside the current quote or list by repeating the marker,
  * and drop an empty marker instead of carrying it onto the new line. Headings
