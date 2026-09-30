@@ -187,8 +187,13 @@ release asset whose URL is HTTPS, whose name ends in `.zip`, `.tar.gz`, or
 `.tgz`, and whose GitHub `sha256:` digest is present and matches the bytes.
 The asset is size-limited, extracted into staging with archive traversal and
 link rejection, validated as a complete package with a matching manifest name,
-then atomically activated. The previous package is retained until activation
-succeeds and is restored if replacement fails; `plugin-data` is never replaced.
+then atomically activated. A tarball built with `git archive` — which is how
+the published packages are packed, and how GitHub's own source archives are
+produced — opens with a `pax_global_header` metadata member carrying the commit
+id; that member is skipped rather than rejected, while any other member that is
+neither a file nor a directory still fails extraction. The previous package is
+retained until activation succeeds and is restored if replacement fails;
+`plugin-data` is never replaced.
 An interrupted replacement is repaired during the next Runtime startup before
 installed packages are loaded.
 Plugin subprocesses remain subject to the normal OpenAgent

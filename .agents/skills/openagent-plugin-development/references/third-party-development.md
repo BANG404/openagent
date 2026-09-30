@@ -83,10 +83,13 @@ latest stable release and reports a version transition and verified archive
 candidate. The Settings surface performs replacement only after an explicit
 Update action. Release assets must be HTTPS GitHub `.zip`, `.tar.gz`, or `.tgz`
 files with a GitHub `sha256:` digest. OpenAgent limits the download size,
-rejects traversal and links while extracting, validates the complete manifest
-and component set in staging, then atomically activates the candidate while
-preserving `plugin-data`; activation failures restore the previous package. A
-check never downloads or executes a release.
+rejects traversal and links while extracting, and accepts a tarball packed with
+`git archive` — including GitHub's own source archives — by skipping the
+`pax_global_header` metadata member it opens with, without accepting any other
+non-file member. It validates the complete manifest and component set in
+staging, then atomically activates the candidate while preserving
+`plugin-data`; activation failures restore the previous package. A check never
+downloads or executes a release.
 
 The check is cheap by design, because the anonymous GitHub rate limit is 60
 requests per hour per originating IP and is shared with unrelated traffic on
