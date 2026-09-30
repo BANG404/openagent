@@ -278,6 +278,15 @@
           disabled={view.agentPluginsLoading}
         />
         <SettingsActionButton
+          label={view.agentPluginUpdatesLoading
+            ? $t("pluginCheckingUpdates")
+            : $t("pluginCheckUpdates")}
+          icon="check"
+          tone="quiet"
+          onclick={() => view.runAgentPluginUpdateCheck()}
+          disabled={view.agentPluginsLoading || view.agentPluginUpdatesLoading}
+        />
+        <SettingsActionButton
           label={$t("pluginRefresh")}
           icon="refresh"
           tone="quiet"
@@ -288,6 +297,11 @@
     </div>
     {#if view.agentPluginStatus}
       <div class="provider-status success">{view.agentPluginStatus}</div>
+    {/if}
+    {#if view.agentPluginUpdateCheckStatus}
+      <div class="provider-status {view.agentPluginUpdateCheckStatus.tone}">
+        {view.agentPluginUpdateCheckStatus.message}
+      </div>
     {/if}
     {#if view.agentPluginMarketplaces.length > 0}
       <section class="plugin-marketplaces" aria-label={$t("pluginMarketplaces")}>

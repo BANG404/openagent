@@ -357,8 +357,14 @@ the same activation path. A manifest `repository` may
 point to an HTTPS GitHub repository. `check_updates` reads its latest stable
 release metadata, compares the tag with the installed version, and shows a
 user-facing reminder including a verified archive candidate when one exists.
-`update` is explicit: it downloads, validates, stages, and atomically activates
-that candidate without executing it during validation.
+It runs silently whenever the plugin directory is loaded, and the Plugins tab
+additionally offers an explicit Check for updates action that re-runs it on
+demand and reports the outcome: the available-update count, an all-up-to-date
+statement, or the number of plugins whose release metadata could not be read.
+A silent background failure only logs; a failure the user asked for is always
+stated, and a per-plugin error never leaves the button claiming the plugins are
+current. `update` is explicit: it downloads, validates, stages, and atomically
+activates that candidate without executing it during validation.
 
 ## Built-in migration
 
