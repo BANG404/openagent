@@ -121,7 +121,10 @@ Skills continue to use immediate child directories under `skills/` with a
 conforming `SKILL.md`. MCP continues to use the portable `mcp.json` schema and
 the existing `PLUGIN_ROOT`/`PLUGIN_DATA` expansion and transport restrictions.
 The product registry exposes Cua Driver, Chat Groups, Goal Mode, and Graph Mode
-as trusted plugin descriptors. Each capability has a standard package repository
+as trusted plugin descriptors. Multi-Agent V2 is intentionally absent from this
+catalog: its six tools and child-conversation registry are owned directly by
+Runtime, and its dedicated `multi_agent_v2.enabled` setting is not a plugin
+lifecycle switch. Each catalogued capability has a standard package repository
 and can receive a verified GitHub package overlay. The registration still
 supplies trusted identity, lifecycle switches, compatibility aliases, and
 message-policy metadata; package MCP servers own Goal, Graph, and Chat Groups
