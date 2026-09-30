@@ -62,6 +62,7 @@
     type RetryQueueKind,
   } from "$lib/settingsConfig";
   import { t, tr, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
+  import { classifyAgentPluginUpdateCheck } from "$lib/agentPluginUpdateCheck";
   import type { SettingsNav } from "$lib/settingsWindows";
   import {
     pluginSidebarLifecycle,
@@ -255,6 +256,10 @@
   let agentPluginRemoving = $state(false);
   let agentPluginsLoading = $state(false);
   let agentPluginStatus = $state("");
+  let agentPluginUpdateCheckStatus = $state<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
   let mcpDiscoveredTools = $state<Record<string, string[]>>(
     isMcpSettingsPreview
       ? {
@@ -1777,6 +1782,9 @@
     }
     agentPluginsLoading = true;
     agentPluginStatus = "";
+    // The installed set is about to change, so the last explicit check result is
+    // no longer a statement about the plugins on screen.
+    agentPluginUpdateCheckStatus = null;
     try {
       const [plugins, marketplaces] = await Promise.all([
         desktopOpenAgent.listAgentPlugins(),
@@ -1802,15 +1810,50 @@
     await emit("agent-plugins-changed").catch(() => {});
   }
 
-  async function checkAgentPluginUpdates(): Promise<void> {
-    if (!isTauri()) return;
+  async function checkAgentPluginUpdates(): Promise<AgentPluginUpdateSummary[] | null> {
+    if (!isTauri()) return null;
     agentPluginUpdatesLoading = true;
     try {
       agentPluginUpdates = await desktopOpenAgent.checkAgentPluginUpdates();
+      return agentPluginUpdates;
     } catch (error: unknown) {
       console.warn("Failed to check Agent Plugin updates:", error);
+      return null;
     } finally {
       agentPluginUpdatesLoading = false;
+    }
+  }
+
+  /**
+   * Re-read GitHub release metadata for an explicit user request and report the
+   * outcome. The check that follows loading the plugin directory stays silent so
+   * an automatic network failure cannot replace an operation status; this manual
+   * entry point always states what the check found.
+   */
+  async function runAgentPluginUpdateCheck(): Promise<void> {
+    if (!isTauri() || agentPluginUpdatesLoading) return;
+    agentPluginStatus = "";
+    agentPluginUpdateCheckStatus = null;
+    const outcome = classifyAgentPluginUpdateCheck(await checkAgentPluginUpdates());
+    switch (outcome.kind) {
+      case "failed":
+        agentPluginUpdateCheckStatus = { tone: "error", message: tr("pluginUpdateCheckFailed") };
+        return;
+      case "available":
+        agentPluginUpdateCheckStatus = {
+          tone: "success",
+          message: tr("pluginUpdateDescription").replace("{count}", String(outcome.count)),
+        };
+        return;
+      case "incomplete":
+        agentPluginUpdateCheckStatus = {
+          tone: "error",
+          message: tr("pluginUpdateCheckPartialFailure").replace("{count}", String(outcome.count)),
+        };
+        return;
+      case "current":
+        agentPluginUpdateCheckStatus = { tone: "success", message: tr("pluginUpdateUpToDate") };
+        return;
     }
   }
 
@@ -2074,6 +2117,9 @@
     get agentPluginStatus() {
       return agentPluginStatus;
     },
+    get agentPluginUpdateCheckStatus() {
+      return agentPluginUpdateCheckStatus;
+    },
     get installAgentPlugin() {
       return installAgentPlugin;
     },
@@ -2097,6 +2143,9 @@
     },
     get reloadAgentPlugins() {
       return reloadAgentPlugins;
+    },
+    get runAgentPluginUpdateCheck() {
+      return runAgentPluginUpdateCheck;
     },
     get beginAutomationHook() {
       return beginAutomationHook;
