@@ -79,6 +79,22 @@ spawn point, so a daemon starts either confined by the session-derived policy or
 under a recorded exemption reason; the host stops rather than starting a daemon
 whose resolved policy is managed while the topology requires it unconfined.
 
+The desktop host has a `PluginDaemonSupervisor` registry for declared long-lived
+daemons. Enabled non-reserved daemon packages are discovered before MCP
+connections are mounted, keyed by their validated plugin ID, and receive a
+private `PLUGIN_DATA` working directory plus an optional
+`OPENAGENT_PLUGIN_ENDPOINT`. The registry owns duplicate-start protection,
+stdin lifetime pipes, socket readiness, bounded stop, forced reaping, stderr
+draining, adapter resource ownership, and host-exit cleanup. The reserved Cua
+Driver daemon uses the same registry after its adapter resolves endpoint
+ownership, provisioning, and unrestricted policy. A plugin cannot select another plugin's ID or
+an arbitrary executable through this path. Daemons whose resolved policy is
+managed are rejected until the host supplies a sandbox-aware transport adapter;
+the host must never turn that rejection into an ambient unsandboxed spawn.
+The host exposes only status and stop operations for non-reserved plugin IDs;
+start is automatic during Runtime bootstrap, so a plugin cannot manufacture an
+unregistered child through an IPC call.
+
 Tagged output is delivered only through that durable plugin-message channel. It
 never becomes a suffix on the tool result that triggered the hook, so a
 structured tool result such as `{"invoked":true,"groupIds":[...]}` stays exactly
