@@ -315,6 +315,12 @@ const en: Record<TranslationKeys, string> = {
   pluginUninstallConfirm: 'Remove plugin "{name}"? Its plugin data will be preserved.',
   pluginUpdateAvailable: "Update available",
   pluginUpdateDescription: "{count} plugin update(s) are available on GitHub.",
+  pluginCheckUpdates: "Check for updates",
+  pluginCheckingUpdates: "Checking for updates…",
+  pluginUpdateUpToDate: "All plugins are up to date.",
+  pluginUpdateCheckFailed:
+    "Could not check for plugin updates. Check your connection and try again.",
+  pluginUpdateCheckPartialFailure: "{count} plugin update check(s) did not complete.",
   pluginLatestVersion: "Latest version: {version}",
   pluginComponents: "Components",
   pluginSkills: "Skills",
