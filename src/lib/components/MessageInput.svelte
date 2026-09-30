@@ -1033,17 +1033,21 @@
       }
       case "insertLineBreak":
         event.preventDefault();
-        commitEdit(insertSoftLineBreak(value, start));
+        commitEdit(insertSoftLineBreak(value, start, end));
         return;
       case "insertParagraph":
         event.preventDefault();
         runPrimaryAction();
         return;
       case "deleteContentBackward":
-        event.preventDefault();
-        commitEdit(
-          removeLineMarker(value, start) ?? splice(value, Math.max(0, start - 1), start, ""),
-        );
+        if (start !== end) {
+          replace(start, end, "");
+        } else {
+          event.preventDefault();
+          commitEdit(
+            removeLineMarker(value, start) ?? splice(value, Math.max(0, start - 1), start, ""),
+          );
+        }
         return;
       case "deleteContentForward":
         replace(start, end === start ? Math.min(value.length, start + 1) : end, "");
@@ -1161,7 +1165,7 @@
       <!-- Markers are hidden: this editor is a projection of the markdown model. -->
       <div
         class="input input-editor composer-md"
-        class:input-editor-empty={value.length === 0}
+        class:input-editor-empty={value.length === 0 && !composing}
         role="textbox"
         aria-multiline="true"
         aria-label={placeholder}

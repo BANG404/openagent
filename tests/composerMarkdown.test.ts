@@ -147,6 +147,17 @@ describe("composer markdown line edits", () => {
     expect(insertSoftLineBreak("plain", 5)).toEqual({ value: "plain\n", caret: 6 });
   });
 
+  test("keeps soft breaks outside inline formatting delimiters", () => {
+    expect(insertSoftLineBreak("撤**地方**", 7)).toEqual({
+      value: "撤**地方**\n",
+      caret: 8,
+    });
+    expect(insertSoftLineBreak("撤**地方**", 3, 5)).toEqual({
+      value: "撤**地方**\n",
+      caret: 8,
+    });
+  });
+
   test("never carries a heading marker onto the next line", () => {
     expect(insertSoftLineBreak("## Title", 8)).toEqual({ value: "## Title\n", caret: 9 });
     expect(insertSoftLineBreak("## ", 3)).toEqual({ value: "", caret: 0 });
