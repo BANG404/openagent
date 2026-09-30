@@ -41,6 +41,8 @@ use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 pub mod frontend_resource;
 pub mod local_capabilities;
+#[cfg(feature = "embedded-runtime")]
+mod plugin_daemon_supervisor;
 pub mod process_lifetime;
 pub mod runtime_asset_protocol;
 pub mod runtime_process;
@@ -52,6 +54,8 @@ pub mod wsl;
 use frontend_resource::{
     FrontendResourceManager, FrontendResourceSource, InstalledFrontendResource,
 };
+#[cfg(feature = "embedded-runtime")]
+use plugin_daemon_supervisor::{PluginDaemonSpec, PluginDaemonSupervisor, PluginDaemonTransport};
 use runtime_process::{
     inspect_runtime_bootstrap, RuntimeLaunchSpec, RuntimeProcessSupervisor,
     DESKTOP_RUNTIME_PROTOCOL_VERSION,
@@ -4546,6 +4550,16 @@ struct CuaDriverDaemon {
 static CUA_DRIVER_SERVE_CHILD: std::sync::OnceLock<std::sync::Mutex<Option<CuaDriverDaemon>>> =
     std::sync::OnceLock::new();
 
+#[cfg(feature = "embedded-runtime")]
+static PLUGIN_DAEMON_SUPERVISOR: std::sync::OnceLock<PluginDaemonSupervisor> =
+    std::sync::OnceLock::new();
+
+#[cfg(feature = "embedded-runtime")]
+fn plugin_daemon_supervisor() -> &'static PluginDaemonSupervisor {
+    PLUGIN_DAEMON_SUPERVISOR
+        .get_or_init(|| PluginDaemonSupervisor::new(CUA_DRIVER_SHUTDOWN_TIMEOUT))
+}
+
 /// The reserved launcher, started the way this run resolved it.
 ///
 /// Every invocation of the package's launcher — provisioning it, serving it,
@@ -4830,6 +4844,85 @@ async fn ensure_cua_driver_serve(runtime: Arc<OpenAgentRuntime>) -> Result<bool,
         .map_err(|error| format!("Cua Driver startup task failed: {error}"))?
 }
 
+#[cfg(feature = "embedded-runtime")]
+async fn ensure_declared_plugin_daemon(
+    runtime: Arc<OpenAgentRuntime>,
+    plugin_id: &str,
+) -> Result<bool, String> {
+    if plugin_id == openagent_runtime::agent_plugins::CUA_DRIVER_ID {
+        return Ok(false);
+    }
+    let state = runtime.state();
+    let roots = state
+        .agent_plugin_roots
+        .clone()
+        .ok_or_else(|| "Agent Plugin support is not configured".to_string())?;
+    let enabled = state.config.lock().await.agent_plugins_enabled.clone();
+    let process_launch = state.plugin_process_launch().await;
+    let launch = openagent_runtime::agent_plugins::resolve_installed_plugin_daemon(
+        &roots.packages,
+        &roots.data,
+        &enabled,
+        &process_launch,
+        plugin_id,
+    )
+    .await?;
+    if launch.process_policy.managed().is_some() {
+        return Err(format!(
+            "Agent Plugin '{plugin_id}' daemon requires a managed process adapter"
+        ));
+    }
+    let endpoint = (launch.transport == "socket")
+        .then(|| std::path::PathBuf::from(&launch.data_root).join("daemon.sock"))
+        .map(|path| path.to_string_lossy().into_owned());
+    let mut env = vec![("PLUGIN_DATA".to_string(), launch.data_root.clone())];
+    if let Some(endpoint) = &endpoint {
+        env.push(("OPENAGENT_PLUGIN_ENDPOINT".to_string(), endpoint.clone()));
+    }
+    let transport = match endpoint {
+        Some(endpoint) => PluginDaemonTransport::Socket {
+            endpoint,
+            startup_timeout: std::time::Duration::from_secs(15),
+        },
+        None => PluginDaemonTransport::Stdio,
+    };
+    plugin_daemon_supervisor().start(
+        PluginDaemonSpec {
+            plugin_id: launch.plugin_id.clone(),
+            label: format!("Agent Plugin {plugin_id}"),
+            command: launch.command,
+            args: launch.args,
+            cwd: std::path::PathBuf::from(launch.root),
+            env,
+            transport,
+        },
+        None,
+    )
+}
+
+#[cfg(feature = "embedded-runtime")]
+async fn ensure_declared_plugin_daemons(runtime: Arc<OpenAgentRuntime>) {
+    let state = runtime.state();
+    let Some(roots) = state.agent_plugin_roots.clone() else {
+        return;
+    };
+    let enabled = state.config.lock().await.agent_plugins_enabled.clone();
+    let plugins =
+        openagent_runtime::agent_plugins::load_installed_plugins(&roots.packages, &roots.data)
+            .await;
+    for plugin in plugins {
+        if plugin.summary.daemon.is_none()
+            || !enabled.get(&plugin.summary.id).copied().unwrap_or(true)
+        {
+            continue;
+        }
+        if let Err(error) = ensure_declared_plugin_daemon(runtime.clone(), &plugin.summary.id).await
+        {
+            tracing::warn!(plugin = %plugin.summary.id, %error, "plugin daemon was not started");
+        }
+    }
+}
+
 #[cfg(not(feature = "embedded-runtime"))]
 async fn ensure_cua_driver_serve() -> Result<bool, String> {
     Err("Cua Driver daemon supervision requires the embedded Runtime".to_string())
@@ -4845,6 +4938,8 @@ async fn ensure_cua_driver_serve() -> Result<bool, String> {
 ///
 /// A daemon another process owns is never this process's to stop.
 fn stop_cua_driver_serve() {
+    #[cfg(feature = "embedded-runtime")]
+    plugin_daemon_supervisor().stop_all();
     let Some(state) = CUA_DRIVER_SERVE_CHILD.get() else {
         return;
     };
@@ -4924,6 +5019,21 @@ fn cua_driver_endpoint() -> String {
 #[tauri::command]
 async fn start_cua_driver_serve(runtime: State<'_, Arc<OpenAgentRuntime>>) -> Result<bool, String> {
     ensure_cua_driver_serve(runtime.inner().clone()).await
+}
+
+#[cfg(feature = "embedded-runtime")]
+#[tauri::command]
+fn agent_plugin_daemon_running(plugin_id: String) -> Result<bool, String> {
+    plugin_daemon_supervisor().is_running(&plugin_id)
+}
+
+#[cfg(feature = "embedded-runtime")]
+#[tauri::command]
+fn stop_agent_plugin_daemon(plugin_id: String) -> Result<bool, String> {
+    if plugin_id == openagent_runtime::agent_plugins::CUA_DRIVER_ID {
+        return Err("the reserved Cua Driver daemon uses its product shutdown path".to_string());
+    }
+    plugin_daemon_supervisor().stop(&plugin_id)
 }
 
 #[cfg(not(feature = "embedded-runtime"))]
@@ -5583,6 +5693,7 @@ fn run_with_mode(agent_server: bool) {
                 let config = state.config.lock().await.clone();
                 let servers =
                     openagent_runtime::commands::effective_mcp_servers(state, &config).await;
+                ensure_declared_plugin_daemons(startup_runtime.clone()).await;
                 if servers.iter().any(|server| server.id == "cua-driver" && server.enabled) {
                     if let Err(error) = ensure_cua_driver_serve(startup_runtime.clone()).await {
                         tracing::error!(target: "openagent::cua", %error, "failed to start configured Cua Driver serve daemon");
@@ -5622,6 +5733,8 @@ fn run_with_mode(agent_server: bool) {
     let builder = builder.invoke_handler(tauri::generate_handler![
         get_settings,
         start_cua_driver_serve,
+        agent_plugin_daemon_running,
+        stop_agent_plugin_daemon,
         cua_driver_endpoint,
         get_component_versions,
         get_embedding_resource_status,
