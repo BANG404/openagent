@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 
-const root = resolve("plugins/codex-v2-message-board");
+const root = resolve("plugins/message-board");
 type RpcResult = {
   serverInfo?: { name?: string };
   tools?: unknown[];
@@ -30,16 +30,23 @@ function request(process: ReturnType<typeof spawn>, message: Record<string, unkn
   });
 }
 
-describe("Codex V2 message board plugin", () => {
+describe("Message board plugin", () => {
   test("declares a portable MCP package and matching skill", async () => {
     const manifest = JSON.parse(await readFile(join(root, "plugin.json"), "utf8"));
     const mcp = JSON.parse(await readFile(join(root, "mcp.json"), "utf8"));
-    expect(manifest.name).toBe("codex-v2-message-board");
+    expect(manifest.name).toBe("message-board");
+    expect(manifest.repository).toBe("https://github.com/BANG404/message-board");
     expect(manifest.extensions.openagent.capabilities).toEqual(["workspace"]);
     expect(mcp.mcpServers["message-board"].command).toBe("node");
     expect(mcp.mcpServers["message-board"].args).toEqual(["${PLUGIN_ROOT}/bin/message-board.mjs"]);
     expect(await readFile(join(root, "skills/message-board/SKILL.md"), "utf8")).toContain(
       "request_id",
+    );
+    expect(
+      await readFile(join(root, "skills/message-board-coordination/SKILL.md"), "utf8"),
+    ).toContain("fixed planning");
+    expect(await readFile(join(root, "skills/message-board-review/SKILL.md"), "utf8")).toContain(
+      "code-review",
     );
   });
 
@@ -55,7 +62,7 @@ describe("Codex V2 message board plugin", () => {
         method: "initialize",
         params: { protocolVersion: "2025-06-18" },
       });
-      expect(initialized.result?.serverInfo?.name).toBe("codex-v2-message-board");
+      expect(initialized.result?.serverInfo?.name).toBe("message-board");
       const listed = await request(child, { jsonrpc: "2.0", id: 2, method: "tools/list" });
       expect(listed.result?.tools).toHaveLength(9);
       await request(child, {
