@@ -32,9 +32,12 @@ projection.
 trusted product capability: `chat-groups`, `goal`, `graph`, or `cua-driver`.
 The Runtime accepts only the matching builtin identity and never treats this
 field as a general permission grant. Builtin subscriptions use the package's
-GitHub `repository` as their update source; a verified release is staged as a
-package overlay while durable execution and permission checks remain in the
-matching Runtime capability.
+GitHub `repository` as their update source; a verified release is staged as an
+installed package. When that package declares the capability's Flow or MCP
+names, its implementation is authoritative and the Runtime supplies only
+generic loop, cancellation, checkpoint, and permission mechanics. The registry
+remains the compatibility alias and lifecycle boundary while older
+installations transition away from the local implementation.
 
 `enabled` is the lifecycle gate for portable components. Missing persisted
 entries default to `true` for compatibility; disabling a plugin removes its
@@ -341,12 +344,14 @@ that candidate without executing it during validation.
 
 Built-in capabilities use the same descriptor and registry with a trusted
 `builtin` source. Chat Groups retains `chat_groups_enabled`; Goal and Graph
-retain the `/goal` and `/graph` Runtime commands; their checkpoint message
-policies remain persisted by the existing checkpoint store. Flow starts resolve
-their kind through the builtin registry before checking enablement, so an
-unknown flow cannot fall through to Goal execution. Existing user MCP,
-Skills, and `automation_hooks` settings are
-normalized without changing their persisted shapes.
+retain the `/goal` and `/graph` product aliases, but an installed runtime-bound
+package owns the matching standard Flow and MCP tools. The Runtime's generic
+flow runner carries only cancellation, checkpoint continuation, and the
+package's display projection. Their checkpoint message policies remain
+persisted by the existing checkpoint store. Existing user MCP, Skills, and
+`automation_hooks` settings are normalized without changing their persisted
+shapes. The local Goal/Graph runner remains only as a compatibility fallback
+while the published packages are installed and activated by default.
 
 Builtin tools are also owned by registry entries. The provider tool projection
 removes tools whose owning builtin is disabled, and every tool call repeats the
