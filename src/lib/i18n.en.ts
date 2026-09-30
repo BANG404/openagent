@@ -604,6 +604,8 @@ const en: Record<TranslationKeys, string> = {
   checkpointFlowResize: "Resize right sidebar",
   checkpointFlowCollapse: "Collapse right sidebar",
   checkpointFlowExpand: "Expand right sidebar",
+  conversationCollapse: "Collapse conversation",
+  conversationExpand: "Expand conversation",
   backgroundTerminals: "Background terminals",
   backgroundTerminalsExpand: "Expand background terminals",
   backgroundTerminalsCollapse: "Collapse background terminals",

@@ -6,6 +6,7 @@
   import { detectWindowPlatform, type WindowPlatform } from "$lib/windowPlatform";
   import ApplicationMenuBar from "$lib/components/ApplicationMenuBar.svelte";
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
+  import ConversationToggleButton from "$lib/components/ConversationToggleButton.svelte";
   import WindowControls from "$lib/components/WindowControls.svelte";
 
   let {
@@ -16,6 +17,7 @@
     tauriAvailable,
     memorySyncing,
     checkpointFlowPanelCollapsed,
+    conversationPanelCollapsed,
     rightSidebarAvailable,
     onPickWorkspace,
     onPickWsl,
@@ -31,6 +33,7 @@
     onToggleDebugMode,
     onQuit,
     onToggleCheckpointFlowPanel,
+    onToggleConversationPanel,
     onMinimize,
     onMaximize,
     onClose,
@@ -44,6 +47,7 @@
     tauriAvailable: boolean;
     memorySyncing: boolean;
     checkpointFlowPanelCollapsed: boolean;
+    conversationPanelCollapsed: boolean;
     rightSidebarAvailable: boolean;
     onPickWorkspace: () => void | Promise<void>;
     onPickWsl: () => void | Promise<void>;
@@ -59,6 +63,7 @@
     onToggleDebugMode: () => void;
     onQuit: () => void;
     onToggleCheckpointFlowPanel: () => void;
+    onToggleConversationPanel: () => void;
     onMinimize: () => void;
     onMaximize: () => void | Promise<void>;
     onClose: () => void;
@@ -130,11 +135,17 @@
 
   <div class="title-actions">
     {#if memorySyncing}<span class="sync-dot" aria-label={$t("syncing")}></span>{/if}
-    {#if rightSidebarAvailable}
-      <CheckpointFlowToggleButton
-        collapsed={checkpointFlowPanelCollapsed}
-        onToggle={onToggleCheckpointFlowPanel}
+    {#if rightSidebarAvailable || conversationPanelCollapsed}
+      <ConversationToggleButton
+        collapsed={conversationPanelCollapsed}
+        onToggle={onToggleConversationPanel}
       />
+      {#if rightSidebarAvailable}
+        <CheckpointFlowToggleButton
+          collapsed={checkpointFlowPanelCollapsed}
+          onToggle={onToggleCheckpointFlowPanel}
+        />
+      {/if}
     {/if}
     {#if platform === "windows"}
       <WindowControls {platform} {onMinimize} {onMaximize} {onClose} />
