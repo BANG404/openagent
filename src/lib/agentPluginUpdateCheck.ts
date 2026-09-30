@@ -1,4 +1,41 @@
-import type { AgentPluginUpdateReport, AgentPluginUpdateSummary } from "$lib/types";
+import type { TranslationKeys } from "$lib/i18n";
+import type {
+  AgentPluginUpdateErrorKind,
+  AgentPluginUpdateReport,
+  AgentPluginUpdateSummary,
+} from "$lib/types";
+
+/**
+ * One plugin whose release metadata could not be read.
+ *
+ * The summary line names these instead of only counting them: a count cannot
+ * tell an unpublished local package apart from a GitHub outage, and naming the
+ * package is what makes the condition actionable.
+ */
+export interface AgentPluginUpdateFailure {
+  id: string;
+  kind: AgentPluginUpdateErrorKind | null;
+  /** The raw diagnostic, shown as the detail behind the localized reason. */
+  message: string;
+}
+
+const updateErrorKeys: Record<AgentPluginUpdateErrorKind, TranslationKeys> = {
+  release_unavailable: "pluginUpdateErrorReleaseUnavailable",
+  repository_unsupported: "pluginUpdateErrorRepositoryUnsupported",
+  rate_limited: "pluginUpdateErrorRateLimited",
+  unauthorized: "pluginUpdateErrorUnauthorized",
+  network_failed: "pluginUpdateErrorNetworkFailed",
+};
+
+/**
+ * The localized statement of why one release lookup failed, or `null` when the
+ * plugin reported no reason at all.
+ */
+export function agentPluginUpdateErrorKey(
+  kind: AgentPluginUpdateErrorKind | null,
+): TranslationKeys | null {
+  return kind === null ? null : updateErrorKeys[kind];
+}
 
 /**
  * What an explicit Agent Plugin update check found.
@@ -18,8 +55,8 @@ export type AgentPluginUpdateCheckOutcome =
   | { kind: "rate_limited"; count: number; resetAt: number | null; tokenConfigured: boolean }
   | { kind: "unauthorized"; count: number }
   | { kind: "network_failed"; count: number }
-  | { kind: "available"; count: number; incomplete: number }
-  | { kind: "incomplete"; count: number }
+  | { kind: "available"; count: number; failures: AgentPluginUpdateFailure[] }
+  | { kind: "incomplete"; failures: AgentPluginUpdateFailure[] }
   | { kind: "current" };
 
 export interface AgentPluginUpdateCheckResult {
@@ -36,6 +73,13 @@ function countByKind(
   kind: AgentPluginUpdateSummary["error_kind"],
 ): number {
   return updates.filter((update) => update.error_kind === kind).length;
+}
+
+/** A plugin row that reported an error, or `null` when it produced metadata. */
+function failureOf(update: AgentPluginUpdateSummary): AgentPluginUpdateFailure | null {
+  return update.error === null
+    ? null
+    : { id: update.id, kind: update.error_kind, message: update.error };
 }
 
 /**
@@ -70,11 +114,13 @@ export function classifyAgentPluginUpdateCheck(
   }
 
   const available = updates.filter((update) => update.update_available).length;
-  const incomplete = updates.filter((update) => update.error).length;
+  const failures = updates
+    .map(failureOf)
+    .filter((failure): failure is AgentPluginUpdateFailure => failure !== null);
   if (available > 0) {
-    return classified({ kind: "available", count: available, incomplete });
+    return classified({ kind: "available", count: available, failures });
   }
-  if (incomplete > 0) return classified({ kind: "incomplete", count: incomplete });
+  if (failures.length > 0) return classified({ kind: "incomplete", failures });
   return classified({ kind: "current" });
 }
 

@@ -1,13 +1,22 @@
 import { describe, expect, test } from "bun:test";
 import {
+  agentPluginUpdateErrorKey,
   classifyAgentPluginUpdateCheck,
   coalesceAgentPluginUpdateCheck,
 } from "../src/lib/agentPluginUpdateCheck";
+import { en } from "../src/lib/i18n.en";
+import { zh } from "../src/lib/i18n.zh";
 import type {
   AgentPluginUpdateCheck,
+  AgentPluginUpdateErrorKind,
   AgentPluginUpdateReport,
   AgentPluginUpdateSummary,
 } from "../src/lib/types";
+
+const UNREADABLE_RELEASE = {
+  error: "GitHub has no readable release for this repository (404 Not Found)",
+  error_kind: "release_unavailable" as const,
+};
 
 function summary(overrides: Partial<AgentPluginUpdateSummary>): AgentPluginUpdateSummary {
   return {
@@ -53,7 +62,7 @@ describe("explicit Agent Plugin update check", () => {
           summary({ id: "c", update_available: true, latest_version: "1.1.0" }),
         ]),
       ),
-    ).toEqual({ outcome: { kind: "available", count: 2, incomplete: 0 }, fromCache: false });
+    ).toEqual({ outcome: { kind: "available", count: 2, failures: [] }, fromCache: false });
   });
 
   test("reports current only when every plugin produced release metadata", () => {
@@ -75,38 +84,60 @@ describe("explicit Agent Plugin update check", () => {
     expect(
       classifyAgentPluginUpdateCheck(
         report(
-          [
-            summary({ id: "a" }),
-            summary({
-              id: "b",
-              latest_version: null,
-              error: "GitHub has no readable release for this repository (404 Not Found)",
-              error_kind: "release_unavailable",
-            }),
-          ],
+          [summary({ id: "a" }), summary({ id: "b", latest_version: null, ...UNREADABLE_RELEASE })],
           { status: "partial" },
         ),
       ),
-    ).toEqual({ outcome: { kind: "incomplete", count: 1 }, fromCache: false });
+    ).toEqual({
+      outcome: {
+        kind: "incomplete",
+        failures: [{ id: "b", kind: "release_unavailable", message: UNREADABLE_RELEASE.error }],
+      },
+      fromCache: false,
+    });
   });
 
   test("prefers the available-update count over failed lookups", () => {
+    // The failing plugin travels with the count, so the surface can name the
+    // package and the reason instead of only saying how many failed.
     expect(
       classifyAgentPluginUpdateCheck(
         report(
           [
             summary({ id: "a", update_available: true, latest_version: "2.0.0" }),
-            summary({
-              id: "b",
-              latest_version: null,
-              error: "GitHub has no readable release for this repository (404 Not Found)",
-              error_kind: "release_unavailable",
-            }),
+            summary({ id: "b", latest_version: null, ...UNREADABLE_RELEASE }),
           ],
           { status: "partial" },
         ),
       ),
-    ).toEqual({ outcome: { kind: "available", count: 1, incomplete: 1 }, fromCache: false });
+    ).toEqual({
+      outcome: {
+        kind: "available",
+        count: 1,
+        failures: [{ id: "b", kind: "release_unavailable", message: UNREADABLE_RELEASE.error }],
+      },
+      fromCache: false,
+    });
+  });
+
+  test("states every unreadable release in the language the user reads", () => {
+    const kinds: AgentPluginUpdateErrorKind[] = [
+      "rate_limited",
+      "unauthorized",
+      "network_failed",
+      "repository_unsupported",
+      "release_unavailable",
+    ];
+    for (const kind of kinds) {
+      const key = agentPluginUpdateErrorKey(kind);
+      expect(key).not.toBeNull();
+      // A reason without text in either locale would render as an empty
+      // parenthesis in the update summary.
+      expect(zh[key!].trim()).not.toBe("");
+      expect(en[key!].trim()).not.toBe("");
+    }
+    // A row with no classified reason keeps its raw diagnostic.
+    expect(agentPluginUpdateErrorKey(null)).toBeNull();
   });
 
   test("names an exhausted quota instead of counting broken plugins", () => {

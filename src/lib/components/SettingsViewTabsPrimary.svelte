@@ -28,6 +28,7 @@
     type NormalizedAppConfig,
     type NormalizedMcpServerConfig,
   } from "$lib/config";
+  import { agentPluginUpdateErrorKey } from "$lib/agentPluginUpdateCheck";
   import { applyDocumentTheme } from "$lib/appTheme";
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
   import {
@@ -581,14 +582,20 @@
                     <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
                   {/if}
                   {#if update?.error}
-                    <!-- The raw reason, so a quota or a manifest problem is not
-                         silently counted as a broken package. -->
+                    <!-- The reason, so a quota or a manifest problem is not
+                         silently counted as a broken package. The raw
+                         diagnostic from the update check stays underneath it
+                         rather than standing in for the explanation. -->
+                    {@const reasonKey = agentPluginUpdateErrorKey(update.error_kind)}
                     <p class="plugin-warning">
                       {#if update.stale}
                         {$t("pluginUpdateStaleHint")}
                       {/if}
-                      {update.error}
+                      {reasonKey === null ? update.error : $t(reasonKey)}
                     </p>
+                    {#if reasonKey !== null}
+                      <p class="detail-hint">{update.error}</p>
+                    {/if}
                   {/if}
                   {#if update?.update_available && update.latest_version}
                     <p class="plugin-update-hint">
@@ -629,12 +636,16 @@
                   <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
                 {/if}
                 {#if update?.error}
+                  {@const reasonKey = agentPluginUpdateErrorKey(update.error_kind)}
                   <p class="plugin-warning">
                     {#if update.stale}
                       {$t("pluginUpdateStaleHint")}
                     {/if}
-                    {update.error}
+                    {reasonKey === null ? update.error : $t(reasonKey)}
                   </p>
+                  {#if reasonKey !== null}
+                    <p class="detail-hint">{update.error}</p>
+                  {/if}
                 {/if}
                 {#if update?.update_available && update.latest_version}
                   <p class="plugin-update-hint">

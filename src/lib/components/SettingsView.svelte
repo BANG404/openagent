@@ -67,9 +67,11 @@
   } from "$lib/settingsConfig";
   import { t, tr, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import {
+    agentPluginUpdateErrorKey,
     classifyAgentPluginUpdateCheck,
     coalesceAgentPluginUpdateCheck,
     type AgentPluginUpdateCheckOutcome,
+    type AgentPluginUpdateFailure,
   } from "$lib/agentPluginUpdateCheck";
   import type { SettingsNav } from "$lib/settingsWindows";
   import {
@@ -1916,6 +1918,27 @@
   }
 
   /**
+   * Name the plugins whose release metadata could not be read, with the reason
+   * each one gave.
+   *
+   * A bare count leaves the user with nothing to act on: it cannot separate an
+   * unpublished local package from a GitHub outage. The reason is stated from
+   * the classified kind so it reads in the user's language, and the raw
+   * diagnostic stays on the plugin's own row.
+   */
+  function describeUpdateFailures(failures: AgentPluginUpdateFailure[]): string {
+    const entry = tr("pluginUpdateFailureEntry");
+    return failures
+      .map((failure) => {
+        const key = agentPluginUpdateErrorKey(failure.kind);
+        return entry
+          .replace("{name}", failure.id)
+          .replace("{reason}", key === null ? failure.message : tr(key));
+      })
+      .join(tr("pluginUpdateFailureSeparator"));
+  }
+
+  /**
    * Turn a classified outcome into the one line the plugin page shows.
    *
    * A machine condition names the condition and what would lift it. Counting
@@ -1960,12 +1983,11 @@
             tone: "success" as const,
             message: [
               tr("pluginUpdateDescription").replace("{count}", String(outcome.count)),
-              outcome.incomplete === 0
+              outcome.failures.length === 0
                 ? ""
-                : tr("pluginUpdateDescriptionPartial").replace(
-                    "{count}",
-                    String(outcome.incomplete),
-                  ),
+                : tr("pluginUpdateDescriptionPartial")
+                    .replace("{count}", String(outcome.failures.length))
+                    .replace("{plugins}", describeUpdateFailures(outcome.failures)),
             ]
               .filter(Boolean)
               .join(" "),
@@ -1973,10 +1995,9 @@
         case "incomplete":
           return {
             tone: "error" as const,
-            message: tr("pluginUpdateCheckPartialFailure").replace(
-              "{count}",
-              String(outcome.count),
-            ),
+            message: tr("pluginUpdateCheckPartialFailure")
+              .replace("{count}", String(outcome.failures.length))
+              .replace("{plugins}", describeUpdateFailures(outcome.failures)),
           };
         case "current":
           return { tone: "success" as const, message: tr("pluginUpdateUpToDate") };

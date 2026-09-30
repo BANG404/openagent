@@ -366,7 +366,8 @@ user-facing reminder including a verified archive candidate when one exists.
 It runs silently whenever the plugin directory is loaded, and the Plugins tab
 additionally offers an explicit Check for updates action that re-runs it on
 demand and reports the outcome: the available-update count, an all-up-to-date
-statement, or the number of plugins whose release metadata could not be read.
+statement, or the plugins whose release metadata could not be read, each named
+with the reason it gave.
 A silent background failure only logs; a failure the user asked for is always
 stated, and a per-plugin error never leaves the button claiming the plugins are
 current. `update` is explicit: it downloads, validates, stages, and atomically
@@ -395,6 +396,10 @@ a mixed result. An exhausted quota, a rejected token, or an unreachable network
 is therefore stated once at the top, with the reset time when GitHub supplies
 one, rather than counted as plugins that failed to check; only
 `repository_unsupported` and `release_unavailable` describe the plugin itself.
+An incomplete check names the affected plugins and states each reason from its
+error kind, so the summary is actionable without expanding a row; the raw
+diagnostic from the check stays on that plugin's own row as its detail, and a
+row whose error kind is unknown falls back to it.
 A refresh that fails past the freshness window keeps the last known release
 marked `stale` rather than discarding it, for at most seven days, so a badge
 does not flicker on a transient error — the envelope already states the global
