@@ -102,7 +102,9 @@
   } from "$lib/checkpointFlow";
   import {
     loadCheckpointFlowPanelCollapsed,
+    loadConversationPanelCollapsed,
     saveCheckpointFlowPanelCollapsed,
+    saveConversationPanelCollapsed,
   } from "$lib/checkpointFlowPanelSizing";
   import {
     conversationBranchScopeKey,
@@ -379,6 +381,9 @@
   // renders projects this against availability, so a branch whose last view
   // empties collapses without anything having to write state again.
   let rightSidebarCollapseRequested = $state(rightSidebarPreferenceDefault);
+  let conversationPanelCollapsed = $state(
+    typeof window === "undefined" ? false : loadConversationPanelCollapsed(window.localStorage),
+  );
   let rightSidebarPanel = $state<RightSidebarPanel>("status");
   let terminalSessionCount = $state(0);
   let checkpointFlowPanelSelectionKey = $state<string | null>(null);
@@ -5694,6 +5699,7 @@
         {tauriAvailable}
         memorySyncing={isMemorySyncing}
         {checkpointFlowPanelCollapsed}
+        {conversationPanelCollapsed}
         {rightSidebarAvailable}
         onPickWorkspace={pickWorkspace}
         onPickWsl={pickWslWorkspace}
@@ -5720,6 +5726,10 @@
           rightSidebarPreference = rightSidebarCollapseRequested;
           saveCheckpointFlowPanelCollapsed(window.localStorage, rightSidebarPreference);
         }}
+        onToggleConversationPanel={() => {
+          conversationPanelCollapsed = !conversationPanelCollapsed;
+          saveConversationPanelCollapsed(window.localStorage, conversationPanelCollapsed);
+        }}
         onMinimize={winMinimize}
         onMaximize={winMaximize}
         onClose={winClose}
@@ -5734,6 +5744,11 @@
           bind:messagesElement={messagesEl}
           bind:inputAreaHeight
           {checkpointFlowPanelCollapsed}
+          {conversationPanelCollapsed}
+          onConversationCollapse={(collapsed) => {
+            conversationPanelCollapsed = collapsed;
+            saveConversationPanelCollapsed(window.localStorage, collapsed);
+          }}
           bind:rightSidebarPanel
           {terminalSessionCount}
           onTerminalSummaryChange={(_runningCount, sessionCount) =>

@@ -116,6 +116,8 @@
     messagesElement = $bindable(null),
     inputAreaHeight = $bindable(120),
     checkpointFlowPanelCollapsed = true,
+    conversationPanelCollapsed = false,
+    onConversationCollapse = () => {},
     rightSidebarPanel = $bindable<RightSidebarPanel>("status"),
     terminalSessionCount,
     onTerminalSummaryChange,
@@ -139,6 +141,8 @@
     messagesElement: HTMLElement | null;
     inputAreaHeight: number;
     checkpointFlowPanelCollapsed: boolean;
+    conversationPanelCollapsed: boolean;
+    onConversationCollapse?: (collapsed: boolean) => void;
     rightSidebarPanel: RightSidebarPanel;
     terminalSessionCount: number;
     onTerminalSummaryChange: (runningCount: number, sessionCount: number) => void;
@@ -254,9 +258,11 @@
   }
 </script>
 
-<div class="conversation-workspace">
+<div class="conversation-workspace" class:conversation-collapsed={conversationPanelCollapsed}>
   <div
+    id="conversation-stage"
     class="conversation-stage bg-conversation-surface"
+    class:conversation-collapsed={conversationPanelCollapsed}
     class:sidebar-open={!checkpointFlowPanelCollapsed}
   >
     {#if !view.tauriAvailable}
@@ -451,6 +457,8 @@
     terminalConversationId={rightSidebarConversationId}
     terminalBranchId={rightSidebarBranchId}
     {rightSidebarScopeKey}
+    {conversationPanelCollapsed}
+    {onConversationCollapse}
     {onTerminalSummaryChange}
     {chatGroupsEnabled}
     {chatGroupsAvailable}
@@ -486,6 +494,10 @@
     flex-direction: column;
     overflow: hidden;
     border-radius: 12px;
+  }
+
+  .conversation-stage.conversation-collapsed {
+    display: none;
   }
 
   .conversation-stage.sidebar-open {

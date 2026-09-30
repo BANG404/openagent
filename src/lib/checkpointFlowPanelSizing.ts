@@ -5,6 +5,8 @@ export const CHECKPOINT_FLOW_PANEL_DEFAULT_WIDTH = 480;
 export const CHECKPOINT_FLOW_PANEL_WIDTH_STORAGE_KEY = "openagent.checkpoint-flow-panel-width";
 export const CHECKPOINT_FLOW_PANEL_COLLAPSED_STORAGE_KEY =
   "openagent.checkpoint-flow-panel-collapsed";
+export const CONVERSATION_PANEL_COLLAPSED_STORAGE_KEY = "openagent.conversation-panel-collapsed";
+export const CONVERSATION_PANEL_COLLAPSE_THRESHOLD = 180;
 
 export function loadCheckpointFlowPanelWidth(storage: Storage): number {
   const stored = Number(storage.getItem(CHECKPOINT_FLOW_PANEL_WIDTH_STORAGE_KEY));
@@ -25,6 +27,14 @@ export function loadCheckpointFlowPanelCollapsed(storage: Storage): boolean {
 
 export function saveCheckpointFlowPanelCollapsed(storage: Storage, collapsed: boolean): void {
   storage.setItem(CHECKPOINT_FLOW_PANEL_COLLAPSED_STORAGE_KEY, String(collapsed));
+}
+
+export function loadConversationPanelCollapsed(storage: Storage): boolean {
+  return storage.getItem(CONVERSATION_PANEL_COLLAPSED_STORAGE_KEY) === "true";
+}
+
+export function saveConversationPanelCollapsed(storage: Storage, collapsed: boolean): void {
+  storage.setItem(CONVERSATION_PANEL_COLLAPSED_STORAGE_KEY, String(collapsed));
 }
 
 export function checkpointFlowPanelMaximum(containerWidth: number): number {
