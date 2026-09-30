@@ -407,6 +407,9 @@
                 {#if plugin.runtime === desktopControlRuntime}
                   <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
                 {/if}
+                {#if view.pluginRequestsHostAccess(plugin)}
+                  <span class="detail-hint">{$t("pluginHostAccessHint")}</span>
+                {/if}
                 {#if plugin.license || plugin.homepage}
                   <span class="detail-hint"
                     >{[plugin.license, plugin.homepage].filter(Boolean).join(" · ")}</span
@@ -453,6 +456,15 @@
                   checked={view.agentPluginEnabled(plugin.id)}
                   onCheckedChange={(enabled) => view.setAgentPluginEnabled(plugin.id, enabled)}
                   ariaLabel={plugin.name}
+                />
+              </div>
+            {/if}
+            {#if view.pluginRequestsHostAccess(plugin)}
+              <div class="plugin-accordion-actions">
+                <Switch
+                  checked={view.agentPluginHostAccess(plugin.id)}
+                  onCheckedChange={(granted) => view.setAgentPluginHostAccess(plugin.id, granted)}
+                  ariaLabel={$t("pluginHostAccess")}
                 />
               </div>
             {/if}

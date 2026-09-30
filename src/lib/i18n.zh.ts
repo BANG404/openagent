@@ -355,12 +355,14 @@ export const zh = {
   pluginDesktopControlDescription:
     "将 Cua Driver 作为 MCP 服务接入，让 Agent 可以操作桌面应用与浏览器。",
   pluginDesktopControl: "桌面控制",
-  pluginCuaDriverHint: "以完全权限运行 Cua Driver；可在下方限制暴露给 Agent 的桌面工具。",
+  pluginCuaDriverHint: "该插件请求使用真实电脑环境。只有你在下方明确授权后才会获得访问。",
+  pluginHostAccess: "允许访问真实电脑",
+  pluginHostAccessHint:
+    "该插件请求使用真实电脑环境。开启后它的进程将不再受沙箱限制，请确认你信任此插件。",
   pluginTools: "可用工具",
   pluginToolsHint: "选择 Cua Driver 可以暴露给 Agent 的桌面操作。",
   pluginToolsEmpty: "点击测试连接以发现 Cua Driver 工具。",
-  pluginUnrestrictedWarning:
-    "Cua Driver 以完全权限运行，允许 Agent 控制鼠标、键盘和桌面应用。请确认已授予系统所需权限。",
+  pluginUnrestrictedWarning: "只有在你授予真实电脑访问权限后，该插件才能控制鼠标、键盘和桌面应用。",
   about: "关于我们",
   // General settings
   appearance: "外观",

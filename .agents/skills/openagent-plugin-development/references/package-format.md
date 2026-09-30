@@ -209,11 +209,12 @@ resolves at load time from the user's current session permission profile. The
 profile is inherited, never widened: host-root read, the active workspace's
 write access, and the session's network tier are exactly what the user already
 granted to ordinary agent commands, and the only addition is a write grant on
-that plugin's own `<OPENAGENT_HOME>/plugin-data/<plugin-id>/`. There is no
-per-plugin permission setting and no permission field in the portable format.
-Two cases resolve to a recorded exemption instead of a confined process: a
-session whose permission profile the user disabled, and the reserved Cua Driver
-identity described below. Both reasons reach the user's diagnostics.
+that plugin's own `<OPENAGENT_HOME>/plugin-data/<plugin-id>/`. A capability such
+as `desktop-control` may request real computer access, but the request never
+grants itself access. The user must enable the per-plugin host access switch;
+only then does the Runtime resolve that plugin to an unmanaged process with a
+recorded user-authorization reason. Missing grants remain confined, including
+Cua Driver.
 
 - The policy anchors on the active workspace. With no active workspace the
   anchor is the immutable package root and the inherited workspace write is
@@ -279,7 +280,7 @@ The reserved `cua-driver` MCP entry remains the client connection. Cua Driver,
 Chat Groups, Goal Mode, and Graph Mode all use the same trusted package overlay
 and verified GitHub release updater.
 
-The Cua topology is fixed product policy rather than user configuration. The
+The Cua topology uses the same user authorization boundary as every plugin. The
 desktop host runs `<launcher> serve --embedded --permission-mode unrestricted
 --dangerously-bypass-approvals --parent-liveness-stdio --socket <endpoint>`,
 waits until that endpoint accepts connections, and then the reserved MCP client
@@ -299,16 +300,11 @@ the whole mechanism for a driver the user already has, and a machine the pin
 table has no release for gets a named failure rather than a wrong-architecture
 binary.
 
-The daemon runs outside the managed process sandbox, and that is a recorded
-decision rather than a default. The Runtime resolves the reserved `cua-driver`
-identity to an unmanaged policy whose recorded reason is that the reserved
-topology launches unrestricted desktop control by fixed product policy, and the
-host consumes that policy at its spawn point: it records the exemption and
-refuses to start a driver whose policy is managed. Confining it would defeat its
-purpose — on Windows a managed process runs on a private desktop where no
-interactive window exists, and on macOS it would lose the host's accessibility
-grants — so the exclusion is documented product behavior, not a gap in
-confinement.
+The daemon runs outside the managed process sandbox only after the user grants
+the plugin real computer access. The host consumes that authorization at the
+same spawn point as every other plugin process and refuses a daemon whose policy
+is still managed, so an installed package cannot silently obtain desktop
+control.
 
 Both `--embedded` flags are lifetime contracts, not cosmetics. The daemon's
 makes it stay inside the host's process tree instead of relaunching itself as a
@@ -335,7 +331,7 @@ a named error rather than started, and the settings probe applies the identical
 substitution, so a manual test cannot report a success the mount would not
 deliver. The exemption names an identity, never a program path.
 
-The settings surface exposes only the plugin enable switch plus the MCP
-tool-scope switches. Do not reintroduce permission-mode, socket, grant, or
-capability-manifest settings, and do not attach a capability manifest: a
-narrow-only ceiling would contradict the fixed unrestricted launch.
+The settings surface exposes the plugin enable switch, MCP tool-scope switches,
+and a generic real-computer-access switch for plugins whose declared
+capabilities request it. The switch is persisted per plugin and is the user
+authorization boundary.

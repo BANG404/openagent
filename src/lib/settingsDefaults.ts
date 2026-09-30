@@ -32,6 +32,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   approval_mode: "off",
   mcp: { servers: [] },
   agent_plugins_enabled: {},
+  agent_plugins_host_access: {},
   theme: "system",
   language: "zh",
   launch_on_startup: false,

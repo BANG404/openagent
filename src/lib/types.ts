@@ -965,6 +965,7 @@ export interface AppConfig {
   mcp: McpSettings;
   chat_groups_enabled?: boolean;
   agent_plugins_enabled?: Record<string, boolean>;
+  agent_plugins_host_access?: Record<string, boolean>;
   theme: "system" | "light" | "dark";
   language: "zh" | "en";
   launch_on_startup: boolean;

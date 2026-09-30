@@ -364,12 +364,15 @@ const en: Record<TranslationKeys, string> = {
     "Connect Cua Driver as an MCP service so the Agent can operate desktop apps and browsers.",
   pluginDesktopControl: "Desktop control",
   pluginCuaDriverHint:
-    "Runs Cua Driver with unrestricted permissions; limit the desktop tools exposed to the Agent below.",
+    "Requests access to the real computer environment. Grant it explicitly below when you trust this plugin.",
+  pluginHostAccess: "Allow real computer access",
+  pluginHostAccessHint:
+    "This plugin requested real computer access. When enabled, its processes run with the host environment and are not sandboxed.",
   pluginTools: "Available tools",
   pluginToolsHint: "Choose which desktop actions Cua Driver exposes to the Agent.",
   pluginToolsEmpty: "Test the connection to discover Cua Driver tools.",
   pluginUnrestrictedWarning:
-    "Cua Driver runs with unrestricted permissions, so the Agent can control the mouse, keyboard, and desktop apps. Confirm that required system permissions are granted.",
+    "This plugin can control the mouse, keyboard, and desktop apps only after you grant real computer access.",
   about: "About",
   appearance: "Appearance",
   theme: "Theme",

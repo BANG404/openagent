@@ -417,7 +417,7 @@
   }
 
   function setCuaDriverEnabled(enabled: boolean) {
-    if (enabled) {
+    if (enabled && agentPluginHostAccess(cuaDriverId)) {
       void startCuaDriverDaemon().catch((error) => {
         console.error("Failed to start the Cua Driver daemon:", error);
       });
@@ -453,6 +453,28 @@
       ...(draftConfig.agent_plugins_enabled ?? {}),
       [pluginId]: enabled,
     };
+  }
+
+  function pluginRequestsHostAccess(plugin: AgentPluginSummary): boolean {
+    return plugin.capabilities.some((capability) =>
+      ["desktop-control", "host-access", "computer-use"].includes(capability.toLowerCase()),
+    );
+  }
+
+  function agentPluginHostAccess(pluginId: string): boolean {
+    return draftConfig.agent_plugins_host_access?.[pluginId] ?? false;
+  }
+
+  function setAgentPluginHostAccess(pluginId: string, granted: boolean) {
+    draftConfig.agent_plugins_host_access = {
+      ...(draftConfig.agent_plugins_host_access ?? {}),
+      [pluginId]: granted,
+    };
+    if (granted && pluginId === cuaDriverId && agentPluginEnabled(pluginId)) {
+      void startCuaDriverDaemon().catch((error) => {
+        console.error("Failed to start the Cua Driver daemon:", error);
+      });
+    }
   }
 
   /**
@@ -2257,6 +2279,15 @@
     },
     get setAgentPluginEnabled() {
       return setAgentPluginEnabled;
+    },
+    get pluginRequestsHostAccess() {
+      return pluginRequestsHostAccess;
+    },
+    get agentPluginHostAccess() {
+      return agentPluginHostAccess;
+    },
+    get setAgentPluginHostAccess() {
+      return setAgentPluginHostAccess;
     },
     get agentPluginUpdates() {
       return agentPluginUpdates;

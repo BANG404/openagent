@@ -212,6 +212,15 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
   );
   const chat_groups_enabled =
     agent_plugins_enabled["chat-groups"] ?? input.chat_groups_enabled ?? true;
+  const agent_plugins_host_access = Object.fromEntries(
+    Object.entries(input.agent_plugins_host_access ?? {}).filter(
+      ([id, granted]) =>
+        /^[a-z0-9](?:[a-z0-9.-]{0,62}[a-z0-9])?$/.test(id) &&
+        !id.includes("--") &&
+        !id.includes("..") &&
+        typeof granted === "boolean",
+    ),
+  );
 
   return {
     ...normalizedInput,
@@ -220,6 +229,7 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
     permission_profile,
     chat_groups_enabled,
     agent_plugins_enabled,
+    agent_plugins_host_access,
     language: input.language ?? "zh",
     launch_on_startup: input.launch_on_startup ?? false,
     onboarding_completed: input.onboarding_completed ?? false,

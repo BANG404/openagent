@@ -87,7 +87,7 @@ private `PLUGIN_DATA` working directory plus an optional
 stdin lifetime pipes, socket readiness, bounded stop, forced reaping, stderr
 draining, adapter resource ownership, and host-exit cleanup. The reserved Cua
 Driver daemon uses the same registry after its adapter resolves endpoint
-ownership, provisioning, and unrestricted policy. A plugin cannot select another plugin's ID or
+ownership and provisioning. A plugin cannot select another plugin's ID or
 an arbitrary executable through this path. Daemons whose resolved policy is
 managed are rejected until the host supplies a sandbox-aware transport adapter;
 the host must never turn that rejection into an ambient unsandboxed spawn.
@@ -131,9 +131,8 @@ message-policy metadata; package MCP servers own Goal, Graph, and Chat Groups
 tools and package data. Cua Driver's daemon is resolved from its
 installed package and supervised through the same host daemon boundary as any
 other plugin; its reserved MCP entry remains the client connection. It is also
-the one reserved process exemption: the Runtime resolves that identity to an
-unmanaged policy with a fixed product reason, and the host records the reason
-when it starts the daemon instead of starting it unconfined by default.
+real computer access is a generic per-plugin user authorization, not a reserved
+identity exemption.
 
 ### MCP Apps UI
 
