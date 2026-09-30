@@ -36,5 +36,13 @@ resource browsers, and background-terminal sessions. Preserve native scrolling
 only for content that is intentionally horizontally scrollable (for example
 diffs, code blocks, diagrams, and textareas).
 
+A surface with side-by-side columns fills its body instead of scrolling it. The
+body is a definite-height grid, so each column owns its own scroll window: the
+prompt column scrolls only once its own fields stop fitting, and every resource
+browser keeps its own bounded scroll area. Never wrap the whole body in one
+`ScrollArea`. With a shared body scroll the tallest column decides the height of
+the other column, grows the textarea to fit it, and pushes the trailing content
+below the fold. The role editor surface is the current example.
+
 Top-bar settings windows place their active section content directly in the
 window surface; they do not render a separate left navigation rail.

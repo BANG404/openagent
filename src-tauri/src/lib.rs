@@ -3602,8 +3602,8 @@ async fn open_role_editor_window(
     )
     .title("OpenAgent Role")
     // Keep the editor within a compact laptop work area while leaving enough
-    // room for the two-column resource browser. The body scrolls when the
-    // available height is smaller than the full form.
+    // room for the two-column resource browser. Each column scrolls on its own
+    // when the work area cannot fit the full form.
     .inner_size(initial_width, initial_height)
     .max_inner_size(max_width, max_height)
     .min_inner_size(760.0, 440.0)

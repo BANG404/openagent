@@ -281,13 +281,11 @@
     </div>
   {/snippet}
 
-  {#if presentation === "window"}
-    <ScrollArea height="100%" class="role-editor-body-scroll" scrollHideDelay={350}>
-      {@render roleEditorBody()}
-    </ScrollArea>
-  {:else}
-    {@render roleEditorBody()}
-  {/if}
+  <!-- The body is never wrapped in a scroll area. It fills the surface so each
+       column owns its own scroll window; scrolling the whole body together gave
+       a long resource list the height to stretch the prompt field and to push
+       the resource browsers below the fold. -->
+  {@render roleEditorBody()}
 
   <footer class="role-editor-actions">
     <div>
@@ -386,19 +384,6 @@
     backdrop-filter: none;
   }
 
-  :global(.role-editor-body-scroll) {
-    min-height: 0;
-    flex: 1;
-  }
-
-  :global(.role-editor-body-scroll .ui-scroll-area-viewport) {
-    overflow-x: hidden;
-  }
-
-  :global(.role-editor-body-scroll .role-editor-body) {
-    min-height: 100%;
-  }
-
   .role-editor-header,
   .role-editor-actions {
     flex: 0 0 auto;
@@ -476,6 +461,15 @@
   .prompt-field {
     display: flex;
     flex-direction: column;
+  }
+
+  /* The grid is the surface's whole body, so the two columns are bounded by the
+     window instead of by their content. The prompt column takes its own scroll
+     window for the heights where its fields stop fitting; the resource column
+     hands each browser its own bounded scroll area. */
+  .role-details {
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .role-fields {
