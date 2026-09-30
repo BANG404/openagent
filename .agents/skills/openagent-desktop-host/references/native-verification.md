@@ -130,6 +130,53 @@ replacing the installed copy: a mounted package's server holds the package
 directory as its working directory, and Windows will not delete a directory a
 live process is sitting in.
 
+## Agent plugin update coverage
+
+The committed `tests/blackbox/plugin-update.toml` scenario drives the plugins
+page of the settings surface. Its fixture,
+`tests/fixtures/agent-plugin-update`, declares a repository that is not an HTTPS
+`github.com/owner/repo` URL, so the Runtime rejects it without spending a
+request and the page has a deterministic, offline reason to explain. The wrapper
+installs that package into the instance reserved for plugin verification, whose
+other package keeps its own repository, and repeats the pass in the light and
+dark themes and in English and Chinese, injecting the copy the active language
+renders:
+
+```bash
+bun tauri dev --multi-instance plugin-blackbox
+bun run test:blackbox:plugin-update
+```
+
+The scenario asserts that the package's own card states the localized reason and
+keeps the Runtime's raw diagnostic as the detail beneath it, and that the
+summary line names the package together with that reason rather than only
+counting failed checks. Both facts are what a user reads when a check cannot
+finish, so a regression to a bare count fails the run instead of passing
+silently. A card keeps its content mounted while it is collapsed, so the step
+waits for the expanded state rather than for the text to exist: a card that
+toggled closed would still carry the reason in its DOM.
+
+Every package the check walks that declares a `github.com` repository spends the
+machine's shared anonymous GitHub quota, and one rate-limited row makes the whole
+check report the quota condition — which names no package and would hide the
+per-package reasons this scenario exists to pin. The wrapper therefore seeds the
+Runtime's derived release-metadata cache at each package's installed version
+before the check runs, so the check answers those from the cache and the fixture
+is the only package it still has to explain. The seeded repositories are the ones
+the page renders plus the ones the builtin registry declares, read out of the
+pinned SDK source, because the Cua Driver card renders no repository link and is
+invisible to a DOM-only discovery. The cache is a derived file the Runtime
+documents as deletable, and no seeded release outranks an installed package, so
+the run stays offline, deterministic, and free of updates or failures of its own.
+
+Each pass is captured twice into `BLACKBOX_ARTIFACT_DIR`: the settings surface,
+which carries the summary line, and the fixture card, which is the last row of a
+list the panel scrolls and only explains itself while it is expanded. Both
+captures clip their element rather than the viewport: the capture renders the
+page from the top of every scroll area, and a full-page capture does not carry
+the settings surface at all, so a viewport-sized image of the scrolled list
+shows its first rows instead of the row the pass asserted.
+
 ## Chat-group sidebar coverage
 
 The committed `tests/blackbox/chat-group-sidebar.toml` scenario verifies that a
@@ -248,6 +295,6 @@ earlier cannot decide this one, and it removes them again at the end. The runner
 repeats the pass in the dark theme and the Chinese locale.
 
 The credential-free shape is deliberately absent: an endpoint that needs no
-authorization is proven by an anonymous handshake that *succeeds*, which needs a
+authorization is proven by an anonymous handshake that _succeeds_, which needs a
 real MCP server rather than an HTTP fixture. That mapping is covered by the
 runtime's own `McpOAuthCapability::NotRequired` test, not here.
