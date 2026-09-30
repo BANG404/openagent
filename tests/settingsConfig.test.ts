@@ -5,6 +5,7 @@ import {
   applyFetchedProviderModels,
   createProviderConfig,
   mcpConnectionFingerprint,
+  mcpOAuthHintKey,
   openAiRequestUrl,
   providerConnectionFingerprint,
   providerRequestUrl,
@@ -13,6 +14,7 @@ import {
   replaceProviderModels,
   selectModelBindingProvider,
   settingsConfigChanged,
+  shouldOfferMcpAuthorization,
 } from "../src/lib/settingsConfig";
 import type { AppConfig, McpServerConfig, ProviderConfig } from "../src/lib/types";
 
@@ -198,6 +200,29 @@ describe("settings config helpers", () => {
         env: { ALPHA: "a", ZED: "z" },
       }),
     );
+  });
+
+  test("offers MCP authorization only where OAuth can complete", () => {
+    // A proven requirement keeps the action; a proven non-requirement and a
+    // proven lack of OAuth support replace it with their explanation. Every
+    // inconclusive outcome, including an untested connector, keeps the action
+    // so a working entry point is never hidden on a guess.
+    expect(shouldOfferMcpAuthorization("required")).toBe(true);
+    expect(shouldOfferMcpAuthorization("unknown")).toBe(true);
+    expect(shouldOfferMcpAuthorization(undefined)).toBe(true);
+
+    expect(shouldOfferMcpAuthorization("not_required")).toBe(false);
+    expect(shouldOfferMcpAuthorization("unsupported")).toBe(false);
+    expect(shouldOfferMcpAuthorization("not_applicable")).toBe(false);
+
+    expect(mcpOAuthHintKey("not_required")).toBe("mcpOAuthNotRequired");
+    expect(mcpOAuthHintKey("unsupported")).toBe("mcpOAuthUnsupported");
+    expect(mcpOAuthHintKey("required")).toBeNull();
+    expect(mcpOAuthHintKey("unknown")).toBeNull();
+    expect(mcpOAuthHintKey(undefined)).toBeNull();
+    // A stdio connector hides the action without an explanation, because the
+    // OAuth question does not apply to it at all.
+    expect(mcpOAuthHintKey("not_applicable")).toBeNull();
   });
 
   test("does not mark an unchanged settings snapshot for persistence", () => {

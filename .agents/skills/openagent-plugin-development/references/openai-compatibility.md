@@ -12,7 +12,13 @@ HTTP MCP servers support OAuth 2.1 discovery, PKCE S256, loopback callbacks,
 public dynamic client registration, refresh tokens, and per-server token
 storage. Discovery follows the connector's `WWW-Authenticate` challenge: a 401
 on the unauthenticated handshake supplies `resource_metadata` and `scope`, and
-that metadata URL takes precedence over the derived well-known path. The
+that metadata URL takes precedence over the derived locations. The derived
+locations are the standardized RFC 9728 placement first — the well-known
+segment is inserted between the authority and the path, so
+`https://host/v2/mcp` is described at
+`https://host/.well-known/oauth-protected-resource/v2/mcp` — and the appended
+placement second, which some deployments still serve. Authorization-server
+metadata is resolved from the discovered issuer the same way. The
 protected resource's advertised `resource` is the canonical RFC 8707 audience;
 it is rejected rather than overridden when a connector is explicitly configured
 for a different one, and a configured value only fills in when metadata omits
@@ -25,7 +31,15 @@ not implemented: an authorization server that offers only CIMD produces an
 actionable diagnostic instead of a silent fallback. Hosts start authorization
 from the MCP settings surface and refresh MCP connections after the callback
 completes; bearer tokens are injected only into the configured server
-transport.
+transport. A connection test also reports whether OAuth is usable for the
+endpoint: `not_applicable` for a non-HTTP transport, `not_required` when the
+unauthenticated handshake succeeded, `required` when the endpoint publishes
+metadata a flow can use, `unsupported` when it demands credentials without
+serving usable metadata, and `unknown` when the attempt settled nothing. The
+settings surface offers the authorization action for `required` and `unknown`
+only, replaces it in place with an explanation otherwise, and prechecks the
+capability before acting on a connector that was not tested yet, so no entry
+point starts a browser flow for an endpoint that cannot finish one.
 
 MCP Apps resources use `ui://` URIs and `text/html;profile=mcp-app`, are
 isolated in sandboxed iframes, and receive the MCP Apps initialize handshake,

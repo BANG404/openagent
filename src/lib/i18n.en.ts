@@ -736,6 +736,9 @@ const en: Record<TranslationKeys, string> = {
   mcpAuthorizationCompleted: "MCP authorization completed",
   mcpAuthorizationFailed: "MCP authorization failed",
   mcpAuthorizationTimedOut: "MCP authorization timed out",
+  mcpOAuthNotRequired: "This server connects without authorization",
+  mcpOAuthUnsupported:
+    "This server requires credentials but has no OAuth support. Use a bearer token or custom header instead.",
   deleteMcpServer: "Delete",
   noMcpServers: "No MCP Servers",
   noMcpServersHint: "Add MCP servers to extend the Agent with external tools",

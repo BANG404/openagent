@@ -70,6 +70,17 @@ connection. MCP `tools/list_changed` updates are reflected on the next Agent
 turn while preserving configured disabled names, including names that
 temporarily disappear and later return.
 
+Testing an HTTP entry also establishes whether OAuth is usable for that
+endpoint. The settings surface offers the authorization action only for a
+proven requirement or an inconclusive result, and replaces it in place with an
+explanation for a proven non-requirement and for credentials without usable
+metadata. A connector that has not been tested keeps the action, and acting on
+it prechecks the capability first, so the browser flow is never started for an
+endpoint that cannot complete it. The conclusion belongs to the connection that
+produced it: any change to the entry's transport, URL, bearer token, headers, or
+OAuth fields discards it, and enabling an entry re-probes it through the same
+path, so the rendered action can never disagree with the precheck behind it.
+
 Enabled MCP entries also carry a credential-free discovery catalog containing a
 stable fingerprint of the advertised tool/resource names, a short capability
 category, a bounded summary, and discovery examples. After an MCP save or

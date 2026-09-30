@@ -2620,7 +2620,7 @@ async fn save_mcp_servers(
 async fn test_mcp_server(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     server: McpServerConfig,
-) -> Result<mcp::McpProbeResult, String> {
+) -> Result<mcp::McpProbeOutcome, String> {
     let plugin_enabled = {
         let config = runtime.state().config.lock().await;
         config

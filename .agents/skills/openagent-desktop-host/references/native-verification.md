@@ -218,3 +218,36 @@ without a backslash, or the injected script element never terminates and
 must be structured-clonable, so snapshot `$state` values before `postMessage`;
 a state proxy throws `DataCloneError`, which the frame sees as a message that
 was never sent.
+
+## MCP OAuth capability coverage
+
+The committed `tests/blackbox/mcp-oauth.toml` scenario verifies that the MCP
+settings surface offers authorization only where a flow can complete. It drives
+the same controls a user uses — the Integrations menu, the connector list, the
+connection test, and the authorization action — and needs no provider, model
+turn, or committed database fixture. The runner spawns
+`tests/fixtures/mcp-oauth-probe/`, a dependency-free loopback endpoint, and
+injects its base URL plus the copy for the active language into the window
+before each pass:
+
+```bash
+OPENAGENT_HOME="$HOME/.openagent-dev/instances/blackbox" bun tauri dev
+bun run test:blackbox:mcp-oauth
+```
+
+Both fixture endpoints answer the unauthenticated handshake with `401` and a
+Bearer challenge, so the connection test fails on both and only the published
+metadata separates them. `/unsupported` serves no metadata and must replace the
+action with its explanation; `/required` serves metadata at the canonical
+RFC 9728 path, which must keep the action. Asserting the unchanged connection
+failure copy alongside each one is what proves the decision came from the OAuth
+capability rather than from the test outcome, and a third connector pins that
+changing an entry's URL discards the conclusion the old connection produced. The
+scenario purges its own connectors before creating them, so a run that aborted
+earlier cannot decide this one, and it removes them again at the end. The runner
+repeats the pass in the dark theme and the Chinese locale.
+
+The credential-free shape is deliberately absent: an endpoint that needs no
+authorization is proven by an anonymous handshake that *succeeds*, which needs a
+real MCP server rather than an HTTP fixture. That mapping is covered by the
+runtime's own `McpOAuthCapability::NotRequired` test, not here.

@@ -1287,12 +1287,18 @@
               disabled={!serverReady || status?.tone === "testing"}
             />
             {#if server.transport === "http"}
-              <SettingsActionButton
-                label={$t("mcpAuthorize")}
-                icon="refresh"
-                onclick={() => view.authorizeMcpServer(server.id)}
-                disabled={!serverReady || status?.tone === "testing"}
-              />
+              {#if view.mcpOAuthOffered(server.id)}
+                <SettingsActionButton
+                  label={$t("mcpAuthorize")}
+                  icon="refresh"
+                  onclick={() => view.authorizeMcpServer(server.id)}
+                  disabled={!serverReady || status?.tone === "testing"}
+                />
+              {:else if view.mcpOAuthHint(server.id)}
+                <p class="detail-hint mcp-oauth-hint">
+                  {$t(view.mcpOAuthHint(server.id) ?? "mcpOAuthUnsupported")}
+                </p>
+              {/if}
             {/if}
           </div>
           <div class="detail-grid mcp-detail-grid">

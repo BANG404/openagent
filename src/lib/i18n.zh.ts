@@ -701,6 +701,9 @@ export const zh = {
   mcpAuthorizationCompleted: "MCP 授权完成",
   mcpAuthorizationFailed: "MCP 授权失败",
   mcpAuthorizationTimedOut: "MCP 授权超时",
+  mcpOAuthNotRequired: "该服务器无需授权即可连接",
+  mcpOAuthUnsupported:
+    "该服务器需要凭据，但不支持 OAuth 授权。请改用 Bearer Token 或自定义请求头。",
   mcpServers: "MCP 服务器",
   mcpComing: "MCP 服务器支持即将推出",
   addMcpServer: "添加服务器",

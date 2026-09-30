@@ -170,11 +170,17 @@ a text or link fallback.
 MCP HTTP connectors support OAuth 2.1 discovery, PKCE S256, loopback
 callbacks, public dynamic registration, refresh tokens, and restricted local
 token storage. Discovery is challenge-driven: a 401 `WWW-Authenticate` header
-supplies the `resource_metadata` URL and requested scope, and the protected
-resource's advertised `resource` becomes the canonical RFC 8707 audience (a
-conflicting configured resource is rejected). PKCE `S256`, secure endpoints,
-issuer agreement, and RFC 9207 `iss` validation on the callback are enforced;
-Client ID Metadata Documents are not implemented and fail with a diagnostic. The local plugin lifecycle supports package installation,
+supplies the `resource_metadata` URL and requested scope, and that URL outranks
+the derived locations, which are tried at the standardized well-known placement
+before the appended one. The protected resource's advertised `resource` becomes
+the canonical RFC 8707 audience (a conflicting configured resource is
+rejected). PKCE `S256`, secure endpoints, issuer agreement, and RFC 9207 `iss`
+validation on the callback are enforced; Client ID Metadata Documents are not
+implemented and fail with a diagnostic. A connection test reports whether OAuth
+is usable for the endpoint, and the settings surface offers authorization only
+where a flow can complete, so an endpoint that demands credentials without
+serving metadata is explained instead of opened in a browser. The local plugin
+lifecycle supports package installation,
 enable/disable, uninstall, and verified GitHub release updates. A hosted
 OpenAI marketplace listing is a separate service and is not claimed by the
 local package loader.
