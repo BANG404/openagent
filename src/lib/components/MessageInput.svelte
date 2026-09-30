@@ -23,6 +23,7 @@
   import {
     insertSoftLineBreak,
     parseBlocks,
+    removeEmptyFormatting,
     removeLineMarker,
     splice,
     wordBoundaryAfter,
@@ -612,7 +613,10 @@
   }
 
   function commitEdit(edit: ComposerEdit | null) {
-    if (edit) commit(edit.value, edit.caret);
+    if (edit) {
+      const normalized = removeEmptyFormatting(edit.value, edit.caret);
+      commit(normalized.value, normalized.caret);
+    }
   }
 
   function restore(entry: { value: string; caret: number }) {

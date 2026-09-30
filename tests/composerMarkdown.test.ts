@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   insertSoftLineBreak,
+  removeEmptyFormatting,
   parseBlocks,
   parseInline,
   protectedSpans,
@@ -156,6 +157,15 @@ describe("composer markdown line edits", () => {
       value: "撤**地方**\n",
       caret: 8,
     });
+  });
+
+  test("removes empty inline formatting after visible content is deleted", () => {
+    expect(removeEmptyFormatting("撤****", 5)).toEqual({ value: "撤", caret: 1 });
+    expect(removeEmptyFormatting("~~  ~~", 3)).toEqual({ value: "  ", caret: 2 });
+    expect(removeEmptyFormatting("` `", 2)).toEqual({ value: " ", caret: 1 });
+    expect(removeEmptyFormatting("* *", 2)).toEqual({ value: " ", caret: 1 });
+    expect(removeEmptyFormatting("**", 2)).toEqual({ value: "", caret: 0 });
+    expect(removeEmptyFormatting("**ab**", 5)).toEqual({ value: "**ab**", caret: 5 });
   });
 
   test("never carries a heading marker onto the next line", () => {
