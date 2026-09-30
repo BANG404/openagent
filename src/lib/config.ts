@@ -203,6 +203,7 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
   const agent_plugins_enabled = Object.fromEntries(
     Object.entries(input.agent_plugins_enabled ?? {}).filter(
       ([id, enabled]) =>
+        id !== "multi-agent-v2" &&
         /^[a-z0-9](?:[a-z0-9.-]{0,62}[a-z0-9])?$/.test(id) &&
         !id.includes("--") &&
         !id.includes("..") &&

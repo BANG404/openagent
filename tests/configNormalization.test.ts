@@ -124,6 +124,7 @@ describe("Agent Plugin lifecycle config", () => {
       normalizeConfigShape({
         agent_plugins_enabled: {
           "demo-plugin": false,
+          "multi-agent-v2": false,
           "Bad Plugin": false,
           "../escape": false,
         },
