@@ -75,9 +75,9 @@ transport. The Runtime validates and reports this descriptor. The host owns
 supervision, permissions, endpoint selection, and shutdown; a daemon can be
 paired with an MCP client declared in `mcp.json`. The Runtime resolves the
 daemon's process policy alongside the descriptor and the host consumes it at its
-spawn point, so a daemon starts either confined by the session-derived policy or
-under a recorded exemption reason; the host stops rather than starting a daemon
-whose resolved policy is managed while the topology requires it unconfined.
+  spawn point, so a daemon starts either confined by the session-derived policy or
+  under a recorded user-authorization reason; the host stops rather than starting
+  a daemon whose managed policy cannot satisfy its declared capability.
 
 The desktop host has a `PluginDaemonSupervisor` registry for declared long-lived
 daemons. Enabled non-reserved daemon packages are discovered before MCP
@@ -91,8 +91,8 @@ ownership and provisioning. A plugin cannot select another plugin's ID or
 an arbitrary executable through this path. Daemons whose resolved policy is
 managed are rejected until the host supplies a sandbox-aware transport adapter;
 the host must never turn that rejection into an ambient unsandboxed spawn.
-The host exposes only status and stop operations for non-reserved plugin IDs;
-start is automatic during Runtime bootstrap, so a plugin cannot manufacture an
+The host exposes only status and stop operations for plugin IDs; start is
+automatic during Runtime bootstrap, so a plugin cannot manufacture an
 unregistered child through an IPC call.
 
 Tagged output is delivered only through that durable plugin-message channel. It

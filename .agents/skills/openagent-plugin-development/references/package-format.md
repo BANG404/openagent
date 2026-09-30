@@ -329,7 +329,7 @@ mounts MCP servers, and exports that package's `PLUGIN_DATA` to the child. An
 entry whose package, launcher, or daemon declaration is missing is disabled with
 a named error rather than started, and the settings probe applies the identical
 substitution, so a manual test cannot report a success the mount would not
-deliver. The exemption names an identity, never a program path.
+deliver. The authorization names an installed plugin identity, never a program path.
 
 The settings surface exposes the plugin enable switch, MCP tool-scope switches,
 and a generic real-computer-access switch for plugins whose declared
