@@ -5,6 +5,7 @@ import type {
   OpenAiApiMode,
   ProviderConfig,
 } from "$lib/types";
+import type { TranslationKeys } from "$lib/i18n";
 import { providerCatalogEntry, providerDefaultBaseUrl } from "$lib/providerCatalog";
 
 export type RetryQueueKind = "chat_queue" | "flash_queue";
@@ -99,6 +100,48 @@ export function mcpConnectionFingerprint(server: McpServerConfig): string {
     server.args,
     sortedEntries(server.env),
   ]);
+}
+
+/**
+ * Whether OAuth authorization applies to an MCP endpoint, as reported by the
+ * connection probe. Mirrors `McpOAuthCapability` in the runtime.
+ *
+ * Only two values are proven: an endpoint that answered without credentials
+ * needs no OAuth, and one that demands credentials without publishing usable
+ * metadata cannot use it. Every other outcome, including a server that has
+ * never been tested, stays `unknown` so the authorization entry point is kept
+ * rather than hidden.
+ */
+export type McpOAuthCapability =
+  "not_applicable" | "not_required" | "required" | "unsupported" | "unknown";
+
+/**
+ * Whether the authorization action belongs on screen for a capability.
+ *
+ * This is the single rule behind both the rendered button and the click guard,
+ * so an entry point that is shown is always one that can complete. An untested
+ * or inconclusive endpoint keeps its button: hiding it would remove the only
+ * way to authorize a connector whose capability could not be established.
+ */
+export function shouldOfferMcpAuthorization(capability?: McpOAuthCapability): boolean {
+  return (
+    capability !== "not_applicable" && capability !== "not_required" && capability !== "unsupported"
+  );
+}
+
+/**
+ * The explanation to show in place of the authorization action, or `null` when
+ * the button itself is the right thing to render.
+ */
+export function mcpOAuthHintKey(capability?: McpOAuthCapability): TranslationKeys | null {
+  switch (capability) {
+    case "not_required":
+      return "mcpOAuthNotRequired";
+    case "unsupported":
+      return "mcpOAuthUnsupported";
+    default:
+      return null;
+  }
 }
 
 export function replaceProviderModels(provider: ProviderConfig, models: string[]): void {

@@ -1,0 +1,377 @@
+[scenario]
+name = "mcp oauth capability"
+fail_fast = true
+global_timeout_ms = 120000
+
+# The settings surface used to offer authorization for every HTTP connector. On
+# an endpoint that cannot complete an OAuth flow that action is a dead end: the
+# click sends the user into a browser flow that fails at discovery. The
+# capability is now established by probing the endpoint, and the action is
+# replaced in place by an explanation when it cannot work.
+#
+# `tests/fixtures/mcp-oauth-probe/server.mjs` answers both shapes that decide
+# this, and the runner injects `window.__mcpOAuthProbe` with the fixture's base
+# URL plus the localized copy for the active language, so neither the ephemeral
+# port nor the locale appears in this file.
+#
+# Both fixture endpoints demand credentials, so the connection test fails
+# against both and only the metadata the second one publishes separates them.
+# Every assertion therefore also pins the failure banner: the action must be
+# decided by the OAuth capability, never by whether the test happened to
+# succeed.
+
+[[step]]
+name = "three probe connectors replace any connector left by an earlier run"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__mcpOAuthProbe;
+  if (!probe || typeof probe.base !== "string" || typeof probe.hint !== "string") {
+    throw new Error("the runner did not inject the MCP OAuth probe endpoint");
+  }
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: "6",
+      code: "Digit6",
+      ctrlKey: true,
+      shiftKey: true,
+      bubbles: true,
+    })
+  );
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const waitFor = async (read, description) => {
+    const deadline = Date.now() + 15000;
+    while (Date.now() < deadline) {
+      const value = read();
+      if (value) return value;
+      await sleep(50);
+    }
+    throw new Error(description);
+  };
+  const panel = await waitFor(
+    () => {
+      const found = document.querySelector(".settings-tab-panel[data-value=extensions]");
+      return found instanceof HTMLElement &&
+        found.getAttribute("data-state") === "active" &&
+        !found.hasAttribute("hidden")
+        ? found
+        : null;
+    },
+    "the MCP settings section never opened from the integrations menu"
+  );
+  const observed = () =>
+    JSON.stringify({
+      connectors: [...panel.querySelectorAll(".provider-item-name")].map((n) => n.textContent),
+      actions: [...panel.querySelectorAll(".mcp-section-header button")].map((b) =>
+        b.textContent.trim()
+      ),
+      hint: panel.querySelector(".mcp-oauth-hint")?.textContent.trim() ?? null,
+      status: panel.querySelector(".provider-status")?.textContent.trim() ?? null,
+    });
+  const prefix = "OAuth probe ";
+  const probeConnectors = () =>
+    [...panel.querySelectorAll(".provider-item-name")]
+      .map((node) => node.textContent ?? "")
+      .filter((name) => name.startsWith(prefix));
+  const selectConnector = async (name) => {
+    const item = [...panel.querySelectorAll("button.provider-item")].find(
+      (candidate) => candidate.querySelector(".provider-item-name")?.textContent === name
+    );
+    if (!item) throw new Error(`the ${name} connector is missing; observed ${observed()}`);
+    item.click();
+    await sleep(0);
+  };
+  // An earlier run that aborted before its cleanup must not decide this one, so
+  // the probe connectors are purged before they are recreated.
+  for (;;) {
+    const [stale] = probeConnectors();
+    if (!stale) break;
+    await selectConnector(stale);
+    const remove = panel.querySelector(".danger-zone button");
+    if (!remove) throw new Error(`the leaked ${stale} connector cannot be removed`);
+    remove.click();
+    await waitFor(
+      () => (probeConnectors().includes(stale) ? null : true),
+      `the leaked ${stale} connector survived its removal`
+    );
+  }
+  const setValue = (input, value) => {
+    input.value = value;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+  const connectors = [
+    ["OAuth probe authorize", "/unsupported"],
+    ["OAuth probe test", "/unsupported"],
+    ["OAuth probe required", "/required"],
+  ];
+  for (const [name, path] of connectors) {
+    const add = panel.querySelector(".list-footer button");
+    if (!add) throw new Error("the add-connector action is missing from the MCP list");
+    add.click();
+    // A new connector becomes the selected one, so the detail form below the
+    // list is its own; wait for the freshly defaulted name before writing.
+    const nameField = await waitFor(
+      () => {
+        const field = panel.querySelector('input[placeholder="My MCP Server"]');
+        return field instanceof HTMLInputElement && field.value === "MCP Server" ? field : null;
+      },
+      `the ${name} connector form never appeared`
+    );
+    setValue(nameField, name);
+    const urlField = await waitFor(
+      () => panel.querySelector('input[placeholder="http://localhost:8080"]'),
+      `the ${name} connector has no URL field`
+    );
+    setValue(urlField, `${probe.base}${path}`);
+    await waitFor(
+      () => (probeConnectors().includes(name) ? true : null),
+      `the ${name} connector never reached the list`
+    );
+  }
+  const created = probeConnectors();
+  if (created.length !== connectors.length) {
+    throw new Error(`expected ${connectors.length} probe connectors, found ${created.length}`);
+  }
+  return true;
+})()'''
+
+[[step]]
+name = "an untested connector answers the authorization action with its explanation"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__mcpOAuthProbe;
+  const panel = document.querySelector(".settings-tab-panel[data-value=extensions]");
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const observed = () =>
+    JSON.stringify({
+      actions: [...panel.querySelectorAll(".mcp-section-header button")].map((b) =>
+        b.textContent.trim()
+      ),
+      hint: panel.querySelector(".mcp-oauth-hint")?.textContent.trim() ?? null,
+      status: panel.querySelector(".provider-status")?.textContent.trim() ?? null,
+    });
+  const item = [...panel.querySelectorAll("button.provider-item")].find(
+    (candidate) =>
+      candidate.querySelector(".provider-item-name")?.textContent === "OAuth probe authorize"
+  );
+  if (!item) throw new Error("the authorize probe connector is missing from the list");
+  item.click();
+  await sleep(0);
+  // An untested connector keeps the action, because hiding a working entry
+  // point on a guess is worse than a precheck that refuses it.
+  const actions = [...panel.querySelectorAll(".mcp-section-header button")];
+  if (actions.length !== 2) {
+    throw new Error(`an untested connector should offer both actions; observed ${observed()}`);
+  }
+  actions[1].click();
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline) {
+    const hint = panel.querySelector(".mcp-oauth-hint");
+    if (hint && hint.textContent.trim() === probe.hint) break;
+    await sleep(50);
+  }
+  const hint = panel.querySelector(".mcp-oauth-hint");
+  if (!hint || hint.textContent.trim() !== probe.hint) {
+    throw new Error(
+      `the authorization action never explained itself; observed ${observed()}`
+    );
+  }
+  const remaining = [...panel.querySelectorAll(".mcp-section-header button")];
+  if (remaining.length !== 1) {
+    throw new Error(
+      `the explanation should have replaced the action; observed ${observed()}`
+    );
+  }
+  // The precheck refuses without opening a browser, and its transient
+  // "opening" banner must clear so the click is visibly accounted for.
+  if (panel.querySelector(".provider-status")) {
+    throw new Error(`the refused precheck left a status banner; observed ${observed()}`);
+  }
+  return true;
+})()'''
+
+[[step]]
+name = "a tested connector without authorization metadata loses the action"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__mcpOAuthProbe;
+  const panel = document.querySelector(".settings-tab-panel[data-value=extensions]");
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const observed = () =>
+    JSON.stringify({
+      actions: [...panel.querySelectorAll(".mcp-section-header button")].map((b) =>
+        b.textContent.trim()
+      ),
+      hint: panel.querySelector(".mcp-oauth-hint")?.textContent.trim() ?? null,
+      status: panel.querySelector(".provider-status")?.textContent.trim() ?? null,
+    });
+  const item = [...panel.querySelectorAll("button.provider-item")].find(
+    (candidate) => candidate.querySelector(".provider-item-name")?.textContent === "OAuth probe test"
+  );
+  if (!item) throw new Error("the test probe connector is missing from the list");
+  item.click();
+  await sleep(0);
+  const actions = [...panel.querySelectorAll(".mcp-section-header button")];
+  if (actions.length !== 2) {
+    throw new Error(`an untested connector should offer both actions; observed ${observed()}`);
+  }
+  actions[0].click();
+  // The reported failure is what ends the test, and its unchanged copy is part
+  // of the boundary: the probe outcome gained a capability without rewriting
+  // how a failed connection reads.
+  const deadline = Date.now() + 15000;
+  let banner = null;
+  while (Date.now() < deadline) {
+    banner = panel.querySelector(".provider-status.error");
+    if (banner) break;
+    await sleep(50);
+  }
+  if (!banner) throw new Error(`the connector test never reported a result; observed ${observed()}`);
+  if (!banner.textContent.trim().startsWith(probe.failure)) {
+    throw new Error(`unexpected failure copy: ${JSON.stringify(banner.textContent.trim())}`);
+  }
+  const hint = panel.querySelector(".mcp-oauth-hint");
+  if (!hint || hint.textContent.trim() !== probe.hint) {
+    throw new Error(
+      `credentials without metadata must explain themselves; observed ${observed()}`
+    );
+  }
+  const remaining = [...panel.querySelectorAll(".mcp-section-header button")];
+  if (remaining.length !== 1) {
+    throw new Error(`the authorization action survived the test; observed ${observed()}`);
+  }
+  return true;
+})()'''
+
+[[step]]
+name = "changing the connection retires the capability it was judged on"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__mcpOAuthProbe;
+  const panel = document.querySelector(".settings-tab-panel[data-value=extensions]");
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const observed = () =>
+    JSON.stringify({
+      actions: [...panel.querySelectorAll(".mcp-section-header button")].map((b) =>
+        b.textContent.trim()
+      ),
+      hint: panel.querySelector(".mcp-oauth-hint")?.textContent.trim() ?? null,
+      status: panel.querySelector(".provider-status")?.textContent.trim() ?? null,
+    });
+  const item = [...panel.querySelectorAll("button.provider-item")].find(
+    (candidate) => candidate.querySelector(".provider-item-name")?.textContent === "OAuth probe test"
+  );
+  if (!item) throw new Error("the test probe connector is missing from the list");
+  item.click();
+  await sleep(0);
+  if (!panel.querySelector(".mcp-oauth-hint")) {
+    throw new Error(`the settled connector lost its explanation; observed ${observed()}`);
+  }
+  const url = panel.querySelector('input[placeholder="http://localhost:8080"]');
+  url.value = `${probe.base}/required`;
+  url.dispatchEvent(new Event("input", { bubbles: true }));
+  // The same endpoint keeps the action on the other connector below, so this
+  // only passes when the conclusion follows the connection it was drawn from.
+  const deadline = Date.now() + 15000;
+  let actions = [];
+  while (Date.now() < deadline) {
+    actions = [...panel.querySelectorAll(".mcp-section-header button")];
+    if (actions.length === 2) break;
+    await sleep(50);
+  }
+  if (actions.length !== 2) {
+    throw new Error(
+      `the conclusion outlived the connection that produced it; observed ${observed()}`
+    );
+  }
+  if (panel.querySelector(".mcp-oauth-hint")) {
+    throw new Error(`the explanation outlived its connection; observed ${observed()}`);
+  }
+  return true;
+})()'''
+
+[[step]]
+name = "a tested connector that publishes authorization metadata keeps the action"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__mcpOAuthProbe;
+  const panel = document.querySelector(".settings-tab-panel[data-value=extensions]");
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const observed = () =>
+    JSON.stringify({
+      actions: [...panel.querySelectorAll(".mcp-section-header button")].map((b) =>
+        b.textContent.trim()
+      ),
+      hint: panel.querySelector(".mcp-oauth-hint")?.textContent.trim() ?? null,
+      status: panel.querySelector(".provider-status")?.textContent.trim() ?? null,
+    });
+  const item = [...panel.querySelectorAll("button.provider-item")].find(
+    (candidate) =>
+      candidate.querySelector(".provider-item-name")?.textContent === "OAuth probe required"
+  );
+  if (!item) throw new Error("the required probe connector is missing from the list");
+  item.click();
+  await sleep(0);
+  const actions = [...panel.querySelectorAll(".mcp-section-header button")];
+  if (actions.length !== 2) {
+    throw new Error(`an untested connector should offer both actions; observed ${observed()}`);
+  }
+  actions[0].click();
+  const deadline = Date.now() + 15000;
+  let banner = null;
+  while (Date.now() < deadline) {
+    banner = panel.querySelector(".provider-status.error");
+    if (banner) break;
+    await sleep(50);
+  }
+  if (!banner) throw new Error(`the connector test never reported a result; observed ${observed()}`);
+  if (!banner.textContent.trim().startsWith(probe.failure)) {
+    throw new Error(`unexpected failure copy: ${JSON.stringify(banner.textContent.trim())}`);
+  }
+  const remaining = [...panel.querySelectorAll(".mcp-section-header button")];
+  if (remaining.length !== 2) {
+    throw new Error(
+      `a failed test must not hide an action it just proved necessary; observed ${observed()}`
+    );
+  }
+  if (panel.querySelector(".mcp-oauth-hint")) {
+    throw new Error(
+      `an endpoint that publishes metadata must not explain itself away; observed ${observed()}`
+    );
+  }
+  return true;
+})()'''
+
+[[step]]
+name = "the probe connectors are removed"
+action = "eval"
+script = '''(async () => {
+  const panel = document.querySelector(".settings-tab-panel[data-value=extensions]");
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const prefix = "OAuth probe ";
+  const probeConnectors = () =>
+    [...panel.querySelectorAll(".provider-item-name")]
+      .map((node) => node.textContent ?? "")
+      .filter((name) => name.startsWith(prefix));
+  for (;;) {
+    const [name] = probeConnectors();
+    if (!name) break;
+    const item = [...panel.querySelectorAll("button.provider-item")].find(
+      (candidate) => candidate.querySelector(".provider-item-name")?.textContent === name
+    );
+    if (!item) throw new Error(`the ${name} connector is missing from the list`);
+    item.click();
+    await sleep(0);
+    const remove = panel.querySelector(".danger-zone button");
+    if (!remove) throw new Error(`the ${name} connector cannot be removed`);
+    remove.click();
+    const deadline = Date.now() + 15000;
+    while (Date.now() < deadline) {
+      if (!probeConnectors().includes(name)) break;
+      await sleep(50);
+    }
+    if (probeConnectors().includes(name)) {
+      throw new Error(`the ${name} connector survived its removal`);
+    }
+  }
+  return true;
+})()'''

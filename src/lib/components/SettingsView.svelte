@@ -52,6 +52,7 @@
     applyFetchedProviderModels,
     createProviderConfig,
     mcpConnectionFingerprint,
+    mcpOAuthHintKey,
     providerConnectionFingerprint,
     providerRequestUrl,
     providerServiceName,
@@ -59,6 +60,8 @@
     replaceProviderModels,
     selectModelBindingProvider,
     settingsConfigChanged,
+    shouldOfferMcpAuthorization,
+    type McpOAuthCapability,
     type RetryQueueKind,
   } from "$lib/settingsConfig";
   import { t, tr, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
@@ -92,6 +95,15 @@
     tools: string[];
     resources: string[];
     fingerprint: string;
+  };
+  // A probe reports the connected result or the failure message, together with
+  // what the attempt revealed about OAuth. A connector that needs authorization
+  // cannot describe itself through the result alone, because the probe fails.
+  type McpProbeOutcome = {
+    probe?: McpProbeResult;
+    error?: string;
+    oauth?: McpOAuthCapability;
+    oauth_detail?: string;
   };
   type McpOAuthStart = {
     authorization_url: string;
@@ -247,6 +259,10 @@
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).has("mcp-settings-preview");
   let mcpTestStatus = $state<Record<string, McpTestStatus>>({});
+  // The OAuth capability each connector's last probe revealed. An absent entry
+  // means the connector has not been tested since it was last edited, which
+  // keeps the authorization action visible rather than guessing about it.
+  let mcpOAuthCapabilities = $state<Record<string, McpOAuthCapability>>({});
   let agentPlugins = $state<AgentPluginSummary[]>([]);
   let agentPluginMarketplaces = $state<AgentPluginMarketplaceSummary[]>([]);
   let agentPluginUpdates = $state<AgentPluginUpdateSummary[]>([]);
@@ -644,12 +660,19 @@
     for (const server of draftConfig.mcp.servers) {
       const next = mcpConnectionFingerprint(server);
       const previous = mcpConnectionFingerprints.get(server.id);
-      if (previous !== undefined && previous !== next && server.enabled) {
-        server.enabled = false;
-        mcpTestStatus = {
-          ...mcpTestStatus,
-          [server.id]: { tone: "error", message: $t("configurationChangedReenable") },
-        };
+      if (previous !== undefined && previous !== next) {
+        // A capability describes one set of connection details, so editing any
+        // of them retires the conclusion and restores the authorization action
+        // until the connector is tested again.
+        const { [server.id]: _retired, ...remainingCapabilities } = mcpOAuthCapabilities;
+        mcpOAuthCapabilities = remainingCapabilities;
+        if (server.enabled) {
+          server.enabled = false;
+          mcpTestStatus = {
+            ...mcpTestStatus,
+            [server.id]: { tone: "error", message: $t("configurationChangedReenable") },
+          };
+        }
       }
       mcpConnectionFingerprints.set(server.id, next);
     }
@@ -1485,6 +1508,21 @@
     }
   }
 
+  // Probe a connector and record the OAuth capability the attempt revealed.
+  // This is the only place a capability is written, so the rendered
+  // authorization action can never disagree with the precheck behind it. The
+  // status banner belongs to the explicit test action, so a quiet precheck
+  // reports nothing here and leaves the caller to decide what to show.
+  async function refreshMcpCapability(id: string): Promise<McpProbeOutcome | null> {
+    const server = draftConfig.mcp.servers.find((item) => item.id === id);
+    if (!server) return null;
+    const outcome = (await desktopOpenAgent.invokeProduct("test_mcp_server", {
+      server: $state.snapshot(server),
+    })) as McpProbeOutcome;
+    mcpOAuthCapabilities = { ...mcpOAuthCapabilities, [id]: outcome.oauth ?? "unknown" };
+    return outcome;
+  }
+
   async function testMcpServer(id: string) {
     const server = draftConfig.mcp.servers.find((s) => s.id === id);
     if (!server) return;
@@ -1506,18 +1544,28 @@
     mcpTestStatus = { ...mcpTestStatus, [id]: { tone: "testing", message: $t("mcpTesting") } };
     mcpDiscoveredTools = { ...mcpDiscoveredTools, [id]: [] };
     try {
-      const result = (await desktopOpenAgent.invokeProduct("test_mcp_server", {
-        server: $state.snapshot(server),
-      })) as McpProbeResult;
+      const outcome = await refreshMcpCapability(id);
+      if (!outcome) return;
+      // A probe that could not connect now arrives as a value rather than a
+      // rejection, so it is reported here with the banner the rejection used
+      // to produce.
+      if (!outcome.probe) {
+        mcpTestStatus = {
+          ...mcpTestStatus,
+          [id]: { tone: "error", message: `${$t("mcpTestFailed")}: ${outcome.error ?? ""}` },
+        };
+        return;
+      }
+      const { probe } = outcome;
       mcpDiscoveredTools = {
         ...mcpDiscoveredTools,
-        [id]: [...new Set(result.tools)].sort((left, right) => left.localeCompare(right)),
+        [id]: [...new Set(probe.tools)].sort((left, right) => left.localeCompare(right)),
       };
       mcpTestStatus = {
         ...mcpTestStatus,
         [id]: {
           tone: "success",
-          message: `${result.tools.length} ${$t("mcpToolCount")}, ${result.resources.length} ${$t("mcpResourceCount")}`,
+          message: `${probe.tools.length} ${$t("mcpToolCount")}, ${probe.resources.length} ${$t("mcpResourceCount")}`,
         },
       };
     } catch (err: unknown) {
@@ -1536,6 +1584,20 @@
       [id]: { tone: "testing", message: $t("mcpAuthorizationOpening") },
     };
     try {
+      // Settle the capability before anything leaves the app. An endpoint that
+      // cannot complete an OAuth flow must not send the user to a browser
+      // first, and an untested connector is exactly the case this settles.
+      const probed = await refreshMcpCapability(id);
+      const capability = probed?.oauth ?? "unknown";
+      if (!shouldOfferMcpAuthorization(capability)) {
+        // The explanation replaces the action in place, so clearing the
+        // transient banner is what confirms the click was understood.
+        mcpTestStatus = {
+          ...mcpTestStatus,
+          [id]: { tone: "idle", message: $t(mcpOAuthHintKey(capability) ?? "mcpOAuthUnsupported") },
+        };
+        return;
+      }
       const start = (await desktopOpenAgent.invokeProduct("begin_mcp_oauth", {
         server: $state.snapshot(server),
       })) as McpOAuthStart;
@@ -1584,19 +1646,29 @@
 
     mcpTestStatus = { ...mcpTestStatus, [id]: { tone: "testing", message: $t("mcpTesting") } };
     try {
-      const result = (await desktopOpenAgent.invokeProduct("test_mcp_server", {
-        server: $state.snapshot(server),
-      })) as McpProbeResult;
+      const outcome = await refreshMcpCapability(id);
+      // Enabling is a claim that the connector works, so a probe that did not
+      // connect must leave it off — including one that now reports the failure
+      // as a value instead of rejecting.
+      if (!outcome?.probe) {
+        server.enabled = false;
+        mcpTestStatus = {
+          ...mcpTestStatus,
+          [id]: { tone: "error", message: `${$t("mcpTestFailed")}: ${outcome?.error ?? ""}` },
+        };
+        return;
+      }
+      const { probe } = outcome;
       mcpDiscoveredTools = {
         ...mcpDiscoveredTools,
-        [id]: [...new Set(result.tools)].sort((left, right) => left.localeCompare(right)),
+        [id]: [...new Set(probe.tools)].sort((left, right) => left.localeCompare(right)),
       };
       server.enabled = true;
       mcpTestStatus = {
         ...mcpTestStatus,
         [id]: {
           tone: "success",
-          message: `${result.tools.length} ${$t("mcpToolCount")}, ${result.resources.length} ${$t("mcpResourceCount")}`,
+          message: `${probe.tools.length} ${$t("mcpToolCount")}, ${probe.resources.length} ${$t("mcpResourceCount")}`,
         },
       };
     } catch (err: unknown) {
@@ -2365,6 +2437,12 @@
     },
     get mcpDiscoveryFingerprints() {
       return mcpDiscoveryFingerprints;
+    },
+    mcpOAuthHint(id: string) {
+      return mcpOAuthHintKey(mcpOAuthCapabilities[id]);
+    },
+    mcpOAuthOffered(id: string) {
+      return shouldOfferMcpAuthorization(mcpOAuthCapabilities[id]);
     },
     get mcpTestStatus() {
       return mcpTestStatus;
