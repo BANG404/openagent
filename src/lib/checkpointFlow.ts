@@ -1,4 +1,4 @@
-import type { GoalRunUpdatedEvent } from "./types";
+import type { PluginFlowUpdatedEvent } from "./types";
 
 export type CheckpointFlowStatus = "running" | "completed" | "failed" | "blocked";
 export type CheckpointGraphNodeStatus = CheckpointFlowStatus | "pending";
@@ -207,14 +207,14 @@ export function normalizeCheckpointFlow(kind: string, value: unknown): Checkpoin
 }
 
 export function checkpointFlowFromLiveUpdate(
-  update: GoalRunUpdatedEvent,
+  update: PluginFlowUpdatedEvent,
 ): CheckpointFlow | undefined {
   return update.flow ? normalizeCheckpointFlow(update.flow.kind, update.flow.state) : undefined;
 }
 
 export function updateLiveCheckpointFlowProjection(
   previous: LiveCheckpointFlowProjection | undefined,
-  update: GoalRunUpdatedEvent,
+  update: PluginFlowUpdatedEvent,
 ): LiveCheckpointFlowProjection | undefined {
   const flow = checkpointFlowFromLiveUpdate(update);
   return flow ? { flow, version: (previous?.version ?? 0) + 1 } : previous;

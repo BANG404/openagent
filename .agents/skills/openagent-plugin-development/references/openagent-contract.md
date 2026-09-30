@@ -36,8 +36,8 @@ GitHub `repository` as their update source; a verified release is staged as an
 installed package. When that package declares the capability's Flow or MCP
 names, its implementation is authoritative and the Runtime supplies only
 generic loop, cancellation, checkpoint, and permission mechanics. The registry
-remains the compatibility alias and lifecycle boundary while older
-installations transition away from the local implementation.
+remains the trusted identity and lifecycle boundary; it does not reimplement
+the package's domain tools or state.
 
 `enabled` is the lifecycle gate for portable components. Missing persisted
 entries default to `true` for compatibility; disabling a plugin removes its
@@ -107,8 +107,9 @@ the existing `PLUGIN_ROOT`/`PLUGIN_DATA` expansion and transport restrictions.
 The product registry exposes Cua Driver, Chat Groups, Goal Mode, and Graph Mode
 as trusted plugin descriptors. Each capability has a standard package repository
 and can receive a verified GitHub package overlay. The registration still
-supplies trusted capabilities, commands, tool ownership, message policies, and
-component ownership to the Runtime. Cua Driver's daemon is resolved from its
+supplies trusted identity, lifecycle switches, compatibility aliases, and
+message-policy metadata; package MCP servers own Goal, Graph, and Chat Groups
+tools and package data. Cua Driver's daemon is resolved from its
 installed package and supervised through the same host daemon boundary as any
 other plugin; its reserved MCP entry remains the client connection. It is also
 the one reserved process exemption: the Runtime resolves that identity to an
@@ -344,19 +345,20 @@ that candidate without executing it during validation.
 
 Built-in capabilities use the same descriptor and registry with a trusted
 `builtin` source. Chat Groups retains `chat_groups_enabled`; Goal and Graph
-retain the `/goal` and `/graph` product aliases, but an installed runtime-bound
-package owns the matching standard Flow and MCP tools. The Runtime's generic
-flow runner carries only cancellation, checkpoint continuation, and the
-package's display projection. Their checkpoint message policies remain
-persisted by the existing checkpoint store. Existing user MCP, Skills, and
-`automation_hooks` settings are normalized without changing their persisted
-shapes. The local Goal/Graph runner remains only as a compatibility fallback
-while the published packages are installed and activated by default.
+retain the `/goal` and `/graph` product aliases, but the installed packages
+own the matching standard Flow and MCP tools and all domain state under their
+`PLUGIN_DATA` directories. The Runtime's generic flow runner carries only
+cancellation, checkpoint continuation, permissions, and the package's opaque
+display projection. Older Goal/Graph checkpoints remain readable as opaque
+legacy payloads; the Runtime no longer creates or interprets new local domain
+state. Existing user MCP, Skills, and `automation_hooks` settings are
+normalized without changing their persisted shapes.
 
-Builtin tools are also owned by registry entries. The provider tool projection
-removes tools whose owning builtin is disabled, and every tool call repeats the
-same live check before mutating state. This keeps a stale Runtime tool server or
-an in-flight model request from bypassing a settings toggle.
+Runtime-owned tools are identified by registry entries. The provider tool
+projection removes tools whose owning builtin is disabled, and every tool call
+repeats the same live check before mutating state. Package MCP tools are loaded
+from the package descriptor and are never duplicated in the Runtime tool
+registry, so a stale Runtime tool server cannot become a second domain owner.
 
 The command catalog shares that admission rule. `/goal` and `/graph` are gated
 by their registry entry rather than by a descriptor tag, and every consumer

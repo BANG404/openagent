@@ -368,9 +368,9 @@ export interface CheckpointData {
   };
 }
 
-export interface GoalRunUpdatedEvent {
+export interface PluginFlowUpdatedEvent {
   conv_id: string;
-  kind: string;
+  flow_id: string;
   status: string;
   flow?: {
     kind: "goal" | "graph" | "plugin";

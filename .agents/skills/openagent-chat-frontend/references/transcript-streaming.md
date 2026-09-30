@@ -190,11 +190,11 @@
   metadata onto additional lines instead of allowing labels to break into
   vertical glyphs. Composer toolbar selectors follow the same rule: labels stay
   on one line with ellipsis, while the toolbar may grow by wrapping controls.
-- Treat the selected branch tip's durable checkpoint as final Goal and Graph
+- Treat the selected branch tip's durable checkpoint as final plugin Flow
   authority, not transient conversation badges. During streaming, project the
-  complete checkpoint-owned `FlowState` carried by `goal-run-updated` after
-  every Goal tool mutation and parent Graph node reduction; keep that live
-  overlay until the matching persisted `chat-checkpoint` has been reconciled.
+  complete package-owned `FlowState` carried by `plugin-flow-updated` after
+  every plugin step or serialized Graph reducer update; keep that live overlay
+  until the matching persisted `chat-checkpoint` has been reconciled.
   Leave optimistic transcript records mounted throughout and ignore stale
   asynchronous refreshes so an older checkpoint cannot replace a newer live
   Goal or Graph state. When any Goal/Graph status or branch-scoped file change is

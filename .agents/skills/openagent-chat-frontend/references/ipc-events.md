@@ -51,11 +51,11 @@ While the panel is mounted, do not synchronously report chat-group availability
 as false during its initial load: the parent uses that value to decide whether
 to mount the panel, so clearing it before the load completes causes an
 unmount/remount update loop in Svelte.
-The typed Runtime client owns `list_chat_groups`, member management, message
-send/read operations, and `chat.group_message`/`chat.group_updated` event
-projection. Disabling the capability hides the panel and makes the registered
-tools reject execution through their live config gate, without deleting
-existing group data. The same plugin also exposes `chat_send_message` for a
+The typed Runtime client owns the desktop adapter for `list_chat_groups`,
+member management, and message send/read operations; all state and tool
+execution come from the Chat Groups plugin MCP server. Disabling the
+capability hides the panel and blocks the plugin boundary without deleting
+existing plugin data. The same plugin also exposes `chat_send_message` for a
 workspace-scoped one-to-one message; private delivery is persisted only in the
 target conversation and never copied into a group log.
 

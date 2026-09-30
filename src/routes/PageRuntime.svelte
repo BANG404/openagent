@@ -210,7 +210,7 @@
     WslDistribution,
     WslWorkspaceTarget,
     ProviderAuthDeviceCodeEvent,
-    GoalRunUpdatedEvent,
+    PluginFlowUpdatedEvent,
     UserMessageContext,
     CheckpointTurnStatus,
     TaskTokenUsage,
@@ -1012,7 +1012,7 @@
     }
   }
 
-  function applyLiveCheckpointFlow(convId: string, update: GoalRunUpdatedEvent): void {
+  function applyLiveCheckpointFlow(convId: string, update: PluginFlowUpdatedEvent): void {
     const current = liveCheckpointFlowProjections[convId];
     const next = updateLiveCheckpointFlowProjection(current, update);
     if (!next || next === current) return;
@@ -3145,14 +3145,14 @@
     }
     register<{
       conv_id: string;
-      kind: string;
+      flow_id: string;
       iteration: number;
       message: string;
       msg_id: string;
       asst_msg_id?: string;
       hidden_message?: boolean;
-    }>("goal-loop-iteration-started", (e) => {
-      const { conv_id, kind, message, msg_id, asst_msg_id, hidden_message } = e.payload;
+    }>("plugin-flow-iteration-started", (e) => {
+      const { conv_id, flow_id, message, msg_id, asst_msg_id, hidden_message } = e.payload;
       const userMsg: ChatMessage = {
         id: msg_id,
         role: "user",
@@ -3166,7 +3166,7 @@
           !hidden_message && !existing.messages.some((message) => message.id === msg_id);
         conversations[idx] = {
           ...existing,
-          flowKind: kind,
+          flowKind: flow_id,
           flowStatus: "running",
           messages: shouldAppendUser ? [...existing.messages, userMsg] : existing.messages,
           updatedAt: Date.now(),
@@ -3184,14 +3184,14 @@
       chatStreams.startTiming(conv_id, Date.now());
     });
 
-    register<GoalRunUpdatedEvent>("goal-run-updated", (e) => {
-      const { conv_id, kind, status } = e.payload;
+    register<PluginFlowUpdatedEvent>("plugin-flow-updated", (e) => {
+      const { conv_id, flow_id, status } = e.payload;
       applyLiveCheckpointFlow(conv_id, e.payload);
       const idx = conversations.findIndex((c) => c.id === conv_id);
       if (idx !== -1) {
         conversations[idx] = {
           ...conversations[idx],
-          flowKind: kind,
+          flowKind: flow_id,
           flowStatus: status,
           updatedAt: Date.now(),
         };
