@@ -378,6 +378,10 @@ describe("desktop navigation chrome", () => {
       new URL("../src-tauri/src/workspace_process.rs", import.meta.url),
       "utf8",
     );
+    const pluginDaemonSupervisor = await readFile(
+      new URL("../src-tauri/src/plugin_daemon_supervisor.rs", import.meta.url),
+      "utf8",
+    );
     const exit = host.slice(
       host.indexOf("fn hide_desktop_surfaces"),
       host.indexOf("#[tauri::command]\nasync fn quit_app"),
@@ -416,21 +420,24 @@ describe("desktop navigation chrome", () => {
     // Both long-lived children outlive every Rust exit path — a force-kill,
     // `panic = "abort"`, a logoff — so the kernel, not `Drop`, has to own them.
     // They bind through one module so neither can silently lose that guarantee.
+    // The Runtime binds its own child; the Cua Driver daemon starts through the
+    // shared plugin daemon supervisor, which binds every daemon it starts.
     expect(processLifetime).toContain("JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE");
     expect(processLifetime).toContain("AssignProcessToJobObject(job.0, process)");
     expect(runtimeProcess).toContain('bind_tokio_child("Runtime", &child)');
-    expect(host).toContain('bind_std_child("Cua Driver", &spawned)');
+    expect(host).toContain('label: "Cua Driver".to_string()');
+    expect(host).toContain("plugin_daemon_supervisor().start_with_resources(");
+    expect(pluginDaemonSupervisor).toContain("bind_std_child(&spec.label, &child)");
 
     // The Cua Driver daemon mirrors the Runtime's control-pipe contract: the
     // host holds its stdin open, and the daemon treats EOF as "my owner is
-    // gone". Holding that pipe is what makes the guarantee cross-platform.
-    const spawnCua = host.slice(
-      host.indexOf("fn spawn_cua_driver_daemon"),
-      host.indexOf("fn ensure_cua_driver_serve"),
-    );
-    expect(spawnCua).toContain(".stdin(Stdio::piped())");
-    expect(spawnCua).toContain(".stdin.take()");
-    expect(host).toContain("_stdin: std::process::ChildStdin");
+    // gone". Holding that pipe is what makes the guarantee cross-platform, and
+    // the shared supervisor holds it for every daemon it starts, releasing it
+    // only as the first step of the bounded stop.
+    expect(pluginDaemonSupervisor).toContain(".stdin(Stdio::piped())");
+    expect(pluginDaemonSupervisor).toContain("child.stdin.take()");
+    expect(pluginDaemonSupervisor).toContain("stdin: ChildStdin,");
+    expect(pluginDaemonSupervisor).toContain("drop(self.stdin);");
     // The `serve --embedded` the daemon runs belongs to the package that
     // publishes the launcher, so the host appends only its policy tail to the
     // descriptor the kernel resolved. A host that rebuilt the leading arguments

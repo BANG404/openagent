@@ -4227,6 +4227,7 @@ const CUA_DRIVER_PREPARE_TIMEOUT: std::time::Duration = std::time::Duration::fro
 const CUA_DRIVER_STOP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
 /// How long the host waits for its own daemon to exit before it kills it.
+#[cfg(feature = "embedded-runtime")]
 const CUA_DRIVER_SHUTDOWN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 
 /// Whether a daemon is accepting connections on the reserved endpoint.
