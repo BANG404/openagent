@@ -239,6 +239,11 @@
   for both expansion and collapse, and collapse the panel to a zero-width,
   non-interactive track using the same 180ms width curve as the conversation
   sidebar.
+  Keep the conversation expansion control immediately before the right-sidebar
+  control in the shared title bar. Dragging the right details panel until the
+  conversation track has only 180px remaining collapses the middle surface and
+  lets the details panel occupy the workspace; the conversation control remains
+  available so the middle surface can be restored.
   When the conversation container changes width, preserve the user's panel
   proportion before applying the existing 62% container cap and 260px/960px
   bounds; the stored value remains the last concrete width for reloads.
