@@ -387,7 +387,41 @@ export function splice(value: string, start: number, end: number, insertion: str
  * and drop an empty marker instead of carrying it onto the new line. Headings
  * are single-line, so a heading marker is never carried forward.
  */
-export function insertSoftLineBreak(value: string, offset: number): ComposerEdit {
+export function insertSoftLineBreak(value: string, offset: number, end = offset): ComposerEdit {
+  const start = Math.min(offset, end);
+  const selectionEnd = Math.max(offset, end);
+  const formattedNode = (nodes: InlineNode[]): InlineNode | null => {
+    for (const node of nodes) {
+      if (node.kind !== "text" && node.kind !== "chip") {
+        if (node.contentStart === start && node.contentEnd === selectionEnd) return node;
+        const nested = formattedNode(node.children ?? []);
+        if (nested) return nested;
+      }
+    }
+    return null;
+  };
+  if (start !== selectionEnd) {
+    for (const block of parseBlocks(value)) {
+      const match = formattedNode(block.inline);
+      if (match) return splice(value, match.end, match.end, "\n");
+    }
+    return splice(value, start, selectionEnd, "\n");
+  }
+  for (const block of parseBlocks(value)) {
+    const edgeEdit = (nodes: InlineNode[]): ComposerEdit | null => {
+      for (const node of nodes) {
+        if (node.kind !== "text" && node.kind !== "chip") {
+          if (start === node.contentStart) return splice(value, node.start, node.start, "\n");
+          if (start === node.contentEnd) return splice(value, node.end, node.end, "\n");
+          const nested = edgeEdit(node.children ?? []);
+          if (nested) return nested;
+        }
+      }
+      return null;
+    };
+    const edit = edgeEdit(block.inline);
+    if (edit) return edit;
+  }
   const line = lineBoundsAt(value, offset);
   const marker = lineMarker(line.text);
   if (!marker) return splice(value, offset, offset, "\n");

@@ -55,4 +55,15 @@ describe("stream pause control", () => {
       /function handleBeforeInput\(event: InputEvent\) \{\s+if \(composing\) return;/,
     );
   });
+
+  test("replaces a selected range on backward deletion and hides the placeholder during IME", async () => {
+    const source = await Bun.file(
+      new URL("../src/lib/components/MessageInput.svelte", import.meta.url),
+    ).text();
+
+    expect(source).toMatch(
+      /case "deleteContentBackward":\s+if \(start !== end\) \{\s+replace\(start, end, ""\);/s,
+    );
+    expect(source).toContain("class:input-editor-empty={value.length === 0 && !composing}");
+  });
 });
