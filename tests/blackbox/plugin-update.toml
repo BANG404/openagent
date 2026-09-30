@@ -1,0 +1,120 @@
+[scenario]
+name = "agent plugin update reporting"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "the plugin card names the repository it cannot read"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__pluginUpdateProbe;
+  if (!probe) throw new Error("the update copy was not injected into the window");
+  const trigger = document.querySelector("#application-integrations-menu");
+  if (!(trigger instanceof HTMLElement)) throw new Error("integrations menu trigger is missing");
+  trigger.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const item = [...document.querySelectorAll("[role=menuitem]")].find((candidate) =>
+    /Plugins|插件/.test(candidate.textContent ?? "")
+  );
+  if (!item) throw new Error("plugins menu item is missing");
+  item.click();
+  const card = () => {
+    const control = document.querySelector(
+      `[role=dialog] [role=switch][aria-label="${probe.name}"]`
+    );
+    return control instanceof HTMLElement ? control.closest(".plugin-accordion-item") : null;
+  };
+  const deadline = Date.now() + 7000;
+  while (Date.now() < deadline && card() === null) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  const fixture = card();
+  if (!(fixture instanceof HTMLElement)) throw new Error("the fixture package card is missing");
+  // A card keeps its content mounted while it is collapsed, so the expanded
+  // state is what proves the explanation reached the screen a user reads; a
+  // card that toggled closed would still carry the text in its DOM.
+  const opener = fixture.querySelector(".plugin-accordion-trigger");
+  if (!(opener instanceof HTMLElement)) throw new Error("the fixture package card has no opener");
+  const open = () => fixture.querySelector('.plugin-accordion-content[data-state="open"]');
+  const expandDeadline = Date.now() + 5000;
+  while (Date.now() < expandDeadline && open() === null) {
+    opener.click();
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  const content = open();
+  if (!(content instanceof HTMLElement)) throw new Error("the fixture package card never expanded");
+  // Opening the page starts the check that produces this row, so the card can
+  // be on screen before the reason it has to report exists.
+  const reportDeadline = Date.now() + 7000;
+  while (Date.now() < reportDeadline && content.querySelector(".plugin-warning") === null) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  const warning = content.querySelector(".plugin-warning");
+  const reported = warning === null ? "" : (warning.textContent ?? "").trim();
+  if (reported !== probe.reason) {
+    throw new Error(
+      `the card reported ${JSON.stringify(reported)} instead of ${JSON.stringify(probe.reason)}`
+    );
+  }
+  const hints = [...content.querySelectorAll(".detail-hint")].map((node) =>
+    (node.textContent ?? "").trim()
+  );
+  if (!hints.includes(probe.detail)) {
+    throw new Error(
+      `the card dropped the raw diagnostic: ${JSON.stringify(hints)}`
+    );
+  }
+  return reported;
+})()'''
+
+[[step]]
+name = "the update summary names the plugin and the reason it gave"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__pluginUpdateProbe;
+  const checkControl = () =>
+    [...document.querySelectorAll(".plugin-directory-actions button")].find(
+      (candidate) => (candidate.textContent ?? "").trim() === probe.checkLabel
+    );
+  const summary = () =>
+    [...document.querySelectorAll(".settings-tab-panel .provider-status")].find((node) =>
+      (node.textContent ?? "").includes(probe.name)
+    );
+  const reported = () =>
+    [...document.querySelectorAll(".settings-tab-panel .provider-status")].map((node) =>
+      (node.textContent ?? "").trim()
+    );
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    const named = summary();
+    if (named) {
+      const text = (named.textContent ?? "").trim();
+      if (!text.includes(probe.reason)) {
+        throw new Error(`the summary named the plugin without its reason: ${text}`);
+      }
+      return text;
+    }
+    const control = checkControl();
+    if (control instanceof HTMLElement && !control.disabled) control.click();
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(
+    `the update summary never named ${probe.name}; the page reported ${JSON.stringify(reported())}`
+  );
+})()'''
+
+[[step]]
+name = "the settings surface closes"
+action = "eval"
+script = '''(async () => {
+  const close = document.querySelector(
+    '[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]'
+  );
+  if (close instanceof HTMLElement) close.click();
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    if (document.querySelector("[role=dialog]") === null) return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("the settings surface did not close");
+})()'''
