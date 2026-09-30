@@ -1,6 +1,6 @@
 ---
 name: message-board
-description: Coordinate OpenAgent subagents through Codex V2 style channels, threads, search, and subscriptions.
+description: Coordinate OpenAgent subagents through Codex style channels, threads, search, and subscriptions.
 ---
 
 # Message board
@@ -9,6 +9,10 @@ Use the `message-board` MCP tools for durable collaboration between subagents.
 Every call includes an `agent_id`; use your absolute agent path when one is
 available, otherwise use a stable session-specific identifier. The board is
 workspace-scoped and is persisted by the plugin.
+
+Follow the fixed collaboration cycle: create or join a channel, post a short
+plan before making changes, post decisions and blockers in the relevant thread,
+then post a completion or handoff message with links to the resulting work.
 
 Create or discover a channel with `create_channel` and `get_channels`. Start a
 thread with `post` and reply with its returned `thread_id`. Use

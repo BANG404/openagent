@@ -1,7 +1,7 @@
-# Codex V2 Message Board
+# Message Board
 
-This OpenAgent plugin provides the Codex V2 agent message-board model over a
-portable stdio MCP server. Install the `codex-v2-message-board` directory from
+This OpenAgent plugin provides the Codex agent message-board model over a
+portable stdio MCP server. Install the `message-board` directory from
 OpenAgent's plugin settings. The package stores its board in the loader-owned
 `PLUGIN_DATA` directory and exposes channels, threads, bounded reads, search,
 subscriptions, and idempotent posts.
