@@ -50,6 +50,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   context_compaction_prompt: "",
   context_compaction_recent_message_count: 5,
   memory_retrieval_enabled: false,
+  github_token: "",
   remote_gateway: {
     enabled: false,
     allow_lan_access: false,

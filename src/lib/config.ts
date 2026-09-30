@@ -241,6 +241,7 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
     context_compaction_prompt: input.context_compaction_prompt ?? "",
     context_compaction_recent_message_count: contextCompactionRecentMessageCount,
     memory_retrieval_enabled: input.memory_retrieval_enabled ?? false,
+    github_token: (input.github_token ?? "").trim(),
     model_retry: {
       retry_count: retryCount,
       retry_delay_ms: retryDelayMs,

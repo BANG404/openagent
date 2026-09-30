@@ -267,6 +267,20 @@
     <header class="agents-settings-intro">
       <h3>{$t("plugins")}</h3>
     </header>
+    <div class="application-settings-surface plugin-token-card">
+      <label class="settings-card-row">
+        <span class="settings-card-copy">
+          <span class="label-text">{$t("pluginGitHubToken")}</span>
+          <span class="detail-hint">{$t("pluginGitHubTokenHint")}</span>
+        </span>
+        <input
+          type="password"
+          class="detail-input"
+          placeholder={$t("pluginGitHubTokenPlaceholder")}
+          bind:value={view.draftConfig.github_token}
+        />
+      </label>
+    </div>
     <div class="plugin-directory-heading">
       <span class="plugin-directory-count">{view.agentPlugins.length}</span>
       <div class="plugin-directory-actions">
@@ -561,10 +575,20 @@
               {@const update = (view.agentPluginUpdates ?? []).find(
                 (item: AgentPluginUpdateSummary) => item.id === plugin.id,
               )}
-              {#if (update?.update_available && update.latest_version) || !plugin.builtin || plugin.repository}
+              {#if (update?.update_available && update.latest_version) || !plugin.builtin || plugin.repository || update?.error}
                 <div class="plugin-accordion-footer">
                   {#if plugin.repository}
                     <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
+                  {/if}
+                  {#if update?.error}
+                    <!-- The raw reason, so a quota or a manifest problem is not
+                         silently counted as a broken package. -->
+                    <p class="plugin-warning">
+                      {#if update.stale}
+                        {$t("pluginUpdateStaleHint")}
+                      {/if}
+                      {update.error}
+                    </p>
                   {/if}
                   {#if update?.update_available && update.latest_version}
                     <p class="plugin-update-hint">
@@ -603,6 +627,14 @@
               <div class="plugin-accordion-footer">
                 {#if plugin.repository}
                   <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
+                {/if}
+                {#if update?.error}
+                  <p class="plugin-warning">
+                    {#if update.stale}
+                      {$t("pluginUpdateStaleHint")}
+                    {/if}
+                    {update.error}
+                  </p>
                 {/if}
                 {#if update?.update_available && update.latest_version}
                   <p class="plugin-update-hint">

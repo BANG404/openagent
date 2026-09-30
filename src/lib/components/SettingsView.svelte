@@ -17,6 +17,7 @@
     AgentPluginSummary,
     AgentPluginMarketplaceSummary,
     AgentPluginSidebarViewSummary,
+    AgentPluginUpdateReport,
     AgentPluginUpdateSummary,
     AgentMemoryEntry,
     AgentRole,
@@ -65,7 +66,11 @@
     type RetryQueueKind,
   } from "$lib/settingsConfig";
   import { t, tr, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
-  import { classifyAgentPluginUpdateCheck } from "$lib/agentPluginUpdateCheck";
+  import {
+    classifyAgentPluginUpdateCheck,
+    coalesceAgentPluginUpdateCheck,
+    type AgentPluginUpdateCheckOutcome,
+  } from "$lib/agentPluginUpdateCheck";
   import type { SettingsNav } from "$lib/settingsWindows";
   import {
     pluginSidebarLifecycle,
@@ -1882,18 +1887,105 @@
     await emit("agent-plugins-changed").catch(() => {});
   }
 
-  async function checkAgentPluginUpdates(): Promise<AgentPluginUpdateSummary[] | null> {
+  async function checkAgentPluginUpdates(): Promise<AgentPluginUpdateReport | null> {
     if (!isTauri()) return null;
     agentPluginUpdatesLoading = true;
     try {
-      agentPluginUpdates = await desktopOpenAgent.checkAgentPluginUpdates();
-      return agentPluginUpdates;
+      // Startup, this surface, and the plugin-change listener can all ask at
+      // once, and the check spends a quota shared with every other client on
+      // this machine's address, so they share one run.
+      const report = await coalesceAgentPluginUpdateCheck(() =>
+        desktopOpenAgent.checkAgentPluginUpdates(),
+      );
+      agentPluginUpdates = report.updates;
+      return report;
     } catch (error: unknown) {
       console.warn("Failed to check Agent Plugin updates:", error);
       return null;
     } finally {
       agentPluginUpdatesLoading = false;
     }
+  }
+
+  /** When the GitHub quota is reported to reset, in the user's own locale. */
+  function formatRateLimitReset(resetAt: number): string {
+    return new Intl.DateTimeFormat(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(resetAt * 1000));
+  }
+
+  /**
+   * Turn a classified outcome into the one line the plugin page shows.
+   *
+   * A machine condition names the condition and what would lift it. Counting
+   * every failed plugin as a broken package is what made an exhausted shared
+   * quota look like six damaged plugins.
+   */
+  function agentPluginUpdateCheckMessage(
+    outcome: AgentPluginUpdateCheckOutcome,
+    fromCache: boolean,
+  ): { tone: "success" | "error"; message: string } {
+    const message = (() => {
+      switch (outcome.kind) {
+        case "failed":
+          return { tone: "error" as const, message: tr("pluginUpdateCheckFailed") };
+        case "rate_limited":
+          return {
+            tone: "error" as const,
+            message: [
+              tr("pluginUpdateRateLimited").replace("{count}", String(outcome.count)),
+              outcome.resetAt === null
+                ? ""
+                : tr("pluginUpdateRateLimitedUntil").replace(
+                    "{time}",
+                    formatRateLimitReset(outcome.resetAt),
+                  ),
+              outcome.tokenConfigured ? "" : tr("pluginUpdateRateLimitedToken"),
+            ]
+              .filter(Boolean)
+              .join(" "),
+          };
+        case "unauthorized":
+          return {
+            tone: "error" as const,
+            message: [tr("pluginUpdateUnauthorized"), tr("pluginUpdateUnauthorizedToken")].join(
+              " ",
+            ),
+          };
+        case "network_failed":
+          return { tone: "error" as const, message: tr("pluginUpdateNetworkFailed") };
+        case "available":
+          return {
+            tone: "success" as const,
+            message: [
+              tr("pluginUpdateDescription").replace("{count}", String(outcome.count)),
+              outcome.incomplete === 0
+                ? ""
+                : tr("pluginUpdateDescriptionPartial").replace(
+                    "{count}",
+                    String(outcome.incomplete),
+                  ),
+            ]
+              .filter(Boolean)
+              .join(" "),
+          };
+        case "incomplete":
+          return {
+            tone: "error" as const,
+            message: tr("pluginUpdateCheckPartialFailure").replace(
+              "{count}",
+              String(outcome.count),
+            ),
+          };
+        case "current":
+          return { tone: "success" as const, message: tr("pluginUpdateUpToDate") };
+      }
+    })();
+    if (!fromCache) return message;
+    // The check answers from a local freshness window instead of asking GitHub
+    // again, so say the result may predate the click.
+    return { ...message, message: `${message.message} ${tr("pluginUpdateFromCache")}` };
   }
 
   /**
@@ -1906,27 +1998,8 @@
     if (!isTauri() || agentPluginUpdatesLoading) return;
     agentPluginStatus = "";
     agentPluginUpdateCheckStatus = null;
-    const outcome = classifyAgentPluginUpdateCheck(await checkAgentPluginUpdates());
-    switch (outcome.kind) {
-      case "failed":
-        agentPluginUpdateCheckStatus = { tone: "error", message: tr("pluginUpdateCheckFailed") };
-        return;
-      case "available":
-        agentPluginUpdateCheckStatus = {
-          tone: "success",
-          message: tr("pluginUpdateDescription").replace("{count}", String(outcome.count)),
-        };
-        return;
-      case "incomplete":
-        agentPluginUpdateCheckStatus = {
-          tone: "error",
-          message: tr("pluginUpdateCheckPartialFailure").replace("{count}", String(outcome.count)),
-        };
-        return;
-      case "current":
-        agentPluginUpdateCheckStatus = { tone: "success", message: tr("pluginUpdateUpToDate") };
-        return;
-    }
+    const { outcome, fromCache } = classifyAgentPluginUpdateCheck(await checkAgentPluginUpdates());
+    agentPluginUpdateCheckStatus = agentPluginUpdateCheckMessage(outcome, fromCache);
   }
 
   async function updateAgentPlugin(pluginId: string): Promise<void> {

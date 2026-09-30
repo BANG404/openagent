@@ -87,3 +87,14 @@ rejects traversal and links while extracting, validates the complete manifest
 and component set in staging, then atomically activates the candidate while
 preserving `plugin-data`; activation failures restore the previous package. A
 check never downloads or executes a release.
+
+The check is cheap by design, because the anonymous GitHub rate limit is 60
+requests per hour per originating IP and is shared with unrelated traffic on
+that connection. Results are cached per repository for ten minutes and
+revalidated with a conditional request afterwards, so repeated loads and
+repeated clicks normally cost nothing. When the quota is exhausted, or the
+token is rejected, or the network is unreachable, OpenAgent says so once at the
+top of the Plugins page instead of reporting each plugin as broken; only a
+repository that is unusable or serves no installable release is reported as
+that plugin's own problem. Setting `github_token` in the configuration raises
+the limit to 5000 requests per hour if you check many repositories.

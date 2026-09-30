@@ -762,6 +762,31 @@ export interface AgentPluginSummary {
   error: string | null;
 }
 
+/**
+ * Why one plugin's release metadata could not be read.
+ *
+ * `rate_limited`, `unauthorized`, and `network_failed` describe the machine's
+ * access to GitHub rather than the plugin, so they must never be presented as a
+ * broken package. `repository_unsupported` and `release_unavailable` are
+ * properties of that one plugin.
+ */
+export type AgentPluginUpdateErrorKind =
+  | "rate_limited"
+  | "unauthorized"
+  | "network_failed"
+  | "repository_unsupported"
+  | "release_unavailable";
+
+/**
+ * The worst condition one update check met.
+ *
+ * A rate limit, a rejected token, or a network failure is machine-wide and is
+ * reported on the check itself, because a quota can run out partway through the
+ * loop and leave a mixture of per-plugin results that no single plugin explains.
+ */
+export type AgentPluginUpdateCheckStatus =
+  "ok" | "partial" | "rate_limited" | "unauthorized" | "network_failed";
+
 export interface AgentPluginUpdateSummary {
   id: string;
   current_version: string | null;
@@ -772,6 +797,25 @@ export interface AgentPluginUpdateSummary {
   asset_digest: string | null;
   update_available: boolean;
   error: string | null;
+  error_kind: AgentPluginUpdateErrorKind | null;
+  /** The metadata could not be refreshed and this is the remembered value. */
+  stale: boolean;
+}
+
+export interface AgentPluginUpdateCheck {
+  status: AgentPluginUpdateCheckStatus;
+  /** Plugins with a resolvable repository that were examined. */
+  checked: number;
+  /** The subset answered from the freshness cache with no request at all. */
+  cached: number;
+  token_configured: boolean;
+  /** Unix seconds when the GitHub rate limit resets, when GitHub reported it. */
+  rate_limit_reset: number | null;
+}
+
+export interface AgentPluginUpdateReport {
+  updates: AgentPluginUpdateSummary[];
+  check: AgentPluginUpdateCheck;
 }
 
 export interface AgentPluginMarketplaceSource {
@@ -936,4 +980,15 @@ export interface AppConfig {
   recent_workspaces?: RecentWorkspace[];
   remote_gateway: RemoteGatewayConfig;
   channels?: ChannelConfig;
+  /**
+   * Optional token sent with Agent Plugin release-metadata requests.
+   *
+   * Anonymous GitHub requests share a 60-per-hour quota counted against the
+   * machine's IP address, so a shared or proxied egress address can exhaust it
+   * through unrelated traffic; an authenticated request allows 5000 per hour.
+   * Like every other credential in this file it is local plaintext. Required
+   * rather than optional so a settings input can bind to it directly; the Rust
+   * side defaults a missing value to empty.
+   */
+  github_token: string;
 }

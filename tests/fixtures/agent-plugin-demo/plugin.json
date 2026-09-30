@@ -3,7 +3,6 @@
   "name": "openagent-demo-plugin",
   "version": "1.0.0",
   "description": "A deterministic fixture for Agent Plugin contract and sidebar checks.",
-  "repository": "https://github.com/example/openagent-demo-plugin",
   "extensions": {
     "openagent": {
       "capabilities": ["sidebar", "automation"],

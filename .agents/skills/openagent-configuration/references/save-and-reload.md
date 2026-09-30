@@ -131,7 +131,17 @@ context.
 
 Provider API keys and other credentials in `config.toml` are local plaintext.
 Protect the application-data directory with normal operating-system account
-permissions and do not commit it to source control.
+permissions and do not commit it to source control. `github_token` is one of
+them: it is an ordinary local credential, so it is stored and protected exactly
+like a provider key, and it is never written into the environment of a plugin
+child process.
+
+`<OPENAGENT_HOME>/plugin-update-cache.json` is a derived cache of upstream
+GitHub release metadata and is deliberately not a versioned compatibility
+boundary. Every value in it can be re-fetched, so an unreadable, corrupt, or
+unrecognized file is replaced silently instead of migrated or reported, and
+deleting it only costs one extra release check. It is never the source of truth
+for what a package contains or which version is installed.
 
 First-run onboarding completion is stored as `onboarding_completed` in
 `config.toml`, so it follows the selected `OPENAGENT_HOME` across desktop

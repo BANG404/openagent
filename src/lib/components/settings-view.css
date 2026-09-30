@@ -1135,6 +1135,10 @@
   margin-bottom: 12px;
 }
 
+.plugin-token-card {
+  margin-bottom: 14px;
+}
+
 .plugin-directory-heading {
   display: flex;
   align-items: center;

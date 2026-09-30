@@ -321,6 +321,22 @@ const en: Record<TranslationKeys, string> = {
   pluginUpdateCheckFailed:
     "Could not check for plugin updates. Check your connection and try again.",
   pluginUpdateCheckPartialFailure: "{count} plugin update check(s) did not complete.",
+  pluginUpdateRateLimited:
+    "The GitHub request quota is used up, so {count} plugin update check(s) could not complete. Anonymous requests allow only 60 per hour per IP address, shared with other programs; a token below raises that to 5000 per hour.",
+  pluginUpdateRateLimitedUntil: "The quota resets at {time}.",
+  pluginUpdateRateLimitedToken: "Adding a GitHub token below avoids this.",
+  pluginUpdateUnauthorized: "GitHub rejected the configured token (401 Unauthorized).",
+  pluginUpdateUnauthorizedToken: "Check that the GitHub token below is correct and unexpired.",
+  pluginUpdateNetworkFailed:
+    "GitHub could not be reached. The plugins themselves may be fine; check the connection and try again.",
+  pluginUpdateDescriptionPartial: "{count} more plugin update check(s) did not complete.",
+  pluginUpdateStaleHint:
+    "The update check failed; this is the last information fetched successfully.",
+  pluginUpdateFromCache: "(using the locally cached result)",
+  pluginGitHubToken: "GitHub token (optional)",
+  pluginGitHubTokenPlaceholder: "ghp_…",
+  pluginGitHubTokenHint:
+    "Used to read plugin update information. Without it, anonymous requests allow 60 per hour per IP address, shared with other programs; with it, 5000 per hour. The token is stored as plaintext in the local configuration file.",
   pluginLatestVersion: "Latest version: {version}",
   pluginComponents: "Components",
   pluginSkills: "Skills",

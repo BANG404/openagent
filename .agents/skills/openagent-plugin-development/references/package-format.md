@@ -52,7 +52,9 @@ description. `author` and `keywords` are validated the same way and carried to
 clients without a surface of their own. None of them is an authority: the
 Runtime never reads them to decide what a package contains or may do, and
 `repository` is the only descriptive field that drives behavior, because it is
-the subscription the verified release updater follows.
+the subscription the verified release updater follows. That subscription is
+polled through a cached, quota-aware check, not one request per plugin per
+load; `openagent-contract.md` owns that lifecycle.
 
 OpenAgent implements both portable component types:
 
@@ -172,7 +174,10 @@ Installed packages live at `<OPENAGENT_HOME>/plugins/<plugin-name>/`. Writable
 state lives separately at `<OPENAGENT_HOME>/plugin-data/<plugin-name>/` and is
 preserved when the plugin is uninstalled. This makes removal recoverable and
 allows a later installation of the same plugin name to reuse its state. Delete
-that data manually only when it is no longer needed.
+that data manually only when it is no longer needed. Latest-release metadata is
+remembered at `<OPENAGENT_HOME>/plugin-update-cache.json`, beside those
+directories rather than inside either one: it is a derived cache of upstream
+releases, so deleting it costs one extra check and never loses package state.
 
 Installation sources, registries, trust prompts, and sandbox policy are
 client-owned behavior rather than part of the portable format. This integration

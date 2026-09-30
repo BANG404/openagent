@@ -191,6 +191,7 @@
     type SettingsNav,
     type SettingsWindowKind,
   } from "$lib/settingsWindows";
+  import { coalesceAgentPluginUpdateCheck } from "$lib/agentPluginUpdateCheck";
   import type { AgentRolesChangedEvent } from "$lib/roleEditorWindow";
   import type {
     ChatMessage,
@@ -596,6 +597,7 @@
     book_mode_font_size: 17,
     workspace_open_mode: "ask",
     memory_retrieval_enabled: false,
+    github_token: "",
     remote_gateway: {
       enabled: false,
       allow_lan_access: false,
@@ -2231,18 +2233,31 @@
     return () => document.documentElement.classList.remove("native-window-material");
   });
 
+  /**
+   * One Agent Plugin update check, shared with the settings surface and the
+   * plugin-change listener. The check spends a GitHub quota shared with every
+   * other client behind this machine's address, so concurrent triggers must not
+   * each start a round.
+   */
+  function checkAgentPluginUpdates() {
+    return coalesceAgentPluginUpdateCheck(() =>
+      openAgent.invokeProduct("check_agent_plugin_updates", {}),
+    );
+  }
+
   onMount(() => {
     if (!tauriAvailable || isSettingsWindow || isDevInspectorWindow) return;
     let disposed = false;
+    let failed = false;
     const load = async (notifyUpdates = true): Promise<void> => {
       try {
         const plugins = await openAgent.invokeProduct("list_agent_plugins", {});
         if (disposed) return;
         agentPlugins = plugins;
-        const updates = await openAgent.invokeProduct("check_agent_plugin_updates", {});
+        const report = await checkAgentPluginUpdates();
         if (disposed) return;
         if (!notifyUpdates) return;
-        const available = updates.filter((update) => update.update_available);
+        const available = report.updates.filter((update) => update.update_available);
         if (available.length === 0) return;
         showToast({
           title: $t("pluginUpdateAvailable"),
@@ -2250,11 +2265,17 @@
           durationMs: 6000,
         });
       } catch (error) {
+        failed = true;
         if (!disposed) console.warn("Failed to load Agent Plugins:", error);
       }
     };
     void load();
-    const retry = window.setTimeout(() => void load(false), 2000);
+    // The Runtime may not be ready this early in startup, so a failed first
+    // attempt gets one more chance. Retrying an attempt that succeeded would
+    // spend quota on every launch for a result the first attempt already had.
+    const retry = window.setTimeout(() => {
+      if (failed) void load(false);
+    }, 2000);
     return () => {
       disposed = true;
       window.clearTimeout(retry);
@@ -2761,10 +2782,10 @@
         .invokeProduct("list_agent_plugins", {})
         .then((plugins) => {
           agentPlugins = plugins;
-          return openAgent.invokeProduct("check_agent_plugin_updates", {});
+          return checkAgentPluginUpdates();
         })
-        .then((updates) => {
-          const available = updates.filter((update) => update.update_available);
+        .then((report) => {
+          const available = report.updates.filter((update) => update.update_available);
           if (available.length === 0) return;
           showToast({
             title: $t("pluginUpdateAvailable"),
