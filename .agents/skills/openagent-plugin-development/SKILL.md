@@ -10,4 +10,4 @@ metadata:
 Read the package, OpenAgent contract, and third-party development references
 before plugin changes; keep trust and sandbox policy in the client.
 
-See the package and OpenAI rules in `references/`.
+See package, OpenAI, and Codex V2 rules in `references/`.
