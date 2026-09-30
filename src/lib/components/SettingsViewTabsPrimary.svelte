@@ -268,7 +268,6 @@
       <h3>{$t("plugins")}</h3>
     </header>
     <div class="plugin-directory-heading">
-      <span class="detail-section-title">{$t("plugins")}</span>
       <span class="plugin-directory-count">{view.agentPlugins.length}</span>
       <div class="plugin-directory-actions">
         <SettingsActionButton

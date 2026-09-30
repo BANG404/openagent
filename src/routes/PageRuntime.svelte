@@ -881,7 +881,10 @@
   // "no views, no panel" invariant true at every moment, including the flush
   // in which a scope switch restores the incoming scope's request.
   let checkpointFlowPanelCollapsed = $derived(
-    effectiveRightSidebarCollapsed(rightSidebarCollapseRequested, rightSidebarAvailable),
+    effectiveRightSidebarCollapsed(
+      conversationPanelCollapsed ? false : rightSidebarCollapseRequested,
+      rightSidebarAvailable,
+    ),
   );
 
   // Every right-sidebar view is scoped to the active conversation branch. The

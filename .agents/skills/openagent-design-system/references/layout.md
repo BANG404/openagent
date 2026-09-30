@@ -1,5 +1,11 @@
 ## Layout
 
+When the conversation pane is collapsed, an available right sidebar becomes
+the sole workspace surface and must occupy the full workspace width. The
+sidebar's saved collapse preference remains available when the conversation
+pane is restored; it must not leave the workspace empty while the conversation
+pane is hidden.
+
 ### Spacing System
 
 - **Base unit:** 8px. Sub-base values (2, 4, 5, 6, 7) are used for tight typographic adjustments; structural layout snaps to 8/12/16/20/24.

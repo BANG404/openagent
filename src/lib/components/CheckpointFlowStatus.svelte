@@ -589,7 +589,7 @@
     pointer-events: none;
   }
   .flow-panel.conversation-collapsed {
-    width: calc(100% - var(--workspace-card-gap));
+    width: 100%;
     max-width: none;
   }
   .flow-panel.collapsed.conversation-collapsed {
