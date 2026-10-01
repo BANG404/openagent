@@ -260,12 +260,20 @@ contributes no flows, and no flow's step may resolve outside the package root.
 A flow whose id repeats a command id on the same package is rejected in favor of
 the command.
 
+Runtime-bound product packages may declare the conventional flow whose name is
+`<builtin-id>:<builtin-id>`. The Runtime keeps that namespaced name routable for
+direct input, but omits it from the composer catalog because the builtin's short
+compatibility alias (for example `/goal` or `/graph`) already represents the
+same flow.
+
 The Runtime starts the step under the package's own process policy, so a flow
 needs an active workspace and gains only its own `PLUGIN_DATA` write access. The
 same confinement applies to the package's MCP servers, and both receive
 `PLUGIN_ROOT` and `PLUGIN_DATA` from the trusted loader, so a package keeps one
 state directory across its step and its tools. The Runtime writes one UTF-8 JSON
-object to the step's stdin and reads one back per iteration:
+object to the step's stdin and reads one back per iteration. JavaScript steps
+run as `node <step>`; on PowerShell the step path is an argument to `node`, not
+a second call-operator expression:
 
 ```json
 {
