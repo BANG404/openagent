@@ -294,10 +294,11 @@
   surface and must not appear here. The same exclusion applies to the MCP
   association column in the Agent Role editor.
 - The Plugins settings surface renders product capabilities and installed
-  packages from the Runtime Agent Plugin registry. Chat Groups, Goal Mode, and
-  Graph Mode retain their existing switches or slash commands; their
-  checkpoint message policies describe which tagged prompts are user-visible
-  and which are model-only. The Cua Driver entry still seeds an enabled stdio
+  packages from the Runtime Agent Plugin registry. Every package uses the same
+  enablement and command catalog projection; a package-owned slash command is
+  supplied by its descriptor rather than hardcoded in the frontend. Checkpoint
+  message policies describe which tagged prompts are user-visible and which are
+  model-only. The Cua Driver entry still seeds an enabled stdio
   MCP entry on first configuration load and exposes only switch controls: the
   plugin enable switch plus Cua connection testing and per-tool scope switches.
   Permission mode, socket, grants, and manifest are fixed product policy rather

@@ -88,12 +88,12 @@ The Runtime validates containment and reports the normalized descriptor; the
 host owns daemon supervision and may connect it through a normal `mcp.json`
 client entry.
 
-Product-owned standard packages may also declare
-`extensions.openagent.runtime` as `chat-groups`, `goal`, `graph`, or
-`cua-driver`. This binds the package to exactly one trusted product capability.
-The package repository is the default GitHub subscription source; verified
-release archives can overlay the matching builtin package while the Runtime
-continues to own durable state, permissions, and execution.
+Published standard packages may also declare `extensions.openagent.runtime` to
+identify one product integration. This is an identity and update binding, not
+a hidden implementation or permission grant. Verified release archives can
+overlay the matching package while the Runtime continues to enforce the same
+process policy, persistence, cancellation, and host bridge used for every
+plugin.
 
 `extensions.openagent.commands` is an optional array of portable slash
 commands. Each entry has an ID, display `label`, display `description`, an
@@ -138,12 +138,14 @@ on every platform, while a native or shell entry points at one.
 loops. Each entry has an ID, display `label`, display `description`, an
 `argument` mode (`none` or `required_text`), a package-relative executable
 `step`, an optional `timeout_secs` from 1 to 300, and an optional
-`max_iterations` from 1 to 100. The Runtime runs the loop and the package owns
-every decision inside it; see
+`max_iterations` from 1 to 100. The package owns the orchestration; a package
+may use the optional generic turn runner or call the host bridge directly. See
 `references/openagent-contract.md` for the stdin/stdout step contract. A flow's
 step receives the same `PLUGIN_ROOT` and `PLUGIN_DATA` as the package's stdio
 MCP servers, so a package keeps one state directory across its step and its
-tools.
+tools. When a flow ID equals the package name, the catalog also exposes the
+package name as a generic short alias and shows the entry once; this naming
+projection never selects a host implementation.
 
 Sidebar entries may include `icon` and a `capabilities` array. Capabilities are
 limited to `workspace`, `conversation`, `branch`, `files`, `locale`, and
@@ -276,9 +278,9 @@ package's own `PLUGIN_DATA` on first use, and the desktop host starts that
 launcher instead of a bundled executable. The host supplies the private endpoint,
 the lifetime pipe, `PLUGIN_DATA`, and the product-policy arguments; the package
 declares the program, its interpreter, and the `serve --embedded` it publishes.
-The reserved `cua-driver` MCP entry remains the client connection. Cua Driver,
-Chat Groups, Goal Mode, and Graph Mode all use the same trusted package overlay
-and verified GitHub release updater.
+The reserved `cua-driver` MCP entry remains the client connection. All published
+standard packages use the same package overlay and verified GitHub release
+updater.
 
 The Cua topology uses the same user authorization boundary as every plugin. The
 desktop host runs `<launcher> serve --embedded --permission-mode unrestricted

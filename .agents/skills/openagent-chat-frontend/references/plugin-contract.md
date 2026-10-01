@@ -27,3 +27,8 @@ Portable automation messages with `user_visible: true` arrive as user-role
 plugin records. `PluginMessage.svelte` is the common transcript renderer: it
 does not expose edit controls or user-message indexing and labels the source
 plugin from `plugin:<plugin-id>:<tag>` in `pluginTags`.
+
+Goal and Graph are package examples, not frontend-owned command implementations.
+The composer and transcript consume the generic plugin command, flow, event,
+and checkpoint projections so another package can provide the same surfaces
+without a new frontend branch.
