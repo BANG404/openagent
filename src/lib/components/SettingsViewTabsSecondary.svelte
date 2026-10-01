@@ -609,18 +609,25 @@
           {/if}
         {/if}
       </div>
-      <div class="key-input-row" style="margin-top:12px">
-        <button class="filter-toggle" onclick={view.saveHook}>
-          {view.editingHookId ? $t("saveHookChanges") : $t("createHook")}
-        </button>
-        {#if view.editingHookId}
-          <button class="model-action-btn" onclick={view.resetHookEditor}
-            >{$t("cancelEditHook")}</button
-          >
-        {/if}
+      <div class="key-input-row schedule-form-actions">
         {#if view.hookStatus}
-          <div class="provider-status success">{view.hookStatus}</div>
+          <div class="schedule-form-status">
+            <div class="provider-status success">{view.hookStatus}</div>
+          </div>
         {/if}
+        <div class="schedule-form-buttons">
+          <SettingsActionButton
+            label={view.editingHookId ? $t("saveHookChanges") : $t("createHook")}
+            icon={view.editingHookId ? "check" : "add"}
+            tone="primary"
+            onclick={view.saveHook}
+          />
+          {#if view.editingHookId}
+            <button class="model-action-btn" onclick={view.resetHookEditor}
+              >{$t("cancelEditHook")}</button
+            >
+          {/if}
+        </div>
       </div>
     </section>
 

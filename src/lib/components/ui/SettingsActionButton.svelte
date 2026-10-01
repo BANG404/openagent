@@ -105,7 +105,7 @@
 
   .settings-action.primary {
     border-color: transparent;
-    border-radius: 9999px;
+    border-radius: 8px;
     background: var(--primary);
     color: white;
     box-shadow: none;

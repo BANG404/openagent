@@ -1135,6 +1135,26 @@
   margin-bottom: 12px;
 }
 
+.schedule-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.schedule-form-status {
+  min-width: 0;
+}
+
+.schedule-form-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .plugin-token-card {
   margin-bottom: 14px;
 }
@@ -2221,5 +2241,16 @@
 
   .flash-task-inline-setting .detail-input {
     width: 100%;
+  }
+
+  .schedule-form-actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .schedule-form-buttons {
+    justify-content: flex-start;
+    margin-left: 0;
   }
 }
