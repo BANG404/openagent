@@ -3,6 +3,7 @@ import {
   agentPluginUpdateErrorKey,
   classifyAgentPluginUpdateCheck,
   coalesceAgentPluginUpdateCheck,
+  shouldNotifyAgentPluginUpdates,
 } from "../src/lib/agentPluginUpdateCheck";
 import { en } from "../src/lib/i18n.en";
 import { zh } from "../src/lib/i18n.zh";
@@ -291,5 +292,30 @@ describe("Agent Plugin update check coalescing", () => {
       report([summary({ id: "a" })]),
     );
     expect(recovered.updates).toHaveLength(1);
+  });
+});
+
+describe("Agent Plugin update notifications", () => {
+  test("announces one available release once", () => {
+    const updates = [summary({ id: "a", update_available: true, latest_version: "2.0.0" })];
+    expect(shouldNotifyAgentPluginUpdates(updates)).toBe(true);
+    expect(shouldNotifyAgentPluginUpdates(updates)).toBe(false);
+    // A current result clears the remembered announcement for a future check.
+    expect(shouldNotifyAgentPluginUpdates([summary({ id: "a" })])).toBe(false);
+    expect(shouldNotifyAgentPluginUpdates(updates)).toBe(true);
+  });
+
+  test("announces a newly discovered release version", () => {
+    shouldNotifyAgentPluginUpdates([summary({ id: "a" })]);
+    expect(
+      shouldNotifyAgentPluginUpdates([
+        summary({ id: "a", update_available: true, latest_version: "2.0.0" }),
+      ]),
+    ).toBe(true);
+    expect(
+      shouldNotifyAgentPluginUpdates([
+        summary({ id: "a", update_available: true, latest_version: "2.1.0" }),
+      ]),
+    ).toBe(true);
   });
 });

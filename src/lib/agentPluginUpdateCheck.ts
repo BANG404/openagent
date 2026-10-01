@@ -125,6 +125,31 @@ export function classifyAgentPluginUpdateCheck(
 }
 
 let inFlight: Promise<AgentPluginUpdateReport> | null = null;
+let lastNotifiedPluginUpdateKey: string | null = null;
+
+/**
+ * Prevent multiple UI triggers from announcing the same available release.
+ *
+ * Startup and lifecycle events can both consume one shared check result. The
+ * request is coalesced, but each caller still gets the result and could show
+ * the same toast. A versioned set keeps the announcement idempotent while
+ * still allowing a later release (or a newly discovered plugin) to notify.
+ */
+export function shouldNotifyAgentPluginUpdates(updates: AgentPluginUpdateSummary[]): boolean {
+  const available = updates
+    .filter((update) => update.update_available)
+    .map((update) => `${update.id}\u0000${update.latest_version ?? ""}`)
+    .sort();
+  if (available.length === 0) {
+    lastNotifiedPluginUpdateKey = null;
+    return false;
+  }
+
+  const key = available.join("\u0001");
+  if (key === lastNotifiedPluginUpdateKey) return false;
+  lastNotifiedPluginUpdateKey = key;
+  return true;
+}
 
 /**
  * Share one update check between every trigger that wants one.

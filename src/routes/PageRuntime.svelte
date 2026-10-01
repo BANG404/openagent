@@ -191,7 +191,10 @@
     type SettingsNav,
     type SettingsWindowKind,
   } from "$lib/settingsWindows";
-  import { coalesceAgentPluginUpdateCheck } from "$lib/agentPluginUpdateCheck";
+  import {
+    coalesceAgentPluginUpdateCheck,
+    shouldNotifyAgentPluginUpdates,
+  } from "$lib/agentPluginUpdateCheck";
   import type { AgentRolesChangedEvent } from "$lib/roleEditorWindow";
   import type {
     ChatMessage,
@@ -2258,7 +2261,7 @@
         if (disposed) return;
         if (!notifyUpdates) return;
         const available = report.updates.filter((update) => update.update_available);
-        if (available.length === 0) return;
+        if (!shouldNotifyAgentPluginUpdates(report.updates)) return;
         showToast({
           title: $t("pluginUpdateAvailable"),
           description: $t("pluginUpdateDescription").replace("{count}", String(available.length)),
@@ -2786,7 +2789,7 @@
         })
         .then((report) => {
           const available = report.updates.filter((update) => update.update_available);
-          if (available.length === 0) return;
+          if (!shouldNotifyAgentPluginUpdates(report.updates)) return;
           showToast({
             title: $t("pluginUpdateAvailable"),
             description: $t("pluginUpdateDescription").replace("{count}", String(available.length)),
