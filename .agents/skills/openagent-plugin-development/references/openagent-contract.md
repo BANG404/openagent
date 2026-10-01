@@ -156,8 +156,12 @@ fields form the stable bridge contract (all IDs are strings):
 - `agent.submit` and `agent.wake`: either the request fields at the top level
   or under `request`: `conv_id`, `text`, optional `parent_checkpoint_id`,
   `branch_id`, `attachments`, `contexts`, `model_binding`,
-  `user_message_id`, and `assistant_message_id`. `agent.wake` additionally
-  accepts `wait`; `false` schedules the turn and returns immediately.
+  `user_message_id`, and `assistant_message_id`. Both operations also accept
+  optional `hidden` and a package-owned `flow` projection with
+  `{ "kind": "plugin", "state": { ... } }`; the projection must identify the
+  authenticated package and is carried opaquely for display. `agent.wake`
+  additionally accepts `wait`; `false` schedules the turn and returns
+  immediately.
 - `roles.list`: optional `workspace`.
 - `event.emit`: `name` and optional JSON `payload`.
 
