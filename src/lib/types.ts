@@ -371,6 +371,8 @@ export interface CheckpointData {
 
 export interface PluginFlowUpdatedEvent {
   conv_id: string;
+  /** The branch whose package-owned projection changed. */
+  branch_id?: string | null;
   flow_id: string;
   status: string;
   flow?: {

@@ -74,12 +74,11 @@
   import type { SettingsNav } from "$lib/settingsWindows";
   import { approvalModeDescriptionKey, DEFAULT_APP_CONFIG } from "$lib/settingsDefaults";
   const view = getContext<Record<string, unknown>>("settings-view") as Record<string, any>;
-  // A card's shape follows the runtime binding the plugin declares rather than
-  // its id, so the same product capability renders the same way whichever
-  // package supplies it. The reserved MCP entry keeps its own id: that is the
-  // key its discovered tools and connection test live under, not a card.
-  const chatGroupsRuntime = "chat-groups";
-  const desktopControlRuntime = "cua-driver";
+  // These two ids retain product-specific settings controls for compatibility
+  // with the host-owned Chat Groups and Cua switches. They are package ids,
+  // not Runtime bindings or implementation selectors.
+  const chatGroupsPluginId = "chat-groups";
+  const desktopControlPluginId = "cua-driver";
 </script>
 
 <Tabs.Content value="general" class="settings-tab-panel">
@@ -393,18 +392,18 @@
             <Accordion.Trigger class="plugin-accordion-trigger">
               <span class="plugin-accordion-copy">
                 <span class="label-text"
-                  >{plugin.runtime === chatGroupsRuntime
+                  >{plugin.id === chatGroupsPluginId
                     ? $t("chatGroupPlugin")
                     : plugin.name}</span
                 >
                 <span class="detail-hint"
-                  >{plugin.runtime === chatGroupsRuntime
+                  >{plugin.id === chatGroupsPluginId
                     ? $t("chatGroupPluginDescription")
-                    : plugin.runtime === desktopControlRuntime
+                    : plugin.id === desktopControlPluginId
                       ? $t("pluginDesktopControlDescription")
                       : (plugin.description ?? plugin.id)}</span
                 >
-                {#if plugin.runtime === desktopControlRuntime}
+                {#if plugin.id === desktopControlPluginId}
                   <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
                 {/if}
                 {#if view.pluginRequestsHostAccess(plugin)}
@@ -416,7 +415,7 @@
                   >
                 {/if}
               </span>
-              {#if plugin.runtime === desktopControlRuntime}
+              {#if plugin.id === desktopControlPluginId}
                 <svg
                   class="plugin-accordion-chevron"
                   viewBox="0 0 16 16"
@@ -425,7 +424,7 @@
                 >
                   <path d="m4 6 4 4 4-4" />
                 </svg>
-              {:else if plugin.runtime !== chatGroupsRuntime}
+              {:else if plugin.id !== chatGroupsPluginId}
                 <span class="plugin-version">
                   {plugin.version ?? "-"}
                   {#if (view.agentPluginUpdates ?? []).find((item: AgentPluginUpdateSummary) => item.id === plugin.id)?.update_available}
@@ -434,7 +433,7 @@
                 </span>
               {/if}
             </Accordion.Trigger>
-            {#if plugin.runtime === chatGroupsRuntime}
+            {#if plugin.id === chatGroupsPluginId}
               <div class="plugin-accordion-actions">
                 <Switch
                   checked={view.draftConfig.chat_groups_enabled ?? true}
@@ -442,7 +441,7 @@
                   ariaLabel={$t("chatGroupPlugin")}
                 />
               </div>
-            {:else if plugin.runtime === desktopControlRuntime}
+            {:else if plugin.id === desktopControlPluginId}
               <div class="plugin-accordion-actions">
                 <Switch
                   checked={view.cuaDriver.enabled}
@@ -469,7 +468,7 @@
               </div>
             {/if}
           </Accordion.Header>
-          {#if plugin.runtime === desktopControlRuntime}
+          {#if plugin.id === desktopControlPluginId}
             <Accordion.Content class="plugin-accordion-content">
               <div class="plugin-tools-heading">
                 <div class="plugin-tools-title">
@@ -521,7 +520,7 @@
               {/if}
               <p class="plugin-warning">{$t("pluginUnrestrictedWarning")}</p>
             </Accordion.Content>
-          {:else if plugin.runtime !== chatGroupsRuntime}
+          {:else if plugin.id !== chatGroupsPluginId}
             <Accordion.Content class="plugin-accordion-content">
               <div class="plugin-tools-heading">
                 <div class="plugin-tools-title">

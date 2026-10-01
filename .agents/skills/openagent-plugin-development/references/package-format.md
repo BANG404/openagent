@@ -88,12 +88,10 @@ The Runtime validates containment and reports the normalized descriptor; the
 host owns daemon supervision and may connect it through a normal `mcp.json`
 client entry.
 
-Published standard packages may also declare `extensions.openagent.runtime` to
-identify one product integration. This is an identity and update binding, not
-a hidden implementation or permission grant. Verified release archives can
-overlay the matching package while the Runtime continues to enforce the same
-process policy, persistence, cancellation, and host bridge used for every
-plugin.
+Packages may optionally declare `extensions.openagent.runtime` as opaque update
+or migration provenance. The host never uses it to select an implementation,
+merge cards, or grant capabilities; package components always load through the
+same ordinary manifest path and process policy.
 
 `extensions.openagent.commands` is an optional array of portable slash
 commands. Each entry has an ID, display `label`, display `description`, an

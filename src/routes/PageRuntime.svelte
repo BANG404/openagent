@@ -344,6 +344,9 @@
   // Goal tools and Graph reducers mutate the canonical in-memory checkpoint
   // before that snapshot becomes durable. Render their complete event projection
   // until the matching persisted checkpoint has been reconciled.
+  // Live package projections are branch-owned. A conversation can have
+  // sibling runs in flight, so a conversation-only key would let an event
+  // from one branch replace the status shown for another branch.
   let liveCheckpointFlowProjections = $state<Record<string, LiveCheckpointFlowProjection>>({});
   // Tracks which conv_ids have had their messages loaded from SQLite
   const loadedConvIds = new Set<string>();
@@ -366,7 +369,10 @@
   // also serializes them, but keeping the queue here prevents intermediate
   // checkpoint events from rebuilding the visible transcript between clicks.
   const approvalResumeQueues = new Map<string, Promise<void>>();
-  const deferredApprovalCheckpointIds = new Map<string, string>();
+  const deferredApprovalCheckpointIds = new Map<
+    string,
+    { checkpointId: string; branchId: string | null }
+  >();
   // A live approval may be clicked before its run has emitted the terminal
   // interruption event. Resume only after that event has finalized the turn.
   const interruptTerminalHandoffs = new InterruptTerminalHandoff();
@@ -741,9 +747,16 @@
   let currentCheckpointFlowNode = $derived(
     activeConvId ? getActiveTipNode(convTrees[activeConvId]) : undefined,
   );
+  let currentCheckpointFlowScopeKey = $derived(
+    conversationBranchScopeKey(
+      activeConvId,
+      activeConvId ? (activeBranchIds[activeConvId] ?? null) : null,
+    ),
+  );
   let currentCheckpointFlow = $derived(
     activeConvId
-      ? (liveCheckpointFlowProjections[activeConvId]?.flow ?? currentCheckpointFlowNode?.flow)
+      ? (liveCheckpointFlowProjections[currentCheckpointFlowScopeKey]?.flow ??
+        currentCheckpointFlowNode?.flow)
       : undefined,
   );
   let chatGroupScopeState = $derived(chatGroupScope(messages, currentStreamItems));
@@ -988,15 +1001,23 @@
     }
   }
 
-  async function refreshLiveCheckpointTip(convId: string, checkpointId: string): Promise<void> {
+  async function refreshLiveCheckpointTip(
+    convId: string,
+    checkpointId: string,
+    branchIdHint?: string | null,
+  ): Promise<void> {
     if (!tauriAvailable) return;
     const version = (liveCheckpointRefreshVersions.get(convId) ?? 0) + 1;
-    const flowVersion = liveCheckpointFlowProjections[convId]?.version ?? 0;
     liveCheckpointRefreshVersions.set(convId, version);
     try {
       const checkpoints = await fetchRenderableCheckpoints(convId);
       if (liveCheckpointRefreshVersions.get(convId) !== version) return;
-      if (!checkpoints.some((checkpoint) => checkpoint.meta.checkpoint_id === checkpointId)) return;
+      const checkpoint = checkpoints.find((item) => item.meta.checkpoint_id === checkpointId);
+      if (!checkpoint) return;
+      const branchId =
+        branchIdHint === undefined ? (activeBranchIds[convId] ?? null) : branchIdHint;
+      const scopeKey = conversationBranchScopeKey(convId, branchId);
+      const flowVersion = liveCheckpointFlowProjections[scopeKey]?.version ?? 0;
       convTrees = {
         ...convTrees,
         [convId]: reconcileLiveCheckpointTip(checkpoints, convTrees[convId], checkpointId),
@@ -1007,8 +1028,8 @@
         fileChangesPerConv[convId] ?? [],
         new Set(liveChanges.map((change) => change.id)),
       );
-      if ((liveCheckpointFlowProjections[convId]?.version ?? 0) === flowVersion) {
-        const { [convId]: _durableFlow, ...rest } = liveCheckpointFlowProjections;
+      if ((liveCheckpointFlowProjections[scopeKey]?.version ?? 0) === flowVersion) {
+        const { [scopeKey]: _durableFlow, ...rest } = liveCheckpointFlowProjections;
         liveCheckpointFlowProjections = rest;
       }
     } catch (error) {
@@ -1019,20 +1040,27 @@
   }
 
   function applyLiveCheckpointFlow(convId: string, update: PluginFlowUpdatedEvent): void {
-    const current = liveCheckpointFlowProjections[convId];
+    const branchId = update.branch_id ?? null;
+    const scopeKey = conversationBranchScopeKey(convId, branchId);
+    const current = liveCheckpointFlowProjections[scopeKey];
     const next = updateLiveCheckpointFlowProjection(current, update);
     if (!next || next === current) return;
     const previous = current?.flow ?? getActiveTipNode(convTrees[convId])?.flow;
-    if (convId === activeConvId && shouldAutoOpenCheckpointFlowPanel(previous, next.flow)) {
+    const activeBranchId = activeBranchIds[convId] ?? null;
+    if (
+      convId === activeConvId &&
+      branchId === activeBranchId &&
+      shouldAutoOpenCheckpointFlowPanel(previous, next.flow)
+    ) {
       checkpointFlowPanelAutoOpenKey = checkpointFlowPanelKey(
         convId,
-        activeBranchIds[convId] ?? null,
+        branchId,
         next.flow,
       );
       rightSidebarPanel = "status";
       rightSidebarCollapseRequested = false;
     }
-    liveCheckpointFlowProjections = { ...liveCheckpointFlowProjections, [convId]: next };
+    liveCheckpointFlowProjections = { ...liveCheckpointFlowProjections, [scopeKey]: next };
   }
 
   async function hydrateConversation(
@@ -1525,9 +1553,11 @@
       .finally(() => {
         if (approvalResumeQueues.get(convId) !== queued) return;
         approvalResumeQueues.delete(convId);
-        const checkpointId = deferredApprovalCheckpointIds.get(convId);
+        const checkpoint = deferredApprovalCheckpointIds.get(convId);
         deferredApprovalCheckpointIds.delete(convId);
-        if (checkpointId) void refreshLiveCheckpointTip(convId, checkpointId);
+        if (checkpoint) {
+          void refreshLiveCheckpointTip(convId, checkpoint.checkpointId, checkpoint.branchId);
+        }
       })
       .catch(() => {});
   }
@@ -3335,15 +3365,19 @@
           [conv_id]: [...existing, change],
         };
       },
-      onCheckpoint: (conv_id, checkpoint_id) => {
+      onCheckpoint: (conv_id, checkpoint_id, branch_id) => {
         pendingCheckpointIds = { ...pendingCheckpointIds, [conv_id]: checkpoint_id };
         // During a batch approval, retain only the newest durable tip. Each
         // intermediate checkpoint is valid, but hydrating it would replace the
         // optimistic cards that are still waiting in the approval queue.
         if (!approvalResumeQueues.has(conv_id)) {
-          void refreshLiveCheckpointTip(conv_id, checkpoint_id);
+          void refreshLiveCheckpointTip(conv_id, checkpoint_id, branch_id);
         } else {
-          deferredApprovalCheckpointIds.set(conv_id, checkpoint_id);
+          deferredApprovalCheckpointIds.set(conv_id, {
+            checkpointId: checkpoint_id,
+            branchId:
+              branch_id === undefined ? (activeBranchIds[conv_id] ?? null) : branch_id,
+          });
         }
         const location = findConversationLocation(conv_id);
         const visibleMessages = location?.conversations[location.index].messages;

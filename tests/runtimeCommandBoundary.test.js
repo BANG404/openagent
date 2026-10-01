@@ -121,15 +121,17 @@ describe("desktop command boundary", () => {
     const protocol = readFileSync("sdk/rust/openagent-protocol/src/lib.rs", "utf8");
     const settings = readFileSync("src/lib/components/SettingsViewTabsPrimary.svelte", "utf8");
 
-    // Each product capability is named once, by the id catalog the whole
-    // descriptor reads, so a capability cannot be registered under a literal
-    // that no longer matches the identity the Runtime resolves.
+    // Product package ids remain one shared compatibility catalog, but domain
+    // packages must not be registered as Runtime implementations. Goal,
+    // Graph, Chat Groups, and Cua are ordinary installed packages; only the
+    // Runtime-owned multi-agent capability belongs in this registry.
     for (const capability of ["CHAT_GROUPS_ID", "GOAL_ID", "GRAPH_ID", "CUA_DRIVER_ID"]) {
       expect(plugins).toContain(`pub const ${capability}: &str = `);
-      expect(plugins).toContain(`id: ${capability},`);
+      expect(plugins).not.toContain(`id: ${capability},`);
     }
     expect(plugins).toContain("pub message_policies: Vec<AgentPluginMessagePolicy>");
-    expect(plugins).toContain("runtime: BuiltinPluginRuntime::Package");
+    expect(plugins).toContain("id: MULTI_AGENT_V2_ID,");
+    expect(plugins).toContain("runtime: BuiltinPluginRuntime::MultiAgentV2");
     expect(protocol).toContain("pub plugin_id: Option<String>");
     expect(settings).toContain("{#each view.agentPlugins as plugin (plugin.id)}");
     expect(settings).not.toContain('value="cua-driver" class="application-settings-surface');

@@ -194,7 +194,10 @@
   authority, not transient conversation badges. During streaming, project the
   complete package-owned `FlowState` carried by `plugin-flow-updated` after
   every plugin step or serialized Graph reducer update; keep that live overlay
-  until the matching persisted `chat-checkpoint` has been reconciled.
+  until the matching persisted `chat-checkpoint` has been reconciled. Index
+  that overlay by the conversation and its `branch_id`, and carry the same
+  branch ID on lifecycle checkpoint events, so a sibling branch's update
+  cannot replace or clear the selected branch's panel.
   Leave optimistic transcript records mounted throughout and ignore stale
   asynchronous refreshes so an older checkpoint cannot replace a newer live
   Goal or Graph state. When any Goal/Graph status or branch-scoped file change is
