@@ -1303,16 +1303,6 @@
       <CheckpointFlowStatus
         flow={checkpointFlowPreviewFlow}
         changes={checkpointFlowPreviewChanges}
-        pluginFlows={[
-          {
-            id: "plugin:goal:goal",
-            name: "goal:goal",
-            argument: "required_text",
-            label: "Goal",
-            description: "Work an objective to completion across turns.",
-            max_iterations: 50,
-          },
-        ]}
         width={panelWidth}
         collapsed={panelCollapsed}
         resizing={panelResizing}

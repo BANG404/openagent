@@ -128,24 +128,19 @@ non-empty prompt. The executable runs through the normal process boundary and
 must remain inside the installed package root.
 
 A declared path carries no interpreter field, so OpenAgent uses one extension
-rule for every entry point it runs — a portable command, a flow step, an
-automation hook, and a daemon command alike. A path ending in `.mjs` or `.js`
-runs under the session's `node`; anything else is run as the program itself.
-That is why the example above ships a `.cmd`: one JavaScript entry point works
-on every platform, while a native or shell entry points at one.
+rule for every entry point it runs — a portable command, an automation hook,
+and a daemon command alike. A path ending in `.mjs` or `.js` runs under the
+session's `node`; anything else is run as the program itself. That is why the
+example above ships a `.cmd`: one JavaScript entry point works on every
+platform, while a native or shell entry points at one.
 
-`extensions.openagent.flows` is an optional array of package-owned autonomous
-loops. Each entry has an ID, display `label`, display `description`, an
-`argument` mode (`none` or `required_text`), a package-relative executable
-`step`, an optional `timeout_secs` from 1 to 300, and an optional
-`max_iterations` from 1 to 100. The package owns the orchestration; a package
-may use the optional generic turn runner or call the host bridge directly. See
-`references/openagent-contract.md` for the stdin/stdout step contract. A flow's
-step receives the same `PLUGIN_ROOT` and `PLUGIN_DATA` as the package's stdio
-MCP servers, so a package keeps one state directory across its step and its
-tools. When a flow ID equals the package name, the catalog also exposes the
-package name as a generic short alias and shows the entry once; this naming
-projection never selects a host implementation.
+Commands are the only portable slash entry point. A package that needs a
+long-lived workflow declares an ordinary command and keeps its reducer,
+durable state, prompts, completion rule, recovery, and wake scheduling in its
+MCP server or daemon. It uses the common Host Bridge documented in
+`references/openagent-contract.md` for conversation, branch, Agent submit/wake,
+role, and event operations. The Runtime never registers a package flow,
+executes a package loop, or applies a package-specific iteration limit.
 
 Sidebar entries may include `icon` and a `capabilities` array. Capabilities are
 limited to `workspace`, `conversation`, `branch`, `files`, `locale`, and

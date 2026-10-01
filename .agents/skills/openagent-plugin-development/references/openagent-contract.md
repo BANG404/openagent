@@ -10,7 +10,7 @@ and unknown fields remain harmless to other hosts.
 
 The Runtime exposes a typed descriptor rather than raw manifest JSON. Its
 stable fields are `id`, `name`, `version`, `repository`, `path`, `capabilities`,
-`commands`, `flows`, `message_policies`, `skills`, `mcp_servers`,
+`commands`, `message_policies`, `skills`, `mcp_servers`,
 `automation_hooks`, `sidebar_views`, `enabled`, `warnings`, and `error`. Update
 results are returned by
 `check_updates`. IDs are the manifest name for portable packages; a published
@@ -18,8 +18,8 @@ integration may reserve the same name for lifecycle migration, but it still
 executes as an installed package. Child components use
 `plugin:<plugin-id>:<component-id>`.
 
-Runtime command descriptors carry an optional `plugin_id`; every command and
-flow contributed by an installed package is resolved through that owner. A
+Runtime command descriptors carry an optional `plugin_id`; every command
+contributed by an installed package is resolved through that owner. A
 package's `message_policies` lists checkpoint or lifecycle message tags it
 owns and declares whether each message is visible to the user and/or model.
 Portable packages use entries shaped like `{ "tag": "notice",
@@ -165,6 +165,13 @@ Successful calls return `{ "ok": true, "result": ... }`; validation or
 execution failures return `{ "ok": false, "error": "..." }`. The bridge
 never exposes provider payloads, Inspector data, or another plugin's token.
 
+Automation hooks receive the same authenticated bridge environment as MCP
+servers, plus `PLUGIN_ROOT` and `PLUGIN_DATA`. Hook stdin
+includes `conversation_id`, `run_id`, and `turn`, with optional `branch_id`,
+`parent_conv_id`, and `role_id` in its `event` object when the Runtime knows
+them. These are opaque routing IDs; hooks use the bridge for Agent operations
+and keep package state under `PLUGIN_DATA`.
+
 The loader accepts a valid manifest even when one optional component is bad.
 Manifest errors reject the package; a bad `skills/`, `mcp.json`, automation
 entry, or sidebar entry disables only that component and records a diagnostic.
@@ -183,7 +190,7 @@ trusted descriptors. Multi-Agent V2 is intentionally absent from this catalog:
 its six tools and child-conversation registry are owned directly by Runtime,
 and its dedicated `multi_agent_v2.enabled` setting is not a plugin lifecycle
 switch. Each package can receive a verified GitHub overlay, but its commands,
-flows, MCP tools, and state remain package-owned. Cua Driver's daemon is
+MCP tools, and state remain package-owned. Cua Driver's daemon is
 resolved from its installed package and supervised through the same host daemon
 boundary as any other plugin; real computer access is a generic per-plugin
 authorization.
@@ -279,115 +286,19 @@ When invoked, the Runtime starts the package-relative executable under the
 plugin process policy the package loader resolved for it, not the plain session
 profile Automation Hooks inherit, so the command needs an active workspace and
 gains only its own `PLUGIN_DATA` write access. It writes one UTF-8 JSON
-object to stdin containing `conversation_id`, `plugin_id`, `command`,
-`argument`, and the original `input`. The executable must return a non-empty
+object to stdin containing `conversation_id`, the selected `branch_id` (or
+`null` for a root turn), `plugin_id`, `command`, `argument`, and the original
+`input`. The executable must return a non-empty
 UTF-8 prompt on stdout. Non-zero exit status, timeout, empty stdout, or a path
 that resolves outside the installed plugin root fails the command without
 starting a model run. The command catalog exposes labels and descriptions but
 never package filesystem paths.
 
-### Flows
+### Package-owned orchestration
 
-A flow is a package-owned entry point. A package may perform its complete
-orchestration inside the process and call the host bridge directly; when it
-returns step prompts, the Runtime supplies only the generic turn dispatch,
-cancellation, iteration limit, and checkpoint continuation. The package owns
-every domain decision. Flows are
-declared in `plugin.json` under `extensions.openagent.flows`:
+A package that needs multi-turn work owns its complete state machine in its own process. It uses an ordinary plugin command to start a turn, its MCP tools or daemon to persist domain state, and the common host bridge to create conversations, create branches, submit or wake Agents, cancel descendants, list roles, and emit progress. The Runtime does not parse package state, run a package loop, apply an iteration limit, or register Goal, Graph, or Group implementations.
 
-```json
-{
-  "id": "work",
-  "label": "Work",
-  "description": "Run the package-owned workflow",
-  "argument": "required_text",
-  "step": "bin/work-step.mjs",
-  "timeout_secs": 60,
-  "max_iterations": 50
-}
-```
-
-The flow is exposed as `/plugin-id:work`. `argument` is `none` or
-`required_text`; `step` is a package-relative executable; `timeout_secs` is `1`
-through `300`; `max_iterations` is `1` through `100`; and `max_iterations`
-defaults to `100`. Validation matches portable commands: unknown fields and
-invalid entries are skipped with a diagnostic, a disabled or invalid package
-contributes no flows, and no flow's step may resolve outside the package root.
-A flow whose id repeats a command id on the same package is rejected in favor of
-the command.
-
-When a package declares a flow whose ID is the package ID, the command catalog
-offers the package ID as a generic short alias (for example, a package named
-`goal` with flow ID `goal` appears once as `/goal`). The namespaced flow remains
-routable internally as `plugin:<plugin-id>:<flow-id>`, and this rule applies to
-every package. It is only a naming projection; it does not select a Runtime
-implementation for the package.
-
-The Runtime starts the step under the package's own process policy, so a flow
-needs an active workspace and gains only its own `PLUGIN_DATA` write access. The
-same confinement applies to the package's MCP servers, and both receive
-`PLUGIN_ROOT` and `PLUGIN_DATA` from the trusted loader, so a package keeps one
-state directory across its step and its tools. The Runtime writes one UTF-8 JSON
-object to the step's stdin and reads one back per iteration. JavaScript steps
-run as `node <step>`; on PowerShell the step path is an argument to `node`, not
-a second call-operator expression:
-
-```json
-{
-  "conversation_id": "…",
-  "plugin_id": "goal",
-  "flow_id": "plugin:goal:goal",
-  "iteration": 1,
-  "argument": "ship the release",
-  "input": "/workflow:work ship the release",
-  "last_output": ""
-}
-```
-
-`iteration` counts from `1`, `last_output` is the previous turn's persisted
-assistant response (empty on the first iteration), and `conversation_id` may
-change if the Runtime moved the run to a continuation conversation. `flow_id` is
-the flow's namespaced catalog id, so the step receives its own identity rather
-than a bare manifest id; `plugin_id` is the installed package name. The step
-returns the prompt for the next turn, whether the flow is complete, and
-optionally the display projection of its own state:
-
-```json
-{
-  "prompt": "The goal is still active. Current state: …",
-  "done": false,
-  "state": {
-    "title": "Ship the release",
-    "status": "running",
-    "items": [
-      { "id": "1", "label": "Cut the tag", "status": "completed", "detail": "v1.2.0" }
-    ],
-    "summary": null
-  }
-}
-```
-
-The Runtime interprets none of this beyond `prompt` and `done`: the package owns
-its state schema, its status vocabulary, and its completion rule. The optional
-`state` object carries only what the package chooses to show. The Runtime stamps
-its own `plugin_id` and `flow_id` onto that projection, persists it in the
-conversation checkpoint, and emits it as a `plugin` kind on the flow event, so
-the UI renders it generically and cannot be made to attribute a flow to another
-package. The right-sidebar status panel shows the projection with no field of
-its own: the heading is the `label` the installed package declared for that
-namespaced flow, the subheading is the projection's `title`, the list is its
-`items`, and a status token the host has no translation for is shown verbatim. A step that returns an empty prompt, invalid JSON, a non-zero exit
-status, or times out fails the flow without starting another turn; the loop also
-stops when the turn is cancelled or interrupted, or when `max_iterations` is
-reached. Untrusted package output never reaches the transcript as a user
-message: only the Runtime's own continuation prompt is persisted as the hidden
-user record.
-
-`done` is the package's report on the state its previous turn left behind, so
-the Runtime ends the flow before spending a turn on a prompt that could only
-wind down. The first iteration always runs, because a flow must produce at least
-one turn; from the second iteration on, a step that reports `done` ends the flow
-instead of supplying its next prompt.
+The optional checkpoint projection and plugin-flow-updated event are opaque display data. The host validates only package identity and containment, then carries the projection through the generic checkpoint/event path. A package owns its schema, status vocabulary, reducer, recovery, scheduling, and completion rule.
 
 ### Right-sidebar views
 
@@ -483,7 +394,7 @@ graph reducer, tool implementation, or domain state. The package owns those
 parts under its `PLUGIN_DATA` directory and calls the generic conversation,
 branch, agent, role, and event operations when it needs host services. Older
 Goal/Graph checkpoints remain readable as opaque legacy payloads, while new
-flows are package projections. Existing user MCP, Skills, and
+package projections use the generic checkpoint shape. Existing user MCP, Skills, and
 `automation_hooks` settings are normalized without changing their persisted
 shapes.
 
@@ -494,7 +405,7 @@ from the package descriptor and are never duplicated in the Runtime tool
 registry, so a stale Runtime tool server cannot become a second domain owner.
 
 The command catalog shares that admission rule. A package contributes its own
-command or flow exactly once, and every consumer that rebuilds an advertised
+command exactly once, and every consumer that rebuilds an advertised
 catalog mid-run applies the same plugin switch, so a disabled capability cannot
 reappear in a later turn of an in-flight request.
 

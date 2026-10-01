@@ -4184,14 +4184,16 @@ const CUA_DRIVER_HOST_BUNDLE_ID: &str = "com.iumm.openagent";
 /// explicit two-part environment contract for unrestricted embedding and refuses
 /// contradictory values; repeating the same value is not a contradiction.
 ///
-/// `PLUGIN_DATA` is the package's own writable directory. The package ships a
-/// launcher rather than a driver, and a launcher that has to fetch the program it
-/// runs must not write into the immutable package it was loaded from.
+/// The package environment includes `PLUGIN_ROOT`, `PLUGIN_DATA`, and the
+/// authenticated Host Bridge variables. The package ships a launcher rather
+/// than a driver, and a launcher that has to fetch the program it runs must not
+/// write into the immutable package it was loaded from.
 #[cfg(feature = "embedded-runtime")]
 fn cua_driver_serve_environment(
     launch: &openagent_runtime::agent_plugins::AgentPluginDaemonLaunch,
-) -> Vec<(&'static str, String)> {
-    vec![
+) -> Vec<(String, String)> {
+    let mut environment = launch.environment.clone();
+    for (key, value) in [
         ("CUA_DRIVER_EMBEDDED", "1".to_string()),
         ("CUA_DRIVER_PERMISSION_MODE", "unrestricted".to_string()),
         ("CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS", "1".to_string()),
@@ -4201,7 +4203,11 @@ fn cua_driver_serve_environment(
             CUA_DRIVER_HOST_BUNDLE_ID.to_string(),
         ),
         ("PLUGIN_DATA", launch.data_root.clone()),
-    ]
+    ] {
+        environment.retain(|(existing, _)| existing != key);
+        environment.push((key.to_string(), value));
+    }
+    environment
 }
 
 /// How long the host waits for a freshly spawned daemon to accept connections.
@@ -4501,7 +4507,7 @@ fn cua_driver_launcher_process(
     let mut command = std::process::Command::new(&launch.command);
     command
         .args(args)
-        .env("PLUGIN_DATA", &launch.data_root)
+        .envs(launch.environment.iter().cloned())
         .current_dir(&launch.root);
     // The release host is a `windows`-subsystem process without a console, so a
     // console-subsystem child created without CREATE_NO_WINDOW allocates its own
@@ -4802,7 +4808,7 @@ async fn ensure_declared_plugin_daemon(
     let endpoint = (launch.transport == "socket")
         .then(|| std::path::PathBuf::from(&launch.data_root).join("daemon.sock"))
         .map(|path| path.to_string_lossy().into_owned());
-    let mut env = vec![("PLUGIN_DATA".to_string(), launch.data_root.clone())];
+    let mut env = launch.environment.clone();
     if let Some(endpoint) = &endpoint {
         env.push(("OPENAGENT_PLUGIN_ENDPOINT".to_string(), endpoint.clone()));
     }
@@ -5898,6 +5904,13 @@ mod tests {
             transport: "socket".to_string(),
             capabilities: vec!["desktop-control".to_string()],
             data_root: data_root.to_string(),
+            environment: vec![
+                (
+                    "PLUGIN_ROOT".to_string(),
+                    "/packages/cua-driver".to_string(),
+                ),
+                ("PLUGIN_DATA".to_string(), data_root.to_string()),
+            ],
             process_policy: PluginProcessPolicy::Unmanaged {
                 plugin_id: "cua-driver".to_string(),
                 reason: "the reserved desktop topology is fixed product policy",
@@ -5989,15 +6002,31 @@ mod tests {
         assert_eq!(
             cua_driver_serve_environment(&launch),
             vec![
-                ("CUA_DRIVER_EMBEDDED", "1".to_string()),
-                ("CUA_DRIVER_PERMISSION_MODE", "unrestricted".to_string()),
-                ("CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS", "1".to_string()),
-                ("CUA_DRIVER_PARENT_LIVENESS_STDIN", "1".to_string()),
                 (
-                    "CUA_DRIVER_HOST_BUNDLE_ID",
-                    CUA_DRIVER_HOST_BUNDLE_ID.to_string()
+                    "PLUGIN_ROOT".to_string(),
+                    "/packages/cua-driver".to_string()
                 ),
-                ("PLUGIN_DATA", "C:/plugin-data/cua-driver".to_string()),
+                ("CUA_DRIVER_EMBEDDED".to_string(), "1".to_string()),
+                (
+                    "CUA_DRIVER_PERMISSION_MODE".to_string(),
+                    "unrestricted".to_string(),
+                ),
+                (
+                    "CUA_DRIVER_DANGEROUSLY_BYPASS_APPROVALS".to_string(),
+                    "1".to_string(),
+                ),
+                (
+                    "CUA_DRIVER_PARENT_LIVENESS_STDIN".to_string(),
+                    "1".to_string(),
+                ),
+                (
+                    "CUA_DRIVER_HOST_BUNDLE_ID".to_string(),
+                    CUA_DRIVER_HOST_BUNDLE_ID.to_string(),
+                ),
+                (
+                    "PLUGIN_DATA".to_string(),
+                    "C:/plugin-data/cua-driver".to_string(),
+                ),
             ]
         );
     }

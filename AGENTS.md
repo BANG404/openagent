@@ -97,7 +97,7 @@ state under `~/.openagent`.
   reuse `src/lib/components/ui/`, with native selects, dialogs, and new checkbox/radio controls rejected by the shared component contract.
 
 Frontends submit ordinary chat and slash-command input through the shared SDK
-client; do not parse commands or select flows in a host. IPC changes update the
+client; do not parse plugin commands or select package implementations in a host. IPC changes update the
 SDK contract or adapter, public frontend types, and all callers together.
 Inspector and trace data may contain model context and must not appear in the
 normal product UI. Static agent-tool labels and accessibility text use `src/lib/i18n.ts`; frontend changes run the related contract checks.

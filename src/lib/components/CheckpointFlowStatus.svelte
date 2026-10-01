@@ -7,11 +7,7 @@
     type CheckpointFlowItem,
     type CheckpointGraphNodeStatus,
   } from "$lib/checkpointFlow";
-  import type {
-    AgentPluginFlowSummary,
-    AgentPluginSidebarViewSummary,
-    FileChange,
-  } from "$lib/types";
+  import type { AgentPluginSidebarViewSummary, FileChange } from "$lib/types";
   import type { BackgroundTerminalSession } from "$lib/openagent";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import {
@@ -51,8 +47,6 @@
     chatGroupWorkspace?: string;
     onChatGroupsAvailabilityChange?: (available: boolean) => void;
     pluginSidebarViews?: AgentPluginSidebarViewSummary[];
-    /** Installed package flows, so a package flow panel can name itself. */
-    pluginFlows?: AgentPluginFlowSummary[];
     /** Package identity of the visible plugins; a change reloads each panel. */
     pluginSidebarRevision?: string;
     pluginSidebarContext?: {
@@ -89,7 +83,6 @@
     chatGroupWorkspace = "",
     onChatGroupsAvailabilityChange = () => {},
     pluginSidebarViews = [],
-    pluginFlows = [],
     pluginSidebarRevision = "",
     pluginSidebarContext = {},
     conversationCollapsed = false,
@@ -124,11 +117,8 @@
   // Goal to-dos and package items are both flat progress entries; only Graph
   // keeps its own layered rendering.
   let flatItems = $derived(flatFlowItems(flow));
-  let pluginFlowLabels = $derived(
-    Object.fromEntries(pluginFlows.map((pluginFlow) => [pluginFlow.id, pluginFlow.label])),
-  );
-  // A built-in flow keeps its translated heading; a package flow names itself,
-  // because only the package knows what its own loop is called.
+  // The package projection carries its own title; the host does not need a
+  // declared Flow entry or a product-specific registry to render it.
   let heading = $derived(
     flow === null
       ? ""
@@ -136,7 +126,7 @@
         ? $t("checkpointGoal")
         : flow.kind === "graph"
           ? $t("checkpointGraph")
-          : (pluginFlowLabels[flow.flowId] ?? $t("checkpointPluginFlow")),
+          : $t("checkpointPluginFlow"),
   );
   let graphViewport: HTMLElement | null = $state(null);
   let graphCanvas: HTMLDivElement | null = $state(null);

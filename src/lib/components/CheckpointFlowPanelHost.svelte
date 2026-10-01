@@ -11,7 +11,7 @@
     CONVERSATION_PANEL_COLLAPSE_THRESHOLD,
   } from "$lib/checkpointFlowPanelSizing";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
-  import type { AgentPluginFlowSummary, AgentPluginSidebarViewSummary } from "$lib/types";
+  import type { AgentPluginSidebarViewSummary } from "$lib/types";
 
   let {
     flow,
@@ -31,7 +31,6 @@
     chatGroupWorkspace = "",
     onChatGroupsAvailabilityChange = () => {},
     pluginSidebarViews = [],
-    pluginFlows = [],
     pluginSidebarRevision = "",
     pluginSidebarContext = {},
     conversationPanelCollapsed = false,
@@ -54,7 +53,6 @@
     chatGroupWorkspace?: string;
     onChatGroupsAvailabilityChange?: (available: boolean) => void;
     pluginSidebarViews?: AgentPluginSidebarViewSummary[];
-    pluginFlows?: AgentPluginFlowSummary[];
     pluginSidebarRevision?: string;
     pluginSidebarContext?: {
       workspacePath?: string | null;
@@ -173,7 +171,6 @@
   {chatGroupWorkspace}
   {onChatGroupsAvailabilityChange}
   {pluginSidebarViews}
-  {pluginFlows}
   {pluginSidebarRevision}
   {pluginSidebarContext}
   conversationCollapsed={conversationPanelCollapsed}

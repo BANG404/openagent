@@ -313,8 +313,11 @@
       selectedLabel: item.model,
     })),
   );
-  const slashCommands = $derived.by<SlashCommand[]>(() =>
-    agentCommandSpecs.flatMap((spec) => {
+  const slashCommands = $derived.by<SlashCommand[]>(() => {
+    const seen = new Set<string>();
+    return agentCommandSpecs.flatMap((spec) => {
+      if (seen.has(spec.name)) return [];
+      seen.add(spec.name);
       const run = remoteSlashCommandRun(spec.name);
       const insertText = spec.plugin_id ? `/${spec.name}` : undefined;
       if (!run && !insertText) return [];
@@ -328,8 +331,8 @@
           run: run ?? undefined,
         },
       ];
-    }),
-  );
+    });
+  });
   const shikiTheme = $derived(isDarkTheme ? "github-dark" : "github-light");
   const mermaidConfig = $derived(mermaidConfigFor(isDarkTheme));
 
