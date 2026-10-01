@@ -107,6 +107,22 @@ executable inside the plugin root and invokes that file. Plugin commands and
 hooks are not expected to be shell fragments, so a plugin must not rely on shell
 expansion, pipes, or quoting tricks in `command`.
 
+### Host capability bridge
+
+Every enabled installed plugin receives the same authenticated loopback host
+bridge environment: `OPENAGENT_PLUGIN_HOST_URL`,
+`OPENAGENT_PLUGIN_HOST_TOKEN`, and `OPENAGENT_PLUGIN_ID`. The bridge is a
+capability module, not a builtin-specific adapter. Its stable operations are
+`conversation.create`, `conversation.state`, `conversation.cancel`,
+`agent.submit`, `agent.wake` (the explicit wake-up spelling of the same agent
+submission boundary), `roles.list`, and `event.emit`. The host authenticates
+the package identity with its launch token and applies the same operation
+policy to Goal, Graph, Chat Groups, and third-party packages; adding a plugin
+does not require a new Runtime `match` arm. Plugins own their state machines,
+selection rules, graph or group reducers, and wake scheduling in their own
+package process while the host owns persistence, permissions, cancellation, and
+the canonical agent submission path.
+
 The loader accepts a valid manifest even when one optional component is bad.
 Manifest errors reject the package; a bad `skills/`, `mcp.json`, automation
 entry, or sidebar entry disables only that component and records a diagnostic.
