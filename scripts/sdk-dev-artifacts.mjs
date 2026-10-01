@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url";
 
 const CLIENTS = {
   typescript: { name: "@bang404/openagent-sdk", file: "openagent-typescript-sdk.tar.gz" },
-  harness: { name: "@bang404/openagent-harness", file: "openagent-harness.tgz" },
 };
 
 async function describeFile(directory, file) {

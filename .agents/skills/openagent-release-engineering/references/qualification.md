@@ -7,7 +7,7 @@
   bypass after local preflight. Ordinary `master` pushes do not replace release
   qualification.
 - Release, nightly, and manual full qualification force every frontend,
-  automation, native, embedding, and Harness capability. Release candidate
+  automation, native, and embedding capability. Release candidate
   builds may run concurrently with qualification, but a failed qualification
   stops tagging and every publication side effect.
 - Private SDK manual CI supports fast path classification against the requested

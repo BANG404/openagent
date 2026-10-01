@@ -63,34 +63,32 @@ An update to the pinned private `sdk` gitlink is release-relevant. Its
 Conventional Commit subject therefore participates in the same bump rules as
 application source changes.
 
-The private SDK also has its own release train for headless and third-party
-consumers. An immutable `sdk-vX.Y.Z` release publishes the thin
-`@bang404/openagent-harness` package, platform `openagent-server` binaries, and
-`openagent-sdk-manifest.json` with the compatible protocol range, size, and
-SHA-256 for every target. SDK SemVer is calculated only from SDK Conventional
-Commits after the newest ancestor SDK tag. The release tag points directly to
-the immutable SDK commit; package versions are stamped only in release build
-worktrees, so publishing never creates a different source SHA. A commit with no
-release-worthy SDK change reuses its newest ancestor SDK release. That release
-does not require a desktop installer update. Desktop Runtime changes are also
-eligible for the signed Runtime component channel and do not require a Tauri
-installer when the native shell is unchanged.
+The private SDK also has its own release train for the supervised desktop
+Runtime. An immutable `sdk-vX.Y.Z` release publishes platform `openagent-server`
+binaries and `openagent-sdk-manifest.json` with the SDK protocol version, size,
+and SHA-256 for every target. SDK SemVer is calculated only from SDK
+Conventional Commits after the newest ancestor SDK tag. The release tag points
+directly to the immutable SDK commit; package versions are stamped only in
+release build worktrees, so publishing never creates a different source SHA. A
+commit with no release-worthy SDK change reuses its newest ancestor SDK release.
+That release does not require a desktop installer update. Desktop Runtime
+changes are also eligible for the signed Runtime component channel and do not
+require a Tauri installer when the native shell is unchanged.
 
 Host-triggered SDK publication is two-phase. The desktop workflow first stages
 the exact SDK tag and machine-readable manifest as a short-lived private SDK
-workflow artifact; this phase validates release metadata and the Harness package
-without publishing npm or a GitHub Release. After every selected desktop
-candidate has been attached to the desktop draft and the remaining publication
-gates pass, the host explicitly publishes that same immutable SDK tag and only
-then publishes the desktop draft. Independent SDK releases continue to publish
-directly.
+workflow artifact; this phase validates release metadata without publishing a
+GitHub Release. After every selected desktop candidate has been attached to the
+desktop draft and the remaining publication gates pass, the host explicitly
+publishes that same immutable SDK tag and only then publishes the desktop draft.
+Independent SDK releases continue to publish directly.
 
 Nightly and explicit full SDK qualification additionally maintain a public
 `runtime-dev` prerelease channel for external debugging. Publication happens
 only after the complete SDK result succeeds and only while the qualified commit
 is still the private SDK's current `main`. The channel contains four
 release-built server binaries, signed Runtime and development manifests, a
-behavior-free TypeScript SDK source snapshot, and the public Harness package.
+  behavior-free TypeScript SDK source snapshot.
 Both manifests identify the immutable SDK commit; consumers reject a channel
 whose SHA differs from the host's pinned SDK gitlink. Tag-triggered SDK
 qualification never overwrites this moving development channel. A qualifying

@@ -7,7 +7,6 @@ const nothing = {
   nativeQuality: false,
   nativePlatform: false,
   embedding: false,
-  harness: false,
 };
 
 describe("CI module classification", () => {
@@ -33,7 +32,6 @@ describe("CI module classification", () => {
       nativeQuality: true,
       nativePlatform: true,
       embedding: true,
-      harness: true,
     };
     expect(classifyChangedModules([".github/workflows/ci.yml"])).toEqual(all);
     expect(classifyChangedModules([".github/workflows/report-pr-head-ci.yml"])).toEqual(all);
@@ -62,7 +60,6 @@ describe("CI module classification", () => {
       nativeQuality: true,
       nativePlatform: true,
       embedding: true,
-      harness: true,
     });
   });
 
@@ -73,7 +70,6 @@ describe("CI module classification", () => {
       nativeQuality: true,
       nativePlatform: true,
       embedding: true,
-      harness: true,
     });
   });
 
@@ -84,11 +80,10 @@ describe("CI module classification", () => {
       nativeQuality: true,
       nativePlatform: true,
       embedding: true,
-      harness: true,
     });
   });
 
-  test("isolates embedding resource and harness contract checks", () => {
+  test("isolates embedding resource checks", () => {
     expect(
       classifyChangedModules(["src-tauri/resources/models/all-MiniLM-L6-v2-q/config.json"]),
     ).toEqual({
@@ -99,11 +94,6 @@ describe("CI module classification", () => {
       ...nothing,
       automation: true,
       embedding: true,
-    });
-    expect(classifyChangedModules(["scripts/test-harness-integration.mjs"])).toEqual({
-      ...nothing,
-      automation: true,
-      harness: true,
     });
   });
 
@@ -200,7 +190,6 @@ describe("CI module classification", () => {
       nativeQuality: false,
       nativePlatform: false,
       embedding: false,
-      harness: false,
     });
   });
 
@@ -231,7 +220,6 @@ describe("CI module classification", () => {
       nativeQuality: true,
       nativePlatform: true,
       embedding: true,
-      harness: true,
     });
   });
 });

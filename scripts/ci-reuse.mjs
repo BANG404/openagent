@@ -8,7 +8,6 @@ export const CI_CAPABILITIES = [
   "nativeQuality",
   "nativePlatform",
   "embedding",
-  "harness",
 ];
 
 /** @type {Record<string, {fast?: string; full?: string}>} */
@@ -26,10 +25,6 @@ export const VERIFIED_CI_CONTEXTS = {
   embedding: {
     fast: "Verified CI / embedding-fast",
     full: "Verified CI / embedding-full",
-  },
-  harness: {
-    fast: "Verified CI / harness-fast",
-    full: "Verified CI / harness-full",
   },
 };
 

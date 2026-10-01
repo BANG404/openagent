@@ -29,7 +29,6 @@ function successfulFastStatuses(runId = "123") {
     status("Verified CI / frontend-fast", runId),
     status("Verified CI / native-quality-fast", runId),
     status("Verified CI / embedding-fast", runId),
-    status("Verified CI / harness-fast", runId),
   ];
 }
 
@@ -61,17 +60,13 @@ describe("verified CI tree reuse", () => {
       nativeQuality: true,
       nativePlatform: true,
       embedding: true,
-      harness: true,
     };
-    expect(
-      selectCiModules(requested, { ...requested, frontend: false, harness: false }, false),
-    ).toEqual({
+    expect(selectCiModules(requested, { ...requested, frontend: false }, false)).toEqual({
       automation: false,
       frontend: true,
       nativeQuality: false,
       nativePlatform: false,
       embedding: false,
-      harness: true,
     });
   });
 
@@ -82,7 +77,6 @@ describe("verified CI tree reuse", () => {
       nativeQuality: false,
       nativePlatform: false,
       embedding: false,
-      harness: false,
     });
   });
 
@@ -110,7 +104,6 @@ describe("verified CI tree reuse", () => {
       nativeQuality: true,
       nativePlatform: false,
       embedding: true,
-      harness: true,
     });
   });
 

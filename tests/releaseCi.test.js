@@ -46,9 +46,6 @@ describe("release CI verification", () => {
     expect(frontendWorkflow).toContain("if: inputs.full\n        run: bun run check:bundle-size");
     expect(nativeWorkflow).toContain("if: inputs.full && inputs.platform");
     expect(nativeWorkflow).toContain("if: inputs.full && inputs.embedding");
-    expect(nativeWorkflow).toContain(
-      "if: inputs.full\n        run: bun run test:harness-integration",
-    );
   });
 
   test("keeps fast SDK validation separate from release qualification", () => {

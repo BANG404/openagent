@@ -41,8 +41,8 @@ manifest-signing command, rather than depending on environment-variable
 discovery or an interactive password prompt. Local integration tests use an
 ephemeral test keypair and never require the production private key.
 
-The Release workflow first runs all frontend, Rust, embedding, sandbox, and
-Harness qualification. Public SDK CI performs the authoritative Runtime
+The Release workflow first runs all frontend, Rust, embedding, and sandbox
+qualification. Public SDK CI performs the authoritative Runtime
 compilation for the exact immutable SDK release source on every supported
 target. SDK staging carries those binaries and their manifest into the desktop
 run; each platform matrix entry verifies the SDK SHA, target, size, and SHA-256,

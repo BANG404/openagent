@@ -14,10 +14,9 @@ the host.
   for compatibility inspection, confirmed persistence transitions, locale, and
   launch inputs. Private Rust dependencies are allowed only behind the explicit
   `embedded-runtime` diagnostic feature.
-- The supervised desktop server keeps the complete Harness `/v1` router
-  and adds the product `/api` router through `--desktop-api`. Both
-  surfaces must execute in that one server process; do not introduce an
-  embedded or parallel agent Runtime for desktop Harness behavior.
+- The supervised desktop server exposes the typed product `/api/desktop/*`
+  router through `--desktop-api`. The server remains the one Runtime process;
+  do not introduce an embedded or parallel agent Runtime in the desktop host.
 - Change IPC contracts atomically across the SDK contract or adapter,
   public frontend types, and every caller.
 - Route every Runtime-owned frontend operation through the shared SDK client.

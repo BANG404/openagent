@@ -44,7 +44,7 @@ describe("external Runtime transport boundary", () => {
     );
     const dispatch = router.slice(
       router.indexOf("async fn desktop_product_operation("),
-      router.indexOf("async fn harness_capabilities("),
+      router.indexOf("pub async fn get_remote_gateway_status("),
     );
     const implemented = new Set(
       [...dispatch.matchAll(/^\s+"([a-z_]+)"\s*=>/gm)].map((match) => match[1]),

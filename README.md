@@ -489,7 +489,6 @@ For Anthropic, set `OPENAGENT_TEST_PROVIDER=anthropic` and provide `OPENAGENT_TE
 - [Channel integration skill](.agents/skills/openagent-channel-integrations/SKILL.md) — platform setup, scoped commands, remote gateway, persistence, and security
 - [Release engineering skill](.agents/skills/openagent-release-engineering/SKILL.md) — versioning, beta/RC/stable channels, CI, and publishing
 - [Embedding resource skill](.agents/skills/openagent-embedding-resources/SKILL.md) — bundled model provenance, size, verification, and activation
-- [Harness SDK skill](.agents/skills/openagent-harness-sdk/SKILL.md) — headless third-party integration without publishing the core runtime
 - [Update delivery skill](.agents/skills/openagent-update-delivery/SKILL.md) — frontend HMR, independent Runtime binaries, reloads, and desktop boundaries
 - [Design-system skill](.agents/skills/openagent-design-system/SKILL.md) — visual language, components, responsiveness, and `DESIGN.md`
 - [Tauri docs](https://tauri.app/) · [SvelteKit docs](https://kit.svelte.dev/) · [rig (Rust LLM)](https://github.com/0xPlaygrounds/rig)

@@ -129,8 +129,8 @@ describe("desktop command boundary", () => {
       expect(plugins).toContain(`id: ${capability},`);
     }
     expect(plugins).toContain("pub message_policies: Vec<AgentPluginMessagePolicy>");
+    expect(plugins).toContain("runtime: BuiltinPluginRuntime::Package");
     expect(protocol).toContain("pub plugin_id: Option<String>");
-    expect(protocol).toContain('"goal" | "graph" => Some(name.to_string())');
     expect(settings).toContain("{#each view.agentPlugins as plugin (plugin.id)}");
     expect(settings).not.toContain('value="cua-driver" class="application-settings-surface');
   });

@@ -9,7 +9,6 @@
     { "skill": "openagent-configuration", "paths": ["config", "src/lib/settings"] },
     { "skill": "openagent-release-engineering", "paths": [".github/workflows/", "scripts/release"] },
     { "skill": "openagent-channel-integrations", "paths": ["src-tauri/src/channels"] },
-    { "skill": "openagent-harness-sdk", "paths": ["sdk/harness-typescript/"] },
     { "skill": "openagent-plugin-development", "paths": ["plugins/", "plugin.json", "mcp.json", ".agents/skills/openagent-plugin-development/", "src/lib/plugin", "src/lib/pluginRegistry", "src-tauri/src/plugin"] },
     { "skill": "openagent-update-delivery", "paths": ["scripts/update", "src-tauri/src/update"] },
     { "skill": "openagent-embedding-resources", "paths": ["src-tauri/resources/models/", "scripts/fetch-embedding-model.mjs"] },

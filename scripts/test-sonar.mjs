@@ -55,7 +55,7 @@ function testFilesUnder(directory) {
 rmSync(coverageRoot, { recursive: true, force: true });
 mkdirSync(coverageRoot, { recursive: true });
 
-for (const packagePath of ["sdk/typescript", "sdk/harness-typescript"]) {
+for (const packagePath of ["sdk/typescript"]) {
   run(process.execPath, ["install", "--frozen-lockfile"], resolve(repositoryRoot, packagePath));
 }
 
@@ -76,15 +76,6 @@ run(process.execPath, [
   "--coverage-dir",
   join(coverageRoot, "sdk-typescript"),
   "sdk/typescript/tests",
-]);
-
-run(process.execPath, [
-  "test",
-  "--coverage",
-  "--coverage-reporter=lcov",
-  "--coverage-dir",
-  join(coverageRoot, "sdk-harness-typescript"),
-  "sdk/harness-typescript/tests",
 ]);
 
 run("cargo", [

@@ -9,18 +9,16 @@ is never loaded as a replaceable dynamic library.
 | Surface                        | Development                                      | Published delivery                                                                          | Activation                                                |
 | ------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | Frontend                       | Vite HMR through `bun tauri dev`                 | Signed `frontend-beta`, `frontend-rc`, or `frontend-stable` resource                        | Confirmed WebView reload with rollback                    |
-| Desktop Runtime / headless SDK | Rebuild and restart `openagent-server`           | Signed Runtime channel or versioned SDK release binaries plus `openagent-sdk-manifest.json` | Supervised drain, restart, probe, reconnect, and rollback |
+| Desktop Runtime sidecar       | Rebuild and restart `openagent-server`           | Signed Runtime channel or versioned SDK release binaries plus `openagent-sdk-manifest.json` | Supervised drain, restart, probe, reconnect, and rollback |
 | Cua Driver                     | Installed Agent Plugin package                  | GitHub `openagent-cua-driver` release archive with published SHA-256 digest                | Activate through the normal plugin updater               |
-| Third-party client             | Local TypeScript source or published npm package | `@bang404/openagent-harness`                                                                | Normal package update                                     |
 | Desktop native shell           | Tauri rebuild/restart                            | Signed installer and Tauri updater                                                          | Application restart                                       |
 
 The standalone SDK release is independent from the desktop release. Updating a
-headless integration or development harness therefore does not require building
-or installing the OpenAgent desktop application. The public Harness package can
-download the target binary, verify its protocol range, byte length, and SHA-256,
-install it into a versioned directory, and explicitly reload the supervised
-process. If the replacement fails to start, the supervisor restarts the prior
-binary.
+Runtime sidecar therefore does not require rebuilding the native shell. The
+release workflow publishes the target binary, protocol metadata, byte length,
+and SHA-256 as one verified candidate; the desktop supervisor installs it into a
+versioned directory and explicitly reloads the process. If the replacement
+fails to start, the supervisor restarts the prior binary.
 
 When a release contains the frontend, Runtime, and native shell together, the
 desktop checks aggregate them into one update notification. Frontend and Runtime
@@ -150,10 +148,9 @@ proxied WebView requests to `/api`, and re-emits Runtime messages through the
 existing desktop event names. A lagged or disconnected stream stops delivery;
 the frontend restores a fresh durable startup snapshot before restarting it.
 Every supervised desktop launch explicitly enables this product surface with
-`--desktop-api`. The resulting server retains the complete Harness `/v1`
-surface and adds the desktop `/api` surface on the same process; an ordinary
-standalone Harness launch exposes only `/v1`, so a Bearer token cannot discover
-desktop-only `/api` routes.
+  `--desktop-api`. The resulting server exposes the typed desktop `/api/desktop/*`
+  surface on the same process; browser Cookie/CSRF sessions continue to use the
+  separate Remote Gateway surface.
 Runtime-generated media and HTML URLs are rewritten to the private
 `openagent-runtime` protocol. Rust adds authentication and permits only bounded
 GET/HEAD asset routes, including byte ranges for media; the Bearer token never
@@ -215,7 +212,7 @@ release advances `package.json` in lockstep with the shell.
 
 Treat application SemVer as an update identity, never as a compatibility
 contract. Each replaceable component declares protocol ranges for every live
-edge it consumes: Runtime manifests cover the shell/Runtime and Harness/Runtime
+  edge it consumes: Runtime manifests cover the shell/Runtime
 transport, while frontend manifest schema 2 names both `compatibility.shell`
 and `compatibility.runtime`. The shell accepts a candidate only when its own
 protocol values fall inside every declared range. A frontend-shell contract
@@ -224,18 +221,6 @@ signed frontend manifest generator must select `frontend`. A shared Runtime
 protocol change flows through the pinned SDK protocol owner and selects both
 `frontend` and `runtime`, with native-shell qualification enforcing that the
 public shell constant matches it.
-
-## Third-party development
-
-Third-party Node and Bun applications use `@bang404/openagent-harness/node`. They
-may provide a locally built binary, an explicitly managed binary path, or install
-one from an SDK release manifest. The server is loopback-only, uses a
-process-scoped Bearer token, and exposes the narrow `/v1` contract rather than
-desktop-only capabilities or private runtime records.
-
-Reload is intentionally explicit. The caller finishes or cancels active runs,
-installs the verified version, and calls `reload(newBinaryPath)`. Durable state
-under the caller-selected `OPENAGENT_HOME` survives; in-memory work does not.
 
 ## Development verification
 

@@ -89,15 +89,17 @@ export function buildPreflightCommands(modules) {
     add("frontend-tests", "Frontend and automation tests", "bun", ["run", "test"]);
   }
 
-  if (modules.nativeQuality) {
-    add("rust-format", "Rust formatting", "bun", ["run", "format:rust:check"]);
-    add("rust-lint", "Rust Clippy", "bun", ["run", "lint:rust"]);
-  }
   if (modules.nativeQuality || modules.nativePlatform) {
     add("frontend-dist", "Materialize frontendDist for Tauri macros", "node", [
       "-e",
       "require('fs').mkdirSync('build', { recursive: true })",
     ]);
+  }
+  if (modules.nativeQuality) {
+    add("rust-format", "Rust formatting", "bun", ["run", "format:rust:check"]);
+    add("rust-lint", "Rust Clippy", "bun", ["run", "lint:rust"]);
+  }
+  if (modules.nativeQuality || modules.nativePlatform) {
     add("rust-check", "Host-platform Rust compile check", "cargo", [
       "check",
       "--manifest-path",
@@ -107,10 +109,6 @@ export function buildPreflightCommands(modules) {
   if (modules.embedding) {
     add("embedding", "Bundled embedding resources", "bun", ["run", "check:embedding-model"]);
   }
-  if (modules.harness) {
-    add("harness-openapi", "Harness OpenAPI contract", "bun", ["run", "check:harness-openapi"]);
-  }
-
   return commands;
 }
 

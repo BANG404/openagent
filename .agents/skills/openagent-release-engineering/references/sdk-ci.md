@@ -1,7 +1,7 @@
 SDK release candidates are fully qualified by the public workflow before the
 private repository creates their immutable `sdk-v*` tags. SDK release tags,
 nightly schedules, and manual full dispatches use the public
-`sdk-ci.yml` workflow so Rust, Harness, host-compatibility, and native
+`sdk-ci.yml` workflow so Rust, Runtime, host-compatibility, and native
 process-sandbox jobs remain publicly observable while trusted Linux, Windows,
 and macOS work executes on standard GitHub-hosted runners. Full runs build the
 four release Runtime targets once on that hosted platform matrix. Runtime
@@ -47,11 +47,10 @@ GitHub target caching. Release and development Runtime jobs may upload only
 their documented short-lived distribution artifacts. Hosted workflows do not
 configure a compiler cache.
 
-Windows Harness Rust compilation runs under PowerShell so the MSVC linker takes
+Windows Runtime Rust compilation runs under PowerShell so the MSVC linker takes
 precedence over Portable Git's unrelated `link.exe`; later Bun package steps
-may continue under Bash. Harness package-content verification uses
-`bun pm pack --dry-run`, keeping package verification on Bun. Runner job
-cleanup owns the resulting process lifetime. Windows sandbox helper discovery
+may continue under Bash. Runner job cleanup owns the resulting process lifetime.
+Windows sandbox helper discovery
 retries Cargo metadata resolution and reports metadata failures separately from
 a genuinely missing pinned helper package, so a transient proxy or registry
 failure cannot be misclassified as dependency drift.
@@ -89,12 +88,12 @@ instead of silently producing a token that cannot deliver private diagnostics.
 The private dispatcher forces every capability for release, nightly, and manual
 runs with `full` selected. Manual runs can clear `full` to classify the requested
 SDK commit against its first parent and dispatch only the affected Rust packages,
-platform sandboxes, clients, Harness, and host compatibility. The input remains
+  platform sandboxes, the TypeScript client, and host compatibility. The input remains
 enabled by default so older release callers that omit it still receive full qualification.
 Fast and full results use separate SDK commit-status contexts so a later fast run
 cannot replace the release qualification status. Rust formatting, lint, tests,
 Linux/macOS sandbox checks, TypeScript SDK
-checks, the Linux/Windows Harness matrix, and public-host compatibility remain
+  checks, the TypeScript client checks, and public-host compatibility remain
 independent jobs. Public-host compatibility materializes the configured empty
 `frontendDist` and a target-named placeholder for every configured Tauri
 `externalBin` before native compilation; qualification never substitutes that

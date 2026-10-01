@@ -58,10 +58,9 @@
   missing or duplicated; component-only releases must say installers are
   unchanged. Keep signatures, updater metadata, and component resources out of
   the user-facing download table.
-  Publish only `@bang404/openagent-harness` to npm; keep the product TypeScript
-  client private and distribute it only as pinned source or a checksummed
-  development snapshot. The release-qualified server remains the executable
-  agent implementation paired with the Harness package.
+  Keep the product TypeScript client private and distribute it only as pinned
+  source or a checksummed development snapshot. The release-qualified server is
+  the executable Runtime sidecar used by the desktop host.
   Publish an exact desktop-to-SDK mapping manifest with the desktop release.
   additionally package the exact pinned server as an `externalBin` fallback and
   publish only those release-qualified binaries through a fixed runtime channel
@@ -75,8 +74,8 @@
 - Trusted nightly and explicit full SDK qualification may refresh the public
   `runtime-dev` channel after the exact private `main` commit passes. That
   channel may contain only signed Runtime manifests, release-built server
-  binaries, the behavior-free TypeScript SDK snapshot, and the public Harness
-  package. Fork pull requests may consume the exact checksummed TypeScript
+  binaries, and the behavior-free TypeScript SDK snapshot. Fork pull requests
+  may consume the exact checksummed TypeScript
   snapshot for frontend checks; never expose private Rust sources, credentials,
   caches, diagnostics, or an artifact for a different gitlink SHA.
 - Publish the platform-independent frontend archive, bounded manifest, and

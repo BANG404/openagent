@@ -28,7 +28,7 @@ an implementation call count.
   `tauri-pilot` black-box scenario. Add a scenario and `test:blackbox:chat`
   runner when the changed chat workflow has no coverage yet. A browser preview
   smoke test can supplement this when the state is reproducible there.
-- SDK, Tauri, and Harness boundaries belong in their contract or integration
+- SDK and Tauri boundaries belong in their contract or integration
   suites.
 
 Cover the same contract at more than one layer only when the layers prove

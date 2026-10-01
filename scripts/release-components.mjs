@@ -70,7 +70,6 @@ function classifySdkPath(file, components) {
     return;
   }
   if (
-    file.startsWith("harness-typescript/") ||
     file.startsWith("rust/openagent-benchmark/") ||
     file.startsWith("docs/") ||
     file.startsWith(".agents/") ||

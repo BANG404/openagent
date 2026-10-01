@@ -14,14 +14,14 @@ two verification routes:
   selected by the exact base-to-head path delta. Frontend checks stop after
   type, lint, format, and tests; native checks run host Rust quality and quick
   resource or contract validation without Windows/macOS matrices, embedding
-  runtime execution, or Harness server integration.
+  runtime execution, or desktop Runtime integration.
 - Administrator-authored PRs perform only a repository-permission check, then
   publish the successful aggregate without module checks or review. Ordinary
   pushes to `master` do not trigger CI.
 - Release workflow calls, nightly schedules, and manual dispatches force every
   module through complete qualification: frontend production build and bundle
   budgets, Windows/macOS native compilation, embedding runtime tests, and
-  Harness integration. Full runs never consume prior fast coverage. Frontend
+  desktop Runtime integration. Full runs never consume prior fast coverage. Frontend
   bundle budgets resolve both direct Vite manifest entries and source modules
   emitted through a manifest entry's dynamic imports, so code splitting does
   not fail a valid budget target before size measurement. The settings view

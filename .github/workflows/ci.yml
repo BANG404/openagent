@@ -42,7 +42,6 @@ jobs:
       native_quality: ${{ steps.selection.outputs.nativeQuality }}
       native_platform: ${{ steps.selection.outputs.nativePlatform }}
       embedding: ${{ steps.selection.outputs.embedding }}
-      harness: ${{ steps.selection.outputs.harness }}
       full: ${{ steps.tier.outputs.full }}
       reused: ${{ steps.selection.outputs.reused }}
       reuse_source_sha: ${{ steps.reuse.outputs.sourceSha }}
@@ -140,13 +139,11 @@ jobs:
           CI_REQUEST_NATIVE_QUALITY: ${{ steps.modules.outputs.nativeQuality }}
           CI_REQUEST_NATIVE_PLATFORM: ${{ steps.modules.outputs.nativePlatform }}
           CI_REQUEST_EMBEDDING: ${{ steps.modules.outputs.embedding }}
-          CI_REQUEST_HARNESS: ${{ steps.modules.outputs.harness }}
           CI_REUSE_AUTOMATION: ${{ steps.reuse.outputs.automation }}
           CI_REUSE_FRONTEND: ${{ steps.reuse.outputs.frontend }}
           CI_REUSE_NATIVE_QUALITY: ${{ steps.reuse.outputs.nativeQuality }}
           CI_REUSE_NATIVE_PLATFORM: ${{ steps.reuse.outputs.nativePlatform }}
           CI_REUSE_EMBEDDING: ${{ steps.reuse.outputs.embedding }}
-          CI_REUSE_HARNESS: ${{ steps.reuse.outputs.harness }}
         run: node scripts/ci-reuse.mjs select
 
       - name: Summarize reused verification
@@ -202,8 +199,7 @@ jobs:
     if: >-
       (needs.changes.outputs.native_quality == 'true'
       || needs.changes.outputs.native_platform == 'true'
-      || needs.changes.outputs.embedding == 'true'
-      || needs.changes.outputs.harness == 'true')
+      || needs.changes.outputs.embedding == 'true')
       && (github.event_name != 'pull_request'
       || github.event.pull_request.head.repo.full_name == github.repository)
     uses: ./.github/workflows/check-native.yml
@@ -212,7 +208,6 @@ jobs:
       quality: ${{ needs.changes.outputs.native_quality == 'true' }}
       platform: ${{ needs.changes.outputs.native_platform == 'true' }}
       embedding: ${{ needs.changes.outputs.embedding == 'true' }}
-      harness: ${{ needs.changes.outputs.harness == 'true' }}
     permissions:
       contents: read
     secrets:
@@ -236,8 +231,7 @@ jobs:
       NATIVE_SELECTED: >-
         ${{ needs.changes.outputs.native_quality == 'true'
         || needs.changes.outputs.native_platform == 'true'
-        || needs.changes.outputs.embedding == 'true'
-        || needs.changes.outputs.harness == 'true' }}
+        || needs.changes.outputs.embedding == 'true' }}
       NATIVE_RESULT: ${{ needs.native.result }}
     steps:
       - uses: actions/checkout@v7

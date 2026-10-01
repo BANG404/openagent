@@ -47,7 +47,6 @@ export function classifyChangedModules(files, forceAll = false) {
       nativeQuality: false,
       nativePlatform: false,
       embedding: false,
-      harness: false,
     };
   }
 
@@ -150,14 +149,7 @@ export function classifyChangedModules(files, forceAll = false) {
     normalized.includes("scripts/fetch-embedding-model.mjs") ||
     normalized.some((file) => file.startsWith("src-tauri/resources/models/"));
 
-  const harness =
-    all ||
-    nativeWorkflowChanged ||
-    sharedDependenciesChanged ||
-    sdkChanged ||
-    normalized.includes("scripts/test-harness-integration.mjs");
-
-  return { automation, frontend, nativeQuality, nativePlatform, embedding, harness };
+  return { automation, frontend, nativeQuality, nativePlatform, embedding };
 }
 
 /**

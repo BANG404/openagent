@@ -23,11 +23,6 @@ on:
         required: false
         default: false
         type: boolean
-      harness:
-        description: Verify the Harness OpenAPI and server integration contract
-        required: false
-        default: false
-        type: boolean
     secrets:
       OPENAGENT_CI_REPORTER_PRIVATE_KEY:
         required: true
@@ -381,57 +376,6 @@ jobs:
             sleep "$delay"
           done
 
-  harness:
-    name: Harness contract
-    if: inputs.harness
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Resolve pinned SDK revision
-        id: sdk
-        shell: bash
-        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
-
-      - name: Create private SDK read token
-        id: sdk-read-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
-          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
-          owner: BANG404
-          repositories: openagent-sdk
-          permission-contents: read
-
-      - name: Check out private SDK
-        uses: actions/checkout@v7
-        with:
-          repository: BANG404/openagent-sdk
-          ref: ${{ steps.sdk.outputs.sha }}
-          path: sdk
-          token: ${{ steps.sdk-read-token.outputs.token }}
-          persist-credentials: false
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.2.21
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ./sdk -> target
-          shared-key: harness
-          cache-targets: false
-
-      - name: Verify harness OpenAPI contract
-        run: bun run check:harness-openapi
-
-      - name: Exercise the harness server contract
-        if: inputs.full
-        run: bun run test:harness-integration
-
   required:
     name: Required native capabilities
     if: always()
@@ -440,11 +384,10 @@ jobs:
       - platform
       - embedding-resources
       - embedding-platform
-      - harness
     runs-on: ubuntu-24.04
     env:
       CHANGES_RESULT: success
-      CI_RESULT_MODULES: quality,platform,embedding-resources,embedding-platform,harness
+      CI_RESULT_MODULES: quality,platform,embedding-resources,embedding-platform
       QUALITY_SELECTED: ${{ inputs.quality }}
       QUALITY_RESULT: ${{ needs.quality.result }}
       PLATFORM_SELECTED: ${{ inputs.full && inputs.platform }}
@@ -453,8 +396,6 @@ jobs:
       EMBEDDING_RESOURCES_RESULT: ${{ needs.embedding-resources.result }}
       EMBEDDING_PLATFORM_SELECTED: ${{ inputs.full && inputs.embedding }}
       EMBEDDING_PLATFORM_RESULT: ${{ needs.embedding-platform.result }}
-      HARNESS_SELECTED: ${{ inputs.harness }}
-      HARNESS_RESULT: ${{ needs.harness.result }}
     steps:
       - uses: actions/checkout@v7
 

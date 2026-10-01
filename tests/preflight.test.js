@@ -8,7 +8,6 @@ const nothing = {
   nativeQuality: false,
   nativePlatform: false,
   embedding: false,
-  harness: false,
 };
 
 function commandIds(modules) {
@@ -49,9 +48,9 @@ describe("local preflight plan", () => {
 
   test("uses host compile checks while leaving cross-platform coverage to CI", () => {
     expect(commandIds({ nativeQuality: true, nativePlatform: true })).toEqual([
+      "frontend-dist",
       "rust-format",
       "rust-lint",
-      "frontend-dist",
       "rust-check",
     ]);
     const rustCheck = buildPreflightCommands({
@@ -62,21 +61,21 @@ describe("local preflight plan", () => {
     expect(rustCheck?.args).toEqual(["check", "--manifest-path", "src-tauri/Cargo.toml"]);
   });
 
-  test("materializes Tauri frontendDist before the host compile check", () => {
-    const modules = { ...nothing, nativePlatform: true };
+  test("materializes Tauri frontendDist before Rust compilation and Clippy", () => {
+    const modules = { ...nothing, nativeQuality: true, nativePlatform: true };
     const frontendDist = buildPreflightCommands(modules).find(({ id }) => id === "frontend-dist");
     expect(frontendDist).toMatchObject({
       command: "node",
       args: ["-e", "require('fs').mkdirSync('build', { recursive: true })"],
     });
     const ids = commandIds(modules);
+    expect(ids.indexOf("frontend-dist")).toBeLessThan(ids.indexOf("rust-lint"));
     expect(ids.indexOf("frontend-dist")).toBeLessThan(ids.indexOf("rust-check"));
+    expect(commandIds({ nativeQuality: true })[0]).toBe("frontend-dist");
+    expect(commandIds({ nativePlatform: true })[0]).toBe("frontend-dist");
   });
 
   test("uses the quick resource and contract validators", () => {
-    expect(commandIds({ embedding: true, harness: true })).toEqual([
-      "embedding",
-      "harness-openapi",
-    ]);
+    expect(commandIds({ embedding: true })).toEqual(["embedding"]);
   });
 });

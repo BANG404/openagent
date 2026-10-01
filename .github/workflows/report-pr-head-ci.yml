@@ -168,13 +168,6 @@ jobs:
               contexts+=("Verified CI / embedding-full")
             fi
           fi
-          if job_succeeded "Native desktop / Harness contract"; then
-            contexts+=("Verified CI / harness-fast")
-            if step_succeeded "Native desktop / Harness contract" "Exercise the harness server contract"; then
-              contexts+=("Verified CI / harness-full")
-            fi
-          fi
-
           for context in "${contexts[@]}"; do
             gh api \
               --method POST \
