@@ -202,9 +202,10 @@
   placeholders fill the bottom 38px row, and its send placeholder is the same
   bottom-right 30px rounded square outside the bordered card, so the surface
   cannot resize when the composer mounts.
-- Selecting `/goal` or `/graph` replaces only the active slash trigger with the
-  complete command token. Preserve any draft text after the caret as the command
-  argument instead of clearing the composer.
+- Selecting a package-owned command replaces only the active slash trigger with
+  the complete command token. Preserve any draft text after the caret as the
+  command argument instead of clearing the composer; the frontend must not
+  special-case a plugin name.
 - Populate the slash-command palette from the shared Runtime command catalog on
   both desktop and remote hosts. Builtin commands use localized label and
   description keys; portable plugin commands use their literal `label` and

@@ -5383,9 +5383,6 @@
         return () => {
           void compactCurrentConversation();
         };
-      case "goal":
-      case "graph":
-        return null;
       case "settings":
         return () => openManagementSurface("general", "general");
       default:
@@ -5409,10 +5406,7 @@
   let slashCommands = $derived.by<SlashCommand[]>(() =>
     agentCommandSpecs.flatMap((spec) => {
       const run = slashCommandRun(spec.name);
-      const insertText =
-        spec.name === "goal" || spec.name === "graph" || spec.plugin_id
-          ? `/${spec.name}`
-          : undefined;
+      const insertText = spec.plugin_id ? `/${spec.name}` : undefined;
       if (!run && !insertText) return [];
       return [
         {

@@ -13,50 +13,49 @@ stable fields are `id`, `name`, `version`, `repository`, `path`, `capabilities`,
 `commands`, `flows`, `message_policies`, `skills`, `mcp_servers`,
 `automation_hooks`, `sidebar_views`, `enabled`, `warnings`, and `error`. Update
 results are returned by
-`check_updates`. IDs are the manifest name for portable packages and the
-reserved builtin ID for product capabilities; child components use
+`check_updates`. IDs are the manifest name for portable packages; a published
+integration may reserve the same name for lifecycle migration, but it still
+executes as an installed package. Child components use
 `plugin:<plugin-id>:<component-id>`.
 
-Runtime command descriptors carry an optional `plugin_id`; `/goal` and
-`/graph` point to their matching builtin descriptor. `message_policies` lists
-checkpoint or lifecycle message tags owned by the plugin and declares whether
-each message is visible to the user and/or model. Portable packages use entries
-shaped like `{ "tag": "notice", "user_visible": true, "model_visible": false }`.
-The loader namespaces portable tags as `plugin:<plugin-id>:<tag>`, rejects
-unknown fields and policies with no audience, and exposes the normalized policy
-through the plugin descriptor. Only the Runtime can persist a checkpoint or
-apply a policy, so a package cannot forge a builtin tag or bypass audience
+Runtime command descriptors carry an optional `plugin_id`; every command and
+flow contributed by an installed package is resolved through that owner. A
+package's `message_policies` lists checkpoint or lifecycle message tags it
+owns and declares whether each message is visible to the user and/or model.
+Portable packages use entries shaped like `{ "tag": "notice",
+"user_visible": true, "model_visible": false }`. The loader namespaces
+portable tags as `plugin:<plugin-id>:<tag>`, rejects unknown fields and
+policies with no audience, and exposes the normalized policy through the
+plugin descriptor. Only the Runtime can persist a checkpoint or apply a
+policy, so a package cannot forge another package's tag or bypass audience
 projection.
 
-`extensions.openagent.runtime` optionally binds a standard package to one
-trusted product capability: `chat-groups`, `goal`, `graph`, or `cua-driver`.
-The Runtime accepts only the matching builtin identity and never treats this
-field as a general permission grant. Builtin subscriptions use the package's
-GitHub `repository` as their update source; a verified release is staged as an
-installed package. When that package declares the capability's Flow or MCP
-names, its implementation is authoritative and the Runtime supplies only
-generic loop, cancellation, checkpoint, and permission mechanics. The registry
-remains the trusted identity and lifecycle boundary; it does not reimplement
-the package's domain tools or state.
+`extensions.openagent.runtime` may identify a published standard package for
+installation and lifecycle migration. It is an identity and update binding,
+not an execution or permission grant. Every package still uses the same
+process boundary and host capability bridge; the package owns its domain
+state, tools, reducers, and scheduling while the Runtime supplies persistence,
+cancellation, permissions, and agent execution. A verified release is staged
+as an installed package after the same manifest validation as any other plugin.
 
 `enabled` is the lifecycle gate for portable components. Missing persisted
 entries default to `true` for compatibility; disabling a plugin removes its
-Skills, MCP servers, and Automation Hooks from new Runtime assemblies. Builtin
-switches retain their existing product settings through one resolver: Chat
-Groups keeps the legacy `chat_groups_enabled` compatibility field, Cua uses
-its reserved MCP entry, and Goal/Graph use the same `agent_plugins_enabled`
-map. All Runtime and desktop entry points use this resolver, so a temporary
-mismatch between legacy and normalized settings cannot expose one path after
-the plugin is disabled.
+Skills, MCP servers, and Automation Hooks from new Runtime assemblies.
+Product compatibility switches retain their existing settings through one
+resolver: Chat Groups keeps the legacy `chat_groups_enabled` field, Cua uses
+its reserved MCP entry, and installed packages use `agent_plugins_enabled`.
+All Runtime and desktop entry points use this resolver, so a temporary
+mismatch between legacy and normalized settings cannot expose one path after a
+plugin is disabled.
 
 Runtime hosts that need to emit a plugin message resolve its namespaced tag
 through the installed-plugin policy resolver. The resolver checks the plugin
 root and namespace before returning the audience rule; raw tags and tags owned
-by another plugin are rejected. Builtin lifecycle tags use the same persisted
-shape (`plugin:<builtin-id>:<tag>`): Goal, Graph, and Chat Groups materialize
-their enum tags into `plugin_tags` and persist the resolved user/model audience.
-On restore, older checkpoints are normalized before transcript or provider
-projection, so frontend code does not need a builtin-tag allowlist.
+by another plugin are rejected. Older product lifecycle tags may still be
+normalized when restoring checkpoints, but new package messages use the same
+namespaced policy path as every other plugin. On restore, checkpoints are
+normalized before transcript or provider projection, so frontend code does not
+need a domain-specific tag allowlist.
 
 Automation commands may return a structured lifecycle message such as
 `{"message":"Approval required","tag":"approval"}`. The Runtime
@@ -112,16 +111,59 @@ expansion, pipes, or quoting tricks in `command`.
 Every enabled installed plugin receives the same authenticated loopback host
 bridge environment: `OPENAGENT_PLUGIN_HOST_URL`,
 `OPENAGENT_PLUGIN_HOST_TOKEN`, and `OPENAGENT_PLUGIN_ID`. The bridge is a
-capability module, not a builtin-specific adapter. Its stable operations are
-`conversation.create`, `conversation.state`, `conversation.cancel`,
-`agent.submit`, `agent.wake` (the explicit wake-up spelling of the same agent
-submission boundary), `roles.list`, and `event.emit`. The host authenticates
-the package identity with its launch token and applies the same operation
-policy to Goal, Graph, Chat Groups, and third-party packages; adding a plugin
-does not require a new Runtime `match` arm. Plugins own their state machines,
-selection rules, graph or group reducers, and wake scheduling in their own
-package process while the host owns persistence, permissions, cancellation, and
-the canonical agent submission path.
+capability module, not a builtin-specific adapter. Its stable operations are:
+
+- `conversation.create`, `conversation.state`, `conversation.children`,
+  `conversation.update`, `conversation.cancel`, and `conversation.delete`;
+- `branch.create`, `branch.list`, `branch.head.set`, and `branch.active.set`;
+- `agent.submit` and `agent.wake` (the explicit wake-up spelling of the same
+  agent submission boundary);
+- `roles.list`; and
+- `event.emit`.
+
+The bearer token identifies the caller, so `plugin_id` is injected by the
+host when omitted and a supplied value must match the token. Agent requests
+accept both the canonical snake_case bridge fields (`conv_id`, `branch_id`,
+`parent_checkpoint_id`) and the SDK's camelCase aliases. `agent.wake` waits by
+default and returns the accepted outcome plus current conversation state;
+`wait: false` schedules the wake and returns `{ "accepted": true }`.
+
+Events other than the shared lifecycle notifications are automatically
+namespaced as `plugin:<plugin-id>:<event>`, preventing one package from
+impersonating another. The host applies the same operation policy to every
+package; adding a plugin does not require a new Runtime `match` arm. Plugins
+own their state machines, graph or group reducers, and wake scheduling in
+their own process while the host owns persistence, permissions, cancellation,
+and the canonical agent submission path.
+
+Requests are JSON objects of the form
+`{ "operation": "agent.wake", "args": { ... } }`. The following argument
+fields form the stable bridge contract (all IDs are strings):
+
+- `conversation.create`: `title`, optional `workspace`, `parent_conv_id`, and
+  `role_id`; returns `conv_id` and `branch_id`.
+- `conversation.state`: `conv_id`; returns conversation metadata, the selected
+  branch/checkpoint, phase, and projected user/assistant messages.
+- `conversation.children`: `parent_conv_id` and optional `workspace`.
+- `conversation.update`: `conv_id` plus optional `title`, `title_source`,
+  `pinned`, and `updated_at`.
+- `conversation.cancel` and `conversation.delete`: `conv_id`.
+- `branch.create`: `conv_id` plus optional `id`, `parent_branch_id`,
+  `forked_from_checkpoint_id`, and `forked_from_message_id`; returns the new
+  branch.
+- `branch.list`: `conv_id`; `branch.head.set`: `branch_id` and
+  `checkpoint_id`; `branch.active.set`: `conv_id` and `checkpoint_id`.
+- `agent.submit` and `agent.wake`: either the request fields at the top level
+  or under `request`: `conv_id`, `text`, optional `parent_checkpoint_id`,
+  `branch_id`, `attachments`, `contexts`, `model_binding`,
+  `user_message_id`, and `assistant_message_id`. `agent.wake` additionally
+  accepts `wait`; `false` schedules the turn and returns immediately.
+- `roles.list`: optional `workspace`.
+- `event.emit`: `name` and optional JSON `payload`.
+
+Successful calls return `{ "ok": true, "result": ... }`; validation or
+execution failures return `{ "ok": false, "error": "..." }`. The bridge
+never exposes provider payloads, Inspector data, or another plugin's token.
 
 The loader accepts a valid manifest even when one optional component is bad.
 Manifest errors reject the package; a bad `skills/`, `mcp.json`, automation
@@ -136,19 +178,15 @@ always under `<OPENAGENT_HOME>/plugin-data/<plugin-id>/`.
 Skills continue to use immediate child directories under `skills/` with a
 conforming `SKILL.md`. MCP continues to use the portable `mcp.json` schema and
 the existing `PLUGIN_ROOT`/`PLUGIN_DATA` expansion and transport restrictions.
-The product registry exposes Cua Driver, Chat Groups, Goal Mode, and Graph Mode
-as trusted plugin descriptors. Multi-Agent V2 is intentionally absent from this
-catalog: its six tools and child-conversation registry are owned directly by
-Runtime, and its dedicated `multi_agent_v2.enabled` setting is not a plugin
-lifecycle switch. Each catalogued capability has a standard package repository
-and can receive a verified GitHub package overlay. The registration still
-supplies trusted identity, lifecycle switches, compatibility aliases, and
-message-policy metadata; package MCP servers own Goal, Graph, and Chat Groups
-tools and package data. Cua Driver's daemon is resolved from its
-installed package and supervised through the same host daemon boundary as any
-other plugin; its reserved MCP entry remains the client connection. It is also
-real computer access is a generic per-plugin user authorization, not a reserved
-identity exemption.
+The product registry exposes published standard packages and Cua Driver as
+trusted descriptors. Multi-Agent V2 is intentionally absent from this catalog:
+its six tools and child-conversation registry are owned directly by Runtime,
+and its dedicated `multi_agent_v2.enabled` setting is not a plugin lifecycle
+switch. Each package can receive a verified GitHub overlay, but its commands,
+flows, MCP tools, and state remain package-owned. Cua Driver's daemon is
+resolved from its installed package and supervised through the same host daemon
+boundary as any other plugin; real computer access is a generic per-plugin
+authorization.
 
 ### MCP Apps UI
 
@@ -231,8 +269,8 @@ or `required_text`; command IDs, labels, descriptions, package-relative paths,
 and timeouts (`1` through `300` seconds) are validated before registration.
 Unknown fields and invalid entries are skipped with a plugin diagnostic. A
 disabled or invalid plugin contributes no commands. The catalog projection
-resolves ownership through the builtin registry and the portable descriptor
-owner instead of trusting a descriptor tag, and every host reads that
+resolves ownership through the validated package descriptor and plugin ID; a
+registry entry supplies lifecycle metadata only. Every host reads that
 projection rather than caching its own list. Frontends re-read the catalog when
 settings or the installed plugin set change, so disabling a plugin removes its
 commands from the composer palette without an application restart.
@@ -250,24 +288,26 @@ never package filesystem paths.
 
 ### Flows
 
-A flow is a package-owned autonomous loop. The Runtime owns the loop mechanics
-— turn dispatch, cancellation, the iteration limit, and checkpoint
-continuation — and the package owns every decision inside it. Flows are
+A flow is a package-owned entry point. A package may perform its complete
+orchestration inside the process and call the host bridge directly; when it
+returns step prompts, the Runtime supplies only the generic turn dispatch,
+cancellation, iteration limit, and checkpoint continuation. The package owns
+every domain decision. Flows are
 declared in `plugin.json` under `extensions.openagent.flows`:
 
 ```json
 {
-  "id": "goal",
-  "label": "Goal",
-  "description": "Work an objective to completion",
+  "id": "work",
+  "label": "Work",
+  "description": "Run the package-owned workflow",
   "argument": "required_text",
-  "step": "bin/goal-step.mjs",
+  "step": "bin/work-step.mjs",
   "timeout_secs": 60,
   "max_iterations": 50
 }
 ```
 
-The flow is exposed as `/plugin-id:goal`. `argument` is `none` or
+The flow is exposed as `/plugin-id:work`. `argument` is `none` or
 `required_text`; `step` is a package-relative executable; `timeout_secs` is `1`
 through `300`; `max_iterations` is `1` through `100`; and `max_iterations`
 defaults to `100`. Validation matches portable commands: unknown fields and
@@ -276,11 +316,12 @@ contributes no flows, and no flow's step may resolve outside the package root.
 A flow whose id repeats a command id on the same package is rejected in favor of
 the command.
 
-Runtime-bound product packages may declare the conventional flow whose name is
-`<builtin-id>:<builtin-id>`. The Runtime keeps that namespaced name routable for
-direct input, but omits it from the composer catalog because the builtin's short
-compatibility alias (for example `/goal` or `/graph`) already represents the
-same flow.
+When a package declares a flow whose ID is the package ID, the command catalog
+offers the package ID as a generic short alias (for example, a package named
+`goal` with flow ID `goal` appears once as `/goal`). The namespaced flow remains
+routable internally as `plugin:<plugin-id>:<flow-id>`, and this rule applies to
+every package. It is only a naming projection; it does not select a Runtime
+implementation for the package.
 
 The Runtime starts the step under the package's own process policy, so a flow
 needs an active workspace and gains only its own `PLUGIN_DATA` write access. The
@@ -298,7 +339,7 @@ a second call-operator expression:
   "flow_id": "plugin:goal:goal",
   "iteration": 1,
   "argument": "ship the release",
-  "input": "/goal ship the release",
+  "input": "/workflow:work ship the release",
   "last_output": ""
 }
 ```
@@ -435,16 +476,16 @@ archive downloads, which follow a redirect to a host that must not receive it.
 
 ## Built-in migration
 
-Built-in capabilities use the same descriptor and registry with a trusted
-`builtin` source. Chat Groups retains `chat_groups_enabled`; Goal and Graph
-retain the `/goal` and `/graph` product aliases, but the installed packages
-own the matching standard Flow and MCP tools and all domain state under their
-`PLUGIN_DATA` directories. The Runtime's generic flow runner carries only
-cancellation, checkpoint continuation, permissions, and the package's opaque
-display projection. Older Goal/Graph checkpoints remain readable as opaque
-legacy payloads; the Runtime no longer creates or interprets new local domain
-state. Existing user MCP, Skills, and `automation_hooks` settings are
-normalized without changing their persisted shapes.
+Published product packages use the same descriptor, process policy, and host
+bridge as third-party packages. A registry entry supplies identity, update
+source, and lifecycle migration only; it never supplies a hidden command,
+graph reducer, tool implementation, or domain state. The package owns those
+parts under its `PLUGIN_DATA` directory and calls the generic conversation,
+branch, agent, role, and event operations when it needs host services. Older
+Goal/Graph checkpoints remain readable as opaque legacy payloads, while new
+flows are package projections. Existing user MCP, Skills, and
+`automation_hooks` settings are normalized without changing their persisted
+shapes.
 
 Runtime-owned tools are identified by registry entries. The provider tool
 projection removes tools whose owning builtin is disabled, and every tool call
@@ -452,10 +493,10 @@ repeats the same live check before mutating state. Package MCP tools are loaded
 from the package descriptor and are never duplicated in the Runtime tool
 registry, so a stale Runtime tool server cannot become a second domain owner.
 
-The command catalog shares that admission rule. `/goal` and `/graph` are gated
-by their registry entry rather than by a descriptor tag, and every consumer
-that rebuilds an advertised tool list mid-run applies the same plugin switch, so
-a disabled capability cannot reappear in a later turn of an in-flight request.
+The command catalog shares that admission rule. A package contributes its own
+command or flow exactly once, and every consumer that rebuilds an advertised
+catalog mid-run applies the same plugin switch, so a disabled capability cannot
+reappear in a later turn of an in-flight request.
 
 ## Verification
 

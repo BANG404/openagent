@@ -316,10 +316,7 @@
   const slashCommands = $derived.by<SlashCommand[]>(() =>
     agentCommandSpecs.flatMap((spec) => {
       const run = remoteSlashCommandRun(spec.name);
-      const insertText =
-        spec.name === "goal" || spec.name === "graph" || spec.plugin_id
-          ? `/${spec.name}`
-          : undefined;
+      const insertText = spec.plugin_id ? `/${spec.name}` : undefined;
       if (!run && !insertText) return [];
       return [
         {
@@ -420,9 +417,6 @@
           instruction = "/compact";
           void sendInstruction();
         };
-      case "goal":
-      case "graph":
-        return null;
       default:
         return null;
     }
