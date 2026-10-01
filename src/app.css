@@ -55,6 +55,7 @@
     --text-muted: #6e6e73;
     --primary: #0066cc;
     --primary-hover: #0051a2;
+    --selection-bg: color-mix(in srgb, var(--primary) 25%, transparent);
     --danger: #b42318;
     --shadow: rgba(0, 0, 0, 0.12);
     --tooltip-bg: #1d1d1f;
@@ -288,6 +289,10 @@
   ::-webkit-scrollbar-thumb {
     background: transparent;
     border-radius: 3px;
+  }
+
+  ::selection {
+    background-color: var(--selection-bg);
   }
 
   [data-scrollbar-active="true"]::-webkit-scrollbar-thumb {
