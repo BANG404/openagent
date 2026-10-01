@@ -19,19 +19,19 @@ gitlink and validates and reuses the corresponding independent SDK release when
 available; otherwise it explicitly dispatches current private `main` SDK CI
 with the immutable commit SHA, waits for the resulting full public qualification
 status, and only then dispatches private SDK release preparation for that
-  immutable SHA. The host tracks the preparation workflow through completion
-  before accepting its tag, stages and validates its private Runtime candidate,
-  and defers every SDK publication side effect until the desktop draft is
-  complete.
+immutable SHA. The host tracks the preparation workflow through completion
+before accepting its tag, stages and validates its private Runtime candidate,
+and defers every SDK publication side effect until the desktop draft is
+complete.
 Final SDK publication uses current private `main` automation with the resulting
 `sdk-v*` tag as an explicit input, then checks out and verifies the immutable
 source. Its public-host reader token is restricted to the explicit host
 repository and inherits the dispatcher App installation permissions;
 publication must not request a narrower permission override that can disagree
-  with the installed grant. The SDK release has no npm publication path. The
-  host tracks the exact child workflow runs, reports their URLs when they fail,
-  and waits for full SDK qualification plus a published manifest whose `sdk_sha`
-  and protocol version match. It does not rely on
+with the installed grant. The SDK release has no npm publication path. The
+host tracks the exact child workflow runs, reports their URLs when they fail,
+and waits for full SDK qualification plus a published manifest whose `sdk_sha`
+and protocol version match. It does not rely on
 a tag pushed by `GITHUB_TOKEN` to trigger another workflow. Any failure stops
 desktop tagging and publication; already-built private candidates simply expire
 with the workflow run. A published desktop release includes

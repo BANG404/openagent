@@ -4,6 +4,8 @@
   configured `frontendDist` and target-named placeholders for configured
   `externalBin` resources before invoking Cargo; frontend qualification and
   release component builds own the production bytes.
+  Local preflight must materialize `frontendDist` before both Clippy and the
+  host compile check; each invokes Tauri macros even without a frontend build.
   Keep direct native-dialog dependencies from enabling a Linux backend that
   conflicts with the backend selected by `tauri-plugin-dialog`.
 - Build platform sandbox helpers from the Codex revision pinned by the SDK.
@@ -37,8 +39,8 @@
   capability. Only the post-qualification gate may create the immutable tag,
   upload assets, generate the combined `latest.json`, submit a Store package,
   update fixed channels, or publish the GitHub Release.
-- Treat SDK server releases as independent process resources for headless and
-  third-party consumers. Keep their machine-readable manifest, target matrix,
+- Treat SDK server releases as independent desktop Runtime process resources.
+  Keep their machine-readable manifest, target matrix,
   protocol range, byte sizes, and SHA-256 values aligned. Desktop release builds
   first resolve the exact SDK gitlink SHA and either reuse its newest valid
   ancestor release when no SDK Conventional Commit requires a bump, or trigger
@@ -75,8 +77,8 @@
   `runtime-dev` channel after the exact private `main` commit passes. That
   channel may contain only signed Runtime manifests, release-built server
   binaries, and the behavior-free TypeScript SDK snapshot. Fork pull requests
-  may consume the exact checksummed TypeScript
-  snapshot for frontend checks; never expose private Rust sources, credentials,
+  may consume the exact checksummed TypeScript snapshot for frontend checks;
+  never expose private Rust sources, credentials,
   caches, diagnostics, or an artifact for a different gitlink SHA.
 - Publish the platform-independent frontend archive, bounded manifest, and
   detached signature only from the release-qualified static build. Refresh the

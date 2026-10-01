@@ -88,12 +88,11 @@ instead of silently producing a token that cannot deliver private diagnostics.
 The private dispatcher forces every capability for release, nightly, and manual
 runs with `full` selected. Manual runs can clear `full` to classify the requested
 SDK commit against its first parent and dispatch only the affected Rust packages,
-  platform sandboxes, the TypeScript client, and host compatibility. The input remains
+platform sandboxes, the TypeScript client, and host compatibility. The input remains
 enabled by default so older release callers that omit it still receive full qualification.
 Fast and full results use separate SDK commit-status contexts so a later fast run
 cannot replace the release qualification status. Rust formatting, lint, tests,
-Linux/macOS sandbox checks, TypeScript SDK
-  checks, the TypeScript client checks, and public-host compatibility remain
+Linux/macOS sandbox checks, TypeScript client checks, and public-host compatibility remain
 independent jobs. Public-host compatibility materializes the configured empty
 `frontendDist` and a target-named placeholder for every configured Tauri
 `externalBin` before native compilation; qualification never substitutes that

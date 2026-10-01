@@ -88,7 +88,7 @@ Nightly and explicit full SDK qualification additionally maintain a public
 only after the complete SDK result succeeds and only while the qualified commit
 is still the private SDK's current `main`. The channel contains four
 release-built server binaries, signed Runtime and development manifests, a
-  behavior-free TypeScript SDK source snapshot.
+behavior-free TypeScript SDK source snapshot.
 Both manifests identify the immutable SDK commit; consumers reject a channel
 whose SHA differs from the host's pinned SDK gitlink. Tag-triggered SDK
 qualification never overwrites this moving development channel. A qualifying

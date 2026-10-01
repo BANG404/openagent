@@ -1,7 +1,7 @@
 # Modular CI
 
-The local SonarQube scan classifies `tests/`, `scripts/**/*.test.mjs`, both
-TypeScript SDK test trees, and `sdk/rust/**/tests/**/*.rs` as tests. Keep those
+The local SonarQube scan classifies `tests/`, `scripts/**/*.test.mjs`, the
+TypeScript SDK test tree, and `sdk/rust/**/tests/**/*.rs` as tests. Keep those
 paths out of production duplication measurements when changing
 `sonar-project.properties`. Host and TypeScript SDK LCOV reports supply coverage;
 Rust tests gate upload but do not currently produce a coverage report.
@@ -13,15 +13,15 @@ two verification routes:
   candidates run fast checks only for modules
   selected by the exact base-to-head path delta. Frontend checks stop after
   type, lint, format, and tests; native checks run host Rust quality and quick
-  resource or contract validation without Windows/macOS matrices, embedding
-  runtime execution, or desktop Runtime integration.
+  resource or contract validation without Windows/macOS matrices or embedding
+  runtime execution.
 - Administrator-authored PRs perform only a repository-permission check, then
   publish the successful aggregate without module checks or review. Ordinary
   pushes to `master` do not trigger CI.
 - Release workflow calls, nightly schedules, and manual dispatches force every
   module through complete qualification: frontend production build and bundle
-  budgets, Windows/macOS native compilation, embedding runtime tests, and
-  desktop Runtime integration. Full runs never consume prior fast coverage. Frontend
+  budgets, Windows/macOS native compilation, and embedding runtime tests.
+  Full runs never consume prior fast coverage. Frontend
   bundle budgets resolve both direct Vite manifest entries and source modules
   emitted through a manifest entry's dynamic imports, so code splitting does
   not fail a valid budget target before size measurement. The settings view
