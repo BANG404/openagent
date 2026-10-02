@@ -316,15 +316,22 @@
   const slashCommands = $derived.by<SlashCommand[]>(() => {
     const seen = new Set<string>();
     return agentCommandSpecs.flatMap((spec) => {
-      if (seen.has(spec.name)) return [];
-      seen.add(spec.name);
+      // A package command whose id equals its package id has both a short
+      // route (`/goal`) and a fully-qualified route (`/goal:goal`). The
+      // catalog exposes one palette entry, just like the desktop surface.
+      const catalogKey =
+        spec.plugin_id && spec.name === `${spec.plugin_id}:${spec.plugin_id}`
+          ? spec.plugin_id
+          : spec.name;
+      if (seen.has(catalogKey)) return [];
+      seen.add(catalogKey);
       const run = remoteSlashCommandRun(spec.name);
-      const insertText = spec.plugin_id ? `/${spec.name}` : undefined;
+      const insertText = spec.plugin_id ? `/${catalogKey}` : undefined;
       if (!run && !insertText) return [];
       return [
         {
-          id: spec.name,
-          name: spec.name,
+          id: catalogKey,
+          name: catalogKey,
           label: spec.label ?? tr(spec.label_key as TranslationKeys),
           description: spec.description ?? tr(spec.description_key as TranslationKeys),
           insertText,

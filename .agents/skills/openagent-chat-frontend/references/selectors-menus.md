@@ -209,5 +209,7 @@
 - Populate the slash-command palette from the shared Runtime command catalog on
   both desktop and remote hosts. Builtin commands use localized label and
   description keys; portable plugin commands use their literal `label` and
-  `description` and insert the complete `/plugin-id:command-id` token while
-  preserving the remaining draft argument.
+  `description`. When a package command id equals its package id, show one
+  short `/<plugin-id>` entry while keeping the fully qualified route resolvable;
+  other commands insert `/plugin-id:command-id`. Preserve the remaining draft
+  argument in either case.

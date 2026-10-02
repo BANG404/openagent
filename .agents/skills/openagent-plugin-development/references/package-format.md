@@ -88,10 +88,10 @@ The Runtime validates containment and reports the normalized descriptor; the
 host owns daemon supervision and may connect it through a normal `mcp.json`
 client entry.
 
-Packages may optionally declare `extensions.openagent.runtime` as opaque update
-or migration provenance. The host never uses it to select an implementation,
-merge cards, or grant capabilities; package components always load through the
-same ordinary manifest path and process policy.
+Packages do not declare a Runtime implementation binding. Package components
+always load through the same ordinary manifest path and process policy, while
+the package owns its domain state and orchestration through the generic Host
+Bridge.
 
 `extensions.openagent.commands` is an optional array of portable slash
 commands. Each entry has an ID, display `label`, display `description`, an

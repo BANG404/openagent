@@ -735,12 +735,10 @@ export interface AgentPluginSummary {
   description: string | null;
   path: string;
   repository: string | null;
-  /** Package provenance from the validated manifest, never an authority. */
   homepage: string | null;
   license: string | null;
   author: AgentPluginAuthorSummary | null;
   keywords: string[];
-  runtime?: string | null;
   capabilities: string[];
   commands: string[];
   command_specs: AgentPluginCommandSummary[];

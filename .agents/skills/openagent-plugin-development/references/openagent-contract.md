@@ -30,13 +30,12 @@ plugin descriptor. Only the Runtime can persist a checkpoint or apply a
 policy, so a package cannot forge another package's tag or bypass audience
 projection.
 
-`extensions.openagent.runtime` may identify a published standard package for
-installation and lifecycle migration. It is an identity and update binding,
-not an execution or permission grant. Every package still uses the same
-process boundary and host capability bridge; the package owns its domain
-state, tools, reducers, and scheduling while the Runtime supplies persistence,
-cancellation, permissions, and agent execution. A verified release is staged
-as an installed package after the same manifest validation as any other plugin.
+There is no manifest field that binds a package to a Runtime implementation.
+Every package uses the same process boundary and host capability bridge. The
+package owns its domain state, tools, reducers, scheduling, recovery, and
+completion rules while the Runtime supplies persistence, cancellation,
+permissions, and Agent execution. A verified release is staged as an installed
+package after the same manifest validation as any other plugin.
 
 `enabled` is the lifecycle gate for portable components. Missing persisted
 entries default to `true` for compatibility; disabling a plugin removes its
@@ -210,10 +209,9 @@ Multi-Agent V2; its six tools and child-conversation registry are owned
 directly by Runtime, and its dedicated `multi_agent_v2.enabled` setting is not
 a plugin lifecycle switch. Goal, Graph, Chat Groups, and Cua Driver are loaded
 from installed package manifests and use the same ordinary package boundary.
-Their optional `extensions.openagent.runtime` value is provenance metadata only;
-it never selects an implementation or creates a second card. Cua Driver's
-daemon is resolved from its installed package and supervised through the same
-host daemon boundary as any other plugin; real computer access is a generic
+They do not register a domain implementation with Runtime. Cua Driver's daemon
+is resolved from its installed package and supervised through the same host
+daemon boundary as any other plugin; real computer access is a generic
 per-plugin authorization.
 
 ### MCP Apps UI
@@ -317,7 +315,7 @@ never package filesystem paths.
 
 ### Package-owned orchestration
 
-A package that needs multi-turn work owns its complete state machine in its own process. It uses an ordinary plugin command to start a turn, its MCP tools or daemon to persist domain state, and the common host bridge to create conversations, create branches, submit or wake Agents, cancel descendants, list roles, and emit progress. The Runtime does not parse package state, run a package loop, apply an iteration limit, or register Goal, Graph, or Group implementations.
+A package that needs multi-turn work owns its complete state machine in its own process. It uses an ordinary plugin command to start a turn, its MCP tools or daemon to persist domain state, and the common host bridge to create conversations, create branches, update opaque flow projections, submit or wake Agents, cancel descendants, list roles, and emit progress. The Runtime does not parse package state, run a package loop, apply an iteration limit, or register Goal, Graph, or Group implementations.
 
 The optional checkpoint projection and plugin-flow-updated event are opaque display data. The host validates only package identity and containment, then carries the projection through the generic checkpoint/event path. A package owns its schema, status vocabulary, reducer, recovery, scheduling, and completion rule. Lifecycle projections and checkpoint events include the owning `branch_id`; the frontend keeps their transient overlay isolated by conversation and branch.
 
@@ -406,16 +404,17 @@ unconfirmable release. Because the anonymous quota is shared and small,
 to 5000 per hour; it is attached only to release-metadata requests and never to
 archive downloads, which follow a redirect to a host that must not receive it.
 
-## Built-in migration
+## Built-in capabilities and packages
 
 Published product packages use the same descriptor, process policy, and host
-bridge as third-party packages. A registry entry supplies identity, update
-source, and lifecycle migration only; it never supplies a hidden command,
-graph reducer, tool implementation, or domain state. The package owns those
-parts under its `PLUGIN_DATA` directory and calls the generic conversation,
-branch, agent, role, and event operations when it needs host services. Older
-Goal/Graph checkpoints remain readable as opaque legacy payloads, while new
-package projections use the generic checkpoint shape. Existing user MCP, Skills, and
+bridge as third-party packages. Runtime registry entries identify only
+capabilities that are implemented inside Runtime itself, such as Multi-Agent
+V2. A package never registers a hidden command, graph reducer, tool
+implementation, or domain state with that registry. It owns those parts under
+its `PLUGIN_DATA` directory and calls the generic conversation, branch, agent,
+role, flow, and event operations when it needs host services. Older Goal/Graph
+checkpoints remain readable as opaque legacy payloads, while new package
+projections use the generic checkpoint shape. Existing user MCP, Skills, and
 `automation_hooks` settings are normalized without changing their persisted
 shapes.
 

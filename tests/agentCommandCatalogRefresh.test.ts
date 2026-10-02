@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
 const pageRuntime = readFileSync("src/routes/PageRuntime.svelte", "utf8");
+const remoteRoute = readFileSync("src/routes/remote/+page.svelte", "utf8");
 
 describe("agent command catalog refresh", () => {
   test("reads the Runtime catalog through one refresh helper", () => {
@@ -25,5 +26,14 @@ describe("agent command catalog refresh", () => {
     expect(pageRuntime).toMatch(
       /async function saveSettings\([\s\S]*?void refreshAgentCommands\(\);/,
     );
+  });
+
+  test("deduplicates short and fully qualified package aliases in the remote palette", () => {
+    expect(remoteRoute).toContain("const catalogKey =");
+    expect(remoteRoute).toContain(
+      "spec.name === `${spec.plugin_id}:${spec.plugin_id}`",
+    );
+    expect(remoteRoute).toContain("id: catalogKey");
+    expect(remoteRoute).toContain("insertText = spec.plugin_id ? `/${catalogKey}`");
   });
 });
