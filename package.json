@@ -21,6 +21,7 @@
     "check:components": "bun scripts/check-component-usage.mjs",
     "check:tool-i18n": "bun scripts/check-static-tool-i18n.mjs",
     "preflight": "bun scripts/preflight.mjs",
+    "agent:delivery-lock": "bun scripts/agent-delivery-lock.mjs",
     "fetch:embedding-model": "bun scripts/fetch-embedding-model.mjs",
     "prepare:worktree:dev": "bun scripts/prepare-worktree.mjs --profile dev",
     "prepare:worktree:release": "bun scripts/prepare-worktree.mjs --profile release",

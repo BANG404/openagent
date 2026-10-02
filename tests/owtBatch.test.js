@@ -291,6 +291,36 @@ describe("OWT batch coordination", () => {
     expect(batchStatus(repo, { batchId: "batch-race" }).state).toBe("integrating");
   }, 20_000);
 
+  test("blocks a sealed batch when tasks modify the same file", () => {
+    const { root, repo, base } = createRepository();
+    const first = createTask(repo, root, "overlap-first", "shared.txt");
+    const second = createTask(repo, root, "overlap-second", "shared.txt");
+    createBatch(repo, { batchId: "batch-overlap", defaultBranch: "master", base });
+    register(repo, "batch-overlap", first);
+    register(repo, "batch-overlap", second);
+    sealBatch(repo, { batchId: "batch-overlap" });
+
+    expect(
+      markTaskReady(first.worktree, {
+        batchId: "batch-overlap",
+        taskId: first.taskId,
+        verifiedHead: first.head,
+      }),
+    ).toMatchObject({ action: "finish", reason: "waiting-for-other-tasks" });
+
+    const blocked = markTaskReady(second.worktree, {
+      batchId: "batch-overlap",
+      taskId: second.taskId,
+      verifiedHead: second.head,
+    });
+    expect(blocked).toMatchObject({
+      action: "blocked",
+      reason: "OWT tasks modify overlapping files; serialize those tasks or split ownership.",
+      overlaps: [{ file: "shared.txt" }],
+    });
+    expect(batchStatus(repo, { batchId: "batch-overlap" }).state).toBe("blocked");
+  }, 20_000);
+
   test("heartbeats and recovers an abandoned integration lease", () => {
     const { root, repo, base } = createRepository();
     const task = createTask(repo, root, "recover", "recover.txt");

@@ -32,6 +32,7 @@ const WAIT_BUFFER = new Int32Array(new SharedArrayBuffer(4));
  *   registeredHeadSha: string;
  *   registeredAt: string;
  *   headSha: string;
+ *   changedFiles?: string[];
  *   readyAt?: string;
  * }} BatchTask
  * @typedef {{ taskId: string; leaseId: string; claimedAt: string; heartbeatAt: string; leaseTtlMs: number }} BatchIntegrator
@@ -79,6 +80,14 @@ function run(command, args, cwd) {
 /** @param {string} repo @param {string[]} args */
 function git(repo, args) {
   return run("git", args, repo);
+}
+
+/** @param {string} repo @param {string[]} args */
+function gitLines(repo, args) {
+  return git(repo, args)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 /** @param {string} repo @param {string[]} args */
@@ -212,6 +221,29 @@ function isAncestor(repo, ancestor, descendant) {
 /** @param {string} repo @param {string} ref */
 function commitSha(repo, ref) {
   return git(repo, ["rev-parse", "--verify", `${ref}^{commit}`]);
+}
+
+/** @param {string} repo @param {string} baseSha @param {string} headSha */
+function changedFiles(repo, baseSha, headSha) {
+  return gitLines(repo, ["diff", "--name-only", "--diff-filter=ACMRT", baseSha, headSha]);
+}
+
+/** @param {BatchState} state */
+function taskFileOverlaps(state) {
+  const overlaps = [];
+  for (let leftIndex = 0; leftIndex < state.tasks.length; leftIndex += 1) {
+    const left = state.tasks[leftIndex];
+    const leftFiles = new Set(left.changedFiles ?? []);
+    for (let rightIndex = leftIndex + 1; rightIndex < state.tasks.length; rightIndex += 1) {
+      const right = state.tasks[rightIndex];
+      for (const file of right.changedFiles ?? []) {
+        if (leftFiles.has(file)) {
+          overlaps.push({ file, taskIds: [left.taskId, right.taskId] });
+        }
+      }
+    }
+  }
+  return overlaps;
 }
 
 /** @param {string} root @param {string} batchId */
@@ -543,6 +575,7 @@ export function markTaskReady(repo, options) {
     if (!isAncestor(taskRoot, state.baseSha, headSha)) {
       throw new Error(`Task HEAD ${headSha} no longer descends from batch base ${state.baseSha}.`);
     }
+    task.changedFiles = changedFiles(taskRoot, state.baseSha, headSha);
     if (task.state === "ready" && task.headSha !== headSha) {
       throw new Error(`Ready task ${task.taskId} moved from ${task.headSha} to ${headSha}.`);
     }
@@ -588,6 +621,20 @@ export function markTaskReady(repo, options) {
         batchId: state.batchId,
         reason: "waiting-for-other-tasks",
         pendingTaskIds: pending.map((candidate) => candidate.taskId),
+      };
+    }
+
+    const overlaps = taskFileOverlaps(state);
+    if (overlaps.length > 0) {
+      state.state = "blocked";
+      state.blockedReason = "OWT tasks modify overlapping files; serialize those tasks or split ownership.";
+      state.blockedAt = new Date().toISOString();
+      saveBatch(paths.state, state);
+      return {
+        action: "blocked",
+        batchId: state.batchId,
+        reason: state.blockedReason,
+        overlaps,
       };
     }
 

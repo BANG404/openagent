@@ -4,6 +4,19 @@ Use direct local delivery only when one agent owns the default worktree. When
 agents modify the repository concurrently, select OWT explicitly; a sealed
 OWT batch is the default for independent parallel tasks.
 
+Direct delivery must run under the cross-process lock. Wrap the complete agent
+command from the repository root so the lock covers editing, verification, and
+commit:
+
+```bash
+rtk bun scripts/agent-delivery-lock.mjs run --repo . --task <task-id> -- \
+  codex exec --cd . "DIRECT <task prompt>"
+```
+
+Inspect an owner or an expired lock with `bun scripts/agent-delivery-lock.mjs
+status --repo .`. A live owner blocks another direct task; an expired owner is
+reclaimed automatically by the next invocation.
+
 Read the procedure that matches the selected mode. Each procedure owns its
 steps, commit rules, preflight expectations, and cleanup rules.
 

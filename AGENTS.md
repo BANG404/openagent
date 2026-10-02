@@ -147,8 +147,9 @@ layout-stable skeleton.
 
 ## Delivery
 Every repository-changing task uses `deliver-via-pr`. Direct local delivery is
-for one agent owning the default worktree. Concurrent tasks use `OWT`, and an
-explicit sealed OWT batch is the default for independent parallel work; each
-task is isolated and one elected integrator fast-forwards the verified result
-into `master`. The skill owns reconciliation, preservation, CI, and cleanup;
+for one agent owning the default worktree and must run under
+`scripts/agent-delivery-lock.mjs`. Concurrent tasks use `OWT`, and an explicit
+sealed OWT batch is the default for independent parallel work; each task is
+isolated and one elected integrator fast-forwards the verified result into
+`master`. The skill owns reconciliation, preservation, CI, and cleanup;
 explicit user instructions override its delivery stage.
