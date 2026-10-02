@@ -35,7 +35,8 @@ rtk bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs seal \
 
 ## Finish a task
 
-Each task agent stages only its owned files, runs `rtk bun run preflight`, commits,
+Each task agent stages only its owned files, runs `rtk bun run preflight --base
+<batch-base-sha>` (or relies on the automatic local-master baseline), commits,
 requires a clean task worktree, and calls `ready` with the exact preflighted
 commit:
 
@@ -78,8 +79,8 @@ rtk bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs block \
   --repo . --batch <batch-id> --lease <lease-id> --reason <reason>
 ```
 
-After every task head is present, run `rtk bun run preflight` in the integration
-worktree and finalize that exact clean HEAD:
+After every task head is present, run `rtk bun run preflight --base
+<batch-base-sha>` in the integration worktree and finalize that exact clean HEAD:
 
 ```bash
 rtk bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs finalize \
