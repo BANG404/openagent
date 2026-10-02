@@ -319,6 +319,44 @@ describe("OWT batch coordination", () => {
       overlaps: [{ file: "shared.txt" }],
     });
     expect(batchStatus(repo, { batchId: "batch-overlap" }).state).toBe("blocked");
+    expect(batchStatus(repo, { batchId: "batch-overlap" }).blockedOverlaps).toEqual([
+      { file: "shared.txt", taskIds: ["overlap-first", "overlap-second"] },
+    ]);
+  }, 20_000);
+
+  test("blocks overlaps involving deleted files", () => {
+    const { root, repo } = createRepository();
+    writeFileSync(join(repo, "shared.txt"), "base\n");
+    git(repo, ["add", "shared.txt"]);
+    git(repo, ["commit", "-m", "test: add shared base file"]);
+    const base = git(repo, ["rev-parse", "HEAD"]);
+    const first = createTask(repo, root, "delete-first", "shared.txt");
+    const second = createTask(repo, root, "delete-second", "shared.txt");
+    git(first.worktree, ["rm", "shared.txt"]);
+    git(first.worktree, ["commit", "-m", "delete shared file"]);
+    first.head = git(first.worktree, ["rev-parse", "HEAD"]);
+    writeFileSync(join(second.worktree, "shared.txt"), "second change\n");
+    git(second.worktree, ["add", "shared.txt"]);
+    git(second.worktree, ["commit", "-m", "modify shared file"]);
+    second.head = git(second.worktree, ["rev-parse", "HEAD"]);
+    createBatch(repo, { batchId: "batch-delete-overlap", defaultBranch: "master", base });
+    register(repo, "batch-delete-overlap", first);
+    register(repo, "batch-delete-overlap", second);
+    sealBatch(repo, { batchId: "batch-delete-overlap" });
+    expect(
+      markTaskReady(first.worktree, {
+        batchId: "batch-delete-overlap",
+        taskId: first.taskId,
+        verifiedHead: first.head,
+      }),
+    ).toMatchObject({ action: "finish" });
+    expect(
+      markTaskReady(second.worktree, {
+        batchId: "batch-delete-overlap",
+        taskId: second.taskId,
+        verifiedHead: second.head,
+      }),
+    ).toMatchObject({ action: "blocked", overlaps: [{ file: "shared.txt" }] });
   }, 20_000);
 
   test("heartbeats and recovers an abandoned integration lease", () => {

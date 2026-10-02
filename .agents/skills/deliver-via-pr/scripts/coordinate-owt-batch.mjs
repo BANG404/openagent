@@ -53,6 +53,7 @@ const WAIT_BUFFER = new Int32Array(new SharedArrayBuffer(4));
  *   integrator?: BatchIntegrator;
  *   integration?: BatchIntegration;
  *   blockedReason?: string;
+ *   blockedOverlaps?: Array<{ file: string; taskIds: [string, string] }>;
  *   blockedAt?: string;
  *   lastRecoveryReason?: string;
  *   lastObservedDefaultHead?: string;
@@ -225,7 +226,17 @@ function commitSha(repo, ref) {
 
 /** @param {string} repo @param {string} baseSha @param {string} headSha */
 function changedFiles(repo, baseSha, headSha) {
-  return gitLines(repo, ["diff", "--name-only", "--diff-filter=ACMRT", baseSha, headSha]);
+  // Disable rename detection so a rename contributes both its deleted source
+  // and added destination paths. Deletions must participate in ownership
+  // checks because another task may still modify the removed path.
+  return gitLines(repo, [
+    "diff",
+    "--name-only",
+    "--no-renames",
+    "--diff-filter=ACDMRTUXB",
+    baseSha,
+    headSha,
+  ]);
 }
 
 /** @param {BatchState} state */
@@ -628,6 +639,7 @@ export function markTaskReady(repo, options) {
     if (overlaps.length > 0) {
       state.state = "blocked";
       state.blockedReason = "OWT tasks modify overlapping files; serialize those tasks or split ownership.";
+      state.blockedOverlaps = overlaps;
       state.blockedAt = new Date().toISOString();
       saveBatch(paths.state, state);
       return {

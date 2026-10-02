@@ -70,9 +70,10 @@ Interpret the JSON `action` before ending the agent turn:
 The script rejects dirty task worktrees, stale preflight assertions, moved task
 branches, unregistered paths, branches outside `agent/`, and a sealed batch in
 which two tasks modify the same file. Overlapping tasks are reported with the
-file and task IDs; serialize them or split their ownership before retrying. It
-persists state under `<git-common-dir>/openagent-owt/batches/`; do not edit
-those records by hand.
+file and task IDs; serialize them or split their ownership before retrying. The
+blocked file/task pairs remain in the batch status record for recovery and
+audit. It persists state under `<git-common-dir>/openagent-owt/batches/`; do not
+edit those records by hand.
 
 The elected integration agent must send a heartbeat while it is merging and
 running combined checks. Refresh its lease with:
