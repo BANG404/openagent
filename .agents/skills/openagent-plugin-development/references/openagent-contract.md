@@ -186,10 +186,11 @@ never exposes provider payloads, Inspector data, or another plugin's token.
 
 Automation hooks receive the same authenticated bridge environment as MCP
 servers, plus `PLUGIN_ROOT` and `PLUGIN_DATA`. Hook stdin
-includes `conversation_id`, `run_id`, and `turn`, with optional `branch_id`,
-`parent_conv_id`, and `role_id` in its `event` object when the Runtime knows
-them. These are opaque routing IDs; hooks use the bridge for Agent operations
-and keep package state under `PLUGIN_DATA`.
+contains those routing fields inside an `event` object, for example
+`{ "hook_event_name": "stop", "cwd": "...", "event": { "conversation_id": "...", "branch_id": "...", "run_id": "...", "turn": 1 } }`.
+`parent_conv_id` and `role_id` may also appear when the Runtime knows them.
+These are opaque routing IDs; hooks use the bridge for Agent operations and
+keep package state under `PLUGIN_DATA`.
 
 The loader accepts a valid manifest even when one optional component is bad.
 Manifest errors reject the package; a bad `skills/`, `mcp.json`, automation
