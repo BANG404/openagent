@@ -152,6 +152,7 @@ function injectProbe(language) {
     checkLabel: catalog.pluginCheckUpdates,
     officialMarketplace: catalog.pluginOfficialMarketplace,
     officialHint: catalog.pluginOfficialMarketplaceHint,
+    officialStandard: catalog.pluginOfficialStandard,
     officialSearchPlaceholder: catalog.pluginOfficialSearchPlaceholder,
   };
   evaluate(`window.__pluginUpdateProbe = ${JSON.stringify(payload)}; true`);
@@ -472,9 +473,10 @@ function captureElement(theme, language, selector, fileSuffix) {
  * @param {"en" | "zh"} language
  */
 function captureSurface(theme, language) {
-  // The summary sits above the list, so the capture of the whole document is
-  // the settings surface a user reads the line in.
-  captureElement(theme, language, "body", "summary");
+  // The summary sits above the list, so capture the settings dialog a user
+  // reads the line in. Selecting the dialog avoids a WebView body-root capture
+  // event on Windows while preserving the complete settings surface.
+  captureElement(theme, language, '[role="dialog"]', "summary");
   // The card is the last row of a list the panel scrolls and is only explained
   // while it is expanded, so open it and capture the card itself.
   for (let attempt = 0; attempt < 3; attempt += 1) {

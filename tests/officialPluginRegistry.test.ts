@@ -95,6 +95,7 @@ describe("official plugin registry", () => {
   test.each([
     ["http://example.com/plugin", "source_url"],
     ["https://user:pass@example.com/plugin", "source_url"],
+    ["https://example.com/plugin?token=secret", "source_url"],
     ["https://example.com/plugin#fragment", "source_url"],
   ])("rejects unsafe %s", (sourceUrl, field) => {
     expect(() =>

@@ -90,9 +90,15 @@ function validateHttpsUrl(value: string, field: string, entryId: string): string
   } catch {
     throw new Error(`official plugin '${entryId}' has an invalid ${field} URL`);
   }
-  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.hash) {
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.username ||
+    parsed.password ||
+    parsed.search ||
+    parsed.hash
+  ) {
     throw new Error(
-      `official plugin '${entryId}' ${field} must use HTTPS without credentials or fragments`,
+      `official plugin '${entryId}' ${field} must use HTTPS without credentials, queries, or fragments`,
     );
   }
   return parsed.href;

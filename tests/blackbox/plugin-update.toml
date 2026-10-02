@@ -83,11 +83,32 @@ script = '''(async () => {
   }
   const cards = store.querySelectorAll(".official-plugin-card");
   if (cards.length < 4) throw new Error(`official marketplace rendered ${cards.length} cards`);
+  if (store.querySelector(".official-plugin-store-mark, .official-plugin-icon, img")) {
+    throw new Error("official marketplace rendered a decorative plugin image");
+  }
+  const tabs = [...store.querySelectorAll('[role="tab"]')];
+  if (tabs.length !== 3 || tabs.filter((tab) => tab.getAttribute("aria-selected") === "true").length !== 1) {
+    throw new Error("official marketplace filters are not exposed as a single selected tab");
+  }
+  if (!(store.textContent ?? "").includes(probe.officialStandard)) {
+    throw new Error("official marketplace did not identify the supported plugin standard");
+  }
   const search = store.querySelector("input[type=search]");
   if (!(search instanceof HTMLInputElement)) throw new Error("official marketplace search is missing");
   if (search.placeholder !== probe.officialSearchPlaceholder) {
     throw new Error("official marketplace search is not localized");
   }
+  const available = tabs.find((tab) => tab.getAttribute("data-filter") === "available") ?? tabs[1];
+  if (!(available instanceof HTMLElement)) throw new Error("official marketplace available filter is missing");
+  available.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  if ([...store.querySelectorAll(".official-plugin-card")].some((card) => card.getAttribute("data-installed") === "true")) {
+    throw new Error("official marketplace available filter still shows an installed plugin");
+  }
+  const all = tabs.find((tab) => tab.getAttribute("data-filter") === "all") ?? tabs[0];
+  if (!(all instanceof HTMLElement)) throw new Error("official marketplace all filter is missing");
+  all.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
   return `${cards.length} official cards`;
 })()'''
 

@@ -267,13 +267,21 @@
     </header>
     <section class="official-plugin-store" aria-label={$t("pluginOfficialMarketplace")}>
       <div class="official-plugin-store-hero">
-        <div class="official-plugin-store-mark" aria-hidden="true">✦</div>
         <div class="official-plugin-store-copy">
           <div class="official-plugin-store-title-row">
+            <span class="official-plugin-eyebrow">{$t("pluginOfficialBadge")}</span>
             <h4>{$t("pluginOfficialMarketplace")}</h4>
-            <span class="official-plugin-badge">{$t("pluginOfficialBadge")}</span>
           </div>
           <p>{$t("pluginOfficialMarketplaceHint")}</p>
+          <div class="official-plugin-store-summary">
+            <span>
+              {$t("pluginOfficialCatalogSummary").replace(
+                "{count}",
+                String(view.officialPluginCards.length),
+              )}
+            </span>
+            <span class="official-plugin-standard">{$t("pluginOfficialStandard")}</span>
+          </div>
         </div>
       </div>
       <div class="official-plugin-store-toolbar">
@@ -286,12 +294,25 @@
             bind:value={view.officialPluginQuery}
           />
         </label>
-        <div class="official-plugin-filters" role="group" aria-label={$t("pluginOfficialFilter")}>
+        {#if view.officialPluginQuery}
+          <button
+            type="button"
+            class="official-plugin-clear"
+            onclick={() => (view.officialPluginQuery = "")}
+          >
+            {$t("pluginOfficialClearSearch")}
+          </button>
+        {/if}
+        <div class="official-plugin-filters" role="tablist" aria-label={$t("pluginOfficialFilter")}>
           {#each [["all", "pluginOfficialFilterAll"], ["available", "pluginOfficialFilterAvailable"], ["installed", "pluginOfficialFilterInstalled"]] as filter (filter[0])}
             <button
               type="button"
+              role="tab"
               class:active={view.officialPluginFilter === filter[0]}
               class="official-plugin-filter"
+              data-filter={filter[0]}
+              aria-selected={view.officialPluginFilter === filter[0]}
+              tabindex={view.officialPluginFilter === filter[0] ? 0 : -1}
               onclick={() => (view.officialPluginFilter = filter[0])}
             >
               {$t(filter[1] as TranslationKeys)}
@@ -300,36 +321,42 @@
         </div>
       </div>
       {#if view.officialPluginStatus}
-        <div class="provider-status {view.officialPluginStatus.tone}">
+        <div
+          class="provider-status {view.officialPluginStatus.tone}"
+          role="status"
+          aria-live="polite"
+        >
           {view.officialPluginStatus.message}
         </div>
       {/if}
       {#if view.officialPluginCards.length > 0}
         <div class="official-plugin-grid">
           {#each view.officialPluginCards as plugin (plugin.id)}
-            <article class="official-plugin-card">
+            <article
+              class="official-plugin-card"
+              data-installed={plugin.installed ? "true" : "false"}
+            >
               <div class="official-plugin-card-heading">
-                <div class="official-plugin-icon" aria-hidden="true">
-                  {plugin.displayName.slice(0, 1).toUpperCase()}
-                </div>
                 <div class="official-plugin-card-copy">
-                  <h5>{plugin.displayName}</h5>
+                  <div class="official-plugin-card-title-row">
+                    <h5>{plugin.displayName}</h5>
+                    {#if plugin.installed}
+                      <span
+                        class:official-plugin-update={plugin.updateAvailable}
+                        class="official-plugin-state"
+                      >
+                        {plugin.updateAvailable
+                          ? $t("pluginUpdateAvailable")
+                          : $t("pluginMarketplaceInstalled")}
+                      </span>
+                    {:else}
+                      <span class="official-plugin-state available"
+                        >{$t("pluginOfficialAvailable")}</span
+                      >
+                    {/if}
+                  </div>
                   <span class="detail-hint">{plugin.id}</span>
                 </div>
-                {#if plugin.installed}
-                  <span
-                    class:official-plugin-update={plugin.updateAvailable}
-                    class="official-plugin-state"
-                  >
-                    {plugin.updateAvailable
-                      ? $t("pluginUpdateAvailable")
-                      : $t("pluginMarketplaceInstalled")}
-                  </span>
-                {:else}
-                  <span class="official-plugin-state available"
-                    >{$t("pluginOfficialAvailable")}</span
-                  >
-                {/if}
               </div>
               {#if plugin.description}
                 <p class="official-plugin-description">{plugin.description}</p>
@@ -347,6 +374,7 @@
                     {$t("pluginOfficialVersionUnknown")}
                   {/if}
                 </span>
+                <span class="official-plugin-standard">{$t("pluginOfficialStandard")}</span>
                 <a href={plugin.homepage ?? plugin.repository} target="_blank" rel="noreferrer">
                   {$t("pluginOfficialSource")}
                 </a>
@@ -397,7 +425,10 @@
       </label>
     </div>
     <div class="plugin-directory-heading">
-      <span class="plugin-directory-count">{view.agentPlugins.length}</span>
+      <div class="plugin-directory-title">
+        <span class="label-text">{$t("pluginInstalledPlugins")}</span>
+        <span class="plugin-directory-count">{view.agentPlugins.length}</span>
+      </div>
       <div class="plugin-directory-actions">
         <SettingsActionButton
           label={$t("pluginInstall")}

@@ -48,7 +48,15 @@ const CREDENTIAL_NAMES = [
   "AWS_WEB_IDENTITY_TOKEN_FILE",
 ];
 const CREDENTIAL_PREFIXES = ["ANTHROPIC_", "OPENAI_", "OPENAGENT_"];
-const RETAINED_NAMES = ["OPENAGENT_HOME"];
+// The Runtime intentionally injects these Host Bridge capabilities into every
+// enabled plugin process. They are authenticated, capability-specific values,
+// so their presence is expected and does not represent host credential leakage.
+const RETAINED_NAMES = [
+  "OPENAGENT_HOME",
+  "OPENAGENT_PLUGIN_HOST_URL",
+  "OPENAGENT_PLUGIN_HOST_TOKEN",
+  "OPENAGENT_PLUGIN_ID",
+];
 
 function survivingCredentialNames() {
   return Object.keys(process.env)
