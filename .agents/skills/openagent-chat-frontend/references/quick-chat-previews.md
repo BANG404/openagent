@@ -303,6 +303,9 @@
   plugin enable switch plus Cua connection testing and per-tool scope switches.
   Permission mode, socket, grants, and manifest are fixed product policy rather
   than user settings, so never render them as editable fields again. The
+  Runtime-owned Multi-Agent V2 capability is intentionally absent from this
+  surface; its `multi_agent_v2.enabled` switch belongs to Runtime configuration
+  and must not be presented as plugin enablement.
   reserved `cua-driver` command is resolved from the installed package when MCP
   servers are mounted, and the package's launcher provisions the driver it runs
   into that package's own data directory, so no build ships a Cua executable for
