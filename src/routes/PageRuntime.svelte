@@ -96,8 +96,10 @@
   import {
     conversationDetailsAvailable,
     checkpointFlowPanelKey,
+    liveCheckpointRefreshDecision,
     shouldAutoOpenCheckpointFlowPanel,
     updateLiveCheckpointFlowProjection,
+    type LiveCheckpointRefreshGuard,
     type LiveCheckpointFlowProjection,
   } from "$lib/checkpointFlow";
   import {
@@ -339,7 +341,13 @@
   let pendingCheckpointIds = $state<Record<string, string>>({});
   // A checkpoint event is emitted only after its durable snapshot exists. Keep
   // Goal/Graph projection current without hydrating partial transcript records.
+  // Refreshes are scoped to the same conversation-plus-branch key as live
+  // package projections. A Goal/Graph event from one sibling must not cancel a
+  // refresh or clear an overlay belonging to another sibling.
   const liveCheckpointRefreshVersions = new Map<string, number>();
+  // Incremented when the user starts selecting a different branch. An in-flight
+  // refresh then cannot select the old event's tip after the switch completes.
+  const branchSelectionVersions = new Map<string, number>();
   const pendingExternalUserRecoveries = new Set<string>();
   // Goal tools and Graph reducers mutate the canonical in-memory checkpoint
   // before that snapshot becomes durable. Render their complete event projection
@@ -1007,17 +1015,31 @@
     branchIdHint?: string | null,
   ): Promise<void> {
     if (!tauriAvailable) return;
-    const version = (liveCheckpointRefreshVersions.get(convId) ?? 0) + 1;
-    liveCheckpointRefreshVersions.set(convId, version);
+    const branchId =
+      branchIdHint === undefined ? (activeBranchIds[convId] ?? null) : branchIdHint;
+    const scopeKey = conversationBranchScopeKey(convId, branchId);
+    const version = (liveCheckpointRefreshVersions.get(scopeKey) ?? 0) + 1;
+    liveCheckpointRefreshVersions.set(scopeKey, version);
+    const guard: LiveCheckpointRefreshGuard = {
+      refreshVersion: version,
+      branchSelectionVersion: branchSelectionVersions.get(convId) ?? 0,
+      flowVersion: liveCheckpointFlowProjections[scopeKey]?.version ?? 0,
+    };
     try {
       const checkpoints = await fetchRenderableCheckpoints(convId);
-      if (liveCheckpointRefreshVersions.get(convId) !== version) return;
+      const currentGuard: LiveCheckpointRefreshGuard = {
+        refreshVersion: liveCheckpointRefreshVersions.get(scopeKey) ?? 0,
+        branchSelectionVersion: branchSelectionVersions.get(convId) ?? 0,
+        flowVersion: liveCheckpointFlowProjections[scopeKey]?.version ?? 0,
+      };
+      const decision = liveCheckpointRefreshDecision(guard, currentGuard);
+      if (!decision.applyDurableTip) return;
+      // The event may belong to an inactive sibling. Keep its durable state in
+      // storage and let the next branch activation load it; never move the
+      // selected path while the user is looking at another branch.
+      if ((activeBranchIds[convId] ?? null) !== branchId) return;
       const checkpoint = checkpoints.find((item) => item.meta.checkpoint_id === checkpointId);
       if (!checkpoint) return;
-      const branchId =
-        branchIdHint === undefined ? (activeBranchIds[convId] ?? null) : branchIdHint;
-      const scopeKey = conversationBranchScopeKey(convId, branchId);
-      const flowVersion = liveCheckpointFlowProjections[scopeKey]?.version ?? 0;
       convTrees = {
         ...convTrees,
         [convId]: reconcileLiveCheckpointTip(checkpoints, convTrees[convId], checkpointId),
@@ -1028,12 +1050,12 @@
         fileChangesPerConv[convId] ?? [],
         new Set(liveChanges.map((change) => change.id)),
       );
-      if ((liveCheckpointFlowProjections[scopeKey]?.version ?? 0) === flowVersion) {
+      if (decision.clearLiveProjection) {
         const { [scopeKey]: _durableFlow, ...rest } = liveCheckpointFlowProjections;
         liveCheckpointFlowProjections = rest;
       }
     } catch (error) {
-      if (liveCheckpointRefreshVersions.get(convId) === version) {
+      if (liveCheckpointRefreshVersions.get(scopeKey) === version) {
         console.error(`Failed to refresh live checkpoint ${checkpointId}:`, error);
       }
     }
@@ -1078,6 +1100,12 @@
     const nextActiveBranchIds = { ...activeBranchIds };
     if (activeBranch) nextActiveBranchIds[convId] = activeBranch.id;
     else delete nextActiveBranchIds[convId];
+    if ((activeBranchIds[convId] ?? null) !== (nextActiveBranchIds[convId] ?? null)) {
+      branchSelectionVersions.set(
+        convId,
+        (branchSelectionVersions.get(convId) ?? 0) + 1,
+      );
+    }
     activeBranchIds = nextActiveBranchIds;
     convTrees = { ...convTrees, [convId]: tree };
     const liveChanges = liveFileChangesPerConv[convId] ?? [];
@@ -1785,6 +1813,14 @@
     if (targetIdx < 0 || targetIdx >= siblings.length) return;
     const convIdx = conversations.findIndex((c) => c.id === convId);
     if (convIdx === -1) return;
+
+    // Invalidate any checkpoint refresh that was started for the old selected
+    // path before the branch switch performs its asynchronous file/runtime
+    // work. The old event must not reselect its tip when that work completes.
+    branchSelectionVersions.set(
+      convId,
+      (branchSelectionVersions.get(convId) ?? 0) + 1,
+    );
 
     const override = { ...tree.activeChild, [parentKey]: targetIdx };
     const updatedTree: ConvTree = { ...tree, activeChild: override };
@@ -3242,6 +3278,9 @@
     register<PluginFlowUpdatedEvent>("plugin-flow-updated", (e) => {
       const { conv_id, flow_id, status } = e.payload;
       applyLiveCheckpointFlow(conv_id, e.payload);
+      const eventBranchId = e.payload.branch_id ?? null;
+      const activeBranchId = activeBranchIds[conv_id] ?? null;
+      if (eventBranchId !== activeBranchId) return;
       const idx = conversations.findIndex((c) => c.id === conv_id);
       if (idx !== -1) {
         conversations[idx] = {
@@ -5441,15 +5480,24 @@
   let slashCommands = $derived.by<SlashCommand[]>(() => {
     const seen = new Set<string>();
     return agentCommandSpecs.flatMap((spec) => {
-      if (seen.has(spec.name)) return [];
-      seen.add(spec.name);
+      // A package whose command id equals its package id has two valid routes
+      // (`/goal` and `/goal:goal`) but one catalog entry. Keep the short alias
+      // as the visible command even if a stale Runtime catalog still returns
+      // both spellings during a live settings refresh.
+      const catalogKey =
+        spec.plugin_id && spec.name === `${spec.plugin_id}:${spec.plugin_id}`
+          ? spec.plugin_id
+          : spec.name;
+      if (seen.has(catalogKey)) return [];
+      seen.add(catalogKey);
       const run = slashCommandRun(spec.name);
-      const insertText = spec.plugin_id ? `/${spec.name}` : undefined;
+      const commandName = catalogKey;
+      const insertText = spec.plugin_id ? `/${commandName}` : undefined;
       if (!run && !insertText) return [];
       return [
         {
-          id: spec.name,
-          name: spec.name,
+          id: commandName,
+          name: commandName,
           label: spec.label ?? $t(spec.label_key as TranslationKeys),
           description: spec.description ?? $t(spec.description_key as TranslationKeys),
           insertText,

@@ -7,6 +7,11 @@ import { previewParameterPrefix, resolveStandaloneDevPreview } from "../src/lib/
 const previewSource = readFileSync("src/lib/components/StandaloneDevPreview.svelte", "utf8");
 
 describe("standalone development previews", () => {
+  test("does not advertise Runtime-owned Goal or Graph slash commands", () => {
+    expect(previewSource).not.toContain('id: "goal"');
+    expect(previewSource).not.toContain('id: "graph"');
+  });
+
   test("resolves the approval queue preview only during development", () => {
     const query = new URLSearchParams("approval-queue-preview");
     expect(resolveStandaloneDevPreview(query, true)).toBe("approval-queue");

@@ -61,6 +61,39 @@ export interface LiveCheckpointFlowProjection {
   version: number;
 }
 
+export interface LiveCheckpointRefreshGuard {
+  refreshVersion: number;
+  branchSelectionVersion: number;
+  flowVersion: number;
+}
+
+export interface LiveCheckpointRefreshDecision {
+  applyDurableTip: boolean;
+  clearLiveProjection: boolean;
+}
+
+/**
+ * Decide whether an asynchronous durable refresh still owns the branch it
+ * started for. A newer refresh supersedes the old one; a branch switch makes
+ * its selected tip stale; and a newer live package event must remain on top of
+ * the durable snapshot that the refresh read.
+ */
+export function liveCheckpointRefreshDecision(
+  captured: LiveCheckpointRefreshGuard,
+  current: LiveCheckpointRefreshGuard,
+): LiveCheckpointRefreshDecision {
+  if (
+    captured.refreshVersion !== current.refreshVersion ||
+    captured.branchSelectionVersion !== current.branchSelectionVersion
+  ) {
+    return { applyDurableTip: false, clearLiveProjection: false };
+  }
+  return {
+    applyDurableTip: true,
+    clearLiveProjection: captured.flowVersion === current.flowVersion,
+  };
+}
+
 export function conversationDetailsAvailable(
   flow: CheckpointFlow | null | undefined,
   fileChangeCount: number,

@@ -5,6 +5,7 @@ import {
   conversationDetailsAvailable,
   checkpointFlowProgress,
   checkpointGraphLayers,
+  liveCheckpointRefreshDecision,
   normalizeCheckpointFlow,
   updateLiveCheckpointFlowProjection,
 } from "../src/lib/checkpointFlow";
@@ -320,6 +321,24 @@ describe("checkpoint Goal and Graph state", () => {
         status: "running",
       }),
     ).toBe(second);
+  });
+
+  test("keeps a newer branch projection above an older durable refresh", () => {
+    expect(
+      liveCheckpointRefreshDecision(
+        { refreshVersion: 1, branchSelectionVersion: 4, flowVersion: 1 },
+        { refreshVersion: 1, branchSelectionVersion: 4, flowVersion: 2 },
+      ),
+    ).toEqual({ applyDurableTip: true, clearLiveProjection: false });
+  });
+
+  test("abandons a refresh after a sibling branch is selected", () => {
+    expect(
+      liveCheckpointRefreshDecision(
+        { refreshVersion: 1, branchSelectionVersion: 4, flowVersion: 1 },
+        { refreshVersion: 1, branchSelectionVersion: 5, flowVersion: 1 },
+      ),
+    ).toEqual({ applyDurableTip: false, clearLiveProjection: false });
   });
 });
 

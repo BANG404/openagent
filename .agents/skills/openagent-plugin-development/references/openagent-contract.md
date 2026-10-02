@@ -116,6 +116,8 @@ capability module, not a builtin-specific adapter. Its stable operations are:
 - `conversation.create`, `conversation.state`, `conversation.children`,
   `conversation.update`, `conversation.cancel`, and `conversation.delete`;
 - `branch.create`, `branch.list`, `branch.head.set`, and `branch.active.set`;
+- `conversation.flow.set` for explicitly persisting an opaque package
+  projection on a selected conversation branch;
 - `agent.submit` and `agent.wake` (the explicit wake-up spelling of the same
   agent submission boundary);
 - `roles.list`; and
@@ -159,6 +161,14 @@ fields form the stable bridge contract (all IDs are strings):
   branch.
 - `branch.list`: `conv_id`; `branch.head.set`: `branch_id` and
   `checkpoint_id`; `branch.active.set`: `conv_id` and `checkpoint_id`.
+- `conversation.flow.set`: `conv_id`, `branch_id`, and a package projection
+  with `{ "kind": "plugin", "state": { "plugin_id": "<authenticated-plugin>", ... } }`.
+  The host stores the projection on the selected branch's current checkpoint
+  when the branch is idle (creating the branch's first empty checkpoint when
+  needed). If the branch is running, it merges the projection into that run's
+  snapshot so the final message checkpoint persists it atomically. The
+  operation never interprets package fields or changes a sibling branch's
+  active tip.
 - `agent.submit` and `agent.wake`: either the request fields at the top level
   or under `request`: `conv_id`, `text`, optional `parent_checkpoint_id`,
   `branch_id`, `attachments`, `contexts`, `model_binding`,

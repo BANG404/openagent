@@ -766,22 +766,6 @@
       description: "Compact context",
       run: () => {},
     },
-    {
-      id: "goal",
-      name: "goal",
-      label: "/goal",
-      description: "Create a goal",
-      insertText: "/goal",
-      run: () => {},
-    },
-    {
-      id: "graph",
-      name: "graph",
-      label: "/graph",
-      description: "Create a graph",
-      insertText: "/graph",
-      run: () => {},
-    },
   ];
 
   const workspace: WorkspaceContext = {
