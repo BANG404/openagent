@@ -4,6 +4,7 @@ import {
   fetchOfficialPluginRegistry,
   findOfficialPlugin,
   parseOfficialPluginRegistry,
+  projectOfficialPluginCatalog,
   toOfficialMarketplaceDocument,
 } from "../src/lib/officialPluginRegistry";
 
@@ -49,6 +50,46 @@ describe("official plugin registry", () => {
         },
       ],
     });
+  });
+
+  test("projects install state, updates, search, and filters for the store", () => {
+    const registry = parseOfficialPluginRegistry({
+      schema_version: 1,
+      plugins: [
+        {
+          id: "alpha-plugin",
+          display_name: "Alpha",
+          description: "A workspace helper",
+          repository: "https://example.com/alpha",
+          source_url: "https://example.com/alpha.git",
+          version: "1.2.0",
+        },
+        {
+          id: "beta-plugin",
+          display_name: "Beta",
+          description: "A graph helper",
+          repository: "https://example.com/beta",
+          source_url: "https://example.com/beta.git",
+          version: "2.0.0",
+        },
+      ],
+    });
+    const installed = new Map([["alpha-plugin", "1.0.0"]]);
+    const all = projectOfficialPluginCatalog(registry, {
+      installed,
+      updates: new Set(["alpha-plugin"]),
+    });
+    expect(all.map((entry) => [entry.id, entry.installed, entry.updateAvailable])).toEqual([
+      ["alpha-plugin", true, true],
+      ["beta-plugin", false, false],
+    ]);
+    expect(
+      projectOfficialPluginCatalog(registry, {
+        installed,
+        query: "graph",
+        filter: "available",
+      }).map((entry) => entry.id),
+    ).toEqual(["beta-plugin"]);
   });
 
   test.each([

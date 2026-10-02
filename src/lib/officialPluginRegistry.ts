@@ -47,6 +47,14 @@ export interface OfficialMarketplaceDocument {
   }>;
 }
 
+export type OfficialPluginCatalogFilter = "all" | "installed" | "available";
+
+export interface OfficialPluginCatalogItem extends OfficialPluginRegistryEntry {
+  installed: boolean;
+  currentVersion: string | null;
+  updateAvailable: boolean;
+}
+
 export const OFFICIAL_PLUGIN_REGISTRY_MAX_BYTES = 2 * 1024 * 1024;
 export const OFFICIAL_PLUGIN_REGISTRY_TIMEOUT_MS = 8_000;
 
@@ -160,6 +168,43 @@ export function findOfficialPlugin(
   id: string,
 ): OfficialPluginRegistryEntry | undefined {
   return registry.plugins.find((plugin) => plugin.id === id);
+}
+
+/**
+ * Project registry entries into the view model used by the plugin store.
+ * Keeping this projection pure makes filtering deterministic and prevents the
+ * settings surface from having to know the registry's wire format.
+ */
+export function projectOfficialPluginCatalog(
+  registry: OfficialPluginRegistry,
+  options: {
+    installed: ReadonlyMap<string, string | null>;
+    updates?: ReadonlySet<string>;
+    query?: string;
+    filter?: OfficialPluginCatalogFilter;
+  },
+): OfficialPluginCatalogItem[] {
+  const query = options.query?.trim().toLocaleLowerCase() ?? "";
+  const filter = options.filter ?? "all";
+  const updates = options.updates ?? new Set<string>();
+  return registry.plugins
+    .map((plugin) => {
+      const currentVersion = options.installed.get(plugin.id) ?? null;
+      return {
+        ...plugin,
+        installed: options.installed.has(plugin.id),
+        currentVersion,
+        updateAvailable: updates.has(plugin.id),
+      };
+    })
+    .filter((plugin) => {
+      if (filter === "installed" && !plugin.installed) return false;
+      if (filter === "available" && plugin.installed) return false;
+      if (!query) return true;
+      return [plugin.id, plugin.displayName, plugin.description]
+        .filter(Boolean)
+        .some((value) => value!.toLocaleLowerCase().includes(query));
+    });
 }
 
 /**

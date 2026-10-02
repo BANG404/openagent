@@ -19,6 +19,22 @@ endpoint without exposing a GitHub token to the client. When archive digests are
 published, the Runtime installer integration must verify them before activation;
 the current projection preserves the field for that adapter.
 
+The Settings Plugins surface projects the bundled registry into the official
+plugin marketplace. Search and availability filters are pure client-side
+projections, while installation crosses the `install_official_agent_plugin`
+Tauri boundary. The thin host adapter writes a one-entry temporary marketplace
+under the supported personal marketplace root and delegates to the existing
+Runtime marketplace installer; it removes the temporary document after staging.
+It validates the plugin identifier and public HTTPS source before invoking the
+Runtime. This keeps source addresses visible in the store without teaching the
+frontend how to copy, validate, or activate a package.
+
+The GitHub token remains an optional credential for the legacy GitHub release
+metadata checker. It is not attached to official registry requests or official
+marketplace installation requests. A registry source must therefore be a
+credential-free HTTPS URL without a query or fragment when it reaches the host
+adapter, matching the Runtime marketplace URL boundary.
+
 Update the bundled catalog and this contract together when an official plugin is
 published, renamed, withdrawn, or moved. Keep private provider credentials out
 of the registry. Focused coverage lives in `tests/officialPluginRegistry.test.ts`.

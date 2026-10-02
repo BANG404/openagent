@@ -73,6 +73,13 @@
     type AgentPluginUpdateCheckOutcome,
     type AgentPluginUpdateFailure,
   } from "$lib/agentPluginUpdateCheck";
+  import {
+    BUNDLED_OFFICIAL_PLUGIN_REGISTRY,
+    projectOfficialPluginCatalog,
+    type OfficialPluginCatalogFilter,
+    type OfficialPluginCatalogItem,
+    type OfficialPluginRegistryEntry,
+  } from "$lib/officialPluginRegistry";
   import type { SettingsNav } from "$lib/settingsWindows";
   import {
     pluginSidebarLifecycle,
@@ -283,6 +290,23 @@
     tone: "success" | "error";
     message: string;
   } | null>(null);
+  let officialPluginQuery = $state("");
+  let officialPluginFilter = $state<OfficialPluginCatalogFilter>("all");
+  let officialPluginInstalling = $state<string | null>(null);
+  let officialPluginStatus = $state<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
+  const officialPluginCards = $derived.by<OfficialPluginCatalogItem[]>(() =>
+    projectOfficialPluginCatalog(BUNDLED_OFFICIAL_PLUGIN_REGISTRY, {
+      installed: new Map(agentPlugins.map((plugin) => [plugin.id, plugin.version])),
+      updates: new Set(
+        agentPluginUpdates.filter((update) => update.update_available).map((update) => update.id),
+      ),
+      query: officialPluginQuery,
+      filter: officialPluginFilter,
+    }),
+  );
   let mcpDiscoveredTools = $state<Record<string, string[]>>(
     isMcpSettingsPreview
       ? {
@@ -2114,6 +2138,30 @@
     }
   }
 
+  async function installOfficialAgentPlugin(plugin: OfficialPluginRegistryEntry): Promise<void> {
+    if (!isTauri() || agentPluginsLoading || officialPluginInstalling) return;
+    officialPluginInstalling = plugin.id;
+    officialPluginStatus = null;
+    agentPluginStatus = "";
+    try {
+      await invoke("install_official_agent_plugin", {
+        plugin_id: plugin.id,
+        display_name: plugin.displayName,
+        source_url: plugin.sourceUrl,
+      });
+      await refreshAgentPlugins();
+      await emit("agent-plugins-changed").catch(() => {});
+      officialPluginStatus = { tone: "success", message: tr("pluginInstalled") };
+    } catch (error: unknown) {
+      officialPluginStatus = {
+        tone: "error",
+        message: `${tr("pluginOperationFailed")}: ${String(error)}`,
+      };
+    } finally {
+      officialPluginInstalling = null;
+    }
+  }
+
   async function exportMemory() {
     if (!memoryScopeAvailable()) {
       memoryStatus = tr("memoryNoWorkspace");
@@ -2262,6 +2310,27 @@
     get agentPluginMarketplaces() {
       return agentPluginMarketplaces;
     },
+    get officialPluginCards() {
+      return officialPluginCards;
+    },
+    get officialPluginQuery() {
+      return officialPluginQuery;
+    },
+    set officialPluginQuery(value: string) {
+      officialPluginQuery = value;
+    },
+    get officialPluginFilter() {
+      return officialPluginFilter;
+    },
+    set officialPluginFilter(value: OfficialPluginCatalogFilter) {
+      officialPluginFilter = value;
+    },
+    get officialPluginInstalling() {
+      return officialPluginInstalling;
+    },
+    get officialPluginStatus() {
+      return officialPluginStatus;
+    },
     get agentPluginsLoading() {
       return agentPluginsLoading;
     },
@@ -2313,6 +2382,9 @@
     },
     get installMarketplaceAgentPlugin() {
       return installMarketplaceAgentPlugin;
+    },
+    get installOfficialAgentPlugin() {
+      return installOfficialAgentPlugin;
     },
     get updateAgentPlugin() {
       return updateAgentPlugin;

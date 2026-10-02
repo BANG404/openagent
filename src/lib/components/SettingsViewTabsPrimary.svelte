@@ -265,6 +265,123 @@
     <header class="agents-settings-intro">
       <h3>{$t("plugins")}</h3>
     </header>
+    <section class="official-plugin-store" aria-label={$t("pluginOfficialMarketplace")}>
+      <div class="official-plugin-store-hero">
+        <div class="official-plugin-store-mark" aria-hidden="true">✦</div>
+        <div class="official-plugin-store-copy">
+          <div class="official-plugin-store-title-row">
+            <h4>{$t("pluginOfficialMarketplace")}</h4>
+            <span class="official-plugin-badge">{$t("pluginOfficialBadge")}</span>
+          </div>
+          <p>{$t("pluginOfficialMarketplaceHint")}</p>
+        </div>
+      </div>
+      <div class="official-plugin-store-toolbar">
+        <label class="official-plugin-search">
+          <span class="sr-only">{$t("pluginOfficialSearch")}</span>
+          <input
+            class="detail-input"
+            type="search"
+            placeholder={$t("pluginOfficialSearchPlaceholder")}
+            bind:value={view.officialPluginQuery}
+          />
+        </label>
+        <div class="official-plugin-filters" role="group" aria-label={$t("pluginOfficialFilter")}>
+          {#each [["all", "pluginOfficialFilterAll"], ["available", "pluginOfficialFilterAvailable"], ["installed", "pluginOfficialFilterInstalled"]] as filter (filter[0])}
+            <button
+              type="button"
+              class:active={view.officialPluginFilter === filter[0]}
+              class="official-plugin-filter"
+              onclick={() => (view.officialPluginFilter = filter[0])}
+            >
+              {$t(filter[1] as TranslationKeys)}
+            </button>
+          {/each}
+        </div>
+      </div>
+      {#if view.officialPluginStatus}
+        <div class="provider-status {view.officialPluginStatus.tone}">
+          {view.officialPluginStatus.message}
+        </div>
+      {/if}
+      {#if view.officialPluginCards.length > 0}
+        <div class="official-plugin-grid">
+          {#each view.officialPluginCards as plugin (plugin.id)}
+            <article class="official-plugin-card">
+              <div class="official-plugin-card-heading">
+                <div class="official-plugin-icon" aria-hidden="true">
+                  {plugin.displayName.slice(0, 1).toUpperCase()}
+                </div>
+                <div class="official-plugin-card-copy">
+                  <h5>{plugin.displayName}</h5>
+                  <span class="detail-hint">{plugin.id}</span>
+                </div>
+                {#if plugin.installed}
+                  <span
+                    class:official-plugin-update={plugin.updateAvailable}
+                    class="official-plugin-state"
+                  >
+                    {plugin.updateAvailable
+                      ? $t("pluginUpdateAvailable")
+                      : $t("pluginMarketplaceInstalled")}
+                  </span>
+                {:else}
+                  <span class="official-plugin-state available"
+                    >{$t("pluginOfficialAvailable")}</span
+                  >
+                {/if}
+              </div>
+              {#if plugin.description}
+                <p class="official-plugin-description">{plugin.description}</p>
+              {/if}
+              <div class="official-plugin-meta">
+                <span>
+                  {#if plugin.installed && plugin.currentVersion}
+                    {$t("pluginOfficialInstalledVersion").replace(
+                      "{version}",
+                      plugin.currentVersion,
+                    )}
+                  {:else if plugin.version}
+                    {$t("pluginOfficialVersion").replace("{version}", plugin.version)}
+                  {:else}
+                    {$t("pluginOfficialVersionUnknown")}
+                  {/if}
+                </span>
+                <a href={plugin.homepage ?? plugin.repository} target="_blank" rel="noreferrer">
+                  {$t("pluginOfficialSource")}
+                </a>
+              </div>
+              <div class="official-plugin-card-actions">
+                {#if plugin.installed && plugin.updateAvailable}
+                  <SettingsActionButton
+                    label={$t("pluginUpdate")}
+                    icon="download"
+                    tone="primary"
+                    onclick={() => view.updateAgentPlugin(plugin.id)}
+                    disabled={view.agentPluginUpdating !== null}
+                  />
+                {:else if plugin.installed}
+                  <span class="official-plugin-installed-copy">{$t("pluginOfficialInstalled")}</span
+                  >
+                {:else}
+                  <SettingsActionButton
+                    label={view.officialPluginInstalling === plugin.id
+                      ? $t("pluginOfficialInstalling")
+                      : $t("pluginMarketplaceInstall")}
+                    icon="download"
+                    tone="primary"
+                    onclick={() => view.installOfficialAgentPlugin(plugin)}
+                    disabled={view.officialPluginInstalling !== null || view.agentPluginsLoading}
+                  />
+                {/if}
+              </div>
+            </article>
+          {/each}
+        </div>
+      {:else}
+        <div class="official-plugin-empty">{$t("pluginOfficialEmpty")}</div>
+      {/if}
+    </section>
     <div class="application-settings-surface plugin-token-card">
       <label class="settings-card-row">
         <span class="settings-card-copy">
@@ -389,9 +506,7 @@
           <Accordion.Header class="plugin-accordion-header">
             <Accordion.Trigger class="plugin-accordion-trigger">
               <span class="plugin-accordion-copy">
-                <span class="label-text"
-                  >{plugin.name}</span
-                >
+                <span class="label-text">{plugin.name}</span>
                 <span class="detail-hint"
                   >{plugin.id === desktopControlPluginId
                     ? $t("pluginDesktopControlDescription")

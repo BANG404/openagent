@@ -68,6 +68,30 @@ script = '''(async () => {
 })()'''
 
 [[step]]
+name = "the official plugin marketplace renders the public catalog"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__pluginUpdateProbe;
+  const store = document.querySelector(".official-plugin-store");
+  if (!(store instanceof HTMLElement)) throw new Error("official plugin marketplace is missing");
+  const title = store.querySelector("h4");
+  if ((title?.textContent ?? "").trim() !== probe.officialMarketplace) {
+    throw new Error(`official marketplace title is ${JSON.stringify(title?.textContent ?? "")}`);
+  }
+  if (!(store.textContent ?? "").includes(probe.officialHint)) {
+    throw new Error("official marketplace did not explain its credential-free source");
+  }
+  const cards = store.querySelectorAll(".official-plugin-card");
+  if (cards.length < 4) throw new Error(`official marketplace rendered ${cards.length} cards`);
+  const search = store.querySelector("input[type=search]");
+  if (!(search instanceof HTMLInputElement)) throw new Error("official marketplace search is missing");
+  if (search.placeholder !== probe.officialSearchPlaceholder) {
+    throw new Error("official marketplace search is not localized");
+  }
+  return `${cards.length} official cards`;
+})()'''
+
+[[step]]
 name = "the update summary names the plugin and the reason it gave"
 action = "eval"
 script = '''(async () => {
