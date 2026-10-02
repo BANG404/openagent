@@ -1,6 +1,6 @@
 // @ts-nocheck -- legacy fixture typing is tracked separately from the strict test surface.
 import { describe, expect, test } from "bun:test";
-import { buildPreflightCommands } from "../scripts/preflight.mjs";
+import { buildPreflightCommands, selectPreflightBase } from "../scripts/preflight.mjs";
 
 const nothing = {
   automation: false,
@@ -15,6 +15,20 @@ function commandIds(modules) {
 }
 
 describe("local preflight plan", () => {
+  test("uses the local default branch for OWT branches", () => {
+    expect(selectPreflightBase({ currentBranch: "agent/feature" })).toBe("master");
+    expect(selectPreflightBase({ currentBranch: "master" })).toBe("origin/master");
+  });
+
+  test("preserves an explicit task or CI baseline", () => {
+    expect(
+      selectPreflightBase({
+        explicitBase: "abc123",
+        currentBranch: "agent/feature",
+      }),
+    ).toBe("abc123");
+  });
+
   test("keeps documentation-only changes to the universal guards", () => {
     expect(commandIds({})).toEqual([]);
   });

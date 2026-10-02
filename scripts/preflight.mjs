@@ -52,6 +52,28 @@ export function collectPreflightChanges(baseRef) {
 }
 
 /**
+ * Select the local baseline used by preflight when the caller did not provide
+ * one explicitly. OWT task and integration branches are based on the local
+ * default branch, which may contain unpublished commits that are not present
+ * in origin/master yet. Comparing those branches with origin/master would
+ * rerun every check for the entire unpublished stack.
+ *
+ * @param {{ explicitBase?: string; currentBranch?: string; localDefaultBranch?: string }} options
+ */
+export function selectPreflightBase({
+  explicitBase = "",
+  currentBranch = "",
+  localDefaultBranch = "master",
+} = {}) {
+  const requested = explicitBase.trim();
+  if (requested) return requested;
+  if (currentBranch.startsWith("agent/") && localDefaultBranch.trim()) {
+    return localDefaultBranch.trim();
+  }
+  return "origin/master";
+}
+
+/**
  * @param {ReturnType<typeof classifyChangedModules>} modules
  */
 export function buildPreflightCommands(modules) {
@@ -114,7 +136,7 @@ export function buildPreflightCommands(modules) {
 
 function parseArguments() {
   const args = process.argv.slice(2);
-  let baseRef = process.env.PREFLIGHT_BASE?.trim() || "origin/master";
+  let explicitBase = process.env.PREFLIGHT_BASE?.trim() || "";
   let dryRun = false;
   let all = false;
 
@@ -125,14 +147,26 @@ function parseArguments() {
     } else if (argument === "--all") {
       all = true;
     } else if (argument === "--base" && args[index + 1]) {
-      baseRef = args[index + 1];
+      explicitBase = args[index + 1];
       index += 1;
     } else {
       throw new Error(`Unknown or incomplete argument: ${argument}`);
     }
   }
 
-  return { baseRef, dryRun, all };
+  let currentBranch = "";
+  try {
+    currentBranch = execFileSync("git", ["branch", "--show-current"], {
+      encoding: "utf8",
+    }).trim();
+  } catch {
+    // Keep the remote fallback when Git cannot report a branch.
+  }
+  return {
+    baseRef: selectPreflightBase({ explicitBase, currentBranch }),
+    dryRun,
+    all,
+  };
 }
 
 function main() {

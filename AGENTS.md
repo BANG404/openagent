@@ -63,8 +63,11 @@ cd src-tauri && cargo check
 
 Before committing, inspect the complete diff, stage intended new files, and run
 `bun run preflight`. It evaluates the branch, index, worktree, and untracked
-filenames against `origin/master`. Use `--dry-run` to inspect its plan and
-`--base <ref>` only when the target is not `master`.
+filenames against the selected baseline. Direct work on `master` uses
+`origin/master`; OWT task and integration branches automatically use the local
+`master` tip so unpublished local commits do not expand the task scope. Set
+`PREFLIGHT_BASE` or pass `--base <ref>` when a batch coordinator records a
+different immutable base. Use `--dry-run` to inspect the plan.
 
 Do not manually duplicate CI lint, test, check, or build commands. Artifact
 validation, implementation-time interactive checks, and checks explicitly

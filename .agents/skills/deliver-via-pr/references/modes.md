@@ -98,8 +98,9 @@ worktree when ownership is already clear.
    explicitly requested checks, and validators required by another skill.
 5. Inspect status and the complete diff, stage only explicit intended paths,
    then run `bun run preflight`. Stage new files first so the whitespace
-   guard can inspect them. Use `--base <ref>` only for a non-default target
-   branch.
+   guard can inspect them. OWT branches automatically compare against the
+   local default branch; pass `--base <recorded-base-sha>` when a coordinator
+   records an immutable batch baseline.
 6. Inspect the staged diff and create focused Conventional Commits. Never
    amend, squash, or rewrite user-owned commits unless explicitly requested.
 7. Require a clean task worktree, then return to the default worktree and
@@ -112,7 +113,7 @@ worktree when ownership is already clear.
    conflict, non-linear ancestry from the recorded starting `HEAD`, or an
    overwrite of an unrelated working change still requires preserving both
    sides and stopping for direction. After every concurrent merge, rerun
-   `bun run preflight` in the task worktree. Then retry
+   `bun run preflight --base <recorded-base-sha>` in the task worktree. Then retry
    `git merge --ff-only <task>` in the default worktree. If another
    committed advance makes that fast-forward fail, repeat this merge,
    preflight, and fast-forward loop until the handoff succeeds. Do not
@@ -135,7 +136,8 @@ or `node_modules` may be used for narrow implementation checks only when its
 scope is explicit; remove every link before staging and re-check status.
 
 If the default branch advances after the task commit, merge the current default
-branch into the task branch, rerun `bun run preflight`, and retry the
+branch into the task branch, rerun `bun run preflight` (or pass the recorded
+batch base explicitly), and retry the
 fast-forward. Do not rebase or cherry-pick the task commit to hide the
 concurrent advance.
 
