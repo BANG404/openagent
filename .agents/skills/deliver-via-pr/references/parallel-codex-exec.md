@@ -54,3 +54,6 @@ preflight merely because tasks ran concurrently.
 This launcher is an alternative to the sealed batch coordinator. Use the
 coordinator when all task heads must be integrated atomically by one elected
 agent; do not register launcher-created ordinary OWT tasks into a sealed batch.
+When a launcher child becomes the elected integrator, keep its lease alive with
+the coordinator's `heartbeat` command and use `recover` only after `status`
+shows the lease has expired.

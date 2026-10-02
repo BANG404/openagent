@@ -1,6 +1,6 @@
 ---
 name: deliver-via-pr
-description: Implement and deliver OpenAgent repository changes using prefix-selected Git modes. Use for every repository-changing task: default to verified commits directly on the local host default branch, and use OWT for an isolated local worktree that is later fast-forwarded into the local default branch.
+description: Implement and deliver OpenAgent repository changes using prefix-selected Git modes. Use for every repository-changing task: direct delivery is for one agent owning the local default branch, while concurrent work uses OWT or a sealed OWT batch with isolated worktrees and a verified fast-forward integration.
 metadata:
   category: pr-and-ci
 ---

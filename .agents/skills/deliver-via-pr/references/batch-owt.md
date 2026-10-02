@@ -33,6 +33,18 @@ rtk bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs seal \
   --repo . --batch <batch-id>
 ```
 
+Before running task-local preflight or UI tooling, read its isolated environment
+contract:
+
+```bash
+rtk bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs env \
+  --repo . --batch <batch-id> --task <task-id>
+```
+
+Apply the returned `PREFLIGHT_BASE`, `OPENAGENT_HOME`, and
+`PLAYWRIGHT_CLI_SESSION` values to that task process. This keeps task data and
+browser sessions separate while retaining the immutable batch identity.
+
 ## Finish a task
 
 Each task agent stages only its owned files, runs `rtk bun run preflight --base
@@ -59,6 +71,27 @@ The script rejects dirty task worktrees, stale preflight assertions, moved task
 branches, unregistered paths, and branches outside `agent/`. It persists state
 under `<git-common-dir>/openagent-owt/batches/`; do not edit those records by
 hand.
+
+The elected integration agent must send a heartbeat while it is merging and
+running combined checks. Refresh its lease with:
+
+```bash
+rtk bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs heartbeat \
+  --repo . --batch <batch-id> --lease <lease-id>
+```
+
+If the heartbeat has expired, `recover` verifies that the integration worktree
+is clean, discards that abandoned integration worktree, and elects a fresh
+lease from the same immutable task heads:
+
+```bash
+rtk bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs recover \
+  --repo . --batch <batch-id> --reason "integrator exited"
+```
+
+Recovery never removes a dirty integration worktree. Inspect `status` and
+preserve the worktree for manual resolution when it reports a dirty or
+conflicting state.
 
 ## Integrate and finalize
 
@@ -119,3 +152,7 @@ the current default HEAD. Inspect a batch without mutation at any time:
 rtk bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs status \
   --repo . --batch <batch-id>
 ```
+
+`status` includes the lease heartbeat, age, TTL, and stale flag so a supervisor
+can distinguish active integration from an abandoned lease without editing the
+batch record.

@@ -146,8 +146,9 @@ layout-stable skeleton.
   `tauri-pilot` black-box scenario, including light/dark themes and Chinese/English where applicable. See `.agents/skills/openagent-desktop-host/references/native-verification.md`.
 
 ## Delivery
-Every repository-changing task uses `deliver-via-pr`. With no prefix, edit the
-local `master`, run preflight, and create focused local commits without pushing;
-`OWT` uses an isolated worktree and fast-forwards it into `master`. The skill
-owns reconciliation, preservation, CI, and cleanup; explicit user instructions
-override its delivery stage.
+Every repository-changing task uses `deliver-via-pr`. Direct local delivery is
+for one agent owning the default worktree. Concurrent tasks use `OWT`, and an
+explicit sealed OWT batch is the default for independent parallel work; each
+task is isolated and one elected integrator fast-forwards the verified result
+into `master`. The skill owns reconciliation, preservation, CI, and cleanup;
+explicit user instructions override its delivery stage.

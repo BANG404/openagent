@@ -1,19 +1,24 @@
 // @ts-nocheck -- legacy fixture typing is tracked separately from the strict test surface.
 import { afterEach, describe, expect, test } from "bun:test";
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  INTEGRATION_LEASE_TTL_MS,
   batchStatus,
   cleanupBatch,
   createBatch,
   finalizeBatch,
+  heartbeatBatch,
+  integrationLeaseStatus,
   markTaskReady,
+  recoverBatch,
   registerTask,
   sealBatch,
+  taskEnvironment,
 } from "../.agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs";
 
 const temporaryRoots = [];
@@ -96,6 +101,31 @@ function runCoordinator(cwd, args) {
 }
 
 describe("OWT batch coordination", () => {
+  test("marks integration leases stale only after the configured TTL", () => {
+    const claimedAt = "2026-01-01T00:00:00.000Z";
+    const state = {
+      integrator: {
+        taskId: "task",
+        leaseId: "lease",
+        claimedAt,
+        heartbeatAt: claimedAt,
+        leaseTtlMs: INTEGRATION_LEASE_TTL_MS,
+      },
+    };
+    expect(
+      integrationLeaseStatus(state, Date.parse(claimedAt) + INTEGRATION_LEASE_TTL_MS),
+    ).toMatchObject({
+      active: true,
+      stale: false,
+    });
+    expect(
+      integrationLeaseStatus(state, Date.parse(claimedAt) + INTEGRATION_LEASE_TTL_MS + 1),
+    ).toMatchObject({
+      active: true,
+      stale: true,
+    });
+  });
+
   test("elects the last ready task and integrates the immutable task heads", () => {
     const { root, repo, base } = createRepository();
     const first = createTask(repo, root, "first", "first.txt");
@@ -259,5 +289,62 @@ describe("OWT batch coordination", () => {
     expect(results.map(({ action }) => action).sort()).toEqual(["finish", "integrate"]);
     expect(results.filter(({ action }) => action === "integrate")).toHaveLength(1);
     expect(batchStatus(repo, { batchId: "batch-race" }).state).toBe("integrating");
+  }, 20_000);
+
+  test("heartbeats and recovers an abandoned integration lease", () => {
+    const { root, repo, base } = createRepository();
+    const task = createTask(repo, root, "recover", "recover.txt");
+    createBatch(repo, { batchId: "batch-recover", defaultBranch: "master", base });
+    register(repo, "batch-recover", task);
+    sealBatch(repo, { batchId: "batch-recover" });
+    expect(taskEnvironment(repo, { batchId: "batch-recover", taskId: task.taskId })).toMatchObject({
+      baseSha: base,
+      env: {
+        OPENAGENT_BATCH_ID: "batch-recover",
+        OPENAGENT_TASK_ID: "recover",
+        PREFLIGHT_BASE: base,
+      },
+    });
+
+    const election = markTaskReady(task.worktree, {
+      batchId: "batch-recover",
+      taskId: task.taskId,
+      verifiedHead: task.head,
+    });
+    expect(election.action).toBe("integrate");
+    const heartbeat = heartbeatBatch(repo, {
+      batchId: "batch-recover",
+      leaseId: election.leaseId,
+    });
+    expect(heartbeat.action).toBe("heartbeat");
+    expect(heartbeat.lease.stale).toBe(false);
+
+    expect(() => recoverBatch(repo, { batchId: "batch-recover", reason: "still-running" })).toThrow(
+      "still active",
+    );
+
+    const statePath = join(repo, ".git", "openagent-owt", "batches", "batch-recover.json");
+    const state = JSON.parse(readFileSync(statePath, "utf8"));
+    state.integrator.heartbeatAt = new Date(
+      Date.now() - INTEGRATION_LEASE_TTL_MS - 1,
+    ).toISOString();
+    writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
+
+    const recovered = recoverBatch(repo, {
+      batchId: "batch-recover",
+      reason: "integrator-exited",
+    });
+    expect(recovered).toMatchObject({ action: "recovered", reason: "integrator-exited" });
+    expect(recovered.leaseId).not.toBe(election.leaseId);
+    expect(existsSync(recovered.integrationWorktree)).toBe(true);
+
+    const integrationHead = mergeTasks(recovered.integrationWorktree, recovered.branches);
+    const finalized = finalizeBatch(recovered.integrationWorktree, {
+      batchId: "batch-recover",
+      leaseId: recovered.leaseId,
+      verifiedHead: integrationHead,
+    });
+    expect(finalized.action).toBe("integrated");
+    cleanupBatch(repo, { batchId: "batch-recover", leaseId: recovered.leaseId });
   }, 20_000);
 });

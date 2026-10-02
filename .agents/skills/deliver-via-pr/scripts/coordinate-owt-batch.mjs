@@ -11,6 +11,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, isAbsolute, resolve } from "node:path";
+import { homedir } from "node:os";
 import { createHash, randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
@@ -18,6 +19,7 @@ const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/;
 const LOCK_WAIT_MS = 25;
 const LOCK_TIMEOUT_MS = 30_000;
 const STALE_LOCK_MS = 30_000;
+export const INTEGRATION_LEASE_TTL_MS = 15 * 60 * 1_000;
 const WAIT_BUFFER = new Int32Array(new SharedArrayBuffer(4));
 
 /**
@@ -32,7 +34,7 @@ const WAIT_BUFFER = new Int32Array(new SharedArrayBuffer(4));
  *   headSha: string;
  *   readyAt?: string;
  * }} BatchTask
- * @typedef {{ taskId: string; leaseId: string; claimedAt: string }} BatchIntegrator
+ * @typedef {{ taskId: string; leaseId: string; claimedAt: string; heartbeatAt: string; leaseTtlMs: number }} BatchIntegrator
  * @typedef {{ branch: string; worktreePath: string; baseSha: string; preparedAt: string }} BatchIntegration
  * @typedef {{
  *   schemaVersion: number;
@@ -51,6 +53,7 @@ const WAIT_BUFFER = new Int32Array(new SharedArrayBuffer(4));
  *   integration?: BatchIntegration;
  *   blockedReason?: string;
  *   blockedAt?: string;
+ *   lastRecoveryReason?: string;
  *   lastObservedDefaultHead?: string;
  *   finalHead?: string;
  *   integratedAt?: string;
@@ -269,7 +272,7 @@ function acquireLock(path) {
         continue;
       }
       if (Date.now() - startedAt >= LOCK_TIMEOUT_MS) {
-        throw new Error(`Timed out waiting for OWT batch lock: ${path}`);
+        throw new Error(`Timed out waiting for OWT batch lock: ${path}`, { cause: error });
       }
       Atomics.wait(WAIT_BUFFER, 0, 0, LOCK_WAIT_MS);
     }
@@ -311,12 +314,73 @@ function integrationResult(state) {
     integrationBranch: state.integration.branch,
     integrationWorktree: state.integration.worktreePath,
     integrationBaseSha: state.integration.baseSha,
+    lease: integrationLeaseStatus(state),
     defaultBranch: state.defaultBranch,
     branches: state.tasks.map((task) => ({
       taskId: task.taskId,
       branch: task.branch,
       headSha: task.headSha,
     })),
+  };
+}
+
+/**
+ * Describe the current integration lease without mutating batch state.
+ *
+ * @param {BatchState} state
+ * @param {number} [now]
+ */
+export function integrationLeaseStatus(state, now = Date.now()) {
+  const integrator = state.integrator;
+  if (!integrator) {
+    return { active: false, stale: false, ageMs: 0, ttlMs: INTEGRATION_LEASE_TTL_MS };
+  }
+  const heartbeatAt = integrator.heartbeatAt ?? integrator.claimedAt;
+  const heartbeatMs = Date.parse(heartbeatAt);
+  const ageMs = Number.isFinite(heartbeatMs)
+    ? Math.max(0, now - heartbeatMs)
+    : Number.POSITIVE_INFINITY;
+  const ttlMs = integrator.leaseTtlMs ?? INTEGRATION_LEASE_TTL_MS;
+  return {
+    active: true,
+    leaseId: integrator.leaseId,
+    taskId: integrator.taskId,
+    heartbeatAt,
+    ageMs,
+    ttlMs,
+    stale: ageMs > ttlMs,
+  };
+}
+
+/**
+ * Return task-scoped environment values for preflight and black-box tooling.
+ * The caller owns applying these values to its process; keeping the contract
+ * here makes every task derive the same isolated identity from the batch
+ * manifest.
+ *
+ * @param {string} repo
+ * @param {{ batchId: string; taskId: string }} options
+ */
+export function taskEnvironment(repo, options) {
+  const root = repositoryRoot(repo);
+  const state = readBatch(root, options.batchId);
+  const task = state.tasks.find((candidate) => candidate.taskId === options.taskId);
+  if (!task) throw new Error(`Task is not registered in batch ${options.batchId}: ${options.taskId}`);
+  const identity = `${state.batchId}-${task.taskId}`.replaceAll(/[^A-Za-z0-9._-]/g, "-");
+  return {
+    batchId: state.batchId,
+    taskId: task.taskId,
+    branch: task.branch,
+    worktreePath: task.worktreePath,
+    baseSha: state.baseSha,
+    env: {
+      OPENAGENT_BATCH_ID: state.batchId,
+      OPENAGENT_TASK_ID: task.taskId,
+      OPENAGENT_BASE_SHA: state.baseSha,
+      PREFLIGHT_BASE: state.baseSha,
+      OPENAGENT_HOME: resolve(homedir(), ".openagent-dev", "instances", identity),
+      PLAYWRIGHT_CLI_SESSION: `openagent-${identity}`,
+    },
   };
 }
 
@@ -484,6 +548,15 @@ export function markTaskReady(repo, options) {
     }
     if (state.state === "integrating") {
       if (!state.integrator) throw new Error("The integrating batch has no lease owner.");
+      const lease = integrationLeaseStatus(state);
+      if (lease.stale) {
+        return {
+          action: "blocked",
+          batchId: state.batchId,
+          reason: "integration-lease-stale",
+          lease,
+        };
+      }
       return state.integrator.taskId === task.taskId
         ? integrationResult(state)
         : {
@@ -519,10 +592,13 @@ export function markTaskReady(repo, options) {
     }
 
     state.state = "integrating";
+    const claimedAt = new Date().toISOString();
     state.integrator = {
       taskId: task.taskId,
       leaseId: randomUUID(),
-      claimedAt: new Date().toISOString(),
+      claimedAt,
+      heartbeatAt: claimedAt,
+      leaseTtlMs: INTEGRATION_LEASE_TTL_MS,
     };
     saveBatch(paths.state, state);
     try {
@@ -537,6 +613,103 @@ export function markTaskReady(repo, options) {
       return { action: "blocked", batchId: state.batchId, reason: state.blockedReason };
     }
   });
+}
+
+/**
+ * Refresh an integration lease while its owner is actively merging and
+ * running combined checks.
+ *
+ * @param {string} repo
+ * @param {{ batchId: string; leaseId: string }} options
+ */
+export function heartbeatBatch(repo, options) {
+  const root = repositoryRoot(repo);
+  const paths = batchPaths(root, options.batchId);
+  return withLock(paths.lock, () => {
+    const state = readBatch(root, options.batchId);
+    if (state.state !== "integrating" || !state.integrator) {
+      throw new Error(`Cannot heartbeat OWT batch in state ${state.state}.`);
+    }
+    if (state.integrator.leaseId !== options.leaseId) {
+      throw new Error("The integration lease does not match this batch.");
+    }
+    const heartbeatAt = new Date().toISOString();
+    state.integrator.heartbeatAt = heartbeatAt;
+    saveBatch(paths.state, state);
+    return {
+      action: "heartbeat",
+      batchId: state.batchId,
+      lease: integrationLeaseStatus(state),
+    };
+  });
+}
+
+/**
+ * Reclaim an abandoned integration lease after its heartbeat has expired.
+ * The integration worktree must be clean so a partial merge is discarded
+ * without losing uncommitted user work. Fixed task heads remain ready and a
+ * fresh integration lease is elected from those immutable commits.
+ *
+ * @param {string} repo
+ * @param {{ batchId: string; reason: string }} options
+ */
+export function recoverBatch(repo, options) {
+  const root = repositoryRoot(repo);
+  const paths = batchPaths(root, options.batchId);
+  return withLock(paths.lock, () =>
+    withLock(paths.deliveryLock, () => {
+      const state = readBatch(root, options.batchId);
+      if (state.state !== "integrating" || !state.integrator || !state.integration) {
+        throw new Error(`Cannot recover OWT batch in state ${state.state}.`);
+      }
+      const lease = integrationLeaseStatus(state);
+      if (!lease.stale) {
+        throw new Error(
+          `Integration lease is still active (${lease.ageMs}ms old; TTL ${lease.ttlMs}ms).`,
+        );
+      }
+      requireRegisteredWorktree(
+        state.defaultWorktreePath,
+        state.integration.worktreePath,
+        state.integration.branch,
+      );
+      requireCleanWorktree(state.integration.worktreePath);
+      git(root, ["worktree", "remove", state.integration.worktreePath]);
+      if (branchExists(root, state.integration.branch)) {
+        git(root, ["branch", "-D", state.integration.branch]);
+      }
+
+      const owner = state.tasks.find((task) => task.state === "ready");
+      if (!owner) throw new Error("Cannot recover an integration batch without ready tasks.");
+      state.lastRecoveryReason = options.reason;
+      state.state = "integrating";
+      const claimedAt = new Date().toISOString();
+      state.integrator = {
+        taskId: owner.taskId,
+        leaseId: randomUUID(),
+        claimedAt,
+        heartbeatAt: claimedAt,
+        leaseTtlMs: INTEGRATION_LEASE_TTL_MS,
+      };
+      delete state.integration;
+      saveBatch(paths.state, state);
+      try {
+        prepareIntegration(state);
+        saveBatch(paths.state, state);
+        return {
+          ...integrationResult(state),
+          action: "recovered",
+          reason: options.reason,
+        };
+      } catch (error) {
+        state.state = "blocked";
+        state.blockedReason = error instanceof Error ? error.message : String(error);
+        state.blockedAt = new Date().toISOString();
+        saveBatch(paths.state, state);
+        return { action: "blocked", batchId: state.batchId, reason: state.blockedReason };
+      }
+    }),
+  );
 }
 
 /**
@@ -751,7 +924,8 @@ export function cleanupBatch(repo, options) {
 
 /** @param {string} repo @param {{ batchId: string }} options */
 export function batchStatus(repo, options) {
-  return readBatch(repositoryRoot(repo), options.batchId);
+  const state = readBatch(repositoryRoot(repo), options.batchId);
+  return { ...state, lease: integrationLeaseStatus(state) };
 }
 
 function parseArguments() {
@@ -814,6 +988,16 @@ function main() {
       leaseId: requireOption(options, "lease"),
       reason: requireOption(options, "reason"),
     });
+  } else if (command === "heartbeat") {
+    result = heartbeatBatch(repo, {
+      batchId,
+      leaseId: requireOption(options, "lease"),
+    });
+  } else if (command === "recover") {
+    result = recoverBatch(repo, {
+      batchId,
+      reason: requireOption(options, "reason"),
+    });
   } else if (command === "cleanup") {
     result = cleanupBatch(repo, {
       batchId,
@@ -821,6 +1005,11 @@ function main() {
     });
   } else if (command === "status") {
     result = batchStatus(repo, { batchId });
+  } else if (command === "env") {
+    result = taskEnvironment(repo, {
+      batchId,
+      taskId: requireOption(options, "task"),
+    });
   } else {
     throw new Error(`Unknown command: ${command}`);
   }

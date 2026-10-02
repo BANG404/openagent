@@ -1,5 +1,9 @@
 # Delivery modes: Direct and OWT
 
+Use direct local delivery only when one agent owns the default worktree. When
+agents modify the repository concurrently, select OWT explicitly; a sealed
+OWT batch is the default for independent parallel tasks.
+
 Read the procedure that matches the selected mode. Each procedure owns its
 steps, commit rules, preflight expectations, and cleanup rules.
 
