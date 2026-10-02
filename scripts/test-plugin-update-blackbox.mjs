@@ -150,6 +150,9 @@ function injectProbe(language) {
     reason: catalog.pluginUpdateErrorRepositoryUnsupported,
     detail: rawDiagnostic,
     checkLabel: catalog.pluginCheckUpdates,
+    officialMarketplace: catalog.pluginOfficialMarketplace,
+    officialHint: catalog.pluginOfficialMarketplaceHint,
+    officialSearchPlaceholder: catalog.pluginOfficialSearchPlaceholder,
   };
   evaluate(`window.__pluginUpdateProbe = ${JSON.stringify(payload)}; true`);
 }
@@ -193,6 +196,20 @@ function builtinRegistryRepositories() {
     throw new Error("the Runtime's builtin plugin registry declared no GitHub repository");
   }
   return found;
+}
+
+/** The public source addresses rendered in the official plugin store. */
+function officialRegistryRepositories() {
+  const registry = JSON.parse(
+    readFileSync(join(workspaceRoot, "src", "lib", "officialPluginRegistry.json"), "utf8"),
+  );
+  const repositories = registry.plugins
+    .map((plugin) => plugin.repository)
+    .filter((repository) => typeof repository === "string");
+  if (repositories.length === 0) {
+    throw new Error("the official plugin registry declared no repository");
+  }
+  return repositories;
 }
 
 /**
@@ -478,7 +495,11 @@ openPluginSurface();
 sleepSync(2000);
 const rendered = discoverRepositories();
 seedUpdateCache(
-  [...builtinRegistryRepositories(), ...rendered.map((card) => card.repository)],
+  [
+    ...builtinRegistryRepositories(),
+    ...officialRegistryRepositories(),
+    ...rendered.map((card) => card.repository),
+  ],
   new Map(rendered.map((card) => [card.repository, card.version])),
 );
 dismissSettingsSurface();

@@ -2357,7 +2357,7 @@ async fn list_agent_plugin_marketplaces(
 #[tauri::command]
 async fn check_agent_plugin_updates(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
-) -> Result<Vec<openagent_runtime::agent_plugins::AgentPluginUpdateSummary>, String> {
+) -> Result<openagent_runtime::agent_plugins::AgentPluginUpdateReport, String> {
     openagent_runtime::commands::check_agent_plugin_updates(runtime.state()).await
 }
 
@@ -2389,6 +2389,106 @@ async fn install_marketplace_agent_plugin(
         plugin_name,
     )
     .await
+}
+
+fn valid_official_plugin_id(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    if bytes.is_empty() || bytes.len() > 64 {
+        return false;
+    }
+    if !bytes[0].is_ascii_lowercase() && !bytes[0].is_ascii_digit() {
+        return false;
+    }
+    if !bytes[bytes.len() - 1].is_ascii_lowercase() && !bytes[bytes.len() - 1].is_ascii_digit() {
+        return false;
+    }
+    bytes
+        .iter()
+        .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'-')
+}
+
+fn validate_official_plugin_source(plugin_id: &str, source_url: &str) -> Result<(), String> {
+    if !valid_official_plugin_id(plugin_id) {
+        return Err("official plugin id is invalid".to_string());
+    }
+    let url = reqwest::Url::parse(source_url)
+        .map_err(|error| format!("official plugin source URL is invalid: {error}"))?;
+    if url.scheme() != "https"
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.query().is_some()
+        || url.fragment().is_some()
+    {
+        return Err(
+            "official plugin source URL must be HTTPS without credentials, query, or fragment"
+                .to_string(),
+        );
+    }
+    Ok(())
+}
+
+/// Install a bundled-registry entry through the Runtime's normal marketplace
+/// path. The temporary document is kept under the supported personal
+/// marketplace root, then removed after the Runtime has staged the package.
+#[tauri::command]
+async fn install_official_agent_plugin(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    plugin_id: String,
+    display_name: String,
+    source_url: String,
+) -> Result<openagent_runtime::agent_plugins::AgentPluginSummary, String> {
+    validate_official_plugin_source(&plugin_id, &source_url)?;
+    if display_name.trim().is_empty() || display_name.len() > 256 {
+        return Err("official plugin display name is invalid".to_string());
+    }
+    let marketplace_root = dirs::home_dir()
+        .ok_or_else(|| "cannot locate the personal marketplace directory".to_string())?
+        .join(".agents")
+        .join("plugins");
+    std::fs::create_dir_all(&marketplace_root)
+        .map_err(|error| format!("failed to create the personal marketplace directory: {error}"))?;
+    let temporary_root = marketplace_root.join(format!(
+        ".openagent-official-{}",
+        uuid::Uuid::new_v4().simple()
+    ));
+    std::fs::create_dir(&temporary_root)
+        .map_err(|error| format!("failed to create the official marketplace staging directory: {error}"))?;
+    let marketplace_path = temporary_root.join("marketplace.json");
+    let document = serde_json::json!({
+        "name": "openagent-official",
+        "interface": { "displayName": "OpenAgent Official Plugins" },
+        "plugins": [{
+            "name": plugin_id,
+            "interface": { "displayName": display_name },
+            "source": { "source": "url", "url": source_url },
+            "policy": {
+                "installation": "AVAILABLE",
+                "authentication": "ON_INSTALL",
+                "products": ["CODEX"]
+            }
+        }]
+    });
+    let result = (|| {
+        let bytes = serde_json::to_vec(&document)
+            .map_err(|error| format!("failed to encode the official marketplace: {error}"))?;
+        std::fs::write(&marketplace_path, bytes)
+            .map_err(|error| format!("failed to write the official marketplace: {error}"))
+    })();
+    if let Err(error) = result {
+        let _ = std::fs::remove_dir_all(&temporary_root);
+        return Err(error);
+    }
+    let result = openagent_runtime::commands::install_marketplace_agent_plugin(
+        runtime.state(),
+        marketplace_path.to_string_lossy().into_owned(),
+        plugin_id,
+    )
+    .await;
+    let cleanup = std::fs::remove_dir_all(&temporary_root);
+    if let Err(error) = cleanup {
+        tracing::warn!(error = %error, "failed to remove temporary official marketplace");
+    }
+    result
 }
 
 #[tauri::command]
@@ -5706,6 +5806,7 @@ fn run_with_mode(agent_server: bool) {
         update_agent_plugin,
         install_agent_plugin,
         install_marketplace_agent_plugin,
+        install_official_agent_plugin,
         uninstall_agent_plugin,
         read_agent_plugin_asset,
         get_skill_content,
@@ -5847,6 +5948,25 @@ fn run_with_mode(agent_server: bool) {
 mod tests {
     use super::*;
     use std::path::Path;
+
+    #[test]
+    fn official_plugin_source_validation_requires_public_https() {
+        assert!(
+            validate_official_plugin_source("demo-plugin", "https://example.com/demo.git").is_ok()
+        );
+        assert!(validate_official_plugin_source("Demo", "https://example.com/demo.git").is_err());
+        assert!(validate_official_plugin_source("demo-plugin", "http://example.com/demo").is_err());
+        assert!(validate_official_plugin_source(
+            "demo-plugin",
+            "https://user:pass@example.com/demo"
+        )
+        .is_err());
+        assert!(validate_official_plugin_source(
+            "demo-plugin",
+            "https://example.com/demo?token=secret"
+        )
+        .is_err());
+    }
 
     #[test]
     fn shell_install_preparation_hands_the_exit_to_the_restart_request() {
