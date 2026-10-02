@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-03T00:00:00Z",
+  "plugins": [
+    {
+      "id": "chat-groups",
+      "display_name": "Chat Groups",
+      "repository": "https://github.com/BANG404/openagent-chat-groups",
+      "homepage": "https://github.com/BANG404/openagent-chat-groups",
+      "source_url": "https://github.com/BANG404/openagent-chat-groups.git"
+    },
+    {
+      "id": "goal",
+      "display_name": "Goal",
+      "repository": "https://github.com/BANG404/openagent-goal",
+      "homepage": "https://github.com/BANG404/openagent-goal",
+      "source_url": "https://github.com/BANG404/openagent-goal.git"
+    },
+    {
+      "id": "graph",
+      "display_name": "Graph",
+      "repository": "https://github.com/BANG404/openagent-graph",
+      "homepage": "https://github.com/BANG404/openagent-graph",
+      "source_url": "https://github.com/BANG404/openagent-graph.git"
+    },
+    {
+      "id": "cua-driver",
+      "display_name": "Cua Driver",
+      "repository": "https://github.com/BANG404/openagent-cua-driver",
+      "homepage": "https://github.com/BANG404/openagent-cua-driver",
+      "source_url": "https://github.com/BANG404/openagent-cua-driver.git"
+    }
+  ]
+}
