@@ -80,7 +80,8 @@ state under `~/.openagent`.
   then commit only its gitlink and required host/frontend integration here.
 - `src-tauri/` contains thin entry points, Tauri plugins and commands, event
   adapters, desktop capabilities, build configuration, and packaging metadata.
-  Runtime state machines and transport ownership stay in the SDK.
+  Runtime state machines and transport ownership stay in the SDK. Multi-Agent
+  V2 is an SDK Runtime capability, not an installed Agent Plugin.
 - `.githooks/public-host-sources.txt` explicitly lists public Rust host adapters.
   Add entries only for Tauri-owned native boundaries; SDK runtime behavior must
   remain behind the `sdk` gitlink. Unlisted host Rust modules block pushes.

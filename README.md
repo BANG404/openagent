@@ -73,6 +73,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 
 - **Multi-Agent & Flash Agents Architecture** — A primary streaming **Chat Agent** for main conversations, and a suite of dedicated async **Flash Agents** (including **Memory Agent** for long-term memory synthesis, **Title Agent** for dynamic conversation renaming, and **Hook Agent** for background scheduled tasks).
 - **Sub-Agent Delegation** — The Chat Agent can call `spawn_agent` to delegate tasks to nested sub-agents; progress streams in real-time into a sub-conversation shown nested under the parent in the sidebar.
+- **Runtime-Owned Multi-Agent Coordination** — Multi-Agent V2, including its child-conversation registry and six coordination tools, is an Agent Runtime capability controlled by Runtime configuration. It is not an installable or user-manageable Agent Plugin.
 - **Reusable Agent Roles** — Create global role workflows, discover them with hybrid search, and dispatch them as specialized child agents. Roles can be created automatically on first use or managed from the **Roles** panel; delegated roles inherit the parent conversation's selected resources.
 - **Plugin-Owned Orchestration** — Goal, Graph, Chat Group, and other long-running workflows are ordinary Agent Plugins. Each package owns its state, reducer, prompts, completion rules, and wake scheduling, while the Runtime provides the same conversation, branch, flow, event, and Agent wake bridge to every package.
 - **Hybrid Long-Term Memory** — SQLite + FTS5 + bundled, offline 384-dim embeddings (fastembed `AllMiniLML6V2Q`) blended with time decay for cross-session recall. Before retrieval, an optional Flash task rewrites the latest message into a focused semantic query, so stored memories are matched to intent rather than just wording.
@@ -333,7 +334,7 @@ Multi-series charts use `series: [{name, data}, ...]`.
 
 - OpenAgent does not provide built-in webpage search/fetching, `render_web`, AGUI `Html(...)`, an embedded browser sidebar, or HTML-preview settings. Agents share websites with `Url(...)`; users open those links in their browser. Browser automation belongs to Cua Driver or another explicitly configured MCP service.
 - The right conversation panel is contextual: it appears for a package flow projection, file changes, or conversation-owned background terminals.
-- Goal, Graph, Chat Group, and Cua integrations use the ordinary installed-plugin boundary. The Runtime does not register their domain state, reducers, tools, or schedulers.
+- Goal, Graph, Chat Group, and Cua integrations use the ordinary installed-plugin boundary. The Runtime does not register their domain state, reducers, tools, or schedulers. Multi-Agent V2 is the separate Runtime-owned coordination capability and does not use that plugin boundary.
 
 ---
 

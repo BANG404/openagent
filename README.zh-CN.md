@@ -74,6 +74,7 @@
 
 - **多 Agent 与 Flash Agent 架构** — 负责主对话流的流式 **Chat Agent**，以及一套专门的异步任务 **Flash Agents**（包含用于长期记忆提炼的 **Memory Agent**、用于对话标题自动生成的 **Title Agent**、以及用于执行后台定时任务的 **Hook Agent**）。
 - **子 Agent 委派** — Chat Agent 可通过 `spawn_agent` 工具将子任务委派给嵌套子 Agent；进度实时流式输出，并以层级方式显示在侧边栏父对话下方。
+- **Runtime 自有的多 Agent 协作** — Multi-Agent V2 及其子会话注册表和六个协作工具属于 Agent Runtime 机制，由 Runtime 配置控制；它不是可安装或由用户管理的 Agent 插件。
 - **可复用 Agent 角色** — 创建全局角色工作流，通过混合搜索发现角色，并派发为专业子 Agent。角色既可在首次使用时由主 Agent 自动创建，也可在**角色**面板中管理；委派的角色会继承父对话选定的资源。
 - **插件自有编排** — Goal、Graph、聊天组以及其他长流程都是普通 Agent 插件。每个插件自行拥有状态、Reducer、提示词、完成规则和唤醒调度；Runtime 为所有插件提供相同的会话、分支、流程投影、事件和 Agent 唤醒桥接能力。
 - **混合长期记忆** — SQLite + FTS5 + 本地持久化、可离线运行的 384 维量化向量嵌入（fastembed `AllMiniLML6V2Q`），结合时间衰减权重实现跨会话精准召回。完整版携带模型种子，轻量版在欢迎窗口下载并校验；日常软件更新不会重复下载模型。
@@ -303,7 +304,7 @@ Agent 被要求**一次性问清楚**所有相关问题，并优先使用结构�
 
 - OpenAgent 不再提供内置网页搜索/抓取、`render_web`、AGUI `Html(...)`、内嵌浏览器侧栏或 HTML 预览设置。Agent 通过 `Url(...)` 分享网站，由用户在浏览器中打开；浏览器自动化由 Cua Driver 或显式配置的 MCP 服务承担。
 - 右侧对话面板只在存在插件流程投影、文件变更或当前对话拥有的后台终端时出现。
-- Goal、Graph、聊天组和 Cua 集成都使用普通已安装插件边界。Runtime 不注册它们的领域状态、Reducer、工具或调度器。
+- Goal、Graph、聊天组和 Cua 集成都使用普通已安装插件边界。Runtime 不注册它们的领域状态、Reducer、工具或调度器。Multi-Agent V2 是独立的 Runtime 自有协作机制，不使用这个插件边界。
 
 ---
 
