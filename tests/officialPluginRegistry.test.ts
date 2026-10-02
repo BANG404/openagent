@@ -20,6 +20,12 @@ describe("official plugin registry", () => {
     expect(findOfficialPlugin(registry, "goal")?.sourceUrl).toBe(
       "https://github.com/BANG404/openagent-goal.git",
     );
+    expect(registry.plugins.map((plugin) => plugin.version)).toEqual([
+      "1.0.2",
+      "2.0.0",
+      "1.0.2",
+      "1.2.0",
+    ]);
   });
 
   test("converts entries to the existing marketplace protocol", () => {

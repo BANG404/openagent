@@ -20,7 +20,7 @@
 //
 // Every other package the Runtime checks — the builtins and the other two
 // fixtures — declares a `github.com` repository, so an uncached check spends the
-// machine's shared anonymous GitHub quota and a machine that has spent it makes
+// machine's shared public GitHub quota and a machine that has spent it makes
 // the whole check report the quota condition instead of the per-plugin reasons
 // this scenario asserts. The runner therefore seeds the Runtime's release
 // metadata cache with the repositories the page itself renders, at the installed
@@ -237,7 +237,7 @@ function discoverRepositories() {
 /**
  * Remember every rendered repository as answered at its installed version, so
  * the check takes its cached path for all of them instead of spending the
- * machine's anonymous GitHub quota. A seeded release is never newer than the
+ * machine's public GitHub quota. A seeded release is never newer than the
  * package it stands for, so it offers no update and fails nothing.
  *
  * @param {string[]} repositories every repository the check may walk
@@ -286,6 +286,12 @@ function openPluginSurface() {
     );
     if (!item) throw new Error("plugins menu item is missing");
     item.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const installedTab = [...document.querySelectorAll('[role="tab"]')].find((candidate) =>
+      /Installed|已安装/.test(candidate.textContent ?? "")
+    );
+    if (!(installedTab instanceof HTMLElement)) throw new Error("installed plugins tab is missing");
+    installedTab.click();
     return true;
   })()`);
   waitForElement(`[role=dialog] [role=switch][aria-label="${pluginId}"]`);

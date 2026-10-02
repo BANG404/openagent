@@ -265,7 +265,30 @@
     <header class="agents-settings-intro">
       <h3>{$t("plugins")}</h3>
     </header>
-    <section class="official-plugin-store" aria-label={$t("pluginOfficialMarketplace")}>
+    <div class="plugin-management-tabs" role="tablist" aria-label={$t("plugins")}>
+      <button
+        type="button"
+        role="tab"
+        class:active={view.pluginManagementView === "marketplace"}
+        aria-selected={view.pluginManagementView === "marketplace"}
+        tabindex={view.pluginManagementView === "marketplace" ? 0 : -1}
+        onclick={() => (view.pluginManagementView = "marketplace")}
+      >
+        {$t("pluginMarketplaceTab")}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class:active={view.pluginManagementView === "installed"}
+        aria-selected={view.pluginManagementView === "installed"}
+        tabindex={view.pluginManagementView === "installed" ? 0 : -1}
+        onclick={() => (view.pluginManagementView = "installed")}
+      >
+        {$t("pluginInstalledTab")}
+      </button>
+    </div>
+    {#if view.pluginManagementView === "marketplace"}
+      <section class="official-plugin-store" aria-label={$t("pluginOfficialMarketplace")}>
       <div class="official-plugin-store-hero">
         <div class="official-plugin-store-copy">
           <div class="official-plugin-store-title-row">
@@ -409,21 +432,8 @@
       {:else}
         <div class="official-plugin-empty">{$t("pluginOfficialEmpty")}</div>
       {/if}
-    </section>
-    <div class="application-settings-surface plugin-token-card">
-      <label class="settings-card-row">
-        <span class="settings-card-copy">
-          <span class="label-text">{$t("pluginGitHubToken")}</span>
-          <span class="detail-hint">{$t("pluginGitHubTokenHint")}</span>
-        </span>
-        <input
-          type="password"
-          class="detail-input"
-          placeholder={$t("pluginGitHubTokenPlaceholder")}
-          bind:value={view.draftConfig.github_token}
-        />
-      </label>
-    </div>
+      </section>
+    {:else}
     <div class="plugin-directory-heading">
       <div class="plugin-directory-title">
         <span class="label-text">{$t("pluginInstalledPlugins")}</span>
@@ -773,6 +783,7 @@
         </Accordion.Item>
       {/each}
     </Accordion.Root>
+    {/if}
   </ScrollArea>
 </Tabs.Content>
 

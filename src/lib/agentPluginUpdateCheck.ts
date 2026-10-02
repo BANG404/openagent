@@ -23,7 +23,6 @@ const updateErrorKeys: Record<AgentPluginUpdateErrorKind, TranslationKeys> = {
   release_unavailable: "pluginUpdateErrorReleaseUnavailable",
   repository_unsupported: "pluginUpdateErrorRepositoryUnsupported",
   rate_limited: "pluginUpdateErrorRateLimited",
-  unauthorized: "pluginUpdateErrorUnauthorized",
   network_failed: "pluginUpdateErrorNetworkFailed",
 };
 
@@ -52,8 +51,7 @@ export function agentPluginUpdateErrorKey(
  */
 export type AgentPluginUpdateCheckOutcome =
   | { kind: "failed" }
-  | { kind: "rate_limited"; count: number; resetAt: number | null; tokenConfigured: boolean }
-  | { kind: "unauthorized"; count: number }
+  | { kind: "rate_limited"; count: number; resetAt: number | null }
   | { kind: "network_failed"; count: number }
   | { kind: "available"; count: number; failures: AgentPluginUpdateFailure[] }
   | { kind: "incomplete"; failures: AgentPluginUpdateFailure[] }
@@ -98,15 +96,11 @@ export function classifyAgentPluginUpdateCheck(
   const fromCache = check.checked > 0 && check.cached === check.checked;
   const classified = (outcome: AgentPluginUpdateCheckOutcome) => ({ outcome, fromCache });
 
-  if (check.status === "unauthorized") {
-    return classified({ kind: "unauthorized", count: countByKind(updates, "unauthorized") });
-  }
   if (check.status === "rate_limited") {
     return classified({
       kind: "rate_limited",
       count: countByKind(updates, "rate_limited"),
       resetAt: check.rate_limit_reset,
-      tokenConfigured: check.token_configured,
     });
   }
   if (check.status === "network_failed") {

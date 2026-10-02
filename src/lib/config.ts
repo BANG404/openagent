@@ -52,6 +52,7 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
   const normalizedInput = { ...input } as AppConfig & Record<string, unknown>;
   delete normalizedInput.web_search;
   delete normalizedInput.fetch;
+  delete normalizedInput.github_token;
   const requestedMaxTurns = Number(input.agent_max_turns);
   const agentMaxTurns = Number.isFinite(requestedMaxTurns)
     ? Math.min(1000, Math.max(1, Math.floor(requestedMaxTurns)))
@@ -251,7 +252,6 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
     context_compaction_prompt: input.context_compaction_prompt ?? "",
     context_compaction_recent_message_count: contextCompactionRecentMessageCount,
     memory_retrieval_enabled: input.memory_retrieval_enabled ?? false,
-    github_token: (input.github_token ?? "").trim(),
     model_retry: {
       retry_count: retryCount,
       retry_delay_ms: retryDelayMs,

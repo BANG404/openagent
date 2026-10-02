@@ -1155,8 +1155,38 @@
   margin-left: auto;
 }
 
-.plugin-token-card {
-  margin-bottom: 14px;
+.plugin-management-tabs {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: fit-content;
+  margin: 0 0 16px;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--interactive-state-bg);
+}
+
+.plugin-management-tabs button {
+  min-height: 30px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.plugin-management-tabs button:hover,
+.plugin-management-tabs button.active {
+  background: var(--mica-surface);
+  color: var(--text);
+}
+
+.plugin-management-tabs button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .official-plugin-store {

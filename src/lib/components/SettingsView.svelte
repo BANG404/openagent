@@ -292,6 +292,7 @@
   } | null>(null);
   let officialPluginQuery = $state("");
   let officialPluginFilter = $state<OfficialPluginCatalogFilter>("all");
+  let pluginManagementView = $state<"marketplace" | "installed">("marketplace");
   let officialPluginInstalling = $state<string | null>(null);
   let officialPluginStatus = $state<{
     tone: "success" | "error";
@@ -2001,17 +2002,9 @@
                     "{time}",
                     formatRateLimitReset(outcome.resetAt),
                   ),
-              outcome.tokenConfigured ? "" : tr("pluginUpdateRateLimitedToken"),
             ]
               .filter(Boolean)
               .join(" "),
-          };
-        case "unauthorized":
-          return {
-            tone: "error" as const,
-            message: [tr("pluginUpdateUnauthorized"), tr("pluginUpdateUnauthorizedToken")].join(
-              " ",
-            ),
           };
         case "network_failed":
           return { tone: "error" as const, message: tr("pluginUpdateNetworkFailed") };
@@ -2144,11 +2137,11 @@
     officialPluginStatus = null;
     agentPluginStatus = "";
     try {
-      await invoke("install_official_agent_plugin", {
-        plugin_id: plugin.id,
-        display_name: plugin.displayName,
-        source_url: plugin.sourceUrl,
-      });
+      await desktopOpenAgent.installOfficialAgentPlugin(
+        plugin.id,
+        plugin.displayName,
+        plugin.sourceUrl,
+      );
       await refreshAgentPlugins();
       await emit("agent-plugins-changed").catch(() => {});
       officialPluginStatus = { tone: "success", message: tr("pluginInstalled") };
@@ -2324,6 +2317,12 @@
     },
     set officialPluginFilter(value: OfficialPluginCatalogFilter) {
       officialPluginFilter = value;
+    },
+    get pluginManagementView() {
+      return pluginManagementView;
+    },
+    set pluginManagementView(value: "marketplace" | "installed") {
+      pluginManagementView = value;
     },
     get officialPluginInstalling() {
       return officialPluginInstalling;

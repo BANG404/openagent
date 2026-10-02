@@ -6,6 +6,7 @@
       "id": "chat-groups",
       "display_name": "Chat Groups",
       "description": "Shared conversations for coordinating agents.",
+      "version": "1.0.2",
       "repository": "https://github.com/BANG404/openagent-chat-groups",
       "homepage": "https://github.com/BANG404/openagent-chat-groups",
       "source_url": "https://github.com/BANG404/openagent-chat-groups.git"
@@ -14,6 +15,7 @@
       "id": "goal",
       "display_name": "Goal",
       "description": "Goal-oriented work tracking for OpenAgent.",
+      "version": "2.0.0",
       "repository": "https://github.com/BANG404/openagent-goal",
       "homepage": "https://github.com/BANG404/openagent-goal",
       "source_url": "https://github.com/BANG404/openagent-goal.git"
@@ -22,6 +24,7 @@
       "id": "graph",
       "display_name": "Graph",
       "description": "Visual goal graph workflows for OpenAgent.",
+      "version": "1.0.2",
       "repository": "https://github.com/BANG404/openagent-graph",
       "homepage": "https://github.com/BANG404/openagent-graph",
       "source_url": "https://github.com/BANG404/openagent-graph.git"
@@ -30,6 +33,7 @@
       "id": "cua-driver",
       "display_name": "Cua Driver",
       "description": "Desktop control bridge for OpenAgent.",
+      "version": "1.2.0",
       "repository": "https://github.com/BANG404/openagent-cua-driver",
       "homepage": "https://github.com/BANG404/openagent-cua-driver",
       "source_url": "https://github.com/BANG404/openagent-cua-driver.git"

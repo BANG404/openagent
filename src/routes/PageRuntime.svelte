@@ -612,7 +612,6 @@
     book_mode_font_size: 17,
     workspace_open_mode: "ask",
     memory_retrieval_enabled: false,
-    github_token: "",
     remote_gateway: {
       enabled: false,
       allow_lan_access: false,

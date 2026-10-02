@@ -72,6 +72,12 @@ name = "the official plugin marketplace renders the public catalog"
 action = "eval"
 script = '''(async () => {
   const probe = window.__pluginUpdateProbe;
+  const marketplaceTab = [...document.querySelectorAll('[role="tab"]')].find((candidate) =>
+    /Marketplace|插件市场/.test(candidate.textContent ?? "")
+  );
+  if (!(marketplaceTab instanceof HTMLElement)) throw new Error("marketplace tab is missing");
+  marketplaceTab.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
   const store = document.querySelector(".official-plugin-store");
   if (!(store instanceof HTMLElement)) throw new Error("official plugin marketplace is missing");
   const title = store.querySelector("h4");
@@ -117,6 +123,12 @@ name = "the update summary names the plugin and the reason it gave"
 action = "eval"
 script = '''(async () => {
   const probe = window.__pluginUpdateProbe;
+  const installedTab = [...document.querySelectorAll('[role="tab"]')].find((candidate) =>
+    /Installed|已安装/.test(candidate.textContent ?? "")
+  );
+  if (!(installedTab instanceof HTMLElement)) throw new Error("installed plugins tab is missing");
+  installedTab.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
   const checkControl = () =>
     [...document.querySelectorAll(".plugin-directory-actions button")].find(
       (candidate) => (candidate.textContent ?? "").trim() === probe.checkLabel

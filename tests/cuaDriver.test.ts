@@ -24,7 +24,6 @@ function configWithServers(servers: AppConfig["mcp"]["servers"]): AppConfig {
     context_compaction_prompt: "",
     context_compaction_recent_message_count: 5,
     memory_retrieval_enabled: false,
-    github_token: "",
     providers: [],
     defaults: {
       chat_model: { provider_id: "", model: "" },

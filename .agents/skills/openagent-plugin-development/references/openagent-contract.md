@@ -388,11 +388,11 @@ check that makes no request cannot report a rate limit it never met.
 
 Failures are reported as the condition that caused them, not as broken
 packages. Each plugin entry carries an error kind — `rate_limited`,
-`unauthorized`, `network_failed`, `repository_unsupported`, or
+`network_failed`, `repository_unsupported`, or
 `release_unavailable` — and the report envelope carries one overall status that
 outranks that per-plugin detail, because quota can run out mid-check and leave
-a mixed result. An exhausted quota, a rejected token, or an unreachable network
-is therefore stated once at the top, with the reset time when GitHub supplies
+a mixed result. An exhausted quota or an unreachable network is therefore
+stated once at the top, with the reset time when GitHub supplies
 one, rather than counted as plugins that failed to check; only
 `repository_unsupported` and `release_unavailable` describe the plugin itself.
 An incomplete check names the affected plugins and states each reason from its
@@ -404,10 +404,8 @@ marked `stale` rather than discarding it, for at most seven days, so a badge
 does not flicker on a transient error — the envelope already states the global
 condition, so a stale value is never shown as current. `update` re-resolves
 metadata before installing and refuses to activate from a stale or otherwise
-unconfirmable release. Because the anonymous quota is shared and small,
-`github_token` in `config.toml` is an optional credential that raises the limit
-to 5000 per hour; it is attached only to release-metadata requests and never to
-archive downloads, which follow a redirect to a host that must not receive it.
+unconfirmable release. Release metadata and archive downloads use public
+endpoints and never carry a user credential.
 
 ## Built-in capabilities and packages
 

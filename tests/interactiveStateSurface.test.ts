@@ -85,9 +85,9 @@ test("reuses shared controls across onboarding and settings collections", async 
   expect(onboarding).toContain('class="application-settings-scope onboarding-panel"');
   expect(onboarding).not.toMatch(/\n\s*input\s*{/);
   expect(onboarding).not.toContain("<select");
-  // 32 surfaces: the plugin page adds `plugin-token-card` for the optional
-  // GitHub release-metadata token alongside the existing settings surfaces.
-  expect(settings.match(/application-settings-surface/g)).toHaveLength(32);
+  // The plugin page keeps the installed package surfaces alongside the
+  // marketplace switch without a credential card.
+  expect(settings.match(/application-settings-surface/g)).toHaveLength(31);
   expect(settings).toContain('class="application-settings-scope settings-panel"');
   expect(settings).not.toMatch(/\.list-search-input,[\s\S]*?\.detail-input\s*{[^}]*border:/);
   for (const surfaceClass of [

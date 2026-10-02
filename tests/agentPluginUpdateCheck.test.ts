@@ -46,7 +46,6 @@ function report(
       status: "ok",
       checked: updates.length,
       cached: 0,
-      token_configured: false,
       rate_limit_reset: null,
       ...check,
     },
@@ -124,7 +123,6 @@ describe("explicit Agent Plugin update check", () => {
   test("states every unreadable release in the language the user reads", () => {
     const kinds: AgentPluginUpdateErrorKind[] = [
       "rate_limited",
-      "unauthorized",
       "network_failed",
       "repository_unsupported",
       "release_unavailable",
@@ -162,28 +160,9 @@ describe("explicit Agent Plugin update check", () => {
         kind: "rate_limited",
         count: 2,
         resetAt: 1_800_000_000,
-        tokenConfigured: false,
       },
       fromCache: false,
     });
-  });
-
-  test("reports a rejected token as a configuration problem", () => {
-    expect(
-      classifyAgentPluginUpdateCheck(
-        report(
-          [
-            summary({
-              id: "a",
-              latest_version: null,
-              error: "GitHub rejected the configured token (401 Unauthorized)",
-              error_kind: "unauthorized",
-            }),
-          ],
-          { status: "unauthorized", token_configured: true },
-        ),
-      ),
-    ).toEqual({ outcome: { kind: "unauthorized", count: 1 }, fromCache: false });
   });
 
   test("reports a transport failure as a machine condition", () => {
@@ -215,7 +194,7 @@ describe("explicit Agent Plugin update check", () => {
         }),
       ),
     ).toEqual({
-      outcome: { kind: "rate_limited", count: 0, resetAt: null, tokenConfigured: false },
+      outcome: { kind: "rate_limited", count: 0, resetAt: null },
       fromCache: false,
     });
   });

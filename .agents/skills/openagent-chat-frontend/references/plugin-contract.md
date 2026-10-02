@@ -6,11 +6,9 @@ must preserve the existing message, checkpoint, and streaming fields so chat
 projection code continues to receive the same shapes.
 
 Those plugin update contracts now include the `AgentPluginUpdateReport`
-envelope with its per-plugin error kinds and overall check status, plus the
-optional `github_token` configuration field. They are additive: chat
+envelope with its per-plugin error kinds and overall check status. They are additive: chat
 projection still reads only the transcript, checkpoint, and streaming fields
-it read before, and `github_token` is a normal optional config string rather
-than part of any transcript payload. `SettingsView.svelte` and
+it read before. `SettingsView.svelte` and
 `PageRuntime.svelte` consume the envelope through
 `src/lib/agentPluginUpdateCheck.ts`; a change to those types is owned by
 `.agents/skills/openagent-plugin-development/`, not by chat behavior.
