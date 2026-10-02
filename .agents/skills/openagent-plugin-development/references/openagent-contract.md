@@ -159,7 +159,11 @@ fields form the stable bridge contract (all IDs are strings):
   `forked_from_checkpoint_id`, and `forked_from_message_id`; returns the new
   branch.
 - `branch.list`: `conv_id`; `branch.head.set`: `branch_id` and
-  `checkpoint_id`; `branch.active.set`: `conv_id` and `checkpoint_id`.
+  `checkpoint_id`; `branch.active.set`: `conv_id` plus either `branch_id`
+  (the host activates that branch's current head) or `checkpoint_id` (the
+  checkpoint must belong to the conversation). A branch head is always
+  checked against its conversation before it is written, so a package cannot
+  accidentally attach a sibling conversation's checkpoint.
 - `conversation.flow.set`: `conv_id`, `branch_id`, and a package projection
   with `{ "kind": "plugin", "state": { "plugin_id": "<authenticated-plugin>", ... } }`.
   The host stores the projection on the selected branch's current checkpoint

@@ -317,12 +317,15 @@
     const seen = new Set<string>();
     return agentCommandSpecs.flatMap((spec) => {
       // A package command whose id equals its package id has both a short
-      // route (`/goal`) and a fully-qualified route (`/goal:goal`). The
-      // catalog exposes one palette entry, just like the desktop surface.
+      // route and a fully-qualified route. The catalog exposes one palette
+      // entry, just like the desktop surface.
+      const normalizedName = spec.name.replace(/^\/+/, "");
       const catalogKey =
-        spec.plugin_id && spec.name === `${spec.plugin_id}:${spec.plugin_id}`
+        spec.plugin_id &&
+        (normalizedName === spec.plugin_id ||
+          normalizedName === `${spec.plugin_id}:${spec.plugin_id}`)
           ? spec.plugin_id
-          : spec.name;
+          : normalizedName;
       if (seen.has(catalogKey)) return [];
       seen.add(catalogKey);
       const run = remoteSlashCommandRun(spec.name);

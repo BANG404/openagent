@@ -31,9 +31,17 @@ describe("agent command catalog refresh", () => {
   test("deduplicates short and fully qualified package aliases in the remote palette", () => {
     expect(remoteRoute).toContain("const catalogKey =");
     expect(remoteRoute).toContain(
-      "spec.name === `${spec.plugin_id}:${spec.plugin_id}`",
+      "normalizedName === `${spec.plugin_id}:${spec.plugin_id}`",
     );
     expect(remoteRoute).toContain("id: catalogKey");
     expect(remoteRoute).toContain("insertText = spec.plugin_id ? `/${catalogKey}`");
+  });
+
+  test("normalizes legacy slash-prefixed package aliases in the desktop palette", () => {
+    expect(pageRuntime).toContain('const normalizedName = spec.name.replace(/^\\/+/, "");');
+    expect(pageRuntime).toContain(
+      'normalizedName === spec.plugin_id ||',
+    );
+    expect(pageRuntime).toContain('id: commandName');
   });
 });

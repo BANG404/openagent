@@ -51,18 +51,18 @@ describe("checkpoint record projection", () => {
     ]);
   });
 
-  test("marks the assistant turn following a chat-group wake prompt", () => {
-    const [message] = checkpointRecordsToMessages(
+  test("hides a package-owned wake prompt while keeping its reply", () => {
+    const messages = checkpointRecordsToMessages(
       [
-        // The Runtime materializes the builtin audience as the namespaced
-        // plugin projection, and that projection is what hides the wake prompt.
+        // A package may keep a model-visible continuation prompt in the
+        // checkpoint while declaring it hidden from the normal transcript.
         record({
           id: "wake-1",
           role: "user",
-          tags: ["chat_group_mention"],
-          plugin_tags: ["plugin:chat-groups:chat_group_mention"],
+          tags: [],
+          plugin_tags: ["plugin:demo:continuation"],
           plugin_user_visible: false,
-          content: [{ type: "text", text: "[chat_group:group-1]" }],
+          content: [{ type: "text", text: "continue the package workflow" }],
         }),
         record({
           id: "wake-reply-1",
@@ -73,7 +73,8 @@ describe("checkpoint record projection", () => {
       "conversation-1",
     );
 
-    expect(message.chatGroupWake).toBe(true);
+    expect(messages).toHaveLength(1);
+    expect(messages[0].content).toBe("Published to the group.");
   });
 
   test("preserves ordered reasoning and joins a persisted tool result", () => {

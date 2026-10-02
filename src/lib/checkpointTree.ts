@@ -106,7 +106,8 @@ export interface CkTreeNode {
   user?: ChatMessage;
   assistant?: ChatMessage;
   systemMessages?: ChatMessage[];
-  flowKind?: "goal" | "graph" | "graph-node" | "plugin";
+  /** Persisted flow kind; legacy values remain metadata for old checkpoints. */
+  flowKind?: "goal" | "graph" | "plugin";
   flowStatus?: string;
   flow?: CheckpointFlow;
   turn?: CheckpointTurnMetadata;
@@ -254,7 +255,6 @@ function recordToMessage( // NOSONAR: checkpoint projection handles legacy and c
   r: CheckpointMessage,
   checkpointId: string,
   convId: string | null = null,
-  chatGroupWake = false,
 ): ChatMessage {
   let content = "";
   const derivedItems: StreamItem[] = persistedItems(r.items);
@@ -330,7 +330,6 @@ function recordToMessage( // NOSONAR: checkpoint projection handles legacy and c
     tags: r.tags,
     agentTag: r.tags[0],
     pluginTags: r.plugin_tags,
-    chatGroupWake: chatGroupWake || undefined,
   };
 }
 
@@ -341,13 +340,11 @@ export function checkpointRecordsToMessages( // NOSONAR: checkpoint normalizatio
   convId: string | null = null,
 ): ChatMessage[] {
   const messages: ChatMessage[] = [];
-  let pendingChatGroupWake = false;
   for (const record of orderCheckpointRecords(records)) {
     const isCompactionBoundaryRecord =
       record.role === "system" && record.tags.includes("context_compaction");
     if (isCompactionBoundaryRecord) continue;
     if (isHiddenCheckpointRecord(record)) {
-      if (record.tags.includes("chat_group_mention")) pendingChatGroupWake = true;
       continue;
     }
     const toolResults = record.content.filter((part) => part.type === "tool_result");
@@ -367,8 +364,7 @@ export function checkpointRecordsToMessages( // NOSONAR: checkpoint normalizatio
       })
     )
       continue;
-    messages.push(recordToMessage(record, checkpointId, convId, pendingChatGroupWake));
-    if (pendingChatGroupWake && record.role === "assistant") pendingChatGroupWake = false;
+    messages.push(recordToMessage(record, checkpointId, convId));
   }
   return messages;
 }
@@ -516,11 +512,7 @@ export function buildTreeFromCheckpoints( // NOSONAR: tree construction applies 
       ckId: m.checkpoint_id,
       parentCkId: m.parent_checkpoint_id,
       createdAt: m.created_at,
-      flowKind:
-        checkpoint.data.flow?.kind === "goal" &&
-        typeof checkpoint.data.flow.state.graph_node_id === "string"
-          ? "graph-node"
-          : checkpoint.data.flow?.kind,
+      flowKind: checkpoint.data.flow?.kind,
       flowStatus:
         typeof checkpoint.data.flow?.state.status === "string"
           ? checkpoint.data.flow.state.status
@@ -726,7 +718,7 @@ export function selectActivePathToCheckpoint(tree: ConvTree, tipCheckpointId: st
 /**
  * Merge a newly persisted live checkpoint into the recovery tree and select
  * that exact durable tip. The transcript owner can keep rendering its
- * optimistic stream while Goal/Graph state advances from checkpoint data.
+ * optimistic stream while a package-owned flow advances from checkpoint data.
  */
 export function reconcileLiveCheckpointTip(
   checkpoints: RenderableCheckpoint[],

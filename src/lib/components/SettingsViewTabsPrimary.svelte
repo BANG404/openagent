@@ -74,10 +74,8 @@
   import type { SettingsNav } from "$lib/settingsWindows";
   import { approvalModeDescriptionKey, DEFAULT_APP_CONFIG } from "$lib/settingsDefaults";
   const view = getContext<Record<string, unknown>>("settings-view") as Record<string, any>;
-  // These two ids retain product-specific settings controls for compatibility
-  // with the host-owned Chat Groups and Cua switches. They are package ids,
-  // not Runtime bindings or implementation selectors.
-  const chatGroupsPluginId = "chat-groups";
+  // Cua remains a host integration; every other entry uses the same plugin
+  // lifecycle and host-access controls.
   const desktopControlPluginId = "cua-driver";
 </script>
 
@@ -392,16 +390,12 @@
             <Accordion.Trigger class="plugin-accordion-trigger">
               <span class="plugin-accordion-copy">
                 <span class="label-text"
-                  >{plugin.id === chatGroupsPluginId
-                    ? $t("chatGroupPlugin")
-                    : plugin.name}</span
+                  >{plugin.name}</span
                 >
                 <span class="detail-hint"
-                  >{plugin.id === chatGroupsPluginId
-                    ? $t("chatGroupPluginDescription")
-                    : plugin.id === desktopControlPluginId
-                      ? $t("pluginDesktopControlDescription")
-                      : (plugin.description ?? plugin.id)}</span
+                  >{plugin.id === desktopControlPluginId
+                    ? $t("pluginDesktopControlDescription")
+                    : (plugin.description ?? plugin.id)}</span
                 >
                 {#if plugin.id === desktopControlPluginId}
                   <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
@@ -424,7 +418,7 @@
                 >
                   <path d="m4 6 4 4 4-4" />
                 </svg>
-              {:else if plugin.id !== chatGroupsPluginId}
+              {:else}
                 <span class="plugin-version">
                   {plugin.version ?? "-"}
                   {#if (view.agentPluginUpdates ?? []).find((item: AgentPluginUpdateSummary) => item.id === plugin.id)?.update_available}
@@ -433,15 +427,7 @@
                 </span>
               {/if}
             </Accordion.Trigger>
-            {#if plugin.id === chatGroupsPluginId}
-              <div class="plugin-accordion-actions">
-                <Switch
-                  checked={view.draftConfig.chat_groups_enabled ?? true}
-                  onCheckedChange={(checked) => view.setChatGroupsEnabled(checked)}
-                  ariaLabel={$t("chatGroupPlugin")}
-                />
-              </div>
-            {:else if plugin.id === desktopControlPluginId}
+            {#if plugin.id === desktopControlPluginId}
               <div class="plugin-accordion-actions">
                 <Switch
                   checked={view.cuaDriver.enabled}
@@ -520,7 +506,7 @@
               {/if}
               <p class="plugin-warning">{$t("pluginUnrestrictedWarning")}</p>
             </Accordion.Content>
-          {:else if plugin.id !== chatGroupsPluginId}
+          {:else}
             <Accordion.Content class="plugin-accordion-content">
               <div class="plugin-tools-heading">
                 <div class="plugin-tools-title">
@@ -636,46 +622,6 @@
                   {/if}
                 </div>
               {/if}
-            </Accordion.Content>
-          {:else}
-            <Accordion.Content class="plugin-accordion-content">
-              {@const update = (view.agentPluginUpdates ?? []).find(
-                (item: AgentPluginUpdateSummary) => item.id === plugin.id,
-              )}
-              <div class="plugin-accordion-footer">
-                {#if plugin.repository}
-                  <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
-                {/if}
-                {#if update?.error}
-                  {@const reasonKey = agentPluginUpdateErrorKey(update.error_kind)}
-                  <p class="plugin-warning">
-                    {#if update.stale}
-                      {$t("pluginUpdateStaleHint")}
-                    {/if}
-                    {reasonKey === null ? update.error : $t(reasonKey)}
-                  </p>
-                  {#if reasonKey !== null}
-                    <p class="detail-hint">{update.error}</p>
-                  {/if}
-                {/if}
-                {#if update?.update_available && update.latest_version}
-                  <p class="plugin-update-hint">
-                    {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
-                    {#if update.release_url}
-                      <a href={update.release_url} target="_blank" rel="noreferrer">Release</a>
-                    {/if}
-                    {#if update.asset_url}
-                      <SettingsActionButton
-                        label={$t("pluginUpdate")}
-                        icon="download"
-                        tone="quiet"
-                        onclick={() => view.updateAgentPlugin(plugin.id)}
-                        disabled={view.agentPluginUpdating !== null}
-                      />
-                    {/if}
-                  </p>
-                {/if}
-              </div>
             </Accordion.Content>
           {/if}
         </Accordion.Item>

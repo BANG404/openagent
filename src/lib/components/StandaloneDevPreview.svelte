@@ -790,75 +790,21 @@
     { name: "archive", path: "D:\\Workspace Archive\\2026\\archive" },
   ];
 
-  const checkpointFlowPreviewKind = query.get("checkpoint-flow-preview-kind");
-  const checkpointFlow: CheckpointFlow =
-    checkpointFlowPreviewKind === "goal"
-      ? {
-          kind: "goal",
-          objective: "完成聊天界面的 Goal 状态面板",
-          status: "running",
-          iteration: 2,
-          todos: [
-            { id: "inspect", task: "读取 checkpoint 状态", status: "completed" },
-            { id: "panel", task: "实现可拖拽、可收缩的右侧面板", status: "in_progress" },
-            { id: "verify", task: "验证主题、语言和交互", status: "pending" },
-          ],
-        }
-      : checkpointFlowPreviewKind === "plugin"
-        ? {
-            kind: "plugin",
-            objective: "把 Goal 收尾并按插件标准发布",
-            status: "running",
-            flowId: "plugin:goal:goal",
-            items: [
-              { id: "todo-1", label: "打包并校验 plugin.json", status: "completed" },
-              { id: "todo-2", label: "推送仓库并创建 release", status: "in_progress" },
-              { id: "todo-3", label: "验证安装后的自动继续", status: "pending" },
-            ],
-            summary: "3 项待办，1 项完成。",
-          }
-        : {
-            kind: "graph",
-            objective: "并行完成 Goal / Graph 状态可视化",
-            status: "running",
-            iteration: 1,
-            nodes: [
-              { id: "checkpoint", task: "整理并核对市场数据", dependsOn: [], status: "completed" },
-              {
-                id: "goal-panel",
-                task: "汇总市场指数和行业表现",
-                dependsOn: ["checkpoint"],
-                status: "running",
-              },
-              {
-                id: "graph-panel",
-                task: "汇总热门板块与涨跌幅",
-                dependsOn: ["checkpoint"],
-                status: "pending",
-              },
-              {
-                id: "sector-analysis",
-                task: "分析板块异动和可能驱动因素",
-                dependsOn: ["checkpoint"],
-                status: "pending",
-              },
-              {
-                id: "source-audit",
-                task: "检查引用链接、时间与市场口径",
-                dependsOn: ["checkpoint"],
-                status: "pending",
-              },
-              {
-                id: "verification",
-                task: "合并结果并生成结构化摘要",
-                dependsOn: ["goal-panel", "graph-panel", "sector-analysis", "source-audit"],
-                status: "pending",
-              },
-            ],
-          };
+  const checkpointFlow: CheckpointFlow = {
+    kind: "plugin",
+    pluginId: "demo-workflow",
+    objective: "演示插件流程的持久化进度",
+    status: "running",
+    flowId: "plugin:demo-workflow:run",
+    items: [
+      { id: "inspect", label: "读取插件状态", status: "completed" },
+      { id: "run", label: "执行插件任务", status: "in_progress" },
+      { id: "verify", label: "保存结果并通知宿主", status: "pending" },
+    ],
+    summary: "插件自行维护状态机，宿主只显示通用投影。",
+  };
   if (query.has("checkpoint-flow-preview-empty")) {
-    if (checkpointFlow.kind === "graph") checkpointFlow.nodes = [];
-    if (checkpointFlow.kind === "plugin") checkpointFlow.items = [];
+    checkpointFlow.items = [];
   }
   if (query.has("checkpoint-flow-preview-completed")) checkpointFlow.status = "completed";
   const checkpointFlowPreviewFlow =
@@ -1049,7 +995,7 @@
     <section class="approval-queue-preview-stack" aria-label={$t("toolPreviewApprovalQueue")}>
       {#each approvalPreviewRequests as request, index (request.request_id)}
         <ToolCallCard
-          name={index === 0 ? "terminal_exec" : index === 1 ? "write_file" : "chat_group_start"}
+          name={index === 0 ? "terminal_exec" : index === 1 ? "write_file" : "plugin_progress"}
           args={JSON.stringify({ request: index + 1 }, null, 2)}
           result={undefined}
           expanded={false}
@@ -1257,7 +1203,7 @@
     <section class="checkpoint-flow-preview-chat">
       <div class="checkpoint-flow-preview-messages">
         <div class="checkpoint-flow-preview-user">
-          Create a Goal / Graph and show its durable checkpoint state.
+          Run a plugin workflow and show its durable checkpoint state.
         </div>
         <div class="checkpoint-flow-preview-assistant">
           The flow is running. Its progress stays attached to the selected durable branch tip.

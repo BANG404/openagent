@@ -47,7 +47,7 @@
   resolving the WebView media preference, because the previous native override
   can still influence that query.
   The conversation surface owns transcript/composer
-  composition, Goal/Graph panel presentation, and chat renderer theme overrides.
+  composition, package-flow panel presentation, and chat renderer theme overrides.
   Pass each surface a deliberate view model and action contract instead of
   returning leaf component markup or surface-local layout state to the route.
 - Keep transient per-conversation stream maps in the dedicated stream-state
@@ -192,20 +192,20 @@
   on one line with ellipsis, while the toolbar may grow by wrapping controls.
 - Treat the selected branch tip's durable checkpoint as final plugin Flow
   authority, not transient conversation badges. During streaming, project the
-  complete package-owned `FlowState` carried by `plugin-flow-updated` after
-  every plugin step or serialized Graph reducer update; keep that live overlay
-  until the matching persisted `chat-checkpoint` has been reconciled. Index
-  that overlay by the conversation and its `branch_id`, and carry the same
-  branch ID on lifecycle checkpoint events, so a sibling branch's update
-  cannot replace or clear the selected branch's panel.
+  complete package-owned projection carried by `plugin-flow-updated` after
+  every package state update; new live events always use `kind: "plugin"` and
+  keep that overlay until the matching persisted `chat-checkpoint` is
+  reconciled. Index the overlay by the conversation and its `branch_id`, and
+  carry the same branch ID on lifecycle checkpoint events, so a sibling
+  branch's update cannot replace or clear the selected branch's panel.
   Leave optimistic transcript records mounted throughout and ignore stale
   asynchronous refreshes so an older checkpoint cannot replace a newer live
-  Goal or Graph state. When any Goal/Graph status or branch-scoped file change is
-  observable, the resizable right-side conversation-details panel owns that
-  content in the ordinary desktop conversation; those file changes must not
-  render above the composer. Completed and unsuccessful Goal/Graph states remain
-  inspectable. Only when no flow or file change exists may the panel host, its
-  layout region, and its title-bar entry be omitted completely. Keep live
+  package state. When a package flow or branch-scoped file change is observable,
+  the resizable right-side conversation-details panel owns that content in the
+  ordinary desktop conversation; those file changes must not render above the
+  composer. Completed and unsuccessful package states remain inspectable. Only
+  when no flow or file change exists may the panel host, its layout region, and
+  its title-bar entry be omitted completely. Keep live
   file changes visible through terminal reconciliation until the matching durable
   records are observable on the selected checkpoint path; database visibility alone
   is not sufficient. Reconcile again when checkpoint hydration advances, and ensure a
@@ -214,8 +214,8 @@
   top-level Status and Files tabs preserve one
   full-height body, and the Files page uses horizontally scrollable file tabs
   with one line-numbered diff and revert action for the selected file. Keep the
-  title-bar toggle and collapsible panel host available whenever any Goal/Graph
-  or file-change data is currently observable. A temporary empty file projection
+  title-bar toggle and collapsible panel host available whenever any package
+  flow or file-change data is currently observable. A temporary empty file projection
   must not hide the panel while its matching live changes are still awaiting
   durable reconciliation.
   Keep diff rows on a single monospace baseline with fixed line-number gutters
@@ -226,8 +226,8 @@
   Render a newly created text file from its stored content as all-added
   lines, and keep the path, change kind, and revert action from overlapping as
   the panel width changes. A newly
-  created Goal or Graph automatically opens the panel, including flows created
-  by slash commands or tools. File-only activity also opens it so removing the
+  created package flow automatically opens the panel, including flows created by
+  plugin commands or tools. File-only activity also opens it so removing the
   composer banner does not hide new edits. Selecting an existing flow preserves
   the user's saved expand or collapse choice, and later checkpoints for that
   selected flow must not reset it.
@@ -236,8 +236,8 @@
   happened in and never becomes the default for a branch the session has not
   visited. An availability collapse is drawn, not chosen: it leaves the branch's
   own request intact, so when one of its views has content again the branch the
-  user had expanded reopens without another click. Newly created Goal, Graph, or
-  file activity may still open it. Keep
+  user had expanded reopens without another click. Newly created package or file
+  activity may still open it. Keep
   the single panel toggle at the trailing end of the shared title bar, use it
   for both expansion and collapse, and collapse the panel to a zero-width,
   non-interactive track using the same 180ms width curve as the conversation
@@ -250,24 +250,11 @@
   When the conversation container changes width, preserve the user's panel
   proportion before applying the existing 62% container cap and 260px/960px
   bounds; the stored value remains the last concrete width for reloads.
-  The status panel header uses the concise `Goal` or `Graph` kind label, its
-  objective beneath it, and a right-aligned completed/total count. Do not render
-  a separate progress track or duplicate flow-status badge below the header.
-  Render Graph dependencies as direct top-to-bottom connections between node
-  cards, with parallel nodes sharing a row. Preserve readable card typography
-  and let a long graph scroll vertically instead of scaling the complete graph
-  down to the panel height or routing connections around the panel edges.
-  Graph runtime nodes retain `status: running` before execution begins; project
-  an explicitly `started: false` node as pending, while preserving the status
-  value for started, terminal, and older nodes without that field. Apply the
-  complete live Graph snapshot emitted when a runnable batch is marked started
-  immediately, so each active node changes from pending to running before its
-  child stream produces output or reaches a terminal state.
-  Stopping a parent Graph must let every already-started child conversation
-  persist and emit its own cancelled terminal state before the runtime releases
-  the Graph node task set. Keep those child terminal events authoritative for
-  their transcripts; the parent's cancelled flow projection cannot substitute
-  for a missing child checkpoint.
+  The status panel header uses the package projection's title and objective,
+  plus a right-aligned completed/total count for the common `items` list. Keep
+  package status strings visible on each item and preserve unknown vocabulary;
+  dependency graphs, reducers, and child scheduling belong to the package that
+  emitted the projection.
   Place the expanded panel as a full-height card beside the conversation card in
   the workspace flex container. Keep a narrow transparent gap between these two
   sibling cards while its persisted width reduces the conversation track. Give
@@ -288,13 +275,13 @@
   themes without weakening the shared elevation of other input surfaces.
   Do not retain a clickable edge peek, collapsed layout track, or a
   second collapse control inside the panel. Keep the expanded header free of
-  decorative Goal or Graph kind glyphs. Center an otherwise empty planning state
+  decorative package-kind glyphs. Center an otherwise empty package state
   in the available panel body.
   Cap the expanded panel to 45% of its live conversation container as well as
   its fixed maximum, so a persisted or dragged width cannot squeeze the main
-  conversation into a deformed narrow track. Let Goal cards grow to contain their wrapped task and result copy,
-  and keep Goal items, summaries, and Graph dependency content inside the panel
-  without widening its layout track or introducing horizontal scrolling. Match the
+  conversation into a deformed narrow track. Let package items grow to contain
+  wrapped labels and details, and keep package summaries inside the panel without
+  widening its layout track or introducing horizontal scrolling. Match the
   conversation sidebar's direct manipulation behavior: capture the active
   pointer, disable width transitions and text selection while dragging, and
   restore them when the drag ends or is cancelled. Use the same resizer visual
@@ -302,12 +289,6 @@
   primary indicator at the same hover, focus, and active opacity. Clear focus
   acquired by a pointer drag when it finishes so the active affordance cannot
   stick; preserve visible focus for keyboard resizing.
-  Render Graph dependencies as a top-to-bottom directed flow diagram with
-  arrowed SVG edges behind compact node cards. Limit parallel layers to
-  readable responsive columns, clamp long visible task copy, and scale the
-  complete graph into the panel's remaining viewport without introducing a
-  nested scrollbar. Preserve complete task and dependency context for assistive
-  technology.
 - Finalization updates the existing row instead of replacing its DOM subtree,
   preserving open thinking sections. Restored historical thinking starts
   collapsed.
@@ -341,9 +322,9 @@
 - Treat the first `render_mermaid` call as the process-disclosure
   boundary: keep that render and every later record outside the collapsed work
   details, including later tools and reasoning. Before that boundary,
-  `update_goal` behaves like an ordinary tool and remains eligible for grouping
-  and process folding. Without a render call, use the ordinary trailing-text
-  boundary.
+  package progress tools behave like ordinary tools and remain eligible for
+  grouping and process folding. Without a render call, use the ordinary
+  trailing-text boundary.
 - Treat assistant records separated only by a tagged context-compaction replay
   as one complete Agent reply. Keep the compaction boundary at its real
   position inside that reply, with one action footer after the final record.
@@ -385,9 +366,9 @@
   before a live context-compaction continuation. Keep already completed turns'
   action footers mounted while a later turn streams. Reveal the live turn's
   actions together only after its complete Agent reply finishes.
-  A durable turn opened by a `chat_group_mention` wake prompt publishes its
-  answer through the group panel, so keep its completion footer and follow-up
-  suggestions hidden in the role conversation.
+  A durable turn opened by a package wake prompt may publish its answer through
+  a package-owned surface, so the package's visibility policy controls whether
+  the normal completion footer and follow-up suggestions appear.
   Book mode opens from that footer and flows each complete reply continuously
   across a two-column, full-window spread, adding pages when the reply exceeds
   one spread. Match Mermaid fullscreen's fixed viewport footprint and inner
@@ -481,13 +462,9 @@
   audience policy is authoritative: hide plugin-only model messages from the
   transcript, retain user-visible plugin lifecycle messages as ordinary
   assistant rows, and keep both projections aligned by checkpoint message ID.
-  Builtin Goal, Graph, and Chat Groups tags use this same namespaced projection;
-  do not add a frontend allowlist for builtin enum tags. The Runtime-only
-  `terminal_poll` control tag remains hidden separately. Older checkpoints are
-  normalized by Runtime before hydration.
-- Chat-group messages keep sender identity separate from wake targets. Render
-  the sender from its conversation member, and resolve each persisted mention
-  member ID to an explicit inline `@role` annotation so a message sent by the
-  `openagent` role is not confused with the roles it wakes. Do not add a
-  separate mention summary below the message; unresolved or non-mention `@text`
-  remains ordinary Markdown text.
+  Legacy product tags use this same namespaced projection; do not add a
+  frontend allowlist for package tags. The Runtime-only `terminal_poll` control
+  tag remains hidden separately. Older checkpoints are normalized by Runtime
+  before hydration. A package that exposes its own transcript surface owns
+  sender, wake-target, and mention rendering in that surface; the main
+  transcript only renders the host's generic plugin message projection.

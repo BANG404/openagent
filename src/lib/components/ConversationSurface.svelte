@@ -123,11 +123,6 @@
     rightSidebarConversationId = view.activeConvId,
     rightSidebarBranchId = view.activeBranchId,
     rightSidebarScopeKey = `${view.activeConvId ?? ""}\u0000${view.activeBranchId ?? ""}`,
-    chatGroupsEnabled = false,
-    chatGroupsAvailable = false,
-    chatGroupIds = [],
-    chatGroupWorkspace = view.workspacePath,
-    onChatGroupsAvailabilityChange = () => {},
     composerDraft,
     focusRequest,
     pluginSidebarViews = [],
@@ -148,11 +143,6 @@
     rightSidebarConversationId?: string | null;
     rightSidebarBranchId?: string | null;
     rightSidebarScopeKey?: string;
-    chatGroupsEnabled?: boolean;
-    chatGroupsAvailable?: boolean;
-    chatGroupIds?: string[];
-    chatGroupWorkspace?: string;
-    onChatGroupsAvailabilityChange?: (available: boolean) => void;
     composerDraft: ComposerDraft;
     focusRequest: number;
     pluginSidebarViews?: AgentPluginSidebarViewSummary[];
@@ -457,11 +447,6 @@
     {conversationPanelCollapsed}
     {onConversationCollapse}
     {onTerminalSummaryChange}
-    {chatGroupsEnabled}
-    {chatGroupsAvailable}
-    {chatGroupIds}
-    {chatGroupWorkspace}
-    {onChatGroupsAvailabilityChange}
     {pluginSidebarViews}
     {pluginSidebarRevision}
     {pluginSidebarContext}

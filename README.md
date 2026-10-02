@@ -74,8 +74,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 - **Multi-Agent & Flash Agents Architecture** — A primary streaming **Chat Agent** for main conversations, and a suite of dedicated async **Flash Agents** (including **Memory Agent** for long-term memory synthesis, **Title Agent** for dynamic conversation renaming, and **Hook Agent** for background scheduled tasks).
 - **Sub-Agent Delegation** — The Chat Agent can call `spawn_agent` to delegate tasks to nested sub-agents; progress streams in real-time into a sub-conversation shown nested under the parent in the sidebar.
 - **Reusable Agent Roles** — Create global role workflows, discover them with hybrid search, and dispatch them as specialized child agents. Roles can be created automatically on first use or managed from the **Roles** panel; delegated roles inherit the parent conversation's selected resources.
-- **Chat Group Collaboration** — Mention selected roles in a conversation to wake them for focused contributions, keep their responses in the group thread, and coordinate private agent-to-agent messages without leaving the chat.
-- **Goal & Graph Loops (Autonomous Execution)** — Type `/goal` in the chat to run a self-correcting loop directly aiming at the objective. Type `/graph` to first plan a structured DAG task graph (`create_goal_graph_config`) and execute nodes asynchronously with parallel processing. The selected branch's durable checkpoint drives an auto-opening, resizable right panel for Goal to-dos and Graph node dependencies.
+- **Plugin-Owned Orchestration** — Goal, Graph, Chat Group, and other long-running workflows are ordinary Agent Plugins. Each package owns its state, reducer, prompts, completion rules, and wake scheduling, while the Runtime provides the same conversation, branch, flow, event, and Agent wake bridge to every package.
 - **Hybrid Long-Term Memory** — SQLite + FTS5 + bundled, offline 384-dim embeddings (fastembed `AllMiniLML6V2Q`) blended with time decay for cross-session recall. Before retrieval, an optional Flash task rewrites the latest message into a focused semantic query, so stored memories are matched to intent rather than just wording.
 - **Interactive User Prompts (`ask_user`)** — The agent can pause mid-task and surface a structured form to the user — `text`, `select`, `checkbox_group`, `confirm`, `date`, and more. The agent blocks until the user responds, then continues with the collected values. No more one-shot guessing on ambiguous instructions.
 
@@ -89,7 +88,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 - **MCP-Native** — Connect external MCP servers over HTTP or stdio; the Agent uses `load_tool` to find relevant capabilities and mounts matching tools into the next request, with per-tool controls.
 - **First-class Dev Tools** — Built-in patch, image-inspection, and terminal tools. Managed terminal sessions support interactive or long-running background processes.
 - **Desktop Automation** — The host-supervised Cua Driver is installed from the upstream GitHub release channel and runs with product-owned permissions and per-tool controls in the **top-bar Integrations → Plugins** panel. OpenAgent checks for newer driver releases with the other component updates.
-- **Plugin Controls** — The top-bar **Integrations → Plugins** entry opens the dedicated Plugins settings window with expandable cards: toggle Chat Group collaboration, test the Cua Driver MCP connection, discover its tools, and choose which desktop actions are exposed to the agent.
+- **Plugin Controls** — The top-bar **Integrations → Plugins** entry opens the dedicated Plugins settings window. Installed packages use one lifecycle boundary for commands, MCP servers, skills, automation hooks, and sidebar views; each package receives the same host capability bridge.
 - **Lifecycle Automation** — Run a sandboxed command or inject bounded Agent context around session, prompt, compaction, model, and tool events.
 - **Independent Approval & Runtime Permissions** — Choose when tool calls pause for review separately from the managed filesystem and network sandbox.
 - **Skills System** — Drop a `SKILL.md` into `~/.agents/skills/` or `<workspace>/.agents/skills/`. Category-based progressive discovery keeps large global and project catalogs compact, with optional Flash classification for uncategorized Skills.
@@ -333,8 +332,8 @@ Multi-series charts use `series: [{name, data}, ...]`.
 ## Current product boundaries
 
 - OpenAgent does not provide built-in webpage search/fetching, `render_web`, AGUI `Html(...)`, an embedded browser sidebar, or HTML-preview settings. Agents share websites with `Url(...)`; users open those links in their browser. Browser automation belongs to Cua Driver or another explicitly configured MCP service.
-- The right conversation panel is contextual: it appears only for Goal/Graph status, file changes, or conversation-owned background terminals.
-- The former general Agent Plugins management surface is not exposed. Skills and user-configured MCP servers keep their dedicated settings, while the Plugins surface owns the built-in Chat Group and Cua Driver controls.
+- The right conversation panel is contextual: it appears for a package flow projection, file changes, or conversation-owned background terminals.
+- Goal, Graph, Chat Group, and Cua integrations use the ordinary installed-plugin boundary. The Runtime does not register their domain state, reducers, tools, or schedulers.
 
 ---
 

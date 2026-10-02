@@ -130,7 +130,7 @@
   ranks exact, prefix, name, and path
   matches ahead of the unchanged remainder instead of hiding unmatched projects.
   Render every child conversation without a leading kind or role icon, including
-  delegated role, Goal, and Graph conversations. Indent each child title beyond
+  delegated role and package-owned workflow conversations. Indent each child title beyond
   its parent title and increase that inset at every deeper active-branch level.
   Recent conversations is one newest-first projection of the 20 most recently
   updated top-level conversations across workspace metadata for the selected role;
@@ -198,9 +198,9 @@
   add a tooltip to conversation titles. Keep a 3px parent-owned gap between
   adjacent conversation rows so hover and active fills remain visibly separate
   at every nesting depth and in search results.
-  Keep Goal, Graph, and Graph-node conversation titles free of leading flow
-  glyphs; hierarchy, active state, and streaming state already communicate their
-  sidebar structure without a decorative workflow badge.
+  Keep package-owned workflow conversation titles free of leading flow glyphs;
+  hierarchy, active state, and streaming state already communicate their sidebar
+  structure without a decorative workflow badge.
   Keep the new-conversation and search actions, conversation rows, expanded
   sidebar navigation, and settings navigation on the same single-line scale:
   30px height, 13px type on an 18px line, 10px horizontal padding, an 8px
@@ -258,15 +258,13 @@
   composer focus request after the surface becomes visible so the input is ready for typing.
 
 - Restore the right-sidebar selection after conversation hydration has projected
-  durable chat-group tool results. A scope switch may temporarily fall back to
-  the status panel before those results are available; when a conversation has
-  chat groups and no flow, file, or terminal surface, select the chat-group
-  panel once the scope is known. Respect an explicit user collapse request.
-  Keep the selected details tab when the panel is collapsed and reopened, and
-  keep file and chat-group tab instances mounted while hidden so their loaded
-  selection, draft, members, and messages survive the toggle. Show a
-  layout-stable skeleton while a chat-group scope or its first message page is
-  loading instead of painting the empty state during that request.
+  a package flow or file changes. A scope switch may temporarily fall back to
+  the status panel before those projections are available; select the first
+  package sidebar view only after its own scope is known. Respect an explicit
+  user collapse request. Keep the selected details tab when the panel is
+  collapsed and reopened, and keep package and file tab instances mounted while
+  hidden so their loaded state survives the toggle. Show a layout-stable
+  skeleton while a package view is loading instead of painting its empty state.
 - The new-conversation surface does not render a greeting above the centered
   composer. Keep the composer, suggestions, loading state, and API key warning
   aligned across desktop, remote, and preview surfaces. Suggestions do not

@@ -131,8 +131,6 @@ export interface ChatMessage {
   agentTag?: AgentMessageTag;
   /** Namespaced plugin lifecycle tags projected by the Runtime. */
   pluginTags?: string[];
-  /** The assistant turn was triggered by a chat-group wake prompt. */
-  chatGroupWake?: boolean;
 }
 
 /** User-role records emitted by a portable plugin automation hook. */
@@ -145,6 +143,7 @@ export function isPluginMessage(message: unknown): boolean {
 export type AgentMessageTag =
   | "context_compaction"
   | "plugin_command_input"
+  | "queued_user_message"
   | "chat_group_mention"
   | "terminal_poll"
   | "goal_bootstrap"
@@ -362,7 +361,7 @@ export interface CheckpointData {
     | "final_cancelled"
     | "final_failed"
     | null;
-  /** `plugin` is a package flow's own projection; the other two are built in. */
+  /** Legacy Goal/Graph payloads remain readable; new packages use `plugin`. */
   flow?: {
     kind: "goal" | "graph" | "plugin";
     state: Record<string, unknown>;
@@ -376,7 +375,8 @@ export interface PluginFlowUpdatedEvent {
   flow_id: string;
   status: string;
   flow?: {
-    kind: "goal" | "graph" | "plugin";
+    /** Live events are emitted only by the generic package flow bridge. */
+    kind: "plugin";
     state: unknown;
   };
 }

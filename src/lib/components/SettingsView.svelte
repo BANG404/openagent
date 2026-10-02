@@ -436,14 +436,6 @@
     draftConfig.mcp.servers = [created, ...draftConfig.mcp.servers];
   }
 
-  function setChatGroupsEnabled(enabled: boolean) {
-    draftConfig.chat_groups_enabled = enabled;
-    draftConfig.agent_plugins_enabled = {
-      ...(draftConfig.agent_plugins_enabled ?? {}),
-      "chat-groups": enabled,
-    };
-  }
-
   function agentPluginEnabled(pluginId: string): boolean {
     return draftConfig.agent_plugins_enabled?.[pluginId] ?? true;
   }
@@ -576,8 +568,7 @@
           const saved = normalizeConfigShape(await onSave(snapshot, baseConfig));
           const pluginEnablementChanged =
             JSON.stringify(saved.agent_plugins_enabled ?? {}) !==
-              JSON.stringify(baseConfig.agent_plugins_enabled ?? {}) ||
-            (saved.chat_groups_enabled ?? true) !== (baseConfig.chat_groups_enabled ?? true);
+            JSON.stringify(baseConfig.agent_plugins_enabled ?? {});
           const edited = snapshotDraftConfig();
           const rebased = normalizeConfigShape(
             rebaseDraftValue(snapshot, saved, edited) as AppConfig,
@@ -2889,9 +2880,6 @@
     },
     get setCuaDriverEnabled() {
       return setCuaDriverEnabled;
-    },
-    get setChatGroupsEnabled() {
-      return setChatGroupsEnabled;
     },
     get setDefaultModel() {
       return setDefaultModel;

@@ -4,7 +4,6 @@ import {
   checkpointFlowFromLiveUpdate,
   conversationDetailsAvailable,
   checkpointFlowProgress,
-  checkpointGraphLayers,
   liveCheckpointRefreshDecision,
   normalizeCheckpointFlow,
   updateLiveCheckpointFlowProjection,
@@ -33,18 +32,12 @@ const checkpoint = (id: string, parent: string | null, flow: unknown) => ({
   },
 });
 
-describe("checkpoint Goal and Graph state", () => {
-  test("shows Goal and Graph details in every durable status", () => {
+describe("checkpoint package flow state", () => {
+  test("shows a package flow in every durable status", () => {
     for (const status of ["running", "completed", "failed", "blocked"]) {
       expect(
         conversationDetailsAvailable(
-          { kind: "goal", objective: "Goal", iteration: 1, todos: [], status },
-          0,
-        ),
-      ).toBe(true);
-      expect(
-        conversationDetailsAvailable(
-          { kind: "graph", objective: "Graph", iteration: 1, nodes: [], status },
+          { kind: "plugin", objective: "Package", flowId: "plugin:demo:run", items: [], status },
           0,
         ),
       ).toBe(true);
@@ -57,7 +50,7 @@ describe("checkpoint Goal and Graph state", () => {
     expect(conversationDetailsAvailable(undefined, 1)).toBe(true);
   });
 
-  test("normalizes Goal to-dos and computes progress", () => {
+  test("normalizes a legacy Goal projection into the common package shape", () => {
     const flow = normalizeCheckpointFlow("goal", {
       objective: "Ship the panel",
       iteration: 2,
@@ -68,7 +61,15 @@ describe("checkpoint Goal and Graph state", () => {
       ],
     });
 
-    expect(flow?.kind).toBe("goal");
+    expect(flow).toMatchObject({
+      kind: "plugin",
+      objective: "Ship the panel",
+      status: "running",
+      items: [
+        { id: "one", label: "Inspect", status: "completed" },
+        { id: "two", label: "Implement", status: "in_progress" },
+      ],
+    });
     expect(flow && checkpointFlowProgress(flow)).toEqual({ completed: 1, total: 2 });
   });
 
@@ -91,6 +92,7 @@ describe("checkpoint Goal and Graph state", () => {
       objective: "Ship the release",
       status: "awaiting_review",
       flowId: "plugin:goal:goal",
+      pluginId: "goal",
       items: [
         { id: "one", label: "Inspect", status: "completed", detail: undefined },
         { id: "two", label: "Implement", status: "in_progress", detail: "editing files" },
@@ -121,7 +123,7 @@ describe("checkpoint Goal and Graph state", () => {
     expect(normalizeCheckpointFlow("plugin", { items: [] })).toBeUndefined();
   });
 
-  test("preserves Graph dependencies while rejecting malformed nodes", () => {
+  test("flattens a legacy Graph projection without creating a host DAG", () => {
     const flow = normalizeCheckpointFlow("graph", {
       objective: "Run in parallel",
       status: "blocked",
@@ -133,16 +135,17 @@ describe("checkpoint Goal and Graph state", () => {
     });
 
     expect(flow).toMatchObject({
-      kind: "graph",
+      kind: "plugin",
+      objective: "Run in parallel",
       status: "blocked",
-      nodes: [
-        { id: "root", dependsOn: [], status: "completed" },
-        { id: "leaf", dependsOn: ["root"], status: "blocked" },
+      items: [
+        { id: "root", label: "Start", status: "completed" },
+        { id: "leaf", label: "Finish", status: "blocked", detail: "Depends on: root" },
       ],
     });
   });
 
-  test("shows running Graph nodes as pending until the runtime starts them", () => {
+  test("preserves legacy Graph status vocabulary as ordinary package items", () => {
     const flow = normalizeCheckpointFlow("graph", {
       objective: "Run in order",
       status: "running",
@@ -155,11 +158,12 @@ describe("checkpoint Goal and Graph state", () => {
     });
 
     expect(flow).toMatchObject({
-      nodes: [
-        { id: "active", status: "running" },
-        { id: "waiting", status: "pending" },
-        { id: "legacy", status: "running" },
-        { id: "done", status: "completed" },
+      kind: "plugin",
+      items: [
+        { id: "active", label: "Active", status: "running" },
+        { id: "waiting", label: "Waiting", status: "running" },
+        { id: "legacy", label: "Legacy", status: "running" },
+        { id: "done", label: "Done", status: "completed" },
       ],
     });
   });
@@ -211,11 +215,12 @@ describe("checkpoint Goal and Graph state", () => {
     expect(getActiveTipNode(refreshed)?.ckId).toBe("second");
     expect(getActiveTipNode(refreshed)?.flow).toMatchObject({
       status: "running",
-      todos: [
-        { id: "inspect", status: "completed" },
-        { id: "fix", status: "in_progress" },
+      items: [
+        { id: "inspect", label: "Inspect", status: "completed" },
+        { id: "fix", label: "Fix", status: "in_progress" },
       ],
     });
+    expect(getActiveTipNode(refreshed)?.flow).not.toHaveProperty("todos");
   });
 
   test("keeps live checkpoint flow data when stream finalization sees the same tip", () => {
@@ -243,35 +248,37 @@ describe("checkpoint Goal and Graph state", () => {
     ).tree;
 
     expect(getActiveTipNode(finalized)?.flow).toMatchObject({
-      kind: "graph",
+      kind: "plugin",
       status: "running",
-      nodes: [{ id: "work", status: "running" }],
+      items: [{ id: "work", label: "Work", status: "running" }],
     });
   });
 
-  test("normalizes the complete transient Goal snapshot emitted by a tool update", () => {
+  test("normalizes a complete transient plugin snapshot emitted by an event", () => {
     const flow = checkpointFlowFromLiveUpdate({
       conv_id: "conversation",
-      kind: "goal",
+      branch_id: "branch",
+      flow_id: "plugin:demo:run",
       status: "running",
       flow: {
-        kind: "goal",
+        kind: "plugin",
         state: {
-          objective: "Show progress now",
+          plugin_id: "demo",
+          flow_id: "plugin:demo:run",
+          title: "Show progress now",
           status: "running",
-          iteration: 1,
-          todos: [
-            { id: "inspect", task: "Inspect", status: "completed" },
-            { id: "fix", task: "Fix", status: "in_progress" },
+          items: [
+            { id: "inspect", label: "Inspect", status: "completed" },
+            { id: "fix", label: "Fix", status: "in_progress" },
           ],
         },
       },
     });
 
     expect(flow).toMatchObject({
-      kind: "goal",
+      kind: "plugin",
       objective: "Show progress now",
-      todos: [
+      items: [
         { id: "inspect", status: "completed" },
         { id: "fix", status: "in_progress" },
       ],
@@ -282,7 +289,8 @@ describe("checkpoint Goal and Graph state", () => {
     expect(
       checkpointFlowFromLiveUpdate({
         conv_id: "conversation",
-        kind: "goal",
+        branch_id: "branch",
+        flow_id: "plugin:demo:run",
         status: "running",
       }),
     ).toBeUndefined();
@@ -291,33 +299,38 @@ describe("checkpoint Goal and Graph state", () => {
   test("versions live projections so an older durable refresh cannot clear a newer update", () => {
     const first = updateLiveCheckpointFlowProjection(undefined, {
       conv_id: "conversation",
-      kind: "goal",
+      branch_id: "branch",
+      flow_id: "plugin:demo:run",
       status: "running",
       flow: {
-        kind: "goal",
-        state: { objective: "Live", status: "running", todos: [] },
+        kind: "plugin",
+        state: { plugin_id: "demo", flow_id: "plugin:demo:run", title: "Live", status: "running", items: [] },
       },
     });
     const second = updateLiveCheckpointFlowProjection(first, {
       conv_id: "conversation",
-      kind: "goal",
+      branch_id: "branch",
+      flow_id: "plugin:demo:run",
       status: "running",
       flow: {
-        kind: "goal",
+        kind: "plugin",
         state: {
-          objective: "Live",
+          plugin_id: "demo",
+          flow_id: "plugin:demo:run",
+          title: "Live",
           status: "running",
-          todos: [{ id: "next", task: "Next", status: "in_progress" }],
+          items: [{ id: "next", label: "Next", status: "in_progress" }],
         },
       },
     });
 
     expect(second?.version).toBe(2);
-    expect(second?.flow).toMatchObject({ todos: [{ id: "next", status: "in_progress" }] });
+    expect(second?.flow).toMatchObject({ items: [{ id: "next", status: "in_progress" }] });
     expect(
       updateLiveCheckpointFlowProjection(second, {
         conv_id: "conversation",
-        kind: "goal",
+        branch_id: "branch",
+        flow_id: "plugin:demo:run",
         status: "running",
       }),
     ).toBe(second);
@@ -339,39 +352,5 @@ describe("checkpoint Goal and Graph state", () => {
         { refreshVersion: 1, branchSelectionVersion: 5, flowVersion: 1 },
       ),
     ).toEqual({ applyDurableTip: false, clearLiveProjection: false });
-  });
-});
-
-const graphNode = (id: string, dependsOn: string[] = []) => ({
-  id,
-  task: id,
-  dependsOn,
-  status: "running" as const,
-});
-
-describe("checkpoint graph layout", () => {
-  test("places parallel branches together before their convergence", () => {
-    const layers = checkpointGraphLayers([
-      graphNode("inspect"),
-      graphNode("frontend", ["inspect"]),
-      graphNode("docs", ["inspect"]),
-      graphNode("verify", ["frontend", "docs"]),
-    ]);
-
-    expect(layers.map((layer) => layer.map(({ id }) => id))).toEqual([
-      ["inspect"],
-      ["frontend", "docs"],
-      ["verify"],
-    ]);
-  });
-
-  test("keeps unknown dependencies and malformed cycles visible", () => {
-    const layers = checkpointGraphLayers([
-      graphNode("root", ["missing"]),
-      graphNode("cycle-a", ["cycle-b"]),
-      graphNode("cycle-b", ["cycle-a"]),
-    ]);
-
-    expect(layers.flat().map(({ id }) => id)).toEqual(["root", "cycle-a", "cycle-b"]);
   });
 });

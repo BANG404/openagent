@@ -182,7 +182,7 @@
     top: number;
   } | null>(null);
   function isHiddenMessage(msg: ChatMessage) {
-    return msg.role === "system" || msg.tags?.includes("chat_group_mention") === true;
+    return msg.role === "system";
   }
   function isCompactionReplayUser(msg: ChatMessage) {
     return msg.role === "user" && msg.tags?.includes("context_compaction") === true;
@@ -653,7 +653,6 @@
         {@const turnSuggestionHostMessageId =
           turnMetadata?.response_message_id ?? assistantMsg?.id ?? null}
         {@const turnIsTerminal = ["completed", "cancelled", "failed"].includes(turnStatus)}
-        {@const isChatGroupWake = turnMessages.some((message) => message.chatGroupWake)}
         {@const assistantSegments = groupStreamItems(renderedAssistantItems)}
         {@const { processSegments, finalSegments } = partitionAssistantSegments(
           assistantSegments,
@@ -746,7 +745,7 @@
           </div>
         {/if}
         {#if assistantMsg}
-          {#if !isChatGroupWake && (isRerunnable || timing || cacheUsage || assistantMsg.timestamp > 0 || renderedAssistantItems.length > 0)}
+          {#if isRerunnable || timing || cacheUsage || assistantMsg.timestamp > 0 || renderedAssistantItems.length > 0}
             <div
               class="msg-footer-row message-record pagination-footer"
               id={renderedAssistantItems.length > 0 ? undefined : `message-${assistantMsg.id}`}
@@ -865,7 +864,7 @@
                 >{/if}
             </div>
           {/if}
-          {#if !isChatGroupWake && !assistantIsStreaming && turnIsTerminal && turnSuggestionHostMessageId === suggestionHostMessageId && turnSuggestions.length === 3}
+          {#if !assistantIsStreaming && turnIsTerminal && turnSuggestionHostMessageId === suggestionHostMessageId && turnSuggestions.length === 3}
             <div class="message-record pagination-footer">
               <FollowUpSuggestions suggestions={turnSuggestions} onSelect={onSelectSuggestion} />
             </div>

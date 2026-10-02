@@ -177,36 +177,6 @@ page from the top of every scroll area, and a full-page capture does not carry
 the settings surface at all, so a viewport-sized image of the scrolled list
 shows its first rows instead of the row the pass asserted.
 
-## Chat-group sidebar coverage
-
-The committed `tests/blackbox/chat-group-sidebar.toml` scenario verifies that a
-durable chat-group tool round makes the right-sidebar chat-group view available
-and renders the recorded group. It needs no provider run: the wrapper seeds the
-conversation first by calling the isolated debug instance's loopback dev API
-(`POST /v1/diagnostics/chat-group-conversation`), which registers a real group
-through the product tool and writes one renderable checkpoint. The scenario then
-drives the same conversation list and sidebar tabs a user uses:
-
-```bash
-OPENAGENT_HOME="$HOME/.openagent-dev/instances/blackbox" bun tauri dev
-bun run test:blackbox:chat-groups
-```
-
-The app and the wrapper must share the isolated `OPENAGENT_HOME`/instance; the
-wrapper reads `dev-api.json` from that home and fails with a clear message when
-the instance is not running. Keep the seeded conversation out of release state;
-the diagnostic route exists only in the debug dev API.
-
-This section and the MCP Apps section below are the two runners that seed
-through the dev API, and they are the two that must not use
-`--multi-instance <name>`. The host only passes `--desktop-primary` to the
-Runtime when it is not an agent server, not a workspace window, and not a
-development multi-instance, and `start_dev_api` (which writes `dev-api.json`)
-runs behind that argument, so a multi-instance run never publishes the manifest
-the wrapper needs. Set the isolated `OPENAGENT_HOME` explicitly instead, as
-above; that mode restores ordinary single-instance enforcement, so stop any
-other running window of the same build first.
-
 ## MCP Apps coverage
 
 The committed `tests/blackbox/mcp-apps.toml` and `mcp-apps-teardown.toml`
@@ -223,8 +193,11 @@ OPENAGENT_HOME="$HOME/.openagent-dev/instances/blackbox" bun tauri dev
 bun run test:blackbox:mcp-apps
 ```
 
-Like the chat-group runner, this one seeds through the dev API and so cannot use
-`--multi-instance`; see that section for why.
+This runner seeds through the dev API and so cannot use `--multi-instance`.
+The host passes `--desktop-primary` only to the primary desktop Runtime;
+development multi-instances do not start the dev API or publish its manifest.
+Set the isolated `OPENAGENT_HOME` explicitly and stop any other running window
+of the same build before starting the fixture instance.
 
 The host mounts MCP Apps in a `sandbox="allow-scripts"` iframe, so the parent
 window has no `contentDocument` and cannot assert on widget internals. Every

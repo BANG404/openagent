@@ -239,15 +239,15 @@
   selected context to a fixed line count.
 - Keep the development-only `checkpoint-flow-preview` query available for the
   right-side conversation-details panel and composer approval selector. Its
-  `-kind`, `-theme`, and `-locale` query parameters must keep Goal/Graph, edited
-  file tabs, resize/collapse, approval selection through the real
+  `-kind`, `-theme`, and `-locale` query parameters must keep the generic plugin
+  flow, edited file tabs, resize/collapse, approval selection through the real
   composer-preferences save queue, light/dark, and Chinese/English checks
   addressable without a native runtime. The `-empty` parameter exposes the
-  centered Graph planning state, while `-files-only` removes Goal/Graph to
-  exercise the file-only panel directly. The `-no-details` parameter removes
-  both kinds of data so complete omission of the panel and its title-bar entry
-  remains directly verifiable. The `-completed` parameter retains a completed
-  flow projection without file changes and must keep that flow inspectable.
+  centered empty plugin state, while `-files-only` removes the flow to exercise
+  the file-only panel directly. The `-no-details` parameter removes both kinds
+  of data so complete omission of the panel and its title-bar entry remains
+  directly verifiable. The `-completed` parameter retains a completed flow
+  projection without file changes and must keep that flow inspectable.
   Mirror the production conversation's transparent composer surroundings; do
   not add a bottom readability fade to this preview.
 - Keep the development-only `book-mode-preview` query available with long,

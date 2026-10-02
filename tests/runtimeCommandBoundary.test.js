@@ -131,7 +131,7 @@ describe("desktop command boundary", () => {
     }
     expect(plugins).toContain("pub message_policies: Vec<AgentPluginMessagePolicy>");
     expect(plugins).toContain("id: MULTI_AGENT_V2_ID,");
-    expect(plugins).toContain("runtime: BuiltinPluginRuntime::MultiAgentV2");
+    expect(plugins).toContain("legacy_enabled: multi_agent_v2_legacy_enabled,");
     expect(protocol).toContain("pub plugin_id: Option<String>");
     expect(settings).toContain("{#each view.agentPlugins as plugin (plugin.id)}");
     expect(settings).not.toContain('value="cua-driver" class="application-settings-surface');

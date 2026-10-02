@@ -1,5 +1,5 @@
 export type RightSidebarPanel =
-  "status" | "files" | "terminal" | "group" | `plugin:${string}:${string}`;
+  "status" | "files" | "terminal" | `plugin:${string}:${string}`;
 
 export function isPluginSidebarPanel(
   panel: RightSidebarPanel,

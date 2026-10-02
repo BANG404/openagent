@@ -1,11 +1,7 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
   import {
     checkpointFlowProgress,
-    checkpointGraphLayers,
     type CheckpointFlow,
-    type CheckpointFlowItem,
-    type CheckpointGraphNodeStatus,
   } from "$lib/checkpointFlow";
   import type { AgentPluginSidebarViewSummary, FileChange } from "$lib/types";
   import type { BackgroundTerminalSession } from "$lib/openagent";
@@ -17,7 +13,6 @@
   } from "$lib/sidebarPanelScope";
   import { t } from "$lib/i18n";
   import BackgroundTerminalPanel from "$lib/components/BackgroundTerminalPanel.svelte";
-  import ChatGroupPanel from "$lib/components/ChatGroupPanel.svelte";
   import FileChangePanel from "$lib/components/FileChangePanel.svelte";
   import ScrollArea from "$lib/components/ui/ScrollArea.svelte";
   import PluginSidebarPanel from "$lib/components/PluginSidebarPanel.svelte";
@@ -41,11 +36,6 @@
     onTerminalSummaryChange?: (runningCount: number, sessionCount: number) => void;
     terminalPreviewSessions?: BackgroundTerminalSession[] | null;
     terminalPreviewOutputs?: Record<string, string>;
-    chatGroupsEnabled?: boolean;
-    chatGroupsAvailable?: boolean;
-    chatGroupIds?: string[];
-    chatGroupWorkspace?: string;
-    onChatGroupsAvailabilityChange?: (available: boolean) => void;
     pluginSidebarViews?: AgentPluginSidebarViewSummary[];
     /** Package identity of the visible plugins; a change reloads each panel. */
     pluginSidebarRevision?: string;
@@ -77,11 +67,6 @@
     onTerminalSummaryChange = () => {},
     terminalPreviewSessions = null,
     terminalPreviewOutputs = {},
-    chatGroupsEnabled = false,
-    chatGroupsAvailable = false,
-    chatGroupIds = [],
-    chatGroupWorkspace = "",
-    onChatGroupsAvailabilityChange = () => {},
     pluginSidebarViews = [],
     pluginSidebarRevision = "",
     pluginSidebarContext = {},
@@ -90,132 +75,27 @@
   const panelSnapshots = new RightSidebarPanelStateStore();
   let currentScopeKey = $state<string | null>(null);
   let fileSelectedId = $state<string | null>(null);
-  let groupSelectedId = $state<string | null>(null);
-  let groupDraft = $state("");
 
   $effect(() => {
     const scope = rightSidebarScopeKey;
     if (scope === currentScopeKey) return;
-    const current: RightSidebarPanelState = { fileSelectedId, groupSelectedId, groupDraft };
+    const current: RightSidebarPanelState = { fileSelectedId };
     const restored = panelSnapshots.switchScope(currentScopeKey, current, scope, {
       fileSelectedId: null,
-      groupSelectedId: null,
-      groupDraft: "",
     });
     currentScopeKey = scope;
     fileSelectedId = restored.fileSelectedId;
-    groupSelectedId = restored.groupSelectedId;
-    groupDraft = restored.groupDraft;
   });
 
   $effect(() => {
     const scope = currentScopeKey;
-    if (scope !== null) panelSnapshots.save(scope, { fileSelectedId, groupSelectedId, groupDraft });
+    if (scope !== null) panelSnapshots.save(scope, { fileSelectedId });
   });
   let progress = $derived(flow ? checkpointFlowProgress(flow) : { completed: 0, total: 0 });
-  let graphLayers = $derived(flow?.kind === "graph" ? checkpointGraphLayers(flow.nodes) : []);
-  // Goal to-dos and package items are both flat progress entries; only Graph
-  // keeps its own layered rendering.
-  let flatItems = $derived(flatFlowItems(flow));
+  let flatItems = $derived(flow?.items ?? []);
   // The package projection carries its own title; the host does not need a
-  // declared Flow entry or a product-specific registry to render it.
-  let heading = $derived(
-    flow === null
-      ? ""
-      : flow.kind === "goal"
-        ? $t("checkpointGoal")
-        : flow.kind === "graph"
-          ? $t("checkpointGraph")
-          : $t("checkpointPluginFlow"),
-  );
-  let graphViewport: HTMLElement | null = $state(null);
-  let graphCanvas: HTMLDivElement | null = $state(null);
-  let graphEdges = $state<{ key: string; path: string; status: CheckpointGraphNodeStatus }[]>([]);
-  const graphNodeElements = new Map<string, HTMLElement>();
-  let graphResizeObserver: ResizeObserver | null = null;
-  let graphFrame = 0;
-
-  function updateGraphLayout() {
-    if (!graphViewport || !graphCanvas || flow?.kind !== "graph") {
-      graphEdges = [];
-      return;
-    }
-
-    const canvasRect = graphCanvas.getBoundingClientRect();
-    const knownIds = new Set(flow.nodes.map((node) => node.id));
-    graphEdges = flow.nodes.flatMap((node) => {
-      const target = graphNodeElements.get(node.id);
-      if (!target) return [];
-      const targetRect = target.getBoundingClientRect();
-      return [...new Set(node.dependsOn)].flatMap((dependency) => {
-        if (!knownIds.has(dependency) || dependency === node.id) return [];
-        const source = graphNodeElements.get(dependency);
-        if (!source) return [];
-        const sourceRect = source.getBoundingClientRect();
-        const startX = sourceRect.left + sourceRect.width / 2 - canvasRect.left;
-        const startY = sourceRect.bottom - canvasRect.top;
-        const endX = targetRect.left + targetRect.width / 2 - canvasRect.left;
-        const endY = targetRect.top - canvasRect.top;
-        const controlOffset = Math.max(10, (endY - startY) / 2);
-        return [
-          {
-            key: `${dependency}:${node.id}`,
-            path: `M ${startX} ${startY} C ${startX} ${startY + controlOffset}, ${endX} ${endY - controlOffset}, ${endX} ${endY}`,
-            status: node.status,
-          },
-        ];
-      });
-    });
-  }
-
-  function scheduleGraphLayout() {
-    if (typeof requestAnimationFrame === "undefined") return;
-    cancelAnimationFrame(graphFrame);
-    graphFrame = requestAnimationFrame(updateGraphLayout);
-  }
-
-  function registerGraphNode(element: HTMLElement, id: string) {
-    graphNodeElements.set(id, element);
-    graphResizeObserver?.observe(element);
-    scheduleGraphLayout();
-    return {
-      update(nextId: string) {
-        if (nextId === id) return;
-        graphNodeElements.delete(id);
-        id = nextId;
-        graphNodeElements.set(id, element);
-        scheduleGraphLayout();
-      },
-      destroy() {
-        graphResizeObserver?.unobserve(element);
-        graphNodeElements.delete(id);
-        scheduleGraphLayout();
-      },
-    };
-  }
-
-  onMount(() => {
-    graphResizeObserver = new ResizeObserver(scheduleGraphLayout);
-    if (graphViewport) graphResizeObserver.observe(graphViewport);
-    if (graphCanvas) graphResizeObserver.observe(graphCanvas);
-    for (const element of graphNodeElements.values()) graphResizeObserver.observe(element);
-    scheduleGraphLayout();
-    return () => {
-      cancelAnimationFrame(graphFrame);
-      graphResizeObserver?.disconnect();
-    };
-  });
-
-  $effect(() => {
-    flow;
-    width;
-    collapsed;
-    void tick().then(() => {
-      if (graphViewport) graphResizeObserver?.observe(graphViewport);
-      if (graphCanvas) graphResizeObserver?.observe(graphCanvas);
-      scheduleGraphLayout();
-    });
-  });
+  // product-specific flow registry or domain-specific renderer.
+  let heading = $derived(flow ? $t("checkpointPluginFlow") : "");
 
   $effect(() => {
     if (activePanel === "status" && !flow) {
@@ -231,18 +111,7 @@
         ? "status"
         : changes.length > 0
           ? "files"
-          : chatGroupsEnabled && chatGroupsAvailable
-            ? "group"
-            : "status";
-    }
-    if (activePanel === "group" && (!chatGroupsEnabled || !chatGroupsAvailable)) {
-      activePanel = flow
-        ? "status"
-        : changes.length > 0
-          ? "files"
-          : terminalAvailable
-            ? "terminal"
-            : "status";
+          : "status";
     }
     if (
       isPluginSidebarPanel(activePanel) &&
@@ -257,18 +126,6 @@
             : "status";
     }
   });
-
-  function flatFlowItems(current: CheckpointFlow | null): CheckpointFlowItem[] {
-    if (current?.kind === "goal") {
-      return current.todos.map((todo) => ({
-        id: todo.id,
-        label: todo.task,
-        status: todo.status,
-        detail: todo.result,
-      }));
-    }
-    return current?.kind === "plugin" ? current.items : [];
-  }
 
   function statusLabel(status: string): string {
     if (status === "completed") return $t("checkpointFlowCompleted");
@@ -336,16 +193,6 @@
             {/if}
           </button>
         {/if}
-        {#if chatGroupsEnabled && chatGroupsAvailable}
-          <button
-            type="button"
-            class:active={activePanel === "group"}
-            aria-current={activePanel === "group" ? "page" : undefined}
-            onclick={() => (activePanel = "group")}
-          >
-            {$t("chatGroups")}
-          </button>
-        {/if}
         {#each pluginSidebarViews as view (view.id)}
           <button
             type="button"
@@ -366,133 +213,33 @@
         <span class="flow-count">{progress.completed}/{progress.total}</span>
       </header>
 
-      <div class="flow-body" class:graph={flow.kind === "graph"}>
-        {#if flow.kind !== "graph"}
-          <ScrollArea height="100%" class="flow-body-scroll" scrollHideDelay={350}>
-            <div class="flow-body-content">
-              {#if flatItems.length === 0}
-                <p class="flow-empty">
-                  {$t(flow.kind === "goal" ? "checkpointGoalNoTodos" : "checkpointPluginFlowEmpty")}
-                </p>
-              {:else}
-                {#each flatItems as item (item.id)}
-                  <div class="flow-item {item.status}">
-                    <span class="status-dot" aria-hidden="true"></span>
-                    <span class="item-copy"
-                      ><strong>{item.label}</strong>{#if item.detail}<small>{item.detail}</small
-                        >{/if}</span
-                    >
-                    <span class="item-status">{statusLabel(item.status)}</span>
-                  </div>
-                {/each}
-              {/if}
-            </div>
-          </ScrollArea>
-        {:else}
-          {#if flow.nodes.length === 0}
-            <p class="flow-empty">{$t("checkpointGraphPlanning")}</p>
-          {:else}
-            <ScrollArea
-              height="100%"
-              class="graph-viewport"
-              bind:viewport={graphViewport}
-              scrollHideDelay={350}
-            >
-              <div class="graph-canvas" bind:this={graphCanvas} role="list">
-                <svg class="graph-edges" aria-hidden="true">
-                  <defs>
-                    <marker
-                      id="graph-arrow-pending"
-                      viewBox="0 0 8 8"
-                      refX="7"
-                      refY="4"
-                      markerWidth="6"
-                      markerHeight="6"
-                      orient="auto"
-                      ><path d="M 0 0 L 8 4 L 0 8 z" fill="var(--text-muted)"></path></marker
-                    >
-                    <marker
-                      id="graph-arrow-running"
-                      viewBox="0 0 8 8"
-                      refX="7"
-                      refY="4"
-                      markerWidth="6"
-                      markerHeight="6"
-                      orient="auto"
-                      ><path d="M 0 0 L 8 4 L 0 8 z" fill="var(--primary)"></path></marker
-                    >
-                    <marker
-                      id="graph-arrow-completed"
-                      viewBox="0 0 8 8"
-                      refX="7"
-                      refY="4"
-                      markerWidth="6"
-                      markerHeight="6"
-                      orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="#18794e"></path></marker
-                    >
-                    <marker
-                      id="graph-arrow-failed"
-                      viewBox="0 0 8 8"
-                      refX="7"
-                      refY="4"
-                      markerWidth="6"
-                      markerHeight="6"
-                      orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="#b42318"></path></marker
-                    >
-                    <marker
-                      id="graph-arrow-blocked"
-                      viewBox="0 0 8 8"
-                      refX="7"
-                      refY="4"
-                      markerWidth="6"
-                      markerHeight="6"
-                      orient="auto"><path d="M 0 0 L 8 4 L 0 8 z" fill="#b42318"></path></marker
-                    >
-                  </defs>
-                  {#each graphEdges as edge (edge.key)}
-                    <path
-                      class="graph-edge {edge.status}"
-                      d={edge.path}
-                      marker-end={`url(#graph-arrow-${edge.status})`}
-                    ></path>
-                  {/each}
-                </svg>
-                {#each graphLayers as layer, layerIndex (`layer-${layerIndex}`)}
-                  <div class="graph-layer" class:single={layer.length === 1}>
-                    {#each layer as node (node.id)}
-                      <div
-                        class="graph-node {node.status}"
-                        role="listitem"
-                        aria-label={`${node.id}: ${node.task}. ${statusLabel(node.status)}`}
-                        use:registerGraphNode={node.id}
-                      >
-                        <div class="node-header">
-                          <code>{node.id}</code>
-                          <span class="item-status">{statusLabel(node.status)}</span>
-                        </div>
-                        <strong>{node.task}</strong>
-                        {#if node.result}<small>{node.result}</small>{/if}
-                        {#if node.dependsOn.length > 0}
-                          <span class="sr-only"
-                            >{$t("checkpointDependsOn")}: {node.dependsOn.join(", ")}</span
-                          >
-                        {/if}
-                      </div>
-                    {/each}
-                  </div>
-                {/each}
-              </div>
-            </ScrollArea>
-          {/if}
-        {/if}
+      <div class="flow-body">
+        <ScrollArea height="100%" class="flow-body-scroll" scrollHideDelay={350}>
+          <div class="flow-body-content">
+            {#if flatItems.length === 0}
+              <p class="flow-empty">{$t("checkpointPluginFlowEmpty")}</p>
+            {:else}
+              {#each flatItems as item (item.id)}
+                <div class="flow-item {item.status}">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <span class="item-copy"
+                    ><strong>{item.label}</strong>{#if item.detail}<small>{item.detail}</small
+                      >{/if}</span
+                  >
+                  <span class="item-status">{statusLabel(item.status)}</span>
+                </div>
+              {/each}
+            {/if}
+          </div>
+        </ScrollArea>
 
         {#if flow.summary}<p class="flow-summary">{flow.summary}</p>{/if}
       </div>
     {/if}
 
     <!-- Keep tab-local data mounted while the sidebar is collapsed or another
-         tab is active. This preserves loaded group messages and file selection
-         instead of rebuilding the first tab on every return. -->
+         tab is active. This preserves plugin panels and file selection instead
+         of rebuilding the first tab on every return. -->
     <div
       class="panel-cache-slot"
       hidden={collapsed || activePanel !== "files"}
@@ -500,22 +247,6 @@
     >
       {#if changes.length > 0}
         <FileChangePanel {changes} {onRevert} bind:selectedId={fileSelectedId} />
-      {/if}
-    </div>
-    <div
-      class="panel-cache-slot"
-      hidden={collapsed || activePanel !== "group"}
-      aria-hidden={collapsed || activePanel !== "group"}
-    >
-      {#if chatGroupsEnabled && chatGroupsAvailable}
-        <ChatGroupPanel
-          enabled={chatGroupsEnabled && chatGroupsAvailable}
-          workspace={chatGroupWorkspace}
-          groupIds={chatGroupIds}
-          bind:selectedGroupId={groupSelectedId}
-          bind:draft={groupDraft}
-          onAvailabilityChange={onChatGroupsAvailabilityChange}
-        />
       {/if}
     </div>
     {#each pluginSidebarViews as view (view.id)}
@@ -532,7 +263,7 @@
         />
       </div>
     {/each}
-    {#if !collapsed && activePanel !== "status" && activePanel !== "files" && activePanel !== "group" && activePanel !== "terminal" && !isPluginSidebarPanel(activePanel)}
+    {#if !collapsed && activePanel !== "status" && activePanel !== "files" && activePanel !== "terminal" && !isPluginSidebarPanel(activePanel)}
       <div class="flow-body">
         <p class="flow-empty">{$t("conversationDetailsEmpty")}</p>
       </div>
@@ -834,154 +565,6 @@
   }
   .item-status {
     padding: 1px 6px;
-  }
-  .flow-body.graph {
-    display: flex;
-    min-height: 0;
-    flex-direction: column;
-    overflow: hidden;
-    padding: 0;
-  }
-  .graph-viewport {
-    position: relative;
-    min-width: 0;
-    min-height: 0;
-    flex: 1;
-  }
-  :global(.graph-viewport .ui-scroll-area-viewport) {
-    overflow-x: hidden;
-    padding: 12px 8px 20px 10px;
-  }
-  .graph-canvas {
-    position: relative;
-    display: grid;
-    width: 100%;
-    box-sizing: border-box;
-    gap: 28px;
-    padding: 2px 4px;
-  }
-  .graph-edges {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-    pointer-events: none;
-  }
-  .graph-edge {
-    fill: none;
-    stroke: var(--text-muted);
-    stroke-linecap: round;
-    stroke-width: 1.2;
-    opacity: 0.42;
-    vector-effect: non-scaling-stroke;
-  }
-  .graph-edge.running {
-    stroke: var(--primary);
-    opacity: 0.62;
-  }
-  .graph-edge.completed {
-    stroke: #18794e;
-    opacity: 0.7;
-  }
-  .graph-edge.failed,
-  .graph-edge.blocked {
-    stroke: #b42318;
-    opacity: 0.75;
-  }
-  .graph-layer {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    min-width: 0;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .graph-layer.single {
-    grid-template-columns: minmax(0, min(240px, 100%));
-    justify-content: center;
-  }
-  .graph-node {
-    display: flex;
-    min-width: 0;
-    min-height: 74px;
-    flex-direction: column;
-    gap: 4px;
-    box-sizing: border-box;
-    padding: 8px 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-  }
-  .graph-node.running {
-    background: color-mix(in srgb, var(--primary) 3%, var(--surface));
-  }
-  .graph-node.running .item-status {
-    color: var(--primary);
-    background: color-mix(in srgb, var(--primary) 11%, transparent);
-  }
-  .graph-node.completed .item-status {
-    color: #18794e;
-    background: color-mix(in srgb, #18794e 10%, transparent);
-  }
-  .graph-node.failed,
-  .graph-node.blocked {
-    background: color-mix(in srgb, var(--danger) 3%, var(--surface));
-  }
-  .graph-node.failed .item-status,
-  .graph-node.blocked .item-status {
-    color: var(--danger);
-    background: color-mix(in srgb, var(--danger) 10%, transparent);
-  }
-  .node-header {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-  }
-  .node-header code {
-    overflow: hidden;
-    color: var(--text-muted);
-    font-size: 10px;
-    line-height: 1.25;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .graph-node > strong {
-    display: -webkit-box;
-    overflow: hidden;
-    color: var(--text);
-    font-size: 11px;
-    font-weight: 500;
-    line-height: 1.4;
-    overflow-wrap: anywhere;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-  }
-  .graph-node > small {
-    overflow: hidden;
-    color: var(--text-muted);
-    font-size: 10px;
-    line-height: 1.3;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .graph .flow-summary {
-    flex: 0 0 auto;
-    margin: 0 10px 10px;
-  }
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
   }
   .flow-empty,
   .flow-summary {

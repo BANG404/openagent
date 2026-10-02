@@ -18,7 +18,7 @@ export function conversationBranchScopeKey(
  * Whether a background terminal session belongs to the given scope.
  *
  * A missing owner is not a third scope: the runtime reports `null` when it
- * could not attribute a session (an unscoped caller, or the `/graph`
+ * could not attribute a session (an unscoped caller, or a package-owned
  * background run), and hiding such a session would make a running process
  * unreachable from every view. A session is therefore hidden only when it
  * positively belongs elsewhere — another conversation, or another branch of
@@ -97,12 +97,10 @@ export class RightSidebarScopeStore {
 /**
  * Keeps each tab's own selection separate from the sidebar's active tab.
  * Components are mounted conditionally, so this small store prevents a tab
- * switch from turning a user's last file, group, or draft back into defaults.
+ * switch from turning a user's last file selection back into a default.
  */
 export interface RightSidebarPanelState {
   fileSelectedId: string | null;
-  groupSelectedId: string | null;
-  groupDraft: string;
 }
 
 export class RightSidebarPanelStateStore {

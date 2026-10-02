@@ -114,7 +114,6 @@
     RightSidebarScopeStore,
   } from "$lib/sidebarPanelScope";
   import { retainUndurableFileChanges } from "$lib/fileChangeReconciliation";
-  import { chatGroupScope } from "$lib/chatGroupScope";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import {
     availablePluginSidebarViews,
@@ -340,19 +339,18 @@
   // Checkpoint IDs from chat-checkpoint events, pending assignment to assistant messages
   let pendingCheckpointIds = $state<Record<string, string>>({});
   // A checkpoint event is emitted only after its durable snapshot exists. Keep
-  // Goal/Graph projection current without hydrating partial transcript records.
-  // Refreshes are scoped to the same conversation-plus-branch key as live
-  // package projections. A Goal/Graph event from one sibling must not cancel a
-  // refresh or clear an overlay belonging to another sibling.
+  // the package projection current without hydrating partial transcript
+  // records. Refreshes are scoped to the same conversation-plus-branch key as
+  // live package projections, so a sibling event cannot clear this overlay.
   const liveCheckpointRefreshVersions = new Map<string, number>();
   // Incremented when the user starts selecting a different branch. An in-flight
   // refresh then cannot select the old event's tip after the switch completes.
   const branchSelectionVersions = new Map<string, number>();
   const pendingExternalUserRecoveries = new Set<string>();
-  // Goal tools and Graph reducers mutate the canonical in-memory checkpoint
-  // before that snapshot becomes durable. Render their complete event projection
-  // until the matching persisted checkpoint has been reconciled.
-  // Live package projections are branch-owned. A conversation can have
+  // Package tools may update the canonical in-memory checkpoint before that
+  // snapshot becomes durable. Render their complete event projection until the
+  // matching persisted checkpoint has been reconciled. Live package
+  // projections are branch-owned. A conversation can have
   // sibling runs in flight, so a conversation-only key would let an event
   // from one branch replace the status shown for another branch.
   let liveCheckpointFlowProjections = $state<Record<string, LiveCheckpointFlowProjection>>({});
@@ -767,51 +765,11 @@
         currentCheckpointFlowNode?.flow)
       : undefined,
   );
-  let chatGroupScopeState = $derived(chatGroupScope(messages, currentStreamItems));
-  // Tool-call reconciliation briefly removes the optimistic stream item
-  // before the durable message is loaded. Retain the last known group scope
-  // for this conversation so the right panel stays mounted through that
-  // handoff instead of flashing away and reopening.
-  let chatGroupScopeCache = $state<Record<string, string[]>>({});
-  $effect(() => {
-    const conversationId = activeConvId;
-    const ids = chatGroupScopeState.groupIds;
-    if (!conversationId || ids.length === 0) return;
-    untrack(() => {
-      const previous = chatGroupScopeCache[conversationId];
-      if (
-        previous?.length === ids.length &&
-        previous.every((groupId, index) => groupId === ids[index])
-      ) {
-        return;
-      }
-      chatGroupScopeCache = { ...chatGroupScopeCache, [conversationId]: [...ids] };
-    });
-  });
-  let chatGroupIds = $derived(
-    chatGroupScopeState.groupIds.length > 0
-      ? chatGroupScopeState.groupIds
-      : activeConvId
-        ? (chatGroupScopeCache[activeConvId] ?? [])
-        : [],
-  );
-  // A group view is available only after a chat-group tool completed with a
-  // durable group id. A pending or failed call must not open the sidebar.
-  let chatGroupToolUsed = $derived(chatGroupIds.length > 0);
-  // Conversation hydration can briefly restore the sidebar as `status` before
-  // the durable chat-group tool result is projected into `messages`. Once the
-  // group scope is known, select the group view when it is the only available
-  // detail surface so recovery does not leave an empty status panel visible.
-  // A plugin panel is the last resort of the same recovery: when the scope has
-  // no built-in detail surface, the first lifecycle-available panel replaces
-  // the empty status surface instead of leaving the sidebar open on nothing.
+  // A plugin panel is the last resort when the scope has no built-in detail
+  // surface, so recovery does not leave an empty status surface open.
   $effect(() => {
     if (rightSidebarCollapseRequested || rightSidebarPanel !== "status") return;
     if (currentCheckpointFlow || currentFileChanges.length > 0 || terminalSessionCount > 0) return;
-    if (chatGroupToolUsed) {
-      rightSidebarPanel = "group";
-      return;
-    }
     const pluginPanel = firstAvailablePluginSidebarPanel(pluginSidebarRegistry);
     if (pluginPanel) rightSidebarPanel = pluginPanel;
   });
@@ -898,7 +856,6 @@
   let rightSidebarAvailable = $derived(
     conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length) ||
       terminalSessionCount > 0 ||
-      ((config?.chat_groups_enabled ?? false) && chatGroupToolUsed) ||
       pluginSidebarViews.length > 0,
   );
   // The one value the title bar and the sidebar render. Deriving it keeps the
@@ -1182,7 +1139,6 @@
                 turn: restored.turn ?? message.turn,
                 tags: restored.tags ?? message.tags,
                 agentTag: restored.agentTag ?? message.agentTag,
-                chatGroupWake: restored.chatGroupWake ?? message.chatGroupWake,
               };
             }),
           }
@@ -3127,7 +3083,7 @@
       }
     });
 
-    // subagent-started: a delegated role or graph node created a child conversation
+    // subagent-started: a delegated role or package scheduler created a child conversation
     register<{
       parent_conv_id: string | null;
       sub_conv_id: string;
@@ -3373,8 +3329,7 @@
               .reverse()
               .find((item) => item.type === "tool_call" && item.result === undefined);
         const rolesMayHaveChanged =
-          pendingToolCall?.type === "tool_call" &&
-          (pendingToolCall.name === "chat_group_start" || pendingToolCall.name === "create_role");
+          pendingToolCall?.type === "tool_call" && pendingToolCall.name === "create_role";
         if (attachApprovedToolResult(conv_id, result, toolUseId)) {
           if (rolesMayHaveChanged) void loadAvailableRoles();
           return;
@@ -3388,11 +3343,6 @@
             mcpUi,
           ),
         };
-        const updatedItems = chatStreams.itemsByConversation[conv_id] ?? [];
-        if (conv_id === activeConvId && chatGroupScope([], updatedItems).groupIds.length > 0) {
-          rightSidebarPanel = "group";
-          rightSidebarCollapseRequested = false;
-        }
         if (rolesMayHaveChanged) void loadAvailableRoles();
         persistStreamDraft(conv_id).catch(() => {});
       },
@@ -4566,7 +4516,10 @@
     } catch (error) {
       const inputError = error as { code?: string };
       showToast({
-        title: inputError.code === "missing_argument" ? tr("goalCommandNeedsText") : String(error),
+        title:
+          inputError.code === "missing_argument"
+            ? tr("slashCommandNeedsArgument")
+            : String(error),
         variant: "error",
       });
       return true;
@@ -5480,14 +5433,16 @@
   let slashCommands = $derived.by<SlashCommand[]>(() => {
     const seen = new Set<string>();
     return agentCommandSpecs.flatMap((spec) => {
-      // A package whose command id equals its package id has two valid routes
-      // (`/goal` and `/goal:goal`) but one catalog entry. Keep the short alias
-      // as the visible command even if a stale Runtime catalog still returns
-      // both spellings during a live settings refresh.
+      // A package command whose id equals its package id has a short alias and
+      // a namespaced route. Normalize both spellings before deduplication so a
+      // stale refresh cannot create a second palette item.
+      const normalizedName = spec.name.replace(/^\/+/, "");
       const catalogKey =
-        spec.plugin_id && spec.name === `${spec.plugin_id}:${spec.plugin_id}`
+        spec.plugin_id &&
+        (normalizedName === spec.plugin_id ||
+          normalizedName === `${spec.plugin_id}:${spec.plugin_id}`)
           ? spec.plugin_id
-          : spec.name;
+          : normalizedName;
       if (seen.has(catalogKey)) return [];
       seen.add(catalogKey);
       const run = slashCommandRun(spec.name);
@@ -5861,10 +5816,6 @@
           {rightSidebarBranchId}
           {pluginSidebarViews}
           {pluginSidebarRevision}
-          chatGroupsEnabled={config?.chat_groups_enabled ?? false}
-          chatGroupsAvailable={(config?.chat_groups_enabled ?? false) && chatGroupToolUsed}
-          {chatGroupIds}
-          chatGroupWorkspace={workspacePath}
           composerDraft={activeComposerDraft}
           focusRequest={composerFocusRequest}
         />

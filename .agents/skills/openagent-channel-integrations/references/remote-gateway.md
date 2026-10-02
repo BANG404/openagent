@@ -3,8 +3,8 @@
 OpenAgent's remote gateway lets a paired browser operate the conversation
 runtime through the same SDK used by the desktop UI. A remote client can select
 an allowed workspace, role, and model; create, browse, rename, pin, delete, and
-cancel conversations; submit chat, `/compact`, `/goal`, and `/graph` with
-typed quoted excerpts selected from earlier assistant messages; resolve
+cancel conversations; submit chat, `/compact`, and installed package commands
+with typed quoted excerpts selected from earlier assistant messages; resolve
 durable approvals and `ask_user`; upload attachments; switch or fork branches;
 re-run edited turns; and roll back file changes.
 
@@ -79,8 +79,8 @@ reject the duplicate action.
   workspace presentation capabilities required by the shared chat components.
   Desktop administration surfaces (provider secrets, updater, tray, Inspector,
   and unrestricted OS integration) remain local-only.
-- Long-running chat, Goal, and Graph requests are acknowledged after dispatch
-  and observed through scoped SSE state. `/compact` waits for and returns its
+- Long-running chat and package requests are acknowledged after dispatch and
+  observed through scoped SSE state. `/compact` waits for and returns its
   immediate `changed` result, including the no-op case.
 - Remote sessions are intentionally process-local; devices pair again after an
   application restart.

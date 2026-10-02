@@ -672,12 +672,13 @@ describe("desktop navigation chrome", () => {
     expect(panel).toMatch(
       /\.resize-handle::after\s*{[^}]*inset: 0 auto 0 3px;[^}]*width: var\(--column-resize-indicator-width\);/s,
     );
-    expect(panel).toContain('class="graph-viewport"');
+    expect(panel).toContain('class="flow-body"');
     expect(panel).toContain("ui-scroll-area-viewport");
-    expect(panel).toContain("padding: 12px 8px 20px 10px");
+    expect(panel).toContain("padding: 10px 8px 10px 10px");
     expect(panel).toMatch(
       /@media \(max-width: 900px\)[\s\S]*?\.flow-panel:not\(\.collapsed\)\s*{[^}]*position: fixed;[^}]*width: auto;[^}]*max-width: none;/s,
     );
+    expect(panel).not.toContain("graph-viewport");
     expect(panel).not.toContain("graphScale");
     expect(panel).not.toContain("--graph-scale");
   });

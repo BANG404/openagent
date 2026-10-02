@@ -1,63 +1,19 @@
 # IPC and events
 
-## Optional Chat Groups
+## Package-owned lifecycle projections
 
-The chat-group capability is a persisted, optional product plugin. Its tools
-are available only while `chat_groups_enabled` is true, and its right-sidebar
-tab is shown only for the active conversation branch that has actually invoked
-a `chat_group_*` tool. The first such invocation selects and expands the tab;
-configuration alone must not leave an empty chat-group panel visible. The
-group selector is filtered to group IDs referenced by that branch's tool calls
-(including the nested group returned by `chat_group_start`), so groups from
-other branches or the workspace's unrelated group list never appear in this
-sidebar.
-The panel displays the active group's title and participating roles as
-read-only context; it does not switch groups or wake roles from member clicks.
-Manual wakeups are sent by selecting member IDs through the group's `mentions`
-parameter. The composer may still use `@` as a member picker, and user-authored
-`@role` text keeps its wake behavior; Agent message text alone never wakes a
-role. `all` targets every member.
-Group messages are rendered inline in the panel; chat groups do not provide a
-separate book-mode reader.
-The first message from a sender shows a neutral left border that is solid for
-30% of its height and dashed for the rest, even if it is the sender's only
-message. Consecutive messages from that sender use a dashed left border
-throughout.
-An explicit `mentions` target is a wake-up request for that role to reply in the
-group. User-authored `@role` text is also a wake-up request; Agent-authored
-`@role` text is ordinary Markdown content.
-The role's final answer is not copied from its private conversation. When a
-wake-up has a substantive response, the role must publish that response with
-`chat_group_send_message` before finishing; stale, duplicate, or purely
-procedural wake-ups may be explicitly skipped instead.
-`chat_group_start` creates the group, records its first message without waking
-it, and persists saved roles listed in its `roles` argument as a wake roster.
-It creates no role conversation, branch, or group member. A later explicit
-role target or `all` in `chat_group_send_message` creates the selected role
-child conversation and dedicated branch, joins it to the group, and wakes it;
-that branch is persisted on the member and reused for later wake-ups. A
-user-authored boundary-safe `@role` mention follows the same lazy materialize
-path. Agent messages use explicit member IDs or role IDs/names, and their
-`@role` text does not create children. Legacy or manually added members
-without a branch receive one lazily on their first wake-up. Group messages
-are a separate durable log; user `@role` text and explicit `mentions` targets
-wake member conversations.
-Fresh group child conversations are projected as pending until a real
-`chat-run-started` event arrives; creation alone must not render them as running.
-Batch `chat-group-member-changed` notifications into one member refresh and
-serialize message reads so a group wake-up burst cannot reset the panel or
-overload the WebView with concurrent Markdown renders.
-While the panel is mounted, do not synchronously report chat-group availability
-as false during its initial load: the parent uses that value to decide whether
-to mount the panel, so clearing it before the load completes causes an
-unmount/remount update loop in Svelte.
-The typed Runtime client owns the desktop adapter for `list_chat_groups`,
-member management, and message send/read operations; all state and tool
-execution come from the Chat Groups plugin MCP server. Disabling the
-capability hides the panel and blocks the plugin boundary without deleting
-existing plugin data. The same plugin also exposes `chat_send_message` for a
-workspace-scoped one-to-one message; private delivery is persisted only in the
-target conversation and never copied into a group log.
+The right sidebar and transcript consume one generic package projection. A
+plugin owns its state machine, child-conversation model, wake targets, and
+domain surface in its own process. It uses the authenticated Host Bridge for
+`conversation.*`, `branch.*`, `agent.submit`, `agent.wake`, `roles.list`,
+`conversation.flow.set`, and `event.emit`; the Runtime authenticates the
+package, persists checkpoints, enforces cancellation and permissions, and
+forwards namespaced events. Shared `plugin-flow-updated` events must carry a
+`branch_id`, `flow_id`, `status`, and `{ kind: "plugin", state: ... }` projection.
+The frontend never adds a package-specific branch for a graph, goal, group, or
+other workflow. It keys transient state by conversation and branch, reconciles
+it with the selected durable checkpoint, and leaves any package-specific view
+inside the package sidebar surface.
 
 - Keep ordinary debug and release desktop product operations on the same shared
   SDK selection path: both use the supervised external Runtime transport, while

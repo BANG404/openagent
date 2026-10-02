@@ -25,11 +25,6 @@
     terminalBranchId = null,
     rightSidebarScopeKey = "\u0000",
     onTerminalSummaryChange = () => {},
-    chatGroupsEnabled = false,
-    chatGroupsAvailable = false,
-    chatGroupIds = [],
-    chatGroupWorkspace = "",
-    onChatGroupsAvailabilityChange = () => {},
     pluginSidebarViews = [],
     pluginSidebarRevision = "",
     pluginSidebarContext = {},
@@ -47,11 +42,6 @@
     terminalBranchId?: string | null;
     rightSidebarScopeKey?: string;
     onTerminalSummaryChange?: (runningCount: number, sessionCount: number) => void;
-    chatGroupsEnabled?: boolean;
-    chatGroupsAvailable?: boolean;
-    chatGroupIds?: string[];
-    chatGroupWorkspace?: string;
-    onChatGroupsAvailabilityChange?: (available: boolean) => void;
     pluginSidebarViews?: AgentPluginSidebarViewSummary[];
     pluginSidebarRevision?: string;
     pluginSidebarContext?: {
@@ -165,11 +155,6 @@
   {terminalBranchId}
   {rightSidebarScopeKey}
   {onTerminalSummaryChange}
-  {chatGroupsEnabled}
-  {chatGroupsAvailable}
-  {chatGroupIds}
-  {chatGroupWorkspace}
-  {onChatGroupsAvailabilityChange}
   {pluginSidebarViews}
   {pluginSidebarRevision}
   {pluginSidebarContext}
