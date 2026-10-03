@@ -11,6 +11,7 @@ import {
   withDirectLock,
 } from "../scripts/agent-delivery-lock.mjs";
 
+/** @type {string[]} */
 const temporaryRoots = [];
 
 afterEach(() => {

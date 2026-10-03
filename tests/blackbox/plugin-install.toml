@@ -1,0 +1,36 @@
+[scenario]
+name = "official plugin installation progress"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "start the official installation and observe visible phases"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__pluginLifecycleProbe;
+  if (!probe) throw new Error("plugin lifecycle probe is missing");
+  const tabs = [...document.querySelectorAll('.plugin-management-tabs button')];
+  tabs[0]?.click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const card = document.querySelector(`.official-plugin-card[data-plugin-id="${probe.id}"]`);
+  if (!(card instanceof HTMLElement)) throw new Error("official plugin card is missing");
+  if (card.dataset.installed !== "false") throw new Error("fixture plugin must start uninstalled");
+  const button = card.querySelector('button');
+  if (!(button instanceof HTMLButtonElement) || button.disabled) throw new Error("install is unavailable");
+  probe.phases = [];
+  probe.observer?.disconnect();
+  probe.observer = new MutationObserver(() => {
+    const progress = document.querySelector('.plugin-install-progress');
+    const phase = progress?.getAttribute('data-stage');
+    if (phase && !probe.phases.includes(phase)) probe.phases.push(phase);
+  });
+  probe.observer.observe(document.body, {subtree: true, childList: true, attributes: true, characterData: true});
+  button.click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const progress = document.querySelector('.plugin-install-progress');
+  if (!progress || !progress.textContent.trim() || !progress.querySelector('progress')) {
+    throw new Error("installation has no visible progress indicator and phase");
+  }
+  if (!button.disabled) throw new Error("duplicate install is not blocked");
+  return progress.textContent.trim();
+})()'''

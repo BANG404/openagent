@@ -96,7 +96,7 @@ pub(crate) fn bind_tokio_child(
 /// the process is reopened by id. Binding happens right after the spawn, while
 /// the child is still alive; a child that exited in between fails here rather
 /// than silently losing its guard.
-#[cfg(all(feature = "embedded-runtime", windows))]
+#[cfg(windows)]
 pub(crate) fn bind_std_child(
     label: &str,
     child: &std::process::Child,
@@ -114,7 +114,7 @@ pub(crate) fn bind_std_child(
     Ok(job)
 }
 
-#[cfg(all(feature = "embedded-runtime", not(windows)))]
+#[cfg(not(windows))]
 pub(crate) fn bind_std_child(
     _label: &str,
     _child: &std::process::Child,

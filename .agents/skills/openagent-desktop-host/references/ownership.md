@@ -67,6 +67,18 @@ ambient permissions.
 
 ### Daemon lifecycle
 
+- Before forwarding a package uninstall or update, stop its host-owned daemon
+  and await the supervisor's bounded shutdown. Apply this in both the supervised
+  product proxy and embedded command adapter; an active daemon may hold the
+  package directory open on Windows even after Runtime has stopped its MCP client.
+- The supervised desktop resolves Cua's launch through the native-only,
+  Bearer-authenticated `/api/desktop/plugin-daemon-launch` endpoint. Runtime checks
+  the installed manifest, enablement and explicit host-access grant. The launch
+  environment stays in native Rust; WebView proxy requests to this endpoint are
+  rejected. Embedded diagnostics use the same Runtime resolver. Persist a new
+  grant before requesting launch, and reconnect the reserved MCP client after
+  a fresh daemon start. Revoking host access or disabling Cua stops the daemon.
+
 - Start the daemon from the verified installed plugin directory; never replace
   files in the active directory while the daemon is running.
 - The kernel resolves the launch — the program it runs, and the `serve

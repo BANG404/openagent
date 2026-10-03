@@ -761,7 +761,7 @@
   let currentCheckpointFlow = $derived(
     activeConvId
       ? (liveCheckpointFlowProjections[currentCheckpointFlowScopeKey]?.flow ??
-        currentCheckpointFlowNode?.flow)
+          currentCheckpointFlowNode?.flow)
       : undefined,
   );
   // A plugin panel is the last resort when the scope has no built-in detail
@@ -971,8 +971,7 @@
     branchIdHint?: string | null,
   ): Promise<void> {
     if (!tauriAvailable) return;
-    const branchId =
-      branchIdHint === undefined ? (activeBranchIds[convId] ?? null) : branchIdHint;
+    const branchId = branchIdHint === undefined ? (activeBranchIds[convId] ?? null) : branchIdHint;
     const scopeKey = conversationBranchScopeKey(convId, branchId);
     const version = (liveCheckpointRefreshVersions.get(scopeKey) ?? 0) + 1;
     liveCheckpointRefreshVersions.set(scopeKey, version);
@@ -1030,11 +1029,7 @@
       branchId === activeBranchId &&
       shouldAutoOpenCheckpointFlowPanel(previous, next.flow)
     ) {
-      checkpointFlowPanelAutoOpenKey = checkpointFlowPanelKey(
-        convId,
-        branchId,
-        next.flow,
-      );
+      checkpointFlowPanelAutoOpenKey = checkpointFlowPanelKey(convId, branchId, next.flow);
       rightSidebarPanel = "status";
       rightSidebarCollapseRequested = false;
     }
@@ -1057,10 +1052,7 @@
     if (activeBranch) nextActiveBranchIds[convId] = activeBranch.id;
     else delete nextActiveBranchIds[convId];
     if ((activeBranchIds[convId] ?? null) !== (nextActiveBranchIds[convId] ?? null)) {
-      branchSelectionVersions.set(
-        convId,
-        (branchSelectionVersions.get(convId) ?? 0) + 1,
-      );
+      branchSelectionVersions.set(convId, (branchSelectionVersions.get(convId) ?? 0) + 1);
     }
     activeBranchIds = nextActiveBranchIds;
     convTrees = { ...convTrees, [convId]: tree };
@@ -1772,10 +1764,7 @@
     // Invalidate any checkpoint refresh that was started for the old selected
     // path before the branch switch performs its asynchronous file/runtime
     // work. The old event must not reselect its tip when that work completes.
-    branchSelectionVersions.set(
-      convId,
-      (branchSelectionVersions.get(convId) ?? 0) + 1,
-    );
+    branchSelectionVersions.set(convId, (branchSelectionVersions.get(convId) ?? 0) + 1);
 
     const override = { ...tree.activeChild, [parentKey]: targetIdx };
     const updatedTree: ConvTree = { ...tree, activeChild: override };
@@ -2567,7 +2556,10 @@
     // The reserved MCP entry is a client of the daemon the desktop host owns.
     // Start it first so the Runtime can connect the remaining MCP list.
     let cuaDriverDaemonStarted = false;
-    if (isCuaDriverEnabled(configWithCuaDriver)) {
+    if (
+      isCuaDriverEnabled(configWithCuaDriver) &&
+      configWithCuaDriver.agent_plugins_host_access?.["cua-driver"]
+    ) {
       try {
         cuaDriverDaemonStarted = await startCuaDriverDaemon();
       } catch (error) {
@@ -3363,8 +3355,7 @@
         } else {
           deferredApprovalCheckpointIds.set(conv_id, {
             checkpointId: checkpoint_id,
-            branchId:
-              branch_id === undefined ? (activeBranchIds[conv_id] ?? null) : branch_id,
+            branchId: branch_id === undefined ? (activeBranchIds[conv_id] ?? null) : branch_id,
           });
         }
         const location = findConversationLocation(conv_id);
@@ -4516,9 +4507,7 @@
       const inputError = error as { code?: string };
       showToast({
         title:
-          inputError.code === "missing_argument"
-            ? tr("slashCommandNeedsArgument")
-            : String(error),
+          inputError.code === "missing_argument" ? tr("slashCommandNeedsArgument") : String(error),
         variant: "error",
       });
       return true;

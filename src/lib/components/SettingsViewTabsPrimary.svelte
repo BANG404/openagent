@@ -287,502 +287,534 @@
         {$t("pluginInstalledTab")}
       </button>
     </div>
+    {#if view.agentPluginInstallProgress}
+      <div
+        class="plugin-install-progress"
+        data-stage={view.agentPluginInstallProgress.stage}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <progress aria-label={view.agentPluginInstallMessage}></progress>
+        <span>{view.agentPluginInstallProgress.plugin_id} · {view.agentPluginInstallMessage}</span>
+      </div>
+    {/if}
     {#if view.pluginManagementView === "marketplace"}
       <section class="official-plugin-store" aria-label={$t("pluginOfficialMarketplace")}>
-      <div class="official-plugin-store-hero">
-        <div class="official-plugin-store-copy">
-          <div class="official-plugin-store-title-row">
-            <span class="official-plugin-eyebrow">{$t("pluginOfficialBadge")}</span>
-            <h4>{$t("pluginOfficialMarketplace")}</h4>
-          </div>
-          <p>{$t("pluginOfficialMarketplaceHint")}</p>
-          <div class="official-plugin-store-summary">
-            <span>
-              {$t("pluginOfficialCatalogSummary").replace(
-                "{count}",
-                String(view.officialPluginCards.length),
-              )}
-            </span>
-            <span class="official-plugin-standard">{$t("pluginOfficialStandard")}</span>
+        <div class="official-plugin-store-hero">
+          <div class="official-plugin-store-copy">
+            <div class="official-plugin-store-title-row">
+              <span class="official-plugin-eyebrow">{$t("pluginOfficialBadge")}</span>
+              <h4>{$t("pluginOfficialMarketplace")}</h4>
+            </div>
+            <p>{$t("pluginOfficialMarketplaceHint")}</p>
+            <div class="official-plugin-store-summary">
+              <span>
+                {$t("pluginOfficialCatalogSummary").replace(
+                  "{count}",
+                  String(view.officialPluginCards.length),
+                )}
+              </span>
+              <span class="official-plugin-standard">{$t("pluginOfficialStandard")}</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="official-plugin-store-toolbar">
-        <label class="official-plugin-search">
-          <span class="sr-only">{$t("pluginOfficialSearch")}</span>
-          <input
-            class="detail-input"
-            type="search"
-            placeholder={$t("pluginOfficialSearchPlaceholder")}
-            bind:value={view.officialPluginQuery}
-          />
-        </label>
-        {#if view.officialPluginQuery}
-          <button
-            type="button"
-            class="official-plugin-clear"
-            onclick={() => (view.officialPluginQuery = "")}
-          >
-            {$t("pluginOfficialClearSearch")}
-          </button>
-        {/if}
-        <div class="official-plugin-filters" role="tablist" aria-label={$t("pluginOfficialFilter")}>
-          {#each [["all", "pluginOfficialFilterAll"], ["available", "pluginOfficialFilterAvailable"], ["installed", "pluginOfficialFilterInstalled"]] as filter (filter[0])}
+        <div class="official-plugin-store-toolbar">
+          <label class="official-plugin-search">
+            <span class="sr-only">{$t("pluginOfficialSearch")}</span>
+            <input
+              class="detail-input"
+              type="search"
+              placeholder={$t("pluginOfficialSearchPlaceholder")}
+              bind:value={view.officialPluginQuery}
+            />
+          </label>
+          {#if view.officialPluginQuery}
             <button
               type="button"
-              role="tab"
-              class:active={view.officialPluginFilter === filter[0]}
-              class="official-plugin-filter"
-              data-filter={filter[0]}
-              aria-selected={view.officialPluginFilter === filter[0]}
-              tabindex={view.officialPluginFilter === filter[0] ? 0 : -1}
-              onclick={() => (view.officialPluginFilter = filter[0])}
+              class="official-plugin-clear"
+              onclick={() => (view.officialPluginQuery = "")}
             >
-              {$t(filter[1] as TranslationKeys)}
+              {$t("pluginOfficialClearSearch")}
             </button>
-          {/each}
-        </div>
-      </div>
-      {#if view.officialPluginStatus}
-        <div
-          class="provider-status {view.officialPluginStatus.tone}"
-          role="status"
-          aria-live="polite"
-        >
-          {view.officialPluginStatus.message}
-        </div>
-      {/if}
-      {#if view.officialPluginCards.length > 0}
-        <div class="official-plugin-grid">
-          {#each view.officialPluginCards as plugin (plugin.id)}
-            <article
-              class="official-plugin-card"
-              data-installed={plugin.installed ? "true" : "false"}
-            >
-              <div class="official-plugin-card-heading">
-                <div class="official-plugin-card-copy">
-                  <div class="official-plugin-card-title-row">
-                    <h5>{plugin.displayName}</h5>
-                    {#if plugin.installed}
-                      <span
-                        class:official-plugin-update={plugin.updateAvailable}
-                        class="official-plugin-state"
-                      >
-                        {plugin.updateAvailable
-                          ? $t("pluginUpdateAvailable")
-                          : $t("pluginMarketplaceInstalled")}
-                      </span>
-                    {:else}
-                      <span class="official-plugin-state available"
-                        >{$t("pluginOfficialAvailable")}</span
-                      >
-                    {/if}
-                  </div>
-                  <span class="detail-hint">{plugin.id}</span>
-                </div>
-              </div>
-              {#if plugin.description}
-                <p class="official-plugin-description">{plugin.description}</p>
-              {/if}
-              <div class="official-plugin-meta">
-                <span>
-                  {#if plugin.installed && plugin.currentVersion}
-                    {$t("pluginOfficialInstalledVersion").replace(
-                      "{version}",
-                      plugin.currentVersion,
-                    )}
-                  {:else if plugin.version}
-                    {$t("pluginOfficialVersion").replace("{version}", plugin.version)}
-                  {:else}
-                    {$t("pluginOfficialVersionUnknown")}
-                  {/if}
-                </span>
-                <span class="official-plugin-standard">{$t("pluginOfficialStandard")}</span>
-                <a href={plugin.homepage ?? plugin.repository} target="_blank" rel="noreferrer">
-                  {$t("pluginOfficialSource")}
-                </a>
-              </div>
-              <div class="official-plugin-card-actions">
-                {#if plugin.installed && plugin.updateAvailable}
-                  <SettingsActionButton
-                    label={$t("pluginUpdate")}
-                    icon="download"
-                    tone="primary"
-                    onclick={() => view.updateAgentPlugin(plugin.id)}
-                    disabled={view.agentPluginUpdating !== null}
-                  />
-                {:else if plugin.installed}
-                  <span class="official-plugin-installed-copy">{$t("pluginOfficialInstalled")}</span
-                  >
-                {:else}
-                  <SettingsActionButton
-                    label={view.officialPluginInstalling === plugin.id
-                      ? $t("pluginOfficialInstalling")
-                      : $t("pluginMarketplaceInstall")}
-                    icon="download"
-                    tone="primary"
-                    onclick={() => view.installOfficialAgentPlugin(plugin)}
-                    disabled={view.officialPluginInstalling !== null || view.agentPluginsLoading}
-                  />
-                {/if}
-              </div>
-            </article>
-          {/each}
-        </div>
-      {:else}
-        <div class="official-plugin-empty">{$t("pluginOfficialEmpty")}</div>
-      {/if}
-      </section>
-    {:else}
-    <div class="plugin-directory-heading">
-      <div class="plugin-directory-title">
-        <span class="label-text">{$t("pluginInstalledPlugins")}</span>
-        <span class="plugin-directory-count">{view.agentPlugins.length}</span>
-      </div>
-      <div class="plugin-directory-actions">
-        <SettingsActionButton
-          label={$t("pluginInstall")}
-          icon="add"
-          tone="primary"
-          onclick={() => view.installAgentPlugin()}
-          disabled={view.agentPluginsLoading}
-        />
-        <SettingsActionButton
-          label={view.agentPluginUpdatesLoading
-            ? $t("pluginCheckingUpdates")
-            : $t("pluginCheckUpdates")}
-          icon="check"
-          tone="quiet"
-          onclick={() => view.runAgentPluginUpdateCheck()}
-          disabled={view.agentPluginsLoading || view.agentPluginUpdatesLoading}
-        />
-        <SettingsActionButton
-          label={$t("pluginRefresh")}
-          icon="refresh"
-          tone="quiet"
-          onclick={() => view.reloadAgentPlugins()}
-          disabled={view.agentPluginsLoading || view.agentPluginUpdatesLoading}
-        />
-      </div>
-    </div>
-    {#if view.agentPluginStatus}
-      <div class="provider-status success">{view.agentPluginStatus}</div>
-    {/if}
-    {#if view.agentPluginUpdateCheckStatus}
-      <div class="provider-status {view.agentPluginUpdateCheckStatus.tone}">
-        {view.agentPluginUpdateCheckStatus.message}
-      </div>
-    {/if}
-    {#if view.agentPluginMarketplaces.length > 0}
-      <section class="plugin-marketplaces" aria-label={$t("pluginMarketplaces")}>
-        <div class="plugin-tools-heading">
-          <div class="plugin-tools-title">
-            <span class="label-text">{$t("pluginMarketplaces")}</span>
-            <span class="plugin-tool-count">{view.agentPluginMarketplaces.length}</span>
+          {/if}
+          <div
+            class="official-plugin-filters"
+            role="tablist"
+            aria-label={$t("pluginOfficialFilter")}
+          >
+            {#each [["all", "pluginOfficialFilterAll"], ["available", "pluginOfficialFilterAvailable"], ["installed", "pluginOfficialFilterInstalled"]] as filter (filter[0])}
+              <button
+                type="button"
+                role="tab"
+                class:active={view.officialPluginFilter === filter[0]}
+                class="official-plugin-filter"
+                data-filter={filter[0]}
+                aria-selected={view.officialPluginFilter === filter[0]}
+                tabindex={view.officialPluginFilter === filter[0] ? 0 : -1}
+                onclick={() => (view.officialPluginFilter = filter[0])}
+              >
+                {$t(filter[1] as TranslationKeys)}
+              </button>
+            {/each}
           </div>
         </div>
-        {#each view.agentPluginMarketplaces as marketplace (marketplace.path)}
-          <div class="plugin-marketplace-surface plugin-marketplace">
-            <div class="plugin-marketplace-heading">
-              <div>
-                <span class="label-text">{marketplace.display_name ?? marketplace.name}</span>
-                <span class="detail-hint">{marketplace.path}</span>
-              </div>
-              <span class="detail-hint">{marketplace.source}</span>
-            </div>
-            {#if marketplace.error}
-              <p class="plugin-warning">{marketplace.error}</p>
-            {:else}
-              {#each marketplace.plugins as entry (entry.name)}
-                {@const canInstall =
-                  entry.source.kind === "local" &&
-                  !entry.installed &&
-                  !entry.error &&
-                  entry.installation !== "NOT_AVAILABLE"}
-                <div class="plugin-marketplace-row">
-                  <div class="plugin-marketplace-copy">
-                    <span class="label-text">{entry.display_name ?? entry.name}</span>
-                    <span class="detail-hint">
-                      {entry.category ?? $t("pluginMarketplaceUncategorized")} · {entry.source.kind} ·
-                      {entry.installation} · {entry.authentication}
-                    </span>
-                    {#if entry.error}
-                      <span class="plugin-warning">{entry.error}</span>
-                    {:else if entry.installed}
-                      <span class="detail-hint">{$t("pluginMarketplaceInstalled")}</span>
-                    {:else if entry.source.kind !== "local"}
-                      <span class="detail-hint"
-                        >{$t("pluginMarketplaceSourceInstallerRequired")}</span
-                      >
-                    {/if}
+        {#if view.officialPluginStatus}
+          <div
+            class="provider-status {view.officialPluginStatus.tone}"
+            role="status"
+            aria-live="polite"
+          >
+            {view.officialPluginStatus.message}
+          </div>
+        {/if}
+        {#if view.officialPluginCards.length > 0}
+          <div class="official-plugin-grid">
+            {#each view.officialPluginCards as plugin (plugin.id)}
+              <article
+                class="official-plugin-card"
+                data-plugin-id={plugin.id}
+                data-installed={plugin.installed ? "true" : "false"}
+              >
+                <div class="official-plugin-card-heading">
+                  <div class="official-plugin-card-copy">
+                    <div class="official-plugin-card-title-row">
+                      <h5>{plugin.displayName}</h5>
+                      {#if plugin.installed}
+                        <span
+                          class:official-plugin-update={plugin.updateAvailable}
+                          class="official-plugin-state"
+                        >
+                          {plugin.updateAvailable
+                            ? $t("pluginUpdateAvailable")
+                            : $t("pluginMarketplaceInstalled")}
+                        </span>
+                      {:else}
+                        <span class="official-plugin-state available"
+                          >{$t("pluginOfficialAvailable")}</span
+                        >
+                      {/if}
+                    </div>
+                    <span class="detail-hint">{plugin.id}</span>
                   </div>
-                  {#if canInstall}
+                </div>
+                {#if plugin.description}
+                  <p class="official-plugin-description">{plugin.description}</p>
+                {/if}
+                <div class="official-plugin-meta">
+                  <span>
+                    {#if plugin.installed && plugin.currentVersion}
+                      {$t("pluginOfficialInstalledVersion").replace(
+                        "{version}",
+                        plugin.currentVersion,
+                      )}
+                    {:else if plugin.version}
+                      {$t("pluginOfficialVersion").replace("{version}", plugin.version)}
+                    {:else}
+                      {$t("pluginOfficialVersionUnknown")}
+                    {/if}
+                  </span>
+                  <span class="official-plugin-standard">{$t("pluginOfficialStandard")}</span>
+                  <a href={plugin.homepage ?? plugin.repository} target="_blank" rel="noreferrer">
+                    {$t("pluginOfficialSource")}
+                  </a>
+                </div>
+                <div class="official-plugin-card-actions">
+                  {#if plugin.installed && plugin.updateAvailable}
                     <SettingsActionButton
-                      label={$t("pluginMarketplaceInstall")}
+                      label={$t("pluginUpdate")}
                       icon="download"
-                      tone="quiet"
-                      onclick={() =>
-                        view.installMarketplaceAgentPlugin(marketplace.path, entry.name)}
-                      disabled={view.agentPluginsLoading}
+                      tone="primary"
+                      onclick={() => view.updateAgentPlugin(plugin.id)}
+                      disabled={view.agentPluginUpdating !== null}
+                    />
+                  {:else if plugin.installed}
+                    <span class="official-plugin-installed-copy"
+                      >{$t("pluginOfficialInstalled")}</span
+                    >
+                  {:else}
+                    <SettingsActionButton
+                      label={view.officialPluginInstalling === plugin.id
+                        ? $t("pluginOfficialInstalling")
+                        : $t("pluginMarketplaceInstall")}
+                      icon="download"
+                      tone="primary"
+                      onclick={() => view.installOfficialAgentPlugin(plugin)}
+                      disabled={view.officialPluginInstalling !== null || view.agentPluginsLoading}
                     />
                   {/if}
                 </div>
-              {/each}
-            {/if}
+              </article>
+            {/each}
           </div>
-        {/each}
+        {:else}
+          <div class="official-plugin-empty">{$t("pluginOfficialEmpty")}</div>
+        {/if}
       </section>
-    {/if}
-    {#if view.agentPluginsLoading && view.agentPlugins.length === 0}
-      <p class="detail-hint">{$t("pluginLoading")}</p>
-    {:else if view.agentPlugins.length === 0}
-      <p class="detail-hint">{$t("pluginEmpty")}</p>
-    {/if}
-    <Accordion.Root type="multiple" class="plugin-accordion">
-      {#each view.agentPlugins as plugin (plugin.id)}
-        <Accordion.Item
-          value={`plugin-${plugin.id}`}
-          class="application-settings-surface plugin-accordion-item"
-        >
-          <Accordion.Header class="plugin-accordion-header">
-            <Accordion.Trigger class="plugin-accordion-trigger">
-              <span class="plugin-accordion-copy">
-                <span class="label-text">{plugin.name}</span>
-                <span class="detail-hint"
-                  >{plugin.id === desktopControlPluginId
-                    ? $t("pluginDesktopControlDescription")
-                    : (plugin.description ?? plugin.id)}</span
-                >
-                {#if plugin.id === desktopControlPluginId}
-                  <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
-                {/if}
-                {#if view.pluginRequestsHostAccess(plugin)}
-                  <span class="detail-hint">{$t("pluginHostAccessHint")}</span>
-                {/if}
-                {#if plugin.license || plugin.homepage}
-                  <span class="detail-hint"
-                    >{[plugin.license, plugin.homepage].filter(Boolean).join(" · ")}</span
-                  >
-                {/if}
-              </span>
-              {#if plugin.id === desktopControlPluginId}
-                <svg
-                  class="plugin-accordion-chevron"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path d="m4 6 4 4 4-4" />
-                </svg>
+    {:else}
+      <div class="plugin-directory-heading">
+        <div class="plugin-directory-title">
+          <span class="label-text">{$t("pluginInstalledPlugins")}</span>
+          <span class="plugin-directory-count">{view.agentPlugins.length}</span>
+        </div>
+        <div class="plugin-directory-actions">
+          <SettingsActionButton
+            label={$t("pluginInstall")}
+            icon="add"
+            onclick={() => view.installAgentPlugin()}
+            disabled={view.agentPluginsLoading}
+          />
+          <SettingsActionButton
+            label={view.agentPluginUpdatesLoading
+              ? $t("pluginCheckingUpdates")
+              : $t("pluginCheckUpdates")}
+            icon="check"
+            tone="quiet"
+            onclick={() => view.runAgentPluginUpdateCheck()}
+            disabled={view.agentPluginsLoading || view.agentPluginUpdatesLoading}
+          />
+          <SettingsActionButton
+            label={$t("pluginRefresh")}
+            icon="refresh"
+            tone="quiet"
+            onclick={() => view.reloadAgentPlugins()}
+            disabled={view.agentPluginsLoading || view.agentPluginUpdatesLoading}
+          />
+        </div>
+      </div>
+      {#if view.agentPluginStatus}
+        <div class="provider-status success">{view.agentPluginStatus}</div>
+      {/if}
+      {#if view.agentPluginUpdateCheckStatus}
+        <div class="provider-status {view.agentPluginUpdateCheckStatus.tone}">
+          {view.agentPluginUpdateCheckStatus.message}
+        </div>
+      {/if}
+      {#if view.agentPluginMarketplaces.length > 0}
+        <section class="plugin-marketplaces" aria-label={$t("pluginMarketplaces")}>
+          <div class="plugin-tools-heading">
+            <div class="plugin-tools-title">
+              <span class="label-text">{$t("pluginMarketplaces")}</span>
+              <span class="plugin-tool-count">{view.agentPluginMarketplaces.length}</span>
+            </div>
+          </div>
+          {#each view.agentPluginMarketplaces as marketplace (marketplace.path)}
+            <div class="plugin-marketplace-surface plugin-marketplace">
+              <div class="plugin-marketplace-heading">
+                <div>
+                  <span class="label-text">{marketplace.display_name ?? marketplace.name}</span>
+                  <span class="detail-hint">{marketplace.path}</span>
+                </div>
+                <span class="detail-hint">{marketplace.source}</span>
+              </div>
+              {#if marketplace.error}
+                <p class="plugin-warning">{marketplace.error}</p>
               {:else}
-                <span class="plugin-version">
-                  {plugin.version ?? "-"}
-                  {#if (view.agentPluginUpdates ?? []).find((item: AgentPluginUpdateSummary) => item.id === plugin.id)?.update_available}
-                    <span class="plugin-update-mark">{$t("pluginUpdateAvailable")}</span>
+                {#each marketplace.plugins as entry (entry.name)}
+                  {@const canInstall =
+                    entry.source.kind === "local" &&
+                    !entry.installed &&
+                    !entry.error &&
+                    entry.installation !== "NOT_AVAILABLE"}
+                  <div class="plugin-marketplace-row">
+                    <div class="plugin-marketplace-copy">
+                      <span class="label-text">{entry.display_name ?? entry.name}</span>
+                      <span class="detail-hint">
+                        {entry.category ?? $t("pluginMarketplaceUncategorized")} · {entry.source
+                          .kind} ·
+                        {entry.installation} · {entry.authentication}
+                      </span>
+                      {#if entry.error}
+                        <span class="plugin-warning">{entry.error}</span>
+                      {:else if entry.installed}
+                        <span class="detail-hint">{$t("pluginMarketplaceInstalled")}</span>
+                      {:else if entry.source.kind !== "local"}
+                        <span class="detail-hint"
+                          >{$t("pluginMarketplaceSourceInstallerRequired")}</span
+                        >
+                      {/if}
+                    </div>
+                    {#if canInstall}
+                      <SettingsActionButton
+                        label={$t("pluginMarketplaceInstall")}
+                        icon="download"
+                        tone="quiet"
+                        onclick={() =>
+                          view.installMarketplaceAgentPlugin(marketplace.path, entry.name)}
+                        disabled={view.agentPluginsLoading}
+                      />
+                    {/if}
+                  </div>
+                {/each}
+              {/if}
+            </div>
+          {/each}
+        </section>
+      {/if}
+      {#if view.agentPluginsLoading && view.agentPlugins.length === 0}
+        <p class="detail-hint">{$t("pluginLoading")}</p>
+      {:else if view.agentPlugins.length === 0}
+        <p class="detail-hint">{$t("pluginEmpty")}</p>
+      {/if}
+      <Accordion.Root type="multiple" class="plugin-accordion">
+        {#each view.agentPlugins as plugin (plugin.id)}
+          <Accordion.Item
+            value={`plugin-${plugin.id}`}
+            class="application-settings-surface plugin-accordion-item"
+            data-plugin-id={plugin.id}
+          >
+            <Accordion.Header class="plugin-accordion-header">
+              <Accordion.Trigger class="plugin-accordion-trigger">
+                <span class="plugin-accordion-copy">
+                  <span class="label-text">{plugin.name}</span>
+                  <span class="detail-hint"
+                    >{plugin.id === desktopControlPluginId
+                      ? $t("pluginDesktopControlDescription")
+                      : (plugin.description ?? plugin.id)}</span
+                  >
+                  {#if plugin.id === desktopControlPluginId}
+                    <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
+                  {/if}
+                  {#if view.pluginRequestsHostAccess(plugin)}
+                    <span class="detail-hint">{$t("pluginHostAccessHint")}</span>
+                  {/if}
+                  {#if plugin.license || plugin.homepage}
+                    <span class="detail-hint"
+                      >{[plugin.license, plugin.homepage].filter(Boolean).join(" · ")}</span
+                    >
                   {/if}
                 </span>
-              {/if}
-            </Accordion.Trigger>
-            {#if plugin.id === desktopControlPluginId}
-              <div class="plugin-accordion-actions">
-                <Switch
-                  checked={view.cuaDriver.enabled}
-                  onCheckedChange={(enabled) => view.setCuaDriverEnabled(enabled)}
-                  ariaLabel={$t("pluginDesktopControl")}
-                />
-              </div>
-            {:else}
-              <div class="plugin-accordion-actions">
-                <Switch
-                  checked={view.agentPluginEnabled(plugin.id)}
-                  onCheckedChange={(enabled) => view.setAgentPluginEnabled(plugin.id, enabled)}
-                  ariaLabel={plugin.name}
-                />
-              </div>
-            {/if}
-            {#if view.pluginRequestsHostAccess(plugin)}
-              <div class="plugin-accordion-actions">
-                <Switch
-                  checked={view.agentPluginHostAccess(plugin.id)}
-                  onCheckedChange={(granted) => view.setAgentPluginHostAccess(plugin.id, granted)}
-                  ariaLabel={$t("pluginHostAccess")}
-                />
-              </div>
-            {/if}
-          </Accordion.Header>
-          {#if plugin.id === desktopControlPluginId}
-            <Accordion.Content class="plugin-accordion-content">
-              <div class="plugin-tools-heading">
-                <div class="plugin-tools-title">
-                  <span class="label-text">{$t("pluginTools")}</span>
-                  <span class="plugin-tool-count"
-                    >{(view.mcpDiscoveredTools[view.cuaDriverId] ?? []).length}</span
+                {#if plugin.id === desktopControlPluginId}
+                  <svg
+                    class="plugin-accordion-chevron"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden="true"
                   >
-                </div>
-                <SettingsActionButton
-                  label={$t("testMcpServer")}
-                  icon="test"
-                  tone="quiet"
-                  onclick={() => view.testMcpServer(view.cuaDriverId)}
-                  disabled={view.mcpTestStatus[view.cuaDriverId]?.tone === "testing"}
-                />
-              </div>
-              <span class="detail-hint">{$t("pluginToolsHint")}</span>
-              {#if view.mcpTestStatus[view.cuaDriverId] && view.mcpTestStatus[view.cuaDriverId].tone !== "idle"}
-                <div
-                  class="provider-status {view.mcpTestStatus[view.cuaDriverId].tone === 'success'
-                    ? 'success'
-                    : view.mcpTestStatus[view.cuaDriverId].tone === 'error'
-                      ? 'error'
-                      : 'loading'}"
-                  style="margin-top:10px"
-                >
-                  {view.mcpTestStatus[view.cuaDriverId].message}
-                </div>
-              {/if}
-              {#if (view.mcpDiscoveredTools[view.cuaDriverId] ?? []).length > 0}
-                <div class="application-settings-surface plugin-tool-list">
-                  {#each view.mcpDiscoveredTools[view.cuaDriverId] ?? [] as tool (tool)}
-                    <div class="mcp-tool-row">
-                      <code>{tool}</code>
-                      <Switch
-                        checked={!view.cuaDriver.disabled_tools.includes(tool)}
-                        onCheckedChange={(checked) =>
-                          view.setMcpToolEnabled(view.cuaDriverId, tool, checked)}
-                        ariaLabel={`${$t("mcpToolEnabled")}: ${tool}`}
-                      />
-                    </div>
-                  {/each}
+                    <path d="m4 6 4 4 4-4" />
+                  </svg>
+                {:else}
+                  <span class="plugin-version">
+                    {plugin.version ?? "-"}
+                    {#if (view.agentPluginUpdates ?? []).find((item: AgentPluginUpdateSummary) => item.id === plugin.id)?.update_available}
+                      <span class="plugin-update-mark">{$t("pluginUpdateAvailable")}</span>
+                    {/if}
+                  </span>
+                {/if}
+              </Accordion.Trigger>
+              {#if plugin.id === desktopControlPluginId}
+                <div class="plugin-accordion-actions">
+                  <Switch
+                    checked={view.cuaDriver.enabled}
+                    onCheckedChange={(enabled) => view.setCuaDriverEnabled(enabled)}
+                    ariaLabel={$t("pluginDesktopControl")}
+                  />
                 </div>
               {:else}
-                <div class="plugin-tools-empty">
-                  <span class="plugin-tools-empty-icon" aria-hidden="true">+</span>
-                  <span>{$t("pluginToolsEmpty")}</span>
+                <div class="plugin-accordion-actions">
+                  <Switch
+                    checked={view.agentPluginEnabled(plugin.id)}
+                    onCheckedChange={(enabled) => view.setAgentPluginEnabled(plugin.id, enabled)}
+                    ariaLabel={plugin.name}
+                  />
                 </div>
               {/if}
-              <p class="plugin-warning">{$t("pluginUnrestrictedWarning")}</p>
-            </Accordion.Content>
-          {:else}
-            <Accordion.Content class="plugin-accordion-content">
-              <div class="plugin-tools-heading">
-                <div class="plugin-tools-title">
-                  <span class="label-text">{$t("pluginComponents")}</span>
-                  <span class="plugin-tool-count"
-                    >{plugin.skills.length +
-                      plugin.mcp_servers.length +
-                      plugin.commands.length +
-                      plugin.message_policies.length +
-                      plugin.sidebar_views.length}</span
+              {#if view.pluginRequestsHostAccess(plugin)}
+                <div class="plugin-accordion-actions">
+                  <Switch
+                    checked={view.agentPluginHostAccess(plugin.id)}
+                    onCheckedChange={(granted) => view.setAgentPluginHostAccess(plugin.id, granted)}
+                    ariaLabel={$t("pluginHostAccess")}
+                  />
+                </div>
+              {/if}
+            </Accordion.Header>
+            {#if plugin.id === desktopControlPluginId}
+              <Accordion.Content class="plugin-accordion-content">
+                <div class="plugin-tools-heading">
+                  <div class="plugin-tools-title">
+                    <span class="label-text">{$t("pluginTools")}</span>
+                    <span class="plugin-tool-count"
+                      >{(view.mcpDiscoveredTools[view.cuaDriverId] ?? []).length}</span
+                    >
+                  </div>
+                  <SettingsActionButton
+                    label={$t("testMcpServer")}
+                    icon="test"
+                    tone="quiet"
+                    onclick={() => view.testMcpServer(view.cuaDriverId)}
+                    disabled={view.mcpTestStatus[view.cuaDriverId]?.tone === "testing"}
+                  />
+                </div>
+                <span class="detail-hint">{$t("pluginToolsHint")}</span>
+                {#if view.mcpTestStatus[view.cuaDriverId] && view.mcpTestStatus[view.cuaDriverId].tone !== "idle"}
+                  <div
+                    class="provider-status {view.mcpTestStatus[view.cuaDriverId].tone === 'success'
+                      ? 'success'
+                      : view.mcpTestStatus[view.cuaDriverId].tone === 'error'
+                        ? 'error'
+                        : 'loading'}"
+                    style="margin-top:10px"
                   >
-                </div>
-              </div>
-              <span class="detail-hint">
-                {plugin.skills.length}
-                {$t("pluginSkills")} · {plugin.mcp_servers.length}
-                {$t("pluginMcpServers")}
-                {#if plugin.commands.length > 0}
-                  · {plugin.commands.length} {$t("pluginCommands")}
+                    {view.mcpTestStatus[view.cuaDriverId].message}
+                  </div>
                 {/if}
-                {#if plugin.message_policies.length > 0}
-                  · {plugin.message_policies.length} {$t("pluginMessagePolicies")}
-                {/if}
-                {#if plugin.sidebar_views.length > 0}
-                  · {plugin.sidebar_views.length} {$t("pluginSidebarViews")}
-                {/if}
-              </span>
-              {#each plugin.warnings as warning (warning)}
-                <p class="plugin-warning">{warning}</p>
-              {/each}
-              {#if plugin.error}
-                <p class="plugin-warning">{plugin.error}</p>
-              {/if}
-              {#if plugin.sidebar_views.length > 0}
-                <div class="plugin-sidebar-views">
-                  <span class="label-text">{$t("pluginSidebarViews")}</span>
-                  {#each plugin.sidebar_views as sidebarView (sidebarView.id)}
-                    {@const lifecycle = view.pluginSidebarLifecycleFor(plugin, sidebarView)}
-                    <div class="plugin-sidebar-view-row">
-                      <span class="plugin-sidebar-view-copy">
-                        <span class="label-text">{sidebarView.title}</span>
-                        {#if lifecycle !== "available"}
-                          <span class="detail-hint">
-                            {lifecycle === "disabled"
-                              ? $t("pluginSidebarDisabled")
-                              : lifecycle === "invalid"
-                                ? $t("pluginSidebarInvalid")
-                                : $t("pluginSidebarOutOfScope")}
-                          </span>
-                        {/if}
-                      </span>
-                      {#if view.onOpenPluginSidebarView}
-                        <SettingsActionButton
-                          label={$t("pluginSidebarOpen")}
-                          tone="quiet"
-                          disabled={lifecycle !== "available"}
-                          onclick={() => view.onOpenPluginSidebarView(sidebarView.id)}
+                {#if (view.mcpDiscoveredTools[view.cuaDriverId] ?? []).length > 0}
+                  <div class="application-settings-surface plugin-tool-list">
+                    {#each view.mcpDiscoveredTools[view.cuaDriverId] ?? [] as tool (tool)}
+                      <div class="mcp-tool-row">
+                        <code>{tool}</code>
+                        <Switch
+                          checked={!view.cuaDriver.disabled_tools.includes(tool)}
+                          onCheckedChange={(checked) =>
+                            view.setMcpToolEnabled(view.cuaDriverId, tool, checked)}
+                          ariaLabel={`${$t("mcpToolEnabled")}: ${tool}`}
                         />
-                      {/if}
-                    </div>
-                  {/each}
-                </div>
-              {/if}
-              {@const update = (view.agentPluginUpdates ?? []).find(
-                (item: AgentPluginUpdateSummary) => item.id === plugin.id,
-              )}
-              {#if (update?.update_available && update.latest_version) || !plugin.builtin || plugin.repository || update?.error}
-                <div class="plugin-accordion-footer">
-                  {#if plugin.repository}
-                    <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
-                  {/if}
-                  {#if update?.error}
-                    <!-- The reason, so a quota or a manifest problem is not
-                         silently counted as a broken package. The raw
-                         diagnostic from the update check stays underneath it
-                         rather than standing in for the explanation. -->
-                    {@const reasonKey = agentPluginUpdateErrorKey(update.error_kind)}
-                    <p class="plugin-warning">
-                      {#if update.stale}
-                        {$t("pluginUpdateStaleHint")}
-                      {/if}
-                      {reasonKey === null ? update.error : $t(reasonKey)}
-                    </p>
-                    {#if reasonKey !== null}
-                      <p class="detail-hint">{update.error}</p>
-                    {/if}
-                  {/if}
-                  {#if update?.update_available && update.latest_version}
-                    <p class="plugin-update-hint">
-                      {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
-                      {#if update.release_url}
-                        <a href={update.release_url} target="_blank" rel="noreferrer">GitHub</a>
-                      {/if}
-                      {#if update.asset_url}
-                        <SettingsActionButton
-                          label={$t("pluginUpdate")}
-                          icon="download"
-                          tone="quiet"
-                          onclick={() => view.updateAgentPlugin(plugin.id)}
-                          disabled={view.agentPluginUpdating !== null}
-                        />
-                      {/if}
-                    </p>
-                  {/if}
-                  {#if !plugin.builtin}
+                      </div>
+                    {/each}
+                  </div>
+                {:else}
+                  <div class="plugin-tools-empty">
+                    <span class="plugin-tools-empty-icon" aria-hidden="true">+</span>
+                    <span>{$t("pluginToolsEmpty")}</span>
+                  </div>
+                {/if}
+                <p class="plugin-warning">{$t("pluginUnrestrictedWarning")}</p>
+                {#if !plugin.builtin}
+                  <div class="plugin-accordion-footer">
                     <SettingsActionButton
                       label={$t("pluginUninstall")}
                       icon="trash"
                       tone="danger"
                       onclick={() => view.requestUninstallAgentPlugin(plugin.id)}
-                      disabled={view.agentPluginUpdating !== null || view.agentPluginRemoving}
+                      disabled={view.agentPluginUpdating !== null ||
+                        view.agentPluginRemoving ||
+                        view.agentPluginInstallProgress !== null}
                     />
-                  {/if}
+                  </div>
+                {/if}
+              </Accordion.Content>
+            {:else}
+              <Accordion.Content class="plugin-accordion-content">
+                <div class="plugin-tools-heading">
+                  <div class="plugin-tools-title">
+                    <span class="label-text">{$t("pluginComponents")}</span>
+                    <span class="plugin-tool-count"
+                      >{plugin.skills.length +
+                        plugin.mcp_servers.length +
+                        plugin.commands.length +
+                        plugin.message_policies.length +
+                        plugin.sidebar_views.length}</span
+                    >
+                  </div>
                 </div>
-              {/if}
-            </Accordion.Content>
-          {/if}
-        </Accordion.Item>
-      {/each}
-    </Accordion.Root>
+                <span class="detail-hint">
+                  {plugin.skills.length}
+                  {$t("pluginSkills")} · {plugin.mcp_servers.length}
+                  {$t("pluginMcpServers")}
+                  {#if plugin.commands.length > 0}
+                    · {plugin.commands.length} {$t("pluginCommands")}
+                  {/if}
+                  {#if plugin.message_policies.length > 0}
+                    · {plugin.message_policies.length} {$t("pluginMessagePolicies")}
+                  {/if}
+                  {#if plugin.sidebar_views.length > 0}
+                    · {plugin.sidebar_views.length} {$t("pluginSidebarViews")}
+                  {/if}
+                </span>
+                {#each plugin.warnings as warning (warning)}
+                  <p class="plugin-warning">{warning}</p>
+                {/each}
+                {#if plugin.error}
+                  <p class="plugin-warning">{plugin.error}</p>
+                {/if}
+                {#if plugin.sidebar_views.length > 0}
+                  <div class="plugin-sidebar-views">
+                    <span class="label-text">{$t("pluginSidebarViews")}</span>
+                    {#each plugin.sidebar_views as sidebarView (sidebarView.id)}
+                      {@const lifecycle = view.pluginSidebarLifecycleFor(plugin, sidebarView)}
+                      <div class="plugin-sidebar-view-row">
+                        <span class="plugin-sidebar-view-copy">
+                          <span class="label-text">{sidebarView.title}</span>
+                          {#if lifecycle !== "available"}
+                            <span class="detail-hint">
+                              {lifecycle === "disabled"
+                                ? $t("pluginSidebarDisabled")
+                                : lifecycle === "invalid"
+                                  ? $t("pluginSidebarInvalid")
+                                  : $t("pluginSidebarOutOfScope")}
+                            </span>
+                          {/if}
+                        </span>
+                        {#if view.onOpenPluginSidebarView}
+                          <SettingsActionButton
+                            label={$t("pluginSidebarOpen")}
+                            tone="quiet"
+                            disabled={lifecycle !== "available"}
+                            onclick={() => view.onOpenPluginSidebarView(sidebarView.id)}
+                          />
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+                {@const update = (view.agentPluginUpdates ?? []).find(
+                  (item: AgentPluginUpdateSummary) => item.id === plugin.id,
+                )}
+                {#if (update?.update_available && update.latest_version) || !plugin.builtin || plugin.repository || update?.error}
+                  <div class="plugin-accordion-footer">
+                    {#if plugin.repository}
+                      <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
+                    {/if}
+                    {#if update?.error}
+                      <!-- The reason, so a quota or a manifest problem is not
+                         silently counted as a broken package. The raw
+                         diagnostic from the update check stays underneath it
+                         rather than standing in for the explanation. -->
+                      {@const reasonKey = agentPluginUpdateErrorKey(update.error_kind)}
+                      <p class="plugin-warning">
+                        {#if update.stale}
+                          {$t("pluginUpdateStaleHint")}
+                        {/if}
+                        {reasonKey === null ? update.error : $t(reasonKey)}
+                      </p>
+                      {#if reasonKey !== null}
+                        <p class="detail-hint">{update.error}</p>
+                      {/if}
+                    {/if}
+                    {#if update?.update_available && update.latest_version}
+                      <p class="plugin-update-hint">
+                        {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
+                        {#if update.release_url}
+                          <a href={update.release_url} target="_blank" rel="noreferrer">GitHub</a>
+                        {/if}
+                        {#if update.asset_url}
+                          <SettingsActionButton
+                            label={$t("pluginUpdate")}
+                            icon="download"
+                            tone="quiet"
+                            onclick={() => view.updateAgentPlugin(plugin.id)}
+                            disabled={view.agentPluginUpdating !== null}
+                          />
+                        {/if}
+                      </p>
+                    {/if}
+                    {#if !plugin.builtin}
+                      <SettingsActionButton
+                        label={$t("pluginUninstall")}
+                        icon="trash"
+                        tone="danger"
+                        onclick={() => view.requestUninstallAgentPlugin(plugin.id)}
+                        disabled={view.agentPluginUpdating !== null || view.agentPluginRemoving}
+                      />
+                    {/if}
+                  </div>
+                {/if}
+              </Accordion.Content>
+            {/if}
+          </Accordion.Item>
+        {/each}
+      </Accordion.Root>
     {/if}
   </ScrollArea>
 </Tabs.Content>

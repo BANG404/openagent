@@ -726,6 +726,8 @@ export interface AgentPluginAuthorSummary {
   url: string | null;
 }
 
+export type { AgentPluginInstallProgress } from "../../sdk/typescript/src/types";
+
 export interface AgentPluginSummary {
   id: string;
   name: string;
@@ -762,10 +764,7 @@ export interface AgentPluginSummary {
  * properties of that one plugin.
  */
 export type AgentPluginUpdateErrorKind =
-  | "rate_limited"
-  | "network_failed"
-  | "repository_unsupported"
-  | "release_unavailable";
+  "rate_limited" | "network_failed" | "repository_unsupported" | "release_unavailable";
 
 /**
  * The worst condition one update check met.
@@ -774,8 +773,7 @@ export type AgentPluginUpdateErrorKind =
  * reported on the check itself, because a quota can run out partway through the
  * loop and leave a mixture of per-plugin results that no single plugin explains.
  */
-export type AgentPluginUpdateCheckStatus =
-  "ok" | "partial" | "rate_limited" | "network_failed";
+export type AgentPluginUpdateCheckStatus = "ok" | "partial" | "rate_limited" | "network_failed";
 
 export interface AgentPluginUpdateSummary {
   id: string;

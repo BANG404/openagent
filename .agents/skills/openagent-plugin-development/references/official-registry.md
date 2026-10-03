@@ -38,3 +38,30 @@ credential-free HTTPS URLs without a query or fragment.
 Update the bundled catalog and this contract together when an official plugin is
 published, renamed, withdrawn, or moved. Keep private provider credentials out
 of the registry. Focused coverage lives in `tests/officialPluginRegistry.test.ts`.
+
+Installation shows the Runtime's current phase with an indeterminate progress
+indicator. Register the progress subscription before sending the installation
+request; release it on both success and failure. Package activation returns an
+authoritative summary, so the card updates immediately even if a subsequent
+marketplace discovery fails. Removal similarly clears the installed summary and
+update badge after success. Read the installed directory and optional marketplaces
+independently, and reject stale refresh responses after a newer mutation.
+
+Qualify published sources through `bun run test:blackbox:plugin-lifecycle` in an
+isolated `OPENAGENT_HOME`. `BLACKBOX_PLUGIN_IDS` can select catalog entries.
+The runner checks actual progress, MCP availability, enabled uninstall, preserved
+plugin data, and the immediately restored Install action. Repeat with the native
+window in light/dark and English/Chinese, using Appium on Windows.
+
+For Goal, Graph, and Chat Groups functional qualification, run
+`OFFICIAL_PLUGIN_CHECKOUTS=<checkout-parent> bun run test:blackbox:plugin-functionality`
+against the same isolated window. The checkout parent contains `openagent-<id>`
+or `<id>` directories. This exercises installed package commands and tools with
+a deterministic local model, including Goal completion, Graph child execution,
+group membership, message persistence, and private Agent submission. The runner
+restores fixture settings and removes its installed packages. Record source
+revisions alongside the generated report; local candidate success does not
+qualify an older published repository or justify silently publishing commits.
+Use `BLACKBOX_FUNCTIONAL_REPORT` to preserve separate source-version reports;
+`BLACKBOX_KEEP_CONVERSATIONS=1` retains only the fixture conversations for the
+SDK's checkpoint and renderability diagnostics before explicitly deleting them.

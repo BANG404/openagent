@@ -132,6 +132,17 @@ live process is sitting in.
 
 ## Agent plugin update coverage
 
+Plugin install/removal uses `tests/blackbox/plugin-install.toml` and
+`plugin-uninstall.toml`, driven by `bun run test:blackbox:plugin-lifecycle`.
+Start `bun tauri dev --multi-instance plugin-lifecycle` with an isolated
+`OPENAGENT_HOME`; the runner uses that same root and refuses existing packages.
+It installs catalog sources, checks visible Runtime phases and live MCP tools,
+then removes each enabled package and checks preserved data plus marketplace
+availability. Cua additionally needs its explicit host-access switch and a ready
+native daemon. Capture the light/dark and English/Chinese states using the
+Windows Appium procedure above. Functional qualification of specific plugin
+checkouts is documented in the plugin owner's `official-registry.md`.
+
 The committed `tests/blackbox/plugin-update.toml` scenario drives the plugins
 page of the settings surface. Its fixture,
 `tests/fixtures/agent-plugin-update`, declares a repository that is not an HTTPS

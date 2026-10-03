@@ -1,0 +1,29 @@
+[scenario]
+name = "uninstall an enabled plugin"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "uninstall from the enabled plugin card"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__pluginLifecycleProbe;
+  document.querySelectorAll('.plugin-management-tabs button')[1]?.click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const card = document.querySelector(`.plugin-accordion-item[data-plugin-id="${probe.id}"]`);
+  if (!(card instanceof HTMLElement)) throw new Error("installed plugin card is missing");
+  const enabled = card.querySelector('[role="switch"]');
+  if (enabled?.getAttribute('aria-checked') !== 'true') throw new Error("uninstall must exercise an enabled plugin");
+  const trigger = card.querySelector('.plugin-accordion-trigger');
+  if (trigger?.getAttribute('aria-expanded') !== 'true') trigger?.click();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const remove = [...card.querySelectorAll('button')].find(button => /^(Uninstall|卸载)$/.test(button.textContent.trim()));
+  if (!remove || remove.disabled) throw new Error("uninstall is unavailable");
+  remove.click();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const confirm = [...document.querySelectorAll('[role="alertdialog"] button, [role="dialog"] button')]
+    .find(button => /^(Uninstall|卸载)$/.test(button.textContent.trim()) && !card.contains(button));
+  if (!confirm || confirm.disabled) throw new Error("uninstall confirmation is missing");
+  confirm.click();
+  return probe.id;
+})()'''

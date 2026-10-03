@@ -13,8 +13,24 @@ use std::process::{Child, ChildStdin, Stdio};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+/// Resolved by Runtime over the Bearer-only native launch endpoint. This type
+/// is never accepted from WebView input and must not derive Debug: its process
+/// environment can contain the package's private Host Bridge credential.
+#[derive(serde::Deserialize)]
+pub(crate) struct PluginDaemonLaunch {
+    pub plugin_id: String,
+    pub root: String,
+    pub command: String,
+    pub launcher_args: Vec<String>,
+    pub args: Vec<String>,
+    pub data_root: String,
+    pub environment: Vec<(String, String)>,
+    pub authorization_reason: String,
+}
+
 #[derive(Clone, Debug)]
 pub(crate) enum PluginDaemonTransport {
+    #[cfg(feature = "embedded-runtime")]
     Stdio,
     Socket {
         endpoint: String,
@@ -70,13 +86,20 @@ pub(crate) struct PluginDaemonStop {
 
 impl PluginDaemonStop {
     fn request(&self) -> Result<(), String> {
-        let mut child = std::process::Command::new(&self.command)
+        let mut command = std::process::Command::new(&self.command);
+        command
             .args(&self.args)
             .current_dir(&self.cwd)
             .envs(self.env.iter().map(|(key, value)| (key, value)))
             .stdin(Stdio::null())
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
+            .stderr(Stdio::null());
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x0800_0000);
+        }
+        let mut child = command
             .spawn()
             .map_err(|error| format!("plugin daemon stop request failed: {error}"))?;
         if wait_for_exit(&mut child, self.timeout) {
@@ -110,6 +133,7 @@ impl PluginDaemonSupervisor {
         }
     }
 
+    #[cfg(feature = "embedded-runtime")]
     pub(crate) fn start(
         &self,
         spec: PluginDaemonSpec,
@@ -170,16 +194,19 @@ impl PluginDaemonSupervisor {
                 return Err(error);
             }
         };
-        if let PluginDaemonTransport::Socket {
-            endpoint,
-            startup_timeout,
-        } = &spec.transport
-        {
-            if let Err(error) = wait_for_endpoint(&mut child, endpoint, *startup_timeout) {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err(error);
+        match &spec.transport {
+            PluginDaemonTransport::Socket {
+                endpoint,
+                startup_timeout,
+            } => {
+                if let Err(error) = wait_for_endpoint(&mut child, endpoint, *startup_timeout) {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(error);
+                }
             }
+            #[cfg(feature = "embedded-runtime")]
+            PluginDaemonTransport::Stdio => {}
         }
         daemons.insert(
             spec.plugin_id,

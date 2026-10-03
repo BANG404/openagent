@@ -241,6 +241,7 @@ function changedFiles(repo, baseSha, headSha) {
 
 /** @param {BatchState} state */
 function taskFileOverlaps(state) {
+  /** @type {Array<{ file: string; taskIds: [string, string] }>} */
   const overlaps = [];
   for (let leftIndex = 0; leftIndex < state.tasks.length; leftIndex += 1) {
     const left = state.tasks[leftIndex];

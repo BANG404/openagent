@@ -15,6 +15,7 @@
   import { Tabs } from "bits-ui";
   import type {
     AgentPluginSummary,
+    AgentPluginInstallProgress,
     AgentPluginMarketplaceSummary,
     AgentPluginSidebarViewSummary,
     AgentPluginUpdateReport,
@@ -294,6 +295,19 @@
   let officialPluginFilter = $state<OfficialPluginCatalogFilter>("all");
   let pluginManagementView = $state<"marketplace" | "installed">("marketplace");
   let officialPluginInstalling = $state<string | null>(null);
+  let agentPluginInstallProgress = $state<AgentPluginInstallProgress | null>(null);
+  let agentPluginRefreshSequence = 0;
+  const pluginInstallStageKeys: Record<AgentPluginInstallProgress["stage"], TranslationKeys> = {
+    preparing: "pluginInstallPreparing",
+    downloading: "pluginInstallDownloading",
+    validating: "pluginInstallValidating",
+    installing: "pluginInstallCopying",
+    connecting: "pluginInstallConnecting",
+    complete: "pluginInstalled",
+  };
+  const agentPluginInstallMessage = $derived(
+    agentPluginInstallProgress ? $t(pluginInstallStageKeys[agentPluginInstallProgress.stage]) : "",
+  );
   let officialPluginStatus = $state<{
     tone: "success" | "error";
     message: string;
@@ -442,11 +456,6 @@
   }
 
   function setCuaDriverEnabled(enabled: boolean) {
-    if (enabled && agentPluginHostAccess(cuaDriverId)) {
-      void startCuaDriverDaemon().catch((error) => {
-        console.error("Failed to start the Cua Driver daemon:", error);
-      });
-    }
     draftConfig.agent_plugins_enabled = {
       ...(draftConfig.agent_plugins_enabled ?? {}),
       [cuaDriverId]: enabled,
@@ -487,11 +496,6 @@
       ...(draftConfig.agent_plugins_host_access ?? {}),
       [pluginId]: granted,
     };
-    if (granted && pluginId === cuaDriverId && agentPluginEnabled(pluginId)) {
-      void startCuaDriverDaemon().catch((error) => {
-        console.error("Failed to start the Cua Driver daemon:", error);
-      });
-    }
   }
 
   /**
@@ -608,6 +612,22 @@
           // plugin summary, so an enablement save must re-read it; otherwise the
           // row keeps a stale lifecycle until the settings surface remounts.
           if (pluginEnablementChanged) void refreshAgentPlugins();
+          // Runtime resolves authorization from saved configuration. Starting
+          // from a switch handler races the save and sees the previous grant.
+          if (
+            saved.agent_plugins_host_access?.[cuaDriverId] &&
+            saved.agent_plugins_enabled?.[cuaDriverId] !== false &&
+            (!baseConfig.agent_plugins_host_access?.[cuaDriverId] ||
+              baseConfig.agent_plugins_enabled?.[cuaDriverId] === false)
+          ) {
+            try {
+              if (await startCuaDriverDaemon()) {
+                await desktopOpenAgent.invokeProduct("refresh_mcp_servers", {});
+              }
+            } catch (error) {
+              agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(error)}`;
+            }
+          }
         } catch (error) {
           reportFrontendDiagnostic("settings_save_failed", "SettingsView", error);
           await tick();
@@ -1898,22 +1918,28 @@
       return;
     }
     agentPluginsLoading = true;
+    const sequence = ++agentPluginRefreshSequence;
     agentPluginStatus = "";
     // The installed set is about to change, so the last explicit check result is
     // no longer a statement about the plugins on screen.
     agentPluginUpdateCheckStatus = null;
     try {
-      const [plugins, marketplaces] = await Promise.all([
+      const [plugins, marketplaces] = await Promise.allSettled([
         desktopOpenAgent.listAgentPlugins(),
         desktopOpenAgent.listAgentPluginMarketplaces(),
       ]);
-      agentPlugins = plugins;
-      agentPluginMarketplaces = marketplaces;
+      if (sequence !== agentPluginRefreshSequence) return;
+      if (plugins.status === "fulfilled") agentPlugins = plugins.value;
+      if (marketplaces.status === "fulfilled") agentPluginMarketplaces = marketplaces.value;
+      const failure = [plugins, marketplaces].find((result) => result.status === "rejected");
+      if (failure?.status === "rejected") {
+        agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(failure.reason)}`;
+      }
       void checkAgentPluginUpdates();
     } catch (error: unknown) {
       agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(error)}`;
     } finally {
-      agentPluginsLoading = false;
+      if (sequence === agentPluginRefreshSequence) agentPluginsLoading = false;
     }
   }
 
@@ -2084,29 +2110,66 @@
     const pluginId = agentPluginRemoveId;
     if (!pluginId || agentPluginRemoving || !isTauri()) return;
     agentPluginRemoving = true;
+    ++agentPluginRefreshSequence;
     agentPluginStatus = "";
     try {
       await desktopOpenAgent.uninstallAgentPlugin(pluginId);
       agentPluginRemoveId = null;
+      agentPlugins = agentPlugins.filter((plugin) => plugin.id !== pluginId);
+      agentPluginUpdates = agentPluginUpdates.filter((plugin) => plugin.id !== pluginId);
+      agentPluginMarketplaces = agentPluginMarketplaces.map((marketplace) => ({
+        ...marketplace,
+        plugins: marketplace.plugins.map((plugin) =>
+          plugin.name === pluginId ? { ...plugin, installed: false } : plugin,
+        ),
+      }));
       await refreshAgentPlugins();
       await emit("agent-plugins-changed").catch(() => {});
       agentPluginStatus = tr("pluginUninstalled");
     } catch (error: unknown) {
+      await refreshAgentPlugins();
       agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(error)}`;
     } finally {
       agentPluginRemoving = false;
     }
   }
 
+  async function runPluginInstall(
+    pluginId: string,
+    install: () => Promise<AgentPluginSummary>,
+  ): Promise<void> {
+    ++agentPluginRefreshSequence;
+    agentPluginInstallProgress = { plugin_id: pluginId, stage: "preparing" };
+    let unlisten: (() => void) | undefined;
+    try {
+      // Subscribe before invoking: small packages can finish before a listener
+      // registered after the request would be ready.
+      unlisten = await desktopOpenAgent.onAgentPluginInstallProgress((progress) => {
+        if (!pluginId || progress.plugin_id === pluginId) agentPluginInstallProgress = progress;
+      });
+      const installed = await install();
+      agentPlugins = [...agentPlugins.filter((plugin) => plugin.id !== installed.id), installed];
+      if (installed.id === cuaDriverId && agentPluginHostAccess(cuaDriverId)) {
+        agentPluginInstallProgress = { plugin_id: installed.id, stage: "connecting" };
+        await startCuaDriverDaemon();
+        await desktopOpenAgent.invokeProduct("refresh_mcp_servers", {});
+      }
+      await refreshAgentPlugins();
+      await emit("agent-plugins-changed").catch(() => {});
+    } finally {
+      unlisten?.();
+      agentPluginInstallProgress = null;
+    }
+  }
+
   async function installAgentPlugin() {
+    if (agentPluginInstallProgress || agentPluginRemoving) return;
     const selected = await openDialog({ multiple: false, directory: true });
     if (!selected || Array.isArray(selected)) return;
     agentPluginsLoading = true;
     agentPluginStatus = "";
     try {
-      await desktopOpenAgent.installAgentPlugin(selected);
-      await refreshAgentPlugins();
-      await emit("agent-plugins-changed").catch(() => {});
+      await runPluginInstall("", () => desktopOpenAgent.installAgentPlugin(selected));
       agentPluginStatus = tr("pluginInstalled");
     } catch (error: unknown) {
       agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(error)}`;
@@ -2116,13 +2179,14 @@
   }
 
   async function installMarketplaceAgentPlugin(marketplacePath: string, pluginName: string) {
-    if (!isTauri() || agentPluginsLoading) return;
+    if (!isTauri() || agentPluginsLoading || agentPluginInstallProgress || agentPluginRemoving)
+      return;
     agentPluginsLoading = true;
     agentPluginStatus = "";
     try {
-      await desktopOpenAgent.installMarketplaceAgentPlugin(marketplacePath, pluginName);
-      await refreshAgentPlugins();
-      await emit("agent-plugins-changed").catch(() => {});
+      await runPluginInstall(pluginName, () =>
+        desktopOpenAgent.installMarketplaceAgentPlugin(marketplacePath, pluginName),
+      );
       agentPluginStatus = tr("pluginInstalled");
     } catch (error: unknown) {
       agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(error)}`;
@@ -2132,18 +2196,19 @@
   }
 
   async function installOfficialAgentPlugin(plugin: OfficialPluginRegistryEntry): Promise<void> {
-    if (!isTauri() || agentPluginsLoading || officialPluginInstalling) return;
+    if (!isTauri() || agentPluginsLoading || agentPluginInstallProgress || agentPluginRemoving)
+      return;
     officialPluginInstalling = plugin.id;
     officialPluginStatus = null;
     agentPluginStatus = "";
     try {
-      await desktopOpenAgent.installOfficialAgentPlugin(
-        plugin.id,
-        plugin.displayName,
-        plugin.sourceUrl,
+      await runPluginInstall(plugin.id, () =>
+        desktopOpenAgent.installOfficialAgentPlugin(
+          plugin.id,
+          plugin.displayName,
+          plugin.sourceUrl,
+        ),
       );
-      await refreshAgentPlugins();
-      await emit("agent-plugins-changed").catch(() => {});
       officialPluginStatus = { tone: "success", message: tr("pluginInstalled") };
     } catch (error: unknown) {
       officialPluginStatus = {
@@ -2326,6 +2391,12 @@
     },
     get officialPluginInstalling() {
       return officialPluginInstalling;
+    },
+    get agentPluginInstallProgress() {
+      return agentPluginInstallProgress;
+    },
+    get agentPluginInstallMessage() {
+      return agentPluginInstallMessage;
     },
     get officialPluginStatus() {
       return officialPluginStatus;

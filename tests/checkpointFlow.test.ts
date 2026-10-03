@@ -304,7 +304,13 @@ describe("checkpoint package flow state", () => {
       status: "running",
       flow: {
         kind: "plugin",
-        state: { plugin_id: "demo", flow_id: "plugin:demo:run", title: "Live", status: "running", items: [] },
+        state: {
+          plugin_id: "demo",
+          flow_id: "plugin:demo:run",
+          title: "Live",
+          status: "running",
+          items: [],
+        },
       },
     });
     const second = updateLiveCheckpointFlowProjection(first, {

@@ -1,8 +1,5 @@
 <script lang="ts">
-  import {
-    checkpointFlowProgress,
-    type CheckpointFlow,
-  } from "$lib/checkpointFlow";
+  import { checkpointFlowProgress, type CheckpointFlow } from "$lib/checkpointFlow";
   import type { AgentPluginSidebarViewSummary, FileChange } from "$lib/types";
   import type { BackgroundTerminalSession } from "$lib/openagent";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
@@ -107,11 +104,7 @@
       else if (terminalAvailable) activePanel = "terminal";
     }
     if (activePanel === "terminal" && !terminalAvailable) {
-      activePanel = flow
-        ? "status"
-        : changes.length > 0
-          ? "files"
-          : "status";
+      activePanel = flow ? "status" : changes.length > 0 ? "files" : "status";
     }
     if (
       isPluginSidebarPanel(activePanel) &&

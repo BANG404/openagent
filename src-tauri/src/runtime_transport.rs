@@ -593,6 +593,7 @@ mod tests {
 
         for (method, path) in [
             ("POST", "/api/desktop/drain"),
+            ("POST", "/api/desktop/plugin-daemon-launch"),
             ("GET", "/api/events"),
             ("POST", "/api/conversations/conv-1/admin"),
             ("GET", "//example.com/api/conversations/conv-1"),

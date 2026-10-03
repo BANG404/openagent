@@ -45,6 +45,8 @@
     "test:blackbox:plugins": "bun scripts/test-plugin-blackbox.mjs",
     "test:blackbox:plugin-process": "bun scripts/test-plugin-process-blackbox.mjs",
     "test:blackbox:plugin-update": "bun scripts/test-plugin-update-blackbox.mjs",
+    "test:blackbox:plugin-lifecycle": "bun scripts/test-plugin-lifecycle-blackbox.mjs",
+    "test:blackbox:plugin-functionality": "bun scripts/test-official-plugin-functionality.mjs",
     "test:blackbox:mcp-apps": "bun scripts/test-mcp-apps-blackbox.mjs",
     "test:blackbox:mcp-oauth": "bun scripts/test-mcp-oauth-blackbox.mjs",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
