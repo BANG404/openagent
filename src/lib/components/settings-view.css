@@ -1164,37 +1164,7 @@
 }
 
 .plugin-management-tabs {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  width: fit-content;
   margin: 0 0 0 auto;
-  padding: 3px;
-  border-radius: 9px;
-  background: var(--interactive-state-bg);
-}
-
-.plugin-management-tabs button {
-  min-height: 30px;
-  padding: 4px 12px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--text-muted);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.plugin-management-tabs button:hover,
-.plugin-management-tabs button.active {
-  background: var(--mica-surface);
-  color: var(--text);
-}
-
-.plugin-management-tabs button:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
 }
 
 .official-plugin-store {
@@ -1216,6 +1186,19 @@
   width: 72px;
   height: 4px;
   accent-color: var(--accent);
+}
+
+.plugin-install-progress-inline {
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0;
+  font-size: 11px;
+}
+
+.plugin-install-progress-inline progress {
+  width: 40px;
+  flex: 0 0 auto;
 }
 
 .official-plugin-store-hero {
@@ -1356,36 +1339,7 @@
 }
 
 .official-plugin-filters {
-  display: flex;
   flex: 0 0 auto;
-  align-items: center;
-  gap: 3px;
-  padding: 3px;
-  border-radius: 9px;
-  background: var(--interactive-state-bg);
-}
-
-.official-plugin-filter {
-  min-height: 28px;
-  padding: 4px 9px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--text-muted);
-  font: inherit;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.official-plugin-filter:hover,
-.official-plugin-filter.active {
-  background: var(--mica-surface);
-  color: var(--text);
-}
-
-.official-plugin-filter:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
 }
 
 .official-plugin-grid {
@@ -1471,6 +1425,8 @@
 
 .official-plugin-card-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   min-height: 30px;
   align-items: center;
   justify-content: flex-end;
@@ -2568,11 +2524,7 @@
   }
 
   .official-plugin-filters {
-    justify-content: space-between;
-  }
-
-  .official-plugin-filter {
-    flex: 1;
+    width: 100%;
   }
 
   .official-plugin-grid {

@@ -4,6 +4,42 @@ fail_fast = true
 global_timeout_ms = 30000
 
 [[step]]
+name = "shared segmented controls keep selection and sliding background aligned"
+action = "eval"
+script = '''(async () => {
+  for (const selector of ['.plugin-management-tabs', '.official-plugin-filters']) {
+    const control = document.querySelector(selector);
+    if (!control) throw new Error('missing shared segmented control');
+    const buttons = [...control.querySelectorAll('button')];
+    const indicator = control.querySelector('.segmented-indicator');
+    if (!indicator) throw new Error('missing sliding selection background');
+    buttons[0].focus();
+    buttons[0].dispatchEvent(new KeyboardEvent('keydown', {key: 'End', bubbles: true}));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    if (buttons.at(-1).getAttribute('aria-selected') !== 'true' || document.activeElement !== buttons.at(-1)) {
+      throw new Error('keyboard selection and focus did not follow End');
+    }
+    buttons.at(-1).dispatchEvent(new KeyboardEvent('keydown', {key: 'Home', bubbles: true}));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    buttons.at(-1).click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    buttons[0].click();
+    await new Promise(resolve => setTimeout(resolve, 350));
+    const selected = control.querySelector('[aria-selected=true]');
+    if (selected !== buttons[0]) throw new Error('rapid switching left stale selection');
+    const marker = indicator.getBoundingClientRect();
+    const target = selected.getBoundingClientRect();
+    if (Math.abs(marker.x - target.x) > 2 || Math.abs(marker.width - target.width) > 2) {
+      throw new Error('sliding background is not aligned with selected segment');
+    }
+    const duration = parseFloat(getComputedStyle(indicator).transitionDuration);
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced ? duration !== 0 : duration <= 0) throw new Error('motion preference is not respected');
+  }
+  return 'both shared segmented controls passed';
+})()'''
+
+[[step]]
 name = "start official installations concurrently and observe independent phases"
 action = "eval"
 script = '''(async () => {
@@ -34,6 +70,10 @@ script = '''(async () => {
     const progress = document.querySelector(`.plugin-install-progress[data-plugin-id="${id}"]`);
     if (!progress || !progress.textContent.trim() || !progress.querySelector('progress')) {
       throw new Error(`no visible phase: ${id}`);
+    }
+    if (progress.closest('.official-plugin-card') !== card ||
+        progress.parentElement !== button.parentElement) {
+      throw new Error(`progress is not beside its download button: ${id}`);
     }
     if (!button.disabled) throw new Error(`duplicate install is not blocked: ${id}`);
   }

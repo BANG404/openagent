@@ -37,6 +37,14 @@ second lifecycle animation in a child component.
   explicit viewport geometry (`top`, `left`, `width`, and `height`) so the shell
   and its content stay aligned; avoid `auto` dimensions for that transition.
 
+Shared `ui/SegmentedControl.svelte` owns segmented selection motion. Keep a
+single sliding background behind the buttons, driven by the selected index and
+the actual item count; use it for management views and list filters as well as
+forms. Selection and keyboard focus change immediately, while the background
+uses the panel duration. Arrow keys, Home, and End move selection and focus;
+rapid switching retargets the existing CSS transition. Reduced motion disables
+the transition without hiding the selected background.
+
 ## Reduced motion
 
 `prefers-reduced-motion: reduce` collapses shared durations and removes

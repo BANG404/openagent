@@ -53,7 +53,13 @@ published, renamed, withdrawn, or moved. Keep private provider credentials out
 of the registry. Focused coverage lives in `tests/officialPluginRegistry.test.ts`.
 
 Installation shows the Runtime's current phase with an indeterminate progress
-indicator. Register the progress subscription before sending the installation
+indicator beside the corresponding official card's download button. Keep it
+visible during connection even if the package already appears installed. If
+search, filters, or the installed view hide its card, retain the running status
+in the page summary; completion and failure remain visible there. Runtime
+phases provide no byte counts or percentages. The plugin-install black-box
+scenario asserts card-local progress and disabled duplicate actions during
+concurrent installations. Register the progress subscription before sending the installation
 request; release it on both success and failure. Track tasks by plugin ID rather
 than a page-wide busy flag: distinct official and local-marketplace packages can
 install concurrently, while a duplicate click on one running package is ignored.

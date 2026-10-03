@@ -29,6 +29,8 @@
     type NormalizedMcpServerConfig,
   } from "$lib/config";
   import { agentPluginUpdateErrorKey } from "$lib/agentPluginUpdateCheck";
+  import type { PluginInstallTask } from "$lib/agentPluginInstallQueue";
+  import type { OfficialPluginCatalogItem } from "$lib/officialPluginRegistry";
   import { applyDocumentTheme } from "$lib/appTheme";
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
   import {
@@ -263,47 +265,39 @@
   <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
     <header class="agents-settings-intro plugin-management-header">
       <h3>{$t("plugins")}</h3>
-      <div class="plugin-management-tabs" role="tablist" aria-label={$t("plugins")}>
-        <button
-          type="button"
-          role="tab"
-          class:active={view.pluginManagementView === "marketplace"}
-          aria-selected={view.pluginManagementView === "marketplace"}
-          tabindex={view.pluginManagementView === "marketplace" ? 0 : -1}
-          onclick={() => (view.pluginManagementView = "marketplace")}
-        >
-          {$t("pluginMarketplaceTab")}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class:active={view.pluginManagementView === "installed"}
-          aria-selected={view.pluginManagementView === "installed"}
-          tabindex={view.pluginManagementView === "installed" ? 0 : -1}
-          onclick={() => (view.pluginManagementView = "installed")}
-        >
-          {$t("pluginInstalledTab")}
-        </button>
-      </div>
+      <SegmentedControl
+        class="plugin-management-tabs"
+        fitContent
+        tabs
+        ariaLabel={$t("plugins")}
+        value={view.pluginManagementView}
+        items={[
+          { value: "marketplace", label: $t("pluginMarketplaceTab") },
+          { value: "installed", label: $t("pluginInstalledTab") },
+        ]}
+        onValueChange={(value) => (view.pluginManagementView = value)}
+      />
     </header>
     {#each view.agentPluginInstallTasks as task (task.key)}
-      <div
-        class={task.status === "running"
-          ? "plugin-install-progress"
-          : `provider-status ${task.status}`}
-        data-plugin-id={task.pluginId ?? task.key}
-        data-install-status={task.status}
-        data-stage={task.progress.stage}
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        {#if task.status === "running"}
-          <progress aria-label={`${task.label} · ${view.agentPluginInstallMessage(task)}`}
-          ></progress>
-        {/if}
-        <span>{task.label} · {view.agentPluginInstallMessage(task)}</span>
-      </div>
+      {#if task.status !== "running" || view.pluginManagementView !== "marketplace" || !view.officialPluginCards.some((plugin: OfficialPluginCatalogItem) => plugin.id === task.pluginId)}
+        <div
+          class={task.status === "running"
+            ? "plugin-install-progress"
+            : `provider-status ${task.status}`}
+          data-plugin-id={task.pluginId ?? task.key}
+          data-install-status={task.status}
+          data-stage={task.progress.stage}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {#if task.status === "running"}
+            <progress aria-label={`${task.label} · ${view.agentPluginInstallMessage(task)}`}
+            ></progress>
+          {/if}
+          <span>{task.label} · {view.agentPluginInstallMessage(task)}</span>
+        </div>
+      {/if}
     {/each}
     {#if view.pluginManagementView === "marketplace"}
       <section class="official-plugin-store" aria-label={$t("pluginOfficialMarketplace")}>
@@ -342,26 +336,19 @@
               {$t("pluginOfficialClearSearch")}
             </button>
           {/if}
-          <div
+          <SegmentedControl
             class="official-plugin-filters"
-            role="tablist"
-            aria-label={$t("pluginOfficialFilter")}
-          >
-            {#each [["all", "pluginOfficialFilterAll"], ["available", "pluginOfficialFilterAvailable"], ["installed", "pluginOfficialFilterInstalled"]] as filter (filter[0])}
-              <button
-                type="button"
-                role="tab"
-                class:active={view.officialPluginFilter === filter[0]}
-                class="official-plugin-filter"
-                data-filter={filter[0]}
-                aria-selected={view.officialPluginFilter === filter[0]}
-                tabindex={view.officialPluginFilter === filter[0] ? 0 : -1}
-                onclick={() => (view.officialPluginFilter = filter[0])}
-              >
-                {$t(filter[1] as TranslationKeys)}
-              </button>
-            {/each}
-          </div>
+            fitContent
+            tabs
+            ariaLabel={$t("pluginOfficialFilter")}
+            value={view.officialPluginFilter}
+            items={[
+              { value: "all", label: $t("pluginOfficialFilterAll") },
+              { value: "available", label: $t("pluginOfficialFilterAvailable") },
+              { value: "installed", label: $t("pluginOfficialFilterInstalled") },
+            ]}
+            onValueChange={(value) => (view.officialPluginFilter = value)}
+          />
         </div>
         {#if view.officialPluginCards.length > 0}
           <div class="official-plugin-grid">
@@ -415,6 +402,22 @@
                   </a>
                 </div>
                 <div class="official-plugin-card-actions">
+                  {#each view.agentPluginInstallTasks.filter((task: PluginInstallTask) => task.pluginId === plugin.id && task.status === "running") as task (task.key)}
+                    <div
+                      class="plugin-install-progress plugin-install-progress-inline"
+                      data-plugin-id={plugin.id}
+                      data-install-status={task.status}
+                      data-stage={task.progress.stage}
+                      role="status"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    >
+                      <progress
+                        aria-label={`${task.label} · ${view.agentPluginInstallMessage(task)}`}
+                      ></progress>
+                      <span>{view.agentPluginInstallMessage(task)}</span>
+                    </div>
+                  {/each}
                   {#if plugin.installed && plugin.updateAvailable}
                     <SettingsActionButton
                       label={$t("pluginUpdate")}
