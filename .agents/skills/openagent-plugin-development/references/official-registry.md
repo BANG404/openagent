@@ -1,5 +1,9 @@
 # Official plugin registry
 
+Official publication and catalog qualification must satisfy the
+[plugin i18n standard](i18n-standard.md), including supported-language display
+and coverage of the platform's complete language set.
+
 OpenAgent keeps the official plugin source list in a small registry contract so
 clients can discover package addresses without querying the GitHub API. The
 bundled reference is `src/lib/officialPluginRegistry.json`; its parser and
