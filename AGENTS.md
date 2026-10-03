@@ -19,9 +19,7 @@ Read every applicable owner before changing files:
 | Verify browser-visible behavior | `.agents/skills/playwright/SKILL.md` |
 | Deliver repository changes | `.agents/skills/deliver-via-pr/SKILL.md` |
 
-The `openagent-*` names below are implementation owners, not a single
-catch-all category. The starting skills above separate coding, verification,
-and delivery so agents can choose the right scope.
+The `openagent-*` skills own implementation; starting skills route verification and delivery.
 
 | Scope | Source of truth |
 | --- | --- |
@@ -63,9 +61,8 @@ cd src-tauri && cargo check
 
 Before committing, inspect the complete diff, stage intended new files, and run
 `bun run preflight`. It evaluates the branch, index, worktree, and untracked
-filenames against the selected baseline. Direct work on `master` uses
-`origin/master`; OWT task and integration branches automatically use the local
-`master` tip so unpublished local commits do not expand the task scope. Set
+filenames against the selected baseline. Manual verification on `master` uses `origin/master`; OWT branches use local
+`master` so unpublished local commits do not expand the task scope. Set
 `PREFLIGHT_BASE` or pass `--base <ref>` when a batch coordinator records a
 different immutable base. Use `--dry-run` to inspect the plan.
 
@@ -146,10 +143,8 @@ layout-stable skeleton.
   `tauri-pilot` black-box scenario, including light/dark themes and Chinese/English where applicable. See `.agents/skills/openagent-desktop-host/references/native-verification.md`.
 
 ## Delivery
-Every repository-changing task uses `deliver-via-pr`. Direct local delivery is
-for one agent owning the default worktree and must run under
-`scripts/agent-delivery-lock.mjs`. Concurrent tasks use `OWT`, and an explicit
-sealed OWT batch is the default for independent parallel work; each task is
-isolated and one elected integrator fast-forwards the verified result into
-`master`. The skill owns reconciliation, preservation, CI, and cleanup;
-explicit user instructions override its delivery stage.
+Every repository-changing task uses `deliver-via-pr` and the same OWT workflow.
+No prefix or mode selection is required. Implement in isolated task worktrees;
+keep the default directory on local `master` for developer debugging and
+fast-forward verified results into it. Batches coordinate concurrent OWT tasks.
+The skill owns preservation, reconciliation, verification, and cleanup; user instructions override delivery.

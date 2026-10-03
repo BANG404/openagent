@@ -9,11 +9,11 @@ const DEFAULT_MAX_CONCURRENCY = 4;
 
 function usage() {
   return `Usage:
-  bun run-codex-exec-batch.mjs --repo <path> --task "OWT <task>" [--task "OWT <task>"]
+  bun run-codex-exec-batch.mjs --repo <path> --task "<task>" [--task "<task>"]
 
 Options:
   --repo <path>             Git repository whose local default branch receives the OWT work.
-  --task <prompt>           Codex prompt. Repeat for every independent task; each must start with OWT.
+  --task <prompt>           Codex prompt. Repeat for every independent task; all tasks use OWT.
   --max-concurrency <n>     Maximum simultaneous codex exec processes (default: ${DEFAULT_MAX_CONCURRENCY}).
   --codex-bin <path>        Codex executable override.
   --dry-run                 Print the resolved launch plan without starting Codex.
@@ -66,11 +66,7 @@ export function parseArguments(argv) {
     throw new Error("Provide at least two --task prompts for a parallel batch.");
   }
   for (const prompt of options.tasks) {
-    if (!/^OWT(?:\s+|:\s*)\S/u.test(prompt)) {
-      throw new Error(
-        `Every task must start with an OWT delivery prefix: ${JSON.stringify(prompt)}`,
-      );
-    }
+    if (!prompt.trim()) throw new Error("Every task requires a non-empty prompt.");
   }
   return options;
 }
@@ -104,6 +100,15 @@ function resolveCodexBinary(requested) {
  */
 export function buildExecPlan(options) {
   const repo = repositoryRoot(options.repo);
+  const branch = execFileSync("git", ["branch", "--show-current"], {
+    cwd: repo,
+    encoding: "utf8",
+  }).trim();
+  if (branch !== "master") {
+    throw new Error(
+      "Launch OWT tasks from the default directory on master; do not switch its branch.",
+    );
+  }
   const writableParent = dirname(repo);
   const codexBin = resolveCodexBinary(options.codexBin);
   return {
@@ -111,19 +116,14 @@ export function buildExecPlan(options) {
     writableParent,
     codexBin,
     maxConcurrency: Math.min(options.maxConcurrency, options.tasks.length),
-    tasks: options.tasks.map((prompt, index) => ({
-      id: `task-${index + 1}`,
-      prompt,
-      args: [
-        "exec",
-        "--approve-for-me",
-        "--cd",
-        repo,
-        "--add-dir",
-        writableParent,
+    tasks: options.tasks.map((taskPrompt, index) => {
+      const prompt = `Use $deliver-via-pr and the OWT workflow: implement in an isolated sibling worktree, keep the default directory on master, verify and fast-forward the result, then clean up.\n\n${taskPrompt}`;
+      return {
+        id: `task-${index + 1}`,
         prompt,
-      ],
-    })),
+        args: ["exec", "--approve-for-me", "--cd", repo, "--add-dir", writableParent, prompt],
+      };
+    }),
   };
 }
 

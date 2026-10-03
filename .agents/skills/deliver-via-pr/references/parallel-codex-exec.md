@@ -8,17 +8,17 @@ user request and must inspect the combined result after every child exits.
 
 ## Launch independent tasks
 
-Pass one complete, bounded prompt per repeated `--task`. Each prompt must start
-with the uppercase standalone `OWT` prefix so the child creates an isolated
-worktree, runs preflight, commits, integrates into the local default branch,
-and cleans up according to the normal OWT workflow:
+Pass one complete, bounded prompt per repeated `--task`; no mode prefix is
+required. Every child uses OWT automatically: create an isolated worktree,
+run preflight, commit, integrate into local `master`, and clean up. The launcher
+requires its repository directory to remain on `master` before starting children:
 
 ```bash
 rtk bun .agents/skills/deliver-via-pr/scripts/run-codex-exec-batch.mjs \
   --repo . \
   --max-concurrency 3 \
-  --task "OWT implement the first independent scope and its documentation" \
-  --task "OWT implement the second independent scope and its documentation"
+  --task "implement the first independent scope and its documentation" \
+  --task "implement the second independent scope and its documentation"
 ```
 
 The launcher invokes `codex exec` without a shell and uses
@@ -51,9 +51,6 @@ present and that unrelated state was preserved. Run combined verification only
 when the child results or merged interaction require it; do not duplicate
 preflight merely because tasks ran concurrently.
 
-This launcher is an alternative to the sealed batch coordinator. Use the
-coordinator when all task heads must be integrated atomically by one elected
-agent; do not register launcher-created ordinary OWT tasks into a sealed batch.
-When a launcher child becomes the elected integrator, keep its lease alive with
-the coordinator's `heartbeat` command and use `recover` only after `status`
-shows the lease has expired.
+Both launchers and sealed batches coordinate the same OWT delivery workflow.
+Use the coordinator when all task heads must be integrated together by one
+elected agent; do not register launcher-created tasks into a sealed batch.
