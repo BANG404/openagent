@@ -4,7 +4,7 @@ fail_fast = true
 global_timeout_ms = 30000
 
 [[step]]
-name = "start the official installation and observe visible phases"
+name = "start official installations concurrently and observe independent phases"
 action = "eval"
 script = '''(async () => {
   const probe = window.__pluginLifecycleProbe;
@@ -12,25 +12,58 @@ script = '''(async () => {
   const tabs = [...document.querySelectorAll('.plugin-management-tabs button')];
   tabs[0]?.click();
   await new Promise(resolve => setTimeout(resolve, 0));
-  const card = document.querySelector(`.official-plugin-card[data-plugin-id="${probe.id}"]`);
-  if (!(card instanceof HTMLElement)) throw new Error("official plugin card is missing");
-  if (card.dataset.installed !== "false") throw new Error("fixture plugin must start uninstalled");
-  const button = card.querySelector('button');
-  if (!(button instanceof HTMLButtonElement) || button.disabled) throw new Error("install is unavailable");
-  probe.phases = [];
+  const ids = probe.ids ?? [probe.id];
+  probe.phases = Object.fromEntries(ids.map(id => [id, []]));
   probe.observer?.disconnect();
   probe.observer = new MutationObserver(() => {
-    const progress = document.querySelector('.plugin-install-progress');
-    const phase = progress?.getAttribute('data-stage');
-    if (phase && !probe.phases.includes(phase)) probe.phases.push(phase);
+    for (const progress of document.querySelectorAll('.plugin-install-progress')) {
+      const phases = probe.phases[progress.getAttribute('data-plugin-id')];
+      const phase = progress.getAttribute('data-stage');
+      if (phases && phase && !phases.includes(phase)) phases.push(phase);
+    }
   });
   probe.observer.observe(document.body, {subtree: true, childList: true, attributes: true, characterData: true});
-  button.click();
-  await new Promise(resolve => setTimeout(resolve, 0));
-  const progress = document.querySelector('.plugin-install-progress');
-  if (!progress || !progress.textContent.trim() || !progress.querySelector('progress')) {
-    throw new Error("installation has no visible progress indicator and phase");
+  for (const id of ids) {
+    const card = document.querySelector(`.official-plugin-card[data-plugin-id="${id}"]`);
+    if (!(card instanceof HTMLElement)) throw new Error(`missing official card: ${id}`);
+    if (card.dataset.installed !== "false") throw new Error(`fixture must start uninstalled: ${id}`);
+    const button = card.querySelector('button');
+    if (!(button instanceof HTMLButtonElement) || button.disabled) throw new Error(`install is unavailable: ${id}`);
+    button.click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const progress = document.querySelector(`.plugin-install-progress[data-plugin-id="${id}"]`);
+    if (!progress || !progress.textContent.trim() || !progress.querySelector('progress')) {
+      throw new Error(`no visible phase: ${id}`);
+    }
+    if (!button.disabled) throw new Error(`duplicate install is not blocked: ${id}`);
   }
-  if (!button.disabled) throw new Error("duplicate install is not blocked");
-  return progress.textContent.trim();
+  if (document.querySelectorAll('.plugin-install-progress').length !== ids.length) {
+    throw new Error("installations did not remain active together");
+  }
+  return `${ids.length} concurrent installations`;
+})()'''
+
+[[step]]
+name = "background tasks survive closing and reopening the plugin surface"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__pluginLifecycleProbe;
+  const ids = probe.ids ?? [probe.id];
+  document.querySelector('[role="dialog"] button[aria-label="Close"], [role="dialog"] button[aria-label="关闭"]')?.click();
+  document.querySelector('#application-integrations-menu').click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  [...document.querySelectorAll('[role=menuitem]')].find(item => /Plugins|插件/.test(item.textContent)).click();
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline && !document.querySelector('.plugin-management-tabs')) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  for (const id of ids) {
+    const status = document.querySelector(`[data-install-status][data-plugin-id="${id}"]`);
+    if (!status) throw new Error(`reopening lost task: ${id}`);
+    if (status.dataset.installStatus === 'running') {
+      const button = document.querySelector(`.official-plugin-card[data-plugin-id="${id}"] button`);
+      if (!button?.disabled) throw new Error(`reopening permits duplicate install: ${id}`);
+    }
+  }
+  return `${ids.length} background tasks retained`;
 })()'''

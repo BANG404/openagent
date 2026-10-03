@@ -21,8 +21,8 @@ script = '''(async () => {
   if (!remove || remove.disabled) throw new Error("uninstall is unavailable");
   remove.click();
   await new Promise(resolve => setTimeout(resolve, 100));
-  const confirm = [...document.querySelectorAll('[role="alertdialog"] button, [role="dialog"] button')]
-    .find(button => /^(Uninstall|卸载)$/.test(button.textContent.trim()) && !card.contains(button));
+  const confirm = [...document.querySelectorAll('[role="dialog"].dialog button')]
+    .find(button => /^(Uninstall|卸载)$/.test(button.textContent.trim()));
   if (!confirm || confirm.disabled) throw new Error("uninstall confirmation is missing");
   confirm.click();
   return probe.id;

@@ -74,8 +74,7 @@
   import type { SettingsNav } from "$lib/settingsWindows";
   import { approvalModeDescriptionKey, DEFAULT_APP_CONFIG } from "$lib/settingsDefaults";
   const view = getContext<Record<string, unknown>>("settings-view") as Record<string, any>;
-  // Cua remains a host integration; every other entry uses the same plugin
-  // lifecycle and host-access controls.
+  // Cua shares the package card and adds its reserved MCP connection controls.
   const desktopControlPluginId = "cua-driver";
 </script>
 
@@ -287,18 +286,25 @@
         {$t("pluginInstalledTab")}
       </button>
     </div>
-    {#if view.agentPluginInstallProgress}
+    {#each view.agentPluginInstallTasks as task (task.key)}
       <div
-        class="plugin-install-progress"
-        data-stage={view.agentPluginInstallProgress.stage}
+        class={task.status === "running"
+          ? "plugin-install-progress"
+          : `provider-status ${task.status}`}
+        data-plugin-id={task.pluginId ?? task.key}
+        data-install-status={task.status}
+        data-stage={task.progress.stage}
         role="status"
         aria-live="polite"
         aria-atomic="true"
       >
-        <progress aria-label={view.agentPluginInstallMessage}></progress>
-        <span>{view.agentPluginInstallProgress.plugin_id} · {view.agentPluginInstallMessage}</span>
+        {#if task.status === "running"}
+          <progress aria-label={`${task.label} · ${view.agentPluginInstallMessage(task)}`}
+          ></progress>
+        {/if}
+        <span>{task.label} · {view.agentPluginInstallMessage(task)}</span>
       </div>
-    {/if}
+    {/each}
     {#if view.pluginManagementView === "marketplace"}
       <section class="official-plugin-store" aria-label={$t("pluginOfficialMarketplace")}>
         <div class="official-plugin-store-hero">
@@ -359,15 +365,6 @@
             {/each}
           </div>
         </div>
-        {#if view.officialPluginStatus}
-          <div
-            class="provider-status {view.officialPluginStatus.tone}"
-            role="status"
-            aria-live="polite"
-          >
-            {view.officialPluginStatus.message}
-          </div>
-        {/if}
         {#if view.officialPluginCards.length > 0}
           <div class="official-plugin-grid">
             {#each view.officialPluginCards as plugin (plugin.id)}
@@ -434,13 +431,15 @@
                     >
                   {:else}
                     <SettingsActionButton
-                      label={view.officialPluginInstalling === plugin.id
+                      label={view.agentPluginInstalling(plugin.id)
                         ? $t("pluginOfficialInstalling")
                         : $t("pluginMarketplaceInstall")}
                       icon="download"
                       tone="primary"
                       onclick={() => view.installOfficialAgentPlugin(plugin)}
-                      disabled={view.officialPluginInstalling !== null || view.agentPluginsLoading}
+                      disabled={view.agentPluginInstalling(plugin.id) ||
+                        view.agentPluginUpdating === plugin.id ||
+                        view.agentPluginRemoveId === plugin.id}
                     />
                   {/if}
                 </div>
@@ -462,7 +461,6 @@
             label={$t("pluginInstall")}
             icon="add"
             onclick={() => view.installAgentPlugin()}
-            disabled={view.agentPluginsLoading}
           />
           <SettingsActionButton
             label={view.agentPluginUpdatesLoading
@@ -536,12 +534,16 @@
                     </div>
                     {#if canInstall}
                       <SettingsActionButton
-                        label={$t("pluginMarketplaceInstall")}
+                        label={view.agentPluginInstalling(entry.name)
+                          ? $t("pluginOfficialInstalling")
+                          : $t("pluginMarketplaceInstall")}
                         icon="download"
                         tone="quiet"
                         onclick={() =>
                           view.installMarketplaceAgentPlugin(marketplace.path, entry.name)}
-                        disabled={view.agentPluginsLoading}
+                        disabled={view.agentPluginInstalling(entry.name) ||
+                          view.agentPluginUpdating === entry.name ||
+                          view.agentPluginRemoveId === entry.name}
                       />
                     {/if}
                   </div>
@@ -584,23 +586,12 @@
                     >
                   {/if}
                 </span>
-                {#if plugin.id === desktopControlPluginId}
-                  <svg
-                    class="plugin-accordion-chevron"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <path d="m4 6 4 4 4-4" />
-                  </svg>
-                {:else}
-                  <span class="plugin-version">
-                    {plugin.version ?? "-"}
-                    {#if (view.agentPluginUpdates ?? []).find((item: AgentPluginUpdateSummary) => item.id === plugin.id)?.update_available}
-                      <span class="plugin-update-mark">{$t("pluginUpdateAvailable")}</span>
-                    {/if}
-                  </span>
-                {/if}
+                <span class="plugin-version">
+                  {plugin.version ?? "-"}
+                  {#if (view.agentPluginUpdates ?? []).find((item: AgentPluginUpdateSummary) => item.id === plugin.id)?.update_available}
+                    <span class="plugin-update-mark">{$t("pluginUpdateAvailable")}</span>
+                  {/if}
+                </span>
               </Accordion.Trigger>
               {#if plugin.id === desktopControlPluginId}
                 <div class="plugin-accordion-actions">
@@ -629,8 +620,37 @@
                 </div>
               {/if}
             </Accordion.Header>
-            {#if plugin.id === desktopControlPluginId}
-              <Accordion.Content class="plugin-accordion-content">
+            <Accordion.Content class="plugin-accordion-content">
+              <div class="plugin-tools-heading">
+                <div class="plugin-tools-title">
+                  <span class="label-text">{$t("pluginComponents")}</span>
+                  <span class="plugin-tool-count"
+                    >{plugin.skills.length +
+                      plugin.mcp_servers.length +
+                      plugin.commands.length +
+                      plugin.message_policies.length +
+                      plugin.sidebar_views.length}</span
+                  >
+                </div>
+              </div>
+              <span class="detail-hint">
+                {plugin.skills.length}
+                {$t("pluginSkills")} · {plugin.mcp_servers.length}
+                {$t("pluginMcpServers")}
+                {#if plugin.commands.length > 0}
+                  · {plugin.commands.length} {$t("pluginCommands")}{/if}
+                {#if plugin.message_policies.length > 0}
+                  · {plugin.message_policies.length} {$t("pluginMessagePolicies")}{/if}
+                {#if plugin.sidebar_views.length > 0}
+                  · {plugin.sidebar_views.length} {$t("pluginSidebarViews")}{/if}
+              </span>
+              {#each plugin.warnings as warning (warning)}
+                <p class="plugin-warning">{warning}</p>
+              {/each}
+              {#if plugin.error}
+                <p class="plugin-warning">{plugin.error}</p>
+              {/if}
+              {#if plugin.id === desktopControlPluginId}
                 <div class="plugin-tools-heading">
                   <div class="plugin-tools-title">
                     <span class="label-text">{$t("pluginTools")}</span>
@@ -680,8 +700,80 @@
                   </div>
                 {/if}
                 <p class="plugin-warning">{$t("pluginUnrestrictedWarning")}</p>
-                {#if !plugin.builtin}
-                  <div class="plugin-accordion-footer">
+              {/if}
+              {#if plugin.sidebar_views.length > 0}
+                <div class="plugin-sidebar-views">
+                  <span class="label-text">{$t("pluginSidebarViews")}</span>
+                  {#each plugin.sidebar_views as sidebarView (sidebarView.id)}
+                    {@const lifecycle = view.pluginSidebarLifecycleFor(plugin, sidebarView)}
+                    <div class="plugin-sidebar-view-row">
+                      <span class="plugin-sidebar-view-copy">
+                        <span class="label-text">{sidebarView.title}</span>
+                        {#if lifecycle !== "available"}
+                          <span class="detail-hint">
+                            {lifecycle === "disabled"
+                              ? $t("pluginSidebarDisabled")
+                              : lifecycle === "invalid"
+                                ? $t("pluginSidebarInvalid")
+                                : $t("pluginSidebarOutOfScope")}
+                          </span>
+                        {/if}
+                      </span>
+                      {#if view.onOpenPluginSidebarView}
+                        <SettingsActionButton
+                          label={$t("pluginSidebarOpen")}
+                          tone="quiet"
+                          disabled={lifecycle !== "available"}
+                          onclick={() => view.onOpenPluginSidebarView(sidebarView.id)}
+                        />
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+              {@const update = (view.agentPluginUpdates ?? []).find(
+                (item: AgentPluginUpdateSummary) => item.id === plugin.id,
+              )}
+              {#if (update?.update_available && update.latest_version) || !plugin.builtin || plugin.repository || update?.error}
+                <div class="plugin-accordion-footer">
+                  {#if plugin.repository}
+                    <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
+                  {/if}
+                  {#if update?.error}
+                    <!-- The reason, so a quota or a manifest problem is not
+                         silently counted as a broken package. The raw
+                         diagnostic from the update check stays underneath it
+                         rather than standing in for the explanation. -->
+                    {@const reasonKey = agentPluginUpdateErrorKey(update.error_kind)}
+                    <p class="plugin-warning">
+                      {#if update.stale}
+                        {$t("pluginUpdateStaleHint")}
+                      {/if}
+                      {reasonKey === null ? update.error : $t(reasonKey)}
+                    </p>
+                    {#if reasonKey !== null}
+                      <p class="detail-hint">{update.error}</p>
+                    {/if}
+                  {/if}
+                  {#if update?.update_available && update.latest_version}
+                    <p class="plugin-update-hint">
+                      {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
+                      {#if update.release_url}
+                        <a href={update.release_url} target="_blank" rel="noreferrer">GitHub</a>
+                      {/if}
+                      {#if update.asset_url}
+                        <SettingsActionButton
+                          label={$t("pluginUpdate")}
+                          icon="download"
+                          tone="quiet"
+                          onclick={() => view.updateAgentPlugin(plugin.id)}
+                          disabled={view.agentPluginUpdating !== null ||
+                            view.agentPluginInstalling(plugin.id)}
+                        />
+                      {/if}
+                    </p>
+                  {/if}
+                  {#if !plugin.builtin}
                     <SettingsActionButton
                       label={$t("pluginUninstall")}
                       icon="trash"
@@ -689,129 +781,12 @@
                       onclick={() => view.requestUninstallAgentPlugin(plugin.id)}
                       disabled={view.agentPluginUpdating !== null ||
                         view.agentPluginRemoving ||
-                        view.agentPluginInstallProgress !== null}
+                        view.agentPluginInstalling(plugin.id)}
                     />
-                  </div>
-                {/if}
-              </Accordion.Content>
-            {:else}
-              <Accordion.Content class="plugin-accordion-content">
-                <div class="plugin-tools-heading">
-                  <div class="plugin-tools-title">
-                    <span class="label-text">{$t("pluginComponents")}</span>
-                    <span class="plugin-tool-count"
-                      >{plugin.skills.length +
-                        plugin.mcp_servers.length +
-                        plugin.commands.length +
-                        plugin.message_policies.length +
-                        plugin.sidebar_views.length}</span
-                    >
-                  </div>
+                  {/if}
                 </div>
-                <span class="detail-hint">
-                  {plugin.skills.length}
-                  {$t("pluginSkills")} · {plugin.mcp_servers.length}
-                  {$t("pluginMcpServers")}
-                  {#if plugin.commands.length > 0}
-                    · {plugin.commands.length} {$t("pluginCommands")}
-                  {/if}
-                  {#if plugin.message_policies.length > 0}
-                    · {plugin.message_policies.length} {$t("pluginMessagePolicies")}
-                  {/if}
-                  {#if plugin.sidebar_views.length > 0}
-                    · {plugin.sidebar_views.length} {$t("pluginSidebarViews")}
-                  {/if}
-                </span>
-                {#each plugin.warnings as warning (warning)}
-                  <p class="plugin-warning">{warning}</p>
-                {/each}
-                {#if plugin.error}
-                  <p class="plugin-warning">{plugin.error}</p>
-                {/if}
-                {#if plugin.sidebar_views.length > 0}
-                  <div class="plugin-sidebar-views">
-                    <span class="label-text">{$t("pluginSidebarViews")}</span>
-                    {#each plugin.sidebar_views as sidebarView (sidebarView.id)}
-                      {@const lifecycle = view.pluginSidebarLifecycleFor(plugin, sidebarView)}
-                      <div class="plugin-sidebar-view-row">
-                        <span class="plugin-sidebar-view-copy">
-                          <span class="label-text">{sidebarView.title}</span>
-                          {#if lifecycle !== "available"}
-                            <span class="detail-hint">
-                              {lifecycle === "disabled"
-                                ? $t("pluginSidebarDisabled")
-                                : lifecycle === "invalid"
-                                  ? $t("pluginSidebarInvalid")
-                                  : $t("pluginSidebarOutOfScope")}
-                            </span>
-                          {/if}
-                        </span>
-                        {#if view.onOpenPluginSidebarView}
-                          <SettingsActionButton
-                            label={$t("pluginSidebarOpen")}
-                            tone="quiet"
-                            disabled={lifecycle !== "available"}
-                            onclick={() => view.onOpenPluginSidebarView(sidebarView.id)}
-                          />
-                        {/if}
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
-                {@const update = (view.agentPluginUpdates ?? []).find(
-                  (item: AgentPluginUpdateSummary) => item.id === plugin.id,
-                )}
-                {#if (update?.update_available && update.latest_version) || !plugin.builtin || plugin.repository || update?.error}
-                  <div class="plugin-accordion-footer">
-                    {#if plugin.repository}
-                      <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
-                    {/if}
-                    {#if update?.error}
-                      <!-- The reason, so a quota or a manifest problem is not
-                         silently counted as a broken package. The raw
-                         diagnostic from the update check stays underneath it
-                         rather than standing in for the explanation. -->
-                      {@const reasonKey = agentPluginUpdateErrorKey(update.error_kind)}
-                      <p class="plugin-warning">
-                        {#if update.stale}
-                          {$t("pluginUpdateStaleHint")}
-                        {/if}
-                        {reasonKey === null ? update.error : $t(reasonKey)}
-                      </p>
-                      {#if reasonKey !== null}
-                        <p class="detail-hint">{update.error}</p>
-                      {/if}
-                    {/if}
-                    {#if update?.update_available && update.latest_version}
-                      <p class="plugin-update-hint">
-                        {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
-                        {#if update.release_url}
-                          <a href={update.release_url} target="_blank" rel="noreferrer">GitHub</a>
-                        {/if}
-                        {#if update.asset_url}
-                          <SettingsActionButton
-                            label={$t("pluginUpdate")}
-                            icon="download"
-                            tone="quiet"
-                            onclick={() => view.updateAgentPlugin(plugin.id)}
-                            disabled={view.agentPluginUpdating !== null}
-                          />
-                        {/if}
-                      </p>
-                    {/if}
-                    {#if !plugin.builtin}
-                      <SettingsActionButton
-                        label={$t("pluginUninstall")}
-                        icon="trash"
-                        tone="danger"
-                        onclick={() => view.requestUninstallAgentPlugin(plugin.id)}
-                        disabled={view.agentPluginUpdating !== null || view.agentPluginRemoving}
-                      />
-                    {/if}
-                  </div>
-                {/if}
-              </Accordion.Content>
-            {/if}
+              {/if}
+            </Accordion.Content>
           </Accordion.Item>
         {/each}
       </Accordion.Root>
