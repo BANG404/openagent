@@ -299,10 +299,9 @@ const en: Record<TranslationKeys, string> = {
   plugins: "Plugins",
   pluginMarketplaceTab: "Marketplace",
   pluginInstalledTab: "Installed",
-  pluginOfficialMarketplace: "Official plugin marketplace",
+  pluginOfficialMarketplace: "Plugin store",
   pluginOfficialBadge: "Verified sources",
-  pluginOfficialMarketplaceHint:
-    "Install OpenAgent-supported plugins from their published HTTPS source. The catalog is public and does not require a GitHub token.",
+  pluginOfficialMarketplaceHint: "Discover and install plugins to add more features to OpenAgent.",
   pluginOfficialCatalogSummary: "{count} plugins in this catalog",
   pluginOfficialStandard: "Agent Plugins 1.0",
   pluginOfficialSearch: "Search official plugins",

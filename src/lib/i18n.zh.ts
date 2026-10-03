@@ -295,10 +295,9 @@ export const zh = {
   plugins: "插件",
   pluginMarketplaceTab: "插件市场",
   pluginInstalledTab: "已安装",
-  pluginOfficialMarketplace: "官方插件商城",
+  pluginOfficialMarketplace: "插件商店",
   pluginOfficialBadge: "已验证来源",
-  pluginOfficialMarketplaceHint:
-    "从公开的 HTTPS 地址安装 OpenAgent 官方支持的插件。官方目录不需要 GitHub 令牌。",
+  pluginOfficialMarketplaceHint: "发现并安装插件，为 OpenAgent 添加更多功能。",
   pluginOfficialCatalogSummary: "目录中有 {count} 个插件",
   pluginOfficialStandard: "Agent Plugins 1.0",
   pluginOfficialSearch: "搜索官方插件",

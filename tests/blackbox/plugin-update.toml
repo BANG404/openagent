@@ -85,7 +85,11 @@ script = '''(async () => {
     throw new Error(`official marketplace title is ${JSON.stringify(title?.textContent ?? "")}`);
   }
   if (!(store.textContent ?? "").includes(probe.officialHint)) {
-    throw new Error("official marketplace did not explain its credential-free source");
+    throw new Error("plugin store did not explain discovering and installing features");
+  }
+  const hero = store.querySelector(".official-plugin-store-hero");
+  if (hero?.querySelector(".official-plugin-eyebrow, .official-plugin-standard")) {
+    throw new Error("plugin store header contains source-verification or format badges");
   }
   const cards = store.querySelectorAll(".official-plugin-card");
   if (cards.length < 4) throw new Error(`official marketplace rendered ${cards.length} cards`);

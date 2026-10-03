@@ -24,7 +24,10 @@ the current projection preserves the field for that adapter.
 
 The Settings Plugins surface projects the bundled registry into the official
 plugin marketplace. Search and availability filters are pure client-side
-projections, while installation crosses the typed
+projections. Its heading is localized as “插件商店” / “Plugin store”; introductory
+copy explains discovering and installing features without protocol, credential,
+or package-format details. Keep source-verification and format badges out of
+the store header. Installation crosses the typed
 `install_official_agent_plugin` Runtime product command. The Runtime writes a
 one-entry temporary marketplace under the supported personal marketplace root,
 delegates to the normal marketplace installer, and removes the temporary

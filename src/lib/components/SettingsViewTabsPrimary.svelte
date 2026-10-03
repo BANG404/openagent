@@ -310,7 +310,6 @@
         <div class="official-plugin-store-hero">
           <div class="official-plugin-store-copy">
             <div class="official-plugin-store-title-row">
-              <span class="official-plugin-eyebrow">{$t("pluginOfficialBadge")}</span>
               <h4>{$t("pluginOfficialMarketplace")}</h4>
             </div>
             <p>{$t("pluginOfficialMarketplaceHint")}</p>
@@ -321,7 +320,6 @@
                   String(view.officialPluginCards.length),
                 )}
               </span>
-              <span class="official-plugin-standard">{$t("pluginOfficialStandard")}</span>
             </div>
           </div>
         </div>
