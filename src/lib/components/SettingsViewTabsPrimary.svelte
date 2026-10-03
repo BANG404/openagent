@@ -166,6 +166,68 @@
         </label>
       </div>
     </section>
+    <section class="detail-section" data-settings-section="context-compaction">
+      <h4 class="detail-section-title">{$t("compactionTask")}</h4>
+      <div class="application-settings-surface settings-card">
+        <div class="settings-card-row">
+          <span class="settings-card-copy">
+            <span class="label-text">{$t("contextCompaction")}</span>
+            <span class="detail-hint">{$t("compactionTaskDescription")}</span>
+          </span>
+          <div class="settings-card-control compaction-toggle-control">
+            <Switch
+              bind:checked={view.draftConfig.context_compaction_enabled}
+              ariaLabel={$t("contextCompaction")}
+            />
+          </div>
+        </div>
+        <label class="settings-card-row">
+          <span class="settings-card-copy">
+            <span class="label-text">{$t("contextCompactionThreshold")}</span>
+            <span class="detail-hint">{$t("contextCompactionThresholdHint")}</span>
+          </span>
+          <input
+            type="number"
+            class="detail-input settings-card-number-input"
+            min="1000"
+            max="1000000"
+            step="1000"
+            disabled={!view.draftConfig.context_compaction_enabled}
+            bind:value={view.draftConfig.context_compaction_threshold}
+          />
+        </label>
+        <label class="settings-card-row">
+          <span class="settings-card-copy">
+            <span class="label-text">{$t("contextCompactionRecentMessageCount")}</span>
+            <span class="detail-hint">{$t("contextCompactionRecentMessageCountHint")}</span>
+          </span>
+          <input
+            type="number"
+            class="detail-input settings-card-number-input"
+            min="0"
+            max="20"
+            step="1"
+            disabled={!view.draftConfig.context_compaction_enabled}
+            bind:value={view.draftConfig.context_compaction_recent_message_count}
+          />
+        </label>
+        <div class="settings-card-row">
+          <details
+            class="compaction-custom-prompt"
+            open={view.draftConfig.context_compaction_prompt.trim().length > 0}
+          >
+            <summary>{$t("taskCustomPrompt")}</summary>
+            <label class="detail-label">
+              <span class="sr-only">{$t("agentExtraPrompt")}</span>
+              <textarea
+                class="detail-input"
+                bind:value={view.draftConfig.context_compaction_prompt}
+                placeholder={$t("compactionTaskPromptPlaceholder")}></textarea>
+            </label>
+          </details>
+        </div>
+      </div>
+    </section>
     <section class="detail-section">
       <h4 class="detail-section-title">{$t("quickChat")}</h4>
       <div class="application-settings-surface shortcut-setting-row">

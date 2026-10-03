@@ -273,7 +273,7 @@ const en: Record<TranslationKeys, string> = {
     "Manage lightweight work performed by the Flash model. Task switches control execution; custom instructions are optional.",
   conversationFlashTasks: "Conversation organization",
   conversationFlashTasksDescription:
-    "Generate titles, maintain memory, and compact conversations when context grows long.",
+    "Generate titles and follow-up suggestions, and maintain memory.",
   automationFlashTasks: "Background automation",
   automationFlashTasksDescription:
     "Classify skills, create scheduled work, and support automatic approval decisions.",
@@ -528,7 +528,7 @@ const en: Record<TranslationKeys, string> = {
   contextCompactionHint:
     "After the threshold, checkpoint model messages are compacted with a recent execution timeline; the full visible conversation is preserved.",
   contextCompactionThreshold: "Summary threshold (approx. tokens)",
-  contextCompactionThresholdHint: "Starts Flash compaction at this approximate context size.",
+  contextCompactionThresholdHint: "Starts compaction at this approximate context size.",
   contextCompactionRecentMessageCount: "Recent timeline entries",
   contextCompactionRecentMessageCountHint:
     "Keeps the newest user messages, tool calls, and assistant text; set to 0 to omit it.",
@@ -770,7 +770,7 @@ const en: Record<TranslationKeys, string> = {
   hookTaskDescription:
     "Detects explicit scheduling intent in conversations and creates triggerable tasks.",
   compactionTaskDescription:
-    "Compacts older model messages when context approaches the threshold to reduce later processing cost.",
+    "Uses the selected Chat model to compact older messages when context approaches the threshold, reducing later processing cost.",
   delete: "Delete",
   mcpServers: "MCP Servers",
   mcpComing: "MCP server support coming soon",
