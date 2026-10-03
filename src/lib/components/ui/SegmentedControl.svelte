@@ -78,7 +78,7 @@
     padding: 2px;
     border: 1px solid var(--mica-divider);
     border-radius: 7px;
-    background: var(--control-surface);
+    background: var(--interactive-state-bg);
   }
 
   .fit-content {
