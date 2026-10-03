@@ -31,6 +31,14 @@ delegates to the normal marketplace installer, and removes the temporary
 document after staging. This keeps source addresses visible in the store
 without teaching the frontend how to copy, validate, or activate a package.
 
+The published catalog packages use the generic plugin contract: Goal and Graph
+expose portable commands, Chat Groups uses its package MCP server, and Cua Driver
+declares a portable daemon. They require a Runtime implementing the generic Host
+Bridge; do not offer them as replacements for an older Runtime that depends on
+package implementation bindings or package flows. A contract migration must
+increment the manifest version even when only an extension field is removed,
+so installed packages receive a release update.
+
 Plugin release metadata is read from GitHub's public release endpoint without a
 user credential. The registry and marketplace installer likewise accept only
 credential-free HTTPS URLs without a query or fragment.
