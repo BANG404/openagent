@@ -58,6 +58,12 @@ Sidebar entries are UTF-8 HTML and run in a sandboxed iframe. The host sends
 only the versioned allowlisted sidebar context. Do not expect transcript text,
 model output, Inspector records, or another plugin's state.
 
+## Internationalization
+
+Apply [the plugin i18n standard](i18n-standard.md) to language declarations,
+visible support lists, platform-locale synchronization, translation coverage,
+and unsupported-language fallback. It also records current implementation gaps.
+
 ## Local development
 
 Use Settings -> Plugins -> Install to select a package directory. The host
