@@ -1155,12 +1155,20 @@
   margin-left: auto;
 }
 
+.plugin-management-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .plugin-management-tabs {
   display: flex;
   align-items: center;
   gap: 3px;
   width: fit-content;
-  margin: 0 0 16px;
+  margin: 0 0 0 auto;
   padding: 3px;
   border-radius: 9px;
   background: var(--interactive-state-bg);

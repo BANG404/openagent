@@ -261,31 +261,31 @@
 
 <Tabs.Content value="plugins" class="settings-tab-panel">
   <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
-    <header class="agents-settings-intro">
+    <header class="agents-settings-intro plugin-management-header">
       <h3>{$t("plugins")}</h3>
+      <div class="plugin-management-tabs" role="tablist" aria-label={$t("plugins")}>
+        <button
+          type="button"
+          role="tab"
+          class:active={view.pluginManagementView === "marketplace"}
+          aria-selected={view.pluginManagementView === "marketplace"}
+          tabindex={view.pluginManagementView === "marketplace" ? 0 : -1}
+          onclick={() => (view.pluginManagementView = "marketplace")}
+        >
+          {$t("pluginMarketplaceTab")}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class:active={view.pluginManagementView === "installed"}
+          aria-selected={view.pluginManagementView === "installed"}
+          tabindex={view.pluginManagementView === "installed" ? 0 : -1}
+          onclick={() => (view.pluginManagementView = "installed")}
+        >
+          {$t("pluginInstalledTab")}
+        </button>
+      </div>
     </header>
-    <div class="plugin-management-tabs" role="tablist" aria-label={$t("plugins")}>
-      <button
-        type="button"
-        role="tab"
-        class:active={view.pluginManagementView === "marketplace"}
-        aria-selected={view.pluginManagementView === "marketplace"}
-        tabindex={view.pluginManagementView === "marketplace" ? 0 : -1}
-        onclick={() => (view.pluginManagementView = "marketplace")}
-      >
-        {$t("pluginMarketplaceTab")}
-      </button>
-      <button
-        type="button"
-        role="tab"
-        class:active={view.pluginManagementView === "installed"}
-        aria-selected={view.pluginManagementView === "installed"}
-        tabindex={view.pluginManagementView === "installed" ? 0 : -1}
-        onclick={() => (view.pluginManagementView = "installed")}
-      >
-        {$t("pluginInstalledTab")}
-      </button>
-    </div>
     {#each view.agentPluginInstallTasks as task (task.key)}
       <div
         class={task.status === "running"

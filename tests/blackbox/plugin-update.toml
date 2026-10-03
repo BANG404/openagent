@@ -76,6 +76,16 @@ script = '''(async () => {
     /Marketplace|插件市场/.test(candidate.textContent ?? "")
   );
   if (!(marketplaceTab instanceof HTMLElement)) throw new Error("marketplace tab is missing");
+  const heading = marketplaceTab.closest(".plugin-management-header");
+  const switcher = marketplaceTab.closest(".plugin-management-tabs");
+  if (!(heading instanceof HTMLElement) || !(switcher instanceof HTMLElement)) {
+    throw new Error("plugin view switch is not in the page heading");
+  }
+  const headingBounds = heading.getBoundingClientRect();
+  const switchBounds = switcher.getBoundingClientRect();
+  if (Math.abs(headingBounds.right - switchBounds.right) > 2) {
+    throw new Error("plugin view switch is not aligned to the right of the heading");
+  }
   marketplaceTab.click();
   await new Promise((resolve) => setTimeout(resolve, 0));
   const store = document.querySelector(".official-plugin-store");
