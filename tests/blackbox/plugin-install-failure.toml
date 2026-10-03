@@ -1,0 +1,37 @@
+[scenario]
+name = "one failed installation does not block another package or retry"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "start a failing catalog source alongside a valid package"
+action = "eval"
+script = '''(async () => {
+  const { BUNDLED_OFFICIAL_PLUGIN_REGISTRY } = await import('/src/lib/officialPluginRegistry.ts');
+  const graph = BUNDLED_OFFICIAL_PLUGIN_REGISTRY.plugins.find(plugin => plugin.id === 'graph');
+  const original = graph.sourceUrl;
+  const search = document.querySelector('.official-plugin-search input');
+  const query = async value => {
+    search.value = value;
+    search.dispatchEvent(new Event('input', {bubbles:true}));
+    await new Promise(resolve => setTimeout(resolve, 0));
+  };
+  try {
+    graph.sourceUrl = 'https://github.com/BANG404/openagent-blackbox-missing-package.git';
+    await query('graph');
+    document.querySelector('.official-plugin-card[data-plugin-id="graph"] button').click();
+  } finally {
+    graph.sourceUrl = original;
+    await query('');
+  }
+  const goal = document.querySelector('.official-plugin-card[data-plugin-id="goal"] button');
+  if (!goal || goal.disabled) throw new Error('the other package was blocked');
+  goal.click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  for (const id of ['goal','graph']) {
+    if (!document.querySelector(`[data-plugin-id="${id}"][data-install-status="running"]`)) {
+      throw new Error(`missing independent installation: ${id}`);
+    }
+  }
+  return true;
+})()'''

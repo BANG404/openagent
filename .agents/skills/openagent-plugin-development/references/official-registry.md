@@ -41,17 +41,47 @@ of the registry. Focused coverage lives in `tests/officialPluginRegistry.test.ts
 
 Installation shows the Runtime's current phase with an indeterminate progress
 indicator. Register the progress subscription before sending the installation
-request; release it on both success and failure. Package activation returns an
+request; release it on both success and failure. Track tasks by plugin ID rather
+than a page-wide busy flag: distinct official and local-marketplace packages can
+install concurrently, while a duplicate click on one running package is ignored.
+Keep each task's phase and success/failure visible on both plugin tabs; finishing
+or failing one task must neither clear another task nor prevent a failed task
+from being retried. Local directory selection accepts multiple folders and
+starts them together, keyed by source path. Until a local folder returns its
+validated manifest ID, do not attach another package's progress events to it.
+The window's task coordinator outlives the Settings dialog: closing and reopening
+the plugin surface must preserve running tasks, results, and duplicate protection.
+Package activation returns an
 authoritative summary, so the card updates immediately even if a subsequent
 marketplace discovery fails. Removal similarly clears the installed summary and
 update badge after success. Read the installed directory and optional marketplaces
 independently, and reject stale refresh responses after a newer mutation.
 
+Installed cards share one version, component summary, diagnostics, sidebar and
+repository/update/removal template, including Cua Driver. Cua adds its reserved
+MCP probe and tool switches inside that shared card and retains its lifecycle
+and explicit host-access controls.
+
 Qualify published sources through `bun run test:blackbox:plugin-lifecycle` in an
 isolated `OPENAGENT_HOME`. `BLACKBOX_PLUGIN_IDS` can select catalog entries.
+Set `TAURI_PILOT_SOCKET` explicitly to that instance's socket; instance/home
+variables do not override the CLI's newest-socket discovery. The runner requires
+the explicit socket to avoid mutating another running development window.
 The runner checks actual progress, MCP availability, enabled uninstall, preserved
 plugin data, and the immediately restored Install action. Repeat with the native
-window in light/dark and English/Chinese, using Appium on Windows.
+window in light/dark and English/Chinese.
+
+Use `bun run test:blackbox:plugin-installation` for installation and card
+qualification independently of package MCP/daemon functionality. It verifies
+failure isolation and retry, concurrent catalog installs, duplicate protection,
+retained tasks after reopening, common installed-card structure, and removal
+with preserved plugin data. This mode does not replace full lifecycle qualification.
+It requires the Goal and Graph catalog entries for its failure/retry fixture.
+On Windows, set `BLACKBOX_NATIVE_WINDOW_HANDLE` to the fixture's main HWND
+(decimal or `0x` hex). The runner uses `scripts/capture-windows-window.py`
+with Python and Pillow to capture that native window even when covered. Otherwise
+use `BLACKBOX_APPIUM_SESSION` for native screenshots; the final fallback is a
+WebView screenshot, which does not qualify native layout.
 
 For Goal, Graph, and Chat Groups functional qualification, run
 `OFFICIAL_PLUGIN_CHECKOUTS=<checkout-parent> bun run test:blackbox:plugin-functionality`

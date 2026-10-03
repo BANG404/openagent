@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
 
 const repo = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const installationOnly = process.argv.includes("--installation-only");
 const isolatedHome = resolveBlackboxHome(process.env, { instanceName: "plugin-lifecycle" });
 if (
   [join(homedir(), ".openagent"), join(homedir(), ".openagent-dev")]
@@ -34,6 +35,9 @@ const pilotEnv = {
   OPENAGENT_HOME: isolatedHome,
   OPENAGENT_DEV_INSTANCE: process.env.OPENAGENT_DEV_INSTANCE || "plugin-lifecycle",
 };
+if (!pilotEnv.TAURI_PILOT_SOCKET) {
+  throw new Error("Set TAURI_PILOT_SOCKET to the isolated fixture window's socket");
+}
 /** @param {string[]} args */
 function pilot(args) {
   const result = spawnSync(
@@ -58,7 +62,26 @@ function evaluate(script) {
 }
 /** @param {string} name */
 async function capture(name) {
-  pilot(["screenshot", join(artifacts, `${name}.png`)]);
+  const nativeHandle = process.env.BLACKBOX_NATIVE_WINDOW_HANDLE;
+  if (nativeHandle) {
+    const result = spawnSync(
+      "python",
+      [
+        join(repo, "scripts/capture-windows-window.py"),
+        "--hwnd",
+        nativeHandle,
+        "--output",
+        join(artifacts, `${name}-native.png`),
+      ],
+      {
+        encoding: "utf8",
+        windowsHide: true,
+      },
+    );
+    if (result.error || result.status !== 0)
+      throw new Error(`Native capture failed: ${result.stderr}`, { cause: result.error });
+    return;
+  }
   const session = process.env.BLACKBOX_APPIUM_SESSION;
   if (session) {
     const response = await fetch(
@@ -67,6 +90,8 @@ async function capture(name) {
     if (!response.ok) throw new Error(`Appium screenshot failed: ${response.status}`);
     const body = await response.json();
     writeFileSync(join(artifacts, `${name}-native.png`), Buffer.from(body.value, "base64"));
+  } else {
+    pilot(["screenshot", join(artifacts, `${name}.png`)]);
   }
 }
 /** @param {string} script @param {string} description @param {number} [timeout] */
@@ -130,29 +155,101 @@ await waitFor(
 );
 /** @type {Array<{id: string, phases: string, preservedData: boolean}>} */
 const report = [];
-for (const plugin of plugins) {
-  if (existsSync(join(isolatedHome, "plugins", plugin.id)))
-    throw new Error(
-      `${plugin.id} is already installed in the fixture; preserve it and use a fresh home`,
-    );
-  evaluate(`window.__pluginLifecycleProbe = ${JSON.stringify({ id: plugin.id })}`);
+const fixtureIds = new Set(plugins.map((plugin) => plugin.id));
+if (installationOnly) {
+  fixtureIds.add("goal");
+  fixtureIds.add("graph");
+}
+for (const id of fixtureIds) {
+  if (existsSync(join(isolatedHome, "plugins", id)))
+    throw new Error(`${id} is already installed in the fixture; preserve it and use a fresh home`);
+}
+if (installationOnly) {
   pilot(["snapshot", "-i"]);
-  pilot(["run", join(repo, "tests/blackbox/plugin-install.toml")]);
-  await capture(`${plugin.id}-progress`);
+  pilot(["run", join(repo, "tests/blackbox/plugin-install-failure.toml")]);
   await waitFor(
-    `document.querySelector('.official-plugin-card[data-plugin-id="${plugin.id}"]')?.dataset.installed === 'true' && !document.querySelector('.plugin-install-progress')`,
+    "!!document.querySelector('[data-plugin-id=graph][data-install-status=error]')",
+    "failed source did not report an independent error",
+  );
+  await waitFor(
+    "!!document.querySelector('[data-plugin-id=goal][data-install-status=success]')",
+    "the valid install did not survive the other source's failure",
+  );
+  await capture("failure-isolation");
+  pilot(["snapshot", "-i"]);
+  pilot(["click", '.official-plugin-card[data-plugin-id="graph"] button']);
+  await waitFor(
+    "!!document.querySelector('[data-plugin-id=graph][data-install-status=success]')",
+    "retry did not finish after restoring the catalog source",
+  );
+  evaluate(`(async () => {
+    const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
+    for (const id of ['goal','graph']) await desktopOpenAgent.uninstallAgentPlugin(id);
+    document.querySelector('[role="dialog"] button[aria-label="Close"], [role="dialog"] button[aria-label="关闭"]')?.click();
+    document.querySelector('#application-integrations-menu').click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    [...document.querySelectorAll('[role=menuitem]')].find(item=>/Plugins|插件/.test(item.textContent)).click();
+    return true;
+  })()`);
+  await waitFor(
+    "!!document.querySelector('.official-plugin-card[data-plugin-id=goal][data-installed=false] button:not(:disabled)')",
+    "fixture cleanup did not restore the catalog",
+  );
+}
+evaluate(
+  `window.__pluginLifecycleProbe = ${JSON.stringify({ ids: plugins.map((plugin) => plugin.id) })}`,
+);
+pilot(["snapshot", "-i"]);
+pilot(["run", join(repo, "tests/blackbox/plugin-install.toml")]);
+await capture("concurrent-install-progress");
+for (const plugin of plugins) {
+  evaluate(`window.__pluginLifecycleProbe.id = ${JSON.stringify(plugin.id)}`);
+  await waitFor(
+    `document.querySelector('.official-plugin-card[data-plugin-id="${plugin.id}"]')?.dataset.installed === 'true' && document.querySelector('[data-plugin-id="${plugin.id}"][data-install-status="success"]') !== null`,
     `${plugin.id} installation did not finish`,
   );
-  const phases = evaluate("JSON.stringify(window.__pluginLifecycleProbe.phases)");
+  const phases = evaluate(
+    `JSON.stringify(window.__pluginLifecycleProbe.phases[${JSON.stringify(plugin.id)}])`,
+  );
   if (!phases.includes("downloading") || !phases.includes("installing"))
     throw new Error(`${plugin.id} did not render Runtime phases: ${phases}`);
   if (!existsSync(join(isolatedHome, "plugins", plugin.id, "plugin.json")))
     throw new Error(`${plugin.id} card claims installation without a package`);
+  evaluate("document.querySelectorAll('.plugin-management-tabs button')[1].click(); true");
+  await waitFor(
+    `!!document.querySelector('.plugin-accordion-item[data-plugin-id="${plugin.id}"] .plugin-version')`,
+    "installed card version is missing",
+  );
+  pilot(["snapshot", "-i"]);
+  pilot([
+    "click",
+    `.plugin-accordion-item[data-plugin-id="${plugin.id}"] .plugin-accordion-trigger`,
+  ]);
+  await waitFor(
+    `document.querySelector('.plugin-accordion-item[data-plugin-id="${plugin.id}"] .plugin-accordion-content')?.dataset.state === 'open'`,
+    "installed card did not expand",
+  );
+  const sharedCard = evaluate(`(() => {
+    const card = document.querySelector('.plugin-accordion-item[data-plugin-id="${plugin.id}"]');
+    return card.querySelectorAll('.plugin-accordion-content').length === 1 &&
+      card.querySelector('.plugin-tools-title').textContent.includes(${JSON.stringify(process.env.BLACKBOX_LANGUAGE === "en" ? "Components" : "组件")}) &&
+      !!card.querySelector('.plugin-accordion-footer a[href]');
+  })()`);
+  if (sharedCard !== "true") throw new Error(`${plugin.id} does not use the shared package card`);
+  evaluate(
+    `document.querySelector('.plugin-accordion-item[data-plugin-id="${plugin.id}"]').scrollIntoView({block:'start'}); true`,
+  );
+  await capture(`${plugin.id}-installed-card`);
+  evaluate(
+    `document.querySelector('.plugin-accordion-item[data-plugin-id="${plugin.id}"] .plugin-accordion-footer').scrollIntoView({block:'end'}); true`,
+  );
+  await capture(`${plugin.id}-installed-card-footer`);
+  evaluate("document.querySelector('.plugin-management-tabs button').click(); true");
   const data = join(isolatedHome, "plugin-data", plugin.id);
   mkdirSync(data, { recursive: true });
   const sentinel = join(data, "lifecycle-preserved.txt");
   writeFileSync(sentinel, "preserved plugin data\n");
-  if (plugin.id !== "cua-driver") {
+  if (!installationOnly && plugin.id !== "cua-driver") {
     const tool = { goal: "read_goal", graph: "graph_read", "chat-groups": "chat_group_list" }[
       plugin.id
     ];
@@ -171,7 +268,7 @@ for (const plugin of plugins) {
       `${plugin.id} MCP did not serve a tool call`,
       30000,
     );
-  } else {
+  } else if (!installationOnly) {
     pilot(["snapshot", "-i"]);
     evaluate(`(async () => {
       document.querySelectorAll('.plugin-management-tabs button')[1].click();
@@ -180,7 +277,8 @@ for (const plugin of plugins) {
       const switches = card.querySelectorAll('[role=switch]');
       if (switches[0].getAttribute('aria-checked') !== 'true') switches[0].click();
       if (switches[1].getAttribute('aria-checked') !== 'true') switches[1].click();
-      card.querySelector('.plugin-accordion-trigger').click();
+      const opener = card.querySelector('.plugin-accordion-trigger');
+      if (opener.getAttribute('aria-expanded') !== 'true') opener.click();
       return true;
     })()`);
     await waitFor(
