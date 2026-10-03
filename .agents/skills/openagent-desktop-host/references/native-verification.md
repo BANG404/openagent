@@ -199,6 +199,11 @@ in the isolated home, supplies a local Ollama endpoint, and verifies pending
 approval, one-click resume, `/goal:cancel`, and composer Stop in light/English
 and dark/Chinese. It restores settings and removes its package and conversations.
 
+`bun run test:blackbox:goal-controls` extends that same isolated scenario with
+bare status, inline/bare edit, pause, resume and clear through the native composer.
+It verifies each durable transition and the absence of a Goal projection after
+clear in both locale/theme passes; confirmation turns must not auto-wake.
+
 ## MCP Apps coverage
 
 The committed `tests/blackbox/mcp-apps.toml` and `mcp-apps-teardown.toml`

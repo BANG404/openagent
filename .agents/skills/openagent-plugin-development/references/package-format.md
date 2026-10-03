@@ -95,7 +95,7 @@ Bridge.
 
 `extensions.openagent.commands` is an optional array of portable slash
 commands. Each entry has an ID, display `label`, display `description`, an
-`argument` mode (`none` or `required_text`), a package-relative executable
+`argument` mode (`none`, `required_text`, or `optional_text`), a package-relative executable
 `command`, and an optional `timeout_secs` from 1 to 300. For example:
 
 ```json

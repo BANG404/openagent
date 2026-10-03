@@ -302,8 +302,9 @@ Portable commands are declared in `plugin.json` under
 }
 ```
 
-The command is exposed as `/plugin-id:summarize`. `argument` is either `none`
-or `required_text`; command IDs, labels, descriptions, package-relative paths,
+The command is exposed as `/plugin-id:summarize`. `argument` is `none`,
+`required_text`, or `optional_text`; optional text admits bare and parameterized
+input without host-owned subcommand parsing. Command IDs, labels, descriptions, package-relative paths,
 and timeouts (`1` through `300` seconds) are validated before registration.
 Unknown fields and invalid entries are skipped with a plugin diagnostic. A
 disabled or invalid plugin contributes no commands. The catalog projection

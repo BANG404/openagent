@@ -688,7 +688,7 @@ export interface AgentPluginMessagePolicy {
 export interface AgentPluginCommandSummary {
   id: string;
   name: string;
-  argument: "none" | "required_text";
+  argument: "none" | "required_text" | "optional_text";
   label: string;
   description: string;
 }

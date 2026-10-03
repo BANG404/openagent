@@ -31,3 +31,7 @@ The composer and transcript consume the generic plugin command, event, and
 checkpoint projections so another package can provide the same surfaces without
 a new frontend branch. A package owns its state machine and continuation
 scheduling; the frontend only renders the projection and routes the command.
+
+Plugin command summaries admit `optional_text` alongside `none` and
+`required_text`. Bare and parameterized commands use the same SDK submission
+path; domain subcommands are interpreted by the package, never the composer.

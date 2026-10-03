@@ -1,0 +1,45 @@
+[scenario]
+name = "Goal lifecycle commands through the native composer"
+fail_fast = true
+global_timeout_ms = 20000
+
+[[step]]
+name = "submit the requested Goal control"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__goalControls;
+  if (probe.newChat) {
+    const button = [...document.querySelectorAll('button')].find(button => /^(New chat|新聊天)$/.test(button.getAttribute('aria-label') ?? button.textContent?.trim() ?? ''));
+    if (!button) throw new Error('New chat is missing');
+    button.click();
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  const editor = document.querySelector('[contenteditable=true][role=textbox]');
+  if (!editor) throw new Error('composer is missing');
+  editor.focus();
+  editor.dispatchEvent(new InputEvent('beforeinput', {bubbles:true, cancelable:true, inputType:'insertText', data:probe.command}));
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const send = document.querySelector('.send-btn');
+  if (!send || send.disabled) throw new Error('Goal command cannot be submitted');
+  send.click();
+  await new Promise(resolve => setTimeout(resolve, 1200));
+  return true;
+})()'''
+
+[[step]]
+name = "control settles without an approval or competing continuation"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 8000;
+  const probe = window.__goalControls;
+  const ready = () => !document.querySelector('.stop-btn') && !document.querySelector('.tool-approval-approve')
+    && (!probe.confirmation || document.body.textContent.includes('Goal ' + probe.confirmation + ' confirmed.'))
+    && (!probe.noFlow || !document.querySelector('.flow-heading'));
+  while (Date.now() < deadline && !ready()) await new Promise(resolve => setTimeout(resolve, 100));
+  if (document.querySelector('.stop-btn') || document.querySelector('.tool-approval-approve')) throw new Error('Goal control did not settle');
+  if (probe.confirmation && !document.body.textContent.includes('Goal ' + probe.confirmation + ' confirmed.')) throw new Error('Goal control confirmation is missing');
+  if (probe.noFlow && document.querySelector('.flow-heading')) throw new Error('cleared Goal still renders its objective');
+  await new Promise(resolve => setTimeout(resolve, 500));
+  if (document.querySelector('.stop-btn')) throw new Error('Goal control unexpectedly restarted work');
+  return true;
+})()'''

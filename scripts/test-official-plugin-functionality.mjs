@@ -111,10 +111,19 @@ const model = createServer(async (request, response) => {
     await new Promise((done) => setTimeout(done, 5000));
     if (response.destroyed) return;
   }
-  const hasToolResult = messages.some((/** @type {any} */ message) => message.role === "tool");
+  const lastUserIndex = messages.findLastIndex(
+    (/** @type {any} */ message) => message.role === "user",
+  );
+  const currentRound = messages.slice(lastUserIndex + 1);
+  const hasToolResult = currentRound.some((/** @type {any} */ message) => message.role === "tool");
   /** @type {any} */
   const message = { role: "assistant", content: "Plugin qualification node completed." };
-  if (!hasToolResult && prompt.includes("You are running the OpenAgent Goal plugin.")) {
+  const goalWork =
+    prompt.includes("You are running the OpenAgent Goal plugin.") ||
+    prompt.includes("private control continuation from the OpenAgent Goal plugin.");
+  const goalAction = prompt.match(/The user requested Goal (\w+)/)?.[1];
+  if (goalAction) message.content = `Goal ${goalAction} confirmed.`;
+  if (!hasToolResult && goalWork) {
     const tool = body.tools?.find((/** @type {any} */ entry) =>
       entry.function.name.endsWith("update_goal"),
     );
@@ -386,6 +395,61 @@ try {
             return approval?.status === "cancelled" && stopped?.status === "cancelled";
           }, "Goal cancellation did not persist for both command and Stop action");
           assert.equal(await evaluate("!document.querySelector('.stop-btn')"), "true");
+          if (process.env.BLACKBOX_GOAL_CONTROLS === "1") {
+            manual.approval_mode = "off";
+            await invoke("save_settings", { config: manual });
+            await call("read_goal", { run: state.run_id });
+            /** @type {string | undefined} */ let controlConversation;
+            const controlSteps = [
+              { command: `/goal Native controls ${marker}`, status: "completed", newChat: true },
+              { command: "/goal", status: "completed", confirmation: "view" },
+              {
+                command: `/goal edit Revised controls ${marker}`,
+                status: "paused",
+                confirmation: "edit",
+              },
+              { command: "/goal pause", status: "paused", confirmation: "pause" },
+              { command: "/goal edit", status: "paused", confirmation: "edit" },
+              { command: "/goal resume", status: "completed" },
+              { command: "/goal clear", status: "cleared", confirmation: "clear", noFlow: true },
+              { command: "/goal", status: "cleared", confirmation: "view", noFlow: true },
+            ];
+            for (const step of controlSteps) {
+              await evaluate(`window.__goalControls = ${JSON.stringify(step)}; true`);
+              try {
+                await runScenario("tests/blackbox/goal-controls.toml");
+              } finally {
+                if (!controlConversation) {
+                  const initial = readdirSync(directory)
+                    .filter((file) => file.endsWith(".json"))
+                    .map((file) => JSON.parse(readFileSync(join(directory, file), "utf8")))
+                    .find((state) => state.objective === `Native controls ${marker}`);
+                  if (initial) {
+                    controlConversation = initial.conversation_id;
+                    conversations.push(initial.conversation_id);
+                  }
+                }
+              }
+              assert(controlConversation, "Goal control conversation was not created");
+              /** @type {any} */ let current;
+              await until(() => {
+                current = readdirSync(directory)
+                  .filter((file) => file.endsWith(".json"))
+                  .map((file) => JSON.parse(readFileSync(join(directory, file), "utf8")))
+                  .find((state) => state.conversation_id === controlConversation);
+                return current?.status === step.status;
+              }, `${step.command} did not persist ${step.status}`);
+              assert.equal(
+                current?.status,
+                step.status,
+                `${step.command} did not persist ${step.status}`,
+              );
+              if (step.status === "cleared") {
+                assert.equal(current.objective, "");
+                assert.deepEqual(current.todos, []);
+              }
+            }
+          }
         }
         report.push({
           id,
@@ -396,6 +460,9 @@ try {
             "Stop cancels durable Goal",
             "light/en",
             "dark/zh",
+            ...(process.env.BLACKBOX_GOAL_CONTROLS === "1"
+              ? ["bare view", "edit", "pause", "resume", "clear", "cleared projection"]
+              : []),
           ],
         });
       }
