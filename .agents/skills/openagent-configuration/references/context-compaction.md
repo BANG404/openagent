@@ -1,5 +1,16 @@
 ## Context compaction
 
+General Settings owns the compaction enable switch, global threshold, recent
+event count, and custom instructions. These controls use the existing
+configuration fields and autosave path. Compaction is performed by the selected
+Chat model and must not appear among Flash tasks.
+
+Run `bun run test:blackbox:compaction-settings` against a debug Tauri instance
+using the same isolated `OPENAGENT_HOME` and explicit `TAURI_PILOT_SOCKET`.
+The scenario verifies General/Flash placement, disabled numeric controls,
+saved values after reopening, and light/English plus dark/Chinese states,
+then restores the edited fields.
+
 Automatic context compaction is enabled by default. A fresh or missing
 `context_compaction_threshold` defaults to 200,000 approximate tokens. An
 explicitly saved global threshold remains unchanged, and an optional per-model

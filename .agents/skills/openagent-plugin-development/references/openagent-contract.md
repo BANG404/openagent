@@ -13,6 +13,10 @@ portable Agent Plugins 1.0.0 package format. The portable root remains
 extensions are declared under `extensions.openagent` so packages stay portable
 and unknown fields remain harmless to other hosts.
 
+Language declarations, supported-language display, platform-aligned switching,
+and official language coverage follow [the plugin i18n standard](i18n-standard.md),
+which distinguishes requirements from the current implementation boundary.
+
 ## Normalized descriptor
 
 The Runtime exposes a typed descriptor rather than raw manifest JSON. Its
@@ -346,7 +350,7 @@ The first host surface accepts UTF-8 HTML entries and runs them in an iframe
 with `sandbox="allow-scripts"`. Third-party UI runs in an isolated plugin surface. The host sends only an
 allowlisted panel context (workspace and opaque conversation/branch identity,
 safe file-change summaries, locale, and theme) over a versioned postMessage
-channel. The context is refreshed when the active workspace, branch, or theme
+channel. The context is refreshed when the active workspace, branch, locale, or theme
 changes.
 Plugins never receive transcript contents, prompts, model output, Inspector
 records, trace payloads, or another plugin's data. UI failures unmount only the

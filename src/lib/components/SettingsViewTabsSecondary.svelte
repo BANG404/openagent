@@ -1019,62 +1019,6 @@
             </label>
           </details>
         </article>
-
-        <article class="flash-task-item">
-          <div class="flash-task-heading">
-            <div class="flash-task-copy">
-              <h5>{$t("compactionTask")}</h5>
-              <p>{$t("compactionTaskDescription")}</p>
-            </div>
-            <SettingsStatusToggle
-              bind:checked={view.draftConfig.context_compaction_enabled}
-              ariaLabel={$t("contextCompaction")}
-            />
-          </div>
-          <label class="flash-task-inline-setting">
-            <span class="flash-task-inline-copy">
-              <strong>{$t("contextCompactionThreshold")}</strong>
-              <small>{$t("contextCompactionThresholdHint")}</small>
-            </span>
-            <input
-              type="number"
-              class="detail-input compaction-threshold-input"
-              min="1000"
-              max="1000000"
-              step="1000"
-              disabled={!view.draftConfig.context_compaction_enabled}
-              bind:value={view.draftConfig.context_compaction_threshold}
-            />
-          </label>
-          <label class="flash-task-inline-setting">
-            <span class="flash-task-inline-copy">
-              <strong>{$t("contextCompactionRecentMessageCount")}</strong>
-              <small>{$t("contextCompactionRecentMessageCountHint")}</small>
-            </span>
-            <input
-              type="number"
-              class="detail-input compaction-recent-count-input"
-              min="0"
-              max="20"
-              step="1"
-              disabled={!view.draftConfig.context_compaction_enabled}
-              bind:value={view.draftConfig.context_compaction_recent_message_count}
-            />
-          </label>
-          <details
-            class="flash-task-custom"
-            open={view.draftConfig.context_compaction_prompt.trim().length > 0}
-          >
-            <summary>{$t("taskCustomPrompt")}</summary>
-            <label class="detail-label">
-              <span class="sr-only">{$t("agentExtraPrompt")}</span>
-              <textarea
-                class="detail-input flash-task-textarea"
-                bind:value={view.draftConfig.context_compaction_prompt}
-                placeholder={$t("compactionTaskPromptPlaceholder")}></textarea>
-            </label>
-          </details>
-        </article>
       </div>
     </section>
 

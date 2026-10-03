@@ -270,7 +270,7 @@ export const zh = {
   flashAgentsDescription:
     "管理由 Flash 模型执行的轻量任务。任务开关决定是否运行，自定义指令仅在需要时补充。",
   conversationFlashTasks: "对话整理",
-  conversationFlashTasksDescription: "生成标题、维护记忆，并在上下文过长时自动压缩。",
+  conversationFlashTasksDescription: "生成标题和后续建议，并维护记忆。",
   automationFlashTasks: "后台自动化",
   automationFlashTasksDescription: "处理技能归类、计划任务与自动审批判断。",
   taskEnabled: "启用此任务",
@@ -511,7 +511,7 @@ export const zh = {
   contextCompactionHint:
     "达到阈值后压缩 checkpoint 中的模型消息，并附带近期执行时间线；界面仍保留完整对话。",
   contextCompactionThreshold: "总结阈值（近似 token）",
-  contextCompactionThresholdHint: "达到此上下文规模后启动 Flash 压缩。",
+  contextCompactionThresholdHint: "达到此上下文规模后启动压缩。",
   contextCompactionRecentMessageCount: "近期时间线条数",
   contextCompactionRecentMessageCountHint:
     "保留最新的用户消息、tool call 和 assistant 文本；设为 0 时不附加。",
@@ -736,7 +736,8 @@ export const zh = {
     "每次发送用户消息时，仅根据当前分支的全部用户消息生成 3 条可继续发送的建议，并只显示在该分支最后一轮；标题更新后基于最近 5 个对话标题刷新新对话建议。",
   memoryTaskDescription: "在对话结束后提取可复用信息，写入长期记忆。",
   hookTaskDescription: "识别对话中的明确安排，并创建可触发的计划任务。",
-  compactionTaskDescription: "当上下文接近阈值时压缩较早模型消息，降低后续处理成本。",
+  compactionTaskDescription:
+    "当上下文接近阈值时，使用当前 Chat 模型压缩较早消息，降低后续处理成本。",
   // Model actions
   delete: "删除",
   // Extensions - MCP

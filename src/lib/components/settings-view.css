@@ -946,14 +946,25 @@
   justify-content: flex-end;
 }
 
-.compaction-threshold-input {
-  width: 168px;
-  max-width: 100%;
+.compaction-toggle-control {
+  display: flex;
+  justify-content: flex-end;
 }
 
-.compaction-recent-count-input {
-  width: 96px;
-  max-width: 100%;
+.compaction-custom-prompt {
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+.compaction-custom-prompt summary {
+  width: fit-content;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.compaction-custom-prompt textarea {
+  min-height: 96px;
+  resize: vertical;
 }
 
 .detail-content {
@@ -1858,44 +1869,6 @@
   flex: 0 0 auto;
 }
 
-.flash-task-inline-setting {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--mica-divider);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 550;
-  line-height: 1.35;
-}
-
-.flash-task-inline-setting .detail-input {
-  margin: 0;
-  border-color: var(--mica-divider);
-}
-
-.flash-task-inline-copy {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.flash-task-inline-copy strong {
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.flash-task-inline-copy small {
-  color: var(--text-tertiary);
-  font-size: 11px;
-  font-weight: 400;
-  line-height: 1.4;
-}
-
 .flash-task-custom {
   margin-top: 12px;
 }
@@ -2537,16 +2510,6 @@
   .settings-card-row {
     grid-template-columns: 1fr;
     gap: 10px;
-  }
-
-  .flash-task-inline-setting {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .flash-task-inline-setting .detail-input {
-    width: 100%;
   }
 
   .schedule-form-actions {
