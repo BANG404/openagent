@@ -14,7 +14,7 @@ const AUTOMATION_TESTS = [
   "tests/skillDocumentLength.test.js",
   "tests/staticToolI18n.test.js",
   "tests/owtBatch.test.js",
-  "tests/agentDeliveryLock.test.js",
+  "tests/codexExecBatch.test.js",
   "tests/preflight.test.js",
   "tests/privateSdkDiagnostic.test.js",
   "tests/releaseCi.test.js",

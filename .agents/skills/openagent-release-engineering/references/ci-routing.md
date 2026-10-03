@@ -40,7 +40,9 @@ two verification routes:
 - Creation of a Stable archive branch reports an all-zero GitHub `before` SHA;
   change detection falls back to the branch head's parent instead of treating
   the existing Beta snapshot as an entirely new repository.
-- Documentation-only changes skip expensive modules.
+- Documentation-only changes skip expensive modules. Local preflight's
+  automation test selection includes OWT batch and Codex launcher contracts;
+  keep this list aligned when removing or replacing delivery tooling.
 
 The always-present `CI / Required` job remains the authoritative aggregate for
 each CI invocation. For pull requests, a trusted `workflow_run` reporter copies

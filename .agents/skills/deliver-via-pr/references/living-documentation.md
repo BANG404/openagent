@@ -54,21 +54,17 @@ private SDK gitlink.
 - `AGENTS.md` and skills contain durable guidance rather than task history.
 - Skill metadata still describes the situations that should trigger it.
 - Public documentation contains no private SDK implementation detail.
-- The selected delivery mode reached its terminal state: direct local mode
-  created verified commits on the local default branch without creating a task
-  branch or worktree and did not push; `OWT` created verified commits in an
-  isolated worktree, fast-forwarded them into the local default branch, cleaned
-  up its task worktree and branch, and did not push; private SDK commits were
-  pushed directly to `main`.
-- Direct local mode commits only intended paths or clearly owned hunks and
-  preserves unrelated staged and working changes, including separable changes
-  in the same file, in place. `OWT` bases its temporary task branch on the
-  committed local default `HEAD`, merges later committed default-branch
-  descendants into the task branch, reruns preflight after every such
-  integration, and retries until the default branch can fast-forward. Its
-  recorded local default `HEAD` remains authoritative regardless of remote
-  divergence; it never reconciles remote history, absorbs unrelated working
-  changes, or continues through real conflicts or non-linear local ancestry. A
-  sealed batch of OWT tasks uses only its explicit manifest for membership,
-  elects one final ready agent to validate the combined integration tree, and
-  retains its completion record after safe worktree cleanup.
+- OWT reached its terminal state: verified commits from an isolated worktree
+  are fast-forwarded into local `master`; task worktrees and fully merged
+  branches are cleaned up, and nothing was pushed. The default directory stays
+  on `master` for developer debugging. Private SDK delivery follows its owner.
+- OWT bases each task on committed local default `HEAD`, preserves unrelated
+  staged and working changes, and merges later committed default-branch
+  descendants into the task branch. Rerun preflight after each integration and
+  retry the fast-forward. The recorded local base remains authoritative
+  regardless of remote divergence; never reconcile remote history or absorb
+  unrelated working changes. Preserve ambiguous conflicts for direction.
+- A batch coordinates the same OWT workflow using an explicit manifest for
+  membership and one elected integrator for combined verification. It retains
+  its completion record after safe cleanup. A blocked handoff remains pending
+  integration while the default directory stays on `master`.
