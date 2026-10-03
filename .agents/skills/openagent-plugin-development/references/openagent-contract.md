@@ -1,5 +1,12 @@
 # OpenAgent plugin contract
 
+Terminal lifecycle hooks receive an `event.phase` such as `interrupted`,
+`final_completed`, `final_cancelled`, or `final_failed`, including turns resumed
+after approval. Packages must wait for unresolved approval/input rather than
+waking another turn. Hidden continuations cannot cancel outstanding approvals
+or restart a user-cancelled run. A plugin's Stop hook owns its durable workflow
+cancellation; the host does not interpret package-specific Goal state.
+
 This document owns the OpenAgent-specific extension contract layered on the
 portable Agent Plugins 1.0.0 package format. The portable root remains
 `plugin.json`, with optional `skills/` and `mcp.json` components. OpenAgent

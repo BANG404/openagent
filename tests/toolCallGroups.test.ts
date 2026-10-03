@@ -168,6 +168,12 @@ describe("tool-call grouping", () => {
     expect(toolCallStatus(call("read_file", "2 lines"), false)).toBe("success");
     expect(toolCallStatus(call("read_file", "Error: unavailable"), false)).toBe("failed");
     expect(toolCallStatus(call("read_file", '{"ok":false}'), false)).toBe("failed");
+    expect(toolCallStatus(call("update_goal", "tool `update_goal` not found"), false)).toBe(
+      "failed",
+    );
+    expect(
+      toolCallStatus(call("update_goal", "Approved tool call failed: disconnected"), false),
+    ).toBe("failed");
     expect(
       toolCallStatus(
         call(
@@ -185,14 +191,14 @@ describe("tool-call grouping", () => {
     ).toBe("cancelled");
   });
 
-  test("hides every failed tool and shows non-render tools in other states", () => {
-    expect(shouldDisplayToolCall(call("render_web", "Error: invalid document"), false)).toBe(false);
+  test("keeps failed ordinary tools visible and hides failed render previews", () => {
+    expect(shouldDisplayToolCall(call("render_web", "Error: invalid document"), false)).toBe(true);
     expect(shouldDisplayToolCall(call("render_mermaid", '{"ok":false}'), false)).toBe(false);
     expect(shouldDisplayToolCall(call("render_web"), true)).toBe(true);
     expect(shouldDisplayToolCall(call("render_mermaid"), false)).toBe(false);
     expect(shouldDisplayToolCall(call("render_web", '{"ok":true}'), false)).toBe(true);
     expect(shouldDisplayToolCall(call("render_mermaid", '{"ok":true}'), false)).toBe(true);
-    expect(shouldDisplayToolCall(call("read_file", "Error: unavailable"), false)).toBe(false);
+    expect(shouldDisplayToolCall(call("read_file", "Error: unavailable"), false)).toBe(true);
     expect(shouldDisplayToolCall(call("read_file"), false)).toBe(true);
     expect(
       shouldDisplayToolCall(
@@ -205,7 +211,7 @@ describe("tool-call grouping", () => {
     ).toBe(true);
   });
 
-  test("removes failed tools before grouping without hiding adjacent visible calls", () => {
+  test("keeps failed tools beside their adjacent successful and unanswered calls", () => {
     const segments = groupStreamItems([
       call("read_file", "ok"),
       call("ask_user", "failed to parse tool arguments: missing fields"),
@@ -218,7 +224,7 @@ describe("tool-call grouping", () => {
     expect(segments).toHaveLength(1);
     expect(segments[0]).toMatchObject({
       kind: "tool_group",
-      items: [{ name: "read_file" }, { name: "write_file" }],
+      items: [{ name: "read_file" }, { name: "ask_user" }, { name: "write_file" }],
     });
   });
 
