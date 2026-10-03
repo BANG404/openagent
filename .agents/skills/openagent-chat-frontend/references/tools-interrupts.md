@@ -18,8 +18,9 @@
   is waiting outside an active stream and running during one, ordinary output
   is successful, a runtime patch for a user who continued the conversation is
   unanswered, and explicit denial or run cancellation is cancelled. Hide
-  failed tool calls before grouping so neither an individual card nor an empty
-  or misleading group appears in live or durable transcripts.
+  failed render previews. Ordinary failed tools stay visible with their error
+  result and failed status, including missing-tool and approved-call failures;
+  receiving a ToolResult alone does not establish success.
 - Project every durable ToolResult content block into the same concise text used
   by live tool events: preserve text, serialize JSON values, and represent image
   results without exposing encoded bytes. Structured tool output must not become
@@ -116,7 +117,7 @@
   before revealing the window so the first tool request does not spend the
   Runtime response deadline on a cold dynamic import; a failed preload remains
   retryable.
-  Apply the same failed-result hiding rule to ordinary tools.
+  Keep ordinary failures inspectable; only failed render previews are hidden.
 - Return a Mermaid renderer result through the shared SDK client with the
   request's owning conversation ID. The production Runtime is routed and
   resolves the live renderer channel inside that conversation, because the

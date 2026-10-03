@@ -45,7 +45,11 @@ export function groupStreamItems(items: StreamItem[]): StreamItemSegment[] {
   const segments: StreamItemSegment[] = [];
   for (let index = 0; index < items.length;) {
     const item = items[index];
-    if (item.type === "tool_call" && toolCallStatus(item, false) === "failed") {
+    if (
+      item.type === "tool_call" &&
+      isRenderTool(item) &&
+      toolCallStatus(item, false) === "failed"
+    ) {
       index += 1;
       continue;
     }
@@ -59,7 +63,11 @@ export function groupStreamItems(items: StreamItem[]): StreamItemSegment[] {
     let end = index;
     while (end < items.length) {
       const next = items[end];
-      if (next.type === "tool_call" && toolCallStatus(next, false) === "failed") {
+      if (
+        next.type === "tool_call" &&
+        isRenderTool(next) &&
+        toolCallStatus(next, false) === "failed"
+      ) {
         end += 1;
         continue;
       }
@@ -277,7 +285,12 @@ export function toolCallStatus(item: ToolCallItem, showRunning: boolean): ToolCa
   const text = item.result.trim();
   if (isUnansweredToolResult(text)) return "unanswered";
   if (CANCELLED_TOOL_RESULT.test(text)) return "cancelled";
-  if (/^(error|failed|failure)\b\s*:?\s*/i.test(text)) return "failed";
+  if (
+    /^(error|failed|failure)\b\s*:?\s*/i.test(text) ||
+    /^tool\s+[`'"][^`'"]+[`'"]\s+not found\b/i.test(text) ||
+    /^(?:approved tool call|terminal tool) failed\b/i.test(text)
+  )
+    return "failed";
   // Read the leading JSON value so Runtime-appended model context cannot hide a
   // structured failure. Plain-text tool output is a successful result unless it
   // starts with a conventional error marker handled above.
@@ -292,7 +305,7 @@ export function toolCallStatus(item: ToolCallItem, showRunning: boolean): ToolCa
 
 export function shouldDisplayToolCall(item: ToolCallItem, showRunning: boolean): boolean {
   const status = toolCallStatus(item, showRunning);
-  if (status === "failed") return false;
+  if (isRenderTool(item) && status === "failed") return false;
   const isRenderPreview = item.name === "render_mermaid";
   return !isRenderPreview || status === "success";
 }

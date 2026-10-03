@@ -1,0 +1,82 @@
+[scenario]
+name = "Goal manual approval and permanent cancellation"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "start Goal through the composer"
+action = "eval"
+script = '''(async () => {
+  const newChat = [...document.querySelectorAll('button')].find(button => /^(New chat|新聊天)$/.test(button.getAttribute('aria-label') ?? button.textContent?.trim() ?? ''));
+  if (!newChat) throw new Error('New chat is missing');
+  newChat.click();
+  await new Promise(resolve => setTimeout(resolve, 200));
+  const editor = document.querySelector('[contenteditable=true][role=textbox]');
+  if (!editor) throw new Error('composer is missing');
+  editor.focus();
+  editor.dispatchEvent(new InputEvent('beforeinput', {bubbles:true, cancelable:true, inputType:'insertText', data:'/goal Native approval ' + window.__goalApprovalProbe.marker}));
+  await new Promise(resolve => setTimeout(resolve, 100));
+  document.querySelector('.send-btn')?.click();
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline && !document.querySelector('.tool-approval-approve')) await new Promise(resolve => setTimeout(resolve, 100));
+  if (!document.querySelector('.tool-approval-approve')) throw new Error('approval never appeared');
+  await new Promise(resolve => setTimeout(resolve, 1200));
+  if (!document.querySelector('.tool-approval-approve')) throw new Error('Goal auto-wake abandoned the pending approval');
+  const handoff = Date.now() + 5000;
+  while (Date.now() < handoff && document.querySelector('.stop-btn')) await new Promise(resolve => setTimeout(resolve, 100));
+  if (document.querySelector('.stop-btn')) throw new Error('interrupted turn still reports streaming');
+  return true;
+})()'''
+
+[[step]]
+name = "approve the tool once and finish the turn"
+action = "eval"
+script = '''(async () => {
+  document.querySelector('.tool-approval-approve').click();
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline) {
+    if (!document.querySelector('.tool-approval-approve') && !document.querySelector('.stop-btn') && document.querySelector('.tool-done')) return true;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  throw new Error('approved Goal did not complete');
+})()'''
+
+[[step]]
+name = "cancel the Goal through its portable command"
+action = "eval"
+script = '''(async () => {
+  const editor = document.querySelector('[contenteditable=true][role=textbox]');
+  editor.focus();
+  editor.dispatchEvent(new InputEvent('beforeinput', {bubbles:true, cancelable:true, inputType:'insertText', data:'/goal:cancel'}));
+  await new Promise(resolve => setTimeout(resolve, 100));
+  document.querySelector('.send-btn')?.click();
+  await new Promise(resolve => setTimeout(resolve, 1200));
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline && document.querySelector('.stop-btn')) await new Promise(resolve => setTimeout(resolve, 100));
+  if (document.querySelector('.stop-btn') || document.querySelector('.tool-approval-approve')) throw new Error('cancel command did not settle');
+  return true;
+})()'''
+
+[[step]]
+name = "Stop ends the active Goal and clears the running controls"
+action = "eval"
+script = '''(async () => {
+  [...document.querySelectorAll('button')].find(button => /^(New chat|新聊天)$/.test(button.getAttribute('aria-label') ?? button.textContent?.trim() ?? '')).click();
+  await new Promise(resolve => setTimeout(resolve, 200));
+  const editor = document.querySelector('[contenteditable=true][role=textbox]');
+  editor.focus();
+  editor.dispatchEvent(new InputEvent('beforeinput', {bubbles:true, cancelable:true, inputType:'insertText', data:'/goal Stop the active Goal ' + window.__goalApprovalProbe.marker}));
+  await new Promise(resolve => setTimeout(resolve, 100));
+  document.querySelector('.send-btn')?.click();
+  const started = Date.now() + 5000;
+  while (Date.now() < started && !document.querySelector('.stop-btn')) await new Promise(resolve => setTimeout(resolve, 100));
+  const stop = document.querySelector('.stop-btn');
+  if (!stop) throw new Error('Stop is missing during the active Goal');
+  stop.click();
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline && document.querySelector('.stop-btn')) await new Promise(resolve => setTimeout(resolve, 100));
+  if (document.querySelector('.stop-btn')) throw new Error('Stop did not end the run');
+  await new Promise(resolve => setTimeout(resolve, 1200));
+  if (document.querySelector('.stop-btn')) throw new Error('cancelled Goal restarted itself');
+  return true;
+})()'''

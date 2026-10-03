@@ -5,7 +5,7 @@ import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import assert from "node:assert/strict";
 import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
 
@@ -27,6 +27,20 @@ const pilotEnv = {
   OPENAGENT_HOME: fixture,
   OPENAGENT_DEV_INSTANCE: process.env.OPENAGENT_DEV_INSTANCE || "plugin-lifecycle",
 };
+/** @param {string} scenario */
+async function runScenario(scenario) {
+  const child = spawn("tauri-pilot", ["run", resolve(scenario), "--window", "main"], {
+    env: pilotEnv,
+    cwd: tmpdir(),
+    windowsHide: true,
+    stdio: "inherit",
+  });
+  const code = await new Promise((done, reject) => {
+    child.once("error", reject);
+    child.once("close", done);
+  });
+  assert.equal(code, 0, `${scenario} failed`);
+}
 /** @param {string} script */
 async function evaluate(script) {
   const child = spawn("tauri-pilot", ["eval", script, "--window", "main"], {
@@ -93,6 +107,10 @@ const model = createServer(async (request, response) => {
     .reverse()
     .find((/** @type {any} */ message) => message.role === "user");
   const prompt = JSON.stringify(lastUser?.content || "");
+  if (prompt.includes("Stop the active Goal")) {
+    await new Promise((done) => setTimeout(done, 5000));
+    if (response.destroyed) return;
+  }
   const hasToolResult = messages.some((/** @type {any} */ message) => message.role === "tool");
   /** @type {any} */
   const message = { role: "assistant", content: "Plugin qualification node completed." };
@@ -173,13 +191,33 @@ const original = await invoke("get_settings", {});
 const cleanupErrors = [];
 try {
   const config = structuredClone(original);
-  const provider = config.providers.find((/** @type {any} */ item) => item.provider === "ollama");
-  assert(provider, "fixture requires a local Ollama provider");
+  let provider = config.providers.find((/** @type {any} */ item) => item.provider === "ollama");
+  if (!provider) {
+    provider = {
+      id: "plugin-qualification-local",
+      name: "Local qualification",
+      provider: "ollama",
+      api_key: "",
+      base_url: "",
+      enabled: true,
+      models: [],
+      model_context_compaction_thresholds: {},
+      model_reasoning_efforts: {},
+      model_reasoning_effort_enabled: {},
+      model_vision_enabled: {},
+    };
+    config.providers.push(provider);
+  }
   provider.base_url = `http://127.0.0.1:${address.port}`;
   provider.models = ["test-model"];
   provider.enabled = true;
   config.defaults.chat_model = { provider_id: provider.id, model: "test-model" };
   config.defaults.flash_model = { provider_id: provider.id, model: "test-model" };
+  config.approval_mode = "off";
+  config.memory_retrieval_enabled = false;
+  for (const agent of Object.values(config.flash_agents)) {
+    if (agent && typeof agent === "object" && "enabled" in agent) agent.enabled = false;
+  }
   const saved = await invoke("save_settings", { config });
   assert.equal(
     saved.providers.find((/** @type {any} */ item) => item.id === provider.id)?.enabled,
@@ -308,6 +346,59 @@ try {
           "read progress",
         ],
       });
+      if (id === "goal" && process.env.BLACKBOX_GOAL_APPROVAL === "1") {
+        for (const [theme, language] of [
+          ["light", "en"],
+          ["dark", "zh"],
+        ]) {
+          const manual = structuredClone(config);
+          manual.approval_mode = "manual";
+          manual.theme = theme;
+          manual.language = language;
+          await invoke("save_settings", { config: manual });
+          await call("read_goal", { run: state.run_id });
+          const marker = crypto.randomUUID();
+          await evaluate(`window.__goalApprovalProbe = ${JSON.stringify({ marker })}; true`);
+          try {
+            await runScenario("tests/blackbox/goal-approval.toml");
+          } finally {
+            for (const file of readdirSync(directory).filter((file) => file.endsWith(".json"))) {
+              const state = JSON.parse(readFileSync(join(directory, file), "utf8"));
+              if (
+                [`Native approval ${marker}`, `Stop the active Goal ${marker}`].includes(
+                  state.objective,
+                )
+              ) {
+                conversations.push(state.conversation_id);
+              }
+            }
+          }
+          await until(() => {
+            const states = readdirSync(directory)
+              .filter((file) => file.endsWith(".json"))
+              .map((file) => JSON.parse(readFileSync(join(directory, file), "utf8")));
+            const approval = states.find(
+              (state) => state.objective === `Native approval ${marker}`,
+            );
+            const stopped = states.find(
+              (state) => state.objective === `Stop the active Goal ${marker}`,
+            );
+            return approval?.status === "cancelled" && stopped?.status === "cancelled";
+          }, "Goal cancellation did not persist for both command and Stop action");
+          assert.equal(await evaluate("!document.querySelector('.stop-btn')"), "true");
+        }
+        report.push({
+          id,
+          checks: [
+            "manual approval remains pending",
+            "approve once",
+            "cancel command",
+            "Stop cancels durable Goal",
+            "light/en",
+            "dark/zh",
+          ],
+        });
+      }
     }
     await client(`client.uninstallAgentPlugin(${JSON.stringify(id)})`);
     installed.splice(installed.indexOf(id), 1);
@@ -326,7 +417,7 @@ try {
       cleanupErrors.push(error),
     );
   if (process.env.BLACKBOX_KEEP_CONVERSATIONS !== "1") {
-    for (const convId of conversations)
+    for (const convId of new Set(conversations))
       await invoke("delete_conversation", { convId }).catch((error) => cleanupErrors.push(error));
   }
   await invoke("save_settings", { config: original }).catch((error) => cleanupErrors.push(error));

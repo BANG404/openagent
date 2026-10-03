@@ -188,6 +188,17 @@ page from the top of every scroll area, and a full-page capture does not carry
 the settings surface at all, so a viewport-sized image of the scrolled list
 shows its first rows instead of the row the pass asserted.
 
+## Goal approval and cancellation
+
+Goal approval and cancellation have a deterministic native scenario:
+`bun tauri dev --multi-instance plugin-lifecycle`, then set
+`OFFICIAL_PLUGIN_CHECKOUTS` to the directory containing `openagent-goal` and run
+`bun run test:blackbox:goal-approval`. Set `TAURI_PILOT_SOCKET` explicitly when
+another dev window is open. The runner installs the local Goal checkout only
+in the isolated home, supplies a local Ollama endpoint, and verifies pending
+approval, one-click resume, `/goal:cancel`, and composer Stop in light/English
+and dark/Chinese. It restores settings and removes its package and conversations.
+
 ## MCP Apps coverage
 
 The committed `tests/blackbox/mcp-apps.toml` and `mcp-apps-teardown.toml`
