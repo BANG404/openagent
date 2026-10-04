@@ -16,3 +16,36 @@ plugin. The package owns implementation and publication; the parent owns its
 gitlink, development index entry, and `tests/messageBoardPlugin.test.ts`
 integration coverage. Changes to the board schema must preserve bounded output
 and request idempotency. Initialize the submodule before running host tests.
+
+The board is shared by all processes using the same loader-owned `PLUGIN_DATA`;
+channel naming separates tasks and workspaces. Caller-supplied `agent_id` values
+are labels rather than authenticated identities. The package never infers
+workspace scope from its capability declaration and never writes a fallback
+directory inside the workspace or installed package.
+
+Version 1.0.1 serializes operations across independent MCP processes, reloads
+state under an exclusive lock, and atomically replaces version-one snapshots.
+It preserves legacy data and idempotency keys. Damaged or unsupported state
+returns a tool error without replacing the original file. A busy lock is
+retryable; stale-lock removal requires stopping all servers sharing the board.
+The package README owns the recovery procedure.
+
+Thread pagination returns the root separately from replies. Previews and offset
+reads count Unicode code points, while the serialized result budget counts
+UTF-8 bytes. Reads reduce their requested page or preview size and return an
+accurate continuation. Explicit recipients remain handoff metadata; subscriptions
+update their last matching message without waking a host Agent.
+The shared Runtime may inject `_openagent` context into tool arguments. Accept
+that object without persisting it or using it as an agent identity; excluding it
+from request fingerprints keeps retries stable across host contexts.
+
+Run package tests with `node --test tests/message-board.test.mjs`, the current
+plugin-kit validator, and `bun run test:blackbox:message-board` against a fresh
+isolated Tauri instance. The native scenario installs the local candidate through
+the normal Runtime installer, exercises all nine tools, verifies disable and
+re-enable, and uninstalls/reinstalls while preserving data. Published-source
+qualification additionally uses `BLACKBOX_PLUGIN_IDS=message-board` with the
+ordinary plugin lifecycle runner. Record package and SDK revisions separately.
+Portable validation does not satisfy the outstanding host language-contract
+requirements documented in `i18n-standard.md`; official release qualification
+must resolve those requirements before publishing and activating the catalog.

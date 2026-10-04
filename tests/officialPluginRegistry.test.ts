@@ -16,6 +16,7 @@ describe("official plugin registry", () => {
       "goal",
       "graph",
       "cua-driver",
+      "message-board",
     ]);
     expect(findOfficialPlugin(registry, "goal")?.sourceUrl).toBe(
       "https://github.com/BANG404/openagent-goal.git",
@@ -25,7 +26,11 @@ describe("official plugin registry", () => {
       "2.2.0",
       "1.0.4",
       "1.2.1",
+      "1.0.1",
     ]);
+    expect(findOfficialPlugin(registry, "message-board")?.sourceUrl).toBe(
+      "https://github.com/BANG404/message-board.git",
+    );
   });
 
   test("converts entries to the existing marketplace protocol", () => {

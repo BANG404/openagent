@@ -74,3 +74,8 @@ unavailable, the WSL commit is kept and the hook prints a warning. Install the
 repository hooks with `bun install` if `.githooks` is not active yet. Keep
 `node_modules`, `target`, and other generated directories native to each
 operating system.
+
+The post-commit tests resolve Windows Bash from the selected Git installation's
+`--exec-path`, including portable Git installations. Set `OPENAGENT_TEST_BASH`
+to an explicit Git Bash executable when the installation uses a custom layout.
+The tests do not require Git to be installed under `Program Files`.

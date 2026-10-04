@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { once } from "node:events";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
@@ -7,20 +8,26 @@ import { spawn } from "node:child_process";
 const root = resolve("plugins/message-board");
 type RpcResult = {
   serverInfo?: { name?: string };
-  tools?: unknown[];
+  tools?: Array<{
+    name: string;
+    inputSchema: { properties: Record<string, unknown>; required: string[] };
+  }>;
   structuredContent?: Record<string, unknown>;
 };
 type RpcResponse = { result?: RpcResult };
 
 function request(process: ReturnType<typeof spawn>, message: Record<string, unknown>) {
   return new Promise<RpcResponse>((resolveRequest, reject) => {
+    let buffered = "";
     const timer = setTimeout(() => {
       process.stdout?.off("data", onData);
       reject(new Error("message-board response timed out"));
     }, 2000);
     const onData = (chunk: Buffer) => {
-      const line = chunk.toString().split(/\r?\n/).find(Boolean);
-      if (!line) return;
+      buffered += chunk.toString();
+      const end = buffered.indexOf("\n");
+      if (end < 0) return;
+      const line = buffered.slice(0, end);
       process.stdout?.off("data", onData);
       clearTimeout(timer);
       resolveRequest(JSON.parse(line));
@@ -35,6 +42,7 @@ describe("Message board plugin", () => {
     const manifest = JSON.parse(await readFile(join(root, "plugin.json"), "utf8"));
     const mcp = JSON.parse(await readFile(join(root, "mcp.json"), "utf8"));
     expect(manifest.name).toBe("message-board");
+    expect(manifest.version).toBe("1.0.1");
     expect(manifest.repository).toBe("https://github.com/BANG404/message-board");
     expect(manifest.extensions.openagent.capabilities).toEqual(["workspace"]);
     expect(mcp.mcpServers["message-board"].command).toBe("node");
@@ -54,6 +62,7 @@ describe("Message board plugin", () => {
     const data = await mkdtemp(join(tmpdir(), "openagent-message-board-"));
     const child = spawn(process.execPath, [join(root, "bin/message-board.mjs")], {
       env: { ...process.env, PLUGIN_DATA: data },
+      cwd: data,
     });
     try {
       const initialized = await request(child, {
@@ -65,6 +74,11 @@ describe("Message board plugin", () => {
       expect(initialized.result?.serverInfo?.name).toBe("message-board");
       const listed = await request(child, { jsonrpc: "2.0", id: 2, method: "tools/list" });
       expect(listed.result?.tools).toHaveLength(9);
+      for (const tool of listed.result?.tools ?? []) {
+        for (const property of tool.inputSchema.required) {
+          expect(tool.inputSchema.properties).toHaveProperty(property);
+        }
+      }
       await request(child, {
         jsonrpc: "2.0",
         id: 3,
@@ -119,7 +133,10 @@ describe("Message board plugin", () => {
       };
       expect(threadResult.root_post.text_preview).toBe("hello 子智能体");
     } finally {
+      const closed = once(child, "close");
       child.kill();
+      await closed;
+      await rm(data, { recursive: true, force: true });
     }
   });
 });

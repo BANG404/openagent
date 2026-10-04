@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-04T12:16:31Z",
+  "generated_at": "2026-10-04T16:39:45Z",
   "plugins": [
     {
       "id": "chat-groups",
@@ -37,6 +37,15 @@
       "repository": "https://github.com/BANG404/openagent-cua-driver",
       "homepage": "https://github.com/BANG404/openagent-cua-driver",
       "source_url": "https://github.com/BANG404/openagent-cua-driver.git"
+    },
+    {
+      "id": "message-board",
+      "display_name": "Message Board",
+      "description": "Channels, threads, search, and durable agent collaboration.",
+      "version": "1.0.1",
+      "repository": "https://github.com/BANG404/message-board",
+      "homepage": "https://github.com/BANG404/message-board",
+      "source_url": "https://github.com/BANG404/message-board.git"
     }
   ]
 }

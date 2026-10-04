@@ -64,9 +64,10 @@ exec ${realGit} "$@"
 
 function runHook({ bin, source }) {
   const bash =
-    process.platform === "win32"
-      ? join(process.env.ProgramFiles ?? String.raw`C:\Program Files`, "Git", "bin", "bash.exe")
-      : "bash";
+    process.env.OPENAGENT_TEST_BASH ||
+    (process.platform === "win32"
+      ? resolve(git(process.cwd(), "--exec-path"), "../../../bin/bash.exe")
+      : "bash");
   const hookPath = process.platform === "win32" ? gitBashPath(hook) : hook;
   const args =
     process.platform === "win32"

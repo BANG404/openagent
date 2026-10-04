@@ -130,3 +130,13 @@ need not render the selected child's row.
 Use `BLACKBOX_FUNCTIONAL_REPORT` to preserve separate source-version reports;
 `BLACKBOX_KEEP_CONVERSATIONS=1` retains only the fixture conversations for the
 SDK's checkpoint and renderability diagnostics before explicitly deleting them.
+
+For Message Board candidates, run `bun run test:blackbox:message-board` in an
+isolated native instance with an explicit `TAURI_PILOT_SOCKET` and main
+`BLACKBOX_NATIVE_WINDOW_HANDLE`. `BLACKBOX_MESSAGE_BOARD_SOURCE` selects an
+independent candidate checkout; otherwise use the tracked development index.
+The runner covers all nine MCP tools, card component counts, enablement,
+uninstall/reinstall with retained data, and light/dark in English/Chinese.
+Reports include source and SDK revisions. Host locale combinations alone do not
+qualify package translations or supported-language display; those require the
+i18n standard's separate assertions before official publication.

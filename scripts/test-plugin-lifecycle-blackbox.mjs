@@ -250,13 +250,19 @@ for (const plugin of plugins) {
   const sentinel = join(data, "lifecycle-preserved.txt");
   writeFileSync(sentinel, "preserved plugin data\n");
   if (!installationOnly && plugin.id !== "cua-driver") {
-    const tool = { goal: "read_goal", graph: "graph_read", "chat-groups": "chat_group_list" }[
-      plugin.id
-    ];
-    const args = {
-      run: "lifecycle-missing-run",
-      _openagent: { conversation_id: "lifecycle-fixture", branch_id: null },
-    };
+    const tool = {
+      goal: "read_goal",
+      graph: "graph_read",
+      "chat-groups": "chat_group_list",
+      "message-board": "get_channels",
+    }[plugin.id];
+    const args =
+      plugin.id === "message-board"
+        ? { agent_id: "/root/lifecycle" }
+        : {
+            run: "lifecycle-missing-run",
+            _openagent: { conversation_id: "lifecycle-fixture", branch_id: null },
+          };
     await waitFor(
       `(async () => {
       const { desktopOpenAgent } = await import('/src/lib/openagent/tauriClient.ts');

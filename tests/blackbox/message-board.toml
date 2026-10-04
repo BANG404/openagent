@@ -1,0 +1,86 @@
+[scenario]
+name = "Message Board candidate works through the installed Runtime MCP boundary"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "marketplace discovers the candidate and installed card reports its components"
+action = "eval"
+script = '''(async () => {
+  const pause = () => new Promise(resolve => setTimeout(resolve, 150));
+  const until = async predicate => { for (let i = 0; i < 40; i++) { if (await predicate()) return; await pause(); } throw new Error(`Message Board UI did not settle: ${window.__messageBoardProbe.stage || 'cards'}`); };
+  window.__messageBoardProbe.until = until;
+  document.querySelector('#application-integrations-menu').click();
+  await pause();
+  [...document.querySelectorAll('[role=menuitem]')].find(item => /Plugins|插件/.test(item.textContent)).click();
+  await until(() => document.querySelector('.official-plugin-card[data-plugin-id="message-board"]')?.dataset.installed === 'true');
+  const market = document.querySelector('.official-plugin-card[data-plugin-id="message-board"]');
+  if (market.dataset.installed !== 'true' || !market.textContent.includes('Message Board')) throw new Error('market did not discover installed Message Board');
+  document.querySelectorAll('.plugin-management-tabs button')[1].click();
+  await until(() => !!document.querySelector('.plugin-accordion-item[data-plugin-id="message-board"]'));
+  const card = document.querySelector('.plugin-accordion-item[data-plugin-id="message-board"]');
+  if (!card.textContent.includes(window.__messageBoardProbe.version)) throw new Error('installed version differs from candidate');
+  if (card.querySelector('.plugin-accordion-trigger').getAttribute('aria-expanded') !== 'true') card.querySelector('.plugin-accordion-trigger').click();
+  await pause();
+  if (card.querySelector('.plugin-tool-count')?.textContent.trim() !== '4') throw new Error('installed card does not report three Skills and one MCP server');
+  if (card.querySelector('.plugin-warning')) throw new Error('installed card has loader diagnostics');
+  return 'marketplace and installed components passed';
+})()'''
+
+[[step]]
+name = "all nine tools run through the installed package and preserve Unicode text"
+action = "eval"
+script = '''(async () => {
+  const {desktopOpenAgent: client} = await import('/src/lib/openagent/tauriClient.ts');
+  const probe = window.__messageBoardProbe;
+  const call = async (name, args = {}) => {
+    const result = await client.invokeProduct('call_agent_plugin_tool', {plugin_id:'message-board', tool_name:name, arguments:{agent_id:'/root/native', ...args}});
+    if (result.isError) throw new Error(JSON.stringify(result));
+    if (new TextEncoder().encode(result.content[0].text).length > 8000) throw new Error('unbounded tool result');
+    return result.structuredContent;
+  };
+  probe.call = call;
+  await call('create_channel', {channel_name:probe.channel});
+  const args = {channel_name:probe.channel, text:'中文 😀 native board', request_id:probe.channel};
+  const root = await call('post', args);
+  probe.root = root;
+  if ((await call('post', args)).message_id !== root.message_id) throw new Error('idempotent retry created another post');
+  await call('subscribe', {thread_id:root.thread_id, target_agent:'/root/native/reviewer'});
+  const reply = await call('post', {thread_id:root.thread_id, text:'ready 中文', agents_to_notify:['/root/native/reviewer']});
+  if (reply.agents_to_notify[0] !== '/root/native/reviewer') throw new Error('notification metadata was lost');
+  const channels = await call('get_channels', {query:probe.channel});
+  if (channels.results[0]?.message_count !== 2) throw new Error('channel count is wrong');
+  const threads = await call('list_threads', {channel_name:probe.channel, max_chars_per_post:2});
+  if (threads.results[0]?.reply_count !== 1 || !threads.results[0].root_post.truncated) throw new Error('thread summary is wrong');
+  const thread = await call('read_thread', {thread_id:root.thread_id});
+  if (thread.results.length !== 1 || thread.results[0].message_id !== reply.message_id) throw new Error('root leaked into replies');
+  if ((await call('read_post', {message_id:root.message_id, offset_chars:3, limit_chars:1})).text !== '😀') throw new Error('Unicode offsets split emoji');
+  if ((await call('search_posts', {query:'READY', channel_name:probe.channel})).n_returned !== 1) throw new Error('search failed');
+  if ((await call('unsubscribe', {thread_id:root.thread_id, target_agent:'/root/native/reviewer'})).enabled !== false) throw new Error('unsubscribe failed');
+  return 'nine Runtime MCP tools passed';
+})()'''
+
+[[step]]
+name = "disable and re-enable retain the board and restore tool mounting"
+action = "eval"
+script = '''(async () => {
+  const {desktopOpenAgent: client} = await import('/src/lib/openagent/tauriClient.ts');
+  const probe = window.__messageBoardProbe;
+  const toggle = () => document.querySelector('.plugin-accordion-item[data-plugin-id="message-board"] .plugin-accordion-header [role=switch]');
+  if (toggle().getAttribute('aria-checked') !== 'true') throw new Error('candidate did not start enabled');
+  toggle().click();
+  probe.stage = 'disabled setting persisted';
+  await probe.until(async () => (await client.invokeProduct('get_settings', {})).agent_plugins_enabled?.['message-board'] === false);
+  probe.stage = 'disabled tools unmounted';
+  await probe.until(async () => { try { await probe.call('get_channels'); return false; } catch { return true; } });
+  // Settings persists before its save response finishes rebasing the mounted draft.
+  // Let that completed save settle before the next independent user action.
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  if (toggle().getAttribute('aria-checked') !== 'false') throw new Error('disabled control did not settle');
+  toggle().click();
+  probe.stage = 're-enabled setting persisted';
+  await probe.until(async () => (await client.invokeProduct('get_settings', {})).agent_plugins_enabled?.['message-board'] === true);
+  probe.stage = 're-enabled board read';
+  await probe.until(async () => { try { return (await probe.call('read_post', {message_id:probe.root.message_id})).text === '中文 😀 native board'; } catch { return false; } });
+  return 'disable and re-enable preserved data';
+})()'''
