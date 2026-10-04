@@ -184,3 +184,8 @@ have been created.
   authorization to make cross-workspace navigation succeed.
 - Tray and window lifecycle handlers must not retain the host or leave
   desktop and server processes alive.
+## Windows command output
+
+WSL command adapters decode even-length UTF-16LE output with zero high bytes,
+strip a leading BOM, and otherwise keep the UTF-8 fallback. Fixed byte pairs use
+typed array chunks so the host stays warning-free on current stable Clippy.
