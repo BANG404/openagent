@@ -22,8 +22,8 @@ describe("official plugin registry", () => {
     );
     expect(registry.plugins.map((plugin) => plugin.version)).toEqual([
       "1.0.3",
-      "2.0.1",
-      "1.0.3",
+      "2.2.0",
+      "1.0.4",
       "1.2.1",
     ]);
   });
