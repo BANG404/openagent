@@ -27,6 +27,15 @@ const indexed = resolvePluginDevPath(readPluginDevIndex(), "message-board");
 const source = resolve(process.env.BLACKBOX_MESSAGE_BOARD_SOURCE || indexed.directory);
 const manifest = JSON.parse(readFileSync(join(source, "plugin.json"), "utf8"));
 assert.equal(manifest.name, "message-board");
+const platformLocales = Object.keys(
+  JSON.parse(readFileSync(join(repo, "src/lib/platformLocales.json"), "utf8")),
+);
+assert(
+  platformLocales.every((locale) =>
+    manifest.extensions?.openagent?.i18n?.supported_locales?.includes(locale),
+  ),
+  "candidate does not declare every platform language",
+);
 /** @param {string} directory */
 function revision(directory) {
   const result = spawnSync("git", ["-C", directory, "rev-parse", "HEAD"], {
@@ -38,6 +47,7 @@ function revision(directory) {
 }
 const sourceRevision = revision(source);
 const sdkRevision = revision(join(repo, "sdk"));
+const hostRevision = revision(repo);
 const artifacts =
   process.env.BLACKBOX_ARTIFACT_DIR ||
   mkdtempSync(join(tmpdir(), "openagent-message-board-report-"));
@@ -231,7 +241,7 @@ try {
   }
   writeFileSync(
     join(artifacts, "qualification.json"),
-    `${JSON.stringify({ source, sourceRevision, sdkRevision, version: manifest.version, passes }, null, 2)}\n`,
+    `${JSON.stringify({ source, sourceRevision, sdkRevision, hostRevision, platformLocales, version: manifest.version, passes }, null, 2)}\n`,
   );
   process.stdout.write(`Message Board native qualification passed. Artifacts: ${artifacts}\n`);
 } finally {
