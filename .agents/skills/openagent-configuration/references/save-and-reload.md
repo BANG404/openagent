@@ -119,11 +119,13 @@ The Memory Management surface reads and writes the SDK-owned global
 boundary. It lists Agent-extracted memories from the selected database scope,
 supports full-text filtering, source-conversation navigation, and individual
 deletion. Scope changes reload both views; a missing workspace disables project
-memory actions without falling back to global data. Manual extraction is
-asynchronous and refreshes the list after the runtime accepts the task.
+memory actions without falling back to global data. The toolbar offers refresh
+only; manual memory extraction is unavailable. Automatic Agent memory processing
+remains Runtime-owned. Removing management controls does not delete persisted
+memories, lifecycle rules, or scheduled-task records.
 
 The memory editor tracks the last successfully loaded or saved content. Refresh
-and Agent extraction preserve an unsaved user draft; Save failures retain it,
+preserves an unsaved user draft; Save failures retain it,
 and Discard restores that baseline. Scope changes and backup/cleanup operations
 stay disabled until the draft is saved or discarded. An initial read failure
 keeps the editor disabled until a successful retry. Agent search is debounced

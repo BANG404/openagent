@@ -20,11 +20,9 @@
   let {
     kind,
     initialSection,
-    previewConfig,
   }: {
     kind: SettingsWindowKind;
     initialSection?: string | null;
-    previewConfig?: AppConfig;
   } = $props();
 
   let config = $state<AppConfig | null>(null);
@@ -34,7 +32,7 @@
   );
   let loadError = $state("");
   let stageElement: HTMLElement;
-  const appWindow = $derived(previewConfig ? null : getCurrentWindow());
+  const appWindow = getCurrentWindow();
   const settingsRequests = new LatestRequest();
   let themeSyncGeneration = 0;
   let themeSyncInFlight = false;
@@ -62,12 +60,8 @@
     const normalized = normalizeConfigShape(next);
     config = structuredClone(normalized);
     setLocale((normalized.language ?? "zh") as Locale);
-    if (previewConfig) {
-      applyDocumentTheme(normalized.theme ?? "system");
-    } else {
-      applyNativeTheme(normalized.theme ?? "system");
-      void appWindow?.setTitle($t(settingsWindowTitles[kind]));
-    }
+    applyNativeTheme(normalized.theme ?? "system");
+    void appWindow.setTitle($t(settingsWindowTitles[kind]));
     return normalized;
   }
 
@@ -91,7 +85,6 @@
 
   async function saveSettings(next: AppConfig, baseConfig?: AppConfig): Promise<AppConfig> {
     const snapshot = normalizeConfigShape(next);
-    if (previewConfig) return structuredClone(applyConfig(snapshot));
     const saved = (await desktopOpenAgent.invokeProduct("save_settings", {
       config: snapshot,
       baseConfig: normalizeConfigShape(baseConfig ?? config ?? snapshot),
@@ -108,10 +101,6 @@
   }
 
   onMount(() => {
-    if (previewConfig) {
-      applyConfig(previewConfig);
-      return;
-    }
     let disposed = false;
     let stopSettings: (() => void) | undefined;
     let stopSectionRequests: (() => void) | undefined;

@@ -20,6 +20,7 @@ describe("settings window domains", () => {
       expect(parseSettingsWindowKind(kind)).toBe(kind);
     }
     expect(parseSettingsWindowKind("retired")).toBeNull();
+    expect(parseSettingsWindowKind("automation")).toBeNull();
   });
 
   test("falls back to the domain's first section for an unknown request", () => {
@@ -29,14 +30,14 @@ describe("settings window domains", () => {
   });
 
   test("round-trips an in-window destination through navigation history", () => {
-    const destination = { kind: "automation", section: "schedules" };
+    const destination = { kind: "integrations", section: "plugins" };
     const key = settingsSurfaceKey(destination);
 
     expect(key).toBeTruthy();
     expect(parseSettingsDestination(key)).toEqual(destination);
     expect(settingsSurfaceKey(null)).toBeNull();
     expect(parseSettingsDestination(null)).toEqual({ kind: "general", section: "general" });
-    expect(parseSettingsDestination("retired\u0000retired")).toEqual({
+    expect(parseSettingsDestination("automation\u0000schedules")).toEqual({
       kind: "general",
       section: "general",
     });

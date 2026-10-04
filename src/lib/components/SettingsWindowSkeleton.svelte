@@ -164,38 +164,6 @@
         </section>
       {/each}
     </main>
-  {:else if spec.layout === "lifecycle" || spec.layout === "schedules"}
-    <main class="content-skeleton hooks-skeleton" aria-hidden="true">
-      <div class="section-heading">
-        <span class="block group-title"></span><span class="block small-action"></span>
-      </div>
-      <div class="hook-editor">
-        <span class="hook-message"
-          ><span class="block row-label"></span><span class="block textarea-control"></span></span
-        >
-        {#each Array(3) as _, index (index)}
-          <span class="hook-field"
-            ><span class="block row-label" style={`width:${76 + index * 12}px`}></span><span
-              class="block row-control"
-            ></span></span
-          >
-        {/each}
-      </div>
-      <span class="block primary-action"></span>
-      <section class="content-group hook-list-group">
-        <span class="block group-title"></span>
-        <div class="application-settings-surface hook-list">
-          {#each Array(3) as _, index (index)}
-            <span class="hook-row"
-              ><span class="content-copy"
-                ><span class="block row-label"></span><span class="block row-description"
-                ></span></span
-              ><span class="block small-action"></span></span
-            >
-          {/each}
-        </div>
-      </section>
-    </main>
   {:else}
     <main class="content-skeleton" aria-hidden="true">
       {#each contentGroups as rowCount, groupIndex (groupIndex)}
@@ -342,8 +310,7 @@
     margin-bottom: 20px;
   }
 
-  .channel-heading,
-  .section-heading {
+  .channel-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -373,37 +340,26 @@
     gap: 18px;
     padding: 18px;
   }
-
   .channel-field,
-  .extension-field,
-  .hook-field,
-  .hook-message {
+  .extension-field {
     display: grid;
     gap: 8px;
   }
-
-  .extension-grid,
-  .hook-editor {
+  .extension-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px 16px;
   }
-
   .extension-field:nth-child(3),
-  .extension-field:nth-child(4),
-  .hook-message {
+  .extension-field:nth-child(4) {
     grid-column: 1 / -1;
   }
-
   .tool-list,
-  .task-card,
-  .hook-list {
+  .task-card {
     overflow: hidden;
   }
-
   .tool-row,
-  .task-row,
-  .hook-row {
+  .task-row {
     display: flex;
     min-height: 54px;
     align-items: center;
@@ -412,10 +368,8 @@
     padding: 10px 14px;
     box-sizing: border-box;
   }
-
   .tool-row + .tool-row,
-  .task-row + .task-row,
-  .hook-row + .hook-row {
+  .task-row + .task-row {
     border-top: 1px solid var(--mica-divider);
   }
 
@@ -507,40 +461,8 @@
   .task-row {
     min-height: 70px;
   }
-
-  .task-row .row-label,
-  .hook-row .row-label {
+  .task-row .row-label {
     width: 42%;
-  }
-
-  .section-heading {
-    height: 32px;
-    margin-bottom: 18px;
-  }
-
-  .small-action,
-  .primary-action {
-    width: 72px;
-    height: 30px;
-    flex: 0 0 auto;
-    border-radius: 6px;
-  }
-
-  .primary-action {
-    width: 104px;
-  }
-
-  .textarea-control {
-    height: 76px;
-    border-radius: 6px;
-  }
-
-  .hooks-skeleton > .primary-action {
-    margin-top: 14px;
-  }
-
-  .hook-list-group {
-    margin-top: 30px;
   }
 
   .content-control {
@@ -624,15 +546,11 @@
     .content-skeleton {
       padding-inline: 24px;
     }
-
-    .extension-grid,
-    .hook-editor {
+    .extension-grid {
       grid-template-columns: minmax(0, 1fr);
     }
-
     .extension-field:nth-child(3),
-    .extension-field:nth-child(4),
-    .hook-message {
+    .extension-field:nth-child(4) {
       grid-column: auto;
     }
   }

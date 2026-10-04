@@ -27,13 +27,13 @@ fn linux_path_to_windows(distribution: &str, linux_path: &str) -> Option<PathBuf
 
 #[cfg(any(windows, test))]
 fn decode_windows_command_output(bytes: &[u8]) -> String {
-    let looks_utf16 = bytes.len() >= 2
-        && bytes.len().is_multiple_of(2)
-        && bytes.chunks_exact(2).any(|pair| pair[1] == 0);
+    let (pairs, _) = bytes.as_chunks::<2>();
+    let looks_utf16 =
+        bytes.len() >= 2 && bytes.len().is_multiple_of(2) && pairs.iter().any(|pair| pair[1] == 0);
     if looks_utf16 {
-        let words = bytes
-            .chunks_exact(2)
-            .map(|pair| u16::from_le_bytes([pair[0], pair[1]]))
+        let words = pairs
+            .iter()
+            .map(|pair| u16::from_le_bytes(*pair))
             .collect::<Vec<_>>();
         String::from_utf16_lossy(&words)
             .trim_start_matches('\u{feff}')

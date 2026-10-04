@@ -38,7 +38,6 @@ export type RuntimeQueryState = {
   standaloneDevPreview: StandaloneDevPreview | null;
   isChannelsSettingsPreview: boolean;
   isAgentsSettingsPreview: boolean;
-  isAutomationHooksPreview: boolean;
   isMcpSettingsPreview: boolean;
   settingsPreviewSection: SettingsNav | null;
   isQuickChatWindow: boolean;
@@ -55,8 +54,6 @@ export type RuntimeQueryState = {
   channelsSettingsPreviewLocale: Locale | null;
   agentsSettingsPreviewTheme: PreviewTheme;
   agentsSettingsPreviewLocale: Locale | null;
-  automationHooksPreviewTheme: PreviewTheme;
-  automationHooksPreviewLocale: Locale | null;
   mcpSettingsPreviewTheme: PreviewTheme;
   mcpSettingsPreviewLocale: Locale | null;
 };
@@ -71,14 +68,11 @@ export function resolveRuntimeQuery(
   const isQuickChatPreview = devQuery?.has("quick-chat-preview") === true;
   const isChannelsSettingsPreview = devQuery?.has("channels-settings-preview") === true;
   const isAgentsSettingsPreview = devQuery?.has("agents-settings-preview") === true;
-  const isAutomationHooksPreview = devQuery?.has("automation-hooks-preview") === true;
   const isMcpSettingsPreview = devQuery?.has("mcp-settings-preview") === true;
   const isQuickChatWindow = runtimeQuery?.has("quick-chat-window") === true;
   const isOnboardingWindow = runtimeQuery?.has("onboarding-window") === true;
   const isRoleEditorWindow = runtimeQuery?.has("role-editor-window") === true;
-  const settingsWindowKind =
-    parseSettingsWindowKind(runtimeQuery?.get("settings-window") ?? null) ??
-    (isAutomationHooksPreview ? "automation" : null);
+  const settingsWindowKind = parseSettingsWindowKind(runtimeQuery?.get("settings-window") ?? null);
 
   return {
     frontendActivationVersion: runtimeQuery?.get("frontend-version") ?? null,
@@ -89,7 +83,6 @@ export function resolveRuntimeQuery(
     standaloneDevPreview: resolveStandaloneDevPreview(runtimeQuery, development),
     isChannelsSettingsPreview,
     isAgentsSettingsPreview,
-    isAutomationHooksPreview,
     isMcpSettingsPreview,
     settingsPreviewSection: settingsPreviewSection(
       isMcpSettingsPreview,
@@ -110,8 +103,6 @@ export function resolveRuntimeQuery(
     channelsSettingsPreviewLocale: previewLocale(devQuery, "channels-settings-preview-locale"),
     agentsSettingsPreviewTheme: previewTheme(devQuery, "agents-settings-preview-theme"),
     agentsSettingsPreviewLocale: previewLocale(devQuery, "agents-settings-preview-locale"),
-    automationHooksPreviewTheme: previewTheme(devQuery, "automation-hooks-preview-theme"),
-    automationHooksPreviewLocale: previewLocale(devQuery, "automation-hooks-preview-locale"),
     mcpSettingsPreviewTheme: previewTheme(devQuery, "mcp-settings-preview-theme"),
     mcpSettingsPreviewLocale: previewLocale(devQuery, "mcp-settings-preview-locale"),
   };

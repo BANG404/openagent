@@ -8,14 +8,12 @@ export type SettingsNav =
   | "execution"
   | "agents"
   | "memory"
-  | "lifecycle"
-  | "schedules"
   | "extensions"
   | "plugins"
   | "about";
 
 export type SettingsWindowKind =
-  "general" | "models" | "agent" | "integrations" | "memory" | "automation" | "about";
+  "general" | "models" | "agent" | "integrations" | "memory" | "about";
 
 export const settingsWindowSections: Record<SettingsWindowKind, SettingsNav[]> = {
   general: ["general"],
@@ -23,7 +21,6 @@ export const settingsWindowSections: Record<SettingsWindowKind, SettingsNav[]> =
   agent: ["execution", "agents"],
   integrations: ["channels", "extensions", "plugins"],
   memory: ["memory"],
-  automation: ["lifecycle", "schedules"],
   about: ["about"],
 };
 
@@ -33,7 +30,6 @@ export const settingsWindowTitles: Record<SettingsWindowKind, TranslationKeys> =
   agent: "agentWindowTitle",
   integrations: "integrationsWindowTitle",
   memory: "memoryManagement",
-  automation: "automationWindowTitle",
   about: "aboutWindowTitle",
 };
 

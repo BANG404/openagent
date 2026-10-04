@@ -90,8 +90,6 @@
     Digit4: { kind: "memory", section: "memory" },
     Digit5: { kind: "integrations", section: "channels" },
     Digit6: { kind: "integrations", section: "extensions" },
-    Digit7: { kind: "automation", section: "lifecycle" },
-    Digit8: { kind: "automation", section: "schedules" },
   };
 
   function isTextControl(element: Element | null): element is TextControl {
@@ -198,11 +196,9 @@
               ? "application-role-menu"
               : key === "i"
                 ? "application-integrations-menu"
-                : key === "u"
-                  ? "application-automation-menu"
-                  : key === "h"
-                    ? "application-help-menu"
-                    : null;
+                : key === "h"
+                  ? "application-help-menu"
+                  : null;
       if (!triggerId) return;
       if (key === "e") captureEditContext();
       runShortcut(event, () => {
@@ -497,36 +493,6 @@
             >{primaryModifier}+Shift+7</span
           ></DropdownMenu.Item
         >
-      </DropdownMenu.Content>
-    </DropdownMenu.Portal>
-  </DropdownMenu.Root>
-
-  <DropdownMenu.Root>
-    <DropdownMenu.Trigger
-      id="application-automation-menu"
-      class="application-menu-trigger"
-      accesskey="u">{$t("automationMenu")}</DropdownMenu.Trigger
-    >
-    <DropdownMenu.Portal>
-      <DropdownMenu.Content
-        class="desktop-menu-panel application-menu-content"
-        sideOffset={2}
-        align="start"
-      >
-        <DropdownMenu.Item
-          class="application-menu-item"
-          onSelect={() => onOpenSettingsWindow("automation", "lifecycle")}
-          ><span>{$t("lifecycleAutomation")}…</span><span class="application-menu-shortcut"
-            >{primaryModifier}+Shift+7</span
-          ></DropdownMenu.Item
-        >
-        <DropdownMenu.Item
-          class="application-menu-item"
-          onSelect={() => onOpenSettingsWindow("automation", "schedules")}
-        >
-          <span>{$t("scheduledHooks")}…</span>
-          <span class="application-menu-shortcut">{primaryModifier}+Shift+8</span>
-        </DropdownMenu.Item>
       </DropdownMenu.Content>
     </DropdownMenu.Portal>
   </DropdownMenu.Root>

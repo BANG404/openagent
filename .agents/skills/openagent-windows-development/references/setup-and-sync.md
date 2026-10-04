@@ -49,6 +49,10 @@ repeatedly copy a full background output buffer.
 
 ## Syncing commits from WSL
 
+The post-commit hook tests prefer the installed `bash.exe` on PATH, with the
+standard Git installation directory as a fallback. Keep portable Git Bash
+ahead of the Windows WSL launcher on PATH when running Windows preflight.
+
 The WSL checkout and the native Windows checkout should remain separate Git
 working trees. Configure the existing Windows checkout as a local source remote
 from WSL once. Replace `Ubuntu` if the distribution has another name:

@@ -13,7 +13,6 @@
     "settings-agent",
     "settings-integrations",
     "settings-memory",
-    "settings-automation",
     "settings-about"
   ],
   "permissions": [

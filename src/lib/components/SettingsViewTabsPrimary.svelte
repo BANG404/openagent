@@ -13,8 +13,6 @@
     AgentPluginUpdateSummary,
     AgentRole,
     AppConfig,
-    AutomationHookConfig,
-    AutomationHookEvent,
     PermissionProfile,
     ProviderConfig,
   } from "$lib/types";
@@ -1456,13 +1454,6 @@
           tone="quiet"
           onclick={() => view.refreshMemory()}
           disabled={view.memoryLoading || view.memorySaving || view.memoryBusy}
-        />
-        <SettingsActionButton
-          label={$t("memoryExtractNow")}
-          icon="sparkles"
-          tone="quiet"
-          onclick={view.extractMemory}
-          disabled={view.memoryExtracting || view.memoryBusy || !view.memoryScopeAvailable()}
         />
       </div>
     </div>

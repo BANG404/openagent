@@ -231,7 +231,6 @@
     standaloneDevPreview,
     isChannelsSettingsPreview,
     isAgentsSettingsPreview,
-    isAutomationHooksPreview,
     isMcpSettingsPreview,
     settingsPreviewSection,
     isRoleEditorWindow,
@@ -246,8 +245,6 @@
     channelsSettingsPreviewLocale,
     agentsSettingsPreviewTheme,
     agentsSettingsPreviewLocale,
-    automationHooksPreviewTheme,
-    automationHooksPreviewLocale,
     mcpSettingsPreviewTheme,
     mcpSettingsPreviewLocale,
   } = resolveRuntimeQuery(
@@ -5644,24 +5641,6 @@
       <SettingsWindowSurface
         kind={settingsWindowKind}
         initialSection={settingsWindowInitialSection}
-        previewConfig={isAutomationHooksPreview
-          ? {
-              ...fallbackConfig,
-              theme: automationHooksPreviewTheme ?? fallbackConfig.theme,
-              language: automationHooksPreviewLocale ?? fallbackConfig.language,
-              automation_hooks: [
-                {
-                  id: "preview-post-tool",
-                  name: "Review changed files",
-                  enabled: true,
-                  event: "after_tool",
-                  matcher: "^(exec_command|apply_patch)$",
-                  timeout_secs: 30,
-                  action: { type: "command", command: "bun run check:changed-files" },
-                },
-              ],
-            }
-          : undefined}
       />
     {:else}
       <div class="settings-route-loading">

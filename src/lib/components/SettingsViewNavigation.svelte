@@ -12,8 +12,6 @@
     AgentMemoryEntry,
     AgentRole,
     AppConfig,
-    AutomationHookConfig,
-    AutomationHookEvent,
     PermissionProfile,
     ProviderConfig,
   } from "$lib/types";
@@ -227,42 +225,6 @@
       <Tabs.Trigger value="plugins" class="settings-nav-item">
         <span class="nav-icon" aria-hidden="true">◈</span>
         {$t("plugins")}
-      </Tabs.Trigger>
-    {/if}
-    {#if view.visibleSections.has("lifecycle")}
-      <Tabs.Trigger value="lifecycle" class="settings-nav-item">
-        <svg
-          class="nav-icon"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="8" cy="8" r="5.5" />
-          <path d="M8 4.8V8l2.2 1.4" />
-        </svg>
-        {$t("lifecycleAutomation")}
-      </Tabs.Trigger>
-    {/if}
-    {#if view.visibleSections.has("schedules")}
-      <Tabs.Trigger value="schedules" class="settings-nav-item">
-        <svg
-          class="nav-icon"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="8" cy="8" r="5.5" />
-          <path d="M8 4.8V8l2.2 1.4" />
-        </svg>
-        {$t("scheduledHooks")}
       </Tabs.Trigger>
     {/if}
   </div>

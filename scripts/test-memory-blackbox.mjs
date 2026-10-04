@@ -98,6 +98,7 @@ try {
         language,
       );
       openMemory();
+      scenario("retired-management-controls.toml");
       evaluate(`(() => {
         if (!document.documentElement.classList.contains(${JSON.stringify(theme)})) throw new Error("wrong theme");
         if (!document.body.innerText.includes(${JSON.stringify(language === "en" ? "User Memory" : "用户记忆")})) throw new Error("wrong locale");
