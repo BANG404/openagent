@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { Transpiler } from "bun";
 import { readPluginDevIndex, resolvePluginDevPath } from "./plugin-dev-paths.mjs";
 import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
 
@@ -79,6 +80,9 @@ async function until(expression, message) {
 /** @param {string} name */
 function capture(name) {
   pilot(["ipc", "reveal_main_window"]);
+  evaluate(
+    `document.querySelector(${JSON.stringify(name.endsWith("-uninstalled") ? '.official-plugin-card[data-plugin-id="message-board"]' : '.plugin-accordion-item[data-plugin-id="message-board"]')}).scrollIntoView({block:'center'}); true`,
+  );
   assert(
     process.env.BLACKBOX_NATIVE_WINDOW_HANDLE,
     "set BLACKBOX_NATIVE_WINDOW_HANDLE for real native captures",
@@ -103,6 +107,8 @@ const original = invoke("get_settings", {});
 /** @type {Array<Record<string, unknown>>} */
 const passes = [];
 let installed = false;
+let subsetInstalled = false;
+let sidebarInstalled = false;
 try {
   // This fixture needs the managed network-enabled profile to avoid provisioning
   // the restricted Windows account from a plugin process. It grants no host access.
@@ -127,6 +133,10 @@ try {
   };
   invoke("set_workspace", { path: workspace });
   invoke("save_settings", { config });
+  invoke("install_agent_plugin", { source: join(repo, "tests/fixtures/plugin-i18n") });
+  subsetInstalled = true;
+  invoke("install_agent_plugin", { source: join(repo, "tests/fixtures/plugin-i18n-sidebar") });
+  sidebarInstalled = true;
   for (const theme of ["light", "dark"]) {
     for (const language of ["en", "zh"]) {
       evaluate(
@@ -150,6 +160,20 @@ try {
       );
       pilot(["snapshot", "-i"]);
       pilot(["run", join(repo, "tests/blackbox/message-board.toml")]);
+      // Keep test files outside Vite's product serving boundary. Inject only the
+      // fixture harness; it mounts the actual compiled application component.
+      const mountFixture = new Transpiler({ loader: "ts" })
+        .transformSync(readFileSync(join(repo, "tests/fixtures/plugin-i18n/mount.ts"), "utf8"))
+        .replace(/^import[\s\S]*?;\s*$/gm, "")
+        .replace(/^export\s+/gm, "");
+      evaluate(`(async () => {
+        const {mount, unmount} = await import('/node_modules/.vite/deps/svelte.js');
+        const {default: McpAppFrame} = await import('/src/lib/components/McpAppFrame.svelte');
+        ${mountFixture}
+        window.__mountPluginLocaleFrame = mountLocaleFrame;
+        return true;
+      })()`);
+      pilot(["run", join(repo, "tests/blackbox/plugin-i18n.toml")]);
       capture(`${theme}-${language}-installed`);
       const root = JSON.parse(evaluate("JSON.stringify(window.__messageBoardProbe.root)"));
       const boardPath = join(fixture, "plugin-data/message-board/board.json");
@@ -169,6 +193,12 @@ try {
         "document.querySelector('.official-plugin-card[data-plugin-id=message-board]')?.dataset.installed === 'false'",
         "marketplace did not restore install action",
       );
+      assert.equal(
+        evaluate(
+          "document.querySelector('.official-plugin-card[data-plugin-id=message-board] .plugin-languages')?.dataset.supportedLocales",
+        ),
+        "en,zh",
+      );
       capture(`${theme}-${language}-uninstalled`);
       invoke("install_agent_plugin", { source });
       installed = true;
@@ -184,7 +214,16 @@ try {
       assert.equal(result.structuredContent.text, "中文 😀 native board");
       invoke("uninstall_agent_plugin", { id: "message-board" });
       installed = false;
-      passes.push({ theme, language, tools: 9, dataPreserved: true, reinstallRead: true });
+      passes.push({
+        theme,
+        language,
+        tools: 9,
+        dataPreserved: true,
+        reinstallRead: true,
+        liveLocale: true,
+        mcpAppInputPreserved: true,
+        sidebarInputPreserved: true,
+      });
       process.stdout.write(
         `${theme}/${language}: nine tools, enablement, uninstall/reinstall passed\n`,
       );
@@ -196,10 +235,13 @@ try {
   );
   process.stdout.write(`Message Board native qualification passed. Artifacts: ${artifacts}\n`);
 } finally {
+  evaluate("(async () => {await window.__pluginI18nCleanup?.(); return true;})()");
   evaluate(
     "document.querySelector('[role=dialog] button[aria-label=Close], [role=dialog] button[aria-label=关闭]')?.click(); true",
   );
   if (installed) invoke("uninstall_agent_plugin", { id: "message-board" });
+  if (subsetInstalled) invoke("uninstall_agent_plugin", { id: "locale-subset-fixture" });
+  if (sidebarInstalled) invoke("uninstall_agent_plugin", { id: "locale-sidebar-fixture" });
   invoke("save_settings", { config: original });
   invoke("set_workspace", { path: original.workspace });
 }

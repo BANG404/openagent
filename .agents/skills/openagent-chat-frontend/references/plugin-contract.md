@@ -35,3 +35,16 @@ scheduling; the frontend only renders the projection and routes the command.
 Plugin command summaries admit `optional_text` alongside `none` and
 `required_text`. Bare and parameterized commands use the same SDK submission
 path; domain subcommands are interpreted by the package, never the composer.
+
+Plugin command summaries optionally carry validated `plugin_i18n` presentation
+metadata. Resolve labels and descriptions against the application locale in
+both desktop and remote composers; keep the original command IDs and submission
+path. MCP App frames initialize `hostContext.locale` from the application locale
+and send `ui/notifications/host-context-changed` on live switching without
+remounting the iframe or discarding its input. Browser language is not a host
+locale source. Package language requirements belong to plugin development.
+
+ConversationSurface also derives sidebar context from the resolved application
+locale store, rather than the raw configuration preference (`system` or a stale
+saved snapshot). Sidebar titles and first/live context must follow the same locale
+while preserving the mounted iframe and its draft.

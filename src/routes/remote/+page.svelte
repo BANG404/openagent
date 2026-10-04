@@ -31,7 +31,8 @@
     type ConvTree,
   } from "$lib/checkpointTree";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
-  import { setLocale, t, tr, type Locale, type TranslationKeys } from "$lib/i18n";
+  import { setLocale, locale, t, tr, type Locale, type TranslationKeys } from "$lib/i18n";
+  import { pluginCommandText } from "$lib/pluginI18n";
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
     clearQueuedChatMessages,
@@ -335,8 +336,18 @@
         {
           id: catalogKey,
           name: catalogKey,
-          label: spec.label ?? tr(spec.label_key as TranslationKeys),
-          description: spec.description ?? tr(spec.description_key as TranslationKeys),
+          label: pluginCommandText(
+            spec,
+            $locale,
+            "label",
+            spec.label ?? tr(spec.label_key as TranslationKeys),
+          ),
+          description: pluginCommandText(
+            spec,
+            $locale,
+            "description",
+            spec.description ?? tr(spec.description_key as TranslationKeys),
+          ),
           insertText,
           run: run ?? undefined,
         },

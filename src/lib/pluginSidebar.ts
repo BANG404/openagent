@@ -1,5 +1,6 @@
 import type { AgentPluginSidebarViewSummary, AgentPluginSummary } from "./types";
 import type { RightSidebarPanel } from "./rightSidebar";
+import { pluginText } from "./pluginI18n";
 
 /**
  * Why a declared plugin right-sidebar view is or is not reachable right now.
@@ -59,6 +60,7 @@ export function pluginSidebarLifecycle(
 export function pluginSidebarEntries(
   plugins: readonly AgentPluginSummary[],
   context: PluginSidebarContext,
+  locale = "en",
 ): PluginSidebarEntry[] {
   const entries: PluginSidebarEntry[] = [];
   const seen = new Set<string>();
@@ -69,7 +71,15 @@ export function pluginSidebarEntries(
       entries.push({
         panel: view.id,
         pluginId: plugin.id,
-        view,
+        view: {
+          ...view,
+          title: pluginText(
+            plugin.i18n,
+            locale,
+            `sidebar.${view.id.split(":").at(-1)}.title`,
+            view.title,
+          ),
+        },
         lifecycle: pluginSidebarLifecycle(view, plugin, context),
         pluginRevision: `${plugin.id}@${plugin.version ?? "unversioned"}`,
       });

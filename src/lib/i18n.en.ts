@@ -1191,6 +1191,9 @@ const en: Record<TranslationKeys, string> = {
   mdEditorFrontmatterAddEntry: "Add entry",
   mdEditorReadImageFailed: "Unable to read image",
   mdEditorOnlyImages: "Only image files can be inserted",
+  pluginSupportedLanguages: "Languages",
+  pluginLanguagesUnknown: "Unknown",
+  pluginLanguageFallback: "Application language unsupported; displaying {language}",
 };
 
 export { en };

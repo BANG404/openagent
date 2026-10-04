@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <body>
+    <label id="label">Draft <input id="draft" /></label>
+    <p id="locale"></p>
+    <script>
+      addEventListener("message", (event) => {
+        const message = event.data;
+        if (
+          event.source !== parent ||
+          message?.type !== "openagent:sidebar-context" ||
+          message.version !== 1 ||
+          typeof message.locale !== "string"
+        )
+          return;
+        const locale = message.locale === "zh" ? "zh" : "en";
+        document.documentElement.lang = locale;
+        document.getElementById("locale").textContent = locale;
+        document.getElementById("label").firstChild.textContent =
+          locale === "zh" ? "草稿 " : "Draft ";
+      });
+    </script>
+  </body>
+</html>

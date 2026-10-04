@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "locale-subset-fixture",
+  "version": "1.0.0",
+  "description": "English fallback fixture",
+  "extensions": {
+    "openagent": {
+      "i18n": {
+        "supported_locales": ["en"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "English subset fixture",
+            "description": "English fallback fixture"
+          }
+        }
+      }
+    }
+  }
+}

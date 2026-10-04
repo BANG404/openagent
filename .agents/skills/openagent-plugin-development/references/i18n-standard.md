@@ -3,7 +3,7 @@
 This reference owns language requirements for plugin authoring, presentation,
 and release qualification. They apply to official and third-party packages,
 including packages without custom UI. Requirements below are acceptance
-criteria; the implementation boundary at the end records current gaps.
+criteria; the implementation boundary at the end records the shared contract.
 
 ## Declare and display supported languages
 
@@ -15,7 +15,8 @@ in a language does not establish UI support. Packages without custom UI still
 cover their host-visible metadata, commands, and notices.
 
 Use the platform's locale identifiers for platform languages. The source of
-truth is `Locale` in `src/lib/i18n.ts`, currently `zh` (Chinese) and `en`
+truth is `src/lib/platformLocales.json`, exposed as `Locale` in
+`src/lib/i18n.ts`, currently `zh` (Chinese) and `en`
 (English); additional languages use valid BCP 47 tags. Validate declarations
 at the package boundary and carry the normalized list and default through the
 typed descriptor and marketplace projection. Do not infer support from a
@@ -89,15 +90,35 @@ declarations or key parity alone do not prove usable translated UI.
 
 ## Implementation boundary
 
-The sidebar bridge already carries the requested locale. The current typed
-plugin descriptor and official catalog do not expose supported-language
-metadata; `McpAppFrame.svelte` currently initializes locale from
-`navigator.language`. These are gaps against this standard. This document
-does not introduce a new manifest field or bridge operation by itself.
+Declare `extensions.openagent.i18n` with `supported_locales`, `default_locale`,
+and `translations`. Each locale maps flat keys to non-empty strings:
+`display_name`, `description` when present, `commands.<id>.label`,
+`commands.<id>.description`, `sidebar.<id>.title`, and package `notice.<key>`.
+All locales carry the same keys and interpolation parameters. Runtime rejects
+malformed declarations; missing declarations in older packages remain unknown.
+Notice keys include their prefix in the 128-byte UTF-8 limit; each translated
+string is limited to 4096 UTF-8 bytes, with at most 256 keys per locale.
+The SDK owns validation and typed `AgentPluginI18n` descriptors. The public kit
+owns the matching schema, validator, templates, and author instructions.
 
-Implement language declarations together across Runtime validation, typed
-client descriptors, catalog/cards, and plugin-kit schema, validator, docs, and
-templates. [Published sources](published-sources.md) owns those repository
-boundaries. Official translations and release qualification belong to their
-package repositories. Report compliance only after implementation and the
-relevant qualification satisfy these requirements.
+Installed cards use the package descriptor; uninstalled cards use validated
+catalog metadata. Commands carry `plugin_i18n` without changing routing IDs.
+Sidebar titles use the same resolver without recreating frames. MCP Apps receive
+the application locale at initialization and on live host-context updates.
+
+Sidebar asset reload identity consists only of installed package revision,
+view ID and entry path. Localized title changes update accessibility and visible
+labels while retaining the same iframe URL, draft and scoped state. Loading and
+failure labels use application translations.
+Authenticated independent process clients call versioned `locale.get` for current
+resolved application language before producing notices. Direct and model-proxied
+MCP tool calls receive live transient `_openagent.locale`, so offline tools do
+not need process network access to obtain their presentation language.
+That context never becomes package data.
+
+Run kit validation with `--require-i18n`; official qualification additionally
+passes `--locales=<comma-separated keys from platformLocales.json>`. Adding a
+platform locale updates application resolution, SDK process locale resolution,
+translations, and native qualification together. Legacy official packages with
+unknown declarations remain unqualified under this standard until updated.
+[Published sources](published-sources.md) owns repository publication boundaries.

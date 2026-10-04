@@ -24,7 +24,7 @@
     WorkspaceContext,
     AgentPluginSidebarViewSummary,
   } from "$lib/types";
-  import { t } from "$lib/i18n";
+  import { t, locale } from "$lib/i18n";
   import { showToast } from "$lib/toast";
   import { motionDuration } from "$lib/motion";
   import ChatQueue from "./ChatQueue.svelte";
@@ -157,7 +157,7 @@
     workspacePath: view.workspacePath || null,
     conversationId: view.activeConvId,
     branchId: view.activeBranchId,
-    locale: view.config?.language ?? "en",
+    locale: $locale,
     theme: view.config?.theme ?? "system",
     fileChanges: view.fileChanges.map((change) => ({
       path: change.path,

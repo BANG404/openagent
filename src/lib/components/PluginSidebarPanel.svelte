@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
+  import { onDestroy, untrack } from "svelte";
+  import { t } from "$lib/i18n";
   import type { AgentPluginSidebarViewSummary } from "$lib/types";
   import { desktopOpenAgent } from "$lib/openagent/tauriClient";
 
@@ -31,6 +32,7 @@
   let error = $state<string | null>(null);
   let loading = $state(true);
   let frame = $state<HTMLIFrameElement | null>(null);
+  const assetIdentity = $derived(`${view.id}\u0000${view.entry}\u0000${pluginSidebarRevision}`);
 
   function pluginContext(): Record<string, unknown> {
     const capabilities = new Set(view.capabilities ?? []);
@@ -57,7 +59,7 @@
     loading = true;
     error = null;
     if (!view.id.startsWith("plugin:") || !view.entry) {
-      error = "Invalid plugin sidebar view";
+      error = "invalid";
       loading = false;
       return;
     }
@@ -81,10 +83,8 @@
   // install, update, or enable/disable re-reads the document instead of leaving
   // the panel on the snapshot it loaded first.
   $effect(() => {
-    view.id;
-    view.entry;
-    pluginSidebarRevision;
-    void load();
+    assetIdentity;
+    untrack(() => void load());
   });
 
   $effect(() => {
@@ -108,9 +108,11 @@
 
 <section class="plugin-panel" aria-label={view.title}>
   {#if loading}
-    <p class="plugin-state">Loading plugin view...</p>
+    <p class="plugin-state">{$t("loadingContent")}</p>
   {:else if error}
-    <p class="plugin-state plugin-error">{error}</p>
+    <p class="plugin-state plugin-error">
+      {$t("pluginSidebarInvalid")}{error === "invalid" ? "" : `: ${error}`}
+    </p>
   {:else if src}
     <!-- WebView2 requires same-origin blob documents to paint sandboxed HTML. -->
     <iframe

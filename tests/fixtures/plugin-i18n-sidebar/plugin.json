@@ -1,0 +1,35 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "locale-sidebar-fixture",
+  "version": "1.0.0",
+  "description": "Sidebar language fixture",
+  "extensions": {
+    "openagent": {
+      "sidebar": [
+        {
+          "id": "panel",
+          "title": "Contract panel",
+          "entry": "ui/panel.html",
+          "scope": "global",
+          "capabilities": ["locale", "theme"]
+        }
+      ],
+      "i18n": {
+        "supported_locales": ["en", "zh"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Locale contract fixture",
+            "description": "Sidebar language fixture",
+            "sidebar.panel.title": "Contract panel"
+          },
+          "zh": {
+            "display_name": "语言契约测试插件",
+            "description": "侧栏语言测试",
+            "sidebar.panel.title": "契约面板"
+          }
+        }
+      }
+    }
+  }
+}

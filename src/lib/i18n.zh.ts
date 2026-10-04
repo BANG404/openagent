@@ -1,4 +1,7 @@
 export const zh = {
+  pluginSupportedLanguages: "支持语言",
+  pluginLanguagesUnknown: "未知",
+  pluginLanguageFallback: "不支持当前应用语言，正在显示{language}",
   loadingContent: "正在加载内容…",
   // Sidebar
   newBtn: "+ 新建",

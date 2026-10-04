@@ -19,6 +19,15 @@ an archive that the existing Runtime marketplace installer understands. Optional
 fragments, duplicate ids, unsupported schema versions, and oversized catalogs
 are rejected before a source is passed to the installer.
 
+Optional `i18n` entries use the validated `AgentPluginI18n` presentation shape.
+Uninstalled cards use catalog declarations; installed cards refresh from the
+authoritative installed summary and show unknown support when it has no
+declaration. Display readable full language lists in both tabs, localize metadata
+before search, and show the actual fallback language for unsupported locales.
+New official entries require complete translations for the platform locale set
+from `src/lib/platformLocales.json`; older unknown entries do not establish
+qualification under the current i18n standard.
+
 The registry only supplies discovery and source addresses. Manifest validation,
 package containment, process policy, and installation remain Runtime-owned. A
 hosted registry can therefore be served from a CDN or another public HTTPS
@@ -137,6 +146,9 @@ isolated native instance with an explicit `TAURI_PILOT_SOCKET` and main
 independent candidate checkout; otherwise use the tracked development index.
 The runner covers all nine MCP tools, card component counts, enablement,
 uninstall/reinstall with retained data, and light/dark in English/Chinese.
-Reports include source and SDK revisions. Host locale combinations alone do not
-qualify package translations or supported-language display; those require the
-i18n standard's separate assertions before official publication.
+Reports include source and SDK revisions. `plugin-i18n.toml` additionally asserts
+both language lists, live metadata/notices, third-party subset fallback, and
+the real MCP App frame's first-mount and live locale while retaining input.
+The same scenario mounts a real sidebar fixture and asserts its first/live locale,
+translated title, stable iframe identity, and retained entered draft.
+The runner verifies both switch directions in all theme/language combinations.

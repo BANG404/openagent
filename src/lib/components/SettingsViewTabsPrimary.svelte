@@ -31,6 +31,8 @@
   import { agentPluginUpdateErrorKey } from "$lib/agentPluginUpdateCheck";
   import { desktopPluginInstallQueue, type PluginInstallTask } from "$lib/agentPluginInstallQueue";
   import PluginInstallNotice from "./PluginInstallNotice.svelte";
+  import PluginLanguageSupport from "./PluginLanguageSupport.svelte";
+  import { pluginText } from "$lib/pluginI18n";
   import type { OfficialPluginCatalogItem } from "$lib/officialPluginRegistry";
   import { applyDocumentTheme } from "$lib/appTheme";
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
@@ -63,7 +65,7 @@
     settingsConfigChanged,
     type RetryQueueKind,
   } from "$lib/settingsConfig";
-  import { t, tr, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
+  import { t, tr, locale, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
   import Select from "./ui/Select.svelte";
   import SegmentedControl from "./ui/SegmentedControl.svelte";
@@ -435,6 +437,7 @@
                 {#if plugin.description}
                   <p class="official-plugin-description">{plugin.description}</p>
                 {/if}
+                <PluginLanguageSupport i18n={plugin.i18n} />
                 <div class="official-plugin-meta">
                   <span>
                     {#if plugin.installed && plugin.currentVersion}
@@ -621,12 +624,20 @@
             <Accordion.Header class="plugin-accordion-header">
               <Accordion.Trigger class="plugin-accordion-trigger">
                 <span class="plugin-accordion-copy">
-                  <span class="label-text">{plugin.name}</span>
+                  <span class="label-text"
+                    >{pluginText(plugin.i18n, $locale, "display_name", plugin.name)}</span
+                  >
                   <span class="detail-hint"
                     >{plugin.id === desktopControlPluginId
                       ? $t("pluginDesktopControlDescription")
-                      : (plugin.description ?? plugin.id)}</span
+                      : pluginText(
+                          plugin.i18n,
+                          $locale,
+                          "description",
+                          plugin.description ?? plugin.id,
+                        )}</span
                   >
+                  <PluginLanguageSupport i18n={plugin.i18n} />
                   {#if plugin.license || plugin.homepage}
                     <span class="detail-hint"
                       >{[plugin.license, plugin.homepage].filter(Boolean).join(" · ")}</span
@@ -661,7 +672,7 @@
                     id={`plugin-enable-${plugin.id}`}
                     checked={view.agentPluginEnabled(plugin.id)}
                     onCheckedChange={(enabled) => view.setAgentPluginEnabled(plugin.id, enabled)}
-                    ariaLabel={plugin.name}
+                    ariaLabel={pluginText(plugin.i18n, $locale, "display_name", plugin.name)}
                   />
                 </div>
               {/if}

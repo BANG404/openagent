@@ -52,7 +52,8 @@
     promoteRecentConversation,
     togglePinnedProjectPath,
   } from "$lib/sidebarProjects";
-  import { t, tr, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
+  import { t, tr, locale, initI18n, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
+  import { pluginCommandText } from "$lib/pluginI18n";
   import { LatestRequest } from "$lib/latestRequest";
   import { showToast } from "$lib/toast";
   import { ensureCuaDriverServer, isCuaDriverEnabled } from "$lib/cuaDriver";
@@ -849,7 +850,9 @@
     hasWorkspace: workspacePath.trim().length > 0,
     hasConversation: activeConvId !== null,
   });
-  let pluginSidebarRegistry = $derived(pluginSidebarEntries(agentPlugins, pluginSidebarContext));
+  let pluginSidebarRegistry = $derived(
+    pluginSidebarEntries(agentPlugins, pluginSidebarContext, $locale),
+  );
   let pluginSidebarViews = $derived(availablePluginSidebarViews(pluginSidebarRegistry));
   let pluginSidebarRevision = $derived(pluginSidebarRevisionOf(pluginSidebarRegistry));
   let rightSidebarAvailable = $derived(
@@ -5441,8 +5444,18 @@
         {
           id: commandName,
           name: commandName,
-          label: spec.label ?? $t(spec.label_key as TranslationKeys),
-          description: spec.description ?? $t(spec.description_key as TranslationKeys),
+          label: pluginCommandText(
+            spec,
+            $locale,
+            "label",
+            spec.label ?? $t(spec.label_key as TranslationKeys),
+          ),
+          description: pluginCommandText(
+            spec,
+            $locale,
+            "description",
+            spec.description ?? $t(spec.description_key as TranslationKeys),
+          ),
           insertText,
           run: run ?? undefined,
         },

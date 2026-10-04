@@ -1,0 +1,73 @@
+[scenario]
+name = "Plugin languages follow the live application locale without discarding state"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "installed metadata and process notices follow both language directions"
+action = "eval"
+script = '''(async () => {
+  const {desktopOpenAgent: client} = await import('/src/lib/openagent/tauriClient.ts');
+  const {setLocale} = await import('/src/lib/i18n.ts');
+  const probe = window.__messageBoardProbe;
+  const card = document.querySelector('.plugin-accordion-item[data-plugin-id="message-board"]');
+  const expanded = card.querySelector('.plugin-accordion-trigger').getAttribute('aria-expanded');
+  const config = await client.invokeProduct('get_settings', {});
+  setLocale(config.language);
+  window.__pluginI18nCleanup = window.__mountPluginLocaleFrame();
+  const frame = document.querySelector('#plugin-i18n-frame-fixture iframe');
+  await probe.until(() => document.querySelector('#plugin-i18n-frame-fixture .mcp-app-frame')?.style.height === (config.language === 'zh' ? '372px' : '332px'));
+  for (const language of [config.language === 'zh' ? 'en' : 'zh', config.language]) {
+    await client.invokeProduct('save_settings', {config:{...config, language}});
+    setLocale(language);
+    await probe.until(() => card.textContent.includes(language === 'zh' ? '为智能体提供持久化频道' : 'Durable channels'));
+    const support = card.querySelector('.plugin-languages');
+    if (support.dataset.supportedLocales !== 'en,zh' || !support.textContent.includes('English') || !support.textContent.includes('中文')) throw new Error('installed language list is incomplete');
+    if (card.querySelector('.plugin-accordion-trigger').getAttribute('aria-expanded') !== expanded) throw new Error('language change lost expanded selection');
+    const subset = document.querySelector('.plugin-accordion-item[data-plugin-id="locale-subset-fixture"]');
+    if (subset?.querySelector('.plugin-languages')?.dataset.supportedLocales !== 'en' || !subset.textContent.includes('English subset fixture')) throw new Error('third-party subset was misrepresented');
+    if (!!subset.querySelector('.plugin-locale-fallback') !== (language === 'zh')) throw new Error('unsupported locale fallback explanation is missing or stale');
+    if (document.querySelector('#plugin-i18n-frame-fixture iframe') !== frame) throw new Error('language change remounted the app');
+    await probe.until(() => document.querySelector('#plugin-i18n-frame-fixture .mcp-app-frame')?.style.height === (language === 'zh' ? '372px' : '332px'));
+    const result = await client.invokeProduct('call_agent_plugin_tool', {plugin_id:'message-board',tool_name:'read_post',arguments:{agent_id:'/root/native',message_id:'missing-locale-probe'}});
+    const notice = result.content[0].text;
+    if (!result.isError || !notice.includes('missing-locale-probe') || /[\u4e00-\u9fff]/.test(notice) !== (language === 'zh')) throw new Error('process notice used a stale locale');
+    if ((await probe.call('read_post', {message_id:probe.root.message_id})).text !== '中文 😀 native board') throw new Error('switch changed user content');
+  }
+  await window.__pluginI18nCleanup();
+  delete window.__pluginI18nCleanup;
+  return 'locale lists, notices, first-mount MCP App locale, live context and retained input passed';
+})()'''
+
+[[step]]
+name = "sidebar receives first and live locale without reloading its entered draft"
+action = "eval"
+script = '''(async () => {
+  const {desktopOpenAgent: client} = await import('/src/lib/openagent/tauriClient.ts');
+  const {setLocale} = await import('/src/lib/i18n.ts');
+  const until = window.__messageBoardProbe.until;
+  const config = await client.invokeProduct('get_settings', {});
+  document.querySelector('[role=dialog] button[aria-label=Close], [role=dialog] button[aria-label=关闭]').click();
+  await until(() => !document.querySelector('[role=dialog]'));
+  const expand = [...document.querySelectorAll('button')].find(button => /^(Expand right sidebar|展开右侧栏)$/.test(button.getAttribute('aria-label') || ''));
+  expand?.click();
+  await until(() => [...document.querySelectorAll('button')].some(button => /^(Contract panel|契约面板)$/.test(button.textContent.trim())));
+  [...document.querySelectorAll('button')].find(button => /^(Contract panel|契约面板)$/.test(button.textContent.trim())).click();
+  await until(() => document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument?.querySelector('#locale')?.textContent === config.language);
+  const frame = document.querySelector('#checkpoint-flow-panel iframe');
+  const source = frame.src;
+  frame.contentDocument.querySelector('#draft').value = 'Typed 用户草稿';
+  for (const language of [config.language === 'zh' ? 'en' : 'zh', config.language]) {
+    await client.invokeProduct('save_settings', {config:{...config,language}});
+    setLocale(language);
+    await until(() => frame.contentDocument?.querySelector('#locale')?.textContent === language && frame.title === (language === 'zh' ? '契约面板' : 'Contract panel'));
+    if (document.querySelector('#checkpoint-flow-panel iframe') !== frame || frame.src !== source || frame.contentDocument.querySelector('#draft').value !== 'Typed 用户草稿') throw new Error('sidebar language switching reloaded input or scope');
+  }
+  document.querySelector('#application-integrations-menu').click();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  [...document.querySelectorAll('[role=menuitem]')].find(item => /Plugins|插件/.test(item.textContent)).click();
+  await until(() => !!document.querySelector('.plugin-management-tabs'));
+  document.querySelectorAll('.plugin-management-tabs button')[1].click();
+  await until(() => !!document.querySelector('.plugin-accordion-item[data-plugin-id=message-board]'));
+  return 'sidebar first locale, translated title and entered draft survived both switches and reopening';
+})()'''

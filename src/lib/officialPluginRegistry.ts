@@ -7,6 +7,7 @@
  */
 
 import bundledRegistry from "./officialPluginRegistry.json";
+import { parsePluginI18n, pluginText, type AgentPluginI18n } from "./pluginI18n";
 
 export const OFFICIAL_PLUGIN_REGISTRY_SCHEMA =
   "https://openagent.dev/schemas/plugin-registry/v1" as const;
@@ -16,6 +17,7 @@ const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/i;
 const MAX_REGISTRY_ENTRIES = 256;
 
 export interface OfficialPluginRegistryEntry {
+  i18n?: AgentPluginI18n;
   id: string;
   displayName: string;
   description?: string;
@@ -130,6 +132,10 @@ function parseEntry(value: unknown, index: number): OfficialPluginRegistryEntry 
   }
   return {
     id,
+    i18n: parsePluginI18n(
+      value.i18n,
+      value.description === undefined ? ["display_name"] : ["display_name", "description"],
+    ),
     displayName,
     description: optionalString(value.description, "description", id),
     repository,
@@ -188,6 +194,8 @@ export function projectOfficialPluginCatalog(
     updates?: ReadonlySet<string>;
     query?: string;
     filter?: OfficialPluginCatalogFilter;
+    locale?: string;
+    installedI18n?: ReadonlyMap<string, AgentPluginI18n | null | undefined>;
   },
 ): OfficialPluginCatalogItem[] {
   const query = options.query?.trim().toLocaleLowerCase() ?? "";
@@ -198,6 +206,21 @@ export function projectOfficialPluginCatalog(
       const currentVersion = options.installed.get(plugin.id) ?? null;
       return {
         ...plugin,
+        i18n: options.installed.has(plugin.id)
+          ? (options.installedI18n?.get(plugin.id) ?? undefined)
+          : plugin.i18n,
+        displayName: pluginText(
+          options.installed.has(plugin.id) ? options.installedI18n?.get(plugin.id) : plugin.i18n,
+          options.locale ?? "en",
+          "display_name",
+          plugin.displayName,
+        ),
+        description: pluginText(
+          options.installed.has(plugin.id) ? options.installedI18n?.get(plugin.id) : plugin.i18n,
+          options.locale ?? "en",
+          "description",
+          plugin.description ?? "",
+        ),
         installed: options.installed.has(plugin.id),
         currentVersion,
         updateAvailable: updates.has(plugin.id),

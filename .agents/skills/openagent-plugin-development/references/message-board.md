@@ -23,7 +23,7 @@ are labels rather than authenticated identities. The package never infers
 workspace scope from its capability declaration and never writes a fallback
 directory inside the workspace or installed package.
 
-Version 1.0.1 serializes operations across independent MCP processes, reloads
+Version 1.1.0 serializes operations across independent MCP processes, reloads
 state under an exclusive lock, and atomically replaces version-one snapshots.
 It preserves legacy data and idempotency keys. Damaged or unsupported state
 returns a tool error without replacing the original file. A busy lock is
@@ -39,13 +39,19 @@ The shared Runtime may inject `_openagent` context into tool arguments. Accept
 that object without persisting it or using it as an agent identity; excluding it
 from request fingerprints keeps retries stable across host contexts.
 
-Run package tests with `node --test tests/message-board.test.mjs`, the current
+Run package tests with `node --test tests/*.test.mjs`, the current
 plugin-kit validator, and `bun run test:blackbox:message-board` against a fresh
 isolated Tauri instance. The native scenario installs the local candidate through
 the normal Runtime installer, exercises all nine tools, verifies disable and
 re-enable, and uninstalls/reinstalls while preserving data. Published-source
 qualification additionally uses `BLACKBOX_PLUGIN_IDS=message-board` with the
 ordinary plugin lifecycle runner. Record package and SDK revisions separately.
-Portable validation does not satisfy the outstanding host language-contract
-requirements documented in `i18n-standard.md`; official release qualification
-must resolve those requirements before publishing and activating the catalog.
+The package declares complete English and Chinese metadata and operational
+notices through the shared i18n contract. It consumes live SDK request context,
+or reads `locale.get` for independent process calls,
+preserves user-authored content and IDs, and keeps locale out of persisted state
+and retry fingerprints. Qualify with the full locale set from
+`src/lib/platformLocales.json`; inspect both cards and live switching in both
+themes. Validation alone does not qualify an unpublished candidate or replace
+native verification. Publish accepted package sources before advancing the
+default parent's gitlink and activating the catalog.

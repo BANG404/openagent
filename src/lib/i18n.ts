@@ -3,7 +3,9 @@ import { invoke, listen } from "$lib/openagent/tauriClient";
 import { zh } from "./i18n.zh";
 import { en } from "./i18n.en";
 
-export type Locale = "zh" | "en";
+import { PLATFORM_LOCALES } from "./platformLocales";
+export { PLATFORM_LOCALES };
+export type Locale = (typeof PLATFORM_LOCALES)[number];
 export type TranslationKeys = keyof typeof zh;
 
 const toolNameKeys: Partial<Record<string, TranslationKeys>> = {

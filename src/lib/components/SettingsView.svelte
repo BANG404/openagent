@@ -67,7 +67,7 @@
     type McpOAuthCapability,
     type RetryQueueKind,
   } from "$lib/settingsConfig";
-  import { t, tr, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
+  import { t, tr, locale, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
   import {
     agentPluginUpdateErrorKey,
     classifyAgentPluginUpdateCheck,
@@ -313,6 +313,8 @@
   }
   const officialPluginCards = $derived.by<OfficialPluginCatalogItem[]>(() =>
     projectOfficialPluginCatalog(BUNDLED_OFFICIAL_PLUGIN_REGISTRY, {
+      locale: $locale,
+      installedI18n: new Map(agentPlugins.map((plugin) => [plugin.id, plugin.i18n])),
       installed: new Map(agentPlugins.map((plugin) => [plugin.id, plugin.version])),
       updates: new Set(
         agentPluginUpdates.filter((update) => update.update_available).map((update) => update.id),

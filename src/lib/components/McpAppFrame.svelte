@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
+  import { onDestroy, untrack } from "svelte";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { desktopOpenAgent } from "$lib/openagent/tauriClient";
   import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
-  import { t } from "$lib/i18n";
+  import { t, locale } from "$lib/i18n";
   import type { McpUiInvocation } from "$lib/types";
 
   let { invocation }: { invocation: McpUiInvocation } = $props();
@@ -40,7 +40,7 @@
       theme: document.documentElement.classList.contains("dark") ? "dark" : "light",
       displayMode,
       availableDisplayModes,
-      locale: navigator.language,
+      locale: $locale,
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       platform: /android|iphone|ipad/i.test(navigator.userAgent) ? "mobile" : "desktop",
       deviceCapabilities: {
@@ -793,6 +793,20 @@ ${scriptClose}`;
     invocation.arguments;
     invocation.structured_content;
     if (initialized) sendToolState();
+  });
+
+  $effect(() => {
+    $locale;
+    if (initialized) {
+      untrack(() => {
+        hostContextVersion += 1;
+        post({
+          jsonrpc: "2.0",
+          method: "ui/notifications/host-context-changed",
+          params: hostContext(),
+        });
+      });
+    }
   });
 
   $effect(() => {
