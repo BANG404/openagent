@@ -13,3 +13,9 @@ When the plugin contract changes, update the Runtime loader, the owner Skills,
 and the plugin-kit validator, docs, and templates together. When a product
 package changes, update its repository and release archive so the GitHub
 subscription source remains installable.
+
+Keep catalog versions aligned with stable releases and their packaged manifests.
+The Goal v2.2.0 package includes shared slash/tool lifecycle controls and durable
+cancellation; Graph v1.0.4 publishes progress only after graph creation succeeds.
+Both require the generic Host Bridge. Release assets keep `plugin.json` at the
+ZIP root and must expose a verified GitHub SHA-256 digest for update delivery.
