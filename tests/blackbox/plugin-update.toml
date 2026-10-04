@@ -90,16 +90,11 @@ script = '''(async () => {
   await new Promise((resolve) => setTimeout(resolve, 0));
   const store = document.querySelector(".official-plugin-store");
   if (!(store instanceof HTMLElement)) throw new Error("official plugin marketplace is missing");
-  const title = store.querySelector("h4");
-  if ((title?.textContent ?? "").trim() !== probe.officialMarketplace) {
-    throw new Error(`official marketplace title is ${JSON.stringify(title?.textContent ?? "")}`);
+  if (store.querySelector(".official-plugin-store-hero")) {
+    throw new Error("plugin store rendered the removed introductory block");
   }
-  if (!(store.textContent ?? "").includes(probe.officialHint)) {
-    throw new Error("plugin store did not explain discovering and installing features");
-  }
-  const hero = store.querySelector(".official-plugin-store-hero");
-  if (hero?.querySelector(".official-plugin-eyebrow, .official-plugin-standard")) {
-    throw new Error("plugin store header contains source-verification or format badges");
+  if (!store.firstElementChild?.classList.contains("official-plugin-store-toolbar")) {
+    throw new Error("plugin store must start with search and availability filters");
   }
   const cards = store.querySelectorAll(".official-plugin-card");
   if (cards.length < 4) throw new Error(`official marketplace rendered ${cards.length} cards`);

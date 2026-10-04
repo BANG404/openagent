@@ -368,22 +368,6 @@
     {/each}
     {#if view.pluginManagementView === "marketplace"}
       <section class="official-plugin-store" aria-label={$t("pluginOfficialMarketplace")}>
-        <div class="official-plugin-store-hero">
-          <div class="official-plugin-store-copy">
-            <div class="official-plugin-store-title-row">
-              <h4>{$t("pluginOfficialMarketplace")}</h4>
-            </div>
-            <p>{$t("pluginOfficialMarketplaceHint")}</p>
-            <div class="official-plugin-store-summary">
-              <span>
-                {$t("pluginOfficialCatalogSummary").replace(
-                  "{count}",
-                  String(view.officialPluginCards.length),
-                )}
-              </span>
-            </div>
-          </div>
-        </div>
         <div class="official-plugin-store-toolbar">
           <label class="official-plugin-search">
             <span class="sr-only">{$t("pluginOfficialSearch")}</span>
