@@ -106,9 +106,10 @@ use `BLACKBOX_APPIUM_SESSION` for native screenshots; the final fallback is a
 WebView screenshot, which does not qualify native layout.
 
 For Goal, Graph, and Chat Groups functional qualification, run
-`OFFICIAL_PLUGIN_CHECKOUTS=<checkout-parent> bun run test:blackbox:plugin-functionality`
-against the same isolated window. The checkout parent contains `openagent-<id>`
-or `<id>` directories. This exercises installed package commands and tools with
+`bun run test:blackbox:plugin-functionality` against the same isolated window.
+Resolve each checkout through the explicit `.env` index described in
+[local development](local-development.md); worktrees set `OPENAGENT_PLUGIN_ENV_FILE`.
+This exercises installed package commands and tools with
 a deterministic local model, including Goal completion, Graph child execution,
 group membership, message persistence, and private Agent submission. The runner
 restores fixture settings and removes its installed packages. Record source

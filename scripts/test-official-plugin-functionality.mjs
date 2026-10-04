@@ -8,6 +8,7 @@ import { join, resolve } from "node:path";
 import { homedir, tmpdir } from "node:os";
 import assert from "node:assert/strict";
 import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
+import { readPluginDevIndex, resolvePluginDevPath } from "./plugin-dev-paths.mjs";
 
 const fixture = resolveBlackboxHome(process.env, { instanceName: "plugin-lifecycle" });
 assert(
@@ -16,11 +17,13 @@ assert(
   ),
   "use an isolated OPENAGENT_HOME",
 );
-const checkouts = process.env.OFFICIAL_PLUGIN_CHECKOUTS;
-assert(
-  checkouts,
-  "OFFICIAL_PLUGIN_CHECKOUTS must name the parent of openagent-{goal,graph,chat-groups}",
+const pluginIndex = readPluginDevIndex();
+const selectedPlugins = ["goal", "graph", "chat-groups"].filter(
+  (id) =>
+    !process.env.BLACKBOX_PLUGIN_IDS || process.env.BLACKBOX_PLUGIN_IDS.split(",").includes(id),
 );
+assert(selectedPlugins.length, "BLACKBOX_PLUGIN_IDS must select goal, graph or chat-groups");
+const checkouts = selectedPlugins.map((id) => resolvePluginDevPath(pluginIndex, id));
 const workspace = join(fixture, "workspace");
 const pilotEnv = {
   ...process.env,
@@ -232,17 +235,11 @@ try {
     saved.providers.find((/** @type {any} */ item) => item.id === provider.id)?.enabled,
     true,
   );
-  for (const id of ["goal", "graph", "chat-groups"].filter(
-    (id) =>
-      !process.env.BLACKBOX_PLUGIN_IDS || process.env.BLACKBOX_PLUGIN_IDS.split(",").includes(id),
-  )) {
+  for (const { id, directory: source } of checkouts) {
     assert(
       !existsSync(join(fixture, "plugins", id)),
       `${id} is already installed; preserve it and use a fresh fixture`,
     );
-    const source = existsSync(join(checkouts, `openagent-${id}`))
-      ? join(checkouts, `openagent-${id}`)
-      : join(checkouts, id);
     const summary = await client(`client.installAgentPlugin(${JSON.stringify(source)})`);
     installed.push(id);
     assert(!summary.error, `${id}: ${summary.error}`);

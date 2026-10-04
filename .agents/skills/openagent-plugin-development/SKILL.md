@@ -7,6 +7,7 @@ metadata:
 
 # Agent Plugins
 
-Read package, OpenAgent, third-party, OpenAI and Codex V2 rules in `references/`.
+Read package, OpenAgent, third-party, OpenAI and Codex rules in `references/`.
 Apply [i18n](references/i18n-standard.md).
+[Dev](references/local-development.md).
 Keep trust and sandbox policy client-owned.
