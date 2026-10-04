@@ -1,0 +1,32 @@
+[scenario]
+name = "memory save recovers after a write failure"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "retry save after the fixture file is restored"
+action = "click"
+target = ".memory-editor-footer button:last-child"
+
+[[step]]
+name = "retry completes and releases scope"
+action = "wait"
+selector = ".memory-scope-options:not(:disabled)"
+timeout_ms = 10000
+
+[[step]]
+name = "refresh persisted retry content"
+action = "click"
+target = ".memory-toolbar .memory-heading-actions button:first-child"
+
+[[step]]
+name = "refresh completes"
+action = "wait"
+selector = ".memory-editor:not(:disabled)"
+timeout_ms = 10000
+
+[[step]]
+name = "retry content persisted"
+action = "assert-value"
+target = ".memory-editor"
+expected = "Blackbox memory retry draft"

@@ -41,6 +41,7 @@
     "test:sonar": "bun scripts/test-sonar.mjs",
     "test:browser:preview": "bun scripts/test-browser-preview.mjs",
     "test:blackbox:automation": "bun scripts/test-automation-blackbox.mjs",
+    "test:blackbox:memory": "bun scripts/test-memory-blackbox.mjs",
     "test:blackbox:plugins": "bun scripts/test-plugin-blackbox.mjs",
     "test:blackbox:plugin-process": "bun scripts/test-plugin-process-blackbox.mjs",
     "test:blackbox:plugin-update": "bun scripts/test-plugin-update-blackbox.mjs",

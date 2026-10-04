@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { blackboxInstanceName, resolveBlackboxHome } from "./tauri-test-environment.mjs";
+import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
 
 const workspaceRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const scenarioRoot = join(workspaceRoot, "tests", "blackbox");
@@ -70,6 +71,7 @@ const windowLabel = "main";
 
 /** @param {string} scenario */
 function runScenario(scenario) {
+  pilot(["snapshot", "-i", "--window", windowLabel], windowLabel);
   pilot(["run", join(scenarioRoot, scenario), "--window", windowLabel], windowLabel);
 }
 
@@ -145,7 +147,7 @@ function setVisualState(theme, language) {
     `new Promise((resolve, reject) => {
       const deadline = Date.now() + 5000;
       const check = () => {
-        const themeReady = ${JSON.stringify(theme)} === "system" || document.documentElement.className === ${JSON.stringify(theme)};
+        const themeReady = ${JSON.stringify(theme)} === "system" || document.documentElement.classList.contains(${JSON.stringify(theme)});
         if (themeReady && document.body.innerText.includes(${JSON.stringify(expected)})) {
           resolve(true);
         } else if (Date.now() >= deadline) {
@@ -192,7 +194,7 @@ function captureVisualState(theme, language) {
     `(() => {
       const expectedTheme = ${JSON.stringify(theme)};
       const className = document.documentElement.className;
-      if (expectedTheme !== "system" && className !== expectedTheme) {
+      if (expectedTheme !== "system" && !document.documentElement.classList.contains(expectedTheme)) {
         throw new Error("expected theme " + expectedTheme + ", got " + className);
       }
       const text = document.body.innerText;
@@ -202,6 +204,35 @@ function captureVisualState(theme, language) {
     })()`,
   );
   runScenario("automation-visual.toml");
+  pilot(
+    [
+      "click",
+      "[role=tabpanel][data-value=lifecycle] .detail-section-header button",
+      "--window",
+      windowLabel,
+    ],
+    windowLabel,
+  );
+  pilot(
+    [
+      "fill",
+      "[role=tabpanel][data-value=lifecycle] .automation-hook-editor input:first-of-type",
+      "Review completed tools",
+      "--window",
+      windowLabel,
+    ],
+    windowLabel,
+  );
+  pilot(
+    [
+      "fill",
+      "[role=tabpanel][data-value=lifecycle] textarea",
+      "bun run verify",
+      "--window",
+      windowLabel,
+    ],
+    windowLabel,
+  );
   const artifact = join(artifactRoot, `automation-${theme}-${language}.png`);
   const screenshotMode =
     process.env.BLACKBOX_SCREENSHOT_MODE || (process.platform === "linux" ? "native" : "webview");
@@ -219,11 +250,40 @@ function captureVisualState(theme, language) {
       windowLabel,
     );
   } else if (screenshotMode === "webview") {
-    pilot(["screenshot", artifact, "--window", windowLabel], windowLabel);
+    captureBlackboxScreenshot(
+      (args) => pilot([...args, "--window", windowLabel], windowLabel),
+      artifact,
+    );
   } else {
     throw new Error(`Unsupported BLACKBOX_SCREENSHOT_MODE: ${screenshotMode}`);
   }
   process.stderr.write(`black-box screenshot: ${artifact}\n`);
+  pilot(
+    [
+      "click",
+      "[role=tabpanel][data-value=lifecycle] .hook-editor-actions button:last-child",
+      "--window",
+      windowLabel,
+    ],
+    windowLabel,
+  );
+  pilot(["click", "[role=tab][data-value=schedules]", "--window", windowLabel], windowLabel);
+  pilot(
+    [
+      "fill",
+      "[role=tabpanel][data-value=schedules] textarea",
+      "Review the project and summarize pending work",
+      "--window",
+      windowLabel,
+    ],
+    windowLabel,
+  );
+  const scheduleArtifact = join(artifactRoot, `schedules-${theme}-${language}.png`);
+  captureBlackboxScreenshot(
+    (args) => pilot([...args, "--window", windowLabel], windowLabel),
+    scheduleArtifact,
+  );
+  process.stderr.write(`black-box screenshot: ${scheduleArtifact}\n`);
 }
 
 /**
@@ -272,11 +332,13 @@ evaluate(
 );
 cleanupPanel("lifecycle");
 runScenario("automation-schedules.toml");
+runScenario("automation-recovery.toml");
 
 try {
   captureVisualState("light", "en");
   captureVisualState("dark", "en");
-  captureVisualState("system", "zh");
+  captureVisualState("light", "zh");
+  captureVisualState("dark", "zh");
 } finally {
   openGeneralSurface();
   chooseGeneralOption(

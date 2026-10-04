@@ -1,0 +1,177 @@
+[scenario]
+name = "memory editing and search"
+fail_fast = true
+global_timeout_ms = 120000
+
+[[step]]
+name = "remember the loaded baseline"
+action = "eval"
+script = '''(() => {
+  window.__memoryBlackboxBaseline = document.querySelector(".memory-editor").value;
+  return true;
+})()'''
+
+[[step]]
+name = "edit user memory"
+action = "fill"
+target = ".memory-editor"
+value = "Blackbox user memory draft"
+
+[[step]]
+name = "unsaved changes protect scope and maintenance"
+action = "eval"
+script = '''(() => {
+  if (!document.querySelector(".memory-scope-options").disabled) throw new Error("scope can discard the draft");
+  if (document.querySelector(".memory-editor-footer button:last-child").disabled) throw new Error("save unavailable for a draft");
+  return true;
+})()'''
+
+[[step]]
+name = "expand backup and cleanup"
+action = "click"
+target = ".memory-maintenance-trigger"
+
+[[step]]
+name = "maintenance cannot overwrite the draft"
+action = "eval"
+script = '''(() => {
+  const buttons = [...document.querySelectorAll(".memory-maintenance .settings-action")];
+  if (buttons.length !== 4 || buttons.some(button => !button.disabled)) throw new Error("maintenance does not protect the draft");
+  const pane = document.querySelector(".memory-user-pane").getBoundingClientRect();
+  const footer = document.querySelector(".memory-editor-footer").getBoundingClientRect();
+  if (footer.height < 20 || footer.bottom > pane.bottom + 1) throw new Error("expanded maintenance clips the save footer");
+  return true;
+})()'''
+
+[[step]]
+name = "refresh with an unsaved draft"
+action = "click"
+target = ".memory-toolbar .memory-heading-actions button:first-child"
+
+[[step]]
+name = "refresh preserves user edits"
+action = "wait"
+selector = ".memory-editor:not(:disabled)"
+timeout_ms = 10000
+
+[[step]]
+name = "draft stays intact"
+action = "assert-value"
+target = ".memory-editor"
+expected = "Blackbox user memory draft"
+
+[[step]]
+name = "discard user changes"
+action = "click"
+target = ".memory-editor-footer button:first-child"
+
+[[step]]
+name = "discard restores the loaded baseline"
+action = "eval"
+script = '''(() => {
+  if (document.querySelector(".memory-editor").value !== window.__memoryBlackboxBaseline) throw new Error("discard did not restore baseline");
+  if (document.querySelector(".memory-scope-options").disabled) throw new Error("scope remained locked");
+  return true;
+})()'''
+
+[[step]]
+name = "enter a saved memory"
+action = "fill"
+target = ".memory-editor"
+value = "Blackbox saved user memory"
+
+[[step]]
+name = "save user memory"
+action = "click"
+target = ".memory-editor-footer button:last-child"
+
+[[step]]
+name = "save settles without a dirty draft"
+action = "wait"
+selector = ".memory-scope-options:not(:disabled)"
+timeout_ms = 10000
+
+[[step]]
+name = "search agent memory without disabling the editor"
+action = "fill"
+target = ".memory-search"
+value = "blackbox-no-matching-agent-memory"
+
+[[step]]
+name = "search has its own loading state"
+action = "eval"
+script = '''(() => {
+  if (document.querySelector(".memory-editor").disabled) throw new Error("search disabled user editing");
+  return true;
+})()'''
+
+[[step]]
+name = "no matches is distinct from an empty collection"
+action = "wait"
+selector = ".memory-agent-list[aria-busy=false] .model-list-empty"
+timeout_ms = 10000
+
+[[step]]
+name = "search result explains no matches"
+action = "assert-text"
+target = ".memory-agent-list .model-list-empty"
+expected = "没有找到匹配的记忆"
+
+[[step]]
+name = "switch to project memory"
+action = "click"
+target = ".memory-scope-options [data-filter=local]"
+
+[[step]]
+name = "scope resets search and loads its own content"
+action = "eval"
+script = '''(async () => {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  if (document.querySelector(".memory-search").value !== "") throw new Error("old search leaked across scopes");
+  if (document.querySelector(".memory-editor").value === "Blackbox saved user memory") throw new Error("global memory leaked into project scope");
+  const hint = document.querySelector(".memory-scope-control").textContent;
+  if (hint.includes("未选择工作区") && !document.querySelector(".memory-editor").disabled) throw new Error("project editor enabled without workspace");
+  return true;
+})()'''
+
+[[step]]
+name = "return to global memory"
+action = "click"
+target = ".memory-scope-options [data-filter=global]"
+
+[[step]]
+name = "global memory is editable"
+action = "wait"
+selector = ".memory-editor:not(:disabled)"
+timeout_ms = 10000
+
+[[step]]
+name = "global save persisted through scope change"
+action = "assert-value"
+target = ".memory-editor"
+expected = "Blackbox saved user memory"
+
+[[step]]
+name = "open cleanup confirmation"
+action = "click"
+target = ".memory-maintenance .danger-zone button"
+
+[[step]]
+name = "cleanup is guarded by a confirmation token"
+action = "eval"
+script = '''(() => {
+  const dialog = document.querySelector("[role=dialog]:has(#memory-clear-confirm-input)");
+  if (!dialog || !dialog.querySelector(".dialog-actions button:last-child").disabled) throw new Error("clear lacks typed confirmation");
+  return true;
+})()'''
+
+[[step]]
+name = "cancel cleanup"
+action = "click"
+target = "[role=dialog]:has(#memory-clear-confirm-input) .dialog-actions button:first-child"
+
+[[step]]
+name = "cancel leaves user memory intact"
+action = "assert-value"
+target = ".memory-editor"
+expected = "Blackbox saved user memory"

@@ -2094,11 +2094,8 @@
   font-weight: 600;
 }
 
-.hook-conversations-scroll {
-  max-height: 152px;
-  overflow-y: auto;
+.hook-conversations-scroll .ui-scroll-area-viewport {
   overscroll-behavior: contain;
-  scrollbar-gutter: stable;
 }
 
 .hook-conversation-link {
@@ -2308,6 +2305,304 @@
   outline: none;
   border-radius: 4px;
   box-shadow: var(--focus-ring);
+}
+
+.hook-form-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Management bodies follow the role editor: each column owns its scroll. */
+.settings-body:has(> .management-section-tabs) {
+  flex-direction: column;
+}
+
+.management-section-tabs {
+  display: flex;
+  align-self: flex-start;
+  flex-shrink: 0;
+  gap: 2px;
+  margin: 12px 24px 0;
+  padding: 2px;
+  border: 1px solid var(--mica-divider);
+  border-radius: 7px;
+  background: var(--interactive-state-bg);
+}
+
+.management-section-tab {
+  min-height: 30px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.management-section-tab:hover {
+  background: var(--interactive-state-bg);
+  color: var(--text);
+}
+
+.management-section-tab[data-state="active"] {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.management-section-tab:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.management-tab-panel {
+  container-type: inline-size;
+}
+
+.management-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+}
+
+.automation-columns {
+  padding: 20px 0 20px 24px;
+}
+
+.management-column .ui-scroll-area-viewport {
+  padding: 4px 24px 12px 4px;
+  overflow-x: hidden;
+}
+
+.management-column .detail-grid {
+  gap: 12px;
+}
+
+.management-column .detail-section-header {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.management-column .detail-section-header > .detail-section-title {
+  margin: 0;
+}
+
+.management-column .hook-item {
+  flex-wrap: wrap;
+  padding: 14px;
+  border-color: var(--mica-divider);
+}
+
+.management-column .hook-actions {
+  margin-left: auto;
+}
+
+.management-column .hook-main {
+  flex: 1 1 160px;
+}
+
+.management-column .hook-item.editing {
+  background: var(--interactive-state-bg);
+}
+
+.management-column .model-name {
+  font-size: var(--settings-body-size);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.management-column .provider-item-url {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.management-empty-state {
+  display: flex;
+  min-height: 240px;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.management-empty-state .detail-section-intro {
+  margin: 0;
+}
+
+.memory-management-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 20px 24px;
+  gap: 16px;
+}
+
+.memory-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.memory-scope-control {
+  flex: 1;
+  min-width: 200px;
+}
+
+.memory-scope-options {
+  width: 240px;
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.memory-scope-options:disabled {
+  opacity: 0.65;
+}
+
+.memory-scope-control .detail-hint {
+  margin: 8px 0 0;
+}
+
+.management-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.memory-user-scroll {
+  flex: 1;
+}
+
+.memory-user-scroll [data-scroll-area-content] {
+  height: 100%;
+}
+
+.memory-editor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 200px;
+  padding: 2px 4px 4px 2px;
+}
+
+.memory-user-pane .memory-editor {
+  flex: 1;
+  min-height: 80px;
+  resize: none;
+  padding: 12px;
+}
+
+.memory-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.memory-agent-pane .detail-section-header {
+  margin: 0;
+  align-items: flex-start;
+}
+
+.memory-agent-pane .memory-search {
+  margin: 0;
+}
+
+.memory-agent-scroll {
+  flex: 1;
+}
+
+.memory-agent-scroll .ui-scroll-area-viewport {
+  padding: 2px 12px 4px 2px;
+}
+
+.memory-maintenance {
+  flex-shrink: 0;
+  border-top: 1px solid var(--mica-divider);
+}
+
+.memory-maintenance-header {
+  margin: 0;
+}
+
+.memory-maintenance-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.memory-maintenance-trigger:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 6px;
+}
+
+.memory-maintenance-trigger[data-state="open"] .memory-maintenance-chevron {
+  transform: rotate(180deg);
+}
+
+.memory-maintenance-scroll .ui-scroll-area-viewport {
+  padding: 4px 12px 0 4px;
+}
+
+.management-status {
+  flex-shrink: 0;
+  max-height: 72px;
+  overflow-wrap: anywhere;
+}
+
+.management-status.provider-status.error,
+.schedule-form-status .provider-status.error {
+  color: var(--danger);
+}
+
+@container (max-width: 760px) {
+  .management-columns {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .automation-columns,
+  .memory-management-layout {
+    padding: 12px 16px;
+  }
+
+  .management-column .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .memory-editor-body {
+    min-height: 160px;
+  }
+
+  .memory-maintenance-scroll {
+    max-height: 120px;
+  }
 }
 
 .provider-status.success {

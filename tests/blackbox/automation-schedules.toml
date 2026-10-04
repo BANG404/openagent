@@ -86,6 +86,12 @@ action = "click"
 target = "[role=tabpanel][data-value=schedules] .detail-section-header button"
 
 [[step]]
+name = "refreshed schedule actions are ready"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-actions button:first-child:not(:disabled)"
+timeout_ms = 10000
+
+[[step]]
 name = "edit delay schedule"
 action = "click"
 target = "[role=tabpanel][data-value=schedules] .hook-actions button:first-child"
@@ -146,6 +152,12 @@ gone = true
 timeout_ms = 10000
 
 [[step]]
+name = "previous mutation completes before select exact-time mode"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .schedule-form-buttons button:first-child:not(:disabled)"
+timeout_ms = 10000
+
+[[step]]
 name = "select exact-time mode"
 action = "click"
 target = "[role=tabpanel][data-value=schedules] [aria-label='执行计划']"
@@ -197,6 +209,12 @@ script = '''(async () => {
   button.click();
   return true;
 })()'''
+
+[[step]]
+name = "previous mutation completes before select interval mode"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .schedule-form-buttons button:first-child:not(:disabled)"
+timeout_ms = 10000
 
 [[step]]
 name = "select interval mode"
@@ -252,6 +270,12 @@ script = '''(async () => {
 })()'''
 
 [[step]]
+name = "previous mutation completes before select daily mode"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .schedule-form-buttons button:first-child:not(:disabled)"
+timeout_ms = 10000
+
+[[step]]
 name = "select daily mode"
 action = "click"
 target = "[role=tabpanel][data-value=schedules] [aria-label='执行计划']"
@@ -305,6 +329,12 @@ script = '''(async () => {
 })()'''
 
 [[step]]
+name = "previous mutation completes before select weekdays mode"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .schedule-form-buttons button:first-child:not(:disabled)"
+timeout_ms = 10000
+
+[[step]]
 name = "select weekdays mode"
 action = "click"
 target = "[role=tabpanel][data-value=schedules] [aria-label='执行计划']"
@@ -356,6 +386,12 @@ script = '''(async () => {
   button.click();
   return true;
 })()'''
+
+[[step]]
+name = "previous mutation completes before select weekly mode"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .schedule-form-buttons button:first-child:not(:disabled)"
+timeout_ms = 10000
 
 [[step]]
 name = "select weekly mode"

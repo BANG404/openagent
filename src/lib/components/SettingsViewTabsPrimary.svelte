@@ -73,6 +73,7 @@
   import SettingsStatusToggle from "./ui/SettingsStatusToggle.svelte";
   import ScrollArea from "./ui/ScrollArea.svelte";
   import PermissionSettings from "./PermissionSettings.svelte";
+  import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import SettingsAboutTab from "./SettingsAboutTab.svelte";
   import type { SettingsNav } from "$lib/settingsWindows";
   import { approvalModeDescriptionKey, DEFAULT_APP_CONFIG } from "$lib/settingsDefaults";
@@ -1422,177 +1423,246 @@
   </div>
 </Tabs.Content>
 
-<Tabs.Content value="memory" class="settings-tab-panel">
-  <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
-    <section class="detail-section">
-      <div class="detail-section-header">
-        <div class="detail-section-heading">
-          <h4 class="detail-section-title">{$t("memoryManagement")}</h4>
-          <p class="detail-section-intro">{$t("memoryManagementHint")}</p>
-        </div>
-        <div class="memory-heading-actions">
-          <SettingsActionButton
-            label={$t("memoryRefresh")}
-            icon="refresh"
-            tone="quiet"
-            onclick={() => view.refreshMemory()}
-            disabled={view.memoryLoading || view.memoryBusy}
-          />
-          <SettingsActionButton
-            label={$t("memoryExtractNow")}
-            icon="sparkles"
-            tone="primary"
-            onclick={view.extractMemory}
-            disabled={view.memoryExtracting || view.memoryBusy}
-          />
-        </div>
-      </div>
-      <div class="detail-label">
-        <span class="label-text">{$t("scope")}</span>
-        <Select
-          bind:value={view.memoryScope}
-          items={[
-            { value: "global", label: $t("globalTab") },
-            { value: "local", label: $t("projectTab") },
-          ]}
-          ariaLabel={$t("scope")}
-        />
-        {#if view.memoryScope === "local" && !view.workspacePath}
-          <p class="detail-hint">{$t("memoryNoWorkspace")}</p>
-        {:else}
-          <p class="detail-hint">{$t("memoryManagementHint")}</p>
-        {/if}
-      </div>
-    </section>
-
-    <section class="detail-section">
-      <div class="detail-section-header">
-        <div class="detail-section-heading">
-          <h4 class="detail-section-title">{$t("userMemory")}</h4>
-          <p class="detail-section-intro">{$t("memoryEditHint")}</p>
-        </div>
-        <SettingsActionButton
-          label={$t("save")}
-          icon="check"
-          tone="primary"
-          onclick={view.saveUserMemory}
-          disabled={view.memorySaving ||
-            view.memoryLoading ||
-            view.memoryBusy ||
-            !view.memoryScopeAvailable()}
-        />
-      </div>
-      <textarea
-        class="detail-input memory-editor"
-        bind:value={view.memoryUserContent}
-        disabled={view.memoryLoading || !view.memoryScopeAvailable()}
-        aria-label={$t("userMemory")}
-        placeholder={$t("memoryEditHint")}></textarea>
-    </section>
-
-    <section class="detail-section">
-      <div class="detail-section-header">
-        <div class="detail-section-heading">
-          <h4 class="detail-section-title">{$t("agentMemory")}</h4>
-          <p class="detail-section-intro">{$t("agentMemoryHint")}</p>
-        </div>
-        <span class="memory-count"
-          >{$t("memoryAgentCount").replace("{count}", String(view.memoryAgentEntries.length))}</span
+<Tabs.Content value="memory" class="settings-tab-panel management-tab-panel">
+  <div class="memory-management-layout">
+    <div class="memory-toolbar">
+      <div class="memory-scope-control">
+        <fieldset
+          class="memory-scope-options"
+          disabled={view.memoryLoading || view.memorySaving || view.memoryBusy || view.memoryDirty}
         >
+          <SegmentedControl
+            value={view.memoryScope}
+            onValueChange={(value) => (view.memoryScope = value)}
+            items={[
+              { value: "global", label: $t("globalTab") },
+              { value: "local", label: $t("projectTab") },
+            ]}
+            ariaLabel={$t("scope")}
+          />
+        </fieldset>
+        <p class="detail-hint">
+          {view.memoryDirty
+            ? $t("memoryUnsavedHint")
+            : view.memoryScope === "local" && !view.workspacePath
+              ? $t("memoryNoWorkspace")
+              : $t("memoryScopeHint")}
+        </p>
       </div>
-      <input
-        class="detail-input memory-search"
-        bind:value={view.memoryAgentSearch}
-        oninput={() => view.refreshAgentMemories().catch(() => {})}
-        placeholder={$t("memorySearchPlaceholder")}
-        aria-label={$t("memorySearchPlaceholder")}
-      />
-      <div class="memory-agent-list">
-        {#if view.memoryLoading}
-          <div class="model-list-empty">{$t("loadingContent")}</div>
-        {:else if view.memoryAgentEntries.length === 0}
-          <div class="model-list-empty">{$t("agentMemoryEmpty")}</div>
-        {:else}
-          {#each view.memoryAgentEntries as entry (entry.id)}
-            <article class="memory-agent-item">
-              <p class="memory-agent-content">{entry.content}</p>
-              <div class="memory-agent-meta">
-                <span
-                  >{$t("memoryUpdatedAt").replace(
-                    "{date}",
-                    view.formatMemoryDate(entry.updated_at),
-                  )}</span
-                >
-                {#if entry.source_conv_id}
-                  <button
-                    class="memory-source-button"
-                    type="button"
-                    onclick={() => view.onOpenConversation(entry.source_conv_id!)}
-                    >{$t("memorySource")}</button
-                  >
-                {:else}
-                  <span>{$t("memoryNoSource")}</span>
-                {/if}
+      <div class="memory-heading-actions">
+        <SettingsActionButton
+          label={$t("memoryRefresh")}
+          icon="refresh"
+          tone="quiet"
+          onclick={() => view.refreshMemory()}
+          disabled={view.memoryLoading || view.memorySaving || view.memoryBusy}
+        />
+        <SettingsActionButton
+          label={$t("memoryExtractNow")}
+          icon="sparkles"
+          tone="quiet"
+          onclick={view.extractMemory}
+          disabled={view.memoryExtracting || view.memoryBusy || !view.memoryScopeAvailable()}
+        />
+      </div>
+    </div>
+    <div class="management-columns memory-columns">
+      <section class="management-pane memory-user-pane">
+        <ScrollArea height="100%" class="memory-user-scroll" scrollHideDelay={350}>
+          <div class="memory-editor-body">
+            <div class="detail-section-heading">
+              <h4 class="detail-section-title">{$t("userMemory")}</h4>
+              <p class="detail-section-intro">{$t("memoryEditHint")}</p>
+            </div>
+            <textarea
+              class="detail-input memory-editor"
+              bind:value={view.memoryUserContent}
+              disabled={!view.memoryLoaded ||
+                view.memoryLoading ||
+                view.memorySaving ||
+                view.memoryBusy ||
+                !view.memoryScopeAvailable()}
+              aria-label={$t("userMemory")}
+              placeholder={$t("memoryEditHint")}></textarea>
+          </div>
+        </ScrollArea>
+        <div class="memory-editor-footer">
+          <span class="memory-count" role="status"
+            >{view.memoryLoading
+              ? $t("loadingContent")
+              : !view.memoryLoaded
+                ? ""
+                : view.memoryDirty
+                  ? $t("memoryUnsaved")
+                  : $t("memorySaved")}</span
+          >
+          <div class="memory-heading-actions">
+            {#if view.memoryDirty}
+              <SettingsActionButton
+                label={$t("memoryDiscard")}
+                tone="quiet"
+                onclick={view.discardMemoryDraft}
+                disabled={view.memoryLoading || view.memorySaving || view.memoryBusy}
+              />
+            {/if}
+            <SettingsActionButton
+              label={view.memorySaving ? $t("memorySaving") : $t("save")}
+              icon="check"
+              tone="primary"
+              onclick={view.saveUserMemory}
+              disabled={!view.memoryDirty ||
+                view.memorySaving ||
+                view.memoryLoading ||
+                view.memoryBusy ||
+                !view.memoryScopeAvailable()}
+            />
+          </div>
+        </div>
+      </section>
+      <ScrollArea height="100%" class="memory-agent-scroll" scrollHideDelay={350}>
+        <section class="management-pane memory-agent-pane">
+          <div class="detail-section-header">
+            <div class="detail-section-heading">
+              <h4 class="detail-section-title">{$t("agentMemory")}</h4>
+              <p class="detail-section-intro">{$t("agentMemoryHint")}</p>
+            </div>
+            <span class="memory-count"
+              >{$t("memoryAgentCount").replace(
+                "{count}",
+                String(view.memoryAgentEntries.length),
+              )}</span
+            >
+          </div>
+          <input
+            class="detail-input memory-search"
+            bind:value={view.memoryAgentSearch}
+            oninput={view.searchAgentMemories}
+            disabled={view.memoryLoading || !view.memoryScopeAvailable()}
+            placeholder={$t("memorySearchPlaceholder")}
+            aria-label={$t("memorySearchPlaceholder")}
+          />
+          <div class="memory-agent-list" aria-busy={view.memoryLoading || view.memoryAgentLoading}>
+            {#if view.memoryLoading || view.memoryAgentLoading}
+              <LoadingSkeleton variant="detail-list" rows={4} label={$t("loadingContent")} />
+            {:else if view.memoryAgentEntries.length === 0}
+              <div class="model-list-empty">
+                {view.memoryAgentSearch.trim() ? $t("memorySearchEmpty") : $t("agentMemoryEmpty")}
+              </div>
+            {:else}
+              {#each view.memoryAgentEntries as entry (entry.id)}
+                <article class="memory-agent-item">
+                  <p class="memory-agent-content">{entry.content}</p>
+                  <div class="memory-agent-meta">
+                    <span
+                      >{$t("memoryUpdatedAt").replace(
+                        "{date}",
+                        view.formatMemoryDate(entry.updated_at),
+                      )}</span
+                    >
+                    {#if entry.source_conv_id}
+                      <button
+                        class="memory-source-button"
+                        type="button"
+                        onclick={() => view.onOpenConversation(entry.source_conv_id!)}
+                        >{$t("memorySource")}</button
+                      >
+                    {:else}
+                      <span>{$t("memoryNoSource")}</span>
+                    {/if}
+                    <SettingsActionButton
+                      label={$t("deleteMemory")}
+                      icon="trash"
+                      tone="danger"
+                      onclick={() => view.removeAgentMemory(entry)}
+                      disabled={view.memoryBusy}
+                    />
+                  </div>
+                </article>
+              {/each}
+            {/if}
+          </div>
+        </section>
+      </ScrollArea>
+    </div>
+    <Accordion.Root type="single" class="memory-maintenance">
+      <Accordion.Item value="backup" class="memory-maintenance-item">
+        <Accordion.Header class="memory-maintenance-header">
+          <Accordion.Trigger class="memory-maintenance-trigger">
+            <span>{$t("memoryMaintenance")}</span>
+            <span aria-hidden="true" class="memory-maintenance-chevron">⌄</span>
+          </Accordion.Trigger>
+        </Accordion.Header>
+        <Accordion.Content>
+          <ScrollArea height="180px" class="memory-maintenance-scroll" scrollHideDelay={350}>
+            <section class="detail-section">
+              <h4 class="detail-section-title">{$t("memoryBackup")}</h4>
+              <div class="memory-action-grid">
                 <SettingsActionButton
-                  label={$t("deleteMemory")}
-                  icon="trash"
-                  tone="danger"
-                  onclick={() => view.removeAgentMemory(entry)}
-                  disabled={view.memoryBusy}
+                  label={$t("exportMemory")}
+                  icon="download"
+                  onclick={view.exportMemory}
+                  disabled={view.memoryBusy ||
+                    view.memorySaving ||
+                    view.memoryLoading ||
+                    view.memoryDirty ||
+                    !view.memoryScopeAvailable()}
+                />
+                <SettingsActionButton
+                  label={$t("importMemoryMerge")}
+                  icon="merge"
+                  onclick={() => view.importMemory(false)}
+                  disabled={view.memoryBusy ||
+                    view.memorySaving ||
+                    view.memoryLoading ||
+                    view.memoryDirty ||
+                    !view.memoryScopeAvailable()}
+                />
+                <SettingsActionButton
+                  label={$t("importMemoryReplace")}
+                  icon="replace"
+                  onclick={() => view.importMemory(true)}
+                  disabled={view.memoryBusy ||
+                    view.memorySaving ||
+                    view.memoryLoading ||
+                    view.memoryDirty ||
+                    !view.memoryScopeAvailable()}
                 />
               </div>
-            </article>
-          {/each}
-        {/if}
-      </div>
-    </section>
+            </section>
 
-    <section class="detail-section">
-      <h4 class="detail-section-title">{$t("memoryBackup")}</h4>
-      <div class="memory-action-grid">
-        <SettingsActionButton
-          label={$t("exportMemory")}
-          icon="download"
-          onclick={view.exportMemory}
-          disabled={view.memoryBusy || !view.memoryScopeAvailable()}
-        />
-        <SettingsActionButton
-          label={$t("importMemoryMerge")}
-          icon="merge"
-          onclick={() => view.importMemory(false)}
-          disabled={view.memoryBusy || !view.memoryScopeAvailable()}
-        />
-        <SettingsActionButton
-          label={$t("importMemoryReplace")}
-          icon="replace"
-          onclick={() => view.importMemory(true)}
-          disabled={view.memoryBusy || !view.memoryScopeAvailable()}
-        />
-      </div>
-    </section>
-
-    <section class="application-settings-surface detail-section danger-zone">
-      <div>
-        <p class="danger-title">{$t("clearMemory")}</p>
-        <p class="danger-copy">{$t("clearMemoryDesc")}</p>
-      </div>
-      <SettingsActionButton
-        label={$t("clearMemory")}
-        icon="trash"
-        tone="danger"
-        onclick={view.clearMemoryScope}
-        disabled={view.memoryBusy || !view.memoryScopeAvailable()}
-      />
-    </section>
-
+            <section class="application-settings-surface detail-section danger-zone">
+              <div>
+                <p class="danger-title">{$t("clearMemory")}</p>
+                <p class="danger-copy">{$t("clearMemoryDesc")}</p>
+              </div>
+              <SettingsActionButton
+                label={$t("clearMemory")}
+                icon="trash"
+                tone="danger"
+                onclick={view.clearMemoryScope}
+                disabled={view.memoryBusy ||
+                  view.memorySaving ||
+                  view.memoryLoading ||
+                  view.memoryDirty ||
+                  !view.memoryScopeAvailable()}
+              />
+            </section>
+          </ScrollArea>
+        </Accordion.Content>
+      </Accordion.Item>
+    </Accordion.Root>
     {#if view.memoryStatus}
       <div
-        class="provider-status {view.memoryStatus.includes(tr('memoryOperationFailed'))
+        role="status"
+        aria-live="polite"
+        class="management-status provider-status {view.memoryStatus.includes(
+          tr('memoryOperationFailed'),
+        )
           ? 'error'
           : 'success'}"
       >
         {view.memoryStatus}
       </div>
     {/if}
-  </ScrollArea>
+  </div>
 </Tabs.Content>

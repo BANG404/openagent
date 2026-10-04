@@ -1,0 +1,31 @@
+[scenario]
+name = "failed memory save retains the draft"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "edit before the failing save"
+action = "fill"
+target = ".memory-editor"
+value = "Blackbox memory retry draft"
+
+[[step]]
+name = "attempt save against the unavailable fixture file"
+action = "click"
+target = ".memory-editor-footer button:last-child"
+
+[[step]]
+name = "write failure is visible"
+action = "wait"
+selector = ".management-status.error"
+timeout_ms = 10000
+
+[[step]]
+name = "failed save retains editable content and scope protection"
+action = "eval"
+script = '''(() => {
+  const editor = document.querySelector(".memory-editor");
+  if (editor.disabled || editor.value !== "Blackbox memory retry draft") throw new Error("failed save lost the draft");
+  if (!document.querySelector(".memory-scope-options").disabled) throw new Error("failed save released a dirty scope");
+  return true;
+})()'''

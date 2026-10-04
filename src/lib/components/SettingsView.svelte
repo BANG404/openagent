@@ -351,13 +351,23 @@
   let hookRoleKey = $state("openagent");
   let hookRoles = $state<AgentRole[]>([]);
   let hookStatus = $state("");
+  let hookStatusError = $state(false);
+  let hooksLoading = $state(false);
+  let hookBusy = $state(false);
+  let hooksRequestSeq = 0;
   let editingHookId = $state<string | null>(null);
   let editingHookConversationId = $state<string | null>(null);
   let memoryScope = $state<"global" | "local">("global");
   let memoryUserContent = $state("");
+  let memorySavedContent = $state("");
+  const memoryDirty = $derived(memoryUserContent !== memorySavedContent);
   let memoryAgentEntries = $state<AgentMemoryEntry[]>([]);
   let memoryAgentSearch = $state("");
   let memoryLoading = $state(false);
+  let memoryLoaded = $state(false);
+  let memoryAgentLoading = $state(false);
+  let memoryAgentRequestSeq = 0;
+  let memorySearchTimer: ReturnType<typeof setTimeout> | undefined;
   let memorySaving = $state(false);
   let memoryExtracting = $state(false);
   let memoryRequestSeq = 0;
@@ -811,14 +821,20 @@
   }
 
   async function refreshMemory(scope = memoryScope, query = memoryAgentSearch) {
-    if (!isTauri() || !memoryScopeAvailable()) {
+    const preserveDraft = memoryDirty;
+    const requestSeq = ++memoryRequestSeq;
+    const agentRequestSeq = ++memoryAgentRequestSeq;
+    memoryAgentLoading = false;
+    if (!isTauri() || !memoryScopeAvailable(scope)) {
       memoryUserContent = "";
+      memorySavedContent = "";
       memoryAgentEntries = [];
+      memoryLoading = false;
+      memoryLoaded = false;
       return;
     }
     const agentScope = memoryAgentScope(scope);
     if (!agentScope) return;
-    const requestSeq = ++memoryRequestSeq;
     memoryLoading = true;
     try {
       const [userMemory, agentMemories] = await Promise.all([
@@ -829,8 +845,12 @@
         }),
       ]);
       if (requestSeq !== memoryRequestSeq) return;
-      memoryUserContent = userMemory;
-      memoryAgentEntries = agentMemories;
+      if (!preserveDraft) {
+        memoryUserContent = userMemory;
+        memorySavedContent = userMemory;
+      }
+      memoryLoaded = true;
+      if (agentRequestSeq === memoryAgentRequestSeq) memoryAgentEntries = agentMemories;
     } catch (err: unknown) {
       if (requestSeq === memoryRequestSeq) memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
     } finally {
@@ -845,19 +865,32 @@
     }
     const agentScope = memoryAgentScope();
     if (!agentScope) return;
-    const requestSeq = ++memoryRequestSeq;
-    memoryLoading = true;
+    const requestSeq = ++memoryAgentRequestSeq;
+    memoryAgentLoading = true;
     try {
       const entries = await desktopOpenAgent.invokeProduct("get_agent_memories", {
         scope: agentScope,
         query: memoryAgentSearch.trim() || null,
       });
-      if (requestSeq === memoryRequestSeq) memoryAgentEntries = entries;
+      if (requestSeq === memoryAgentRequestSeq) memoryAgentEntries = entries;
     } catch (err: unknown) {
-      if (requestSeq === memoryRequestSeq) memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
+      if (requestSeq === memoryAgentRequestSeq)
+        memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
     } finally {
-      if (requestSeq === memoryRequestSeq) memoryLoading = false;
+      if (requestSeq === memoryAgentRequestSeq) memoryAgentLoading = false;
     }
+  }
+
+  function searchAgentMemories() {
+    clearTimeout(memorySearchTimer);
+    ++memoryAgentRequestSeq;
+    memoryAgentLoading = true;
+    memorySearchTimer = setTimeout(() => void refreshAgentMemories(), 250);
+  }
+
+  function discardMemoryDraft() {
+    memoryUserContent = memorySavedContent;
+    memoryStatus = "";
   }
 
   async function saveUserMemory() {
@@ -867,11 +900,13 @@
     }
     memorySaving = true;
     memoryStatus = "";
+    const content = memoryUserContent;
     try {
       await desktopOpenAgent.invokeProduct("save_memory", {
         scope: memoryScope,
-        content: memoryUserContent,
+        content,
       });
+      memorySavedContent = content;
       memoryStatus = tr("memorySaveSuccess");
     } catch (err: unknown) {
       memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
@@ -886,7 +921,7 @@
     try {
       await desktopOpenAgent.invokeProduct("trigger_memory_agent", { convId: null });
       memoryStatus = tr("memoryExtractStarted");
-      window.setTimeout(() => refreshMemory().catch(() => {}), 1200);
+      window.setTimeout(() => refreshAgentMemories().catch(() => {}), 1200);
     } catch (err: unknown) {
       memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
     } finally {
@@ -917,9 +952,22 @@
 
   $effect(() => {
     const scope = memoryScope;
-    void scope;
-    if (visibleSections.has("memory") && isTauri()) refreshMemory(scope, "").catch(() => {});
+    if (!visibleSections.has("memory")) return;
+    untrack(() => {
+      clearTimeout(memorySearchTimer);
+      ++memoryAgentRequestSeq;
+      memoryAgentLoading = false;
+      memoryAgentSearch = "";
+      memoryUserContent = "";
+      memorySavedContent = "";
+      memoryAgentEntries = [];
+      memoryLoaded = false;
+      memoryStatus = "";
+      refreshMemory(scope, "").catch(() => {});
+    });
   });
+
+  onMount(() => () => clearTimeout(memorySearchTimer));
 
   async function refreshRemoteGateway() {
     remoteGatewayStatus = (await desktopOpenAgent.invokeProduct(
@@ -1807,11 +1855,26 @@
   });
 
   async function refreshHooks() {
-    const definitions = (await desktopOpenAgent.invokeProduct("list_scheduled_chat_hooks", {})) as {
-      record: Omit<ScheduledChatHook, "args">;
-      args: ScheduleChatHookArgs;
-    }[];
-    scheduledHooks = definitions.map(({ record, args }) => ({ ...record, args }));
+    const sequence = ++hooksRequestSeq;
+    hooksLoading = true;
+    try {
+      const definitions = (await desktopOpenAgent.invokeProduct(
+        "list_scheduled_chat_hooks",
+        {},
+      )) as {
+        record: Omit<ScheduledChatHook, "args">;
+        args: ScheduleChatHookArgs;
+      }[];
+      if (sequence !== hooksRequestSeq) return;
+      scheduledHooks = definitions.map(({ record, args }) => ({ ...record, args }));
+    } catch (err: unknown) {
+      if (sequence === hooksRequestSeq) {
+        hookStatus = `${tr("hookOperationFailed")}: ${err}`;
+        hookStatusError = true;
+      }
+    } finally {
+      if (sequence === hooksRequestSeq) hooksLoading = false;
+    }
   }
 
   async function refreshHookRoles() {
@@ -1836,15 +1899,27 @@
   }
 
   async function cancelHook(id: string) {
-    await desktopOpenAgent.invokeProduct("cancel_scheduled_chat_hook", { id });
-    if (editingHookId === id) resetHookEditor();
-    await refreshHooks();
+    if (hookBusy) return;
+    hookBusy = true;
+    hookStatus = "";
+    hookStatusError = false;
+    try {
+      await desktopOpenAgent.invokeProduct("cancel_scheduled_chat_hook", { id });
+      if (editingHookId === id) resetHookEditor();
+      await refreshHooks();
+    } catch (err: unknown) {
+      hookStatus = `${tr("hookOperationFailed")}: ${err}`;
+      hookStatusError = true;
+    } finally {
+      hookBusy = false;
+    }
   }
 
   function hookArgs(): ScheduleChatHookArgs | null {
     const message = hookMessage.trim();
     if (!message) {
       hookStatus = tr("hookMessageRequired");
+      hookStatusError = true;
       return null;
     }
     const args: ScheduleChatHookArgs = { message };
@@ -1897,11 +1972,16 @@
     hookMode =
       (hook.args.recurrence as typeof hookMode | null) ?? (hook.args.run_at ? "run_at" : "delay");
     hookStatus = "";
+    hookStatusError = false;
   }
 
   async function saveHook() {
+    if (hookBusy) return;
+    hookStatus = "";
+    hookStatusError = false;
     const args = hookArgs();
     if (!args) return;
+    hookBusy = true;
     try {
       hookStatus = editingHookId
         ? await desktopOpenAgent.invokeProduct("update_scheduled_chat_hook", {
@@ -1912,7 +1992,10 @@
       resetHookEditor();
       await refreshHooks();
     } catch (err: unknown) {
-      hookStatus = `${err}`;
+      hookStatus = `${tr("hookOperationFailed")}: ${err}`;
+      hookStatusError = true;
+    } finally {
+      hookBusy = false;
     }
   }
 
@@ -2622,6 +2705,15 @@
     set hookRunAt(value) {
       hookRunAt = value;
     },
+    get hookBusy() {
+      return hookBusy;
+    },
+    get hooksLoading() {
+      return hooksLoading;
+    },
+    get hookStatusError() {
+      return hookStatusError;
+    },
     get hookStatus() {
       return hookStatus;
     },
@@ -2687,6 +2779,21 @@
     },
     get memoryAgentEntries() {
       return memoryAgentEntries;
+    },
+    get memoryLoaded() {
+      return memoryLoaded;
+    },
+    get memoryAgentLoading() {
+      return memoryAgentLoading;
+    },
+    get memoryDirty() {
+      return memoryDirty;
+    },
+    get discardMemoryDraft() {
+      return discardMemoryDraft;
+    },
+    get searchAgentMemories() {
+      return searchAgentMemories;
     },
     get memoryAgentScope() {
       return memoryAgentScope;
@@ -3092,10 +3199,22 @@
 >
   <Tabs.Root
     bind:value={selectedSettingsSection}
-    orientation="vertical"
+    orientation={visibleSections.has("lifecycle") && visibleSections.has("schedules")
+      ? "horizontal"
+      : "vertical"}
     activationMode="manual"
     class="settings-body"
   >
+    {#if visibleSections.has("lifecycle") && visibleSections.has("schedules")}
+      <Tabs.List class="management-section-tabs" aria-label={$t("automationMenu")}>
+        <Tabs.Trigger value="lifecycle" class="management-section-tab">
+          {$t("lifecycleAutomation")}
+        </Tabs.Trigger>
+        <Tabs.Trigger value="schedules" class="management-section-tab">
+          {$t("scheduledHooks")}
+        </Tabs.Trigger>
+      </Tabs.List>
+    {/if}
     <SettingsViewTabsPrimary />
     <SettingsViewTabsSecondary />
   </Tabs.Root>

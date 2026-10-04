@@ -122,6 +122,16 @@ deletion. Scope changes reload both views; a missing workspace disables project
 memory actions without falling back to global data. Manual extraction is
 asynchronous and refreshes the list after the runtime accepts the task.
 
+The memory editor tracks the last successfully loaded or saved content. Refresh
+and Agent extraction preserve an unsaved user draft; Save failures retain it,
+and Discard restores that baseline. Scope changes and backup/cleanup operations
+stay disabled until the draft is saved or discarded. An initial read failure
+keeps the editor disabled until a successful retry. Agent search is debounced
+and invalidates previous requests immediately, with separate loading state, so
+filtering never disables or replaces the user editor. Changing scope clears the
+old list, query, and editor baseline before loading the selected scope, and
+invalidates outstanding responses even when that scope has no workspace.
+
 The user-written content of each scope's file is injected into the chat system
 prompt as its own memory section: global memory in every conversation, project
 memory only while that workspace is active, each capped and omitted entirely

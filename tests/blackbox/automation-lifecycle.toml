@@ -102,7 +102,7 @@ value = "15"
 [[step]]
 name = "switch from command to agent message"
 action = "click"
-target = "[role=tabpanel][data-value=lifecycle] [role=radiogroup] button:nth-child(2)"
+target = "[role=tabpanel][data-value=lifecycle] [role=radiogroup] [data-filter=agent_message]"
 
 [[step]]
 name = "fill agent message"
@@ -140,7 +140,7 @@ expected = "Blackbox Lifecycle Hook"
 [[step]]
 name = "switch back to terminal command"
 action = "click"
-target = "[role=tabpanel][data-value=lifecycle] [role=radiogroup] button:first-child"
+target = "[role=tabpanel][data-value=lifecycle] [role=radiogroup] [data-filter=command]"
 
 [[step]]
 name = "fill edited command"

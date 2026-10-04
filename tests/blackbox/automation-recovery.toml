@@ -1,0 +1,114 @@
+[scenario]
+name = "scheduled task validation and pending submission"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "open schedules"
+action = "click"
+target = "[role=tab][data-value=schedules]"
+
+[[step]]
+name = "select an exact execution time"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] [aria-label='执行计划']"
+
+[[step]]
+name = "choose exact time"
+action = "click"
+target = "[role=option][data-value=run_at]"
+
+[[step]]
+name = "enter the task message"
+action = "fill"
+target = "[role=tabpanel][data-value=schedules] textarea"
+value = "Blackbox recovery task"
+
+[[step]]
+name = "enter an invalid execution time"
+action = "fill"
+target = "[role=tabpanel][data-value=schedules] input[placeholder='2026-06-17 18:30']"
+value = "invalid-time"
+
+[[step]]
+name = "submit the invalid task"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] .schedule-form-buttons button:first-child"
+
+[[step]]
+name = "backend rejection appears as an error"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .provider-status.error"
+timeout_ms = 10000
+
+[[step]]
+name = "failed submit retains the message and creates no task"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector("[role=tabpanel][data-value=schedules]");
+  if (panel.querySelector("textarea").value !== "Blackbox recovery task") throw new Error("failure lost the message draft");
+  if (panel.querySelectorAll(".hook-item").length !== 0) throw new Error("invalid task was created");
+  return true;
+})()'''
+
+[[step]]
+name = "refresh the collection while editing"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] .detail-section-header button"
+
+[[step]]
+name = "refresh settles"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .schedule-form-buttons button:first-child:not(:disabled)"
+timeout_ms = 10000
+
+[[step]]
+name = "collection refresh keeps the draft"
+action = "assert-value"
+target = "[role=tabpanel][data-value=schedules] textarea"
+expected = "Blackbox recovery task"
+
+[[step]]
+name = "correct the execution time"
+action = "fill"
+target = "[role=tabpanel][data-value=schedules] input[placeholder='2026-06-17 18:30']"
+value = "2099-12-31 23:59"
+
+[[step]]
+name = "rapid submission is admitted once"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector("[role=tabpanel][data-value=schedules]");
+  const save = panel.querySelector(".schedule-form-buttons button:first-child");
+  save.click();
+  save.click();
+  return true;
+})()'''
+
+[[step]]
+name = "valid task appears"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-actions button:first-child:not(:disabled)"
+timeout_ms = 10000
+
+[[step]]
+name = "exactly one task was created"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector("[role=tabpanel][data-value=schedules]");
+  if (panel.querySelectorAll(".hook-item").length !== 1) throw new Error("rapid submit created duplicate tasks");
+  if (panel.querySelector("textarea").value !== "") throw new Error("successful submit did not reset the editor");
+  return true;
+})()'''
+
+[[step]]
+name = "cancel the fixture task"
+action = "click"
+target = "[role=tabpanel][data-value=schedules] .hook-actions button:last-child"
+
+[[step]]
+name = "fixture task was removed"
+action = "wait"
+selector = "[role=tabpanel][data-value=schedules] .hook-item"
+gone = true
+timeout_ms = 10000

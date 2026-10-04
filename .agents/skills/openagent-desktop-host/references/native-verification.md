@@ -73,6 +73,30 @@ role or hook refreshes; the black-box suite covers durable persistence by
 reloading the whole main window, reopening Automation, and only then asserting
 that the saved hook returned and creating a scheduled hook.
 
+Automation's compact section tabs keep the collection and editor mounted while
+switching. The suite covers rejected scheduled-task submissions retaining their
+draft, refresh preserving that draft, and rapid submission creating one task.
+Visual checks capture both the lifecycle editor and scheduled-task form in all
+light/dark and Chinese/English combinations.
+
+## Memory management coverage
+
+Run `bun run test:blackbox:memory` against the same isolated debug instance and
+`OPENAGENT_HOME` as the app. It drives editing, refresh, discard, save, search,
+scope changes, and cleanup cancellation. The runner temporarily puts an empty
+directory at the fixture's global `memory.md` path to exercise a real write
+failure, restores the saved file in `finally`, then verifies a successful retry.
+Use a dedicated fixture; the runner refuses installed release data.
+
+On Windows, both management runners accept `BLACKBOX_NATIVE_WINDOW_ID` with
+the verified main window HWND. Native capture requires Python with Pillow,
+restores the window, temporarily raises it for an unobscured screen capture,
+and restores its original topmost state. This avoids WebView screenshots that
+omit composited settings content. Keep artifacts in the temporary directory;
+set `BLACKBOX_ARTIFACT_DIR` to choose its exact location. Verify compact and
+expanded window layouts and keep the user-memory Save footer visible when the
+backup/cleanup disclosure is expanded.
+
 ## Agent plugin sidebar coverage
 
 The committed `tests/blackbox/plugin-sidebar.toml` scenario drives the demo
