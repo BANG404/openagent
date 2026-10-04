@@ -23,6 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Initialize pinned plugin sources
+        run: git submodule update --init --recursive -- plugins
+
       - name: Resolve pinned SDK revision
         id: sdk
         shell: bash

@@ -1,31 +1,40 @@
 # Local plugin development and acceptance
 
-## Explicit directory index
+## Pinned source checkouts
 
-Before plugin work, resolve the checkout through the OpenAgent checkout's local
-`.env`. `OPENAGENT_PLUGIN_DIRS` is a JSON object whose keys are manifest plugin
-names and whose values are absolute paths or paths relative to that `.env` file.
-Use forward slashes for Windows paths. `.env.example` contains the standard
-packages; arbitrary third-party IDs use the same mapping.
+Plugin source checkouts live under `plugins/`. Goal, Graph, Chat Groups, Cua
+Driver, and Message Board are independent Git submodules: `.gitmodules` records
+their repositories and the parent gitlinks pin their exact commits. Initialize
+them in every checkout or isolated worktree before using the development tools:
 
-```dotenv
-OPENAGENT_PLUGIN_DIRS='{"goal":"../openagent-goal","my-plugin":"D:/Work/my-plugin"}'
+```bash
+git submodule update --init --recursive -- plugins
+bun run plugin:dev
 ```
 
-Run `bun run plugin:dev` to validate and list configured directories and manifest
-versions, `bun run plugin:dev goal` for one plugin, or
-`bun run plugin:dev --path goal` for only its installation path. The command
-reads only the index field and does not print other `.env` values. Process
-`OPENAGENT_PLUGIN_DIRS` overrides the file; do not dump the environment.
-Missing mappings, nonexistent directories, and manifest name mismatches fail
-explicitly. Ask the developer for the missing path instead of listing sibling
-directories, scanning disks, or guessing from repository names.
+The tracked `plugins/dev-index.json` maps manifest plugin IDs to directories
+relative to that file. Paths must remain inside its directory, including through
+symlinks or junctions. The index is explicit: unrelated folders are never scanned
+or enabled. Add a third-party source under `plugins/` and deliberately add its
+ID/path to the index; do not add machine-specific paths or secrets.
 
-An isolated worktree has no copy of the developer's ignored `.env`. Use
-`bun run plugin:dev --env D:/Projects/openagent/.env` for lookup, or set
-`OPENAGENT_PLUGIN_ENV_FILE` to that file for scripts. Relative paths still resolve
-beside the selected file. Do not copy secrets or local paths into tracked files.
-Read the resolved plugin repository's own instructions before changing it.
+`bun run plugin:dev` validates and lists indexed paths and manifest versions;
+`bun run plugin:dev goal` selects one package, and
+`bun run plugin:dev --path goal` prints only its installation path. The default
+index is resolved beside the script, independently of the current directory.
+`--index <file>` deliberately selects another index with the same containment
+rules. Neither `.env` nor `OPENAGENT_PLUGIN_DIRS` / `OPENAGENT_PLUGIN_ENV_FILE`
+participates in lookup. Old plugin path entries can be removed from local `.env`
+without changing provider or tracing credentials. Missing mappings, empty or
+uninitialized submodules, and manifest identity/version mismatches fail
+explicitly; initialize the pinned sources rather than searching sibling folders.
+
+Read each plugin repository's own instructions before changing it. Commit and
+explicitly publish accepted plugin source changes in that repository before
+advancing the parent's gitlink for reproducible remote clones. Do not treat a
+local Git commit as published or silently replace an unpublished candidate with
+an older upstream version. Preserve independent sibling checkouts during this
+directory migration; they may contain local commits or developer work.
 
 ## Association, tests, and use
 
@@ -38,9 +47,9 @@ Do not overwrite a developer's already installed package without authorization.
 
 `bun run test:blackbox:plugin-functionality` reads the same index and validates
 all selected sources before touching fixture settings. Set `BLACKBOX_PLUGIN_IDS`
-to select Goal, Graph, or Chat Groups, and use `OPENAGENT_PLUGIN_ENV_FILE` from
-worktrees. Reports include the exact resolved directories and manifest versions.
-`OFFICIAL_PLUGIN_CHECKOUTS` is no longer used; configure each directory explicitly.
+to select Goal, Graph, or Chat Groups. Every worktree uses its own initialized
+plugin submodules and tracked index. Reports include the exact resolved
+directories and manifest versions.
 Run package-owned validation and the applicable native black-box scenario;
 retain report paths and record tested Git revisions. Index validation alone
 does not prove Runtime functionality or qualify a published release.

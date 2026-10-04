@@ -107,8 +107,9 @@ WebView screenshot, which does not qualify native layout.
 
 For Goal, Graph, and Chat Groups functional qualification, run
 `bun run test:blackbox:plugin-functionality` against the same isolated window.
-Resolve each checkout through the explicit `.env` index described in
-[local development](local-development.md); worktrees set `OPENAGENT_PLUGIN_ENV_FILE`.
+Resolve each checkout through the tracked `plugins/dev-index.json` described in
+[local development](local-development.md); initialize the pinned plugin submodules
+in the qualification worktree.
 This exercises installed package commands and tools with
 a deterministic local model, including Goal completion, Graph child execution,
 group membership, message persistence, and private Agent submission. The runner

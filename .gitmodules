@@ -1,3 +1,18 @@
 [submodule "sdk"]
 	path = sdk
 	url = git@github.com:BANG404/openagent-sdk.git
+[submodule "plugins/goal"]
+	path = plugins/goal
+	url = https://github.com/BANG404/openagent-goal.git
+[submodule "plugins/graph"]
+	path = plugins/graph
+	url = https://github.com/BANG404/openagent-graph.git
+[submodule "plugins/chat-groups"]
+	path = plugins/chat-groups
+	url = https://github.com/BANG404/openagent-chat-groups.git
+[submodule "plugins/cua-driver"]
+	path = plugins/cua-driver
+	url = https://github.com/BANG404/openagent-cua-driver.git
+[submodule "plugins/message-board"]
+	path = plugins/message-board
+	url = https://github.com/BANG404/message-board.git

@@ -19,6 +19,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Initialize pinned plugin sources
+        run: git submodule update --init --recursive -- plugins
+
       - name: Resolve pinned SDK revision
         id: sdk
         shell: bash

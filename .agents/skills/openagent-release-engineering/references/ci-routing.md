@@ -44,6 +44,14 @@ two verification routes:
   automation test selection includes OWT batch and Codex launcher contracts;
   keep this list aligned when removing or replacing delivery tooling.
 
+Plugin gitlinks, `plugins/` source indexes, and `.gitmodules` changes select
+automation and frontend checks, including Message Board integration coverage.
+Frontend and automation jobs initialize only the pinned `plugins` submodules
+before validation; private SDK checkout keeps its separate token and fork route.
+Publish accepted package commits before advancing their parent gitlinks so clean
+CI checkouts can retrieve the pinned revisions. Plugin source changes alone do
+not select native or embedding checks.
+
 The always-present `CI / Required` job remains the authoritative aggregate for
 each CI invocation. For pull requests, a trusted `workflow_run` reporter copies
 only the latest conclusion to `Required PR Head` on the immutable head SHA.

@@ -83,6 +83,21 @@ describe("CI module classification", () => {
     });
   });
 
+  test("qualifies plugin gitlinks and the portable index without native SDK checks", () => {
+    for (const path of [
+      ".gitmodules",
+      "plugins/goal",
+      "plugins/message-board",
+      "plugins/dev-index.json",
+    ]) {
+      expect(classifyChangedModules([path])).toEqual({
+        ...nothing,
+        automation: true,
+        frontend: true,
+      });
+    }
+  });
+
   test("isolates embedding resource checks", () => {
     expect(
       classifyChangedModules(["src-tauri/resources/models/all-MiniLM-L6-v2-q/config.json"]),

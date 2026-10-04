@@ -53,6 +53,9 @@ export function classifyChangedModules(files, forceAll = false) {
   const sharedDependencyFiles = new Set(["package.json", "bun.lock"]);
   const nativeWorkflow = ".github/workflows/check-native.yml";
   const sdkChanged = normalized.includes("sdk");
+  const pluginSourcesChanged = normalized.some(
+    (file) => file === ".gitmodules" || file.startsWith("plugins/"),
+  );
   const sharedDependenciesChanged = normalized.some((file) => sharedDependencyFiles.has(file));
   const nativeWorkflowChanged = normalized.includes(nativeWorkflow);
   const nativeSourceChanged = normalized.some(
@@ -92,6 +95,7 @@ export function classifyChangedModules(files, forceAll = false) {
 
   const automation =
     all ||
+    pluginSourcesChanged ||
     normalized.some((file) =>
       matchesPath(file, [
         ".agents/skills/deliver-via-pr/",
@@ -107,6 +111,7 @@ export function classifyChangedModules(files, forceAll = false) {
 
   const frontend =
     all ||
+    pluginSourcesChanged ||
     normalized.some((file) =>
       matchesPath(file, [
         ".github/workflows/check-frontend.yml",

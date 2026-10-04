@@ -227,9 +227,9 @@ shows its first rows instead of the row the pass asserted.
 ## Goal approval and cancellation
 
 Goal approval and cancellation have a deterministic native scenario:
-`bun tauri dev --multi-instance plugin-lifecycle`, then set
-`OPENAGENT_PLUGIN_ENV_FILE` to the `.env` directory index documented in the
-plugin owner's local-development reference and run
+`bun tauri dev --multi-instance plugin-lifecycle`, then initialize the plugin
+submodules and use the tracked `plugins/dev-index.json` documented in the
+plugin owner's local-development reference. Run
 `bun run test:blackbox:goal-approval`. Set `TAURI_PILOT_SOCKET` explicitly when
 another dev window is open. The runner installs the local Goal checkout only
 in the isolated home, supplies a local Ollama endpoint, and verifies pending
